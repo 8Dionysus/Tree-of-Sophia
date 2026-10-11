@@ -5,12 +5,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant};
 
-use postgres::{IsolationLevel, Row, Transaction};
+use postgres::{GenericClient, IsolationLevel, Row, Transaction};
 use serde::Serialize;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::SegmentStore;
 
 use super::{DurableError, DurablePgCoordinator, DurableResult, as_i64, as_u64};
+
+#[path = "durable_source_text_search.rs"]
+pub(crate) mod durable_source_text_search;
 
 const MAX_PROJECTION_TIMEOUT: Duration = Duration::from_secs(300);
 const MAX_DOMAIN_BYTES: usize = 1024;
@@ -20,7 +23,9 @@ const MAX_DOCUMENT_ID_BYTES: usize = 256;
 const MAX_SHORT_TEXT_BYTES: usize = 16 * 1024;
 const MAX_QUERY_BYTES: usize = 4096;
 const MAX_PROJECTION_PATH_BYTES: usize = 4096;
-const MAX_QUERY_RESULTS: usize = 50;
+// Keep the projection admission ceiling aligned with the shared source-text
+// QRY page contract; the legacy search remains independently ranked.
+const MAX_QUERY_RESULTS: usize = 100;
 
 /// Immutable owner-selected extractor identity. `source_contract` must match
 /// the current CMD domain contract; changing any extractor behavior requires
@@ -360,6 +365,8 @@ struct ConsumerState {
     observed_schema_profile_digest: Option<String>,
     observed_source_generation: Option<i64>,
     observed_source_complete: Option<bool>,
+    source_text_search_profile: Option<String>,
+    source_text_search_profile_version: Option<i32>,
 }
 
 impl ConsumerState {
@@ -377,6 +384,8 @@ impl ConsumerState {
             observed_schema_profile_digest: row.get("observed_schema_profile_digest"),
             observed_source_generation: row.get("observed_source_generation"),
             observed_source_complete: row.get("observed_source_complete"),
+            source_text_search_profile: row.get("source_text_search_profile"),
+            source_text_search_profile_version: row.get("source_text_search_profile_version"),
         }
     }
 
@@ -448,6 +457,10 @@ enum PublishOutcome {
 enum ProjectionReadGate {
     Current {
         through_seq: u64,
+        rights_version: u64,
+        audit_generation: u64,
+        source_text_search_profile: Option<String>,
+        source_text_search_profile_version: Option<i32>,
     },
     Pending {
         through_seq: u64,
@@ -460,10 +473,20 @@ enum ProjectionReadGate {
     },
 }
 
+/// The exact source/projection cut held while a disclosure packet is being
+/// rendered. The values are captured by the shared projection gate; callers
+/// must not construct a second currentness model from raw SQL columns.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectionDisclosureCut {
+    pub(crate) through_seq: u64,
+    pub(crate) rights_version: u64,
+    pub(crate) audit_generation: u64,
+}
+
 impl ProjectionReadGate {
     fn status(self) -> DurableProjectionStatus {
         match self {
-            Self::Current { through_seq } => DurableProjectionStatus::Current { through_seq },
+            Self::Current { through_seq, .. } => DurableProjectionStatus::Current { through_seq },
             Self::Pending {
                 through_seq,
                 head_seq,
@@ -680,7 +703,7 @@ impl DurablePgCoordinator {
         set_local_timeouts(&mut tx, limits.statement_timeout)?;
         let through_seq =
             match read_projection_gate(&mut tx, domain, consumer_id, selected_profile)? {
-                ProjectionReadGate::Current { through_seq } => through_seq,
+                ProjectionReadGate::Current { through_seq, .. } => through_seq,
                 ProjectionReadGate::Pending {
                     through_seq,
                     head_seq,
@@ -750,6 +773,31 @@ impl DurablePgCoordinator {
             .collect::<DurableResult<Vec<_>>>()?;
         tx.commit()?;
         Ok(DurableProjectionSearch::Current { hits, through_seq })
+    }
+
+    /// Execute the separately versioned source-text v1 operation.  The child
+    /// adapter keeps the projection gate transaction open through candidate
+    /// admission and QRY's final page construction.
+    pub(crate) fn search_source_text(
+        &mut self,
+        domain: &str,
+        consumer_id: &str,
+        profile: &DurableProjectionProfile,
+        request: tos_query::source_text_search::SourceTextSearchRequest,
+        limits: DurableProjectionLimits,
+        deadline: Instant,
+        probe: &dyn tos_query::AbortProbe,
+    ) -> DurableResult<durable_source_text_search::SourceTextProjectionOutcome> {
+        durable_source_text_search::search_source_text(
+            self,
+            domain,
+            consumer_id,
+            profile,
+            request,
+            limits,
+            deadline,
+            probe,
+        )
     }
 
     fn stage_event<E: DurableProjectionExtractor + ?Sized>(
@@ -1344,14 +1392,17 @@ fn ensure_consumer(
     let profile_digest = profile.source_contract.to_hex();
     tx.execute(
         "INSERT INTO cmd2_projection_consumer(domain,consumer_id,profile_id,profile_version,
-            source_contract_digest,cursor_seq)
-         VALUES($1,$2,$3,$4,$5,0) ON CONFLICT(domain,consumer_id) DO NOTHING",
+            source_contract_digest,source_text_search_profile,
+            source_text_search_profile_version,cursor_seq)
+         VALUES($1,$2,$3,$4,$5,$6,$7,0) ON CONFLICT(domain,consumer_id) DO NOTHING",
         &[
             &domain,
             &consumer_id,
             &profile.id,
             &profile.version.to_string(),
             &profile_digest,
+            &durable_source_text_search::SOURCE_TEXT_SEARCH_PROFILE,
+            &durable_source_text_search::SOURCE_TEXT_SEARCH_PROFILE_VERSION,
         ],
     )?;
     let row = tx.query_one(
@@ -1371,8 +1422,8 @@ fn ensure_consumer(
     Ok(())
 }
 
-fn read_projection_gate(
-    tx: &mut Transaction<'_>,
+fn read_projection_gate<C: GenericClient>(
+    tx: &mut C,
     domain: &str,
     consumer_id: &str,
     selected_profile: &DurableProjectionProfile,
@@ -1421,7 +1472,13 @@ fn read_projection_gate(
         });
     }
     if through_seq == 0 && head_seq == 0 && consumer.observed_head_seq.is_none() {
-        return Ok(ProjectionReadGate::Current { through_seq });
+        return Ok(ProjectionReadGate::Current {
+            through_seq,
+            rights_version: as_u64(snapshot.rights_version)?,
+            audit_generation: as_u64(snapshot.audit_generation)?,
+            source_text_search_profile: consumer.source_text_search_profile,
+            source_text_search_profile_version: consumer.source_text_search_profile_version,
+        });
     }
     if !consumer.observed_state_matches(&snapshot) {
         return Ok(ProjectionReadGate::Stale {
@@ -1430,7 +1487,53 @@ fn read_projection_gate(
             reason: "projection currentness fence differs",
         });
     }
-    Ok(ProjectionReadGate::Current { through_seq })
+    Ok(ProjectionReadGate::Current {
+        through_seq,
+        rights_version: as_u64(snapshot.rights_version)?,
+        audit_generation: as_u64(snapshot.audit_generation)?,
+        source_text_search_profile: consumer.source_text_search_profile,
+        source_text_search_profile_version: consumer.source_text_search_profile_version,
+    })
+}
+
+/// Recheck the shared currentness/rights/profile gate while the caller's
+/// transaction remains open. This is the one owner path for disclosure
+/// rechecks; it deliberately reuses `read_projection_gate` so rule, schema,
+/// source-generation and observed-state fences cannot drift from projection
+/// reads.
+pub(crate) fn recheck_source_text_disclosure<C: GenericClient>(
+    client: &mut C,
+    domain: &str,
+    consumer_id: &str,
+    selected_profile: &DurableProjectionProfile,
+    expected: ProjectionDisclosureCut,
+) -> DurableResult<()> {
+    let gate = read_projection_gate(client, domain, consumer_id, selected_profile)?;
+    let ProjectionReadGate::Current {
+        through_seq,
+        rights_version,
+        audit_generation,
+        source_text_search_profile,
+        source_text_search_profile_version,
+    } = gate
+    else {
+        return Err(DurableError::Conflict(
+            "source-text disclosure binding changed",
+        ));
+    };
+    if through_seq != expected.through_seq
+        || rights_version != expected.rights_version
+        || audit_generation != expected.audit_generation
+        || source_text_search_profile.as_deref()
+            != Some(durable_source_text_search::SOURCE_TEXT_SEARCH_PROFILE)
+        || source_text_search_profile_version
+            != Some(durable_source_text_search::SOURCE_TEXT_SEARCH_PROFILE_VERSION)
+    {
+        return Err(DurableError::Conflict(
+            "source-text disclosure binding changed",
+        ));
+    }
+    Ok(())
 }
 
 fn read_frontier_and_events(
@@ -1888,10 +1991,14 @@ fn publish_event(
     for staged_document in &staged.documents {
         let document = &staged_document.document;
         let aliases_text = document.aliases.join(" ");
+        let normalized = durable_source_text_search::normalize_document(document, limits)?;
+        let normalized_aliases_text = normalized.aliases.join("\u{001f}");
         tx.execute(
             "INSERT INTO cmd2_projection_document(domain,consumer_id,source_path,document_id,
-                source_revision,title,body,aliases,aliases_text,identity,document_type)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+                source_revision,title,body,aliases,aliases_text,identity,document_type,
+                source_text_identity_norm,source_text_title_norm,source_text_aliases_norm,
+                source_text_body_norm,source_text_norm)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)",
             &[
                 &domain,
                 &consumer_id,
@@ -1904,6 +2011,11 @@ fn publish_event(
                 &aliases_text,
                 &document.identity,
                 &document.document_type,
+                &normalized.identity,
+                &normalized.title,
+                &normalized_aliases_text,
+                &normalized.body,
+                &normalized.all,
             ],
         )?;
         for dependency_path in &document.dependency_paths {
@@ -1952,7 +2064,10 @@ fn publish_event(
     Ok(PublishOutcome::Applied(event.commit_seq))
 }
 
-fn lock_domain_snapshot(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<DomainSnapshot> {
+fn lock_domain_snapshot<C: GenericClient>(
+    tx: &mut C,
+    domain: &str,
+) -> DurableResult<DomainSnapshot> {
     let audit = tx
         .query_opt(
             "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",

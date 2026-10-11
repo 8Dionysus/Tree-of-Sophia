@@ -1,5 +1,6 @@
 import {test,expect} from 'vitest';
-import {findInParagraphs} from './search.mjs';
+import './occurrences-wasm-test-runtime.mjs';
+import {findInParagraphs} from './occurrences-rust.mjs';
 
 test('search treats metacharacters as literal text and returns every nonoverlapping occurrence',()=>{
   expect(findInParagraphs(['a.b aXb a.b','[x] \\ * + ? (a) ^ $ {1} |'], 'a.b')).toEqual({matches:[{paragraph:0,index:0,length:3},{paragraph:0,index:8,length:3}],truncated:false});
@@ -13,6 +14,19 @@ test('Cyrillic and Unicode case folding preserve UTF-16 display offsets and orig
   expect(paragraphs[0]).toBe('😀 Мысль, МЫСЛЬ; мысль');
 });
 
+test('Unicode simple folding follows /iu without full-fold expansion or normalization',()=>{
+  expect(findInParagraphs(['ss','ß','ẞ'],'ß')).toEqual({matches:[
+    {paragraph:1,index:0,length:1},{paragraph:2,index:0,length:1},
+  ],truncated:false});
+  expect(findInParagraphs(['ß'],'ss').matches).toEqual([]);
+  expect(findInParagraphs(['i'],'İ').matches).toEqual([]);
+  for(const [text,query] of [
+    ['ſ','S'],['K','k'],['ς','Σ'],['𐐀','𐐨'],['ᾈ','ᾀ'],['ΐ','ΐ'],
+  ])expect(findInParagraphs([text],query).matches).toEqual([{paragraph:0,index:0,length:text.length}]);
+  expect(findInParagraphs(['\ud800x'],'\ud800').matches).toEqual([{paragraph:0,index:0,length:1}]);
+  expect(findInParagraphs(['a e\u0301'],'é').matches).toEqual([]);
+});
+
 test('limit reports truncation only after observing one additional result, also across paragraphs',()=>{
   expect(findInParagraphs(['a','a'],'a',{limit:2})).toEqual({matches:[{paragraph:0,index:0,length:1},{paragraph:1,index:0,length:1}],truncated:false});
   expect(findInParagraphs(['a a','a'],'a',{limit:2})).toEqual({matches:[{paragraph:0,index:0,length:1},{paragraph:0,index:2,length:1}],truncated:true});
@@ -20,9 +34,10 @@ test('limit reports truncation only after observing one additional result, also 
   expect(findInParagraphs(['a'.repeat(501)],'a').truncated).toBe(true);
 });
 
-test('empty queries return no matches; nonempty query spacing and decomposed text are not normalized',()=>{
-  for(const query of ['','  ','\n\t'])expect(findInParagraphs(['anything'],query)).toEqual({matches:[],truncated:false});
+test('empty queries use JavaScript trim whitespace; nonempty spacing is preserved',()=>{
+  for(const query of ['','  ','\n\t','\uFEFF'])expect(findInParagraphs(['anything'],query)).toEqual({matches:[],truncated:false});
   expect(findInParagraphs(['a aa a '],' a ').matches).toEqual([{paragraph:0,index:4,length:3}]);
+  expect(findInParagraphs(['\u0085'],'\u0085').matches).toEqual([{paragraph:0,index:0,length:1}]);
   expect(findInParagraphs(['e\u0301'],'é').matches).toEqual([]);
   expect(findInParagraphs(['first','second'],'first\nsecond').matches).toEqual([]);
 });

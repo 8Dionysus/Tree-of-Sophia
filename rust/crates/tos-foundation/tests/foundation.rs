@@ -4,6 +4,7 @@ use tos_foundation::{
     LogicalRecordRefV1, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1,
     canonical_count_v1, emit_json_profile, emit_preserved_json, parse_json,
     python_casefold_unicode16_v1, python_lower_unicode16_v1, python_strip_unicode16_v1,
+    unicode_simple_casefold_scalar16_v1,
 };
 
 #[test]
@@ -590,6 +591,23 @@ fn unicode16_full_casefold_matches_python_default_and_bounds() {
             FoundationErrorCode::BudgetExceeded
         );
     }
+}
+
+#[test]
+fn unicode16_simple_casefold_matches_ecmascript_unicode_ignore_case_scalars() {
+    let fold = unicode_simple_casefold_scalar16_v1;
+    assert_eq!(fold('A' as u32), 'a' as u32);
+    assert_eq!(fold('Σ' as u32), 'σ' as u32);
+    assert_eq!(fold('ς' as u32), 'σ' as u32);
+    assert_eq!(fold('ſ' as u32), 's' as u32);
+    assert_eq!(fold('K' as u32), 'k' as u32);
+    assert_eq!(fold('𐐀' as u32), '𐐨' as u32);
+    assert_eq!(fold('ẞ' as u32), 'ß' as u32);
+    assert_eq!(fold('ß' as u32), 'ß' as u32);
+    assert_eq!(fold('İ' as u32), 'İ' as u32);
+    assert_eq!(fold('\u{1f88}' as u32), '\u{1f80}' as u32);
+    assert_eq!(fold('\u{1fd3}' as u32), '\u{0390}' as u32);
+    assert_eq!(fold(0xd800), 0xd800);
 }
 
 #[test]

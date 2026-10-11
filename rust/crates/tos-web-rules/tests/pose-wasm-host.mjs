@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {validatePose} from '../../../../access/web/src/observatory/view-state.mjs';
+import {validatePoseLegacyOracle} from '../../../../access/web/src/observatory/view-state-legacy-oracle.test-support.mjs';
 import {installPoseRules} from '../../../../access/web/src/observatory/view-state-rust.mjs';
 import {capturePlace,readPlaces,savePlace,readResume,RESUME_KEY} from '../../../../access/web/src/observatory/place-model.mjs';
 
@@ -20,8 +21,10 @@ const invalid=[
   {...pose(),vertices:[{...pose().vertices[0],target:[1,2,3,4]}]},
   {...pose(),selectedId:'😀'.repeat(513)},
 ];
-const oracle=valid.map(value=>validatePose(structuredClone(value)));
-for(const value of invalid)assert.throws(()=>validatePose(structuredClone(value)));
+const oracle=valid.map(value=>validatePoseLegacyOracle(structuredClone(value)));
+for(const value of invalid)assert.throws(()=>validatePoseLegacyOracle(structuredClone(value)));
+assert.throws(()=>validatePose(structuredClone(valid[0])),
+  'the product adapter has no JavaScript fallback before the owner rule is installed');
 
 const rules=await import(pathToFileURL(bindingPath).href);
 await rules.default({module_or_path:await readFile(wasmPath)});

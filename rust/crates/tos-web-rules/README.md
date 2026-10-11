@@ -4,6 +4,28 @@
 DOM, Fetch, storage, platform I/O and WebMCP registration remain host duties.
 These private bindings are not source selection, rights, review or canon.
 
+## Selected source-text search
+
+`source_text_search_wasm_v1` is a thin parity adapter over the shared
+`tos-query::source_text_search` kernel. It accepts one explicit bounded
+candidate packet, including its completeness bit and selected profile/cut
+binding; its fixed admission caps cannot be raised by the caller. It does not
+prove that the packet is complete, current, or disclosable. The live browser
+operation sends only its query to `POST /api/source-text/search`; the selected
+PG owner retains the rights/currentness fence and returns the bounded rendered
+page unchanged. The WASM parity fixture is not a live or offline source-search
+consumer.
+
+## Reader occurrences
+
+`reader_occurrences_wasm_v1` owns the bounded literal search used by the
+constructor reader. Its `{paragraphs,query,limit?}` request returns nonoverlap
+matches with JavaScript-compatible UTF-16 offsets. It uses Unicode default
+simple folding and the exact JavaScript trim whitespace set without text
+normalization; the host only marshals values and applies the returned ranges.
+The live constructor and standalone reader fixture install this rule from their
+already initialized `tos_web_rules` module.
+
 ## Constructor authoring session
 
 `BrowserConstructorSession` owns validation of the exact library fingerprint,

@@ -2,17 +2,18 @@
 //! software installation neither creates a source domain nor selects its data.
 
 use crate::{
-    DurablePgCoordinator, DurableProjectionDocument, DurableProjectionExtractor,
+    DurableError, DurablePgCoordinator, DurableProjectionDocument, DurableProjectionExtractor,
     DurableProjectionLimits, DurableProjectionProfile, DurableProjectionSource, DurableResult,
 };
 use base64::Engine;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::io::Read;
+use std::io::{Cursor, Read, Write};
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, RelativePath};
+use tos_query::{AbortProbe, AbortReason};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 
 pub const HELP: &str =
@@ -20,7 +21,7 @@ pub const HELP: &str =
 Private connection: TOS_SOURCE_PG_URL, PostgreSQL 16, numeric TCP loopback.
 Selection: tos_source_projection_selection_v1; existing domain, exact source
 contract digest, consumer, private STO root and explicit store limits.
-Requests: init, apply, status, search, exact-source. Init installs derived tables only.
+Requests: init, apply, status, search, search-text, exact-source. Init installs derived tables only.
 Apply resumes the durable outbox cursor; search uses selected text token matching.
 Profiles: tos_source_selected_text_v1 (direct fields),
 tos_source_selected_text_v2 (also bound Agent source-copy HumanForms).
@@ -34,7 +35,10 @@ struct Selection {
     schema_version: String,
     domain: String,
     source_contract_sha256: String,
-    consumer: String,
+    #[serde(default)]
+    consumer: Option<String>,
+    #[serde(default)]
+    consumer_id: Option<String>,
     profile: String,
     store_root: String,
     store_limits: StoreLimits,
@@ -54,9 +58,144 @@ struct StoreLimits {
 enum Request {
     Init,
     Status,
-    Apply { max_events: usize },
-    Search { query: String, limit: usize },
-    ExactSource { source_path: String, revision: u64 },
+    Apply {
+        max_events: usize,
+    },
+    Search {
+        query: String,
+        limit: usize,
+    },
+    SearchText {
+        query: String,
+        limit: usize,
+        #[serde(default)]
+        document_types: Vec<String>,
+        #[serde(default)]
+        source_paths: Vec<String>,
+        #[serde(default)]
+        cursor: Option<String>,
+    },
+    ExactSource {
+        source_path: String,
+        revision: u64,
+    },
+}
+
+impl Selection {
+    fn selected_consumer(&self) -> Result<&str, &'static str> {
+        if let (Some(legacy), Some(selected)) =
+            (self.consumer.as_deref(), self.consumer_id.as_deref())
+            && legacy != selected
+        {
+            return Err("projection consumer selectors differ");
+        }
+        let consumer = self
+            .consumer_id
+            .as_deref()
+            .or(self.consumer.as_deref())
+            .ok_or("projection consumer_id required")?;
+        if consumer.is_empty() || consumer.len() > 256 {
+            return Err("unsupported projection consumer_id");
+        }
+        Ok(consumer)
+    }
+}
+
+/// Typed result returned by the selected PG source-text owner.  The caller
+/// may render only `Current`; every other state remains explicit, including
+/// semantic QRY rejection codes.
+pub enum SourceTextSearchResult {
+    Current {
+        through_seq: u64,
+        page: tos_query::source_text_search::SourceTextSearchPage,
+        disclosure: SourceTextDisclosureGuard,
+    },
+    Pending {
+        through_seq: u64,
+        head_seq: u64,
+    },
+    Stale {
+        through_seq: Option<u64>,
+        head_seq: u64,
+        reason: &'static str,
+    },
+    Budget {
+        through_seq: u64,
+        head_seq: u64,
+        reason: &'static str,
+    },
+    Rejected {
+        through_seq: u64,
+        head_seq: u64,
+        code: tos_query::source_text_search::SourceTextSearchErrorCode,
+        reason: &'static str,
+    },
+}
+
+/// Owner-held PostgreSQL disclosure fence for one current source-text page.
+///
+/// The guard owns a live transaction whose `FOR SHARE` locks cover the domain,
+/// audit fence and selected consumer.  A source rights revoke or head advance
+/// therefore waits for the final transport recheck; a revoke/regrant that
+/// happened in the hand-off gap is rejected by the captured versions. The
+/// recheck delegates to the shared projection gate, whose observed-state
+/// fields cover rule, schema, contract and source-generation changes without
+/// maintaining a second raw-column binding snapshot here.
+pub struct SourceTextDisclosureGuard {
+    client: Option<postgres::Client>,
+    domain: String,
+    consumer_id: String,
+    profile: DurableProjectionProfile,
+    through_seq: u64,
+    rights_version: u64,
+    audit_generation: u64,
+}
+
+impl SourceTextDisclosureGuard {
+    /// Recheck the exact currentness and rights binding immediately before the
+    /// transport flush. The transaction remains open after this call.
+    pub fn recheck(&mut self) -> DurableResult<()> {
+        let client = self
+            .client
+            .as_mut()
+            .ok_or(DurableError::Refused("source-text disclosure guard closed"))?;
+        crate::durable_adapter::durable_projection::recheck_source_text_disclosure(
+            client,
+            &self.domain,
+            &self.consumer_id,
+            &self.profile,
+            crate::durable_adapter::durable_projection::ProjectionDisclosureCut {
+                through_seq: self.through_seq,
+                rights_version: self.rights_version,
+                audit_generation: self.audit_generation,
+            },
+        )
+    }
+}
+
+impl Drop for SourceTextDisclosureGuard {
+    fn drop(&mut self) {
+        if let Some(mut client) = self.client.take() {
+            let _ = client.batch_execute("ROLLBACK");
+        }
+    }
+}
+
+struct CliAbortProbe<'a> {
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+
+impl AbortProbe for CliAbortProbe<'_> {
+    fn reason(&self) -> Option<AbortReason> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            Some(AbortReason::Cancelled)
+        } else if Instant::now() >= self.deadline {
+            Some(AbortReason::DeadlineExceeded)
+        } else {
+            None
+        }
+    }
 }
 
 /// Pure declared source fields; the worker supplies their exact source locator.
@@ -167,7 +306,7 @@ fn projection_documents(
         .collect()
 }
 
-fn read_request(input: impl Read) -> Result<Request, &'static str> {
+fn read_request_bytes(mut input: impl Read) -> Result<Vec<u8>, &'static str> {
     let mut bytes = Vec::new();
     input
         .take(65_537)
@@ -176,9 +315,17 @@ fn read_request(input: impl Read) -> Result<Request, &'static str> {
     if bytes.len() > 65_536 {
         return Err("request too large");
     }
+    Ok(bytes)
+}
+
+fn read_request(input: impl Read) -> Result<Request, &'static str> {
+    let bytes = read_request_bytes(input)?;
     serde_json::from_slice(&bytes).map_err(|_| "invalid projection request")
 }
 
+/// Value-returning compatibility API for non-disclosing projection operations.
+/// Search-text is intentionally refused here because a returned `Value` cannot
+/// retain its disclosure transaction through the caller's final flush.
 pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static str> {
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(60);
@@ -207,11 +354,10 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
     if selection.schema_version != "tos_source_projection_selection_v1"
         || selection.domain.is_empty()
         || selection.domain.len() > 1024
-        || selection.consumer.is_empty()
-        || selection.consumer.len() > 256
     {
         return Err("unsupported projection selection");
     }
+    let consumer_id = selection.selected_consumer()?;
     let source_contract = Digest256::from_hex(&selection.source_contract_sha256)
         .map_err(|_| "invalid source contract digest")?;
     let profile = DurableProjectionProfile {
@@ -234,7 +380,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
             let result = db
                 .search_projection(
                     &selection.domain,
-                    &selection.consumer,
+                    consumer_id,
                     &profile,
                     &query,
                     limit,
@@ -245,11 +391,12 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
                 json!({"schema_version":"tos_source_projection_search_v1", "profile":profile.id, "result":result}),
             )
         }
+        Request::SearchText { .. } => Err("source-text search requires the streaming writer route"),
         Request::Status => {
             let result = db
                 .projection_status(
                     &selection.domain,
-                    &selection.consumer,
+                    consumer_id,
                     &profile,
                     Duration::from_secs(15),
                 )
@@ -277,7 +424,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
                 .apply_projection_batch(
                     &store,
                     &selection.domain,
-                    &selection.consumer,
+                    consumer_id,
                     &profile,
                     extractor,
                     limits,
@@ -330,6 +477,452 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
     }
 }
 
+/// Native owner entry point. Search-text uses this writer route so its
+/// disclosure guard remains alive through page serialization, the actual
+/// write, flush, and a final binding check. The legacy `run` value API refuses
+/// that operation instead of returning an unfenced page.
+pub fn run_to_writer(
+    selection_path: &Path,
+    input: impl Read,
+    output: &mut impl Write,
+) -> Result<(), &'static str> {
+    let request_bytes = read_request_bytes(input)?;
+    let request: Request =
+        serde_json::from_slice(&request_bytes).map_err(|_| "invalid projection request")?;
+    if matches!(&request, Request::SearchText { .. }) {
+        let Request::SearchText {
+            query,
+            limit,
+            document_types,
+            source_paths,
+            cursor,
+        } = request
+        else {
+            unreachable!("request variant changed after search-text match");
+        };
+        return run_source_text_search_to_writer(
+            selection_path,
+            tos_query::source_text_search::SourceTextSearchRequest {
+                query,
+                limit,
+                document_types,
+                source_paths,
+                cursor,
+            },
+            output,
+        );
+    }
+    let value = run(selection_path, Cursor::new(request_bytes))?;
+    write_projection_value(output, &value)
+}
+
+fn run_source_text_search_to_writer(
+    selection_path: &Path,
+    request: tos_query::source_text_search::SourceTextSearchRequest,
+    output: &mut impl Write,
+) -> Result<(), &'static str> {
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let probe = CliAbortProbe {
+        deadline,
+        cancelled: &cancelled,
+    };
+    let result = run_source_text_search(selection_path, request, deadline, &probe)
+        .map_err(|_| "source-text search refused")?;
+    match result {
+        SourceTextSearchResult::Current {
+            through_seq,
+            page,
+            mut disclosure,
+        } => {
+            let page_bytes = page
+                .render_json(1 << 20, &probe)
+                .map_err(|_| "invalid source-text page")?;
+            let page: Value =
+                serde_json::from_slice(&page_bytes).map_err(|_| "invalid source-text page")?;
+            let profile_id = page
+                .get("selection")
+                .and_then(|selection| selection.get("profile_id"))
+                .and_then(Value::as_str)
+                .unwrap_or("source-text");
+            let value = json!({
+                "schema_version":"tos_source_text_search_v1",
+                "operation":"search-text",
+                "status":"current",
+                "profile":profile_id,
+                "through_seq":through_seq,
+                "result":page
+            });
+            write_fenced_projection_value(output, &value, &mut disclosure, &probe)
+        }
+        SourceTextSearchResult::Pending {
+            through_seq,
+            head_seq,
+        } => write_projection_value(
+            output,
+            &json!({
+                "schema_version":"tos_source_text_search_v1",
+                "operation":"search-text",
+                "status":"pending",
+                "through_seq":through_seq,
+                "head_seq":head_seq
+            }),
+        ),
+        SourceTextSearchResult::Stale {
+            through_seq,
+            head_seq,
+            reason,
+        } => write_projection_value(
+            output,
+            &json!({
+                "schema_version":"tos_source_text_search_v1",
+                "operation":"search-text",
+                "status":"stale",
+                "through_seq":through_seq,
+                "head_seq":head_seq,
+                "reason":reason
+            }),
+        ),
+        SourceTextSearchResult::Budget {
+            through_seq,
+            head_seq,
+            reason,
+        } => write_projection_value(
+            output,
+            &json!({
+                "schema_version":"tos_source_text_search_v1",
+                "operation":"search-text",
+                "status":"budget",
+                "through_seq":through_seq,
+                "head_seq":head_seq,
+                "reason":reason
+            }),
+        ),
+        SourceTextSearchResult::Rejected {
+            through_seq,
+            head_seq,
+            code,
+            reason,
+        } => write_projection_value(
+            output,
+            &json!({
+                "schema_version":"tos_source_text_search_v1",
+                "operation":"search-text",
+                "status":"error",
+                "through_seq":through_seq,
+                "head_seq":head_seq,
+                "error_code":code.as_str(),
+                "reason":reason
+            }),
+        ),
+    }
+}
+
+fn write_projection_value(output: &mut impl Write, value: &Value) -> Result<(), &'static str> {
+    serde_json::to_writer(&mut *output, value).map_err(|_| "projection output write failed")?;
+    output
+        .write_all(b"\n")
+        .map_err(|_| "projection output write failed")?;
+    output.flush().map_err(|_| "projection output flush failed")
+}
+
+fn write_fenced_projection_value(
+    output: &mut impl Write,
+    value: &Value,
+    disclosure: &mut SourceTextDisclosureGuard,
+    probe: &dyn AbortProbe,
+) -> Result<(), &'static str> {
+    let bytes = serde_json::to_vec(value).map_err(|_| "projection output encode failed")?;
+    check_cli_probe(probe)?;
+    disclosure
+        .recheck()
+        .map_err(|_| "source-text disclosure binding changed")?;
+    check_cli_probe(probe)?;
+    output
+        .write_all(&bytes)
+        .map_err(|_| "projection output write failed")?;
+    output
+        .write_all(b"\n")
+        .map_err(|_| "projection output write failed")?;
+    check_cli_probe(probe)?;
+    disclosure
+        .recheck()
+        .map_err(|_| "source-text disclosure binding changed")?;
+    check_cli_probe(probe)?;
+    output
+        .flush()
+        .map_err(|_| "projection output flush failed")?;
+    disclosure
+        .recheck()
+        .map_err(|_| "source-text disclosure binding changed")
+}
+
+fn check_cli_probe(probe: &dyn AbortProbe) -> Result<(), &'static str> {
+    match probe.reason() {
+        None => Ok(()),
+        Some(AbortReason::Cancelled) => Err("source-text search cancelled"),
+        Some(AbortReason::DeadlineExceeded) => Err("source-text search deadline exceeded"),
+    }
+}
+
+/// Typed source-text access for native owners.  The caller supplies the
+/// protected selection path, already parsed QRY request, original deadline and
+/// cooperative abort probe.  Currentness/rights and the PG transaction remain
+/// inside the durable adapter; a Current result carries the typed page while
+/// Pending/Stale/Budget stay explicit for the caller to map.
+pub fn run_source_text_search(
+    selection_path: &Path,
+    request: tos_query::source_text_search::SourceTextSearchRequest,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> DurableResult<SourceTextSearchResult> {
+    check_source_text_access(deadline, probe)?;
+    let selection_path = crate::source_text_owner::normalized_absolute(
+        selection_path
+            .to_str()
+            .ok_or(DurableError::Invalid("selection path must be UTF-8"))?,
+    )
+    .map_err(DurableError::Source)?;
+    let cancelled = AtomicBool::new(false);
+    let selection_bytes = crate::source_text_owner::read_absolute(
+        &selection_path,
+        rustix::process::geteuid().as_raw(),
+        true,
+        65_536,
+        deadline,
+        &cancelled,
+    )
+    .map_err(DurableError::Source)?;
+    check_source_text_access(deadline, probe)?;
+    let selection: Selection = serde_json::from_slice(&selection_bytes)
+        .map_err(|_| DurableError::Invalid("invalid projection selection"))?;
+    let version = match selection.profile.as_str() {
+        crate::source_search_projection::SOURCE_SEARCH_PROFILE => 1,
+        crate::source_search_projection::SOURCE_SEARCH_PROFILE_V2 => 2,
+        _ => return Err(DurableError::Invalid("unsupported projection profile")),
+    };
+    if selection.schema_version != "tos_source_projection_selection_v1"
+        || selection.domain.is_empty()
+        || selection.domain.len() > 1024
+    {
+        return Err(DurableError::Invalid("unsupported projection selection"));
+    }
+    let consumer_id = selection
+        .selected_consumer()
+        .map_err(DurableError::Invalid)?
+        .to_owned();
+    let domain = selection.domain.clone();
+    let source_contract = Digest256::from_hex(&selection.source_contract_sha256)
+        .map_err(|_| DurableError::Invalid("invalid source contract digest"))?;
+    let profile = DurableProjectionProfile {
+        id: selection.profile,
+        version,
+        source_contract,
+    };
+    let mut db = DurablePgCoordinator::from_configured_client(connect_selected_source_pg16_until(
+        deadline, probe,
+    )?);
+    let remaining =
+        deadline
+            .checked_duration_since(Instant::now())
+            .ok_or(DurableError::Refused(
+                "source-text search deadline exceeded",
+            ))?;
+    let mut limits = DurableProjectionLimits::default();
+    limits.max_results = 100;
+    limits.statement_timeout = remaining.min(Duration::from_secs(15));
+    let outcome = db.search_source_text(
+        &domain,
+        &consumer_id,
+        &profile,
+        request,
+        limits,
+        deadline,
+        probe,
+    )?;
+    // The search transaction only protects candidate assembly.  Close it
+    // before opening the owner-held disclosure transaction so the final
+    // packet has one unambiguous lock owner and no stale client survives the
+    // hand-off.
+    drop(db);
+    Ok(match outcome {
+        crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Current {
+            through_seq,
+            rights_version,
+            audit_generation,
+            page,
+        } => {
+            let disclosure = match acquire_source_text_disclosure_guard(
+                &domain,
+                &consumer_id,
+                &profile,
+                through_seq,
+                rights_version,
+                audit_generation,
+                deadline,
+                probe,
+            ) {
+                Ok(disclosure) => disclosure,
+                Err(error) if is_source_text_sql_timeout(&error) => {
+                    let abort = match probe.reason() {
+                        Some(AbortReason::Cancelled) => Some((
+                            tos_query::source_text_search::SourceTextSearchErrorCode::Cancelled,
+                            "source-text search cancelled",
+                        )),
+                        Some(AbortReason::DeadlineExceeded) => Some((
+                            tos_query::source_text_search::SourceTextSearchErrorCode::
+                                DeadlineExceeded,
+                            "source-text search deadline exceeded",
+                        )),
+                        None if Instant::now() >= deadline => Some((
+                            tos_query::source_text_search::SourceTextSearchErrorCode::
+                                DeadlineExceeded,
+                            "source-text search deadline exceeded",
+                        )),
+                        None => None,
+                    };
+                    if let Some((code, reason)) = abort {
+                        return Ok(SourceTextSearchResult::Rejected {
+                            through_seq,
+                            head_seq: through_seq,
+                            code,
+                            reason,
+                        });
+                    }
+                    return Ok(SourceTextSearchResult::Budget {
+                        through_seq,
+                        head_seq: through_seq,
+                        reason: "source-text SQL statement timeout",
+                    });
+                }
+                Err(error) => return Err(error),
+            };
+            SourceTextSearchResult::Current {
+                through_seq,
+                page,
+                disclosure,
+            }
+        }
+        crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Pending {
+            through_seq,
+            head_seq,
+        } => SourceTextSearchResult::Pending {
+            through_seq,
+            head_seq,
+        },
+        crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Stale {
+            through_seq,
+            head_seq,
+            reason,
+        } => SourceTextSearchResult::Stale {
+            through_seq,
+            head_seq,
+            reason,
+        },
+        crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Budget {
+            through_seq,
+            head_seq,
+            reason,
+        } => SourceTextSearchResult::Budget {
+            through_seq,
+            head_seq,
+            reason,
+        },
+        crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Rejected {
+            through_seq,
+            head_seq,
+            code,
+            reason,
+        } => SourceTextSearchResult::Rejected {
+            through_seq,
+            head_seq,
+            code,
+            reason,
+        },
+    })
+}
+
+fn acquire_source_text_disclosure_guard(
+    domain: &str,
+    consumer_id: &str,
+    profile: &DurableProjectionProfile,
+    through_seq: u64,
+    rights_version: u64,
+    audit_generation: u64,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> DurableResult<SourceTextDisclosureGuard> {
+    check_source_text_access(deadline, probe)?;
+    let mut client = connect_selected_source_pg16_until(deadline, probe)?;
+    client.batch_execute("BEGIN")?;
+    if let Err(error) = check_source_text_access(deadline, probe) {
+        let _ = client.batch_execute("ROLLBACK");
+        return Err(error);
+    }
+    let remaining =
+        deadline
+            .checked_duration_since(Instant::now())
+            .ok_or(DurableError::Refused(
+                "source-text disclosure deadline exceeded",
+            ))?;
+    let statement_ms = remaining.as_millis().clamp(1, 15_000);
+    let lock_ms = statement_ms.min(5_000);
+    let mut guard = SourceTextDisclosureGuard {
+        client: Some(client),
+        domain: domain.to_owned(),
+        consumer_id: consumer_id.to_owned(),
+        profile: profile.clone(),
+        through_seq,
+        rights_version,
+        audit_generation,
+    };
+    {
+        let client = guard
+            .client
+            .as_mut()
+            .ok_or(DurableError::Refused("source-text disclosure guard closed"))?;
+        client.batch_execute(&format!(
+            "SET LOCAL statement_timeout='{}ms'; \
+             SET LOCAL lock_timeout='{}ms'; \
+             SET LOCAL idle_in_transaction_session_timeout='0ms'",
+            statement_ms, lock_ms
+        ))?;
+    }
+    if let Err(error) = guard.recheck() {
+        return Err(error);
+    }
+    Ok(guard)
+}
+
+fn is_source_text_sql_timeout(error: &DurableError) -> bool {
+    matches!(
+        error,
+        DurableError::Database(error)
+            if matches!(
+                error.code(),
+                Some(&postgres::error::SqlState::QUERY_CANCELED)
+                    | Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE)
+            )
+    )
+}
+
+fn check_source_text_access(deadline: Instant, probe: &dyn AbortProbe) -> DurableResult<()> {
+    if Instant::now() >= deadline {
+        return Err(DurableError::Refused(
+            "source-text search deadline exceeded",
+        ));
+    }
+    if let Some(reason) = probe.reason() {
+        return Err(match reason {
+            AbortReason::Cancelled => DurableError::Refused("source-text search aborted"),
+            AbortReason::DeadlineExceeded => {
+                DurableError::Refused("source-text search deadline exceeded")
+            }
+        });
+    }
+    Ok(())
+}
+
 /// Open the exact private PostgreSQL transport shared by source projection and
 /// native source revision owners. Credentials remain in the process environment
 /// and connection or SQL errors never include them in the public reason.
@@ -351,6 +944,56 @@ pub(crate) fn connect_selected_source_pg16() -> Result<postgres::Client, &'stati
     if version / 10_000 != 16 {
         return Err("selected source coordinator requires PostgreSQL 16");
     }
+    Ok(client)
+}
+
+fn connect_selected_source_pg16_until(
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> DurableResult<postgres::Client> {
+    check_source_text_access(deadline, probe)?;
+    let remaining =
+        deadline
+            .checked_duration_since(Instant::now())
+            .ok_or(DurableError::Refused(
+                "source-text search deadline exceeded",
+            ))?;
+    let connect_timeout = remaining.min(Duration::from_secs(5));
+    let url = std::env::var("TOS_SOURCE_PG_URL")
+        .map_err(|_| DurableError::Refused("TOS_SOURCE_PG_URL required"))?;
+    let mut config = crate::backup_recovery::selected_config(&url)
+        .map_err(|_| DurableError::Refused("explicit local PostgreSQL selection required"))?;
+    config.connect_timeout(connect_timeout);
+    let mut client = config
+        .connect(postgres::NoTls)
+        .map_err(|_| DurableError::Refused("selected PostgreSQL unavailable"))?;
+    check_source_text_access(deadline, probe)?;
+    let remaining =
+        deadline
+            .checked_duration_since(Instant::now())
+            .ok_or(DurableError::Refused(
+                "source-text search deadline exceeded",
+            ))?;
+    let statement_ms = remaining.as_millis().clamp(1, 15_000);
+    let lock_ms = statement_ms.min(5_000);
+    let session_sql = format!(
+        "SET statement_timeout='{}ms'; SET lock_timeout='{}ms'",
+        statement_ms, lock_ms
+    );
+    client
+        .batch_execute(&session_sql)
+        .map_err(|_| DurableError::Refused("PostgreSQL session configuration refused"))?;
+    check_source_text_access(deadline, probe)?;
+    let version: i32 = client
+        .query_one("SELECT current_setting('server_version_num')::integer", &[])
+        .map_err(|_| DurableError::Refused("PostgreSQL version unavailable"))?
+        .get(0);
+    if version / 10_000 != 16 {
+        return Err(DurableError::Refused(
+            "selected source coordinator requires PostgreSQL 16",
+        ));
+    }
+    check_source_text_access(deadline, probe)?;
     Ok(client)
 }
 

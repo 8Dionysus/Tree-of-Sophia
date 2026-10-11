@@ -1209,6 +1209,8 @@ fn maintained_agent_creation_operation<
         "rust/crates/tos-command/src/source_private_assessment_sources.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
         "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_private_claim.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
         "rust/crates/tos-command/src/source_sign_native.rs",
         "rust/crates/tos-command/src/source_text_owner.rs",
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
@@ -1727,6 +1729,9 @@ fn maintained_agent_creation_operation<
                 &components,
                 &mut worker,
                 contract_digest(),
+                "private-job",
+                1,
+                tos_command::source_cohort::BootstrapJobMode::RequireExisting,
                 deadline,
                 &cancelled,
             )

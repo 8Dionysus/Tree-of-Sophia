@@ -14,6 +14,23 @@ test('knowledge and older research queries use the same injected connection',asy
   assert.ok(calls.every(call=>call.options.method==='GET'&&call.options.signal instanceof AbortSignal));
 });
 
+test('source-text query posts a JSON object through the existing selected transport',async()=>{
+  const calls=[],controller=new AbortController();
+  const page={operation_profile:'tos_source_text_search_v1',selection:{consumer_id:'reader',profile_id:'selected-v2',
+    profile_sha256:'a'.repeat(64),selection_seq:7},hits:[],has_more:false,next_cursor:null};
+  const data=createObservatoryData({fetcher:async(url,options)=>{
+    calls.push({url,options});return {ok:true,json:async()=>page};
+  }});
+  const input={query:'  Über  ',document_types:['agent'],source_paths:['ToS/source-witnesses/agents'],limit:12,cursor:'opaque'};
+  assert.strictEqual(await data.queries.invoke('tos.source-text.search',input,{signal:controller.signal}),page);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,'/api/source-text/search');
+  assert.equal(calls[0].options.method,'POST');
+  assert.equal(calls[0].options.headers['Content-Type'],'application/json');
+  assert.strictEqual(calls[0].options.signal,controller.signal);
+  assert.deepEqual(JSON.parse(calls[0].options.body),input);
+});
+
 test('unavailable legacy material keeps its status for the evidence boundary',async()=>{
   const data=createObservatoryData({fetcher:async()=>({ok:false,status:404})});
   await assert.rejects(data.queries.invoke('tos.epistemic.inspect',{mode:'philosophy',item_id:'missing'}),

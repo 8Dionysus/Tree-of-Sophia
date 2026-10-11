@@ -418,6 +418,26 @@ pub fn python_casefold_unicode16_v1(
     Ok(output)
 }
 
+/// Unicode 16 default simple case folding for one scalar, using CaseFolding
+/// statuses C + S (excluding Turkic T). This stays separate from Python's
+/// expanding C + F profile above: a scalar never folds to multiple scalars.
+/// Non-scalars, including retained WTF-16 surrogate units, are returned as-is.
+pub fn unicode_simple_casefold_scalar16_v1(codepoint: u32) -> u32 {
+    if let Ok(position) = CASEFOLD.binary_search_by_key(&codepoint, |(key, _)| *key) {
+        let mut mapped = CASEFOLD[position].1.chars();
+        if let Some(scalar) = mapped.next()
+            && mapped.next().is_none()
+        {
+            return scalar as u32;
+        }
+    }
+    SIMPLE_CASEFOLD_OVERRIDES
+        .binary_search_by_key(&codepoint, |(key, _)| *key)
+        .ok()
+        .and_then(|position| SIMPLE_CASEFOLD_OVERRIDES[position].1.chars().next())
+        .map_or(codepoint, |scalar| scalar as u32)
+}
+
 /// The same context-free Unicode16 C+F mapping under the original caller
 /// state/work/cutoff. Before entry caller holds the shared Unicode diagnostic
 /// floor outside `available_state_bytes`, and its callback target/controller.

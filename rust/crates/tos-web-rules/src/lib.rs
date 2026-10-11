@@ -35,6 +35,8 @@ mod live_resume;
 mod observatory_conditions;
 mod observatory_draft;
 mod observatory_pose;
+#[cfg(feature = "wasm")]
+mod reader_occurrences;
 mod reading_resume;
 #[cfg(feature = "wasm")]
 mod record_context;
@@ -44,6 +46,8 @@ mod search_mode;
 mod source_dossier;
 #[cfg(feature = "wasm")]
 mod source_form_session;
+#[cfg(feature = "wasm")]
+mod source_text_search;
 mod temporal_session;
 #[cfg(feature = "wasm")]
 mod webmcp;
@@ -151,6 +155,25 @@ mod wasm {
     #[wasm_bindgen]
     pub fn research_shelf_rule_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
         research_shelf_rule_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn source_text_search_wasm_v1(
+        request_json: &[u8],
+        selection_json: &[u8],
+        candidate_set_json: &[u8],
+    ) -> Result<Vec<u8>, JsValue> {
+        super::source_text_search::execute_source_text_search_wasm_v1(
+            request_json,
+            selection_json,
+            candidate_set_json,
+        )
+        .map_err(|error| JsValue::from_str(&error))
+    }
+
+    #[wasm_bindgen]
+    pub fn reader_occurrences_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        super::reader_occurrences::reader_occurrences_v1(request_json).map_err(JsValue::from_str)
     }
 
     #[wasm_bindgen]

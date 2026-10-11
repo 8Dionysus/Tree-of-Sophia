@@ -129,6 +129,15 @@ pub struct ReopenedSourceCohort {
     pub dependency_claims: BTreeMap<String, Option<Vec<RelativePath>>>,
 }
 
+/// Whether a fresh bootstrap may create the selected initial job row. The
+/// initialization case accepts only an absent row or the exact initial fence;
+/// it never advances an existing lease.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BootstrapJobMode {
+    Initialize,
+    RequireExisting,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct SourceFileMetadata {
     pub mode: u32,
@@ -4312,10 +4321,24 @@ impl DurablePgCoordinator {
         components: &SoftwareComponentSelectionV1,
         worker: &mut CutWorkerSchemaExecutor,
         contract: Digest256,
+        job_id: &str,
+        job_fence: u64,
+        job_mode: BootstrapJobMode,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ReopenedSourceCohort> {
         active(deadline, cancelled)?;
+        if job_id.is_empty()
+            || job_id.len() > 256
+            || job_id.contains('\0')
+            || job_fence == 0
+            || job_fence > i64::MAX as u64
+            || job_mode == BootstrapJobMode::Initialize && job_fence != 1
+        {
+            return Err(DurableError::Refused(
+                "source bootstrap initial job selection invalid",
+            ));
+        }
         if store.custody_domain() != domain.as_bytes()
             || cut.current().revision() != selected_revision
             || context.base_revision != selected_revision
@@ -4385,27 +4408,115 @@ impl DurablePgCoordinator {
         let projections = optional_agent_projections(&ctx, worker, deadline, cancelled)?;
         verify_manifest_indexes(cut, &indexes)?;
         let def = definition();
-        self.create_domain(domain, contract)?;
+        if job_mode == BootstrapJobMode::Initialize {
+            self.create_domain(domain, contract)?;
+        }
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        // Keep the shared fence lock so all audited writers serialize with
+        // bootstrap. Its numeric generation is not an emptiness signal: an
+        // exact job lease may have been provisioned before this operation.
+        // Source emptiness and domain compatibility are checked directly below.
         lock_audit_fence(&mut tx, domain)?;
-        let row = tx.query_one(
-            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
-            &[&domain],
-        )?;
-        let counts = tx.query_one("SELECT (SELECT count(*) FROM cmd2_attempt WHERE domain=$1)+(SELECT count(*) FROM cmd2_current WHERE domain=$1)", &[&domain])?;
+        let row = tx
+            .query_opt(
+                "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+                &[&domain],
+            )?
+            .ok_or(DurableError::Refused(
+                "source bootstrap selected domain is absent",
+            ))?;
+        let has_source_rows: bool = tx
+            .query_one(
+                "SELECT EXISTS(
+                 SELECT 1 FROM cmd2_attempt WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_member WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_current WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_history WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_receipt WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_log WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_source_index WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_predicate WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_source_inventory_projection WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_outbox WHERE domain=$1
+             )",
+                &[&domain],
+            )?
+            .get(0);
         if row.get::<_, i64>("head_seq") != 0
             || row.get::<_, Option<String>>("source_revision").is_some()
-            || counts.get::<_, i64>(0) != 0
+            || row
+                .get::<_, Option<String>>("source_membership_digest")
+                .is_some()
+            || row
+                .get::<_, Option<i64>>("source_membership_count")
+                .is_some()
+            || row.get::<_, Option<i64>>("source_epoch").is_some()
+            || row.get::<_, Option<i64>>("source_generation").is_some()
+            || row.get::<_, bool>("source_complete")
+            || row
+                .get::<_, Option<String>>("source_definition_digest")
+                .is_some()
+            || row.get::<_, i64>("published_seq") != 0
+            || row
+                .get::<_, Option<String>>("complete_cut_digest")
+                .is_some()
+            || row
+                .get::<_, Option<i64>>("complete_cut_generation")
+                .is_some()
+            || row
+                .get::<_, Option<String>>("selected_generation_digest")
+                .is_some()
+            || row
+                .get::<_, Option<String>>("source_projection_digest")
+                .is_some()
+            || row.get::<_, i64>("rights_version") != 0
+            || !row.get::<_, bool>("rights_allowed")
+            || row.get::<_, i64>("rule_version") != 0
+            || row.get::<_, String>("contract_digest") != contract.to_hex()
+            || row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(schema_profile_digest().to_hex())
+            || has_source_rows
         {
             return Err(DurableError::Refused(
-                "bootstrap requires an unused isolated durable domain",
+                "bootstrap requires an unused matching durable domain",
             ));
+        }
+        let jobs = tx.query(
+            "SELECT job_id,fence_epoch FROM cmd2_job WHERE domain=$1 ORDER BY job_id FOR UPDATE",
+            &[&domain],
+        )?;
+        let selected_job = jobs.iter().find(|row| row.get::<_, String>(0) == job_id);
+        match job_mode {
+            BootstrapJobMode::Initialize => {
+                if jobs.len() > 1
+                    || jobs.iter().any(|row| {
+                        row.get::<_, String>(0) != job_id
+                            || row.get::<_, i64>(1) != job_fence as i64
+                    })
+                {
+                    return Err(DurableError::Refused(
+                        "source bootstrap initial job row differs",
+                    ));
+                }
+                if selected_job.is_none() {
+                    tx.execute(
+                        "INSERT INTO cmd2_job(domain,job_id,fence_epoch) VALUES($1,$2,$3)",
+                        &[&domain, &job_id, &(job_fence as i64)],
+                    )?;
+                }
+            }
+            BootstrapJobMode::RequireExisting => {
+                if selected_job.map(|row| row.get::<_, i64>(1)) != Some(job_fence as i64) {
+                    return Err(DurableError::Refused(
+                        "source bootstrap selected job lease differs",
+                    ));
+                }
+            }
         }
         tx.execute("UPDATE cmd2_domain SET source_revision=$2,source_membership_digest=$3,source_membership_count=$4,source_epoch=1,source_generation=0,source_complete=false,source_definition_digest=$5 WHERE domain=$1",
             &[&domain,&selected_revision.0.to_hex(),&selected_membership.digest.to_hex(),&as_i64(selected_membership.count)?,&def.to_hex()])?;
         tx.commit()?;
-        self.set_job_epoch(domain, "source-bootstrap", 1)?;
         let source_metadata = original_metadata(cut);
         let originals = ctx
             .files
@@ -4471,8 +4582,8 @@ impl DurablePgCoordinator {
                     expected_contract_digest: contract,
                     expected_rule_version: 0,
                     expected_rights_version: 0,
-                    job_id: "source-bootstrap",
-                    job_fence: 1,
+                    job_id,
+                    job_fence,
                     full_base_seq: head,
                 },
                 CommitMode::Bootstrap,

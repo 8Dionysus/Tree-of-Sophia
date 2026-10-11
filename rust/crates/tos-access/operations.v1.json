@@ -252,6 +252,49 @@
       "result": "exact selected engine packet under held current authority"
     },
     {
+      "operation_id": "tos.source-text.search",
+      "execution_version": "tos_selected_pg_source_text_search_v1",
+      "effect": "read-only",
+      "availability": "only_with_explicit_selected_durable_postgresql_consumer_and_current_projection_gate",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/source-text/search"
+      },
+      "mcp": {
+        "tool": "tos_source_text_search",
+        "description": "Search the explicitly selected durable PostgreSQL source-text consumer and return one bounded current page",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {"type": "string", "minLength": 1, "maxLength": 4096},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+            "document_types": {
+              "type": "array",
+              "maxItems": 100,
+              "items": {"type": "string", "minLength": 1, "maxLength": 1024}
+            },
+            "source_paths": {
+              "type": "array",
+              "maxItems": 100,
+              "items": {"type": "string", "minLength": 1, "maxLength": 1024}
+            },
+            "cursor": {"type": ["string", "null"], "maxLength": 65536}
+          },
+          "required": ["query", "limit"],
+          "additionalProperties": false
+        }
+      },
+      "cli": {"command": "source-text search"},
+      "request": {
+        "query": "Unicode text; 1..256 normalized code points",
+        "limit": "1..100",
+        "document_types": "optional exact selected document type IDs; at most 100",
+        "source_paths": "optional exact selected source paths; at most 100",
+        "cursor": "optional opaque continuation token; at most 65536 UTF-8 bytes"
+      },
+      "result": "bounded source-text page with operation_profile=tos_source_text_search_v1 from the selected durable PostgreSQL consumer; explicit non-current and budget refusals, with no public rights or canon claim"
+    },
+    {
       "operation_id": "tos.knowledge.catalog",
       "effect": "read-only",
       "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",

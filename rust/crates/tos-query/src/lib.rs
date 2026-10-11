@@ -83,6 +83,7 @@ pub mod source_dossier;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_gap;
 mod source_read_projection;
+pub mod source_text_search;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
 mod temporal_comparison;

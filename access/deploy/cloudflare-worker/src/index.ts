@@ -177,7 +177,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
     layers: {metadata_record: [], claim_record: false, source_slot: false, authored_csv_record: false},
     source_epoch: null, representations: [],
     authority: {is_source: false, writes_to_source: false, grants_current_use: false, native_text_payload: false,
-      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader.'},
+      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader or durable PostgreSQL source-text search consumer.'},
     status: 'unsupported', reason: 'source-owner-reader-not-configured',
   }, 200, method);
   if (path === "/api/knowledge/explore/capabilities") return jsonResponse(await explorationCapabilitiesD1(env.DB), 200, method);
@@ -487,6 +487,13 @@ export default {
         console.error("Cloudflare edge lens request failed", error);
         return jsonResponse({ error: "Cloudflare edge lens request failed" }, 500, request.method);
       }
+    }
+    if (request.method === "POST" && url.pathname === "/api/source-text/search") {
+      return jsonResponse(
+        { error: "source-text search unavailable: an explicitly selected durable PostgreSQL consumer is required" },
+        501,
+        request.method,
+      );
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return jsonResponse({ error: "standalone access is read-only" }, 405, request.method);

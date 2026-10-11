@@ -45,6 +45,9 @@ updated projections; a successful full export does not establish that migration.
 The initial private source-text projection and its explicit owner CLI are
 documented in the [`tos-command` README](../rust/crates/tos-command/README.md).
 It does not yet replace the full knowledge API or select data for this reader.
+`tos.source-text.search` requires an explicitly selected durable PostgreSQL
+consumer on native HTTP, CLI or MCP; Cloudflare Worker/D1 returns an explicit
+501 unavailable response and does not bridge to that consumer.
 The offline Rust source compiler offers an optional, explicitly located
 processing DAG/cache in [`PROCESSING_DEPENDENCIES.md`](PROCESSING_DEPENDENCIES.md).
 Callers opt in through `NativeFamilyInputs.processing_run`; the default build

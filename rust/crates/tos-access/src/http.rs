@@ -366,7 +366,7 @@ pub fn handle_post_scoped<'hold, E: crate::common::ScopedAccessExecutor<'hold> +
     profile: AccessProfile,
     probe: Arc<dyn AbortProbe>,
 ) -> ScopedHttpResponse<'hold> {
-    handle_post_with_probe(executor, target, body, profile, probe)
+    handle_post_with_probe_and_source_text_search(executor, target, body, profile, probe, None)
 }
 
 pub fn handle_get(
@@ -836,6 +836,27 @@ pub fn handle_post(
 ) -> HttpResponse {
     handle_post_with_probe(executor, target, body, profile, profile.deadline_probe())
 }
+
+/// POST handler for a separately selected durable source-text consumer. The
+/// request body contains search terms only; the selection remains startup
+/// state owned by the server.
+pub fn handle_post_with_source_text_search(
+    executor: &dyn AccessExecutor,
+    target: &str,
+    body: &[u8],
+    profile: AccessProfile,
+    selected: Option<&crate::source_text_search::SelectedPgSourceTextSearch>,
+) -> HttpResponse {
+    handle_post_with_probe_and_source_text_search(
+        executor,
+        target,
+        body,
+        profile,
+        profile.deadline_probe(),
+        selected,
+    )
+}
+
 fn handle_post_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
     executor: &E,
     target: &str,
@@ -843,8 +864,36 @@ fn handle_post_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> +
     profile: AccessProfile,
     probe: Arc<dyn AbortProbe>,
 ) -> ScopedHttpResponse<'hold> {
+    handle_post_with_probe_and_source_text_search(executor, target, body, profile, probe, None)
+}
+
+fn handle_post_with_probe_and_source_text_search<
+    'hold,
+    E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
+>(
+    executor: &E,
+    target: &str,
+    body: &[u8],
+    profile: AccessProfile,
+    probe: Arc<dyn AbortProbe>,
+    selected: Option<&crate::source_text_search::SelectedPgSourceTextSearch>,
+) -> ScopedHttpResponse<'hold> {
     if target.len() > profile.max_request_bytes || body.len() > profile.max_request_bytes {
         return ScopedHttpResponse::error(413, "query request byte cap exceeded");
+    }
+    let path = target.split_once('?').map_or(target, |(path, _)| path);
+    if path == crate::common::SOURCE_TEXT_SEARCH_HTTP_PATH {
+        let Some(selected) = selected else {
+            return ScopedHttpResponse::error(
+                503,
+                "durable PostgreSQL source-text consumer unavailable",
+            );
+        };
+        return packet_response(
+            checked_execute(probe, |probe| selected.execute(body, profile, probe)),
+            "POST",
+            profile,
+        );
     }
     if let Some(operation) = crate::source_read::Operation::http("POST", target) {
         return packet_response(
@@ -1240,6 +1289,24 @@ fn serve_connection_with_software(
         serve_connection_scoped_with_software(stream, executor.as_ref(), profile, site.as_ref());
 }
 
+fn serve_connection_with_source_text_search(
+    stream: TcpStream,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    site: Option<Arc<crate::site::SoftwareSite>>,
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) {
+    let control = HttpConnectionControl::compatibility(profile);
+    let _ = serve_connection_scoped_controlled_with_source_text_search(
+        stream,
+        executor.as_ref(),
+        site.as_ref(),
+        profile,
+        &control,
+        source_text_search.as_deref(),
+    );
+}
+
 fn serve_connection_scoped_with_software<
     'hold,
     E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
@@ -1263,6 +1330,24 @@ pub fn serve_connection_scoped_controlled<
     profile: AccessProfile,
     control: &HttpConnectionControl,
 ) -> std::io::Result<()> {
+    serve_connection_scoped_controlled_with_source_text_search(
+        stream, executor, site, profile, control, None,
+    )
+}
+
+/// Same bounded socket route with an optional explicitly selected durable
+/// PostgreSQL source-text consumer.
+pub fn serve_connection_scoped_controlled_with_source_text_search<
+    'hold,
+    E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
+>(
+    mut stream: TcpStream,
+    executor: &E,
+    site: Option<&Arc<crate::site::SoftwareSite>>,
+    profile: AccessProfile,
+    control: &HttpConnectionControl,
+    source_text_search: Option<&crate::source_text_search::SelectedPgSourceTextSearch>,
+) -> std::io::Result<()> {
     control.check()?;
     let response = match read_head_controlled(&mut stream, control) {
         Ok(head) if head.len() <= MAX_HEAD && head.ends_with(b"\r\n\r\n") => {
@@ -1278,6 +1363,8 @@ pub fn serve_connection_scoped_controlled<
                                         "request target too large",
                                     ))
                                 } else if post_operation(target).is_none()
+                                    && target.split_once('?').map_or(target, |(path, _)| path)
+                                        != crate::common::SOURCE_TEXT_SEARCH_HTTP_PATH
                                     && crate::source_read::Operation::http("POST", target).is_none()
                                 {
                                     Err(AccessError::new(
@@ -1315,8 +1402,13 @@ pub fn serve_connection_scoped_controlled<
                                             },
                                         });
                                         if *method == "POST" {
-                                            handle_post_with_probe(
-                                                executor, target, &body, profile, probe,
+                                            handle_post_with_probe_and_source_text_search(
+                                                executor,
+                                                target,
+                                                &body,
+                                                profile,
+                                                probe,
+                                                source_text_search,
                                             )
                                         } else {
                                             handle_get_with_probe(
@@ -1514,6 +1606,18 @@ pub fn serve(
     executor: Arc<dyn AccessExecutor>,
     profile: AccessProfile,
 ) -> std::io::Result<()> {
+    serve_with_source_text_search(addr, executor, profile, None)
+}
+
+/// Run the ordinary local HTTP listener with an independent owner-selected
+/// durable source-text search consumer.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn serve_with_source_text_search(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> std::io::Result<()> {
     let (listener, site) = installed_listener(addr, profile, None)?;
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {
@@ -1531,14 +1635,34 @@ pub fn serve(
         let slot = ConnectionSlot(Arc::clone(&active));
         let executor = Arc::clone(&executor);
         let site = site.clone();
+        let source_text_search = source_text_search.as_ref().map(Arc::clone);
         // A resource-limited spawn closes this accepted socket and releases its
         // slot; it must not panic the listener or retain a phantom connection.
         let _ = std::thread::Builder::new().spawn(move || {
             let _slot = slot;
-            serve_connection_with_software(stream, executor, profile, site);
+            serve_connection_with_source_text_search(
+                stream,
+                executor,
+                profile,
+                site,
+                source_text_search,
+            );
         });
     }
     Ok(())
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn serve_with_source_text_search(
+    _addr: &str,
+    _executor: Arc<dyn AccessExecutor>,
+    _profile: AccessProfile,
+    _source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> std::io::Result<()> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "native HTTP access is unavailable in wasm",
+    ))
 }
 
 /// Owner-only measurement mode. Ordinary serve keeps its existing listener,
@@ -1550,9 +1674,22 @@ pub fn serve_observed(
     profile: AccessProfile,
     deadline: crate::http_observation::OwnerDeadline,
 ) -> std::io::Result<()> {
+    serve_observed_with_source_text_search(addr, executor, profile, deadline, None)
+}
+
+/// Owner-only measurement mode with the same explicitly selected source-text
+/// consumer exposed by ordinary HTTP serving.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn serve_observed_with_source_text_search(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    deadline: crate::http_observation::OwnerDeadline,
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> std::io::Result<()> {
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (addr, executor, profile, deadline);
+        let _ = (addr, executor, profile, deadline, source_text_search);
         Err(std::io::Error::new(
             std::io::ErrorKind::Unsupported,
             "HTTP observation requires Linux",
@@ -1629,15 +1766,17 @@ pub fn serve_observed(
                     let worker_observation = Arc::clone(&observation);
                     let worker_executor = Arc::clone(&executor);
                     let worker_site = site.clone();
+                    let worker_source_text_search = source_text_search.as_ref().map(Arc::clone);
                     match std::thread::Builder::new().spawn(move || {
                         let _slot = slot;
                         let _observed_slot = observed_slot;
                         let _scope = WorkerObservation::enter(worker_observation);
-                        serve_connection_with_software(
+                        serve_connection_with_source_text_search(
                             stream,
                             worker_executor,
                             profile,
                             worker_site,
+                            worker_source_text_search,
                         );
                     }) {
                         Ok(worker) => workers.push(worker),

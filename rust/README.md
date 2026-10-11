@@ -12,6 +12,12 @@ bounded immutable segments, crash-recoverable pin journals and receipt-bound
 selected reads. Its independent conformance target checks exact synthetic
 segment bytes. A custody receipt grants neither source admission nor rights.
 
+`tos-query::source_text_search` owns the portable `tos_source_text_search_v1`
+ranking, Unicode-16 query normalization, cursor binding and response budget over
+one complete bounded candidate set. The adapter still owns source selection,
+currentness, rights and candidate completeness; this operation does not replace
+the indexed-v2 or compressed-v3 search profiles.
+
 `tos-validation` provides typed candidate validation interfaces and an offline,
 locally supplied Draft 2020-12 schema probe. Its observed legacy format profile
 is comparison evidence; its prospective four-format profile is not an admitted

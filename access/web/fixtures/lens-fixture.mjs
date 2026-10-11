@@ -1,3 +1,4 @@
+import './reader-rules.mjs';
 import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
 import {mountPerformanceProbe} from './performance-probe.mjs';

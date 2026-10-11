@@ -3,6 +3,11 @@
 -- Projection rows are derived from retained source history and are never a
 -- second source store or an authority for external owners.
 
+-- Source-text v1 uses PostgreSQL's trusted trigram operator class only for a
+-- bounded candidate seek.  Unicode and field semantics remain in tos-query;
+-- this extension never becomes a second text normalizer.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE INDEX IF NOT EXISTS cmd2_history_projection_event_seek
   ON cmd2_history(domain,commit_seq,member_slot);
 
@@ -25,6 +30,10 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_consumer (
   observed_schema_profile_digest char(64),
   observed_source_generation bigint,
   observed_source_complete boolean,
+  -- NULL means this consumer predates source-text v1.  It is never filled in
+  -- by a migration or by an apply; a new consumer must replay from seq 0.
+  source_text_search_profile text,
+  source_text_search_profile_version integer,
   PRIMARY KEY (domain, consumer_id),
   CONSTRAINT cmd2_projection_consumer_currentness_check CHECK (
     cursor_seq = 0 OR (
@@ -33,8 +42,19 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_consumer (
       observed_contract_digest IS NOT NULL AND observed_schema_profile_digest IS NOT NULL AND
       observed_source_complete IS NOT NULL
     )
+  ),
+  CONSTRAINT cmd2_projection_consumer_source_text_profile_check CHECK (
+    (source_text_search_profile IS NULL AND source_text_search_profile_version IS NULL) OR
+    (source_text_search_profile IS NOT NULL AND
+     source_text_search_profile_version IS NOT NULL AND
+     source_text_search_profile_version > 0)
   )
 );
+
+ALTER TABLE cmd2_projection_consumer
+  ADD COLUMN IF NOT EXISTS source_text_search_profile text;
+ALTER TABLE cmd2_projection_consumer
+  ADD COLUMN IF NOT EXISTS source_text_search_profile_version integer;
 
 CREATE TABLE IF NOT EXISTS cmd2_projection_document (
   domain text NOT NULL,
@@ -48,6 +68,14 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_document (
   aliases_text text NOT NULL DEFAULT '',
   identity text NOT NULL,
   document_type text NOT NULL,
+  -- These are produced by the Rust FND Unicode16 normalizer in the same
+  -- outbox publication transaction.  They are nullable for legacy rows so a
+  -- schema upgrade cannot advertise an old consumer as source-text ready.
+  source_text_identity_norm text,
+  source_text_title_norm text,
+  source_text_aliases_norm text,
+  source_text_body_norm text,
+  source_text_norm text,
   search_vector tsvector GENERATED ALWAYS AS (
     pg_catalog.setweight(
       pg_catalog.to_tsvector('pg_catalog.simple'::pg_catalog.regconfig, coalesce(title, '')), 'A'
@@ -64,10 +92,25 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_document (
     REFERENCES cmd2_projection_consumer(domain, consumer_id) ON DELETE CASCADE
 );
 
+ALTER TABLE cmd2_projection_document
+  ADD COLUMN IF NOT EXISTS source_text_identity_norm text;
+ALTER TABLE cmd2_projection_document
+  ADD COLUMN IF NOT EXISTS source_text_title_norm text;
+ALTER TABLE cmd2_projection_document
+  ADD COLUMN IF NOT EXISTS source_text_aliases_norm text;
+ALTER TABLE cmd2_projection_document
+  ADD COLUMN IF NOT EXISTS source_text_body_norm text;
+ALTER TABLE cmd2_projection_document
+  ADD COLUMN IF NOT EXISTS source_text_norm text;
+
 CREATE INDEX IF NOT EXISTS cmd2_projection_document_text_gin
   ON cmd2_projection_document USING gin(search_vector);
 CREATE INDEX IF NOT EXISTS cmd2_projection_document_identity_seek
   ON cmd2_projection_document(domain,consumer_id,identity COLLATE "C",source_path COLLATE "C",document_id COLLATE "C");
+-- Candidate-only LIKE seek.  The adapter still fetches bounded raw fields and
+-- lets tos-query perform the final Unicode16 recheck and rank.
+CREATE INDEX IF NOT EXISTS cmd2_projection_document_source_text_trgm
+  ON cmd2_projection_document USING gin(source_text_norm gin_trgm_ops);
 
 CREATE TABLE IF NOT EXISTS cmd2_projection_dependency (
   domain text NOT NULL,

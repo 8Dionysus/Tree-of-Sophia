@@ -14,9 +14,14 @@ fn main() {
             eprintln!("source-projection requires --selection ABS_JSON");
             std::process::exit(2);
         }
-        match tos_command::source_projection_cli::run(Path::new(&args[1]), std::io::stdin().lock())
-        {
-            Ok(value) => println!("{value}"),
+        let input = std::io::stdin();
+        let mut output = std::io::stdout().lock();
+        match tos_command::source_projection_cli::run_to_writer(
+            Path::new(&args[1]),
+            input.lock(),
+            &mut output,
+        ) {
+            Ok(()) => {}
             Err(reason) => {
                 eprintln!("source-projection refused: {reason}");
                 std::process::exit(2);

@@ -15,6 +15,7 @@ import {LENSES,RELATIONS,makeLensView,shortestPath} from './atlas-view.mjs';
 import {bindResearchRoutes,routeGraphInput,routePath,createJourneyNavigator} from './journey-state.mjs';
 import {bindFragmentCatalog,textDigest} from './fragment-catalog.mjs';
 import {createResearchReader} from '../src/reader/reader.mjs';
+import {installReaderOccurrenceRules} from '../src/reader/occurrences-rust.mjs';
 import {createReaderNotebook} from '../src/reader/notebook.mjs';
 import {readerVersionCodes} from '../src/reader/version-options.mjs';
 import {INQUIRY_FOUNDATION,LENS_INQUIRY} from './inquiry-foundation.mjs';
@@ -54,6 +55,7 @@ installConstructorReadingRules(rules);
 installResearchShelfRules(rules);
 installClaimReferenceRules(rules);
 installReadingRules(rules);
+installReaderOccurrenceRules(rules);
 
 const root=document.querySelector('#tree');
 let lang=new URL(location.href).searchParams.get('lang')==='en'?'en':'ru';

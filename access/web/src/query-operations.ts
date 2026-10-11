@@ -36,6 +36,7 @@ export type ToSQueryOperationId =
   | "tos.snapshot"
   | "tos.search"
   | "tos.knowledge.search"
+  | "tos.source-text.search"
   | "tos.source-gaps.search"
   | "tos.source.descend"
   | "tos.dossier.inspect"
@@ -144,6 +145,24 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
           cursor,
         })}`, request);
         return { ...payload, search_mode: searchMode };
+      }
+      case "tos.source-text.search": {
+        // The selected PG owner performs normalization, completeness checks,
+        // ranking, cursor handling and rights/currentness admission. Keep this
+        // browser route transport-only and return its bounded page unchanged.
+        const payload = {
+          query: input.query,
+          document_types: input.document_types,
+          source_paths: input.source_paths,
+          limit: input.limit,
+          cursor: input.cursor,
+        };
+        return fetchJson<ToSQueryResult>("/api/source-text/search", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+          ...(options.signal ? { signal: options.signal } : {}),
+        });
       }
       case "tos.source-gaps.search": {
         const query = String(input.query || "").trim();

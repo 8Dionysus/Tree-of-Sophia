@@ -1,5 +1,9 @@
--- CMD.2 private shadow laboratory only. This schema has no ToS source admission.
--- All digest strings are lowercase SHA-256 hex, matching the CMD.1 lab ABI.
+-- CMD.2 private PostgreSQL 16 coordinator schema for native source import and
+-- search. This schema has no ToS source admission. Deploy in a dedicated
+-- private database with ordinary query roles unable to bypass adapter rights,
+-- write coordinator tables, or alter its DDL and audit triggers. The database
+-- owner remains trusted; this source comment does not prove a live deployment.
+-- All digest strings are lowercase SHA-256 hex, matching the CMD.1 ABI.
 CREATE TABLE IF NOT EXISTS cmd2_domain (
   domain text PRIMARY KEY,
   head_seq bigint NOT NULL DEFAULT 0 CHECK (head_seq >= 0),

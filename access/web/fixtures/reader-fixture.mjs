@@ -1,5 +1,6 @@
 // Explicit, development-only scenarios. None is ToS knowledge, a historical
 // assertion, an API fixture installed into the backend, or a production entry.
+import './reader-rules.mjs';
 import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
 import {focusSpec} from '../src/observatory/knowledge-client.mjs';

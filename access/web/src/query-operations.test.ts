@@ -219,6 +219,42 @@ describe("ToS query operations", () => {
     });
   });
 
+  it("posts only the source-text query envelope and preserves the selected PG page", async () => {
+    const calls: Array<{url: string; options?: RequestInit}> = [];
+    const response = {
+      operation_profile: "tos_source_text_search_v1",
+      selection: {
+        consumer_id: "reader-a",
+        profile_id: "selected-text-v2",
+        profile_sha256: "abc",
+        selection_seq: 7,
+      },
+      hits: [{ document_id: "doc-a" }],
+      next_cursor: "opaque-next",
+    };
+    const controller = new AbortController();
+    const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {
+      calls.push({url, options});
+      return response as T;
+    });
+
+    const result = await operations.invoke("tos.source-text.search", {
+      query: "  Über  ", document_types: ["agent"], source_paths: ["ToS/source-witnesses/agents"],
+      limit: 12, cursor: "opaque-before", ignored: "not forwarded",
+    }, {signal: controller.signal});
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe("/api/source-text/search");
+    expect(calls[0].options?.method).toBe("POST");
+    expect(calls[0].options?.signal).toBe(controller.signal);
+    expect(calls[0].options?.headers).toMatchObject({"content-type": "application/json"});
+    expect(JSON.parse(String(calls[0].options?.body))).toEqual({
+      query: "  Über ", document_types: ["agent"], source_paths: ["ToS/source-witnesses/agents"],
+      limit: 12, cursor: "opaque-before",
+    });
+    expect(result).toBe(response);
+  });
+
   it("selects compressed when indexed is unavailable and preserves opaque cursor, filters and page data", async () => {
     const cursor = "opaque.cursor+/=%20 α";
     const payload = {

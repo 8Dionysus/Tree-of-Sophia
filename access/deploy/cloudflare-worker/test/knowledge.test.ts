@@ -293,7 +293,7 @@ test("health packet compacts diagnostics and rejects incomplete coverage", async
       writes_to_source: false,
       grants_current_use: false,
       native_text_payload: false,
-      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader.',
+      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader or durable PostgreSQL source-text search consumer.',
     });
 
     const incompleteCounts = {

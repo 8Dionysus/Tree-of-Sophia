@@ -10,8 +10,7 @@ import {createTravelStore,HISTORY_KEY} from './travel-model.mjs';
 import {readSaved} from './lens-model.mjs';
 import * as runtime from '../../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 import {installInterfaceRules} from './interface-model-rust.mjs';
-import {installPoseRules} from './view-state-rust.mjs';
-installInterfaceRules(runtime);installPoseRules(runtime);
+installInterfaceRules(runtime);
 const packet={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},
   nodes:[{id:'opaque:a',source_refs:['ToS/example'],content_revision:'b'.repeat(64),display:{title:{ru:'Delivered source text'}}}],relations:[],page:{next_cursor:'ephemeral'}};
 function place(id){return capturePlace(packet,{lens:'constellations',yaw:0,pitch:0,zoom:1,pan:{x:0,y:0},selectedId:'opaque:'+id,relationId:null,panelOpen:true,cardTab:'about',vertices:[]},

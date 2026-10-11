@@ -115,6 +115,15 @@ function assertPackets(actual, expected, indexed = false) {
   assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
 }
 
+test('Cloudflare explicitly refuses source-text search without a selected durable PostgreSQL consumer',async()=>{
+ const response=await (await worker()).fetch(new Request('https://tos.test/api/source-text/search',{
+  method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:'alpha',limit:5}),
+ }),{},{});
+ assert.equal(response.status,501);
+ assert.deepEqual(await response.json(),{
+  error:'source-text search unavailable: an explicitly selected durable PostgreSQL consumer is required',
+ });
+});
 
 function intersectionGrams(query){
  const needle=query.toLowerCase(),grams=[];

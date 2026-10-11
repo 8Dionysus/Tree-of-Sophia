@@ -1089,7 +1089,7 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
     Digest256::from_hex(&value).map_err(|_| DurableError::Corrupt("invalid metadata digest"))
 }
 
-fn schema_profile_digest() -> Digest256 {
+pub(crate) fn schema_profile_digest() -> Digest256 {
     let mut hasher = Digest256Hasher::new();
     part(&mut hasher, b"cmd2-coordinator-schema-profile-v4");
     part(
@@ -1272,6 +1272,107 @@ impl DurablePgCoordinator {
     pub fn init_lab_schema(&mut self) -> DurableResult<()> {
         self.client
             .batch_execute(include_str!("durable_schema.sql"))?;
+        Ok(())
+    }
+
+    /// Initialize the private CMD.2 namespace only when it is wholly absent.
+    /// The transaction lock serializes cooperating native provisioners; any
+    /// existing CMD.2 table, relation, routine, or type makes this refuse
+    /// rather than applying the schema's idempotent DDL as a migration.
+    pub fn initialize_empty_schema(&mut self) -> DurableResult<()> {
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        tx.query_one("SELECT pg_advisory_xact_lock(1414482771,1129130034)", &[])?;
+        let occupied: bool = tx
+            .query_one(
+                "SELECT EXISTS (
+                   SELECT 1 FROM pg_class c
+                   JOIN pg_namespace n ON n.oid=c.relnamespace
+                   WHERE n.nspname=current_schema() AND left(c.relname,5)='cmd2_'
+                   UNION ALL
+                   SELECT 1 FROM pg_proc p
+                   JOIN pg_namespace n ON n.oid=p.pronamespace
+                   WHERE n.nspname=current_schema() AND left(p.proname,5)='cmd2_'
+                   UNION ALL
+                   SELECT 1 FROM pg_type t
+                   JOIN pg_namespace n ON n.oid=t.typnamespace
+                   WHERE n.nspname=current_schema() AND left(t.typname,5)='cmd2_'
+                 )",
+                &[],
+            )?
+            .get(0);
+        if occupied {
+            return Err(DurableError::Refused(
+                "CMD.2 schema initialization requires an absent namespace",
+            ));
+        }
+        tx.batch_execute(include_str!("durable_schema.sql"))?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Read-only structural preflight for an already provisioned private
+    /// coordinator. Full profile checks still run inside source import and
+    /// cold verification; this prevents any local-store mutation when the
+    /// selected database is absent or only partly provisioned.
+    pub fn require_compatible_schema(&mut self) -> DurableResult<()> {
+        let compatible: bool = self
+            .client
+            .query_one(
+                "WITH required_tables(name) AS (VALUES
+                   ('cmd2_domain'),('cmd2_audit_fence'),('cmd2_job'),('cmd2_predicate'),
+                   ('cmd2_attempt'),('cmd2_source_index'),('cmd2_member'),('cmd2_current'),
+                   ('cmd2_history'),('cmd2_receipt'),('cmd2_log'),
+                   ('cmd2_source_inventory_projection'),('cmd2_outbox')),
+                 required_indexes(name) AS (VALUES
+                   ('cmd2_current_source_cold_seek'),('cmd2_current_source_subject_c_seek'),
+                   ('cmd2_source_index_cold_seek'),('cmd2_source_index_path_semantic_seek'),
+                   ('cmd2_predicate_source_cold_seek')),
+                 required_functions(name) AS (VALUES
+                   ('cmd2_register_audit_domain'),('cmd2_bump_audit_fence'),
+                   ('cmd2_refuse_audited_truncate'),('cmd2_fence_maintenance_transition'),
+                   ('cmd2_invalidate_source_maintenance')),
+                 required_triggers(name) AS (VALUES
+                   ('cmd2_audit_domain_insert'),('cmd2_audit_domain_update'),
+                   ('cmd2_refuse_domain_truncate'),('cmd2_fence_maintenance_transition'),
+                   ('cmd2_invalidate_source_maintenance'),
+                   ('cmd2_audit_cmd2_job'),('cmd2_refuse_cmd2_job_truncate'),
+                   ('cmd2_audit_cmd2_predicate'),('cmd2_refuse_cmd2_predicate_truncate'),
+                   ('cmd2_audit_cmd2_attempt'),('cmd2_refuse_cmd2_attempt_truncate'),
+                   ('cmd2_audit_cmd2_member'),('cmd2_refuse_cmd2_member_truncate'),
+                   ('cmd2_audit_cmd2_current'),('cmd2_refuse_cmd2_current_truncate'),
+                   ('cmd2_audit_cmd2_history'),('cmd2_refuse_cmd2_history_truncate'),
+                   ('cmd2_audit_cmd2_receipt'),('cmd2_refuse_cmd2_receipt_truncate'),
+                   ('cmd2_audit_cmd2_log'),('cmd2_refuse_cmd2_log_truncate'),
+                   ('cmd2_audit_cmd2_outbox'),('cmd2_refuse_cmd2_outbox_truncate'),
+                   ('cmd2_audit_cmd2_source_index'),('cmd2_refuse_cmd2_source_index_truncate'),
+                   ('cmd2_audit_cmd2_source_inventory_projection'),
+                   ('cmd2_refuse_cmd2_source_inventory_projection_truncate'))
+                 SELECT
+                   (SELECT count(*)=13 FROM required_tables r JOIN pg_class c
+                     ON c.relname=r.name AND c.relkind IN ('r','p')
+                    JOIN pg_namespace n ON n.oid=c.relnamespace
+                    WHERE n.nspname=current_schema())
+                   AND (SELECT count(*)=5 FROM required_indexes r JOIN pg_class c
+                     ON c.relname=r.name AND c.relkind='i'
+                    JOIN pg_namespace n ON n.oid=c.relnamespace
+                    WHERE n.nspname=current_schema())
+                   AND (SELECT count(*)=5 FROM required_functions r JOIN pg_proc p
+                     ON p.proname=r.name JOIN pg_namespace n ON n.oid=p.pronamespace
+                    WHERE n.nspname=current_schema())
+                   AND (SELECT count(*)=27 FROM required_triggers r JOIN pg_trigger t
+                     ON t.tgname=r.name AND NOT t.tgisinternal
+                    JOIN pg_class c ON c.oid=t.tgrelid
+                    JOIN pg_namespace n ON n.oid=c.relnamespace
+                    WHERE n.nspname=current_schema())",
+                &[],
+            )?
+            .get(0);
+        if !compatible {
+            return Err(DurableError::Refused(
+                "selected PostgreSQL CMD.2 schema is absent or incomplete",
+            ));
+        }
         Ok(())
     }
 

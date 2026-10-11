@@ -55,13 +55,19 @@ pub mod software_archive;
 mod source_owner_provider_phase;
 pub mod source_read;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod source_text_search;
+#[cfg(target_arch = "wasm32")]
+#[path = "source_text_search_wasm.rs"]
+pub mod source_text_search;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod standalone_validation;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
     IndexedSearchParams, NoOwner, Params, PreparedHealth, PreparedPacket, QuerySession,
-    RegisteredOperation, SEARCH_OPERATION_ID, ScopedAccessExecutor, checked_execute, descriptor,
-    registered_operations,
+    RegisteredOperation, SEARCH_OPERATION_ID, SOURCE_TEXT_SEARCH_HTTP_PATH,
+    SOURCE_TEXT_SEARCH_MCP_TOOL, SOURCE_TEXT_SEARCH_OPERATION_ID, ScopedAccessExecutor,
+    checked_execute, descriptor, registered_operations,
 };
 
 pub mod native_prepare;

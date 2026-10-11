@@ -24,6 +24,10 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, RelativePath, SourceRevision,
     canonical_bytes_v1, parse_json,
 };
+use tos_query::source_text_search::{
+    SourceTextCandidateSet, SourceTextDocument, SourceTextSearchBudget, SourceTextSearchRequest,
+    SourceTextSearchSelection, execute_source_text_search,
+};
 use tos_source_store::{
     CaptureGitRequest, CaptureRestoreLimits, CorpusCutReader, CorpusReader, CutReadLimits,
     GitCaptureLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
@@ -825,11 +829,13 @@ fn bootstrap_case_from_cut(
             &components,
             &mut worker,
             contract_digest(),
+            "private-job",
+            1,
+            tos_command::source_cohort::BootstrapJobMode::RequireExisting,
             deadline,
             cancelled,
         )
         .expect("the exact copied source cut bootstraps through the PG/STO owner");
-    worker.finish(deadline, cancelled).unwrap();
     let initial_head = lab.head_seq();
     assert!(initial_head > 0 && initial_head <= 64);
     assert_eq!(initial.files.get(target.source_path), Some(&record_raw));
@@ -1079,6 +1085,52 @@ fn pg_real_projection_apply_child_entry() {
         "TOS_PG_REAL_PROJECTION_APPLY_RESULT {}",
         serde_json::to_string(&json!({"profile":profile_id,"work":work})).unwrap()
     );
+}
+
+/// Keeps the typed current-page disclosure guard open until a parent process
+/// probes the exact PostgreSQL rights row for the expected conflicting lock.
+#[test]
+fn pg_real_source_text_disclosure_guard_child_entry() {
+    let Some(selection_path) = std::env::var_os("TOS_PG_REAL_SOURCE_TEXT_SELECTION") else {
+        return;
+    };
+    let ready = PathBuf::from(std::env::var_os("TOS_PG_REAL_SOURCE_TEXT_READY").unwrap());
+    let release = PathBuf::from(std::env::var_os("TOS_PG_REAL_SOURCE_TEXT_RELEASE").unwrap());
+    let request = SourceTextSearchRequest {
+        query: "Sundial".to_owned(),
+        limit: 1,
+        document_types: vec!["agent".to_owned()],
+        source_paths: vec![CREATED_RECORD_PATH.to_owned()],
+        cursor: None,
+    };
+    let mut disclosure = match tos_command::source_projection_cli::run_source_text_search(
+        Path::new(&selection_path),
+        request,
+        Instant::now() + Duration::from_secs(30),
+        &NeverAbort,
+    )
+    .expect("typed source-text search returns its current-page disclosure lease")
+    {
+        tos_command::source_projection_cli::SourceTextSearchResult::Current {
+            mut disclosure,
+            ..
+        } => {
+            disclosure
+                .recheck()
+                .expect("initial disclosure binding rechecks");
+            disclosure
+        }
+        _ => panic!("the selected source-text projection is current in the child"),
+    };
+    fs::write(&ready, b"current page and disclosure lease held").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while !release.exists() {
+        assert!(Instant::now() < deadline, "parent releases the held lease");
+        thread::sleep(Duration::from_millis(10));
+    }
+    disclosure
+        .recheck()
+        .expect("the failed concurrent revoke left the held page binding current");
 }
 
 fn apply_projection_in_fresh_process(
@@ -1612,6 +1664,631 @@ fn projection_rows(case: &RevisionCase, consumer: &str) -> Vec<String> {
     .collect()
 }
 
+struct NeverAbort;
+
+impl tos_query::AbortProbe for NeverAbort {
+    fn reason(&self) -> Option<tos_query::AbortReason> {
+        None
+    }
+}
+
+fn source_text_selection_path(case: &RevisionCase, consumer: &str, profile: &str) -> PathBuf {
+    let path = case
+        ._owner_scratch
+        .0
+        .join(format!("source-text-selection-{consumer}.json"));
+    let selection = json!({
+        "schema_version":"tos_source_projection_selection_v1",
+        "domain":case.lab.domain,
+        "source_contract_sha256":contract_digest().to_hex(),
+        "consumer_id":consumer,
+        "profile":profile,
+        "store_root":case.source_root,
+        "store_limits":{
+            "max_segment_bytes":limits().max_segment_bytes,
+            "max_frame_bytes":limits().max_frame_bytes,
+            "max_frames":limits().max_frames,
+            "max_journal_bytes":limits().max_journal_bytes
+        }
+    });
+    fs::write(&path, canonical(&selection)).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    path
+}
+
+fn invoke_source_text_search(
+    binary: &Path,
+    selection_path: &Path,
+    url: &str,
+    request: &Value,
+) -> std::process::Output {
+    use std::io::Write;
+
+    let mut child = Command::new(binary)
+        .arg("source-projection")
+        .arg("--selection")
+        .arg(selection_path)
+        .env("TOS_SOURCE_PG_URL", url)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("selected source-text search owner starts");
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&canonical(request))
+        .expect("source-text search request is delivered");
+    let output = child
+        .wait_with_output()
+        .expect("selected source-text search owner exits");
+    assert!(output.stdout.len() <= 1_048_576);
+    assert!(output.stderr.len() <= 65_536);
+    output
+}
+
+fn source_text_search_cli(
+    case: &RevisionCase,
+    binary: &Path,
+    consumer: &str,
+    profile: &str,
+    request: &Value,
+) -> Value {
+    let selection_path = source_text_selection_path(case, consumer, profile);
+    let output = invoke_source_text_search(binary, &selection_path, &case.lab.url, request);
+    assert!(
+        output.status.success(),
+        "source-text search refused: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(response["schema_version"], "tos_source_text_search_v1");
+    assert_eq!(response["operation"], "search-text");
+    response
+}
+
+fn projection_text_documents(
+    case: &RevisionCase,
+    consumer: &str,
+    selection_seq: u64,
+) -> Vec<SourceTextDocument> {
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    db.query(
+        "SELECT source_path,document_id,source_revision,title,body,aliases,
+                identity,document_type
+         FROM cmd2_projection_document
+         WHERE domain=$1 AND consumer_id=$2
+         ORDER BY source_path COLLATE \"C\",document_id COLLATE \"C\"",
+        &[&case.lab.domain, &consumer],
+    )
+    .unwrap()
+    .into_iter()
+    .map(|row| SourceTextDocument {
+        source_path: row.get(0),
+        document_id: row.get(1),
+        custody_revision: row.get::<_, i64>(2).to_string(),
+        title: row.get(3),
+        body: row.get(4),
+        aliases: row.get(5),
+        identity: row.get(6),
+        document_type: row.get(7),
+        selection_seq,
+    })
+    .collect()
+}
+
+fn source_text_qry_selection(consumer: &str, selection_seq: u64) -> SourceTextSearchSelection {
+    let profile = tos_command::source_search_projection::SOURCE_SEARCH_PROFILE;
+    let source_contract = contract_digest();
+    let descriptor = format!(
+        "{}\0{}\0{}\0{}\0{}",
+        tos_query::source_text_search::SOURCE_TEXT_SEARCH_OPERATION,
+        profile,
+        1,
+        source_contract.to_hex(),
+        1
+    );
+    SourceTextSearchSelection {
+        consumer_id: consumer.to_owned(),
+        domain: "private-source-text-selection".to_owned(),
+        consumer_cut: selection_seq.to_string(),
+        profile_id: profile.to_owned(),
+        profile_sha256: Digest256::of_bytes(descriptor.as_bytes()),
+        selection_seq,
+    }
+}
+
+fn assert_source_text_cli_matches_qry(
+    case: &RevisionCase,
+    consumer: &str,
+    through_seq: u64,
+    request: &SourceTextSearchRequest,
+    cli_page: &Value,
+) {
+    let documents = projection_text_documents(case, consumer, through_seq);
+    let selection = SourceTextSearchSelection {
+        domain: case.lab.domain.clone(),
+        ..source_text_qry_selection(consumer, through_seq)
+    };
+    let budget = SourceTextSearchBudget {
+        max_candidates: documents.len().max(1),
+        max_text_code_points: 16_000_000,
+        max_text_bytes: 64 * 1024 * 1024,
+        max_excerpt_code_points: 512,
+        max_response_bytes: 1024 * 1024,
+        max_work_steps: 100_000_000,
+    };
+    let page = execute_source_text_search(
+        request,
+        &selection,
+        SourceTextCandidateSet {
+            complete: true,
+            documents: &documents,
+        },
+        budget,
+        &NeverAbort,
+    )
+    .expect("QRY ranks the same complete selected projection candidates");
+    let encoded = page
+        .render_json(1024 * 1024, &NeverAbort)
+        .expect("QRY page renders within the owner bound");
+    let qry_page: Value = serde_json::from_slice(&encoded).unwrap();
+    assert_eq!(&qry_page, cli_page, "the PG adapter and shared QRY agree");
+}
+
+fn run_source_text_search_scenario(
+    case: &RevisionCase,
+    binary: &Path,
+    consumer: &str,
+    through_seq: u64,
+) -> Value {
+    let profile = tos_command::source_search_projection::SOURCE_SEARCH_PROFILE;
+    let paths = vec![RECORD_PATH.to_owned(), CREATED_RECORD_PATH.to_owned()];
+    let filters = vec!["agent".to_owned()];
+    let cyrillic = SourceTextSearchRequest {
+        query: "а".to_owned(),
+        limit: 10,
+        document_types: filters.clone(),
+        source_paths: paths.clone(),
+        cursor: None,
+    };
+    let cyrillic_response = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":cyrillic.query,
+            "limit":cyrillic.limit,
+            "document_types":cyrillic.document_types,
+            "source_paths":cyrillic.source_paths
+        }),
+    );
+    assert_eq!(cyrillic_response["status"], "current");
+    assert!(
+        cyrillic_response["result"]["hits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|hit| hit["document_id"] == "tos.agent.parmenides-of-elea")
+    );
+    assert!(
+        cyrillic_response["result"]["hits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|hit| hit["document_type"] == "agent")
+    );
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &cyrillic,
+        &cyrillic_response["result"],
+    );
+
+    let mut wildcard_searches = serde_json::Map::new();
+    for query in ["%", "_"] {
+        let request = SourceTextSearchRequest {
+            query: query.to_owned(),
+            limit: 10,
+            document_types: filters.clone(),
+            source_paths: vec![CREATED_RECORD_PATH.to_owned()],
+            cursor: None,
+        };
+        let response = source_text_search_cli(
+            case,
+            binary,
+            consumer,
+            profile,
+            &json!({
+                "operation":"search-text",
+                "query":request.query,
+                "limit":request.limit,
+                "document_types":request.document_types,
+                "source_paths":request.source_paths
+            }),
+        );
+        assert_eq!(response["status"], "current");
+        let hits = response["result"]["hits"].as_array().unwrap();
+        assert_eq!(hits.len(), 1, "wildcard metacharacter is matched literally");
+        assert_eq!(hits[0]["document_id"], CREATED_RECORD_ID);
+        assert_source_text_cli_matches_qry(
+            case,
+            consumer,
+            through_seq,
+            &request,
+            &response["result"],
+        );
+        wildcard_searches.insert(query.to_owned(), response["result"].clone());
+    }
+
+    let exact_filter = SourceTextSearchRequest {
+        query: "Sundial".to_owned(),
+        limit: 10,
+        document_types: filters.clone(),
+        source_paths: vec![CREATED_RECORD_PATH.to_owned()],
+        cursor: None,
+    };
+    let exact_filter_response = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":exact_filter.query,
+            "limit":exact_filter.limit,
+            "document_types":exact_filter.document_types,
+            "source_paths":exact_filter.source_paths
+        }),
+    );
+    let exact_hits = exact_filter_response["result"]["hits"].as_array().unwrap();
+    assert_eq!(exact_hits.len(), 1);
+    assert_eq!(exact_hits[0]["source_path"], CREATED_RECORD_PATH);
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &exact_filter,
+        &exact_filter_response["result"],
+    );
+    let absent_path = SourceTextSearchRequest {
+        source_paths: vec!["ToS/source-witnesses/agents/not-selected/agent.json".to_owned()],
+        ..exact_filter.clone()
+    };
+    let absent_path_response = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":absent_path.query,
+            "limit":absent_path.limit,
+            "document_types":absent_path.document_types,
+            "source_paths":absent_path.source_paths
+        }),
+    );
+    assert_eq!(absent_path_response["status"], "current");
+    assert!(
+        absent_path_response["result"]["hits"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &absent_path,
+        &absent_path_response["result"],
+    );
+
+    let first_page_request = SourceTextSearchRequest {
+        query: "e".to_owned(),
+        limit: 1,
+        document_types: filters.clone(),
+        source_paths: paths.clone(),
+        cursor: None,
+    };
+    let first_page = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":first_page_request.query,
+            "limit":first_page_request.limit,
+            "document_types":first_page_request.document_types,
+            "source_paths":first_page_request.source_paths
+        }),
+    );
+    assert_eq!(first_page["status"], "current");
+    assert_eq!(first_page["result"]["hits"].as_array().unwrap().len(), 1);
+    assert_eq!(first_page["result"]["has_more"], true);
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &first_page_request,
+        &first_page["result"],
+    );
+    let first_hit = first_page["result"]["hits"][0].clone();
+    let cursor = first_page["result"]["next_cursor"]
+        .as_str()
+        .expect("a second matching document produces a continuation cursor")
+        .to_owned();
+    let second_page_request = SourceTextSearchRequest {
+        cursor: Some(cursor.clone()),
+        ..first_page_request.clone()
+    };
+    let second_page = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":second_page_request.query,
+            "limit":second_page_request.limit,
+            "document_types":second_page_request.document_types,
+            "source_paths":second_page_request.source_paths,
+            "cursor":second_page_request.cursor
+        }),
+    );
+    assert_eq!(second_page["status"], "current");
+    assert_eq!(second_page["result"]["hits"].as_array().unwrap().len(), 1);
+    assert_ne!(second_page["result"]["hits"][0], first_hit);
+    assert_eq!(second_page["result"]["has_more"], false);
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &second_page_request,
+        &second_page["result"],
+    );
+    let full_order_request = SourceTextSearchRequest {
+        limit: 10,
+        cursor: None,
+        ..first_page_request.clone()
+    };
+    let full_order = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":full_order_request.query,
+            "limit":full_order_request.limit,
+            "document_types":full_order_request.document_types,
+            "source_paths":full_order_request.source_paths
+        }),
+    );
+    let ordered_hits = full_order["result"]["hits"].as_array().unwrap();
+    assert!(
+        ordered_hits.len() >= 2,
+        "the selected text has multiple matches"
+    );
+    assert_eq!(ordered_hits[0], first_hit);
+    assert_eq!(ordered_hits[1], second_page["result"]["hits"][0]);
+    assert!(
+        ordered_hits
+            .windows(2)
+            .all(|pair| { pair[0]["rank"].as_u64().unwrap() <= pair[1]["rank"].as_u64().unwrap() })
+    );
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &full_order_request,
+        &full_order["result"],
+    );
+
+    let docs = projection_text_documents(case, consumer, through_seq);
+    let selection = SourceTextSearchSelection {
+        domain: case.lab.domain.clone(),
+        ..source_text_qry_selection(consumer, through_seq)
+    };
+    let budget = SourceTextSearchBudget {
+        max_candidates: docs.len().max(1),
+        max_text_code_points: 16_000_000,
+        max_text_bytes: 64 * 1024 * 1024,
+        max_excerpt_code_points: 512,
+        max_response_bytes: 1024 * 1024,
+        max_work_steps: 100_000_000,
+    };
+    let stale_filter = SourceTextSearchRequest {
+        source_paths: vec![CREATED_RECORD_PATH.to_owned()],
+        ..second_page_request.clone()
+    };
+    let stale_filter_error = execute_source_text_search(
+        &stale_filter,
+        &selection,
+        SourceTextCandidateSet {
+            complete: true,
+            documents: &docs,
+        },
+        budget,
+        &NeverAbort,
+    )
+    .expect_err("a continuation cannot cross a source-path filter change");
+    assert_eq!(
+        stale_filter_error.code,
+        tos_query::source_text_search::SourceTextSearchErrorCode::StaleCursor
+    );
+    let wrong_consumer = SourceTextSearchSelection {
+        consumer_id: format!("{consumer}-wrong"),
+        ..selection.clone()
+    };
+    let stale_consumer_error = execute_source_text_search(
+        &second_page_request,
+        &wrong_consumer,
+        SourceTextCandidateSet {
+            complete: true,
+            documents: &docs,
+        },
+        budget,
+        &NeverAbort,
+    )
+    .expect_err("a continuation cannot cross a selected consumer change");
+    assert_eq!(
+        stale_consumer_error.code,
+        tos_query::source_text_search::SourceTextSearchErrorCode::StaleCursor
+    );
+
+    let stale_response = source_text_search_cli(
+        case,
+        binary,
+        &format!("{consumer}-not-initialized"),
+        profile,
+        &json!({"operation":"search-text","query":"Sundial","limit":1}),
+    );
+    assert_eq!(stale_response["status"], "stale");
+
+    json!({
+        "projection_seq":through_seq,
+        "unicode_cyrillic_one_character":cyrillic_response["result"],
+        "literal_wildcards":wildcard_searches,
+        "exact_filter":exact_filter_response["result"],
+        "absent_exact_filter_hits":absent_path_response["result"]["hits"].as_array().unwrap().len(),
+        "cursor_pages":[first_page["result"],second_page["result"]],
+        "stale_cursor_wrong_filter":stale_filter_error.code.as_str(),
+        "stale_cursor_wrong_consumer":stale_consumer_error.code.as_str(),
+        "stale_owner_consumer":stale_response["status"]
+    })
+}
+
+fn assert_source_text_disclosure_lease_blocks_revoke(case: &RevisionCase, consumer: &str) -> Value {
+    let selection_path = source_text_selection_path(
+        case,
+        consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
+    );
+    let ready = case
+        ._owner_scratch
+        .0
+        .join(format!("source-text-guard-{consumer}-ready"));
+    let release = case
+        ._owner_scratch
+        .0
+        .join(format!("source-text-guard-{consumer}-release"));
+    let executable = std::env::current_exe().expect("integration test executable is available");
+    let mut command = Command::new(executable);
+    command.process_group(0);
+    let mut child = command
+        .arg("pg_real_source_text_disclosure_guard_child_entry")
+        .arg("--nocapture")
+        .env("TOS_CMD_POSTGRES_URL", &case.lab.url)
+        .env("TOS_SOURCE_PG_URL", &case.lab.url)
+        .env("TOS_PG_REAL_SOURCE_TEXT_SELECTION", &selection_path)
+        .env("TOS_PG_REAL_SOURCE_TEXT_READY", &ready)
+        .env("TOS_PG_REAL_SOURCE_TEXT_RELEASE", &release)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the typed disclosure guard child starts");
+    let pid = child.id();
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
+    let stdout_reader = thread::spawn(move || drain_bounded(stdout, 65_536).unwrap());
+    let stderr_reader = thread::spawn(move || drain_bounded(stderr, 65_536).unwrap());
+    let ready_deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        if ready.exists() {
+            break;
+        }
+        if let Some(status) = child.try_wait().unwrap() {
+            let stdout = stdout_reader.join().unwrap().0;
+            let stderr = stderr_reader.join().unwrap().0;
+            panic!(
+                "typed source-text search child exited before holding the guard: status={status}, stdout={}, stderr={}",
+                String::from_utf8_lossy(&stdout),
+                String::from_utf8_lossy(&stderr)
+            );
+        }
+        if Instant::now() >= ready_deadline {
+            unsafe {
+                libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+            }
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = stdout_reader.join();
+            let _ = stderr_reader.join();
+            panic!("typed source-text guard child missed its ready barrier");
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(
+        fs::read(&ready).unwrap(),
+        b"current page and disclosure lease held"
+    );
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    db.batch_execute("SET lock_timeout='150ms'").unwrap();
+    let revoke_attempt = db.execute(
+        "UPDATE cmd2_domain SET rights_allowed=false WHERE domain=$1",
+        &[&case.lab.domain],
+    );
+    if revoke_attempt.is_ok() {
+        db.execute(
+            "UPDATE cmd2_domain SET rights_allowed=true WHERE domain=$1",
+            &[&case.lab.domain],
+        )
+        .expect("unexpectedly unblocked test revoke is restored");
+    }
+    let rights_allowed: bool = db
+        .query_one(
+            "SELECT rights_allowed FROM cmd2_domain WHERE domain=$1",
+            &[&case.lab.domain],
+        )
+        .unwrap()
+        .get(0);
+    assert!(rights_allowed, "the timed-out revoke made no rights change");
+    drop(db);
+    fs::write(&release, b"release").unwrap();
+    let exit_deadline = Instant::now() + Duration::from_secs(10);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= exit_deadline {
+            unsafe {
+                libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+            }
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = stdout_reader.join();
+            let _ = stderr_reader.join();
+            panic!("typed source-text guard child did not release its page");
+        }
+        thread::sleep(Duration::from_millis(10));
+    };
+    let (stdout, stdout_bytes) = stdout_reader.join().unwrap();
+    let (stderr, stderr_bytes) = stderr_reader.join().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let blocked_revoke = revoke_attempt
+        .expect_err("a current-page disclosure lease blocks a concurrent rights revoke");
+    assert_eq!(
+        blocked_revoke.code(),
+        Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE)
+    );
+    json!({
+        "typed_current_page_guard":"held across concurrent rights update attempt",
+        "concurrent_revoke_sqlstate":blocked_revoke.code().unwrap().code(),
+        "rights_after_timeout":rights_allowed,
+        "child_exit_status":status.code(),
+        "child_stdout_bytes":stdout_bytes,
+        "child_stderr_bytes":stderr_bytes,
+        "child_stdout":String::from_utf8_lossy(&stdout),
+        "child_stderr":String::from_utf8_lossy(&stderr)
+    })
+}
+
 fn projection_documents(rows: &[String]) -> BTreeMap<(String, String), Value> {
     rows.iter()
         .map(|row| {
@@ -2066,7 +2743,7 @@ fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Pa
         "record_type":"agent",
         "record_id":CREATED_RECORD_ID,
         "record_version":1,
-        "preferred_label":"Sundial PostgreSQL addition fixture",
+        "preferred_label":"Sundial % _ PostgreSQL addition fixture",
         "variant_labels":[],
         "identity_status":"provisional",
         "source_refs":["test:private-pg-real-addition:no-admission"],
@@ -2328,6 +3005,9 @@ fn project_case(
             if through_seq == addition_head
                 && hits.iter().any(|hit| hit.document_id == CREATED_RECORD_ID)
     ));
+    let addition_text_search =
+        run_source_text_search_scenario(case, binary, &consumer, addition_head);
+    let disclosure_lease = assert_source_text_disclosure_lease_blocks_revoke(case, &consumer);
     let receipt = record_correction(case, software, binary);
     let created_record = source_member(case, CREATED_RECORD_PATH);
     assert_eq!(
@@ -2344,6 +3024,22 @@ fn project_case(
         DurableProjectionStatus::Pending { through_seq, head_seq }
             if through_seq == addition_head && head_seq == revision_head
     ));
+    let pending_text_search = source_text_search_cli(
+        case,
+        binary,
+        &consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
+        &json!({
+            "operation":"search-text",
+            "query":"Quartz",
+            "limit":1,
+            "document_types":["agent"],
+            "source_paths":[RECORD_PATH]
+        }),
+    );
+    assert_eq!(pending_text_search["status"], "pending");
+    assert_eq!(pending_text_search["through_seq"], addition_head);
+    assert_eq!(pending_text_search["head_seq"], revision_head);
     let interrupted_process_resources = kill_projection_child(case, &consumer);
     assert_eq!(
         projection_rows(case, &consumer),
@@ -2470,6 +3166,36 @@ fn project_case(
         ),
         "the created Agent is searchable after projection publication"
     );
+    let selection_path = source_text_selection_path(
+        case,
+        &consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
+    );
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    db.execute(
+        "UPDATE cmd2_domain SET rights_allowed=false WHERE domain=$1",
+        &[&case.lab.domain],
+    )
+    .expect("the private fixture can model a rights revocation");
+    drop(db);
+    let revoked_search = invoke_source_text_search(
+        binary,
+        &selection_path,
+        &case.lab.url,
+        &json!({"operation":"search-text","query":"Sundial","limit":1}),
+    );
+    assert!(!revoked_search.status.success());
+    assert!(
+        String::from_utf8_lossy(&revoked_search.stderr).contains("source-text search refused"),
+        "the native source-text owner refuses a rights-revoked projection"
+    );
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    db.execute(
+        "UPDATE cmd2_domain SET rights_allowed=true WHERE domain=$1",
+        &[&case.lab.domain],
+    )
+    .expect("the private rights fixture is restored");
+    drop(db);
     json!({
         "consumer":consumer,
         "baseline_documents":baseline_rows.len(),
@@ -2488,6 +3214,13 @@ fn project_case(
         "addition_projection_head":addition_head,
         "addition_apply_resources":addition_apply_resources,
         "revision_apply_resources":revision_apply_resources,
+        "addition_source_text_search":addition_text_search,
+        "source_text_disclosure_lease":disclosure_lease,
+        "pending_source_text_search":pending_text_search,
+        "rights_revocation_refuses_source_text":{
+            "exit_status":revoked_search.status.code(),
+            "stderr":String::from_utf8_lossy(&revoked_search.stderr)
+        },
         "initial_agent_creation":creation,
         "revision":receipt
     })

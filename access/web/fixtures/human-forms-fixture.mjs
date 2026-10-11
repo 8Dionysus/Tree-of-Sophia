@@ -1,3 +1,4 @@
+import './reader-rules.mjs';
 import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
 import {formNode,formLens,compactFormLens,memberFormLens,ref} from './human-form-data.mjs';

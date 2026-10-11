@@ -216,6 +216,37 @@ Replay reports zero ordinary source-selection work separately from durable
 receipt metadata. The result has `grants_admission: false`; source admission,
 external rights, publication and canon remain separate decisions.
 
+## Native PostgreSQL source bootstrap
+
+The protected `source-commands --invocation ABS < request.json` route also
+accepts `tos_local_pg_source_bootstrap_invocation_v1` with the bounded
+`source.bootstrap` request. It selects one immutable `CorpusCutReader` revision
+and complete membership, a source contract and private STO root, an initial or
+already-held exact job fence, plus a separately selected Rust software capture,
+component set and schema worker. The private owner configuration must repeat
+the selected domain, cut identity, job selection and allowed operation exactly.
+The route imports that cut through the existing durable coordinator, cold
+reopens it and returns the selected complete generation. It does not grant
+source admission, publication or canon authority. Bootstrap resumption after a
+partial import is unsupported; the selected store and domain must be unused.
+
+`source_selection.initialize_schema: true` must also be present in the
+protected owner configuration, with `initialization_mode: "initialize"` and
+the initial `job_fence: 1`, to provision the schema. It initializes the
+existing Rust DDL only when the CMD.2 namespace is absent, under a transaction
+advisory lock. Any existing CMD.2 object makes that choice refuse; it never
+silently applies the idempotent DDL as a migration. When the choice is absent
+or false in both selections, the route requires the provisioned CMD.2 tables,
+indexes, functions and audit triggers and performs no DDL. This describes
+native provisioning capability, not evidence of a live database setup.
+
+The transport selects PostgreSQL 16 through the existing private NoTls
+numeric-loopback profile and `TOS_SOURCE_PG_URL`. Deploy this private
+coordinator in a dedicated database whose ordinary query roles cannot bypass
+adapter rights, write coordinator tables or alter DDL and audit triggers. The
+database owner remains trusted; schema setup alone does not prove those live
+role grants or runtime behavior.
+
 Provide a nonempty `TOS_CMD_POSTGRES_URL` for a dedicated isolated PostgreSQL instance and run `cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture` from the OPS-integrated workspace. Explicit PG target execution fails closed without the URL. Destructive child/restore probes remain explicitly ignored and are not part of ordinary CI execution. Tests establish bounded mechanical behavior, not source or rights admission.
 
 ## Explicit native backup and restore

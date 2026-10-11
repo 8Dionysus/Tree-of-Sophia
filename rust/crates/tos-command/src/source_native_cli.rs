@@ -42,6 +42,8 @@ mod legacy_claim;
 mod metadata_publication;
 #[path = "source_native_object_link_cli.rs"]
 mod object_link;
+#[path = "source_pg_bootstrap_cli.rs"]
+mod pg_bootstrap;
 #[path = "source_native_pg_creation_cli.rs"]
 mod pg_creation;
 #[path = "source_native_pg_revision_cli.rs"]
@@ -202,6 +204,17 @@ fn run_selected(
     }
     if text(&invocation, "schema_version")? == "tos_local_pg_agent_creation_invocation_v1" {
         return pg_creation::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if text(&invocation, "schema_version")? == "tos_local_pg_source_bootstrap_invocation_v1" {
+        return pg_bootstrap::run(
             &selected,
             &raw,
             &invocation,

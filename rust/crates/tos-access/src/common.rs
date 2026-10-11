@@ -15,6 +15,9 @@ pub const HTTP_PREFIX: &str = "/api/source/navigation/";
 pub const SEARCH_OPERATION_ID: &str = "tos.knowledge.search";
 pub const SEARCH_MCP_TOOL: &str = "tos_knowledge_search";
 pub const SEARCH_HTTP_PATH: &str = "/api/knowledge/search";
+pub const SOURCE_TEXT_SEARCH_OPERATION_ID: &str = "tos.source-text.search";
+pub const SOURCE_TEXT_SEARCH_MCP_TOOL: &str = "tos_source_text_search";
+pub const SOURCE_TEXT_SEARCH_HTTP_PATH: &str = "/api/source-text/search";
 pub const REQUEST_PROFILE: &str = "tos_request_last_wins_json_v1";
 pub const DESCRIPTOR: &str = include_str!("../operations.v1.json");
 
@@ -180,6 +183,7 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                         || id == crate::reading::PUBLIC_READING_CAPABILITY_OPERATION
                         || id == crate::word_analysis::OPERATION_ID
                         || id == SEARCH_OPERATION_ID
+                        || id == SOURCE_TEXT_SEARCH_OPERATION_ID
                         || id == tos_query::source_gap::SOURCE_GAP_OPERATION
                         || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
                 });
@@ -223,6 +227,7 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
 pub(crate) fn mcp_tool_list(
     executor: &dyn AccessExecutor,
     software: bool,
+    source_text_search_selected: bool,
 ) -> Result<Vec<u8>, AccessError> {
     let operations = registered_operations()?;
     let string = |text: &str| JsonValue::String(JsonString::from_utf8(text));
@@ -248,6 +253,7 @@ pub(crate) fn mcp_tool_list(
                     || executor.knowledge_search_legacy_available()
                     || executor.knowledge_search_compressed_available()
             }
+            SOURCE_TEXT_SEARCH_OPERATION_ID => source_text_search_selected,
             id if crate::source_read::Operation::from_id(id).is_some() => {
                 crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_only())
                     || executor.source_read_available()

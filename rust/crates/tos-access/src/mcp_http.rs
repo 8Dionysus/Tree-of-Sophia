@@ -35,12 +35,16 @@ struct Session {
 pub struct HttpSessions {
     sessions: Mutex<BTreeMap<String, Arc<Session>>>,
     software: Option<Arc<crate::site::SoftwareSite>>,
+    #[cfg(not(target_arch = "wasm32"))]
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
 }
 impl Default for HttpSessions {
     fn default() -> Self {
         Self {
             sessions: Mutex::new(BTreeMap::new()),
             software: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            source_text_search: None,
         }
     }
 }
@@ -88,11 +92,16 @@ impl HttpSessions {
         if sessions.contains_key(&id) {
             return Err(io::Error::other("MCP session identity collision"));
         }
+        #[cfg(not(target_arch = "wasm32"))]
+        let state = McpSession::with_selected_source_text_search(
+            profile,
+            self.software.as_ref().map(Arc::clone),
+            self.source_text_search.as_ref().map(Arc::clone),
+        );
+        #[cfg(target_arch = "wasm32")]
+        let state = McpSession::with_software(profile, self.software.as_ref().map(Arc::clone));
         let session = Arc::new(Session {
-            state: Mutex::new(McpSession::with_software(
-                profile,
-                self.software.as_ref().map(Arc::clone),
-            )),
+            state: Mutex::new(state),
             active: Mutex::new(None),
             last_used: Mutex::new(now),
         });
@@ -497,6 +506,45 @@ pub fn serve_with_software(
     profile: AccessProfile,
     software: Option<Arc<crate::site::SoftwareSite>>,
 ) -> io::Result<()> {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        serve_with_source_text_search(addr, executor, profile, software, None)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        serve_inner(addr, executor, profile, software)
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn serve_with_source_text_search(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> io::Result<()> {
+    serve_inner(addr, executor, profile, software, source_text_search)
+}
+#[cfg(target_arch = "wasm32")]
+pub fn serve_with_source_text_search(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    _source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> io::Result<()> {
+    serve_inner(addr, executor, profile, software)
+}
+
+fn serve_inner(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    #[cfg(not(target_arch = "wasm32"))] source_text_search: Option<
+        Arc<crate::source_text_search::SelectedPgSourceTextSearch>,
+    >,
+) -> io::Result<()> {
     let addresses = addr.to_socket_addrs()?.collect::<Vec<_>>();
     if addresses.is_empty() || addresses.iter().any(|v| !v.ip().is_loopback()) {
         return Err(io::Error::new(
@@ -508,6 +556,8 @@ pub fn serve_with_software(
     let sessions = Arc::new(HttpSessions {
         sessions: Mutex::new(BTreeMap::new()),
         software,
+        #[cfg(not(target_arch = "wasm32"))]
+        source_text_search,
     });
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {

@@ -131,8 +131,12 @@ fn target(repository: &Path, directory: &'static str) -> Target {
     let package = format!("ToS/source-witnesses/agents/{directory}");
     let source_path = format!("{package}/agent.json");
     let forms_path = format!("{package}/agent.human-forms.json");
-    let record: Value =
-        serde_json::from_slice(&fs::read(repository.join(&source_path)).unwrap()).unwrap();
+    let record_raw = fs::read(repository.join(&source_path)).unwrap();
+    let record: Value = serde_json::from_slice(&record_raw).unwrap();
+    let source = crate::source_command::parse(&record_raw)
+        .expect("the selected authored Agent parses as a strict source record");
+    let source_fields = tos_validation::source_forms::source_copy_kernel::metadata_fields(&source)
+        .expect("the maintained source field catalogue accepts the selected Agent");
     let forms: Value =
         serde_json::from_slice(&fs::read(repository.join(&forms_path)).unwrap()).unwrap();
     let form_selections = forms["forms"]
@@ -140,13 +144,49 @@ fn target(repository: &Path, directory: &'static str) -> Target {
         .unwrap()
         .iter()
         .map(|form| {
+            assert_eq!(form["content"]["kind"], "source-copy");
+            assert_eq!(form["content"]["slot"], "wording");
+            let pointer = form["bindings"]["wording"]["pointer"]
+                .as_str()
+                .expect("each real HumanForm binds its wording slot to a source pointer");
+            let mut matching_fields = source_fields
+                .iter()
+                .filter(|field| field.pointer.as_str() == pointer);
+            let field = matching_fields
+                .next()
+                .expect("each HumanForm wording pointer belongs to the maintained field catalogue");
+            assert!(
+                matching_fields.next().is_none(),
+                "each HumanForm wording pointer identifies one maintained source field"
+            );
             (
                 form["form_id"].as_str().unwrap().to_owned(),
-                form["field_id"].as_str().unwrap().to_owned(),
+                field.id.clone(),
             )
         })
         .collect::<Vec<_>>();
     assert!(!form_selections.is_empty());
+    let creation_request_path = format!("{package}/source-create-request.json");
+    let creation_request: Value =
+        serde_json::from_slice(&fs::read(repository.join(creation_request_path)).unwrap())
+            .expect("the selected actual Agent retains its maintained native creation request");
+    let creation_form_selections = creation_request["forms"]
+        .as_array()
+        .expect("the maintained source creation request selects HumanForms")
+        .iter()
+        .map(|selection| {
+            (
+                selection["form_id"].as_str().unwrap().to_owned(),
+                selection["field_id"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(creation_request["operation"], "source.create");
+    assert_eq!(creation_request["record"]["record_id"], record["record_id"]);
+    assert_eq!(
+        form_selections, creation_form_selections,
+        "field selections match the maintained producer request for this exact Agent"
+    );
     Target {
         name: directory,
         source_path,
@@ -849,6 +889,9 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
             &components,
             &mut bootstrap_worker,
             Digest256::of_bytes(CONTRACT),
+            JOB_ID,
+            1,
+            crate::source_cohort::BootstrapJobMode::RequireExisting,
             deadline,
             cancelled,
         )

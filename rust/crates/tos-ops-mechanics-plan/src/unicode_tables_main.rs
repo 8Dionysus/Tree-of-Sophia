@@ -27,7 +27,7 @@ const FILES: [(&str, &str); 4] = [
         "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
     ),
 ];
-const TABLE_SHA: &str = "e9ab817aef6bf870fc8b855cffe7c06ac46aa6a68e6c259c75920f1bcfbb42e6";
+const TABLE_SHA: &str = "8aa0f34b6547782d343066a7b4ec7611cb6b7a53df6e06943f1191f314d57791";
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 fn bad(message: &str) -> Box<dyn Error> {
     std::io::Error::new(std::io::ErrorKind::InvalidData, message).into()
@@ -173,6 +173,7 @@ fn table(dir: &Path) -> Result<String> {
         target.extend(first..=last);
     }
     let mut fold = BTreeMap::<u32, String>::new();
+    let mut simple_fold_overrides = BTreeMap::<u32, String>::new();
     for line in texts["CaseFolding"].lines() {
         let row: Vec<_> = line
             .split('#')
@@ -181,9 +182,33 @@ fn table(dir: &Path) -> Result<String> {
             .split(';')
             .map(str::trim)
             .collect();
-        if row.len() > 2 && matches!(row[1], "C" | "F") {
-            fold.insert(cp(row[0])?, mapped(row[2])?);
+        if row.len() > 2 {
+            let point = cp(row[0])?;
+            match row[1] {
+                "C" => {
+                    fold.insert(point, mapped(row[2])?);
+                }
+                "F" => {
+                    let value = mapped(row[2])?;
+                    if value.chars().count() < 2 {
+                        return Err(bad("full CaseFolding entry must expand"));
+                    }
+                    fold.insert(point, value);
+                }
+                "S" => {
+                    simple_fold_overrides.insert(point, mapped(row[2])?);
+                }
+                "T" => {}
+                _ => return Err(bad("unhandled CaseFolding status")),
+            }
         }
+    }
+    if simple_fold_overrides.iter().any(|(point, value)| {
+        value.chars().count() != 1 || !fold.get(point).is_some_and(|full| full.chars().count() > 1)
+    }) {
+        return Err(bad(
+            "simple CaseFolding overrides differ from full expansions",
+        ));
     }
     let provenance=FILES.iter().map(|(name,digest)|json!({"url":format!("https://www.unicode.org/Public/{VERSION}/ucd/{name}.txt"),"sha256":digest})).collect::<Vec<_>>();
     // The historical producer labels remain byte-identical provenance in this v1
@@ -201,6 +226,7 @@ fn table(dir: &Path) -> Result<String> {
     for (name, rows) in [
         ("nativeLowerMappings", lower),
         ("nativeCasefoldMappings", fold),
+        ("nativeSimpleCasefoldOverrides", simple_fold_overrides),
         ("nativeDecimalMappings", decimal),
     ] {
         lines.push(format!(
@@ -281,12 +307,14 @@ fn rust_table(raw: &[u8]) -> Result<String> {
         format!("// Source SHA-256: {TABLE_SHA}"),
         "// Unicode 16.0.0; algorithm tos-python-native-unicode-v1.".to_owned(),
         format!("// Full default casefold: {url}"),
+        "// Simple default casefold supplements (C + S): nativeSimpleCasefoldOverrides.".to_owned(),
         format!("// CaseFolding source SHA-256: {}", FILES[3].1),
         "// Unicode data license: access/shared/UNICODE-LICENSE.txt.".to_owned(),
     ];
     for (name, key) in [
         ("LOWER", "nativeLowerMappings"),
         ("CASEFOLD", "nativeCasefoldMappings"),
+        ("SIMPLE_CASEFOLD_OVERRIDES", "nativeSimpleCasefoldOverrides"),
     ] {
         lines.push(format!("const {name}: &[(u32, &str)] = &["));
         for row in export(source, key)?

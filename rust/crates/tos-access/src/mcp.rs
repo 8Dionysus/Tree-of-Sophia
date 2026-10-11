@@ -71,6 +71,8 @@ pub(crate) struct McpSession {
     pending_id: Option<Vec<u8>>,
     pending_tool_result: bool,
     software: Option<Arc<crate::site::SoftwareSite>>,
+    #[cfg(not(target_arch = "wasm32"))]
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
 }
 
 impl McpSession {
@@ -87,7 +89,30 @@ impl McpSession {
             pending_id: None,
             pending_tool_result: false,
             software,
+            #[cfg(not(target_arch = "wasm32"))]
+            source_text_search: None,
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn with_selected_source_text_search(
+        profile: AccessProfile,
+        software: Option<Arc<crate::site::SoftwareSite>>,
+        source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+    ) -> Self {
+        let mut session = Self::with_software(profile, software);
+        session.source_text_search = source_text_search;
+        session
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn source_text_search_selected(&self) -> bool {
+        self.source_text_search.is_some()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn source_text_search_selected(&self) -> bool {
+        false
     }
 
     fn handle_line(&mut self, executor: &dyn AccessExecutor, line: &[u8]) -> Option<Vec<u8>> {
@@ -232,7 +257,11 @@ impl McpSession {
                     Err(error) => Some(rpc_error(&id, -32000, error.message)),
                 }
             }
-            "tools/list" => match mcp_tool_list(executor, self.software.is_some()) {
+            "tools/list" => match mcp_tool_list(
+                executor,
+                self.software.is_some(),
+                self.source_text_search_selected(),
+            ) {
                 Ok(list) => Some(rpc_result(&id, &list)),
                 Err(_) => Some(rpc_error(
                     &id,
@@ -271,6 +300,7 @@ impl McpSession {
                             || executor.knowledge_search_legacy_available()
                             || executor.knowledge_search_compressed_available()
                     }
+                    Some(crate::SOURCE_TEXT_SEARCH_MCP_TOOL) => self.source_text_search_selected(),
                     Some(name)
                         if registered_operations().ok().is_some_and(|ops| {
                             ops.iter().any(|op| {
@@ -299,6 +329,12 @@ impl McpSession {
                         }),
                     None => false,
                 };
+                if known && !available && name == Some(crate::SOURCE_TEXT_SEARCH_MCP_TOOL) {
+                    return Some(tool_error(
+                        &id,
+                        "durable PostgreSQL source-text consumer unavailable",
+                    ));
+                }
                 // A declared source operation without its selected owner has
                 // a genuine unavailable diagnostic, not an unknown tool name.
                 // Keep it absent from discovery; this grants no source access.
@@ -388,6 +424,30 @@ impl McpSession {
                         crate::search::SearchRequest::from_arguments(arguments)
                             .and_then(|request| request.execute(executor, probe))
                     }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    Some(crate::SOURCE_TEXT_SEARCH_MCP_TOOL) => {
+                        let selection = self.source_text_search.as_ref().ok_or_else(|| {
+                            crate::AccessError::new(
+                                crate::AccessErrorCode::Unavailable,
+                                "no durable PostgreSQL source-text consumer selected",
+                            )
+                        })?;
+                        tos_query::source_text_search::SourceTextSearchRequest::from_value(
+                            arguments,
+                        )
+                        .map_err(|_| {
+                            crate::AccessError::new(
+                                crate::AccessErrorCode::InvalidRequest,
+                                "invalid source-text search request",
+                            )
+                        })
+                        .and_then(|request| selection.execute_request(request, self.profile, probe))
+                    }
+                    #[cfg(target_arch = "wasm32")]
+                    Some(crate::SOURCE_TEXT_SEARCH_MCP_TOOL) => Err(crate::AccessError::new(
+                        crate::AccessErrorCode::Unavailable,
+                        "durable PostgreSQL source-text search is native-only",
+                    )),
                     Some(_)
                         if crate::source_read::Operation::from_id(
                             &operation.unwrap().operation_id,
@@ -569,6 +629,15 @@ fn tool_error(id: &[u8], message: &str) -> Vec<u8> {
 pub fn run_stdio(executor: &dyn AccessExecutor, profile: AccessProfile) -> io::Result<()> {
     run_stdio_with_software(executor, profile, None)
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub fn run_stdio_with_software(
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+) -> io::Result<()> {
+    run_stdio_with_source_text_search(executor, profile, software, None)
+}
+#[cfg(target_arch = "wasm32")]
 pub fn run_stdio_with_software(
     executor: &dyn AccessExecutor,
     profile: AccessProfile,
@@ -577,6 +646,33 @@ pub fn run_stdio_with_software(
     let stdin = io::stdin();
     let stdout = io::stdout();
     run_io_with_software(stdin.lock(), stdout.lock(), executor, profile, software)
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn run_stdio_with_source_text_search(
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> io::Result<()> {
+    let stdin = io::stdin();
+    let stdout = io::stdout();
+    run_io_with_source_text_search(
+        stdin.lock(),
+        stdout.lock(),
+        executor,
+        profile,
+        software,
+        source_text_search,
+    )
+}
+#[cfg(target_arch = "wasm32")]
+pub fn run_stdio_with_source_text_search(
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    _source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> io::Result<()> {
+    run_stdio_with_software(executor, profile, software)
 }
 
 /// Same protocol path over supplied streams for real byte-level client tests.
@@ -589,6 +685,23 @@ pub fn run_io<R: BufRead, W: Write>(
     run_io_with_software(input, output, executor, profile, None)
 }
 pub fn run_io_with_software<R: BufRead, W: Write>(
+    input: R,
+    output: W,
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+) -> io::Result<()> {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        run_io_with_source_text_search(input, output, executor, profile, software, None)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        run_io_without_source_text_search(input, output, executor, profile, software)
+    }
+}
+#[cfg(target_arch = "wasm32")]
+fn run_io_without_source_text_search<R: BufRead, W: Write>(
     mut input: R,
     mut output: W,
     executor: &dyn AccessExecutor,
@@ -596,6 +709,40 @@ pub fn run_io_with_software<R: BufRead, W: Write>(
     software: Option<Arc<crate::site::SoftwareSite>>,
 ) -> io::Result<()> {
     let mut session = McpSession::with_software(profile, software);
+    run_io_loop(&mut input, &mut output, &mut session, executor, profile)
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn run_io_with_source_text_search<R: BufRead, W: Write>(
+    mut input: R,
+    mut output: W,
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> io::Result<()> {
+    let mut session =
+        McpSession::with_selected_source_text_search(profile, software, source_text_search);
+    run_io_loop(&mut input, &mut output, &mut session, executor, profile)
+}
+#[cfg(target_arch = "wasm32")]
+pub fn run_io_with_source_text_search<R: BufRead, W: Write>(
+    input: R,
+    output: W,
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+    _source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
+) -> io::Result<()> {
+    run_io_with_software(input, output, executor, profile, software)
+}
+
+fn run_io_loop<R: BufRead, W: Write>(
+    input: &mut R,
+    output: &mut W,
+    session: &mut McpSession,
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+) -> io::Result<()> {
     loop {
         let mut line = Vec::new();
         let mut overflow = false;

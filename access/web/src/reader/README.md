@@ -111,8 +111,11 @@ node node_modules/vitest/vitest.mjs run src/reader/notebook.test.mjs \
 ```
 
 The notebook tests protect version identity, atomic imports, corrupt-storage
-preservation, cross-tab conflicts and capacity limits. Search tests protect
-literal matching, Unicode offsets and bounded output. Also build the
+preservation, cross-tab conflicts and capacity limits. Reader search is executed
+by `reader_occurrences_wasm_v1` from the shared initialized `tos_web_rules`
+module; the JavaScript adapter only passes the request and decodes its result.
+Search tests protect literal matching, Unicode simple-fold behavior, UTF-16
+offsets and bounded output. Also build the
 constructor and check actual browser behavior: entry from a star, search,
 reload, RU/EN restoration, parallel columns, keyboard focus, source details
 and an undoable personal-node handoff. These checks establish the local access
