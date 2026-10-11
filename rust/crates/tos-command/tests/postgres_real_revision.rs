@@ -816,6 +816,7 @@ fn bootstrap_case_from_cut(
             })
             .collect(),
     };
+    let bootstrap_owner_check = || -> tos_command::DurableResult<()> { Ok(()) };
     let initial = lab
         .db
         .bootstrap_source_cohort(
@@ -832,6 +833,7 @@ fn bootstrap_case_from_cut(
             "private-job",
             1,
             tos_command::source_cohort::BootstrapJobMode::RequireExisting,
+            &bootstrap_owner_check,
             deadline,
             cancelled,
         )
@@ -1421,6 +1423,8 @@ fn invoke(
         discard_reply,
         true,
         "tos_local_pg_record_revision_result_v1",
+        None,
+        true,
     )
 }
 
@@ -1439,6 +1443,8 @@ fn invoke_creation(
         discard_reply,
         true,
         "tos_local_pg_agent_creation_result_v1",
+        None,
+        true,
     )
 }
 
@@ -1456,6 +1462,28 @@ fn invoke_refusal(
         false,
         false,
         "tos_local_pg_record_revision_result_v1",
+        None,
+        true,
+    )
+}
+
+fn invoke_source_bootstrap(
+    binary: &Path,
+    invocation_path: &Path,
+    url: &str,
+    request: &Value,
+    expect_success: bool,
+) -> NativeInvocation {
+    invoke_with_expected_exit(
+        binary,
+        invocation_path,
+        url,
+        request,
+        false,
+        expect_success,
+        "tos_local_pg_source_bootstrap_result_v1",
+        Some("source-commands"),
+        false,
     )
 }
 
@@ -1467,6 +1495,8 @@ fn invoke_with_expected_exit(
     discard_reply: bool,
     expect_success: bool,
     expected_envelope: &str,
+    command_prefix: Option<&str>,
+    nested_result: bool,
 ) -> NativeInvocation {
     let input = canonical(request);
     assert!(input.len() <= 1_048_576);
@@ -1474,6 +1504,9 @@ fn invoke_with_expected_exit(
     let pg_cgroup_before = isolated_pg_cgroup_snapshot();
     let mut command = Command::new(binary);
     command.process_group(0);
+    if let Some(prefix) = command_prefix {
+        command.arg(prefix);
+    }
     let mut child = command
         .arg("--invocation")
         .arg(invocation_path)
@@ -1589,13 +1622,19 @@ fn invoke_with_expected_exit(
             let response: Value = serde_json::from_slice(&stdout).unwrap();
             assert_eq!(response["schema_version"], expected_envelope);
             assert_eq!(response["grants_admission"], false);
-            dropped_source_read_work = response["result"].get("source_read_work").cloned();
+            if nested_result {
+                dropped_source_read_work = response["result"].get("source_read_work").cloned();
+            }
             Value::Null
         } else {
             let response: Value = serde_json::from_slice(&stdout).unwrap();
             assert_eq!(response["schema_version"], expected_envelope);
             assert_eq!(response["grants_admission"], false);
-            response["result"].clone()
+            if nested_result {
+                response["result"].clone()
+            } else {
+                response
+            }
         }
     } else {
         json!({
@@ -3610,4 +3649,252 @@ fn real_nietzsche_shared_revision_reprojects_all_three_forms_at_1_and_3_records(
         "TOS_PG_REAL_SHARED_PROJECTION {}",
         serde_json::to_string(&output).unwrap()
     );
+}
+
+#[test]
+fn real_source_bootstrap_initializes_absent_schema_cold_selects_and_refuses_reinit() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    let repository = repository_root();
+    let source = source_cut(&repository, 1, deadline, &cancelled);
+    let membership = source.cut.stream(source.revision).unwrap().expectation();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let binary = native_binary();
+    let worker_path = PathBuf::from(
+        std::env::var_os("TOS_SCHEMA_WORKER_PATH")
+            .expect("the exact selected schema worker is supplied by the laboratory"),
+    )
+    .canonicalize()
+    .expect("the selected schema worker exists");
+    assert!(worker_path.is_absolute());
+
+    let base_url = database_url();
+    let schema_nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock after epoch")
+        .as_nanos();
+    let pg_schema = format!("tos_bootstrap_{}_{}", std::process::id(), schema_nonce);
+    let mut admin = Client::connect(&base_url, NoTls).expect("selected private PostgreSQL opens");
+    admin
+        .batch_execute(&format!("CREATE SCHEMA \"{pg_schema}\""))
+        .expect("unique private test schema is created");
+    let separator = if base_url.contains('?') { "&" } else { "?" };
+    let selected_url =
+        if base_url.starts_with("postgres://") || base_url.starts_with("postgresql://") {
+            format!("{base_url}{separator}options=-csearch_path%3D{pg_schema}%2Cpublic")
+        } else {
+            format!("{base_url} options='-csearch_path={pg_schema},public'")
+        };
+    {
+        let mut selected =
+            Client::connect(&selected_url, NoTls).expect("unique private test schema is selected");
+        let current_schema: String = selected
+            .query_one("SELECT current_schema()", &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(current_schema, pg_schema);
+        let absent: bool = selected
+            .query_one(
+                "SELECT to_regclass(format('%I.cmd2_domain', $1)) IS NULL",
+                &[&pg_schema],
+            )
+            .unwrap()
+            .get(0);
+        assert!(absent, "the fresh schema has no CMD.2 domain");
+    }
+
+    let store_scratch = ScratchRoot::new();
+    fs::set_permissions(&store_scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let store_root = store_scratch.0.canonicalize().unwrap();
+    let owner_scratch = ScratchRoot::new();
+    fs::set_permissions(&owner_scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let owner_root = owner_scratch.0.canonicalize().unwrap();
+    let owner_config = owner_root.join("bootstrap-owner.json");
+    let invocation_path = owner_root.join("bootstrap-invocation.json");
+    let domain = format!("tos-bootstrap-{}-{schema_nonce}", std::process::id());
+    let job_id = "private-bootstrap-job";
+    let contract = contract_digest();
+    let uid = rustix::process::getuid().as_raw();
+    let owner = json!({
+        "schema_version":"tos_local_pg_source_bootstrap_owner_v1",
+        "uid":uid,
+        "expires_at":"2099-01-01T00:00:00Z",
+        "source_root":store_root,
+        "principal_id":"test:private-native-source-bootstrap",
+        "authority_ref":"test:one-record-bootstrap-proof",
+        "allowed_operations":["source.bootstrap"],
+        "domain":domain,
+        "source_contract_sha256":contract.to_prefixed(),
+        "source_revision_sha256":source.revision.0.to_prefixed(),
+        "source_membership_sha256":membership.digest.to_prefixed(),
+        "source_membership_count":membership.count,
+        "initialization_mode":"initialize",
+        "job_id":job_id,
+        "job_fence":1,
+        "initialize_schema":true
+    });
+    fs::write(&owner_config, canonical(&owner)).unwrap();
+    fs::set_permissions(&owner_config, fs::Permissions::from_mode(0o600)).unwrap();
+
+    let store_limits = limits();
+    let invocation = json!({
+        "schema_version":"tos_local_pg_source_bootstrap_invocation_v1",
+        "owner_config":owner_config,
+        "native_executable":binary,
+        "native_executable_sha256":Digest256::of_bytes(&fs::read(&binary).unwrap()).to_prefixed(),
+        "source_selection":{
+            "domain":domain,
+            "source_contract_sha256":contract.to_prefixed(),
+            "store_root":store_root,
+            "store_limits":{
+                "max_segment_bytes":store_limits.max_segment_bytes,
+                "max_frame_bytes":store_limits.max_frame_bytes,
+                "max_frames":store_limits.max_frames,
+                "max_journal_bytes":store_limits.max_journal_bytes
+            },
+            "job_id":job_id,
+            "job_fence":1,
+            "initialization_mode":"initialize",
+            "source_revision_sha256":source.revision.0.to_prefixed(),
+            "source_membership_sha256":membership.digest.to_prefixed(),
+            "source_membership_count":membership.count,
+            "initialize_schema":true
+        },
+        "corpus_store":source._scratch.0.join("snapshot").canonicalize().unwrap(),
+        "source_revision":source.revision.0.to_prefixed(),
+        "software_capture":software.capture.canonicalize().unwrap(),
+        "software_restored_root":software.restored.canonicalize().unwrap(),
+        "software_selection":{
+            "source_git_commit":software.selection.source_git_commit,
+            "source_git_tree":software.selection.source_git_tree,
+            "capture_manifest_sha256":software.selection.capture_manifest_sha256.to_prefixed()
+        },
+        "software_components":software.components,
+        "schema_worker":{
+            "absolute_path":worker_path,
+            "sha256":Digest256::of_bytes(&fs::read(&worker_path).unwrap()).to_prefixed()
+        },
+        "budgets":{
+            "max_revisions":1,
+            "max_members":512,
+            "max_total_bytes":8*1024*1024,
+            "max_member_bytes":1_048_576,
+            "max_schema_receipts":128,
+            "max_schema_receipt_bytes":262_144,
+            "worker_cpu_seconds":3,
+            "worker_address_space_bytes":1_073_741_824
+        }
+    });
+    fs::write(&invocation_path, canonical(&invocation)).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"source.bootstrap"
+    });
+
+    let completed =
+        invoke_source_bootstrap(&binary, &invocation_path, &selected_url, &request, true).result;
+    assert_eq!(completed["source_complete"], true);
+    assert_eq!(completed["schema_initialized"], true);
+    assert_eq!(completed["grants_admission"], false);
+    assert_eq!(completed["grants_publication"], false);
+    assert_eq!(
+        completed["source_revision_sha256"],
+        source.revision.0.to_prefixed()
+    );
+    assert_eq!(
+        completed["source_membership_sha256"],
+        membership.digest.to_prefixed()
+    );
+    assert_eq!(
+        completed["current_membership_sha256"],
+        membership.digest.to_prefixed()
+    );
+    assert_eq!(completed["source_membership_count"], membership.count);
+    assert_eq!(completed["current_membership_count"], membership.count);
+    assert!(completed["selected_head_seq"].as_u64().unwrap() > 0);
+    assert!(completed["selected_generation_sha256"].as_str().is_some());
+    assert!(completed["selected_state_sha256"].as_str().is_some());
+
+    let state_snapshot = || {
+        let mut db = DurablePgCoordinator::connect(&selected_url).unwrap();
+        let store =
+            tos_segment_store::SegmentStore::open_existing(&store_root, store_limits).unwrap();
+        let selected = db
+            .cold_open_selected_generation(&store, &domain, deadline, &cancelled)
+            .unwrap();
+        let mut pg = Client::connect(&selected_url, NoTls).unwrap();
+        let row = pg
+            .query_one(
+                "SELECT d.head_seq, d.source_complete,
+                        d.selected_generation_digest::text, d.source_revision::text,
+                        d.source_membership_digest::text, d.source_membership_count,
+                        (SELECT count(*) FROM cmd2_current c WHERE c.domain=d.domain),
+                        (SELECT count(*) FROM cmd2_member m WHERE m.domain=d.domain),
+                        (SELECT count(*) FROM cmd2_log l WHERE l.domain=d.domain),
+                        (SELECT count(*) FROM cmd2_outbox o WHERE o.domain=d.domain)
+                 FROM cmd2_domain d WHERE d.domain=$1",
+                &[&domain],
+            )
+            .unwrap();
+        json!({
+            "head_seq": row.get::<_, i64>(0),
+            "source_complete": row.get::<_, bool>(1),
+            "selected_generation_digest": row.get::<_, Option<String>>(2),
+            "source_revision": row.get::<_, Option<String>>(3),
+            "source_membership_digest": row.get::<_, Option<String>>(4),
+            "source_membership_count": row.get::<_, Option<i64>>(5),
+            "current_rows": row.get::<_, i64>(6),
+            "member_rows": row.get::<_, i64>(7),
+            "log_rows": row.get::<_, i64>(8),
+            "outbox_rows": row.get::<_, i64>(9),
+            "cold_generation_digest":selected.digest().to_prefixed(),
+            "cold_state_digest": selected.cut().state_digest().to_prefixed(),
+            "cold_head_seq": selected.cut().through_commit_seq()
+        })
+    };
+    let valid_state = state_snapshot();
+    let selected_generation_hex = completed["selected_generation_sha256"]
+        .as_str()
+        .and_then(|digest| digest.strip_prefix("sha256:"))
+        .expect("bootstrap returns its cold selected generation identity");
+    assert_eq!(valid_state["source_complete"], true);
+    assert_eq!(
+        valid_state["selected_generation_digest"],
+        selected_generation_hex
+    );
+    assert_eq!(
+        valid_state["cold_generation_digest"],
+        completed["selected_generation_sha256"]
+    );
+    assert_eq!(
+        valid_state["cold_state_digest"],
+        completed["selected_state_sha256"]
+    );
+    assert_eq!(valid_state["cold_head_seq"], completed["selected_head_seq"]);
+
+    let refused =
+        invoke_source_bootstrap(&binary, &invocation_path, &selected_url, &request, false);
+    assert_eq!(refused.result["refused"], true);
+    assert_eq!(state_snapshot(), valid_state);
+    println!(
+        "TOS_PG_SOURCE_BOOTSTRAP {}",
+        serde_json::to_string(&json!({
+            "source_revision_sha256": source.revision.0.to_prefixed(),
+            "source_membership_sha256": membership.digest.to_prefixed(),
+            "source_membership_count": membership.count,
+            "cold_generation_sha256": completed["selected_generation_sha256"],
+            "cold_state_sha256": completed["selected_state_sha256"],
+            "cold_head_seq": completed["selected_head_seq"],
+            "existing_schema_reinitialization_refused": true,
+            "state_unchanged_after_refusal": true,
+            "grants_admission": false,
+            "grants_publication": false
+        }))
+        .unwrap()
+    );
+
+    admin
+        .batch_execute(&format!("DROP SCHEMA \"{pg_schema}\" CASCADE"))
+        .expect("private bootstrap test schema is removed");
 }

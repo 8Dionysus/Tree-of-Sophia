@@ -1716,6 +1716,7 @@ fn maintained_agent_creation_operation<
         cohort
     } else {
         let mut worker = new_worker(&cut);
+        let bootstrap_owner_check = || -> tos_command::DurableResult<()> { Ok(()) };
         let initial = lab
             .db
             .bootstrap_source_cohort(
@@ -1732,6 +1733,7 @@ fn maintained_agent_creation_operation<
                 "private-job",
                 1,
                 tos_command::source_cohort::BootstrapJobMode::RequireExisting,
+                &bootstrap_owner_check,
                 deadline,
                 &cancelled,
             )

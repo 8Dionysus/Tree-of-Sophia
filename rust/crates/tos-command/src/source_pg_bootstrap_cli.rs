@@ -9,7 +9,7 @@ use super::{absolute, capped, digest, exact, number, read_absolute, text};
 use crate::source_cohort::BootstrapJobMode;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::CreationFilesystem;
-use crate::{DurableError, DurablePgCoordinator};
+use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use serde_json::{Value, json};
 use std::fs;
 use std::io::Read;
@@ -669,41 +669,55 @@ pub(super) fn run(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
-    if read_absolute(
-        invocation_path,
-        uid,
-        true,
-        invocation_raw.len(),
-        deadline,
-        cancelled,
-    )? != invocation_raw
-    {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap invocation changed before store initialization",
-        ));
-    }
-    let (current_owner, current_raw) = CreationFilesystem::select_protected_native_owner_at_root(
-        &owner_path,
-        &selection.store_root,
-        deadline,
-        cancelled,
-    )?;
-    if current_raw != owner_raw {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap owner changed before store initialization",
-        ));
-    }
-    if current_owner.protected_root_identity() != owner_fs.protected_root_identity() {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap owner root changed before store initialization",
-        ));
-    }
-    current_owner.current_context(&context, deadline, cancelled)?;
-    if runtime_observation.current_digest(deadline, cancelled)? != expected_executable {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap executable changed before schema or store initialization",
-        ));
-    }
+    let owner_check = || -> DurableResult<()> {
+        if read_absolute(
+            invocation_path,
+            uid,
+            true,
+            invocation_raw.len(),
+            deadline,
+            cancelled,
+        )
+        .map_err(DurableError::Source)?
+            != invocation_raw
+        {
+            return Err(DurableError::Conflict(
+                "bootstrap invocation changed during import",
+            ));
+        }
+        let (current_owner, current_raw) =
+            CreationFilesystem::select_protected_native_owner_at_root(
+                &owner_path,
+                &selection.store_root,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+        if current_raw != owner_raw {
+            return Err(DurableError::Conflict(
+                "bootstrap owner changed during import",
+            ));
+        }
+        if current_owner.protected_root_identity() != owner_fs.protected_root_identity() {
+            return Err(DurableError::Conflict(
+                "bootstrap owner root changed during import",
+            ));
+        }
+        current_owner
+            .current_context(&context, deadline, cancelled)
+            .map_err(DurableError::Source)?;
+        if runtime_observation
+            .current_digest(deadline, cancelled)
+            .map_err(DurableError::Source)?
+            != expected_executable
+        {
+            return Err(DurableError::Conflict(
+                "bootstrap executable changed during import",
+            ));
+        }
+        Ok(())
+    };
+    owner_check().map_err(source_error)?;
 
     if selection.initialize_schema {
         db.initialize_empty_schema()
@@ -712,84 +726,20 @@ pub(super) fn run(
     db.require_compatible_schema()
         .map_err(|_| SourceCommandError::Conflict("selected CMD.2 schema is not provisioned"))?;
 
-    if read_absolute(
-        invocation_path,
-        uid,
-        true,
-        invocation_raw.len(),
-        deadline,
-        cancelled,
-    )? != invocation_raw
-    {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap invocation changed before store initialization",
-        ));
-    }
-    let (current_owner, current_raw) = CreationFilesystem::select_protected_native_owner_at_root(
-        &owner_path,
-        &selection.store_root,
-        deadline,
-        cancelled,
-    )?;
-    if current_raw != owner_raw
-        || current_owner.protected_root_identity() != owner_fs.protected_root_identity()
-    {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap owner changed before store initialization",
-        ));
-    }
-    current_owner.current_context(&context, deadline, cancelled)?;
-    if runtime_observation.current_digest(deadline, cancelled)? != expected_executable {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap executable changed before store initialization",
-        ));
-    }
+    owner_check().map_err(source_error)?;
 
     // Schema readiness is established before any local store initialization.
     // Only the authorized initialization path can create an empty physical
     // store; existing stores are descriptor-anchored and accepted only when
     // all six data directories are empty.
     let store = selected_store(&owner_fs, &selection)?;
+    owner_check().map_err(source_error)?;
     if store.custody_domain() != selection.domain.as_bytes() {
         return Err(SourceCommandError::Conflict(
             "private bootstrap store identity changed",
         ));
     }
-    if read_absolute(
-        invocation_path,
-        uid,
-        true,
-        invocation_raw.len(),
-        deadline,
-        cancelled,
-    )? != invocation_raw
-    {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap invocation changed before PG mutation",
-        ));
-    }
-    let (current_owner, current_raw) = CreationFilesystem::select_protected_native_owner_at_root(
-        &owner_path,
-        &selection.store_root,
-        deadline,
-        cancelled,
-    )?;
-    if current_raw != owner_raw {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap owner changed before PG mutation",
-        ));
-    }
-    if current_owner.protected_root_identity() != owner_fs.protected_root_identity() {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap owner root changed before PG mutation",
-        ));
-    }
-    current_owner.current_context(&context, deadline, cancelled)?;
-    if runtime_observation.current_digest(deadline, cancelled)? != expected_executable {
-        return Err(SourceCommandError::Conflict(
-            "bootstrap executable changed before PG mutation",
-        ));
-    }
+    owner_check().map_err(source_error)?;
 
     let reopened = db
         .bootstrap_source_cohort(
@@ -806,6 +756,7 @@ pub(super) fn run(
             &selection.job_id,
             selection.job_fence,
             selection.job_mode,
+            &owner_check,
             deadline,
             cancelled,
         )

@@ -1311,10 +1311,11 @@ impl DurablePgCoordinator {
         Ok(())
     }
 
-    /// Read-only structural preflight for an already provisioned private
-    /// coordinator. Full profile checks still run inside source import and
-    /// cold verification; this prevents any local-store mutation when the
-    /// selected database is absent or only partly provisioned.
+    /// Read-only presence preflight for an already provisioned private
+    /// coordinator, before local-store initialization. Source import and cold
+    /// verification still check their logical profiles and data invariants.
+    /// This does not attest catalog definitions or grants: the private schema
+    /// owner and its DDL remain trusted under the selected database profile.
     pub fn require_compatible_schema(&mut self) -> DurableResult<()> {
         let compatible: bool = self
             .client
@@ -3291,6 +3292,17 @@ impl DurablePgCoordinator {
         &mut self,
         candidate: &CompleteGeneration,
     ) -> DurableResult<()> {
+        self.select_complete_generation_with_owner_check(candidate, None)
+    }
+
+    fn select_complete_generation_with_owner_check(
+        &mut self,
+        candidate: &CompleteGeneration,
+        owner_check: Option<&dyn Fn() -> DurableResult<()>>,
+    ) -> DurableResult<()> {
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         let cut = &candidate.cut;
         cut.audited_root.require_installed(&candidate.installed)?;
         let digest = candidate.installed.digest();
@@ -3340,6 +3352,9 @@ impl DurablePgCoordinator {
                     "selected generation identity differs",
                 ));
             }
+            if let Some(owner_check) = owner_check {
+                owner_check()?;
+            }
             tx.commit()?;
             return Ok(());
         }
@@ -3368,6 +3383,9 @@ impl DurablePgCoordinator {
                 &digest.to_hex(),
             ],
         )?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         tx.commit()?;
         Ok(())
     }

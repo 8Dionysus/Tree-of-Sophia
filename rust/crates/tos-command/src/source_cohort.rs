@@ -555,7 +555,9 @@ struct WarmCommitted {
 
 pub(super) enum CommitMode<'a> {
     Shadow,
-    Bootstrap,
+    Bootstrap {
+        owner_check: &'a dyn Fn() -> DurableResult<()>,
+    },
     Creation {
         attempt: &'a SourceCreationAttempt,
         owner: &'a CreationOwnerFence<'a>,
@@ -4324,10 +4326,12 @@ impl DurablePgCoordinator {
         job_id: &str,
         job_fence: u64,
         job_mode: BootstrapJobMode,
+        owner_check: &dyn Fn() -> DurableResult<()>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ReopenedSourceCohort> {
         active(deadline, cancelled)?;
+        owner_check()?;
         if job_id.is_empty()
             || job_id.len() > 256
             || job_id.contains('\0')
@@ -4409,8 +4413,11 @@ impl DurablePgCoordinator {
         verify_manifest_indexes(cut, &indexes)?;
         let def = definition();
         if job_mode == BootstrapJobMode::Initialize {
+            owner_check()?;
             self.create_domain(domain, contract)?;
+            owner_check()?;
         }
+        owner_check()?;
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         // Keep the shared fence lock so all audited writers serialize with
@@ -4516,6 +4523,7 @@ impl DurablePgCoordinator {
         }
         tx.execute("UPDATE cmd2_domain SET source_revision=$2,source_membership_digest=$3,source_membership_count=$4,source_epoch=1,source_generation=0,source_complete=false,source_definition_digest=$5 WHERE domain=$1",
             &[&domain,&selected_revision.0.to_hex(),&selected_membership.digest.to_hex(),&as_i64(selected_membership.count)?,&def.to_hex()])?;
+        owner_check()?;
         tx.commit()?;
         let source_metadata = original_metadata(cut);
         let originals = ctx
@@ -4525,6 +4533,7 @@ impl DurablePgCoordinator {
             .collect::<Vec<_>>();
         for (batch, files) in originals.chunks(MAX_MEMBERS).enumerate() {
             active(deadline, cancelled)?;
+            owner_check()?;
             let prepare = format!("source-bootstrap:{batch}").into_bytes();
             let identities = files
                 .iter()
@@ -4544,7 +4553,9 @@ impl DurablePgCoordinator {
                 raw_request_digest: selected_revision.0,
                 delta_digest: durable_shadow_delta_prepared(&identities),
             })?;
+            owner_check()?;
             let members = seal_members(store, &prepare, fence, ORIGINAL, &identities)?;
+            owner_check()?;
             self.attach_ready_profile(
                 store,
                 domain,
@@ -4555,6 +4566,7 @@ impl DurablePgCoordinator {
                 None,
                 Some(&source_metadata),
             )?;
+            owner_check()?;
             let receipts = members
                 .iter()
                 .map(|m| m.receipt.clone())
@@ -4586,9 +4598,10 @@ impl DurablePgCoordinator {
                     job_fence,
                     full_base_seq: head,
                 },
-                CommitMode::Bootstrap,
+                CommitMode::Bootstrap { owner_check },
             )?;
         }
+        owner_check()?;
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
@@ -4610,8 +4623,9 @@ impl DurablePgCoordinator {
         for (kind, scope, token) in predicates(&indexes) {
             tx.execute("INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete) VALUES($1,$2,$3,$4,$5,$6,0,false)", &[&domain,&kind,&OWNER,&scope,&token,&def.to_hex()])?;
         }
+        owner_check()?;
         tx.commit()?;
-        self.cold_reopen_source_cohort(
+        self.cold_reopen_source_cohort_with_owner_check(
             store,
             domain,
             cut,
@@ -4621,6 +4635,7 @@ impl DurablePgCoordinator {
             software,
             components,
             worker,
+            owner_check,
             deadline,
             cancelled,
         )
@@ -6467,6 +6482,41 @@ impl DurablePgCoordinator {
             components,
             worker,
             None,
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Bootstrap-only cold reopen retaining the protected owner recheck through
+    /// the final completeness and selected-generation publication edges.
+    pub(crate) fn cold_reopen_source_cohort_with_owner_check(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        original: &CorpusCutReader,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        context: &CommandContext,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        owner_check: &dyn Fn() -> DurableResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ReopenedSourceCohort> {
+        self.cold_reopen_source_cohort_inner(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            context,
+            software,
+            components,
+            worker,
+            None,
+            Some(owner_check),
             deadline,
             cancelled,
         )
@@ -6503,6 +6553,7 @@ impl DurablePgCoordinator {
             components,
             worker,
             Some((workspace, profile)),
+            None,
             deadline,
             cancelled,
         )
@@ -6523,10 +6574,14 @@ impl DurablePgCoordinator {
             &super::PrivateGenerationWorkspace,
             super::StreamedGenerationProfile,
         )>,
+        owner_check: Option<&dyn Fn() -> DurableResult<()>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ReopenedSourceCohort> {
         active(deadline, cancelled)?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         if original.current().revision() != initial_revision
             || context.base_revision != initial_revision
             || store.custody_domain() != domain.as_bytes()
@@ -6560,6 +6615,9 @@ impl DurablePgCoordinator {
                 .cold_verify_cut_streamed(store, domain, workspace, profile, deadline, cancelled)?,
             None => self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?,
         };
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         let mut metadata_tx = self
             .client
             .build_transaction()
@@ -6697,6 +6755,9 @@ impl DurablePgCoordinator {
             },
         )?;
         metadata_tx.commit()?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         while let Some(member) = original_stream
             .next_member(deadline, cancelled)
             .map_err(|_| DurableError::Refused("original cold EOF/fixity failure"))?
@@ -6882,7 +6943,13 @@ impl DurablePgCoordinator {
         }
         // Highest schema owner: verification is complete. Final child custody
         // must succeed before any completeness enablement or cut selection.
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         finish_worker(worker, deadline, cancelled)?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         let current_membership = membership_of_files(&files);
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
@@ -6986,20 +7053,38 @@ impl DurablePgCoordinator {
             .as_ref()
             .map(|rows| projection_root(rows).to_hex());
         tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1", &[&domain,&projection_digest])?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         tx.commit()?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         let verified = match streamed {
             Some((workspace, profile)) => self
                 .cold_verify_cut_streamed(store, domain, workspace, profile, deadline, cancelled)?,
             None => self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?,
         };
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         let generation = self.build_complete_generation(store, &verified, deadline, cancelled)?;
-        self.select_complete_generation(&generation)?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
+        self.select_complete_generation_with_owner_check(&generation, owner_check)?;
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         let selected = match streamed {
             Some((workspace, profile)) => self.cold_open_selected_generation_streamed(
                 store, domain, workspace, profile, deadline, cancelled,
             )?,
             None => self.cold_open_selected_generation(store, domain, deadline, cancelled)?,
         };
+        if let Some(owner_check) = owner_check {
+            owner_check()?;
+        }
         Ok(ReopenedSourceCohort {
             cohort,
             files,
@@ -7305,7 +7390,8 @@ pub(super) fn check_commit_owner(
 ) -> DurableResult<()> {
     match mode {
         CommitMode::Shadow => check_writer_profile(tx, request.domain, PROFILE_ID),
-        CommitMode::Bootstrap => {
+        CommitMode::Bootstrap { owner_check } => {
+            owner_check()?;
             check_writer_profile(tx, request.domain, ORIGINAL)?;
             if members
                 .iter()
@@ -7773,7 +7859,7 @@ pub(super) fn apply_source_change(
 ) -> DurableResult<()> {
     match mode {
         CommitMode::Shadow => Ok(()),
-        CommitMode::Bootstrap => {
+        CommitMode::Bootstrap { .. } => {
             tx.execute(
                 "UPDATE cmd2_domain SET source_generation=$2 WHERE domain=$1",
                 &[&request.domain, &as_i64(seq)?],
@@ -7919,7 +8005,8 @@ pub(super) fn verify_owner_before_outcome(mode: &CommitMode<'_>) -> DurableResul
         CommitMode::PgCreation { owner_check, .. } => {
             creation::verify_owner_before_outcome(*owner_check)?
         }
-        CommitMode::Shadow | CommitMode::Bootstrap => {}
+        CommitMode::Shadow => {}
+        CommitMode::Bootstrap { owner_check } => owner_check()?,
     }
     Ok(())
 }

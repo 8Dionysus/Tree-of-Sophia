@@ -877,6 +877,7 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
     };
     let selected_membership = cut.stream(revision).unwrap().expectation();
     let mut bootstrap_worker = fixture::worker(&cut, deadline, cancelled);
+    let bootstrap_owner_check = || -> crate::DurableResult<()> { Ok(()) };
     let reopened = coordinator
         .bootstrap_source_cohort(
             &store,
@@ -892,6 +893,7 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
             JOB_ID,
             1,
             crate::source_cohort::BootstrapJobMode::RequireExisting,
+            &bootstrap_owner_check,
             deadline,
             cancelled,
         )
