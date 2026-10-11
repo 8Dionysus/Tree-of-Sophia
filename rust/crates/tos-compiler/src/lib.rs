@@ -94,6 +94,7 @@ pub mod native_cold_resources;
 pub mod native_snapshot;
 pub mod native_snapshot_carriers;
 pub mod native_snapshot_manifest;
+pub mod processing_cache;
 pub use knowledge_philosophy_original::{
     KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,
     PhilosophyOriginalInput, PhilosophyOriginalPage, PhilosophyOriginalReceipt,

@@ -182,6 +182,7 @@ fn check_global_bytes(value: &Value, counter: &mut ByteCounter) -> Result<()> {
 /// Exact global inputs must be supplied by the all-source title/Claim join.
 /// Their root strings are obligations carried by the private base relation,
 /// not proof that this module has completed that global join.
+#[derive(Clone, Copy)]
 pub struct NavigationRelationGlobalInputs<'a> {
     pub source_cut: &'a str,
     pub endpoint_title_root_sha256: &'a str,
@@ -214,6 +215,7 @@ pub struct NavigationRelationNormalizer<'a> {
     relation_registry_ref: String,
     types: BTreeMap<String, Value>,
     limits: NavigationRelationNormalizeLimits,
+    processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
 }
 
 impl<'a> NavigationRelationNormalizer<'a> {
@@ -279,7 +281,17 @@ impl<'a> NavigationRelationNormalizer<'a> {
             relation_registry_ref,
             types,
             limits,
+            processing_run: None,
         })
+    }
+
+    /// Opt into exact-source processing reuse for this native relation path.
+    pub fn with_processing_run(
+        mut self,
+        run: crate::processing_cache::ProcessingRunHandle,
+    ) -> Self {
+        self.processing_run = Some(run);
+        self
     }
 
     fn effective_type(&self, type_id: &str, predicate: &str) -> Result<Value> {
@@ -321,6 +333,228 @@ impl<'a> NavigationRelationNormalizer<'a> {
     /// ordinary source-navigation edge envelopes. The two global root values
     /// remain explicit obligations; no final candidate conversion exists.
     pub fn normalize_base(
+        &self,
+        raw: &SeekRow,
+        prepared: &NavigationPrepareReceipt,
+        dependency: &NavigationRelationDependencyReceipt,
+        global: NavigationRelationGlobalInputs<'_>,
+    ) -> Result<NavigationBaseRelation> {
+        if let Some(run) = self.processing_run.clone() {
+            return self.normalize_base_cached(&run, raw, prepared, dependency, global);
+        }
+        self.normalize_base_uncached(raw, prepared, dependency, global)
+    }
+
+    fn normalize_base_cached(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+        raw: &SeekRow,
+        prepared: &NavigationPrepareReceipt,
+        dependency: &NavigationRelationDependencyReceipt,
+        global: NavigationRelationGlobalInputs<'_>,
+    ) -> Result<NavigationBaseRelation> {
+        // Validate all externally supplied bindings before looking up a cached
+        // output. The source and global values are then exact task inputs.
+        if raw.source_graph != self.source_graph
+            || raw.source_order.is_some()
+            || prepared.source_graph != self.source_graph
+            || dependency.source_graph != self.source_graph
+            || prepared.source_cut != dependency.source_cut
+            || prepared.source_cut != global.source_cut
+            || prepared.final_graph_rows_written
+            || dependency.final_relation_rows_written
+            || dependency.edge_input_root_sha256 != prepared.edge_input_root_sha256
+            || Digest256::from_hex(&dependency.dependency_root_sha256).is_err()
+            || Digest256::from_hex(global.endpoint_title_root_sha256).is_err()
+            || Digest256::from_hex(global.claim_group_root_sha256).is_err()
+            || raw.payload.len() > self.limits.max_raw_bytes
+            || Digest256::of_bytes(&raw.payload).to_hex() != raw.payload_sha256
+            || !global.left_title.is_object()
+            || !global.right_title.is_object()
+            || global.referenced_claim_contexts.len() > self.limits.max_claim_contexts
+        {
+            return Err(Error::Invalid("navigation private relation binding"));
+        }
+        let mut global_bytes = ByteCounter {
+            bytes: 0,
+            cap: self.limits.max_global_input_bytes,
+        };
+        check_global_bytes(global.left_title, &mut global_bytes)?;
+        check_global_bytes(global.right_title, &mut global_bytes)?;
+        for context in global.referenced_claim_contexts {
+            check_global_bytes(context, &mut global_bytes)?;
+        }
+
+        let source = run.input(
+            &format!("source-relation:{}:{}", raw.source_graph, raw.id),
+            &json!({
+                "source_graph":raw.source_graph,
+                "native_id":raw.id,
+                "payload_sha256":raw.payload_sha256,
+                "payload_bytes":raw.payload.len(),
+            }),
+        )?;
+        let configuration = run.input(
+            &format!("normalizer-config:navigation-relation:{}", self.source_graph),
+            &json!({
+                "source_graph":self.source_graph,
+                "relation_registry_ref":self.relation_registry_ref,
+                "relation_registry_sha256":self.registry.relation_sha256,
+                "entity_registry_sha256":self.registry.entity_sha256,
+                "limits":{
+                    "max_raw_bytes":self.limits.max_raw_bytes,
+                    "max_output_bytes":self.limits.max_output_bytes,
+                    "max_claim_contexts":self.limits.max_claim_contexts,
+                    "max_global_input_bytes":self.limits.max_global_input_bytes,
+                },
+            }),
+        )?;
+        let source_row = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
+        let item = source_row.value();
+        let endpoint = |key: &str, graph_key: &str| -> Result<String> {
+            Ok(format!(
+                "{}:{}",
+                item.get(graph_key)
+                    .and_then(Value::as_str)
+                    .unwrap_or(&self.source_graph),
+                required(item, key)?.trim()
+            ))
+        };
+        let from = endpoint("from_id", "from_source_graph")?;
+        let to = endpoint("to_id", "to_source_graph")?;
+        let left_source = if let Some(node) = run.result(&format!("node:{from}")) {
+            node
+        } else {
+            run.input(&format!("source-endpoint-title:{from}"), global.left_title)?
+        };
+        let right_source = if let Some(node) = run.result(&format!("node:{to}")) {
+            node
+        } else {
+            run.input(&format!("source-endpoint-title:{to}"), global.right_title)?
+        };
+        let title_fingerprint = crate::processing_cache::rust_source_fingerprint(
+            "knowledge_global_titles::endpoint_title",
+            &[
+                include_bytes!("knowledge_global_titles.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        let left_title = run.evaluate_task(
+            &format!("endpoint-title:{from}"),
+            "endpoint-title",
+            "knowledge_global_titles::endpoint_title",
+            title_fingerprint,
+            &json!({"node_id":from}),
+            &[left_source],
+            || Ok(global.left_title.clone()),
+        )?;
+        let right_title = run.evaluate_task(
+            &format!("endpoint-title:{to}"),
+            "endpoint-title",
+            "knowledge_global_titles::endpoint_title",
+            title_fingerprint,
+            &json!({"node_id":to}),
+            &[right_source],
+            || Ok(global.right_title.clone()),
+        )?;
+
+        let claim_ref = item.get("claim_ref").and_then(Value::as_str);
+        let mut relation_dependencies = vec![
+            source,
+            configuration,
+            left_title.clone(),
+            right_title.clone(),
+        ];
+        if let Some(claim_ref) = claim_ref {
+            let mut context_sources = Vec::with_capacity(global.referenced_claim_contexts.len());
+            for (index, context) in global.referenced_claim_contexts.iter().enumerate() {
+                context_sources.push(run.input(
+                    &format!("claim-context-source:{claim_ref}:{index}"),
+                    context,
+                )?);
+            }
+            let context_fingerprint = crate::processing_cache::rust_source_fingerprint(
+                "knowledge_source_claims::ordered_context_group",
+                &[
+                    include_bytes!("knowledge_source_claims.rs"),
+                    include_bytes!("knowledge_source_navigation_relation.rs"),
+                    include_bytes!("knowledge_normalization.rs"),
+                    include_bytes!("processing_cache.rs"),
+                ],
+            );
+            let group = run.evaluate_task(
+                &format!("claim-context-group:{claim_ref}"),
+                "claim-context-group",
+                "knowledge_source_claims::ordered_context_group",
+                context_fingerprint,
+                &json!({"claim_ref":claim_ref,"count":context_sources.len()}),
+                &context_sources,
+                || Ok(Value::Array(global.referenced_claim_contexts.to_vec())),
+            )?;
+            relation_dependencies.push(group);
+        }
+
+        let relation_fingerprint = crate::processing_cache::rust_source_fingerprint(
+            "knowledge_source_navigation_relation::normalize_base",
+            &[
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        let relation_id = format!("{}:{}", raw.source_graph, raw.id);
+        let relation = run.evaluate_task(
+            &format!("relation:{relation_id}"),
+            "relation",
+            "knowledge_source_navigation_relation::normalize_base",
+            relation_fingerprint,
+            &json!({
+                "source_graph":raw.source_graph,
+                "native_id":raw.id,
+                "source_cut":prepared.source_cut,
+                "prepared_dependency_root_sha256":prepared.dependency_root_sha256,
+                "relation_dependency_root_sha256":dependency.dependency_root_sha256,
+                "endpoint_title_root_sha256":global.endpoint_title_root_sha256,
+                "claim_group_root_sha256":global.claim_group_root_sha256,
+            }),
+            &relation_dependencies,
+            || Ok(self.normalize_base_uncached(raw, prepared, dependency, global)?.value),
+        )?;
+        let value = relation.value().clone();
+        let content_revision = required(&value, "content_revision")?.to_owned();
+        let relation_views_fingerprint = crate::processing_cache::rust_source_fingerprint(
+            "knowledge_source_navigation_relation::relation_views",
+            &[
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        run.evaluate_task(
+            &format!("relation-views:{relation_id}"),
+            "relation-views",
+            "knowledge_source_navigation_relation::relation_views",
+            relation_views_fingerprint,
+            &json!({"relation_id":relation_id}),
+            &[relation],
+            || Ok(value.get("view_ids").cloned().unwrap_or_else(|| json!([]))),
+        )?;
+        Ok(NavigationBaseRelation {
+            value,
+            source_cut: prepared.source_cut.clone(),
+            prepared_dependency_root_sha256: prepared.dependency_root_sha256.clone(),
+            relation_dependency_root_sha256: dependency.dependency_root_sha256.clone(),
+            raw_edge_sha256: raw.payload_sha256.clone(),
+            relation_registry_sha256: self.registry.relation_sha256.clone(),
+            endpoint_title_root_sha256: global.endpoint_title_root_sha256.to_owned(),
+            claim_group_root_sha256: global.claim_group_root_sha256.to_owned(),
+            content_revision,
+        })
+    }
+
+    fn normalize_base_uncached(
         &self,
         raw: &SeekRow,
         prepared: &NavigationPrepareReceipt,

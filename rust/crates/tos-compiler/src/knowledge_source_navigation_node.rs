@@ -62,6 +62,7 @@ pub struct NavigationNodeNormalizer<'a> {
     ancestors: BTreeMap<String, Vec<String>>,
     ancestor_cache_bytes: usize,
     limits: NavigationNodeLimits,
+    processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
 }
 
 fn required<'a>(value: &'a Value, field: &str) -> Result<&'a str> {
@@ -1264,6 +1265,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
             ancestors: BTreeMap::new(),
             ancestor_cache_bytes: 0,
             limits,
+            processing_run: None,
         })
     }
     pub(crate) fn new_for_addressed_candidate(
@@ -1288,6 +1290,15 @@ impl<'a> NavigationNodeNormalizer<'a> {
         )?;
         normalizer.limits = limits;
         Ok(normalizer)
+    }
+
+    /// Opt into exact-source Rust processing reuse for this native producer.
+    pub fn with_processing_run(
+        mut self,
+        run: crate::processing_cache::ProcessingRunHandle,
+    ) -> Self {
+        self.processing_run = Some(run);
+        self
     }
     fn ancestors(&mut self, type_id: &str) -> Result<Vec<String>> {
         if let Some(cached) = self.ancestors.get(type_id) {
@@ -1337,10 +1348,71 @@ impl<'a> NavigationNodeNormalizer<'a> {
         {
             return Err(Error::Invalid("navigation selected raw node"));
         }
-        let mut node = self.normalize_supplied_node(raw)?;
-        node.source_cut = prepared.source_cut.clone();
-        node.prepared_dependency_root_sha256 = prepared.dependency_root_sha256.clone();
-        Ok(node)
+        let value = if let Some(run) = self.processing_run.clone() {
+            if raw.payload.len() > self.limits.max_raw_bytes
+                || Digest256::of_bytes(&raw.payload).to_hex() != raw.payload_sha256
+            {
+                return Err(Error::Invalid("navigation raw node digest"));
+            }
+            let source = run.input(
+                &format!("source-node:{}:{}", raw.source_graph, raw.id),
+                &json!({
+                    "source_graph":raw.source_graph,
+                    "native_id":raw.id,
+                    "payload_sha256":raw.payload_sha256,
+                    "payload_bytes":raw.payload.len(),
+                }),
+            )?;
+            let configuration = run.input(
+                &format!("normalizer-config:navigation:{}", self.source_graph_id),
+                &json!({
+                    "source_graph":self.source_graph_id,
+                    "entity_registry_ref":self.entity_registry_ref,
+                    "entity_registry_sha256":self.registry.entity_sha256,
+                    "relation_registry_sha256":self.registry.relation_sha256,
+                    "dossier_kinds":self.dossier_kinds,
+                    "limits":{
+                        "max_raw_bytes":self.limits.max_raw_bytes,
+                        "max_output_bytes":self.limits.max_output_bytes,
+                        "max_ancestor_cache_bytes":self.limits.max_ancestor_cache_bytes,
+                    },
+                }),
+            )?;
+            let fingerprint = crate::processing_cache::rust_source_fingerprint(
+                "knowledge_source_navigation_node::normalize_base",
+                &[
+                    include_bytes!("knowledge_source_navigation_node.rs"),
+                    include_bytes!("knowledge_philosophy_display.rs"),
+                    include_bytes!("knowledge_normalization.rs"),
+                    include_bytes!("knowledge_seal.rs"),
+                    include_bytes!("processing_cache.rs"),
+                ],
+            );
+            run.evaluate_task(
+                &format!("node:{}:{}", raw.source_graph, raw.id),
+                "node",
+                "knowledge_source_navigation_node::normalize_base",
+                fingerprint,
+                &json!({"source_graph":raw.source_graph,"native_id":raw.id}),
+                &[source, configuration],
+                || Ok(self.normalize_supplied_node(raw)?.value),
+            )?.value().clone()
+        } else {
+            self.normalize_supplied_node(raw)?.value
+        };
+        let content_revision = required(&value, "content_revision")?.to_owned();
+        Ok(NavigationBaseNode {
+            value,
+            ordered_context_raw: raw.payload.clone(),
+            native_id: raw.id.clone(),
+            source_graph: raw.source_graph.clone(),
+            source_cut: prepared.source_cut.clone(),
+            prepared_dependency_root_sha256: prepared.dependency_root_sha256.clone(),
+            raw_node_sha256: raw.payload_sha256.clone(),
+            entity_registry_sha256: self.registry.entity_sha256.clone(),
+            relation_registry_sha256: self.registry.relation_sha256.clone(),
+            content_revision,
+        })
     }
     /// Normalize an explicitly supplied source-navigation carrier without
     /// asserting sealed-cut membership or complete dependency admission.

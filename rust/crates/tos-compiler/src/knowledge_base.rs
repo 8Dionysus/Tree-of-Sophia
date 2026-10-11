@@ -39,6 +39,8 @@ pub struct KnowledgeBaseNormalizer<'a> {
     relations: BTreeMap<String, Value>,
     limits: BaseNormalizationLimits,
     owner_state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    descriptor_sha256: String,
+    processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
 }
 
 struct CappedBytes {
@@ -750,6 +752,8 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             relations,
             limits,
             owner_state,
+            descriptor_sha256: Digest256::of_bytes(descriptor_bytes).to_hex(),
+            processing_run: None,
         })
     }
 
@@ -767,6 +771,195 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         } else {
             direct_assertion_context(source, self.limits.max_output_bytes)
         }
+    }
+
+    /// Opt into exact Rust-source processing reuse for ordinary unowned
+    /// producer paths. CreationState paths retain their existing admission
+    /// protocol and therefore refuse this additional retained state.
+    pub fn with_processing_run(
+        mut self,
+        run: crate::processing_cache::ProcessingRunHandle,
+    ) -> Result<Self> {
+        if self.owner_state.is_some() {
+            return Err(Error::Invalid("processing cache is unavailable for owned creation state"));
+        }
+        self.processing_run = Some(run);
+        Ok(self)
+    }
+
+    fn processing_configuration(&self) -> Value {
+        json!({
+            "entity_registry_ref":self.entity_registry_ref,
+            "entity_registry_sha256":self.registry.entity_sha256,
+            "relation_registry_ref":self.relation_registry_ref,
+            "relation_registry_sha256":self.registry.relation_sha256,
+            "descriptor_sha256":self.descriptor_sha256,
+        })
+    }
+
+    fn processing_configuration_input(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+    ) -> Result<crate::processing_cache::ProcessingValue> {
+        let id = format!("normalizer-config:{}", self.entity_registry_ref);
+        run.input(&id, &self.processing_configuration())
+    }
+
+    fn normalize_node_cached(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+        source: &SourceRow,
+        source_graph: &str,
+        canonical: bool,
+        overrides: BaseNodeOverrides<'_>,
+    ) -> Result<Value> {
+        let item = source.value();
+        let native = overrides
+            .native_id
+            .or_else(|| text(item.get("node_id")))
+            .or_else(|| text(item.get("id")))
+            .or_else(|| text(item.get("path")))
+            .unwrap_or("unnamed");
+        let identity = overrides.identity_id.unwrap_or(native);
+        let normalized_id = format!("{source_graph}:{identity}");
+        let input = run.input(&format!("source-node:{normalized_id}"), item)?;
+        let configuration = self.processing_configuration_input(run)?;
+        let parameters = json!({
+            "source_graph":source_graph,
+            "canonical":canonical,
+            "native_id":native,
+            "identity_id":identity,
+            "kind_id":overrides.kind_id,
+            "max_output_bytes":self.limits.max_output_bytes,
+        });
+        let fingerprint = crate::processing_cache::rust_source_fingerprint(
+            "knowledge_base::normalize_node",
+            &[
+                include_bytes!("knowledge_base.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        let result = run.evaluate_task(
+            &format!("node:{normalized_id}"),
+            "node",
+            "knowledge_base::normalize_node",
+            fingerprint,
+            &parameters,
+            &[input, configuration],
+            || {
+                let mut value = self.normalize_node_unstamped(
+                    source,
+                    source_graph,
+                    canonical,
+                    overrides,
+                )?;
+                stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
+                Ok(value)
+            },
+        )?;
+        Ok(result.value().clone())
+    }
+
+    fn normalize_endpoint_title_cached(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+        node_id: &str,
+        title: &Value,
+    ) -> Result<crate::processing_cache::ProcessingValue> {
+        let (dependency, derived_title) = if let Some(node) = run.result(&format!("node:{node_id}")) {
+            let derived = node
+                .value()
+                .pointer("/display/title")
+                .filter(|title| title.is_object())
+                .ok_or(Error::Invalid("processing endpoint node title absent"))?;
+            if derived != title {
+                return Err(Error::Invalid("processing endpoint title producer mismatch"));
+            }
+            (node.clone(), derived.clone())
+        } else {
+            (
+                run.input(&format!("source-endpoint-title:{node_id}"), title)?,
+                title.clone(),
+            )
+        };
+        let fingerprint = crate::processing_cache::rust_source_fingerprint(
+            "knowledge_global_titles::endpoint_title",
+            &[
+                include_bytes!("knowledge_global_titles.rs"),
+                include_bytes!("knowledge_seal.rs"),
+            ],
+        );
+        run.evaluate_task(
+            &format!("endpoint-title:{node_id}"),
+            "endpoint-title",
+            "knowledge_global_titles::endpoint_title",
+            fingerprint,
+            &json!({"node_id":node_id}),
+            &[dependency],
+            || Ok(derived_title),
+        )
+    }
+
+    fn normalize_relation_cached(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+        source: &SourceRow,
+        source_graph: &str,
+        identity: Option<&str>,
+        left_title: &Value,
+        right_title: &Value,
+        default_authority: &str,
+    ) -> Result<Value> {
+        let item = source.value();
+        let native = required(item, "edge_id")?;
+        let id = format!("{source_graph}:{}", identity.unwrap_or(native));
+        let source_value = run.input(&format!("source-relation:{id}"), item)?;
+        let configuration = self.processing_configuration_input(run)?;
+        let (from, to) = endpoints(item, source_graph)?;
+        let left = self.normalize_endpoint_title_cached(run, &from, left_title)?;
+        let right = self.normalize_endpoint_title_cached(run, &to, right_title)?;
+        let parameters = json!({
+            "source_graph":source_graph,
+            "identity":identity,
+            "default_authority":default_authority,
+            "max_output_bytes":self.limits.max_output_bytes,
+        });
+        let fingerprint = crate::processing_cache::rust_source_fingerprint(
+            "knowledge_base::normalize_relation",
+            &[
+                include_bytes!("knowledge_base.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        let result = run.evaluate_task(
+            &format!("relation:{id}"),
+            "relation",
+            "knowledge_base::normalize_relation",
+            fingerprint,
+            &parameters,
+            &[source_value, configuration, left.clone(), right.clone()],
+            || {
+                let mut value = self.normalize_relation_unstamped(
+                    source,
+                    source_graph,
+                    identity,
+                    left.value(),
+                    right.value(),
+                    default_authority,
+                )?;
+                stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
+                Ok(value)
+            },
+        )?;
+        Ok(result.value().clone())
     }
 
     fn owned_node_output_hold(
@@ -1075,6 +1268,9 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         canonical: bool,
         overrides: BaseNodeOverrides<'_>,
     ) -> Result<Value> {
+        if let Some(run) = &self.processing_run {
+            return self.normalize_node_cached(run, source, source_graph, canonical, overrides);
+        }
         let mut value =
             self.normalize_node_unstamped(source, source_graph, canonical, overrides)?;
         self.stamp_output_revision(&mut value)?;
@@ -1621,6 +1817,17 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         right_title: &Value,
         default_authority: &str,
     ) -> Result<Value> {
+        if let Some(run) = &self.processing_run {
+            return self.normalize_relation_cached(
+                run,
+                source,
+                source_graph,
+                identity,
+                left_title,
+                right_title,
+                default_authority,
+            );
+        }
         let mut value = self.normalize_relation_unstamped(
             source,
             source_graph,

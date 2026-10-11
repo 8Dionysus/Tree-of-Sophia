@@ -492,6 +492,33 @@ pub fn endpoint_inherited_views(
     })
 }
 
+/// Exact, bounded relation identities that contributed inherited-view
+/// evidence for one endpoint. The caller can bind those producer rows into
+/// its own read-only processing DAG without rescanning the full graph.
+pub fn endpoint_inherited_relation_ids(
+    stage: &mut KnowledgeStage<'_>,
+    endpoint_id: &str,
+    max_relations: usize,
+) -> Result<Vec<String>> {
+    if endpoint_id.is_empty() || endpoint_id.len() > 4096 || max_relations == 0 || max_relations > 65_536 {
+        return Err(Error::Budget("inherited endpoint relation lookup"));
+    }
+    stage.with_connection(WritePhase::Sort, |db| {
+        let mut statement = db.prepare(
+            "SELECT relation_id FROM knowledge_global_inherited_endpoint_evidence WHERE endpoint_id=?1 ORDER BY relation_id LIMIT ?2",
+        )?;
+        let mut rows = statement.query(params![endpoint_id, (max_relations as i64) + 1])?;
+        let mut result = Vec::new();
+        while let Some(row) = rows.next()? {
+            if result.len() == max_relations {
+                return Err(Error::Budget("inherited endpoint relation count"));
+            }
+            result.push(row.get(0)?);
+        }
+        Ok(result)
+    })
+}
+
 /// Explicitly erase private join tables after all final node reads. The
 /// compiler owner's sanitized-output gate must also reject any remaining
 /// preparatory tables or `raw_records` before selected publication.

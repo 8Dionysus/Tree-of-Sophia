@@ -43,6 +43,10 @@ pub struct NativeFamilyInputs<'a> {
     pub canon_prepare: CanonPrepareLimits,
     pub canon: CanonMaterializeLimits,
     pub indexed: IndexedLimits,
+    /// Optional durable cache for pure Rust normalization tasks. This is an
+    /// execution aid only and leaves source admission and publication with
+    /// their existing owners.
+    pub processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
 }
 
 impl NativeFamilyInputs<'_> {
@@ -82,6 +86,7 @@ impl NativeFamilyInputs<'_> {
                 max_row_bytes: limits.finalize.max_row_bytes,
                 max_page_rows: limits.finalize.max_page_rows,
             },
+            processing_run: None,
         }
     }
 }
@@ -714,6 +719,11 @@ pub(crate) fn materialize_native_sources_with_observer(
 ) -> Result<NativeProducerReceipt> {
     let mut phases = MaterializePhases::new(stage.owned_creation_state());
     let result = (|| {
+        if additional.processing_run.is_some() && stage.owned_creation_state().is_some() {
+            return Err(Error::Invalid(
+                "processing cache is unavailable for owned creation state",
+            ));
+        }
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
         let selected = |profile: &str| -> Result<bool> {
             let count = vocabulary
@@ -761,6 +771,9 @@ pub(crate) fn materialize_native_sources_with_observer(
             descriptor_bytes,
             limits.navigation_nodes,
         )?;
+        if let Some(run) = additional.processing_run.as_ref() {
+            nav_nodes = nav_nodes.with_processing_run(run.clone());
+        }
         let nav_relations = NavigationRelationNormalizer::new(
             registry,
             relation_bytes,
@@ -768,6 +781,10 @@ pub(crate) fn materialize_native_sources_with_observer(
             descriptor_bytes,
             limits.navigation_relations,
         )?;
+        let nav_relations = match additional.processing_run.as_ref() {
+            Some(run) => nav_relations.with_processing_run(run.clone()),
+            None => nav_relations,
+        };
         phases.next("navigation-nodes");
         let nav_base = materialize_navigation_nodes(
             stage,
@@ -926,6 +943,10 @@ pub(crate) fn materialize_native_sources_with_observer(
                     max_output_bytes: limits.finalize.max_row_bytes,
                 },
             )?
+        };
+        let base_normalizer = match additional.processing_run.as_ref() {
+            Some(run) => base_normalizer.with_processing_run(run.clone())?,
+            None => base_normalizer,
         };
         let repository = if selected("repository-topology-v1")? {
             let root = additional
