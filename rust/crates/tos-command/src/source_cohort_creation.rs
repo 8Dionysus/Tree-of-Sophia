@@ -912,18 +912,18 @@ impl DurablePgCoordinator {
             .iter()
             .map(|kind| (*kind).to_owned())
             .collect::<Vec<_>>();
-        for (kind, token, path) in indexes {
+        for (kind, token, path) in &indexes {
             let occupied = if kind == "path" {
                 tx.query_opt(
                     "SELECT 1 FROM cmd2_source_index
                      WHERE domain=$1 AND kind='path' AND token=$2 LIMIT 1",
-                    &[&domain, &token],
+                    &[&domain, token],
                 )?
             } else {
                 tx.query_opt(
                     "SELECT 1 FROM cmd2_source_index
                      WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
-                    &[&domain, &unique_kinds, &token],
+                    &[&domain, &unique_kinds, token],
                 )?
             };
             if occupied.is_some() {
