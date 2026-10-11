@@ -2685,6 +2685,7 @@ impl DurablePgCoordinator {
                 for (member, historical) in members.iter().zip(history.iter()) {
                     check_cold_profile_deadline(started, requested, profile)?;
                     let slot: i32 = member.get("member_slot");
+                    let subject: String = historical.get("subject");
                     if historical.get::<_, i32>("member_slot") != slot
                         || historical.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id
                         || historical.get::<_, String>("subject")
@@ -2705,6 +2706,7 @@ impl DurablePgCoordinator {
                             "cold source carrier metadata differs from attached member",
                         ));
                     }
+                    check_cold_member_predecessor(&mut tx, member, domain, &subject, as_u64(seq)?)?;
                     update_member_root(&mut member_hasher, member);
                     let pin: Vec<u8> = historical.get("pin_id");
                     if pin.len() != 16 {
@@ -2739,7 +2741,6 @@ impl DurablePgCoordinator {
                     // pin and full segment. Bind its physical placement as well
                     // as the corresponding coordinator row into this cut.
                     part(&mut state_hasher, &selected.placement().encode());
-                    let subject: String = historical.get("subject");
                     let revision = as_u64(historical.get("revision"))?;
                     let commitment = metadata_locator_digest(historical);
                     let coordinate = selected.coordinate();
@@ -3827,6 +3828,55 @@ fn check_history_locator(
         subject,
         revision,
     )
+}
+
+/// Re-establish the exact predecessor edge recorded by a committed member.
+/// The primary-key lookup is bounded to one row and works for both finite and
+/// streamed cold audits; the latter already visits every history row without
+/// materializing a per-subject map.
+fn check_cold_member_predecessor(
+    tx: &mut Transaction<'_>,
+    member: &postgres::Row,
+    domain: &str,
+    subject: &str,
+    commit_seq: u64,
+) -> DurableResult<()> {
+    let proposed_revision = as_u64(member.get("proposed_revision"))?;
+    let expected_revision = member.get::<_, Option<i64>>("expected_revision");
+    let expected_digest = member.get::<_, Option<String>>("expected_digest");
+    match (expected_revision, expected_digest) {
+        (None, None) if proposed_revision == 1 => Ok(()),
+        (Some(expected_revision), Some(expected_digest)) => {
+            let expected_revision = as_u64(expected_revision)?;
+            if expected_revision.checked_add(1) != Some(proposed_revision) {
+                return Err(DurableError::Corrupt(
+                    "cold source predecessor revision differs",
+                ));
+            }
+            let predecessor_revision = as_i64(expected_revision)?;
+            let predecessor = tx
+                .query_opt(
+                    "SELECT content_digest,commit_seq FROM cmd2_history
+                     WHERE domain=$1 AND subject=$2 AND revision=$3",
+                    &[&domain, &subject, &predecessor_revision],
+                )?
+                .ok_or(DurableError::Corrupt(
+                    "cold source predecessor history absent",
+                ))?;
+            let expected_digest = parse_hex(expected_digest)?;
+            if parse_hex(predecessor.get("content_digest"))? != expected_digest
+                || as_u64(predecessor.get("commit_seq"))? >= commit_seq
+            {
+                return Err(DurableError::Corrupt(
+                    "cold source predecessor digest or order differs",
+                ));
+            }
+            Ok(())
+        }
+        _ => Err(DurableError::Corrupt(
+            "cold source predecessor fields are incomplete",
+        )),
+    }
 }
 
 fn check_history_placement(

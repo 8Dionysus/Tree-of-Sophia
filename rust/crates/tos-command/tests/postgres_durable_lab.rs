@@ -5862,6 +5862,88 @@ fn verified_guard_blocks_adversarial_pin_abort_until_release() {
 }
 
 #[test]
+fn cold_audit_rechecks_exact_member_predecessor_chain() {
+    let url = database_url();
+    let mut lab = Lab::new(&url);
+    let first = lab.prepare(
+        b"predecessor-first",
+        "predecessor-first",
+        &[MemberSpec::first("subject-predecessor", b"first body")],
+    );
+    let first_digest = Digest256::of_bytes(&first[0].exact_bytes);
+    lab.commit(b"predecessor-first", &first, 0, 1).unwrap();
+    let second = lab.prepare(
+        b"predecessor-second",
+        "predecessor-second",
+        &[MemberSpec {
+            subject: "subject-predecessor",
+            revision: 2,
+            predecessor: Some((1, first_digest)),
+            payload: b"second body",
+        }],
+    );
+    lab.commit(b"predecessor-second", &second, 1, 1).unwrap();
+    let valid = lab.db.cold_verify_cut(&lab.store, &lab.domain).unwrap();
+    assert_eq!(valid.historical_members(), 2);
+    assert_eq!(valid.current_members(), 1);
+
+    let mut corrupter = Client::connect(&url, NoTls).unwrap();
+    assert_eq!(
+        corrupter
+            .execute(
+                "UPDATE cmd2_member SET expected_revision=2
+                 WHERE domain=$1 AND prepare_id=$2 AND member_slot=0",
+                &[&lab.domain, &&b"predecessor-second"[..]],
+            )
+            .unwrap(),
+        1
+    );
+    assert!(matches!(
+        lab.db.cold_verify_cut(&lab.store, &lab.domain),
+        Err(DurableError::Corrupt(
+            "cold source predecessor revision differs"
+        ))
+    ));
+    corrupter
+        .execute(
+            "UPDATE cmd2_member SET expected_revision=1
+             WHERE domain=$1 AND prepare_id=$2 AND member_slot=0",
+            &[&lab.domain, &&b"predecessor-second"[..]],
+        )
+        .unwrap();
+
+    let wrong_digest = Digest256::of_bytes(b"not the predecessor body").to_hex();
+    assert_eq!(
+        corrupter
+            .execute(
+                "UPDATE cmd2_member SET expected_digest=$3
+                 WHERE domain=$1 AND prepare_id=$2 AND member_slot=0",
+                &[&lab.domain, &&b"predecessor-second"[..], &wrong_digest],
+            )
+            .unwrap(),
+        1
+    );
+    assert!(matches!(
+        lab.db.cold_verify_cut(&lab.store, &lab.domain),
+        Err(DurableError::Corrupt(
+            "cold source predecessor digest or order differs"
+        ))
+    ));
+    corrupter
+        .execute(
+            "UPDATE cmd2_member SET expected_digest=$3
+             WHERE domain=$1 AND prepare_id=$2 AND member_slot=0",
+            &[
+                &lab.domain,
+                &&b"predecessor-second"[..],
+                &first_digest.to_hex(),
+            ],
+        )
+        .unwrap();
+    lab.db.cold_verify_cut(&lab.store, &lab.domain).unwrap();
+}
+
+#[test]
 fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
     let url = database_url();
     let mut lab = Lab::new(&url);
