@@ -917,13 +917,13 @@ impl DurablePgCoordinator {
                 tx.query_opt(
                     "SELECT 1 FROM cmd2_source_index
                      WHERE domain=$1 AND kind='path' AND token=$2 LIMIT 1",
-                    &[&domain, token],
+                    &[&domain, &token],
                 )?
             } else {
                 tx.query_opt(
                     "SELECT 1 FROM cmd2_source_index
                      WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
-                    &[&domain, &unique_kinds, token],
+                    &[&domain, &unique_kinds, &token],
                 )?
             };
             if occupied.is_some() {
@@ -1100,7 +1100,7 @@ impl DurablePgCoordinator {
                     "bounded PG creation definition absent",
                 ))?,
         )?;
-        if definition != definition() {
+        if definition != super::definition() {
             return Err(DurableError::Conflict(
                 "bounded PG creation recovery definition differs",
             ));
