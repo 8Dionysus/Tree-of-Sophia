@@ -1082,7 +1082,6 @@ mod tests {
             node["content_revision"],
             "73cac16002be670e7e56577584a099fdd7cd778224ef682ec6d2fe42708d02f8"
         );
-        materialize_canon_nodes(&mut stage, &cn, &canon).unwrap();
         let left = node["display"]["title"].clone();
         let right = json!({"default":"Бета"});
         let proposals = scan_canon_relations(&mut stage, &canon, None, 2, 8192, 16384).unwrap();
