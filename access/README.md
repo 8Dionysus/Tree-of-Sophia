@@ -1529,9 +1529,28 @@ that directory is not a completed restore and remains caller-owned cleanup.
 This restores selected bytes. It neither admits those sources nor selects them
 for readers, reconstructs a PostgreSQL journal, changes rights, or activates a
 publication. Those operations retain their existing owner routes. The installed
-`tos-native-owner-command source-capture capture-git|verify|restore` entry owns
+`tos-native-owner-command source-capture capture-git|verify|restore|import-corpus` entry owns
 capture production and the matching explicit verification/restore route; its
 `--help` lists the required source selection and finite budgets.
+
+`source-capture import-corpus` carries one selected capture into a new immutable
+V1 corpus store. It takes the same exact capture selection and read budgets as
+`verify`, plus `--output` for a new child of a private owned directory and
+`--validator-sha256` for the executing native importer. It streams and verifies
+member bytes, stores shared digest objects once, writes the exact snapshot, and
+reopens that revision through the corpus reader. The `capture-import.json`
+receipt retains the Git selection, filters, revision and membership digest.
+Its validator identity describes byte-integrity checks performed by this
+importer; it does not establish semantic assessment or source admission.
+
+The imported store has no `current.json`. Consumers must select the returned
+exact revision explicitly and complete their own assessment and publication
+route. Import neither changes rights nor derives identity or dependency
+indexes. Capture-parser read counters cover that parser's logical reads;
+measure process and filesystem I/O separately, including object readback and
+snapshot verification. Reserve capture, stored objects, metadata and temporary
+space before running. A refusal can retain unselected partial custody at the
+new output path; a retry must not overwrite it.
 
 ### Native fresh-prefix installation
 

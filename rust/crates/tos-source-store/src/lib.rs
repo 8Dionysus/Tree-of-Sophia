@@ -4,6 +4,7 @@
 //! publication and current-use authority remain with their owners.
 
 mod archive;
+mod capture_import;
 mod chunked_file;
 mod cut;
 mod error;
@@ -43,6 +44,9 @@ pub use streamed_cut::{
 pub use archive::{
     CaptureReadUsage, CaptureRestoreLimits, CaptureVerification, restore_capture, verify_capture,
     verify_capture_with_usage,
+};
+pub use capture_import::{
+    CaptureImportReceiptV1, CaptureImportRequestV1, import_git_capture_corpus_v1,
 };
 
 pub use chunked_file::{

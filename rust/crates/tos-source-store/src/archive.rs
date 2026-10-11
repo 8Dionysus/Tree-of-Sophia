@@ -19,7 +19,10 @@ pub struct CaptureRestoreLimits {
     pub max_source_bytes: u64,
 }
 
-/// Actual successfully consumed bytes in the SAME capture traversal.
+/// Bytes consumed by the capture parser's bounded logical streams.
+///
+/// This excludes importer executable, object/snapshot/receipt readbacks and
+/// other filesystem activity; it is not complete physical-I/O accounting.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CaptureReadUsage {
     pub metadata_bytes: u64,
@@ -37,6 +40,19 @@ impl CaptureReadUsage {
 pub struct CaptureVerification {
     pub manifest: JsonValue,
     pub usage: CaptureReadUsage,
+}
+
+/// One bounded member sink for the importer. The archive walker calls
+/// `finish_member` only after both the capture SHA-256 and Git blob OID match.
+pub(crate) trait CaptureMemberSink {
+    fn begin_member(&mut self, member: &crate::MemberMetadata) -> Result<()>;
+    fn write_chunk(&mut self, bytes: &[u8]) -> Result<()>;
+    fn finish_member(&mut self, member: &crate::MemberMetadata) -> Result<()>;
+}
+
+pub(crate) struct CaptureWalkOutput {
+    pub(crate) index: crate::software::CaptureIndex,
+    pub(crate) usage: CaptureReadUsage,
 }
 
 fn fail(detail: &'static str) -> StoreError {
@@ -161,6 +177,7 @@ pub fn restore_capture(
     walk_capture(
         capture_root,
         Some(destination),
+        None,
         selection,
         limits,
         deadline,
@@ -189,17 +206,52 @@ pub fn verify_capture_with_usage(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<CaptureVerification> {
-    walk_capture(capture_root, None, selection, limits, deadline, cancelled)
+    let walked = walk_capture(
+        capture_root,
+        None,
+        None,
+        selection,
+        limits,
+        deadline,
+        cancelled,
+    )?;
+    Ok(CaptureVerification {
+        manifest: walked.index.manifest,
+        usage: walked.usage,
+    })
+}
+
+/// Import through the same strict capture parser used by verify and restore.
+/// The sink sees at most one member's body at a time and only gets a successful
+/// completion callback after the parser has checked both member identities.
+pub(crate) fn walk_capture_for_import(
+    capture_root: &Path,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    sink: &mut dyn CaptureMemberSink,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CaptureWalkOutput> {
+    walk_capture(
+        capture_root,
+        None,
+        Some(sink),
+        selection,
+        limits,
+        deadline,
+        cancelled,
+    )
 }
 
 fn walk_capture(
     capture_root: &Path,
     destination: Option<&Path>,
+    mut sink: Option<&mut dyn CaptureMemberSink>,
     selection: &SoftwareCaptureSelectionV1,
     limits: CaptureRestoreLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> Result<CaptureVerification> {
+) -> Result<CaptureWalkOutput> {
     let metadata = limits.metadata.validate()?;
     for n in [
         limits.max_archive_bytes,
@@ -234,6 +286,23 @@ fn walk_capture(
         return Err(StoreError::new(
             Code::BudgetExceeded,
             "capture totals exceed limits",
+        ));
+    }
+    if sink.is_some() && index.member_count == 0 {
+        return Err(StoreError::new(
+            Code::InvalidMemberIndex,
+            "capture selection is empty",
+        ));
+    }
+    if sink.is_some()
+        && index.members.values().any(|member| {
+            member.size_bytes > limits.metadata.max_selected_object_bytes
+                || !crate::cut::is_authored_source_path_v1(member.path.as_str())
+        })
+    {
+        return Err(StoreError::new(
+            Code::BudgetExceeded,
+            "capture member exceeds its bound or is outside the authored ToS carrier",
         ));
     }
     if destination.is_some()
@@ -311,6 +380,9 @@ fn walk_capture(
             .as_ref()
             .map(|output| new_file(output, path.as_str(), deadline, cancelled))
             .transpose()?;
+        if let Some(sink) = sink.as_mut() {
+            (**sink).begin_member(member)?;
+        }
         let mut sha256 = Digest256Hasher::new();
         let mut sha1 = Sha1::new();
         sha1.update(format!("blob {}\0", member.size_bytes).as_bytes());
@@ -332,6 +404,9 @@ fn walk_capture(
             if let Some(target) = &mut target {
                 target.write_all(&buffer[..n]).map_err(io_error)?;
             }
+            if let Some(sink) = sink.as_mut() {
+                (**sink).write_chunk(&buffer[..n])?;
+            }
         }
         if count != member.size_bytes
             || sha256.finalize() != member.sha256
@@ -344,6 +419,9 @@ fn walk_capture(
                 .set_permissions(fs::Permissions::from_mode(member.mode))
                 .map_err(io_error)?;
             target.sync_all().map_err(io_error)?;
+        }
+        if let Some(sink) = sink.as_mut() {
+            (**sink).finish_member(member)?;
         }
     }
     if expected.next().is_some() {
@@ -390,10 +468,7 @@ fn walk_capture(
     }
     check(deadline, cancelled).map_err(io_error)?;
     let Some(output) = output else {
-        return Ok(CaptureVerification {
-            manifest: index.manifest,
-            usage,
-        });
+        return Ok(CaptureWalkOutput { index, usage });
     };
     let receipt = format!(
         "{{\"manifest_sha256\":\"{}\",\"member_count\":{},\"schema_version\":\"tos_corpus_restore_receipt_v1\",\"source_bytes\":{},\"source_git_commit\":\"{}\"}}\n",
@@ -415,10 +490,7 @@ fn walk_capture(
         drop(file);
         let _ = fs::remove_file(fd_path(&output, "restore-receipt.json"));
     }
-    result.map(|()| CaptureVerification {
-        manifest: index.manifest,
-        usage,
-    })
+    result.map(|()| CaptureWalkOutput { index, usage })
 }
 
 #[cfg(test)]

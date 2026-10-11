@@ -10,12 +10,12 @@ use std::{
 };
 use tos_foundation::{Digest256, JsonLimits, JsonValue};
 use tos_source_store::{
-    CaptureGitRequest, CaptureRestoreLimits, GitCaptureLimits, ReadLimits,
+    CaptureGitRequest, CaptureImportRequestV1, CaptureRestoreLimits, GitCaptureLimits, ReadLimits,
     SoftwareCaptureSelectionV1,
 };
 
 pub const HELP: &str =
-    "usage: tos-native-owner-command source-capture capture-git|verify|restore OPTIONS
+    "usage: tos-native-owner-command source-capture capture-git|verify|restore|import-corpus OPTIONS
 All operations: --max-seconds N --confirm-exclusive-owner yes
 capture-git: --repository ABS --commit HEX40 --output ABS --include-prefix PATH
   --max-members N --max-member-bytes N --max-source-bytes N
@@ -26,11 +26,17 @@ verify|restore: --capture-root ABS --commit HEX40 --tree HEX40 --manifest-sha256
   --max-metadata-bytes N --max-archive-bytes N --max-decoded-bytes N
   --json-max-depth N --json-max-visits N --json-max-integer-digits N
 restore also requires --destination ABS, a new child under a private owned parent.
+import-corpus also requires --output ABS, a new store child under a private owned parent,
+  and --validator-sha256 HEX64 pinned to the executing importer image.
+Its capture_read_usage reports parser logical byte counts, not complete physical I/O;
+the launch supervisor measures process/cgroup I/O separately.
 Capture roots and output/destination parents must be exclusively owner-controlled.
 The declaration does not stop writers. Source/recovery resources and cleanup remain
-with the caller's whole supervisor. Restore may leave partial owned output on refusal.
+with the caller's whole supervisor. Restore/import may leave partial owned output on refusal.
 Ignored payload is not Git material. Byte verification/restoration grants no source
 admission, ready epoch, currentness, rights, executable selection or publication.
+import-corpus creates one exact immutable V1 snapshot and capture-import.json receipt;
+it writes no current.json and establishes neither semantic admission nor whole-source completeness.
 ";
 
 fn hold(path: &Path, private: bool) -> Result<File, &'static str> {
@@ -59,6 +65,47 @@ fn scalar(m: &JsonValue, name: &str) -> Result<u64, &'static str> {
     m.object_get(name)
         .and_then(JsonValue::as_u64)
         .ok_or("capture manifest count")
+}
+
+fn import_response(
+    receipt: tos_source_store::CaptureImportReceiptV1,
+) -> Result<serde_json::Value, &'static str> {
+    Ok(serde_json::json!({
+        "operation": "import-corpus",
+        "schema_version": "tos_corpus_capture_import_v1",
+        "capture_manifest_sha256": receipt.capture_manifest_sha256.to_hex(),
+        "source_git_commit": receipt.source_git_commit,
+        "source_git_tree": receipt.source_git_tree,
+        "include_prefix_count": receipt.include_prefixes.len(),
+        "exclude_prefix_count": receipt.exclude_prefixes.len(),
+        "exclude_path_part_count": receipt.exclude_path_parts.len(),
+        "revision": receipt.revision.0.to_hex(),
+        "membership_sha256": receipt.membership_sha256.to_hex(),
+        "member_count": receipt.member_count,
+        "source_bytes": receipt.source_bytes,
+        "validator_sha256": receipt.validator_sha256.to_hex(),
+        "validator_role": "capture-import-byte-integrity-v1",
+        "import_receipt_sha256": receipt.import_receipt_sha256.to_hex(),
+        "capture_read_usage": {
+            "measurement": "capture-parser-logical-read-bytes-v1",
+            "metadata_bytes": receipt.usage.metadata_bytes,
+            "archive_read_bytes": receipt.usage.archive_read_bytes,
+            "decoded_bytes": receipt.usage.decoded_bytes,
+            "capture_total_read_bytes": receipt.usage.total_read_bytes()
+                .map_err(|_| "read usage overflow")?,
+            "complete_physical_io": false
+        },
+        "custody_only": true,
+        "semantic_admission": false,
+        "rights_change": false,
+        "source_admitted": false,
+        "source_currentness_selected": false,
+        "publication_authorized": false,
+        "whole_authored_inventory_established": false,
+        "identity_index_derived": false,
+        "dependency_index_derived": false,
+        "current_pointer_written": false
+    }))
 }
 
 const MAX_ARGUMENTS: usize = 256;
@@ -104,7 +151,11 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         .first()
         .map(String::as_str)
         .ok_or("operation required")?;
-    if !matches!(operation, "capture-git" | "verify" | "restore") || (args.len() - 1) % 2 != 0 {
+    if !matches!(
+        operation,
+        "capture-git" | "verify" | "restore" | "import-corpus"
+    ) || (args.len() - 1) % 2 != 0
+    {
         return Err("invalid operation/options");
     }
     let mut values = BTreeMap::new();
@@ -140,6 +191,19 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         );
         let specific = if operation == "capture-git" {
             matches!(k, "--repository" | "--output" | "--max-tree-bytes")
+        } else if operation == "import-corpus" {
+            matches!(
+                k,
+                "--capture-root"
+                    | "--tree"
+                    | "--manifest-sha256"
+                    | "--max-decoded-bytes"
+                    | "--json-max-depth"
+                    | "--json-max-visits"
+                    | "--json-max-integer-digits"
+                    | "--output"
+                    | "--validator-sha256"
+            )
         } else {
             matches!(
                 k,
@@ -262,6 +326,31 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         max_decoded_bytes: n("--max-decoded-bytes")?,
         max_source_bytes: source,
     };
+    if operation == "import-corpus" {
+        let output = Path::new(get("--output")?);
+        if !output.is_absolute() {
+            return Err("absolute output store path required");
+        }
+        let parent = output.parent().ok_or("output parent required")?;
+        let parent_fd = hold(parent, true)?;
+        let expected_validator_sha256 = Digest256::from_hex(get("--validator-sha256")?)
+            .map_err(|_| "invalid executing validator image pin")?;
+        let receipt = tos_source_store::import_git_capture_corpus_v1(
+            CaptureImportRequestV1 {
+                capture_root: root,
+                output,
+                selection: &selection,
+                limits,
+                expected_validator_sha256,
+            },
+            deadline,
+            &cancel,
+        )
+        .map_err(|_| "capture corpus import refused; retain unselected partial custody")?;
+        recheck(root, &held, true)?;
+        recheck(parent, &parent_fd, true)?;
+        return import_response(receipt);
+    }
     let usage = if operation == "verify" {
         let v = tos_source_store::verify_capture_with_usage(
             root, &selection, limits, deadline, &cancel,
@@ -285,4 +374,65 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         serde_json::json!({"operation":operation,"source_git_commit":commit,"source_git_tree":tree,
         "capture_manifest_sha256":digest,"actual_read_usage":usage,"grants_admission":false,"publication_authorized":false}),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tos_foundation::SourceRevision;
+    use tos_source_store::CaptureReadUsage;
+
+    #[test]
+    fn import_response_stays_inside_native_command_output_bound() {
+        // 110 filters plus the import-corpus required options fit the native
+        // command's 256-argument envelope; each list also fits its selector
+        // metadata budget. The detailed values live in the durable sidecar.
+        let includes = (0..37)
+            .map(|index| format!("ToS/include-{index:02}-{}", "x".repeat(24)))
+            .collect();
+        let excludes = (0..37)
+            .map(|index| format!("ToS/exclude-{index:02}-{}", "x".repeat(24)))
+            .collect();
+        let path_parts = (0..36)
+            .map(|index| format!("part-{index:02}-{}", "x".repeat(24)))
+            .collect();
+        let response = import_response(tos_source_store::CaptureImportReceiptV1 {
+            capture_manifest_sha256: Digest256::of_bytes(b"capture"),
+            source_git_commit: "a".repeat(40),
+            source_git_tree: "b".repeat(40),
+            include_prefixes: includes,
+            exclude_prefixes: excludes,
+            exclude_path_parts: path_parts,
+            validator_sha256: Digest256::of_bytes(b"validator"),
+            revision: SourceRevision(Digest256::of_bytes(b"revision")),
+            membership_sha256: Digest256::of_bytes(b"membership"),
+            member_count: u64::MAX - 1,
+            source_bytes: u64::MAX - 1,
+            import_receipt_sha256: Digest256::of_bytes(b"receipt"),
+            usage: CaptureReadUsage {
+                metadata_bytes: u64::MAX - 1,
+                archive_read_bytes: 0,
+                decoded_bytes: 0,
+            },
+        })
+        .unwrap();
+        let encoded = serde_json::to_vec(&response).unwrap();
+        assert!(
+            encoded.len() <= 2048,
+            "response was {} bytes",
+            encoded.len()
+        );
+        assert_eq!(response["include_prefix_count"], 37);
+        assert_eq!(response["exclude_prefix_count"], 37);
+        assert_eq!(response["exclude_path_part_count"], 36);
+        assert!(response.get("include_prefixes").is_none());
+        assert_eq!(
+            response["capture_read_usage"]["measurement"],
+            "capture-parser-logical-read-bytes-v1"
+        );
+        assert_eq!(
+            response["capture_read_usage"]["complete_physical_io"],
+            false
+        );
+    }
 }
