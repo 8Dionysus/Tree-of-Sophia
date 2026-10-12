@@ -93,6 +93,28 @@ fn read_profile_file(path: &Path) -> Result<BackupProfile, &'static str> {
     parse_profile_json(&raw)
 }
 
+const INTEGRITY_PREDICATE_PREFIX: &str =
+    "owner-selected backup/restore integrity check failed at predicate line ";
+
+fn refusal_diagnostic(operation: &str, error: &std::io::Error) -> Option<String> {
+    if error.kind() != std::io::ErrorKind::InvalidData {
+        return None;
+    }
+    let predicate_line = error
+        .to_string()
+        .strip_prefix(INTEGRITY_PREDICATE_PREFIX)
+        .and_then(|line| line.parse::<u32>().ok())
+        .filter(|line| *line != 0);
+    Some(match predicate_line {
+        Some(line) => {
+            format!("native recovery diagnostic: operation={operation} predicate_line={line}")
+        }
+        None => format!(
+            "native recovery diagnostic: operation={operation} predicate=integrity-or-format"
+        ),
+    })
+}
+
 pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
     let started = Instant::now();
     let operation = args
@@ -226,15 +248,22 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
             &cancelled,
         )
     };
-    result.map_err(|error| match error.kind() {
-        std::io::ErrorKind::TimedOut => "backup/restore deadline exceeded; preserve partial output",
-        std::io::ErrorKind::Interrupted => "backup/restore cancelled; preserve partial output",
-        std::io::ErrorKind::InvalidInput => "backup/restore selection or limits refused",
-        std::io::ErrorKind::InvalidData => "backup/restore integrity or format refused",
-        std::io::ErrorKind::PermissionDenied => "backup/restore owner or access refused",
-        std::io::ErrorKind::AlreadyExists => "backup/restore requires a fresh destination",
-        std::io::ErrorKind::NotFound => "backup/restore selected input or tool is absent",
-        _ => "backup/restore IO or database refused; preserve partial output",
+    result.map_err(|error| {
+        if let Some(diagnostic) = refusal_diagnostic(operation, &error) {
+            eprintln!("{diagnostic}");
+        }
+        match error.kind() {
+            std::io::ErrorKind::TimedOut => {
+                "backup/restore deadline exceeded; preserve partial output"
+            }
+            std::io::ErrorKind::Interrupted => "backup/restore cancelled; preserve partial output",
+            std::io::ErrorKind::InvalidInput => "backup/restore selection or limits refused",
+            std::io::ErrorKind::InvalidData => "backup/restore integrity or format refused",
+            std::io::ErrorKind::PermissionDenied => "backup/restore owner or access refused",
+            std::io::ErrorKind::AlreadyExists => "backup/restore requires a fresh destination",
+            std::io::ErrorKind::NotFound => "backup/restore selected input or tool is absent",
+            _ => "backup/restore IO or database refused; preserve partial output",
+        }
     })
 }
 
@@ -242,6 +271,30 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
 mod tests {
     use super::*;
     use std::{fs, os::unix::fs::symlink};
+
+    #[test]
+    fn integrity_refusal_diagnostic_exposes_only_a_recognized_predicate() {
+        let exact = std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("{INTEGRITY_PREDICATE_PREFIX}441"),
+        );
+        assert_eq!(
+            refusal_diagnostic("backup", &exact).as_deref(),
+            Some("native recovery diagnostic: operation=backup predicate_line=441")
+        );
+
+        let unrecognized = std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "private database URL and password",
+        );
+        assert_eq!(
+            refusal_diagnostic("restore", &unrecognized).as_deref(),
+            Some("native recovery diagnostic: operation=restore predicate=integrity-or-format")
+        );
+
+        let other_kind = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "private path");
+        assert_eq!(refusal_diagnostic("backup", &other_kind), None);
+    }
 
     #[test]
     fn explicit_profile_is_bounded_owned_and_strict() {
