@@ -1017,7 +1017,6 @@ mod wasm {
     pub fn worker_knowledge_search_controls_wasm_v1(raw_request: &[u8]) -> Vec<u8> {
         super::worker_search_controls::worker_knowledge_search_controls_wasm_v1(raw_request)
     }
-
 }
 
 #[cfg(feature = "wasm")]

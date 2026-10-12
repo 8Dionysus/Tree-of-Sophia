@@ -4,7 +4,7 @@
 
 use super::{absolute, capped, digest, exact, number, text};
 use crate::source_cohort::creation::{
-    self as creation, PgCreationAttempt, PgCreationInput, COMMITMENT_VERSION,
+    self as creation, COMMITMENT_VERSION, PgCreationAttempt, PgCreationInput,
 };
 use crate::source_cohort::revision::SourceRevisionReadSession;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
@@ -12,7 +12,7 @@ use crate::source_creation::{self as owner, CreationFamily};
 use crate::source_creation_store::CreationFilesystem;
 use crate::source_revisions::ReadonlyRecordFiles;
 use crate::{DurableError, DurablePgCoordinator};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};

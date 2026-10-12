@@ -938,7 +938,11 @@ fn materializations(
     let outputs = plan
         .files
         .iter()
-        .filter_map(|file| file.after.as_ref().map(|raw| (file.path.as_str().to_owned(), raw.clone())))
+        .filter_map(|file| {
+            file.after
+                .as_ref()
+                .map(|raw| (file.path.as_str().to_owned(), raw.clone()))
+        })
         .collect::<BTreeMap<_, _>>();
     materializations_from_outputs(request, &outputs)
 }
@@ -1528,9 +1532,7 @@ fn source_profiles(
 mod pg;
 pub(crate) use pg::{
     PG_FAMILY as OBJECT_LINK_PG_FAMILY_TAG, PgObjectLinkPreview, PgObjectLinkRequirements,
-    PreparedPgObjectLink,
-    describe_pg_object_link,
-    expected_inventory_contributions_from_writes,
+    PreparedPgObjectLink, describe_pg_object_link, expected_inventory_contributions_from_writes,
     expected_revision_indexes_from_writes as expected_object_link_revision_indexes,
     pg_object_link_requirements, prepare_pg_object_link, prepare_pg_object_link_preview,
 };

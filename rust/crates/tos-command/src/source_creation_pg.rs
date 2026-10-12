@@ -5,13 +5,13 @@
 //! PG observations from the exact source read session.
 
 use super::{
-    configuration, initial_corpus_with_schema, prepare_source_forms, CreationFamily,
-    PreparedCreation,
+    CreationFamily, PreparedCreation, configuration, initial_corpus_with_schema,
+    prepare_source_forms,
 };
 use crate::source_cohort::revision::{
     PgRecordRevisionIdentity, PgSourceHomeObservation, PgSourceUniqueIndexObservation,
 };
-use crate::source_cohort::{creation, IndexRows};
+use crate::source_cohort::{IndexRows, creation};
 use crate::source_command::{
     self as cmd, CommandContext, CommandPlan, SourceCommandError, SourceCommandResult,
 };

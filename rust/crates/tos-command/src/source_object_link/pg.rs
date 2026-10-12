@@ -136,10 +136,7 @@ impl PgObjectLinkPreview {
         Ok(())
     }
 
-    pub(crate) fn validate_readset(
-        &self,
-        readset: &SourceRevisionReadSet,
-    ) -> DurableResult<()> {
+    pub(crate) fn validate_readset(&self, readset: &SourceRevisionReadSet) -> DurableResult<()> {
         let Some(reads) = self.reads.as_ref() else {
             return Err(DurableError::Conflict(
                 "ObjectLink PG preview has no final selected read snapshot",
@@ -239,7 +236,9 @@ fn selected_result_fields<I: Copy + Eq>(
         ("scope", scope),
         (
             "publication_snapshot",
-            publication_token.map(cmd::string).unwrap_or(JsonValue::Null),
+            publication_token
+                .map(cmd::string)
+                .unwrap_or(JsonValue::Null),
         ),
         ("source_profiles", profiles),
         ("receipt", receipt),
@@ -1342,8 +1341,7 @@ pub(crate) fn prepare_pg_object_link_preview(
             .unwrap_or(JsonValue::Null),
     )?;
 
-    let dependencies =
-        selected_context(fs, ctx, &owner, input, schemas, limits, cancelled)?;
+    let dependencies = selected_context(fs, ctx, &owner, input, schemas, limits, cancelled)?;
     let dependency_digest = cmd::record_digest(&dependencies)?.to_prefixed();
     cmd::set(
         &mut owner.request,
@@ -1438,26 +1436,13 @@ pub(crate) fn prepare_pg_object_link_preview(
             "ObjectLink prepared Claim count differs",
         ));
     }
-    let link_forms = cmd::parse(
-        prepared
-            .files
-            .get(&link_forms_path)
-            .ok_or(SourceCommandError::Invalid(
-                "ObjectLink prepared link forms absent",
-            ))?,
-    )?;
-    let claim_forms = cmd::parse(
-        prepared
-            .files
-            .get(&claim_forms_path)
-            .ok_or(SourceCommandError::Invalid(
-                "ObjectLink prepared Claim forms absent",
-            ))?,
-    )?;
-    let forms = cmd::object(vec![
-        ("link", link_forms),
-        ("claim", claim_forms),
-    ]);
+    let link_forms = cmd::parse(prepared.files.get(&link_forms_path).ok_or(
+        SourceCommandError::Invalid("ObjectLink prepared link forms absent"),
+    )?)?;
+    let claim_forms = cmd::parse(prepared.files.get(&claim_forms_path).ok_or(
+        SourceCommandError::Invalid("ObjectLink prepared Claim forms absent"),
+    )?)?;
+    let forms = cmd::object(vec![("link", link_forms), ("claim", claim_forms)]);
     let materializations = super::materializations_from_outputs(&owner.request, &prepared.files)?;
     let mut response = selected_result_fields(
         fs,

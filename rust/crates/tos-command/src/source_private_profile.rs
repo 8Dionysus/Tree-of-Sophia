@@ -368,9 +368,7 @@ impl PrivateSelectedSourceInput for CorpusCutReader {
     }
 }
 
-impl PrivateSelectedSourceInput
-    for crate::source_native_cli::PgGrowthCurrentInput<'_, '_>
-{
+impl PrivateSelectedSourceInput for crate::source_native_cli::PgGrowthCurrentInput<'_, '_> {
     fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
         PrivateSelectedSourceIdentity::PgRecord(
             *tos_validation::record_biblio_cut::SourceCutInputWithIdentity::input_identity(self),

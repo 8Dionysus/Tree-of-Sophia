@@ -372,7 +372,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ] {
                 let dependency_name = format!("ToS/contracts/{dependency}");
                 let raw = self.read(&dependency_name, None, false, true)?;
-                if self.worker.selected_contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
+                if self.worker.selected_contract_digest(&dependency_name)
+                    != Some(Digest256::of_bytes(&raw))
                 {
                     return Err(SourceCommandError::Conflict(
                         "native public authority dependency and schema worker differ",
@@ -393,7 +394,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ] {
                 let dependency_name = format!("ToS/contracts/{dependency}");
                 let raw = self.read(&dependency_name, None, false, true)?;
-                if self.worker.selected_contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
+                if self.worker.selected_contract_digest(&dependency_name)
+                    != Some(Digest256::of_bytes(&raw))
                 {
                     return Err(SourceCommandError::Conflict(
                         "native assessment dependency and schema worker differ",

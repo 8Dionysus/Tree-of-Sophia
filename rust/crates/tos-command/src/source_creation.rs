@@ -94,9 +94,7 @@ impl CreationFamily {
             "tos_local_corpus_create_owner_v2" => Self::CorpusV2,
             // v1 is the filesystem/public Assessment bridge. v2 is a distinct
             // protected private-Assessment grant used only by the PG owner.
-            "tos_local_sign_promote_owner_v1" | "tos_local_sign_promote_owner_v2" => {
-                Self::Sign
-            }
+            "tos_local_sign_promote_owner_v1" | "tos_local_sign_promote_owner_v2" => Self::Sign,
             "tos_local_artifact_create_owner_v1" => Self::Artifact,
             _ => return Err(SourceCommandError::Denied("source create owner schema")),
         })
@@ -1372,7 +1370,10 @@ pub(crate) fn initial_with_candidate_schema(
         };
         return initial_corpus_with_schema(config, family, record, &mut validate_schema);
     }
-    if !matches!(family, CreationFamily::HistoricalV1 | CreationFamily::HistoricalV2 | CreationFamily::PublicProfile) {
+    if !matches!(
+        family,
+        CreationFamily::HistoricalV1 | CreationFamily::HistoricalV2 | CreationFamily::PublicProfile
+    ) {
         return Err(SourceCommandError::Unsupported(
             "candidate initial source creation family",
         ));

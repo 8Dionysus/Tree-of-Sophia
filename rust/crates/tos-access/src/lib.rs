@@ -52,12 +52,12 @@ mod selected_source_owner_cli;
 pub mod site;
 pub mod software_archive;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod source_navigation;
+#[cfg(not(target_arch = "wasm32"))]
 mod source_owner_provider_phase;
 pub mod source_read;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_text_search;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod source_navigation;
 #[cfg(target_arch = "wasm32")]
 #[path = "source_text_search_wasm.rs"]
 pub mod source_text_search;

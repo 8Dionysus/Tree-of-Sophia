@@ -1142,7 +1142,8 @@ pub(crate) fn claim_event_range_identity_archive_manifest_paths_v1(
     let streams = claim_event_streams_for_range_v1(context, source_paths)?;
     let requests = claim_event_identity_requests_for_streams(context, &streams)?;
     validate_identity_result_set(&requests, owners)?;
-    let (collection_refs, membership_refs) = claim_event_collection_order_refs_for_streams(&streams)?;
+    let (collection_refs, membership_refs) =
+        claim_event_collection_order_refs_for_streams(&streams)?;
     let mut paths = claim_event_identity_archive_paths_for_refs(
         context,
         owners,
@@ -1151,9 +1152,9 @@ pub(crate) fn claim_event_range_identity_archive_manifest_paths_v1(
     )?
     .into_iter()
     .collect::<BTreeSet<_>>();
-    paths.extend(claim_event_identity_owner_archive_manifest_paths_for_requests(
-        context, &requests, owners,
-    )?);
+    paths.extend(
+        claim_event_identity_owner_archive_manifest_paths_for_requests(context, &requests, owners)?,
+    );
     paths_within_limit(paths)
 }
 
@@ -1169,11 +1170,8 @@ pub(crate) fn claim_event_range_identity_archive_blob_paths_v1(
     source_paths: &[String],
     owners: &[ClaimEventIdentityOwnerV1],
 ) -> DurableResult<Vec<String>> {
-    let manifests = claim_event_range_identity_archive_manifest_paths_v1(
-        context,
-        source_paths,
-        owners,
-    )?;
+    let manifests =
+        claim_event_range_identity_archive_manifest_paths_v1(context, source_paths, owners)?;
     claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
 }
 

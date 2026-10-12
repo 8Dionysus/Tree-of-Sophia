@@ -9,8 +9,8 @@ use tos_compiler::{
     source_bibliographic::BibliographicLimits,
     source_navigation_claim_event::NavigationClaimRevisionProofV1,
     source_navigation_event::{
-        NavigationDependencyStateV1, NavigationRecordEventBudgetCostV1,
-        NavigationRecordDependencyRefreshCauseV1, NavigationRecordEventCohortV1,
+        NavigationDependencyStateV1, NavigationRecordDependencyRefreshCauseV1,
+        NavigationRecordEventBudgetCostV1, NavigationRecordEventCohortV1,
         NavigationRecordEventInputV1,
         project_navigation_record_claim_revision_refresh_from_event_cut_v1,
         project_navigation_record_dependency_refresh_from_event_cut_v1,

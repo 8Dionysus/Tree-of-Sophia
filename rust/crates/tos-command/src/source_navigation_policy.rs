@@ -9,8 +9,8 @@ use serde::Deserialize;
 use serde_json::Value;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 use tos_query::{
-    Binding, Charged, CurrentPolicy, DisclosureLease, DisclosureScope, QueryError,
-    QueryErrorCode, RawRecord,
+    Binding, Charged, CurrentPolicy, DisclosureLease, DisclosureScope, QueryError, QueryErrorCode,
+    RawRecord,
 };
 
 use crate::source_command as cmd;
@@ -78,13 +78,15 @@ impl SourceNavigationPolicyReceiptV1 {
     /// Parse a strict, explicit allow receipt from the protected local owner
     /// configuration. There is deliberately no default or wildcard receipt.
     pub fn parse(value: &Value) -> Result<(Self, Digest256), &'static str> {
-        let raw = serde_json::to_vec(value).map_err(|_| "source navigation policy receipt codec")?;
+        let raw =
+            serde_json::to_vec(value).map_err(|_| "source navigation policy receipt codec")?;
         let parsed = cmd::parse(&raw).map_err(|_| "source navigation policy receipt JSON")?;
-        let digest = cmd::record_digest(&parsed)
-            .map_err(|_| "source navigation policy receipt digest")?;
-        let receipt: Self = serde_json::from_slice(&cmd::canonical(&parsed).map_err(|_| {
-            "source navigation policy receipt canonicalization"
-        })?)
+        let digest =
+            cmd::record_digest(&parsed).map_err(|_| "source navigation policy receipt digest")?;
+        let receipt: Self = serde_json::from_slice(
+            &cmd::canonical(&parsed)
+                .map_err(|_| "source navigation policy receipt canonicalization")?,
+        )
         .map_err(|_| "source navigation policy receipt fields")?;
         receipt.validate()?;
         Ok((receipt, digest))
@@ -170,7 +172,9 @@ pub fn read_locked_v1(
         || receipt.export_receipt_id.is_empty()
         || corpus_revision.is_empty()
     {
-        return Err(policy_error("current source navigation policy scope differs"));
+        return Err(policy_error(
+            "current source navigation policy scope differs",
+        ));
     }
     let scope = DisclosureScope {
         operation_id: "tos.source.descend".into(),
@@ -250,7 +254,9 @@ impl DisclosureLease for PgSourceNavigationDisclosureLeaseV1 {
             || self.scope.policy_epoch.is_empty()
             || self.scope.withdrawal_generation.is_empty()
         {
-            return Err(policy_error("source navigation disclosure fence is invalid"));
+            return Err(policy_error(
+                "source navigation disclosure fence is invalid",
+            ));
         }
         Ok(())
     }
@@ -274,7 +280,9 @@ pub fn selected_export_receipt_id(component_root_sha256: &str) -> Result<String,
 
 /// Parse the protected nested policy object with the published strict JSON
 /// grammar before serde denies unknown policy fields.
-pub fn parse_policy_object(value: &Value) -> Result<(SourceNavigationPolicyReceiptV1, Digest256), QueryError> {
+pub fn parse_policy_object(
+    value: &Value,
+) -> Result<(SourceNavigationPolicyReceiptV1, Digest256), QueryError> {
     let raw = serde_json::to_vec(value)
         .map_err(|_| policy_error("source navigation policy receipt encoding failed"))?;
     let parsed = parse_json(

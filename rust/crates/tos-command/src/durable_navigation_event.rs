@@ -12399,9 +12399,9 @@ impl DurablePgCoordinator {
         }
         let mut expected_range_cursor = first_range_start;
         for row in &range_rows {
-        let cursor_before = as_u64(row.get("cursor_before"))?;
-        let through_sequence = as_u64(row.get("through_seq"))?;
-        let held_source_head_sequence = as_u64(row.get("held_source_head_seq"))?;
+            let cursor_before = as_u64(row.get("cursor_before"))?;
+            let through_sequence = as_u64(row.get("through_seq"))?;
+            let held_source_head_sequence = as_u64(row.get("held_source_head_seq"))?;
             let terminal_event_id: String = row.get("terminal_event_id");
             let range_root = parse_digest(row.get("range_root"))?;
             let range_manifest = row.get::<_, Vec<u8>>("range_manifest");
@@ -14544,11 +14544,12 @@ fn read_selected_sources_at_cut(
                     }
                 }
                 let exact_source_bytes = if version.is_source {
-                    let source_byte_limit = if path == event_path || event_member_paths.contains(path.as_str()) {
-                        limits.max_total_bytes
-                    } else {
-                        limits.max_row_bytes as u64
-                    };
+                    let source_byte_limit =
+                        if path == event_path || event_member_paths.contains(path.as_str()) {
+                            limits.max_total_bytes
+                        } else {
+                            limits.max_row_bytes as u64
+                        };
                     if version.content_length == 0 || version.content_length > source_byte_limit {
                         return Err(DurableError::Refused("navigation event source byte budget"));
                     }
