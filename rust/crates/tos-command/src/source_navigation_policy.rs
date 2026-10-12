@@ -41,9 +41,23 @@ impl SourceNavigationPolicyOperationV1 {
 pub struct SourceNavigationPolicyMutationV1<'a> {
     pub domain: &'a str,
     pub consumer_id: &'a str,
+    pub selected_profile: &'a str,
     pub command_id: &'a str,
     pub operation: SourceNavigationPolicyOperationV1,
     pub expected_policy_version: Option<u64>,
+    pub source_contract_sha256: Digest256,
+    pub expected_rule_version: u64,
+    pub expected_rights_version: u64,
+    pub job_id: &'a str,
+    pub job_fence: u64,
+    pub bootstrap_source_revision: Digest256,
+    pub source_epoch: u64,
+    pub source_definition_digest: Digest256,
+    pub bootstrap_membership_digest: Digest256,
+    pub bootstrap_membership_count: u64,
+    pub domain_digest: Digest256,
+    pub database_oid: u64,
+    pub anchor_through_sequence: u64,
     pub request_sha256: Digest256,
     pub owner_configuration_sha256: Digest256,
     pub receipt_sha256: Digest256,
@@ -52,10 +66,18 @@ pub struct SourceNavigationPolicyMutationV1<'a> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceNavigationPolicyMutationReceiptV1 {
+    /// Immutable result of this command; on replay this can be older than the
+    /// current policy row and therefore must not be treated as current-use
+    /// authorization.
     pub policy_version: u64,
     pub withdrawal_generation: u64,
     pub allowed: bool,
     pub replayed: bool,
+    pub current_policy_version: u64,
+    pub current_withdrawal_generation: u64,
+    pub current_allowed: bool,
+    pub current_receipt_sha256: Digest256,
+    pub current_owner_configuration_sha256: Digest256,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -108,6 +130,30 @@ impl SourceNavigationPolicyReceiptV1 {
             return Err("source navigation policy receipt scope");
         }
         Ok(())
+    }
+
+    /// Recompute the receipt identity from exactly the fields accepted by the
+    /// strict owner-config parser. The durable writer uses this to reject a
+    /// caller-supplied digest that does not bind the stored receipt fields.
+    pub fn digest(&self) -> Result<Digest256, &'static str> {
+        self.validate()?;
+        let value = serde_json::json!({
+            "schema_version": self.schema_version,
+            "issuer_ref": self.issuer_ref,
+            "receipt_id": self.receipt_id,
+            "export_receipt_id": self.export_receipt_id,
+            "model_receipt_id": self.model_receipt_id,
+            "carrier_layer": self.carrier_layer,
+            "intended_use": self.intended_use,
+            "model_abi": self.model_abi,
+            "selection_profile": self.selection_profile,
+            "policy_epoch": self.policy_epoch,
+            "withdrawal_generation": self.withdrawal_generation,
+        });
+        let raw =
+            serde_json::to_vec(&value).map_err(|_| "source navigation policy receipt codec")?;
+        let parsed = cmd::parse(&raw).map_err(|_| "source navigation policy receipt JSON")?;
+        cmd::record_digest(&parsed).map_err(|_| "source navigation policy receipt digest")
     }
 }
 

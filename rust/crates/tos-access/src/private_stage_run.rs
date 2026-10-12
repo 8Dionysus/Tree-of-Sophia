@@ -4,7 +4,7 @@
 use std::{
     ffi::{CString, OsStr},
     fs::{self, DirBuilder, File, OpenOptions},
-    io::{Read, Write},
+    io::{Read, Seek, Write},
     os::{
         fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd},
         unix::{
@@ -19,10 +19,13 @@ use std::{
     thread,
     time::Duration,
 };
+use tos_foundation::{Digest256, Digest256Hasher};
 const PATH_BYTES: usize = 4096;
 const PATH_PARTS: usize = 128;
 const ARGC: usize = 256;
 const ARGV_BYTES: usize = 128 * 1024;
+const PINNED_IMAGE_MAX_BYTES: u64 = 256 * 1024 * 1024;
+const ELF64_HEADER_BYTES: usize = 64;
 const FALLBACKS: [&str; 3] = ["/var/tmp", "/usr/tmp", "/tmp"];
 const SCHEMA: &str = "abyss_machine_private_tmpfs_stage_v1";
 static CANCELLED: AtomicBool = AtomicBool::new(false);
@@ -104,6 +107,129 @@ fn path_shape(path: &Path) -> Result<(), String> {
         return Err("bounded canonical path components required".into());
     }
     Ok(())
+}
+
+// Source-selected compiler consumers pin both the running controller image and
+// the eventual consumer before the namespace handoff. The held descriptors are
+// the identity authority across unshare; paths are only the initial selectors.
+fn same_image_metadata(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
+    a.dev() == b.dev()
+        && a.ino() == b.ino()
+        && a.mode() == b.mode()
+        && a.uid() == b.uid()
+        && a.gid() == b.gid()
+        && a.len() == b.len()
+        && a.mtime() == b.mtime()
+        && a.mtime_nsec() == b.mtime_nsec()
+        && a.ctime() == b.ctime()
+        && a.ctime_nsec() == b.ctime_nsec()
+}
+
+fn verify_native_elf_header(file: &mut File, size: u64) -> Result<(), String> {
+    if size < ELF64_HEADER_BYTES as u64 {
+        return Err("pinned executable image is shorter than an ELF64 header".into());
+    }
+    file.rewind().map_err(|e| e.to_string())?;
+    let mut header = [0u8; ELF64_HEADER_BYTES];
+    file.read_exact(&mut header).map_err(|e| e.to_string())?;
+    let machine = match std::env::consts::ARCH {
+        "x86_64" => 62u16,
+        "aarch64" => 183u16,
+        _ => return Err("pinned executable image architecture is unsupported".into()),
+    };
+    let kind = u16::from_le_bytes([header[16], header[17]]);
+    let actual_machine = u16::from_le_bytes([header[18], header[19]]);
+    let version = u32::from_le_bytes([header[20], header[21], header[22], header[23]]);
+    let entry = u64::from_le_bytes([
+        header[24], header[25], header[26], header[27], header[28], header[29], header[30],
+        header[31],
+    ]);
+    let program_offset = u64::from_le_bytes([
+        header[32], header[33], header[34], header[35], header[36], header[37], header[38],
+        header[39],
+    ]);
+    let program_entry_bytes = u16::from_le_bytes([header[54], header[55]]) as u64;
+    let program_count = u16::from_le_bytes([header[56], header[57]]) as u64;
+    let header_bytes = u16::from_le_bytes([header[52], header[53]]);
+    let program_bytes = program_entry_bytes
+        .checked_mul(program_count)
+        .and_then(|bytes| program_offset.checked_add(bytes))
+        .ok_or("pinned executable ELF program table overflow")?;
+    if &header[..4] != b"\x7fELF"
+        || header[4] != 2
+        || header[5] != 1
+        || header[6] != 1
+        || !matches!(kind, 2 | 3)
+        || actual_machine != machine
+        || version != 1
+        || header_bytes != ELF64_HEADER_BYTES as u16
+        || entry == 0
+        || program_offset < ELF64_HEADER_BYTES as u64
+        || program_count == 0
+        || program_entry_bytes < 56
+        || program_bytes > size
+    {
+        return Err("pinned executable must be a native little-endian ELF64 executable".into());
+    }
+    Ok(())
+}
+
+fn verify_pinned_image(file: &mut File, expected: Digest256, end: Cutoff) -> Result<(), String> {
+    end.check()?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if !before.is_file()
+        || before.len() < ELF64_HEADER_BYTES as u64
+        || before.len() > PINNED_IMAGE_MAX_BYTES
+        || before.mode() & 0o111 == 0
+        || before.mode() & 0o6000 != 0
+        || before.mode() & 0o022 != 0
+    {
+        return Err(
+            "pinned executable must be bounded, executable, non-setid and not group/world-writable"
+                .into(),
+        );
+    }
+    verify_native_elf_header(file, before.len())?;
+    file.rewind().map_err(|e| e.to_string())?;
+    let mut hash = Digest256Hasher::new();
+    let mut used = 0u64;
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        end.check()?;
+        let remaining_plus_eof = before.len().saturating_sub(used).saturating_add(1);
+        let allowed = buffer.len().min(remaining_plus_eof as usize);
+        let count = file
+            .read(&mut buffer[..allowed])
+            .map_err(|e| e.to_string())?;
+        if count == 0 {
+            break;
+        }
+        used = used
+            .checked_add(count as u64)
+            .filter(|size| *size <= before.len() && *size <= PINNED_IMAGE_MAX_BYTES)
+            .ok_or("pinned executable size changed while hashing")?;
+        hash.update(&buffer[..count]);
+    }
+    end.check()?;
+    let after = file.metadata().map_err(|e| e.to_string())?;
+    if used != before.len() || !same_image_metadata(&before, &after) {
+        return Err("pinned executable changed while hashing".into());
+    }
+    if hash.finalize() != expected {
+        return Err("pinned executable SHA-256 differs".into());
+    }
+    file.rewind().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn open_pinned_image(path: &Path, expected: Digest256, end: Cutoff) -> Result<File, String> {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_CLOEXEC | libc::O_NONBLOCK)
+        .open(path)
+        .map_err(|e| e.to_string())?;
+    verify_pinned_image(&mut file, expected, end)?;
+    Ok(file)
 }
 fn directory(path: &Path) -> Result<File, String> {
     path_shape(path)?;
@@ -857,6 +983,8 @@ fn open_search_cache(selected: &SearchCacheSelection) -> Result<File, String> {
 struct Options {
     unshare: PathBuf,
     consumer: PathBuf,
+    expected_controller_sha256: Option<Digest256>,
+    expected_consumer_sha256: Option<Digest256>,
     scratch: PathBuf,
     quota: u64,
     inodes: u64,
@@ -1027,6 +1155,9 @@ fn retained_fd_roles(fds: [Option<i32>; 2]) -> Result<(), String> {
     Ok(())
 }
 fn limits(o: &Options) -> Result<(), String> {
+    if o.expected_controller_sha256.is_some() != o.expected_consumer_sha256.is_some() {
+        return Err("controller and consumer image pins must be selected together".into());
+    }
     if o.search_cache.is_some() && o.persistent.is_some() {
         return Err(
             "search cache and persistent-store capabilities must be selected separately".into(),
@@ -1066,7 +1197,7 @@ fn limits(o: &Options) -> Result<(), String> {
         return Err("command argv transport exceeds finite source limits".into());
     }
     path_shape(Path::new(&o.command[0]))?;
-    if !Path::new(&o.command[0]).is_file() {
+    if o.expected_consumer_sha256.is_none() && !Path::new(&o.command[0]).is_file() {
         return Err("explicit consumer executable absent".into());
     }
     Ok(())
@@ -1157,6 +1288,7 @@ impl Leader {
         release_ro_fd: Option<i32>,
         control_fd: Option<i32>,
         retained_fds: [Option<i32>; 2],
+        image_fds: [Option<i32>; 2],
     ) -> Result<(Self, Option<String>), String> {
         let mut mask = Mask::block()?;
         let old = mask.old;
@@ -1180,6 +1312,7 @@ impl Leader {
                 ]
                 .into_iter()
                 .chain(retained_fds)
+                .chain(image_fds)
                 .flatten()
                 .filter(|fd| *fd >= 3)
                 {
@@ -1649,6 +1782,14 @@ fn outer(o: &Options) -> Result<i32, String> {
     {
         return Err("private stage backing root overlaps fallback bind path".into());
     }
+    let pinned_images = match (o.expected_controller_sha256, o.expected_consumer_sha256) {
+        (Some(controller), Some(consumer)) => Some((
+            open_pinned_image(Path::new("/proc/self/exe"), controller, end)?,
+            open_pinned_image(Path::new(&o.command[0]), consumer, end)?,
+        )),
+        (None, None) => None,
+        _ => return Err("controller and consumer image pins must be selected together".into()),
+    };
     if let Some(held) = persistent.as_ref() {
         verify_persistent(
             o.persistent.as_ref().ok_or("persistent selection absent")?,
@@ -1668,7 +1809,10 @@ fn outer(o: &Options) -> Result<i32, String> {
         .mode(0o700)
         .create(&root)
         .map_err(|e| e.to_string())?;
-    let executable = std::env::current_exe().map_err(|e| e.to_string())?;
+    let executable = match pinned_images.as_ref() {
+        Some((controller, _)) => PathBuf::from(format!("/proc/self/fd/{}", controller.as_raw_fd())),
+        None => std::env::current_exe().map_err(|e| e.to_string())?,
+    };
     let mut command = Command::new(&o.unshare);
     command
         .args([
@@ -1692,6 +1836,25 @@ fn outer(o: &Options) -> Result<i32, String> {
         "--unshare-exe",
         o.unshare.to_str().ok_or("unshare path UTF8")?,
     ]);
+    if let Some((controller, consumer)) = pinned_images.as_ref() {
+        command
+            .arg("--expected-controller-sha256")
+            .arg(
+                o.expected_controller_sha256
+                    .ok_or("controller image pin absent")?
+                    .to_prefixed(),
+            )
+            .arg("--expected-consumer-sha256")
+            .arg(
+                o.expected_consumer_sha256
+                    .ok_or("consumer image pin absent")?
+                    .to_prefixed(),
+            )
+            .arg("--controller-image-fd")
+            .arg(controller.as_raw_fd().to_string())
+            .arg("--consumer-image-fd")
+            .arg(consumer.as_raw_fd().to_string());
+    }
     for (key, value) in [
         ("--quota-bytes", o.quota),
         ("--inodes", o.inodes),
@@ -1790,6 +1953,11 @@ fn outer(o: &Options) -> Result<i32, String> {
         release_ro.as_ref().map(AsRawFd::as_raw_fd),
         o.control_fd,
         child_retained_fds,
+        pinned_images
+            .as_ref()
+            .map_or([None, None], |(controller, consumer)| {
+                [Some(controller.as_raw_fd()), Some(consumer.as_raw_fd())]
+            }),
     );
     let (mut leader, restoration_error) = match spawned {
         Ok(leader) => leader,
@@ -1798,6 +1966,7 @@ fn outer(o: &Options) -> Result<i32, String> {
             return Err(e);
         }
     };
+    drop(pinned_images);
     if let Some(relay) = retained_reply.as_mut() {
         drop(relay.sender.take());
     }
@@ -2091,16 +2260,80 @@ struct Inner {
     search_cache_fd: Option<i32>,
     protected_ro_fd: Option<i32>,
     release_ro_fd: Option<i32>,
+    controller_image_fd: Option<i32>,
+    consumer_image_fd: Option<i32>,
     parent_mnt: u64,
     parent_net: u64,
     host_uid: u64,
     host_gid: u64,
     control_auth: Option<ControlAuth>,
 }
+
+fn pinned_consumer_image(o: &Options, i: &Inner, end: Cutoff) -> Result<Option<File>, String> {
+    match (
+        o.expected_controller_sha256,
+        o.expected_consumer_sha256,
+        i.controller_image_fd,
+        i.consumer_image_fd,
+    ) {
+        (None, None, None, None) => Ok(None),
+        (
+            Some(controller_expected),
+            Some(consumer_expected),
+            Some(controller_fd),
+            Some(consumer_fd),
+        ) => {
+            if controller_fd < 3 || consumer_fd < 3 || controller_fd == consumer_fd {
+                return Err("pinned image descriptor roles differ".into());
+            }
+            let occupied = [
+                Some(i.consumer_fd),
+                i.persistent_fd,
+                i.search_cache_fd,
+                i.protected_ro_fd,
+                i.release_ro_fd,
+                o.control_fd,
+            ]
+            .into_iter()
+            .chain(o.retained_fds)
+            .flatten();
+            if occupied
+                .into_iter()
+                .any(|fd| fd == controller_fd || fd == consumer_fd)
+            {
+                return Err("pinned image descriptor overlaps another private-stage role".into());
+            }
+            for fd in [controller_fd, consumer_fd] {
+                if unsafe { libc::fcntl(fd, libc::F_GETFD) } < 0 {
+                    return Err(syscall_failure("fd.read-pinned-image-flags"));
+                }
+            }
+            let mut controller = unsafe { File::from_raw_fd(controller_fd) };
+            let mut consumer = unsafe { File::from_raw_fd(consumer_fd) };
+            verify_pinned_image(&mut controller, controller_expected, end)?;
+            let current = fs::metadata("/proc/self/exe").map_err(|e| e.to_string())?;
+            let held = controller.metadata().map_err(|e| e.to_string())?;
+            if current.dev() != held.dev() || current.ino() != held.ino() {
+                return Err("running controller differs from retained pinned image".into());
+            }
+            verify_pinned_image(&mut consumer, consumer_expected, end)?;
+            drop(controller);
+            Ok(Some(consumer))
+        }
+        _ => Err("inner pinned image descriptor/digest handoff differs".into()),
+    }
+}
+
 fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
+    let _image_signals = if o.expected_controller_sha256.is_some() {
+        Some(SignalGuard::install()?)
+    } else {
+        None
+    };
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
     end.check()?;
+    let consumer_image = pinned_consumer_image(o, i, end)?;
     match (o.control_fd, i.control_auth.as_ref()) {
         (None, None) => (),
         (Some(fd), Some(auth))
@@ -2609,8 +2842,12 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     drop_caps()?;
     end.check()?;
-    // All other inherited descriptors become CLOEXEC; only genuine sealed ticket
-    // survives the explicit consumer exec. No writable cgroup FD reaches it.
+    if let (Some(image), Some(expected)) = (consumer_image.as_mut(), o.expected_consumer_sha256) {
+        verify_pinned_image(image, expected, end)?;
+    }
+    // Unlisted inherited descriptors become CLOEXEC. The pinned consumer FD
+    // remains CLOEXEC and names the exec image through /proc/self/fd/N; the kernel
+    // closes it on successful exec. No writable cgroup FD reaches the consumer.
     if unsafe { libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) } < 0 {
         return Err(syscall_failure("exec.close-inherited-fds"));
     }
@@ -2651,7 +2888,23 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             return Err(syscall_failure("exec.retain-state-fd"));
         }
     }
-    let mut command = Command::new(&o.command[0]);
+    let mut command = match consumer_image.as_ref() {
+        Some(image) => {
+            let fd = image.as_raw_fd();
+            let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+            if flags < 0 {
+                return Err(syscall_failure("exec.read-pinned-consumer-fd-flags"));
+            }
+            if unsafe { libc::fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC) } < 0 {
+                return Err(syscall_failure("exec.close-pinned-consumer-fd"));
+            }
+            let path = PathBuf::from(format!("/proc/self/fd/{fd}"));
+            let mut command = Command::new(path);
+            command.arg0(&o.command[0]);
+            command
+        }
+        None => Command::new(&o.command[0]),
+    };
     command
         .env_remove("ABYSS_CONSUMER_CONTROL_FD")
         .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
@@ -2725,8 +2978,23 @@ fn selected_direct_custody(
     })
 }
 
+fn selected_image_pin(value: Option<&str>) -> Result<Option<Digest256>, String> {
+    value
+        .map(|raw| {
+            let digest = Digest256::from_prefixed(raw)
+                .map_err(|_| "pinned image digest must be sha256:<64 lowercase hex>")?;
+            if digest.to_prefixed() != raw {
+                return Err(
+                    "pinned image digest must be canonical sha256:<64 lowercase hex>".into(),
+                );
+            }
+            Ok(digest)
+        })
+        .transpose()
+}
+
 fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
-    if args.len() > ARGC + 42
+    if args.len() > ARGC + 50
         || args.iter().any(|s| s.len() > PATH_BYTES)
         || args
             .iter()
@@ -2765,6 +3033,34 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         .remove("--consumer-control-fd")
         .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
         .transpose()?;
+    let expected_controller_sha256 =
+        selected_image_pin(values.remove("--expected-controller-sha256"))?;
+    let expected_consumer_sha256 = selected_image_pin(values.remove("--expected-consumer-sha256"))?;
+    if expected_controller_sha256.is_some() != expected_consumer_sha256.is_some() {
+        return Err("controller and consumer image pins must be selected together".into());
+    }
+    let controller_image_fd = values
+        .remove("--controller-image-fd")
+        .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    let consumer_image_fd = values
+        .remove("--consumer-image-fd")
+        .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    match (
+        inner_flag,
+        expected_controller_sha256.is_some(),
+        controller_image_fd,
+        consumer_image_fd,
+    ) {
+        (false, _, None, None) => (),
+        (false, _, _, _) => {
+            return Err("pinned image descriptors are internal namespace handoff only".into());
+        }
+        (true, false, None, None) => (),
+        (true, true, Some(controller), Some(consumer)) if controller >= 3 && consumer >= 3 => (),
+        _ => return Err("inner pinned image descriptor/digest handoff differs".into()),
+    }
     let retained_fds = [
         values.remove("--state-reply-fd"),
         values.remove("--snapshot-state-fd"),
@@ -2830,6 +3126,8 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     let o = Options {
         unshare: PathBuf::from(get("--unshare-exe")?),
         consumer: PathBuf::from(get("--consumer-cgroup")?),
+        expected_controller_sha256,
+        expected_consumer_sha256,
         scratch: PathBuf::from(get("--scratch-parent")?),
         quota: n!("--quota-bytes"),
         inodes: n!("--inodes"),
@@ -2854,6 +3152,8 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
             search_cache_fd,
             protected_ro_fd,
             release_ro_fd,
+            controller_image_fd,
+            consumer_image_fd,
             parent_mnt: n!("--parent-mount-namespace"),
             parent_net: n!("--parent-net-namespace"),
             host_uid: n!("--host-uid"),
@@ -3348,8 +3648,17 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         }
         end.check()?;
         // No cgroup handle or stage ticket is inherited by the SDK entry.
-        let (mut leader, restoration) =
-            Leader::spawn(command, -1, None, None, None, None, None, [None, None])?;
+        let (mut leader, restoration) = Leader::spawn(
+            command,
+            -1,
+            None,
+            None,
+            None,
+            None,
+            None,
+            [None, None],
+            [None, None],
+        )?;
         let outcome = (|| -> Result<i32, String> {
             if let Some(e) = restoration {
                 return Err(e);
@@ -3436,7 +3745,17 @@ fn host_command(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let (mut leader, restore) = Leader::spawn(c, -1, None, None, None, None, None, [None, None])?;
+    let (mut leader, restore) = Leader::spawn(
+        c,
+        -1,
+        None,
+        None,
+        None,
+        None,
+        None,
+        [None, None],
+        [None, None],
+    )?;
     let result = (|| {
         if let Some(e) = restore {
             return Err(e);

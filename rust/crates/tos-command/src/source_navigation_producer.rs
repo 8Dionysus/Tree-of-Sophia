@@ -48,7 +48,7 @@ pub(crate) fn run(
     let deadline = Instant::now() + Duration::from_secs(300);
     let selected = crate::source_navigation_cli::SelectedSourceNavigation::new(selection_path)
         .map_err(|_| "source navigation selection refused")?;
-    crate::source_navigation_cli::with_selected_navigation_producer_current(
+    crate::source_navigation_cli::with_selected_navigation_anchor_current(
         &selected,
         deadline,
         cancelled,
@@ -77,7 +77,7 @@ pub(crate) fn run_bootstrap(
     let deadline = Instant::now() + Duration::from_secs(300);
     let selected = crate::source_navigation_cli::SelectedSourceNavigation::new(selection_path)
         .map_err(|_| "source navigation selection refused")?;
-    crate::source_navigation_cli::with_selected_navigation_producer_current(
+    crate::source_navigation_cli::with_selected_navigation_anchor_current(
         &selected,
         deadline,
         cancelled,
@@ -613,7 +613,6 @@ fn process_ready_range(
         context_additions.extend(plan.paths.iter().cloned());
     }
     context_additions.extend(terminal_claim_stream_paths.iter().cloned());
-    context_additions.extend(selection.schema_paths.iter().cloned());
     stage_range_context(
         event_reader,
         store,
@@ -2452,23 +2451,34 @@ fn read_current_range_context(
             )?;
         }
     }
-    let selected_paths = selected_paths.into_iter().collect::<Vec<_>>();
-    let event_path = if !terminal_has_source {
+    // The configured event file is a source-cut selection anchor, not a claim
+    // that a control event has that event-member path. Read it only when the
+    // caller needs a source context or the terminal event has source members.
+    if !selected_paths.is_empty() || terminal_has_source {
+        extend_event_paths(
+            &mut selected_paths,
+            [selection.event_path.to_owned()],
+            selection.event_limits.max_dependencies,
+        )?;
+    }
+    let selected_path_set = selected_paths;
+    let source_cut_anchor_path = if selected_path_set.is_empty() {
         ""
     } else {
         selection.event_path
     };
+    let selected_paths = selected_path_set.iter().cloned().collect::<Vec<_>>();
     let context = event_reader.read_navigation_event_range_current_context_v1(
         store,
         selection.domain,
         selection.consumer_id,
-        event_path,
+        source_cut_anchor_path,
         &selected_paths,
         &selection.profile,
         coverage,
         selection.event_limits,
     )?;
-    verify_range_terminal_context(owner, selection, coverage, &context, paths)?;
+    verify_range_terminal_context(owner, selection, coverage, &context, &selected_path_set)?;
     Ok(context)
 }
 
@@ -4280,7 +4290,7 @@ impl NavigationEventBudgetMeterV1 {
 
 fn owner_identity_digest(owner: &NavigationProducerHeldOwnerIdentity) -> Digest256 {
     let mut hasher = Digest256Hasher::new();
-    hash_part(&mut hasher, b"tos-navigation-held-pg-owner-v1");
+    hash_part(&mut hasher, b"tos-navigation-held-pg-owner-v2");
     hash_part(&mut hasher, owner.proof_sha256.as_bytes());
     hash_part(&mut hasher, owner.domain.as_bytes());
     hash_part(&mut hasher, owner.domain_sha256.as_bytes());
@@ -4292,14 +4302,25 @@ fn owner_identity_digest(owner: &NavigationProducerHeldOwnerIdentity) -> Digest2
     hash_part(&mut hasher, &owner.database_oid.to_be_bytes());
     hash_part(
         &mut hasher,
-        owner.current_addressed_tree_commitment.as_bytes(),
+        owner.anchor_addressed_tree_commitment.as_bytes(),
     );
     hash_part(&mut hasher, owner.managed_generation_digest.as_bytes());
-    hash_part(
-        &mut hasher,
-        &owner.current_source_member_count.to_be_bytes(),
-    );
-    hash_part(&mut hasher, owner.source_projection_digest.as_bytes());
+    hash_part(&mut hasher, &owner.anchor_member_count.to_be_bytes());
+    hash_part(&mut hasher, owner.anchor_projection_digest.as_bytes());
+    hash_part(&mut hasher, owner.bootstrap_membership_root.as_bytes());
+    hash_part(&mut hasher, &owner.bootstrap_membership_count.to_be_bytes());
+    if let Some(value) = owner.current_selected_generation_digest {
+        hash_part(&mut hasher, b"selected-generation-present");
+        hash_part(&mut hasher, value.as_bytes());
+    } else {
+        hash_part(&mut hasher, b"selected-generation-absent");
+    }
+    if let Some(value) = owner.current_source_projection_digest {
+        hash_part(&mut hasher, b"source-projection-present");
+        hash_part(&mut hasher, value.as_bytes());
+    } else {
+        hash_part(&mut hasher, b"source-projection-absent");
+    }
     hash_part(&mut hasher, owner.schema_profile_digest.as_bytes());
     hash_part(&mut hasher, owner.model_sha256.as_bytes());
     hash_part(&mut hasher, owner.model_membership_root.as_bytes());

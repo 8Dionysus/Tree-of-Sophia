@@ -97,6 +97,7 @@ impl<S: SourcePin> CmpPinnedModel<S> {
             reader_abi: selection.reader_abi.clone(),
             model_abi: selection.model_abi.clone(),
             selection_profile: selection.selection_profile.clone(),
+            source_navigation_proof_v1: None,
         };
         let mut selected = Self {
             model,

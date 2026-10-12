@@ -14,7 +14,7 @@ use std::os::{
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, Read, Seek, SeekFrom, Write},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     process::{Command, Stdio},
     sync::atomic::{AtomicBool, Ordering},
     thread,
@@ -625,6 +625,35 @@ fn copy_store(
 }
 // Both Rust and native tools accept only this same non-TLS target subset.
 // Reject routing differences before opening a database or writing backup bytes.
+fn selected_local_host(config: &postgres::Config) -> io::Result<String> {
+    match config.get_hosts().first().ok_or_else(error)? {
+        postgres::config::Host::Tcp(host) if host == "127.0.0.1" || host == "::1" => {
+            Ok(host.clone())
+        }
+        #[cfg(unix)]
+        postgres::config::Host::Unix(path) => {
+            require(path.is_absolute())?;
+            let mut normalized = PathBuf::new();
+            for component in path.components() {
+                match component {
+                    Component::RootDir if normalized.as_os_str().is_empty() => {
+                        normalized.push("/");
+                    }
+                    Component::Normal(name) => normalized.push(name),
+                    _ => return Err(error()),
+                }
+            }
+            // `components` ignores repeated separators and `.`; preserve only
+            // paths whose spelling is already the canonical absolute form.
+            require(normalized.as_os_str() == path.as_os_str())?;
+            let directory = tos_fd_open::open_absolute_directory(path).map_err(|_| error())?;
+            require(directory.metadata()?.is_dir())?;
+            path.to_str().map(str::to_owned).ok_or_else(error)
+        }
+        _ => Err(error()),
+    }
+}
+
 pub(crate) fn selected_config(url: &str) -> io::Result<postgres::Config> {
     let config = url.parse::<postgres::Config>().map_err(|_| error())?;
     require(config.get_hosts().len() == 1 && config.get_ports().len() <= 1)?;
@@ -634,9 +663,7 @@ pub(crate) fn selected_config(url: &str) -> io::Result<postgres::Config> {
         config.get_ssl_mode(),
         postgres::config::SslMode::Disable | postgres::config::SslMode::Prefer
     ))?;
-    require(
-        matches!(&config.get_hosts()[0], postgres::config::Host::Tcp(host) if host == "127.0.0.1" || host == "::1"),
-    )?;
+    let _ = selected_local_host(&config)?;
     require(config.get_user().is_some())?;
     let database = config.get_dbname().ok_or_else(error)?;
     require(
@@ -700,15 +727,11 @@ fn tool(
     // selected connection behavior.
     let database = if mode == PgToolMode::Database {
         let selected = selected_config(pg_url)?;
-        require(selected.get_hosts().len() == 1 && selected.get_ports().len() <= 1)?;
-        let host = match &selected.get_hosts()[0] {
-            postgres::config::Host::Tcp(host) => host.as_str(),
-            _ => return Err(error()),
-        };
+        let host = selected_local_host(&selected)?;
         let user = selected.get_user().ok_or_else(error)?;
         let database = selected.get_dbname().ok_or_else(error)?.to_owned();
         command
-            .env("PGHOST", host)
+            .env("PGHOST", &host)
             .env(
                 "PGPORT",
                 selected
@@ -2954,8 +2977,9 @@ mod tests {
         BACKUP_SCHEMA_V1, BACKUP_SCHEMA_V2, BACKUP_SCHEMA_V3, BACKUP_SCHEMA_V4, BACKUP_SCHEMA_V5,
         BACKUP_SCHEMA_V6, BACKUP_SCHEMA_V7, BACKUP_SCHEMA_V8, census_v2_for_schema,
         census_v3_for_schema, census_v4_for_schema, census_v5_for_schema, census_v6_for_schema,
-        census_v7_for_schema, census_v8_for_schema,
+        census_v7_for_schema, census_v8_for_schema, selected_config,
     };
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn receipt_version_dispatch_is_explicit() {
@@ -3002,5 +3026,29 @@ mod tests {
             census_v3_for_schema("unknown").unwrap_err().kind(),
             std::io::ErrorKind::InvalidData
         );
+    }
+
+    #[test]
+    fn selected_config_accepts_only_canonical_no_follow_unix_socket_directories() {
+        let temporary = tempfile::tempdir().unwrap();
+        let directory = temporary.path().canonicalize().unwrap();
+        let connection = |host: &Path| {
+            let host = host
+                .to_str()
+                .unwrap()
+                .replace('\\', "\\\\")
+                .replace('\'', "\\'");
+            format!("host='{host}' user=tos dbname=tos sslmode=disable")
+        };
+        assert!(selected_config(&connection(&directory)).is_ok());
+
+        let noncanonical = PathBuf::from(format!("{}/.", directory.display()));
+        assert!(selected_config(&connection(&noncanonical)).is_err());
+
+        let alias = directory.join("socket-alias");
+        std::os::unix::fs::symlink(&directory, &alias).unwrap();
+        assert!(selected_config(&connection(&alias)).is_err());
+        assert!(selected_config("host=relative user=tos dbname=tos sslmode=disable").is_err());
+        assert!(selected_config("host=@socket user=tos dbname=tos sslmode=disable").is_err());
     }
 }

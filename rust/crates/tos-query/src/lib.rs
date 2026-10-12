@@ -140,7 +140,8 @@ pub use source_descend::{
     SOURCE_DESCEND_D1_METER_V1, SOURCE_DESCEND_POSTGRES_METER_V1, SOURCE_DESCEND_SESSION_V1,
     SOURCE_DESCEND_SESSION_V2, SOURCE_NAVIGATION_MODEL_ABI, SOURCE_NAVIGATION_SELECTION_PROFILE,
     SessionAdvance, SessionCaps, SessionNeed, SessionNeedKind, SessionResponse,
-    SessionResponseKind, SourceDescendRequest, SourceDescendSession, source_descend,
+    SessionResponseKind, SourceDescendRequest, SourceDescendSession, SourceNavigationProofV1,
+    source_descend,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use sqlite::{

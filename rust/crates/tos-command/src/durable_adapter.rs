@@ -2450,16 +2450,54 @@ impl DurablePgCoordinator {
         {
             return Err(DurableError::Invalid("source navigation policy consumer"));
         }
+        if mutation.selected_profile.is_empty()
+            || mutation.selected_profile.len() > 128
+            || mutation.selected_profile.contains('\0')
+        {
+            return Err(DurableError::Invalid(
+                "source navigation policy selected profile",
+            ));
+        }
         if mutation.command_id.is_empty()
             || mutation.command_id.len() > 256
             || mutation.command_id.contains('\0')
         {
             return Err(DurableError::Invalid("source navigation policy command"));
         }
+        if mutation.job_id.is_empty()
+            || mutation.job_id.len() > 256
+            || mutation.job_id.contains('\0')
+            || mutation.expected_rule_version == 0
+            || mutation.expected_rights_version == 0
+            || mutation.job_fence == 0
+            || mutation.source_epoch == 0
+            || mutation.bootstrap_membership_count == 0
+            || mutation.database_oid == 0
+            || mutation.anchor_through_sequence == 0
+        {
+            return Err(DurableError::Invalid(
+                "source navigation policy selected source fence",
+            ));
+        }
         mutation
             .receipt
             .validate()
             .map_err(|_| DurableError::Invalid("source navigation policy receipt"))?;
+        if mutation
+            .receipt
+            .digest()
+            .map_err(|_| DurableError::Invalid("source navigation policy receipt"))?
+            != mutation.receipt_sha256
+        {
+            return Err(DurableError::Refused(
+                "source navigation policy receipt digest differs",
+            ));
+        }
+        if mutation.receipt.selection_profile != mutation.selected_profile {
+            return Err(DurableError::Refused(
+                "source navigation policy receipt profile differs",
+            ));
+        }
         if mutation
             .expected_policy_version
             .is_some_and(|version| version > i64::MAX as u64)
@@ -2480,6 +2518,94 @@ impl DurablePgCoordinator {
             &[&mutation.domain],
         )?
         .ok_or(DurableError::Refused("selected CMD domain absent"))?;
+        // Keep the source owner checks in the same transaction and lock order
+        // as the policy CAS. The protected local receipt alone cannot create
+        // policy authority for a stale contract, rule, rights, schema, source
+        // anchor, or job fence.
+        let domain = tx.query_one(
+            "SELECT head_seq,rights_version,rights_allowed,rule_version,contract_digest,
+                    schema_profile_digest,source_revision,source_membership_digest,
+                    source_membership_count,source_epoch,source_generation,source_complete,
+                    source_definition_digest
+             FROM cmd2_domain WHERE domain=$1",
+            &[&mutation.domain],
+        )?;
+        let head_sequence = as_u64(domain.get::<_, i64>(0))?;
+        let source_generation = domain
+            .get::<_, Option<i64>>(10)
+            .map(as_u64)
+            .transpose()?
+            .ok_or(DurableError::Conflict(
+                "source navigation current generation unavailable",
+            ))?;
+        let source_epoch = domain
+            .get::<_, Option<i64>>(9)
+            .map(as_u64)
+            .transpose()?
+            .ok_or(DurableError::Conflict(
+                "source navigation current epoch unavailable",
+            ))?;
+        let source_membership_count = domain
+            .get::<_, Option<i64>>(8)
+            .map(as_u64)
+            .transpose()?
+            .ok_or(DurableError::Conflict(
+                "source navigation current membership unavailable",
+            ))?;
+        let source_revision = domain
+            .get::<_, Option<String>>(6)
+            .ok_or(DurableError::Conflict(
+                "source navigation current revision unavailable",
+            ))?;
+        let source_membership_digest =
+            domain
+                .get::<_, Option<String>>(7)
+                .ok_or(DurableError::Conflict(
+                    "source navigation current membership unavailable",
+                ))?;
+        let source_definition_digest =
+            domain
+                .get::<_, Option<String>>(12)
+                .ok_or(DurableError::Conflict(
+                    "source navigation current definition unavailable",
+                ))?;
+        let selected_schema_profile_digest =
+            domain
+                .get::<_, Option<String>>(5)
+                .ok_or(DurableError::Conflict(
+                    "source navigation current schema unavailable",
+                ))?;
+        if !domain.get::<_, bool>(2)
+            || as_u64(domain.get::<_, i64>(1))? != mutation.expected_rights_version
+            || as_u64(domain.get::<_, i64>(3))? != mutation.expected_rule_version
+            || domain.get::<_, String>(4) != mutation.source_contract_sha256.to_hex()
+            || Digest256::from_hex(&selected_schema_profile_digest)
+                .map_err(|_| DurableError::Corrupt("source navigation schema profile invalid"))?
+                != schema_profile_digest()
+            || source_revision.trim_end() != mutation.bootstrap_source_revision.to_hex()
+            || source_membership_digest.trim_end() != mutation.bootstrap_membership_digest.to_hex()
+            || source_membership_count != mutation.bootstrap_membership_count
+            || source_epoch != mutation.source_epoch
+            || source_generation != head_sequence
+            || head_sequence < mutation.anchor_through_sequence
+            || !domain.get::<_, bool>(11)
+            || source_definition_digest.trim_end() != mutation.source_definition_digest.to_hex()
+            || Digest256::of_bytes(mutation.domain.as_bytes()) != mutation.domain_digest
+            || database_oid(&mut tx)? != mutation.database_oid
+        {
+            return Err(DurableError::Conflict(
+                "source navigation selected source or current owner fence changed",
+            ));
+        }
+        let job = tx.query_opt(
+            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2 FOR UPDATE",
+            &[&mutation.domain, &mutation.job_id],
+        )?;
+        if job.map(|row| row.get::<_, i64>(0)) != Some(as_i64(mutation.job_fence)?) {
+            return Err(DurableError::Refused(
+                "source navigation current job changed",
+            ));
+        }
         let current = tx.query_opt(
             "SELECT policy_issuer_ref,policy_receipt_id,export_receipt_id,model_receipt_id,
                     carrier_layer,intended_use,model_abi,selection_profile,policy_epoch,
@@ -2489,8 +2615,73 @@ impl DurablePgCoordinator {
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&mutation.domain, &mutation.consumer_id],
         )?;
+        let history_state = tx.query_one(
+            "SELECT count(*),coalesce(max(policy_version),0)
+             FROM cmd2_source_navigation_policy_history
+             WHERE domain=$1 AND consumer_id=$2",
+            &[&mutation.domain, &mutation.consumer_id],
+        )?;
+        let history_count = as_u64(history_state.get::<_, i64>(0))?;
+        let history_max = as_u64(history_state.get::<_, i64>(1))?;
+        match current.as_ref() {
+            None if history_count == 0 && history_max == 0 => {}
+            Some(row) => {
+                let current_version = as_u64(row.get::<_, i64>(10))?;
+                if history_count != current_version || history_max != current_version {
+                    return Err(DurableError::Corrupt(
+                        "source navigation policy current/history version differs",
+                    ));
+                }
+                let latest = tx
+                    .query_opt(
+                        "SELECT policy_version,withdrawal_generation,allowed,
+                                policy_issuer_ref,policy_receipt_id,export_receipt_id,
+                                model_receipt_id,carrier_layer,intended_use,model_abi,
+                                selection_profile,policy_epoch,receipt_sha256,
+                                owner_configuration_sha256
+                         FROM cmd2_source_navigation_policy_history
+                         WHERE domain=$1 AND consumer_id=$2
+                         ORDER BY policy_version DESC LIMIT 1",
+                        &[&mutation.domain, &mutation.consumer_id],
+                    )?
+                    .ok_or(DurableError::Corrupt(
+                        "source navigation policy current row lacks history",
+                    ))?;
+                let current_text =
+                    |column: usize| row.get::<_, String>(column).trim_end().to_owned();
+                let latest_text =
+                    |column: usize| latest.get::<_, String>(column).trim_end().to_owned();
+                if as_u64(latest.get::<_, i64>(0))? != current_version
+                    || as_u64(latest.get::<_, i64>(1))? != as_u64(row.get::<_, i64>(9))?
+                    || latest.get::<_, bool>(2) != row.get::<_, bool>(11)
+                    || latest_text(3) != current_text(0)
+                    || latest_text(4) != current_text(1)
+                    || latest_text(5) != current_text(2)
+                    || latest_text(6) != current_text(3)
+                    || latest_text(7) != current_text(4)
+                    || latest_text(8) != current_text(5)
+                    || latest_text(9) != current_text(6)
+                    || latest_text(10) != current_text(7)
+                    || as_u64(latest.get::<_, i64>(11))? != as_u64(row.get::<_, i64>(8))?
+                    || latest_text(12) != current_text(12)
+                    || latest_text(13) != current_text(13)
+                {
+                    return Err(DurableError::Corrupt(
+                        "source navigation policy current/history receipt differs",
+                    ));
+                }
+            }
+            _ => {
+                return Err(DurableError::Corrupt(
+                    "source navigation policy history exists without current row",
+                ));
+            }
+        }
         if let Some(history) = tx.query_opt(
-            "SELECT operation,request_sha256,policy_version,withdrawal_generation,allowed
+            "SELECT operation,request_sha256,policy_version,withdrawal_generation,allowed,
+                    policy_issuer_ref,policy_receipt_id,export_receipt_id,model_receipt_id,
+                    carrier_layer,intended_use,model_abi,selection_profile,policy_epoch,
+                    receipt_sha256,owner_configuration_sha256
              FROM cmd2_source_navigation_policy_history
              WHERE domain=$1 AND consumer_id=$2 AND command_id=$3",
             &[
@@ -2501,9 +2692,21 @@ impl DurablePgCoordinator {
         )? {
             if history.get::<_, String>(0) != mutation.operation.as_str()
                 || history.get::<_, String>(1).trim_end() != mutation.request_sha256.to_hex()
+                || history.get::<_, String>(5).trim_end() != mutation.receipt.issuer_ref
+                || history.get::<_, String>(6).trim_end() != mutation.receipt.receipt_id
+                || history.get::<_, String>(7).trim_end() != mutation.receipt.export_receipt_id
+                || history.get::<_, String>(8).trim_end() != mutation.receipt.model_receipt_id
+                || history.get::<_, String>(9).trim_end() != mutation.receipt.carrier_layer
+                || history.get::<_, String>(10).trim_end() != mutation.receipt.intended_use
+                || history.get::<_, String>(11).trim_end() != mutation.receipt.model_abi
+                || history.get::<_, String>(12).trim_end() != mutation.receipt.selection_profile
+                || as_u64(history.get::<_, i64>(13))? != mutation.receipt.policy_epoch
+                || history.get::<_, String>(14).trim_end() != mutation.receipt_sha256.to_hex()
+                || history.get::<_, String>(15).trim_end()
+                    != mutation.owner_configuration_sha256.to_hex()
             {
                 return Err(DurableError::Conflict(
-                    "source navigation policy command ID reused with different request",
+                    "source navigation policy command ID reused with different request or owner",
                 ));
             }
             let current_version = current
@@ -2521,12 +2724,30 @@ impl DurablePgCoordinator {
             }
             owner_check()?;
             tx.commit()?;
+            let current_row = current.as_ref().expect("current row validated above");
             return Ok(
                 crate::source_navigation_policy::SourceNavigationPolicyMutationReceiptV1 {
                     policy_version,
                     withdrawal_generation: as_u64(history.get::<_, i64>(3))?,
                     allowed: history.get(4),
                     replayed: true,
+                    current_policy_version: current_version,
+                    current_withdrawal_generation: as_u64(current_row.get::<_, i64>(9))?,
+                    current_allowed: current_row.get(11),
+                    current_receipt_sha256: Digest256::from_hex(
+                        current_row.get::<_, String>(12).trim_end(),
+                    )
+                    .map_err(|_| {
+                        DurableError::Corrupt("source navigation current receipt digest invalid")
+                    })?,
+                    current_owner_configuration_sha256: Digest256::from_hex(
+                        current_row.get::<_, String>(13).trim_end(),
+                    )
+                    .map_err(|_| {
+                        DurableError::Corrupt(
+                            "source navigation current owner configuration digest invalid",
+                        )
+                    })?,
                 },
             );
         }
@@ -2723,6 +2944,11 @@ impl DurablePgCoordinator {
                 withdrawal_generation,
                 allowed,
                 replayed: false,
+                current_policy_version: policy_version,
+                current_withdrawal_generation: withdrawal_generation,
+                current_allowed: allowed,
+                current_receipt_sha256: mutation.receipt_sha256,
+                current_owner_configuration_sha256: mutation.owner_configuration_sha256,
             },
         )
     }

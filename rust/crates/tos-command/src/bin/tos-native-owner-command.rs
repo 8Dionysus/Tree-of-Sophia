@@ -3,6 +3,25 @@ use std::path::Path;
 fn main() {
     if std::env::args_os()
         .nth(1)
+        .is_some_and(|arg| arg == "source-navigation-model-compile")
+    {
+        if std::env::args_os().len() != 2 {
+            eprintln!("source-navigation model compile refused");
+            std::process::exit(2);
+        }
+        if let Err(error) =
+            tos_command::source_native_cli::run_source_navigation_model_compile_child()
+        {
+            eprintln!(
+                "source-navigation model compile refused: {}",
+                error.public_reason()
+            );
+            std::process::exit(2);
+        }
+        return;
+    }
+    if std::env::args_os()
+        .nth(1)
         .is_some_and(|arg| arg == "source-projection")
     {
         let args = std::env::args_os().skip(2).take(4).collect::<Vec<_>>();
@@ -435,7 +454,7 @@ fn main() {
     let input = std::io::stdin();
     let result = match (option, args.next(), args.next()) {
         (Some(option), Some(path), None) if option.to_str() == Some("--invocation") => {
-            tos_command::source_native_cli::run(Path::new(&path), input.lock())
+            tos_command::source_native_cli::run_local_owner(Path::new(&path), input.lock())
         }
         _ => Err(tos_command::source_command::SourceCommandError::Invalid(
             "native invocation argument",

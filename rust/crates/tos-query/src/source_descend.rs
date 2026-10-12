@@ -2,7 +2,12 @@ use std::collections::{BTreeMap, VecDeque};
 
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue, parse_json};
 
-/// All fields identify one immutable, complete published read-model cut.
+/// Selected read-model binding. Without navigation proof metadata, every field
+/// identifies one immutable, complete published read-model cut. For a source
+/// navigation event overlay, `source_cut`, `membership_root`, and
+/// `projection_root` retain their immutable bootstrap-anchor meaning, while
+/// `through_commit_seq` and `index_root` identify the complete current
+/// publication. `source_navigation_proof_v1` makes that split explicit.
 /// Current policy is deliberately outside this binding.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Binding {
@@ -16,6 +21,64 @@ pub struct Binding {
     pub reader_abi: String,
     pub model_abi: String,
     pub selection_profile: String,
+    /// Present only for a source-navigation event overlay. The anchor roots
+    /// above stay immutable while the publication cursor and index root move.
+    pub source_navigation_proof_v1: Option<SourceNavigationProofV1>,
+}
+
+/// Additive proof metadata for a current source-navigation event overlay.
+/// Anchor roots identify the retained model and bootstrap; published roots
+/// certify the contiguous event and adjacency outputs through the live head.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceNavigationProofV1 {
+    pub bootstrap_root: Digest256,
+    pub anchor_through_commit_seq: u64,
+    pub anchor_membership_root: Digest256,
+    pub anchor_projection_root: Digest256,
+    pub published_through_commit_seq: u64,
+    pub coverage_root: Digest256,
+    pub adjacency_root: Digest256,
+    pub published_index_root: Digest256,
+}
+
+impl SourceNavigationProofV1 {
+    fn matches_binding(&self, binding: &Binding) -> bool {
+        self.anchor_through_commit_seq <= self.published_through_commit_seq
+            && self.anchor_membership_root == binding.membership_root
+            && self.anchor_projection_root == binding.projection_root
+            && self.published_through_commit_seq == binding.through_commit_seq
+            && self.published_index_root == binding.index_root
+    }
+
+    fn wire_json(&self) -> String {
+        format!(
+            "{{\"bootstrap_root\":\"{}\",\"anchor_through_commit_seq\":\"{}\",\"anchor_membership_root\":\"{}\",\"anchor_projection_root\":\"{}\",\"published_through_commit_seq\":\"{}\",\"coverage_root\":\"{}\",\"adjacency_root\":\"{}\",\"published_index_root\":\"{}\"}}",
+            self.bootstrap_root.to_hex(),
+            self.anchor_through_commit_seq,
+            self.anchor_membership_root.to_hex(),
+            self.anchor_projection_root.to_hex(),
+            self.published_through_commit_seq,
+            self.coverage_root.to_hex(),
+            self.adjacency_root.to_hex(),
+            self.published_index_root.to_hex(),
+        )
+    }
+}
+
+impl Binding {
+    fn validate_source_navigation_proof(&self) -> Result<(), QueryError> {
+        if self
+            .source_navigation_proof_v1
+            .as_ref()
+            .is_some_and(|proof| !proof.matches_binding(self))
+        {
+            return Err(QueryError::new(
+                QueryErrorCode::StaleSelection,
+                "source navigation anchor and publication proof differ",
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -285,8 +348,8 @@ impl SessionNeed {
                 "source descent header exceeds admitted bytes",
             ));
         }
-        let binding = format!(
-            "{{\"source_cut\":{},\"through_commit_seq\":\"{}\",\"membership_root\":{},\"projection_root\":{},\"index_root\":{},\"index_generation\":{},\"route_map_version\":{},\"reader_abi\":{},\"model_abi\":{},\"selection_profile\":{}}}",
+        let mut binding = format!(
+            "{{\"source_cut\":{},\"through_commit_seq\":\"{}\",\"membership_root\":{},\"projection_root\":{},\"index_root\":{},\"index_generation\":{},\"route_map_version\":{},\"reader_abi\":{},\"model_abi\":{},\"selection_profile\":{}",
             quoted(&b.source_cut),
             b.through_commit_seq,
             quoted(&b.membership_root.to_hex()),
@@ -298,6 +361,11 @@ impl SessionNeed {
             quoted(&b.model_abi),
             quoted(&b.selection_profile)
         );
+        if let Some(proof) = &b.source_navigation_proof_v1 {
+            binding.push_str(",\"source_navigation_proof_v1\":");
+            binding.push_str(&proof.wire_json());
+        }
+        binding.push('}');
         let operation = match &self.kind {
             SessionNeedKind::CheckPin => "\"check_pin\"".to_owned(),
             SessionNeedKind::ExactNode { id } => format!("{{\"exact_node\":{}}}", quoted(id)),
@@ -474,6 +542,7 @@ impl SourceDescendSession {
         schema: &'static str,
         meter_profile: &'static str,
     ) -> Result<(Self, SessionNeed), QueryError> {
+        binding.validate_source_navigation_proof()?;
         let meter_supported = matches!(
             (schema, meter_profile),
             (SOURCE_DESCEND_SESSION_V1, SOURCE_DESCEND_D1_METER_V1)
@@ -1520,6 +1589,7 @@ fn prepare_source_descend<M: ReadModel>(
         ));
     }
     let binding = model.selected_binding()?;
+    binding.validate_source_navigation_proof()?;
     if request
         .at_least_commit_seq
         .is_some_and(|minimum| binding.through_commit_seq < minimum)
@@ -1792,6 +1862,10 @@ fn prepare_source_descend<M: ReadModel>(
     }
     push(&mut packet, b"],\"authority_note\":", budget)?;
     push(&mut packet, authority.raw.trim_ascii(), budget)?;
+    if let Some(proof) = &binding.source_navigation_proof_v1 {
+        push(&mut packet, b",\"source_navigation_proof_v1\":", budget)?;
+        push(&mut packet, proof.wire_json().as_bytes(), budget)?;
+    }
     push(&mut packet, b"}", budget)?;
     model.check_pin(&binding)?;
     observed.push(authority);

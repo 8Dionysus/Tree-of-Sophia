@@ -1635,10 +1635,8 @@ fn native_fixture_header(
     .unwrap()
 }
 
-/// Existing normalized count/property renderer with actual caller-supplied
-/// software/configuration pins. Test-fixture availability does not authenticate
-/// those pins or grant source/current authority. Managed callers pass their
-/// real held software profile and tagged basis; no v1 revision is fabricated.
+/// Finite test fixture wrapper for the production normalized header renderer.
+/// Synthetic pins remain confined to this fixture module.
 pub fn native_fixture_header_with_binding(
     stage: &mut KnowledgeStage<'_>,
     registry: &KnowledgeRegistry,
@@ -1647,124 +1645,12 @@ pub fn native_fixture_header_with_binding(
     processor_digest: Digest256,
     configuration_digest: Digest256,
 ) -> Result<Value> {
-    source_basis.validate()?;
-    if Digest256::of_bytes(entity_bytes).to_hex() != registry.entity_sha256 {
-        return Err(Error::Invalid("native header exact entity registry bytes"));
-    }
-    let roots = stage.core_roots()?;
-    let (
-        sources,
-        node_states,
-        relation_states,
-        mapped_nodes,
-        mapped_relations,
-        missing_node_summary,
-        missing_relation_explanation,
-    ) = stage.with_connection(WritePhase::Finalize, |db| {
-        let mut sources = std::collections::BTreeMap::<String, u64>::new();
-        let mut states = [
-            std::collections::BTreeMap::<String, u64>::new(),
-            std::collections::BTreeMap::<String, u64>::new(),
-        ];
-        let mut mapped = [0u64; 2];
-        let mut missing = [0u64; 2];
-        for (i, table) in ["knowledge_nodes", "knowledge_relations"]
-            .iter()
-            .enumerate()
-        {
-            let mut statement = db.prepare(&format!(
-                "SELECT source_graph,payload FROM {table} ORDER BY source_order"
-            ))?;
-            let mut rows = statement.query([])?;
-            while let Some(row) = rows.next()? {
-                let source: String = row.get(0)?;
-                let raw: Vec<u8> = row.get(1)?;
-                let value: Value = serde_json::from_slice(&raw)
-                    .map_err(|_| Error::Invalid("native header normalized row JSON"))?;
-                if i == 0 {
-                    *sources.entry(source).or_default() += 1;
-                }
-                let state = if i == 0 {
-                    "summary_state"
-                } else {
-                    "explanation_state"
-                };
-                *states[i]
-                    .entry(
-                        value["display"][state]
-                            .as_str()
-                            .ok_or(Error::Invalid("native header display state"))?
-                            .into(),
-                    )
-                    .or_default() += 1;
-                let mapping = if i == 0 {
-                    "type_mapping"
-                } else {
-                    "predicate_mapping"
-                };
-                if value[mapping]["status"] == "mapped" {
-                    mapped[i] += 1;
-                }
-                let source = if i == 0 {
-                    "source_summary_available"
-                } else {
-                    "source_explanation_available"
-                };
-                if value["display"]["provenance"][source] == false {
-                    missing[i] += 1;
-                }
-            }
-        }
-        let [nodes, relations] = states;
-        Ok((
-            sources, nodes, relations, mapped[0], mapped[1], missing[0], missing[1],
-        ))
-    })?;
-    let entity: Value = serde_json::from_slice(entity_bytes)
-        .map_err(|_| Error::Invalid("native header registry JSON"))?;
-    let query_properties = entity["property_definitions"]
-        .as_array()
-        .ok_or(Error::Invalid(
-            "native header registry property definitions",
-        ))?
-        .iter()
-        .map(|definition| {
-            let mut packet = serde_json::Map::new();
-            for field in [
-                "property_id",
-                "field",
-                "value_type",
-                "applies_to",
-                "inherited",
-                "operators",
-            ] {
-                if let Some(value) = definition.get(field) {
-                    packet.insert(field.into(), value.clone());
-                }
-            }
-            Value::Object(packet)
-        })
-        .collect::<Vec<_>>();
-    let mut header = json!({"schema":"tos_knowledge_graph_v1",
-        "normalization_binding":{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":processor_digest.to_hex(),
-            "entity_registry_digest":registry.entity_semantic_digest,"relation_registry_digest":registry.relation_semantic_digest,"configuration_digest":configuration_digest.to_hex()},
-        "query_properties":query_properties,"counts":{"nodes":roots.nodes,"relations":roots.relations,"sources":sources,
-            "display_coverage":{"node_titles":roots.nodes,"node_summaries":roots.nodes,"node_summary_states":node_states,"nodes_without_source_summary":missing_node_summary,
-                "relation_labels":roots.relations,"relation_statements":roots.relations,"relation_explanations":roots.relations,"relation_explanation_states":relation_states,
-                "relations_without_source_explanation":missing_relation_explanation},
-            "semantic_mapping":{"mapped_nodes":mapped_nodes,"unmapped_nodes":roots.nodes-mapped_nodes,"mapped_relations":mapped_relations,
-                "unmapped_relations":roots.relations-mapped_relations,"cross_layer_relations":0}},
-        "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}});
-    match source_basis {
-        KnowledgeSourceBasis::V1Cut { source_revision } => {
-            header["source_revision"] = json!(source_revision);
-        }
-        KnowledgeSourceBasis::ManagedCurrent { .. }
-        | KnowledgeSourceBasis::ManagedCurrentV2 { .. } => {
-            header["schema"] = json!(crate::managed_source::MANAGED_GRAPH_SCHEMA);
-            header["source_basis"] =
-                serde_json::to_value(source_basis).map_err(|e| Error::Source(e.to_string()))?;
-        }
-    }
-    Ok(header)
+    crate::knowledge_full::native_navigation_header_with_basis(
+        stage,
+        registry,
+        entity_bytes,
+        source_basis,
+        processor_digest,
+        configuration_digest,
+    )
 }

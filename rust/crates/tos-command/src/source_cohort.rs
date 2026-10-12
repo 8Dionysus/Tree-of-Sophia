@@ -26,6 +26,7 @@ pub use source_cohort_stream_index::SourceAssessmentWork as StreamedSourceIndexW
 pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceWorkV1};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
+use tos_compiler::managed_source::ManagedProducerProof;
 use tos_foundation::{RelativePath, SourceRevision};
 use tos_segment_store::{FrameInput, OwnerBinding};
 use tos_source_store::{
@@ -5299,6 +5300,178 @@ impl DurablePgCoordinator {
             cancelled,
             seek,
         )
+    }
+
+    /// Hold the exact source-navigation owner boundary while distinguishing an
+    /// immutable V2 bootstrap anchor from the live PG source generation. This
+    /// reuses the same owner mutex, audit/domain/job lock order, schema profile,
+    /// cohort check and RR lifetime as generic reads, but deliberately does
+    /// not compare current PG head/audit/projection digests to the old anchor.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn with_current_source_navigation_lease<T>(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        proof: &tos_compiler::managed_source::ManagedSourceProofV2,
+        filesystem: &CreationFilesystem,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        operate: impl for<'lease, 'tx> FnOnce(
+            &crate::source_managed_selection::SourceNavigationCurrentLeaseV1<'lease>,
+            &mut Transaction<'tx>,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<T> {
+        active(deadline, cancelled)?;
+        proof
+            .validate()
+            .map_err(|_| DurableError::Refused("source navigation anchor proof invalid"))?;
+        let anchor_projection = Digest256::from_hex(proof.inventory_projection())
+            .map_err(|_| DurableError::Invalid("source navigation anchor projection"))?;
+        if !crate::source_managed_selection::ManagedSelectedProof::matches_selected(
+            proof,
+            generation,
+            anchor_projection,
+        )? {
+            return Err(DurableError::Conflict(
+                "source navigation immutable anchor differs",
+            ));
+        }
+        let installation = generation.selected().facts();
+        installation.audited_root.require_store(store)?;
+        if store.store_id() != installation.descriptor_cut.store_id
+            || store.domain_digest() != installation.descriptor_cut.domain_digest
+            || installation.domain != generation.cohort().domain()
+            || installation.descriptor_cut.database_oid != proof.generation.database_oid
+        {
+            return Err(DurableError::Conflict(
+                "source navigation anchor store/database differs",
+            ));
+        }
+        let owner = filesystem
+            .hold_source_navigation_owner(deadline, cancelled)
+            .map_err(source_error)?;
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .start()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let domain = generation.cohort().domain();
+        let audit = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let audit_generation = as_u64(audit.get(0))?;
+        if audit.get::<_, String>(1) != "normal" {
+            return Err(DurableError::Refused("physical maintenance is active"));
+        }
+        let row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        // This checks the immutable bootstrap revision/membership, epoch,
+        // definition, and maintained source completeness against today's row.
+        cohort_matches(&row, generation.cohort(), true)?;
+        let head_sequence = as_u64(row.get("head_seq"))?;
+        let source_generation = row
+            .get::<_, Option<i64>>("source_generation")
+            .map(as_u64)
+            .transpose()?
+            .ok_or(DurableError::Conflict(
+                "source navigation live generation unavailable",
+            ))?;
+        let schema = row
+            .get::<_, Option<String>>("schema_profile_digest")
+            .ok_or(DurableError::Conflict(
+                "source navigation live schema profile unavailable",
+            ))?;
+        let current_database_oid = database_oid(&mut tx)?;
+        if head_sequence != source_generation
+            || head_sequence < generation.commit_seq()
+            || source_generation < generation.commit_seq()
+            || audit_generation < generation.audit_generation()
+            || Digest256::from_hex(&schema)
+                .map_err(|_| DurableError::Corrupt("source navigation schema profile invalid"))?
+                != schema_profile_digest()
+            || current_database_oid != proof.generation.database_oid
+            || as_u64(row.get("rule_version"))? != rule_version
+            || row.get::<_, String>("contract_digest") != contract.to_hex()
+        {
+            return Err(DurableError::Conflict(
+                "source navigation live source/contract changed",
+            ));
+        }
+        let rights_allowed = row.get::<_, bool>("rights_allowed");
+        let current_rights_version = as_u64(row.get("rights_version"))?;
+        if !rights_allowed || current_rights_version != rights_version {
+            return Err(DurableError::Refused(
+                "source navigation current rights changed",
+            ));
+        }
+        let job = tx.query_opt(
+            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2 FOR SHARE",
+            &[&domain, &job_id],
+        )?;
+        if job.map(|row| row.get::<_, i64>(0)) != Some(as_i64(job_fence)?) {
+            return Err(DurableError::Refused(
+                "source navigation current job changed",
+            ));
+        }
+        let source_membership_root = parse_hex(
+            row.get::<_, Option<String>>("source_membership_digest")
+                .ok_or(DurableError::Corrupt(
+                    "source navigation bootstrap membership root absent",
+                ))?,
+        )?;
+        let source_membership_count =
+            as_u64(row.get::<_, Option<i64>>("source_membership_count").ok_or(
+                DurableError::Corrupt("source navigation bootstrap membership count absent"),
+            )?)?;
+        let parse_optional_digest = |column: &str| -> DurableResult<Option<Digest256>> {
+            row.get::<_, Option<String>>(column)
+                .map(parse_hex)
+                .transpose()
+        };
+        let selected_generation_digest = parse_optional_digest("selected_generation_digest")?;
+        let source_projection_digest = parse_optional_digest("source_projection_digest")?;
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        active(deadline, cancelled)?;
+        let lease =
+            crate::source_managed_selection::SourceNavigationCurrentLeaseV1::under_held_fences(
+                proof,
+                generation,
+                &owner,
+                &installation.audited_root,
+                store,
+                deadline,
+                cancelled,
+                head_sequence,
+                source_generation,
+                audit_generation,
+                current_database_oid,
+                rights_allowed,
+                current_rights_version,
+                as_u64(row.get("rule_version"))?,
+                parse_hex(row.get::<_, String>("contract_digest"))?,
+                parse_hex(schema)?,
+                source_membership_root,
+                source_membership_count,
+                selected_generation_digest,
+                source_projection_digest,
+            );
+        let result = operate(&lease, &mut tx)?;
+        active(deadline, cancelled)?;
+        lease.check_current().map_err(source_error)?;
+        installation.audited_root.require_store(store)?;
+        tx.commit()?;
+        Ok(result)
     }
 
     pub(crate) fn with_current_managed_model_and_tx<

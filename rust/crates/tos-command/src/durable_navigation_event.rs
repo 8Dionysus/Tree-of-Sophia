@@ -2779,7 +2779,7 @@ pub enum DurableNavigationCurrentIndexNotReadyReasonV1 {
     BudgetExceeded,
 }
 
-fn navigation_owner_binding<P: ManagedSelectedProof>(
+pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
     domain: &str,
     selected: &ManagedAgentSelectedParent<P>,
     profile: &DurableProjectionProfile,
@@ -2859,6 +2859,124 @@ fn navigation_owner_binding<P: ManagedSelectedProof>(
         navigation_rights: receipt.rights,
         navigation_projected_rights: 0,
     })
+}
+
+/// Complete the static owner binding from the same pinned selected model used
+/// by query delivery. The header is a single exact original-row seek; the
+/// normalized rights count is a point read from the sealed model metadata.
+pub(crate) fn navigation_owner_binding_with_verified_model<P: ManagedSelectedProof>(
+    domain: &str,
+    selected: &ManagedAgentSelectedParent<P>,
+    profile: &DurableProjectionProfile,
+    model: &VerifiedKnowledgeModel<'_>,
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<DurableNavigationCurrentIndexOwnerBindingV1> {
+    let limits = limits.validate()?;
+    model
+        .check_pin()
+        .map_err(|_| DurableError::Conflict("selected navigation model pin changed"))?;
+
+    let model_selection = model.selection();
+    let selected_selection = selected.selection_expectation();
+    if model_selection.model_sha256 != selected_selection.model_sha256
+        || model_selection.model_size_bytes != selected_selection.model_size_bytes
+        || model_selection.owner_receipt_id != selected_selection.owner_receipt_id
+        || model_selection.model_abi != selected_selection.model_abi
+        || model_selection.through_commit_seq != selected_selection.through_commit_seq
+        || model_selection.membership_root != selected_selection.membership_root
+        || model_selection.navigation_original_root_sha256
+            != selected_selection.navigation_original_root_sha256
+        || model_selection.index_generation != selected_selection.index_generation
+        || model_selection.route_map_version != selected_selection.route_map_version
+        || model_selection.reader_abi != selected_selection.reader_abi
+        || model_selection.authority_boundary != selected_selection.authority_boundary
+        || model.selection_profile() != selected.selection_profile()
+        || selected_selection.through_commit_seq != selected.generation().commit_seq()
+    {
+        return Err(DurableError::Conflict(
+            "selected navigation model differs from its owner anchor",
+        ));
+    }
+
+    let model_receipt = model
+        .navigation_original_receipt()
+        .map_err(|_| DurableError::Corrupt("selected navigation original receipt"))?;
+    let selected_receipt = selected.navigation_original_receipt();
+    if model_receipt.header_sha256 != selected_receipt.header_sha256
+        || model_receipt.component_root_sha256 != selected_receipt.component_root_sha256
+    {
+        return Err(DurableError::Conflict(
+            "selected navigation original receipt differs from its owner anchor",
+        ));
+    }
+
+    let page = model
+        .navigation_original_page_under_caller_budget(
+            None,
+            1,
+            limits.max_row_bytes,
+            limits.max_total_bytes,
+        )
+        .map_err(|_| DurableError::Corrupt("selected navigation original header"))?;
+    if page.rows.len() != 1 || page.rows[0].0 != -1 {
+        return Err(DurableError::Conflict(
+            "selected navigation original header row is absent",
+        ));
+    }
+    let (ordinal, header_raw) = page.rows.into_iter().next().ok_or(DurableError::Conflict(
+        "selected navigation original header row is absent",
+    ))?;
+    if ordinal != -1
+        || header_raw.len() > limits.max_row_bytes
+        || page.decoded_bytes > limits.max_total_bytes
+    {
+        return Err(DurableError::Refused(
+            "selected navigation original header budget",
+        ));
+    }
+    let expected_header_digest = Digest256::from_hex(&selected_receipt.header_sha256)
+        .map_err(|_| DurableError::Corrupt("selected navigation header digest"))?;
+    if Digest256::of_bytes(&header_raw) != expected_header_digest {
+        return Err(DurableError::Conflict(
+            "selected navigation original header differs from its receipt",
+        ));
+    }
+    let header_value = strict_json_value(&header_raw, limits.max_row_bytes)?;
+    let counts = header_value
+        .get("counts")
+        .ok_or(DurableError::Invalid("selected navigation header counts"))?;
+    if counts.get("nodes").and_then(Value::as_u64) != Some(selected_receipt.nodes)
+        || counts.get("edges").and_then(Value::as_u64) != Some(selected_receipt.edges)
+        || counts.get("rights").and_then(Value::as_u64) != Some(selected_receipt.rights)
+    {
+        return Err(DurableError::Conflict(
+            "selected navigation header counts differ from its receipt",
+        ));
+    }
+
+    let projected_rights_raw: String = model
+        .connection()
+        .query_row(
+            "SELECT value FROM metadata WHERE key='rights_count' AND length(CAST(value AS BLOB)) BETWEEN 1 AND 20",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|_| DurableError::Corrupt("selected navigation projected rights count"))?;
+    let projected_rights = projected_rights_raw
+        .parse::<u64>()
+        .map_err(|_| DurableError::Corrupt("selected navigation projected rights count"))?;
+    if projected_rights.to_string() != projected_rights_raw {
+        return Err(DurableError::Corrupt(
+            "selected navigation projected rights count",
+        ));
+    }
+    model
+        .check_pin()
+        .map_err(|_| DurableError::Conflict("selected navigation model pin changed"))?;
+    let mut binding = navigation_owner_binding(domain, selected, profile)?;
+    binding.navigation_header = header_value;
+    binding.navigation_projected_rights = projected_rights;
+    Ok(binding)
 }
 
 fn navigation_owner_binding_json(binding: &DurableNavigationCurrentIndexOwnerBindingV1) -> Value {

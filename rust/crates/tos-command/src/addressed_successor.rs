@@ -963,6 +963,107 @@ impl DurablePgCoordinator {
 }
 
 impl DurablePgCoordinator {
+    /// Reopen the immutable addressed descriptor named by a persisted source
+    /// navigation proof without treating its old PG selection as current.
+    /// The descriptor, proof and model establish only the bootstrap anchor;
+    /// the navigation-specific live lease checks today's PG owner state at
+    /// every disclosure.
+    pub(crate) fn reopen_persisted_addressed_navigation_anchor(
+        &mut self,
+        store: &SegmentStore,
+        proof: &tos_compiler::managed_source::ManagedSourceProofV2,
+        limits: AuthenticatedTreeLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
+        active(deadline, cancelled)?;
+        proof
+            .validate()
+            .map_err(|_| DurableError::Refused("persisted managed source proof is invalid"))?;
+        let described = &proof.generation;
+        let digest = Digest256::from_hex(&described.installed_generation_sha256)
+            .map_err(|_| DurableError::Corrupt("persisted addressed generation digest"))?;
+        let parse_digest = |value: &str| {
+            Digest256::from_hex(value)
+                .map_err(|_| DurableError::Corrupt("persisted addressed cohort digest"))
+        };
+        let cohort = ManagedSourceCohort {
+            domain: described.domain.clone(),
+            store_id: described.store_id,
+            initial_revision: SourceRevision(parse_digest(&described.bootstrap_source_revision)?),
+            initial_membership: SourceMembershipV1 {
+                digest: parse_digest(&described.bootstrap_membership_sha256)?,
+                count: described.bootstrap_members,
+            },
+            epoch: described.epoch,
+            definition: parse_digest(&described.definition_sha256)?,
+            generation: described.through_commit_seq,
+        };
+        if cohort.store_id != store.store_id()
+            || parse_digest(&described.domain_sha256)? != store.domain_digest()
+            || cohort.domain.as_bytes() != store.custody_domain()
+        {
+            return Err(DurableError::Conflict(
+                "persisted addressed source store/domain differs",
+            ));
+        }
+
+        // This authenticated immutable object is deliberately opened without
+        // consulting cmd2_domain. A later ordinary write advances that live
+        // owner row while the bootstrap descriptor remains the model anchor.
+        let raw = store.read_authenticated_object_v1(
+            OBJECT_KIND,
+            digest,
+            MAX_DESCRIPTOR,
+            deadline,
+            cancelled,
+        )?;
+        let cut = AddressedCutV2::decode(&raw)?;
+        cut.require_store(store)?;
+        let state_digest = cut.state_digest()?;
+        if cut.domain != cohort.domain
+            || cut.through_seq != described.through_commit_seq
+            || cut.audit_generation.checked_add(1) != Some(described.selected_audit_generation)
+            || cut.database_oid != described.database_oid
+            || cut.schema_profile_digest.to_hex() != described.schema_profile_sha256
+            || cut.state_profile_digest.to_hex() != described.state_profile_sha256
+            || cut.metadata.commitment.to_hex() != described.addressed_metadata_tree_sha256
+            || cut.metadata.entries != described.addressed_metadata_members
+            || cut.inventory.root().to_hex() != described.addressed_inventory_root_sha256
+            || cut.current.commitment.to_hex() != described.addressed_current_tree_sha256
+            || cut.current.entries != described.current_members
+            || cut.history.commitment.to_hex() != described.addressed_history_tree_sha256
+            || cut.history.entries != described.history_members
+            || cut.log_digest.to_hex() != described.log_sha256
+        {
+            return Err(DurableError::Conflict(
+                "persisted addressed descriptor differs from its navigation anchor",
+            ));
+        }
+        let selected = VerifiedAddressedGeneration {
+            audited_root: store.hold_audit_root()?,
+            store: store.clone(),
+            cut,
+            digest,
+            state_digest,
+            selected_audit_generation: described.selected_audit_generation,
+            log_frontier: None,
+            limits,
+        };
+        let generation =
+            crate::source_current_cut::ManagedCurrentSourceGeneration::from_verified_addressed(
+                store, cohort, selected,
+            );
+        let projection = parse_digest(&described.inventory_projection_sha256)?;
+        if Self::managed_model_generation_description_v2(&generation, projection)? != *described {
+            return Err(DurableError::Conflict(
+                "persisted addressed navigation anchor differs from its proof",
+            ));
+        }
+        active(deadline, cancelled)?;
+        Ok(generation)
+    }
+
     /// Reopen the exact retained addressed descriptor named by a persisted
     /// V2 proof. This performs no source scan or producer build. The row and
     /// audit locks make the retained binding coherent for construction; every

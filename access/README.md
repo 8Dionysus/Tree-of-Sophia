@@ -1210,6 +1210,8 @@ tool calls use the native registry and request parser in the same held source
 capture/model/evidence context. A source-derived projection is not an authored
 Foundation publication epoch or a rights/canon grant.
 
+### Selected PostgreSQL source navigation
+
 The selected PostgreSQL source-navigation index has an explicit private
 maintenance entry through the existing native `source-projection` command. Use
 the protected `tos_local_source_navigation_owner_v1` JSON created by the
@@ -1241,6 +1243,106 @@ events remain pending. These maintenance operations publish only the private
 projection and issue no ToS admission, QRY disclosure, or canon grant. If a
 receipt write is lost after publication, repeating the exact bootstrap request
 is safe and reports `replayed: true`.
+
+Each query reopens the retained model as the immutable bootstrap anchor and
+holds a separate live PostgreSQL source-navigation lease through disclosure.
+The query is ready only when its verified coverage and adjacency publication
+cursor equals the current CMD head. In its binding, `source_cut`,
+`membership_root`, and `projection_root` keep their bootstrap-anchor meaning;
+`through_commit_seq` and `index_root` identify the current complete navigation
+publication. The additive `source_navigation_proof_v1` metadata reports the
+bootstrap root, anchor sequence and roots, and published sequence, coverage,
+adjacency, and index roots. It does not claim that the anchor membership root
+is the current full-source membership.
+
+#### One-time model preparation and policy
+
+Preparing the initial model is a separate local-owner-only operation. Call
+`source-projection` with a protected
+`tos_local_source_navigation_model_prepare_owner_v1` selection and the generic
+`tos_local_native_source_invocation_v1` invocation. The prepare owner fixes the
+bootstrap invocation/request, model and final-owner leaves, selected
+`source_navigation` producer/profile, finite `model_limits`, and an explicit
+`policy_template`. Its request carries only
+`{"schema_version":"tos_local_source_navigation_model_prepare_request_v1","operation":"prepare-initial"}`;
+paths, proof, budgets, producer details and policy authority stay in the
+protected preparation owner. Run it through the local native command and save
+the one-line result yourself:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-projection \
+  --selection /absolute/protected/tos-local-source-navigation-model-prepare-owner.json \
+  < /absolute/requests/prepare-initial.json \
+  > /absolute/receipts/navigation-model-prepare.json
+```
+
+The prepare-owner fields are exactly `schema_version`, `uid`, `source_root`,
+`expires_at`, `host_export_stage_parent`, `bootstrap_invocation_path`,
+`bootstrap_request_path`, `model_leaf`, `final_owner_leaf`, `source_navigation`,
+`policy_template`, `model_limits`, and `launcher`. The model limits set total
+time, host export bytes/inodes, tmpfs bytes/inodes, working RAM, source
+member/byte ceilings, plan bytes/work, and maximum model bytes. Initial
+catalog compilation uses these model limits and the selected cold row limit;
+ordinary incremental event/window limits continue to apply to later advances.
+
+The parent retains the protected owner and PostgreSQL connection. It exports
+an exact selected cut under `host_export_stage_parent` and starts the compiler
+through the pinned private-stage issuer. `launcher` fixes `tos_access_path`,
+`tos_access_sha256`, `unshare_path`, `unshare_sha256`, `setup_cgroup`,
+`consumer_cgroup`, `scratch_parent`, `persistent_staging_root`, and
+`shutdown_grace_ms`. Digests use lowercase hex. The two empty delegated cgroups
+must have the selected finite memory limits and zero swap; the host parent
+remains outside them. The selected schema worker retains its exact image
+identity. The child receives the read-only export and produces a candidate
+in the separately selected persistent stage. After it exits, the parent
+rechecks the current generation and owner inputs before create-only model
+and final-owner publication. Only the compiler child enters the private
+namespace; PostgreSQL and protected-owner access remain on the host.
+The template schema is
+`tos_source_navigation_public_metadata_policy_template_v1`; it names one
+`issuer_ref`, `receipt_id`, `carrier_layer`, `intended_use`, `model_abi`,
+`selection_profile`, `policy_epoch`, `withdrawal_generation`, and `expires_at`.
+The `tos_local_source_navigation_model_prepare_result_v1` result carries the
+selected proof and prepared model together with the create-only final owner
+configuration path. The final
+`tos_local_source_navigation_owner_v1` configuration containing the derived
+`source_navigation.policy_receipt` retains the owner-selected producer
+selection. A template or prepared model alone does not install policy.
+This initial preparation is separate from routine bounded event catch-up:
+retain the model and use `advance-navigation` for ordinary selected-source
+updates rather than rerunning `prepare-initial`.
+
+Use the generated final owner for the separate, explicit policy operation. The
+generic native `source-projection` command selects the
+`tos_local_pg_source_navigation_policy_invocation_v1` invocation and accepts a
+strict `tos_local_source_navigation_policy_command_v1` request with exactly
+`schema_version`, `operation`, `command_id`, `expected_configuration`, and
+`expected_policy_version`. `operation` is `install` or `revoke`; use `null` for
+the first Install’s expected version and the current positive version for a
+later Install or Revoke. `expected_configuration` is the canonical SHA-256
+digest of the selected protected owner configuration. For example, the first
+Install request is:
+
+```json
+{
+  "schema_version": "tos_local_source_navigation_policy_command_v1",
+  "operation": "install",
+  "command_id": "navigation-policy-install-1",
+  "expected_configuration": "sha256:<protected-owner-digest>",
+  "expected_policy_version": null
+}
+```
+
+Use a stable `command_id` when retrying after a lost response. The
+`tos_local_pg_source_navigation_policy_result_v1` output separates the
+immutable command `receipt` (`policy_version`, `withdrawal_generation`,
+`allowed`, and `replayed`) from `current_policy`, which reports the current
+version and allow state plus whether its receipt and owner digests still match
+the selected configuration. On replay, `receipt` can describe an earlier
+Install while `current_policy.allowed` is false after a later Revoke. Revoke
+withdraws this navigation policy only; it does not change CMD rights or admit
+source. This mutation route is local CLI-only: HTTP, MCP and `private-text-read`
+do not expose policy Install or Revoke.
 
 An explicitly selected or discovered existing legacy QueryStore is authenticated
 against its five actual selected input digests and held read-only without a live

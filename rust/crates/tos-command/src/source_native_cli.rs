@@ -62,6 +62,8 @@ pub(crate) use pg_growth::context_with_pg_exact_reads;
 pub(crate) use pg_growth::{
     PgGrowthCurrentInput, PgGrowthFamily, expected_growth_revision_indexes,
 };
+#[path = "source_native_pg_navigation_policy_cli.rs"]
+mod pg_navigation_policy;
 #[path = "source_native_pg_private_alignment_cli.rs"]
 mod pg_private_alignment;
 #[path = "source_native_pg_private_assessment_cli.rs"]
@@ -90,6 +92,16 @@ mod public_text;
 mod responsibility;
 #[path = "source_native_revisions_cli.rs"]
 pub(crate) mod revisions;
+#[path = "source_navigation_model_artifact.rs"]
+mod source_navigation_model_artifact;
+#[path = "source_navigation_model_cleanup.rs"]
+mod source_navigation_model_cleanup;
+#[path = "source_navigation_model_compile.rs"]
+mod source_navigation_model_compile;
+#[path = "source_navigation_model_prepare_cli.rs"]
+mod source_navigation_model_prepare;
+#[path = "source_navigation_model_process.rs"]
+mod source_navigation_model_process;
 #[path = "source_native_source_session.rs"]
 mod source_session;
 #[path = "source_native_text_cli.rs"]
@@ -185,19 +197,34 @@ pub fn discover_commands(handler: Option<&str>) -> SourceCommandResult<Value> {
 /// Complete one explicitly selected local invocation. Typed owner handlers
 /// reread the protected configuration and invocation at their current-use edge.
 pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
-    run_selected(invocation_path, input, false)
+    run_selected(invocation_path, input, false, false)
+}
+
+/// Source-command entry used only by `tos-native-owner-command`'s local CLI.
+/// It enables owner-process-only families such as native model preparation;
+/// HTTP/source-command adapters call `run` and remain unable to select them.
+pub fn run_local_owner(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
+    run_selected(invocation_path, input, false, true)
 }
 
 /// Only the local owner-process CLI calls this private disclosure route.
 /// HTTP/source-command adapters continue to call `run` and cannot select it.
 pub fn run_private_text(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
-    run_selected(invocation_path, input, true)
+    run_selected(invocation_path, input, true, true)
+}
+
+/// Private-stage child entry for the bounded Source Navigation compiler.
+/// This accepts only its typed stdin request and never opens an owner grant or
+/// a PostgreSQL connection.
+pub fn run_source_navigation_model_compile_child() -> SourceCommandResult<()> {
+    source_navigation_model_compile::run_stdin()
 }
 
 fn run_selected(
     invocation_path: &Path,
     input: impl Read,
     private_owner_process: bool,
+    local_owner_process: bool,
 ) -> SourceCommandResult<Value> {
     let cancelled = Arc::new(AtomicBool::new(false));
     // Legacy native families retain their historical 60-second cooperative
@@ -227,7 +254,7 @@ fn run_selected(
     let invocation: Value = serde_json::from_slice(&cmd::canonical(&checked)?)
         .map_err(|_| SourceCommandError::Invalid("native invocation JSON"))?;
     let schema = text(&invocation, "schema_version")?;
-    let deadline = if schema == "tos_local_pg_source_bootstrap_streamed_invocation_v1" {
+    let mut deadline = if schema == "tos_local_pg_source_bootstrap_streamed_invocation_v1" {
         invocation_started
             .checked_add(pg_bootstrap_streamed::invocation_duration(&invocation)?)
             .ok_or(SourceCommandError::Invalid(
@@ -241,12 +268,15 @@ fn run_selected(
     let private_pg_assessment_invocation =
         schema == "tos_local_pg_private_assessment_invocation_v1";
     let private_pg_alignment_invocation = schema == "tos_local_pg_private_alignment_invocation_v1";
+    let pg_navigation_policy_invocation =
+        schema == "tos_local_pg_source_navigation_policy_invocation_v1";
     if private_owner_process
         && schema != "tos_local_native_source_invocation_v1"
         && !private_pg_text_invocation
         && !private_pg_owner_invocation
         && !private_pg_assessment_invocation
         && !private_pg_alignment_invocation
+        && !pg_navigation_policy_invocation
     {
         return Err(SourceCommandError::Denied(
             "private text invocation profile",
@@ -307,6 +337,22 @@ fn run_selected(
             ));
         }
         return pg_private_alignment::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if pg_navigation_policy_invocation {
+        if !local_owner_process || private_owner_process {
+            return Err(SourceCommandError::Denied(
+                "PostgreSQL source navigation policy requires the local owner process",
+            ));
+        }
+        return pg_navigation_policy::run(
             &selected,
             &raw,
             &invocation,
@@ -563,6 +609,32 @@ fn run_selected(
         .object_get("schema_version")
         .and_then(|value| value.as_str())
         .unwrap_or("");
+    if local_owner_process
+        && schema == "tos_local_native_source_invocation_v1"
+        && request_schema == "tos_local_source_navigation_model_prepare_request_v1"
+        && operation == "prepare-initial"
+    {
+        let owner_path = absolute(text(&invocation, "owner_config")?)?;
+        let owner_raw = read_absolute(&owner_path, uid, true, 1_048_576, deadline, &cancelled)?;
+        let owner_hint = cmd::parse(&owner_raw)?;
+        if cmd::text(&owner_hint, "schema_version")?
+            == "tos_local_source_navigation_model_prepare_owner_v1"
+        {
+            let max_total_ms = owner_hint
+                .object_get("model_limits")
+                .and_then(|limits| limits.object_get("max_total_ms"))
+                .and_then(|value| value.as_u64())
+                .filter(|value| (1_000..=600_000).contains(value))
+                .ok_or(SourceCommandError::Invalid(
+                    "source-navigation model total-time budget",
+                ))?;
+            deadline = invocation_started
+                .checked_add(Duration::from_millis(max_total_ms))
+                .ok_or(SourceCommandError::Invalid(
+                    "source-navigation model deadline overflow",
+                ))?;
+        }
+    }
     if private_owner_process != (operation == "native-text.read-private")
         || private_owner_process
             && (!source_invocation
@@ -776,6 +848,26 @@ fn run_selected(
         let owner_schema = cmd::text(&hint, "schema_version")?;
         // This protected hint routes code only. Each family independently
         // reselects its full grant/current owner boundary before any use.
+        if owner_schema == "tos_local_source_navigation_model_prepare_owner_v1" {
+            if !local_owner_process || private_owner_process {
+                return Err(SourceCommandError::Denied(
+                    "source-navigation model preparation requires the local owner process",
+                ));
+            }
+            return source_navigation_model_prepare::run(
+                &selected,
+                &raw,
+                &invocation,
+                &request_raw,
+                uid,
+                &store,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancelled,
+            );
+        }
         if assessed_forms_request {
             if owner_schema != "tos_local_assessment_owner_v2" {
                 return Err(SourceCommandError::Denied(

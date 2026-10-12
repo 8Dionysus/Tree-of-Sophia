@@ -162,7 +162,7 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
             .map_err(ManagedSelectionError::Durable)?
         {
             return Err(ManagedSelectionError::Source(SourceCommandError::Conflict(
-                "persisted managed source proof differs from current selection",
+                "persisted managed source proof differs from its navigation anchor",
             )));
         }
         let measurement = tos_compiler::measure_existing_native_knowledge_artifact_custody(
@@ -308,18 +308,22 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
                 deadline,
                 cancelled,
                 |lease, tx| {
-                    self.model
-                        .check_pin()
-                        .map_err(ManagedSelectionError::Compiler)?;
-                    let result = seek(&self.model, lease, tx);
-                    self.model
-                        .check_pin()
-                        .map_err(ManagedSelectionError::Compiler)?;
-                    result
+                    let result = (|| {
+                        self.model
+                            .check_pin()
+                            .map_err(ManagedSelectionError::Compiler)?;
+                        let result = seek(&self.model, lease, tx);
+                        self.model
+                            .check_pin()
+                            .map_err(ManagedSelectionError::Compiler)?;
+                        result
+                    })();
+                    Ok(result)
                 },
             )
             .map_err(ManagedSelectionError::Durable)?
     }
+
     fn with_current_package<T>(
         &self,
         coordinator: &mut DurablePgCoordinator,
@@ -387,14 +391,71 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
                 deadline,
                 cancelled,
                 |lease, tx| {
-                    self.model
-                        .check_pin()
-                        .map_err(ManagedSelectionError::Compiler)?;
-                    let result = seek(&self.model, lease, tx);
-                    self.model
-                        .check_pin()
-                        .map_err(ManagedSelectionError::Compiler)?;
-                    result
+                    let result = (|| {
+                        self.model
+                            .check_pin()
+                            .map_err(ManagedSelectionError::Compiler)?;
+                        let result = seek(&self.model, lease, tx);
+                        self.model
+                            .check_pin()
+                            .map_err(ManagedSelectionError::Compiler)?;
+                        result
+                    })();
+                    Ok(result)
+                },
+            )
+            .map_err(ManagedSelectionError::Durable)?
+    }
+}
+
+impl ManagedAgentSelectedParent<ManagedSourceProofV2> {
+    /// Read from an immutable V2 navigation anchor while leasing the live PG
+    /// source owner independently. The generic managed-model fence remains
+    /// strict; only this native navigation route accepts a later live PG head.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn with_navigation_anchor_current_and_tx<T>(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        filesystem: &CreationFilesystem,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'model, 'lease, 'tx> FnOnce(
+            &'model VerifiedKnowledgeModel<'static>,
+            &'lease SourceNavigationCurrentLeaseV1<'lease>,
+            &mut postgres::Transaction<'tx>,
+        ) -> ManagedSelectionResult<T>,
+    ) -> ManagedSelectionResult<T> {
+        coordinator
+            .with_current_source_navigation_lease(
+                store,
+                &self.generation,
+                &self.proof,
+                filesystem,
+                contract,
+                rule_version,
+                rights_version,
+                job_id,
+                job_fence,
+                deadline,
+                cancelled,
+                |lease, tx| {
+                    let result = (|| {
+                        self.model
+                            .check_pin()
+                            .map_err(ManagedSelectionError::Compiler)?;
+                        let result = seek(&self.model, lease, tx);
+                        self.model
+                            .check_pin()
+                            .map_err(ManagedSelectionError::Compiler)?;
+                        result
+                    })();
+                    Ok(result)
                 },
             )
             .map_err(ManagedSelectionError::Durable)?
@@ -501,6 +562,87 @@ fn bind_completed_managed_agent_parent<P: ManagedSelectedProof>(
         deadline,
         cancelled,
         |_, lease| {
+            lease
+                .require_managed_basis(&parent.proof)
+                .map_err(ManagedSelectionError::Source)
+        },
+    )?;
+    Ok(parent)
+}
+
+/// Bind an actual initial V2 compiler outcome to its addressed export for the
+/// package-free source-navigation owner. Source navigation has no serialized
+/// creation command to borrow; the existing corpus mutex and current PG
+/// generation fence remain the admission boundary.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn bind_completed_managed_agent_parent_source_navigation(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    export: ManagedCurrentSourceCut,
+    completed: CompletedManagedAgentProducer<ManagedSourceProofV2>,
+    filesystem: &CreationFilesystem,
+    contract: Digest256,
+    rule_version: u64,
+    rights_version: u64,
+    job_id: &str,
+    job_fence: u64,
+    process_limits: NativeProcessLimits,
+    cold_limits: ColdOpenLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> ManagedSelectionResult<ManagedAgentSelectedParent<ManagedSourceProofV2>> {
+    active(deadline, cancelled).map_err(ManagedSelectionError::Source)?;
+    let proof = completed.source_proof();
+    let membership = export.membership();
+    let revision = export.cut().current().revision();
+    let projection = Digest256::from_hex(proof.inventory_projection()).map_err(|_| {
+        ManagedSelectionError::Source(SourceCommandError::Invalid(
+            "managed initial projection digest",
+        ))
+    })?;
+    proof.validate().map_err(ManagedSelectionError::Compiler)?;
+    if proof.delta().is_some()
+        || completed.successor_catalogue_input().is_some()
+        || completed.created_record_input().is_some()
+        || completed.created_forms_input().is_some()
+        || completed.export_source_revision() != revision
+        || completed.export_membership() != membership
+        || proof.initial_export().0 != revision.0.to_hex()
+        || proof.initial_export().1 != membership.digest.to_hex()
+        || proof.initial_export().2 != membership.count
+        || !proof
+            .matches_selected(export.generation(), projection)
+            .map_err(ManagedSelectionError::Durable)?
+    {
+        return Err(ManagedSelectionError::Source(SourceCommandError::Conflict(
+            "managed complete source-navigation producer export differs",
+        )));
+    }
+    let model = open_completed_model(&completed, process_limits, cold_limits)?;
+    let expectation = completed.expectation().clone();
+    let navigation_original = completed.navigation_original().clone();
+    let source_catalog_root_sha256 = Some(completed.source_catalog_root_sha256().to_owned());
+    let parent = ManagedAgentSelectedParent {
+        generation: export.into_generation(),
+        proof: proof.clone(),
+        model,
+        completed: Some(completed),
+        expectation,
+        navigation_original,
+        source_catalog_root_sha256,
+    };
+    parent.with_current_model_and_tx_source_navigation(
+        coordinator,
+        store,
+        filesystem,
+        contract,
+        rule_version,
+        rights_version,
+        job_id,
+        job_fence,
+        deadline,
+        cancelled,
+        |_, lease, _tx| {
             lease
                 .require_managed_basis(&parent.proof)
                 .map_err(ManagedSelectionError::Source)
@@ -1561,5 +1703,182 @@ impl ManagedCurrentModelLease<'_, ManagedSourceProofV2> {
         supplied: &ManagedSourceProofV2,
     ) -> SourceCommandResult<()> {
         self.require_managed_basis(supplied)
+    }
+}
+
+/// Recheckable native-navigation lease over an immutable bootstrap anchor and
+/// the current PostgreSQL source owner. Current membership and projection
+/// columns are retained as observations; the anchor roots remain separate.
+pub(crate) struct SourceNavigationCurrentLeaseV1<'a> {
+    proof: &'a ManagedSourceProofV2,
+    generation: &'a ManagedCurrentSourceGeneration,
+    owner: &'a CreationOwnerFence<'a>,
+    root: &'a AuditedStoreRoot,
+    store: &'a SegmentStore,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    head_sequence: u64,
+    source_generation: u64,
+    audit_generation: u64,
+    database_oid: u64,
+    rights_allowed: bool,
+    rights_version: u64,
+    rule_version: u64,
+    source_contract: Digest256,
+    schema_profile_digest: Digest256,
+    source_membership_root: Digest256,
+    source_membership_count: u64,
+    selected_generation_digest: Option<Digest256>,
+    source_projection_digest: Option<Digest256>,
+}
+
+impl<'a> SourceNavigationCurrentLeaseV1<'a> {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn under_held_fences(
+        proof: &'a ManagedSourceProofV2,
+        generation: &'a ManagedCurrentSourceGeneration,
+        owner: &'a CreationOwnerFence<'a>,
+        root: &'a AuditedStoreRoot,
+        store: &'a SegmentStore,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+        head_sequence: u64,
+        source_generation: u64,
+        audit_generation: u64,
+        database_oid: u64,
+        rights_allowed: bool,
+        rights_version: u64,
+        rule_version: u64,
+        source_contract: Digest256,
+        schema_profile_digest: Digest256,
+        source_membership_root: Digest256,
+        source_membership_count: u64,
+        selected_generation_digest: Option<Digest256>,
+        source_projection_digest: Option<Digest256>,
+    ) -> Self {
+        Self {
+            proof,
+            generation,
+            owner,
+            root,
+            store,
+            deadline,
+            cancelled,
+            head_sequence,
+            source_generation,
+            audit_generation,
+            database_oid,
+            rights_allowed,
+            rights_version,
+            rule_version,
+            source_contract,
+            schema_profile_digest,
+            source_membership_root,
+            source_membership_count,
+            selected_generation_digest,
+            source_projection_digest,
+        }
+    }
+
+    /// Check the held non-PG owner pins again before a query emits or returns
+    /// data. The RR transaction and row locks held by the caller keep the
+    /// captured PostgreSQL facts stable for this entire lease lifetime.
+    pub(crate) fn check_current(&self) -> SourceCommandResult<()> {
+        active(self.deadline, self.cancelled)?;
+        self.owner.verify_current(self.deadline, self.cancelled)?;
+        self.root.require_store(self.store).map_err(|_| {
+            SourceCommandError::Conflict("source navigation immutable anchor changed")
+        })?;
+        if self.store.store_id() != self.proof.generation.store_id
+            || self.store.custody_domain() != self.proof.generation.domain.as_bytes()
+        {
+            return Err(SourceCommandError::Conflict(
+                "source navigation anchor store/domain changed",
+            ));
+        }
+        active(self.deadline, self.cancelled)
+    }
+
+    pub(crate) fn recheck_current(&self) -> SourceCommandResult<()> {
+        self.check_current()
+    }
+
+    pub(crate) fn require_managed_v2_basis(
+        &self,
+        supplied: &ManagedSourceProofV2,
+    ) -> SourceCommandResult<()> {
+        if supplied != self.proof {
+            return Err(SourceCommandError::Conflict(
+                "source navigation immutable anchor differs",
+            ));
+        }
+        self.check_current()
+    }
+
+    pub(crate) fn proof(&self) -> &ManagedSourceProofV2 {
+        self.proof
+    }
+    pub(crate) fn generation(&self) -> &ManagedCurrentSourceGeneration {
+        self.generation
+    }
+    pub(crate) fn domain(&self) -> &str {
+        self.generation.cohort().domain()
+    }
+    pub(crate) fn store_id(&self) -> [u8; 16] {
+        self.proof.generation.store_id
+    }
+    pub(crate) fn source_epoch(&self) -> u64 {
+        self.generation.cohort().epoch()
+    }
+    pub(crate) fn bootstrap_revision(&self) -> tos_foundation::SourceRevision {
+        self.generation.cohort().initial_revision()
+    }
+    pub(crate) fn bootstrap_membership(&self) -> tos_source_store::SourceMembershipV1 {
+        self.generation.cohort().initial_membership()
+    }
+    pub(crate) fn source_definition_digest(&self) -> Digest256 {
+        self.generation.cohort().definition_digest()
+    }
+    pub(crate) fn anchor_commit_sequence(&self) -> u64 {
+        self.generation.commit_seq()
+    }
+    pub(crate) fn head_sequence(&self) -> u64 {
+        self.head_sequence
+    }
+    pub(crate) fn source_generation(&self) -> u64 {
+        self.source_generation
+    }
+    pub(crate) fn audit_generation(&self) -> u64 {
+        self.audit_generation
+    }
+    pub(crate) fn database_oid(&self) -> u64 {
+        self.database_oid
+    }
+    pub(crate) fn rights_allowed(&self) -> bool {
+        self.rights_allowed
+    }
+    pub(crate) fn rights_version(&self) -> u64 {
+        self.rights_version
+    }
+    pub(crate) fn rule_version(&self) -> u64 {
+        self.rule_version
+    }
+    pub(crate) fn source_contract(&self) -> Digest256 {
+        self.source_contract
+    }
+    pub(crate) fn schema_profile_digest(&self) -> Digest256 {
+        self.schema_profile_digest
+    }
+    pub(crate) fn source_membership_root(&self) -> Digest256 {
+        self.source_membership_root
+    }
+    pub(crate) fn source_membership_count(&self) -> u64 {
+        self.source_membership_count
+    }
+    pub(crate) fn selected_generation_digest(&self) -> Option<Digest256> {
+        self.selected_generation_digest
+    }
+    pub(crate) fn source_projection_digest(&self) -> Option<Digest256> {
+        self.source_projection_digest
     }
 }

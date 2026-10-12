@@ -3422,7 +3422,7 @@ impl DurablePgCoordinator {
         store: &SegmentStore,
         domain: &str,
         consumer_id: &str,
-        event_path: &str,
+        source_cut_anchor_path: &str,
         requested_paths: &[String],
         profile: &DurableProjectionProfile,
         coverage: &DurableNavigationEventRangeCoverageV1,
@@ -3444,7 +3444,18 @@ impl DurablePgCoordinator {
         if store.custody_domain() != domain.as_bytes() {
             return Err(DurableError::Conflict("STO custody domain differs"));
         }
-        if event_path.is_empty() && requested_paths.is_empty() {
+        if !source_cut_anchor_path.is_empty() {
+            validate_relative_path(source_cut_anchor_path)?;
+            if !requested_paths
+                .iter()
+                .any(|path| path == source_cut_anchor_path)
+            {
+                return Err(DurableError::Invalid(
+                    "navigation source-cut anchor is not selected",
+                ));
+            }
+        }
+        if requested_paths.is_empty() && source_cut_anchor_path.is_empty() {
             let cursor = read_navigation_event_cursor(
                 &mut self.client,
                 domain,
@@ -3495,12 +3506,21 @@ impl DurablePgCoordinator {
                 selected_sources: Vec::new(),
             });
         }
+        if !requested_paths.is_empty() && source_cut_anchor_path.is_empty() {
+            return Err(DurableError::Invalid(
+                "navigation source-cut dependencies lack a selection anchor",
+            ));
+        }
+        // `source_cut_anchor_path` is selected at `through_sequence` as the
+        // configured large-source path. It is not asserted to be a member of
+        // the terminal event; `read_navigation_event_sources_v1` resolves that
+        // event's real member set independently from its exact witness.
         let context = self.read_navigation_event_sources_v1(
             store,
             domain,
             consumer_id,
             coverage.through_sequence,
-            event_path,
+            source_cut_anchor_path,
             requested_paths,
             profile,
             limits,

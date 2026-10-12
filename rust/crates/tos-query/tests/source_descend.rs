@@ -9,7 +9,7 @@ use tos_query::{
     QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1,
     SOURCE_DESCEND_POSTGRES_METER_V1, SOURCE_DESCEND_SESSION_V1, SOURCE_DESCEND_SESSION_V2,
     SessionAdvance, SessionNeed, SessionNeedKind, SessionResponse, SessionResponseKind,
-    SourceDescendRequest, SourceDescendSession, source_descend,
+    SourceDescendRequest, SourceDescendSession, SourceNavigationProofV1, source_descend,
 };
 
 struct SyntheticLease;
@@ -74,6 +74,7 @@ impl SyntheticReadModel {
             reader_abi: "tos-source-navigation-visible-v1".into(),
             model_abi: "tos_source_navigation_read_model_v1".into(),
             selection_profile: "tos_source_navigation_visible_v1".into(),
+            source_navigation_proof_v1: None,
         };
         let nodes = field(&fixture, "nodes")
             .as_array()
@@ -807,6 +808,73 @@ fn session_header_preserves_wide_integer_identity_and_refuses_one_over() {
     assert_eq!(
         need.wire_header(header.len() - 1).unwrap_err().code,
         QueryErrorCode::BudgetExceeded
+    );
+}
+
+#[test]
+fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    let anchor_membership_root = model.binding.membership_root;
+    let anchor_projection_root = model.binding.projection_root;
+    let published_index_root = Digest256::of_bytes(b"published navigation index");
+    model.binding.through_commit_seq = 19;
+    model.binding.index_root = published_index_root;
+    model.binding.source_navigation_proof_v1 = Some(SourceNavigationProofV1 {
+        bootstrap_root: Digest256::of_bytes(b"bootstrap"),
+        anchor_through_commit_seq: 17,
+        anchor_membership_root,
+        anchor_projection_root,
+        published_through_commit_seq: 19,
+        coverage_root: Digest256::of_bytes(b"coverage"),
+        adjacency_root: Digest256::of_bytes(b"adjacency"),
+        published_index_root,
+    });
+    let binding = model.binding.clone();
+    for record in model.nodes.values_mut() {
+        record.binding = binding.clone();
+    }
+    for records in model.edges.values_mut() {
+        for record in records {
+            record.binding = binding.clone();
+        }
+    }
+    model.authority.binding = binding;
+
+    let result = source_descend(&mut model, &request, budget()).unwrap();
+    let packet = parse_json(&result, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let proof = field(packet.root(), "source_navigation_proof_v1");
+    assert_eq!(string(proof, "anchor_through_commit_seq"), "17");
+    assert_eq!(string(proof, "published_through_commit_seq"), "19");
+    assert_eq!(
+        string(proof, "anchor_membership_root"),
+        anchor_membership_root.to_hex()
+    );
+    assert_eq!(
+        string(proof, "anchor_projection_root"),
+        anchor_projection_root.to_hex()
+    );
+    assert_eq!(
+        string(proof, "published_index_root"),
+        published_index_root.to_hex()
+    );
+    assert!(proof.object_get("current_membership_root").is_none());
+
+    let (_, need) = SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
+    let header = parse_json(
+        &need.wire_header(16 * 1024).unwrap(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        string(
+            field(
+                field(header.root(), "binding"),
+                "source_navigation_proof_v1"
+            ),
+            "bootstrap_root"
+        ),
+        Digest256::of_bytes(b"bootstrap").to_hex()
     );
 }
 

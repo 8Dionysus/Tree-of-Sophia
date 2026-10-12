@@ -208,6 +208,7 @@ pub use knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBa
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
 pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
+    managed_navigation_header_with_binding,
 };
 pub use knowledge_global_titles::{
     CompleteBaseNodes, GlobalTitleLimits, GlobalTitleReceipt, clear_global_titles, endpoint_title,

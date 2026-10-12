@@ -404,39 +404,40 @@ fn run_cli_with_input_and_source_fd(
     }
     let probe = profile.deadline_probe();
     let mut exit_code = 0;
-    let mut delivery = |result| match result {
-        Ok(packet) => {
-            exit_code = if let Some(fd) = source_fd {
-                #[cfg(unix)]
-                {
-                    write_packet_fd(packet, profile, fd, probe.as_ref(), stderr)
+    let mut delivery: Box<crate::common::SourceDescendDelivery<'_>> =
+        Box::new(|result| match result {
+            Ok(packet) => {
+                exit_code = if let Some(fd) = source_fd {
+                    #[cfg(unix)]
+                    {
+                        write_packet_fd(packet, profile, fd, probe.as_ref(), stderr)
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        let _ = (fd, packet, profile, probe, stderr);
+                        1
+                    }
+                } else {
+                    write_packet(packet, profile, stdout, stderr)
+                };
+                if exit_code == 0 {
+                    Ok(())
+                } else {
+                    Err(crate::AccessError::new(
+                        crate::AccessErrorCode::Unavailable,
+                        "source descent delivery failed",
+                    ))
                 }
-                #[cfg(not(unix))]
-                {
-                    let _ = (fd, packet, profile, probe, stderr);
-                    1
-                }
-            } else {
-                write_packet(packet, profile, stdout, stderr)
-            };
-            if exit_code == 0 {
-                Ok(())
-            } else {
-                Err(crate::AccessError::new(
-                    crate::AccessErrorCode::Unavailable,
-                    "source descent delivery failed",
-                ))
             }
-        }
-        Err(error) => {
-            exit_code = 1;
-            Err(error)
-        }
-    };
+            Err(error) => {
+                exit_code = 1;
+                Err(error)
+            }
+        });
     let result = checked_execute_source_descend(
         std::sync::Arc::clone(&probe),
         |probe, delivery| executor.source_descend_with_delivery(params, probe, delivery),
-        &mut delivery,
+        delivery.as_mut(),
     );
     drop(delivery);
     if let Err(error) = result {

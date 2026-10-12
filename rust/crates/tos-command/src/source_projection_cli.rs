@@ -17,7 +17,7 @@ use tos_query::{AbortProbe, AbortReason};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 
 pub const HELP: &str = r#"usage: tos-native-owner-command source-projection --selection ABS_JSON < REQUEST_JSON
-Private connection: TOS_SOURCE_PG_URL, PostgreSQL 16, numeric TCP loopback.
+Private connection: TOS_SOURCE_PG_URL, PostgreSQL 16, numeric TCP loopback or a canonical absolute Unix-socket directory.
 Selection for text projections: tos_source_projection_selection_v1; existing
 domain, exact source contract digest, consumer, private STO root and store limits.
 Navigation requests use a protected tos_local_source_navigation_owner_v1 config
