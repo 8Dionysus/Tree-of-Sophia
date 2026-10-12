@@ -1055,7 +1055,7 @@ impl DurableNavigationEventCohortSetV2 {
             }
             Some(DurableNavigationClaimSetBindingV1 {
                 mutation_claim_ids,
-                owner_claim_ids,
+                owner_claim_ids: owner_claim_ids.clone(),
                 mutation_receipt_path: mutation_receipt_path.to_owned(),
                 mutation_receipt_sha256: receipt_digest,
                 claim_stream_path: claim_stream_path.to_owned(),
@@ -1078,7 +1078,7 @@ impl DurableNavigationEventCohortSetV2 {
                 streams: vec![DurableNavigationClaimStreamBindingV1 {
                     source_path: claim_stream_path.to_owned(),
                     stream_sha256: claim_stream_sha256,
-                    owner_claim_ids: owner_claim_ids.clone(),
+                    owner_claim_ids,
                     rows_scanned: claim_stream_rows_scanned,
                 }],
             })
@@ -1232,7 +1232,7 @@ impl DurableNavigationEventCohortSetV2 {
             })
             .ok_or(DurableError::Invalid("navigation cohort set has no owner"))?;
         let mut cohort_keys = BTreeSet::new();
-        let mut dependency_paths = BTreeSet::new();
+        let mut dependency_paths = BTreeSet::<String>::new();
         let mut claim_revision_binding = None;
         for contribution in &claim_contributions {
             if let NavigationClaimEventContributionV1::Mutation(cohort) = contribution {
@@ -1340,7 +1340,7 @@ impl DurableNavigationEventCohortSetV2 {
                 cohort
                     .dependencies
                     .iter()
-                    .map(|dependency| dependency.path.as_str()),
+                    .map(|dependency| dependency.path.as_str().to_owned()),
             );
         }
 
@@ -1424,18 +1424,18 @@ impl DurableNavigationEventCohortSetV2 {
                     "navigation Claim mutation cause is absent from reverse-reference closure",
                 ));
             }
-            let receipt_path = first.mutation_receipt_path().as_str();
+            let receipt_path = first.mutation_receipt_path().as_str().to_owned();
             let receipt_member = context
                 .members
                 .iter()
-                .find(|member| member.source_path == receipt_path)
+                .find(|member| member.source_path == receipt_path.as_str())
                 .ok_or(DurableError::Conflict(
                     "navigation Claim mutation receipt is not a committed event member",
                 ))?;
             let selected_receipt = context
                 .selected_sources
                 .iter()
-                .find(|source| source.source_path == receipt_path)
+                .find(|source| source.source_path == receipt_path.as_str())
                 .ok_or(DurableError::Conflict(
                     "navigation Claim mutation receipt bytes are not selected",
                 ))?;
@@ -1459,7 +1459,7 @@ impl DurableNavigationEventCohortSetV2 {
             let mutation_receipt = navigation_claim_ids_from_mutation_receipt(
                 receipt_raw,
                 mutation_source_path,
-                receipt_path,
+                receipt_path.as_str(),
                 limits.max_row_bytes,
             )?;
             if mutation_receipt.revision_receipt_sha256
@@ -1542,7 +1542,7 @@ impl DurableNavigationEventCohortSetV2 {
                     || cohort.source_revision() != source_revision
                     || cohort.predecessor_source_revision() != predecessor_source_revision
                     || cohort.mutation_source_path().as_str() != mutation_source_path
-                    || cohort.mutation_receipt_path().as_str() != receipt_path
+                    || cohort.mutation_receipt_path().as_str() != receipt_path.as_str()
                     || integrity.event_claim_set_binding != receipt_sha
                     || integrity.event_claim_set_root != event_claim_set_root
                     || integrity.event_mutation_claim_ids != mutation_claim_ids.as_slice()
@@ -1582,7 +1582,7 @@ impl DurableNavigationEventCohortSetV2 {
                     cohort
                         .dependencies()
                         .iter()
-                        .map(|dependency| dependency.path.as_str()),
+                        .map(|dependency| dependency.path.as_str().to_owned()),
                 );
                 claim_cohorts.push(cohort);
             }
@@ -1604,7 +1604,7 @@ impl DurableNavigationEventCohortSetV2 {
             claim_binding = Some(DurableNavigationClaimSetBindingV1 {
                 mutation_claim_ids,
                 owner_claim_ids: owner_ids.into_iter().collect(),
-                mutation_receipt_path: receipt_path.to_owned(),
+                mutation_receipt_path: receipt_path,
                 mutation_receipt_sha256: receipt_sha,
                 claim_stream_path: mutation_source_path.to_owned(),
                 claim_stream_sha256: mutation_stream_sha,
@@ -1795,7 +1795,7 @@ impl DurableNavigationEventCohortSetV2 {
                     cohort
                         .dependencies()
                         .iter()
-                        .map(|dependency| dependency.path.as_str()),
+                        .map(|dependency| dependency.path.as_str().to_owned()),
                 );
                 claim_refresh_cohorts.push(cohort);
             }
@@ -3480,6 +3480,11 @@ fn navigation_mixed_event_cohort_manifest_v5(
                 Value::Null,
                 Value::Null,
             ),
+            NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
+                return Err(DurableError::Conflict(
+                    "range reconciliation requires the exact range manifest",
+                ));
+            }
             NavigationRecordEventBasisV1::ClaimRevisionRefresh {
                 changed_dependency_path,
                 changed_dependency_sha256,

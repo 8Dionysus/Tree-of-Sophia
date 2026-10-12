@@ -1763,7 +1763,7 @@ fn prepare_pg_growth_family_preview(
         selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2704,7 +2704,7 @@ fn prepare_pg_object_link_growth<'a>(
         selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,

@@ -807,8 +807,9 @@ pub(super) fn run(
         PgItemSessionOutcome::Prepared(prepared) => prepared,
     };
 
-    let mut result = serde_json::from_slice(&cmd::canonical(&prepared.proposal().response)?)
-        .map_err(|_| SourceCommandError::Invalid("PG Item prepared result JSON"))?;
+    let mut result: serde_json::Value =
+        serde_json::from_slice(&cmd::canonical(&prepared.proposal().response)?)
+            .map_err(|_| SourceCommandError::Invalid("PG Item prepared result JSON"))?;
     result["source_read_work"] = item_source_read_work(&readset.work);
     let attempt = db
         .register_source_revision(
