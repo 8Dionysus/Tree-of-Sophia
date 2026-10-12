@@ -106,7 +106,7 @@ pub struct NavigationVersionSourceInputV1<'a> {
 /// contribution after one committed event. Values are exact selected bytes
 /// parsed by the caller; `source_sha256` binds the untouched record bytes.
 pub struct NavigationRecordEventInputV1<'a> {
-    pub validator: &'a crate::source_witness_catalog::SourceCatalogValidator<'_>,
+    pub validator: &'a crate::source_witness_catalog::SourceCatalogValidator<'a>,
     /// Committed CMD outbox ID from the owner-resolved event context. The
     /// publisher rechecks it against the event sequence; it is distinct from
     /// the authored provenance `event_id`.
@@ -1481,7 +1481,9 @@ fn validate_dependencies(
     limits: BibliographicLimits,
 ) -> Result<Vec<NavigationDependencyV1>> {
     let supplied = input.dependencies;
-    if supplied.is_empty() || supplied.len() > limits.catalog.max_files {
+    let supplied_count = u64::try_from(supplied.len())
+        .map_err(|_| Error::Budget("navigation event dependency count"))?;
+    if supplied.is_empty() || supplied_count > limits.catalog.max_files {
         return Err(Error::Budget("navigation event dependency count"));
     }
     let mut dependencies = supplied.to_vec();
@@ -1620,8 +1622,8 @@ fn validate_dependencies(
         .copied()
         .ok_or(Error::Invalid("navigation event history witness absent"))?;
     if history_role != NavigationDependencyRoleV1::RecordHistory
-        || history_state.is_some() != history_bytes.is_some()
-        || history_bytes.is_some_and(|bytes| {
+        || history_state.is_some() != input.history_bytes.is_some()
+        || input.history_bytes.is_some_and(|bytes| {
             history_state.map(|state| state.0) != Some(Digest256::of_bytes(bytes))
                 || history_state.map(|state| state.1) != Some(bytes.len() as u64)
         })
@@ -1634,7 +1636,7 @@ fn validate_dependencies(
     check_selected_navigation_document(
         input.validator,
         selected_source_binding,
-        source_path.as_str(),
+        input.source_path,
         schema_path.as_str(),
         input.schema_bytes,
         input.source_record_bytes,

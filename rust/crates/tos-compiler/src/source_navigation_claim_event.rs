@@ -1324,7 +1324,11 @@ pub fn prepare_navigation_claim_event_owner_inventory_with_endpoints_v1(
     limits: BibliographicLimits,
 ) -> Result<NavigationClaimEventOwnerInventoryV1> {
     limits.validate()?;
-    if source_files.is_empty() || source_files.len() > limits.catalog.max_files {
+    if source_files.is_empty()
+        || u64::try_from(source_files.len())
+            .map_err(|_| Error::Budget("navigation Claim inventory source file count"))?
+            > limits.catalog.max_files
+    {
         return Err(Error::Budget(
             "navigation Claim inventory source file count",
         ));
@@ -2447,14 +2451,15 @@ pub fn project_navigation_claim_dependency_refresh_with_inventory_v1(
         input.affected_owner_manifest,
         input.closure_root,
     )?;
-    project_navigation_claim_dependency_refresh_set_with_inventory_v1(
-        NavigationClaimDependencyRefreshSetInputV1 {
-            common: input.common,
-            affected_owner_manifest_set: &manifest_set,
-        },
-        inventory,
-        limits,
-    )
+    let cause = NavigationClaimEventCauseInputV1::DependencyRefresh {
+        affected_owner_manifest_set: &manifest_set,
+    };
+    match project_navigation_claim_event_core_v1(input.common, cause, inventory, limits)? {
+        NavigationClaimEventContributionV1::DependencyRefresh(cohort) => Ok(cohort),
+        NavigationClaimEventContributionV1::Mutation(_) => Err(Error::Invalid(
+            "navigation Claim refresh renderer returned mutation cohort",
+        )),
+    }
 }
 
 /// Resolve one Claim owner for a compound non-Claim event. All changed
@@ -3345,6 +3350,19 @@ fn digest_json(value: &Value, cap: usize) -> Result<Digest256> {
     Ok(Digest256::of_bytes(&canonical(value, cap)?))
 }
 
+fn source_digest256(value: &Value, cap: usize) -> Result<Digest256> {
+    let digest = source_digest(value, cap)?;
+    Digest256::from_hex(&digest)
+        .map_err(|_| Error::Invalid("navigation Claim source-record digest"))
+}
+
+fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or(Error::Invalid("navigation Claim text field"))
+}
+
 fn claim_forms_path(source_path: &str, id: &str) -> Result<RelativePath> {
     let prefix = source_path
         .strip_suffix(".jsonl")
@@ -3357,12 +3375,16 @@ fn claim_forms_path(source_path: &str, id: &str) -> Result<RelativePath> {
 
 fn validate_dependencies<'a>(
     input: &NavigationClaimEventCommonInputV1<'a>,
-    max_files: usize,
+    max_files: u64,
     max_manifest_bytes: usize,
 ) -> Result<(Vec<NavigationDependencyV1>, BTreeMap<String, &'a [u8]>)> {
     if input.dependencies.is_empty()
-        || input.dependencies.len() > max_files
-        || input.source_files.len() > max_files
+        || u64::try_from(input.dependencies.len())
+            .map_err(|_| Error::Budget("navigation Claim dependency count"))?
+            > max_files
+        || u64::try_from(input.source_files.len())
+            .map_err(|_| Error::Budget("navigation Claim dependency count"))?
+            > max_files
     {
         return Err(Error::Budget("navigation Claim dependency count"));
     }
@@ -4286,7 +4308,7 @@ fn validate_claim_history(
     let current_source_ref_sha256 = claim_reference_digest(&current_source_ref)?;
     let latest_revision_receipt_sha256 = receipts
         .last()
-        .map(|receipt| source_digest(receipt, limits.catalog.max_row_bytes))
+        .map(|receipt| source_digest256(receipt, limits.catalog.max_row_bytes))
         .transpose()?;
     if Some(history_path) != mutation_receipt_path
         || Some(history_sha256) != mutation_receipt_sha256
@@ -4326,7 +4348,7 @@ fn validate_claim_history(
     let (archive_path, archive_binding) = final_archive_binding.ok_or(Error::Invalid(
         "navigation Claim revision archive proof absent",
     ))?;
-    let revision_receipt_sha256 = source_digest(last, limits.catalog.max_row_bytes)?;
+    let revision_receipt_sha256 = source_digest256(last, limits.catalog.max_row_bytes)?;
     let previous_source_sha256 = claim_reference_digest(&previous_source_ref)?;
     let successor_source_sha256 = claim_reference_digest(&successor_source_ref)?;
     let mut proof = NavigationClaimRevisionProofV1 {
@@ -4377,7 +4399,7 @@ fn validate_identity_sources(
     revision: Digest256,
     limits: BibliographicLimits,
 ) -> Result<()> {
-    let mut expected = BTreeMap::<String, &Value>::new();
+    let mut expected = BTreeMap::<String, Value>::new();
     let mut expected_ids = BTreeSet::<String>::new();
     let mut add_expected = |node: &Value| -> Result<()> {
         if node.get("node_kind").and_then(Value::as_str) != Some("identity") {
@@ -4390,7 +4412,10 @@ fn validate_identity_sources(
             .ok_or(Error::Invalid("navigation Claim identity node id"))?
             .to_owned();
         expected_ids.insert(id.clone());
-        if expected.insert(id, node).is_some_and(|old| old != node) {
+        if expected
+            .insert(id, node.clone())
+            .is_some_and(|old| old != *node)
+        {
             return Err(Error::Invalid("navigation Claim conflicting identity node"));
         }
         Ok(())

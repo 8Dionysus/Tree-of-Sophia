@@ -255,7 +255,8 @@ impl<I: Copy + Eq> BorrowedCandidateSchemas<'_, I> {
             return Err(tos_validation::item_rules::ItemRefusal::Deadline);
         }
         if self.schemas.input_identity() != &self.identity
-            || self.schemas.prepared_execution_binding() != self.prepared
+            || SourceFoundationCandidateSchemaBinding::<I>::prepared_execution_binding(self.schemas)
+                != self.prepared
             || self.schemas.profile() != self.prepared.schema_profile
             || self.schemas.schema_set_digest() != self.prepared.schema_set_sha256
             || self.schemas.contract_selection_digest() != self.contract_selection
@@ -268,6 +269,10 @@ impl<I: Copy + Eq> BorrowedCandidateSchemas<'_, I> {
     }
 }
 impl<I: Copy + Eq> CutSchemaExecutor for BorrowedCandidateSchemas<'_, I> {
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        SourceFoundationCandidateSchemaBinding::<I>::contract_digest(self.schemas, contract)
+    }
+
     fn check(
         &mut self,
         path: &str,
@@ -421,7 +426,7 @@ impl CatalogSchemas<'_> {
 impl CutSchemaExecutor for CatalogSchemas<'_> {
     fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
         match self {
-            Self::Candidate(s) => s.contract_digest(contract),
+            Self::Candidate(s) => s.selected_contract_digest(contract),
             Self::Resident(s) => s.contract_digest(contract),
             Self::Spooling(s) => s.contract_digest(contract),
         }
@@ -1113,7 +1118,8 @@ impl<'a> SourceCatalogValidator<'a> {
         schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
         event_source_revision: Option<Digest256>,
     ) -> Result<Self> {
-        let prepared = schemas.prepared_execution_binding();
+        let prepared =
+            SourceFoundationCandidateSchemaBinding::<I>::prepared_execution_binding(schemas);
         if schemas.input_identity() != identity
             || prepared.worker_sha256 != worker.sha256
             || prepared.schema_profile != FormatProfile::LegacyPythonObserved20260923

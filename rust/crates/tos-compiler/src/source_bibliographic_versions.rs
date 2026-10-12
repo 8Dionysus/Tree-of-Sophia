@@ -3655,6 +3655,8 @@ pub fn resolve_selected_claim_version_v1<'a>(
     let Some((record, source, transition, version_status, record_source_path, record_source_bytes)) =
         chosen
     else {
+        let forms_path = adjacent(&source_path, &claim_form_name(&source_path, id)?)?;
+        let forms_bytes = files.optional(&forms_path)?;
         return Ok(SelectedClaimVersionV1 {
             status: if same_version { "stale" } else { "missing" },
             reason: if same_version {
@@ -3678,11 +3680,8 @@ pub fn resolve_selected_claim_version_v1<'a>(
             record_source_bytes: None,
             record_schema_path: None,
             record_schema_bytes: None,
-            forms_path: adjacent(&source_path, &claim_form_name(&source_path, id)?)?,
-            forms_bytes: files.optional(&adjacent(
-                &source_path,
-                &claim_form_name(&source_path, id)?,
-            )?)?,
+            forms_path,
+            forms_bytes,
         });
     };
     let mut provenance = json!({
