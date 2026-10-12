@@ -14,8 +14,9 @@ use tos_foundation::Digest256;
 
 use crate::source_descend::json_string;
 use crate::{
-    AdjacencyPage, Binding, Charged, DisclosureLease, ExactNode, QueryError, QueryErrorCode,
-    RawRecord, ReadModel, SOURCE_NAVIGATION_MODEL_ABI, SOURCE_NAVIGATION_SELECTION_PROFILE,
+    AdjacencyPage, Binding, Charged, CpuStepsMeter, DisclosureLease, ExactNode, QueryError,
+    QueryErrorCode, RawRecord, ReadModel, SOURCE_NAVIGATION_MODEL_ABI,
+    SOURCE_NAVIGATION_SELECTION_PROFILE,
 };
 use tos_compiler::{VerifiedSelectedModel, VerifiedSelection};
 
@@ -760,6 +761,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     NODE_HEADER_RESULT_BYTES
                 },
                 cpu_steps: steps,
+                cpu_meter: CpuStepsMeter::Measured,
             },
             record,
         })
@@ -1024,6 +1026,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                 rows,
                 bytes: meta_bytes,
                 cpu_steps: steps,
+                cpu_meter: CpuStepsMeter::Measured,
             },
         })
     }

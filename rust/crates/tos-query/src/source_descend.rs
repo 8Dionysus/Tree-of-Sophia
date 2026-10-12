@@ -1413,6 +1413,8 @@ fn exact_node<M: ReadModel>(
                 .record
                 .as_ref()
                 .map_or(0, |record| record.raw.len() as u64),
+            cpu_steps: 0,
+            cpu_meter: CpuStepsMeter::Unavailable,
         },
         budget,
     )?;
@@ -1606,6 +1608,8 @@ fn prepare_source_descend<M: ReadModel>(
                     probes: 0,
                     rows: 0,
                     bytes: page_raw_bytes,
+                    cpu_steps: 0,
+                    cpu_meter: CpuStepsMeter::Unavailable,
                 },
                 budget,
             )?;
@@ -1746,6 +1750,8 @@ fn prepare_source_descend<M: ReadModel>(
             probes: 1,
             rows: 1,
             bytes: authority.raw.len() as u64,
+            cpu_steps: 0,
+            cpu_meter: CpuStepsMeter::Unavailable,
         },
         budget,
     )?;
