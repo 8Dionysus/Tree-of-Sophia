@@ -16,7 +16,9 @@ pub(crate) const MAX_TOTAL_CLAIM_BYTES: usize = 268_435_456;
 const MAX_INDEX_ROWS: usize = 65_536;
 const MAX_PREDICATE_ROWS: usize = MAX_INDEX_ROWS * 2;
 pub(crate) const MAX_LOOKUP_ROWS: usize = 8_192;
-const MAX_PATH_BYTES: usize = 4_096;
+pub(crate) const MAX_PATH_BYTES: usize = 4_096;
+/// Matches the bounded current shared-schema path query used during updates.
+pub(crate) const MAX_SHARED_SCHEMA_PATHS: usize = 8_192;
 const MAX_ID_BYTES: usize = 4_096;
 pub(crate) const MAX_NAVIGATION_REFERENCE_ROWS: usize = 262_144;
 pub(crate) const MAX_NAVIGATION_REFERENCE_LOOKUPS: usize = 8_192;
@@ -241,8 +243,20 @@ fn validate_public_path(path: &str) -> DurableResult<()> {
     Ok(())
 }
 
-fn is_claim_stream_path(path: &str) -> bool {
+pub(crate) fn is_claim_stream_path(path: &str) -> bool {
     path.starts_with("ToS/source-witnesses/relations/") && path.ends_with("/source-claims.jsonl")
+}
+
+pub(crate) fn is_shared_schema_source_path(path: &str) -> bool {
+    path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
+}
+
+/// Source members that participate in Claim navigation reconstruction. Claim
+/// streams provide row values; selected shared schemas provide exact
+/// path-valued endpoints. Keep this selector shared by full and streamed
+/// bootstrap/verification routes.
+pub(crate) fn is_claim_navigation_source_member(path: &str) -> bool {
+    is_claim_stream_path(path) || is_shared_schema_source_path(path)
 }
 
 fn validate_claim_stream_path(path: &str) -> DurableResult<()> {
@@ -801,11 +815,18 @@ fn full_navigation_source_rows(
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,
 ) -> DurableResult<BTreeSet<NavigationReferenceIndexRow>> {
+    // Schema bytes are not read by this index; its contribution is the exact
+    // selected path set only. Callers may use empty sentinels for these keys.
     let shared_schema_paths = files
         .keys()
-        .filter(|path| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        .filter(|path| is_shared_schema_source_path(path))
         .cloned()
         .collect::<BTreeSet<_>>();
+    if shared_schema_paths.len() > MAX_SHARED_SCHEMA_PATHS {
+        return Err(DurableError::Refused(
+            "Claim navigation shared schema path bound exceeded",
+        ));
+    }
     let mut claim_streams = 0usize;
     let mut total_bytes = 0usize;
     let mut rows = BTreeSet::new();
@@ -837,7 +858,7 @@ fn full_navigation_source_rows(
 }
 
 fn current_schema_paths(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<BTreeSet<String>> {
-    let limit = as_i64(8193)?;
+    let limit = as_i64(MAX_SHARED_SCHEMA_PATHS + 1)?;
     let rows = tx.query(
         "SELECT subject FROM cmd2_current
          WHERE domain=$1 AND subject COLLATE \"C\" >= 'ToS/contracts/' COLLATE \"C\"
@@ -846,7 +867,7 @@ fn current_schema_paths(tx: &mut Transaction<'_>, domain: &str) -> DurableResult
          ORDER BY subject COLLATE \"C\" LIMIT $2",
         &[&domain, &limit],
     )?;
-    if rows.len() > 8192 {
+    if rows.len() > MAX_SHARED_SCHEMA_PATHS {
         return Err(DurableError::Refused(
             "Claim navigation shared schema path bound exceeded",
         ));
@@ -869,7 +890,7 @@ fn existing_shared_schema_paths(
     tx: &mut Transaction<'_>,
     domain: &str,
 ) -> DurableResult<BTreeSet<String>> {
-    let limit = as_i64(8193)?;
+    let limit = as_i64(MAX_SHARED_SCHEMA_PATHS + 1)?;
     let rows = tx.query(
         "SELECT DISTINCT endpoint FROM cmd2_source_claim_navigation_reference
          WHERE domain=$1 AND basis=$2 AND endpoint_kind='source-path'
@@ -881,7 +902,7 @@ fn existing_shared_schema_paths(
             &limit,
         ],
     )?;
-    if rows.len() > 8192 {
+    if rows.len() > MAX_SHARED_SCHEMA_PATHS {
         return Err(DurableError::Refused(
             "Claim navigation indexed schema path bound exceeded",
         ));
@@ -2184,6 +2205,45 @@ pub(crate) fn lookup_current_navigation_references(
         completeness_token: navigation_reference_complete_token()?,
         completeness_generation,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn navigation_source_selector_keeps_claim_streams_and_shared_schemas() {
+        let claim_path = "ToS/source-witnesses/relations/fixture/source-claims.jsonl";
+        let schema_path = "ToS/contracts/source-claim-record.schema.json";
+        let owner_local_claim =
+            "ToS/source-witnesses/owner-local/relations/fixture/source-claims.jsonl";
+        let non_schema_contract = "ToS/contracts/source-claim-record.json";
+
+        assert!(is_claim_navigation_source_member(claim_path));
+        assert!(is_claim_navigation_source_member(schema_path));
+        assert!(!is_claim_navigation_source_member(owner_local_claim));
+        assert!(!is_claim_navigation_source_member(non_schema_contract));
+
+        let files = BTreeMap::from([
+            (
+                claim_path.to_owned(),
+                br#"{"claim_id":"tos.claim.fixture","object":"ToS/source-witnesses/catalog/example.json"}"#.to_vec(),
+            ),
+            (schema_path.to_owned(), Vec::new()),
+            (non_schema_contract.to_owned(), b"{}".to_vec()),
+        ]);
+        let rows = full_navigation_source_rows(&files, Digest256::of_bytes(b"definition"))
+            .expect("valid Claim stream and shared schema source members");
+        assert!(rows.iter().any(|row| {
+            row.path == claim_path
+                && row.basis == NavigationReferenceBasis::SharedSchema
+                && row.endpoint == schema_path
+        }));
+        assert!(!rows.iter().any(|row| {
+            row.basis == NavigationReferenceBasis::SharedSchema
+                && row.endpoint == non_schema_contract
+        }));
+    }
 }
 
 /// Read exact reverse Claim references whose half-open interval contains an

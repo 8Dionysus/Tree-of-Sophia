@@ -669,8 +669,11 @@ pub(super) fn source_error(error: DurableError) -> SourceCommandError {
             SourceCommandError::Conflict("PostgreSQL bootstrap selection changed")
         }
         DurableError::Refused(reason) => SourceCommandError::Denied(reason),
-        DurableError::Invalid(_) | DurableError::Corrupt(_) => {
-            SourceCommandError::Invalid("PostgreSQL bootstrap metadata")
+        // These owner labels are static strings, never database messages or
+        // source values. Preserve the exact refusal so a failed import can be
+        // diagnosed without repeating it merely to discover the failed check.
+        DurableError::Invalid(reason) | DurableError::Corrupt(reason) => {
+            SourceCommandError::Invalid(reason)
         }
         DurableError::Database(error) => {
             // PostgreSQL messages may contain private source values. Expose only

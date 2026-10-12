@@ -7130,18 +7130,50 @@ impl DurablePgCoordinator {
             &annotation_identity_members,
             def,
         )?;
+        let shared_schema_count = ctx
+            .files
+            .iter()
+            .filter(|file| {
+                crate::source_claim_dependency_index::is_shared_schema_source_path(
+                    file.path.as_str(),
+                )
+            })
+            .take(crate::source_claim_dependency_index::MAX_SHARED_SCHEMA_PATHS + 1)
+            .count();
+        if ctx.files.iter().any(|file| {
+            crate::source_claim_dependency_index::is_shared_schema_source_path(file.path.as_str())
+                && file.path.as_str().len() > crate::source_claim_dependency_index::MAX_PATH_BYTES
+        }) {
+            return Err(DurableError::Refused(
+                "Claim navigation shared schema path byte bound exceeded",
+            ));
+        }
+        if shared_schema_count > crate::source_claim_dependency_index::MAX_SHARED_SCHEMA_PATHS {
+            return Err(DurableError::Refused(
+                "Claim navigation shared schema path bound exceeded",
+            ));
+        }
+        // Claim navigation consumes shared schemas by exact path only. Keep an
+        // empty sentinel in this subset so it does not retain duplicate schema
+        // bodies or imply that their contents were indexed.
         let claim_dependency_members = ctx
             .files
             .iter()
             .filter(|file| {
-                file.path.as_str().starts_with("ToS/source-witnesses/")
-                    && file.path.as_str().ends_with("/source-claims.jsonl")
-                    && !file
-                        .path
-                        .as_str()
-                        .starts_with("ToS/source-witnesses/owner-local/")
+                crate::source_claim_dependency_index::is_claim_navigation_source_member(
+                    file.path.as_str(),
+                )
             })
-            .map(|file| (file.path.as_str().to_owned(), file.raw.clone()))
+            .map(|file| {
+                let bytes = if crate::source_claim_dependency_index::is_shared_schema_source_path(
+                    file.path.as_str(),
+                ) {
+                    Vec::new()
+                } else {
+                    file.raw.clone()
+                };
+                (file.path.as_str().to_owned(), bytes)
+            })
             .collect::<BTreeMap<_, _>>();
         let navigation_baseline_seq = as_u64(
             tx.query_one(
@@ -10418,14 +10450,42 @@ impl DurablePgCoordinator {
             &annotation_identity_members,
             cohort.definition,
         )?;
+        let shared_schema_count = files
+            .iter()
+            .filter(|(path, _)| {
+                crate::source_claim_dependency_index::is_shared_schema_source_path(path)
+            })
+            .take(crate::source_claim_dependency_index::MAX_SHARED_SCHEMA_PATHS + 1)
+            .count();
+        if files.iter().any(|(path, _)| {
+            crate::source_claim_dependency_index::is_shared_schema_source_path(path)
+                && path.len() > crate::source_claim_dependency_index::MAX_PATH_BYTES
+        }) {
+            return Err(DurableError::Refused(
+                "Claim navigation shared schema path byte bound exceeded",
+            ));
+        }
+        if shared_schema_count > crate::source_claim_dependency_index::MAX_SHARED_SCHEMA_PATHS {
+            return Err(DurableError::Refused(
+                "Claim navigation shared schema path bound exceeded",
+            ));
+        }
+        // Shared schemas contribute endpoint paths only; the empty sentinel
+        // avoids another retained copy of their source bytes.
         let claim_dependency_members = files
             .iter()
             .filter(|(path, _)| {
-                path.starts_with("ToS/source-witnesses/")
-                    && path.ends_with("/source-claims.jsonl")
-                    && !path.starts_with("ToS/source-witnesses/owner-local/")
+                crate::source_claim_dependency_index::is_claim_navigation_source_member(path)
             })
-            .map(|(path, raw)| (path.clone(), raw.clone()))
+            .map(|(path, raw)| {
+                let bytes =
+                    if crate::source_claim_dependency_index::is_shared_schema_source_path(path) {
+                        Vec::new()
+                    } else {
+                        raw.clone()
+                    };
+                (path.clone(), bytes)
+            })
             .collect::<BTreeMap<_, _>>();
         crate::source_claim_dependency_index::verify_current(
             &mut tx,

@@ -2392,7 +2392,8 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
 fn maintained_assessment_whole_output_matches_native_current_view() {
     use tos_validation::assessment::{
         AssessmentLimits, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
-        AssessmentSourceRoute, AssessmentSubmissionInput, evaluate_current_assessment,
+        AssessmentSchemaBindingV1, AssessmentSourceRoute, AssessmentSubmissionInput,
+        evaluate_current_assessment,
     };
     use tos_validation::executor::BatchBudget;
 
@@ -2480,7 +2481,8 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     for case in cases {
         let name = required(case, "name");
         let input = AssessmentReadInput {
-            source_revision: revision,
+            source_revision: Some(revision),
+            source_input_identity: revision.0,
             policy: record(&case["policy"]),
             authorities: records(&case["authorities"]),
             competencies: records(&case["competencies"]),
@@ -2514,8 +2516,16 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
             &case["expected"],
             "entire maintained output: {name}"
         );
-        assert_eq!(report.schema_binding().source_revision, revision);
-        assert_eq!(report.schema_binding().worker_sha256, worker_digest);
+        let AssessmentSchemaBindingV1::SourceCut {
+            source_revision,
+            worker,
+        } = report.schema_binding()
+        else {
+            panic!("complete-cut assessment must retain its selected source revision");
+        };
+        assert_eq!(source_revision, revision);
+        assert_eq!(worker.worker_sha256, worker_digest);
+        assert_eq!(report.source_input_identity(), revision.0);
         assert_eq!(report.observed_now(), required(case, "observed_now"));
         if case["source_read"].is_null() {
             assert!(
@@ -2551,7 +2561,9 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     let mut input = last_input.unwrap();
     let start = schemas.receipts().len();
     let current_revision = input.source_revision;
-    input.source_revision = SourceRevision(Digest256::of_bytes(b"different selected source"));
+    input.source_revision = Some(SourceRevision(Digest256::of_bytes(
+        b"different selected source",
+    )));
     assert!(matches!(
         evaluate_current_assessment(&input, &mut schemas, limits, &cancelled),
         Err(AssessmentRefusal::InvalidInput(_))

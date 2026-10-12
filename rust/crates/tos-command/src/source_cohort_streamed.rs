@@ -1169,8 +1169,9 @@ struct CompleteMixedProjectionPassV1 {
     text_identity_candidates: BTreeMap<String, Vec<u8>>,
     // Public semantic annotation packets from that same full source pass.
     annotation_identity_candidates: BTreeMap<String, Vec<u8>>,
-    // Exact public Claim streams from that same bounded pass support cold
-    // equality verification of the reverse Claim dependency index.
+    // Exact Claim streams and shared-schema paths from that same bounded pass
+    // support cold equality verification. Shared schemas use empty byte
+    // sentinels because only their paths, not their contents, are indexed.
     claim_dependency_candidates: BTreeMap<String, Vec<u8>>,
     // Current Item records and manifests needed to verify the File assignment
     // index without a second source read.
@@ -1205,7 +1206,9 @@ fn render_current_mixed_projections(
     let mut annotation_identity_candidates = BTreeMap::new();
     let mut annotation_identity_candidate_bytes = 0usize;
     let mut claim_dependency_candidates = BTreeMap::new();
+    let mut claim_dependency_candidate_streams = 0usize;
     let mut claim_dependency_candidate_bytes = 0usize;
+    let mut claim_dependency_candidate_schema_paths = 0usize;
     let mut item_file_candidates = BTreeMap::new();
     let mut legacy_publication_members = BTreeMap::new();
     let mut legacy_publication_bytes = 0usize;
@@ -1352,36 +1355,55 @@ fn render_current_mixed_projections(
                 "streamed canonical member projection bound",
             ));
         }
-        if member.path.starts_with("ToS/source-witnesses/")
-            && !member.path.starts_with("ToS/source-witnesses/owner-local/")
-            && member.path.ends_with("/source-claims.jsonl")
-        {
-            if claim_dependency_candidates.len()
-                >= crate::source_claim_dependency_index::MAX_CLAIM_STREAMS
-            {
-                return Err(DurableError::Refused(
-                    "streamed Claim dependency stream count bound exceeded",
-                ));
-            }
-            if file.raw.len() > crate::source_claim_dependency_index::MAX_STREAM_BYTES {
-                return Err(DurableError::Refused(
-                    "streamed Claim dependency stream byte bound exceeded",
-                ));
-            }
-            claim_dependency_candidate_bytes = claim_dependency_candidate_bytes
-                .checked_add(file.raw.len())
-                .filter(|bytes| {
-                    *bytes <= crate::source_claim_dependency_index::MAX_TOTAL_CLAIM_BYTES
-                })
-                .ok_or(DurableError::Refused(
-                    "streamed Claim dependency aggregate byte bound exceeded",
-                ))?;
+        if crate::source_claim_dependency_index::is_claim_navigation_source_member(&member.path) {
+            let candidate =
+                if crate::source_claim_dependency_index::is_claim_stream_path(&member.path) {
+                    claim_dependency_candidate_streams = claim_dependency_candidate_streams
+                        .checked_add(1)
+                        .filter(|count| {
+                            *count <= crate::source_claim_dependency_index::MAX_CLAIM_STREAMS
+                        })
+                        .ok_or(DurableError::Refused(
+                            "streamed Claim dependency stream count bound exceeded",
+                        ))?;
+                    if file.raw.len() > crate::source_claim_dependency_index::MAX_STREAM_BYTES {
+                        return Err(DurableError::Refused(
+                            "streamed Claim dependency stream byte bound exceeded",
+                        ));
+                    }
+                    claim_dependency_candidate_bytes = claim_dependency_candidate_bytes
+                        .checked_add(file.raw.len())
+                        .filter(|bytes| {
+                            *bytes <= crate::source_claim_dependency_index::MAX_TOTAL_CLAIM_BYTES
+                        })
+                        .ok_or(DurableError::Refused(
+                            "streamed Claim dependency aggregate byte bound exceeded",
+                        ))?;
+                    file.raw.clone()
+                } else {
+                    claim_dependency_candidate_schema_paths =
+                        claim_dependency_candidate_schema_paths
+                            .checked_add(1)
+                            .filter(|count| {
+                                *count
+                                    <= crate::source_claim_dependency_index::MAX_SHARED_SCHEMA_PATHS
+                            })
+                            .ok_or(DurableError::Refused(
+                                "streamed Claim navigation shared schema path bound exceeded",
+                            ))?;
+                    if member.path.len() > crate::source_claim_dependency_index::MAX_PATH_BYTES {
+                        return Err(DurableError::Refused(
+                            "streamed Claim navigation shared schema path byte bound exceeded",
+                        ));
+                    }
+                    Vec::new()
+                };
             if claim_dependency_candidates
-                .insert(member.path.clone(), file.raw.clone())
+                .insert(member.path.clone(), candidate)
                 .is_some()
             {
                 return Err(DurableError::Corrupt(
-                    "duplicate streamed Claim dependency path",
+                    "duplicate streamed Claim navigation source path",
                 ));
             }
         }
