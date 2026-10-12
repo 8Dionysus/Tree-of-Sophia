@@ -11,7 +11,7 @@ export function installInterfaceRules(runtime) {
 }
 
 export function normalizeInterfacePreferences(value) {
-  if (!normalize) return null;
+  if (!normalize) throw new Error(t('Правила интерфейса недоступны.'));
   try {
     const result=JSON.parse(decoder.decode(normalize(encoder.encode(packet(value)))));
     // JSON.stringify erases the sign of zero; the legacy reader preserves it.

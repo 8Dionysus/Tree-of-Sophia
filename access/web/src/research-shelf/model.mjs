@@ -6,7 +6,7 @@ import {validateDraft} from '../observatory/lens-model.mjs';
 import {COPY_SCHEMA,validateWorkspaceCopy} from '../observatory/workspace-copy.mjs';
 import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION} from '../research-workspace.ts';
 import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
-import {researchShelfRule,researchShelfRulesReady,validateResearchShelfPacketIndex} from './rules.mjs';
+import {researchShelfRule,validateResearchShelfPacketIndex} from './rules.mjs';
 
 // The shelf is a local, user-owned index of exact addresses. It never owns a
 // source passage, an exploration page, or a command/runtime handle.
@@ -237,12 +237,8 @@ export function createShelfRecord(input,{id,now=canonicalTimestamp}={}){
   if(input.createdAt!==undefined||input.updatedAt!==undefined||input.revision!==undefined)
     fail('invalid-input','Stored timestamps and revisions cannot be supplied for a new shelf record.');
   const createdAt=timestamp(now(),'createdAt');
-  if(researchShelfRulesReady()){
-    const target=validateTarget(input.type,input.target);
-    return researchShelfRule('create_record',{input:{...input,target},id:recordId,now:createdAt});
-  }
-  const base={id:recordId,title:input.title,type:input.type,target:input.target,collectionIds:input.collectionIds??[],createdAt,updatedAt:createdAt,revision:1};
-  return validateShelfRecord(base);
+  const target=validateTarget(input.type,input.target);
+  return researchShelfRule('create_record',{input:{...input,target},id:recordId,now:createdAt});
 }
 
 /** Normalize editable fields while preserving the stored address and creation time. */
@@ -257,11 +253,8 @@ export function updateShelfRecord(existing,input,{now=canonicalTimestamp}={}){
     fail('invalid-input','A record update cannot change its exact target.');
   if(input.createdAt!==undefined&&input.createdAt!==old.createdAt)fail('invalid-input','A record update cannot change createdAt.');
   const updatedAt=timestamp(now(),'updatedAt');
-  if(researchShelfRulesReady())return researchShelfRule('update_record',{
+  return researchShelfRule('update_record',{
     old,input:canonicalTarget===undefined?input:{...input,target:canonicalTarget},now:updatedAt});
-  const base={id:old.id,title:input.title??old.title,type:old.type,target:old.target,
-    collectionIds:input.collectionIds??old.collectionIds,createdAt:old.createdAt,updatedAt,revision:old.revision+1};
-  return validateShelfRecord(base);
 }
 
 export function validateCollection(value){
@@ -281,8 +274,7 @@ export function createShelfCollection(input,{id,now=canonicalTimestamp}={}){
   const collectionId=input.id??(typeof id==='function'?id():`collection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
   boundedString(collectionId??'generated id',256,'collection id');
   const at=timestamp(now(),'collection.createdAt');
-  if(researchShelfRulesReady())return researchShelfRule('create_collection',{input,id:collectionId,now:at});
-  return validateCollection({id:collectionId,title:input.title,createdAt:at,updatedAt:at,revision:1});
+  return researchShelfRule('create_collection',{input,id:collectionId,now:at});
 }
 
 export function updateShelfCollection(existing,input,{now=canonicalTimestamp}={}){
@@ -290,16 +282,9 @@ export function updateShelfCollection(existing,input,{now=canonicalTimestamp}={}
   if(!object(input)||Object.keys(input).some(key=>!['id','title'].includes(key)))fail('invalid-input','The collection input contains an unknown field.');
   if(input.id!==undefined&&input.id!==old.id)fail('invalid-input','A collection update cannot change its id.');
   const at=timestamp(now(),'collection.updatedAt');
-  if(researchShelfRulesReady())return researchShelfRule('update_collection',{old,input,now:at});
-  return validateCollection({id:old.id,title:input.title??old.title,createdAt:old.createdAt,updatedAt:at,revision:old.revision+1});
+  return researchShelfRule('update_collection',{old,input,now:at});
 }
-
-function stable(value){
-  if(Array.isArray(value))return `[${value.map(stable).join(',')}]`;
-  if(object(value))return `{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
-  return JSON.stringify(value);
-}
-export const sameShelfValue=(left,right)=>researchShelfRule('same_value',{left,right})??stable(left)===stable(right);
+export const sameShelfValue=(left,right)=>researchShelfRule('same_value',{left,right});
 
 function encodeBase64(value){
   const text=JSON.stringify(value);
@@ -366,10 +351,7 @@ export function validateShelfExport(value){
     fail('limit','The shelf export is outside its record bounds.');
   if(packet.exportedAt!==undefined)timestamp(packet.exportedAt,'exportedAt');
   const records=packet.records.map(validateShelfRecord),collections=packet.collections.map(validateCollection);
-  if(!validateResearchShelfPacketIndex({...packet,generation,records,collections})){
-    if(new Set(records.map(item=>item.id)).size!==records.length)fail('invalid-packet','The shelf export contains duplicate record ids.');
-    if(new Set(collections.map(item=>item.id)).size!==collections.length)fail('invalid-packet','The shelf export contains duplicate collection ids.');
-  }
+  validateResearchShelfPacketIndex({...packet,generation,records,collections});
   return {schema:SHELF_EXPORT_SCHEMA,version:SHELF_VERSION,generation,records,collections,
     ...(packet.exportedAt===undefined?{}:{exportedAt:packet.exportedAt})};
 }
@@ -404,17 +386,6 @@ function migrationTimes(now){
   const value=timestamp(now(),'migration timestamp');
   return {recordAt:value,exportedAt:value};
 }
-
-// Deterministic local identity keeps re-imports additive and idempotent while
-// retaining no source wording or runtime state. It is a trace key, not a
-// cryptographic digest.
-function migrationHash(value){
-  let hash=0xcbf29ce484222325n;
-  for(const byte of new TextEncoder().encode(stable(value))){hash^=BigInt(byte);hash=BigInt.asUintN(64,hash*0x100000001b3n);}
-  return hash.toString(16).padStart(16,'0');
-}
-function migrationRecordId(type,target){return researchShelfRule('migration_id',{type,target})??`import:${type}:${migrationHash({target})}`;}
-const migrationPolicy=(source,section)=>researchShelfRule('migration_policy',{source,section});
 
 function checkedReadingPacket(value){
   const packet=parseSuppliedPacket(value,'reading-resume');
@@ -461,56 +432,37 @@ function checkedLensList(value){
 function addMaterial(records,retained,skipped,entry,source,index,at){
   const target={kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,
     ...(entry.claimReference===undefined?{}:{claimReference:entry.claimReference})};
-  if(researchShelfRulesReady()){
-    const result=researchShelfRule('migration_record',{source,section:'entries',index,target:validateMaterialTarget(target),now:at,hasPositions:entry.positions.length>0});
-    records.push(result.record);retained.push(result.retained);for(const item of result.skipped)skipped.push(item);return;
-  }
-  const policy=migrationPolicy(source,'entries');
-  if(policy!==null&&policy!=='retain-material')fail('invalid-packet','The supplied material section is unsupported.');
-  const record=createShelfRecord({id:migrationRecordId('material',target),title:'Материал',type:'material',target,collectionIds:[]},{now:()=>at});
-  records.push(record);retained.push({source,section:'entries',index,type:'material',recordId:record.id});
+  const result=researchShelfRule('migration_record',{source,section:'entries',index,target:validateMaterialTarget(target),now:at,hasPositions:entry.positions.length>0});
+  records.push(result.record);retained.push(result.retained);for(const item of result.skipped)skipped.push(item);
 }
 
 function addLens(records,retained,draft,source,index,at){
   const target={draft};
-  if(researchShelfRulesReady()){
-    const result=researchShelfRule('migration_record',{source,section:'lenses',index,target:validateLensTarget(target),now:at});
-    records.push(result.record);retained.push(result.retained);return;
-  }
-  const policy=migrationPolicy(source,'lenses');
-  if(policy!==null&&policy!=='retain-lens')fail('invalid-packet','The supplied lens section is unsupported.');
-  const record=createShelfRecord({id:migrationRecordId('lens',target),title:draft.name,type:'lens',target,collectionIds:[]},{now:()=>at});
-  records.push(record);retained.push({source,section:'lenses',index,type:'lens',recordId:record.id});
-}
-
-function skip(skipped,source,section,index,reason){
-  const policySection=section==='entries'&&reason==='non-portable-reading-position'?'entries.positions':section;
-  skipped.push({source,section,index,reason:migrationPolicy(source,policySection)??reason});
+  const result=researchShelfRule('migration_record',{source,section:'lenses',index,target:validateLensTarget(target),now:at});
+  records.push(result.record);retained.push(result.retained);
 }
 
 // Array traversal belongs to the host, but report layout/posture belongs to
 // Rust. One bounded owner section enters; full packet bodies are never copied.
-function skipSection(skipped,source,section,count,reason,{single=false}={}){
+function skipSection(skipped,source,section,count,{single=false}={}){
   if(count===0)return;
   const result=researchShelfRule('migration_skips',{source,section,count,single});
-  if(result!==null){for(const item of result)skipped.push(item);return;}
-  for(let index=0;index<count;index++)skip(skipped,source,section,single?null:index,reason);
+  for(const item of result)skipped.push(item);
 }
 
 function carryReading(records,retained,skipped,reading,source,at){
   reading.entries.forEach((entry,index)=>{
     addMaterial(records,retained,skipped,entry,source,index,at);
-    if(!researchShelfRulesReady()&&entry.positions.length)skip(skipped,source,'entries',index,'non-portable-reading-position');
   });
 }
 
 function carryResearchWorkspace(records,retained,skipped,workspace,source,at,lenses){
-  skipSection(skipped,source,'selected_lens',workspace.selected_lens?1:0,'non-portable-lens-selection',{single:true});
-  skipSection(skipped,source,'excluded_edge_ids',workspace.excluded_edge_ids.length,'legacy-graph-pose');
-  skipSection(skipped,source,'route_snapshots',workspace.route_snapshots.length,'legacy-graph-pose');
-  skipSection(skipped,source,'hypotheses',workspace.hypotheses.length,'non-portable-research-record');
-  skipSection(skipped,source,'proposals',workspace.proposals.length,'non-portable-research-record');
-  skipSection(skipped,source,'notes',workspace.notes.length,'non-portable-note');
+  skipSection(skipped,source,'selected_lens',workspace.selected_lens?1:0,{single:true});
+  skipSection(skipped,source,'excluded_edge_ids',workspace.excluded_edge_ids.length);
+  skipSection(skipped,source,'route_snapshots',workspace.route_snapshots.length);
+  skipSection(skipped,source,'hypotheses',workspace.hypotheses.length);
+  skipSection(skipped,source,'proposals',workspace.proposals.length);
+  skipSection(skipped,source,'notes',workspace.notes.length);
   checkedLensList(lenses).forEach((draft,index)=>addLens(records,retained,draft,source,index,at));
 }
 
@@ -533,9 +485,9 @@ export function importSuppliedResearchPacket(value,options={}){
     const copyPacket=checkedWorkspaceCopy(value);
     carryReading(records,retained,skipped,copyPacket.reading,source,at);
     copyPacket.lenses.forEach((draft,index)=>addLens(records,retained,draft,source,index,at));
-    skipSection(skipped,source,'history',copyPacket.history?.entries?.length??0,'legacy-graph-pose');
-    skipSection(skipped,source,'places',copyPacket.places.length,'legacy-graph-pose');
-    skipSection(skipped,source,'resume',copyPacket.resume?1:0,'legacy-graph-pose',{single:true});
+    skipSection(skipped,source,'history',copyPacket.history?.entries?.length??0);
+    skipSection(skipped,source,'places',copyPacket.places.length);
+    skipSection(skipped,source,'resume',copyPacket.resume?1:0,{single:true});
     carryResearchWorkspace(records,retained,skipped,copyPacket.research,source,at);
   }
   return {source,packet:makeShelfExport({generation:0,records,collections:[],exportedAt:times.exportedAt}),retained,skipped};

@@ -576,9 +576,7 @@ pub(super) fn run(
                 let recovered = source_creation_store::pg_item_adoption_response_from_attempt(
                     &owner_fs, &context, &attempt, &stage, deadline, cancelled,
                 )?;
-                if recovered.get("transaction_id").and_then(Value::as_str)
-                    != Some(transaction_id.as_str())
-                {
+                if recovered.get("transaction_id").and_then(Value::as_str) != Some(transaction_id) {
                     return Err(SourceCommandError::Conflict(
                         "PG Item recovery transaction response differs",
                     ));

@@ -86,9 +86,9 @@ collection detach, import capacity, cursor/filter checks, equality, deterministi
 migration identity, migrated records and bounded skipped-section reports.
 The JS adapter retains exact owner decoders for reading/Claim, text and lens
 contracts, the host clock/ID generation, asynchronous exclusivity, IndexedDB
-transactions, physical list traversal/order and import/export I/O. The direct
-JS oracle remains available when no binding is installed; its existence does
-not prove the active browser binding.
+transactions, physical list traversal/order and import/export I/O. Shelf rules
+require the initialized generated WASM binding; there is no JS policy oracle
+when that binding is unavailable.
 
 A rule request is at most 1 MiB; its host preflight mirrors the existing Rust
 64-depth/300,000-visit parser bounds before whole JSON/UTF-8 encoding. Migration

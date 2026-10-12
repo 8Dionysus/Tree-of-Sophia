@@ -548,11 +548,9 @@ A verified source archive restore is a separate operation; successful publicatio
 inspection alone does not establish backup completeness or recovery on another
 machine.
 
-The Python `source_agent_publication` module remains a dependency of maintained
-Claim/Metadata publication and exact-source owner reads. A successful native Agent
-projection does not authorize removing those consumers. Retire the old module
-only as those operations acquire working replacements and their unique controls
-move to the replacements.
+Maintained Agent, Claim/Metadata publication and exact-source owner reads use
+the native source owner. The former Python module remains historical evidence;
+it is not a maintained runtime or publication dependency.
 
 ## Private native Original candidate
 

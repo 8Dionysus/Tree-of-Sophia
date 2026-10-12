@@ -76,11 +76,39 @@ fn valid_command(value: Option<&Value>) -> bool {
 }
 
 fn is_python_command(value: Option<&Value>) -> bool {
-    value
+    let Some(program) = value
         .and_then(Value::as_array)
         .and_then(|parts| parts.first())
         .and_then(Value::as_str)
-        == Some("python")
+    else {
+        return false;
+    };
+    let basename = Path::new(program)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(program);
+    if basename.ends_with(".py") {
+        return true;
+    }
+    if basename == "python" {
+        return true;
+    }
+    let Some(version) = basename.strip_prefix("python") else {
+        return false;
+    };
+    let mut components = version.split('.');
+    let Some(major) = components.next() else {
+        return false;
+    };
+    let minor = components.next();
+    let valid_minor = match minor {
+        Some(minor) => !minor.is_empty() && minor.bytes().all(|byte| byte.is_ascii_digit()),
+        None => true,
+    };
+    !major.is_empty()
+        && major.bytes().all(|byte| byte.is_ascii_digit())
+        && components.next().is_none()
+        && valid_minor
 }
 
 fn valid_foundation_invocation_selection(sequence: &str, command: &[String]) -> bool {

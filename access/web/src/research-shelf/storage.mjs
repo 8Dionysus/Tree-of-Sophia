@@ -1,5 +1,5 @@
 import {
-  DEFAULT_DB_NAME,DEFAULT_PAGE_SIZE,MAX_PAGE_SIZE,MAX_RECORDS,MAX_COLLECTIONS,
+  DEFAULT_DB_NAME,DEFAULT_PAGE_SIZE,MAX_PAGE_SIZE,
   ResearchShelfError,createShelfCollection,createShelfRecord,decodeShelfCursor,
   encodeShelfCursor,makeShelfExport,importSuppliedResearchPacket,sameShelfValue,
   updateShelfCollection,updateShelfRecord,validateCollection,validateListOptions,
@@ -31,20 +31,8 @@ const generatedId=(prefix)=>{
 };
 const ruleTransition=(kind,operation,generation,old,expected,incoming,id)=>{
   try{
-    const ruled=researchShelfRule('transition',{kind,operation,generation,old:old??null,expected:expected??null,
+    return researchShelfRule('transition',{kind,operation,generation,old:old??null,expected:expected??null,
       ...(incoming===undefined?{}:{incoming})});
-    if(ruled)return ruled;
-    // Retained direct-test oracle. Active browser writes use the returned Rust
-    // generation exactly once, before their host transaction mutates storage.
-    const label=kind==='record'?'shelf record':'collection',actual=old?.revision??null;
-    if(operation==='delete'&&!old)fail('not-found',`The ${label} was not found.`,{id});
-    if(operation==='save'&&(expected===null||expected===undefined)){
-      if(old)fail('conflict',`A ${label} with this id already exists.`,{id:incoming.id,expectedRevision:expected,actualRecordRevision:actual});
-    }else if(!old||old.revision!==expected)
-      fail('conflict',`The ${label} changed in another context.`,{id:id??incoming?.id,expectedRevision:expected,actualRecordRevision:actual});
-    if(operation==='save'&&incoming.revision!==(old?old.revision+1:1))
-      fail('invalid-record',`The ${label} revision does not match the CAS operation.`);
-    return {generation:generation+1};
   }
   catch(error){
     if(error?.code==='conflict'||error?.code==='not-found')
@@ -101,13 +89,8 @@ function importPlan(state,packet,expected){
   let recordAdditions=0,collectionAdditions=0;
   for(const item of packet.records)if(!state.records.has(item.id))recordAdditions++;
   for(const item of packet.collections)if(!state.collections.has(item.id))collectionAdditions++;
-  const ruled=researchShelfRule('import_plan',{generation:state.generation,currentRecords:state.records.size,currentCollections:state.collections.size,
+  return researchShelfRule('import_plan',{generation:state.generation,currentRecords:state.records.size,currentCollections:state.collections.size,
     recordAdditions,collectionAdditions,expectedGeneration:expected??null});
-  if(ruled)return ruled;
-  if(state.records.size+recordAdditions>MAX_RECORDS||state.collections.size+collectionAdditions>MAX_COLLECTIONS)
-    fail('limit','The research shelf import is outside its bounds.');
-  const changed=recordAdditions>0||collectionAdditions>0;
-  return {generation:changed?state.generation+1:state.generation,counts:{records:recordAdditions,collections:collectionAdditions},changed};
 }
 function compareIncoming(state,packet){
   for(const incoming of packet.records){
@@ -120,12 +103,7 @@ function compareIncoming(state,packet){
   }
 }
 function detachCollection(record,id,at){
-  // A membership change must invalidate stale editors, while a clock moving
-  // backwards must not make an otherwise valid imported record invalid.
-  const ruled=researchShelfRule('detach',{record,collectionId:id,now:at});
-  if(ruled)return validateShelfRecord(ruled);
-  return validateShelfRecord({...record,collectionIds:record.collectionIds.filter(value=>value!==id),
-    revision:record.revision+1,updatedAt:Date.parse(at)<Date.parse(record.updatedAt)?record.updatedAt:at});
+  return validateShelfRecord(researchShelfRule('detach',{record,collectionId:id,now:at}));
 }
 /**
  * Memory adapter used by tests and as the explicit degraded-mode fallback.
@@ -335,14 +313,12 @@ function idbImport(db,packet,expected){
             // additive import atomicity when the final id conflicts.
             const outcome=researchShelfRule('import_plan',{generation:current.generation,currentRecords:recordTotal,currentCollections:collectionTotal,
               recordAdditions:additions.records.length,collectionAdditions:additions.collections.length,expectedGeneration:expected??null});
-            if(!outcome&&(recordTotal+additions.records.length>MAX_RECORDS||collectionTotal+additions.collections.length>MAX_COLLECTIONS))
-              fail('limit','The research shelf import is outside its bounds.');
-            const generation=outcome?.generation??(additions.records.length||additions.collections.length?current.generation+1:current.generation);
+            const generation=outcome.generation;
             for(const item of additions.collections)tx.objectStore(RESEARCH_SHELF_STORES.collections).put(copy(item));
             for(const item of additions.records)tx.objectStore(RESEARCH_SHELF_STORES.records).put(copy(item));
             if(additions.records.length||additions.collections.length)
               tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation});
-            set(outcome??{generation,counts:{records:additions.records.length,collections:additions.collections.length},changed:Boolean(additions.records.length||additions.collections.length)});
+            set(outcome);
           }catch(error){abort(error);}
         };
         const nextRecord=()=>{

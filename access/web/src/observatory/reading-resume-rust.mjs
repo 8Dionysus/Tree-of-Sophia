@@ -21,7 +21,7 @@ export function installReadingRules(runtime){
   normalize=runtime.normalize_reading_resume_wasm_v1;
 }
 export function normalizeReadingResume(value){
-  if(!normalize)return null;
+  if(!normalize){const error=new Error('Reading resume WASM rule is unavailable.');error.code='rules-unavailable';throw error;}
   if(Array.isArray(value?.entries)&&value.entries.length>2)throw new Error('invalid_reading');
   const projected={v:value?.v,activeKey:value?.activeKey,
     entries:Array.isArray(value?.entries)?value.entries.map(entry):value?.entries};

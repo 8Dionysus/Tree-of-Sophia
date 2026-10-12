@@ -4,7 +4,9 @@
 //! complete prepared package to the durable private transaction.
 
 use super::pg_claims as pg;
-use crate::source_cohort::revision::SourceRevisionReadSession;
+use crate::source_cohort::revision::{
+    SourceRevisionReadSession, SourceRevisionReadSet, SourceRevisionSelection,
+};
 use crate::source_cohort_private_text::{
     PreparedPrivateTextPackageV1, PrivateTextPackageCapabilityV1, private_text_source_binding,
 };
@@ -89,8 +91,7 @@ struct SelectedEpoch {
     rule_version: u64,
 }
 
-fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
-    let selected = session.selection();
+fn epoch_from_selection(selected: &SourceRevisionSelection) -> SelectedEpoch {
     SelectedEpoch {
         domain: selected.cohort.domain().to_owned(),
         job_id: selected.job_id.clone(),
@@ -104,6 +105,10 @@ fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
         rights_version: selected.rights_version,
         rule_version: selected.rule_version,
     }
+}
+
+fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
+    epoch_from_selection(session.selection())
 }
 
 fn same_epoch(a: &SelectedEpoch, b: &SelectedEpoch) -> bool {
@@ -719,7 +724,13 @@ fn pg_private_text_read(
             "PG private Text read context changed",
         ));
     }
-    pg::value(&result)
+    let (value, readset): (JsonValue, SourceRevisionReadSet) = result;
+    if !same_epoch(first_epoch, &epoch_from_selection(&readset.selection)) {
+        return Err(SourceCommandError::Conflict(
+            "PG private Text read result source epoch changed",
+        ));
+    }
+    pg::value(&value)
 }
 
 enum SelectedGrant {
@@ -1751,6 +1762,7 @@ pub(crate) fn run(
                 "PostgreSQL Text preparation inputs changed",
             ));
         }
+        let owner_configuration = pg::value(&owner_configuration)?;
         let mut response = json!({
             "schema_version":"tos_native_pg_text_preparation_v1",
             "authentication":"local-unix-account",

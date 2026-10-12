@@ -105,33 +105,51 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
 fn maintained_manifest_check_and_selection_reject_python_commands() {
     let root = Fixture::new();
     fs::write(root.0.join("owner.md"), "fixture owner\n").unwrap();
-    root.manifest(json!({
-        "schema_version":"tos_validation_lanes_v1",
-        "owner_repo":"Tree-of-Sophia",
-        "command_authority":"docs/validation/validation_lanes.json",
-        "lanes":{"sample":{
-            "label":"Sample",
-            "layer":"fixture",
-            "mode":"fixture",
-            "owner_surface":"owner.md",
-            "purpose":"Exercise the maintained command boundary.",
-            "failure_route":"owner.md",
-            "does_not_own":["source meaning"],
-            "command_sequence":"sample"
-        }},
-        "command_sequences":{"sample":[step("legacy Python", &["python", "-m", "pytest"])]}
-    }));
+    let commands: &[&[&str]] = &[
+        &["python", "-m", "pytest"][..],
+        &["python3", "-m", "pytest"],
+        &["python3.14", "-m", "pytest"],
+        &["python2.7", "-m", "pytest"],
+        &["/usr/bin/python3", "-m", "pytest"],
+        &["./.venv/bin/python3.14", "-m", "pytest"],
+        &["scripts/check.py"],
+        &["/opt/owner/scripts/check.py"],
+    ];
+    for &command in commands {
+        root.manifest(json!({
+            "schema_version":"tos_validation_lanes_v1",
+            "owner_repo":"Tree-of-Sophia",
+            "command_authority":"docs/validation/validation_lanes.json",
+            "lanes":{"sample":{
+                "label":"Sample",
+                "layer":"fixture",
+                "mode":"fixture",
+                "owner_surface":"owner.md",
+                "purpose":"Exercise the maintained command boundary.",
+                "failure_route":"owner.md",
+                "does_not_own":["source meaning"],
+                "command_sequence":"sample"
+            }},
+            "command_sequences":{"sample":[step("legacy Python", command)]}
+        }));
 
-    let issues = lanes::validate_manifest(&root.0).unwrap();
-    assert!(issues.iter().any(|(_, detail)| {
-        detail.contains("Python commands") && detail.contains("unsupported")
-    }));
-    let error = lanes::command_sequence(&root.0, "sample").unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("Python commands are unsupported")
-    );
+        let issues = lanes::validate_manifest(&root.0).unwrap();
+        assert!(
+            issues.iter().any(|(_, detail)| {
+                detail.contains("Python commands") && detail.contains("unsupported")
+            }),
+            "manifest validator accepted argv0 {:?}",
+            command[0]
+        );
+        let error = lanes::command_sequence(&root.0, "sample").unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("Python commands are unsupported"),
+            "command selection accepted argv0 {:?}",
+            command[0]
+        );
+    }
 }
 
 #[test]

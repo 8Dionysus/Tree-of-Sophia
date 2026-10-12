@@ -2198,11 +2198,8 @@ pub(super) fn overlay_current_public_text_contributions(
             raw,
             &Digest256::of_bytes(source).to_hex(),
         )?;
-        let object = projection
-            .as_object_mut()
-            .ok_or(DurableError::Corrupt("Public Text mixed projection object"))?;
-        let existing = object
-            .get("public_text_owner")
+        let existing = projection
+            .object_get("public_text_owner")
             .ok_or(DurableError::Corrupt("Public Text owner field absent"))?;
         if existing != &tos_foundation::JsonValue::Null
             && !public_text_owner_contributions_match(existing, &owner)?
@@ -2211,7 +2208,7 @@ pub(super) fn overlay_current_public_text_contributions(
                 "Public Text generic owner contribution conflicts",
             ));
         }
-        object.insert("public_text_owner".to_owned(), owner);
+        cmd::set(&mut projection, "public_text_owner", owner).map_err(source_error)?;
         let raw = cmd::canonical(&projection).map_err(source_error)?;
         addressed_inventory::AddressedMixedInventoryV1::checked_projection(
             &path,

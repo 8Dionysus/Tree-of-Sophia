@@ -9,8 +9,6 @@ export function installResearchShelfRules(value){
   runtime=value;
 }
 
-export function researchShelfRulesReady(){return Boolean(runtime);}
-
 function ruleError(error){
   const code=String(error).match(/invalid-target|invalid-record|invalid-input|invalid-cursor|invalid-packet|migration-required|conflict|not-found|limit/u)?.[0]??'invalid-input';
   const failure=new Error(code);failure.name='ResearchShelfError';failure.code=code;failure.cause=error;
@@ -46,7 +44,7 @@ function encodeRuleRequest(value){
 }
 
 export function researchShelfRule(operation,value){
-  if(!runtime)return null;
+  if(!runtime)throw new Error('The research shelf WASM rule is unavailable.');
   try{
     return JSON.parse(decoder.decode(runtime.research_shelf_rule_wasm_v1(encodeRuleRequest({operation,value}))));
   }catch(error){throw ruleError(error);}
@@ -54,7 +52,7 @@ export function researchShelfRule(operation,value){
 
 /** Incremental exact-ID validation without carrying record bodies in WASM. */
 export function validateResearchShelfPacketIndex(packet){
-  if(!runtime)return null;
+  if(!runtime)throw new Error('The research shelf packet-index WASM rule is unavailable.');
   let index;
   try{
     index=new runtime.ResearchShelfPacketIndex(encoder.encode(JSON.stringify({

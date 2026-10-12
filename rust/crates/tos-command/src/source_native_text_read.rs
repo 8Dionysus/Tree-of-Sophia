@@ -256,7 +256,7 @@ impl LocalTextReadSelection {
             ));
         }
         let selected = self.selected_binding(binding, rights, deadline, cancelled)?;
-        Ok(cmd::array(selected, "packages")?.clone())
+        Ok(cmd::array(selected, "packages")?.to_vec())
     }
     pub(crate) fn config(&self) -> &JsonValue {
         &self.config

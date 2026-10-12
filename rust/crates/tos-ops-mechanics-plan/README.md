@@ -278,7 +278,8 @@ manifest, validation-lane manifest and README; JSON uses the bounded Foundation
 legacy last-wins profile. Existing reader limits apply: 8 MiB per text file,
 64 MiB raw and 64 MiB normalized caches, 10,000 entries, 100,000 operations and
 30-second snapshot wall. Diagnostics cap at 4,096 issues and 1 MiB rendered text.
-The Python lane and imported APIs remain active pending actual consumer acceptance.
+This maintained source-home validation route is native. The former Python
+validator remains historical evidence, not an active lane or imported API.
 
 `--philosophy-topology` selects only the native candidate for the maintained
 philosophy topology validator. The registered lane retains its command path;

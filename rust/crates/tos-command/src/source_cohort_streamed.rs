@@ -1420,11 +1420,8 @@ fn render_current_mixed_projections(
                     &projection,
                     &Digest256::of_bytes(&file.raw).to_hex(),
                 )?;
-            let object = value.as_object_mut().ok_or(DurableError::Corrupt(
-                "streamed Public Text mixed projection object",
-            ))?;
-            let existing = object
-                .get("public_text_owner")
+            let existing = value
+                .object_get("public_text_owner")
                 .ok_or(DurableError::Corrupt(
                     "streamed Public Text owner field absent",
                 ))?;
@@ -1435,7 +1432,7 @@ fn render_current_mixed_projections(
                     "streamed Public Text generic owner contribution conflicts",
                 ));
             }
-            object.insert("public_text_owner".to_owned(), owner.clone());
+            cmd::set(&mut value, "public_text_owner", owner.clone()).map_err(source_error)?;
             projection = cmd::canonical(&value).map_err(source_error)?;
             super::addressed_inventory::AddressedMixedInventoryV1::checked_projection(
                 &member.path,
