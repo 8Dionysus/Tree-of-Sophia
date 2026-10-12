@@ -141,6 +141,14 @@ pub(crate) fn execute_selected_operation<W: CutSchemaExecutor>(
                     )?;
                 }
                 if request.operation == "describe" {
+                    // The shared append parser requires this exact snapshot
+                    // in `expected_snapshot`; the filesystem route returns it
+                    // in its envelope, so expose the PG evaluation result too.
+                    cmd::set(
+                        &mut result,
+                        "owner_snapshot",
+                        cmd::string(&evaluation.current_snapshot),
+                    )?;
                     cmd::set(
                         &mut result,
                         "command_context",

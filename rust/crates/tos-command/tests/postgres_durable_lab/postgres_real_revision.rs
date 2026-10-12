@@ -5244,6 +5244,8 @@ fn json_rows(rows: Vec<postgres::Row>) -> Vec<Value> {
 
 fn real_recovery_metadata_snapshot(case: &RevisionCase) -> Value {
     let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    db.batch_execute("SET TIME ZONE 'UTC'")
+        .expect("recovery snapshot timestamps use the backup census timezone");
     let domain = db
         .query_one(
             "SELECT row_to_json(d)::text FROM cmd2_domain d WHERE domain=$1",
@@ -5267,6 +5269,22 @@ fn real_recovery_metadata_snapshot(case: &RevisionCase) -> Value {
         )
         .unwrap(),
     );
+    let receipts = json_rows(
+        db.query(
+            "SELECT row_to_json(r)::text FROM cmd2_receipt r
+             WHERE domain=$1 ORDER BY commit_seq",
+            &[&case.lab.domain],
+        )
+        .unwrap(),
+    );
+    let log = json_rows(
+        db.query(
+            "SELECT row_to_json(l)::text FROM cmd2_log l
+             WHERE domain=$1 ORDER BY commit_seq",
+            &[&case.lab.domain],
+        )
+        .unwrap(),
+    );
     let outbox = json_rows(
         db.query(
             "SELECT row_to_json(o)::text FROM cmd2_outbox o
@@ -5275,11 +5293,31 @@ fn real_recovery_metadata_snapshot(case: &RevisionCase) -> Value {
         )
         .unwrap(),
     );
+    let navigation_policy_current = json_rows(
+        db.query(
+            "SELECT row_to_json(p)::text FROM cmd2_source_navigation_policy_current p
+             WHERE domain=$1 ORDER BY consumer_id COLLATE \"C\"",
+            &[&case.lab.domain],
+        )
+        .unwrap(),
+    );
+    let navigation_policy_history = json_rows(
+        db.query(
+            "SELECT row_to_json(p)::text FROM cmd2_source_navigation_policy_history p
+             WHERE domain=$1 ORDER BY consumer_id COLLATE \"C\",policy_version",
+            &[&case.lab.domain],
+        )
+        .unwrap(),
+    );
     json!({
         "domain":serde_json::from_str::<Value>(&domain).unwrap(),
         "current_record":serde_json::from_str::<Value>(&current).unwrap(),
         "record_history":history,
-        "outbox":outbox
+        "receipts":receipts,
+        "log":log,
+        "outbox":outbox,
+        "source_navigation_policy_current":navigation_policy_current,
+        "source_navigation_policy_history":navigation_policy_history
     })
 }
 
@@ -5595,7 +5633,10 @@ fn continue_native_revision_after_restore(
     );
     let mut request = preview_request;
     request["operation"] = json!("record.revise");
-    request["command_id"] = json!("test:pg-parmenides-post-restore-correction");
+    request["command_id"] = json!(format!(
+        "test:pg-parmenides-post-restore-correction:{}",
+        case.lab.domain
+    ));
     for (field, prepared) in [
         ("expected_configuration", "owner_configuration"),
         ("expected_dependencies", "expected_dependencies"),
@@ -5792,11 +5833,55 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
         &cancelled,
     );
     let binary = native_binary();
-    let first_revision = record_correction(&mut case, &software, &binary);
     let consumer = "private-pg-real-backup-restore";
     let projection_work = project_real_source_to_current(&mut case, consumer);
-    let projection = real_projection_snapshot(&case, consumer);
-    let projection_search = real_projection_search(&mut case, consumer);
+    let projection_before_revision = real_projection_snapshot(&case, consumer);
+    let projection_head = case.lab.head_seq();
+    let first_revision = record_correction(&mut case, &software, &binary);
+    let pending_head = case.lab.head_seq();
+    assert_eq!(first_revision["committed_head"], json!(pending_head));
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, consumer, &DurableProjectionProfile {
+                id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+                version: 1,
+                source_contract: contract_digest(),
+            }, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == projection_head && head_seq == pending_head
+    ));
+    assert_eq!(
+        real_projection_snapshot(&case, consumer),
+        projection_before_revision,
+        "the committed correction is pending while the previous projection rows and cursor remain exact"
+    );
+    let projection_rows_before_interrupt = projection_rows(&case, consumer);
+    let interrupted_projection_process = kill_projection_child(&case, consumer);
+    assert_eq!(
+        projection_rows(&case, consumer),
+        projection_rows_before_interrupt,
+        "killing the real projector during event staging leaves rows unchanged before backup"
+    );
+    case.lab.db = DurablePgCoordinator::connect(&case.lab.url)
+        .expect("source database reopens after the interrupted projection process");
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, consumer, &DurableProjectionProfile {
+                id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+                version: 1,
+                source_contract: contract_digest(),
+            }, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == projection_head && head_seq == pending_head
+    ));
+    assert_eq!(
+        real_projection_snapshot(&case, consumer),
+        projection_before_revision
+    );
     let source_path = case.target.source_path;
     let source_current = source_member(&mut case, source_path);
     let current_custody = current_custody_revision(&case, source_path);
@@ -5825,7 +5910,7 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     );
     let backup = run_recovery_cli(&binary, "backup", &backup_args, &source_url);
     assert_eq!(backup["status"], "backup_complete");
-    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v2");
+    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v9");
     assert_eq!(backup["receipt"]["source_admission"], false);
     assert_eq!(backup["receipt"]["production_quiescence_verified"], false);
     let inventory_census = &backup["receipt"]["metadata"]["source_inventory_projection_v1"];
@@ -5850,7 +5935,7 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
             .as_str()
             .and_then(|root| Digest256::from_hex(root).ok())
             .is_some(),
-        "the v2 backup records a digest for all retained inventory overlays"
+        "the V9 backup records a digest for all retained inventory overlays"
     );
     assert_eq!(
         inventory_census["row_root"],
@@ -5902,12 +5987,50 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     assert_eq!(
         source_inventory_projection_rows(&case.lab.url, &case.lab.domain),
         source_inventory_before,
-        "restore preserves every retained inventory overlay row committed by the v2 census"
+        "restore preserves every retained inventory overlay row committed by the V9 census"
     );
-    assert_eq!(real_projection_snapshot(&case, consumer), projection);
+    assert_eq!(case.lab.head_seq(), pending_head);
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, consumer, &DurableProjectionProfile {
+                id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+                version: 1,
+                source_contract: contract_digest(),
+            }, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == projection_head && head_seq == pending_head
+    ));
     assert_eq!(
-        real_projection_search(&mut case, consumer),
-        projection_search
+        real_projection_snapshot(&case, consumer),
+        projection_before_revision,
+        "restore preserves the exact pending projection cursor and rows"
+    );
+    let (projection_resume_work, projection_resume_process) = apply_projection_in_fresh_process(
+        &case,
+        consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
+    );
+    case.lab.db = DurablePgCoordinator::connect(&case.lab.url)
+        .expect("restored target reopens after projector resume");
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, consumer, &DurableProjectionProfile {
+                id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+                version: 1,
+                source_contract: contract_digest(),
+            }, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Current { through_seq } if through_seq == pending_head
+    ));
+    let projection_after_resume = real_projection_snapshot(&case, consumer);
+    let projection_search_after_resume = real_projection_search(&mut case, consumer);
+    assert_eq!(
+        projection_search_after_resume["through_seq"],
+        json!(pending_head),
+        "the restored source-text search reaches the resumed durable head"
     );
     assert_eq!(
         current_custody_revision(&case, source_path),
@@ -5923,15 +6046,14 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
         source_current
     );
     let domain_before_continuation = metadata_before["domain"].clone();
-    let projection_head = case.lab.head_seq();
     let continuation = continue_native_revision_after_restore(
         &mut case,
         &software,
         &binary,
         &source_current,
-        projection_head,
+        pending_head,
         &domain_before_continuation,
-        &projection,
+        &projection_after_resume,
     );
     json!({
         "domain":case.lab.domain,
@@ -5939,11 +6061,28 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
         "source_current_sha256":Digest256::of_bytes(&source_current).to_hex(),
         "retained_v1_sha256":Digest256::of_bytes(&retained_v1).to_hex(),
         "initial_native_revision":first_revision,
-        "projection_work":projection_work,
-        "projection_before_backup":projection,
-        "projection_search_before_and_after_restore":projection_search,
+        "projection_work_before_revision":projection_work,
+        "projection_before_revision":projection_before_revision,
+        "projection_interruption":{
+            "cursor_before_interruption":projection_head,
+            "pending_head":pending_head,
+            "rows_unchanged_after_kill":true,
+            "status_after_kill":"pending",
+            "process":interrupted_projection_process
+        },
+        "projection_restore_resume":{
+            "restored_status_before_resume":"pending",
+            "restored_cursor_before_resume":projection_head,
+            "restored_head_before_resume":pending_head,
+            "resume_work":projection_resume_work,
+            "resume_process":projection_resume_process,
+            "status_after_resume":"current",
+            "resumed_projection":projection_after_resume,
+            "search_after_resume":projection_search_after_resume
+        },
         "backup":{
             "status":backup["status"],
+            "schema":backup["receipt"]["schema"],
             "receipt_sha256":receipt_sha,
             "cut":backup["receipt"]["cut"],
             "source_admission":backup["receipt"]["source_admission"],
@@ -5954,8 +6093,9 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
             "cut":restored["cut"],
             "source_admission":restored["source_admission"],
             "source_currentness_granted":restored["source_currentness_granted"],
-            "metadata_and_outbox_exact":true,
-            "projection_consumer_documents_dependencies_exact":true,
+            "metadata_history_receipts_log_and_outbox_exact":true,
+            "navigation_policy_exact":true,
+            "projection_pending_cursor_and_rows_exact":true,
             "cold_current_and_retained_source_bytes_exact":true
         },
         "continuation":continuation,

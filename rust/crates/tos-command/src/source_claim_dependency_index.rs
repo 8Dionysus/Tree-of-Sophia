@@ -1516,7 +1516,32 @@ pub(crate) fn navigation_completeness_observation(
     ))
 }
 
-fn navigation_cut(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<(u64, u64)> {
+fn validate_navigation_cut_state(
+    baseline: Option<u64>,
+    head: u64,
+    source_complete: bool,
+    require_source_complete: bool,
+) -> DurableResult<(u64, u64)> {
+    let baseline = baseline.ok_or(DurableError::Conflict(
+        "Claim navigation interval baseline absent",
+    ))?;
+    // During first bootstrap, the exact current-source verifier runs before
+    // the aggregate source_complete publication. Its only valid incomplete
+    // cut is the baseline at the held head; public lookups still require the
+    // aggregate completion flag.
+    if baseline > head || (!source_complete && (require_source_complete || baseline != head)) {
+        return Err(DurableError::Conflict(
+            "Claim navigation interval baseline or source completeness differs",
+        ));
+    }
+    Ok((baseline, head))
+}
+
+fn navigation_cut(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    require_source_complete: bool,
+) -> DurableResult<(u64, u64)> {
     let row = tx
         .query_opt(
             "SELECT source_claim_navigation_reference_baseline_seq,head_seq,source_complete
@@ -1524,20 +1549,12 @@ fn navigation_cut(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<(u64,
             &[&domain],
         )?
         .ok_or(DurableError::Conflict("Claim navigation domain absent"))?;
-    let baseline = row
-        .get::<_, Option<i64>>(0)
-        .map(as_u64)
-        .transpose()?
-        .ok_or(DurableError::Conflict(
-            "Claim navigation interval baseline absent",
-        ))?;
-    let head = as_u64(row.get(1))?;
-    if !row.get::<_, bool>(2) || baseline > head {
-        return Err(DurableError::Conflict(
-            "Claim navigation interval baseline or source completeness differs",
-        ));
-    }
-    Ok((baseline, head))
+    validate_navigation_cut_state(
+        row.get::<_, Option<i64>>(0).map(as_u64).transpose()?,
+        as_u64(row.get(1))?,
+        row.get(2),
+        require_source_complete,
+    )
 }
 
 /// Rebuild the complete endpoint index only during the selected bootstrap.
@@ -1673,7 +1690,7 @@ pub(crate) fn verify_current(
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,
 ) -> DurableResult<()> {
-    let (baseline_seq, head_seq) = navigation_cut(tx, domain)?;
+    let (baseline_seq, head_seq) = navigation_cut(tx, domain, false)?;
     let expected = full_source_rows(files, definition)?;
     let expected_definition = definition.to_hex();
     let row_limit = as_i64(MAX_INDEX_ROWS + 1)?;
@@ -2097,7 +2114,7 @@ pub(crate) fn lookup_current_navigation_references(
 ) -> DurableResult<ClaimNavigationReferenceObservation> {
     let key_token = navigation_reference_token(kind, endpoint)?;
     let definition_hex = definition.to_hex();
-    let (baseline, head) = navigation_cut(tx, domain)?;
+    let (baseline, head) = navigation_cut(tx, domain, true)?;
     let completeness_generation =
         require_navigation_completeness_generation(tx, domain, definition)?;
     let key_generation = tx.query_opt(
@@ -2226,6 +2243,45 @@ mod tests {
     use super::*;
 
     #[test]
+    fn bootstrap_navigation_cut_requires_the_exact_owner_baseline_not_global_completion() {
+        assert_eq!(
+            validate_navigation_cut_state(Some(17), 17, false, false)
+                .expect("fresh owner verification may precede aggregate completion"),
+            (17, 17),
+        );
+        assert!(validate_navigation_cut_state(Some(17), 17, false, true).is_err());
+        assert!(validate_navigation_cut_state(Some(16), 17, false, false).is_err());
+        assert!(validate_navigation_cut_state(None, 17, false, false).is_err());
+        assert!(validate_navigation_cut_state(Some(18), 17, true, false).is_err());
+        assert_eq!(
+            validate_navigation_cut_state(Some(17), 20, true, true)
+                .expect("retained current lookup keeps its historical baseline"),
+            (17, 20),
+        );
+    }
+
+    #[test]
+    fn empty_claim_selection_still_derives_navigation_completeness_marker() {
+        let files = BTreeMap::from([(
+            "ToS/contracts/source-claim-record.schema.json".to_owned(),
+            Vec::new(),
+        )]);
+        let definition = Digest256::of_bytes(b"definition");
+        let (dependency_tokens, navigation_tokens) =
+            current_predicate_tokens(&files, definition).expect("selected owner outputs");
+        assert!(dependency_tokens.is_empty());
+        assert!(
+            full_navigation_source_rows(&files, definition)
+                .expect("selected navigation rowset")
+                .is_empty()
+        );
+        assert_eq!(
+            navigation_tokens,
+            BTreeSet::from([navigation_reference_complete_token().expect("completion token")]),
+        );
+    }
+
+    #[test]
     fn navigation_source_selector_keeps_claim_streams_and_shared_schemas() {
         let claim_path = "ToS/source-witnesses/relations/fixture/source-claims.jsonl";
         let schema_path = "ToS/contracts/source-claim-record.schema.json";
@@ -2275,7 +2331,7 @@ pub(crate) fn lookup_navigation_references_at(
 ) -> DurableResult<ClaimNavigationReferenceObservation> {
     let key_token = navigation_reference_token(kind, endpoint)?;
     let definition_hex = definition.to_hex();
-    let (baseline, head) = navigation_cut(tx, domain)?;
+    let (baseline, head) = navigation_cut(tx, domain, true)?;
     if head != held_source_head_sequence
         || as_of_sequence < baseline
         || as_of_sequence > held_source_head_sequence

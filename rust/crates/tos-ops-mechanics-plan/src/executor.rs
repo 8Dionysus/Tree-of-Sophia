@@ -799,6 +799,17 @@ mod native {
         Ok(())
     }
 
+    fn write_validation_success(
+        fd: i32,
+        home: &str,
+        command_deadline: Instant,
+        post_build_deadline: Option<Instant>,
+        cancel: &AtomicI32,
+    ) -> io::Result<()> {
+        let deadline = post_build_deadline.unwrap_or(command_deadline);
+        write(fd, format!("[ok] {home}\n").as_bytes(), deadline, cancel)
+    }
+
     pub(super) fn run(
         root: &Path,
         plan: &Plan,
@@ -1023,6 +1034,7 @@ mod native {
                 let mut eof = [false, false];
                 let mut status = None;
                 let mut output_bytes = 0usize;
+                let mut post_build_deadline: Option<Instant> = None;
                 let execution = (|| -> io::Result<()> {
                     loop {
                         cancelled(cancel)?;
@@ -1089,20 +1101,20 @@ mod native {
                     crate::growth_native_plan::verify_result(&command.argv, &cargo_stdout)?;
                 }
                 if status.unwrap().success() && preparing {
-                    // Cargo compilation and selection/hashing of its actual
-                    // products are separate bounded phases. Preserve the
-                    // enclosing lane deadline without charging compilation
-                    // time against post-build selection.
-                    let selection_deadline = crate::conformance_products::selection_deadline(
+                    // Cargo compilation and its complete product-selection,
+                    // hashing, and success-report phase have separate budgets.
+                    // The post-build phase remains capped by the enclosing lane.
+                    let completion_deadline = crate::conformance_products::selection_deadline(
                         Instant::now(),
                         lane_deadline,
                         command_wall,
                     );
                     products = Some(crate::conformance_products::Products::select(
                         &cargo_stdout,
-                        selection_deadline,
+                        completion_deadline,
                         cancel,
                     )?);
+                    post_build_deadline = Some(completion_deadline);
                 }
                 if !status.unwrap().success() {
                     let failure = match style {
@@ -1151,10 +1163,11 @@ mod native {
                     });
                 }
                 if matches!(style, Style::Validation(_)) {
-                    write(
+                    write_validation_success(
                         1,
-                        format!("[ok] {}\n", command.home).as_bytes(),
+                        &command.home,
                         deadline,
+                        post_build_deadline,
                         cancel,
                     )?;
                 }
@@ -1265,6 +1278,30 @@ mod native {
             )
             .unwrap_err();
             assert!(error.to_string().contains("deadline before setup"));
+        }
+
+        #[test]
+        fn prepared_validation_success_ack_uses_post_build_deadline_at_sink() {
+            let (mut reader, writer) = pipe().unwrap();
+            let mut sink_mode = Nonblocking::new(writer.as_raw_fd()).unwrap();
+            let command_deadline = Instant::now() - Duration::from_millis(1);
+            let post_build_deadline = Instant::now() + Duration::from_secs(1);
+            let cancel = AtomicI32::new(0);
+
+            write_validation_success(
+                writer.as_raw_fd(),
+                "compile exact Rust conformance test image",
+                command_deadline,
+                Some(post_build_deadline),
+                &cancel,
+            )
+            .expect("write success acknowledgement within post-build phase");
+            sink_mode.restore().unwrap();
+            drop(writer);
+
+            let mut output = String::new();
+            reader.read_to_string(&mut output).unwrap();
+            assert_eq!(output, "[ok] compile exact Rust conformance test image\n");
         }
 
         #[test]
