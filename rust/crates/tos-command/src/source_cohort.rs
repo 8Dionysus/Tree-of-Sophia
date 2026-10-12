@@ -13195,10 +13195,14 @@ mod public_text_rederivation_tests {
                 &Digest256::of_bytes(&files[&existing_owner_path]).to_hex(),
             )
             .unwrap();
-        existing_projection.as_object_mut().unwrap().insert(
-            "public_text_owner".to_owned(),
-            packages[0].committed_owners[&existing_owner_path].clone(),
-        );
+        let tos_foundation::JsonValue::Object(fields) = &mut existing_projection else {
+            panic!("checked inventory projection must be an object");
+        };
+        let (_, owner) = fields
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some("public_text_owner"))
+            .expect("checked inventory projection has a public text owner field");
+        *owner = packages[0].committed_owners[&existing_owner_path].clone();
         projections.insert(
             existing_owner_path,
             cmd::canonical(&existing_projection).unwrap(),
