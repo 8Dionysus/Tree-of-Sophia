@@ -5258,7 +5258,9 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
             "candidate Item schema binding has another source input identity".into(),
         ));
     }
-    let prepared = schema_binding.prepared_execution_binding();
+    let prepared = <_ as SourceFoundationCandidateSchemaBinding<I>>::prepared_execution_binding(
+        schema_binding,
+    );
     if prepared.schema_profile != schema_binding.profile()
         || prepared.schema_set_sha256 != schema_binding.schema_set_digest()
         || prepared.schema_profile != record_executor.profile

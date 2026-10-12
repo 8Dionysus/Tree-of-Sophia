@@ -2740,6 +2740,9 @@ pub struct SourceClaimLocalReport {
     /// Maintained input_digests insertion order: successful first reads only.
     /// Each path appears exactly once and owns its digest in the map above.
     pub dependency_order: Vec<String>,
+    /// Bytes read from selected current dependencies; excludes the caller's
+    /// already-borrowed Claim member.
+    pub dependency_bytes_read: u64,
     pub issues: Vec<crate::relation_rules::RelationIssue>,
     pub schema_receipts: Vec<crate::source_cut::CutSchemaReceipt>,
     // Private running logical slots/payload total; Arc aliases own no second tree.
@@ -3040,7 +3043,7 @@ pub fn local_claim_form_dependency_paths(
         .get("qualifiers")
         .and_then(|qualifiers| qualifiers.get("statement"))
         .and_then(Value::as_str)
-        .is_some_and(nonblank)
+        .is_some_and(|statement| !statement.trim().is_empty())
     {
         paths.insert(CORPUS_CONTRACT.to_owned());
     }
@@ -3790,6 +3793,9 @@ fn validate_source_claim_from_current_source<S: CutSchemaExecutor + CutSchemaRec
         execution_binding: binding,
         dependency_digests: report.dependency_digests,
         dependency_order: report.dependency_order,
+        dependency_bytes_read: bytes
+            .checked_sub(selected_claim_raw.len() as u64)
+            .ok_or(crate::item_budget_origin!())?,
         issues: report.issues,
         schema_receipts: receipts,
         logical_state: report.logical_state,

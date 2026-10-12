@@ -6011,7 +6011,104 @@ struct SelectedCompoundInput<'a, I> {
     identity: I,
 }
 
-impl<I> SourceCutInputWithIdentity<I> for SelectedCompoundInput<'_, I> {
+impl<I> SourceCutInput for SelectedCompoundInput<'_, I> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        self.input.record_selection()
+    }
+
+    fn generated_selection(
+        &self,
+    ) -> Option<std::sync::Arc<dyn crate::record_biblio_cut::GeneratedSourceSelection>> {
+        self.input.generated_selection()
+    }
+
+    fn selects_semantic_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.input.selects_semantic_member(path)
+    }
+
+    fn selects_required_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.input.selects_required_member(path)
+    }
+
+    fn selects_source_row(&self, path: &str, physical_line: u64) -> Result<bool, ItemRefusal> {
+        self.input.selects_source_row(path, physical_line)
+    }
+
+    fn for_each_current_member_meta(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        self.input
+            .for_each_current_member_meta(deadline, cancelled, visit)
+    }
+
+    fn current_member_size(
+        &self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<u64>, ItemRefusal> {
+        self.input.current_member_size(path, deadline, cancelled)
+    }
+
+    fn for_each_current_member_meta_under(
+        &self,
+        directory: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
+    ) -> Result<crate::record_biblio_cut::SourceCutPrefixCoverage, ItemRefusal> {
+        self.input
+            .for_each_current_member_meta_under(directory, deadline, cancelled, visit)
+    }
+
+    fn with_current_member(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(SourceCutMemberMeta<'_>, &[u8]) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        self.input
+            .with_current_member(path, max_bytes, deadline, cancelled, visit)
+    }
+
+    fn for_each_current_member(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(SourceCutMemberMeta<'_>, &[u8]) -> Result<(), ItemRefusal>,
+    ) -> Result<SourceCutInputCoverage, ItemRefusal> {
+        self.input
+            .for_each_current_member(deadline, cancelled, visit)
+    }
+
+    fn path_presence(
+        &self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
+        self.input.path_presence(path, deadline, cancelled)
+    }
+
+    fn verify_current_fence(
+        &self,
+        coverage: &SourceCutInputCoverage,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        self.input
+            .verify_current_fence(coverage, deadline, cancelled)
+    }
+}
+
+impl<I: Eq> SourceCutInputWithIdentity<I> for SelectedCompoundInput<'_, I> {
     fn input_identity(&self) -> &I {
         &self.identity
     }
