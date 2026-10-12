@@ -5891,11 +5891,12 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     let source_cut_before = cold_recovery_cut(&mut case);
     assert_eq!(source_cut_before["through_commit_seq"], case.lab.head_seq());
     let metadata_before = real_recovery_metadata_snapshot(&case);
-    let source_inventory_before = source_inventory_projection_rows(&case.lab.url, &case.lab.domain);
-    assert!(
-        !source_inventory_before.is_empty(),
-        "the real source fixture must retain inventory overlays for backup coverage"
-    );
+    // The ordinary revision path need not create a temporal overlay. Reuse
+    // the explicitly labeled storage fixture derived from exact current,
+    // history, index, definition, and head-log projection bytes. This covers
+    // V9 backup/restore preservation, not overlay-producer behavior.
+    let source_inventory_before =
+        super::ensure_source_inventory_projection_fixture(&case.lab.url, &case.lab.domain);
 
     let backup_scratch = ScratchRoot::new();
     fs::set_permissions(&backup_scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
@@ -6056,6 +6057,13 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
         &projection_after_resume,
     );
     json!({
+        "source_inventory_projection_fixture":{
+            "kind":"verified_noop_storage_fixture",
+            "producer_coverage":false,
+            "rows":source_inventory_before.len(),
+            "bytes":source_inventory_projection_bytes(&source_inventory_before),
+            "row_root":source_inventory_projection_root(&source_inventory_before)
+        },
         "domain":case.lab.domain,
         "source_path":case.target.source_path,
         "source_current_sha256":Digest256::of_bytes(&source_current).to_hex(),
