@@ -775,6 +775,7 @@ fn hex_digest(digest: Digest256) -> String {
 }
 
 fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> {
+    // PostgreSQL truncates identifiers to 63 bytes; use the installed catalog spelling.
     let compatible: bool = client
         .query_one(
             "WITH required_tables(name) AS (VALUES
@@ -835,7 +836,7 @@ fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> 
                ('cmd2_private_refuse_cmd2_private_package_history_truncate'),
                ('cmd2_private_refuse_cmd2_private_package_member_truncate'),
                ('cmd2_private_refuse_cmd2_private_package_archive_truncate'),
-               ('cmd2_private_refuse_cmd2_private_package_archive_member_truncate'),
+               ('cmd2_private_refuse_cmd2_private_package_archive_member_truncat'),
                ('cmd2_private_refuse_cmd2_private_command_receipt_truncate'),
                ('cmd2_private_refuse_cmd2_private_log_truncate'),
                ('cmd2_private_refuse_cmd2_private_outbox_truncate'),

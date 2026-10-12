@@ -5780,6 +5780,56 @@ fn continue_native_revision_after_restore(
     })
 }
 
+fn private_package_schema_guard_catalog_truncation_roundtrip(
+    db: &mut DurablePgCoordinator,
+    url: &str,
+) -> Value {
+    const CATALOG_NAME: &str = "cmd2_private_refuse_cmd2_private_package_archive_member_truncat";
+    const GENERATED_NAME: &str = "cmd2_private_refuse_cmd2_private_package_archive_member_truncate";
+    assert_eq!(CATALOG_NAME.len(), 63);
+    assert_eq!(GENERATED_NAME.len(), 64);
+    db.require_compatible_private_package_schema()
+        .expect("fresh private package schema accepts the PostgreSQL catalog spelling");
+
+    let mut catalog =
+        Client::connect(url, NoTls).expect("private package catalog connection opens");
+    let trigger_names: Vec<String> = catalog
+        .query(
+            "SELECT tgname::text FROM pg_trigger WHERE tgrelid = 'cmd2_private_package_archive_member'::regclass AND NOT tgisinternal",
+            &[],
+        )
+        .expect("private archive member triggers are readable")
+        .into_iter()
+        .map(|row| row.get(0))
+        .collect();
+    assert!(trigger_names.iter().any(|name| name == CATALOG_NAME));
+    assert!(!trigger_names.iter().any(|name| name == GENERATED_NAME));
+
+    catalog
+        .batch_execute(
+            "DROP TRIGGER cmd2_private_refuse_cmd2_private_package_archive_member_truncat ON cmd2_private_package_archive_member",
+        )
+        .expect("the exact archive-member truncate guard is removed");
+    assert!(
+        db.require_compatible_private_package_schema().is_err(),
+        "schema compatibility refuses when the exact archive-member truncate guard is absent"
+    );
+
+    // This function runs only on the recovery test's dedicated fresh source database.
+    db.init_lab_schema()
+        .expect("the existing schema installer restores the guard after the refusal check");
+    db.require_compatible_private_package_schema()
+        .expect("the installed guard is restored before backup");
+    json!({
+        "catalog_trigger_name":CATALOG_NAME,
+        "generated_trigger_name_bytes":GENERATED_NAME.len(),
+        "catalog_trigger_name_bytes":CATALOG_NAME.len(),
+        "fresh_schema_accepted":true,
+        "missing_guard_refused":true,
+        "guard_restored_before_backup":true
+    })
+}
+
 /// Runs the recovery check on dedicated explicit databases so the shared
 /// postgres_durable_lab URL and its test fixtures remain untouched.
 pub(super) fn run_parmenides_backup_restore_regression() -> Value {
@@ -5823,7 +5873,9 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     let repository = repository_root();
     let software = software_fixture(&repository, deadline, &cancelled);
     let source = source_cut(&repository, 1, deadline, &cancelled);
-    let source_lab = new_real_backup_source_lab(&source_url);
+    let mut source_lab = new_real_backup_source_lab(&source_url);
+    let private_package_schema_guard =
+        private_package_schema_guard_catalog_truncation_roundtrip(&mut source_lab.db, &source_url);
     let mut case = bootstrap_case_on_lab(
         source_lab,
         &software,
@@ -6057,6 +6109,7 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
         &projection_after_resume,
     );
     json!({
+        "private_package_schema_guard":private_package_schema_guard,
         "source_inventory_projection_fixture":{
             "kind":"verified_noop_storage_fixture",
             "producer_coverage":false,

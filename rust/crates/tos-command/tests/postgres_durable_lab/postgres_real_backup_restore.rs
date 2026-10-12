@@ -10,6 +10,18 @@ fn real_parmenides_backup_restore_cold_reads_and_continues_native_revision() {
     assert_eq!(report["restore"]["source_currentness_granted"], false);
     assert_eq!(report["backup"]["schema"], "tos_cmd2_quiescent_backup_v9");
     assert_eq!(
+        report["private_package_schema_guard"]["fresh_schema_accepted"],
+        true
+    );
+    assert_eq!(
+        report["private_package_schema_guard"]["missing_guard_refused"],
+        true
+    );
+    assert_eq!(
+        report["private_package_schema_guard"]["guard_restored_before_backup"],
+        true
+    );
+    assert_eq!(
         report["projection_interruption"]["rows_unchanged_after_kill"],
         true
     );
