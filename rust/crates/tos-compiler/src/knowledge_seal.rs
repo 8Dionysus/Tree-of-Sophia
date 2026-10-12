@@ -375,6 +375,7 @@ fn seal_inner(
     };
     let mut metadata = vec![
         ("model_abi", model_abi.to_owned()),
+        ("selection_profile", crate::SELECTION_PROFILE.to_owned()),
         ("descriptor_sha256", vocabulary.descriptor_sha256.clone()),
         (
             "descriptor_version",

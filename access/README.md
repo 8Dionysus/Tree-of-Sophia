@@ -1255,6 +1255,16 @@ bootstrap root, anchor sequence and roots, and published sequence, coverage,
 adjacency, and index roots. It does not claim that the anchor membership root
 is the current full-source membership.
 
+Publication atomically records a V2 verified-prefix checkpoint with the current
+cohort commitment, exact active manifests, coverage and adjacency roots. Reads
+verify that checkpoint, current cohorts and terminal coverage instead of
+scanning every event since bootstrap. Current-cohort and response budgets still
+apply; this removes the cumulative event-history limit, not the cost of reading
+the selected current metadata. An older checkpoint requires an explicit full
+source-backed bootstrap at the current head, which replaces only derived
+navigation state. Source history, receipts, rights and jobs remain owned by
+their existing tables. A missing bootstrap cannot be repaired by event replay.
+
 #### One-time model preparation and policy
 
 Preparing the initial model is a separate local-owner-only operation. Call

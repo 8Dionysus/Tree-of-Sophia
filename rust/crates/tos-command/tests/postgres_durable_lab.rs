@@ -1168,7 +1168,7 @@ fn project_current_backup_as_v1_wire_for_test(
 
     let current_raw = fs::read(current_backup.join("receipt.json")).unwrap();
     let current: serde_json::Value = serde_json::from_slice(&current_raw).unwrap();
-    assert_eq!(current["schema"], "tos_cmd2_quiescent_backup_v8");
+    assert_eq!(current["schema"], "tos_cmd2_quiescent_backup_v9");
     assert!(current.get("profile").is_some());
     assert!(current.get("metadata").is_some());
     assert_eq!(current["source_admission"], false);
@@ -1179,7 +1179,7 @@ fn project_current_backup_as_v1_wire_for_test(
     );
     assert_eq!(
         current["metadata"]["durable_schema_profile_v1"]["sha256"], expected_current_schema_profile,
-        "the V8 source receipt is bound to the current live schema profile"
+        "the V9 source receipt is bound to the current live schema profile"
     );
     let dump_source = current_backup.join("metadata.dump");
     let dump_bytes = fs::read(&dump_source).unwrap();
@@ -4827,7 +4827,7 @@ fn maintained_agent_creation_operation<
         let receipt = fs::read(backup_root.0.join("receipt.json")).unwrap();
         assert!(receipt.len() <= 1024 * 1024);
         let receipt_value: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
-        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v8");
+        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v9");
         let metadata = &receipt_value["metadata"];
         assert_eq!(
             metadata["durable_schema_profile_v1"]["schema"],
@@ -4835,7 +4835,7 @@ fn maintained_agent_creation_operation<
         );
         assert_eq!(
             metadata["durable_schema_profile_v1"]["sha256"], journal[1],
-            "the V8 receipt binds the active current schema profile"
+            "the V9 receipt binds the active current schema profile"
         );
         for (key, schema) in [
             ("source_publication_v1", "tos_backup_source_publication_v1"),
@@ -4859,7 +4859,7 @@ fn maintained_agent_creation_operation<
                     .as_str()
                     .and_then(|root| Digest256::from_hex(root).ok())
                     .is_some(),
-                "V8 {key} root is a canonical digest"
+                "V9 {key} root is a canonical digest"
             );
         }
         assert!(
@@ -4867,10 +4867,10 @@ fn maintained_agent_creation_operation<
                 .as_u64()
                 .is_some()
         );
-        let navigation_census = &metadata["source_navigation_projection_v2"];
+        let navigation_census = &metadata["source_navigation_projection_v3"];
         assert_eq!(
             navigation_census["schema"],
-            "tos_backup_source_navigation_projection_v2"
+            "tos_backup_source_navigation_projection_v3"
         );
         assert_eq!(navigation_census["state"], "present");
         let navigation_tables = navigation_census["tables"].as_object().unwrap();
@@ -4889,7 +4889,7 @@ fn maintained_agent_creation_operation<
                 .as_str()
                 .and_then(|root| Digest256::from_hex(root).ok())
                 .is_some(),
-            "V8 source-navigation root is a canonical digest"
+            "V9 source-navigation root is a canonical digest"
         );
         assert!(
             !source_inventory_rows.is_empty(),
@@ -4937,7 +4937,7 @@ fn maintained_agent_creation_operation<
         assert_eq!(
             source_inventory_projection_rows(&restored_url, &recovery_domain),
             source_inventory_rows,
-            "the actual current V8 child transport preserves every committed overlay row"
+            "the actual current V9 child transport preserves every committed overlay row"
         );
         let v1_wire_receipt_sha256 = project_current_backup_as_v1_wire_for_test(
             &backup_root.0,

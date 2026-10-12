@@ -1950,7 +1950,7 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
       db.prepare("INSERT INTO philosophy_review_packets VALUES ('tiny',?)").bind(JSON.stringify({view_id:"tiny",review_status:"fixture-only"})));
     for(let index=0;index<corpusNodes.length;index+=1){const node=corpusNodes[index]!;statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text,resource_kind) VALUES ('nodes',?,?,?,?,?)").bind(node.node_id,index,JSON.stringify(node),index===0?"alpha":"other",node.resource_kind));}
     statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text) VALUES ('branches','ToS/canon',0,?,'other')").bind(JSON.stringify({id:"ToS/canon",owner_surface:"fixture/canon"})));
-    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text) VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:id==="corpus-topology"?undefined:"fixture/corpus"})));
+    for(const [index,id] of ["corpus-topology","route-graph","promotion-flow"].entries())statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text) VALUES ('graph_views',?,?,?,'other')").bind(id,index,JSON.stringify({view_id:id,title:id,entry_surface:id==="corpus-topology"?undefined:"fixture/corpus"})));
     for(let index=0;index<corpusEdges.length;index+=1){const edge=corpusEdges[index]!,pack=index===0?"canon-pack":"candidate-pack";statements.push(
       db.prepare("INSERT INTO corpus_packs VALUES (?,?,?)").bind(pack,index,JSON.stringify({pack_id:pack,owner_branch:edge.owner_branch})),
       db.prepare("INSERT INTO corpus_edges VALUES (?,?,?,?,?,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,pack,edge.owner_branch,JSON.stringify(edge)));
@@ -1959,8 +1959,9 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
     await db.batch(statements);
     const get=async(path:string,status=200):Promise<Record<string,any>>=>{
       const response=await mf.dispatchFetch("https://tos.test"+path);
-      assert.equal(response.status,status,path);
-      return await response.json() as Record<string,any>;
+      const body=await response.text();
+      assert.equal(response.status,status,`${path}; response body: ${body}`);
+      return JSON.parse(body) as Record<string,any>;
     };
     const ids=(items:Array<Record<string,unknown>>,field:string)=>items.map(item=>item[field]);
     const health=await get("/health");assert.equal(health.ok,true);assert.equal(health.data_revision,"a".repeat(64));

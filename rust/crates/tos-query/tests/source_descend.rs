@@ -144,6 +144,42 @@ impl SyntheticReadModel {
         }
         (records.len() as u64, hasher.finalize())
     }
+
+    fn validate_disclosure(
+        &mut self,
+        binding: &Binding,
+        selected: &[RawRecord],
+    ) -> Result<(), QueryError> {
+        self.check_pin(binding)?;
+        if selected.is_empty() {
+            return Err(QueryError {
+                code: QueryErrorCode::Unavailable,
+                message: "synthetic selection empty",
+            });
+        }
+        for record in selected {
+            self.authorize_current(record)?;
+            let value = parse_json(
+                &record.raw,
+                JsonMode::PublishedStrict,
+                JsonLimits::default(),
+            )
+            .unwrap();
+            if self.late_denied_id.as_deref().is_some_and(|denied_id| {
+                value
+                    .root()
+                    .object_get("node_id")
+                    .and_then(JsonValue::as_str)
+                    == Some(denied_id)
+            }) {
+                return Err(QueryError {
+                    code: QueryErrorCode::PolicyDenied,
+                    message: "synthetic revocation at disclosure acquisition",
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 impl ReadModel for SyntheticReadModel {
@@ -308,34 +344,7 @@ impl ReadModel for SyntheticReadModel {
         binding: &Binding,
         selected: &[RawRecord],
     ) -> Result<Box<dyn DisclosureLease + '_>, QueryError> {
-        self.check_pin(binding)?;
-        if selected.is_empty() {
-            return Err(QueryError {
-                code: QueryErrorCode::Unavailable,
-                message: "synthetic selection empty",
-            });
-        }
-        for record in selected {
-            self.authorize_current(record)?;
-            let value = parse_json(
-                &record.raw,
-                JsonMode::PublishedStrict,
-                JsonLimits::default(),
-            )
-            .unwrap();
-            if self.late_denied_id.as_deref().is_some_and(|denied_id| {
-                value
-                    .root()
-                    .object_get("node_id")
-                    .and_then(JsonValue::as_str)
-                    == Some(denied_id)
-            }) {
-                return Err(QueryError {
-                    code: QueryErrorCode::PolicyDenied,
-                    message: "synthetic revocation at disclosure acquisition",
-                });
-            }
-        }
+        self.validate_disclosure(binding, selected)?;
         Ok(Box::new(SyntheticLease))
     }
 }
@@ -387,6 +396,7 @@ fn source_descend_matches_frozen_python_oracle() {
         semantic_eq(actual.root(), &expected),
         "Rust packet differs from Python oracle"
     );
+    drop(packet);
     assert!(model.pin_checks >= 3);
 }
 
@@ -715,7 +725,8 @@ fn synthetic_response(model: &mut SyntheticReadModel, need: &SessionNeed) -> Ses
             selected,
             selected_digest,
         } => {
-            let lease = model.acquire_disclosure(&need.binding, selected).unwrap();
+            model.validate_disclosure(&need.binding, selected).unwrap();
+            let lease: Box<dyn DisclosureLease> = Box::new(SyntheticLease);
             (
                 SessionResponseKind::Disclosure {
                     selected_digest: *selected_digest,
@@ -841,8 +852,10 @@ fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
     model.authority.binding = binding;
 
     let result = source_descend(&mut model, &request, budget()).unwrap();
-    let packet = parse_json(&result, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-    let proof = field(packet.root(), "source_navigation_proof_v1");
+    let packet = parse_json(&result, JsonMode::PublishedStrict, JsonLimits::default())
+        .unwrap()
+        .into_root();
+    let proof = field(&packet, "source_navigation_proof_v1");
     assert_eq!(string(proof, "anchor_through_commit_seq"), "17");
     assert_eq!(string(proof, "published_through_commit_seq"), "19");
     assert_eq!(
@@ -859,6 +872,7 @@ fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
     );
     assert!(proof.object_get("current_membership_root").is_none());
 
+    drop(result);
     let (_, need) = SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
     let header = parse_json(
         &need.wire_header(16 * 1024).unwrap(),
@@ -1116,10 +1130,14 @@ fn source_descend_preserves_retired_worker_bounded_route_control() {
     request.node_id = "era".into();
     request.max_depth = 8;
     request.limit = 3;
-    let packet = source_descend(&mut model, &request, budget()).unwrap();
-    let packet = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default())
-        .unwrap()
-        .into_root();
+    let disclosable = source_descend(&mut model, &request, budget()).unwrap();
+    let packet = parse_json(
+        &disclosable,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
     assert_eq!(field(field(&packet, "counts"), "nodes").as_u64(), Some(3));
     assert_eq!(field(field(&packet, "counts"), "edges").as_u64(), Some(2));
     assert_eq!(field(&packet, "truncated"), &JsonValue::Bool(true));
@@ -1132,5 +1150,6 @@ fn source_descend_preserves_retired_worker_bounded_route_control() {
             .collect::<Vec<_>>(),
         vec!["era", "planting", "work"]
     );
+    drop(disclosable);
     assert!(model.pin_checks >= 3);
 }

@@ -67,6 +67,7 @@ const MAX_NAVIGATION_EVENT_ID_BYTES: usize = 256;
 const MAX_NAVIGATION_RECORD_ID_BYTES: usize = 256;
 const MAX_NAVIGATION_EVENT_LOG_ROWS: usize = 100_000;
 const MAX_NAVIGATION_EVENT_STEPS_PER_CALL: usize = 256;
+pub(super) const VERIFIED_PREFIX_FORMAT_VERSION: i16 = 2;
 
 /// Independent resource ceilings for one event-local cohort or selected cut.
 #[derive(Clone, Copy, Debug)]
@@ -2176,6 +2177,7 @@ pub(crate) struct DurableNavigationCurrentnessGuardV1 {
     coverage_sequence: u64,
     coverage_root: Digest256,
     adjacency_root: Digest256,
+    cohort_root: Digest256,
     source_revision: Digest256,
     index_root: Digest256,
     audit_generation: u64,
@@ -3236,13 +3238,233 @@ fn navigation_current_index_root(
     bootstrap_root: Digest256,
     coverage_root: Digest256,
     adjacency_root: Digest256,
+    cohort_root: Digest256,
 ) -> Digest256 {
     let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-source-navigation-current-index-v1");
+    hash.update(b"tos-source-navigation-current-index-v2");
     navigation_hash_part(&mut hash, bootstrap_root.to_hex().as_bytes());
     navigation_hash_part(&mut hash, coverage_root.to_hex().as_bytes());
     navigation_hash_part(&mut hash, adjacency_root.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, cohort_root.to_hex().as_bytes());
     hash.finalize()
+}
+
+/// Commit the bounded current owner-cohort table, not its unbounded event history.
+/// The owner publishers advance this root in the same transaction as the cursor.
+pub(super) fn navigation_current_cohort_root_in_tx(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    consumer_id: &str,
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<Digest256> {
+    let row_cap = i64::try_from(limits.max_current_cohorts.saturating_add(1))
+        .map_err(|_| DurableError::Refused("navigation current cohort count"))?;
+    let rows = tx.query(
+        "SELECT row_to_json(c)::text AS row_json
+           FROM cmd2_projection_navigation_cohort c
+          WHERE c.domain=$1 AND c.consumer_id=$2
+          ORDER BY c.source_path COLLATE \"C\",c.record_id COLLATE \"C\" LIMIT $3",
+        &[&domain, &consumer_id, &row_cap],
+    )?;
+    if rows.len() > limits.max_current_cohorts {
+        return Err(DurableError::Refused(
+            "navigation current cohort count budget",
+        ));
+    }
+    let row_json = rows
+        .into_iter()
+        .map(|row| row.get::<_, String>("row_json"))
+        .collect::<Vec<_>>();
+    navigation_current_cohort_root_from_row_json(&row_json, limits.max_total_bytes)
+}
+
+fn navigation_current_cohort_root_from_row_json(
+    rows: &[String],
+    max_total_bytes: u64,
+) -> DurableResult<Digest256> {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-source-navigation-current-cohorts-v1");
+    let row_count = u64::try_from(rows.len())
+        .map_err(|_| DurableError::Refused("navigation current cohort count"))?;
+    navigation_hash_part(&mut hash, &row_count.to_be_bytes());
+    let mut bytes = 0u64;
+    let mut source_bytes = 0u64;
+    let row_limit = usize::try_from(max_total_bytes)
+        .map_err(|_| DurableError::Refused("navigation current cohort byte budget"))?;
+    for raw in rows {
+        source_bytes = source_bytes
+            .checked_add(raw.len() as u64)
+            .ok_or(DurableError::Refused("navigation current cohort bytes"))?;
+        if source_bytes > max_total_bytes {
+            return Err(DurableError::Refused(
+                "navigation current cohort byte budget",
+            ));
+        }
+        let value: Value = serde_json::from_str(raw)
+            .map_err(|_| DurableError::Corrupt("navigation current cohort row JSON"))?;
+        let canonical = canonical_value(&value, row_limit)?;
+        bytes = bytes
+            .checked_add(canonical.len() as u64)
+            .ok_or(DurableError::Refused("navigation current cohort bytes"))?;
+        if bytes > max_total_bytes {
+            return Err(DurableError::Refused(
+                "navigation current cohort byte budget",
+            ));
+        }
+        navigation_hash_part(&mut hash, &canonical);
+    }
+    Ok(hash.finalize())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn navigation_verified_prefix_digest(
+    domain: &str,
+    consumer_id: &str,
+    profile: &DurableProjectionProfile,
+    bootstrap_sequence: u64,
+    bootstrap_root: Digest256,
+    owner_binding_json: &str,
+    sequence: u64,
+    coverage_root: Digest256,
+    cohort_root: Digest256,
+    adjacency_root: Digest256,
+    event_id: &str,
+    source_revision: Digest256,
+    input_root: Digest256,
+    output_root: Digest256,
+) -> Digest256 {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-source-navigation-verified-prefix-v2");
+    for part in [
+        domain.as_bytes(),
+        consumer_id.as_bytes(),
+        profile.id.as_bytes(),
+    ] {
+        navigation_hash_part(&mut hash, part);
+    }
+    navigation_hash_part(&mut hash, profile.version.to_string().as_bytes());
+    navigation_hash_part(&mut hash, profile.source_contract.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, &bootstrap_sequence.to_be_bytes());
+    navigation_hash_part(&mut hash, bootstrap_root.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, owner_binding_json.as_bytes());
+    navigation_hash_part(&mut hash, &sequence.to_be_bytes());
+    navigation_hash_part(&mut hash, coverage_root.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, cohort_root.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, adjacency_root.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, event_id.as_bytes());
+    navigation_hash_part(&mut hash, source_revision.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, input_root.to_hex().as_bytes());
+    navigation_hash_part(&mut hash, output_root.to_hex().as_bytes());
+    hash.finalize()
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn verify_navigation_verified_prefix_in_tx(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    consumer_id: &str,
+    profile: &DurableProjectionProfile,
+    bootstrap_sequence: u64,
+    bootstrap_root: Digest256,
+    owner_binding_json: &str,
+    consumer: &postgres::Row,
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<()> {
+    if consumer.get::<_, Option<i16>>("verified_prefix_version")
+        != Some(VERIFIED_PREFIX_FORMAT_VERSION)
+    {
+        return Err(DurableError::Conflict(
+            "navigation verified prefix format requires a full bootstrap",
+        ));
+    }
+    let cursor = as_u64(consumer.get("cursor_seq"))?;
+    let prefix_sequence = consumer
+        .get::<_, Option<i64>>("verified_prefix_seq")
+        .map(as_u64)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "navigation verified prefix is absent",
+        ))?;
+    let prefix_coverage_root = consumer
+        .get::<_, Option<String>>("verified_prefix_coverage_root")
+        .map(parse_digest)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "navigation verified prefix root is absent",
+        ))?;
+    let prefix_cohort_root = consumer
+        .get::<_, Option<String>>("verified_prefix_cohort_root")
+        .map(parse_digest)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "navigation verified cohort root is absent",
+        ))?;
+    let prefix_digest = consumer
+        .get::<_, Option<String>>("verified_prefix_digest")
+        .map(parse_digest)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "navigation verified prefix digest is absent",
+        ))?;
+    let coverage_root = consumer
+        .get::<_, Option<String>>("coverage_root")
+        .map(parse_digest)
+        .transpose()?
+        .ok_or(DurableError::Conflict("navigation coverage root is absent"))?;
+    let adjacency_root = consumer
+        .get::<_, Option<String>>("adjacency_root")
+        .map(parse_digest)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "navigation adjacency root is absent",
+        ))?;
+    let cohort_root = navigation_current_cohort_root_in_tx(tx, domain, consumer_id, limits)?;
+    let event_id: String = consumer
+        .get::<_, Option<String>>("last_event_id")
+        .ok_or(DurableError::Conflict("navigation cursor event is absent"))?;
+    let source_revision =
+        parse_digest(consumer.get::<_, Option<String>>("source_revision").ok_or(
+            DurableError::Conflict("navigation cursor revision is absent"),
+        )?)?;
+    let input_root = parse_digest(consumer.get::<_, Option<String>>("last_input_root").ok_or(
+        DurableError::Conflict("navigation cursor input root is absent"),
+    )?)?;
+    let output_root = parse_digest(
+        consumer
+            .get::<_, Option<String>>("last_output_root")
+            .ok_or(DurableError::Conflict(
+                "navigation cursor output root is absent",
+            ))?,
+    )?;
+    let expected = navigation_verified_prefix_digest(
+        domain,
+        consumer_id,
+        profile,
+        bootstrap_sequence,
+        bootstrap_root,
+        owner_binding_json,
+        cursor,
+        coverage_root,
+        cohort_root,
+        adjacency_root,
+        &event_id,
+        source_revision,
+        input_root,
+        output_root,
+    );
+    if prefix_sequence != cursor
+        || prefix_coverage_root != coverage_root
+        || prefix_cohort_root != cohort_root
+        || prefix_digest != expected
+        || as_u64(consumer.get("coverage_seq"))? != cursor
+        || as_u64(consumer.get("adjacency_seq"))? != cursor
+        || !consumer.get::<_, bool>("adjacency_ready")
+    {
+        return Err(DurableError::Conflict(
+            "navigation verified prefix is stale or corrupt",
+        ));
+    }
+    Ok(())
 }
 
 fn navigation_event_selected_member_root(
@@ -7097,6 +7319,7 @@ fn replace_navigation_event_cohort_rows(
     owner: &NavigationEventOwnerV2,
     rows: &PersistedRows,
     sequence: u64,
+    coverage_manifest_sha256: Digest256,
 ) -> DurableResult<()> {
     tx.execute(
         "UPDATE cmd2_projection_navigation_bootstrap_row
@@ -7130,8 +7353,9 @@ fn replace_navigation_event_cohort_rows(
             claim_owner_inventory_root,claim_stream_rows_scanned,claim_event_basis_root,
             claim_navigation_manifest_root,
             predecessor_cohort_root,dependency_root,input_root,output_root,
-            dependency_count,node_count,edge_count,diagnostic_count,cohort_bytes)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)",
+            dependency_count,node_count,edge_count,diagnostic_count,cohort_bytes,
+            coverage_manifest_sha256)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)",
         &[
             &domain,
             &consumer_id,
@@ -7169,6 +7393,7 @@ fn replace_navigation_event_cohort_rows(
             &i32::try_from(rows.diagnostics.len())
                 .map_err(|_| DurableError::Refused("navigation diagnostic count"))?,
             &as_i64(rows.cohort_bytes)?,
+            &coverage_manifest_sha256.to_hex(),
         ],
     )?;
     for dependency in &rows.dependencies {
@@ -8653,6 +8878,200 @@ fn read_navigation_currentness_guard_in_tx(
     read_navigation_currentness_guard_in_tx_mode(tx, domain, consumer_id, profile, limits, false)
 }
 
+/// Recheck the retained proof at the current coverage head independently of
+/// the verified prefix. A prefix commits its root, but a zero-owner terminal
+/// range has no current cohort row to force the current-index reader to load
+/// the range manifest.
+fn navigation_terminal_coverage_is_current_in_tx(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    consumer_id: &str,
+    bootstrap_sequence: u64,
+    coverage_sequence: u64,
+    head: u64,
+    expected_coverage_root: Option<Digest256>,
+    expected_terminal_event_id: Option<&str>,
+    expected_source_revision: Option<Digest256>,
+    expected_input_root: Option<Digest256>,
+    expected_output_root: Option<Digest256>,
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<bool> {
+    if coverage_sequence == bootstrap_sequence {
+        let event = tx.query_opt(
+            "SELECT 1 FROM cmd2_projection_navigation_coverage_event
+              WHERE domain=$1 AND consumer_id=$2 AND event_sequence=$3",
+            &[&domain, &consumer_id, &as_i64(coverage_sequence)?],
+        )?;
+        let range = tx.query_opt(
+            "SELECT 1 FROM cmd2_projection_navigation_coverage_range
+              WHERE domain=$1 AND consumer_id=$2 AND through_seq=$3",
+            &[&domain, &consumer_id, &as_i64(coverage_sequence)?],
+        )?;
+        return Ok(event.is_none() && range.is_none());
+    }
+    let (
+        Some(expected_coverage_root),
+        Some(expected_terminal_event_id),
+        Some(expected_source_revision),
+        Some(expected_input_root),
+        Some(expected_output_root),
+    ) = (
+        expected_coverage_root,
+        expected_terminal_event_id,
+        expected_source_revision,
+        expected_input_root,
+        expected_output_root,
+    )
+    else {
+        return Ok(false);
+    };
+    let event = tx.query_opt(
+        "SELECT event_id,source_path,record_id,source_revision,input_root,
+                dependency_root,output_root,previous_coverage_root,coverage_root,
+                cohort_count,cohort_set_root,cohort_manifest
+           FROM cmd2_projection_navigation_coverage_event
+          WHERE domain=$1 AND consumer_id=$2 AND event_sequence=$3",
+        &[&domain, &consumer_id, &as_i64(coverage_sequence)?],
+    )?;
+    let range = tx.query_opt(
+        "SELECT cursor_before,through_seq,held_source_head_seq,terminal_event_id,
+                range_root,range_manifest,source_revision,input_root,dependency_root,
+                output_root,previous_coverage_root,coverage_root,terminal_cohort_count,
+                terminal_cohort_root,terminal_cohort_manifest
+           FROM cmd2_projection_navigation_coverage_range
+          WHERE domain=$1 AND consumer_id=$2 AND through_seq=$3",
+        &[&domain, &consumer_id, &as_i64(coverage_sequence)?],
+    )?;
+    if event.is_some() == range.is_some() {
+        return Ok(false);
+    }
+    if let Some(row) = event {
+        let event_id: String = row.get("event_id");
+        let source_path: String = row.get("source_path");
+        let record_id: String = row.get("record_id");
+        let source_revision = parse_digest(row.get("source_revision"))?;
+        let input_root = parse_digest(row.get("input_root"))?;
+        let dependency_root = parse_digest(row.get("dependency_root"))?;
+        let output_root = parse_digest(row.get("output_root"))?;
+        let previous_root = parse_digest(row.get("previous_coverage_root"))?;
+        let stored_root = parse_digest(row.get("coverage_root"))?;
+        let cohort_count = u32::try_from(row.get::<_, i32>("cohort_count"))
+            .map_err(|_| DurableError::Corrupt("navigation event cohort count is negative"))?;
+        let cohort_set_root = row
+            .get::<_, Option<String>>("cohort_set_root")
+            .map(parse_digest)
+            .transpose()?;
+        let cohort_manifest = row.get::<_, Option<Vec<u8>>>("cohort_manifest");
+        let (Some(cohort_set_root), Some(cohort_manifest)) = (cohort_set_root, cohort_manifest)
+        else {
+            return Ok(false);
+        };
+        if cohort_manifest.len() as u64 > limits.max_total_bytes
+            || verify_navigation_event_cohort_manifest_single(
+                &cohort_manifest,
+                cohort_set_root,
+                cohort_count,
+                &event_id,
+                coverage_sequence,
+                &source_path,
+                &record_id,
+                source_revision,
+                input_root,
+                dependency_root,
+                output_root,
+                limits.max_row_bytes,
+            )
+            .is_err()
+        {
+            return Ok(false);
+        }
+        let calculated = navigation_coverage_root_next(
+            previous_root,
+            coverage_sequence,
+            &event_id,
+            &source_path,
+            &record_id,
+            source_revision,
+            input_root,
+            dependency_root,
+            output_root,
+            cohort_set_root,
+        );
+        return Ok(event_id == expected_terminal_event_id
+            && source_revision == expected_source_revision
+            && input_root == expected_input_root
+            && output_root == expected_output_root
+            && stored_root == expected_coverage_root
+            && calculated == expected_coverage_root);
+    }
+    let row = range.ok_or(DurableError::Corrupt(
+        "navigation terminal coverage range disappeared",
+    ))?;
+    let cursor_before = as_u64(row.get("cursor_before"))?;
+    let through_sequence = as_u64(row.get("through_seq"))?;
+    let held_source_head_sequence = as_u64(row.get("held_source_head_seq"))?;
+    let event_id: String = row.get("terminal_event_id");
+    let range_root = parse_digest(row.get("range_root"))?;
+    let range_manifest = row.get::<_, Vec<u8>>("range_manifest");
+    let source_revision = parse_digest(row.get("source_revision"))?;
+    let input_root = parse_digest(row.get("input_root"))?;
+    let dependency_root = parse_digest(row.get("dependency_root"))?;
+    let output_root = parse_digest(row.get("output_root"))?;
+    let previous_root = parse_digest(row.get("previous_coverage_root"))?;
+    let stored_root = parse_digest(row.get("coverage_root"))?;
+    let cohort_count = u32::try_from(row.get::<_, i32>("terminal_cohort_count"))
+        .map_err(|_| DurableError::Corrupt("navigation range cohort count is negative"))?;
+    let terminal_cohort_root = parse_digest(row.get("terminal_cohort_root"))?;
+    let terminal_manifest = row.get::<_, Vec<u8>>("terminal_cohort_manifest");
+    let manifest_bytes = (range_manifest.len() as u64)
+        .checked_add(terminal_manifest.len() as u64)
+        .ok_or(DurableError::Refused(
+            "navigation terminal manifest byte budget",
+        ))?;
+    if manifest_bytes > limits.max_total_bytes
+        || cursor_before >= through_sequence
+        || through_sequence != coverage_sequence
+        || held_source_head_sequence < through_sequence
+        || held_source_head_sequence > head
+        || durable_navigation_range::verify_navigation_event_range_terminal_manifest(
+            &terminal_manifest,
+            terminal_cohort_root,
+            cohort_count,
+            cursor_before,
+            through_sequence,
+            held_source_head_sequence,
+            &event_id,
+            range_root,
+            &range_manifest,
+            input_root,
+            dependency_root,
+            output_root,
+            limits.max_total_bytes as usize,
+        )
+        .is_err()
+    {
+        return Ok(false);
+    }
+    let calculated = durable_navigation_range::navigation_range_coverage_root_next(
+        previous_root,
+        cursor_before,
+        through_sequence,
+        held_source_head_sequence,
+        &event_id,
+        range_root,
+        terminal_cohort_root,
+        source_revision,
+        dependency_root,
+        output_root,
+    );
+    Ok(event_id == expected_terminal_event_id
+        && source_revision == expected_source_revision
+        && input_root == expected_input_root
+        && output_root == expected_output_root
+        && stored_root == expected_coverage_root
+        && calculated == expected_coverage_root)
+}
+
 fn read_navigation_currentness_guard_in_tx_mode(
     tx: &mut postgres::Transaction<'_>,
     domain: &str,
@@ -8687,7 +9106,9 @@ fn read_navigation_currentness_guard_in_tx_mode(
     let consumer = tx.query_opt(
         "SELECT profile_id,profile_version,source_contract_digest,cursor_seq,
                 source_revision,last_event_id,last_input_root,last_output_root,
-                coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready
+                coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready,
+                verified_prefix_version,verified_prefix_seq,verified_prefix_coverage_root,
+                verified_prefix_cohort_root,verified_prefix_digest
          FROM cmd2_projection_navigation_consumer WHERE domain=$1 AND consumer_id=$2",
         &[&domain, &consumer_id],
     )?;
@@ -8744,6 +9165,14 @@ fn read_navigation_currentness_guard_in_tx_mode(
         .get::<_, Option<String>>("coverage_root")
         .map(parse_digest)
         .transpose()?;
+    let verified_prefix_sequence = consumer
+        .get::<_, Option<i64>>("verified_prefix_seq")
+        .map(as_u64)
+        .transpose()?;
+    let verified_prefix_coverage_root = consumer
+        .get::<_, Option<String>>("verified_prefix_coverage_root")
+        .map(parse_digest)
+        .transpose()?;
     let adjacency_sequence = as_u64(consumer.get("adjacency_seq"))?;
     let adjacency_root = consumer
         .get::<_, Option<String>>("adjacency_root")
@@ -8752,6 +9181,10 @@ fn read_navigation_currentness_guard_in_tx_mode(
     if coverage_sequence != cursor
         || coverage_root.is_none()
         || bootstrap_sequence > coverage_sequence
+        || consumer.get::<_, Option<i16>>("verified_prefix_version")
+            != Some(VERIFIED_PREFIX_FORMAT_VERSION)
+        || verified_prefix_sequence != Some(cursor)
+        || verified_prefix_coverage_root != coverage_root
     {
         return Ok(navigation_currentness_not_ready(
             head,
@@ -8759,7 +9192,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
             DurableNavigationCurrentIndexNotReadyReasonV1::CoverageAbsent,
         ));
     }
-    let coverage_span = coverage_sequence - bootstrap_sequence;
+    let coverage_span = coverage_sequence - cursor;
     if coverage_span > limits.max_current_cohorts as u64 {
         return Ok(navigation_currentness_not_ready(
             head,
@@ -8780,7 +9213,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
         &[
             &domain,
             &consumer_id,
-            &as_i64(bootstrap_sequence)?,
+            &as_i64(cursor)?,
             &as_i64(coverage_sequence)?,
             &coverage_row_cap,
         ],
@@ -8790,14 +9223,14 @@ fn read_navigation_currentness_guard_in_tx_mode(
         .map(|row| as_u64(row.get::<_, i64>("cursor_before")))
         .transpose()?
         .unwrap_or(coverage_sequence);
-    if first_range_start < bootstrap_sequence || first_range_start > coverage_sequence {
+    if first_range_start < cursor || first_range_start > coverage_sequence {
         return Ok(navigation_currentness_not_ready(
             head,
             Some(cursor),
             DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
         ));
     }
-    let legacy_span = first_range_start - bootstrap_sequence;
+    let legacy_span = first_range_start - cursor;
     let coverage_rows = tx.query(
         "SELECT event_sequence,event_id,source_path,record_id,source_revision,
                 input_root,dependency_root,output_root,previous_coverage_root,coverage_root,
@@ -8808,7 +9241,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
         &[
             &domain,
             &consumer_id,
-            &as_i64(bootstrap_sequence)?,
+            &as_i64(cursor)?,
             &as_i64(first_range_start)?,
             &coverage_row_cap,
         ],
@@ -8842,13 +9275,20 @@ fn read_navigation_currentness_guard_in_tx_mode(
             DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
         ));
     }
-    let mut expected_coverage_root = bootstrap_root;
-    let mut terminal: Option<(String, Digest256, Digest256, Digest256)> = None;
+    let mut expected_coverage_root = verified_prefix_coverage_root.ok_or(DurableError::Corrupt(
+        "navigation checkpoint coverage root absent",
+    ))?;
+    let mut terminal: Option<(String, Digest256, Digest256, Digest256)> = Some((
+        consumer.get::<_, String>("last_event_id"),
+        parse_digest(consumer.get::<_, String>("source_revision"))?,
+        parse_digest(consumer.get::<_, String>("last_input_root"))?,
+        parse_digest(consumer.get::<_, String>("last_output_root"))?,
+    ));
     let mut manifest_bytes = 0u64;
     for (offset, row) in coverage_rows.iter().enumerate() {
         let sequence = as_u64(row.get("event_sequence"))?;
         let expected_sequence =
-            bootstrap_sequence
+            cursor
                 .checked_add(offset as u64 + 1)
                 .ok_or(DurableError::Corrupt(
                     "navigation coverage sequence overflow",
@@ -9003,6 +9443,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
             held_source_head_sequence,
             &terminal_event_id,
             range_root,
+            terminal_cohort_root,
             source_revision,
             dependency_root,
             output_root,
@@ -9135,6 +9576,26 @@ fn read_navigation_currentness_guard_in_tx_mode(
     let cursor_source_revision = cursor_source_revision.map(parse_digest).transpose()?;
     let cursor_input_root = cursor_input_root.map(parse_digest).transpose()?;
     let cursor_output_root = cursor_output_root.map(parse_digest).transpose()?;
+    if !navigation_terminal_coverage_is_current_in_tx(
+        tx,
+        domain,
+        consumer_id,
+        bootstrap_sequence,
+        coverage_sequence,
+        head,
+        coverage_root,
+        cursor_event_id.as_deref(),
+        cursor_source_revision,
+        cursor_input_root,
+        cursor_output_root,
+        limits,
+    )? {
+        return Ok(navigation_currentness_not_ready(
+            head,
+            Some(cursor),
+            DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+        ));
+    }
     let terminal_matches = match terminal {
         Some((event_id, source_revision, input_root, output_root)) => {
             cursor_event_id.as_deref() == Some(event_id.as_str())
@@ -9158,6 +9619,80 @@ fn read_navigation_currentness_guard_in_tx_mode(
             DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
         ));
     }
+    let checkpoint_sequence = consumer
+        .get::<_, Option<i64>>("verified_prefix_seq")
+        .map(as_u64)
+        .transpose()?;
+    let checkpoint_coverage_root = consumer
+        .get::<_, Option<String>>("verified_prefix_coverage_root")
+        .map(parse_digest)
+        .transpose()?;
+    let checkpoint_cohort_root = consumer
+        .get::<_, Option<String>>("verified_prefix_cohort_root")
+        .map(parse_digest)
+        .transpose()?;
+    let checkpoint_digest = consumer
+        .get::<_, Option<String>>("verified_prefix_digest")
+        .map(parse_digest)
+        .transpose()?;
+    let cohort_root = navigation_current_cohort_root_in_tx(tx, domain, consumer_id, limits)?;
+    let (
+        Some(checkpoint_sequence),
+        Some(checkpoint_coverage_root),
+        Some(checkpoint_cohort_root),
+        Some(checkpoint_digest),
+    ) = (
+        checkpoint_sequence,
+        checkpoint_coverage_root,
+        checkpoint_cohort_root,
+        checkpoint_digest,
+    )
+    else {
+        return Ok(navigation_currentness_not_ready(
+            head,
+            Some(cursor),
+            DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+        ));
+    };
+    let terminal_event_id = cursor_event_id.as_deref().ok_or(DurableError::Corrupt(
+        "navigation checkpoint terminal event absent",
+    ))?;
+    let terminal_source_revision = cursor_source_revision.ok_or(DurableError::Corrupt(
+        "navigation checkpoint source revision absent",
+    ))?;
+    let terminal_input_root = cursor_input_root.ok_or(DurableError::Corrupt(
+        "navigation checkpoint input root absent",
+    ))?;
+    let terminal_output_root = cursor_output_root.ok_or(DurableError::Corrupt(
+        "navigation checkpoint output root absent",
+    ))?;
+    let expected_checkpoint_digest = navigation_verified_prefix_digest(
+        domain,
+        consumer_id,
+        profile,
+        bootstrap_sequence,
+        bootstrap_root,
+        &owner_binding_raw,
+        cursor,
+        expected_coverage_root,
+        cohort_root,
+        adjacency_root.unwrap_or(bootstrap_root),
+        terminal_event_id,
+        terminal_source_revision,
+        terminal_input_root,
+        terminal_output_root,
+    );
+    if checkpoint_sequence != cursor
+        || checkpoint_coverage_root != expected_coverage_root
+        || checkpoint_cohort_root != cohort_root
+        || checkpoint_digest != expected_checkpoint_digest
+    {
+        return Ok(navigation_currentness_not_ready(
+            head,
+            Some(cursor),
+            DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+        ));
+    }
     if !consumer.get::<_, bool>("adjacency_ready")
         || adjacency_sequence != cursor
         || adjacency_root.is_none()
@@ -9171,14 +9706,19 @@ fn read_navigation_currentness_guard_in_tx_mode(
     let adjacency_root = adjacency_root.ok_or(DurableError::Corrupt(
         "navigation adjacency root absent after readiness check",
     ))?;
-    let index_root =
-        navigation_current_index_root(bootstrap_root, expected_coverage_root, adjacency_root);
+    let index_root = navigation_current_index_root(
+        bootstrap_root,
+        expected_coverage_root,
+        adjacency_root,
+        cohort_root,
+    );
     Ok(DurableNavigationCurrentnessV1::Ready(
         DurableNavigationCurrentnessGuardV1 {
             domain_head_sequence: head,
             coverage_sequence,
             coverage_root: expected_coverage_root,
             adjacency_root,
+            cohort_root,
             source_revision: cursor_source_revision.ok_or(DurableError::Corrupt(
                 "navigation cursor source revision absent",
             ))?,
@@ -9197,8 +9737,9 @@ fn read_navigation_currentness_guard_in_tx_mode(
     ))
 }
 
-/// Read the currentness metadata from a separate PostgreSQL client. This path
-/// intentionally queries no carrier, owner-dependency or adjacency table.
+/// Read currentness from a separate PostgreSQL client. The verified-prefix
+/// commitment touches only the bounded current-cohort rows; it does not load
+/// projected carrier payloads or event history.
 pub(crate) fn read_navigation_currentness_guard_with_client_v1(
     client: &mut postgres::Client,
     domain: &str,
@@ -9987,7 +10528,8 @@ impl DurablePgCoordinator {
         let consumer = tx.query_one(
             "SELECT profile_id,profile_version,source_contract_digest,cursor_seq,
                     last_event_id,last_input_root,last_output_root,coverage_seq,coverage_root,
-                    adjacency_seq,adjacency_root,adjacency_ready
+                    adjacency_seq,adjacency_root,adjacency_ready,verified_prefix_version,verified_prefix_seq,
+                    verified_prefix_coverage_root,verified_prefix_cohort_root,verified_prefix_digest
              FROM cmd2_projection_navigation_consumer
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
@@ -10002,36 +10544,68 @@ impl DurablePgCoordinator {
         }
         let cursor = as_u64(consumer.get("cursor_seq"))?;
         let existing = tx.query_opt(
-            "SELECT through_seq,bootstrap_root FROM cmd2_projection_navigation_bootstrap
+            "SELECT through_seq,bootstrap_root,owner_binding_json FROM cmd2_projection_navigation_bootstrap
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
         )?;
         if cursor == package.through_sequence {
             if let Some(existing) = existing {
-                if as_u64(existing.get("through_seq"))? == package.through_sequence
-                    && existing.get::<_, String>("bootstrap_root").trim_end()
-                        == package.bootstrap_root.to_hex()
-                    && as_u64(consumer.get("coverage_seq"))? == package.through_sequence
-                    && consumer
-                        .get::<_, Option<String>>("coverage_root")
-                        .as_deref()
-                        == Some(package.bootstrap_root.to_hex().as_str())
-                    && as_u64(consumer.get("adjacency_seq"))? == package.through_sequence
-                    && consumer
-                        .get::<_, Option<String>>("adjacency_root")
-                        .as_deref()
-                        == Some(adjacency_root.to_hex().as_str())
-                    && consumer.get::<_, bool>("adjacency_ready")
+                if consumer.get::<_, Option<i16>>("verified_prefix_version")
+                    == Some(VERIFIED_PREFIX_FORMAT_VERSION)
                 {
-                    return Ok(DurableNavigationBootstrapApplyV1 {
-                        through_sequence: package.through_sequence,
-                        bootstrap_root: package.bootstrap_root,
-                        replayed: true,
-                    });
+                    let same_baseline = as_u64(existing.get("through_seq"))?
+                        == package.through_sequence
+                        && existing.get::<_, String>("bootstrap_root").trim_end()
+                            == package.bootstrap_root.to_hex()
+                        && as_u64(consumer.get("coverage_seq"))? == package.through_sequence
+                        && consumer
+                            .get::<_, Option<String>>("coverage_root")
+                            .as_deref()
+                            == Some(package.bootstrap_root.to_hex().as_str())
+                        && as_u64(consumer.get("adjacency_seq"))? == package.through_sequence
+                        && consumer
+                            .get::<_, Option<String>>("adjacency_root")
+                            .as_deref()
+                            == Some(adjacency_root.to_hex().as_str())
+                        && consumer.get::<_, bool>("adjacency_ready");
+                    if same_baseline {
+                        let existing_sequence = as_u64(existing.get("through_seq"))?;
+                        let existing_root = parse_digest(existing.get("bootstrap_root"))?;
+                        let owner_binding_json: String = existing.get("owner_binding_json");
+                        match verify_navigation_verified_prefix_in_tx(
+                            tx,
+                            domain,
+                            consumer_id,
+                            profile,
+                            existing_sequence,
+                            existing_root,
+                            &owner_binding_json,
+                            &consumer,
+                            limits,
+                        ) {
+                            Ok(()) => {
+                                return Ok(DurableNavigationBootstrapApplyV1 {
+                                    through_sequence: package.through_sequence,
+                                    bootstrap_root: package.bootstrap_root,
+                                    replayed: true,
+                                });
+                            }
+                            Err(error @ DurableError::Database(_))
+                            | Err(error @ DurableError::Storage(_))
+                            | Err(error @ DurableError::Source(_))
+                            | Err(error @ DurableError::Indeterminate(_)) => return Err(error),
+                            Err(
+                                DurableError::Invalid(_)
+                                | DurableError::Conflict(_)
+                                | DurableError::Refused(_)
+                                | DurableError::Corrupt(_),
+                            ) => {}
+                        }
+                    }
                 }
-                return Err(DurableError::Conflict(
-                    "navigation bootstrap cursor already owns another baseline",
-                ));
+                // An explicit, current source-backed bootstrap replaces a
+                // stale, corrupt, v1, or unversioned derived navigation chain.
+                // Never manufacture v2 trust from its stored cursor or rows.
             }
         }
         if cursor > package.through_sequence {
@@ -10156,12 +10730,32 @@ impl DurablePgCoordinator {
             )?;
         }
         let synthetic_event_id = format!("bootstrap:{}", package.bootstrap_root.to_hex());
+        let cohort_root = navigation_current_cohort_root_in_tx(tx, domain, consumer_id, limits)?;
+        let checkpoint_digest = navigation_verified_prefix_digest(
+            domain,
+            consumer_id,
+            profile,
+            package.through_sequence,
+            package.bootstrap_root,
+            &owner_binding_json,
+            package.through_sequence,
+            package.bootstrap_root,
+            cohort_root,
+            adjacency_root,
+            &synthetic_event_id,
+            package.source_revision,
+            package.bootstrap_root,
+            package.bootstrap_root,
+        );
         let updated = tx.execute(
             "UPDATE cmd2_projection_navigation_consumer
              SET cursor_seq=$3,source_revision=$4,last_event_id=$5,last_input_root=$6,
                  last_output_root=$7,coverage_seq=$3,coverage_root=$8,
-                 adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true
-             WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$10",
+                 adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true,
+                 verified_prefix_version=$13,
+                 verified_prefix_seq=$3,verified_prefix_coverage_root=$8,
+                 verified_prefix_cohort_root=$10,verified_prefix_digest=$11
+             WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12",
             &[
                 &domain,
                 &consumer_id,
@@ -10172,7 +10766,10 @@ impl DurablePgCoordinator {
                 &package.bootstrap_root.to_hex(),
                 &package.bootstrap_root.to_hex(),
                 &adjacency_root.to_hex(),
+                &cohort_root.to_hex(),
+                &checkpoint_digest.to_hex(),
                 &as_i64(cursor)?,
+                &VERIFIED_PREFIX_FORMAT_VERSION,
             ],
         )?;
         if updated != 1 {
@@ -11757,7 +12354,9 @@ impl DurablePgCoordinator {
         let cursor_row = tx.query_one(
             "SELECT profile_id,profile_version,source_contract_digest,cursor_seq,
                     source_revision,last_event_id,last_input_root,last_output_root,
-                    coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready
+                    coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready,
+                    verified_prefix_version,verified_prefix_seq,verified_prefix_coverage_root,
+                    verified_prefix_cohort_root,verified_prefix_digest
              FROM cmd2_projection_navigation_consumer
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
@@ -11795,6 +12394,26 @@ impl DurablePgCoordinator {
                 && as_u64(cursor_row.get("adjacency_seq"))? == sequence
                 && cursor_row.get::<_, bool>("adjacency_ready")
             {
+                let bootstrap = tx.query_opt(
+                    "SELECT through_seq,bootstrap_root,owner_binding_json
+                       FROM cmd2_projection_navigation_bootstrap
+                      WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
+                    &[&domain, &consumer_id],
+                )?;
+                let bootstrap = bootstrap.ok_or(DurableError::Conflict(
+                    "atomic navigation event batch replay requires a full bootstrap",
+                ))?;
+                verify_navigation_verified_prefix_in_tx(
+                    &mut tx,
+                    domain,
+                    consumer_id,
+                    profile,
+                    as_u64(bootstrap.get("through_seq"))?,
+                    parse_digest(bootstrap.get("bootstrap_root"))?,
+                    &bootstrap.get::<_, String>("owner_binding_json"),
+                    &cursor_row,
+                    limits,
+                )?;
                 tx.commit()?;
                 return Ok(DurableNavigationEventApply {
                     event_sequence: sequence,
@@ -11841,7 +12460,7 @@ impl DurablePgCoordinator {
             ));
         }
         let bootstrap = tx.query_opt(
-            "SELECT through_seq,bootstrap_root,header_raw FROM cmd2_projection_navigation_bootstrap
+            "SELECT through_seq,bootstrap_root,owner_binding_json,header_raw FROM cmd2_projection_navigation_bootstrap
               WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
         )?;
@@ -11873,6 +12492,18 @@ impl DurablePgCoordinator {
                 "navigation event cursor lacks complete predecessor coverage",
             ));
         }
+        let owner_binding_json: String = bootstrap.get("owner_binding_json");
+        verify_navigation_verified_prefix_in_tx(
+            &mut tx,
+            domain,
+            consumer_id,
+            profile,
+            bootstrap_sequence,
+            bootstrap_root,
+            &owner_binding_json,
+            &cursor_row,
+            limits,
+        )?;
         let header_raw: String = bootstrap.get("header_raw");
         verify_navigation_batch_final_budget(
             &mut tx,
@@ -11941,6 +12572,7 @@ impl DurablePgCoordinator {
                 owner,
                 rows,
                 sequence,
+                cohort_set.set_root,
             )?;
         }
         let first = owners
@@ -12008,12 +12640,34 @@ impl DurablePgCoordinator {
             )?;
         }
         active_navigation(deadline)?;
+        let cohort_root =
+            navigation_current_cohort_root_in_tx(&mut tx, domain, consumer_id, limits)?;
+        let owner_binding_json: String = bootstrap.get("owner_binding_json");
+        let checkpoint_digest = navigation_verified_prefix_digest(
+            domain,
+            consumer_id,
+            profile,
+            bootstrap_sequence,
+            bootstrap_root,
+            &owner_binding_json,
+            sequence,
+            coverage_root,
+            cohort_root,
+            adjacency_root,
+            &first.event_id,
+            first.source_revision,
+            first.input_root,
+            first.output_root,
+        );
         let changed = tx.execute(
             "UPDATE cmd2_projection_navigation_consumer
                 SET cursor_seq=$3,source_revision=$4,last_event_id=$5,
                     last_input_root=$6,last_output_root=$7,coverage_seq=$3,
-                    coverage_root=$8,adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true
-              WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$10",
+                    coverage_root=$8,adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true,
+                    verified_prefix_version=$13,
+                    verified_prefix_seq=$3,verified_prefix_coverage_root=$8,
+                    verified_prefix_cohort_root=$10,verified_prefix_digest=$11
+              WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12",
             &[
                 &domain,
                 &consumer_id,
@@ -12024,7 +12678,10 @@ impl DurablePgCoordinator {
                 &first.output_root.to_hex(),
                 &coverage_root.to_hex(),
                 &adjacency_root.to_hex(),
+                &cohort_root.to_hex(),
+                &checkpoint_digest.to_hex(),
                 &as_i64(cursor)?,
+                &VERIFIED_PREFIX_FORMAT_VERSION,
             ],
         )?;
         if changed != 1 {
@@ -12334,10 +12991,24 @@ impl DurablePgCoordinator {
                 DurableNavigationCurrentIndexNotReadyReasonV1::CoverageAbsent,
             ));
         }
-        let bootstrap_sequence = as_u64(bootstrap.get("through_seq"))?;
         let stored_bootstrap_root = parse_digest(bootstrap.get("bootstrap_root"))?;
-        let coverage_span = coverage_seq - bootstrap_sequence;
-        if coverage_span > limits.max_current_cohorts as u64 {
+        let active_sequence_rows = tx.query(
+            "SELECT event_sequence,
+                    COUNT(*) AS cohort_row_count,
+                    COUNT(coverage_manifest_sha256) AS manifest_row_count,
+                    COUNT(DISTINCT coverage_manifest_sha256) AS manifest_digest_count,
+                    MIN(coverage_manifest_sha256) AS coverage_manifest_sha256
+               FROM cmd2_projection_navigation_cohort
+              WHERE domain=$1 AND consumer_id=$2
+              GROUP BY event_sequence ORDER BY event_sequence LIMIT $3",
+            &[
+                &domain,
+                &consumer_id,
+                &i64::try_from(limits.max_current_cohorts.saturating_add(1))
+                    .map_err(|_| DurableError::Refused("navigation current cohort count"))?,
+            ],
+        )?;
+        if active_sequence_rows.len() > limits.max_current_cohorts {
             tx.commit()?;
             return Ok(navigation_not_ready(
                 head,
@@ -12345,7 +13016,39 @@ impl DurablePgCoordinator {
                 DurableNavigationCurrentIndexNotReadyReasonV1::BudgetExceeded,
             ));
         }
-        let coverage_row_cap = i64::try_from(coverage_span.saturating_add(1))
+        if active_sequence_rows.iter().any(|row| {
+            row.get::<_, i64>("cohort_row_count") != row.get::<_, i64>("manifest_row_count")
+                || row.get::<_, i64>("manifest_digest_count") != 1
+                || row
+                    .get::<_, Option<String>>("coverage_manifest_sha256")
+                    .is_none()
+        }) {
+            tx.commit()?;
+            return Ok(navigation_not_ready(
+                head,
+                Some(cursor),
+                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+            ));
+        }
+        let mut active_manifest_roots = BTreeMap::new();
+        let mut active_sequences = Vec::with_capacity(active_sequence_rows.len());
+        for row in &active_sequence_rows {
+            let sequence = as_u64(row.get("event_sequence"))?;
+            let manifest_root = parse_digest(
+                row.get::<_, Option<String>>("coverage_manifest_sha256")
+                    .ok_or(DurableError::Corrupt(
+                        "navigation cohort manifest digest absent after validation",
+                    ))?,
+            )?;
+            active_sequences.push(as_i64(sequence)?);
+            active_manifest_roots.insert(sequence, manifest_root);
+        }
+        let bootstrap_sequence = as_u64(bootstrap.get("through_seq"))?;
+        if coverage_seq > bootstrap_sequence && !active_manifest_roots.contains_key(&coverage_seq) {
+            active_sequences.push(as_i64(coverage_seq)?);
+            active_sequences.sort_unstable();
+        }
+        let coverage_row_cap = i64::try_from(active_sequences.len().saturating_add(1))
             .map_err(|_| DurableError::Refused("navigation coverage event count"))?;
         let range_rows = tx.query(
         "SELECT cursor_before,through_seq,held_source_head_seq,terminal_event_id,range_root,range_manifest,
@@ -12353,46 +13056,25 @@ impl DurablePgCoordinator {
                     previous_coverage_root,coverage_root,terminal_cohort_count,
                     terminal_cohort_root,terminal_cohort_manifest
                FROM cmd2_projection_navigation_coverage_range
-              WHERE domain=$1 AND consumer_id=$2 AND through_seq>$3 AND through_seq<=$4
-              ORDER BY through_seq LIMIT $5",
+              WHERE domain=$1 AND consumer_id=$2 AND through_seq=ANY($3)
+              ORDER BY through_seq LIMIT $4",
             &[
                 &domain,
                 &consumer_id,
-                &as_i64(bootstrap_sequence)?,
-                &as_i64(coverage_seq)?,
+                &active_sequences,
                 &coverage_row_cap,
             ],
         )?;
-        let first_range_start = range_rows
-            .first()
-            .map(|row| as_u64(row.get::<_, i64>("cursor_before")))
-            .transpose()?
-            .unwrap_or(coverage_seq);
-        if first_range_start < bootstrap_sequence || first_range_start > coverage_seq {
-            tx.commit()?;
-            return Ok(navigation_not_ready(
-                head,
-                Some(cursor),
-                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
-            ));
-        }
-        let legacy_span = first_range_start - bootstrap_sequence;
         let coverage_rows = tx.query(
             "SELECT event_sequence,event_id,source_path,record_id,source_revision,
                     input_root,dependency_root,output_root,previous_coverage_root,coverage_root,
                     cohort_count,cohort_set_root,cohort_manifest
              FROM cmd2_projection_navigation_coverage_event
-             WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3 AND event_sequence<=$4
-             ORDER BY event_sequence LIMIT $5",
-            &[
-                &domain,
-                &consumer_id,
-                &as_i64(bootstrap_sequence)?,
-                &as_i64(first_range_start)?,
-                &coverage_row_cap,
-            ],
+             WHERE domain=$1 AND consumer_id=$2 AND event_sequence=ANY($3)
+             ORDER BY event_sequence LIMIT $4",
+            &[&domain, &consumer_id, &active_sequences, &coverage_row_cap],
         )?;
-        if coverage_rows.len() as u64 != legacy_span {
+        if coverage_rows.len() + range_rows.len() != active_sequences.len() {
             tx.commit()?;
             return Ok(navigation_not_ready(
                 head,
@@ -12400,40 +13082,11 @@ impl DurablePgCoordinator {
                 DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
             ));
         }
-        if !range_rows.is_empty()
-            && !tx
-                .query(
-                    "SELECT event_sequence
-                       FROM cmd2_projection_navigation_coverage_event
-                      WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3 AND event_sequence<=$4
-                      LIMIT 1",
-                    &[
-                        &domain,
-                        &consumer_id,
-                        &as_i64(first_range_start)?,
-                        &as_i64(coverage_seq)?,
-                    ],
-                )?
-                .is_empty()
-        {
-            tx.commit()?;
-            return Ok(navigation_not_ready(
-                head,
-                Some(cursor),
-                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
-            ));
-        }
-        let mut expected_coverage_root = stored_bootstrap_root;
         let mut coverage_events_by_sequence = BTreeMap::new();
         let mut manifest_bytes = 0u64;
-        for (offset, row) in coverage_rows.iter().enumerate() {
+        for row in coverage_rows.iter() {
             let sequence = as_u64(row.get("event_sequence"))?;
-            let expected_sequence =
-                bootstrap_sequence
-                    .checked_add(offset as u64 + 1)
-                    .ok_or(DurableError::Corrupt(
-                        "navigation coverage sequence overflow",
-                    ))?;
+            let expected_sequence = sequence;
             let previous_root = parse_digest(row.get("previous_coverage_root"))?;
             let source_revision = parse_digest(row.get("source_revision"))?;
             let input_root = parse_digest(row.get("input_root"))?;
@@ -12457,6 +13110,14 @@ impl DurablePgCoordinator {
                     DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
                 ));
             };
+            if active_manifest_roots.get(&sequence).copied() != Some(cohort_set_root) {
+                tx.commit()?;
+                return Ok(navigation_not_ready(
+                    head,
+                    Some(cursor),
+                    DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+                ));
+            }
             manifest_bytes = manifest_bytes
                 .checked_add(cohort_manifest.len() as u64)
                 .ok_or(DurableError::Refused("navigation manifest byte budget"))?;
@@ -12504,7 +13165,7 @@ impl DurablePgCoordinator {
                 ));
             }
             let calculated = navigation_coverage_root_next(
-                expected_coverage_root,
+                previous_root,
                 expected_sequence,
                 &event_id,
                 &source_path,
@@ -12516,7 +13177,6 @@ impl DurablePgCoordinator {
                 cohort_set_root,
             );
             if sequence != expected_sequence
-                || previous_root != expected_coverage_root
                 || parse_digest(row.get("coverage_root"))? != calculated
             {
                 tx.commit()?;
@@ -12537,9 +13197,7 @@ impl DurablePgCoordinator {
                     manifest.claim_range_set,
                 ),
             );
-            expected_coverage_root = calculated;
         }
-        let mut expected_range_cursor = first_range_start;
         for row in &range_rows {
             let cursor_before = as_u64(row.get("cursor_before"))?;
             let through_sequence = as_u64(row.get("through_seq"))?;
@@ -12556,6 +13214,20 @@ impl DurablePgCoordinator {
             let cohort_count = u32::try_from(row.get::<_, i32>("terminal_cohort_count"))
                 .map_err(|_| DurableError::Corrupt("navigation range cohort count is negative"))?;
             let terminal_cohort_root = parse_digest(row.get("terminal_cohort_root"))?;
+            let current_manifest_root = active_manifest_roots.get(&through_sequence).copied();
+            let manifest_matches = if cohort_count == 0 {
+                through_sequence == coverage_seq && current_manifest_root.is_none()
+            } else {
+                current_manifest_root == Some(terminal_cohort_root)
+            };
+            if !manifest_matches {
+                tx.commit()?;
+                return Ok(navigation_not_ready(
+                    head,
+                    Some(cursor),
+                    DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+                ));
+            }
             let terminal_manifest = row.get::<_, Vec<u8>>("terminal_cohort_manifest");
             manifest_bytes = manifest_bytes
                 .checked_add(range_manifest.len() as u64)
@@ -12564,7 +13236,6 @@ impl DurablePgCoordinator {
                     "navigation range manifest byte budget",
                 ))?;
             if manifest_bytes > limits.max_total_bytes
-                || cursor_before != expected_range_cursor
                 || through_sequence <= cursor_before
                 || through_sequence > coverage_seq
                 || held_source_head_sequence < through_sequence
@@ -12607,17 +13278,18 @@ impl DurablePgCoordinator {
                 ));
             };
             let calculated = durable_navigation_range::navigation_range_coverage_root_next(
-                expected_coverage_root,
+                previous_root,
                 cursor_before,
                 through_sequence,
                 held_source_head_sequence,
                 &terminal_event_id,
                 range_root,
+                terminal_cohort_root,
                 source_revision,
                 dependency_root,
                 output_root,
             );
-            if previous_root != expected_coverage_root || stored_root != calculated {
+            if stored_root != calculated {
                 tx.commit()?;
                 return Ok(navigation_not_ready(
                     head,
@@ -12636,31 +13308,6 @@ impl DurablePgCoordinator {
                     manifest.claim_range_set,
                 ),
             );
-            expected_coverage_root = calculated;
-            expected_range_cursor = through_sequence;
-        }
-        let terminal_range_head_matches = range_rows
-            .last()
-            .map(|row| as_u64(row.get::<_, i64>("held_source_head_seq")))
-            .transpose()?
-            .is_none_or(|held_head| held_head == head);
-        if expected_range_cursor != coverage_seq
-            || (coverage_seq == head && !terminal_range_head_matches)
-        {
-            tx.commit()?;
-            return Ok(navigation_not_ready(
-                head,
-                Some(cursor),
-                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
-            ));
-        }
-        if Some(expected_coverage_root) != coverage_root {
-            tx.commit()?;
-            return Ok(navigation_not_ready(
-                head,
-                Some(cursor),
-                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
-            ));
         }
         let owner_binding_raw: String = bootstrap.get("owner_binding_json");
         let owner_binding_value =
@@ -13437,6 +14084,7 @@ impl DurablePgCoordinator {
             stored_bootstrap_root,
             coverage_root,
             currentness_guard.adjacency_root(),
+            currentness_guard.cohort_root,
         );
         if index_root != currentness_guard.index_root() {
             tx.commit()?;
@@ -14058,7 +14706,9 @@ impl DurablePgCoordinator {
         let cursor_row = tx.query_one(
             "SELECT profile_id,profile_version,source_contract_digest,cursor_seq,
                     source_revision,last_event_id,last_input_root,last_output_root,
-                    coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready
+                    coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready,
+                    verified_prefix_version,verified_prefix_seq,verified_prefix_coverage_root,
+                    verified_prefix_cohort_root,verified_prefix_digest
              FROM cmd2_projection_navigation_consumer
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
@@ -14084,6 +14734,30 @@ impl DurablePgCoordinator {
                 && as_u64(cursor_row.get("adjacency_seq"))? == sequence
                 && cursor_row.get::<_, bool>("adjacency_ready")
             {
+                if let Some(bootstrap) = tx.query_opt(
+                    "SELECT through_seq,bootstrap_root,owner_binding_json
+                       FROM cmd2_projection_navigation_bootstrap
+                      WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
+                    &[&domain, &consumer_id],
+                )? {
+                    verify_navigation_verified_prefix_in_tx(
+                        &mut tx,
+                        domain,
+                        consumer_id,
+                        profile,
+                        as_u64(bootstrap.get("through_seq"))?,
+                        parse_digest(bootstrap.get("bootstrap_root"))?,
+                        &bootstrap.get::<_, String>("owner_binding_json"),
+                        &cursor_row,
+                        limits,
+                    )?;
+                } else if cursor_row.get::<_, Option<i16>>("verified_prefix_version")
+                    == Some(VERIFIED_PREFIX_FORMAT_VERSION)
+                {
+                    return Err(DurableError::Conflict(
+                        "navigation verified-prefix replay requires its bootstrap",
+                    ));
+                }
                 tx.commit()?;
                 return Ok(DurableNavigationEventApply {
                     event_sequence: sequence,
@@ -14123,10 +14797,34 @@ impl DurablePgCoordinator {
         }
 
         let bootstrap = tx.query_opt(
-            "SELECT through_seq,bootstrap_root FROM cmd2_projection_navigation_bootstrap
+            "SELECT through_seq,bootstrap_root,owner_binding_json FROM cmd2_projection_navigation_bootstrap
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
         )?;
+        let checkpoint_bootstrap = if let Some(row) = bootstrap.as_ref() {
+            Some((
+                as_u64(row.get("through_seq"))?,
+                parse_digest(row.get("bootstrap_root"))?,
+                row.get::<_, String>("owner_binding_json"),
+            ))
+        } else {
+            None
+        };
+        if let Some((bootstrap_sequence, bootstrap_root, owner_binding_json)) =
+            checkpoint_bootstrap.as_ref()
+        {
+            verify_navigation_verified_prefix_in_tx(
+                &mut tx,
+                domain,
+                consumer_id,
+                profile,
+                *bootstrap_sequence,
+                *bootstrap_root,
+                owner_binding_json,
+                &cursor_row,
+                limits,
+            )?;
+        }
         if allow_historical_cut && bootstrap.is_none() {
             return Err(DurableError::Conflict(
                 "historical navigation publication requires a complete bootstrap",
@@ -14253,14 +14951,15 @@ impl DurablePgCoordinator {
                 &cohort.record_id,
             ],
         )?;
+        let coverage_manifest_sha256 = next_coverage.as_ref().map(|coverage| coverage.5.to_hex());
         tx.execute(
             "INSERT INTO cmd2_projection_navigation_cohort(
                 domain,consumer_id,source_path,record_id,event_id,event_sequence,
                 source_event_id,source_event_version,
                 predecessor_source_revision,source_revision,predecessor_cohort_root,
                 dependency_root,input_root,output_root,dependency_count,node_count,
-                edge_count,diagnostic_count,cohort_bytes)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)",
+                edge_count,diagnostic_count,cohort_bytes,coverage_manifest_sha256)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)",
             &[
                 &domain,
                 &consumer_id,
@@ -14285,6 +14984,7 @@ impl DurablePgCoordinator {
                 &i32::try_from(rows.diagnostics.len())
                     .map_err(|_| DurableError::Refused("navigation diagnostic count"))?,
                 &as_i64(rows.cohort_bytes)?,
+                &coverage_manifest_sha256,
             ],
         )?;
         for dependency in &rows.dependencies {
@@ -14448,14 +15148,39 @@ impl DurablePgCoordinator {
         }
         active_navigation(deadline)?;
         let changed = if let Some((_, coverage_root, _, adjacency_root, _, _)) = next_coverage {
+            let cohort_root =
+                navigation_current_cohort_root_in_tx(&mut tx, domain, consumer_id, limits)?;
+            let (bootstrap_sequence, bootstrap_root, owner_binding_json) =
+                checkpoint_bootstrap.as_ref().ok_or(DurableError::Conflict(
+                    "navigation checkpoint lacks bootstrap",
+                ))?;
+            let checkpoint_digest = navigation_verified_prefix_digest(
+                domain,
+                consumer_id,
+                profile,
+                *bootstrap_sequence,
+                *bootstrap_root,
+                owner_binding_json,
+                sequence,
+                coverage_root,
+                cohort_root,
+                adjacency_root,
+                &cohort.event_id,
+                cohort.source_revision,
+                cohort.input_root,
+                cohort.output_root,
+            );
             tx.execute(
                 "UPDATE cmd2_projection_navigation_consumer
                  SET cursor_seq=$3,source_revision=$4,last_event_id=$5,
                      last_input_root=$6,last_output_root=$7,
                      coverage_seq=$3,coverage_root=$8,
-                     adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true
-                 WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$10
-                   AND adjacency_seq=$11",
+                     adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true,
+                     verified_prefix_version=$14,
+                     verified_prefix_seq=$3,verified_prefix_coverage_root=$8,
+                     verified_prefix_cohort_root=$10,verified_prefix_digest=$11
+                 WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12
+                   AND adjacency_seq=$13",
                 &[
                     &domain,
                     &consumer_id,
@@ -14466,8 +15191,11 @@ impl DurablePgCoordinator {
                     &cohort.output_root.to_hex(),
                     &coverage_root.to_hex(),
                     &adjacency_root.to_hex(),
+                    &cohort_root.to_hex(),
+                    &checkpoint_digest.to_hex(),
                     &as_i64(cursor)?,
                     &as_i64(cursor)?,
+                    &VERIFIED_PREFIX_FORMAT_VERSION,
                 ],
             )?
         } else {
@@ -17460,5 +18188,102 @@ fn active_navigation(deadline: Instant) -> DurableResult<()> {
         ))
     } else {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod verified_prefix_tests {
+    use super::*;
+
+    fn test_digest(label: &[u8]) -> Digest256 {
+        Digest256::of_bytes(label)
+    }
+
+    fn checkpoint_digest(owner_binding_json: &str, cohort_root: Digest256) -> Digest256 {
+        let profile = DurableProjectionProfile {
+            id: "test-profile".to_owned(),
+            version: 2,
+            source_contract: test_digest(b"source-contract"),
+        };
+        navigation_verified_prefix_digest(
+            "test-domain",
+            "test-consumer",
+            &profile,
+            10,
+            test_digest(b"bootstrap-root"),
+            owner_binding_json,
+            20,
+            test_digest(b"coverage-root"),
+            cohort_root,
+            test_digest(b"adjacency-root"),
+            "event-20",
+            test_digest(b"source-revision"),
+            test_digest(b"input-root"),
+            test_digest(b"output-root"),
+        )
+    }
+
+    #[test]
+    fn verified_prefix_binds_owner_binding_and_current_cohorts() {
+        let original_manifest = Digest256::of_bytes(b"retained event manifest");
+        let changed_manifest = Digest256::of_bytes(b"mutated event manifest");
+        let original_rows = vec![format!(
+            r#"{{"event_sequence":20,"coverage_manifest_sha256":"{}"}}"#,
+            original_manifest.to_hex()
+        )];
+        let changed_rows = vec![format!(
+            r#"{{"event_sequence":20,"coverage_manifest_sha256":"{}"}}"#,
+            changed_manifest.to_hex()
+        )];
+        let cohort_root = navigation_current_cohort_root_from_row_json(&original_rows, 4096)
+            .expect("current cohort commitment");
+        let changed_cohort_root = navigation_current_cohort_root_from_row_json(&changed_rows, 4096)
+            .expect("mutated current cohort commitment");
+        let reordered_rows = vec![format!(
+            r#"{{"coverage_manifest_sha256":"{}","event_sequence":20}}"#,
+            original_manifest.to_hex()
+        )];
+        let reordered_cohort_root =
+            navigation_current_cohort_root_from_row_json(&reordered_rows, 4096)
+                .expect("reordered current cohort commitment");
+        let baseline = checkpoint_digest(r#"{"owner":"alpha"}"#, cohort_root);
+
+        assert_eq!(cohort_root, reordered_cohort_root);
+        assert_ne!(
+            baseline,
+            checkpoint_digest(r#"{"owner":"beta"}"#, cohort_root)
+        );
+        assert_ne!(
+            baseline,
+            checkpoint_digest(r#"{"owner":"alpha"}"#, changed_cohort_root)
+        );
+
+        let range_root = durable_navigation_range::navigation_range_coverage_root_next(
+            test_digest(b"previous coverage"),
+            10,
+            20,
+            20,
+            "range-terminal",
+            test_digest(b"range manifest"),
+            original_manifest,
+            test_digest(b"source revision"),
+            test_digest(b"dependency root"),
+            test_digest(b"output root"),
+        );
+        assert_ne!(
+            range_root,
+            durable_navigation_range::navigation_range_coverage_root_next(
+                test_digest(b"previous coverage"),
+                10,
+                20,
+                20,
+                "range-terminal",
+                test_digest(b"range manifest"),
+                changed_manifest,
+                test_digest(b"source revision"),
+                test_digest(b"dependency root"),
+                test_digest(b"output root"),
+            )
+        );
     }
 }

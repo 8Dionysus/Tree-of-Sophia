@@ -959,15 +959,20 @@ fn final_withdrawal_sends_no_packet_on_any_wire() {
 {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"tos_source_descend","arguments":{"node_id":"tos.x"}}}
 "#;
     let mut output = Vec::new();
-    run_io(
+    let delivery = run_io(
         Cursor::new(input),
         &mut output,
         &WithdrawnExecutor,
         profile(),
-    )
-    .unwrap();
+    );
+    assert_eq!(
+        delivery.unwrap_err().to_string(),
+        "MCP source navigation delivery failed: current source policy denied"
+    );
+    // The error-only refusal may be written, but the fenced source packet is not.
     let text = std::str::from_utf8(&output).unwrap();
     assert!(text.contains("\"isError\":true"));
+    assert!(!text.contains("\"structuredContent\""));
     assert!(!text.contains("would leak"));
 }
 

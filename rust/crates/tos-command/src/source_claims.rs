@@ -1890,7 +1890,15 @@ fn serialize_claim_creation_preview(
             cancelled,
         )?;
     }
-    check_claim_capture(&complete, &home, &files, worker, deadline, cancelled)?;
+    check_claim_capture(
+        &complete,
+        &home,
+        &files,
+        &["native-claim-serialization"],
+        worker,
+        deadline,
+        cancelled,
+    )?;
     let recorded_at = if let Some(original) = retained {
         let raw =
             original
@@ -2017,6 +2025,7 @@ fn check_claim_capture(
     ctx: &CommandContext,
     home: &RelativePath,
     files: &BTreeMap<String, Vec<u8>>,
+    allowed_procedures: &[&str],
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2025,8 +2034,10 @@ fn check_claim_capture(
         .get("source-create-provenance.jsonl")
         .ok_or(SourceCommandError::Conflict("native Claim event absent"))?;
     let event = parse(raw)?;
-    if text(field(field(&event, "method")?, "procedure")?, "name")? != "native-claim-serialization"
-    {
+    if !allowed_procedures.contains(&text(
+        field(field(&event, "method")?, "procedure")?,
+        "name",
+    )?) {
         return Err(SourceCommandError::Conflict(
             "retained Claim event procedure differs",
         ));

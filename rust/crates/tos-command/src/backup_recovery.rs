@@ -31,9 +31,11 @@ const BACKUP_SCHEMA_V5: &str = "tos_cmd2_quiescent_backup_v5";
 const BACKUP_SCHEMA_V6: &str = "tos_cmd2_quiescent_backup_v6";
 const BACKUP_SCHEMA_V7: &str = "tos_cmd2_quiescent_backup_v7";
 const BACKUP_SCHEMA_V8: &str = "tos_cmd2_quiescent_backup_v8";
+const BACKUP_SCHEMA_V9: &str = "tos_cmd2_quiescent_backup_v9";
 const SOURCE_INVENTORY_CENSUS_V1: &str = "tos_backup_source_inventory_projection_v1";
 const SOURCE_NAVIGATION_CENSUS_V1: &str = "tos_backup_source_navigation_projection_v1";
 const SOURCE_NAVIGATION_CENSUS_V2: &str = "tos_backup_source_navigation_projection_v2";
+const SOURCE_NAVIGATION_CENSUS_V3: &str = "tos_backup_source_navigation_projection_v3";
 const SOURCE_NAVIGATION_POLICY_CENSUS_V1: &str = "tos_backup_source_navigation_policy_v1";
 const PRIVATE_PACKAGE_CENSUS_V2: &str = "tos_backup_private_owner_packages_v2";
 const SOURCE_PUBLICATION_CENSUS_V1: &str = "tos_backup_source_publication_v1";
@@ -213,6 +215,7 @@ fn census_v2_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V6
         || schema == BACKUP_SCHEMA_V7
         || schema == BACKUP_SCHEMA_V8
+        || schema == BACKUP_SCHEMA_V9
     {
         Ok(true)
     } else {
@@ -229,6 +232,7 @@ fn census_v3_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V6
         || schema == BACKUP_SCHEMA_V7
         || schema == BACKUP_SCHEMA_V8
+        || schema == BACKUP_SCHEMA_V9
     {
         Ok(true)
     } else {
@@ -244,6 +248,7 @@ fn census_v4_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V6
         || schema == BACKUP_SCHEMA_V7
         || schema == BACKUP_SCHEMA_V8
+        || schema == BACKUP_SCHEMA_V9
     {
         Ok(true)
     } else {
@@ -262,6 +267,7 @@ fn census_v5_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V6
         || schema == BACKUP_SCHEMA_V7
         || schema == BACKUP_SCHEMA_V8
+        || schema == BACKUP_SCHEMA_V9
     {
         Ok(true)
     } else {
@@ -277,7 +283,10 @@ fn census_v6_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V5
     {
         Ok(false)
-    } else if schema == BACKUP_SCHEMA_V6 || schema == BACKUP_SCHEMA_V7 || schema == BACKUP_SCHEMA_V8
+    } else if schema == BACKUP_SCHEMA_V6
+        || schema == BACKUP_SCHEMA_V7
+        || schema == BACKUP_SCHEMA_V8
+        || schema == BACKUP_SCHEMA_V9
     {
         Ok(true)
     } else {
@@ -294,10 +303,20 @@ fn census_v7_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V6
     {
         Ok(false)
-    } else if schema == BACKUP_SCHEMA_V7 || schema == BACKUP_SCHEMA_V8 {
+    } else if schema == BACKUP_SCHEMA_V7 || schema == BACKUP_SCHEMA_V8 || schema == BACKUP_SCHEMA_V9
+    {
         Ok(true)
     } else {
         Err(error())
+    }
+}
+
+fn census_v9_for_schema(schema: &str) -> io::Result<bool> {
+    match schema {
+        BACKUP_SCHEMA_V9 => Ok(true),
+        BACKUP_SCHEMA_V1 | BACKUP_SCHEMA_V2 | BACKUP_SCHEMA_V3 | BACKUP_SCHEMA_V4
+        | BACKUP_SCHEMA_V5 | BACKUP_SCHEMA_V6 | BACKUP_SCHEMA_V7 | BACKUP_SCHEMA_V8 => Ok(false),
+        _ => Err(error()),
     }
 }
 
@@ -309,6 +328,7 @@ fn census_v8_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V5
         || schema == BACKUP_SCHEMA_V6
         || schema == BACKUP_SCHEMA_V7
+        || schema == BACKUP_SCHEMA_V9
     {
         Ok(false)
     } else if schema == BACKUP_SCHEMA_V8 {
@@ -1483,7 +1503,7 @@ fn frozen_domain_v2(
     Ok(result)
 }
 
-/// V3-V7 retain their original twelve-relation navigation census.
+/// V3-V7 retain their historical navigation census formats.
 fn frozen_domain_v3(
     db: &mut Client,
     domain: &str,
@@ -1492,7 +1512,7 @@ fn frozen_domain_v3(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    frozen_domain_v3_inner(db, domain, store, profile, d, c, false)
+    frozen_domain_v3_inner(db, domain, store, profile, d, c, false, false)
 }
 
 fn frozen_domain_v3_inner(
@@ -1503,9 +1523,16 @@ fn frozen_domain_v3_inner(
     d: Instant,
     c: &AtomicBool,
     navigation_census_v2: bool,
+    navigation_census_v3: bool,
 ) -> io::Result<Value> {
     let mut result = frozen_domain_v2(db, domain, store, profile, d, c)?;
-    let (tables, census_key, census_schema) = if navigation_census_v2 {
+    let (tables, census_key, census_schema) = if navigation_census_v3 {
+        (
+            &NAVIGATION_TABLES_V2[..],
+            "source_navigation_projection_v3",
+            SOURCE_NAVIGATION_CENSUS_V3,
+        )
+    } else if navigation_census_v2 {
         (
             &NAVIGATION_TABLES_V2[..],
             "source_navigation_projection_v2",
@@ -1540,7 +1567,18 @@ fn frozen_domain_v8(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    frozen_domain_v6_inner(db, domain, store, profile, d, c, true, true)
+    frozen_domain_v6_inner(db, domain, store, profile, d, c, true, true, false)
+}
+
+fn frozen_domain_v9(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    frozen_domain_v6_inner(db, domain, store, profile, d, c, true, false, true)
 }
 
 fn append_navigation_census(
@@ -1590,6 +1628,7 @@ fn append_navigation_census(
     let root_domain = match census_schema {
         SOURCE_NAVIGATION_CENSUS_V1 => b"tos-backup-source-navigation-projection-v1\0".as_slice(),
         SOURCE_NAVIGATION_CENSUS_V2 => b"tos-backup-source-navigation-projection-v2\0".as_slice(),
+        SOURCE_NAVIGATION_CENSUS_V3 => b"tos-backup-source-navigation-projection-v3\0".as_slice(),
         _ => return Err(error()),
     };
     root.update(root_domain);
@@ -1601,9 +1640,14 @@ fn append_navigation_census(
     if installed {
         for (table, order) in tables.iter().copied() {
             active(d, c)?;
+            let row_json = if census_schema == SOURCE_NAVIGATION_CENSUS_V3 {
+                "to_jsonb(t)::text"
+            } else {
+                "row_to_json(t)::text"
+            };
             let query = format!(
-                "SELECT octet_length(row_to_json(t)::text),
-                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
+                "SELECT octet_length({row_json}),
+                        sha256(convert_to({row_json},'UTF8'))
                  FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
             );
             let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
@@ -1721,6 +1765,36 @@ fn validate_navigation_census_v2(metadata: &Value, profile: BackupProfile) -> io
     Ok(())
 }
 
+fn validate_navigation_census_v3(metadata: &Value, profile: BackupProfile) -> io::Result<()> {
+    let census = &metadata["source_navigation_projection_v3"];
+    let tables = census["tables"].as_object().ok_or_else(error)?;
+    require(census["schema"] == SOURCE_NAVIGATION_CENSUS_V3)?;
+    require(tables.len() == NAVIGATION_TABLES_V2.len())?;
+    let state = census["state"].as_str().ok_or_else(error)?;
+    require(state == "present" || state == "absent")?;
+    let mut total_rows = 0u64;
+    for (table, _) in NAVIGATION_TABLES_V2 {
+        let count = tables[table].as_u64().ok_or_else(error)?;
+        require(count <= profile.max_metadata_rows)?;
+        require(metadata["counts"][table].as_u64() == Some(count))?;
+        total_rows = total_rows.checked_add(count).ok_or_else(error)?;
+    }
+    let rows = census["rows"].as_u64().ok_or_else(error)?;
+    let bytes = census["bytes"].as_u64().ok_or_else(error)?;
+    require(
+        rows == total_rows
+            && rows <= profile.max_metadata_rows
+            && bytes <= profile.max_metadata_bytes,
+    )?;
+    if state == "absent" {
+        require(rows == 0 && bytes == 0 && census["row_root"].is_null())?;
+    } else {
+        let root = census["row_root"].as_str().ok_or_else(error)?;
+        require(tos_foundation::Digest256::from_hex(root).is_ok())?;
+    }
+    Ok(())
+}
+
 /// Add a bounded digest census for the owner-private package namespace. The
 /// receipt carries only table counts and an opaque row root; private target
 /// references and member bytes remain inside the encrypted/owner-selected dump.
@@ -1734,7 +1808,7 @@ fn frozen_domain_v4(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    frozen_domain_v4_inner(db, domain, store, profile, d, c, false)
+    frozen_domain_v4_inner(db, domain, store, profile, d, c, false, false)
 }
 
 fn frozen_domain_v4_inner(
@@ -1745,9 +1819,18 @@ fn frozen_domain_v4_inner(
     d: Instant,
     c: &AtomicBool,
     navigation_census_v2: bool,
+    navigation_census_v3: bool,
 ) -> io::Result<Value> {
-    let mut result =
-        frozen_domain_v3_inner(db, domain, store, profile, d, c, navigation_census_v2)?;
+    let mut result = frozen_domain_v3_inner(
+        db,
+        domain,
+        store,
+        profile,
+        d,
+        c,
+        navigation_census_v2,
+        navigation_census_v3,
+    )?;
     let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
     let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
     let mut names = PRIVATE_PACKAGE_TABLES
@@ -1926,7 +2009,7 @@ fn frozen_domain_v5(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    frozen_domain_v5_inner(db, domain, store, profile, d, c, false)
+    frozen_domain_v5_inner(db, domain, store, profile, d, c, false, false)
 }
 
 fn frozen_domain_v5_inner(
@@ -1937,9 +2020,18 @@ fn frozen_domain_v5_inner(
     d: Instant,
     c: &AtomicBool,
     navigation_census_v2: bool,
+    navigation_census_v3: bool,
 ) -> io::Result<Value> {
-    let mut result =
-        frozen_domain_v4_inner(db, domain, store, profile, d, c, navigation_census_v2)?;
+    let mut result = frozen_domain_v4_inner(
+        db,
+        domain,
+        store,
+        profile,
+        d,
+        c,
+        navigation_census_v2,
+        navigation_census_v3,
+    )?;
     let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
     let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
     let names = SOURCE_NAVIGATION_POLICY_TABLES
@@ -2056,7 +2148,7 @@ fn frozen_domain_v6(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    frozen_domain_v6_inner(db, domain, store, profile, d, c, false, false)
+    frozen_domain_v6_inner(db, domain, store, profile, d, c, false, false, false)
 }
 
 fn frozen_domain_v7(
@@ -2067,7 +2159,7 @@ fn frozen_domain_v7(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    frozen_domain_v6_inner(db, domain, store, profile, d, c, true, false)
+    frozen_domain_v6_inner(db, domain, store, profile, d, c, true, false, false)
 }
 
 fn frozen_domain_v6_inner(
@@ -2079,9 +2171,18 @@ fn frozen_domain_v6_inner(
     c: &AtomicBool,
     claim_navigation_v2: bool,
     navigation_census_v2: bool,
+    navigation_census_v3: bool,
 ) -> io::Result<Value> {
-    let mut result =
-        frozen_domain_v5_inner(db, domain, store, profile, d, c, navigation_census_v2)?;
+    let mut result = frozen_domain_v5_inner(
+        db,
+        domain,
+        store,
+        profile,
+        d,
+        c,
+        navigation_census_v2,
+        navigation_census_v3,
+    )?;
     let expected_schema_profile = crate::durable_adapter::schema_profile_digest().to_hex();
     let schema_profile = db
         .query_opt(
@@ -2506,7 +2607,7 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     require_current_cmd2_schema(s.pg_url, d, c)?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
     let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
-    let metadata = frozen_domain_v8(&mut db, s.domain, &store, profile, d, c)?;
+    let metadata = frozen_domain_v9(&mut db, s.domain, &store, profile, d, c)?;
     let database: String = db
         .query_one("SELECT current_database()", &[])
         .map_err(|_| error())?
@@ -2541,8 +2642,8 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         tos_fd_open::open_directory_at(&backup, Path::new("store")).map_err(|_| error())?;
     copy_store(&source, &copied, &members, profile, d, c)?;
     require(cut(s.pg_url, s.domain, &store, d, c)? == original_cut)?;
-    require(frozen_domain_v8(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
-    let mut receipt = json!({"schema":BACKUP_SCHEMA_V8,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
+    require(frozen_domain_v9(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
+    let mut receipt = json!({"schema":BACKUP_SCHEMA_V9,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
     if metadata.get("managed_model_v2").is_some() {
         let oid = db
             .query_one(
@@ -2657,6 +2758,7 @@ pub fn restore_into_fresh_with_managed_binding(
     let census_v6 = census_v6_for_schema(schema)?;
     let census_v7 = census_v7_for_schema(schema)?;
     let census_v8 = census_v8_for_schema(schema)?;
+    let census_v9 = census_v9_for_schema(schema)?;
     require(receipt["domain"] == s.domain)?;
     require(receipt.get("profile").is_some() == receipt.get("metadata").is_some())?;
     if census_v2 {
@@ -2747,10 +2849,12 @@ pub fn restore_into_fresh_with_managed_binding(
                     && rows <= profile.max_metadata_rows,
             )?;
         }
-        if census_v3 && !census_v8 {
+        if census_v3 && !census_v8 && !census_v9 {
             validate_navigation_census(metadata, profile)?;
         }
-        if census_v8 {
+        if census_v9 {
+            validate_navigation_census_v3(metadata, profile)?;
+        } else if census_v8 {
             validate_navigation_census_v2(metadata, profile)?;
         }
         if census_v4 {
@@ -2832,7 +2936,14 @@ pub fn restore_into_fresh_with_managed_binding(
         require_current_cmd2_schema(s.pg_url, d, c)?;
     }
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
-    let (recovered_metadata, recovered) = if census_v8 {
+    let (recovered_metadata, recovered) = if census_v9 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v9(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else if census_v8 {
         let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
         let recovered_metadata = frozen_domain_v8(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
@@ -2975,9 +3086,10 @@ fn backup_binding_digest(value: &Value, max_bytes: u64) -> io::Result<String> {
 mod tests {
     use super::{
         BACKUP_SCHEMA_V1, BACKUP_SCHEMA_V2, BACKUP_SCHEMA_V3, BACKUP_SCHEMA_V4, BACKUP_SCHEMA_V5,
-        BACKUP_SCHEMA_V6, BACKUP_SCHEMA_V7, BACKUP_SCHEMA_V8, census_v2_for_schema,
-        census_v3_for_schema, census_v4_for_schema, census_v5_for_schema, census_v6_for_schema,
-        census_v7_for_schema, census_v8_for_schema, selected_config,
+        BACKUP_SCHEMA_V6, BACKUP_SCHEMA_V7, BACKUP_SCHEMA_V8, BACKUP_SCHEMA_V9,
+        census_v2_for_schema, census_v3_for_schema, census_v4_for_schema, census_v5_for_schema,
+        census_v6_for_schema, census_v7_for_schema, census_v8_for_schema, census_v9_for_schema,
+        selected_config,
     };
     use std::path::{Path, PathBuf};
 
@@ -3018,6 +3130,9 @@ mod tests {
         assert!(census_v7_for_schema(BACKUP_SCHEMA_V8).unwrap());
         assert!(!census_v8_for_schema(BACKUP_SCHEMA_V7).unwrap());
         assert!(census_v8_for_schema(BACKUP_SCHEMA_V8).unwrap());
+        assert!(!census_v8_for_schema(BACKUP_SCHEMA_V9).unwrap());
+        assert!(!census_v9_for_schema(BACKUP_SCHEMA_V8).unwrap());
+        assert!(census_v9_for_schema(BACKUP_SCHEMA_V9).unwrap());
         assert_eq!(
             census_v4_for_schema("unknown").unwrap_err().kind(),
             std::io::ErrorKind::InvalidData

@@ -16,10 +16,11 @@ use super::{
     DurableNavigationEventContextV1, DurableNavigationEventLimits, DurablePgCoordinator,
     DurableProjectionLimits, DurableProjectionProfile, DurableResult, EventWitness,
     MAX_NAVIGATION_EVENT_ID_BYTES, MAX_NAVIGATION_EVENT_STEPS_PER_CALL,
-    MAX_NAVIGATION_RECORD_ID_BYTES, as_i64, as_u64, canonical_value, parse_digest,
+    MAX_NAVIGATION_RECORD_ID_BYTES, as_i64, as_u64, canonical_value,
+    navigation_current_cohort_root_in_tx, navigation_verified_prefix_digest, parse_digest,
     read_domain_snapshot, read_navigation_event_cursor, read_navigation_event_head,
     resolve_event_witness, selected_version_at_cut, set_local_timeouts, validate_identifier,
-    validate_relative_path, verify_navigation_consumer,
+    validate_relative_path, verify_navigation_consumer, verify_navigation_verified_prefix_in_tx,
 };
 
 /// One exact source-history member committed by a range event.
@@ -421,7 +422,9 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
     let consumer = tx.query_one(
         "SELECT profile_id,profile_version,source_contract_digest,cursor_seq,
                 source_revision,last_event_id,last_input_root,last_output_root,
-                coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready
+                coverage_seq,coverage_root,adjacency_seq,adjacency_root,adjacency_ready,
+                verified_prefix_version,verified_prefix_seq,verified_prefix_coverage_root,
+                verified_prefix_cohort_root,verified_prefix_digest
            FROM cmd2_projection_navigation_consumer
           WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
         &[&domain, &consumer_id],
@@ -464,6 +467,26 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
                 .as_deref()
                 == Some(terminal_output_root.to_hex().as_str())
         {
+            let bootstrap = tx.query_opt(
+                "SELECT through_seq,bootstrap_root,owner_binding_json
+                   FROM cmd2_projection_navigation_bootstrap
+                  WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
+                &[&domain, &consumer_id],
+            )?;
+            let bootstrap = bootstrap.ok_or(DurableError::Conflict(
+                "navigation range replay requires a full bootstrap",
+            ))?;
+            super::verify_navigation_verified_prefix_in_tx(
+                tx,
+                domain,
+                consumer_id,
+                profile,
+                super::as_u64(bootstrap.get("through_seq"))?,
+                super::parse_digest(bootstrap.get("bootstrap_root"))?,
+                &bootstrap.get::<_, String>("owner_binding_json"),
+                &consumer,
+                limits,
+            )?;
             return Ok(DurableNavigationEventRangeApplyV1 {
                 cursor_before,
                 through_sequence: through,
@@ -485,7 +508,7 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
     }
     let bootstrap = tx
         .query_opt(
-            "SELECT through_seq,bootstrap_root,header_raw
+            "SELECT through_seq,bootstrap_root,owner_binding_json,header_raw
            FROM cmd2_projection_navigation_bootstrap
           WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
@@ -518,6 +541,18 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
             "navigation range predecessor lacks complete coverage",
         ));
     }
+    let owner_binding_json: String = bootstrap.get("owner_binding_json");
+    verify_navigation_verified_prefix_in_tx(
+        tx,
+        domain,
+        consumer_id,
+        profile,
+        bootstrap_sequence,
+        bootstrap_root,
+        &owner_binding_json,
+        &consumer,
+        limits,
+    )?;
 
     let mut target_owners = owner_keys.clone();
     for prior in record_set.prior_owners() {
@@ -610,7 +645,15 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
         )?
     };
     for (owner, rows, _, _) in &owner_rows {
-        super::replace_navigation_event_cohort_rows(tx, domain, consumer_id, owner, rows, through)?;
+        super::replace_navigation_event_cohort_rows(
+            tx,
+            domain,
+            consumer_id,
+            owner,
+            rows,
+            through,
+            terminal_cohort_root,
+        )?;
     }
     let replacement_keys = owner_rows
         .iter()
@@ -635,6 +678,7 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
         coverage.held_source_head_sequence(),
         terminal_event_id,
         coverage.coverage_root(),
+        terminal_cohort_root,
         event_source_revision,
         dependency_root,
         terminal_output_root,
@@ -690,12 +734,33 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
             ],
         )?;
     }
+    let cohort_root = navigation_current_cohort_root_in_tx(tx, domain, consumer_id, limits)?;
+    let owner_binding_json: String = bootstrap.get("owner_binding_json");
+    let checkpoint_digest = navigation_verified_prefix_digest(
+        domain,
+        consumer_id,
+        profile,
+        bootstrap_sequence,
+        bootstrap_root,
+        &owner_binding_json,
+        through,
+        coverage_root,
+        cohort_root,
+        adjacency_root,
+        terminal_event_id,
+        event_source_revision,
+        coverage.coverage_root(),
+        terminal_output_root,
+    );
     let changed = tx.execute(
         "UPDATE cmd2_projection_navigation_consumer
             SET cursor_seq=$3,source_revision=$4,last_event_id=$5,
                 last_input_root=$6,last_output_root=$7,coverage_seq=$3,
-                coverage_root=$8,adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true
-          WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$10",
+                coverage_root=$8,adjacency_seq=$3,adjacency_root=$9,adjacency_ready=true,
+                verified_prefix_version=$13,
+                verified_prefix_seq=$3,verified_prefix_coverage_root=$8,
+                verified_prefix_cohort_root=$10,verified_prefix_digest=$11
+          WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12",
         &[
             &domain,
             &consumer_id,
@@ -706,7 +771,10 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
             &terminal_output_root.to_hex(),
             &coverage_root.to_hex(),
             &adjacency_root.to_hex(),
+            &cohort_root.to_hex(),
+            &checkpoint_digest.to_hex(),
             &super::as_i64(cursor_before)?,
+            &super::VERIFIED_PREFIX_FORMAT_VERSION,
         ],
     )?;
     if changed != 1 {
@@ -2747,18 +2815,20 @@ pub(super) fn navigation_range_coverage_root_next(
     held_source_head_sequence: u64,
     terminal_event_id: &str,
     range_root: Digest256,
+    terminal_cohort_root: Digest256,
     source_revision: Digest256,
     dependency_root: Digest256,
     output_root: Digest256,
 ) -> Digest256 {
     let mut hash = super::Digest256Hasher::new();
-    hash.update(b"tos-source-navigation-coverage-range-v1");
+    hash.update(b"tos-source-navigation-coverage-range-v2");
     super::navigation_hash_part(&mut hash, previous_root.to_hex().as_bytes());
     super::navigation_hash_part(&mut hash, &cursor_before.to_be_bytes());
     super::navigation_hash_part(&mut hash, &through_sequence.to_be_bytes());
     super::navigation_hash_part(&mut hash, &held_source_head_sequence.to_be_bytes());
     super::navigation_hash_part(&mut hash, terminal_event_id.as_bytes());
     super::navigation_hash_part(&mut hash, range_root.to_hex().as_bytes());
+    super::navigation_hash_part(&mut hash, terminal_cohort_root.to_hex().as_bytes());
     super::navigation_hash_part(&mut hash, source_revision.to_hex().as_bytes());
     super::navigation_hash_part(&mut hash, dependency_root.to_hex().as_bytes());
     super::navigation_hash_part(&mut hash, output_root.to_hex().as_bytes());

@@ -147,6 +147,11 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_consumer (
   adjacency_seq bigint NOT NULL DEFAULT 0 CHECK (adjacency_seq >= 0),
   adjacency_root char(64) CHECK (adjacency_root IS NULL OR adjacency_root ~ '^[0-9a-f]{64}$'),
   adjacency_ready boolean NOT NULL DEFAULT false,
+  verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2)),
+  verified_prefix_seq bigint CHECK (verified_prefix_seq IS NULL OR verified_prefix_seq >= 0),
+  verified_prefix_coverage_root char(64) CHECK (verified_prefix_coverage_root IS NULL OR verified_prefix_coverage_root ~ '^[0-9a-f]{64}$'),
+  verified_prefix_cohort_root char(64) CHECK (verified_prefix_cohort_root IS NULL OR verified_prefix_cohort_root ~ '^[0-9a-f]{64}$'),
+  verified_prefix_digest char(64) CHECK (verified_prefix_digest IS NULL OR verified_prefix_digest ~ '^[0-9a-f]{64}$'),
   PRIMARY KEY (domain,consumer_id),
   CONSTRAINT cmd2_projection_navigation_consumer_cursor_check CHECK (
     (cursor_seq = 0 AND source_revision IS NULL AND last_event_id IS NULL AND
@@ -156,6 +161,12 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_consumer (
       octet_length(last_event_id) BETWEEN 1 AND 256 AND
       last_input_root IS NOT NULL AND last_input_root ~ '^[0-9a-f]{64}$' AND
       last_output_root IS NOT NULL AND last_output_root ~ '^[0-9a-f]{64}$')
+  ),
+  CONSTRAINT cmd2_projection_navigation_consumer_verified_prefix_check CHECK (
+    (verified_prefix_version IS NULL AND verified_prefix_seq IS NULL AND verified_prefix_coverage_root IS NULL AND
+      verified_prefix_cohort_root IS NULL AND verified_prefix_digest IS NULL) OR
+    (verified_prefix_version IS NOT NULL AND verified_prefix_version IN (1,2) AND verified_prefix_seq IS NOT NULL AND verified_prefix_coverage_root IS NOT NULL AND
+      verified_prefix_cohort_root IS NOT NULL AND verified_prefix_digest IS NOT NULL)
   )
 );
 ALTER TABLE cmd2_projection_navigation_consumer
@@ -168,6 +179,33 @@ ALTER TABLE cmd2_projection_navigation_consumer
   ADD COLUMN IF NOT EXISTS adjacency_root char(64) CHECK (adjacency_root IS NULL OR adjacency_root ~ '^[0-9a-f]{64}$');
 ALTER TABLE cmd2_projection_navigation_consumer
   ADD COLUMN IF NOT EXISTS adjacency_ready boolean NOT NULL DEFAULT false;
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD COLUMN IF NOT EXISTS verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2));
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD COLUMN IF NOT EXISTS verified_prefix_seq bigint CHECK (verified_prefix_seq IS NULL OR verified_prefix_seq >= 0);
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD COLUMN IF NOT EXISTS verified_prefix_coverage_root char(64) CHECK (verified_prefix_coverage_root IS NULL OR verified_prefix_coverage_root ~ '^[0-9a-f]{64}$');
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD COLUMN IF NOT EXISTS verified_prefix_cohort_root char(64) CHECK (verified_prefix_cohort_root IS NULL OR verified_prefix_cohort_root ~ '^[0-9a-f]{64}$');
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD COLUMN IF NOT EXISTS verified_prefix_digest char(64) CHECK (verified_prefix_digest IS NULL OR verified_prefix_digest ~ '^[0-9a-f]{64}$');
+-- v1 checkpoints do not bind exact active manifests or range terminal roots.
+-- Keep their format marker so reads fail closed and an explicit full bootstrap
+-- can replace only the derived navigation projection at the current source cut.
+UPDATE cmd2_projection_navigation_consumer
+SET verified_prefix_version=1
+WHERE verified_prefix_version IS NULL AND verified_prefix_seq IS NOT NULL
+  AND verified_prefix_coverage_root IS NOT NULL
+  AND verified_prefix_cohort_root IS NOT NULL AND verified_prefix_digest IS NOT NULL;
+ALTER TABLE cmd2_projection_navigation_consumer
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_consumer_verified_prefix_check;
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD CONSTRAINT cmd2_projection_navigation_consumer_verified_prefix_check CHECK (
+    (verified_prefix_version IS NULL AND verified_prefix_seq IS NULL AND verified_prefix_coverage_root IS NULL AND
+      verified_prefix_cohort_root IS NULL AND verified_prefix_digest IS NULL) OR
+    (verified_prefix_version IS NOT NULL AND verified_prefix_version IN (1,2) AND verified_prefix_seq IS NOT NULL AND verified_prefix_coverage_root IS NOT NULL AND
+      verified_prefix_cohort_root IS NOT NULL AND verified_prefix_digest IS NOT NULL)
+  );
 
 -- One exact whole-source bootstrap, tied to the owner-selected managed model.
 -- Its rows are separate from event cohorts so an event update can replace a
@@ -373,6 +411,9 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort (
   -- CMD outbox identity and authored ToS event identity are separate facts.
   event_id text NOT NULL CHECK (octet_length(event_id) BETWEEN 1 AND 256),
   event_sequence bigint NOT NULL CHECK (event_sequence > 0),
+  coverage_manifest_sha256 char(64) CHECK (
+    coverage_manifest_sha256 IS NULL OR coverage_manifest_sha256 ~ '^[0-9a-f]{64}$'
+  ),
   source_event_id text NOT NULL CHECK (octet_length(source_event_id) BETWEEN 1 AND 256),
   source_event_version bigint NOT NULL CHECK (source_event_version > 0),
   predecessor_source_revision char(64) NOT NULL CHECK (predecessor_source_revision ~ '^[0-9a-f]{64}$'),
@@ -423,6 +464,10 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort (
 );
 ALTER TABLE cmd2_projection_navigation_cohort
   ADD COLUMN IF NOT EXISTS basis_kind text NOT NULL DEFAULT 'record-mutation';
+ALTER TABLE cmd2_projection_navigation_cohort
+  ADD COLUMN IF NOT EXISTS coverage_manifest_sha256 char(64) CHECK (
+    coverage_manifest_sha256 IS NULL OR coverage_manifest_sha256 ~ '^[0-9a-f]{64}$'
+  );
 ALTER TABLE cmd2_projection_navigation_cohort
   ADD COLUMN IF NOT EXISTS basis_dependency_path text;
 ALTER TABLE cmd2_projection_navigation_cohort

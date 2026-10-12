@@ -31,7 +31,6 @@ fn role(name: &str) -> SourceCommandResult<&'static str> {
         "source-create-receipt.json" => "creation-receipt",
         CLAIM_HISTORY => "revision-history",
         name if name.ends_with(".human-forms.json") => "human-form-set",
-        name if name.ends_with(".writer.lock") => "operational-lock",
         _ => {
             return Err(SourceCommandError::Conflict(
                 "unrecognized maintained Claim package member",
@@ -182,6 +181,14 @@ fn creation_receipt_check(
             field(&receipt, "owner_configuration")?,
             field(request, "expected_configuration")?,
         )?
+        || !same(
+            field(&receipt, "dependencies")?,
+            field(request, "expected_dependencies")?,
+        )?
+        || !same(
+            field(&receipt, "source_bindings")?,
+            field(request, "expected_inputs")?,
+        )?
         || field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
         || text(&receipt, "principal_id")?.is_empty()
         || text(&receipt, "authority_ref")?.is_empty()
@@ -190,6 +197,7 @@ fn creation_receipt_check(
             "Claim creation receipt binding differs",
         ));
     }
+    validate_instant(text(&receipt, "recorded_at")?)?;
     let expected_claims = array(request, "claims")?
         .iter()
         .map(metadata_subject)
@@ -256,18 +264,31 @@ fn claim_owner_projection(
     let request = parse(direct.get("source-create-request.json").ok_or(
         SourceCommandError::Conflict("Claim creation request absent"),
     )?)?;
-    if text(&request, "operation")? != "claims.create" || text(&request, "source_path")? != location
-    {
+    grammar(&request, true, false)?;
+    if text(&request, "operation")? != "claims.create" {
         return Err(SourceCommandError::Conflict(
             "maintained Claim creation request differs",
         ));
     }
     let config = object(vec![("source_path", string(location))]);
-    let original =
+    let mut original =
         retained_claim_creation_files(ctx, &config, &request, &file.path, &direct, None)?;
     let receipt = creation_receipt_check(&file.path, &request, &direct, &original)?;
     let _history = verify_claim_history(ctx, &config, &file.path, &direct)?;
-    check_claim_capture(ctx, &path(&home)?, &direct, worker, deadline, cancelled)?;
+    // Creation provenance describes the four original capture files, before
+    // the receipt, forms and subsequent revisions existed. Historical source
+    // captures retain their recorded procedure; reading never rewrites them
+    // as evidence of execution by the current native writer.
+    original.remove("source-create-receipt.json");
+    check_claim_capture(
+        ctx,
+        &path(&home)?,
+        &original,
+        &["native-claim-serialization", "source-claim-serialization"],
+        worker,
+        deadline,
+        cancelled,
+    )?;
 
     let stream_claims = rows(&file.raw)?;
     if stream_claims.is_empty() || stream_claims.len() > 32 {
@@ -310,14 +331,13 @@ fn claim_owner_projection(
             let raw = archive
                 .get(blob)
                 .ok_or(SourceCommandError::Conflict("Claim archive blob absent"))?;
-            if !expected_names.insert(blob.to_owned()) {
-                return Err(SourceCommandError::Conflict("Claim archive blob reused"));
+            if expected_names.insert(blob.to_owned()) {
+                archive_members.push(member_ref(
+                    &format!("{archive_path}/{blob}"),
+                    "archive-blob",
+                    raw,
+                ));
             }
-            archive_members.push(member_ref(
-                &format!("{archive_path}/{blob}"),
-                "archive-blob",
-                raw,
-            ));
             if integer(binding, "bytes")? != raw.len() as u64
                 || text(binding, "sha256")? != Digest256::of_bytes(raw).to_prefixed()
                 || blob_name(raw) != blob
@@ -399,6 +419,12 @@ fn claim_owner_projection(
     }
     let mut direct_members = Vec::with_capacity(direct.len());
     for (name, raw) in &direct {
+        // retained_claim_creation_files has checked their exact allowed
+        // names and empty bytes. Locks are operational sidecars, not authored
+        // members of the source package.
+        if name.ends_with(".writer.lock") {
+            continue;
+        }
         direct_members.push(member_ref(&format!("{home}/{name}"), role(name)?, raw));
     }
     let mut claims = Vec::with_capacity(stream_claims.len());
