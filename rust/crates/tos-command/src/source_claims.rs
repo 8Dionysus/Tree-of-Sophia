@@ -2042,13 +2042,15 @@ fn check_claim_capture(
             "retained Claim event procedure differs",
         ));
     }
-    crate::source_revisions::schema(
+    let provenance_path = format!("{}/source-create-provenance.jsonl", home.as_str());
+    crate::source_revisions::schema_for_source_path(
         worker,
         deadline,
         cancelled,
         ctx,
         &["ToS/contracts/provenance-event-v2.schema.json".into()],
         "ToS/contracts/provenance-event-v2.schema.json",
+        &provenance_path,
         &event,
     )?;
     let decoded: serde_json::Value = serde_json::from_slice(raw)
@@ -6664,14 +6666,8 @@ where
             if !location.starts_with(&format!("ToS/source-witnesses/{subtree}/")) {
                 return Err(SourceCommandError::Denied("native witness owner subtree"));
             }
-            crate::source_revisions::schema_for_worker(
-                executor,
-                deadline,
-                cancelled,
-                schema_ctx,
-                &[schema_ref.into()],
-                schema_ref,
-                &record,
+            schema_check_with_worker(
+                executor, schema_ctx, location, &record, schema_ref, deadline, cancelled,
             )?;
             let id = text(&record, identity)?.to_owned();
             if id.is_empty() || native_identities.contains_key(&id) {

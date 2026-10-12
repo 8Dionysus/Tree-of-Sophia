@@ -443,6 +443,12 @@ spans with complete rights records, and rechecks revocation and dependency
 fixity before returning. It does not read the original Item payload, assess
 translation or content, or change private visibility and redistribution rules.
 
+The same local command also dispatches protected PostgreSQL Text,
+Profile/Claim, Assessment and Alignment invocation profiles, including their
+explicitly granted writes. Their request and grant contracts remain separate
+from the native span-read profile described above; see the
+[private owner operation route](../rust/crates/tos-command/README.md#protected-private-owner-operations).
+
 This private return is **not yet connected to HTTP, MCP or the constructor**.
 Those adapters must supply their own explicit owner-local transport boundary
 and respect any recorded server-transfer prohibition. Neither a public metadata

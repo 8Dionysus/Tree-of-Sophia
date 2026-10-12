@@ -726,12 +726,16 @@ fn tool(
     output: Option<File>,
     pg_url: &str,
     mode: PgToolMode,
+    max_dump_bytes: u64,
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
     active(d, c)?;
     let cap = rustix::process::getrlimit(rustix::process::Resource::Fsize);
-    require(cap.current.is_some_and(|n| n <= BYTES) && cap.maximum.is_some_and(|n| n <= BYTES))?;
+    require(
+        cap.current.is_some_and(|n| n <= max_dump_bytes)
+            && cap.maximum.is_some_and(|n| n <= max_dump_bytes),
+    )?;
     let identity = hash(tool.path, d, c)?;
     require(identity.1 == tool.sha256)?;
     // Only standard streams cross a tool/container boundary. The host writer
@@ -906,11 +910,12 @@ fn emit_archive_sql(
         Some(output.try_clone()?),
         pg_url,
         PgToolMode::OfflineArchiveEmit,
+        cap,
         d,
         c,
     )?;
     let size = output.metadata()?.len();
-    require(size <= cap && size <= BYTES)?;
+    require(size <= cap)?;
     output.seek(SeekFrom::Start(0))?;
     let mut raw = Vec::with_capacity(usize::try_from(size).map_err(|_| error())?);
     output
@@ -2585,7 +2590,17 @@ fn cut(
 }
 
 pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> io::Result<Value> {
-    let profile = BackupProfile::default().validate()?;
+    backup_quiescent_with_profile(s, BackupProfile::default(), d, c)
+}
+
+/// Execute backup under the exact finite profile selected by the owner.
+pub fn backup_quiescent_with_profile(
+    s: &BackupSelection<'_>,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    let profile = profile.validate()?;
     active(d, c)?;
     if !s.quiescent_owner_confirmed {
         return Err(io::Error::new(
@@ -2627,12 +2642,13 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         Some(dump_file.try_clone()?),
         s.pg_url,
         PgToolMode::Database,
+        profile.max_dump_bytes,
         d,
         c,
     )?;
     // Child close is not a durability fence.
     dump_file.sync_all()?;
-    let dump_identity = hash(&dump, d, c)?;
+    let dump_identity = hash_bounded(&dump, profile.max_dump_bytes, d, c)?;
     let mut magic = [0u8; 5];
     File::open(&dump)?.read_exact(&mut magic)?;
     require(&magic == b"PGDMP")?;
@@ -2692,7 +2708,7 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     backup.sync_all()?;
     active(d, c)?;
     Ok(
-        json!({"status":"backup_complete","receipt":receipt,"receipt_sha256":hash(&target.join("receipt.json"),d,c)?.1}),
+        json!({"status":"backup_complete","receipt":receipt,"receipt_sha256":hash_bounded(&target.join("receipt.json"),profile.max_receipt_bytes,d,c)?.1}),
     )
 }
 /// An in-process witness issued only after the real dump restore, exact
@@ -2714,7 +2730,17 @@ pub fn restore_into_fresh(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
-    restore_into_fresh_with_managed_binding(s, d, c).map(|(result, _)| result)
+    restore_into_fresh_with_profile(s, BackupProfile::default(), d, c)
+}
+
+/// Restore under the exact finite profile selected for the backup.
+pub fn restore_into_fresh_with_profile(
+    s: &RestoreSelection<'_>,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    restore_into_fresh_with_managed_binding_profile(s, profile, d, c).map(|(result, _)| result)
 }
 /// Additive route for the existing whole recovery operation. The witness
 /// cannot cross a process boundary as JSON or stand for a current source cap.
@@ -2723,7 +2749,16 @@ pub fn restore_into_fresh_with_managed_binding(
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<(Value, Option<VerifiedManagedModelRestoreV2>)> {
-    let profile = BackupProfile::default().validate()?;
+    restore_into_fresh_with_managed_binding_profile(s, BackupProfile::default(), d, c)
+}
+
+fn restore_into_fresh_with_managed_binding_profile(
+    s: &RestoreSelection<'_>,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<(Value, Option<VerifiedManagedModelRestoreV2>)> {
+    let profile = profile.validate()?;
     active(d, c)?;
     if !s.fresh_target_owner_confirmed {
         return Err(io::Error::new(
@@ -2925,6 +2960,7 @@ pub fn restore_into_fresh_with_managed_binding(
         None,
         s.pg_url,
         PgToolMode::Database,
+        profile.max_dump_bytes,
         d,
         c,
     )?;

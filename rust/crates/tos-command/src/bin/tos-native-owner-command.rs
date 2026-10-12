@@ -55,7 +55,7 @@ fn main() {
         let args = std::env::args_os().skip(2).take(4).collect::<Vec<_>>();
         if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
             println!(
-                "usage: tos-native-owner-command private-text-read --invocation ABSOLUTE_INVOCATION < REQUEST_JSON\nRead exactly selected private TextUnit spans in the owner process. The protected native source invocation selects the private reading grant, exact corpus/software cuts and worker. HTTP adapters do not expose this route."
+                "usage: tos-native-owner-command private-text-read --invocation ABSOLUTE_INVOCATION < REQUEST_JSON\nRun one protected local private-owner operation selected by the invocation schema (Text, Profile/Claim, Assessment, or Alignment). The invocation selects its grant, exact source/software cuts and worker. HTTP adapters do not expose this route."
             );
             return;
         }

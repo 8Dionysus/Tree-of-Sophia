@@ -1,12 +1,16 @@
 //! Explicit operator-selected backup/restore; credentials never enter argv or output.
-use crate::backup_recovery::{BackupSelection, PgTool, RestoreSelection};
+use crate::backup_recovery::{BackupProfile, BackupSelection, PgTool, RestoreSelection};
+use std::os::unix::fs::MetadataExt;
 use std::{
     collections::BTreeMap,
+    io::Read,
     path::Path,
     sync::atomic::AtomicBool,
     time::{Duration, Instant},
 };
 use tos_segment_store::SegmentLimits;
+
+const MAX_PROFILE_BYTES: u64 = 4096;
 
 pub const HELP: &str = "usage: tos-native-owner-command backup|restore OPTIONS
 Connection: private environment TOS_BACKUP_PG_URL (PostgreSQL 16).
@@ -17,6 +21,9 @@ Required options:
   --pg-tool ABS --pg-tool-sha256 HEX64
   --max-segment-bytes N --max-frame-bytes N --max-frames N
   --max-journal-bytes N --max-seconds N
+Optional for both: --profile ABSOLUTE_JSON (owned regular file, <=4KiB, no symlink traversal).
+The profile has exact BackupProfile fields; unknown fields or invalid limits are refused.
+Omit it to retain the compatibility defaults.
 Backup: --confirm-quiescent-owner yes
 Restore: --confirm-fresh-target-owner yes --receipt-sha256 HEX64
 Confirmations declare owner preconditions; they do not stop concurrent writers.
@@ -24,11 +31,67 @@ Restore requires a fresh database (existing public tables are refused), a differ
 database name and an empty
 independent store; it does not initialize schema or activate restored data.
 Roots must be private owned mode 0700; select exact PG16 tool or pinned wrapper.
-Transport cap: store 64MiB/dump 64MiB, 256 files/512 entries; soft+hard FSIZE<=64MiB.
+Compatibility default transport caps: store 64MiB/dump 64MiB, 256 files/512 entries,
+and 256 history/log/member rows; the selected dump cap must cover process FSIZE.
 Tools use stdout/stdin, each <=60s within remaining max-seconds.
 Use an admitted hard whole supervisor and owned container cleanup if applicable.
 A failed operation may leave partial output; do not consume it as a restore.
 ";
+
+fn parse_profile_json(raw: &[u8]) -> Result<BackupProfile, &'static str> {
+    let profile: BackupProfile =
+        serde_json::from_slice(raw).map_err(|_| "invalid backup profile JSON")?;
+    profile
+        .validate()
+        .map_err(|_| "invalid backup profile limits")
+}
+
+fn read_profile_file(path: &Path) -> Result<BackupProfile, &'static str> {
+    if !path.is_absolute() {
+        return Err("backup profile path must be absolute");
+    }
+    let mut file = tos_fd_open::open_absolute_regular(path, MAX_PROFILE_BYTES)
+        .map_err(|_| "backup profile must be a bounded regular file without symlink traversal")?;
+    let before = file
+        .metadata()
+        .map_err(|_| "backup profile metadata unavailable")?;
+    if before.uid() != rustix::process::geteuid().as_raw() || before.nlink() != 1 {
+        return Err("backup profile must be owned by the invoking user and have no hard links");
+    }
+    let mut raw = Vec::with_capacity(
+        usize::try_from(before.len()).map_err(|_| "backup profile exceeds its byte limit")?,
+    );
+    (&mut file)
+        .take(MAX_PROFILE_BYTES + 1)
+        .read_to_end(&mut raw)
+        .map_err(|_| "backup profile read failed")?;
+    let after = file
+        .metadata()
+        .map_err(|_| "backup profile metadata unavailable")?;
+    if raw.len() as u64 > MAX_PROFILE_BYTES
+        || raw.len() as u64 != before.len()
+        || (
+            before.dev(),
+            before.ino(),
+            before.len(),
+            before.mtime(),
+            before.mtime_nsec(),
+            before.ctime(),
+            before.ctime_nsec(),
+        ) != (
+            after.dev(),
+            after.ino(),
+            after.len(),
+            after.mtime(),
+            after.mtime_nsec(),
+            after.ctime(),
+            after.ctime_nsec(),
+        )
+    {
+        return Err("backup profile changed while being read or exceeded its byte limit");
+    }
+    parse_profile_json(&raw)
+}
 
 pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
     let started = Instant::now();
@@ -50,6 +113,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         "--max-frames",
         "--max-journal-bytes",
         "--max-seconds",
+        "--profile",
     ];
     let mut values = BTreeMap::new();
     if (args.len() - 1) % 2 != 0 {
@@ -101,6 +165,12 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
     if !valid_sha(sha) {
         return Err("invalid tool digest");
     }
+    let profile = match values.get("--profile") {
+        Some(path) => read_profile_file(Path::new(path))?,
+        None => BackupProfile::default()
+            .validate()
+            .map_err(|_| "invalid default backup profile")?,
+    };
     let domain = get("--domain")?;
     if domain.is_empty() {
         return Err("empty domain");
@@ -118,7 +188,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         if get("--confirm-quiescent-owner")? != "yes" {
             return Err("explicit quiescent owner confirmation required");
         }
-        crate::backup_recovery::backup_quiescent(
+        crate::backup_recovery::backup_quiescent_with_profile(
             &BackupSelection {
                 pg_url: &url,
                 domain,
@@ -128,6 +198,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
                 store_limits: limits,
                 quiescent_owner_confirmed: true,
             },
+            profile,
             deadline,
             &cancelled,
         )
@@ -139,7 +210,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         if !valid_sha(receipt) {
             return Err("invalid receipt digest");
         }
-        crate::backup_recovery::restore_into_fresh(
+        crate::backup_recovery::restore_into_fresh_with_profile(
             &RestoreSelection {
                 pg_url: &url,
                 domain,
@@ -150,6 +221,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
                 store_limits: limits,
                 fresh_target_owner_confirmed: true,
             },
+            profile,
             deadline,
             &cancelled,
         )
@@ -164,4 +236,41 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         std::io::ErrorKind::NotFound => "backup/restore selected input or tool is absent",
         _ => "backup/restore IO or database refused; preserve partial output",
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{fs, os::unix::fs::symlink};
+
+    #[test]
+    fn explicit_profile_is_bounded_owned_and_strict() {
+        let directory = tempfile::tempdir().unwrap();
+        let profile_path = directory.path().join("profile.json");
+        let mut profile = BackupProfile::default();
+        profile.max_history_rows = 512;
+        profile.max_log_rows = 1024;
+        fs::write(&profile_path, serde_json::to_vec(&profile).unwrap()).unwrap();
+        assert_eq!(read_profile_file(&profile_path).unwrap(), profile);
+
+        let link_path = directory.path().join("profile-link.json");
+        symlink(&profile_path, &link_path).unwrap();
+        assert!(read_profile_file(&link_path).is_err());
+
+        let mut unknown = serde_json::to_value(profile).unwrap();
+        unknown["unrecognized"] = serde_json::json!(1);
+        assert!(parse_profile_json(&serde_json::to_vec(&unknown).unwrap()).is_err());
+
+        let oversized_path = directory.path().join("oversized-profile.json");
+        fs::write(
+            &oversized_path,
+            vec![b' '; usize::try_from(MAX_PROFILE_BYTES).unwrap() + 1],
+        )
+        .unwrap();
+        assert!(read_profile_file(&oversized_path).is_err());
+
+        profile.max_files = 8;
+        profile.max_entries = 4;
+        assert!(parse_profile_json(&serde_json::to_vec(&profile).unwrap()).is_err());
+    }
 }

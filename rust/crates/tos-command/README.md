@@ -393,6 +393,23 @@ Both operations require these option/value pairs:
 --max-seconds POSITIVE_COOPERATIVE_DEADLINE
 ```
 
+Both operations optionally accept `--profile ABSOLUTE_JSON`. The CLI opens a
+normalized absolute path without following symlinks, and accepts only an
+invoking-user-owned, single-linked regular file no larger than 4 KiB. The JSON
+must contain the exact `BackupProfile` fields; unknown fields and values that
+fail the existing profile validator are refused. If omitted, the existing
+default profile remains in force. The selected limits cover store and dump
+bytes, file and entry counts, history/log/member/metadata rows, metadata bytes,
+and receipt bytes. The selected dump-byte limit must be at least the process's
+soft and hard `RLIMIT_FSIZE`; the transport does not silently substitute the
+old fixed 64 MiB ceiling when an explicit profile is supplied.
+
+V9 receipts bind the selected profile. Restore must receive the same profile
+that produced the receipt, and the existing exact stored-profile comparison
+rejects a mismatch. For older receipts without a profile, omit `--profile` to
+retain the compatibility default; supplying a different profile does not
+reinterpret their historical bounds.
+
 `--max-seconds` supplies the cooperative deadline checked by the transport.
 Run the command under an owned supervisor that applies the outer hard timeout
 to the entire process tree (for example, the admitted service with
@@ -453,12 +470,15 @@ store as new empty directories under an owned parent; the transport opens them
 without creating missing roots. It refuses nonempty destinations. Do not reuse
 a failed partial destination or change permissions on another owner's directory.
 
-The initial transport profile is bounded to 64 MiB of store files and 64 MiB of
-dump data, with 256 files and 512 filesystem entries. The invoking process must
-have both soft and hard `RLIMIT_FSIZE` at most 64 MiB; use explicit byte units in
-the host launcher. The host dump writer and any inner tool must retain the
-admitted limits. Each native tool has a 60-second ceiling within the remaining
-whole deadline. Segment limits do not increase those transport bounds. Reserve aggregate physical space, PostgreSQL
+The compatibility default transport profile is bounded to 64 MiB of store files
+and 64 MiB of dump data, with 256 files and 512 filesystem entries. An explicit
+profile may select different finite values. Actual file writes remain bounded
+by the invoking process's soft and hard `RLIMIT_FSIZE`, both of which must be
+no greater than the selected dump cap; use matching explicit byte units in the
+host launcher. The host dump writer and any inner
+tool must retain the admitted limits. Each native tool has a 60-second ceiling
+within the remaining whole deadline. Segment limits do not increase the
+selected transport profile. Reserve aggregate physical space, PostgreSQL
 working space and filesystem overhead through the host route before execution.
 These bounds do not establish the migration's billion-record capacity target.
 
@@ -613,7 +633,22 @@ copy, including packed frames, history, identities, membership and dependencies;
 no source-side verification result is reused as proof for the target. A corrupt
 copy may occupy its bounded reserved space but receives no current selector.
 
-## Protected private TextUnit reading
+## Protected private owner operations
+
+`tos-native-owner-command private-text-read --invocation ABSOLUTE_INVOCATION`
+also dispatches the protected PostgreSQL invocation profiles
+`tos_local_pg_private_text_invocation_v1`,
+`tos_local_pg_private_owner_invocation_v1` (Profile/Claim),
+`tos_local_pg_private_assessment_invocation_v1`, and
+`tos_local_pg_private_alignment_invocation_v1`. Each profile selects its own
+request grammar, exact source/software inputs, owner context and operation
+grant. The command name is retained for compatibility; these profiles include
+their explicitly granted writes. Ordinary `source-commands` and HTTP do not
+expose these private profiles. Connection selection remains private through
+`TOS_SOURCE_PG_URL`; an invocation does not grant rights or semantic approval
+beyond its selected owner contract.
+
+### Protected private TextUnit reading
 
 `tos-native-owner-command private-text-read --invocation ABSOLUTE_INVOCATION`
 reads a request from stdin with `schema_version` set to
