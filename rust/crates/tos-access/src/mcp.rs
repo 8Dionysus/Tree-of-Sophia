@@ -582,14 +582,14 @@ impl McpSession {
                 ))
             }
         };
-        let mut delivery = |result| {
+        let mut delivery: Box<SourceDescendDelivery<'_>> = Box::new(|result| {
             emitted = true;
             source_descend_reply(&id, result, suffix, self.profile, &mut checked_write)
-        };
+        });
         let outcome = checked_execute_source_descend(
             probe,
             |probe, delivery| executor.source_descend_with_delivery(request, probe, delivery),
-            &mut delivery,
+            delivery.as_mut(),
         );
         drop(delivery);
         drop(checked_write);
@@ -740,52 +740,39 @@ fn source_descend_call(
 
 fn source_descend_reply<'packet>(
     id: &[u8],
-    mut result: Result<crate::PreparedPacket<'packet>, crate::AccessError>,
+    result: Result<crate::PreparedPacket<'packet>, crate::AccessError>,
     suffix: &[u8],
     profile: AccessProfile,
     write: &mut dyn FnMut(&[u8]) -> io::Result<()>,
 ) -> Result<(), crate::AccessError> {
-    let mut packet = match result {
-        Ok(packet) => {
-            if packet.body.len() > profile.max_response_bytes {
-                result = Err(crate::AccessError::new(
-                    crate::AccessErrorCode::BudgetExceeded,
-                    "source descent response budget exceeded",
-                ));
-                None
-            } else if let Err(error) = validate_packet(&packet.body, profile.max_response_bytes) {
-                result = Err(error);
-                None
-            } else if std::str::from_utf8(&packet.body).is_err() {
-                result = Err(crate::AccessError::new(
-                    crate::AccessErrorCode::CorruptSelectedCarrier,
-                    "source descent packet is not UTF-8",
-                ));
-                None
-            } else if let Err(error) = packet.fence.recheck() {
-                result = Err(error);
-                None
-            } else {
-                Some(packet)
-            }
-        }
-        Err(error) => {
-            result = Err(error);
-            None
-        }
+    let (mut packet, mut packet_error) = match result {
+        Ok(packet) => (Some(packet), None),
+        Err(error) => (None, Some(error)),
     };
-    let mut frame = match packet.as_ref() {
-        Some(packet) => match std::str::from_utf8(&packet.body) {
+    if let Some(packet) = packet.as_mut() {
+        packet_error = if packet.body.len() > profile.max_response_bytes {
+            Some(crate::AccessError::new(
+                crate::AccessErrorCode::BudgetExceeded,
+                "source descent response budget exceeded",
+            ))
+        } else if let Err(error) = validate_packet(&packet.body, profile.max_response_bytes) {
+            Some(error)
+        } else if std::str::from_utf8(&packet.body).is_err() {
+            Some(crate::AccessError::new(
+                crate::AccessErrorCode::CorruptSelectedCarrier,
+                "source descent packet is not UTF-8",
+            ))
+        } else {
+            packet.fence.recheck().err()
+        };
+    }
+    let mut frame = match (packet.as_ref(), packet_error.as_ref()) {
+        (_, Some(error)) => tool_error(id, &error.message),
+        (Some(packet), None) => match std::str::from_utf8(&packet.body) {
             Ok(text) => tool_result(id, text, &packet.body),
             Err(_) => tool_error(id, "source descent packet is not UTF-8"),
         },
-        None => tool_error(
-            id,
-            result
-                .as_ref()
-                .err()
-                .map_or("source descent refused", |error| error.message),
-        ),
+        (None, None) => tool_error(id, "source descent refused"),
     };
     if !frame
         .len()
@@ -793,7 +780,6 @@ fn source_descend_reply<'packet>(
         .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
     {
         frame = rpc_error(id, -32603, "MCP response frame exceeds byte budget");
-        packet = None;
         if !frame
             .len()
             .checked_add(suffix.len())

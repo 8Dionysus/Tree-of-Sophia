@@ -15,7 +15,7 @@ use tos_query::{AbortProbe, Budget, DisclosureLease, SourceDescendRequest};
 use crate::common::SourceDescendDelivery;
 use crate::{AccessError, AccessErrorCode, AccessExecutor, AccessProfile, Params, PreparedPacket};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SelectedPgSourceNavigation {
     selection_path: PathBuf,
     profile: AccessProfile,
@@ -49,7 +49,7 @@ impl SelectedPgSourceNavigation {
         probe: Arc<dyn AbortProbe>,
         delivery: &mut SourceDescendDelivery<'_>,
     ) -> Result<(), AccessError> {
-        crate::knowledge::check_abort(probe.as_ref())?;
+        crate::knowledge::check_abort(&probe)?;
         if params.node_id.len() > 4_096 {
             return Err(AccessError::new(
                 AccessErrorCode::InvalidRequest,

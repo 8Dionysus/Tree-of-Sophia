@@ -409,7 +409,7 @@ fn run_cli_with_input_and_source_fd(
             exit_code = if let Some(fd) = source_fd {
                 #[cfg(unix)]
                 {
-                    write_packet_fd(packet, profile, fd, &probe, stderr)
+                    write_packet_fd(packet, profile, fd, probe.as_ref(), stderr)
                 }
                 #[cfg(not(unix))]
                 {

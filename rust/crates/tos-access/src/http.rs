@@ -1462,7 +1462,9 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                             };
                                             let mut emitted = false;
                                             let mut io_failure = None;
-                                            let mut delivery = |result| {
+                                            let mut delivery: Box<
+                                                crate::common::SourceDescendDelivery<'_>,
+                                            > = Box::new(|result| {
                                                 emitted = true;
                                                 let response =
                                                     packet_response(result, method, profile);
@@ -1482,7 +1484,7 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                                         ))
                                                     }
                                                 }
-                                            };
+                                            });
                                             let outcome = checked_execute_source_descend(
                                                 probe,
                                                 |probe, delivery| {
@@ -1490,14 +1492,15 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                                         request, probe, delivery,
                                                     )
                                                 },
-                                                &mut delivery,
+                                                delivery.as_mut(),
                                             );
                                             drop(delivery);
                                             if let Some(error) = io_failure {
                                                 return Err(error);
                                             }
+                                            let outcome_error = outcome.err();
                                             if !emitted {
-                                                let error = outcome.err().unwrap_or_else(|| {
+                                                let error = outcome_error.unwrap_or_else(|| {
                                                     AccessError::new(
                                                         AccessErrorCode::Unavailable,
                                                         "source descent owner returned without delivery",
@@ -1510,6 +1513,11 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                                     },
                                                     packet_response(Err(error), method, profile),
                                                 )?;
+                                            } else if let Some(error) = outcome_error {
+                                                return Err(std::io::Error::other(format!(
+                                                    "source descent delivery failed: {}",
+                                                    error.message
+                                                )));
                                             }
                                             source_written = true;
                                             ScopedHttpResponse::error(
