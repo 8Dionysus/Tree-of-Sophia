@@ -2114,7 +2114,7 @@ impl NavigationClaimEventRangeOwnerSetV1 {
                 stream
                     .owner_ids()
                     .iter()
-                    .map(move |id| (stream.source_path().as_str(), id.as_str()))
+                    .map(move |id| (stream.source_path(), id.as_str()))
             })
             .collect::<BTreeSet<_>>();
         let observed = self
@@ -3778,9 +3778,8 @@ fn project_navigation_claim_event_core_v1(
                 NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap { .. } => None,
             })
             .collect::<BTreeSet<_>>();
-        if predecessor_roots.len() > 1
-            || predecessor_roots.iter().next().copied() != input.predecessor_cohort_root
-        {
+        let predecessor_root = predecessor_roots.iter().next().copied().flatten();
+        if predecessor_roots.len() > 1 || predecessor_root != input.predecessor_cohort_root {
             return Err(Error::Invalid(
                 "navigation Claim range predecessor cohort binding",
             ));
@@ -5466,10 +5465,10 @@ fn claim_event_range_manifest_bytes(
     canonical(
         &json!({
             "schema":"tos_source_navigation_claim_event_range_manifest_v1",
-            "coverage_root":coverage.coverage_root.to_hex(),
-            "cursor_before":coverage.cursor_before,
-            "through_sequence":coverage.through_sequence,
-            "terminal_event_id":coverage.terminal_event_id,
+            "coverage_root":coverage.coverage_root().to_hex(),
+            "cursor_before":coverage.cursor_before(),
+            "through_sequence":coverage.through_sequence(),
+            "terminal_event_id":coverage.terminal_event_id(),
             "mutations":mutations.iter().map(|mutation| json!({
                 "event_sequence":mutation.event_sequence,
                 "event_id":mutation.event_id,

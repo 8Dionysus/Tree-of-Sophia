@@ -1106,7 +1106,7 @@ fn seal_record_mutation_cause(
                 .and_then(Value::as_object)
                 .is_some_and(|files| files.contains_key(forms_basename));
             match (declared_forms, origin_forms_path, origin_forms_bytes) {
-                (true, Some(path), Some(bytes)) if path == forms_path => {
+                (true, Some(path), Some(bytes)) if *path == forms_path.as_str() => {
                     verify_range_member(coverage, input.event_sequence, path, true, bytes)?;
                     receipt_file(&receipt, path, bytes)?;
                 }
@@ -2036,7 +2036,7 @@ fn prior_owner_json(owners: &[NavigationRecordEventRangePriorOwnerV1]) -> Value 
                     "source_path":owner.source_path.as_str(),
                     "record_id":owner.record_id,
                     "predecessor_cohort_root":owner.predecessor_cohort_root.to_hex(),
-                    "retraction_cause_roots":owner.retraction_cause_roots.iter().map(Digest256::to_hex).collect::<Vec<_>>(),
+                    "retraction_cause_roots":owner.retraction_cause_roots.iter().map(|digest| digest.to_hex()).collect::<Vec<_>>(),
                 })
             })
             .collect(),
