@@ -188,6 +188,17 @@ fn software(
     let manifest: serde_json::Value = serde_json::from_slice(&manifest_raw).unwrap();
     assert_eq!(Digest256::of_bytes(&manifest_raw), captured.manifest_sha256);
     assert_eq!(manifest["source_git_commit"].as_str().unwrap(), commit);
+    assert_eq!(
+        manifest["member_count"].as_u64().unwrap(),
+        u64::try_from(include_prefixes.len()).unwrap(),
+        "capture must contain exactly the named implementation inputs"
+    );
+    // The capture manifest records the exact total bytes of this fixed input
+    // set. Use that measured cost instead of a guessed ceiling that becomes
+    // stale as the maintained implementations grow.
+    let selected_component_bytes = manifest["source_bytes"]
+        .as_u64()
+        .expect("captured software source byte total");
     let source_git_tree = captured
         .manifest
         .object_get("source_git_tree")
@@ -206,7 +217,7 @@ fn software(
     let read_limits = ReadLimits {
         max_manifest_bytes: 1_048_576,
         max_manifest_entries: 512,
-        max_selected_object_bytes: 2_097_152,
+        max_selected_object_bytes: selected_component_bytes,
         json: JsonLimits::default(),
     };
     restore_capture(

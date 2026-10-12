@@ -960,7 +960,7 @@ pub(crate) fn expected_revision_indexes_from_writes(
         request_digest,
         package_text(&receipt, "dependencies")?,
     ] {
-        Digest256::from_hex(digest).map_err(|_| sealed_package_corrupt())?;
+        Digest256::from_prefixed(digest).map_err(|_| sealed_package_corrupt())?;
     }
     for identity in [
         package_text(&receipt, "principal_id")?,
@@ -971,7 +971,7 @@ pub(crate) fn expected_revision_indexes_from_writes(
         }
     }
     if let Some(publication) = package_field(&request, "expected_publication")?.as_str() {
-        Digest256::from_hex(publication).map_err(|_| sealed_package_corrupt())?;
+        Digest256::from_prefixed(publication).map_err(|_| sealed_package_corrupt())?;
     }
     let transaction_seed = cmd::object(vec![
         ("operation", cmd::string(OPERATION)),

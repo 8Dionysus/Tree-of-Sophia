@@ -884,15 +884,14 @@ mod tests {
 
     #[test]
     fn v2_withholds_source_copy_when_exact_agent_input_makes_pair_stale() {
-        let changed_agent = std::str::from_utf8(FIXTURE_AGENT_BYTES).unwrap().replacen(
-            "Условный эпизод",
-            "Изменённый эпизод",
-            1,
-        );
+        let mut changed_agent: serde_json::Value =
+            serde_json::from_slice(FIXTURE_AGENT_BYTES).unwrap();
+        changed_agent["preferred_label"] = json!("Изменённый эпизод");
+        let changed_agent = serde_json::to_vec(&changed_agent).unwrap();
         let documents = project_source_text_v2(
             FIXTURE_FORMS_PATH,
             FIXTURE_FORMS_BYTES,
-            Some((FIXTURE_AGENT_PATH, changed_agent.as_bytes())),
+            Some((FIXTURE_AGENT_PATH, changed_agent.as_slice())),
         )
         .unwrap();
         assert!(documents.is_empty());

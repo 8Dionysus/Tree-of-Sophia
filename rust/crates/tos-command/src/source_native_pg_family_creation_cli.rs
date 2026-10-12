@@ -156,7 +156,7 @@ fn select_creation_private_text(
     invocation: &Value,
     request: &JsonValue,
     context: &cmd::CommandContext,
-    selection: &crate::source_native_cli::pg_claims::SourceSelection,
+    selection: &super::SourceSelection,
     worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
         crate::source_cohort::revision::PgRecordRevisionIdentity,
     >,
@@ -314,7 +314,7 @@ fn select_creation_private_text(
 fn select_recovered_creation_private_text(
     db: &mut DurablePgCoordinator,
     store: &SegmentStore,
-    selection: &crate::source_native_cli::pg_claims::SourceSelection,
+    selection: &super::SourceSelection,
     invocation: &Value,
     request: &JsonValue,
     replay_context: &cmd::CommandContext,

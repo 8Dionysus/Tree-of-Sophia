@@ -1762,7 +1762,7 @@ pub(crate) fn run(
                 "PostgreSQL Text preparation inputs changed",
             ));
         }
-        let owner_configuration = pg::value(&owner_configuration)?;
+        let prepared_files = pg::value(&prepared_files)?;
         let mut response = json!({
             "schema_version":"tos_native_pg_text_preparation_v1",
             "authentication":"local-unix-account",
