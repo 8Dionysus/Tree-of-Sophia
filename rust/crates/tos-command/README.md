@@ -232,6 +232,13 @@ extension in one bounded transaction when absent, and verifies the exact
 extension shape before commit. An already present but unknown extension is
 refused. Ordinary Work revision operations only check the extension; they do
 not run DDL. The provision result has `grants_admission: false`.
+Once provisioned, the same v1 table also retains selected non-Work
+`record.revise` commands whose `expected_publication` is null. Receipts remain
+scoped to the domain, store, source path and record identity, with exact request,
+configuration and member-version bindings. Work receipts keep their existing
+encoding. Selected owners do not provision this extension implicitly; domains
+without it retain their existing publication route. Replay and ready-attempt
+recovery still require the current owner authorization.
 
 The independent bounded source-change path awaits focused runtime verification.
 Record revisions and PG Agent creations commit against their exact source reads

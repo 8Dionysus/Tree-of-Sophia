@@ -577,11 +577,31 @@ fn work_revision_recorded_at(
         ))?;
     let record = cmd::parse(&record_raw.exact_bytes).map_err(source_error)?;
     let subject = source_forms::metadata_subject(&record).map_err(source_error)?;
-    if cmd::text(&record, "record_type").map_err(source_error)? != "work"
+    let family_parts = binding.family_tag.split(':').collect::<Vec<_>>();
+    if family_parts.len() != 3 {
+        return Err(DurableError::Corrupt(
+            "ready PG selected recovery family tag",
+        ));
+    }
+    let family = source_revisions::RevisionFamily::parse(family_parts[0]).map_err(source_error)?;
+    let record_schema = cmd::text(&record, "schema_version").map_err(source_error)?;
+    let record_type = match record_schema {
+        "tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2" => "artifact",
+        "tos_scholarly_composite_witness_v1" => "composite",
+        _ => cmd::text(&record, "record_type").map_err(source_error)?,
+    };
+    let schema_matches = if family == source_revisions::RevisionFamily::NativeSelected {
+        family_parts[2] == record_schema
+    } else {
+        family_parts[2].is_empty()
+    };
+    if !family.selected()
+        || family_parts[1] != record_type
+        || !schema_matches
         || cmd::text(&subject, "id").map_err(source_error)? != binding.record_id
     {
         return Err(DurableError::Conflict(
-            "ready PG Work recovery record identity differs",
+            "ready PG selected recovery record identity differs",
         ));
     }
     let mut package = source_revisions::Package::new();
@@ -624,7 +644,7 @@ fn work_revision_recorded_at(
         .to_owned();
     cmd::validate_instant(&recorded_at).map_err(source_error)?;
 
-    // A Work revision also writes the immutable archive for the predecessor
+    // A selected revision also writes the immutable archive for the predecessor
     // package. Admit only its exact owner-derived manifest and the blobs bound
     // by that manifest; arbitrary extra writes are not part of ready recovery.
     // The owner may already have retained these exact bytes, in which case its

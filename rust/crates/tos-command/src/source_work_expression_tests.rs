@@ -558,6 +558,10 @@ fn cli37_observe(
     deadline: Instant,
 ) -> (bool, serde_json::Value) {
     use std::io::{Read, Seek, SeekFrom, Write};
+    let operation = request
+        .get("operation")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("unknown");
     let raw = serde_json::to_vec(request).unwrap();
     assert!(raw.len() <= 1_048_576);
     let mut input = tempfile::tempfile().unwrap();
@@ -578,20 +582,40 @@ fn cli37_observe(
         if let Some(status) = child.try_wait().unwrap() {
             break status;
         }
-        if Instant::now() >= step
-            || output.metadata().unwrap().len() > 1_048_576
-            || errors.metadata().unwrap().len() > 1_048_576
-        {
+        let now = Instant::now();
+        let stdout_bytes = output.metadata().unwrap().len();
+        let stderr_bytes = errors.metadata().unwrap().len();
+        if now >= step {
             child.kill().unwrap();
             child.wait().unwrap();
-            panic!("bounded Work37 actual native caller refused");
+            let limit = if now >= deadline {
+                "test deadline"
+            } else {
+                "60-second invocation deadline"
+            };
+            panic!(
+                "bounded Work37 native caller operation={operation} exceeded {limit}; stdout={stdout_bytes} bytes stderr={stderr_bytes} bytes"
+            );
+        }
+        if stdout_bytes > 1_048_576 || stderr_bytes > 1_048_576 {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!(
+                "bounded Work37 native caller operation={operation} exceeded 1 MiB output cap; stdout={stdout_bytes} bytes stderr={stderr_bytes} bytes"
+            );
         }
         std::thread::sleep(Duration::from_millis(10));
     };
-    assert!(Instant::now() < step);
+    assert!(
+        Instant::now() < step,
+        "bounded Work37 native caller operation={operation} exited after its deadline"
+    );
     assert!(
         output.metadata().unwrap().len() <= 1_048_576
-            && errors.metadata().unwrap().len() <= 1_048_576
+            && errors.metadata().unwrap().len() <= 1_048_576,
+        "bounded Work37 native caller operation={operation} exceeded 1 MiB output cap; stdout={} bytes stderr={} bytes",
+        output.metadata().unwrap().len(),
+        errors.metadata().unwrap().len()
     );
     output.seek(SeekFrom::Start(0)).unwrap();
     errors.seek(SeekFrom::Start(0)).unwrap();
@@ -631,7 +655,24 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
     let worker_guard = cli37_image(&worker_path);
     let consumer = std::env::current_exe().unwrap();
     let consumer_guard = cli37_image(&consumer);
-    // Three sequential fixture roots bound coexistence to one whole Work packet.
+    // The software sources are immutable across the three cases. Capture and
+    // restore them once; each case still gets a fresh authored root and cut.
+    let mut software_files = BTreeMap::new();
+    for name in IMPLEMENTATIONS {
+        let raw = fs::read(repository.join(name)).unwrap();
+        assert!(raw.len() <= 8_388_608);
+        assert!(software_files.insert((*name).to_owned(), raw).is_none());
+    }
+    let software_scratch = tempfile::tempdir().unwrap();
+    let (software, components) = software(
+        &repository,
+        &software_files,
+        software_scratch.path(),
+        deadline,
+        &cancelled,
+    );
+    let software_capture = software_scratch.path().join("software-capture");
+    let software_restored_root = software_scratch.path().join("software-restored");
     // Cold below means a fresh actual caller process, retaining the same exact
     // root/config bytes. It does not claim archive restoration or relocation.
     for mode in 0..3 {
@@ -647,13 +688,11 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
         let owner_raw = fs::read(&owner).unwrap();
         let initial = authored(isolated.path());
         let mut files = initial.clone();
-        for name in IMPLEMENTATIONS {
-            let raw = fs::read(repository.join(name)).unwrap();
-            assert!(raw.len() <= 8_388_608);
+        for (name, raw) in &software_files {
             let target = isolated.path().join(name);
             fs::create_dir_all(target.parent().unwrap()).unwrap();
-            fs::write(target, &raw).unwrap();
-            assert!(files.insert((*name).to_owned(), raw).is_none());
+            fs::write(target, raw).unwrap();
+            assert!(files.insert(name.clone(), raw.clone()).is_none());
         }
         let fixture_bytes = files
             .values()
@@ -664,8 +703,6 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
             "Work37 mode={mode} F={fixture_bytes} E={} C={} W={}",
             native_guard.1.2, consumer_guard.1.2, worker_guard.1.2
         );
-        let (software, components) =
-            software(&repository, &files, temporary.path(), deadline, &cancelled);
         let store = temporary.path().join("cut");
         let (original_revision, selected) = cut(&initial, &store, deadline, &cancelled);
         let selection = software.selection();
@@ -674,7 +711,7 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
             "owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
             "native_executable":native,"native_executable_sha256":native_guard.0.to_prefixed(),
             "corpus_store":store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),
-            "software_capture":temporary.path().join("software-capture"),"software_restored_root":temporary.path().join("software-restored"),
+            "software_capture":software_capture.clone(),"software_restored_root":software_restored_root.clone(),
             "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,
                 "capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
@@ -910,13 +947,14 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
                 assert!(recovered["receipt"].is_null());
             }
         }
-        assert_eq!(cli37_image(&native), native_guard);
-        assert_eq!(cli37_image(&worker_path), worker_guard);
-        assert_eq!(cli37_image(&consumer), consumer_guard);
         drop(selected);
-        drop(components);
-        drop(software);
         drop(isolated);
         temporary.close().unwrap();
     }
+    assert_eq!(cli37_image(&native), native_guard);
+    assert_eq!(cli37_image(&worker_path), worker_guard);
+    assert_eq!(cli37_image(&consumer), consumer_guard);
+    drop(components);
+    drop(software);
+    drop(software_scratch);
 }

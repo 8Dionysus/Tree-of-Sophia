@@ -141,6 +141,19 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     (authored, captured)
 }
+// The frozen Python captures predate this authored contract, while the current
+// source-home capture includes all tracked ToS paths outside explicit exclusions.
+fn append_current_private_pg_text_contract_resource(resources: &mut Vec<Value>) {
+    const PATH: &str = "ToS/contracts/native-pg-private-text-read.schema.json";
+    assert!(
+        !resources.iter().any(|row| row["path"] == PATH),
+        "historical Python oracle predates the current private-text contract"
+    );
+    resources.push(json!({
+        "path":PATH, "resource_kind":"contract_schema", "owner_branch":"ToS/contracts",
+        "authority_layer":"contract", "sha256":"", "size_bytes":0,
+    }));
+}
 #[test]
 fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     let (authored, captured) = sources();
@@ -361,6 +374,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         }
         let mut wanted = expected[collection].as_array().unwrap().clone();
         if collection == "resources" {
+            append_current_private_pg_text_contract_resource(&mut wanted);
             for row in &mut wanted {
                 let path = required(row, "path");
                 let raw = captured.get(path).expect("selected topology resource");
@@ -1650,6 +1664,7 @@ fn native_corpus_composition_case(installed: bool) {
         "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
         "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
     }));
+    append_current_private_pg_text_contract_resource(resource_rows);
     for row in resource_rows.iter_mut() {
         let path = row["path"].as_str().unwrap();
         let raw = files
@@ -1675,9 +1690,9 @@ fn native_corpus_composition_case(installed: bool) {
     .unwrap();
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
-    // The selected native cut explicitly adds the vocabulary resource above.
+    // The selected native cut adds the vocabulary resource and current contract.
     // Preserve every historical query field except its nine resource counts.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(338));
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(339));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
@@ -1691,7 +1706,7 @@ fn native_corpus_composition_case(installed: bool) {
     ] {
         let count = query_oracle.pointer_mut(pointer).unwrap();
         assert_eq!(*count, serde_json::json!(337));
-        *count = serde_json::json!(338);
+        *count = serde_json::json!(339);
     }
     for pointer in [
         "/cases/search/schema",

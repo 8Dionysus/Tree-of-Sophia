@@ -1001,9 +1001,30 @@ pub(crate) fn prepare_pg_record_revision_with_work(
     }
     let family_tag = family.pg_family_tag(&config)?;
     let legacy_family_encoding = family.pg_legacy_compatible(&config)?;
-    if work_revision.is_some() != work_owner {
+    let revision_request = cmd::parse(&context.request_raw)?;
+    let generic_selected_observation = if work_owner || work_revision.is_none() {
+        true
+    } else {
+        family.selected()
+            && cmd::text(&revision_request, "operation")? == "record.revise"
+            && cmd::field(&revision_request, "expected_publication")?
+                == &tos_foundation::JsonValue::Null
+    };
+    let observation_matches_owner = if let Some(observation) = &work_revision {
+        Digest256::of_bytes(observation.domain.as_bytes()) == identity.domain_digest
+            && observation.store_id == identity.store_id
+            && observation.source_path == cmd::text(&config, "source_path")?
+            && observation.record_id == cmd::text(&config, "record_id")?
+    } else {
+        true
+    };
+    if (work_owner && work_revision.is_none())
+        || (!family.selected() && work_revision.is_some())
+        || !generic_selected_observation
+        || !observation_matches_owner
+    {
         return Err(SourceCommandError::Conflict(
-            "PG Work read observation differs from owner",
+            "PG selected record read observation differs from owner",
         ));
     }
     let mut worker = selected_candidate_schema_from_context(

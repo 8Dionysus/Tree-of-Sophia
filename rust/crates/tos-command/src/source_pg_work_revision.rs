@@ -1,8 +1,9 @@
-//! Optional PostgreSQL evidence for one selected Work record revision.
+//! Optional PostgreSQL evidence for one selected record revision.
 //!
-//! The authored revision history remains in ToS source members. This table is
-//! only the PG adapter's per-record commit/replay proof; it is never projected
-//! as authored source or treated as semantic admission.
+//! The v1 table and receipt format originated with Work and remain compatible
+//! with those rows. Authored revision history remains in ToS source members;
+//! this table is only the PG adapter's per-record commit/replay proof, never
+//! projected as authored source or treated as semantic admission.
 
 use crate::durable_adapter::{DurableError, DurableResult};
 use crate::source_cohort::{OWNER as SOURCE_OWNER, SourceRevisionWrite};
@@ -527,39 +528,15 @@ fn decode_receipt_row(
     {
         return Err(DurableError::Corrupt("PG Work revision receipt fields"));
     }
-    let authorization = cmd::parse(&authorization_raw).map_err(DurableError::Source)?;
-    cmd::exact_keys(
-        &authorization,
-        &[
-            "schema_version",
-            "principal_id",
-            "authority_ref",
-            "source_path",
-            "record_id",
-            "record_type",
-            "request",
-        ],
-    )
-    .map_err(DurableError::Source)?;
-    let request = cmd::field(&authorization, "request").map_err(DurableError::Source)?;
-    if cmd::text(&authorization, "schema_version").map_err(DurableError::Source)?
-        != "tos_selected_metadata_revision_authorization_v1"
-        || cmd::text(&authorization, "source_path").map_err(DurableError::Source)? != source_path
-        || cmd::text(&authorization, "record_id").map_err(DurableError::Source)? != record_id
-        || cmd::text(&authorization, "record_type").map_err(DurableError::Source)? != "work"
-        || cmd::text(request, "operation").map_err(DurableError::Source)? != "record.revise"
-        || cmd::text(request, "command_id").map_err(DurableError::Source)? != command_id
-        || revision::transaction_id(request).map_err(DurableError::Source)? != transaction_id
-        || cmd::record_digest(request).map_err(DurableError::Source)? != request_canonical
-        || cmd::text(request, "expected_configuration").map_err(DurableError::Source)?
-            != owner_canonical.to_prefixed()
-        || cmd::field(request, "expected_publication").map_err(DurableError::Source)?
-            != &tos_foundation::JsonValue::Null
-    {
-        return Err(DurableError::Corrupt(
-            "PG Work revision authorization binding",
-        ));
-    }
+    validate_selected_record_authorization_binding(
+        &authorization_raw,
+        source_path,
+        record_id,
+        &transaction_id,
+        &command_id,
+        owner_canonical,
+        request_canonical,
+    )?;
     let computed = receipt_digest(
         domain,
         store_id,
@@ -597,6 +574,129 @@ fn decode_receipt_row(
         prepare_id,
         commit_seq,
     })
+}
+
+fn validate_selected_record_authorization_binding(
+    authorization_raw: &[u8],
+    source_path: &str,
+    record_id: &str,
+    transaction_id: &str,
+    command_id: &str,
+    owner_canonical: Digest256,
+    request_canonical: Digest256,
+) -> DurableResult<()> {
+    let authorization = cmd::parse(authorization_raw).map_err(DurableError::Source)?;
+    cmd::exact_keys(
+        &authorization,
+        &[
+            "schema_version",
+            "principal_id",
+            "authority_ref",
+            "source_path",
+            "record_id",
+            "record_type",
+            "request",
+        ],
+    )
+    .map_err(DurableError::Source)?;
+    let request = cmd::field(&authorization, "request").map_err(DurableError::Source)?;
+    if cmd::text(&authorization, "schema_version").map_err(DurableError::Source)?
+        != "tos_selected_metadata_revision_authorization_v1"
+        || cmd::text(&authorization, "source_path").map_err(DurableError::Source)? != source_path
+        || cmd::text(&authorization, "record_id").map_err(DurableError::Source)? != record_id
+        || cmd::text(&authorization, "record_type")
+            .map_err(DurableError::Source)?
+            .is_empty()
+        || cmd::text(request, "operation").map_err(DurableError::Source)? != "record.revise"
+        || cmd::text(request, "command_id").map_err(DurableError::Source)? != command_id
+        || revision::transaction_id(request).map_err(DurableError::Source)? != transaction_id
+        || cmd::record_digest(request).map_err(DurableError::Source)? != request_canonical
+        || cmd::text(request, "expected_configuration").map_err(DurableError::Source)?
+            != owner_canonical.to_prefixed()
+        || cmd::field(request, "expected_publication").map_err(DurableError::Source)?
+            != &tos_foundation::JsonValue::Null
+    {
+        return Err(DurableError::Corrupt(
+            "PG selected record authorization binding",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selected_record_v1_authorization_binding_accepts_work_and_agent_profiles() {
+        for (source_path, record_id, record_type, command_id) in [
+            (
+                "ToS/source-witnesses/works/zarathustra/work.json",
+                "tos.work.zarathustra",
+                "work",
+                "test:work-revision",
+            ),
+            (
+                "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+                "tos.agent.friedrich-nietzsche",
+                "agent",
+                "test:agent-revision",
+            ),
+        ] {
+            let owner_canonical = Digest256::of_bytes(record_type.as_bytes());
+            let request = cmd::object(vec![
+                ("schema_version", cmd::string("tos_local_source_command_v1")),
+                ("operation", cmd::string("record.revise")),
+                ("command_id", cmd::string(command_id)),
+                (
+                    "expected_configuration",
+                    cmd::string(&owner_canonical.to_prefixed()),
+                ),
+                ("expected_publication", tos_foundation::JsonValue::Null),
+                ("fields", cmd::object(Vec::new())),
+            ]);
+            let authorization = cmd::object(vec![
+                (
+                    "schema_version",
+                    cmd::string("tos_selected_metadata_revision_authorization_v1"),
+                ),
+                ("principal_id", cmd::string("test-principal")),
+                ("authority_ref", cmd::string("test-authority")),
+                ("source_path", cmd::string(source_path)),
+                ("record_id", cmd::string(record_id)),
+                ("record_type", cmd::string(record_type)),
+                ("request", request.clone()),
+            ]);
+            let authorization_raw = cmd::published(&authorization).unwrap();
+            let request_canonical = cmd::record_digest(&request).unwrap();
+            let transaction_id = revision::transaction_id(&request).unwrap();
+
+            assert!(
+                validate_selected_record_authorization_binding(
+                    &authorization_raw,
+                    source_path,
+                    record_id,
+                    &transaction_id,
+                    command_id,
+                    owner_canonical,
+                    request_canonical,
+                )
+                .is_ok()
+            );
+            assert!(
+                validate_selected_record_authorization_binding(
+                    &authorization_raw,
+                    "ToS/source-witnesses/other.json",
+                    record_id,
+                    &transaction_id,
+                    command_id,
+                    owner_canonical,
+                    request_canonical,
+                )
+                .is_err()
+            );
+        }
+    }
 }
 
 struct ReceiptChainSummary {
@@ -718,19 +818,25 @@ pub(crate) fn make_commit_evidence(
     writes: &[SourceRevisionWrite],
 ) -> DurableResult<CommitEvidence> {
     let (configuration, family) = revision::configuration(context).map_err(DurableError::Source)?;
-    if family != RevisionFamily::CorpusSelectedV3
-        || cmd::text(&configuration, "record_type").map_err(DurableError::Source)? != "work"
+    let work_owner = family == RevisionFamily::CorpusSelectedV3
+        && cmd::text(&configuration, "record_type").map_err(DurableError::Source)? == "work";
+    if !family.selected()
         || cmd::text(&configuration, "source_path").map_err(DurableError::Source)?
             != observation.source_path
         || cmd::text(&configuration, "record_id").map_err(DurableError::Source)?
             != observation.record_id
     {
         return Err(DurableError::Refused(
-            "PG revision evidence requires exact selected Work owner",
+            "PG revision evidence requires exact selected record owner",
         ));
     }
-    revision::validate_pg_work_revision_archive_changes(context, proposal)
-        .map_err(DurableError::Source)?;
+    if work_owner {
+        revision::validate_pg_work_revision_archive_changes(context, proposal)
+            .map_err(DurableError::Source)?;
+    } else {
+        revision::validate_pg_selected_revision_proposal(context, proposal)
+            .map_err(DurableError::Source)?;
+    }
     let member_writes = selected_member_writes(&observation.source_path, writes)?;
     let request = cmd::parse(&context.request_raw).map_err(DurableError::Source)?;
     if cmd::field(&request, "expected_publication").map_err(DurableError::Source)?
@@ -819,7 +925,9 @@ pub(crate) fn make_commit_evidence(
         .find(|file| file.path == source_path)
         .and_then(|reference| writes.iter().find(|write| write.subject == reference.path))
         .map(|write| write.exact_bytes.as_slice())
-        .ok_or(DurableError::Corrupt("PG Work successor record missing"))?;
+        .ok_or(DurableError::Corrupt(
+            "PG selected successor record missing",
+        ))?;
     let source_record = cmd::parse(source_raw).map_err(DurableError::Source)?;
     let history_path = format!("{parent}/{}", revision::HISTORY);
     let history_raw = writes
@@ -831,8 +939,7 @@ pub(crate) fn make_commit_evidence(
     let latest = receipts
         .last()
         .ok_or(DurableError::Corrupt("PG Work successor history empty"))?;
-    if cmd::text(&source_record, "record_type").map_err(DurableError::Source)? != "work"
-        || cmd::text(latest, "command_id").map_err(DurableError::Source)? != command_id
+    if cmd::text(latest, "command_id").map_err(DurableError::Source)? != command_id
         || cmd::text(
             cmd::field(latest, "publication").map_err(DurableError::Source)?,
             "transaction_id",
@@ -957,10 +1064,8 @@ pub(crate) fn validate_attempt_evidence(
     if observation.domain != domain
         || observation.store_id != store_id
         || observation.source_path != evidence.source_path
-        || !evidence
-            .source_path
-            .starts_with("ToS/source-witnesses/works/")
-        || !evidence.source_path.ends_with("/work.json")
+        || !evidence.source_path.starts_with("ToS/source-witnesses/")
+        || !evidence.source_path.ends_with(".json")
         || observation.record_id != evidence.record_id
         || observation.generation != observed_generation
         || observed_generation >= MAX_TRANSACTIONS as u64

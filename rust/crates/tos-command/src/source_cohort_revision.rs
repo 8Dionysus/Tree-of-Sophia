@@ -1234,8 +1234,7 @@ impl SourceRevisionReadSession<'_> {
             ))
     }
 
-    /// Observe the optional, explicitly provisioned Work-revision journal and
-    /// its record-scoped predicate in the same fenced PG read transaction.
+    /// Observe the required v1 selected-record journal for a Work owner.
     pub(crate) fn observe_pg_work_revision(
         &mut self,
         source_path: &str,
@@ -1244,6 +1243,47 @@ impl SourceRevisionReadSession<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<crate::source_pg_work_revision::Observation> {
+        self.observe_pg_record_revision(
+            source_path,
+            record_id,
+            requested_command_id,
+            true,
+            deadline,
+            cancelled,
+        )?
+        .ok_or(DurableError::Refused("PG Work revision extension absent"))
+    }
+
+    /// Reuse the same receipt format for selected non-Work owners when a
+    /// domain has explicitly provisioned the compatible v1 extension. Older
+    /// domains without it keep their existing selected-record route.
+    pub(crate) fn observe_pg_selected_revision_if_provisioned(
+        &mut self,
+        source_path: &str,
+        record_id: &str,
+        requested_command_id: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<crate::source_pg_work_revision::Observation>> {
+        self.observe_pg_record_revision(
+            source_path,
+            record_id,
+            requested_command_id,
+            false,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn observe_pg_record_revision(
+        &mut self,
+        source_path: &str,
+        record_id: &str,
+        requested_command_id: &str,
+        required: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<crate::source_pg_work_revision::Observation>> {
         active(deadline, cancelled)?;
         if self.work_revision.is_some() {
             return Err(DurableError::Conflict(
@@ -1251,13 +1291,14 @@ impl SourceRevisionReadSession<'_> {
             ));
         }
         let path = RelativePath::parse(source_path)
-            .map_err(|_| DurableError::Invalid("PG Work source path"))?;
-        if !path.as_str().starts_with("ToS/source-witnesses/works/")
-            || !path.as_str().ends_with("/work.json")
+            .map_err(|_| DurableError::Invalid("PG selected revision source path"))?;
+        if !path.as_str().starts_with("ToS/source-witnesses/")
+            || !path.as_str().ends_with(".json")
+            || path.as_str().split('/').any(|part| part.starts_with('.'))
             || record_id.is_empty()
             || record_id.len() > 256
         {
-            return Err(DurableError::Refused("PG Work revision owner identity"));
+            return Err(DurableError::Refused("PG selected revision owner identity"));
         }
         let token = crate::source_pg_work_revision::predicate_token(
             &self.selection.cohort.store_id,
@@ -1288,8 +1329,21 @@ impl SourceRevisionReadSession<'_> {
             || gate.get::<_, Option<String>>(5) != Some(self.selection.cohort.definition.to_hex())
         {
             return Err(DurableError::Conflict(
-                "PG Work revision read epoch changed",
+                "PG selected revision read epoch changed",
             ));
+        }
+        let extension_present: bool = tx
+            .query_one(
+                "SELECT to_regclass(format('%I.%I',current_schema(),$1::text)) IS NOT NULL",
+                &[&"cmd2_work_revision_history_v1"],
+            )?
+            .get(0);
+        if !extension_present {
+            tx.commit()?;
+            if required {
+                return Err(DurableError::Refused("PG Work revision extension absent"));
+            }
+            return Ok(None);
         }
         crate::source_pg_work_revision::require_schema_v1(&mut tx, deadline, cancelled)?;
         let predicate = tx.query_opt(
@@ -1379,7 +1433,7 @@ impl SourceRevisionReadSession<'_> {
                 "PG Work revision reader state budget",
             ))?;
         self.work_revision = Some(observation.clone());
-        Ok(observation)
+        Ok(Some(observation))
     }
 
     fn read_historical_work_member(

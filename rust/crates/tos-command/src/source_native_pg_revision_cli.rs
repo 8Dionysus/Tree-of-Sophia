@@ -541,7 +541,16 @@ pub(super) fn run(
                 }
                 let identity =
                     crate::source_revisions::PgRecordRevisionIdentity::from_selection(&selected);
-                let configuration = if work_owner {
+                let selected_record_extension = crate::source_revisions::RevisionFamily::parse(
+                    cmd::text(&owner, "schema_version").map_err(DurableError::Source)?,
+                )
+                .map_err(DurableError::Source)?
+                .selected()
+                    && operation == "record.revise"
+                    && cmd::field(&request, "expected_publication")
+                        .map_err(DurableError::Source)?
+                        == &tos_foundation::JsonValue::Null;
+                let configuration = if work_owner || selected_record_extension {
                     Some(cmd::parse(&owner_raw).map_err(DurableError::Source)?)
                 } else {
                     None
@@ -554,18 +563,29 @@ pub(super) fn run(
                     } else {
                         ""
                     };
-                    Some(session.observe_pg_work_revision(
-                        source_path,
-                        record_id,
-                        command_id,
-                        deadline,
-                        cancelled,
-                    )?)
+                    if work_owner {
+                        Some(session.observe_pg_work_revision(
+                            source_path,
+                            record_id,
+                            command_id,
+                            deadline,
+                            cancelled,
+                        )?)
+                    } else {
+                        session.observe_pg_selected_revision_if_provisioned(
+                            source_path,
+                            record_id,
+                            command_id,
+                            deadline,
+                            cancelled,
+                        )?
+                    }
                 } else {
                     None
                 };
                 let recorded_at = if let Some(configuration) = configuration.as_ref()
                     && operation == "record.revise"
+                    && work_revision.is_some()
                 {
                     let command_id =
                         cmd::text(&request, "command_id").map_err(DurableError::Source)?;
@@ -587,9 +607,13 @@ pub(super) fn run(
                             .map_err(DurableError::Source)?,
                         job_id: selection.job_id.clone(),
                         job_fence: selection.job_fence,
-                        family_tag: crate::source_revisions::RevisionFamily::CorpusSelectedV3
-                            .pg_family_tag(configuration)
-                            .map_err(DurableError::Source)?,
+                        family_tag: crate::source_revisions::RevisionFamily::parse(
+                            cmd::text(configuration, "schema_version")
+                                .map_err(DurableError::Source)?,
+                        )
+                        .map_err(DurableError::Source)?
+                        .pg_family_tag(configuration)
+                        .map_err(DurableError::Source)?,
                     };
                     match session.ready_work_recorded_at(&binding, deadline, cancelled)? {
                         Some(recorded_at) => recorded_at,
@@ -614,6 +638,7 @@ pub(super) fn run(
                         &software,
                         &components,
                         identity,
+                        work_revision,
                         max_members,
                         max_total_bytes,
                         max_member_bytes,

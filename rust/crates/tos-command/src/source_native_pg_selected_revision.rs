@@ -110,6 +110,7 @@ pub(crate) fn prepare(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     identity: PgRecordRevisionIdentity,
+    revision_observation: Option<crate::source_pg_work_revision::Observation>,
     max_members: usize,
     max_total_bytes: u64,
     max_member_bytes: u64,
@@ -231,8 +232,13 @@ pub(crate) fn prepare(
         }
     }
 
-    let prepared = super::revisions::prepare_pg_record_revision(
-        invocation, context, identity, deadline, cancelled,
+    let prepared = super::revisions::prepare_pg_record_revision_with_work(
+        invocation,
+        context,
+        identity,
+        revision_observation,
+        deadline,
+        cancelled,
     )?;
     let expected_family_tag = family.pg_family_tag(&config)?;
     if prepared.identity() != identity

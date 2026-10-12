@@ -31,6 +31,14 @@ const MAX_NONCES: usize = 1024;
 const MAX_OPERATIONS_PER_SECOND: f64 = 10_000.0;
 const MAX_RUN_SECONDS: u64 = 3600;
 const NATIVE_STDERR_CAP: usize = 4096;
+const USAGE: &str = concat!(
+    "usage: tos-load-readiness --query-binary ABS --model ABS --binding ABS --schedule ABS --output DIR --unit UNIT ",
+    "[--source-root ABS --source-inputs ABS] [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS ",
+    "[--owner-stage-baseline ABS]] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|64|128|256] ",
+    "[--sdk-in-flight 1..4] [--operation-count N] [--channel-mix mcp=60,owner_http=20,sdk=20,projection=0] ",
+    "[--operations-per-second N] [--load-window-seconds N] [--deadline-seconds N] [--request-cap-bytes N] ",
+    "[--response-cap-bytes N] [--schedule-cap-bytes N] [--output-cap-bytes N]"
+);
 const NAVIGATION_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
 const NAVIGATION_SELECTION_SCHEMA: &str = "tos_local_pg_source_navigation_selection_v1";
 const NAVIGATION_PRODUCER_SCHEMA: &str = "tos_local_pg_source_navigation_producer_v1";
@@ -511,12 +519,12 @@ fn install_signals() {
     }
 }
 
-fn parse_args() -> Result<Args, String> {
+fn parse_args() -> Result<Option<Args>, String> {
     let mut values = BTreeMap::new();
     let mut args = std::env::args().skip(1);
     while let Some(key) = args.next() {
         if key == "--help" || key == "-h" {
-            return Err("usage: tos-load-readiness --query-binary ABS --model ABS --binding ABS --schedule ABS --output DIR --unit UNIT [--source-root ABS --source-inputs ABS] [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS [--owner-stage-baseline ABS]] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|64|128|256] [--sdk-in-flight 1..4] [--operation-count N] [--channel-mix mcp=60,owner_http=20,sdk=20,projection=0] [--operations-per-second N] [--load-window-seconds N] [--deadline-seconds N] [--request-cap-bytes N] [--response-cap-bytes N] [--schedule-cap-bytes N] [--output-cap-bytes N]".into());
+            return Ok(None);
         }
         if !key.starts_with("--") || values.contains_key(&key) {
             return Err("invalid or duplicate option".into());
@@ -689,7 +697,7 @@ fn parse_args() -> Result<Args, String> {
     if !values.is_empty() {
         return Err(format!("unknown option {}", values.keys().next().unwrap()));
     }
-    Ok(Args {
+    Ok(Some(Args {
         query_binary,
         owner_binary,
         source_root,
@@ -716,7 +724,7 @@ fn parse_args() -> Result<Args, String> {
         response_cap,
         schedule_cap,
         output_cap,
-    })
+    }))
 }
 
 fn sha(raw: &[u8]) -> String {
@@ -922,6 +930,14 @@ fn rebase_plan_paths(plan: &mut Plan, from: &Path, to: &Path) -> Result<(), Stri
                 let argument = operation.sdk_argv[index + 1].clone();
                 operation.sdk_argv[index + 1] =
                     rebase_existing_argv_path(&argument, from, to, "SDK invocation")?;
+            } else if operation.sdk_argv[index] == "--root"
+                || operation.sdk_argv[index] == "--source-inputs"
+                || operation.sdk_argv[index] == "--prepared-read-model"
+                || operation.sdk_argv[index] == "--prepared-binding"
+            {
+                let argument = operation.sdk_argv[index + 1].clone();
+                operation.sdk_argv[index + 1] =
+                    rebase_existing_argv_path(&argument, from, to, "selected source reader input")?;
             }
         }
         for index in 0..operation.projection_argv.len().saturating_sub(1) {
@@ -966,6 +982,9 @@ fn selected_sdk_owner_inputs(
         .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
     {
+        if native_query_source_read(operation) {
+            continue;
+        }
         let paths = operation
             .sdk_argv
             .windows(2)
@@ -1008,6 +1027,9 @@ fn selected_sdk_store_roots(plan: &Plan, session_limit: usize) -> Result<Vec<Pat
         .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
     {
+        if native_query_source_read(operation) {
+            continue;
+        }
         let invocation_path = operation
             .sdk_argv
             .windows(2)
@@ -2165,6 +2187,69 @@ fn source_read_operation(op: &Operation) -> bool {
     }
 }
 
+fn native_query_source_read(op: &Operation) -> bool {
+    op.channel == "sdk"
+        && op
+            .sdk_argv
+            .windows(2)
+            .any(|pair| pair[0] == "source" && pair[1] == "read")
+        && !op.sdk_argv.iter().any(|arg| arg == "source-commands")
+}
+
+fn selected_query_source_read(op: &Operation, args: &Args) -> bool {
+    let (Some(source_root), Some(source_inputs)) =
+        (args.source_root.as_ref(), args.source_inputs.as_ref())
+    else {
+        return false;
+    };
+    let Some(query_binary) = args.query_binary.to_str() else {
+        return false;
+    };
+    let Some(source_root) = source_root.to_str() else {
+        return false;
+    };
+    let Some(source_inputs) = source_inputs.to_str() else {
+        return false;
+    };
+    let Some(model) = args.model.to_str() else {
+        return false;
+    };
+    let Some(binding) = args.binding.to_str() else {
+        return false;
+    };
+    let expected = [
+        query_binary,
+        "--root",
+        source_root,
+        "--prepared-read-model",
+        model,
+        "--prepared-binding",
+        binding,
+        "--source-inputs",
+        source_inputs,
+        "source",
+        "read",
+        "-",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<Vec<_>>();
+    op.channel == "sdk" && op.sdk_argv == expected
+}
+
+fn exact_source_read_request(request: &Value) -> bool {
+    request.as_object().is_some_and(|fields| {
+        fields.len() == 2
+            && fields.contains_key("handle")
+            && fields.contains_key("representation")
+            && request["handle"]["schema_version"] == "tos_source_read_handle_v1"
+            && matches!(
+                request["representation"].as_str(),
+                Some("record" | "native_public_unit" | "native_local_unit")
+            )
+    })
+}
+
 fn native_mutation_operation(op: &Operation) -> bool {
     op.channel == "sdk"
         && matches!(
@@ -2378,12 +2463,18 @@ fn postload_exact_source_integrity(op: &Operation) -> bool {
     }
 }
 
-fn postload_pg_source_integrity(op: &Operation) -> bool {
+fn postload_selected_source_integrity(op: &Operation) -> bool {
     op.channel == "sdk"
         && op
             .sdk_argv
             .windows(2)
             .any(|pair| pair[0] == "source" && pair[1] == "read")
+}
+
+fn postload_pg_source_integrity(op: &Operation) -> bool {
+    op.channel == "projection"
+        && op.request["operation"] == "exact-source"
+        && op.expected_status == 0
 }
 
 fn postload_check_kind(op: &Operation) -> &'static str {
@@ -2395,6 +2486,8 @@ fn postload_check_kind(op: &Operation) -> &'static str {
         "rights_denial"
     } else if postload_rights_check(op) {
         "rights_state"
+    } else if postload_pg_source_integrity(op) {
+        "postgresql_source_integrity"
     } else if postload_exact_source_integrity(op) {
         "source_integrity"
     } else {
@@ -3013,7 +3106,7 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
                 .flat_map(|session| &session.operations),
         )
         .chain(plan.postload.iter())
-        .filter(|operation| operation.channel == "sdk")
+        .filter(|operation| operation.channel == "sdk" && !native_query_source_read(operation))
     {
         let path =
             PathBuf::from(invocation_argument(operation).ok_or("SDK PG invocation path absent")?)
@@ -3555,6 +3648,9 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         .windows(2)
                         .filter(|pair| pair[0] == "--invocation")
                         .collect::<Vec<_>>();
+                    let query_source_read = selected_query_source_read(op, args);
+                    let owner_source_command =
+                        op.sdk_argv.iter().any(|arg| arg == "source-commands");
                     let command_id = op
                         .request
                         .get("command_id")
@@ -3606,10 +3702,20 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         || op.sdk_argv.len() > 32
                         || op.sdk_argv[0].is_empty()
                         || !Path::new(&op.sdk_argv[0]).is_absolute()
-                        || !op.sdk_argv.iter().any(|arg| arg == "source-commands")
+                        || (!query_source_read && !owner_source_command)
+                        || (source_read_operation(op) && !query_source_read)
+                        || (query_source_read
+                            && (!exact_source_read_request(&op.request)
+                                || !invocation_args.is_empty()
+                                || command_id.is_some()
+                                || op.retry_same_command_id
+                                || op.conflict_group.is_some()
+                                || op.bind_expected_from.is_some()
+                                || op.bind_expected_configuration_from_owner))
                         || !op.projection_argv.is_empty()
-                        || invocation_args.len() != 1
-                        || (command_id.is_none()
+                        || (!query_source_read && invocation_args.len() != 1)
+                        || (!query_source_read
+                            && command_id.is_none()
                             && !read_only_describe
                             && !read_only_rights_describe)
                         || op.reconnect_before
@@ -3623,7 +3729,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         || !op.request.is_object()
                         || json_bytes(&op.request)?.len() > args.request_cap
                     {
-                        return Err("SDK source command requires explicit native argv and one invocation; retries and concurrent conflict groups are supported".into());
+                        return Err("SDK entries require the exact selected source-reader argv or one explicit native owner invocation".into());
                     }
                     if let Some(command_id) = command_id {
                         if !command_ids.insert(command_id.to_owned()) {
@@ -3714,10 +3820,12 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
     }
     let mut postload_labels = BTreeSet::new();
     let mut postload_integrity_checks = 0usize;
+    let mut postload_selected_integrity_checks = 0usize;
     let mut postload_pg_integrity_checks = 0usize;
     let mut postload_rights_checks = 0usize;
     let mut postload_idempotency_checks = 0usize;
     let mut postload_integrity_positions = Vec::<usize>::new();
+    let mut postload_selected_integrity_positions = Vec::<usize>::new();
     let mut postload_pg_integrity_positions = Vec::<usize>::new();
     let mut postload_idempotency_positions = Vec::<usize>::new();
     let mut postload_rights_check_positions = Vec::<(usize, bool)>::new();
@@ -3865,6 +3973,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     .windows(2)
                     .filter(|pair| pair[0] == "--invocation")
                     .collect::<Vec<_>>();
+                let query_source_read = selected_query_source_read(op, args);
                 let command_id = op
                     .request
                     .get("command_id")
@@ -3875,17 +3984,23 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     || op.sdk_argv[0].is_empty()
                     || (op.expected_status != 0 && !postload_projection_rights_denial(op))
                     || !Path::new(&op.sdk_argv[0]).is_absolute()
-                    || !op.sdk_argv.iter().any(|arg| arg == "source-commands")
+                    || (!query_source_read
+                        && !op.sdk_argv.iter().any(|arg| arg == "source-commands"))
+                    || (source_read_operation(op) && !query_source_read)
+                    || (query_source_read && !exact_source_read_request(&op.request))
                     || !op.projection_argv.is_empty()
-                    || invocation_args.len() != 1
-                    || (!read_only_describe_operation(op)
+                    || (!query_source_read && invocation_args.len() != 1)
+                    || (query_source_read && !invocation_args.is_empty())
+                    || (!query_source_read
+                        && !read_only_describe_operation(op)
                         && (command_id.is_none()
                             || !(source_read_operation(op)
                                 || postload_rights_revoke_operation(op))))
+                    || (query_source_read && command_id.is_some())
                     || (read_only_describe_operation(op) && command_id.is_some())
                 {
                     return Err(
-                        "postload SDK checks require an explicit native read/describe invocation"
+                        "postload SDK checks require the selected exact-source reader or an explicit native owner invocation"
                             .into(),
                     );
                 }
@@ -3950,6 +4065,10 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             postload_integrity_checks += 1;
             postload_integrity_positions.push(postload_index);
         }
+        if postload_selected_source_integrity(op) {
+            postload_selected_integrity_checks += 1;
+            postload_selected_integrity_positions.push(postload_index);
+        }
         if postload_pg_source_integrity(op) {
             postload_pg_integrity_checks += 1;
             postload_pg_integrity_positions.push(postload_index);
@@ -3995,9 +4114,15 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             && postload_pg_integrity_positions
                 .iter()
                 .any(|index| *index < first_rights_describe)
+            && postload_selected_integrity_checks > 0
+            && postload_selected_integrity_positions
+                .iter()
+                .any(|index| *index < first_rights_describe)
+            && postload_pg_integrity_checks > 0
             && postload_idempotency_positions.len() == 1
             && postload_idempotency_positions[0] < first_rights_describe;
         if postload_integrity_checks == 0
+            || postload_selected_integrity_checks == 0
             || postload_pg_integrity_checks == 0
             || postload_idempotency_checks == 0
             || !rights_order_valid
@@ -6036,8 +6161,11 @@ fn emit(file: &mut File, written: &mut usize, cap: usize, value: &Value) -> Resu
     Ok(())
 }
 fn main_result() -> Result<i32, String> {
+    let Some(mut args) = parse_args()? else {
+        println!("{USAGE}");
+        return Ok(0);
+    };
     install_signals();
-    let mut args = parse_args()?;
     if args.output.is_symlink() || !args.output.is_dir() {
         return Err("output must be a precreated owned directory".into());
     }
@@ -6143,7 +6271,13 @@ fn main_result() -> Result<i32, String> {
                 .flat_map(|session| &session.operations),
         )
         .chain(plan.postload.iter())
-        .filter(|operation| operation.channel == "sdk")
+        .filter(|operation| {
+            operation.channel == "sdk"
+                && operation
+                    .sdk_argv
+                    .iter()
+                    .any(|arg| arg == "source-commands")
+        })
         .count();
     let projection_operations = plan
         .sessions
@@ -6160,7 +6294,7 @@ fn main_result() -> Result<i32, String> {
     let postload_source_read_operations = plan
         .postload
         .iter()
-        .filter(|operation| postload_exact_source_integrity(operation))
+        .filter(|operation| postload_selected_source_integrity(operation))
         .count();
     let postload_pg_source_read_operations = plan
         .postload
@@ -7043,6 +7177,7 @@ fn main_result() -> Result<i32, String> {
     let mut postload_checks_passed = 0usize;
     let mut postload_checks_failed = 0usize;
     let mut postload_integrity_passed = 0usize;
+    let mut postload_selected_integrity_passed = 0usize;
     let mut postload_pg_integrity_passed = 0usize;
     let mut postload_rights_passed = 0usize;
     let mut postload_rights_revocation_passed = 0usize;
@@ -7069,7 +7204,7 @@ fn main_result() -> Result<i32, String> {
         } else if postload_rights_revoke_operation(&op)
             && fresh_pg_stage
             && (postload_checks_failed != 0
-                || postload_integrity_passed == 0
+                || postload_selected_integrity_passed == 0
                 || postload_pg_integrity_passed == 0
                 || postload_idempotency_passed == 0
                 || postload_rights_passed == 0)
@@ -7135,6 +7270,7 @@ fn main_result() -> Result<i32, String> {
             postload_checks_passed += 1;
             match kind {
                 "source_integrity" => postload_integrity_passed += 1,
+                "postgresql_source_integrity" => postload_integrity_passed += 1,
                 "rights_state" => postload_rights_passed += 1,
                 "rights_revocation" => postload_rights_revocation_passed += 1,
                 "rights_denial" => postload_rights_denial_passed += 1,
@@ -7144,6 +7280,9 @@ fn main_result() -> Result<i32, String> {
             }
             if postload_pg_source_integrity(&op) {
                 postload_pg_integrity_passed += 1;
+            }
+            if postload_selected_source_integrity(&op) {
+                postload_selected_integrity_passed += 1;
             }
             if let Some(response) = result.response_body.clone() {
                 postload_results.insert(
@@ -7284,26 +7423,37 @@ fn main_result() -> Result<i32, String> {
         .map_err(|e| format!("report metadata: {e}"))?
         .blocks()
         .saturating_mul(512);
-    emit(
-        &mut output,
-        &mut written,
-        args.output_cap,
-        &json!({
-            "event": "finish",
-            "passed": errors == 0 && load_operations_not_started == 0 && !resource_stop_observed,
-            "selected_file_metadata_unchanged": true,
-            "schedule_unchanged": true,
-            "scheduled": total_ops,
-            "serial_setup_scheduled": plan.setup.len(),
-            "postload_checks_scheduled": plan.postload.len(),
-            "postload_checks_attempted": postload_checks_attempted,
-            "postload_checks_passed": postload_checks_passed,
-            "postload_checks_failed": postload_checks_failed,
-            "postload_source_integrity_passed": postload_integrity_passed,
-            "postload_native_pg_integrity_passed": postload_pg_integrity_passed,
-            "postload_rights_state_passed": postload_rights_passed,
-            "postload_rights_revocations_passed": postload_rights_revocation_passed,
-            "postload_rights_denials_passed": postload_rights_denial_passed,
+    // Keep the report shape flat while splitting macro expansion into bounded chunks.
+    let merge_finish_fields = |report: &mut Value, fields: Value| {
+        let Value::Object(fields) = fields else {
+            unreachable!("finish report chunks are objects");
+        };
+        report
+            .as_object_mut()
+            .expect("finish report is an object")
+            .extend(fields);
+    };
+    let mut finish_report = json!({
+        "event": "finish",
+        "passed": errors == 0 && load_operations_not_started == 0 && !resource_stop_observed,
+        "selected_file_metadata_unchanged": true,
+        "schedule_unchanged": true,
+        "scheduled": total_ops,
+        "serial_setup_scheduled": plan.setup.len(),
+        "postload_checks_scheduled": plan.postload.len(),
+        "postload_checks_attempted": postload_checks_attempted,
+        "postload_checks_passed": postload_checks_passed,
+        "postload_checks_failed": postload_checks_failed,
+        "postload_source_integrity_passed": postload_integrity_passed,
+        "postload_selected_vector_integrity_passed": postload_selected_integrity_passed,
+        "postload_native_pg_integrity_passed": postload_pg_integrity_passed,
+        "postload_rights_state_passed": postload_rights_passed,
+        "postload_rights_revocations_passed": postload_rights_revocation_passed,
+        "postload_rights_denials_passed": postload_rights_denial_passed,
+    });
+    merge_finish_fields(
+        &mut finish_report,
+        json!({
             "postload_idempotency_replays_passed": postload_idempotency_passed,
             "postload_projection_state_passed": postload_projection_state_passed,
             "postload_verification_elapsed_seconds": postload_elapsed_seconds,
@@ -7319,6 +7469,11 @@ fn main_result() -> Result<i32, String> {
             "load_operation_count_limit": args.operation_count,
             "load_operations_scheduled": load_operations_scheduled,
             "load_operations_started": load_operations_started,
+        }),
+    );
+    merge_finish_fields(
+        &mut finish_report,
+        json!({
             "load_operations_passed": load_operations_passed,
             "load_operations_failed": load_operations_failed,
             "load_operations_not_started": load_operations_not_started,
@@ -7344,6 +7499,11 @@ fn main_result() -> Result<i32, String> {
             } else {
                 None
             },
+        }),
+    );
+    merge_finish_fields(
+        &mut finish_report,
+        json!({
             "load_successful_operations_per_second": if load_elapsed_seconds > 0.0 {
                 Some(load_operations_passed as f64 / load_elapsed_seconds)
             } else {
@@ -7375,6 +7535,11 @@ fn main_result() -> Result<i32, String> {
             "conflict_groups": conflict_groups,
             "conflict_group_failures": conflict_group_failures,
             "retries": retries,
+        }),
+    );
+    merge_finish_fields(
+        &mut finish_report,
+        json!({
             "reconnects": reconnects,
             "projection_interruptions": projection_interruptions,
             "projection_resumes": projection_resumes,
@@ -7419,8 +7584,10 @@ fn main_result() -> Result<i32, String> {
             "report_storage_bytes_before_finish": storage_bytes,
             "report_storage_allocated_bytes_before_finish": storage_allocated,
             "scope": "finite Rust protocol measurement; not capacity acceptance"
+
         }),
-    )?;
+    );
+    emit(&mut output, &mut written, args.output_cap, &finish_report)?;
     output.sync_all().map_err(|e| format!("report sync: {e}"))?;
     Ok(
         if errors == 0 && load_operations_not_started == 0 && !resource_stop_observed {
