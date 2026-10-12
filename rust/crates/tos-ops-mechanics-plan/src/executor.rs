@@ -54,7 +54,6 @@ pub fn run(root: &Path, plan: &Plan, limits: Limits, cancel: &AtomicI32) -> io::
 /// child status belong to the validation-lane command contract.
 pub fn run_validation_sequence(
     root: &Path,
-    python: &str,
     steps: &[crate::validation_lanes::BudgetedCommandStep],
     limits: Limits,
     cancel: &AtomicI32,
@@ -86,7 +85,7 @@ pub fn run_validation_sequence(
             &plan,
             limits,
             cancel,
-            native::Style::Validation(python, &timeouts),
+            native::Style::Validation(&timeouts),
         )
     }
     #[cfg(not(target_os = "linux"))]
@@ -100,7 +99,7 @@ pub fn run_validation_sequence(
 }
 
 /// Run an already-selected release phase through the same dedicated process
-/// custody. An empty `checks` phase is a successful no-op, as in Python.
+/// custody. An empty `checks` phase is a successful no-op.
 pub fn run_release_sequence(
     root: &Path,
     steps: &[(String, Vec<String>)],
@@ -346,7 +345,7 @@ mod native {
     #[derive(Clone, Copy)]
     pub(super) enum Style<'a> {
         Mechanics,
-        Validation(&'a str, &'a [Option<Duration>]),
+        Validation(&'a [Option<Duration>]),
         Release,
         Capture,
     }
@@ -944,14 +943,14 @@ mod native {
                 return Err(error("execution wall deadline during setup"));
             }
             let mut products: Option<crate::conformance_products::Products> = None;
-            if let Style::Validation(_, timeouts) = style {
+            if let Style::Validation(timeouts) = style {
                 if timeouts.len() != plan.commands.len() {
                     return Err(error("validation timeout/command count differs"));
                 }
             }
             for (index, command) in plan.commands.iter().enumerate() {
                 let explicit_timeout = match style {
-                    Style::Validation(_, timeouts) => timeouts[index],
+                    Style::Validation(timeouts) => timeouts[index],
                     _ => None,
                 };
                 let command_wall = explicit_timeout.unwrap_or(limits.command_wall);
@@ -959,7 +958,7 @@ mod native {
                 let progress = match style {
                     Style::Capture => String::new(),
                     Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
-                    Style::Validation(_, _) => {
+                    Style::Validation(_) => {
                         format!("[run] {}: {}\n", command.home, command.argv.join(" "))
                     }
                     Style::Release => {
@@ -981,9 +980,9 @@ mod native {
                         cancel,
                     )?;
                 }
-                let preparing = matches!(style, Style::Validation(_, _))
+                let preparing = matches!(style, Style::Validation(_))
                     && crate::conformance_products::preparation(&command.argv);
-                let growth_class = matches!(style, Style::Validation(_, _))
+                let growth_class = matches!(style, Style::Validation(_))
                     && command
                         .argv
                         .first()
@@ -998,7 +997,7 @@ mod native {
                 } else {
                     command.argv.clone()
                 };
-                let overrides = if matches!(style, Style::Validation(_, _))
+                let overrides = if matches!(style, Style::Validation(_))
                     && (crate::conformance_products::execution(&command.argv) || growth_class)
                 {
                     products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
@@ -1007,18 +1006,8 @@ mod native {
                 };
                 let mut overrides = overrides;
                 overrides.extend_from_slice(child_overrides);
-                if let Style::Validation(python, _) = style {
-                    if crate::conformance_products::execution(&command.argv) || growth_class {
-                        if python.contains('\0') {
-                            return Err(error("invalid explicit maintained Python interpreter"));
-                        }
-                        if !python.is_empty() {
-                            overrides.push(("TOS_MAINTAINED_PYTHON".into(), python.into()));
-                        }
-                    }
-                }
                 let inherited_stage_ticket_fd = match style {
-                    Style::Validation(_, _) => foundation_stage_ticket_fd(&argv)?,
+                    Style::Validation(_) => foundation_stage_ticket_fd(&argv)?,
                     _ => None,
                 };
                 let mut cargo_stdout = Vec::new();
@@ -1114,7 +1103,7 @@ mod native {
                             command.argv.join(" "),
                             status.unwrap()
                         ),
-                        Style::Validation(_, _) => format!(
+                        Style::Validation(_) => format!(
                             "[error] {} failed with exit code {}\n",
                             command.home,
                             status
@@ -1143,7 +1132,7 @@ mod native {
                     )?;
                     return Ok(match style {
                         Style::Mechanics => 1,
-                        Style::Validation(_, _) | Style::Release | Style::Capture => {
+                        Style::Validation(_) | Style::Release | Style::Capture => {
                             status.unwrap().code().unwrap_or_else(|| {
                                 // sys.exit(-signal) from the Python compatibility entry
                                 // is observed by its parent as 256-signal on Unix.
@@ -1152,7 +1141,7 @@ mod native {
                         }
                     });
                 }
-                if matches!(style, Style::Validation(_, _)) {
+                if matches!(style, Style::Validation(_)) {
                     write(
                         1,
                         format!("[ok] {}\n", command.home).as_bytes(),

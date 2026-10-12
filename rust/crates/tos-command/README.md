@@ -648,6 +648,26 @@ expose these private profiles. Connection selection remains private through
 `TOS_SOURCE_PG_URL`; an invocation does not grant rights or semantic approval
 beyond its selected owner contract.
 
+The PostgreSQL Text profile also accepts `prepare-create` for its selected
+TextLayer, derived-layer or TextUnit write grant. Preparation uses current PG
+source dependencies and returns the exact owner configuration and dependency
+binding that the corresponding write must carry. A created TextUnit exposes
+its binding from the actual retained packet and layer bytes.
+
+For separately authorized PG reads, the invocation selects `owner_config`
+using [`native-pg-private-text-read.schema.json`](../../../ToS/contracts/native-pg-private-text-read.schema.json).
+It pins the source domain/contract, owner context, mandate, exact binding,
+rights references and each private package revision, digest and command ID.
+`native-text.read-private` additionally names `source_path`, `revision`,
+`package_sha256`, `command_id` and `binding_ref`, alongside `binding` and
+`max_return_bytes`. Current source rights are checked before opening private
+content, including for historical package reads. The grant and selected
+source/private generations are checked before returning the bounded spans.
+The PublicProfile creation invocation can select the same independent grant
+through `native_text_read_profile` when its `source-text-unit-v1` adapter needs
+private content verification; fresh commits and recovered retries both check
+the grant. These paths retain the protected local process boundary.
+
 ### Protected private TextUnit reading
 
 `tos-native-owner-command private-text-read --invocation ABSOLUTE_INVOCATION`

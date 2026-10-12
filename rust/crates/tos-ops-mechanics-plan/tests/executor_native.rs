@@ -241,7 +241,6 @@ fn native_validation_sequences_preserve_order_and_first_failure() {
     let output = Command::new(&executable)
         .arg("--repo-root")
         .arg(&root)
-        .args(["--python", "/no-python-executable"])
         .args(["--sequence", "sample", "--run", "sample"])
         .output()
         .unwrap();
@@ -261,11 +260,27 @@ fn native_validation_sequences_preserve_order_and_first_failure() {
             .contains("[error] failing failed with exit code 17\n")
     );
 
+    let legacy_option = Command::new(&executable)
+        .arg("--repo-root")
+        .arg(&root)
+        .args(["--python", "/bin/sh", "--sequence", "sample"])
+        .output()
+        .unwrap();
+    assert_eq!(legacy_option.status.code(), Some(2));
+    assert!(
+        String::from_utf8(legacy_option.stderr)
+            .unwrap()
+            .contains("unknown argument: --python")
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "first\nfail\n"
+    );
+
     fs::remove_file(root.join("trace")).unwrap();
     let output = Command::new(&executable)
         .arg("--repo-root")
         .arg(&root)
-        .args(["--python", "/no-python-executable"])
         .args(["--run", "rust_workspace"])
         .output()
         .unwrap();
@@ -292,10 +307,11 @@ fn native_validation_sequences_preserve_order_and_first_failure() {
 }
 
 // Release uses the same authored sequence and process custody, but preserves
-// its own phase, environment, Windows command-display, and failure contract.
+// its own phase, inherited environment, command-display, and failure contract.
 #[cfg(target_os = "linux")]
 #[test]
 fn release_phase_selection_preserves_environment_and_first_failure() {
+    use serde_json::json;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
     use std::process::{Command, Output};
@@ -311,18 +327,24 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     ));
     fs::create_dir_all(root.join("docs/validation")).unwrap();
     let manifest = root.join("docs/validation/validation_lanes.json");
-    fs::write(
-        &manifest,
-        r#"{"command_sequences":{"release_check":[{"label":"software contracts","command":["python","quoted \"tail\\"]},{"label":"build software browser assets","command":["python","fail"]},{"label":"run tests: access","command":["python","first"]},{"label":"run tests: source","command":["python","second"]}]}}"#,
-    )
-    .unwrap();
     let adapter = root.join("adapter");
     fs::write(
         &adapter,
-        "#!/bin/sh\nprintf '%s|%s\\n' \"$1\" \"${PYTEST_DISABLE_PLUGIN_AUTOLOAD-<unset>}\" >> trace\n[ \"$1\" = fail ] && [ \"$FAIL_SECOND\" = 1 ] && exit 17\nexit 0\n",
+        "#!/bin/sh\nprintf '%s|%s\\n' \"$1\" \"${TOS_RELEASE_TEST_INHERITED-<unset>}\" >> trace\n[ \"$1\" = fail ] && [ \"$FAIL_SECOND\" = 1 ] && exit 17\nexit 0\n",
     )
     .unwrap();
     fs::set_permissions(&adapter, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::write(
+        &manifest,
+        serde_json::to_vec(&json!({"command_sequences":{"release_check":[
+            {"label":"software contracts","command":[adapter.to_str().unwrap(), "quoted \"tail\\"]},
+            {"label":"build software browser assets","command":[adapter.to_str().unwrap(), "fail"]},
+            {"label":"run tests: access","command":[adapter.to_str().unwrap(), "first"]},
+            {"label":"run tests: source","command":[adapter.to_str().unwrap(), "second"]}
+        ]}}))
+        .unwrap(),
+    )
+    .unwrap();
     let executable = std::env::var_os("TOS_RELEASE_CHECK_TEST_EXECUTABLE")
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-release-check").into());
     let invoke = |phase: &str, fail: bool, inherited: Option<&str>| -> Output {
@@ -330,8 +352,6 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
         command.args([
             "--repo-root",
             root.to_str().unwrap(),
-            "--python",
-            adapter.to_str().unwrap(),
             "--phase",
             phase,
             "--command-timeout-ms",
@@ -341,9 +361,9 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
         ]);
         command.env("FAIL_SECOND", if fail { "1" } else { "0" });
         if let Some(inherited) = inherited {
-            command.env("PYTEST_DISABLE_PLUGIN_AUTOLOAD", inherited);
+            command.env("TOS_RELEASE_TEST_INHERITED", inherited);
         } else {
-            command.env_remove("PYTEST_DISABLE_PLUGIN_AUTOLOAD");
+            command.env_remove("TOS_RELEASE_TEST_INHERITED");
         }
         command.output().unwrap()
     };
@@ -351,7 +371,7 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     assert_eq!(checks.status.code(), Some(0));
     assert_eq!(
         fs::read_to_string(root.join("trace")).unwrap(),
-        "quoted \"tail\\|1\nfail|1\n"
+        "quoted \"tail\\|<unset>\nfail|<unset>\n"
     );
     let checks_out = String::from_utf8(checks.stdout).unwrap();
     let expected_display = format!(
@@ -383,7 +403,7 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     assert_eq!(all.status.code(), Some(17));
     assert_eq!(
         fs::read_to_string(root.join("trace")).unwrap(),
-        "quoted \"tail\\|1\nfail|1\n"
+        "quoted \"tail\\|<unset>\nfail|<unset>\n"
     );
     let all_out = String::from_utf8(all.stdout).unwrap();
     assert!(all_out.contains("[error] build software browser assets failed with exit code 17\n"));
@@ -393,7 +413,10 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     fs::remove_file(root.join("trace")).unwrap();
     fs::write(
         &manifest,
-        r#"{"command_sequences":{"release_check":[{"label":"run tests: ","command":["python","early"]}]}}"#,
+        serde_json::to_vec(&json!({"command_sequences":{"release_check":[
+            {"label":"run tests: ","command":["python", "early"]}
+        ]}}))
+        .unwrap(),
     )
     .unwrap();
     let invalid = invoke("checks", false, None);
@@ -402,7 +425,25 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     assert!(
         String::from_utf8(invalid.stdout)
             .unwrap()
-            .contains("[error] selected sequence must end with one legacy run tests step or a complete run tests: group suffix\n")
+            .contains("[error] Python commands are unsupported in maintained validation lanes\n")
     );
+    let legacy_option = Command::new(&executable)
+        .args([
+            "--repo-root",
+            root.to_str().unwrap(),
+            "--python",
+            adapter.to_str().unwrap(),
+            "--phase",
+            "checks",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(legacy_option.status.code(), Some(2));
+    assert!(
+        String::from_utf8(legacy_option.stderr)
+            .unwrap()
+            .contains("unknown argument: --python")
+    );
+    assert!(!root.join("trace").exists());
     fs::remove_dir_all(root).unwrap();
 }

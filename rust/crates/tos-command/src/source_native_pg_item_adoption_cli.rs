@@ -348,6 +348,7 @@ fn item_source_read_work(work: &crate::source_cohort::revision::SourceRevisionRe
 }
 
 enum PgItemSessionOutcome {
+    Preview(JsonValue),
     NoMetadata {
         context: CommandContext,
         response: JsonValue,
@@ -417,19 +418,25 @@ pub(super) fn run(
     }
     let request_raw = read_item_request(input)?;
     let request = cmd::parse(&request_raw)?;
+    let operation = cmd::text(&request, "operation")?;
+    let preparing = operation == "prepare-create";
     if cmd::text(&request, "schema_version")? != "tos_local_item_adoption_command_v1"
-        || cmd::text(&request, "operation")? != "item.adopt"
+        || !matches!(operation, "prepare-create" | "item.adopt")
     {
-        return Err(SourceCommandError::Unsupported(
-            "PG Item mutation operation",
-        ));
+        return Err(SourceCommandError::Unsupported("PG Item operation"));
     }
-    let command_id = cmd::text(&request, "command_id")?;
-    if command_id.is_empty() || command_id.len() > 256 || command_id.contains('\0') {
-        return Err(SourceCommandError::Invalid("PG Item command identity"));
-    }
-    let transaction_id =
-        source_creation_store::pg_item_adoption_transaction_id_from_request(&request)?;
+    let (command_id, transaction_id) = if preparing {
+        (None, None)
+    } else {
+        let command_id = cmd::text(&request, "command_id")?;
+        if command_id.is_empty() || command_id.len() > 256 || command_id.contains('\0') {
+            return Err(SourceCommandError::Invalid("PG Item command identity"));
+        }
+        (
+            Some(command_id.to_owned()),
+            Some(source_creation_store::pg_item_adoption_transaction_id_from_request(&request)?),
+        )
+    };
     let store = SegmentStore::open_existing(&selection.store_root, selection.store_limits)
         .map_err(|_| SourceCommandError::Conflict("selected Item STO"))?;
     let (software, components) =
@@ -445,136 +452,142 @@ pub(super) fn run(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
-    let prepare_id = item_prepare_id(&selection.domain, command_id);
-    let request_digest = Digest256::of_bytes(&request_raw);
     let owner_configuration_digest = cmd::record_digest(&owner_config)?;
 
     // Resolve the already sealed command before reading current source for a
     // fresh attempt. The attempt itself retains its original PG source epoch.
-    match db.recover_source_revision_attempt(
-        &store,
-        &selection.domain,
-        &prepare_id,
-        command_id,
-        request_digest,
-        Digest256::of_bytes(&owner_raw),
-        owner_configuration_digest,
-        ITEM_ADOPTION_FAMILY_TAG,
-        false,
-        &selection.job_id,
-        selection.job_fence,
-        None,
-        deadline,
-        cancelled,
-    ) {
-        Ok(attempt) => {
-            if attempt.contract != selection.contract {
-                return Err(SourceCommandError::Conflict(
-                    "recovered PG Item contract changed",
-                ));
-            }
-            let dependencies =
-                item_dependencies_from_attempt(&attempt).map_err(super::pg_claims::source_error)?;
-            let deposit_config = crate::source_item_deposit::value(&owner_config)?;
-            let stage = crate::source_item_deposit::read_stage(
-                &deposit_config,
-                &transaction_id,
-                uid,
-                deadline,
-                cancelled,
-            )?
-            .ok_or(SourceCommandError::Conflict(
-                "recovered PG Item deposit stage absent",
-            ))?;
-            verify_item_deposit_receipt(
-                &recovered_deposit_receipt_bytes(&attempt)
-                    .map_err(super::pg_claims::source_error)?,
-                &stage,
-            )?;
-            let payload_identity = crate::source_item_deposit::deposited_identity(
-                &deposit_config,
-                &stage,
-                uid,
-                deadline,
-                cancelled,
-            )?;
-            let context = CommandContext {
-                base_revision: attempt.predecessor_source_revision,
-                configuration_raw: owner_raw.clone(),
-                request_raw: request_raw.clone(),
-                recorded_at: crate::source_serialization::instant()?,
-                effective_uid: u64::from(uid),
-                files: software_files.clone(),
-            };
-            let owner_check = || {
-                if super::read_absolute(
-                    invocation_path,
-                    uid,
-                    true,
-                    invocation_raw.len(),
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)?
-                    != invocation_raw
-                {
-                    return Err(DurableError::Conflict(
-                        "PG Item invocation changed before recovery",
+    if let Some(command_id) = command_id.as_deref() {
+        let transaction_id = transaction_id
+            .as_deref()
+            .ok_or(SourceCommandError::Invalid("PG Item transaction identity"))?;
+        let prepare_id = item_prepare_id(&selection.domain, command_id);
+        let request_digest = Digest256::of_bytes(&request_raw);
+        match db.recover_source_revision_attempt(
+            &store,
+            &selection.domain,
+            &prepare_id,
+            command_id,
+            request_digest,
+            Digest256::of_bytes(&owner_raw),
+            owner_configuration_digest,
+            ITEM_ADOPTION_FAMILY_TAG,
+            false,
+            &selection.job_id,
+            selection.job_fence,
+            None,
+            deadline,
+            cancelled,
+        ) {
+            Ok(attempt) => {
+                if attempt.contract != selection.contract {
+                    return Err(SourceCommandError::Conflict(
+                        "recovered PG Item contract changed",
                     ));
                 }
-                let (_, current_raw) = CreationFilesystem::select_protected_native_owner_at_root(
-                    &owner_path,
-                    &selection.store_root,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)?;
-                if current_raw != owner_raw
-                    || runtime
-                        .current_digest(deadline, cancelled)
-                        .map_err(DurableError::Source)?
-                        != expected_executable
-                {
-                    return Err(DurableError::Conflict(
-                        "PG Item owner or executable changed before recovery",
-                    ));
-                }
-                crate::source_creation_store::verify_pg_item_adoption_owner(
-                    &owner_fs,
-                    &context,
+                let dependencies = item_dependencies_from_attempt(&attempt)
+                    .map_err(super::pg_claims::source_error)?;
+                let deposit_config = crate::source_item_deposit::value(&owner_config)?;
+                let stage = crate::source_item_deposit::read_stage(
+                    &deposit_config,
                     &transaction_id,
-                    &dependencies,
+                    uid,
+                    deadline,
+                    cancelled,
+                )?
+                .ok_or(SourceCommandError::Conflict(
+                    "recovered PG Item deposit stage absent",
+                ))?;
+                verify_item_deposit_receipt(
+                    &recovered_deposit_receipt_bytes(&attempt)
+                        .map_err(super::pg_claims::source_error)?,
                     &stage,
-                    &payload_identity,
+                )?;
+                let payload_identity = crate::source_item_deposit::deposited_identity(
+                    &deposit_config,
+                    &stage,
+                    uid,
                     deadline,
                     cancelled,
-                )
-                .map_err(DurableError::Source)
-            };
-            let (receipt, _) = db
-                .commit_source_revision(
-                    &store,
-                    &attempt,
-                    selection.contract,
-                    &owner_check,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(super::pg_claims::source_error)?;
-            let recovered = source_creation_store::pg_item_adoption_response_from_attempt(
-                &owner_fs, &context, &attempt, &stage, deadline, cancelled,
-            )?;
-            if recovered.get("transaction_id").and_then(Value::as_str)
-                != Some(transaction_id.as_str())
-            {
-                return Err(SourceCommandError::Conflict(
-                    "PG Item recovery transaction response differs",
-                ));
+                )?;
+                let context = CommandContext {
+                    base_revision: attempt.predecessor_source_revision,
+                    configuration_raw: owner_raw.clone(),
+                    request_raw: request_raw.clone(),
+                    recorded_at: crate::source_serialization::instant()?,
+                    effective_uid: u64::from(uid),
+                    files: software_files.clone(),
+                };
+                let owner_check = || {
+                    if super::read_absolute(
+                        invocation_path,
+                        uid,
+                        true,
+                        invocation_raw.len(),
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?
+                        != invocation_raw
+                    {
+                        return Err(DurableError::Conflict(
+                            "PG Item invocation changed before recovery",
+                        ));
+                    }
+                    let (_, current_raw) =
+                        CreationFilesystem::select_protected_native_owner_at_root(
+                            &owner_path,
+                            &selection.store_root,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(DurableError::Source)?;
+                    if current_raw != owner_raw
+                        || runtime
+                            .current_digest(deadline, cancelled)
+                            .map_err(DurableError::Source)?
+                            != expected_executable
+                    {
+                        return Err(DurableError::Conflict(
+                            "PG Item owner or executable changed before recovery",
+                        ));
+                    }
+                    crate::source_creation_store::verify_pg_item_adoption_owner(
+                        &owner_fs,
+                        &context,
+                        &transaction_id,
+                        &dependencies,
+                        &stage,
+                        &payload_identity,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)
+                };
+                let (receipt, _) = db
+                    .commit_source_revision(
+                        &store,
+                        &attempt,
+                        selection.contract,
+                        &owner_check,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(super::pg_claims::source_error)?;
+                let recovered = source_creation_store::pg_item_adoption_response_from_attempt(
+                    &owner_fs, &context, &attempt, &stage, deadline, cancelled,
+                )?;
+                if recovered.get("transaction_id").and_then(Value::as_str)
+                    != Some(transaction_id.as_str())
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "PG Item recovery transaction response differs",
+                    ));
+                }
+                return Ok(pg_item_result(recovered, &receipt));
             }
-            return Ok(pg_item_result(recovered, &receipt));
+            Err(DurableError::Refused("source revision attempt absent")) => {}
+            Err(error) => return Err(super::pg_claims::source_error(error)),
         }
-        Err(DurableError::Refused("source revision attempt absent")) => {}
-        Err(error) => return Err(super::pg_claims::source_error(error)),
     }
 
     let recorded_at = crate::source_serialization::instant()?;
@@ -610,9 +623,15 @@ pub(super) fn run(
                     effective_uid: u64::from(uid),
                     files: software_files.clone(),
                 };
-                let owner_selection = source_creation_store::select_pg_item_adoption_owner(
-                    &owner_fs, &base, session, deadline, cancelled,
-                )
+                let owner_selection = if preparing {
+                    source_creation_store::select_pg_item_adoption_proposal(
+                        &owner_fs, &base, session, deadline, cancelled,
+                    )
+                } else {
+                    source_creation_store::select_pg_item_adoption_owner(
+                        &owner_fs, &base, session, deadline, cancelled,
+                    )
+                }
                 .map_err(DurableError::Source)?;
                 item_contracts(session, deadline, cancelled).map_err(DurableError::Source)?;
                 let (context, _) =
@@ -663,6 +682,9 @@ pub(super) fn run(
                     max_member_bytes,
                 )
                 .map_err(DurableError::Source)?;
+                if owner_plan.prepared_request.is_some() {
+                    return Ok(PgItemSessionOutcome::Preview(owner_plan.response));
+                }
                 if owner_plan.outputs.is_empty() {
                     if owner_plan.item_claim_owner != JsonValue::Null
                         || cmd::field(&owner_plan.response, "metadata_committed")
@@ -755,6 +777,38 @@ pub(super) fn run(
         .map_err(super::pg_claims::source_error)?;
 
     let prepared = match prepared {
+        PgItemSessionOutcome::Preview(response) => {
+            if super::read_absolute(
+                invocation_path,
+                uid,
+                true,
+                invocation_raw.len(),
+                deadline,
+                cancelled,
+            )? != invocation_raw
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PG Item invocation changed before prepare-create reply",
+                ));
+            }
+            let (_, current_raw) = CreationFilesystem::select_protected_native_owner_at_root(
+                &owner_path,
+                &selection.store_root,
+                deadline,
+                cancelled,
+            )?;
+            if current_raw != owner_raw
+                || runtime.current_digest(deadline, cancelled)? != expected_executable
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PG Item owner or executable changed before prepare-create reply",
+                ));
+            }
+            let mut result: serde_json::Value = serde_json::from_slice(&cmd::canonical(&response)?)
+                .map_err(|_| SourceCommandError::Invalid("PG Item preview result JSON"))?;
+            result["source_read_work"] = item_source_read_work(&readset.work);
+            return Ok(pg_item_no_commit_result(result));
+        }
         PgItemSessionOutcome::NoMetadata {
             context,
             response,
@@ -806,6 +860,11 @@ pub(super) fn run(
         }
         PgItemSessionOutcome::Prepared(prepared) => prepared,
     };
+
+    let transaction_id =
+        transaction_id.ok_or(SourceCommandError::Invalid("PG Item transaction identity"))?;
+    let command_id = command_id.ok_or(SourceCommandError::Invalid("PG Item command identity"))?;
+    let prepare_id = item_prepare_id(&selection.domain, &command_id);
 
     let mut result: serde_json::Value =
         serde_json::from_slice(&cmd::canonical(&prepared.proposal().response)?)

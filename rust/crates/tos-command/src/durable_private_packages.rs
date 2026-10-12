@@ -2079,6 +2079,169 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
         }))
     }
 
+    /// Read one member from an explicitly pinned immutable package revision.
+    /// The complete member-digest manifest and receipt are checked first; only
+    /// the selected member bytes are fetched. Callers can therefore resolve
+    /// private metadata before current rights checks and defer content reads
+    /// until after those checks.
+    pub(crate) fn read_selected_member_revision(
+        &mut self,
+        target_ref: &str,
+        revision: u64,
+        package_digest: Digest256,
+        command_id: &str,
+        member_name: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerSelectedMemberV1>> {
+        validate_target_ref(target_ref)?;
+        if revision == 0
+            || command_id.is_empty()
+            || command_id.len() > 1024
+            || command_id.contains('\0')
+            || member_name.is_empty()
+            || member_name == "."
+            || member_name == ".."
+            || member_name.len() > MAX_MEMBER_NAME_BYTES
+            || member_name.contains('/')
+            || member_name.contains('\\')
+            || member_name.contains('\0')
+            || max_bytes == 0
+        {
+            return Err(DurableError::Invalid(
+                "private selected package revision member budget",
+            ));
+        }
+        let current = self
+            .current_header(target_ref, deadline, cancelled)?
+            .ok_or(DurableError::Refused(
+                "private selected package revision is absent",
+            ))?;
+        if current.family != PrivateOwnerPackageFamilyV1::Text || revision > current.revision {
+            return Err(DurableError::Refused(
+                "private selected package revision is outside Text history",
+            ));
+        }
+        let max_bytes = max_bytes.min(private_family_member_max_bytes(current.family));
+        let scope = self.scope.clone();
+        let generation = self.private_audit_generation;
+        check_private_history_deadline(deadline, cancelled)?;
+        let row = self.transaction_mut()?.query_opt(
+            "SELECT family,package_digest,member_count,total_bytes,command_id,commit_seq,
+                    owner_context_binding,owner_configuration_digest,request_digest,
+                    raw_request_digest,private_owner_audit_generation
+             FROM cmd2_private_package_history
+             WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4",
+            &[
+                &scope.domain,
+                &scope.owner_scope,
+                &target_ref,
+                &as_i64(revision)?,
+            ],
+        )?;
+        check_private_history_deadline(deadline, cancelled)?;
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        let family = parse_family(row.get(0))?;
+        let stored_digest = parse_hex(row.get(1))?;
+        let member_count: i32 = row.get(2);
+        let total_bytes = as_u64(row.get(3))?;
+        let stored_command_id: String = row.get(4);
+        let commit_seq = as_u64(row.get(5))?;
+        let owner_context_binding = parse_hex(row.get(6))?;
+        let owner_configuration_digest = parse_hex(row.get(7))?;
+        let request_digest = parse_hex(row.get(8))?;
+        let raw_request_digest = parse_hex(row.get(9))?;
+        let source_private_generation = as_u64(row.get(10))?;
+        if family != PrivateOwnerPackageFamilyV1::Text
+            || stored_digest != package_digest
+            || stored_command_id != command_id
+            || !(1..=MAX_MEMBERS as i32).contains(&member_count)
+            || total_bytes == 0
+            || total_bytes > private_family_max_bytes(family) as u64
+            || owner_context_binding != scope.context_binding
+            || source_private_generation >= generation
+        {
+            return Err(DurableError::Conflict(
+                "private selected package revision pin differs",
+            ));
+        }
+        verify_current_member_manifest(
+            self.transaction_mut()?,
+            &scope,
+            target_ref,
+            revision,
+            member_count as usize,
+            total_bytes,
+            stored_digest,
+            family,
+        )?;
+        let receipt = read_private_command_receipt_metadata(
+            self.transaction_mut()?,
+            &scope,
+            target_ref,
+            command_id,
+            generation,
+            deadline,
+            cancelled,
+        )?
+        .ok_or(DurableError::Corrupt(
+            "private selected package receipt absent",
+        ))?;
+        if !receipt.target_matches
+            || receipt.family != family
+            || receipt.package_digest != stored_digest
+            || receipt.commit_seq != commit_seq
+            || receipt.owner_context_binding != owner_context_binding
+            || receipt.owner_configuration_digest != owner_configuration_digest
+            || receipt.request_digest != request_digest
+            || receipt.raw_request_digest != raw_request_digest
+            || receipt.source_private_generation != source_private_generation
+        {
+            return Err(DurableError::Corrupt(
+                "private selected package receipt differs",
+            ));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        let member = self.transaction_mut()?.query_opt(
+            "SELECT member_bytes,member_digest
+             FROM cmd2_private_package_member
+             WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4
+               AND member_name=$5",
+            &[
+                &scope.domain,
+                &scope.owner_scope,
+                &target_ref,
+                &as_i64(revision)?,
+                &member_name,
+            ],
+        )?;
+        check_private_history_deadline(deadline, cancelled)?;
+        let Some(member) = member else {
+            return Ok(None);
+        };
+        let bytes: Vec<u8> = member.get(0);
+        let member_digest = parse_hex(member.get(1))?;
+        if bytes.len() > max_bytes || Digest256::of_bytes(&bytes) != member_digest {
+            return Err(DurableError::Refused(
+                "private selected package member digest or budget differs",
+            ));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        Ok(Some(PrivateOwnerSelectedMemberV1 {
+            target_ref: target_ref.to_owned(),
+            member_name: member_name.to_owned(),
+            family,
+            revision,
+            package_digest: stored_digest,
+            member_digest,
+            bytes,
+            private_audit_generation: generation,
+        }))
+    }
+
     /// Hydrate a complete current package only when the owner operation has
     /// explicitly reached the content-admission phase for this target.
     pub(crate) fn read_alignment_output_package(

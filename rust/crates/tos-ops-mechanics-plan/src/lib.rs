@@ -537,7 +537,7 @@ mod tests {
                 },
             ],
         };
-        let whole = growth_coverage::whole_steps(&root, "exact-python", &mechanics).unwrap();
+        let whole = growth_coverage::whole_steps(&root, &mechanics).unwrap();
         assert!(
             whole
                 .iter()

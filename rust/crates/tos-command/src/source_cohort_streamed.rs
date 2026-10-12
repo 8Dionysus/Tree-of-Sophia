@@ -70,6 +70,7 @@ struct StreamedSourceReadEpoch<'a, 'db> {
     // locks for the entire read epoch, then repeats the final source fences.
     cold: &'a ColdCut,
     fresh_sink: bool,
+    public_text_packages: &'a [super::CurrentPublicTextPackageV1],
 }
 
 impl ReadonlyRecordFiles for StreamedSourceReadEpoch<'_, '_> {
@@ -1218,6 +1219,62 @@ fn render_current_mixed_projections(
     let mut item_record_bytes = 0usize;
     let mut item_rights_count = 0usize;
     let mut item_rights_bytes = 0usize;
+    let mut public_text_fingerprints = BTreeMap::new();
+    let mut public_text_contributions = BTreeMap::new();
+    let mut public_text_contribution_bytes = 0usize;
+    const MAX_RETAINED_PUBLIC_TEXT_CONTRIBUTION_BYTES: usize = 67_108_864;
+    let public_text_member_limit = usize::try_from(epoch.max_member_bytes)
+        .map_err(|_| DurableError::Refused("streamed member byte bound"))?;
+    for package in epoch.public_text_packages {
+        active(deadline, cancelled)?;
+        let mut package_files = BTreeMap::new();
+        let mut package_body_bytes = 0usize;
+        for name in crate::source_public_text_entry::FILES {
+            let path = format!("{}/{name}", package.package_home);
+            let raw = epoch
+                .read(&path, public_text_member_limit, deadline, cancelled)
+                .map_err(source_error)?;
+            package_body_bytes = package_body_bytes
+                .checked_add(raw.len())
+                .filter(|bytes| *bytes <= cmd::SELECTED_SOURCE_MAX_BYTES)
+                .ok_or(DurableError::Refused(
+                    "streamed Public Text current package byte bound",
+                ))?;
+            let fingerprint = (Digest256::of_bytes(&raw), raw.len() as u64);
+            if package_files.insert(path.clone(), raw).is_some()
+                || public_text_fingerprints.insert(path, fingerprint).is_some()
+                || public_text_fingerprints.len() as u64 > epoch.cold.current_members
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed Public Text package member",
+                ));
+            }
+        }
+        let contributions = super::regenerate_current_public_text_contributions(
+            &package_files,
+            std::slice::from_ref(package),
+        )?;
+        drop(package_files);
+        for (path, owner) in contributions {
+            let owner_bytes = cmd::canonical(&owner).map_err(source_error)?;
+            if owner_bytes.len() > 1_048_576 {
+                return Err(DurableError::Refused(
+                    "streamed Public Text owner contribution member bound",
+                ));
+            }
+            public_text_contribution_bytes = public_text_contribution_bytes
+                .checked_add(owner_bytes.len())
+                .filter(|bytes| *bytes <= MAX_RETAINED_PUBLIC_TEXT_CONTRIBUTION_BYTES)
+                .ok_or(DurableError::Refused(
+                    "streamed Public Text owner contribution package bound",
+                ))?;
+            if public_text_contributions.insert(path, owner).is_some() {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed Public Text owner contribution",
+                ));
+            }
+        }
+    }
     let mut transcript = Digest256Hasher::new();
     part(
         &mut transcript,
@@ -1280,7 +1337,7 @@ fn render_current_mixed_projections(
             && parts[..3] == ["ToS", "source-witnesses", "relations"]
             && parts[4].starts_with("source-claims.")
             && parts[4].ends_with(".human-forms.json");
-        let projection = if claim_stream || claim_form {
+        let mut projection = if claim_stream || claim_form {
             if claim_context.is_none() {
                 claim_context = Some(current_claim_context(epoch, worker, deadline, cancelled)?);
             }
@@ -1350,6 +1407,42 @@ fn render_current_mixed_projections(
             )
             .map_err(source_error)?
         };
+        if let Some(owner) = public_text_contributions.get(&member.path) {
+            let fingerprint = (Digest256::of_bytes(&file.raw), file.raw.len() as u64);
+            if public_text_fingerprints.get(&member.path) != Some(&fingerprint) {
+                return Err(DurableError::Corrupt(
+                    "streamed Public Text member reread differs",
+                ));
+            }
+            let mut value =
+                super::addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+                    &member.path,
+                    &projection,
+                    &Digest256::of_bytes(&file.raw).to_hex(),
+                )?;
+            let object = value.as_object_mut().ok_or(DurableError::Corrupt(
+                "streamed Public Text mixed projection object",
+            ))?;
+            let existing = object
+                .get("public_text_owner")
+                .ok_or(DurableError::Corrupt(
+                    "streamed Public Text owner field absent",
+                ))?;
+            if existing != &tos_foundation::JsonValue::Null
+                && !super::public_text_owner_contributions_match(existing, owner)?
+            {
+                return Err(DurableError::Corrupt(
+                    "streamed Public Text generic owner contribution conflicts",
+                ));
+            }
+            object.insert("public_text_owner".to_owned(), owner.clone());
+            projection = cmd::canonical(&value).map_err(source_error)?;
+            super::addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+                &member.path,
+                &projection,
+                &Digest256::of_bytes(&file.raw).to_hex(),
+            )?;
+        }
         if projection.len() > 1_048_576 {
             return Err(DurableError::Refused(
                 "streamed canonical member projection bound",
@@ -2025,6 +2118,14 @@ fn assess_held_current_source(
     CompleteStreamedMixedSourceAssessmentV1,
     super::addressed_inventory::AddressedMixedInventoryV1,
 )> {
+    let public_text_packages = super::current_public_text_packages(
+        tx,
+        domain,
+        cold.current_members,
+        max_statement_ms,
+        deadline,
+        cancelled,
+    )?;
     let (mut source_rows, mut predicate_rows) =
         admit_streamed_owner_metadata(tx, max_statement_ms, domain, limits, deadline, cancelled)?;
     if fresh_sink && (source_rows != 0 || predicate_rows != 0) {
@@ -2062,6 +2163,7 @@ fn assess_held_current_source(
             context,
             domain,
             cold,
+            public_text_packages: &public_text_packages,
         };
         let profile = crate::source_claims::prepare_agent_inventory_assessment_profile(
             &mut epoch,

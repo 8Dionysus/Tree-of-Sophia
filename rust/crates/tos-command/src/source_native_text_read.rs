@@ -8,6 +8,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 const SCHEMA: &str = "ToS/contracts/native-local-text-read.schema.json";
+pub(crate) const PG_PRIVATE_SCHEMA: &str = "ToS/contracts/native-pg-private-text-read.schema.json";
 
 /// Exact selected source identity supplied by the read-only owner session.
 /// The caller pins the pathname, root FD/inode, source vector and full revision.
@@ -24,6 +25,7 @@ pub struct LocalTextReadSelection {
     config: JsonValue,
     schema_raw: Vec<u8>,
     schema_ref: &'static str,
+    pg_selected_schema: bool,
     uid: u32,
 }
 impl LocalTextReadSelection {
@@ -44,6 +46,54 @@ impl LocalTextReadSelection {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
+        let schema_raw = crate::source_text_owner::read_absolute(
+            &source_root.join(schema_ref),
+            rustix::process::getuid().as_raw(),
+            false,
+            65_536,
+            deadline,
+            cancelled,
+        )?;
+        Self::load_selected_profile(
+            path,
+            source_root,
+            schema_ref,
+            schema_raw,
+            false,
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+    pub(crate) fn load_pg_private_profile(
+        path: &Path,
+        source_root: &Path,
+        selected_schema_raw: &[u8],
+        worker: &mut dyn CutSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        Self::load_selected_profile(
+            path,
+            source_root,
+            PG_PRIVATE_SCHEMA,
+            selected_schema_raw.to_vec(),
+            true,
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+    fn load_selected_profile(
+        path: &Path,
+        source_root: &Path,
+        schema_ref: &'static str,
+        schema_raw: Vec<u8>,
+        pg_selected_schema: bool,
+        worker: &mut dyn CutSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
         for candidate in [path, source_root] {
             let name = candidate
                 .to_str()
@@ -58,30 +108,27 @@ impl LocalTextReadSelection {
         let raw =
             crate::source_text_owner::read_absolute(path, uid, true, 262_144, deadline, cancelled)?;
         let config = cmd::parse(&raw)?;
-        let schema_raw = crate::source_text_owner::read_absolute(
-            &source_root.join(schema_ref),
-            uid,
-            false,
-            65_536,
-            deadline,
-            cancelled,
-        )?;
         let schema = cmd::parse(&schema_raw)?;
         if cmd::text(&schema, "$id")? != format!("https://tree-of-sophia.local/{schema_ref}")
-            || worker.contract_digest(schema_ref) != Some(Digest256::of_bytes(&schema_raw))
+            || worker.selected_contract_digest(schema_ref) != Some(Digest256::of_bytes(&schema_raw))
             || !worker
                 .check(
-                    "native-local-text-read-selection",
+                    if pg_selected_schema {
+                        "native-pg-private-text-read-selection"
+                    } else {
+                        "native-local-text-read-selection"
+                    },
                     &raw,
                     schema_ref,
                     deadline,
                     cancelled,
                 )
                 .map_err(|_| SourceCommandError::Denied("local text selection grammar execution"))?
-            || cmd::text(&config, "source_root")?
-                != source_root
-                    .to_str()
-                    .ok_or(SourceCommandError::Invalid("local text root UTF8"))?
+            || !pg_selected_schema
+                && cmd::text(&config, "source_root")?
+                    != source_root
+                        .to_str()
+                        .ok_or(SourceCommandError::Invalid("local text root UTF8"))?
             || cmd::integer(&config, "owner_uid")? != u64::from(uid)
         {
             return Err(SourceCommandError::Denied(
@@ -95,6 +142,20 @@ impl LocalTextReadSelection {
                     "local text duplicate binding selection",
                 ));
             }
+            if pg_selected_schema {
+                let mut packages = BTreeSet::new();
+                for package in cmd::array(row, "packages")? {
+                    let target = cmd::text(package, "target_ref")?;
+                    if !target.starts_with("ToS/")
+                        || RelativePath::parse(target).is_err()
+                        || !packages.insert(target.to_owned())
+                    {
+                        return Err(SourceCommandError::Denied(
+                            "PG private text duplicate or invalid package pin",
+                        ));
+                    }
+                }
+            }
         }
         let result = Self {
             path: path.to_owned(),
@@ -103,6 +164,7 @@ impl LocalTextReadSelection {
             config,
             schema_raw,
             schema_ref,
+            pg_selected_schema,
             uid,
         };
         result.verify(deadline, cancelled)?;
@@ -144,7 +206,8 @@ impl LocalTextReadSelection {
         let mandate_path =
             crate::source_text_owner::normalized_absolute(cmd::text(mandate, "path")?)?;
         if read(&self.path, true, 262_144)? != self.raw
-            || read(&self.source_root.join(self.schema_ref), false, 65_536)? != self.schema_raw
+            || !self.pg_selected_schema
+                && read(&self.source_root.join(self.schema_ref), false, 65_536)? != self.schema_raw
             || Digest256::of_bytes(&read(&mandate_path, false, 1_048_576)?).to_hex()
                 != cmd::text(mandate, "sha256")?
         {
@@ -180,11 +243,29 @@ impl LocalTextReadSelection {
         }
         Ok(selected)
     }
+    pub(crate) fn selected_pg_packages(
+        &self,
+        binding: &JsonValue,
+        rights: Option<&JsonValue>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<JsonValue>> {
+        if self.schema_ref != PG_PRIVATE_SCHEMA {
+            return Err(SourceCommandError::Denied(
+                "PostgreSQL private package reads require a PG profile",
+            ));
+        }
+        let selected = self.selected_binding(binding, rights, deadline, cancelled)?;
+        Ok(cmd::array(selected, "packages")?.clone())
+    }
+    pub(crate) fn config(&self) -> &JsonValue {
+        &self.config
+    }
     pub(crate) fn private_conditions(
         &self,
         selected: &JsonValue,
     ) -> SourceCommandResult<JsonValue> {
-        if self.schema_ref != PRIVATE_SCHEMA {
+        if ![PRIVATE_SCHEMA, PG_PRIVATE_SCHEMA].contains(&self.schema_ref) {
             return Err(SourceCommandError::Denied(
                 "private text requires private selection",
             ));

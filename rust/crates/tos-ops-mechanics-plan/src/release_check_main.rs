@@ -16,25 +16,22 @@ extern "C" fn cancelled(signal: i32) {
 
 struct Options {
     root: PathBuf,
-    python: String,
     phase: validation_lanes::ReleasePhase,
     limits: executor::Limits,
 }
 
 fn usage() -> &'static str {
-    "usage: tos-release-check --repo-root PATH [--python EXACT_INTERPRETER] [--phase all|checks|tests] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-release-check --repo-root PATH [--phase all|checks|tests] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
     let mut args = env::args().skip(1);
     let mut root = None;
-    let mut python = None;
     let mut phase = validation_lanes::ReleasePhase::All;
     let mut limits = executor::Limits::default();
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
-            "--python" => python = Some(args.next().ok_or("missing Python interpreter")?),
             "--phase" => {
                 phase = match args.next().ok_or("missing phase")?.as_str() {
                     "all" => validation_lanes::ReleasePhase::All,
@@ -69,10 +66,8 @@ fn options() -> Result<Options, String> {
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
-    let python = python.unwrap_or_default();
     Ok(Options {
         root: root.ok_or("--repo-root is required")?,
-        python,
         phase,
         limits,
     })
@@ -83,17 +78,11 @@ fn main() {
         eprintln!("{error}\n{}", usage());
         std::process::exit(2);
     });
-    let steps = validation_lanes::release_steps(&options.root, &options.python, options.phase)
-        .unwrap_or_else(|error| {
+    let steps =
+        validation_lanes::release_steps(&options.root, options.phase).unwrap_or_else(|error| {
             println!("[error] {error}");
             std::process::exit(2);
         });
-    // This is a dedicated single-threaded process. Python's run_step copies
-    // the host environment and setdefaults this value for every child; doing
-    // it here before any fork gives those children the same environment.
-    if env::var_os("PYTEST_DISABLE_PLUGIN_AUTOLOAD").is_none() {
-        unsafe { env::set_var("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1") };
-    }
     let _ = io::stdout().flush();
     #[cfg(target_os = "linux")]
     unsafe {

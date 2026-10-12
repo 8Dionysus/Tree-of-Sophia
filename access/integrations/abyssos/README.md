@@ -25,9 +25,10 @@ scheduled, the native source-command HTTP owner. It adds no server endpoint,
 source grant, or publication step. It requires no Python runtime.
 
 The protected schedule has the form
-`{"schema":"tos_protocol_load_schedule_v1","setup":[...],"sessions":[{"id":"s-0","operations":[...]}]}`;
-`setup` is optional for non-mutating work. Each session contains an ordered
-operation list. `--sessions 2|8|16|64|128|256` selects the stage (default 2);
+`{"schema":"tos_protocol_load_schedule_v1","setup":[...],"sessions":[{"id":"s-0","operations":[...]}],"postload":[...]}`;
+`setup` is optional for non-mutating work, and `postload` is optional outside a
+fresh PostgreSQL stage. Each session contains an ordered operation list.
+`--sessions 2|8|16|64|128|256` selects the stage (default 2);
 the harness launches each operation index as a concurrent wave across logical
 sessions. `--operation-count` caps measured operations independently and selects
 them in round order across selected sessions; a truncated conflict group is
@@ -45,10 +46,14 @@ percentage split across measured operations; the supplied percentages must sum
 to 100. Selection preserves each session's operation order, so the runner
 rejects a mix that cannot be reached as per-session prefixes instead of
 reordering or skipping dependencies. Without this option, the schedule defines
-the mix. `--operations-per-second` paces combined dispatch across channels.
-`--load-window-seconds` closes new dispatch after the measured load window and
-lets already-started work finish. `load_window_elapsed_seconds` includes that
-drain time, and the reported load throughput uses that full phase duration.
+the mix. `--operations-per-second` paces combined dispatch across channels after
+the operation acquires its channel and source-read in-flight permits; it cannot
+reserve a rate slot while queued behind capacity. `--load-window-seconds`
+closes dispatch after the measured load window and lets already-started work
+finish. Operations still waiting for capacity or a rate slot when the window
+closes are recorded as not started. Operation latency starts at dispatch, while
+`load_window_elapsed_seconds` includes drain time and reported load throughput
+uses that full phase duration.
 `--deadline-seconds` is a separate whole-run wall deadline covering setup, load
 and drain, cleanup, and report writing.
 At most 32 physical MCP sessions serve up to 256 logical sessions, with each
@@ -58,9 +63,12 @@ are `mcp` for an ordinary 2025-11-25 Streamable HTTP JSON-RPC request,
 `sdk` for an explicit absolute native source-command process, or `projection`
 for the selected native source-projection CLI. Projection operations record the
 owner's durable `queue-age` result, including sequence lag and explicit status
-for historic rows. SDK receives one bounded JSON line on stdin and returns response bytes on stdout; stderr is
-discarded. The input writer and bounded output drain run concurrently so a
-full-duplex exchange cannot deadlock on full pipes. A deadline or output-cap
+for historic rows. SDK receives one bounded JSON line on stdin and returns
+response bytes on stdout. The harness drains stdout and stderr concurrently;
+stderr is capped at 4096 bytes and only its declared prefix is used as an
+oracle. Reports keep diagnostic byte counts and hashes without copying
+diagnostic text. The input writer and bounded output drains run concurrently so
+a full-duplex exchange cannot deadlock on full pipes. A deadline or output-cap
 breach terminates the owned process group and records the operation as an error.
 
 For a conflict race, set the same `conflict_group` on at least two owner HTTP
@@ -83,15 +91,12 @@ digest, `bind_expected_configuration_from_owner` refreshes only that exact
 precondition from the selected native owner's read-only `describe` response
 before the measured waves; this creates no authority or admission.
 
-For native PostgreSQL source load stages, put ordinary `source.bootstrap`,
-`prepare-create`/`prepare-revise`, and their `source.create`/`record.revise`
-commit requests in the serial `setup` array. An ordinary CMD-local
-`rights.revoke` can also run through `source-commands`; its setup `describe`
-operation uses `bind_expected_configuration_from_owner: true`, then the revoke
-uses `bind_expected_from` to carry the exact owner digest and current rights
-version from that earlier describe. The revoke changes only CMD-local
-current-use rights and does not grant ToS rights or publication. The first
-setup operation must be
+For fresh native PostgreSQL source load stages, put ordinary
+`source.bootstrap`, `prepare-create`/`prepare-revise`, and their
+`source.create`/`record.revise` commit requests in the serial `setup` array.
+Keep `rights.revoke` out of setup and measured sessions so measured writes and
+their replay complete before current-use rights are revoked. The first setup
+operation must be
 `source.bootstrap`, with an initial job fence and absent CMD.2 schema. The
 baseline must contain a private empty owner store, and every SDK invocation in
 that run must bind to that same store through its source selection or the
@@ -152,12 +157,64 @@ Only one interrupting projection operation is allowed per schedule, with no
 other projection process in its wave, so another worker cannot advance the
 cursor and stand in for the interrupted process.
 
+The optional serial `postload` list runs after measured session workers and the
+quiescent navigation drain. Its checks do not enter load throughput, latency
+percentiles, operation-count limits or channel-mix percentages; they do count
+against the whole-run deadline and must pass for a zero exit. A fresh PostgreSQL
+stage requires an exact SDK `source read`, one exact replay of a successful
+measured SDK mutation, and this rights sequence, in order:
+
+1. A native rights `describe` with `bind_expected_configuration_from_owner:
+   true` and `expected_rights_allowed: true`; the runner binds the selected
+   owner configuration and structurally checks the current rights state.
+2. `rights.revoke` with `bind_expected_from` set to that describe's label and
+   both `expected_configuration` and `expected_rights_version` set to `null`.
+   The runner binds both values from that successful response and verifies the
+   native revoke receipt, command ID, rights-version increment, revoked state,
+   and non-admission scope.
+3. A second rights `describe` with the same owner-configuration binding and
+   `expected_rights_allowed: false`.
+4. A read through the selected `source-projection` CLI using `search`,
+   `search-text`, or `exact-source`, with expected status `2` and
+   `expected_stderr_prefix` set to `source-projection refused: current rights
+   revoked`. This proves the stale projection read gate refuses the revoked
+   state; the runner does not issue a queue-age probe after this refusal.
+
+The exact source read and mutation replay run before the first rights describe
+and revoke, so they establish source integrity and idempotency while rights are
+still enabled. This route tests the CMD-local current-use bit and the projection
+reader that enforces it. It does not claim that ordinary `source.read` is denied
+by this separate projection-only revocation. The replay sets
+`idempotency_replay_of` to the successful mutation's `command_id` and repeats
+its request, invocation, setup binding and response oracle. The runner executes
+that replay only if the original mutation completed successfully; it does not
+count the replay as load. No postload operation admits raw SQL or an alternate
+owner entry.
+
+Postload entries emit separate `postload_check` records with the check kind,
+expected and actual rights state when applicable, and exact response evidence.
+The runner refuses to start the fixture `rights.revoke` if any preceding
+postload verification failed or if the required exact-source read, PostgreSQL
+source integrity read, successful mutation replay, or rights-enabled describe
+did not pass. The revoke record is reported as not started; no fixture rights
+state is changed in that case. Its receipt's `request_sha256` must equal the
+`SourceCommandInputV1` canonical record digest of the exact bound request. The
+projection denial is reported as a passed refusal while remaining outside the
+count of successful commands.
+`load_resource_delta` brackets only measured session work, while the existing
+`resource_delta` remains the full process interval including setup, projection
+drain and postload checks. Both use the launch unit's cgroup; record PostgreSQL
+service I/O and database storage separately when the database runs outside that
+unit.
+
 For a small two-session smoke, use
 `access/integrations/abyssos/fixtures/load-readiness-two-session.json`. It is a
 finite exact-oracle schedule for one MCP `ping` in each session, using the
 native handler's deterministic `{"result":{}}` response. It needs no content
 specific to the selected model or binding and does not carry a source-writing
-request. The source fixture must remain on the selected reviewed checkout.
+request. This checks MCP transport and session setup only; it is not evidence for
+the new PostgreSQL source/navigation/write path. The source fixture must remain
+on the selected reviewed checkout.
 
 For a runnable source-read workload and synthetic owner race, the
 `export_protected_native_load_readiness_fixture_when_selected` conformance test

@@ -1516,6 +1516,15 @@ impl OwnerTextContext {
         &self.configuration_path
     }
 
+    pub(crate) fn configuration_sha256(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<String> {
+        self.verify_context_base(deadline, cancelled)?;
+        Ok(Digest256::of_bytes(&self.configuration_raw).to_hex())
+    }
+
     pub(crate) fn private_root(&self) -> &Path {
         &self.private_root
     }

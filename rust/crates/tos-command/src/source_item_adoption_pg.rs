@@ -42,6 +42,7 @@ const ITEM_CLOSURE_MAX_MEMBERS: usize = 512;
 pub(crate) struct PgItemAdoptionSelection {
     owner: super::ItemOwner,
     closure: PgItemCurrentClosure,
+    proposal: bool,
 }
 
 pub(crate) fn select_pg_item_adoption_owner(
@@ -51,9 +52,38 @@ pub(crate) fn select_pg_item_adoption_owner(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PgItemAdoptionSelection> {
-    let owner = super::ItemOwner::select(fs, context, deadline, cancelled)?;
+    select_pg_item_adoption(fs, context, session, false, deadline, cancelled)
+}
+
+pub(crate) fn select_pg_item_adoption_proposal(
+    fs: &CreationFilesystem,
+    context: &CommandContext,
+    session: &mut SourceRevisionReadSession<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PgItemAdoptionSelection> {
+    select_pg_item_adoption(fs, context, session, true, deadline, cancelled)
+}
+
+fn select_pg_item_adoption(
+    fs: &CreationFilesystem,
+    context: &CommandContext,
+    session: &mut SourceRevisionReadSession<'_>,
+    proposal: bool,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PgItemAdoptionSelection> {
+    let owner = if proposal {
+        super::ItemOwner::select_proposal(fs, context, deadline, cancelled)?
+    } else {
+        super::ItemOwner::select(fs, context, deadline, cancelled)?
+    };
     let closure = current_closure(session, &owner, deadline, cancelled)?;
-    Ok(PgItemAdoptionSelection { owner, closure })
+    Ok(PgItemAdoptionSelection {
+        owner,
+        closure,
+        proposal,
+    })
 }
 
 pub(crate) fn pg_item_adoption_transaction_id(
@@ -1769,6 +1799,7 @@ pub(crate) struct PgItemAdoptionOwnerPlan {
     pub(crate) stage: serde_json::Value,
     pub(crate) payload_identity: serde_json::Value,
     pub(crate) publication_control: Option<(Option<Digest256>, Vec<u8>)>,
+    pub(crate) prepared_request: Option<JsonValue>,
 }
 
 pub(crate) fn verify_pg_item_adoption_owner(
@@ -1841,6 +1872,7 @@ pub(crate) fn prepare_pg_item_adoption(
     let PgItemAdoptionSelection {
         mut owner,
         mut closure,
+        proposal,
     } = selection;
     let snapshot =
         PublicationSnapshot::select_from_input(input.source_input(), limits.deadline, cancelled)?;
@@ -1850,8 +1882,37 @@ pub(crate) fn prepare_pg_item_adoption(
         .ok_or(SourceCommandError::Conflict("PG Item Edition absent"))?;
     let edition = cmd::parse(edition_raw)?;
     let revision = crate::source_revisions::revision(&closure.before)?;
-    if context.base_revision != input.input_identity().bootstrap_revision
-        || cmd::text(&owner.request, "expected_revision")? != revision
+    if context.base_revision != input.input_identity().bootstrap_revision {
+        return Err(SourceCommandError::Conflict(
+            "PG Item bootstrap revision changed",
+        ));
+    }
+    if proposal {
+        let configuration = super::serde_value(&owner.configuration)?;
+        let observation = crate::source_item_deposit::observe(
+            &configuration,
+            fs.uid,
+            limits.deadline,
+            cancelled,
+            &mut || {
+                super::current_grant(
+                    fs,
+                    context,
+                    &owner.configuration,
+                    limits.deadline,
+                    cancelled,
+                )?;
+                snapshot.verify_from_input(input.source_input(), limits.deadline, cancelled)
+            },
+        )?;
+        owner.request = super::prepare_request(
+            &owner,
+            &closure.before,
+            &snapshot,
+            &observation,
+            &context.recorded_at,
+        )?;
+    } else if cmd::text(&owner.request, "expected_revision")? != revision
         || !cmd::same(
             cmd::field(&owner.request, "expected_source")?,
             &cmd::reference(&edition, "record_id", "record_version")?,
@@ -1859,7 +1920,7 @@ pub(crate) fn prepare_pg_item_adoption(
         || cmd::field(&owner.request, "expected_publication")?.as_str() != snapshot.token.as_deref()
     {
         return Err(SourceCommandError::Conflict(
-            "PG Item expected source, publication, or bootstrap revision changed",
+            "PG Item expected source or publication changed",
         ));
     }
     verify_current_topology(&mut closure, input, worker, limits, cancelled)?;
@@ -1873,9 +1934,14 @@ pub(crate) fn prepare_pg_item_adoption(
         cancelled,
     )?;
     let dependencies = super::dependency_bindings(&catalog, &grammar.grammar_digests, context)?;
-    if cmd::record_digest(&dependencies)?.to_prefixed()
-        != cmd::text(&owner.request, "expected_dependencies")?
-    {
+    let dependency_digest = cmd::record_digest(&dependencies)?.to_prefixed();
+    if proposal {
+        cmd::set(
+            &mut owner.request,
+            "expected_dependencies",
+            cmd::string(&dependency_digest),
+        )?;
+    } else if dependency_digest != cmd::text(&owner.request, "expected_dependencies")? {
         return Err(SourceCommandError::Conflict(
             "PG Item current preparation dependencies changed",
         ));
@@ -1898,6 +1964,66 @@ pub(crate) fn prepare_pg_item_adoption(
         ("retained_transactions", cmd::object(Vec::new())),
     ]);
     super::work_dependencies_current(fs, &implementation_only, limits.deadline, cancelled)?;
+
+    if proposal {
+        worker
+            .finish(limits.deadline, cancelled)
+            .map_err(super::item_error)?;
+        super::current_grant(
+            fs,
+            context,
+            &owner.configuration,
+            limits.deadline,
+            cancelled,
+        )?;
+        snapshot.verify_from_input(input.source_input(), limits.deadline, cancelled)?;
+        let response = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_native_pg_item_adoption_preparation_v1"),
+            ),
+            ("operation", cmd::string("prepare-create")),
+            (
+                "owner_configuration",
+                cmd::string(&owner.configuration_digest),
+            ),
+            (
+                "edition_source_path",
+                cmd::string(owner.edition_path.as_str()),
+            ),
+            ("item_source_path", cmd::string(owner.item_path.as_str())),
+            (
+                "expected_source",
+                cmd::field(&owner.request, "expected_source")?.clone(),
+            ),
+            (
+                "expected_revision",
+                cmd::field(&owner.request, "expected_revision")?.clone(),
+            ),
+            (
+                "expected_dependencies",
+                cmd::field(&owner.request, "expected_dependencies")?.clone(),
+            ),
+            (
+                "expected_publication",
+                cmd::field(&owner.request, "expected_publication")?.clone(),
+            ),
+            ("prepared_request", owner.request.clone()),
+            ("grants_admission", JsonValue::Bool(false)),
+            ("content_disclosure", cmd::string("withheld")),
+        ]);
+        return Ok(PgItemAdoptionOwnerPlan {
+            transaction_id: String::new(),
+            response,
+            outputs: BTreeMap::new(),
+            item_claim_owner: JsonValue::Null,
+            dependency_bindings: dependencies,
+            stage: serde_json::Value::Null,
+            payload_identity: serde_json::Value::Null,
+            publication_control: None,
+            prepared_request: Some(owner.request),
+        });
+    }
 
     let configuration = super::serde_value(&owner.configuration)?;
     let transaction_id = owner.transaction_id()?;
@@ -1957,6 +2083,7 @@ pub(crate) fn prepare_pg_item_adoption(
             stage,
             payload_identity,
             publication_control: None,
+            prepared_request: None,
         });
     }
 
@@ -2189,6 +2316,7 @@ pub(crate) fn prepare_pg_item_adoption(
         stage,
         payload_identity,
         publication_control,
+        prepared_request: None,
     })
 }
 

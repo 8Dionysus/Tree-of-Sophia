@@ -72,6 +72,61 @@ pub struct NativeDerivedTextLayerPreview {
     pub expected_dependencies: String,
     pub source_path: String,
 }
+
+pub(crate) fn prepare_pg_derived_text_preview(
+    context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: crate::source_text_owner::OwnerTextDerivedSelection,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    exclude: Option<&Path>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeDerivedTextLayerPreview> {
+    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    let owner_verification_deadline = deadline.min(Instant::now() + Duration::from_secs(30));
+    active(deadline, cancelled)?;
+    if !context.has_pg_selection()? {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL derived Text preparation lacks a selected source inventory",
+        ));
+    }
+    let mut prepared = prepare_selected(
+        context,
+        publication,
+        grant,
+        software,
+        components,
+        worker,
+        None,
+        exclude,
+        owner_verification_deadline,
+        deadline,
+        cancelled,
+    )?;
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_current(software, components, exclude, deadline, cancelled)?;
+    let current_grant = crate::source_text_owner::OwnerTextDerivedSelection::select(
+        &prepared.context,
+        &prepared.grant.path,
+        deadline,
+        cancelled,
+    )?;
+    if current_grant.raw != prepared.grant.raw
+        || current_grant.config != prepared.grant.config
+        || current_grant.operation != prepared.grant.operation
+    {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL derived Text grant changed during preparation",
+        ));
+    }
+    Ok(NativeDerivedTextLayerPreview {
+        owner_configuration: prepared.owner_configuration,
+        expected_dependencies: prepared.dependencies,
+        source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
+    })
+}
 pub struct NativeDerivedTextLayerResult {
     pub receipt: JsonValue,
     pub replayed: bool,

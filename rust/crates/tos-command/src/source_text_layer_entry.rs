@@ -52,6 +52,98 @@ pub struct NativeInitialTextLayerPreview {
     pub owner_configuration: String,
     pub expected_dependencies: String,
     pub source_path: String,
+    /// Exact layer-only binding for a later, separately selected TextUnit
+    /// operation. It is derived from the prepared layer bytes and the exact
+    /// source records selected by this owner route; it grants no reading.
+    pub native_binding: JsonValue,
+}
+
+fn prepared_native_binding(prepared: &PreparedInitial) -> SourceCommandResult<JsonValue> {
+    let raw = prepared
+        .output
+        .files
+        .get("source-text-layer.v1.json")
+        .ok_or(SourceCommandError::Conflict(
+            "PostgreSQL TextLayer prepared record absent",
+        ))?;
+    let source_path = cmd::text(&prepared.grant.config, "source_path")?;
+    let layer = cmd::object(vec![
+        ("record_ref", cmd::string(source_path)),
+        (
+            "record_sha256",
+            cmd::string(&Digest256::of_bytes(raw).to_hex()),
+        ),
+        (
+            "layer_id",
+            cmd::field(&prepared.output.layer, "layer_id")?.clone(),
+        ),
+        (
+            "layer_version",
+            cmd::field(&prepared.output.layer, "layer_version")?.clone(),
+        ),
+    ]);
+    Ok(cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_native_text_layer_binding_v1"),
+        ),
+        ("text_layer", layer),
+        (
+            "source_record_refs",
+            cmd::field(&prepared.grant.config, "source_record_refs")?.clone(),
+        ),
+    ]))
+}
+
+pub(crate) fn prepare_pg_initial_text_preview(
+    context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: OwnerTextInitialLayerSelection,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    exclude: Option<&Path>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeInitialTextLayerPreview> {
+    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    active(deadline, cancelled)?;
+    if !context.has_pg_selection()? {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL Text preparation lacks a selected source inventory",
+        ));
+    }
+    let mut prepared = prepare_selected(
+        context,
+        publication,
+        grant,
+        software,
+        components,
+        worker,
+        exclude,
+        deadline,
+        cancelled,
+    )?;
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_current(software, components, exclude, deadline, cancelled)?;
+    let current_grant = OwnerTextInitialLayerSelection::select(
+        &prepared.context,
+        &prepared.grant.path,
+        deadline,
+        cancelled,
+    )?;
+    if current_grant.raw != prepared.grant.raw || current_grant.config != prepared.grant.config {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL initial Text grant changed during preparation",
+        ));
+    }
+    let native_binding = prepared_native_binding(&prepared)?;
+    Ok(NativeInitialTextLayerPreview {
+        owner_configuration: prepared.owner_configuration,
+        expected_dependencies: prepared.dependencies,
+        source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
+        native_binding,
+    })
 }
 
 pub struct NativeInitialTextLayerResult {
@@ -503,10 +595,12 @@ pub fn prepare_initial_text_layer_from_captures(
     )?;
     finish_creation_worker(worker, deadline, cancelled)?;
     prepared.verify_current(software, components, None, deadline, cancelled)?;
+    let native_binding = prepared_native_binding(&prepared)?;
     Ok(NativeInitialTextLayerPreview {
         owner_configuration: prepared.owner_configuration,
         expected_dependencies: prepared.dependencies,
         source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
+        native_binding,
     })
 }
 

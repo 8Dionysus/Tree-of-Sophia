@@ -1842,6 +1842,387 @@ fn projection_root(projections: &ProjectionRows) -> Digest256 {
     hash.finalize()
 }
 
+/// A complete Public Text package whose owner receipts came from one committed
+/// typed source-revision attempt. Filenames alone never select this family.
+#[derive(Clone, Debug)]
+pub(super) struct CurrentPublicTextPackageV1 {
+    pub(super) package_home: String,
+    pub(super) committed_owners: BTreeMap<String, tos_foundation::JsonValue>,
+}
+
+pub(super) fn public_text_owner_contributions_match(
+    left: &tos_foundation::JsonValue,
+    right: &tos_foundation::JsonValue,
+) -> DurableResult<bool> {
+    Ok(cmd::canonical(left).map_err(source_error)?
+        == cmd::canonical(right).map_err(source_error)?)
+}
+
+/// Recover the exact typed Public Text owner receipts for current members.
+/// The source-read family tag, committed write set, current rows, and attempt
+/// projections must all describe the same 12-member package.
+pub(super) fn current_public_text_packages(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    current_count: u64,
+    max_statement_ms: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Vec<CurrentPublicTextPackageV1>> {
+    const FAMILY_PREFIX: &[u8] = b"tos-pg-public-native-text-v1:";
+    const MAX_RETAINED_RECEIPT_BYTES: u64 = 67_108_864;
+
+    source_cohort_streamed::set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    let candidates = tx.query(
+        "SELECT DISTINCT a.prepare_id,octet_length(a.source_reads)
+         FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id)
+         WHERE c.domain=$1 AND a.source_reads IS NOT NULL
+           AND position($2::bytea in a.source_reads)>0
+         ORDER BY a.prepare_id LIMIT $3",
+        &[&domain, &FAMILY_PREFIX, &as_i64(current_count)?],
+    )?;
+    if candidates.len() as u64 > current_count {
+        return Err(DurableError::Corrupt(
+            "Public Text current attempt candidate count differs",
+        ));
+    }
+    let mut retained_bytes = 0u64;
+    for candidate in &candidates {
+        active(deadline, cancelled)?;
+        let length = candidate
+            .get::<_, Option<i32>>(1)
+            .filter(|length| *length > 0 && *length as usize <= 1_048_576)
+            .ok_or(DurableError::Refused(
+                "Public Text retained source reads exceed row bound",
+            ))? as u64;
+        retained_bytes = retained_bytes
+            .checked_add(length)
+            .filter(|bytes| *bytes <= MAX_RETAINED_RECEIPT_BYTES)
+            .ok_or(DurableError::Refused(
+                "Public Text retained owner receipts exceed package bound",
+            ))?;
+    }
+
+    let mut packages = Vec::new();
+    let mut seen_homes = BTreeSet::new();
+    for candidate in candidates {
+        active(deadline, cancelled)?;
+        let prepare_id: Vec<u8> = candidate.get(0);
+        source_cohort_streamed::set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+        let attempt = tx.query_one(
+            "SELECT state,commit_seq,source_reads
+             FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&domain, &prepare_id],
+        )?;
+        if attempt.get::<_, String>("state") != "committed" {
+            return Err(DurableError::Corrupt(
+                "Public Text current source attempt is not committed",
+            ));
+        }
+        let reads_raw =
+            attempt
+                .get::<_, Option<Vec<u8>>>("source_reads")
+                .ok_or(DurableError::Corrupt(
+                    "Public Text committed source reads are absent",
+                ))?;
+        let reads = decode_reads(&reads_raw)?;
+        let Some(binding) = reads.revision.as_ref() else {
+            continue;
+        };
+        if !binding
+            .family_tag
+            .starts_with("tos-pg-public-native-text-v1:")
+        {
+            continue;
+        }
+        if !binding
+            .family_tag
+            .strip_prefix("tos-pg-public-native-text-v1:")
+            .is_some_and(|suffix| !suffix.is_empty())
+        {
+            return Err(DurableError::Corrupt(
+                "Public Text source family marker is malformed",
+            ));
+        }
+        let commit_seq = as_u64(attempt.get::<_, Option<i64>>("commit_seq").ok_or(
+            DurableError::Corrupt("Public Text committed sequence is absent"),
+        )?)?;
+        if binding.source_head_sequence.checked_add(1) != Some(commit_seq) {
+            return Err(DurableError::Corrupt(
+                "Public Text source attempt head binding differs",
+            ));
+        }
+
+        source_cohort_streamed::set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+        let projection_length: Option<i32> = tx
+            .query_one(
+                "SELECT octet_length(source_projections) FROM cmd2_attempt
+                 WHERE domain=$1 AND prepare_id=$2",
+                &[&domain, &prepare_id],
+            )?
+            .get(0);
+        let projection_length = projection_length
+            .filter(|length| *length > 0 && *length as usize <= 1_048_576)
+            .ok_or(DurableError::Refused(
+                "Public Text retained owner projection exceeds row bound",
+            ))? as u64;
+        retained_bytes = retained_bytes
+            .checked_add(projection_length)
+            .filter(|bytes| *bytes <= MAX_RETAINED_RECEIPT_BYTES)
+            .ok_or(DurableError::Refused(
+                "Public Text retained owner receipts exceed package bound",
+            ))?;
+
+        let member_row_limit = (crate::source_public_text_entry::FILES.len() + 1) as i64;
+        source_cohort_streamed::set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+        let member_rows = tx.query(
+            "SELECT m.subject,m.proposed_revision,m.content_digest,m.content_length,
+                    c.prepare_id AS current_prepare_id,c.revision AS current_revision,
+                    c.commit_seq AS current_commit_seq,c.content_digest AS current_digest,
+                    c.content_length AS current_length
+             FROM cmd2_member m LEFT JOIN cmd2_current c
+               ON c.domain=m.domain AND c.subject=m.subject
+             WHERE m.domain=$1 AND m.prepare_id=$2
+             ORDER BY m.subject COLLATE \"C\" LIMIT $3",
+            &[&domain, &prepare_id, &member_row_limit],
+        )?;
+        if member_rows.len() != crate::source_public_text_entry::FILES.len() {
+            return Err(DurableError::Corrupt(
+                "Public Text committed member closure differs",
+            ));
+        }
+        let packet_paths = member_rows
+            .iter()
+            .map(|row| row.get::<_, String>("subject"))
+            .filter(|path| path.ends_with("/source-text-unit.v1.json"))
+            .collect::<Vec<_>>();
+        if packet_paths.len() != 1 {
+            return Err(DurableError::Corrupt(
+                "Public Text committed package packet path differs",
+            ));
+        }
+        let package_home =
+            crate::source_public_text_entry::public_text_package_home(&packet_paths[0])
+                .map_err(source_error)?;
+        let expected_paths = crate::source_public_text_entry::FILES
+            .iter()
+            .map(|name| format!("{package_home}/{name}"))
+            .collect::<BTreeSet<_>>();
+        if !seen_homes.insert(package_home.clone())
+            || member_rows
+                .iter()
+                .map(|row| row.get::<_, String>("subject"))
+                .collect::<BTreeSet<_>>()
+                != expected_paths
+        {
+            return Err(DurableError::Corrupt(
+                "Public Text committed package paths are incomplete or duplicated",
+            ));
+        }
+        for row in &member_rows {
+            let subject: String = row.get("subject");
+            let proposed_revision = as_u64(row.get("proposed_revision"))?;
+            let member_digest: String = row.get("content_digest");
+            let member_length = as_u64(row.get("content_length"))?;
+            if row
+                .get::<_, Option<Vec<u8>>>("current_prepare_id")
+                .as_deref()
+                != Some(prepare_id.as_slice())
+                || row.get::<_, Option<i64>>("current_revision") != Some(as_i64(proposed_revision)?)
+                || row.get::<_, Option<i64>>("current_commit_seq") != Some(as_i64(commit_seq)?)
+                || row.get::<_, Option<String>>("current_digest").as_deref()
+                    != Some(member_digest.as_str())
+                || row.get::<_, Option<i64>>("current_length") != Some(as_i64(member_length)?)
+            {
+                return Err(DurableError::Corrupt(
+                    "Public Text committed members are not the complete current revision",
+                ));
+            }
+            if !expected_paths.contains(&subject) {
+                return Err(DurableError::Corrupt(
+                    "Public Text committed member path differs",
+                ));
+            }
+        }
+        source_cohort_streamed::set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+        let current_count_for_attempt: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM cmd2_current WHERE domain=$1 AND prepare_id=$2",
+                &[&domain, &prepare_id],
+            )?
+            .get(0);
+        if current_count_for_attempt != member_rows.len() as i64 {
+            return Err(DurableError::Corrupt(
+                "Public Text current member count differs from committed write set",
+            ));
+        }
+
+        source_cohort_streamed::set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+        let projections_raw = tx
+            .query_one(
+                "SELECT source_projections FROM cmd2_attempt
+                 WHERE domain=$1 AND prepare_id=$2",
+                &[&domain, &prepare_id],
+            )?
+            .get::<_, Option<Vec<u8>>>(0)
+            .ok_or(DurableError::Corrupt(
+                "Public Text committed owner projections are absent",
+            ))?;
+        if projections_raw.len() != projection_length as usize {
+            return Err(DurableError::Corrupt(
+                "Public Text retained owner projection length differs",
+            ));
+        }
+        let projections: ProjectionRows = serde_json::from_slice(&projections_raw)
+            .map_err(|_| DurableError::Corrupt("Public Text committed owner projections"))?;
+        if projections_bytes(&projections)? != projections_raw
+            || projections.keys().cloned().collect::<BTreeSet<_>>() != expected_paths
+        {
+            return Err(DurableError::Corrupt(
+                "Public Text committed projection closure differs",
+            ));
+        }
+        let member_digests = member_rows
+            .iter()
+            .map(|row| {
+                (
+                    row.get::<_, String>("subject"),
+                    row.get::<_, String>("content_digest"),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let mut committed_owners = BTreeMap::new();
+        for (path, raw) in projections {
+            let content_digest = member_digests.get(&path).ok_or(DurableError::Corrupt(
+                "Public Text projection member absent",
+            ))?;
+            let projection = addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+                &path,
+                &raw,
+                content_digest,
+            )?;
+            let owner = cmd::field(&projection, "public_text_owner").map_err(source_error)?;
+            if owner == &tos_foundation::JsonValue::Null
+                || committed_owners.insert(path, owner.clone()).is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "Public Text committed typed owner projection is absent or duplicated",
+                ));
+            }
+        }
+        packages.push(CurrentPublicTextPackageV1 {
+            package_home,
+            committed_owners,
+        });
+    }
+    Ok(packages)
+}
+
+/// Regenerate typed Public Text contributions from the exact current source
+/// bodies, then overlay only those proved paths on the generic inventory.
+pub(super) fn regenerate_current_public_text_contributions(
+    files: &BTreeMap<String, Vec<u8>>,
+    packages: &[CurrentPublicTextPackageV1],
+) -> DurableResult<BTreeMap<String, tos_foundation::JsonValue>> {
+    let mut contributions = BTreeMap::new();
+    let mut package_homes = BTreeSet::new();
+    for package in packages {
+        let expected_paths = crate::source_public_text_entry::FILES
+            .iter()
+            .map(|name| format!("{}/{name}", package.package_home))
+            .collect::<BTreeSet<_>>();
+        if !package_homes.insert(package.package_home.clone())
+            || package
+                .committed_owners
+                .keys()
+                .cloned()
+                .collect::<BTreeSet<_>>()
+                != expected_paths
+        {
+            return Err(DurableError::Corrupt(
+                "Public Text typed receipt paths differ",
+            ));
+        }
+        let mut package_files = BTreeMap::new();
+        for name in crate::source_public_text_entry::FILES {
+            let path = format!("{}/{name}", package.package_home);
+            let raw = files.get(&path).ok_or(DurableError::Corrupt(
+                "Public Text current package member absent",
+            ))?;
+            package_files.insert(name.to_owned(), raw.clone());
+        }
+        for name in crate::source_public_text_entry::FILES {
+            let path = format!("{}/{name}", package.package_home);
+            let owner = crate::source_public_text_entry::public_text_inventory_projection(
+                &package.package_home,
+                &path,
+                &package_files,
+            )
+            .map_err(source_error)?;
+            let committed_owner =
+                package
+                    .committed_owners
+                    .get(&path)
+                    .ok_or(DurableError::Corrupt(
+                        "Public Text committed owner receipt absent",
+                    ))?;
+            if !public_text_owner_contributions_match(committed_owner, &owner)? {
+                return Err(DurableError::Corrupt(
+                    "Public Text committed owner receipt differs from current bytes",
+                ));
+            }
+            if contributions.insert(path.clone(), owner).is_some() {
+                return Err(DurableError::Corrupt(
+                    "duplicate typed Public Text current package path",
+                ));
+            }
+        }
+    }
+    Ok(contributions)
+}
+
+pub(super) fn overlay_current_public_text_contributions(
+    files: &BTreeMap<String, Vec<u8>>,
+    packages: &[CurrentPublicTextPackageV1],
+    projections: &mut ProjectionRows,
+) -> DurableResult<()> {
+    for (path, owner) in regenerate_current_public_text_contributions(files, packages)? {
+        let source = files
+            .get(&path)
+            .ok_or(DurableError::Corrupt("Public Text current member absent"))?;
+        let raw = projections.get(&path).ok_or(DurableError::Corrupt(
+            "Public Text generic projection absent",
+        ))?;
+        let mut projection = addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+            &path,
+            raw,
+            &Digest256::of_bytes(source).to_hex(),
+        )?;
+        let object = projection
+            .as_object_mut()
+            .ok_or(DurableError::Corrupt("Public Text mixed projection object"))?;
+        let existing = object
+            .get("public_text_owner")
+            .ok_or(DurableError::Corrupt("Public Text owner field absent"))?;
+        if existing != &tos_foundation::JsonValue::Null
+            && !public_text_owner_contributions_match(existing, &owner)?
+        {
+            return Err(DurableError::Corrupt(
+                "Public Text generic owner contribution conflicts",
+            ));
+        }
+        object.insert("public_text_owner".to_owned(), owner);
+        let raw = cmd::canonical(&projection).map_err(source_error)?;
+        addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+            &path,
+            &raw,
+            &Digest256::of_bytes(source).to_hex(),
+        )?;
+        projections.insert(path, raw);
+    }
+    Ok(())
+}
+
 fn projections_bytes(projections: &ProjectionRows) -> DurableResult<Vec<u8>> {
     serde_json::to_vec(projections)
         .map_err(|_| DurableError::Invalid("source projections encoding"))
@@ -10080,6 +10461,16 @@ impl DurablePgCoordinator {
         )?;
         let rows =
             cold_source_current_rows(&mut metadata_tx, domain, counts[0], deadline, cancelled)?;
+        let public_text_packages = current_public_text_packages(
+            &mut metadata_tx,
+            domain,
+            current_count,
+            streamed
+                .map(|(_, profile)| profile.max_sql_statement_ms)
+                .unwrap_or(60_000),
+            deadline,
+            cancelled,
+        )?;
         let mut actual = IndexRows::new();
         let mut indexed_projections = ProjectionRows::new();
         let mut indexed_projection_count = 0u64;
@@ -10290,7 +10681,15 @@ impl DurablePgCoordinator {
         }
         ctx.check().map_err(source_error)?;
         let indexes = index_rows(&ctx, worker, deadline, cancelled)?;
-        let projections = optional_agent_projections(&ctx, worker, deadline, cancelled)?;
+        let mut projections = optional_agent_projections(&ctx, worker, deadline, cancelled)?;
+        if !public_text_packages.is_empty() {
+            let Some(projections) = projections.as_mut() else {
+                return Err(DurableError::Corrupt(
+                    "Public Text current projection inventory unavailable",
+                ));
+            };
+            overlay_current_public_text_contributions(&files, &public_text_packages, projections)?;
+        }
         // Native bounded commands invalidate this derived root atomically with
         // their source writes. This explicit, exhaustive cold route may rebuild
         // those projections after verifying all current source and owner rows.
@@ -12665,4 +13064,193 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
         ));
     }
     Ok(reads)
+}
+
+#[cfg(test)]
+mod public_text_rederivation_tests {
+    use super::*;
+
+    fn json_bytes(value: &serde_json::Value) -> Vec<u8> {
+        serde_json::to_vec(value).unwrap()
+    }
+
+    fn package_fixture() -> (String, BTreeMap<String, Vec<u8>>) {
+        let home = "ToS/source-witnesses/works/tos.test".to_owned();
+        let mut named = crate::source_public_text_entry::FILES
+            .iter()
+            .map(|name| ((*name).to_owned(), b"{}".to_vec()))
+            .collect::<BTreeMap<_, _>>();
+        named.insert(
+            "source-text-layer.v1.json".into(),
+            json_bytes(&serde_json::json!({
+                "schema_version":"tos_source_text_layer_v1",
+                "layer_id":"tos.textlayer.test"
+            })),
+        );
+        named.insert(
+            "source-text-unit.v1.json".into(),
+            json_bytes(&serde_json::json!({
+                "schema_version":"tos_source_text_unit_packet_v1",
+                "packet_id":"tos.textunit.test"
+            })),
+        );
+        named.insert(
+            "native-bindings.json".into(),
+            json_bytes(&serde_json::json!({
+                "schema_version":"tos_native_unit_bindings_v1",
+                "bindings":[{"id":"tos.binding.test"}]
+            })),
+        );
+        named.insert(
+            "source-create-receipt.json".into(),
+            json_bytes(&serde_json::json!({
+                "schema_version":"tos_local_source_create_receipt_v1",
+                "source_path":format!("{home}/source-text-unit.v1.json"),
+                "grants_admission":false
+            })),
+        );
+        let files = named
+            .into_iter()
+            .map(|(name, raw)| (format!("{home}/{name}"), raw))
+            .collect();
+        (home, files)
+    }
+
+    fn generic_projection(path: &str, raw: &[u8]) -> Vec<u8> {
+        let digest = Digest256::of_bytes(raw).to_hex();
+        let projection = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_managed_mixed_source_inventory_member_v2"),
+            ),
+            ("path", cmd::string(path)),
+            ("raw_sha256", cmd::string(&digest)),
+            (
+                "records",
+                cmd::object(
+                    source_claims::MIXED_INVENTORY_RECORD_KINDS
+                        .iter()
+                        .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                        .collect(),
+                ),
+            ),
+            ("source_profiles", cmd::object(Vec::new())),
+            ("events", tos_foundation::JsonValue::Array(Vec::new())),
+            ("anchors", tos_foundation::JsonValue::Array(Vec::new())),
+            ("form", tos_foundation::JsonValue::Null),
+            ("claim_owner", tos_foundation::JsonValue::Null),
+            ("public_text_owner", tos_foundation::JsonValue::Null),
+        ]);
+        cmd::canonical(&projection).unwrap()
+    }
+
+    #[test]
+    fn typed_current_public_text_rederives_without_suffix_inference() {
+        let (home, mut files) = package_fixture();
+        let generic_path =
+            "ToS/source-witnesses/relations/formation-research/source-create-receipt.json";
+        files.insert(generic_path.to_owned(), b"{}".to_vec());
+        let package_files = crate::source_public_text_entry::FILES
+            .iter()
+            .map(|name| ((*name).to_owned(), files[&format!("{home}/{name}")].clone()))
+            .collect::<BTreeMap<_, _>>();
+        let committed_owners = crate::source_public_text_entry::FILES
+            .iter()
+            .map(|name| {
+                let path = format!("{home}/{name}");
+                let owner = crate::source_public_text_entry::public_text_inventory_projection(
+                    &home,
+                    &path,
+                    &package_files,
+                )
+                .unwrap();
+                let owner = cmd::parse(&cmd::canonical(&owner).unwrap()).unwrap();
+                (path, owner)
+            })
+            .collect();
+        let packages = [CurrentPublicTextPackageV1 {
+            package_home: home.clone(),
+            committed_owners,
+        }];
+        let mut projections = files
+            .iter()
+            .map(|(path, raw)| (path.clone(), generic_projection(path, raw)))
+            .collect::<ProjectionRows>();
+
+        let streamed_contributions =
+            regenerate_current_public_text_contributions(&files, &packages).unwrap();
+        assert_eq!(
+            streamed_contributions.len(),
+            crate::source_public_text_entry::FILES.len()
+        );
+        for (path, owner) in &streamed_contributions {
+            assert!(
+                public_text_owner_contributions_match(&packages[0].committed_owners[path], owner,)
+                    .unwrap()
+            );
+        }
+
+        let existing_owner_path = format!("{home}/content.txt");
+        let mut existing_projection =
+            addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+                &existing_owner_path,
+                &projections[&existing_owner_path],
+                &Digest256::of_bytes(&files[&existing_owner_path]).to_hex(),
+            )
+            .unwrap();
+        existing_projection.as_object_mut().unwrap().insert(
+            "public_text_owner".to_owned(),
+            packages[0].committed_owners[&existing_owner_path].clone(),
+        );
+        projections.insert(
+            existing_owner_path,
+            cmd::canonical(&existing_projection).unwrap(),
+        );
+
+        overlay_current_public_text_contributions(&files, &packages, &mut projections).unwrap();
+        let packet_path = format!("{home}/source-text-unit.v1.json");
+        let packet = addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+            &packet_path,
+            &projections[&packet_path],
+            &Digest256::of_bytes(&files[&packet_path]).to_hex(),
+        )
+        .unwrap();
+        assert_ne!(
+            cmd::field(&packet, "public_text_owner").unwrap(),
+            &tos_foundation::JsonValue::Null
+        );
+        let generic = addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+            generic_path,
+            &projections[generic_path],
+            &Digest256::of_bytes(&files[generic_path]).to_hex(),
+        )
+        .unwrap();
+        assert_eq!(
+            cmd::field(&generic, "public_text_owner").unwrap(),
+            &tos_foundation::JsonValue::Null
+        );
+
+        let mut stale_files = files.clone();
+        stale_files.insert(format!("{home}/content.txt"), b"changed".to_vec());
+        let mut stale_projections = projections.clone();
+        assert!(
+            overlay_current_public_text_contributions(
+                &stale_files,
+                &packages,
+                &mut stale_projections,
+            )
+            .is_err()
+        );
+
+        let mut incomplete_files = files;
+        incomplete_files.remove(&format!("{home}/source-create-receipt.json"));
+        assert!(
+            overlay_current_public_text_contributions(
+                &incomplete_files,
+                &packages,
+                &mut projections,
+            )
+            .is_err()
+        );
+    }
 }

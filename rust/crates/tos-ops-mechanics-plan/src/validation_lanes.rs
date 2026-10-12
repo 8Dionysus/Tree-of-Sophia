@@ -1,6 +1,6 @@
 //! Native consumer of the existing ToS validation-lane command manifest.
-//! The authored JSON remains the sole command authority. Native sequences do
-//! not require an interpreter; a retained Python step requires explicit selection.
+//! The authored JSON remains the sole command authority. Maintained sequences
+//! are native-only and reject interpreter-backed steps.
 
 use serde_json::Value;
 use std::ffi::OsString;
@@ -73,6 +73,14 @@ fn valid_command(value: Option<&Value>) -> bool {
                 .iter()
                 .all(|part| part.as_str().is_some_and(|part| !part.is_empty()))
     })
+}
+
+fn is_python_command(value: Option<&Value>) -> bool {
+    value
+        .and_then(Value::as_array)
+        .and_then(|parts| parts.first())
+        .and_then(Value::as_str)
+        == Some("python")
 }
 
 fn valid_foundation_invocation_selection(sequence: &str, command: &[String]) -> bool {
@@ -336,6 +344,15 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
                     format!("{location}.command must be a non-empty string list"),
                 )?;
             } else {
+                if is_python_command(step.get("command")) {
+                    issue(
+                        &mut issues,
+                        MANIFEST,
+                        format!(
+                            "{location}.command uses Python, which is unsupported in maintained validation lanes"
+                        ),
+                    )?;
+                }
                 let command: Vec<String> = step["command"]
                     .as_array()
                     .expect("validated command array")
@@ -366,14 +383,10 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
 }
 
 /// Select one sequence in authored order without imposing the global --check
-/// gate. An empty `python` permits native commands only. `{repo_root}` resolves
-/// to the explicitly selected canonical source root as one argv element.
-pub fn command_sequence(
-    root: &Path,
-    sequence_id: &str,
-    python: &str,
-) -> io::Result<Vec<CommandStep>> {
-    Ok(command_sequence_with_budgets(root, sequence_id, python)?
+/// gate. `{repo_root}` resolves to the explicitly selected canonical source
+/// root as one argv element.
+pub fn command_sequence(root: &Path, sequence_id: &str) -> io::Result<Vec<CommandStep>> {
+    Ok(command_sequence_with_budgets(root, sequence_id)?
         .into_iter()
         .map(|(command, _)| command)
         .collect())
@@ -383,7 +396,6 @@ pub fn command_sequence(
 pub fn command_sequence_with_budgets(
     root: &Path,
     sequence_id: &str,
-    python: &str,
 ) -> io::Result<Vec<BudgetedCommandStep>> {
     let manifest = read_manifest(root)?.ok_or_else(|| {
         io::Error::new(
@@ -423,20 +435,17 @@ pub fn command_sequence_with_budgets(
                 "{sequence_id} contains an invalid command step"
             )));
         }
+        if is_python_command(step.get("command")) {
+            return Err(invalid(
+                "Python commands are unsupported in maintained validation lanes",
+            ));
+        }
         let mut parts: Vec<String> = step["command"]
             .as_array()
             .ok_or_else(|| invalid("command array disappeared"))?
             .iter()
             .map(|part| part.as_str().unwrap_or_default().to_owned())
             .collect();
-        if parts[0] == "python" {
-            if python.is_empty() || python.contains('\0') {
-                return Err(invalid(
-                    "retained Python step requires --python EXACT_INTERPRETER",
-                ));
-            }
-            parts[0] = python.to_owned();
-        }
         if parts.iter().any(|part| part == "{repo_root}") {
             let selected = root.canonicalize()?;
             let selected = selected
@@ -489,12 +498,8 @@ pub fn command_sequence_with_budgets(
 
 /// Preserve the maintained release_check phase split. Only the split phases
 /// require a final test-step suffix; `all` executes authored order.
-pub fn release_steps(
-    root: &Path,
-    python: &str,
-    phase: ReleasePhase,
-) -> io::Result<Vec<CommandStep>> {
-    let mut steps = command_sequence(root, "release_check", python)?;
+pub fn release_steps(root: &Path, phase: ReleasePhase) -> io::Result<Vec<CommandStep>> {
+    let mut steps = command_sequence(root, "release_check")?;
     if phase == ReleasePhase::All {
         return Ok(steps);
     }

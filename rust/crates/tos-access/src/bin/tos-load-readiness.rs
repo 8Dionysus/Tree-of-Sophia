@@ -30,6 +30,7 @@ const MAX_OPS: usize = 4096;
 const MAX_NONCES: usize = 1024;
 const MAX_OPERATIONS_PER_SECOND: f64 = 10_000.0;
 const MAX_RUN_SECONDS: u64 = 3600;
+const NATIVE_STDERR_CAP: usize = 4096;
 const NAVIGATION_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
 const NAVIGATION_SELECTION_SCHEMA: &str = "tos_local_pg_source_navigation_selection_v1";
 const NAVIGATION_PRODUCER_SCHEMA: &str = "tos_local_pg_source_navigation_producer_v1";
@@ -72,6 +73,9 @@ struct Plan {
     #[serde(default)]
     setup: Vec<Operation>,
     sessions: Vec<SessionPlan>,
+    /// Serial owner/source assertions after measured workers and projection drain.
+    #[serde(default)]
+    postload: Vec<Operation>,
 }
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -90,6 +94,11 @@ struct Operation {
     expected_sha256: Option<String>,
     #[serde(default)]
     expected_body: Option<Value>,
+    #[serde(default)]
+    expected_stderr_prefix: Option<String>,
+    /// Structural rights-state expectation for native PostgreSQL postload describe.
+    #[serde(default)]
+    expected_rights_allowed: Option<bool>,
     #[serde(default)]
     ignored_json_paths: Vec<String>,
     #[serde(default)]
@@ -110,6 +119,10 @@ struct Operation {
     interrupt_resume_after_ms: Option<u64>,
     #[serde(default)]
     bind_expected_from: Option<String>,
+    /// The load-phase command ID whose successful durable result this one
+    /// postload SDK request replays. A replay must match that request exactly.
+    #[serde(default)]
+    idempotency_replay_of: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -216,10 +229,21 @@ impl WaveGate {
         }
     }
 
-    fn acquire(&self, deadline: Instant) -> Result<WavePermit, String> {
+    fn acquire(
+        &self,
+        deadline: Instant,
+        dispatch_deadline: Option<Instant>,
+    ) -> Result<Option<WavePermit>, String> {
         loop {
-            if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
+            if STOP.load(Ordering::Acquire) {
                 return Err("bounded operation wave deadline/cancellation".into());
+            }
+            let now = Instant::now();
+            if now >= deadline {
+                return Err("bounded operation wave deadline/cancellation".into());
+            }
+            if dispatch_deadline.is_some_and(|dispatch| dispatch <= deadline && now >= dispatch) {
+                return Ok(None);
             }
             let mut active = self
                 .active
@@ -227,12 +251,19 @@ impl WaveGate {
                 .map_err(|_| "bounded operation wave counter poisoned")?;
             if *active < self.limit {
                 *active += 1;
-                return Ok(WavePermit {
+                return Ok(Some(WavePermit {
                     active: Arc::clone(&self.active),
-                });
+                }));
             }
             drop(active);
-            thread::sleep(Duration::from_millis(2));
+            let wait = Duration::from_millis(2)
+                .min(deadline.saturating_duration_since(now))
+                .min(
+                    dispatch_deadline
+                        .map(|dispatch| dispatch.saturating_duration_since(now))
+                        .unwrap_or(Duration::from_millis(2)),
+                );
+            thread::sleep(wait);
         }
     }
 }
@@ -293,7 +324,7 @@ impl OperationRateGate {
             if now >= deadline {
                 return Err("whole workload deadline".into());
             }
-            if load_window_deadline.is_some_and(|window| now >= window) {
+            if load_window_deadline.is_some_and(|window| window <= deadline && now >= window) {
                 return Ok(false);
             }
             let Some(interval) = self.interval else {
@@ -399,6 +430,7 @@ struct Attempt {
     bytes: usize,
     sha256: String,
     body: Option<Vec<u8>>,
+    stderr: Vec<u8>,
     elapsed_ms: f64,
     authenticated: Option<bool>,
     interrupted: bool,
@@ -911,6 +943,9 @@ fn rebase_plan_paths(plan: &mut Plan, from: &Path, to: &Path) -> Result<(), Stri
     {
         rebase_operation(operation, from, to)?;
     }
+    for operation in &mut plan.postload {
+        rebase_operation(operation, from, to)?;
+    }
     Ok(())
 }
 
@@ -928,6 +963,7 @@ fn selected_sdk_owner_inputs(
                 .take(session_limit)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
     {
         let paths = operation
@@ -969,6 +1005,7 @@ fn selected_sdk_store_roots(plan: &Plan, session_limit: usize) -> Result<Vec<Pat
                 .take(session_limit)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
     {
         let invocation_path = operation
@@ -1123,6 +1160,7 @@ fn selected_projection_inputs(plan: &Plan, session_limit: usize) -> Result<Vec<P
                 .take(session_limit)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "projection")
     {
         let selection = projection_selection_path(operation)?;
@@ -1657,6 +1695,7 @@ fn prepare_owner_stage(
     for operation in plan
         .setup
         .iter_mut()
+        .chain(plan.postload.iter_mut())
         .filter(|operation| operation.bind_expected_configuration_from_owner)
     {
         if operation.channel != "sdk" || operation_name(operation) != Some("describe") {
@@ -1664,6 +1703,9 @@ fn prepare_owner_stage(
                 "native owner configuration binding is limited to a serial describe operation"
                     .into(),
             );
+        }
+        if operation.request["expected_configuration"] != Value::Null {
+            return Err("native rights describe configuration must be bound from the staged owner, not supplied in the schedule".into());
         }
         let invocation_path = PathBuf::from(
             invocation_argument(operation).ok_or("native describe invocation absent")?,
@@ -1702,6 +1744,8 @@ fn prepare_owner_stage(
             expected_status: 0,
             expected_sha256: None,
             expected_body: None,
+            expected_stderr_prefix: None,
+            expected_rights_allowed: None,
             ignored_json_paths: Vec::new(),
             alternate_outcomes: Vec::new(),
             retry_same_command_id: false,
@@ -2121,6 +2165,243 @@ fn source_read_operation(op: &Operation) -> bool {
     }
 }
 
+fn native_mutation_operation(op: &Operation) -> bool {
+    op.channel == "sdk"
+        && matches!(
+            operation_name(op),
+            Some("source.create" | "record.revise" | "rights.revoke")
+        )
+}
+
+fn read_only_describe_operation(op: &Operation) -> bool {
+    op.channel == "sdk"
+        && op.request["schema_version"] == "tos_local_source_command_v1"
+        && op.request["operation"] == "describe"
+        && op.request.as_object().is_some_and(|fields| {
+            (fields.len() == 2
+                && fields.contains_key("schema_version")
+                && fields.contains_key("operation"))
+                || (fields.len() == 3
+                    && fields.contains_key("schema_version")
+                    && fields.contains_key("operation")
+                    && fields.get("expected_configuration").is_some_and(|value| {
+                        value.as_str().is_some_and(|digest| {
+                            digest.strip_prefix("sha256:").is_some_and(valid_sha)
+                        })
+                    }))
+        })
+}
+
+fn postload_rights_check(op: &Operation) -> bool {
+    read_only_describe_operation(op)
+        && op.expected_status == 0
+        && op.expected_sha256.is_none()
+        && op.expected_body.is_none()
+        && op.expected_stderr_prefix.is_none()
+        && op.ignored_json_paths.is_empty()
+        && op.bind_expected_configuration_from_owner
+        && op.expected_rights_allowed.is_some()
+}
+
+fn postload_rights_revoke_operation(op: &Operation) -> bool {
+    let exact_request = op.request.as_object().is_some_and(|fields| {
+        fields.len() == 6
+            && fields.contains_key("schema_version")
+            && fields.contains_key("operation")
+            && fields.contains_key("command_id")
+            && fields.contains_key("expected_configuration")
+            && fields.contains_key("expected_rights_version")
+            && fields.contains_key("reason")
+    });
+    rights_revoke_operation(op)
+        && op.idempotency_replay_of.is_none()
+        && exact_request
+        && op.request["schema_version"] == "tos_local_source_command_v1"
+        && op.request["command_id"]
+            .as_str()
+            .is_some_and(|id| !id.is_empty() && id.len() <= 128 && !id.contains('\0'))
+        && op.request["reason"].as_str().is_some_and(|reason| {
+            !reason.trim().is_empty() && reason.len() <= 512 && !reason.contains('\0')
+        })
+        && (op.request["expected_configuration"].is_null()
+            || op.request["expected_configuration"]
+                .as_str()
+                .is_some_and(|digest| digest.strip_prefix("sha256:").is_some_and(valid_sha)))
+        && (op.request["expected_rights_version"].is_null()
+            || op.request["expected_rights_version"].as_u64().is_some())
+        && op.expected_status == 0
+        && op.expected_sha256.is_none()
+        && op.expected_body.is_none()
+        && op.ignored_json_paths.is_empty()
+        && op.expected_stderr_prefix.is_none()
+        && op.bind_expected_from.is_some()
+}
+
+fn postload_projection_rights_denial(op: &Operation) -> bool {
+    op.channel == "projection"
+        && matches!(
+            op.request["operation"].as_str(),
+            Some("search" | "search-text" | "exact-source")
+        )
+        && op.expected_status == 2
+        && op.expected_sha256.is_none()
+        && op.expected_body.is_none()
+        && op.ignored_json_paths.is_empty()
+        && op.expected_stderr_prefix.as_deref()
+            == Some("source-projection refused: current rights revoked")
+}
+
+fn postload_read_only_operation(op: &Operation) -> bool {
+    postload_exact_source_integrity(op)
+        || postload_rights_check(op)
+        || postload_projection_rights_denial(op)
+        || (op.channel == "projection"
+            && matches!(
+                op.request["operation"].as_str(),
+                Some("status" | "search" | "search-text" | "exact-source")
+            ))
+}
+
+fn rights_allowed_value(body: &Value) -> Option<bool> {
+    body.pointer("/rights/rights_allowed")
+        .or_else(|| body.pointer("/result/rights/rights_allowed"))
+        .and_then(Value::as_bool)
+}
+
+fn postload_rights_revoke_request_digest(request: &Value) -> Option<String> {
+    let raw = json_bytes(request).ok()?;
+    let canonical = tos_foundation::canonical_raw_bytes_v1(
+        &raw,
+        tos_foundation::CanonicalProfile::SourceCommandInputV1,
+        tos_foundation::JsonLimits {
+            max_bytes: 8_388_608,
+            ..tos_foundation::JsonLimits::default()
+        },
+    )
+    .ok()?;
+    Some(format!("sha256:{}", sha(&canonical)))
+}
+
+fn postload_rights_revoke_response_matches(op: &Operation, attempt: &Attempt) -> bool {
+    if attempt.status != 0 {
+        return false;
+    }
+    let Some(raw) = attempt.body.as_deref() else {
+        return false;
+    };
+    let Ok(response) = serde_json::from_slice::<Value>(raw) else {
+        return false;
+    };
+    let Some(expected_version) = op.request["expected_rights_version"].as_u64() else {
+        return false;
+    };
+    let Some(commit_seq) = response
+        .pointer("/receipt/commit_seq")
+        .and_then(Value::as_u64)
+    else {
+        return false;
+    };
+    let Some(receipt_version) = response
+        .pointer("/receipt/rights_version")
+        .and_then(Value::as_u64)
+    else {
+        return false;
+    };
+    let Some(expected_request_digest) = postload_rights_revoke_request_digest(&op.request) else {
+        return false;
+    };
+    response["schema_version"] == "tos_local_pg_rights_revoke_result_v1"
+        && response["operation"] == "rights.revoke"
+        && response["owner_configuration"] == op.request["expected_configuration"]
+        && response["receipt"]["command_id"] == op.request["command_id"]
+        && response["receipt"]["replayed"] == false
+        && response["receipt"]["request_sha256"].as_str() == Some(expected_request_digest.as_str())
+        && commit_seq > 0
+        && receipt_version == expected_version.saturating_add(1)
+        && response
+            .pointer("/current_rights/head_seq")
+            .and_then(Value::as_u64)
+            == Some(commit_seq)
+        && response
+            .pointer("/current_rights/rights_version")
+            .and_then(Value::as_u64)
+            == Some(receipt_version)
+        && response.pointer("/current_rights/rights_allowed") == Some(&Value::Bool(false))
+        && response["scope"] == "private CMD domain local current-use rights"
+        && response["grants_admission"] == false
+}
+
+fn postload_rights_describe_response_matches(op: &Operation, attempt: &Attempt) -> bool {
+    if attempt.status != 0 {
+        return false;
+    }
+    let Some(raw) = attempt.body.as_deref() else {
+        return false;
+    };
+    let Ok(response) = serde_json::from_slice::<Value>(raw) else {
+        return false;
+    };
+    response["schema_version"] == "tos_local_pg_rights_revoke_result_v1"
+        && response["operation"] == "describe"
+        && response["owner_configuration"] == op.request["expected_configuration"]
+        && response["owner_configuration"]
+            .as_str()
+            .is_some_and(|digest| digest.strip_prefix("sha256:").is_some_and(valid_sha))
+        && response["principal_id"]
+            .as_str()
+            .is_some_and(|principal| !principal.is_empty() && principal.len() <= 256)
+        && response
+            .pointer("/rights/head_seq")
+            .and_then(Value::as_u64)
+            .is_some()
+        && response
+            .pointer("/rights/rights_version")
+            .and_then(Value::as_u64)
+            .is_some()
+        && rights_allowed_value(&response) == op.expected_rights_allowed
+        && response["scope"] == "private CMD domain local current-use rights"
+        && response["grants_admission"] == false
+}
+
+fn postload_exact_source_integrity(op: &Operation) -> bool {
+    match op.channel.as_str() {
+        "mcp" => {
+            op.request["method"] == "tools/call"
+                && op.request["params"]["name"] == "tos_source_read"
+        }
+        "sdk" => op
+            .sdk_argv
+            .windows(2)
+            .any(|pair| pair[0] == "source" && pair[1] == "read"),
+        "projection" => op.request["operation"] == "exact-source",
+        _ => false,
+    }
+}
+
+fn postload_pg_source_integrity(op: &Operation) -> bool {
+    op.channel == "sdk"
+        && op
+            .sdk_argv
+            .windows(2)
+            .any(|pair| pair[0] == "source" && pair[1] == "read")
+}
+
+fn postload_check_kind(op: &Operation) -> &'static str {
+    if op.idempotency_replay_of.is_some() {
+        "idempotency_replay"
+    } else if postload_rights_revoke_operation(op) {
+        "rights_revocation"
+    } else if postload_projection_rights_denial(op) {
+        "rights_denial"
+    } else if postload_rights_check(op) {
+        "rights_state"
+    } else if postload_exact_source_integrity(op) {
+        "source_integrity"
+    } else {
+        "projection_state"
+    }
+}
+
 fn digest_value(value: &Value) -> bool {
     value
         .as_str()
@@ -2295,7 +2576,18 @@ fn outcome_matches(
             .sha256
             .as_ref()
             .is_some_and(|digest| digest != &attempt.sha256)
+        || op
+            .expected_stderr_prefix
+            .as_ref()
+            .is_some_and(|prefix| !attempt.stderr.starts_with(prefix.as_bytes()))
     {
+        return false;
+    }
+    if postload_rights_revoke_operation(op) && !postload_rights_revoke_response_matches(op, attempt)
+    {
+        return false;
+    }
+    if postload_rights_check(op) && !postload_rights_describe_response_matches(op, attempt) {
         return false;
     }
     let body_matches_expected = expected.body.as_ref().is_none_or(|body| {
@@ -2316,7 +2608,14 @@ fn outcome_matches(
             && (!ignored_paths.contains("/result/receipt/command_id")
                 || actual.pointer("/result/receipt/command_id") == op.request.get("command_id"))
     });
-    body_matches_expected && (expected.sha256.is_some() || expected.body.is_some())
+    body_matches_expected
+        && (expected.sha256.is_some()
+            || expected.body.is_some()
+            || op.expected_stderr_prefix.is_some()
+            || (postload_rights_revoke_operation(op)
+                && postload_rights_revoke_response_matches(op, attempt))
+            || (postload_rights_check(op)
+                && postload_rights_describe_response_matches(op, attempt)))
 }
 
 fn valid_expected(value: &ExpectedOutcome, sdk: bool, response_cap: usize) -> bool {
@@ -2399,10 +2698,15 @@ fn rights_describe_binding_operation(op: &Operation) -> bool {
 
 fn bind_expected_fields(op: &mut Operation, response: &Value) -> Result<(), String> {
     let operation = operation_name(op).ok_or("bound command operation absent")?;
-    let result = response
-        .get("result")
-        .ok_or("bound preview response result absent")?;
     if operation == "rights.revoke" {
+        let result = response.get("result").unwrap_or(response);
+        if result["schema_version"] != "tos_local_pg_rights_revoke_result_v1"
+            || result["operation"] != "describe"
+        {
+            return Err(
+                "rights binding result is not the native PostgreSQL rights describe".into(),
+            );
+        }
         let owner_configuration = result
             .get("owner_configuration")
             .and_then(Value::as_str)
@@ -2419,6 +2723,9 @@ fn bind_expected_fields(op: &mut Operation, response: &Value) -> Result<(), Stri
         op.request["expected_rights_version"] = json!(rights_version);
         return Ok(());
     }
+    let result = response
+        .get("result")
+        .ok_or("bound preview response result absent")?;
     let owner_configuration = result
         .get("owner_configuration")
         .and_then(Value::as_str)
@@ -2513,6 +2820,36 @@ fn bind_operation_from_setup(
     bind_expected_fields(op, response)
 }
 
+fn bind_postload_rights_revoke(
+    op: &mut Operation,
+    postload_results: &BTreeMap<String, Value>,
+) -> Result<(), String> {
+    let label = op
+        .bind_expected_from
+        .as_deref()
+        .ok_or("postload rights.revoke describe binding absent")?;
+    let receipt = postload_results
+        .get(label)
+        .ok_or_else(|| format!("postload rights describe {label} is unavailable"))?;
+    let request = receipt
+        .get("request")
+        .ok_or("postload rights describe request absent")?;
+    let response = receipt
+        .get("response")
+        .ok_or("postload rights describe response absent")?;
+    if request["schema_version"] != "tos_local_source_command_v1"
+        || request["operation"] != "describe"
+        || request["expected_configuration"] != response["owner_configuration"]
+        || receipt["sdk_argv"] != json!(op.sdk_argv)
+        || response["schema_version"] != "tos_local_pg_rights_revoke_result_v1"
+        || response["operation"] != "describe"
+        || response.pointer("/rights/rights_allowed") != Some(&Value::Bool(true))
+    {
+        return Err("postload rights.revoke is not bound to the matching successful rights-enabled describe".into());
+    }
+    bind_expected_fields(op, response)
+}
+
 fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
     let has_sdk_mutation = plan
         .setup
@@ -2523,6 +2860,7 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
                 .take(args.sessions)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .any(|op| {
             op.channel == "sdk"
                 && matches!(
@@ -2674,6 +3012,7 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
                 .take(args.sessions)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
     {
         let path =
@@ -2868,12 +3207,13 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
         || plan.sessions.len() < args.sessions
         || plan.sessions.len() > MAX_SESSIONS
         || plan.setup.len() > 64
+        || plan.postload.len() > 64
     {
         return Err("schedule schema/session count mismatch".into());
     }
     let fresh_pg_stage = validate_fresh_pg_stage(plan, args)?;
     let mut ids = BTreeSet::new();
-    let mut total = plan.setup.len();
+    let mut total = plan.setup.len() + plan.postload.len();
     let mut owner_requests = 0usize;
     let mut command_ids = BTreeSet::new();
     let mut setup_labels = BTreeSet::new();
@@ -2915,6 +3255,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 || op.conflict_group.is_some()
                 || op.bind_expected_configuration_from_owner
                 || op.bind_expected_from.is_some()
+                || op.idempotency_replay_of.is_some()
+                || op.expected_rights_allowed.is_some()
             {
                 return Err(
                     "navigation bootstrap is permitted once, as the final serial setup operation"
@@ -2964,6 +3306,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         .request
                         .get("expected_configuration")
                         .is_none_or(|value| !value.is_null())))
+            || op.idempotency_replay_of.is_some()
+            || op.expected_rights_allowed.is_some()
             || !op.projection_argv.is_empty()
             || op.interrupt_resume_after_ms.is_some()
             || op.sdk_argv.len() > 32
@@ -3113,6 +3457,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 || op.label.len() > 64
                 || !op.label.is_ascii()
                 || !session_operation_labels.insert(op.label.clone())
+                || op.idempotency_replay_of.is_some()
+                || op.expected_rights_allowed.is_some()
             {
                 return Err(
                     "operation labels must be unique bounded ASCII within each session".into(),
@@ -3352,6 +3698,312 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             } else if !op.alternate_outcomes.is_empty() {
                 return Err("alternate_outcomes require a conflict_group".into());
             }
+        }
+    }
+    let mut load_mutations = BTreeMap::<String, &Operation>::new();
+    for operation in plan
+        .sessions
+        .iter()
+        .take(args.sessions)
+        .flat_map(|session| &session.operations)
+        .filter(|operation| native_mutation_operation(operation))
+    {
+        if let Some(command_id) = operation.request["command_id"].as_str() {
+            load_mutations.insert(command_id.to_owned(), operation);
+        }
+    }
+    let mut postload_labels = BTreeSet::new();
+    let mut postload_integrity_checks = 0usize;
+    let mut postload_pg_integrity_checks = 0usize;
+    let mut postload_rights_checks = 0usize;
+    let mut postload_idempotency_checks = 0usize;
+    let mut postload_integrity_positions = Vec::<usize>::new();
+    let mut postload_pg_integrity_positions = Vec::<usize>::new();
+    let mut postload_idempotency_positions = Vec::<usize>::new();
+    let mut postload_rights_check_positions = Vec::<(usize, bool)>::new();
+    let mut postload_rights_revoke_positions = Vec::<usize>::new();
+    let mut postload_rights_denial_positions = Vec::<usize>::new();
+    let mut postload_pre_revoke_describes = BTreeMap::<String, Operation>::new();
+    let preload_rights_revoke_scheduled = plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .any(|operation| rights_revoke_operation(operation));
+    if fresh_pg_stage && preload_rights_revoke_scheduled {
+        return Err("fresh PostgreSQL rights revocation is a postload operation after integrity and replay checks".into());
+    }
+    for (postload_index, op) in plan.postload.iter().enumerate() {
+        let bound_postload_revoke = postload_rights_revoke_operation(op)
+            && op
+                .bind_expected_from
+                .as_ref()
+                .is_some_and(|label| postload_pre_revoke_describes.contains_key(label));
+        let bound_load_replay = op.idempotency_replay_of.is_some()
+            && op
+                .bind_expected_from
+                .as_ref()
+                .is_none_or(|label| setup_previews.contains_key(label));
+        let allowed_binding =
+            op.bind_expected_from.is_none() || bound_postload_revoke || bound_load_replay;
+        if op.label.is_empty()
+            || op.label.len() > 64
+            || !op.label.is_ascii()
+            || !postload_labels.insert(op.label.clone())
+            || !op.alternate_outcomes.is_empty()
+            || op.retry_same_command_id
+            || op.reconnect_before
+            || op.conflict_group.is_some()
+            || (op.bind_expected_configuration_from_owner && !postload_rights_check(op))
+            || op.interrupt_resume_after_ms.is_some()
+            || (op.idempotency_replay_of.is_none()
+                && !postload_rights_revoke_operation(op)
+                && op.bind_expected_from.is_some())
+            || !allowed_binding
+        {
+            return Err("postload checks require unique labels and cannot carry load-only retry, reconnect, conflict or interruption options".into());
+        }
+        if postload_rights_revoke_operation(op) {
+            let label = op.bind_expected_from.as_deref().ok_or(
+                "postload rights.revoke must bind to its preceding current-rights describe",
+            )?;
+            let describe = postload_pre_revoke_describes
+                .get(label)
+                .ok_or("postload rights.revoke must bind to a prior rights-enabled describe")?;
+            if invocation_argument(describe) != invocation_argument(op)
+                || describe.sdk_argv != op.sdk_argv
+                || op.request["schema_version"] != "tos_local_source_command_v1"
+                || op.request["expected_configuration"] != Value::Null
+                || op.request["expected_rights_version"] != Value::Null
+            {
+                return Err("postload rights.revoke must use the exact rights describe invocation and bind its live configuration/version".into());
+            }
+            postload_rights_revoke_positions.push(postload_index);
+        }
+        if postload_projection_rights_denial(op) {
+            postload_rights_denial_positions.push(postload_index);
+        }
+        if let Some(target_command_id) = op.idempotency_replay_of.as_deref() {
+            let target = load_mutations.get(target_command_id).copied().ok_or(
+                "postload idempotency replay must name a selected load-phase SDK mutation",
+            )?;
+            if !native_mutation_operation(op)
+                || op.request["command_id"] != target.request["command_id"]
+                || op.request != target.request
+                || op.sdk_argv != target.sdk_argv
+                || op.bind_expected_from != target.bind_expected_from
+                || op.expected_status != target.expected_status
+                || op.expected_sha256 != target.expected_sha256
+                || op.expected_body != target.expected_body
+                || op.expected_stderr_prefix != target.expected_stderr_prefix
+                || op.ignored_json_paths != target.ignored_json_paths
+                || target.expected_status != 0
+                || target.conflict_group.is_some()
+                || !target.alternate_outcomes.is_empty()
+                || op.channel != "sdk"
+                || op.sdk_argv.is_empty()
+                || !op.projection_argv.is_empty()
+            {
+                return Err("postload idempotency replay must repeat one non-conflicting load SDK mutation and its exact oracle".into());
+            }
+            postload_idempotency_checks += 1;
+            postload_idempotency_positions.push(postload_index);
+            continue;
+        }
+        if !postload_rights_revoke_operation(op) && !postload_read_only_operation(op) {
+            return Err("postload checks accept only source reads, native rights revocation, describe, and read-only projection operations".into());
+        }
+        let native_process = matches!(op.channel.as_str(), "sdk" | "projection");
+        let primary = ExpectedOutcome {
+            status: op.expected_status,
+            sha256: op.expected_sha256.clone(),
+            body: op.expected_body.clone(),
+            ignored_json_paths: op.ignored_json_paths.clone(),
+        };
+        let exact_oracle_valid =
+            if postload_rights_revoke_operation(op) || postload_rights_check(op) {
+                op.expected_status == 0
+                    && op.expected_sha256.is_none()
+                    && op.expected_body.is_none()
+                    && op.ignored_json_paths.is_empty()
+            } else if postload_projection_rights_denial(op) {
+                op.expected_status == 2
+                    && op.expected_sha256.is_none()
+                    && op.expected_body.is_none()
+                    && op.ignored_json_paths.is_empty()
+            } else {
+                valid_expected(&primary, native_process, args.response_cap)
+            };
+        if !exact_oracle_valid
+            || !op.request.is_object()
+            || json_bytes(&op.request)?.len() > args.request_cap
+            || !op.sdk_argv.is_empty() && op.channel != "sdk"
+            || !op.projection_argv.is_empty() && op.channel != "projection"
+        {
+            return Err("postload check requires one bounded exact response oracle and channel-specific argv".into());
+        }
+        match op.channel.as_str() {
+            "mcp" => {
+                needs_mcp = true;
+                if !(200..300).contains(&op.expected_status)
+                    || op.request["jsonrpc"] != "2.0"
+                    || op.request.get("method").and_then(Value::as_str).is_none()
+                    || op.request.get("id").is_none_or(Value::is_null)
+                    || !op.sdk_argv.is_empty()
+                    || !op.projection_argv.is_empty()
+                {
+                    return Err("postload MCP check must be one bounded JSON-RPC request".into());
+                }
+            }
+            "sdk" => {
+                let invocation_args = op
+                    .sdk_argv
+                    .windows(2)
+                    .filter(|pair| pair[0] == "--invocation")
+                    .collect::<Vec<_>>();
+                let command_id = op
+                    .request
+                    .get("command_id")
+                    .and_then(Value::as_str)
+                    .filter(|value| !value.is_empty() && value.len() <= 128);
+                if op.sdk_argv.is_empty()
+                    || op.sdk_argv.len() > 32
+                    || op.sdk_argv[0].is_empty()
+                    || (op.expected_status != 0 && !postload_projection_rights_denial(op))
+                    || !Path::new(&op.sdk_argv[0]).is_absolute()
+                    || !op.sdk_argv.iter().any(|arg| arg == "source-commands")
+                    || !op.projection_argv.is_empty()
+                    || invocation_args.len() != 1
+                    || (!read_only_describe_operation(op)
+                        && (command_id.is_none()
+                            || !(source_read_operation(op)
+                                || postload_rights_revoke_operation(op))))
+                    || (read_only_describe_operation(op) && command_id.is_some())
+                {
+                    return Err(
+                        "postload SDK checks require an explicit native read/describe invocation"
+                            .into(),
+                    );
+                }
+                if let Some(command_id) = command_id {
+                    if !command_ids.insert(command_id.to_owned()) {
+                        return Err("postload source-read command IDs must be unique".into());
+                    }
+                }
+                if postload_rights_revoke_operation(op) {
+                    let invocation_path = PathBuf::from(
+                        invocation_argument(op).ok_or("postload rights invocation absent")?,
+                    )
+                    .canonicalize()
+                    .map_err(|e| format!("postload rights invocation path: {e}"))?;
+                    let invocation = read_stage_json(&invocation_path)?;
+                    if invocation["schema_version"] != "tos_local_pg_rights_revoke_invocation_v1"
+                        || op.request["expected_configuration"] != Value::Null
+                        || op.request["expected_rights_version"] != Value::Null
+                    {
+                        return Err("postload rights.revoke requires the ordinary PostgreSQL rights invocation with dynamic describe binding".into());
+                    }
+                }
+                if postload_rights_check(op) {
+                    let invocation_path = PathBuf::from(
+                        invocation_argument(op)
+                            .ok_or("postload rights describe invocation absent")?,
+                    )
+                    .canonicalize()
+                    .map_err(|e| format!("postload rights describe invocation path: {e}"))?;
+                    let invocation = read_stage_json(&invocation_path)?;
+                    if invocation["schema_version"] != "tos_local_pg_rights_revoke_invocation_v1"
+                        || !op.bind_expected_configuration_from_owner
+                    {
+                        return Err("fresh PostgreSQL rights describes must bind the selected owner configuration".into());
+                    }
+                }
+                for arg in &op.sdk_argv {
+                    if arg.len() > 4096 {
+                        return Err("postload SDK argv element exceeds4096 bytes".into());
+                    }
+                }
+            }
+            "projection" => {
+                if op.expected_status != 0 && !postload_projection_rights_denial(op) {
+                    return Err(
+                        "postload projection checks require success or the declared rights refusal"
+                            .into(),
+                    );
+                }
+                validate_projection_operation(
+                    op,
+                    args,
+                    &["status", "search", "search-text", "exact-source"],
+                )?;
+                if !op.sdk_argv.is_empty() {
+                    return Err("postload projection checks cannot carry SDK argv".into());
+                }
+            }
+            _ => return Err("postload channel must be mcp, sdk or read-only projection".into()),
+        }
+        if postload_exact_source_integrity(op) {
+            postload_integrity_checks += 1;
+            postload_integrity_positions.push(postload_index);
+        }
+        if postload_pg_source_integrity(op) {
+            postload_pg_integrity_checks += 1;
+            postload_pg_integrity_positions.push(postload_index);
+        }
+        if postload_rights_check(op) {
+            let allowed = op
+                .expected_rights_allowed
+                .ok_or("postload rights check must declare rights_allowed")?;
+            if !allowed {
+                let current = postload_pre_revoke_describes
+                    .values()
+                    .next()
+                    .ok_or("revoked rights describe has no preceding rights-enabled describe")?;
+                if invocation_argument(current) != invocation_argument(op)
+                    || current.sdk_argv != op.sdk_argv
+                {
+                    return Err("pre- and post-revocation rights describes must use the same protected native invocation".into());
+                }
+            }
+            postload_rights_check_positions.push((postload_index, allowed));
+            if allowed {
+                postload_pre_revoke_describes.insert(op.label.clone(), op.clone());
+            }
+            postload_rights_checks += 1;
+        }
+    }
+    if fresh_pg_stage {
+        let first_rights_describe = postload_rights_check_positions
+            .first()
+            .map(|(index, _)| *index)
+            .unwrap_or(usize::MAX);
+        let rights_order_valid = postload_rights_check_positions.len() == 2
+            && postload_rights_check_positions[0].1
+            && !postload_rights_check_positions[1].1
+            && postload_rights_revoke_positions.len() == 1
+            && postload_rights_denial_positions.len() == 1
+            && postload_rights_check_positions[0].0 < postload_rights_revoke_positions[0]
+            && postload_rights_revoke_positions[0] < postload_rights_check_positions[1].0
+            && postload_rights_check_positions[1].0 < postload_rights_denial_positions[0];
+        let integrity_before_rights = postload_integrity_positions
+            .iter()
+            .any(|index| *index < first_rights_describe)
+            && postload_pg_integrity_positions
+                .iter()
+                .any(|index| *index < first_rights_describe)
+            && postload_idempotency_positions.len() == 1
+            && postload_idempotency_positions[0] < first_rights_describe;
+        if postload_integrity_checks == 0
+            || postload_pg_integrity_checks == 0
+            || postload_idempotency_checks == 0
+            || !rights_order_valid
+            || !integrity_before_rights
+        {
+            return Err("a fresh native PostgreSQL load stage requires measured-mutation replay and exact-source integrity before a postload rights describe -> revoke -> describe -> denied-projection sequence".into());
         }
     }
     let navigation_bootstrap_operations = plan
@@ -3821,6 +4473,7 @@ fn owner_http(
                 .unwrap_or(0),
             sha256: String::new(),
             body: None,
+            stderr: Vec::new(),
             elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
             authenticated: Some(false),
             interrupted: false,
@@ -3838,6 +4491,7 @@ fn owner_http(
         bytes: reply.body.len(),
         sha256: sha(&reply.body),
         body: Some(reply.body),
+        stderr: Vec::new(),
         elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
         authenticated: Some(authenticated),
         interrupted: false,
@@ -3943,11 +4597,12 @@ fn native_command_process(
         .current_dir(work_dir)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+        .stderr(Stdio::piped());
     let mut child = spawn_group(&mut command, pids, deadline)?;
     let pid = child.id() as i32;
     let mut stdin = child.stdin.take().ok_or("SDK stdin unavailable")?;
     let mut stdout = child.stdout.take().ok_or("SDK stdout unavailable")?;
+    let mut stderr = child.stderr.take().ok_or("SDK stderr unavailable")?;
     // Drain SDK output while stdin is being written; either pipe alone can fill
     // and deadlock an otherwise valid full-duplex client exchange.
     let (output_tx, output_rx) = mpsc::sync_channel(1);
@@ -3965,29 +4620,52 @@ fn native_command_process(
             let _ = output_tx.send((output, result));
         })
         .map_err(|e| format!("SDK response drain start: {e}"))?;
+    let (stderr_tx, stderr_rx) = mpsc::sync_channel(1);
+    let stderr_reader = thread::Builder::new()
+        .stack_size(128 * 1024)
+        .spawn(move || {
+            let mut diagnostic = Vec::new();
+            let result = stderr
+                .take(NATIVE_STDERR_CAP as u64 + 1)
+                .read_to_end(&mut diagnostic)
+                .map_err(|e| e.to_string());
+            if diagnostic.len() > NATIVE_STDERR_CAP {
+                kill_group(pid, libc::SIGKILL);
+            }
+            let _ = stderr_tx.send((diagnostic, result));
+        })
+        .map_err(|e| format!("SDK diagnostic drain start: {e}"))?;
     let write_result = stdin.write_all(&input).map_err(|e| e.to_string());
     drop(stdin);
     if let Err(error) = write_result {
         kill_group(pid, libc::SIGKILL);
         let _ = child.wait();
         let _ = reader.join();
+        let _ = stderr_reader.join();
         return Err(format!(
             "SDK request pipe: {error}; process group terminated"
         ));
     }
     let interrupt_at = interrupt_after.map(|delay| Instant::now() + delay);
     let mut captured_output = None;
+    let mut captured_stderr = None;
     let mut interrupted = false;
     let status = loop {
         if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
             kill_group(pid, libc::SIGKILL);
             let _ = child.wait();
             let _ = reader.join();
+            let _ = stderr_reader.join();
             return Err("native process deadline; process group terminated".into());
         }
         if captured_output.is_none() {
             if let Ok(captured) = output_rx.try_recv() {
                 captured_output = Some(captured);
+            }
+        }
+        if captured_stderr.is_none() {
+            if let Ok(captured) = stderr_rx.try_recv() {
+                captured_stderr = Some(captured);
             }
         }
         if let Some(status) = child
@@ -3997,6 +4675,7 @@ fn native_command_process(
             if interrupt_after.is_some() {
                 kill_group(pid, libc::SIGKILL);
                 let _ = reader.join();
+                let _ = stderr_reader.join();
                 return Err("projection apply completed before the requested interruption".into());
             }
             break status;
@@ -4009,6 +4688,7 @@ fn native_command_process(
                 .map_err(|e| format!("interrupted projection process wait: {e}"))?;
             if status.signal() != Some(libc::SIGKILL) {
                 let _ = reader.join();
+                let _ = stderr_reader.join();
                 return Err("projection leader did not exit from the requested SIGKILL".into());
             }
             interrupted = true;
@@ -4023,24 +4703,42 @@ fn native_command_process(
                 .map_err(|e| format!("native process response drain: {e}"))?,
         );
     }
+    if captured_stderr.is_none() {
+        captured_stderr = Some(
+            stderr_rx
+                .recv_timeout(remaining(deadline)?)
+                .map_err(|e| format!("native process diagnostic drain: {e}"))?,
+        );
+    }
     reader
         .join()
         .map_err(|_| "native response drain panicked")?;
+    stderr_reader
+        .join()
+        .map_err(|_| "native diagnostic drain panicked")?;
     let (output, read_result) = captured_output.ok_or("native response drain absent")?;
+    let (diagnostic, diagnostic_result) =
+        captured_stderr.ok_or("native diagnostic drain absent")?;
     if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
         kill_group(pid, libc::SIGKILL);
         return Err("native process response exceeded the workload deadline".into());
     }
     read_result.map_err(|e| format!("native response read: {e}"))?;
+    diagnostic_result.map_err(|e| format!("native diagnostic read: {e}"))?;
     if output.len() > response_cap {
         kill_group(pid, libc::SIGKILL);
         return Err("native response exceeds response cap; process group terminated".into());
+    }
+    if diagnostic.len() > NATIVE_STDERR_CAP {
+        kill_group(pid, libc::SIGKILL);
+        return Err("native diagnostics exceed 4096-byte cap; process group terminated".into());
     }
     Ok(Attempt {
         status: status.code().unwrap_or(255) as u16,
         bytes: output.len(),
         sha256: sha(&output),
         body: (!discard_response && !interrupted).then_some(output),
+        stderr: diagnostic,
         elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
         authenticated: None,
         interrupted,
@@ -4762,9 +5460,11 @@ fn run_operation(
     nonces: &Mutex<BTreeSet<String>>,
     pids: &Arc<Mutex<Vec<i32>>>,
     gates: &WorkloadGates,
+    measured_load_operation: bool,
+    load_window_deadline: Option<Instant>,
     deadline: Instant,
 ) -> OpResult {
-    let started = Instant::now();
+    let mut dispatch_started_at = None;
     let mut reconnect_count = 0usize;
     let mut reconnect_observation = None;
     let mut retry_count = 0usize;
@@ -4777,28 +5477,48 @@ fn run_operation(
     let mut projection_navigation_advance_observation_value = Value::Null;
     let mut attempts = Vec::new();
     let mut error = None;
-    let _channel_permit = match op.channel.as_str() {
-        "mcp" => gates.mcp_sessions.acquire(deadline),
-        "owner_http" => gates.owner_http.acquire(deadline),
-        "sdk" | "projection" => gates.sdk_source_commands.acquire(deadline),
-        _ => Err("unknown channel gate".into()),
-    };
-    let _source_read_permit = if source_read_operation(op) {
-        Some(gates.source_reads.acquire(deadline))
+    let dispatch_deadline = if measured_load_operation {
+        load_window_deadline
     } else {
         None
     };
+    let _channel_permit = match op.channel.as_str() {
+        "mcp" => gates.mcp_sessions.acquire(deadline, dispatch_deadline),
+        "owner_http" => gates.owner_http.acquire(deadline, dispatch_deadline),
+        "sdk" | "projection" => gates
+            .sdk_source_commands
+            .acquire(deadline, dispatch_deadline),
+        _ => Err("unknown channel gate".into()),
+    };
     let _channel_permit = match _channel_permit {
-        Ok(permit) => Some(permit),
+        Ok(Some(permit)) => Some(permit),
+        Ok(None) => return operation_skipped("load-window-closed-before-dispatch"),
         Err(reason) => {
             error = Some(reason);
             None
         }
     };
-    if _source_read_permit.as_ref().is_some_and(Result::is_err) {
-        error = Some("source-read in-flight limit deadline/cancellation".into());
+    let _source_read_permit = if error.is_none() && source_read_operation(op) {
+        match gates.source_reads.acquire(deadline, dispatch_deadline) {
+            Ok(Some(permit)) => Some(permit),
+            Ok(None) => return operation_skipped("load-window-closed-before-dispatch"),
+            Err(reason) => {
+                error = Some(reason);
+                None
+            }
+        }
+    } else {
+        None
+    };
+    if error.is_none() && measured_load_operation {
+        match gates.operation_rate.acquire(deadline, load_window_deadline) {
+            Ok(true) => dispatch_started_at = Some(Instant::now()),
+            Ok(false) => return operation_skipped("load-window-closed-before-dispatch"),
+            Err(reason) => error = Some(reason),
+        }
+    } else if error.is_none() {
+        dispatch_started_at = Some(Instant::now());
     }
-    let _source_read_permit = _source_read_permit.and_then(Result::ok);
     if error.is_none() {
         if op.channel == "mcp" {
             if session.id.is_none() {
@@ -4840,6 +5560,7 @@ fn run_operation(
                         bytes: reply.body.len(),
                         sha256: sha(&reply.body),
                         body: Some(reply.body),
+                        stderr: Vec::new(),
                         elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
                         authenticated: None,
                         interrupted: false,
@@ -5078,6 +5799,7 @@ fn run_operation(
                 Ok(observation) => projection_navigation_advance_observation_value = observation,
                 Err(reason) => error = Some(reason),
             },
+            _ if postload_projection_rights_denial(op) => {}
             _ => {
                 projection_status_checks += 1;
                 match projection_queue_age(
@@ -5142,14 +5864,17 @@ fn run_operation(
         .as_ref()
         .and_then(|attempt| attempt.body.as_deref())
         .and_then(|body| serde_json::from_slice::<Value>(body).ok());
-    let attempt_values = attempts.iter().map(|a| json!({"status":a.status,"response_bytes":a.bytes,"response_sha256":a.sha256,"response_available_to_oracle":a.body.is_some(),"response_disposition":if a.interrupted {"interrupted"} else if a.body.is_none() {"dropped"} else {"delivered"},"interrupted":a.interrupted,"elapsed_ms":a.elapsed_ms,"response_authenticated":a.authenticated})).collect::<Vec<_>>();
+    let elapsed_ms = dispatch_started_at
+        .map(|started| started.elapsed().as_secs_f64() * 1000.0)
+        .unwrap_or(0.0);
+    let attempt_values = attempts.iter().map(|a| json!({"status":a.status,"response_bytes":a.bytes,"response_sha256":a.sha256,"response_available_to_oracle":a.body.is_some(),"response_disposition":if a.interrupted {"interrupted"} else if a.body.is_none() {"dropped"} else {"delivered"},"diagnostic_bytes":a.stderr.len(),"diagnostic_sha256":sha(&a.stderr),"interrupted":a.interrupted,"elapsed_ms":a.elapsed_ms,"response_authenticated":a.authenticated})).collect::<Vec<_>>();
     let expected_report = outcome_report(op);
     let matched_report = if navigation_advance && passed {
         Some(json!({"status":0,"oracle":"bounded-navigation-range"}))
     } else {
         matched_outcome.map(outcome_summary)
     };
-    let value = json!({"event":"operation","label":op.label,"channel":op.channel,"status":status,"expected_outcomes":expected_report,"matched_outcome":matched_report,"response_sha256":final_attempt.as_ref().map(|a|a.sha256.clone()),"passed":passed,"transport_error":transport_error,"error":error,"conflict_group":op.conflict_group,"conflict":conflict,"attempts":attempt_values,"retry_count":retry_count,"reconnect_count":reconnect_count,"projection_interruptions":projection_interruptions,"projection_resumes":projection_resumes,"projection_status_checks":projection_status_checks,"projection_cursor":projection_cursor_observation,"projection_queue_age":projection_queue_age_observation,"projection_navigation_bootstrap":projection_navigation_bootstrap_observation_value,"projection_navigation_advance":projection_navigation_advance_observation_value,"reconnect":reconnect_observation,"elapsed_ms":started.elapsed().as_secs_f64()*1000.0});
+    let value = json!({"event":"operation","label":op.label,"channel":op.channel,"status":status,"expected_outcomes":expected_report,"expected_stderr_prefix":op.expected_stderr_prefix,"matched_outcome":matched_report,"response_sha256":final_attempt.as_ref().map(|a|a.sha256.clone()),"passed":passed,"successful_command":successful,"transport_error":transport_error,"error":error,"conflict_group":op.conflict_group,"conflict":conflict,"attempts":attempt_values,"retry_count":retry_count,"reconnect_count":reconnect_count,"projection_interruptions":projection_interruptions,"projection_resumes":projection_resumes,"projection_status_checks":projection_status_checks,"projection_cursor":projection_cursor_observation,"projection_queue_age":projection_queue_age_observation,"projection_navigation_bootstrap":projection_navigation_bootstrap_observation_value,"projection_navigation_advance":projection_navigation_advance_observation_value,"reconnect":reconnect_observation,"elapsed_ms":elapsed_ms});
     OpResult {
         value,
         passed,
@@ -5162,7 +5887,7 @@ fn run_operation(
         projection_resumes,
         projection_status_checks,
         response_body,
-        elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
+        elapsed_ms,
     }
 }
 fn stop_child(child: &mut ManagedChild) {
@@ -5192,7 +5917,7 @@ fn signal_all(pids: &Arc<Mutex<Vec<i32>>>, signal: i32) {
     }
 }
 fn resource_delta(start: &ResourceSnapshot, end: &ResourceSnapshot) -> Value {
-    json!({"cpu_usage_usec":end.cpu_usec.saturating_sub(start.cpu_usec),"memory_current_start_bytes":start.memory_current,"memory_current_end_bytes":end.memory_current,"memory_peak_bytes":end.memory_peak,"memory_limit_bytes":end.memory_limit,"memory_high_events_delta":end.memory_high_events.saturating_sub(start.memory_high_events),"memory_max_events_delta":end.memory_max_events.saturating_sub(start.memory_max_events),"memory_oom_events_delta":end.memory_oom_events.saturating_sub(start.memory_oom_events),"memory_oom_kill_events_delta":end.memory_oom_kill_events.saturating_sub(start.memory_oom_kill_events),"io_read_bytes":end.io_read_bytes.saturating_sub(start.io_read_bytes),"io_write_bytes":end.io_write_bytes.saturating_sub(start.io_write_bytes)})
+    json!({"cpu_usage_usec":end.cpu_usec.saturating_sub(start.cpu_usec),"memory_current_start_bytes":start.memory_current,"memory_current_end_bytes":end.memory_current,"memory_peak_start_bytes":start.memory_peak,"memory_peak_bytes":end.memory_peak,"memory_peak_growth_bytes":end.memory_peak.saturating_sub(start.memory_peak),"memory_limit_bytes":end.memory_limit,"memory_high_events_delta":end.memory_high_events.saturating_sub(start.memory_high_events),"memory_max_events_delta":end.memory_max_events.saturating_sub(start.memory_max_events),"memory_oom_events_delta":end.memory_oom_events.saturating_sub(start.memory_oom_events),"memory_oom_kill_events_delta":end.memory_oom_kill_events.saturating_sub(start.memory_oom_kill_events),"io_read_bytes":end.io_read_bytes.saturating_sub(start.io_read_bytes),"io_write_bytes":end.io_write_bytes.saturating_sub(start.io_write_bytes)})
 }
 
 fn resource_stop_observed_since(start: &ResourceSnapshot, end: &ResourceSnapshot) -> bool {
@@ -5405,6 +6130,7 @@ fn main_result() -> Result<i32, String> {
                 .take(args.sessions)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .filter(|operation| source_read_operation(operation))
         .count();
     let sdk_source_command_operations = plan
@@ -5416,6 +6142,7 @@ fn main_result() -> Result<i32, String> {
                 .take(args.sessions)
                 .flat_map(|session| &session.operations),
         )
+        .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
         .count();
     let projection_operations = plan
@@ -5424,6 +6151,41 @@ fn main_result() -> Result<i32, String> {
         .take(args.sessions)
         .flat_map(|session| &session.operations)
         .filter(|operation| operation.channel == "projection")
+        .count();
+    let postload_projection_operations = plan
+        .postload
+        .iter()
+        .filter(|operation| operation.channel == "projection")
+        .count();
+    let postload_source_read_operations = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_exact_source_integrity(operation))
+        .count();
+    let postload_pg_source_read_operations = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_pg_source_integrity(operation))
+        .count();
+    let postload_rights_checks = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_rights_check(operation))
+        .count();
+    let postload_rights_revocations = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_rights_revoke_operation(operation))
+        .count();
+    let postload_rights_denials = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_projection_rights_denial(operation))
+        .count();
+    let postload_idempotency_checks = plan
+        .postload
+        .iter()
+        .filter(|operation| operation.idempotency_replay_of.is_some())
         .count();
     let projection_setup_operations = plan
         .setup
@@ -5456,12 +6218,17 @@ fn main_result() -> Result<i32, String> {
         })
         .count();
     let mut sdk_indexes = BTreeMap::new();
-    for operation in plan.setup.iter().chain(
-        plan.sessions
-            .iter()
-            .take(args.sessions)
-            .flat_map(|session| &session.operations),
-    ) {
+    for operation in plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .chain(plan.postload.iter())
+    {
         if operation.channel == "sdk" {
             let path = PathBuf::from(&operation.sdk_argv[0]);
             if !sdk_indexes.contains_key(&path) {
@@ -5473,12 +6240,17 @@ fn main_result() -> Result<i32, String> {
         }
     }
     let mut projection_indexes = BTreeMap::new();
-    for operation in plan.setup.iter().chain(
-        plan.sessions
-            .iter()
-            .take(args.sessions)
-            .flat_map(|session| &session.operations),
-    ) {
+    for operation in plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .chain(plan.postload.iter())
+    {
         if operation.channel == "projection" {
             let path = PathBuf::from(&operation.projection_argv[0]);
             if !projection_indexes.contains_key(&path) {
@@ -5617,6 +6389,7 @@ fn main_result() -> Result<i32, String> {
             "limits": {
                 "logical_sessions": args.sessions,
                 "serial_setup_operations": plan.setup.len(),
+                "serial_postload_checks": plan.postload.len(),
                 "logical_mcp_sessions": logical_mcp_sessions,
                 "physical_mcp_sessions": physical_mcp_session_limit,
                 "mcp_in_flight_limit": 32,
@@ -5626,6 +6399,13 @@ fn main_result() -> Result<i32, String> {
                 "scheduled_source_read_operations": source_read_operations,
                 "scheduled_sdk_source_commands": sdk_source_command_operations,
                 "scheduled_projection_operations": projection_operations,
+                "postload_source_integrity_checks": postload_source_read_operations,
+                "postload_native_pg_integrity_checks": postload_pg_source_read_operations,
+                "postload_rights_state_checks": postload_rights_checks,
+                "postload_rights_revocations": postload_rights_revocations,
+                "postload_rights_denials": postload_rights_denials,
+                "postload_idempotency_replays": postload_idempotency_checks,
+                "postload_projection_checks": postload_projection_operations,
                 "serial_projection_setup_operations": projection_setup_operations,
                 "operation_count_limit": args.operation_count,
                 "requested_channel_mix_percent": args.channel_mix.as_ref(),
@@ -5880,6 +6660,7 @@ fn main_result() -> Result<i32, String> {
     let mut setup_results = BTreeMap::new();
     let mut setup_successes = 0usize;
     let mut setup_failures = 0usize;
+    let mut successful_load_mutations = BTreeSet::new();
     let setup_started_at = Instant::now();
     for setup_index in 0..plan.setup.len() {
         if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
@@ -5905,6 +6686,8 @@ fn main_result() -> Result<i32, String> {
             &nonce_set,
             &pids,
             &gates,
+            false,
+            None,
             deadline,
         );
         if result.value["projection_navigation_bootstrap"].is_object() {
@@ -5946,6 +6729,7 @@ fn main_result() -> Result<i32, String> {
     }
     let setup_elapsed_seconds = setup_started_at.elapsed().as_secs_f64();
     successes = setup_successes;
+    let load_resources_before = resource_snapshot(&cgroup)?;
     let load_started_at = Instant::now();
     let load_window_deadline = args
         .load_window_seconds
@@ -5955,12 +6739,13 @@ fn main_result() -> Result<i32, String> {
         if setup_failures != 0 {
             break;
         }
-        if load_window_deadline.is_some_and(|window| Instant::now() >= window) {
-            load_window_closed = true;
-            break;
-        }
         if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
             return Err("whole workload deadline/cancellation".into());
+        }
+        if load_window_deadline.is_some_and(|window| window <= deadline && Instant::now() >= window)
+        {
+            load_window_closed = true;
+            break;
         }
         let jobs = plan
             .sessions
@@ -5999,38 +6784,35 @@ fn main_result() -> Result<i32, String> {
                     if start_rx.recv().is_err() {
                         return;
                     }
-                    let result = match gates.operation_rate.acquire(deadline, load_window_deadline)
-                    {
-                        Ok(false) => operation_skipped("load-window-closed-before-dispatch"),
-                        Err(reason) => operation_error(&reason),
-                        Ok(true) => {
-                            if let Some(session_state) = session_state {
-                                match session_state.lock() {
-                                    Ok(mut session) => run_operation(
-                                        &op,
-                                        &mut session,
-                                        &args,
-                                        &secret,
-                                        &nonce_set,
-                                        &pids,
-                                        &gates,
-                                        deadline,
-                                    ),
-                                    Err(_) => operation_error("MCP session pool poisoned"),
-                                }
-                            } else {
-                                run_operation(
-                                    &op,
-                                    &mut McpSession::default(),
-                                    &args,
-                                    &secret,
-                                    &nonce_set,
-                                    &pids,
-                                    &gates,
-                                    deadline,
-                                )
-                            }
+                    let result = if let Some(session_state) = session_state {
+                        match session_state.lock() {
+                            Ok(mut session) => run_operation(
+                                &op,
+                                &mut session,
+                                &args,
+                                &secret,
+                                &nonce_set,
+                                &pids,
+                                &gates,
+                                true,
+                                load_window_deadline,
+                                deadline,
+                            ),
+                            Err(_) => operation_error("MCP session pool poisoned"),
                         }
+                    } else {
+                        run_operation(
+                            &op,
+                            &mut McpSession::default(),
+                            &args,
+                            &secret,
+                            &nonce_set,
+                            &pids,
+                            &gates,
+                            true,
+                            load_window_deadline,
+                            deadline,
+                        )
                     };
                     let _ = tx.send((index, session_name, op, result));
                 })
@@ -6087,6 +6869,11 @@ fn main_result() -> Result<i32, String> {
             result.value["response_matches_oracle"] = json!(result.passed);
             result.value["conflict_group_passed"] = json!(group_ok);
             result.value["passed"] = json!(passed);
+            if passed && result.successful && native_mutation_operation(&op) {
+                if let Some(command_id) = op.request["command_id"].as_str() {
+                    successful_load_mutations.insert(command_id.to_owned());
+                }
+            }
             if result.not_started {
                 load_operations_skipped += 1;
                 load_window_closed = true;
@@ -6208,6 +6995,8 @@ fn main_result() -> Result<i32, String> {
         }
     }
     let load_elapsed_seconds = load_started_at.elapsed().as_secs_f64();
+    let load_resources_after = resource_snapshot(&cgroup)?;
+    let load_resource_delta = resource_delta(&load_resources_before, &load_resources_after);
     let navigation_advance_template = plan
         .sessions
         .iter()
@@ -6250,6 +7039,143 @@ fn main_result() -> Result<i32, String> {
     } else {
         Value::Null
     };
+    let mut postload_checks_attempted = 0usize;
+    let mut postload_checks_passed = 0usize;
+    let mut postload_checks_failed = 0usize;
+    let mut postload_integrity_passed = 0usize;
+    let mut postload_pg_integrity_passed = 0usize;
+    let mut postload_rights_passed = 0usize;
+    let mut postload_rights_revocation_passed = 0usize;
+    let mut postload_rights_denial_passed = 0usize;
+    let mut postload_idempotency_passed = 0usize;
+    let mut postload_projection_state_passed = 0usize;
+    let postload_started_at = Instant::now();
+    let mut postload_results = BTreeMap::<String, Value>::new();
+    let mut postload_mcp_session = McpSession::default();
+    let mut postload_mcp_initialized = false;
+    for (index, template) in plan.postload.iter().enumerate() {
+        let kind = postload_check_kind(template);
+        let mut op = template.clone();
+        let mut result = if setup_failures != 0 {
+            operation_error("serial setup did not complete")
+        } else if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
+            operation_error("postload verification deadline/cancellation")
+        } else if let Some(target) = op.idempotency_replay_of.as_deref()
+            && !successful_load_mutations.contains(target)
+        {
+            operation_error(
+                "idempotency replay target did not complete successfully during measured load",
+            )
+        } else if postload_rights_revoke_operation(&op)
+            && fresh_pg_stage
+            && (postload_checks_failed != 0
+                || postload_integrity_passed == 0
+                || postload_pg_integrity_passed == 0
+                || postload_idempotency_passed == 0
+                || postload_rights_passed == 0)
+        {
+            postload_checks_attempted += 1;
+            operation_skipped("pre-revoke-verification-failed")
+        } else if let Err(reason) = if postload_rights_revoke_operation(&op) {
+            bind_postload_rights_revoke(&mut op, &postload_results)
+        } else {
+            bind_operation_from_setup(&mut op, &setup_results)
+        } {
+            operation_error(&reason)
+        } else if op.channel == "mcp" && !postload_mcp_initialized {
+            postload_checks_attempted += 1;
+            match initialize_mcp(args.mcp_port, deadline, args.response_cap) {
+                Ok((session, status, digest, elapsed)) if status == 200 => {
+                    postload_mcp_session = session;
+                    postload_mcp_initialized = true;
+                    emit(
+                        &mut output,
+                        &mut written,
+                        args.output_cap,
+                        &json!({"event":"postload_mcp_session_ready","initialize_status":status,"initialize_sha256":digest,"initialize_elapsed_ms":elapsed}),
+                    )?;
+                    run_operation(
+                        &op,
+                        &mut postload_mcp_session,
+                        &args,
+                        &secret,
+                        &nonce_set,
+                        &pids,
+                        &gates,
+                        false,
+                        None,
+                        deadline,
+                    )
+                }
+                Ok((_, status, _, _)) => {
+                    operation_error(&format!("postload MCP initialize status {status}"))
+                }
+                Err(reason) => operation_error(&reason),
+            }
+        } else {
+            postload_checks_attempted += 1;
+            run_operation(
+                &op,
+                &mut postload_mcp_session,
+                &args,
+                &secret,
+                &nonce_set,
+                &pids,
+                &gates,
+                false,
+                None,
+                deadline,
+            )
+        };
+        let passed = result.passed && (result.successful || postload_projection_rights_denial(&op));
+        if passed {
+            if !postload_projection_rights_denial(&op) {
+                successes += 1;
+            }
+            postload_checks_passed += 1;
+            match kind {
+                "source_integrity" => postload_integrity_passed += 1,
+                "rights_state" => postload_rights_passed += 1,
+                "rights_revocation" => postload_rights_revocation_passed += 1,
+                "rights_denial" => postload_rights_denial_passed += 1,
+                "idempotency_replay" => postload_idempotency_passed += 1,
+                "projection_state" => postload_projection_state_passed += 1,
+                _ => {}
+            }
+            if postload_pg_source_integrity(&op) {
+                postload_pg_integrity_passed += 1;
+            }
+            if let Some(response) = result.response_body.clone() {
+                postload_results.insert(
+                    op.label.clone(),
+                    json!({"request":op.request.clone(),"sdk_argv":op.sdk_argv.clone(),"response":response}),
+                );
+            }
+        } else {
+            postload_checks_failed += 1;
+            errors += 1;
+        }
+        result.value["event"] = json!("postload_check");
+        result.value["phase"] = json!("postload-verification");
+        result.value["kind"] = json!(kind);
+        result.value["index"] = json!(index);
+        result.value["passed"] = json!(passed);
+        result.value["idempotency_replay_of"] = json!(op.idempotency_replay_of.clone());
+        result.value["expected_stderr_prefix"] = json!(op.expected_stderr_prefix.clone());
+        result.value["rights_allowed_expected"] = op
+            .expected_rights_allowed
+            .map(Value::Bool)
+            .unwrap_or(Value::Null);
+        result.value["rights_allowed_actual"] = result
+            .response_body
+            .as_deref()
+            .and_then(rights_allowed_value)
+            .map(Value::Bool)
+            .unwrap_or(Value::Null);
+        result.value["postgresql_owner_integrity_check"] = json!(postload_pg_source_integrity(&op));
+        emit(&mut output, &mut written, args.output_cap, &result.value)?;
+    }
+    let postload_elapsed_seconds = postload_started_at.elapsed().as_secs_f64();
     let load_operations_not_started =
         load_operations_scheduled.saturating_sub(load_operations_started);
     let mut not_started_channel_mix = scheduled_channel_mix.clone();
@@ -6369,6 +7295,18 @@ fn main_result() -> Result<i32, String> {
             "schedule_unchanged": true,
             "scheduled": total_ops,
             "serial_setup_scheduled": plan.setup.len(),
+            "postload_checks_scheduled": plan.postload.len(),
+            "postload_checks_attempted": postload_checks_attempted,
+            "postload_checks_passed": postload_checks_passed,
+            "postload_checks_failed": postload_checks_failed,
+            "postload_source_integrity_passed": postload_integrity_passed,
+            "postload_native_pg_integrity_passed": postload_pg_integrity_passed,
+            "postload_rights_state_passed": postload_rights_passed,
+            "postload_rights_revocations_passed": postload_rights_revocation_passed,
+            "postload_rights_denials_passed": postload_rights_denial_passed,
+            "postload_idempotency_replays_passed": postload_idempotency_passed,
+            "postload_projection_state_passed": postload_projection_state_passed,
+            "postload_verification_elapsed_seconds": postload_elapsed_seconds,
             "serial_setup_attempted": setup_successes + setup_failures,
             "serial_setup_completed": setup_successes,
             "serial_setup_failures": setup_failures,
@@ -6477,6 +7415,7 @@ fn main_result() -> Result<i32, String> {
             "elapsed_seconds": start_time.elapsed().as_secs_f64(),
             "operation_window_seconds": start_metrics.elapsed().as_secs_f64(),
             "resource_delta": resource_delta,
+            "load_resource_delta": load_resource_delta,
             "report_storage_bytes_before_finish": storage_bytes,
             "report_storage_allocated_bytes_before_finish": storage_allocated,
             "scope": "finite Rust protocol measurement; not capacity acceptance"

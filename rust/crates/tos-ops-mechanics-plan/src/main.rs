@@ -1140,7 +1140,7 @@ fn main() {
                     && tos_ops_mechanics_plan::growth_coverage::uses_native_route(&root, &plan)?
                 {
                     Some(tos_ops_mechanics_plan::growth_coverage::whole_steps(
-                        &root, &python, &plan,
+                        &root, &plan,
                     )?)
                 } else {
                     None
@@ -1179,7 +1179,7 @@ fn main() {
                 }
                 if let Some(steps) = whole_steps {
                     tos_ops_mechanics_plan::executor::run_validation_sequence(
-                        &root, &python, &steps, limits, &CANCEL,
+                        &root, &steps, limits, &CANCEL,
                     )
                 } else {
                     tos_ops_mechanics_plan::executor::run(&root, &plan, limits, &CANCEL)

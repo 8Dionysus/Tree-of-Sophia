@@ -10,8 +10,8 @@ sources.
 internal lane membership and command order. This file explains selection;
 `tos-validation-lanes` loads and executes the selected sequence.
 The literal `{repo_root}` in command arguments expands to the explicitly
-selected canonical repository root. Native sequences need no interpreter;
-a retained Python step currently requires `--python EXACT_INTERPRETER`.
+selected canonical repository root. Maintained validation sequences are native
+only; the validator rejects Python commands in the manifest.
 
 ## Select a route
 

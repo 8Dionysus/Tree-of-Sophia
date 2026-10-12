@@ -59,6 +59,7 @@ fn package_files(flat: bool) -> &'static [&'static str] {
 
 pub struct NativeFirstTextUnitPreview {
     pub prepared_files: JsonValue,
+    pub native_bindings: JsonValue,
     pub owner_configuration: String,
     pub expected_dependencies: String,
     pub source_path: String,
@@ -83,6 +84,60 @@ struct PreparedUnit {
     software_rows: Vec<Value>,
     owner_configuration: String,
     dependencies: String,
+}
+
+fn prepared_native_bindings(prepared: &PreparedUnit) -> SourceCommandResult<JsonValue> {
+    let packet_ref = cmd::text(&prepared.grant.config, "source_path")?;
+    let packet_raw =
+        prepared
+            .files
+            .get("source-text-unit.v1.json")
+            .ok_or(SourceCommandError::Conflict(
+                "PostgreSQL TextUnit prepared packet absent",
+            ))?;
+    let source_binding = cmd::field(&prepared.grant.config, "source_binding")?;
+    let packet_id = cmd::field(&prepared.packet, "packet_id")?.clone();
+    let packet_version = cmd::field(&prepared.packet, "packet_version")?.clone();
+    let segmentations = cmd::array(&prepared.packet, "segmentations")?;
+    if segmentations.len() != 1 {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL TextUnit prepared segmentation count",
+        ));
+    }
+    let segmentation = &segmentations[0];
+    let text_layer = cmd::field(source_binding, "text_layer")?.clone();
+    let source_record_refs = cmd::field(source_binding, "source_record_refs")?.clone();
+    let packet_sha256 = Digest256::of_bytes(packet_raw).to_hex();
+    let mut bindings = Vec::new();
+    for unit in cmd::array(&prepared.packet, "units")? {
+        bindings.push(cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_native_text_unit_binding_v1"),
+            ),
+            ("packet_ref", cmd::string(packet_ref)),
+            ("packet_sha256", cmd::string(&packet_sha256)),
+            ("packet_id", packet_id.clone()),
+            ("packet_version", packet_version.clone()),
+            (
+                "segmentation_id",
+                cmd::field(segmentation, "segmentation_id")?.clone(),
+            ),
+            (
+                "segmentation_version",
+                cmd::field(segmentation, "segmentation_version")?.clone(),
+            ),
+            ("unit_id", cmd::field(unit, "unit_id")?.clone()),
+            ("unit_version", cmd::field(unit, "unit_version")?.clone()),
+            (
+                "ordered_anchor_refs",
+                cmd::field(unit, "ordered_anchor_refs")?.clone(),
+            ),
+            ("text_layer", text_layer.clone()),
+            ("source_record_refs", source_record_refs.clone()),
+        ]));
+    }
+    Ok(JsonValue::Array(bindings))
 }
 
 /// Complete owner-prepared TextUnit package for a private PG commit. The
@@ -695,6 +750,7 @@ pub fn prepare_first_text_unit_from_captures(
     prepared.verify_current(software, components, None, deadline, cancelled)?;
     Ok(NativeFirstTextUnitPreview {
         prepared_files: file_refs(prepared.files.iter()),
+        native_bindings: prepared_native_bindings(&prepared)?,
         owner_configuration: prepared.owner_configuration,
         expected_dependencies: prepared.dependencies,
         source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
@@ -1130,6 +1186,73 @@ pub(crate) fn prepare_pg_text_unit_package(
         context_binding,
         request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
         grant_digest,
+    })
+}
+
+/// Compute the owner configuration and dependency digest for a private PG
+/// TextUnit request without assembling or committing a package. The selected
+/// owner grant, exact source inventory, and worker lifecycle are the same as
+/// the eventual create path; only the caller-supplied expected digests and
+/// durable publication step are absent.
+pub(crate) fn prepare_pg_text_unit_preview(
+    context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: OwnerTextUnitSelection,
+    request: &JsonValue,
+    exclude: Option<&Path>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeFirstTextUnitPreview> {
+    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    active(deadline, cancelled)?;
+    cmd::exact_keys(request, &["operation", "spans", "excluded_gaps"])?;
+    if cmd::text(request, "operation")? != "prepare-create" || !context.has_pg_selection()? {
+        return Err(SourceCommandError::Denied(
+            "PostgreSQL TextUnit preparation profile",
+        ));
+    }
+    let prepared = prepare_selected(
+        context,
+        publication,
+        grant,
+        request,
+        software,
+        components,
+        worker,
+        exclude,
+        deadline,
+        cancelled,
+    )?;
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_current(software, components, exclude, deadline, cancelled)?;
+    let current_grant = OwnerTextUnitSelection::select(
+        &prepared.context,
+        &prepared.grant.path,
+        deadline,
+        cancelled,
+    )?;
+    if current_grant.raw != prepared.grant.raw
+        || configuration(
+            &prepared.context,
+            &current_grant,
+            &prepared.contracts,
+            deadline,
+            cancelled,
+        )? != prepared.owner_configuration
+    {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL TextUnit grant changed during preparation",
+        ));
+    }
+    Ok(NativeFirstTextUnitPreview {
+        prepared_files: file_refs(prepared.files.iter()),
+        native_bindings: prepared_native_bindings(&prepared)?,
+        owner_configuration: prepared.owner_configuration,
+        expected_dependencies: prepared.dependencies,
+        source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
     })
 }
 

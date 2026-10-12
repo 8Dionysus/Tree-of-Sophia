@@ -32,6 +32,16 @@ pub(crate) const PG_HISTORICAL_V2_FAMILY_TAG: &str =
 pub(crate) const PG_PUBLIC_PROFILE_FAMILY_TAG: &str =
     "tos-pg-public-profile-create-v1:tos_local_profile_create_owner_v1:source.create";
 
+const NATIVE_TEXT_CONTENT_SCHEMAS: &[&str] = &[
+    "ToS/contracts/source-text-unit-packet-v1.schema.json",
+    "ToS/contracts/source-text-layer.schema.json",
+    "ToS/contracts/source-anchor-v2.schema.json",
+    "ToS/contracts/source-item-manifest.schema.json",
+    "ToS/contracts/rights-record.schema.json",
+    "ToS/contracts/owner-local-source-context.schema.json",
+    "ToS/contracts/native-pg-private-text-read.schema.json",
+];
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PgFamilyCreationRequirement {
     pub(crate) kind: String,
@@ -160,6 +170,14 @@ pub(crate) fn required_source_inputs(
                 .map_err(|_| SourceCommandError::Invalid("profile schema root path"))?,
         );
         inputs.insert(RelativePath::parse("ToS/contracts/corpus-record.schema.json").unwrap());
+        if profile.object_get("native_binding_adapter").is_some() {
+            for path in NATIVE_TEXT_CONTENT_SCHEMAS {
+                inputs.insert(
+                    RelativePath::parse(path)
+                        .map_err(|_| SourceCommandError::Invalid("native content schema path"))?,
+                );
+            }
+        }
     }
     if family.historical() {
         let request = cmd::parse(&context.request_raw)?;
@@ -257,6 +275,38 @@ pub(crate) fn requirements(
                 RelativePath::parse(value)
                     .map_err(|_| SourceCommandError::Invalid("creation source reference path"))?,
             );
+        }
+    }
+    if let Some(binding) = record.object_get("native_text_binding") {
+        let refs = cmd::field(binding, "source_record_refs")?;
+        let packet_ref = cmd::text(binding, "packet_ref")?.to_owned();
+        let layer_ref = cmd::text(cmd::field(binding, "text_layer")?, "record_ref")?.to_owned();
+        for (value, private_package_allowed) in [
+            (packet_ref, true),
+            (layer_ref, true),
+            (cmd::text(refs, "work")?.to_owned(), false),
+            (cmd::text(refs, "expression")?.to_owned(), false),
+            (cmd::text(refs, "edition")?.to_owned(), false),
+            (cmd::text(refs, "item")?.to_owned(), false),
+        ] {
+            if !value.starts_with("ToS/source-witnesses/")
+                || value.split('/').any(|part| {
+                    ["payload", "local-content", "catalog"].contains(&part)
+                        || part == "owner-local" && !private_package_allowed
+                })
+                || value.contains("/owner-local/")
+                    && (!private_package_allowed
+                        || !value.starts_with("ToS/source-witnesses/owner-local/"))
+            {
+                return Err(SourceCommandError::Denied(
+                    "PG creation native binding addresses an unselected private source member",
+                ));
+            }
+            let path = RelativePath::parse(&value)
+                .map_err(|_| SourceCommandError::Invalid("native binding reference path"))?;
+            if !value.starts_with("ToS/source-witnesses/owner-local/") {
+                paths.insert(path);
+            }
         }
     }
     let mut unique = BTreeSet::new();
@@ -441,6 +491,8 @@ pub(crate) fn prepare_pg_family_creation(
     components: &SoftwareComponentSelectionV1,
     replay_binding: Digest256,
     worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    native_reader: Option<&mut dyn crate::source_sign_native::SignNativeRead>,
+    private_selection: Option<&crate::source_native_text_read::LocalTextReadSelection>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgFamilyCreation> {
@@ -560,7 +612,16 @@ pub(crate) fn prepare_pg_family_creation(
         ));
     }
     initial_with_candidate_schema(
-        &context, identity, worker, &config, family, record, deadline, cancelled,
+        &context,
+        identity,
+        worker,
+        &config,
+        family,
+        record,
+        native_reader,
+        private_selection,
+        deadline,
+        cancelled,
     )?;
     let selections = cmd::array(&request, "forms")?;
     let mut validate_forms = |refs: &[String], root: &str, instance: &JsonValue| {

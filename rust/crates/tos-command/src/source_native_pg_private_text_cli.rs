@@ -9,6 +9,7 @@ use crate::source_cohort_private_text::{
     PreparedPrivateTextPackageV1, PrivateTextPackageCapabilityV1, private_text_source_binding,
 };
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_native_text_read::{LocalTextReadSelection, PG_PRIVATE_SCHEMA};
 use crate::source_sign_native::{
     NativeReadKind, ResolvedDerivedTextSource, ResolvedInitialTextSource, ResolvedOwnerTextLayer,
     ResolvedOwnerTextPacket, SignNativeRead, resolve_derived_owner_text_source,
@@ -25,7 +26,8 @@ use crate::source_text_unit_entry as unit;
 use crate::{
     DurableError, DurablePgCoordinator,
     durable_private_packages::{
-        PrivateOwnerPackageFamilyV1, PrivateOwnerPackageSnapshotV1, PrivateOwnerScopeV1,
+        PrivateOwnerPackageFamilyV1, PrivateOwnerPackageSnapshotV1, PrivateOwnerReadSession,
+        PrivateOwnerScopeV1,
     },
 };
 use serde_json::{Value, json};
@@ -39,7 +41,7 @@ use tos_segment_store::SegmentStore;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::CutSchemaExecutor;
 
-const MAX_SCHEMA_FILES: usize = 10;
+const MAX_SCHEMA_FILES: usize = 14;
 const MAX_SCHEMA_BYTES: usize = 16_777_216;
 const MAX_SCHEMA_FILE_BYTES: u64 = 4_194_304;
 const MAX_TEXT_MEMBERS: u64 = 4_096;
@@ -169,6 +171,22 @@ pub(crate) fn selected_contracts(
             "native-text-layer-binding.schema.json",
             "native-text-unit-binding.schema.json",
             "source-text-unit-packet-v1.schema.json",
+        ],
+        "tos_native_pg_private_text_read_v1" => &[
+            "owner-local-source-context.schema.json",
+            "corpus-record.schema.json",
+            "source-item-manifest.schema.json",
+            "rights-record.schema.json",
+            "source-text-layer.schema.json",
+            "source-anchor-v2.schema.json",
+            "provenance-event-v2.schema.json",
+            "native-text-layer-binding.schema.json",
+            "native-text-unit-binding.schema.json",
+            "source-text-unit-packet-v1.schema.json",
+            "native-pg-private-text-read.schema.json",
+            "occurrence-description-record.schema.json",
+            "source-metadata-record.schema.json",
+            "semantic-description-record.schema.json",
         ],
         _ => {
             return Err(SourceCommandError::Denied(
@@ -368,10 +386,353 @@ impl SignNativeRead for SessionTextRead<'_, '_> {
     }
 }
 
+#[derive(Clone)]
+struct PgPrivateTextPackagePin {
+    revision: u64,
+    package_digest: Digest256,
+    command_id: String,
+}
+
+/// Read current public source members through the selected source epoch and
+/// private members lazily from the exact package revisions named by the
+/// independent PG disclosure profile. Metadata and rights are resolved
+/// before the native reader asks for content bytes.
+struct PgPrivateTextRead<'s, 'a, 'db> {
+    session: &'s mut SourceRevisionReadSession<'a>,
+    private_session: &'s mut PrivateOwnerReadSession<'db>,
+    pins: &'s BTreeMap<String, PgPrivateTextPackagePin>,
+    context: &'s OwnerTextContext,
+    selected_members: BTreeMap<String, Vec<u8>>,
+}
+
+impl SignNativeRead for PgPrivateTextRead<'_, '_, '_> {
+    fn read(
+        &mut self,
+        reference: &str,
+        _kind: NativeReadKind,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        if let Some(raw) = self.selected_members.get(reference) {
+            if raw.len() > max_bytes {
+                return Err(SourceCommandError::Unsupported(
+                    "PG private Text selected member byte budget",
+                ));
+            }
+            return Ok(raw.clone());
+        }
+        let raw = if self.context.is_owner_private_reference(reference) {
+            let target_ref = self.context.private_package_target_ref(reference)?;
+            let pin = self
+                .pins
+                .get(&target_ref)
+                .ok_or(SourceCommandError::Denied(
+                    "PG private Text package is not explicitly selected",
+                ))?;
+            let member_name = reference
+                .rsplit('/')
+                .next()
+                .ok_or(SourceCommandError::Invalid(
+                    "PG private Text package member path",
+                ))?;
+            let selected = self
+                .private_session
+                .read_selected_member_revision(
+                    &target_ref,
+                    pin.revision,
+                    pin.package_digest,
+                    &pin.command_id,
+                    member_name,
+                    max_bytes,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(pg::source_error)?
+                .ok_or(SourceCommandError::Conflict(
+                    "PG private Text selected package member absent",
+                ))?;
+            if selected.private_audit_generation != self.private_session.private_audit_generation()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PG private Text package generation changed",
+                ));
+            }
+            selected.bytes
+        } else {
+            read_member(
+                self.session,
+                reference,
+                max_bytes as u64,
+                deadline,
+                cancelled,
+            )?
+        };
+        if raw.len() > max_bytes {
+            return Err(SourceCommandError::Unsupported(
+                "PG private Text selected member byte budget",
+            ));
+        }
+        self.selected_members
+            .insert(reference.to_owned(), raw.clone());
+        Ok(raw)
+    }
+
+    fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) || Instant::now() >= deadline {
+            return Err(SourceCommandError::Conflict(
+                "PG private Text read deadline",
+            ));
+        }
+        Ok(())
+    }
+
+    fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
+        Ok(self.context.is_owner_private_reference(reference))
+    }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(Some(
+            self.context.snapshot(deadline, cancelled)?.to_prefixed(),
+        ))
+    }
+}
+
+fn pg_private_text_read(
+    request: &JsonValue,
+    profile: &LocalTextReadSelection,
+    context: &OwnerTextContext,
+    scope: &PrivateOwnerScopeV1,
+    selection: &pg::SourceSelection,
+    store: &SegmentStore,
+    first_epoch: &SelectedEpoch,
+    schema_members: &BTreeMap<String, Vec<u8>>,
+    db: &mut DurablePgCoordinator,
+    worker: &mut super::CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Value> {
+    cmd::exact_keys(
+        request,
+        &[
+            "schema_version",
+            "operation",
+            "source_path",
+            "revision",
+            "package_sha256",
+            "command_id",
+            "binding_ref",
+            "binding",
+            "max_return_bytes",
+        ],
+    )?;
+    if cmd::text(request, "schema_version")? != "tos_local_native_private_text_read_request_v1"
+        || cmd::text(request, "operation")? != "native-text.read-private"
+        || cmd::text(profile.config(), "source_domain")? != selection.domain.as_str()
+        || cmd::text(profile.config(), "source_contract_sha256")?
+            != first_epoch.contract.to_hex().as_str()
+    {
+        return Err(SourceCommandError::Denied(
+            "PG private Text read profile or request source binding differs",
+        ));
+    }
+    profile.verify(deadline, cancelled)?;
+    let owner_context = cmd::field(profile.config(), "owner_context")?;
+    let context_path =
+        crate::source_text_owner::normalized_absolute(cmd::text(owner_context, "path")?)?;
+    let selected_context_path = crate::source_text_owner::normalized_absolute(
+        context
+            .configuration_path()
+            .to_str()
+            .ok_or(SourceCommandError::Invalid(
+                "PG private Text context path UTF8",
+            ))?,
+    )?;
+    if context_path != selected_context_path
+        || cmd::text(owner_context, "sha256")?
+            != context.configuration_sha256(deadline, cancelled)?.as_str()
+    {
+        return Err(SourceCommandError::Denied(
+            "PG private Text read context binding differs",
+        ));
+    }
+
+    let source_path = cmd::text(request, "source_path")?;
+    let packet_ref = context.private_package_target_ref(source_path)?;
+    if !source_path.ends_with("/source-text-unit.v1.json")
+        || cmd::text(cmd::field(request, "binding")?, "packet_ref")? != source_path
+    {
+        return Err(SourceCommandError::Denied(
+            "PG private Text read requires the exact private TextUnit packet",
+        ));
+    }
+    let binding = cmd::field(request, "binding")?.clone();
+    let selected_packages = profile.selected_pg_packages(&binding, None, deadline, cancelled)?;
+    let mut pins = BTreeMap::new();
+    let mut selected_packet_pin = false;
+    for package in selected_packages {
+        let target_ref = cmd::text(&package, "target_ref")?.to_owned();
+        if !target_ref.starts_with(context.private_prefix())
+            || RelativePath::parse(&target_ref).is_err()
+            || pins.contains_key(&target_ref)
+        {
+            return Err(SourceCommandError::Denied(
+                "PG private Text read package pin is duplicated or outside owner scope",
+            ));
+        }
+        let revision = cmd::integer(&package, "revision")?;
+        if revision == 0 {
+            return Err(SourceCommandError::Invalid(
+                "PG private Text read package revision",
+            ));
+        }
+        let package_digest = Digest256::from_hex(cmd::text(&package, "package_sha256")?)
+            .map_err(|_| SourceCommandError::Invalid("PG private Text package pin digest"))?;
+        let command_id = cmd::text(&package, "command_id")?.to_owned();
+        if command_id.is_empty() || command_id.len() > 1024 || command_id.contains('\0') {
+            return Err(SourceCommandError::Invalid(
+                "PG private Text read package command ID",
+            ));
+        }
+        if target_ref == packet_ref
+            && revision == cmd::integer(request, "revision")?
+            && package_digest.to_hex().as_str() == cmd::text(request, "package_sha256")?
+            && command_id.as_str() == cmd::text(request, "command_id")?
+        {
+            selected_packet_pin = true;
+        }
+        pins.insert(
+            target_ref,
+            PgPrivateTextPackagePin {
+                revision,
+                package_digest,
+                command_id,
+            },
+        );
+    }
+    if !selected_packet_pin || pins.is_empty() || pins.len() > 32 {
+        return Err(SourceCommandError::Denied(
+            "PG private Text read exact packet revision is not selected",
+        ));
+    }
+    let binding_ref = cmd::text(request, "binding_ref")?;
+    if !binding_ref.starts_with("ToS/source-witnesses/")
+        || !binding_ref.ends_with("/occurrence.json")
+        || RelativePath::parse(binding_ref).is_err()
+    {
+        return Err(SourceCommandError::Denied(
+            "PG private Text read binding reference",
+        ));
+    }
+    let max_return_bytes = usize::try_from(cmd::integer(request, "max_return_bytes")?)
+        .map_err(|_| SourceCommandError::Invalid("PG private Text return budget"))?;
+
+    let result = db
+        .with_private_owner_read_session(scope, deadline, cancelled, |private_session, _, _| {
+            if private_session.scope() != scope {
+                return Err(DurableError::Conflict(
+                    "PG private Text read owner scope changed",
+                ));
+            }
+            let mut source_db = DurablePgCoordinator::from_configured_client(
+                crate::source_projection_cli::connect_selected_source_pg16()
+                    .map_err(|_| DurableError::Conflict("selected Text PostgreSQL read"))?,
+            );
+            source_db.with_source_revision_session(
+                store,
+                &selection.domain,
+                &selection.job_id,
+                selection.job_fence,
+                deadline,
+                cancelled,
+                |session| {
+                    if !same_epoch(first_epoch, &epoch(session)) {
+                        return Err(DurableError::Conflict(
+                            "PG private Text read source epoch changed",
+                        ));
+                    }
+                    let current_schemas = selected_contracts(
+                        session,
+                        "tos_native_pg_private_text_read_v1",
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(source_command_error)?;
+                    if &current_schemas != schema_members {
+                        return Err(DurableError::Conflict(
+                            "PG private Text read contracts changed",
+                        ));
+                    }
+                    let mut reader = PgPrivateTextRead {
+                        session,
+                        private_session,
+                        pins: &pins,
+                        context,
+                        selected_members: BTreeMap::new(),
+                    };
+                    let current_binding =
+                        crate::source_sign_native::validate_current_occurrence_binding(
+                            &mut reader,
+                            worker,
+                            binding_ref,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(DurableError::Source)?;
+                    if cmd::canonical(&current_binding).map_err(DurableError::Source)?
+                        != cmd::canonical(&binding).map_err(DurableError::Source)?
+                    {
+                        return Err(DurableError::Conflict(
+                            "PG private Text read binding changed",
+                        ));
+                    }
+                    crate::source_sign_native::read_private_disclosed_unit(
+                        &mut reader,
+                        worker,
+                        &binding,
+                        profile,
+                        max_return_bytes,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)
+                },
+            )
+        })
+        .map_err(pg::source_error)?;
+    worker
+        .finish(deadline, cancelled)
+        .map_err(|_| SourceCommandError::Denied("PG private Text read worker FINAL"))?;
+    profile.verify(deadline, cancelled)?;
+    if context.configuration_sha256(deadline, cancelled)?.as_str()
+        != cmd::text(owner_context, "sha256")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG private Text read context changed",
+        ));
+    }
+    pg::value(&result)
+}
+
 enum SelectedGrant {
     Initial(OwnerTextInitialLayerSelection),
     Derived(OwnerTextDerivedSelection),
     Unit(OwnerTextUnitSelection),
+}
+
+enum PreparedPrivateTextOperation {
+    Commit(PreparedPrivateTextPackageV1),
+    InitialPreview(initial::NativeInitialTextLayerPreview),
+    DerivedPreview(derived::NativeDerivedTextLayerPreview),
+    Preview(unit::NativeFirstTextUnitPreview),
 }
 
 impl SelectedGrant {
@@ -723,8 +1084,105 @@ pub(crate) fn run(
     let owner_context_binding = context.private_owner_scope_binding(deadline, cancelled)?;
     let scope = PrivateOwnerScopeV1::for_context(&selection.domain, owner_context_binding)
         .map_err(pg::source_error)?;
+    if family == "tos_native_pg_private_text_read_v1" {
+        let schema_raw =
+            schema_members
+                .get(PG_PRIVATE_SCHEMA)
+                .ok_or(SourceCommandError::Conflict(
+                    "PG private Text read schema absent",
+                ))?;
+        let profile = LocalTextReadSelection::load_pg_private_profile(
+            &grant_path,
+            context.public_root(),
+            schema_raw,
+            &mut worker,
+            deadline,
+            cancelled,
+        )?;
+        let profile_context = cmd::field(profile.config(), "owner_context")?;
+        if cmd::text(profile.config(), "source_domain")? != selection.domain.as_str()
+            || cmd::text(profile.config(), "source_contract_sha256")?
+                != first_epoch.contract.to_hex().as_str()
+            || crate::source_text_owner::normalized_absolute(cmd::text(profile_context, "path")?)?
+                .as_path()
+                != context.configuration_path()
+            || cmd::text(profile_context, "sha256")?
+                != context.configuration_sha256(deadline, cancelled)?.as_str()
+        {
+            return Err(SourceCommandError::Denied(
+                "PG private Text read profile source or owner context differs",
+            ));
+        }
+        if operation == "describe" {
+            cmd::exact_keys(&request, &["operation"])?;
+            worker
+                .finish(deadline, cancelled)
+                .map_err(|_| SourceCommandError::Denied("PG private Text read describe FINAL"))?;
+            profile.verify(deadline, cancelled)?;
+            if context.private_owner_scope_binding(deadline, cancelled)? != owner_context_binding
+                || read_absolute(
+                    invocation_path,
+                    uid,
+                    true,
+                    invocation_raw.len(),
+                    deadline,
+                    cancelled,
+                )? != invocation_raw
+                || runtime_observation.current_digest(deadline, cancelled)? != executable_digest
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PG private Text read description inputs changed",
+                ));
+            }
+            return Ok(json!({
+                "schema_version":"tos_native_pg_private_text_description_v1",
+                "authentication":"local-unix-account",
+                "supported_operations":["native-text.read-private"],
+                "command_operations":["describe","native-text.read-private"],
+                "grants_admission":false,
+                "content_disclosure":"withheld"
+            }));
+        }
+        if operation != "native-text.read-private" {
+            return Err(SourceCommandError::Denied(
+                "PG private Text read operation is not selected",
+            ));
+        }
+        let result = pg_private_text_read(
+            &request,
+            &profile,
+            &context,
+            &scope,
+            &selection,
+            &store,
+            &first_epoch,
+            &schema_members,
+            &mut db,
+            &mut worker,
+            deadline,
+            cancelled,
+        )?;
+        if context.private_owner_scope_binding(deadline, cancelled)? != owner_context_binding
+            || read_absolute(&grant_path, uid, true, raw.len(), deadline, cancelled)? != raw
+            || read_absolute(
+                invocation_path,
+                uid,
+                true,
+                invocation_raw.len(),
+                deadline,
+                cancelled,
+            )? != invocation_raw
+            || runtime_observation.current_digest(deadline, cancelled)? != executable_digest
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG private Text read invocation or authority changed",
+            ));
+        }
+        return Ok(result);
+    }
     let (grant, owner_configuration) =
         select_grant(&context, &family, &grant_path, &worker, deadline, cancelled)?;
+    let grant_raw = grant.raw().to_vec();
     if cmd::text(grant.config(), "schema_version")? != family {
         return Err(SourceCommandError::Conflict("Text owner family changed"));
     }
@@ -762,17 +1220,19 @@ pub(crate) fn run(
                 "PostgreSQL Text invocation or executable changed",
             ));
         }
+        let command_operations = json!(["describe", "prepare-create", grant.operation()]);
         return Ok(json!({
             "schema_version":"tos_native_pg_private_text_description_v1",
             "authentication":"local-unix-account",
             "owner_configuration":owner_configuration,
             "supported_operations":[grant.operation()],
-            "command_operations":["describe",grant.operation()],
+            "command_operations":command_operations,
             "grants_admission":false,
             "content_disclosure":"withheld"
         }));
     }
-    if operation != grant.operation() {
+    let preparing_text = operation == "prepare-create";
+    if operation != grant.operation() && !preparing_text {
         return Err(SourceCommandError::Denied(
             "PostgreSQL Text independently selected operation",
         ));
@@ -1045,6 +1505,9 @@ pub(crate) fn run(
                 let publication = context
                     .select_publication(deadline, cancelled)
                     .map_err(DurableError::Source)?;
+                let owner_target = context
+                    .private_package_target_for_owner_route(&source_path)
+                    .map_err(DurableError::Source)?;
                 let selected_source = resolve_selected_source(
                     &grant,
                     &context,
@@ -1087,18 +1550,70 @@ pub(crate) fn run(
                     .extend_pg_selected_members(selected_source_members.clone())
                     .map_err(DurableError::Source)?;
                 let retained = target_current.as_ref().map(|snapshot| &snapshot.members);
-                let prepared = prepare_package(
-                    grant,
-                    context,
-                    publication,
-                    &request,
-                    retained,
-                    &software,
-                    &components,
-                    &mut worker,
-                    deadline,
-                    cancelled,
-                )
+                let prepared = if preparing_text {
+                    let exclude = target_current.as_ref().map(|_| owner_target.as_path());
+                    match grant {
+                        SelectedGrant::Initial(grant) => {
+                            cmd::exact_keys(&request, &["operation"])
+                                .map_err(DurableError::Source)?;
+                            initial::prepare_pg_initial_text_preview(
+                                context,
+                                publication,
+                                grant,
+                                &software,
+                                &components,
+                                &mut worker,
+                                exclude,
+                                deadline,
+                                cancelled,
+                            )
+                            .map(PreparedPrivateTextOperation::InitialPreview)
+                        }
+                        SelectedGrant::Derived(grant) => {
+                            cmd::exact_keys(&request, &["operation"])
+                                .map_err(DurableError::Source)?;
+                            derived::prepare_pg_derived_text_preview(
+                                context,
+                                publication,
+                                grant,
+                                &software,
+                                &components,
+                                &mut worker,
+                                exclude,
+                                deadline,
+                                cancelled,
+                            )
+                            .map(PreparedPrivateTextOperation::DerivedPreview)
+                        }
+                        SelectedGrant::Unit(grant) => unit::prepare_pg_text_unit_preview(
+                            context,
+                            publication,
+                            grant,
+                            &request,
+                            exclude,
+                            &software,
+                            &components,
+                            &mut worker,
+                            deadline,
+                            cancelled,
+                        )
+                        .map(PreparedPrivateTextOperation::Preview),
+                    }
+                } else {
+                    prepare_package(
+                        grant,
+                        context,
+                        publication,
+                        &request,
+                        retained,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        cancelled,
+                    )
+                    .map(PreparedPrivateTextOperation::Commit)
+                }
                 .map_err(DurableError::Source)?;
                 let mut dependency_members = dependency_members.clone();
                 for (path, bytes) in &schema_members {
@@ -1125,40 +1640,133 @@ pub(crate) fn run(
         )
         .map_err(pg::source_error)?;
 
-    let prepared_replayed = prepared.replayed();
-    let source_binding =
-        private_text_source_binding(&readset, &dependency_members, private_generation)
+    let preview = match prepared {
+        PreparedPrivateTextOperation::InitialPreview(preview) => Some((
+            preview.owner_configuration,
+            preview.expected_dependencies,
+            preview.source_path,
+            JsonValue::Null,
+            Some(JsonValue::Array(vec![preview.native_binding])),
+        )),
+        PreparedPrivateTextOperation::DerivedPreview(preview) => Some((
+            preview.owner_configuration,
+            preview.expected_dependencies,
+            preview.source_path,
+            JsonValue::Null,
+            None,
+        )),
+        PreparedPrivateTextOperation::Preview(preview) => Some((
+            preview.owner_configuration,
+            preview.expected_dependencies,
+            preview.source_path,
+            preview.prepared_files,
+            Some(preview.native_bindings),
+        )),
+        PreparedPrivateTextOperation::Commit(prepared) => {
+            let prepared_replayed = prepared.replayed();
+            let source_binding =
+                private_text_source_binding(&readset, &dependency_members, private_generation)
+                    .map_err(pg::source_error)?;
+            let mut capability = PrivateTextPackageCapabilityV1::from_prepared(
+                prepared,
+                scope,
+                target_current,
+                source_binding,
+                &request,
+                &request_raw,
+                &software,
+                &components,
+                invocation_path,
+                invocation_raw,
+                uid,
+                &runtime_observation,
+                executable_digest,
+                deadline,
+                cancelled,
+            )
             .map_err(pg::source_error)?;
-    let mut capability = PrivateTextPackageCapabilityV1::from_prepared(
-        prepared,
-        scope,
-        target_current,
-        source_binding,
-        &request,
-        &request_raw,
-        &software,
-        &components,
-        invocation_path,
-        invocation_raw,
-        uid,
-        &runtime_observation,
-        executable_digest,
-        deadline,
-        cancelled,
-    )
-    .map_err(pg::source_error)?;
-    let replay = db
-        .commit_private_owner_package(&mut capability)
+            let replay = db
+                .commit_private_owner_package(&mut capability)
+                .map_err(pg::source_error)?;
+            return Ok(json!({
+                "schema_version":"tos_native_pg_private_text_result_v1",
+                "authentication":"local-unix-account",
+                "command_id":cmd::text(&request, "command_id")?,
+                "commit_seq":replay.commit_seq,
+                "package_sha256":replay.package_digest.to_prefixed(),
+                "receipt_sha256":Digest256::of_bytes(&replay.response_bytes).to_prefixed(),
+                "replayed":prepared_replayed || replay.replayed,
+                "grants_admission":false,
+                "content_disclosure":"withheld"
+            }));
+        }
+    };
+    if let Some((
+        owner_configuration,
+        expected_dependencies,
+        source_path,
+        prepared_files,
+        native_bindings,
+    )) = preview
+    {
+        // A preview has no durable commit to carry the PG readset lease. Reopen
+        // the selected source epoch and recheck its source, rights, and rule
+        // generations before returning the two owner-computed digests.
+        db.with_source_revision_session(
+            &store,
+            &selection.domain,
+            &selection.job_id,
+            selection.job_fence,
+            deadline,
+            cancelled,
+            |session| {
+                if !same_epoch(&first_epoch, &epoch(session)) {
+                    return Err(DurableError::Conflict(
+                        "PostgreSQL Text source epoch changed during preparation",
+                    ));
+                }
+                let current_schemas = selected_contracts(session, &family, deadline, cancelled)
+                    .map_err(source_command_error)?;
+                if current_schemas != schema_members {
+                    return Err(DurableError::Conflict(
+                        "PostgreSQL Text contracts changed during preparation",
+                    ));
+                }
+                Ok(())
+            },
+        )
         .map_err(pg::source_error)?;
-    Ok(json!({
-        "schema_version":"tos_native_pg_private_text_result_v1",
-        "authentication":"local-unix-account",
-        "command_id":cmd::text(&request, "command_id")?,
-        "commit_seq":replay.commit_seq,
-        "package_sha256":replay.package_digest.to_prefixed(),
-        "receipt_sha256":Digest256::of_bytes(&replay.response_bytes).to_prefixed(),
-        "replayed":prepared_replayed || replay.replayed,
-        "grants_admission":false,
-        "content_disclosure":"withheld"
-    }))
+        if read_absolute(&grant_path, uid, true, grant_raw.len(), deadline, cancelled)? != grant_raw
+            || read_absolute(
+                invocation_path,
+                uid,
+                true,
+                invocation_raw.len(),
+                deadline,
+                cancelled,
+            )? != invocation_raw
+            || runtime_observation.current_digest(deadline, cancelled)? != executable_digest
+        {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Text preparation inputs changed",
+            ));
+        }
+        let mut response = json!({
+            "schema_version":"tos_native_pg_text_preparation_v1",
+            "authentication":"local-unix-account",
+            "owner_configuration":owner_configuration,
+            "expected_dependencies":expected_dependencies,
+            "source_path":source_path,
+            "prepared_files":prepared_files,
+            "grants_admission":false,
+            "content_disclosure":"withheld"
+        });
+        if let Some(bindings) = native_bindings {
+            response["native_bindings"] = pg::value(&bindings)?;
+        }
+        return Ok(response);
+    }
+    Err(SourceCommandError::Invalid(
+        "PostgreSQL Text prepared operation result",
+    ))
 }

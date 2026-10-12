@@ -387,6 +387,28 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "public-native-text-create-owner.schema.json#/$defs/sourceRef",
                 "source-text-unit-packet-v1.schema.json#/$defs/sourceScope",
             ]
+        } else if basename == "occurrence-description-record.schema.json" {
+            for dependency in [
+                "source-metadata-record.schema.json",
+                "semantic-description-record.schema.json",
+                "native-text-unit-binding.schema.json",
+            ] {
+                let dependency_name = format!("ToS/contracts/{dependency}");
+                let raw = self.read(&dependency_name, None, false, true)?;
+                if self.worker.selected_contract_digest(&dependency_name)
+                    != Some(Digest256::of_bytes(&raw))
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "native occurrence dependency and schema worker differ",
+                    ));
+                }
+            }
+            vec![
+                "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields",
+                "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields",
+                "https://tree-of-sophia.local/ToS/contracts/native-text-unit-binding.schema.json",
+            ]
         } else if basename == ASSESSMENT_SCHEMA {
             for dependency in [
                 "native-text-unit-binding.schema.json",
@@ -2786,6 +2808,45 @@ pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
     })
 }
 
+/// Validate the current occurrence contract and return its exact native
+/// TextUnit binding. The caller supplies only a source reference; the record
+/// and its schema are read from the same selected transport and included in
+/// the native current-input snapshot before any private content is requested.
+pub(crate) fn validate_current_occurrence_binding<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
+    occurrence_ref: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let mut native = Native {
+        reader,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    native.route(occurrence_ref, NativeReadKind::Metadata)?;
+    if !occurrence_ref.ends_with("/occurrence.json") {
+        return Err(SourceCommandError::Denied(
+            "native binding must come from an occurrence record",
+        ));
+    }
+    let (record, _) = native.record(occurrence_ref, None)?;
+    native.validate(
+        &record,
+        "occurrence-description-record.schema.json",
+        occurrence_ref,
+    )?;
+    let binding = cmd::field(&record, "native_text_binding")?.clone();
+    native.snapshot()?;
+    Ok(binding)
+}
+
 /// Resolve both maintained Profile snapshots with one selected owner cache and quota.
 pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
     reader: &mut R,
@@ -3072,8 +3133,8 @@ fn disclosed_spans(
 /// The private delivery adapter must select the exact binding before invoking
 /// this owner transport. Metadata-only resolution proves neither a read grant
 /// nor content quality, and public flags cannot substitute for this route.
-pub(crate) fn read_private_disclosed_unit(
-    reader: &mut crate::source_text_owner::OwnerTextContext,
+pub(crate) fn read_private_disclosed_unit<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
     worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     selection: &crate::source_native_text_read::LocalTextReadSelection,

@@ -47,15 +47,12 @@ pub(crate) fn load(root: &Path) -> io::Result<Coverage> {
     Ok(coverage)
 }
 
-fn selected_steps(
-    root: &Path,
-    python: &str,
-) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
+fn selected_steps(root: &Path) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
     let coverage = load(root)?;
     let sequence = coverage.native_execution_sequence.as_deref().filter(|name| !name.is_empty())
         .ok_or_else(|| io::Error::new(io::ErrorKind::Unsupported,
             "Growth has no source-owned native execution sequence; use explicit reference comparison or bounded contracts"))?;
-    let steps = crate::validation_lanes::command_sequence_with_budgets(root, sequence, python)?;
+    let steps = crate::validation_lanes::command_sequence_with_budgets(root, sequence)?;
     if !steps.iter().any(|((_, argv), _)| {
         argv.first()
             .is_some_and(|arg| arg == crate::growth_native_plan::CLASS_SEQUENCE)
@@ -97,7 +94,7 @@ pub fn uses_native_route(root: &Path, mechanics: &crate::Plan) -> io::Result<boo
 
 /// Validate an actual executable owner binding, never an acceptance flag.
 pub fn require_whole_route(root: &Path) -> io::Result<()> {
-    selected_steps(root, "python").map(|_| ())
+    selected_steps(root).map(|_| ())
 }
 
 /// Keep other mechanics and Growth builders/validators in authored order;
@@ -105,7 +102,6 @@ pub fn require_whole_route(root: &Path) -> io::Result<()> {
 /// workspace pipeline. One executor owns the combined lane wall deadline.
 pub fn whole_steps(
     root: &Path,
-    python: &str,
     mechanics: &crate::Plan,
 ) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
     let coverage = load(root)?;
@@ -131,6 +127,6 @@ pub fn whole_steps(
             )
         })
         .collect();
-    steps.extend(selected_steps(root, python)?);
+    steps.extend(selected_steps(root)?);
     Ok(steps)
 }

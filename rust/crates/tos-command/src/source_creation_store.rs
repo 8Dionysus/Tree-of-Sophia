@@ -98,6 +98,7 @@ pub(crate) use item_adoption::pg_item_adoption_response_from_attempt;
 pub(crate) use item_adoption::pg_item_adoption_transaction_id;
 pub(crate) use item_adoption::pg_item_adoption_transaction_id_from_request;
 pub(crate) use item_adoption::pg_select_owner as select_pg_item_adoption_owner;
+pub(crate) use item_adoption::pg_select_proposal as select_pg_item_adoption_proposal;
 pub(crate) use item_adoption::verify_pg_item_adoption_owner;
 pub use item_adoption::{
     ItemAdoptionPreparation, ItemAdoptionPublication, execute_isolated_item_adoption_from_captures,

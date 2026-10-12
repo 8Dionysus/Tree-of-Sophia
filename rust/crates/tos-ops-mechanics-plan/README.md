@@ -9,8 +9,9 @@ assertions by home, builder checks, then validators.
 `--repo-root ABSOLUTE_PATH` is required. `--execute` runs the native Growth
 pipeline with the other selected native mechanics from that root. Unexpected
 Python test/build/validator files fail discovery before any command starts.
-`--python COMMAND` remains only for explicitly selected external-owner adapters;
-the ToS mechanics pipeline does not use an interpreter.
+The global `--python COMMAND` option selects external-owner adapters used by
+mechanics operations. Maintained validation and release commands do not accept
+it or pass an interpreter to their authored command sequences.
 
 The first nonzero child stops execution. Child stdout and stderr retain their
 streams; diagnostic traceback wording and cross-stream interleaving are not
@@ -85,9 +86,8 @@ and does not accept authored ToS meaning.
 
 `tos-validation-lanes` owns the validation command plane. Its `--check`,
 `--sequence ID`, and `--run ID` modes read the existing
-`docs/validation/validation_lanes.json` in authored order. Maintained ToS sequences
-require no interpreter. An explicitly supplied external-owner Python step requires
-`--python PATH`; the native binary does not discover or install an interpreter.
+`docs/validation/validation_lanes.json` in authored order. Maintained sequences
+are native-only; both manifest checking and selection reject Python commands.
 The read is bounded to 1 MiB. Run uses the existing dedicated Linux
 pidfd/subreaper executor with its default 300-second command wall,
 3600-second sequence wall, one-second cleanup grace, and 16 MiB combined
@@ -100,12 +100,11 @@ have been retired.
 `tos-release-check` is a distinct explicit consumer of the same manifest's
 `release_check` sequence. `--phase all` keeps authored order; `checks` and
 `tests` select before or at the complete final suffix of named `run tests: `
-steps, while retaining support for one legacy final `run tests` step. It takes
-an exact `--python PATH` adapter only for explicitly supplied external-owner
-steps, and preserves the maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
-`list2cmdline` progress text, first failure line on stdout, and child status.
+steps, while retaining support for one legacy final `run tests` step. It accepts
+only native commands and preserves quoted `list2cmdline` progress text, first
+failure line on stdout, and child status.
 The same native executor imposes the finite command, sequence, cleanup, and
-output limits above; this differs from Python's unbounded subprocess call.
+output limits above.
 Its controlled fixture runs only a temporary four-step release-shaped
 sequence. The existing release command entry selects the native consumer. This source
 wiring does not claim an actual release or repository CI run.
@@ -464,16 +463,16 @@ historical names without requiring those launchers.
 
 `tos-validation-lanes --repo-root ABSOLUTE_PATH --sequence route_docs`
 shows the authored command sequence; `--run route_docs` executes it under the
-same bounded process supervisor. Native sequences need no Python argument.
+same bounded process supervisor. Maintained sequences are native-only; manifest
+checking and command selection reject Python commands.
 The manifest's exact `{repo_root}` argument resolves to the selected canonical
-root without shell expansion. An explicitly supplied external-owner Python step
-requires `--python EXACT_INTERPRETER`; no interpreter is discovered for it.
+root without shell expansion.
 
 Route currentness, nested cards, task harness, tiny entry and the philosophy
 projection lanes call their existing Rust implementations directly.
 `tos-ops-mechanics-plan --agents-route-harness-check --repo-root ABSOLUTE_PATH`
 and `--tiny-entry-validate` also expose those narrow owner checks individually.
-`tos-release-check` follows the same explicit external-adapter rule; maintained
+`tos-release-check` follows the same native-only manifest contract; maintained
 ToS test steps execute native products.
 
 The source-home lane runs `--lived-witness-validate` through the native owner.

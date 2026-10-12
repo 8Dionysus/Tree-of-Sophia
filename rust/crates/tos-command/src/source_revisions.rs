@@ -1006,6 +1006,40 @@ impl PgRecordRevisionCommandContext {
     pub(crate) fn identity(&self) -> PgRecordRevisionIdentity {
         self.identity
     }
+
+    fn selected_publication_ids(&self) -> SourceCommandResult<Vec<String>> {
+        if let Some(observation) = &self.work_revision {
+            return Ok(observation
+                .selected
+                .as_ref()
+                .map(|transaction| vec![transaction.transaction_id.clone()])
+                .unwrap_or_default());
+        }
+
+        let (_, family) = configuration(&self.command)?;
+        if !family.selected() {
+            return Ok(Vec::new());
+        }
+        let request_value = cmd::parse(&self.command.request_raw)?;
+        if cmd::text(&request_value, "operation")? != "record.revise" {
+            return Ok(Vec::new());
+        }
+        request(&request_value, family)?;
+
+        // The PG selected reader already carries only the request-derived
+        // transaction's retained files. Select its publication evidence on an
+        // exact retry, but leave the first commit's absent manifest unselected.
+        let transaction_id = transaction_id(&request_value)?;
+        let manifest = path(&format!(
+            "ToS/source-witnesses/.metadata-transactions/{}/manifest.json",
+            &transaction_id[7..]
+        ))?;
+        if self.command.file(&manifest)?.is_some() {
+            Ok(vec![transaction_id])
+        } else {
+            Ok(Vec::new())
+        }
+    }
 }
 
 impl RecordRead for PgRecordRevisionCommandContext {
@@ -4434,13 +4468,9 @@ pub(crate) fn prepare_pg_record_revision_inner(
 ) -> SourceCommandResult<PreparedCommand> {
     // The legacy proposal remains bound to the cohort's actual bootstrap
     // SourceRevision; `ctx.input_identity()` and the worker carry the PG epoch.
-    let selected_ids = ctx
-        .work_revision
-        .as_ref()
-        .and_then(|observation| observation.selected.as_ref())
-        .map(|transaction| vec![transaction.transaction_id.as_str()])
-        .unwrap_or_default();
-    let publication = ctx.read_publication(&selected_ids)?;
+    let selected_ids = ctx.selected_publication_ids()?;
+    let selected_id_refs = selected_ids.iter().map(String::as_str).collect::<Vec<_>>();
+    let publication = ctx.read_publication(&selected_id_refs)?;
     prepare_record_revision_with_context(ctx, Some(&publication), cut, worker, deadline, cancelled)
 }
 
@@ -7051,6 +7081,35 @@ pub(crate) fn public_profile_candidate<I: Copy + Eq>(
     config: &JsonValue,
     record: &JsonValue,
 ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+    public_profile_candidate_with_native_content(
+        worker, deadline, cancelled, ctx, config, record, false,
+    )
+}
+
+/// Creation-only variant. The caller must immediately run the maintained
+/// native resolver's exact content route before accepting this profile.
+pub(crate) fn public_profile_candidate_for_creation<I: Copy + Eq>(
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &impl RecordRead<Identity = I>,
+    config: &JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+    public_profile_candidate_with_native_content(
+        worker, deadline, cancelled, ctx, config, record, true,
+    )
+}
+
+fn public_profile_candidate_with_native_content<I: Copy + Eq>(
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &impl RecordRead<Identity = I>,
+    config: &JsonValue,
+    record: &JsonValue,
+    creation_native_content_check: bool,
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = validate_source_profile_registry_candidate(worker, deadline, cancelled, ctx)?;
     let entities = cmd::array(&registry, "types")?
@@ -7095,8 +7154,11 @@ pub(crate) fn public_profile_candidate<I: Copy + Eq>(
             "retained composite profile path",
         ));
     }
-    if profile.object_get("native_binding_adapter").is_some()
-        || record.object_get("native_text_binding").is_some()
+    let native_binding_adapter = profile.object_get("native_binding_adapter");
+    if native_binding_adapter.is_some() && !creation_native_content_check
+        || native_binding_adapter.is_none() && record.object_get("native_text_binding").is_some()
+        || native_binding_adapter
+            .is_some_and(|adapter| adapter.as_str() != Some("source-text-unit-v1"))
     {
         return Err(SourceCommandError::Unsupported(
             "candidate public profile native text binding adapter",

@@ -4067,6 +4067,51 @@ fn claim_profile_inputs_selected(
     descriptor: &JsonValue,
     inputs: &mut JsonValue,
 ) -> SourceCommandResult<&'static str> {
+    let route = array(&descriptor, "schemas")?
+        .iter()
+        .find(|v| v.object_get("schema_version") == claim.object_get("schema_version"))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim schema fingerprint route",
+        ))?;
+    claim_profile_inputs_for_route(ctx, claim, descriptor, route, inputs)
+}
+
+/// Existing catalog rows carry the selected source contract reference but
+/// their own `schema_version` belongs to the catalog-entry envelope. Resolve
+/// the original profile route by its exact retained source schema reference.
+fn claim_profile_inputs_for_catalog_entry(
+    ctx: &CommandContext,
+    entry: &JsonValue,
+    descriptor: &JsonValue,
+    inputs: &mut JsonValue,
+) -> SourceCommandResult<&'static str> {
+    let source_schema_ref = entry
+        .object_get("source_schema_ref")
+        .and_then(JsonValue::as_str)
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim catalog source schema route absent",
+        ))?;
+    let mut routes = array(descriptor, "schemas")?.iter().filter(|route| {
+        route.object_get("schema_ref").and_then(JsonValue::as_str) == Some(source_schema_ref)
+    });
+    let route = routes.next().ok_or(SourceCommandError::Unsupported(
+        "Claim catalog source schema fingerprint route",
+    ))?;
+    if routes.next().is_some() {
+        return Err(SourceCommandError::Conflict(
+            "ambiguous Claim catalog source schema fingerprint route",
+        ));
+    }
+    claim_profile_inputs_for_route(ctx, entry, descriptor, route, inputs)
+}
+
+fn claim_profile_inputs_for_route(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+    descriptor: &JsonValue,
+    route: &JsonValue,
+    inputs: &mut JsonValue,
+) -> SourceCommandResult<&'static str> {
     let reader = text(&descriptor, "reader")?;
     if reader.starts_with("identity-transition-")
         && !["identity-transition-v1", "identity-transition-v2"].contains(&reader)
@@ -4080,12 +4125,6 @@ fn claim_profile_inputs_selected(
             "declared retained Claim provenance bindings adapter",
         ));
     }
-    let route = array(&descriptor, "schemas")?
-        .iter()
-        .find(|v| v.object_get("schema_version") == claim.object_get("schema_version"))
-        .ok_or(SourceCommandError::Unsupported(
-            "Claim schema fingerprint route",
-        ))?;
     include_route(
         ctx,
         inputs,
@@ -7708,7 +7747,12 @@ fn maintained_grounding(
         .filter(|(id, _)| relevant_claim_ids.contains(*id))
     {
         let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
-        claim_profile_inputs_selected(ctx, claim, &descriptor, &mut relevant_claim_profiles)?;
+        claim_profile_inputs_for_catalog_entry(
+            ctx,
+            claim,
+            &descriptor,
+            &mut relevant_claim_profiles,
+        )?;
     }
     let source_contracts = JsonValue::Object(
         relevant_record_inputs

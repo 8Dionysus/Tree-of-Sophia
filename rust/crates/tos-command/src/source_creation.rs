@@ -56,6 +56,166 @@ const LINKS: &[&str] = &[
     "association_claim_refs",
 ];
 
+/// Exact selected source bytes for the native TextUnit binding check in a
+/// PublicProfile create. PG creation supplies only its bounded selected
+/// context; the immutable-cut path reads from the exact current cut.
+struct CreationNativeReader<'a> {
+    context: &'a CommandContext,
+    cut: Option<&'a CorpusCutReader>,
+}
+
+impl crate::source_sign_native::SignNativeRead for CreationNativeReader<'_> {
+    fn read(
+        &mut self,
+        reference: &str,
+        _kind: crate::source_sign_native::NativeReadKind,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        let path = RelativePath::parse(reference)
+            .map_err(|_| SourceCommandError::Denied("creation native source path"))?;
+        let raw = if let Some(cut) = self.cut {
+            let member = cut
+                .current()
+                .member(&path)
+                .ok_or(SourceCommandError::Conflict(
+                    "creation native selected source member absent",
+                ))?;
+            if member.size_bytes > max_bytes as u64 {
+                return Err(SourceCommandError::Invalid(
+                    "creation native selected source byte budget",
+                ));
+            }
+            cut.read_member(
+                cut.current().revision(),
+                &path,
+                max_bytes as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| SourceCommandError::Conflict("creation native selected source read"))?
+            .raw
+        } else {
+            self.context
+                .file(&path)?
+                .ok_or(SourceCommandError::Conflict(
+                    "creation native source was not selected",
+                ))?
+                .to_vec()
+        };
+        if raw.len() > max_bytes {
+            return Err(SourceCommandError::Invalid(
+                "creation native selected source byte budget",
+            ));
+        }
+        Ok(raw)
+    }
+
+    fn verify_current(
+        &mut self,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.context.check()
+    }
+
+    fn owner_local(&self, _reference: &str) -> SourceCommandResult<bool> {
+        Ok(false)
+    }
+}
+
+fn is_owner_private_native_reference(reference: &str) -> bool {
+    reference.starts_with("ToS/source-witnesses/owner-local/")
+}
+
+fn verify_public_profile_native_content(
+    reader: &mut dyn crate::source_sign_native::SignNativeRead,
+    private_selection: Option<&crate::source_native_text_read::LocalTextReadSelection>,
+    worker: &mut dyn CutSchemaExecutor,
+    profile: &JsonValue,
+    record: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let Some(adapter) = profile.object_get("native_binding_adapter") else {
+        if record.object_get("native_text_binding").is_some() {
+            return Err(SourceCommandError::Denied(
+                "native text binding has no explicit profile adapter",
+            ));
+        }
+        return Ok(());
+    };
+    if adapter.as_str() != Some("source-text-unit-v1") {
+        return Err(SourceCommandError::Unsupported(
+            "creation native text binding adapter",
+        ));
+    }
+    let binding = cmd::field(record, "native_text_binding")?;
+    let packet_ref = cmd::text(binding, "packet_ref")?;
+    let layer_ref = cmd::text(cmd::field(binding, "text_layer")?, "record_ref")?;
+    let private_metadata = is_owner_private_native_reference(packet_ref)
+        || is_owner_private_native_reference(layer_ref);
+    if private_metadata && private_selection.is_none() {
+        return Err(SourceCommandError::Denied(
+            "private source.create TextUnit requires an independent PG read selection",
+        ));
+    }
+    if private_metadata {
+        let selection = private_selection.ok_or(SourceCommandError::Denied(
+            "private source.create TextUnit read selection absent",
+        ))?;
+        // This maintained route checks the selected binding and current rights
+        // before opening its exact private content member. Its bounded return is
+        // intentionally discarded; source.create retains only the metadata.
+        let _ = crate::source_sign_native::read_private_disclosed_unit(
+            reader, worker, binding, selection, 1_048_576, deadline, cancelled,
+        )?;
+        reader.verify_current(deadline, cancelled)?;
+        selection.verify(deadline, cancelled)?;
+        return Ok(());
+    }
+    let metadata = crate::source_sign_native::resolve_binding(
+        reader,
+        worker,
+        binding,
+        crate::source_sign_native::NativeReadScope::MetadataOnly,
+        deadline,
+        cancelled,
+    )?;
+    let representation = cmd::field(&metadata.layer, "representation")?;
+    let content_ref = cmd::text(representation, "content_ref")?;
+    let private_content =
+        reader.owner_local(content_ref)? || is_owner_private_native_reference(content_ref);
+    if private_content {
+        let selection = private_selection.ok_or(SourceCommandError::Denied(
+            "private source.create TextUnit requires an independent PG read selection",
+        ))?;
+        let _ = crate::source_sign_native::read_private_disclosed_unit(
+            reader, worker, binding, selection, 1_048_576, deadline, cancelled,
+        )?;
+        reader.verify_current(deadline, cancelled)?;
+        selection.verify(deadline, cancelled)?;
+        return Ok(());
+    }
+    let resolved = crate::source_sign_native::resolve_binding(
+        reader,
+        worker,
+        binding,
+        crate::source_sign_native::NativeReadScope::PublicContent,
+        deadline,
+        cancelled,
+    )?;
+    if cmd::field(&resolved.summary, "content_verified")? != &JsonValue::Bool(true)
+        || cmd::field(&resolved.summary, "public_content_declared")? != &JsonValue::Bool(true)
+    {
+        return Err(SourceCommandError::Denied(
+            "source.create native binding needs exact public content verification",
+        ));
+    }
+    Ok(())
+}
+
 #[path = "source_creation_pg.rs"]
 pub(crate) mod pg;
 
@@ -1309,14 +1469,19 @@ fn initial(
                 "Sign requires exact declared creation gate",
             ));
         }
-        // Metadata-only revision validation cannot substitute for creation's
-        // mandatory exact public representation read. Filled by the same
-        // native resolver's content path, not an admission boolean.
-        if profile.object_get("native_binding_adapter").is_some() {
-            return Err(SourceCommandError::Unsupported(
-                "creation exact native content verification pending resolver content route",
-            ));
-        }
+        let mut native_reader = CreationNativeReader {
+            context: ctx,
+            cut: Some(cut),
+        };
+        verify_public_profile_native_content(
+            &mut native_reader,
+            None,
+            worker,
+            &profile,
+            record,
+            deadline,
+            cancelled,
+        )?;
     }
     Ok(profile_resources)
 }
@@ -1333,6 +1498,8 @@ pub(crate) fn initial_with_candidate_schema(
     config: &JsonValue,
     family: CreationFamily,
     record: &JsonValue,
+    native_reader: Option<&mut dyn crate::source_sign_native::SignNativeRead>,
+    private_selection: Option<&crate::source_native_text_read::LocalTextReadSelection>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<String>> {
@@ -1412,7 +1579,7 @@ pub(crate) fn initial_with_candidate_schema(
         return Ok(Vec::new());
     }
     let schema_context = revisions::PgRecordRevisionCommandContext::new(ctx.clone(), identity);
-    let (profile, resources, _, _) = revisions::public_profile_candidate(
+    let (profile, resources, _, _) = revisions::public_profile_candidate_for_creation(
         worker,
         deadline,
         cancelled,
@@ -1425,10 +1592,30 @@ pub(crate) fn initial_with_candidate_schema(
             "profile requires explicit Sign promotion gate",
         ));
     }
-    if profile.object_get("native_binding_adapter").is_some() {
-        return Err(SourceCommandError::Unsupported(
-            "creation exact native content verification pending resolver content route",
-        ));
+    if let Some(native_reader) = native_reader {
+        verify_public_profile_native_content(
+            native_reader,
+            private_selection,
+            worker,
+            &profile,
+            record,
+            deadline,
+            cancelled,
+        )?;
+    } else {
+        let mut native_reader = CreationNativeReader {
+            context: ctx,
+            cut: None,
+        };
+        verify_public_profile_native_content(
+            &mut native_reader,
+            private_selection,
+            worker,
+            &profile,
+            record,
+            deadline,
+            cancelled,
+        )?;
     }
     Ok(resources)
 }

@@ -14,7 +14,6 @@ extern "C" fn cancelled(signal: i32) {
 
 struct Options {
     root: PathBuf,
-    python: Option<String>,
     check: bool,
     sequence: Option<String>,
     run: Option<String>,
@@ -22,13 +21,12 @@ struct Options {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-validation-lanes --repo-root PATH [--python EXACT_INTERPRETER] [--check] [--sequence ID] [--run ID] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
     let mut args = env::args().skip(1);
     let mut root = None;
-    let mut python = None;
     let mut check = false;
     let mut sequence = None;
     let mut run = None;
@@ -36,7 +34,6 @@ fn options() -> Result<Options, String> {
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
-            "--python" => python = Some(args.next().ok_or("missing Python interpreter")?),
             "--check" => check = true,
             "--sequence" => sequence = Some(args.next().ok_or("missing sequence ID")?),
             "--run" => run = Some(args.next().ok_or("missing run ID")?),
@@ -68,7 +65,6 @@ fn options() -> Result<Options, String> {
     }
     Ok(Options {
         root: root.ok_or("--repo-root is required")?,
-        python,
         check,
         sequence,
         run,
@@ -106,29 +102,21 @@ fn main() {
         }
     }
     if let Some(sequence) = options.sequence.as_deref() {
-        let steps = validation_lanes::command_sequence(
-            &options.root,
-            sequence,
-            options.python.as_deref().unwrap_or(""),
-        )
-        .unwrap_or_else(|error| {
-            eprintln!("error: {error}");
-            std::process::exit(1);
-        });
+        let steps =
+            validation_lanes::command_sequence(&options.root, sequence).unwrap_or_else(|error| {
+                eprintln!("error: {error}");
+                std::process::exit(1);
+            });
         for (label, command) in steps {
             println!("{label}: {}", command.join(" "));
         }
     }
     if let Some(sequence) = options.run.as_deref() {
-        let steps = validation_lanes::command_sequence_with_budgets(
-            &options.root,
-            sequence,
-            options.python.as_deref().unwrap_or(""),
-        )
-        .unwrap_or_else(|error| {
-            eprintln!("error: {error}");
-            std::process::exit(1);
-        });
+        let steps = validation_lanes::command_sequence_with_budgets(&options.root, sequence)
+            .unwrap_or_else(|error| {
+                eprintln!("error: {error}");
+                std::process::exit(1);
+            });
         let _ = io::stdout().flush();
         #[cfg(target_os = "linux")]
         unsafe {
@@ -142,18 +130,13 @@ fn main() {
                 }
             }
         }
-        let code = executor::run_validation_sequence(
-            &options.root,
-            options.python.as_deref().unwrap_or(""),
-            &steps,
-            options.limits,
-            &CANCEL,
-        )
-        .unwrap_or_else(|error| {
-            eprintln!("error: validation sequence: {error}");
-            let signal = CANCEL.load(Ordering::Relaxed);
-            std::process::exit(if signal == 0 { 1 } else { 128 + signal });
-        });
+        let code =
+            executor::run_validation_sequence(&options.root, &steps, options.limits, &CANCEL)
+                .unwrap_or_else(|error| {
+                    eprintln!("error: validation sequence: {error}");
+                    let signal = CANCEL.load(Ordering::Relaxed);
+                    std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+                });
         std::process::exit(code);
     }
 }

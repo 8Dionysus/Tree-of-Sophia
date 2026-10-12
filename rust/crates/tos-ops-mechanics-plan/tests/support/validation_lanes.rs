@@ -49,7 +49,7 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
     let root = Fixture::new();
     root.manifest(json!({"command_sequences":{"sample":[step("first", &["native", "a b", "{repo_root}"]),step("second", &["tool", "--check"])]}}));
     assert_eq!(
-        lanes::command_sequence(&root.0, "sample", "").unwrap(),
+        lanes::command_sequence(&root.0, "sample").unwrap(),
         vec![
             (
                 "first".into(),
@@ -62,7 +62,7 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
             ("second".into(), vec!["tool".into(), "--check".into()]),
         ]
     );
-    assert!(lanes::command_sequence(&root.0, "missing", "").is_err());
+    assert!(lanes::command_sequence(&root.0, "missing").is_err());
     for invalid in [
         json!([]),
         json!([null]),
@@ -70,7 +70,7 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
         json!([{"label":"bad","command":["tool",null]}]),
     ] {
         root.manifest(json!({"command_sequences":{"sample":invalid}}));
-        assert!(lanes::command_sequence(&root.0, "sample", "").is_err());
+        assert!(lanes::command_sequence(&root.0, "sample").is_err());
     }
     for valid in [
         vec![
@@ -81,11 +81,11 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
         vec![step("contracts", &["a"]), step("run tests", &["b"])],
     ] {
         root.manifest(json!({"command_sequences":{"release_check":valid}}));
-        let mut combined = lanes::release_steps(&root.0, "", ReleasePhase::Checks).unwrap();
-        combined.extend(lanes::release_steps(&root.0, "", ReleasePhase::Tests).unwrap());
+        let mut combined = lanes::release_steps(&root.0, ReleasePhase::Checks).unwrap();
+        combined.extend(lanes::release_steps(&root.0, ReleasePhase::Tests).unwrap());
         assert_eq!(
             combined,
-            lanes::release_steps(&root.0, "", ReleasePhase::All).unwrap()
+            lanes::release_steps(&root.0, ReleasePhase::All).unwrap()
         );
     }
     for labels in [
@@ -96,16 +96,49 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
         vec!["run tests: "],
     ] {
         root.manifest(json!({"command_sequences":{"release_check":labels.iter().map(|label|step(label,&["tool"])).collect::<Vec<_>>()}}));
-        assert!(lanes::release_steps(&root.0, "", ReleasePhase::Checks).is_err());
-        assert!(lanes::release_steps(&root.0, "", ReleasePhase::Tests).is_err());
+        assert!(lanes::release_steps(&root.0, ReleasePhase::Checks).is_err());
+        assert!(lanes::release_steps(&root.0, ReleasePhase::Tests).is_err());
     }
+}
+
+#[test]
+fn maintained_manifest_check_and_selection_reject_python_commands() {
+    let root = Fixture::new();
+    fs::write(root.0.join("owner.md"), "fixture owner\n").unwrap();
+    root.manifest(json!({
+        "schema_version":"tos_validation_lanes_v1",
+        "owner_repo":"Tree-of-Sophia",
+        "command_authority":"docs/validation/validation_lanes.json",
+        "lanes":{"sample":{
+            "label":"Sample",
+            "layer":"fixture",
+            "mode":"fixture",
+            "owner_surface":"owner.md",
+            "purpose":"Exercise the maintained command boundary.",
+            "failure_route":"owner.md",
+            "does_not_own":["source meaning"],
+            "command_sequence":"sample"
+        }},
+        "command_sequences":{"sample":[step("legacy Python", &["python", "-m", "pytest"])]}
+    }));
+
+    let issues = lanes::validate_manifest(&root.0).unwrap();
+    assert!(issues.iter().any(|(_, detail)| {
+        detail.contains("Python commands") && detail.contains("unsupported")
+    }));
+    let error = lanes::command_sequence(&root.0, "sample").unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("Python commands are unsupported")
+    );
 }
 
 #[test]
 fn release_software_native_test_packages_are_selected_once() {
     let root = repository();
-    let sequence = lanes::command_sequence(&root, "release_check", "selected-interpreter").unwrap();
-    let tests = lanes::release_steps(&root, "selected-interpreter", ReleasePhase::Tests).unwrap();
+    let sequence = lanes::command_sequence(&root, "release_check").unwrap();
+    let tests = lanes::release_steps(&root, ReleasePhase::Tests).unwrap();
     let expected = [
         (
             "run tests: native access package".to_owned(),
@@ -164,12 +197,11 @@ fn release_software_native_test_packages_are_selected_once() {
                 .collect::<Vec<_>>()
         );
     }
-    let mut combined =
-        lanes::release_steps(&root, "selected-interpreter", ReleasePhase::Checks).unwrap();
+    let mut combined = lanes::release_steps(&root, ReleasePhase::Checks).unwrap();
     combined.extend(tests);
     assert_eq!(combined, sequence);
     assert_eq!(
-        lanes::command_sequence(&root, "software_reader", "selected-interpreter").unwrap(),
+        lanes::command_sequence(&root, "software_reader").unwrap(),
         vec![(
             "native selected access wires".into(),
             vec![

@@ -3374,5 +3374,6 @@ pub(crate) use pg::{
     inventory_owner_contributions as pg_inventory_owner_contributions,
     pg_item_adoption_response_from_attempt, pg_item_adoption_transaction_id,
     pg_item_adoption_transaction_id_from_request, prepare_pg_item_adoption,
-    select_pg_item_adoption_owner as pg_select_owner, verify_pg_item_adoption_owner,
+    select_pg_item_adoption_owner as pg_select_owner,
+    select_pg_item_adoption_proposal as pg_select_proposal, verify_pg_item_adoption_owner,
 };
