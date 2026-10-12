@@ -3945,9 +3945,11 @@ pub(crate) const NATIVE_CATALOG_KINDS: &[&str] = &[
     "link",
     "sign",
 ];
-/// Complete record-family set carried by one managed mixed-inventory member.
+/// Built-in record-family arrays carried by every mixed-inventory member.
 /// Native Artifact and Composite witnesses use dedicated filenames and schema
 /// routes, but their rendered catalog entries share this projection envelope.
+/// A selected public record profile may add its one nonempty family array;
+/// registration and schema validation belong to that record's source owner.
 pub(crate) const MIXED_INVENTORY_RECORD_KINDS: &[&str] = &[
     "agent",
     "place",

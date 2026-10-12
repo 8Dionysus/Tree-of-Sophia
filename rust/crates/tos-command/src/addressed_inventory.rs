@@ -1787,17 +1787,6 @@ fn parse_mixed_projection(
         .map_err(source_error)?
         .as_object()
         .ok_or(DurableError::Corrupt("mixed projection records map"))?;
-    if records.len() != crate::source_claims::MIXED_INVENTORY_RECORD_KINDS.len()
-        || records.iter().any(|(key, _)| {
-            key.as_str().is_none_or(|key| {
-                !crate::source_claims::MIXED_INVENTORY_RECORD_KINDS.contains(&key)
-            })
-        })
-    {
-        return Err(DurableError::Corrupt(
-            "mixed projection record family is not exact",
-        ));
-    }
     for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
         if !records.iter().any(|(key, _)| key.as_str() == Some(*kind)) {
             return Err(DurableError::Corrupt(
@@ -1807,6 +1796,62 @@ fn parse_mixed_projection(
     }
     if records.iter().any(|(_, rows)| rows.as_array().is_none()) {
         return Err(DurableError::Corrupt("mixed projection record rows"));
+    }
+    // The source owner validates the selected registry and exact record/schema
+    // before rendering. Its registry-defined families are not a fixed enum.
+    // Here bind any extension to this one member and its selected inputs;
+    // this structural check does not grant registration or source admission.
+    let mut extension = None;
+    for (key, rows) in records {
+        let kind = key
+            .as_str()
+            .filter(|kind| !kind.is_empty())
+            .ok_or(DurableError::Corrupt("mixed projection record family key"))?;
+        if !crate::source_claims::MIXED_INVENTORY_RECORD_KINDS.contains(&kind) {
+            if extension.replace((kind, rows)).is_some() {
+                return Err(DurableError::Corrupt(
+                    "mixed projection has multiple member profile families",
+                ));
+            }
+        }
+    }
+    if let Some((kind, rows)) = extension {
+        let rows = rows.as_array().ok_or(DurableError::Corrupt(
+            "mixed projection profile record rows",
+        ))?;
+        if rows.len() != 1
+            || !subject.starts_with("ToS/source-witnesses/")
+            || subject.rsplit('/').next() != Some(format!("{kind}.json").as_str())
+            || records.iter().any(|(key, rows)| {
+                key.as_str() != Some(kind) && rows.as_array().is_none_or(|rows| !rows.is_empty())
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "mixed projection profile record coverage differs",
+            ));
+        }
+        let row = &rows[0];
+        let schema = cmd::text(row, "source_schema_ref").map_err(source_error)?;
+        let profiles = collect_profile_map(&value)?;
+        if cmd::text(row, "schema_version").map_err(source_error)?
+            != "tos_source_witness_catalog_entry_v1"
+            || cmd::text(row, "record_type").map_err(source_error)? != kind
+            || cmd::text(row, "source_record_ref").map_err(source_error)? != subject
+            || cmd::text(row, "record_id")
+                .map_err(source_error)?
+                .is_empty()
+            || Digest256::from_hex(cmd::text(row, "record_sha256").map_err(source_error)?).is_err()
+            || !schema.starts_with("ToS/contracts/")
+            || !schema.ends_with(".schema.json")
+            || !profiles.contains_key(schema)
+            || MIXED_AGENT_BASELINE
+                .iter()
+                .any(|path| !profiles.contains_key(*path))
+        {
+            return Err(DurableError::Corrupt(
+                "mixed projection profile record binding differs",
+            ));
+        }
     }
     let form_required = subject.starts_with("ToS/source-witnesses/")
         && subject
@@ -3755,6 +3800,166 @@ fn tree_input_error(error: DurableError) -> SegmentError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn profiled_projection(kind: &str) -> (String, Vec<u8>, tos_foundation::JsonValue) {
+        let path = format!("ToS/source-witnesses/profiles/example/{kind}.json");
+        let schema = "ToS/contracts/fixture-profile.schema.json";
+        let record = cmd::object(vec![
+            ("record_type", cmd::string(kind)),
+            ("record_id", cmd::string(&format!("tos.{kind}.example"))),
+        ]);
+        // Formatting changes raw source bytes, but not the catalog's canonical
+        // record digest. Both bindings have to survive the transport.
+        let mut source = cmd::canonical(&record).unwrap();
+        source.push(b'\n');
+        let row =
+            crate::source_claims::pg_catalogue_record_value(&record, &path, Some(schema)).unwrap();
+        let mut records = cmd::object(
+            crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+                .iter()
+                .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                .collect(),
+        );
+        cmd::set(
+            &mut records,
+            kind,
+            tos_foundation::JsonValue::Array(vec![row]),
+        )
+        .unwrap();
+        let profiles = cmd::object(
+            MIXED_AGENT_BASELINE
+                .into_iter()
+                .chain([schema])
+                .map(|path| {
+                    (
+                        path,
+                        cmd::string(&Digest256::of_bytes(path.as_bytes()).to_hex()),
+                    )
+                })
+                .collect(),
+        );
+        let projection = cmd::object(vec![
+            ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+            ("path", cmd::string(&path)),
+            (
+                "raw_sha256",
+                cmd::string(&Digest256::of_bytes(&source).to_hex()),
+            ),
+            ("records", records),
+            ("source_profiles", profiles),
+            ("events", cmd::object(Vec::new())),
+            ("anchors", cmd::object(Vec::new())),
+            ("form", tos_foundation::JsonValue::Null),
+            ("claim_owner", tos_foundation::JsonValue::Null),
+            ("public_text_owner", tos_foundation::JsonValue::Null),
+        ]);
+        (path, source, projection)
+    }
+
+    #[test]
+    fn profile_record_rows_survive_cold_and_revision_projection_transport() {
+        for kind in ["community", "intellectual-movement", "fixture-new-profile"] {
+            let (path, source, projection) = profiled_projection(kind);
+            let raw = cmd::canonical(&projection).unwrap();
+            let digest = Digest256::of_bytes(&source).to_hex();
+            let parsed =
+                AddressedMixedInventoryV1::checked_projection(&path, &raw, &digest).unwrap();
+            assert_eq!(parsed, projection);
+            let contribution = cmd::object(
+                [
+                    "records",
+                    "source_profiles",
+                    "events",
+                    "anchors",
+                    "form",
+                    "claim_owner",
+                ]
+                .into_iter()
+                .map(|key| (key, cmd::field(&projection, key).unwrap().clone()))
+                .chain([(
+                    "schema_version",
+                    cmd::string("tos_pg_source_inventory_member_contribution_v1"),
+                )])
+                .collect(),
+            );
+            let writes = [SourceRevisionWrite {
+                subject: path.clone(),
+                expected_predecessor: None,
+                proposed_revision: 1,
+                exact_bytes: source,
+            }];
+            // This exercises the owner's envelope adapter, not registry or
+            // semantic admission, which precedes these sealed contributions.
+            let normalized = super::super::revision_owner_projections(
+                "tos_local_native_metadata_revision_owner_v1:fixture",
+                &writes,
+                BTreeMap::from([(path.clone(), contribution)]),
+            )
+            .unwrap();
+            assert_eq!(normalized.get(&path), Some(&raw));
+        }
+    }
+
+    #[test]
+    fn profile_record_transport_refuses_missing_or_cross_member_bindings() {
+        let (path, source, projection) = profiled_projection("community");
+        let raw = cmd::canonical(&projection).unwrap();
+        let valid: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+        for fault in [
+            "missing-baseline",
+            "empty-extension",
+            "extra-extension",
+            "baseline-row",
+            "wrong-kind",
+            "wrong-source",
+            "wrong-schema",
+            "missing-registry",
+            "invalid-digest",
+        ] {
+            let mut bad = valid.clone();
+            match fault {
+                "missing-baseline" => {
+                    bad["records"].as_object_mut().unwrap().remove("agent");
+                }
+                "empty-extension" => bad["records"]["community"] = serde_json::json!([]),
+                "extra-extension" => {
+                    bad["records"]["another-profile"] = bad["records"]["community"].clone()
+                }
+                "baseline-row" => bad["records"]["agent"] = bad["records"]["community"].clone(),
+                "wrong-kind" => {
+                    bad["records"]["community"][0]["record_type"] = serde_json::json!("other")
+                }
+                "wrong-source" => {
+                    bad["records"]["community"][0]["source_record_ref"] =
+                        serde_json::json!("ToS/source-witnesses/other/community.json")
+                }
+                "wrong-schema" => {
+                    bad["records"]["community"][0]["source_schema_ref"] =
+                        serde_json::json!("ToS/contracts/unselected.schema.json")
+                }
+                "missing-registry" => {
+                    bad["source_profiles"]
+                        .as_object_mut()
+                        .unwrap()
+                        .remove(MIXED_AGENT_BASELINE[0]);
+                }
+                "invalid-digest" => {
+                    bad["records"]["community"][0]["record_sha256"] = serde_json::json!("invalid")
+                }
+                _ => unreachable!(),
+            }
+            let bad = cmd::parse(&serde_json::to_vec(&bad).unwrap()).unwrap();
+            assert!(
+                AddressedMixedInventoryV1::checked_projection(
+                    &path,
+                    &cmd::canonical(&bad).unwrap(),
+                    &Digest256::of_bytes(&source).to_hex(),
+                )
+                .is_err(),
+                "accepted {fault}"
+            );
+        }
+    }
 
     #[test]
     fn shared_creation_metadata_keeps_its_family_and_public_text_stays_required() {

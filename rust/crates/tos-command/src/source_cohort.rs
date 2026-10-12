@@ -2092,37 +2092,17 @@ fn revision_owner_projections(
             }
         };
         let records = if schema == "tos_pg_source_inventory_member_contribution_v1" {
-            let records = cmd::field(&owner, "records").map_err(source_error)?;
-            let object = records
-                .as_object()
-                .ok_or(DurableError::Conflict("source owner records map differs"))?;
-            if object.len() != source_claims::MIXED_INVENTORY_RECORD_KINDS.len()
-                || source_claims::MIXED_INVENTORY_RECORD_KINDS
-                    .iter()
-                    .any(|kind| {
-                        object
-                            .iter()
-                            .find(|(key, _)| key.as_str() == Some(*kind))
-                            .and_then(|(_, value)| value.as_array())
-                            .is_none()
-                    })
-            {
-                return Err(DurableError::Conflict(
-                    "source owner record family coverage differs",
-                ));
-            }
-            serde_json::from_slice(&cmd::canonical(records).map_err(source_error)?)
-                .map_err(|_| DurableError::Corrupt("source revision record projection JSON"))?
+            // The shared checked_projection call below owns the built-in and
+            // registered-profile row grammar for both cold and changed members.
+            cmd::field(&owner, "records").map_err(source_error)?.clone()
         } else {
-            let mut records = serde_json::Map::new();
-            for kind in source_claims::MIXED_INVENTORY_RECORD_KINDS {
-                records.insert((*kind).to_owned(), serde_json::Value::Array(Vec::new()));
-            }
-            serde_json::Value::Object(records)
+            cmd::object(
+                source_claims::MIXED_INVENTORY_RECORD_KINDS
+                    .iter()
+                    .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                    .collect(),
+            )
         };
-        let records = serde_json::to_vec(&records)
-            .map_err(|_| DurableError::Invalid("source revision record projection JSON"))?;
-        let records = cmd::parse(&records).map_err(source_error)?;
         let envelope = cmd::object(vec![
             (
                 "schema_version",
