@@ -619,7 +619,7 @@ fn parse_args() -> Result<Option<Args>, String> {
     }
     let operation_count = values
         .remove("--operation-count")
-        .map(|value| {
+        .map(|value| -> Result<usize, String> {
             let count = value
                 .parse::<usize>()
                 .map_err(|_| "invalid --operation-count".to_owned())?;
@@ -631,7 +631,7 @@ fn parse_args() -> Result<Option<Args>, String> {
         .transpose()?;
     let channel_mix = values
         .remove("--channel-mix")
-        .map(|value| {
+        .map(|value| -> Result<BTreeMap<String, u8>, String> {
             let mut mix = BTreeMap::new();
             for item in value.split(',') {
                 let (channel, weight) = item
@@ -659,7 +659,7 @@ fn parse_args() -> Result<Option<Args>, String> {
     }
     let operations_per_second = values
         .remove("--operations-per-second")
-        .map(|value| {
+        .map(|value| -> Result<f64, String> {
             let rate = value
                 .parse::<f64>()
                 .map_err(|_| "invalid --operations-per-second".to_owned())?;
@@ -671,7 +671,7 @@ fn parse_args() -> Result<Option<Args>, String> {
         .transpose()?;
     let load_window_seconds = values
         .remove("--load-window-seconds")
-        .map(|value| {
+        .map(|value| -> Result<u64, String> {
             let seconds = value
                 .parse::<u64>()
                 .map_err(|_| "invalid --load-window-seconds".to_owned())?;
@@ -1198,7 +1198,12 @@ fn selected_projection_inputs(plan: &Plan, session_limit: usize) -> Result<Vec<P
     Ok(selected.into_iter().collect())
 }
 
-fn required_stage_path(value: &Value, pointer: &str, from: &Path, to: &Path) -> Result<(), String> {
+fn required_stage_path(
+    value: &mut Value,
+    pointer: &str,
+    from: &Path,
+    to: &Path,
+) -> Result<(), String> {
     let text = value
         .pointer(pointer)
         .and_then(Value::as_str)
@@ -1771,6 +1776,7 @@ fn prepare_owner_stage(
             ignored_json_paths: Vec::new(),
             alternate_outcomes: Vec::new(),
             retry_same_command_id: false,
+            idempotency_replay_of: None,
             reconnect_before: false,
             conflict_group: None,
             bind_expected_configuration_from_owner: false,
@@ -5672,6 +5678,7 @@ fn run_operation(
             }
             if error.is_none() {
                 let id = session.id.as_deref().unwrap();
+                let attempt_started = Instant::now();
                 match mcp_http(
                     args.mcp_port,
                     Some(id),
@@ -5686,7 +5693,7 @@ fn run_operation(
                         sha256: sha(&reply.body),
                         body: Some(reply.body),
                         stderr: Vec::new(),
-                        elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
+                        elapsed_ms: attempt_started.elapsed().as_secs_f64() * 1000.0,
                         authenticated: None,
                         interrupted: false,
                     }),
@@ -7307,7 +7314,7 @@ fn main_result() -> Result<i32, String> {
             .unwrap_or(Value::Null);
         result.value["rights_allowed_actual"] = result
             .response_body
-            .as_deref()
+            .as_ref()
             .and_then(rights_allowed_value)
             .map(Value::Bool)
             .unwrap_or(Value::Null);
