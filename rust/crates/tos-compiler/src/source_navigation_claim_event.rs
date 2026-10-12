@@ -7852,7 +7852,7 @@ mod tests {
             prepare_navigation_claim_event_no_projectable_tos_members_inventory_v1(&coverage)
                 .expect("non-ToS command range has no Claim owners");
         assert!(matches!(
-            inventory.empty_owner_evidence(),
+            inventory.empty_owner_evidence.as_ref(),
             Some(NavigationClaimEventRangeEmptyOwnerEvidenceV1::NoProjectableToSMembers)
         ));
         assert!(inventory.owner_ids("ToS/source-claims.jsonl").is_none());

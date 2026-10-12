@@ -230,6 +230,9 @@ fn budget() -> Budget {
 }
 
 type Model = SqliteReadModel<CmpPinnedModel<FixturePin>, FixturePolicy>;
+type SourceDescendDelivery<'call> = dyn for<'packet> FnMut(Result<PreparedPacket<'packet>, AccessError>) -> Result<(), AccessError>
+    + 'call;
+
 struct SelectedExecutor {
     session: Mutex<QuerySession<Model>>,
 }
@@ -239,14 +242,26 @@ impl AccessExecutor for SelectedExecutor {
     }
     fn source_descend(
         &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        Err(AccessError::new(
+            tos_access::AccessErrorCode::Unavailable,
+            "source navigation requires scoped delivery",
+        ))
+    }
+    fn source_descend_with_delivery(
+        &self,
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+        delivery: &mut SourceDescendDelivery<'_>,
+    ) -> Result<(), AccessError> {
         let mut session = self.session.lock().unwrap();
         session.model.set_abort_probe(Some(abort_probe));
         let result = session.execute(request);
+        let delivered = delivery(result);
         session.model.set_abort_probe(None);
-        result
+        delivered
     }
 }
 

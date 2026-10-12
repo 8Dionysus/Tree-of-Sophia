@@ -98,16 +98,33 @@ type SearchSourceRow = {
   search_bytes?: number | null;
 };
 
-function validateSearchSourceRow(row: SearchSourceRow, withSearchBytes: boolean): void {
-  if (row.json_bytes !== null && row.json_bytes > SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES) {
+type ValidSearchSourceRow = SearchSourceRow & {
+  ord: number;
+  json: string;
+  json_bytes: number;
+};
+
+type ValidSearchSourceRowWithSearch = ValidSearchSourceRow & {
+  search_json: string;
+  search_bytes: number;
+};
+
+function validateSearchSourceRow(row: SearchSourceRow, withSearchBytes: false): asserts row is ValidSearchSourceRow;
+function validateSearchSourceRow(row: SearchSourceRow, withSearchBytes: true): asserts row is ValidSearchSourceRowWithSearch;
+function validateSearchSourceRow(
+  row: SearchSourceRow,
+  withSearchBytes: boolean,
+): asserts row is ValidSearchSourceRow | ValidSearchSourceRowWithSearch {
+  if (typeof row.json_bytes === "number" && row.json_bytes > SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES) {
     throw new HttpError(413, "selected source-value candidate exceeds its byte budget");
   }
-  if (withSearchBytes && row.search_bytes !== null && row.search_bytes! > SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES) {
+  if (withSearchBytes && typeof row.search_bytes === "number" && row.search_bytes > SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES) {
     throw new HttpError(413, "selected source-value candidate exceeds its byte budget");
   }
-  if (!Number.isSafeInteger(row.ord) || row.ord! < 0
-    || !Number.isSafeInteger(row.json_bytes) || row.json_bytes! < 0 || typeof row.json !== "string"
-    || (withSearchBytes && (!Number.isSafeInteger(row.search_bytes) || row.search_bytes! < 0 || typeof row.search_json !== "string"))) {
+  if (typeof row.ord !== "number" || !Number.isSafeInteger(row.ord) || row.ord < 0
+    || typeof row.json_bytes !== "number" || !Number.isSafeInteger(row.json_bytes) || row.json_bytes < 0
+    || typeof row.json !== "string"
+    || (withSearchBytes && (typeof row.search_bytes !== "number" || !Number.isSafeInteger(row.search_bytes) || row.search_bytes < 0 || typeof row.search_json !== "string"))) {
     throw new HttpError(503, "selected source-value search row is invalid");
   }
 }
@@ -142,11 +159,11 @@ async function corpusSearchCandidates(
       for (const row of page) {
         validateSearchSourceRow(row, false);
         try {
-          worker.observe_candidate(collection, row.ord!, row.json, row.json);
+          worker.observe_candidate(collection, row.ord, row.json, row.json);
         } catch (error) {
           return sourceValueSearchFailure(error);
         }
-        after = row.ord!;
+        after = row.ord;
         if (worker.remaining() === 0) break;
       }
       if (page.length < pageLimit) break;
@@ -211,11 +228,11 @@ export async function philosophySearch(db: D1Database, query: string, limit: num
         for (const row of page) {
           validateSearchSourceRow(row, true);
           try {
-            rules.observe_candidate(name, row.ord!, row.search_json, row.json);
+            rules.observe_candidate(name, row.ord, row.search_json, row.json);
           } catch (error) {
             return sourceValueSearchFailure(error);
           }
-          after = row.ord!;
+          after = row.ord;
           if (rules.remaining() === 0) break;
         }
         if (page.length < pageLimit) break;

@@ -30,6 +30,7 @@ const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.jso
 pub(super) fn source_failure(error: cmd::SourceCommandError) -> Error {
     match error {
         cmd::SourceCommandError::Invalid(reason)
+        | cmd::SourceCommandError::InvalidAt { reason, .. }
         | cmd::SourceCommandError::Conflict(reason)
         | cmd::SourceCommandError::Denied(reason)
         | cmd::SourceCommandError::Unsupported(reason) => Error::Invalid(reason),

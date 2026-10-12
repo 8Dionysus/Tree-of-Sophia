@@ -578,6 +578,7 @@ fn pair_state_upper_bound(id: &Value, source_ref: &Value) -> Result<usize> {
 fn map_source_error(error: SourceCommandError) -> Error {
     match error {
         SourceCommandError::Invalid(reason) => Error::Invalid(reason),
+        SourceCommandError::InvalidAt { reason, .. } => Error::Invalid(reason),
         SourceCommandError::Conflict(reason) => Error::PreparedUnsupported(reason),
         SourceCommandError::Denied(reason) => Error::PreparedUnsupported(reason),
         SourceCommandError::DeniedWithReason(reason) => Error::Source(reason),

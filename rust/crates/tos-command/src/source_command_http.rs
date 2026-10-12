@@ -519,7 +519,9 @@ fn process(socket: &mut TcpStream, selection: &mut Selection) -> io::Result<()> 
         Ok(v) => (200, v),
         Err(SourceCommandError::Denied(_)) => (403, error("owner-permission-denied", true)),
         Err(SourceCommandError::Conflict(_)) => (409, error("owner-conflict", true)),
-        Err(SourceCommandError::Invalid(_)) => (422, error("owner-command-rejected", true)),
+        Err(SourceCommandError::Invalid(_) | SourceCommandError::InvalidAt { .. }) => {
+            (422, error("owner-command-rejected", true))
+        }
         Err(_) => (500, error("owner-outcome-unconfirmed", true)),
     };
     reply(reader.socket, &req, selection, Some(auth), status, value)

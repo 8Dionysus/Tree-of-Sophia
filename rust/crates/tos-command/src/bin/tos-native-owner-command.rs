@@ -476,7 +476,10 @@ fn main() {
             println!(
                 "{{\"schema_version\":\"tos_local_source_command_error_v1\",\"error\":\"{}\"}}",
                 match error {
-                    tos_command::source_command::SourceCommandError::Invalid(_) => "ValueError",
+                    tos_command::source_command::SourceCommandError::Invalid(_)
+                    | tos_command::source_command::SourceCommandError::InvalidAt { .. } => {
+                        "ValueError"
+                    }
                     tos_command::source_command::SourceCommandError::Conflict(_) =>
                         "JournalConflict",
                     tos_command::source_command::SourceCommandError::Denied(_)

@@ -18,6 +18,14 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SourceCommandError {
     Invalid(&'static str),
+    /// Invalid input reported by a shared field accessor. `file` is reduced
+    /// to a code basename before storage so Debug and public error carriers
+    /// cannot disclose the compiler's absolute checkout path.
+    InvalidAt {
+        reason: &'static str,
+        file: &'static str,
+        line: u32,
+    },
     Conflict(&'static str),
     Denied(&'static str),
     /// Owned allow-listed public denial detail, retained through bounded output.
@@ -38,6 +46,9 @@ impl SourceCommandError {
     pub fn public_reason(&self) -> String {
         match self {
             Self::Invalid(reason) => format!("invalid: {reason}"),
+            Self::InvalidAt { reason, file, line } => {
+                format!("invalid: {reason} at {file}:{line}")
+            }
             Self::Conflict(reason) => format!("conflict: {reason}"),
             Self::Denied(reason) => format!("denied: {reason}"),
             Self::DeniedWithReason(reason) => reason.clone(),
@@ -199,6 +210,28 @@ mod public_refusal_tests {
         assert!(compiler.contains("compiler-source-"));
         assert!(crate::source_admission_spooled_index::is_bounded_source_cause(&compiler));
         assert!(!compiler.contains("private"));
+    }
+
+    #[test]
+    fn missing_field_reports_only_the_code_call_site() {
+        let expected_line = line!() + 1;
+        let error = text(&JsonValue::Object(Vec::new()), "PRIVATE-FIELD-CANARY")
+            .expect_err("missing field must remain invalid");
+        let SourceCommandError::InvalidAt { reason, file, line } = &error else {
+            panic!("missing field must preserve invalid classification and call site");
+        };
+        assert_eq!(*reason, "missing object field");
+        assert_eq!(*file, "source_command.rs");
+        assert_eq!(*line, expected_line);
+        assert!(
+            error
+                .public_reason()
+                .starts_with("invalid: missing object field")
+        );
+        let debug = format!("{error:?}");
+        assert!(debug.contains("source_command.rs"));
+        assert!(!debug.contains("PRIVATE-FIELD-CANARY"));
+        assert!(!debug.contains("/srv/abyss-machine"));
     }
 }
 
@@ -589,24 +622,44 @@ pub(crate) fn number(n: u64) -> JsonValue {
         lexeme: n.to_string(),
     })
 }
+#[track_caller]
 pub(crate) fn field<'a>(v: &'a JsonValue, k: &str) -> SourceCommandResult<&'a JsonValue> {
+    let caller = std::panic::Location::caller();
     v.object_get(k)
-        .ok_or(SourceCommandError::Invalid("missing object field"))
+        .ok_or_else(|| invalid_at("missing object field", caller))
 }
+#[track_caller]
 pub(crate) fn text<'a>(v: &'a JsonValue, k: &str) -> SourceCommandResult<&'a str> {
     field(v, k)?
         .as_str()
         .ok_or(SourceCommandError::Invalid("expected text field"))
 }
+#[track_caller]
 pub(crate) fn integer(v: &JsonValue, k: &str) -> SourceCommandResult<u64> {
     field(v, k)?
         .as_u64()
         .ok_or(SourceCommandError::Invalid("expected integer field"))
 }
+#[track_caller]
 pub(crate) fn array<'a>(v: &'a JsonValue, k: &str) -> SourceCommandResult<&'a [JsonValue]> {
     field(v, k)?
         .as_array()
         .ok_or(SourceCommandError::Invalid("expected array field"))
+}
+fn invalid_at(
+    reason: &'static str,
+    location: &'static std::panic::Location<'static>,
+) -> SourceCommandError {
+    let file = location
+        .file()
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(location.file());
+    SourceCommandError::InvalidAt {
+        reason,
+        file,
+        line: location.line(),
+    }
 }
 pub(crate) fn exact_keys(v: &JsonValue, keys: &[&str]) -> SourceCommandResult<()> {
     let members = v

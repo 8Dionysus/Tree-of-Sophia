@@ -1413,7 +1413,7 @@ fn project_navigation_record_event_with_basis(
 }
 
 #[cfg(test)]
-mod tests {
+mod current_event_head_tests {
     use super::current_event_head_matches;
 
     #[test]

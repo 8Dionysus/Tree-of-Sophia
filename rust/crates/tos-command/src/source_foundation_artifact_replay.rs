@@ -371,6 +371,7 @@ fn command_class(error: &SourceCommandError) -> ArtifactReplayFailureClass {
         | SourceCommandError::Conflict(_) => ArtifactReplayFailureClass::Source,
         SourceCommandError::SchemaExecution { reason, .. } => refusal_class(reason),
         SourceCommandError::Invalid(_)
+        | SourceCommandError::InvalidAt { .. }
         | SourceCommandError::Unsupported(_)
         | SourceCommandError::MissingProductionAdmission => ArtifactReplayFailureClass::Incomplete,
     }
