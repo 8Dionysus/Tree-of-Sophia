@@ -318,7 +318,7 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
                             .map_err(ManagedSelectionError::Compiler)?;
                         result
                     })();
-                    Ok(result)
+                    result
                 },
             )
             .map_err(ManagedSelectionError::Durable)?
@@ -401,7 +401,7 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
                             .map_err(ManagedSelectionError::Compiler)?;
                         result
                     })();
-                    Ok(result)
+                    result
                 },
             )
             .map_err(ManagedSelectionError::Durable)?

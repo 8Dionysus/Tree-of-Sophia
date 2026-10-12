@@ -10,6 +10,7 @@ use std::{
 
 use postgres::Transaction;
 use tos_compiler::VerifiedKnowledgeModel;
+use tos_compiler::managed_source::ManagedProducerProof;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 use tos_query::{
     AbortProbe, AbortReason, AdjacencyPage, Binding, Charged, CurrentPolicy, DisclosureLease,
@@ -320,7 +321,7 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
     selected: &ManagedAgentSelectedParent<tos_compiler::managed_source::ManagedSourceProofV2>,
     facts: &NavigationProducerHeldOwnerIdentity,
     tx: &'tx_ref mut Transaction<'tx>,
-    owner_selection: &NavigationProducerOwnerSelection<'_>,
+    owner_selection: &'request NavigationProducerOwnerSelection<'request>,
     projection_profile: &DurableProjectionProfile,
     limits: DurableNavigationEventLimits,
     deadline: Instant,

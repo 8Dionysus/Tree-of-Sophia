@@ -192,7 +192,7 @@ pub(crate) fn with_selected_navigation_policy_owner<T>(
             |_| SourceNavigationSelectionError::Invalid("source navigation policy receipt"),
         )?;
     let view = NavigationPolicyOwnerViewV1 {
-        source_root: filesystem.root_path(),
+        source_root: filesystem.protected_root_path(),
         domain: &selection.domain,
         source_contract,
         bootstrap_source_revision,
@@ -299,7 +299,7 @@ pub(crate) fn with_selected_navigation_anchor_current<T>(
         selection.process_limits,
         selection.cold_limits,
     )
-    .map_err(SourceNavigationSelectionError::Managed)?;
+    ?;
     parent
         .with_navigation_anchor_current_and_tx(
             &mut coordinator,
@@ -880,8 +880,7 @@ pub fn with_selected_source_navigation<T, E>(
                 },
             )
         },
-    )
-    .map_err(SourceNavigationSelectionError::Managed)?;
+    )?;
     Ok(match query_result {
         crate::source_navigation_query::SourceNavigationPublishedReadV2::Ready(result) => {
             SelectedSourceNavigationRead::Ready(result)

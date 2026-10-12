@@ -22,7 +22,10 @@ use tos_source_store::{
     SoftwareComponentSelectionV1, SourceMembershipV1,
 };
 
-use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::{
+    source_command::{self as cmd, SourceCommandError, SourceCommandResult},
+    source_creation_store::active,
+};
 use tos_validation::executor::ExactWorkerIdentity;
 
 fn stage_file_identity(parent: &File, leaf: &str) -> SourceCommandResult<(u64, u64)> {
@@ -734,7 +737,7 @@ pub(crate) fn run(
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("source-navigation persistent stage metadata"))?;
     if !persistent_metadata.is_dir()
-        || persistent_metadata.uid() != u64::from(uid)
+        || persistent_metadata.uid() != uid
         || persistent_metadata.mode() & 0o7777 != 0o700
     {
         return Err(SourceCommandError::Denied(
@@ -747,7 +750,7 @@ pub(crate) fn run(
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("source-navigation host export stage metadata"))?;
     if !export_parent_metadata.is_dir()
-        || export_parent_metadata.uid() != u64::from(uid)
+        || export_parent_metadata.uid() != uid
         || export_parent_metadata.mode() & 0o7777 != 0o700
     {
         return Err(SourceCommandError::Denied(
@@ -1482,7 +1485,8 @@ fn prepare_initial(
                 .map_err(|_| crate::DurableError::Invalid("source-navigation proof encoding"))?;
             source_navigation_value["expectation"] = serde_json::to_value(&expectation)
                 .map_err(|_| crate::DurableError::Invalid("source-navigation model expectation encoding"))?;
-            source_navigation_value["policy_receipt"] = serde_json::to_value(&policy_receipt)
+            source_navigation_value["policy_receipt"] = policy_receipt
+                .to_value()
                 .map_err(|_| crate::DurableError::Invalid("source-navigation policy encoding"))?;
             let final_owner_value = json!({
                 "schema_version": FINAL_OWNER_SCHEMA,

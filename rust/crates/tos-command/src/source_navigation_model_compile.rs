@@ -15,16 +15,13 @@ use std::{
 };
 use tos_compiler::{
     ColdOpenLimits, KnowledgeSelectedExpectation, NativeFsVerityMeasurement, NativeProcessLimits,
-    NavigationOriginalReceipt, SourceBinding,
+    NavigationOriginalReceipt, SourceBinding, SourceCatalogInputLimits, SourceCatalogRenderWorkV1,
     knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, KnowledgeStage, StageOwner, StageReceipt,
     },
     managed_source::ManagedSourceProofV2,
+    plan_source_catalog_inputs, render_source_bibliographic_plan_with_work,
     source_bibliographic::{BibliographicLimits, BibliographicSourceCut},
-    source_bibliographic_source::{
-        SourceCatalogInputLimits, SourceCatalogRenderWorkV1, plan_source_catalog_inputs,
-        render_source_bibliographic_plan_with_work,
-    },
     source_witness_catalog::SourceCatalogValidator,
 };
 use tos_foundation::{Digest256, RelativePath, SourceRevision};

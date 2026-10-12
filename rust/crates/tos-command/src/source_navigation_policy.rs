@@ -136,8 +136,17 @@ impl SourceNavigationPolicyReceiptV1 {
     /// strict owner-config parser. The durable writer uses this to reject a
     /// caller-supplied digest that does not bind the stored receipt fields.
     pub fn digest(&self) -> Result<Digest256, &'static str> {
+        let value = self.to_value()?;
+        let raw =
+            serde_json::to_vec(&value).map_err(|_| "source navigation policy receipt codec")?;
+        let parsed = cmd::parse(&raw).map_err(|_| "source navigation policy receipt JSON")?;
+        cmd::record_digest(&parsed).map_err(|_| "source navigation policy receipt digest")
+    }
+
+    /// Emit the canonical owner-facing JSON value for this validated receipt.
+    pub fn to_value(&self) -> Result<Value, &'static str> {
         self.validate()?;
-        let value = serde_json::json!({
+        Ok(serde_json::json!({
             "schema_version": self.schema_version,
             "issuer_ref": self.issuer_ref,
             "receipt_id": self.receipt_id,
@@ -149,11 +158,7 @@ impl SourceNavigationPolicyReceiptV1 {
             "selection_profile": self.selection_profile,
             "policy_epoch": self.policy_epoch,
             "withdrawal_generation": self.withdrawal_generation,
-        });
-        let raw =
-            serde_json::to_vec(&value).map_err(|_| "source navigation policy receipt codec")?;
-        let parsed = cmd::parse(&raw).map_err(|_| "source navigation policy receipt JSON")?;
-        cmd::record_digest(&parsed).map_err(|_| "source navigation policy receipt digest")
+        }))
     }
 }
 

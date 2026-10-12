@@ -431,12 +431,12 @@ pub(crate) fn launch_source_navigation_model_compile(
             .wait()
             .map_err(|_| SourceCommandError::Invalid("source-navigation child reap"))?,
     };
+    same_named_directory(&launcher.setup_cgroup, &held.setup)?;
+    same_named_directory(&launcher.consumer_cgroup, &held.consumer)?;
     if failure.is_some()
         || pipes.output_oversized
         || pipes.input_failed
         || !cgroups_empty(&held)?
-        || !same_named_directory(&launcher.setup_cgroup, &held.setup)?
-        || !same_named_directory(&launcher.consumer_cgroup, &held.consumer)?
         || pipes.input_offset != pipes.input.len()
         || cancelled.load(Ordering::Acquire)
         || monotonic_ns()? >= whole_deadline_ns
