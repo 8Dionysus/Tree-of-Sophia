@@ -20,7 +20,7 @@ use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:native-work-expression";
 
@@ -81,7 +81,7 @@ pub(crate) fn preview_pg_work_expression<'a, I: Copy + Eq>(
     }
     let fence = work_transaction::WorkCorpusFence::hold_existing(fs, limits.deadline, cancelled)?;
     let profiles = crate::source_claims::work_expression_source_descriptors_candidate(
-        context, worker, limits, cancelled,
+        context, input, worker, limits, cancelled,
     )?;
     let mut owner = if operation == "prepare-create" {
         WorkOwner::select_proposal(fs, context, limits.deadline, cancelled)?
@@ -483,7 +483,7 @@ pub(crate) fn prepare_pg_work_expression<'a, I: Copy + Eq>(
 
     let fence = work_transaction::WorkCorpusFence::hold_existing(fs, limits.deadline, cancelled)?;
     let profiles = crate::source_claims::work_expression_source_descriptors_candidate(
-        context, worker, limits, cancelled,
+        context, input, worker, limits, cancelled,
     )?;
     let mut owner = WorkOwner::select(fs, context, limits.deadline, cancelled)?;
     let snapshot = work_transaction::PublicationSnapshot::select_from_input(
@@ -697,15 +697,15 @@ pub(crate) fn prepare_pg_work_expression<'a, I: Copy + Eq>(
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("Expression selected home"))?
         .0;
-    for (name, raw) in &plan.files {
-        if name.path.as_str().starts_with(&format!("{work_home}/"))
-            || name
+    for file in &plan.files {
+        if file.path.as_str().starts_with(&format!("{work_home}/"))
+            || file
                 .path
                 .as_str()
                 .starts_with(&format!("{expression_home}/"))
         {
-            if let Some(after) = &name.after {
-                materialized.insert(name.path.as_str().to_owned(), after.clone());
+            if let Some(after) = &file.after {
+                materialized.insert(file.path.as_str().to_owned(), after.clone());
             }
         }
     }
@@ -790,7 +790,7 @@ pub(crate) fn prepare_pg_work_expression<'a, I: Copy + Eq>(
         .map(|file| {
             Ok(cmd::SourceChange {
                 path: file.path.clone(),
-                before: file.before.as_ref().map(Digest256::of_bytes),
+                before: file.before.as_ref().map(|bytes| Digest256::of_bytes(bytes)),
                 after: file.after.clone(),
             })
         })
@@ -857,7 +857,7 @@ fn selected_before_from_input(
         } else {
             None
         };
-        if (name == "work.json" && selected.is_none()) {
+        if name == "work.json" && selected.is_none() {
             return Err(SourceCommandError::Conflict(
                 "Work selected parent record absent",
             ));
@@ -987,7 +987,9 @@ fn selected_prior_completion(
     let base_generation = cmd::integer(base, "generation")?;
     let base_token_valid = match cmd::field(base, "token")? {
         JsonValue::Null => base_generation == 0,
-        JsonValue::String(token) => base_generation > 0 && work_transaction::is_hash(token),
+        JsonValue::String(token) => {
+            base_generation > 0 && token.as_str().is_some_and(work_transaction::is_hash)
+        }
         _ => false,
     };
     if cmd::text(&manifest, "transaction_id")? != id

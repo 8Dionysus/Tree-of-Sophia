@@ -207,7 +207,7 @@ pub(super) fn software_files(
             raw,
         });
     }
-    Ok((files, components.members().len(), bytes))
+    Ok((files, components.members().count(), bytes))
 }
 
 pub(super) fn read_request(input: impl Read) -> SourceCommandResult<Vec<u8>> {
@@ -526,7 +526,7 @@ pub(super) fn run(
                             .map_err(DurableError::Source)?;
                         let prepared = PreparedPgClaimCommand::from_creation(
                             &serialized,
-                            cut,
+                            crate::source_cohort::claims::PgClaimSourceProof::Complete(cut),
                             owner_contributions,
                         )?;
                         (Some(prepared), result, context, catalog_capture)

@@ -165,8 +165,11 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
                 "persisted managed source proof differs from current selection",
             )));
         }
-        let measurement = tos_compiler::prepare_native_knowledge_artifact(artifact_path, &())
-            .map_err(ManagedSelectionError::Compiler)?;
+        let measurement = tos_compiler::measure_existing_native_knowledge_artifact_custody(
+            artifact_path,
+            &expectation,
+        )
+        .map_err(ManagedSelectionError::Compiler)?;
         let custody = LinuxFsVerityCustody::new(measurement, process_limits)
             .map_err(ManagedSelectionError::Compiler)?;
         let model = tos_compiler::open_selected_knowledge_model_owned(
@@ -210,9 +213,9 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &'seek VerifiedKnowledgeModel<'seek>,
-            &'seek ManagedCurrentModelLease<'seek, P>,
+        seek: impl for<'model, 'lease> FnOnce(
+            &'model VerifiedKnowledgeModel<'static>,
+            &'lease ManagedCurrentModelLease<'lease, P>,
         ) -> ManagedSelectionResult<T>,
     ) -> ManagedSelectionResult<T> {
         self.with_current_package(
@@ -247,10 +250,10 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &'seek VerifiedKnowledgeModel<'seek>,
-            &'seek ManagedCurrentModelLease<'seek, P>,
-            &mut postgres::Transaction<'seek>,
+        seek: impl for<'model, 'lease, 'tx> FnOnce(
+            &'model VerifiedKnowledgeModel<'static>,
+            &'lease ManagedCurrentModelLease<'lease, P>,
+            &mut postgres::Transaction<'tx>,
         ) -> ManagedSelectionResult<T>,
     ) -> ManagedSelectionResult<T> {
         self.with_current_package_and_tx(
@@ -285,10 +288,10 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &'seek VerifiedKnowledgeModel<'seek>,
-            &'seek ManagedCurrentModelLease<'seek, P>,
-            &mut postgres::Transaction<'seek>,
+        seek: impl for<'model, 'lease, 'tx> FnOnce(
+            &'model VerifiedKnowledgeModel<'static>,
+            &'lease ManagedCurrentModelLease<'lease, P>,
+            &mut postgres::Transaction<'tx>,
         ) -> ManagedSelectionResult<T>,
     ) -> ManagedSelectionResult<T> {
         coordinator
@@ -330,9 +333,9 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &'seek VerifiedKnowledgeModel<'seek>,
-            &'seek ManagedCurrentModelLease<'seek, P>,
+        seek: impl for<'model, 'lease> FnOnce(
+            &'model VerifiedKnowledgeModel<'static>,
+            &'lease ManagedCurrentModelLease<'lease, P>,
         ) -> ManagedSelectionResult<T>,
     ) -> ManagedSelectionResult<T> {
         self.with_current_package_and_tx(
@@ -363,10 +366,10 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &'seek VerifiedKnowledgeModel<'seek>,
-            &'seek ManagedCurrentModelLease<'seek, P>,
-            &mut postgres::Transaction<'seek>,
+        seek: impl for<'model, 'lease, 'tx> FnOnce(
+            &'model VerifiedKnowledgeModel<'static>,
+            &'lease ManagedCurrentModelLease<'lease, P>,
+            &mut postgres::Transaction<'tx>,
         ) -> ManagedSelectionResult<T>,
     ) -> ManagedSelectionResult<T> {
         coordinator

@@ -123,7 +123,8 @@ pub(crate) fn required_source_inputs(
         };
         let registry = cmd::parse(raw)?;
         let profile_id = cmd::text(&config, "profile_type_id")?;
-        let record = cmd::field(&cmd::parse(&context.request_raw)?, "record")?;
+        let request = cmd::parse(&context.request_raw)?;
+        let record = cmd::field(&request, "record")?;
         let schema_version = cmd::text(record, "schema_version")?;
         let entries = cmd::array(&registry, "types")?
             .iter()
@@ -359,11 +360,17 @@ fn collect_claim_dependencies(
     fn visit(
         value: &JsonValue,
         key: Option<&str>,
+        new_record_id: &str,
+        new_event_id: Option<&str>,
+        new_claim_ids: &BTreeSet<String>,
         tokens: &mut BTreeSet<String>,
         paths: &mut BTreeSet<RelativePath>,
     ) {
         match value {
             JsonValue::String(text) => {
+                let Some(text) = text.as_str() else {
+                    return;
+                };
                 if key.is_some_and(|key| key == "evidence_refs" || key == "counterevidence_refs")
                     && text.starts_with("ToS/")
                 {
@@ -375,26 +382,52 @@ fn collect_claim_dependencies(
                 {
                     let own_record = key == Some("subject_ref") && text == new_record_id;
                     let own_event =
-                        key == Some("provenance_event_ref") && Some(text.as_str()) == new_event_id;
+                        key == Some("provenance_event_ref") && Some(text) == new_event_id;
                     if !own_record && !own_event && !new_claim_ids.contains(text) {
-                        tokens.insert(text.clone());
+                        tokens.insert(text.to_owned());
                     }
                 }
             }
             JsonValue::Array(values) => {
                 for value in values {
-                    visit(value, key, tokens, paths);
+                    visit(
+                        value,
+                        key,
+                        new_record_id,
+                        new_event_id,
+                        new_claim_ids,
+                        tokens,
+                        paths,
+                    );
                 }
             }
             JsonValue::Object(values) => {
                 for (name, value) in values {
-                    visit(value, Some(name), tokens, paths);
+                    if let Some(name) = name.as_str() {
+                        visit(
+                            value,
+                            Some(name),
+                            new_record_id,
+                            new_event_id,
+                            new_claim_ids,
+                            tokens,
+                            paths,
+                        );
+                    }
                 }
             }
             _ => {}
         }
     }
-    visit(claim, None, tokens, paths);
+    visit(
+        claim,
+        None,
+        new_record_id,
+        new_event_id,
+        new_claim_ids,
+        tokens,
+        paths,
+    );
 }
 
 /// Owner preparation over the exact source members selected by PG. No full
@@ -682,7 +715,8 @@ fn selected_identity_paths(
     fn has_identity(value: &JsonValue, token: &str) -> bool {
         match value {
             JsonValue::Object(fields) => fields.iter().any(|(name, value)| {
-                (name.ends_with("_id") && value.as_str() == Some(token))
+                (name.as_str().is_some_and(|name| name.ends_with("_id"))
+                    && value.as_str() == Some(token))
                     || has_identity(value, token)
             }),
             JsonValue::Array(values) => values.iter().any(|value| has_identity(value, token)),
@@ -880,11 +914,8 @@ impl PreparedPgFamilyCreation {
                 "PG Historical/Profile serializer family changed",
             ));
         }
-        let config = cmd::parse(&prepared.context.request_raw)?;
-        let source_path = cmd::text(
-            &cmd::parse(&prepared.context.configuration_raw)?,
-            "source_path",
-        )?;
+        let config = cmd::parse(&prepared.context.configuration_raw)?;
+        let source_path = cmd::text(&config, "source_path")?;
         let record_name = source_path
             .rsplit('/')
             .next()
@@ -1189,7 +1220,7 @@ pub(crate) fn recovery_package_contract(
         || !forms_set
             .object_get("prior_forms")
             .and_then(JsonValue::as_array)
-            .is_some_and(Vec::is_empty)
+            .is_some_and(|values| values.is_empty())
         || forms::apply_form_changes(Some(&forms_set), cmd::field(&forms_set, "subject")?, &[])
             .is_err()
         || cmd::field(&forms_set, "subject")? != &forms::metadata_subject(&metadata)?
@@ -1235,7 +1266,7 @@ pub(crate) fn recovery_package_contract(
     }
     if family.historical() {
         let claim_raw = members["historical-claims.jsonl"];
-        let claim_ids = validate_historical_claim_stream(claim_raw, record_id, family, members)?;
+        let claim_ids = validate_historical_claim_stream(claim_raw, record_id, family, &members)?;
         for claim_id in claim_ids {
             indexes.insert((
                 "claim".to_owned(),
@@ -1274,7 +1305,11 @@ fn validate_receipt_files(
     let files = cmd::field(receipt, "files")?
         .as_object()
         .ok_or(SourceCommandError::Invalid("creation receipt file map"))?;
-    if files.len() + 1 != members.len() || files.contains_key("source-create-receipt.json") {
+    if files.len() + 1 != members.len()
+        || files
+            .iter()
+            .any(|(name, _)| name.as_str() == Some("source-create-receipt.json"))
+    {
         return Err(SourceCommandError::Conflict(
             "creation receipt package member set differs",
         ));

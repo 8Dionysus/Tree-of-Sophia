@@ -2135,6 +2135,7 @@ fn run_selected(
         })?)?;
         resolved.add_layer_records(&layer_sources.records(), &mut budget)?;
     }
+    let public_claim_dependencies = public_sources.claim_dependencies.clone();
     let plan = plan_assessment_evaluation(
         AssessmentEvaluationInputs {
             config: &config,
@@ -2144,7 +2145,7 @@ fn run_selected(
             resolved,
             public_fixity: &public_sources.fixity,
             public_identity_snapshots: &public_sources.identity_snapshots,
-            public_claim_dependencies: &public_sources.claim_dependencies,
+            public_claim_dependencies: &public_claim_dependencies,
             private_source_snapshot: &selected.private_sources.owner_local_sources_snapshot,
             private_native_snapshots: &selected.private_sources.native_snapshots,
             private_required_source_refs: selected.private_sources.required_source_refs(),
@@ -4678,10 +4679,13 @@ fn materialize_assessed_form(
         form_sets: sources.form_sets(),
         source_paths: &sources.source_paths,
     });
+    let public_form_paths = public_sources.form_paths.clone();
+    let public_form_sets = public_sources.form_sets.clone();
+    let public_source_paths = public_sources.record_paths.clone();
     let public_maps = AssessmentFormMaps {
-        form_paths: &public_sources.form_paths,
-        form_sets: &public_sources.form_sets,
-        source_paths: &public_sources.record_paths,
+        form_paths: &public_form_paths,
+        form_sets: &public_form_sets,
+        source_paths: &public_source_paths,
     };
     materialize_assessed_form_from_selected_maps(
         private_maps.as_ref(),
@@ -5329,9 +5333,9 @@ pub(crate) fn materialize_assessed_form_from_selected_maps<W: CutSchemaExecutor>
     Ok(materialization)
 }
 
-fn public_claim_form_fields(
+fn public_claim_form_fields<W: CutSchemaExecutor>(
     payload: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<crate::source_forms::FormField>> {

@@ -524,7 +524,7 @@ pub(crate) fn select_owner_local_layers(
             let path = tos_foundation::RelativePath::parse(name)
                 .map_err(|_| SourceCommandError::Invalid("private assessment contract path"))?;
             cut.read_member(
-                &source_revision,
+                source_revision.clone(),
                 &path,
                 MAX_RECORD_BYTES as u64,
                 deadline,
@@ -3981,7 +3981,7 @@ fn compare_page_ocr(
     ];
     let contracts = [(
         PAGE_COMPARISON_SCHEMA,
-        worker.contract_digest(PAGE_COMPARISON_SCHEMA),
+        worker.selected_contract_digest(PAGE_COMPARISON_SCHEMA),
     )]
     .into_iter()
     .filter_map(|(name, digest)| digest.map(|digest| (name.to_owned(), digest.to_prefixed())))

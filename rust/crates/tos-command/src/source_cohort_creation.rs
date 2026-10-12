@@ -543,19 +543,12 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
         cmd::text(&config, "schema_version").map_err(source_error)?,
     )
     .map_err(source_error)?;
-    let expected_operation = match family {
-        crate::source_creation::CreationFamily::HistoricalV1
-        | crate::source_creation::CreationFamily::HistoricalV2 => "historical.create",
-        crate::source_creation::CreationFamily::PublicProfile
-        | crate::source_creation::CreationFamily::CorpusV1
-        | crate::source_creation::CreationFamily::CorpusV2
-        | crate::source_creation::CreationFamily::Artifact => "source.create",
-        crate::source_creation::CreationFamily::Sign => {
-            return Err(DurableError::Refused(
-                "Sign promotion is not a source creation family",
-            ));
-        }
-    };
+    if family == crate::source_creation::CreationFamily::Sign {
+        return Err(DurableError::Refused(
+            "Sign promotion is not a source creation family",
+        ));
+    }
+    let expected_operation = family.operation();
     if plan.operation != expected_operation {
         return Err(DurableError::Refused(
             "bounded PG creation operation differs from family",
@@ -852,7 +845,7 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
         let owner_indexes = crate::source_creation::pg_family::recovery_package_contract(
             expected_tag,
             input.record_type(),
-            input.home(),
+            input.home().as_str(),
             &writes,
         )
         .map_err(source_error)?;
@@ -1028,8 +1021,8 @@ fn verify_recovered_initial_record(
             "bounded Artifact recovery identity indexes differ",
         ));
     }
-    let metadata_index = *metadata[0];
-    let event_index = *events[0];
+    let metadata_index = metadata[0];
+    let event_index = events[0];
     let record_id = metadata_index.1.as_str();
     let source_path = metadata_index.2.as_str();
     let source = writes

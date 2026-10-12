@@ -8,7 +8,7 @@ use crate::durable_private_packages::{
     PrivateOwnerSourceBindingV1, capability_seal, package_digest, private_owner_dependency_digest,
     private_owner_readset_digest,
 };
-use crate::source_command as cmd;
+use crate::source_command::{self as cmd, SourceCommandResult};
 use crate::source_text_layer_derived_entry::PreparedNativeDerivedTextPackage;
 use crate::source_text_layer_entry::PreparedNativeInitialTextPackage;
 use crate::source_text_unit_entry::PreparedNativeTextUnitPackage;
@@ -97,7 +97,7 @@ impl PreparedPrivateTextPackageV1 {
         }
     }
 
-    fn replayed(&self) -> bool {
+    pub(crate) fn replayed(&self) -> bool {
         match self {
             Self::Initial(value) => value.replayed(),
             Self::Derived(value) => value.replayed(),

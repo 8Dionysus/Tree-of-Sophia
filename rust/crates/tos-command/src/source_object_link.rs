@@ -1460,8 +1460,8 @@ pub(crate) fn current_result_fields(
 
 fn source_profiles(
     scope: &JsonValue,
-    entity: &JsonValue,
-    relations: &JsonValue,
+    entity: &serde_json::Value,
+    relations: &serde_json::Value,
 ) -> SourceCommandResult<JsonValue> {
     let mappings = entity["types"]
         .as_array()

@@ -494,7 +494,7 @@ pub(crate) fn run(
         )?;
         owner_fs.current_context(&replay_context, deadline, cancelled)?;
         let owner_check = || {
-            if super::read_absolute(
+            if crate::source_text_owner::read_absolute(
                 invocation_path,
                 uid,
                 true,
@@ -602,7 +602,7 @@ pub(crate) fn run(
         .identity_closure
         .verify_readset(&readset)
         .map_err(super::source_error)?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
+    let mut worker = crate::source_native_cli::revisions::selected_candidate_schema_from_context(
         invocation,
         &context.files,
         identity,
@@ -646,7 +646,7 @@ pub(crate) fn run(
         )
         .map_err(super::source_error)?;
     let owner_check = || {
-        if super::read_absolute(
+        if crate::source_text_owner::read_absolute(
             invocation_path,
             uid,
             true,

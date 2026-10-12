@@ -10,6 +10,7 @@ use crate::source_command::{self as cmd, CommandContext, SourceCommandError, Sou
 use crate::source_creation_store::{
     CreationFilesystem, SelectedSourceWitnessCatalog, select_source_witness_catalog_from_input,
 };
+use crate::source_revisions::ReadonlyRecordFiles;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;

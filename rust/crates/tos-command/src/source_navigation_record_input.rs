@@ -19,7 +19,9 @@ use tos_compiler::{
         NavigationRecordDependencyRefreshCauseV1, NavigationRecordEventInputV1,
         NavigationVersionSourceInputV1,
     },
-    source_witness_catalog::{SourceCatalogValidator, render_catalog_record},
+    source_witness_catalog::{
+        CandidateEventSourceIdentityV1, SourceCatalogValidator, render_catalog_record,
+    },
 };
 use tos_foundation::{Digest256, RelativePath};
 
@@ -114,7 +116,7 @@ pub(crate) struct RecordRangeRevisionV1 {
 /// Claim receipts are left to the Claim range compiler; every other ToS
 /// source-create receipt must prove one Record owner in that same event.
 pub(crate) fn direct_source_create_records_for_range_v1(
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     maximum: usize,
     mut read_member: impl FnMut(u64, &str) -> DurableResult<Vec<u8>>,
 ) -> DurableResult<Vec<RecordRangeSourceCreateV1>> {
@@ -346,7 +348,7 @@ pub(crate) fn direct_source_create_records_for_range_v1(
 /// event's changed JSON members; later terminal bytes never stand in for the
 /// mutation that the event actually committed.
 pub(crate) fn direct_record_revisions_for_range_v1(
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     maximum: usize,
     mut read_member: impl FnMut(u64, &str) -> DurableResult<Vec<u8>>,
 ) -> DurableResult<Vec<RecordRangeRevisionV1>> {
@@ -464,7 +466,7 @@ pub(crate) fn direct_record_revisions_for_range_v1(
                 event_id: event.event_id.clone(),
                 command_id: command_id.clone(),
                 source_path,
-                source_bytes,
+                source_bytes: source_bytes.to_vec(),
                 history_path,
                 history_bytes,
             });
@@ -492,7 +494,7 @@ pub(crate) fn direct_record_revisions_for_range_v1(
 }
 
 fn verify_range_member_bytes(
-    member: &crate::DurableNavigationEventRangeMemberV1,
+    member: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeMemberV1,
     raw: &[u8],
     maximum_bytes: usize,
 ) -> DurableResult<()> {
@@ -926,7 +928,12 @@ pub(crate) fn archive_manifest_paths(
     files: &SelectedBibliographicFilesV1,
     limits: BibliographicLimits,
 ) -> DurableResult<Vec<String>> {
-    let entities = parse_value(files.required(REGISTRY)?, MAX_RECORD_BYTES)?;
+    let entities = parse_value(
+        files
+            .required(REGISTRY)
+            .map_err(|_| DurableError::Invalid("selected entity registry absent"))?,
+        MAX_RECORD_BYTES,
+    )?;
     let mut manifests = BTreeSet::new();
     for owner in owners {
         let (entry, _, _) = selected_record_entry(owner, files, &entities, limits)?;
@@ -1489,7 +1496,13 @@ fn assemble_record_event_cohort_with_basis(
                 origin_forms_bytes,
                 limits,
             )
-            .map_err(|_| DurableError::Refused("selected navigation Record range refused")),
+            .map_err(|_| DurableError::Refused("selected navigation Record range refused"))
+            .and_then(|cohort| {
+                let cost = cohort
+                    .budget_cost()
+                    .map_err(|_| DurableError::Refused("selected navigation Record budget refused"))?;
+                Ok((cohort, cost))
+            }),
         RecordProjectionBasisV1::DependencyRefresh {
             changed_dependency_path,
             changed_dependency_bytes,

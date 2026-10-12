@@ -741,7 +741,9 @@ pub(super) fn run(
                     &owner_raw,
                     &owner_config,
                     &request_raw,
-                    cmd::field(&request, "expected_publication")?.as_str(),
+                    cmd::field(&request, "expected_publication")
+                        .map_err(DurableError::Source)?
+                        .as_str(),
                     recorded_at.clone(),
                     uid,
                     &software,
@@ -749,8 +751,7 @@ pub(super) fn run(
                     ItemLimits {
                         max_member_bytes: usize::try_from(max_member_bytes)
                             .map_err(|_| DurableError::Invalid("PG Growth owner member budget"))?,
-                        max_total_bytes: usize::try_from(max_total_bytes)
-                            .map_err(|_| DurableError::Invalid("PG Growth owner total budget"))?,
+                        max_total_bytes,
                         max_state_bytes: usize::try_from(max_total_bytes)
                             .map_err(|_| DurableError::Invalid("PG Growth owner state budget"))?,
                         max_issues: 256,
@@ -1220,7 +1221,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
             .member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.context(
+    let context = selected.selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -1249,6 +1250,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
     // the owner-specific exact read closure and selected catalog into context.
     drop(input);
     selected
+        .selected
         .bind_selected_readset(session, deadline, cancelled)
         .map_err(|_| SourceCommandError::Conflict("PG Growth selected catalog read epoch"))?;
     let (final_context, absences) =
@@ -1264,7 +1266,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
         .map_err(|_| SourceCommandError::Conflict("PG Growth semantic index observation"))?;
     let binding = PgGrowthReadBinding::capture(session);
     let proposal = final_context.plan(
-        owner.proposal.handler_id.clone(),
+        owner.proposal.handler_id.as_str(),
         owner.proposal.response.clone(),
         owner.proposal.changes.clone(),
         owner.proposal.replayed,
@@ -1289,13 +1291,14 @@ fn selected_software_files(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<cmd::SourceFile>> {
-    if components.members().is_empty() || components.members().len() > MAX_GROWTH_SOFTWARE_MEMBERS {
+    let member_count = components.members().count();
+    if member_count == 0 || member_count > MAX_GROWTH_SOFTWARE_MEMBERS {
         return Err(SourceCommandError::Invalid(
             "PG Growth software member budget",
         ));
     }
     let mut total_bytes = 0u64;
-    let mut files = Vec::with_capacity(components.members().len());
+    let mut files = Vec::with_capacity(member_count);
     for member in components.members() {
         if member.size_bytes > MAX_GROWTH_SOFTWARE_MEMBER_BYTES {
             return Err(SourceCommandError::Invalid(
@@ -1431,7 +1434,7 @@ fn verify_work_absences(
         if crate::source_creation_store::work_transaction::read_at(
             &directory,
             leaf,
-            fs.uid,
+            fs.protected_uid(),
             MAX_SELECTED_MEMBER_BYTES as usize,
             deadline,
             cancelled,
@@ -1552,7 +1555,7 @@ fn finish_selected_growth_package<'a, P: GrowthOwnerFence + 'a>(
         .map_err(|_| SourceCommandError::Conflict("PG Growth semantic index observation"))?;
     let binding = PgGrowthReadBinding::capture(session);
     let proposal = context.plan(
-        owner_proposal.handler_id.clone(),
+        owner_proposal.handler_id.as_str(),
         owner_proposal.response.clone(),
         owner_proposal.changes.clone(),
         owner_proposal.replayed,
@@ -1573,11 +1576,11 @@ fn growth_item_limits(
     deadline: Instant,
 ) -> ItemLimits {
     let max_member_bytes = usize::try_from(max_member_bytes).unwrap_or(usize::MAX);
-    let max_total_bytes = usize::try_from(max_total_bytes).unwrap_or(usize::MAX);
+    let max_state_bytes = usize::try_from(max_total_bytes).unwrap_or(usize::MAX);
     ItemLimits {
         max_member_bytes,
         max_total_bytes,
-        max_state_bytes: max_total_bytes,
+        max_state_bytes,
         max_issues: 256,
         deadline,
     }
@@ -1736,7 +1739,7 @@ fn prepare_pg_growth_family_preview(
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
-    request: &JsonValue,
+    _request: &JsonValue,
     recorded_at: String,
     effective_uid: u32,
     software: &SoftwareCaptureReader,
@@ -2262,7 +2265,7 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
             .member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2578,9 +2581,6 @@ impl PreparedPgSourceRevision for PreparedPgGrowthRevision {
                 )
                 .map_err(DurableError::Source)
             }
-            _ => Err(DurableError::Refused(
-                "PG Growth owner projection family is not wired",
-            )),
         }
     }
 }
@@ -2614,9 +2614,6 @@ pub(crate) fn expected_growth_revision_indexes(
             crate::source_sign::pg::expected_semantic_indexes_from_writes(writes)
                 .map_err(DurableError::Source)
         }
-        _ => Err(DurableError::Refused(
-            "PG Growth owner index family is not wired",
-        )),
     }
 }
 
@@ -2707,7 +2704,7 @@ fn prepare_pg_object_link_growth<'a>(
         selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2745,7 +2742,6 @@ fn prepare_pg_object_link_growth<'a>(
     )?;
     drop(input);
     selected
-        .selected
         .bind_selected_readset(session, deadline, cancelled)
         .map_err(|_| SourceCommandError::Conflict("ObjectLink PG selected read epoch"))?;
     prepared
@@ -2926,7 +2922,9 @@ fn run_pg_object_link(
                     owner_raw,
                     owner_config,
                     request_raw,
-                    cmd::field(request, "expected_publication")?.as_str(),
+                    cmd::field(request, "expected_publication")
+                        .map_err(DurableError::Source)?
+                        .as_str(),
                     recorded_at.clone(),
                     uid,
                     &software,

@@ -245,7 +245,6 @@ pub struct DurableNavigationEventApply {
 /// prevent callers from supplying an unrelated event/member root; only the
 /// exact owner-selected context can seal this set. Publication re-reads the
 /// event members and verifies the same roots before changing any stored rows.
-#[derive(Clone, Debug)]
 pub struct DurableNavigationEventCohortSetV2 {
     event_id: String,
     event_sequence: u64,
@@ -322,7 +321,7 @@ fn durable_claim_stream_bindings(
     streams
         .iter()
         .map(|stream| DurableNavigationClaimStreamBindingV1 {
-            source_path: stream.source_path().as_str().to_owned(),
+            source_path: stream.source_path().to_owned(),
             stream_sha256: stream.stream_sha256(),
             owner_claim_ids: stream.owner_ids().to_vec(),
             rows_scanned: stream.rows_scanned(),
@@ -585,6 +584,7 @@ impl DurableNavigationEventCohortSetV2 {
                     members.contains(changed_dependency_path.as_str())
                         && members.contains(history_path.as_str())
                 }
+                NavigationRecordEventBasisV1::RangeReconciliation { .. } => false,
             };
             if cohort.event_id != context.event_id
                 || cohort.event_sequence != context.event_sequence
@@ -1070,7 +1070,7 @@ impl DurableNavigationEventCohortSetV2 {
                 revision_proof_root: claim_revision_binding.as_ref().map(|binding| binding.6),
                 owner_inventory_root,
                 claim_stream_rows_scanned,
-                mutation_source_path: first.mutation_source_path().to_owned(),
+                mutation_source_path: first.mutation_source_path().as_str().to_owned(),
                 affected_owner_manifest_root: None,
                 closure_root: None,
                 reverse_claim_ids: Vec::new(),
@@ -1742,7 +1742,7 @@ impl DurableNavigationEventCohortSetV2 {
                     || integrity.proof.closure_root() != claim_closure_root
                     || integrity.proof.affected_owner_manifest_root() != manifest.root()
                     || integrity.proof.reverse_claim_ids() != manifest.reverse_claim_ids()
-                    || integrity.event_claim_owner_ids != stream.owner_claim_ids.as_slice()
+                    || cohort.event_claim_owner_ids() != stream.owner_claim_ids.as_slice()
                     || cohort.claim_stream_sha256() != stream.stream_sha256
                     || cohort.claim_stream_rows_scanned() != stream.rows_scanned
                     || !actual_keys.insert((
@@ -2957,7 +2957,7 @@ fn navigation_json_u64(value: &Value, field: &'static str) -> DurableResult<u64>
 }
 
 fn navigation_json_digest(value: &Value, field: &'static str) -> DurableResult<Digest256> {
-    Digest256::from_hex(navigation_json_text(value, field)?)
+    Digest256::from_hex(&navigation_json_text(value, field)?)
         .map_err(|_| DurableError::Corrupt("navigation owner binding digest"))
 }
 
@@ -3281,6 +3281,11 @@ fn navigation_mixed_event_cohort_manifest(
             NavigationRecordEventBasisV1::DependencyRefreshSet { .. } => {
                 return Err(DurableError::Conflict(
                     "Record dependency-refresh set requires the v5 owner-closure manifest",
+                ));
+            }
+            NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
+                return Err(DurableError::Conflict(
+                    "range reconciliation requires the exact range manifest",
                 ));
             }
             NavigationRecordEventBasisV1::ClaimRevisionRefresh {
@@ -4090,7 +4095,7 @@ fn parse_navigation_record_dependency_refresh_causes(
     owner_path: &str,
     byte_limit: usize,
 ) -> DurableResult<Vec<NavigationRecordDependencyRefreshCauseV1>> {
-    let value = strict_json_value(raw, byte_limit)?;
+    let value = strict_json_value(raw.as_bytes(), byte_limit)?;
     let rows = value.as_array().ok_or(DurableError::Corrupt(
         "stored navigation dependency-refresh causes are not an array",
     ))?;
@@ -6799,6 +6804,9 @@ impl NavigationEventOwnerV2 {
             ),
             NavigationRecordEventBasisV1::DependencyRefreshSet { .. } => {
                 ("dependency-refresh-set", None, None, None, None, None, None)
+            }
+            NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
+                ("range-reconciliation", None, None, None, None, None, None)
             }
             NavigationRecordEventBasisV1::ClaimRevisionRefresh {
                 changed_dependency_path,
@@ -10691,7 +10699,7 @@ impl DurablePgCoordinator {
                     return Ok(DurableNavigationEventBacklogV2 {
                         cursor_before,
                         cursor_sequence,
-                        source_head_sequence,
+                        source_head_sequence: current_head,
                         published,
                         stop: DurableNavigationEventBacklogStopV2::UpToDate,
                     });
@@ -11414,7 +11422,7 @@ impl DurablePgCoordinator {
                     || integrity.proof.affected_owner_manifest_root()
                         != binding.affected_owner_manifest_root
                     || integrity.proof.reverse_claim_ids() != binding.reverse_claim_ids
-                    || integrity.event_claim_owner_ids != stream.owner_claim_ids.as_slice()
+                    || cohort.event_claim_owner_ids() != stream.owner_claim_ids.as_slice()
                     || cohort.claim_stream_sha256() != stream.stream_sha256
                     || cohort.claim_stream_rows_scanned() != stream.rows_scanned
                     || !actual_owner_keys.insert((
@@ -11818,7 +11826,7 @@ impl DurablePgCoordinator {
             previous_coverage_root,
             sequence,
             &first.event_id,
-            &first.source_path,
+            first.source_path.as_str(),
             &first.record_id,
             first.source_revision,
             first.input_root,
@@ -12031,10 +12039,10 @@ impl DurablePgCoordinator {
                 || expected.member_root != event_member_root
                 || expected.set_root != Digest256::of_bytes(&manifest_raw)
                 || expected.manifest_raw != manifest_raw
-                || expected.cohorts.len() != 1
-                || expected.cohorts[0].source_path != cohort.source_path
-                || expected.cohorts[0].record_id != cohort.record_id
-                || expected.cohorts[0].output_root != cohort.output_root
+                || expected.cohorts().len() != 1
+                || expected.cohorts()[0].source_path != cohort.source_path
+                || expected.cohorts()[0].record_id != cohort.record_id
+                || expected.cohorts()[0].output_root != cohort.output_root
             {
                 return Err(DurableError::Conflict(
                     "navigation cohort set differs from committed event witness",
@@ -13032,7 +13040,6 @@ impl DurablePgCoordinator {
                         != Some(claim_set.event_claim_set_root)
                     || manifest_cohort.claim_navigation_manifest_root
                         != claim_set.affected_owner_manifest_root
-                    || claim_set.mutation_receipt_sha256.is_none()
                     || claim_set.revision_claim_id.as_deref() == Some(&record_id)
                         && claim_set.revision_proof_root != basis_revision_proof_root
                     || claim_set.revision_claim_id.as_deref() != Some(&record_id)
@@ -13629,11 +13636,11 @@ impl DurablePgCoordinator {
                 || manifest_cohort.claim_trace_sha256.is_none()
                 || local_stream
                     .owner_claim_ids
-                    .binary_search(&record_id)
+                    .binary_search_by(|id| id.as_str().cmp(record_id))
                     .is_err()
                 || range_set
                     .terminal_owner_ids
-                    .binary_search(&record_id)
+                    .binary_search_by(|id| id.as_str().cmp(record_id))
                     .is_err()
                 || basis_revision_proof_root.is_some()
             {
@@ -14027,7 +14034,7 @@ impl DurablePgCoordinator {
                 &mut tx,
                 domain,
                 consumer_id,
-                &cohort.source_path,
+                cohort.source_path.as_str(),
                 &cohort.record_id,
                 &changed_paths,
             )?;
@@ -14035,7 +14042,7 @@ impl DurablePgCoordinator {
                 &mut tx,
                 domain,
                 consumer_id,
-                &cohort.source_path,
+                cohort.source_path.as_str(),
                 &cohort.record_id,
                 &rows.nodes,
             )?;
@@ -14057,7 +14064,7 @@ impl DurablePgCoordinator {
                     previous_coverage_root,
                     sequence,
                     &cohort.event_id,
-                    &cohort.source_path,
+                    cohort.source_path.as_str(),
                     &cohort.record_id,
                     cohort.source_revision,
                     cohort.input_root,
@@ -14866,6 +14873,11 @@ fn verify_dependency_cut(
                 ));
             }
         }
+        NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
+            return Err(DurableError::Conflict(
+                "range reconciliation requires the exact range publisher",
+            ));
+        }
     }
     Ok(())
 }
@@ -15035,7 +15047,7 @@ fn verify_event_manifest(
 
     let source = selected
         .iter()
-        .find(|source| source.source_path == cohort.source_path)
+        .find(|source| source.source_path == cohort.source_path.as_str())
         .ok_or(DurableError::Corrupt(
             "navigation record source selection absent",
         ))?;
@@ -15116,7 +15128,7 @@ fn verify_event_manifest(
                 .ok_or(DurableError::Conflict("navigation event outputs absent"))?;
             verify_event_output(
                 outputs,
-                &cohort.source_path,
+                cohort.source_path.as_str(),
                 record_raw,
                 cohort.event_sequence,
                 selected,
@@ -15130,6 +15142,7 @@ fn verify_event_manifest(
                 ))?;
             let forms_path = cohort
                 .source_path
+                .as_str()
                 .strip_suffix(".json")
                 .map(|stem| format!("{stem}.human-forms.json"))
                 .ok_or(DurableError::Invalid("navigation record path suffix"))?;
@@ -15190,7 +15203,7 @@ fn verify_event_manifest(
                         "navigation event receipt files absent",
                     ))?;
             verify_receipt_file(files, event.source_path.as_str(), event_raw)?;
-            verify_receipt_file(files, &cohort.source_path, record_raw)?;
+            verify_receipt_file(files, cohort.source_path.as_str(), record_raw)?;
             if matches!(&forms.state, NavigationDependencyStateV1::Present { .. }) {
                 let form_raw = selected
                     .iter()
@@ -15315,7 +15328,7 @@ fn verify_event_manifest(
                 ))?;
             verify_event_output(
                 outputs,
-                &cohort.source_path,
+                cohort.source_path.as_str(),
                 record_raw,
                 creation_sequence,
                 selected,
@@ -15329,6 +15342,7 @@ fn verify_event_manifest(
                 ))?;
             let forms_path = cohort
                 .source_path
+                .as_str()
                 .strip_suffix(".json")
                 .map(|stem| format!("{stem}.human-forms.json"))
                 .ok_or(DurableError::Invalid("navigation record path suffix"))?;
@@ -15388,7 +15402,7 @@ fn verify_event_manifest(
                         "navigation Record creation receipt files absent",
                     ))?;
             verify_receipt_file(files, event.source_path.as_str(), event_raw)?;
-            verify_receipt_file(files, &cohort.source_path, record_raw)?;
+            verify_receipt_file(files, cohort.source_path.as_str(), record_raw)?;
             if let Some(form_raw) = form_raw {
                 verify_receipt_file(files, &forms_path, form_raw)?;
             }
@@ -15524,7 +15538,7 @@ fn verify_navigation_record_creation_binding(
         ))?;
     verify_event_output(
         outputs,
-        &cohort.source_path,
+        cohort.source_path.as_str(),
         record_raw,
         creation_sequence,
         selected,
@@ -15538,6 +15552,7 @@ fn verify_navigation_record_creation_binding(
         ))?;
     let forms_path = cohort
         .source_path
+        .as_str()
         .strip_suffix(".json")
         .map(|stem| format!("{stem}.human-forms.json"))
         .ok_or(DurableError::Invalid("navigation record path suffix"))?;
@@ -15592,7 +15607,7 @@ fn verify_navigation_record_creation_binding(
             "navigation Record creation receipt files absent",
         ))?;
     verify_receipt_file(files, event.source_path.as_str(), event_raw)?;
-    verify_receipt_file(files, &cohort.source_path, record_raw)?;
+    verify_receipt_file(files, cohort.source_path.as_str(), record_raw)?;
     if let Some(form_raw) = form_raw {
         verify_receipt_file(files, &forms_path, form_raw)?;
     }
@@ -15872,7 +15887,10 @@ fn persist_navigation_projection_rows(
             "navigation external endpoint IDs are not sorted and unique",
         ));
     }
-    let external_endpoint_ids = external_endpoint_ids.iter().collect::<BTreeSet<_>>();
+    let external_endpoint_ids = external_endpoint_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     let mut node_ids = BTreeSet::new();
     let mut node_visibility_by_id = BTreeMap::new();
     for (value, visible) in node_values.iter().zip(node_visibility) {
@@ -16401,6 +16419,17 @@ fn cohort_roots_parts(
         NavigationRecordEventBasisV1::Mutation => (
             "tos_source_navigation_event_input_v2",
             json!({"kind":"record-mutation"}),
+        ),
+        NavigationRecordEventBasisV1::RangeReconciliation {
+            coverage_root,
+            cause_root,
+        } => (
+            "tos_source_navigation_event_input_v5",
+            json!({
+                "kind":"range-reconciliation",
+                "coverage_root":coverage_root.to_hex(),
+                "cause_root":cause_root.to_hex(),
+            }),
         ),
         NavigationRecordEventBasisV1::DependencyRefresh {
             changed_dependency_path,

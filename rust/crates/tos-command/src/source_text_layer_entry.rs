@@ -8,8 +8,9 @@ use crate::source_serialization::{
     capture_initial_text_layer, executable, instant, selected_components,
 };
 use crate::source_text_identity::selected_owner_identity_snapshot;
-use crate::source_text_layer_native::recheck_selected_inputs;
-use crate::source_text_layer_native::{PreparedInitialLayerText, prepare_initial_text};
+use crate::source_text_layer_native::{
+    PreparedInitialLayerText, prepare_initial_text, recheck_selected_inputs,
+};
 use crate::source_text_layer_payload::{
     PayloadIdentity, payload_root_pins, read_acquired_epub_member,
 };

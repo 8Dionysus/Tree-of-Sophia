@@ -1554,7 +1554,7 @@ fn selected_member_bytes(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<u8>> {
     let mut found = None;
-    SourceCutInput::with_current_member(
+    PrivateSelectedSourceInput::with_current_member(
         current,
         reference,
         MAX_PRIVATE_SELECTED_MEMBER_BYTES,
@@ -2533,6 +2533,8 @@ pub(crate) fn select_owner_local_sources_pg(
         native_records,
         native_inputs,
         native_snapshots,
+        claim_snapshots,
+        profile_snapshots,
         native_summaries,
         native_identity_snapshots: Vec::new(),
         owner_local_sources_snapshot,

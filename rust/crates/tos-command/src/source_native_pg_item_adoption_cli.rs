@@ -12,6 +12,7 @@ use crate::source_command::{
     SourceCommandResult,
 };
 use crate::source_creation_store::{self, CreationFilesystem};
+use crate::source_revisions::ReadonlyRecordFiles;
 use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use postgres::Transaction;
 use serde_json::{Value, json};
@@ -22,9 +23,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_segment_store::SegmentStore;
-use tos_source_store::SoftwareCaptureReader;
 use tos_validation::item_rules::ItemLimits;
-use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 
 const ITEM_ADOPTION_FAMILY_TAG: &str = source_creation_store::PG_ITEM_ADOPTION_FAMILY_TAG;
 const ITEM_ADOPTION_INVOCATION: &str = "tos_local_pg_item_adoption_invocation_v1";
@@ -234,7 +233,6 @@ fn item_source_writes(
                         .map_err(|_| {
                             SourceCommandError::Conflict("PG Item insertion absence changed")
                         })?
-                        .is_some()
                     {
                         return Err(SourceCommandError::Conflict(
                             "PG Item insertion target became occupied",
@@ -389,7 +387,7 @@ pub(super) fn run(
             "budgets",
         ],
     )?;
-    if cmd::text(invocation, "schema_version")? != ITEM_ADOPTION_INVOCATION {
+    if super::text(invocation, "schema_version")? != ITEM_ADOPTION_INVOCATION {
         return Err(SourceCommandError::Unsupported(
             "PG Item invocation profile",
         ));
@@ -397,8 +395,8 @@ pub(super) fn run(
     let selection = super::pg_claims::selected_source(invocation)?;
     let (max_members, max_total_bytes, max_member_bytes) =
         super::pg_claims::invocation_budgets(invocation)?;
-    let expected_executable = super::digest(cmd::text(invocation, "native_executable_sha256")?)?;
-    let _ = super::absolute(cmd::text(invocation, "native_executable")?)?;
+    let expected_executable = super::digest(super::text(invocation, "native_executable_sha256")?)?;
+    let _ = super::absolute(super::text(invocation, "native_executable")?)?;
     let runtime = crate::source_serialization::observe_executable(deadline, cancelled)?;
     if runtime.current_digest(deadline, cancelled)? != expected_executable {
         return Err(SourceCommandError::Conflict(
@@ -406,7 +404,7 @@ pub(super) fn run(
         ));
     }
 
-    let owner_path = super::absolute(cmd::text(invocation, "owner_config")?)?;
+    let owner_path = super::absolute(super::text(invocation, "owner_config")?)?;
     let (owner_fs, owner_raw) = CreationFilesystem::select_protected_native_owner_at_root(
         &owner_path,
         &selection.store_root,

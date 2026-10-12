@@ -513,6 +513,20 @@ impl ImmutableKnowledgeCustody for LinuxFsVerityCustody {
         verify_native_process_limits(self.process)
     }
 }
+/// Read the kernel measurement of an already verity-protected native model.
+/// This is custody evidence only: it neither enables fs-verity nor authenticates
+/// the artifact's expected SHA/size, which the selected cold opener verifies.
+pub fn measure_existing_native_knowledge_artifact_custody(
+    path: &Path,
+    expected: &KnowledgeSelectedExpectation,
+) -> Result<NativeFsVerityMeasurement> {
+    if !path.is_absolute() {
+        return Err(Error::Invalid("native artifact absolute path"));
+    }
+    let pinned = crate::safe_open::open_regular(path, expected.model_size_bytes)?;
+    measured(&pinned)
+}
+
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 fn finite_soft_limit(resource: u32, maximum: u64) -> Result<()> {
     let mut limit = libc::rlimit {

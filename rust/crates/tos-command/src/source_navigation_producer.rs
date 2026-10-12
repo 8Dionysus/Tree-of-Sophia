@@ -25,8 +25,8 @@ use tos_compiler::{
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::SegmentStore;
 use tos_validation::SchemaResource;
+use tos_validation::executor::VerifiedWorkerImageHandle;
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
-use tos_validation::source_cut::VerifiedWorkerImageHandle;
 
 use crate::PgRecordRevisionIdentity;
 
@@ -184,7 +184,7 @@ fn run_held_owner(
         max_events,
         selection.event_limits,
     )? {
-        crate::DurableNavigationEventRangeSeedV1::UpToDate {
+        crate::durable_adapter::durable_projection::DurableNavigationEventRangeSeedV1::UpToDate {
             cursor_sequence,
             source_head_sequence,
         } => Ok(json!({
@@ -196,7 +196,7 @@ fn run_held_owner(
             "published": [],
             "stop": "up_to_date",
         })),
-        crate::DurableNavigationEventRangeSeedV1::Pending {
+        crate::durable_adapter::durable_projection::DurableNavigationEventRangeSeedV1::Pending {
             cursor_sequence,
             source_head_sequence,
             reason,
@@ -209,15 +209,15 @@ fn run_held_owner(
             "published": [],
             "stop": "pending",
             "pending_reason": match reason {
-                crate::DurableNavigationEventRangePendingReasonV1::EventBudgetExceeded => {
+                crate::durable_adapter::durable_projection::DurableNavigationEventRangePendingReasonV1::EventBudgetExceeded => {
                     "event_budget_exceeded"
                 }
-                crate::DurableNavigationEventRangePendingReasonV1::MissingEventProof => {
+                crate::durable_adapter::durable_projection::DurableNavigationEventRangePendingReasonV1::MissingEventProof => {
                     "missing_event_proof"
                 }
             },
         })),
-        crate::DurableNavigationEventRangeSeedV1::Ready(coverage) => {
+        crate::durable_adapter::durable_projection::DurableNavigationEventRangeSeedV1::Ready(coverage) => {
             if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
                 return Err(DurableError::Refused(
                     "navigation producer deadline or cancellation",
@@ -272,7 +272,7 @@ fn run_held_owner(
 fn process_ready_range(
     event_reader: &mut DurablePgCoordinator,
     store: &SegmentStore,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     owner: &NavigationProducerHeldOwnerIdentity,
     owner_tx: &mut postgres::Transaction<'_>,
     selection: &NavigationProducerOwnerSelection<'_>,
@@ -533,7 +533,7 @@ fn process_ready_range(
             .ok_or(DurableError::Conflict(
                 "navigation range as-of Claim closure was not retained",
             ))?;
-        closure.verify_readset(&readset)?;
+        readset.verify_readset(&closure)?;
         let identity = closure.selection_identity();
         if closure.domain() != selection.domain
             || closure.as_of_sequence() != coverage.through_sequence()
@@ -901,10 +901,10 @@ fn process_ready_range(
             claim_stream_path: row.claim_stream_path.clone(),
             claim_id: row.claim_id.clone(),
             basis: match row.predecessor_basis {
-                crate::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
+                crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
                     cohort_root,
                 } => NavigationClaimEventRangePriorOwnerBasisV1::EventCohort { cohort_root },
-                crate::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => {
+                crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => {
                     NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap { owner_root }
                 }
             },
@@ -1068,10 +1068,10 @@ fn process_ready_range(
         BTreeMap::<String, Vec<NavigationRecordEventRangePriorOwnerInputV1>>::new();
     for row in &prior_record_owners {
         let root = match row.predecessor_basis {
-            crate::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort { cohort_root } => {
+            crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort { cohort_root } => {
                 cohort_root
             }
-            crate::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => {
+            crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => {
                 owner_root
             }
         };
@@ -1112,10 +1112,10 @@ fn process_ready_range(
         .iter()
         .map(|row| {
             let predecessor_cohort_root = match row.predecessor_basis {
-                crate::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
+                crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
                     cohort_root,
                 } => cohort_root,
-                crate::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => {
+                crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => {
                     owner_root
                 }
             };
@@ -1388,7 +1388,7 @@ fn process_ready_range(
             .revision_history_path
             .as_deref()
             .ok_or(DurableError::Corrupt("Claim revision history path absent"))?;
-        let mut predecessor_owners = record_prior_owners
+        let mut predecessor_owners = prior_record_owners
             .iter()
             .filter(|owner| {
                 owner.source_path != mutation.claim_stream_member_path
@@ -1398,10 +1398,10 @@ fn process_ready_range(
             })
             .map(|owner| {
                 let root = match owner.predecessor_basis {
-                    crate::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
+                    crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
                         cohort_root,
                     } => cohort_root,
-                    crate::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap {
+                    crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap {
                         owner_root,
                     } => owner_root,
                 };
@@ -1600,6 +1600,7 @@ fn process_ready_range(
                     }
                 },
             )
+            .map_err(|_| DurableError::Conflict("Record range set refused"))
             },
         )?;
         if let Some(error) = project_error {
@@ -2382,7 +2383,7 @@ fn stage_event_context(
 /// range type. This keeps event identities, command identities, and each
 /// event's member set separate from the terminal current-source context.
 fn seal_compiler_range_coverage(
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
 ) -> DurableResult<tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1> {
     use tos_compiler::source_navigation_event::{
         NavigationEventRangeCoverageInputV1, NavigationEventRangeEventV1,
@@ -2427,7 +2428,7 @@ fn read_current_range_context(
     store: &SegmentStore,
     owner: &NavigationProducerHeldOwnerIdentity,
     selection: &NavigationProducerOwnerSelection<'_>,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     paths: &BTreeSet<String>,
 ) -> DurableResult<DurableNavigationEventContextV1> {
     let terminal_has_source = coverage
@@ -2472,7 +2473,7 @@ fn stage_range_context(
     store: &SegmentStore,
     owner: &NavigationProducerHeldOwnerIdentity,
     selection: &NavigationProducerOwnerSelection<'_>,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     context: &mut DurableNavigationEventContextV1,
     additions: impl IntoIterator<Item = String>,
 ) -> DurableResult<()> {
@@ -2509,7 +2510,7 @@ fn stage_range_context(
 fn verify_range_terminal_context(
     owner: &NavigationProducerHeldOwnerIdentity,
     selection: &NavigationProducerOwnerSelection<'_>,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     context: &DurableNavigationEventContextV1,
     requested_paths: &BTreeSet<String>,
 ) -> DurableResult<()> {
@@ -2731,8 +2732,10 @@ fn direct_claim_mutations_for_range(
     event_reader: &mut DurablePgCoordinator,
     store: &SegmentStore,
     selection: &NavigationProducerOwnerSelection<'_>,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
-) -> DurableResult<Vec<crate::DurableNavigationEventRangeClaimMutationV1>> {
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
+) -> DurableResult<
+    Vec<crate::durable_adapter::durable_projection::DurableNavigationEventRangeClaimMutationV1>,
+> {
     let mut mutations = Vec::new();
     for event in coverage.events() {
         if event.event_kind != "command" {
@@ -2855,7 +2858,7 @@ fn direct_claim_mutations_for_range(
                     .ok_or(DurableError::Conflict(
                         "range Claim receipt member left exact coverage",
                     ))?;
-            mutations.push(crate::DurableNavigationEventRangeClaimMutationV1 {
+            mutations.push(crate::durable_adapter::durable_projection::DurableNavigationEventRangeClaimMutationV1 {
                 event_sequence: event.sequence,
                 event_id: event.event_id.clone(),
                 claim_stream_member_path: stream_path.to_owned(),
@@ -3037,6 +3040,19 @@ fn record_mutation_inputs_for_owner<'a>(
     Ok(mutations)
 }
 
+fn record_history_path(source_path: &str) -> DurableResult<String> {
+    let source_path = RelativePath::parse(source_path)
+        .map_err(|_| DurableError::Invalid("navigation Record source path"))?;
+    let (home, basename) = source_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(DurableError::Invalid("navigation Record source home"))?;
+    if basename.strip_suffix(".json").is_none() {
+        return Err(DurableError::Invalid("navigation Record source suffix"));
+    }
+    Ok(format!("{home}/source-revision-history.json"))
+}
+
 fn selected_optional_source_bytes<'a>(
     context: &'a DurableNavigationEventContextV1,
     path: &str,
@@ -3178,7 +3194,7 @@ fn range_jsonl_identity_matches(raw: &[u8], id_field: &str, expected: &str) -> D
 fn claim_source_files_for_range<'a>(
     context: &'a DurableNavigationEventContextV1,
     closure: &crate::source_cohort::revision::SourceRevisionClaimNavigationClosure,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     current_stream_paths: &'a [String],
     historical_endpoint_paths: &'a [String],
     direct_mutation_stream_paths: &BTreeSet<String>,
@@ -3255,11 +3271,13 @@ fn claim_source_files_for_range<'a>(
 /// distinct event causes, each carrying those same two boundary observations;
 /// no intermediate reverse-index state is inferred from the terminal cut.
 fn range_dependency_causes(
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
-    prior_owners: &[crate::DurableNavigationEventRangePriorClaimOwnerV1],
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
+    prior_owners: &[crate::durable_adapter::durable_projection::DurableNavigationEventRangePriorClaimOwnerV1],
     closure: &crate::source_cohort::revision::SourceRevisionClaimNavigationClosure,
     ids_by_path: &BTreeMap<String, BTreeSet<String>>,
-) -> DurableResult<Vec<crate::DurableNavigationEventRangeDependencyCauseV1>> {
+) -> DurableResult<
+    Vec<crate::durable_adapter::durable_projection::DurableNavigationEventRangeDependencyCauseV1>,
+> {
     use crate::source_claim_dependency_index::ClaimNavigationReferenceKind;
 
     let mut causes = Vec::new();
@@ -3327,7 +3345,7 @@ fn range_dependency_causes(
                         .extend(observation.rows.iter().map(|row| row.claim_id.clone()));
                 }
             }
-            causes.push(crate::DurableNavigationEventRangeDependencyCauseV1 {
+            causes.push(crate::durable_adapter::durable_projection::DurableNavigationEventRangeDependencyCauseV1 {
                 event_sequence: event.sequence,
                 event_id: event.event_id.clone(),
                 changed_dependency_path: member.source_path.clone(),
@@ -3365,8 +3383,8 @@ fn range_dependency_causes(
 fn claim_source_files<'a>(
     context: &'a DurableNavigationEventContextV1,
     closure: &crate::source_cohort::revision::SourceRevisionClaimNavigationClosure,
-    current_stream_paths: &[String],
-    historical_endpoint_paths: &[String],
+    current_stream_paths: &'a [String],
+    historical_endpoint_paths: &'a [String],
 ) -> DurableResult<Vec<NavigationClaimEventSourceFileV1<'a>>> {
     let mut paths = BTreeSet::new();
     for path in current_stream_paths.iter().chain(historical_endpoint_paths) {
@@ -3921,7 +3939,7 @@ pub(crate) fn event_source_cut_identity(
 fn range_source_cut_identity(
     owner: &NavigationProducerHeldOwnerIdentity,
     selection: &NavigationProducerOwnerSelection<'_>,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     context: &DurableNavigationEventContextV1,
 ) -> DurableResult<NavigationEventSourceCutIdentityV1> {
     if coverage.through_sequence() > coverage.held_source_head_sequence()
@@ -4389,7 +4407,7 @@ pub(crate) fn with_event_schema_validator<T>(
 fn with_range_schema_validator<T>(
     owner_identity: &NavigationProducerHeldOwnerIdentity,
     selection: &NavigationProducerOwnerSelection<'_>,
-    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    coverage: &crate::durable_adapter::durable_projection::DurableNavigationEventRangeCoverageV1,
     context: &DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
     deadline: Instant,

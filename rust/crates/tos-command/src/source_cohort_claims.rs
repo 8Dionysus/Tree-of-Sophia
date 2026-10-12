@@ -427,7 +427,7 @@ impl PreparedPgClaimCommand {
         Self::new(
             context,
             proposal,
-            cut,
+            PgClaimSourceProof::Complete(cut),
             IndexRows::new(),
             owner_contributions,
         )

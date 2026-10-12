@@ -155,7 +155,7 @@ impl PgObjectLinkPreview {
                         && predicate.owner == crate::source_cohort::OWNER
                         && predicate.scope == "source-home"
                         && predicate.token == token
-                        && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                        && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
             }) {
                 return Err(DurableError::Conflict(
                     "ObjectLink PG preview source-home absence was not observed",
@@ -169,7 +169,7 @@ impl PgObjectLinkPreview {
                         && predicate.owner == crate::source_cohort::OWNER
                         && predicate.scope == *kind
                         && predicate.token == *token
-                        && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                        && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
             }) {
                 return Err(DurableError::Conflict(
                     "ObjectLink PG preview identity absence was not observed",
@@ -186,20 +186,20 @@ fn selected_profiles<I: Copy + Eq>(
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
-    let entity = cmd::parse(&selected_bytes(
+    let entity = super::serde_value(&cmd::parse(&selected_bytes(
         input,
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         MAX_SELECTED_MEMBER,
         limits,
         cancelled,
-    )?)?;
-    let relations = cmd::parse(&selected_bytes(
+    )?)?)?;
+    let relations = super::serde_value(&cmd::parse(&selected_bytes(
         input,
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
         MAX_SELECTED_MEMBER,
         limits,
         cancelled,
-    )?)?;
+    )?)?)?;
     super::source_profiles(scope, &entity, &relations)
 }
 
@@ -1527,8 +1527,8 @@ impl PreparedPgSourceRevision for PreparedPgObjectLink<'_> {
             ));
         };
         if self.identity != readset.selection.identity()
-            || self.context.base_revision != readset.selection.cohort.initial_revision
-            || self.proposal.base_revision != readset.selection.cohort.initial_revision
+            || self.context.base_revision != readset.selection.cohort.initial_revision()
+            || self.proposal.base_revision != readset.selection.cohort.initial_revision()
             || self.proposal.operation != OPERATION
             || self.proposal.handler_id != PG_HANDLER
             || self.proposal.replayed
@@ -1548,7 +1548,7 @@ impl PreparedPgSourceRevision for PreparedPgObjectLink<'_> {
                         && predicate.owner == crate::source_cohort::OWNER
                         && predicate.scope == "source-home"
                         && predicate.token == token
-                        && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                        && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
             }) {
                 return Err(DurableError::Conflict(
                     "ObjectLink source-home absence was not observed",
@@ -1562,7 +1562,7 @@ impl PreparedPgSourceRevision for PreparedPgObjectLink<'_> {
                         && predicate.owner == crate::source_cohort::OWNER
                         && predicate.scope == *kind
                         && predicate.token == *token
-                        && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                        && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
             }) {
                 return Err(DurableError::Conflict(
                     "ObjectLink identity absence was not observed",

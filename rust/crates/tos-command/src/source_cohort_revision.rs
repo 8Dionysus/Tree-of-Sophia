@@ -274,7 +274,14 @@ fn selected_publication_package_member(
     cmd::exact_keys(base, &["token", "generation"]).map_err(DurableError::Source)?;
     let base_token = match cmd::field(base, "token").map_err(DurableError::Source)? {
         tos_foundation::JsonValue::Null => None,
-        tos_foundation::JsonValue::String(value) => Some(value.clone()),
+        tos_foundation::JsonValue::String(value) => Some(
+            value
+                .as_str()
+                .ok_or(DurableError::Corrupt(
+                    "source publication manifest base token",
+                ))?
+                .to_owned(),
+        ),
         _ => {
             return Err(DurableError::Corrupt(
                 "source publication manifest base token",
@@ -2438,7 +2445,7 @@ impl SourceRevisionReadSession<'_> {
             let revision = as_u64(row.get(0))?;
             let commit_seq = as_u64(row.get(1))?;
             if commit_seq != *expected_commit_seq
-                || digest(row.get("content_digest"))? != *expected_digest
+                || parse_hex(row.get::<_, String>("content_digest"))? != *expected_digest
                 || as_u64(row.get("content_length"))? != *expected_size
                 || row.get::<_, Option<i32>>("source_mode").is_none()
             {

@@ -353,7 +353,7 @@ pub(crate) fn prepare_pg_expression_responsibility<'a, I: Copy + Eq>(
         .map(|file| {
             Ok(cmd::SourceChange {
                 path: file.path.clone(),
-                before: file.before.as_ref().map(Digest256::of_bytes),
+                before: file.before.as_ref().map(|raw| Digest256::of_bytes(raw)),
                 after: file.after.clone(),
             })
         })
@@ -554,7 +554,10 @@ pub(crate) fn prepare_pg_expression_responsibility_preview<I: Copy + Eq>(
     ))?;
     let authorization = foundation_value(core.authorization())?;
     if cmd::text(&authorization, "owner_configuration")? != owner.configuration_digest
-        || !cmd::same(cmd::field(&authorization, "scope")?, &scope)?
+        || !cmd::same(
+            cmd::field(&authorization, "scope")?,
+            &foundation_value(&scope)?,
+        )?
         || cmd::record_digest(cmd::field(&authorization, "dependency_bindings")?)?.to_prefixed()
             != cmd::text(&request, "expected_dependencies")?
     {
@@ -736,7 +739,7 @@ pub(crate) fn current_result_fields_from_selected_pg<I: Copy + Eq>(
     .map_err(item_error)?;
 
     crate::source_claims::work_expression_source_descriptors_candidate(
-        context, worker, limits, cancelled,
+        context, input, worker, limits, cancelled,
     )?;
     let source_profiles = selected_source_profiles(context)?;
     let scope = JsonValue::Object(
@@ -1673,7 +1676,9 @@ fn selected_prior_completion(
     let base_generation = cmd::integer(base, "generation")?;
     let base_token_valid = match cmd::field(base, "token")? {
         JsonValue::Null => base_generation == 0,
-        JsonValue::String(value) => base_generation > 0 && work_transaction::is_hash(value),
+        JsonValue::String(value) => {
+            base_generation > 0 && value.as_str().is_some_and(work_transaction::is_hash)
+        }
         _ => false,
     };
     if cmd::text(&manifest, "transaction_id")? != id
@@ -2075,15 +2080,18 @@ fn owner_contributions_from_members<'a>(
                 "ExpressionResponsibility contribution path outside source home",
             ));
         }
-        let mut records = BTreeMap::new();
-        for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
-            records.insert(JsonString::from_utf8(kind), JsonValue::Array(Vec::new()));
-        }
+        let mut records = crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+            .iter()
+            .map(|kind| (JsonString::from_utf8(kind), JsonValue::Array(Vec::new())))
+            .collect::<Vec<_>>();
         if path == expression_path {
-            records.insert(
-                JsonString::from_utf8("expression"),
-                JsonValue::Array(vec![catalog_entry.clone()]),
-            );
+            let (_, value) = records
+                .iter_mut()
+                .find(|(kind, _)| kind.as_str() == Some("expression"))
+                .ok_or(SourceCommandError::Invalid(
+                    "ExpressionResponsibility expression inventory kind",
+                ))?;
+            *value = JsonValue::Array(vec![catalog_entry.clone()]);
         }
         let events = if path == &event_path {
             event_projection(path, raw, event_id)?
@@ -2120,7 +2128,8 @@ fn owner_contributions_from_members<'a>(
 }
 
 fn inventory_source_profiles(context_files: &[cmd::SourceFile]) -> SourceCommandResult<JsonValue> {
-    let mut profiles = BTreeMap::new();
+    let mut profiles = Vec::new();
+    let mut paths = BTreeSet::new();
     for file in context_files {
         let path = file.path.as_str();
         let selected = path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
@@ -2129,16 +2138,15 @@ fn inventory_source_profiles(context_files: &[cmd::SourceFile]) -> SourceCommand
                 "ToS/doctrine/semantic-interchange/entity-types.v1.json"
                     | "ToS/doctrine/semantic-interchange/relation-types.v1.json"
             );
-        if selected
-            && profiles
-                .insert(
-                    JsonString::from_utf8(path),
-                    cmd::string(&Digest256::of_bytes(&file.raw).to_hex()),
-                )
-                .is_some()
-        {
-            return Err(SourceCommandError::Conflict(
-                "ExpressionResponsibility source profile repeats",
+        if selected {
+            if !paths.insert(path.to_owned()) {
+                return Err(SourceCommandError::Conflict(
+                    "ExpressionResponsibility source profile repeats",
+                ));
+            }
+            profiles.push((
+                JsonString::from_utf8(path),
+                cmd::string(&Digest256::of_bytes(&file.raw).to_hex()),
             ));
         }
     }
@@ -2147,6 +2155,7 @@ fn inventory_source_profiles(context_files: &[cmd::SourceFile]) -> SourceCommand
             "ExpressionResponsibility source profile set incomplete",
         ));
     }
+    profiles.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
     Ok(JsonValue::Object(profiles))
 }
 
@@ -2425,7 +2434,7 @@ fn output_bytes(
 }
 
 fn empty_object() -> JsonValue {
-    JsonValue::Object(BTreeMap::new())
+    JsonValue::Object(Vec::new())
 }
 
 const CORPUS_RECORD_SCHEMA: &str = "ToS/contracts/corpus-record.schema.json";

@@ -18,16 +18,17 @@ use crate::source_command::{
     self as cmd, CommandContext, SourceCommandError, SourceCommandResult, SourceFile,
 };
 use crate::source_creation_store::CreationFilesystem;
-use crate::source_native_pg_growth_input::PgGrowthCurrentInput;
+use crate::source_native_cli::PgGrowthCurrentInput;
+use crate::source_native_cli::private_assessment as assessment;
 use crate::source_revisions::ReadonlyRecordFiles;
-use crate::source_text_owner::OwnerTextContext;
+use crate::source_text_owner::{OwnerTextContext, normalized_absolute, read_absolute};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_source_store::SegmentStore;
+use tos_segment_store::SegmentStore;
 use tos_validation::record_biblio_cut::SourceCutInput;
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
@@ -120,7 +121,7 @@ struct SignPreflight {
 
 enum SignPrepared {
     Preview(JsonValue),
-    Mutation(crate::source_native_pg_growth_cli::PreparedPgGrowthRevision),
+    Mutation(super::PreparedPgGrowthRevision),
     Replay,
 }
 
@@ -207,15 +208,14 @@ fn preflight_sign_owner(
         .map_err(|_| SourceCommandError::Invalid("Sign PG selected input budget"))?;
     let mut files = PgGrowthFiles { input: &input };
     let context_schema = files.read(CONTEXT_SCHEMA, MAX_SCHEMA_BYTES, deadline, cancelled)?;
-    let mut worker =
-        crate::source_native_private_assessment_cli::selected_assessment_candidate_worker(
-            invocation,
-            &mut files,
-            identity,
-            &[CONTEXT_SCHEMA.to_owned()],
-            deadline,
-            cancelled,
-        )?;
+    let mut worker = assessment::selected_assessment_candidate_worker(
+        invocation,
+        &mut files,
+        identity,
+        &[CONTEXT_SCHEMA.to_owned()],
+        deadline,
+        cancelled,
+    )?;
     let (mut owner, selected_context) = OwnerTextContext::select_pg(
         context_path,
         &context_schema,
@@ -232,21 +232,16 @@ fn preflight_sign_owner(
     )?;
     let assessment_config = grant.configuration().clone();
     let assessment_config_raw = grant.configuration_raw().to_vec();
-    let version =
-        crate::source_native_private_assessment_cli::OwnerVersion::from_config(&assessment_config)?;
+    let version = assessment::OwnerVersion::from_config(&assessment_config)?;
     if !matches!(
         version,
-        crate::source_native_private_assessment_cli::OwnerVersion::V5
-            | crate::source_native_private_assessment_cli::OwnerVersion::V6
+        assessment::OwnerVersion::V5 | assessment::OwnerVersion::V6
     ) {
         return Err(SourceCommandError::Denied(
             "PG Sign requires protected Assessment owner v5/v6",
         ));
     }
-    crate::source_native_private_assessment_cli::preflight_configuration(
-        &assessment_config,
-        version,
-    )?;
+    assessment::preflight_configuration(&assessment_config, version)?;
     let binding = owner.private_owner_scope_binding(deadline, cancelled)?;
     let scope = PrivateOwnerScopeV1::for_context(&selection.domain, binding)
         .map_err(|_| SourceCommandError::Invalid("Sign PG private owner scope"))?;
@@ -260,8 +255,13 @@ fn preflight_sign_owner(
     }
     let candidate = cmd::text(owner_config, "promotion_candidate_id")?;
     let mut subject_targets = subject_map
-        .keys()
-        .map(|subject| Ok((subject.clone(), grant.target_ref(&owner, subject)?)))
+        .iter()
+        .map(|(subject, _)| {
+            let subject = subject
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Sign PG Assessment subject ID"))?;
+            Ok((subject.to_owned(), grant.target_ref(&owner, subject)?))
+        })
         .collect::<SourceCommandResult<Vec<_>>>()?;
     subject_targets.sort_by(|left, right| left.0.cmp(&right.0));
     if !subject_targets
@@ -282,7 +282,7 @@ fn preflight_sign_owner(
         CONTEXT_SCHEMA.to_owned(),
         context_schema.clone(),
     )]))?;
-    owner.verify_current(deadline, cancelled)?;
+    owner.snapshot(deadline, cancelled)?;
     grant.verify_current(deadline, cancelled)?;
     crate::source_sign::finish_worker(&mut worker, deadline, cancelled)?;
     drop(selected_context);
@@ -362,14 +362,12 @@ fn selected_schema_members(
         ));
     }
     let paths = schema_members.keys().cloned().collect::<Vec<_>>();
-    let mut guard_worker =
-        crate::source_native_private_assessment_cli::selected_assessment_candidate_worker(
-            invocation, &mut files, identity, &paths, deadline, cancelled,
-        )?;
-    let mut operation_worker =
-        crate::source_native_private_assessment_cli::selected_assessment_candidate_worker(
-            invocation, &mut files, identity, &paths, deadline, cancelled,
-        )?;
+    let mut guard_worker = assessment::selected_assessment_candidate_worker(
+        invocation, &mut files, identity, &paths, deadline, cancelled,
+    )?;
+    let mut operation_worker = assessment::selected_assessment_candidate_worker(
+        invocation, &mut files, identity, &paths, deadline, cancelled,
+    )?;
     drop(files);
     drop(input);
     Ok((schema_members, guard_worker, operation_worker))
@@ -432,11 +430,7 @@ fn evaluate_sign_view(
     require_ready: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(
-    JsonValue,
-    crate::source_native_private_assessment_cli::OperationBudget,
-)> {
-    use crate::source_native_private_assessment_cli as assessment;
+) -> SourceCommandResult<(JsonValue, assessment::OperationBudget)> {
     let version = assessment::OwnerVersion::from_config(config)?;
     let request_raw = cmd::canonical(&cmd::object(vec![
         (
@@ -510,7 +504,11 @@ fn evaluate_sign_view(
             cmd::field(config, "subjects")
                 .ok()
                 .and_then(JsonValue::as_object)
-                .is_some_and(|subjects| subjects.contains_key(subject))
+                .is_some_and(|subjects| {
+                    subjects
+                        .iter()
+                        .any(|(candidate, _)| candidate.as_str() == Some(subject.as_str()))
+                })
         })
     {
         return Err(SourceCommandError::Conflict(
@@ -549,7 +547,7 @@ fn check_invocation_and_owner(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> crate::DurableResult<()> {
-    if super::read_absolute(
+    if read_absolute(
         invocation_path,
         uid,
         true,
@@ -590,7 +588,7 @@ fn check_invocation_and_owner(
         ));
     }
     owner
-        .verify_current(deadline, cancelled)
+        .snapshot(deadline, cancelled)
         .map_err(crate::DurableError::Source)?;
     grant
         .verify_current(deadline, cancelled)
@@ -607,7 +605,7 @@ pub(super) fn run(
     invocation_raw: &[u8],
     invocation: &Value,
     request_raw: &[u8],
-    request: &Value,
+    request: &JsonValue,
     uid: u32,
     selection: &super::GrowthSourceSelection,
     owner_path: &Path,
@@ -699,13 +697,13 @@ pub(super) fn run(
         None
     };
 
-    let context_path = super::absolute(cmd::text(
+    let context_path = normalized_absolute(cmd::text(
         owner_config,
         "promotion_assessment_private_owner_config",
     )?)?;
     let assessment_context_path =
         ProtectedAssessmentPgGrant::source_context_ref(&context_path, deadline, cancelled)?;
-    let preflight = source_db
+    let (preflight, _) = source_db
         .with_source_revision_session(
             &store,
             &selection.domain,
@@ -957,7 +955,7 @@ pub(super) fn run(
                             .map_err(crate::DurableError::Source)?;
                             drop(selected_context);
                             owner
-                                .verify_current(held_deadline, held_cancelled)
+                                .snapshot(held_deadline, held_cancelled)
                                 .map_err(crate::DurableError::Source)?;
                             grant
                                 .verify_current(held_deadline, held_cancelled)
@@ -1202,7 +1200,7 @@ pub(super) fn run(
                                 let binding = super::PgGrowthReadBinding::capture(session);
                                 let proposal = final_context
                                     .plan(
-                                        serialized.proposal.handler_id.clone(),
+                                        &serialized.proposal.handler_id,
                                         serialized.proposal.response.clone(),
                                         serialized.proposal.changes.clone(),
                                         serialized.proposal.replayed,
@@ -1234,7 +1232,7 @@ pub(super) fn run(
                         .map_err(crate::DurableError::Source)?;
                         drop(selected_context);
                         owner
-                            .verify_current(held_deadline, held_cancelled)
+                            .snapshot(held_deadline, held_cancelled)
                             .map_err(crate::DurableError::Source)?;
                         grant
                             .verify_current(held_deadline, held_cancelled)

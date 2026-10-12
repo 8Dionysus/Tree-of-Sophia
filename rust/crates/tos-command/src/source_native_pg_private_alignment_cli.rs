@@ -193,9 +193,7 @@ fn load_alignment_history_ref(
         .ok_or(SourceCommandError::Conflict(
             "PostgreSQL Alignment history package absent",
         ))?;
-    if header.private_audit_generation != private_generation
-        || header.family != PrivateOwnerPackageFamilyV1::Alignment
-    {
+    if header.family != PrivateOwnerPackageFamilyV1::Alignment {
         return Err(SourceCommandError::Conflict(
             "PostgreSQL Alignment history package generation or family differs",
         ));
@@ -1177,7 +1175,7 @@ pub(crate) fn run(
                             "PostgreSQL Alignment private generation changed",
                         ));
                     }
-                    let ((selected_epoch, selected), current) = source_db
+                    let (((selected_epoch, selected), current), _) = source_db
                         .with_source_revision_session(
                             &store,
                             &selection.domain,
@@ -1373,7 +1371,7 @@ pub(crate) fn run(
                     "PostgreSQL Alignment private generation changed",
                 ));
             }
-            let ((selected_epoch, selected), current) = source_db
+            let (((selected_epoch, selected), current), _) = source_db
                 .with_source_revision_session(
                     &store,
                     &selection.domain,
@@ -1530,15 +1528,13 @@ pub(crate) fn run(
                                 "PostgreSQL Alignment selected source closure changed",
                             ));
                         }
-                        let delegated = private_session
-                            .read_text_identity_matches(
-                                &tokens,
-                                Some(&target_ref),
-                                &history.ancestry,
-                                deadline,
-                                cancelled,
-                            )
-                            .map_err(DurableError::Source)?;
+                        let delegated = private_session.read_text_identity_matches(
+                            &tokens,
+                            Some(&target_ref),
+                            &history.ancestry,
+                            deadline,
+                            cancelled,
+                        )?;
                         if delegated.private_audit_generation != private_generation
                             || !delegated.matches.is_empty()
                         {

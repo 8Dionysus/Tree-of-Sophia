@@ -275,10 +275,10 @@ pub(crate) fn public_text_inventory_projection(
         "package_members":package_members,
         "layer_ref":layer_ref,
         "layer_sha256":Digest256::of_bytes(&files["source-text-layer.v1.json"]).to_prefixed(),
-        "layer_id":cmd::field(&layer,"layer_id")?,
+        "layer_id":value(cmd::field(&layer,"layer_id")?)?,
         "packet_ref":packet_ref,
         "packet_sha256":Digest256::of_bytes(&files["source-text-unit.v1.json"]).to_prefixed(),
-        "packet_id":cmd::field(&packet,"packet_id")?,
+        "packet_id":value(cmd::field(&packet,"packet_id")?)?,
         "bindings_ref":bindings_ref,
         "bindings_sha256":Digest256::of_bytes(&files["native-bindings.json"]).to_prefixed()
     });
@@ -757,7 +757,7 @@ pub(crate) fn complete_package(
     )?;
     let receipt = foundation(&json!({
         "schema_version":"tos_local_source_create_receipt_v1",
-        "command_id":cmd::field(request,"command_id")?,
+        "command_id":value(cmd::field(request,"command_id")?)?,
         "request_digest":Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed(),
         "principal_id":config["principal_id"],
         "authority_ref":config["authority_ref"],

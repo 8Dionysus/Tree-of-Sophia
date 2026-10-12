@@ -342,8 +342,8 @@ fn read_schema_closure(
     Ok(())
 }
 
-fn parse_source_path(config: &Value) -> SourceCommandResult<RelativePath> {
-    let path = super::text(config, "source_path")?;
+fn parse_source_path(config: &tos_foundation::JsonValue) -> SourceCommandResult<RelativePath> {
+    let path = cmd::text(config, "source_path")?;
     let path = RelativePath::parse(path)
         .map_err(|_| SourceCommandError::Invalid("PG HumanForms source path"))?;
     if !path.as_str().starts_with("ToS/") {
@@ -488,7 +488,7 @@ fn package_changes(
         if old == new {
             continue;
         }
-        let path = RelativePath::parse(format!("{home}/{name}"))
+        let path = RelativePath::parse(&format!("{home}/{name}"))
             .map_err(|_| SourceCommandError::Invalid("PG historical Claim package path"))?;
         let selected = context.file(&path)?;
         if selected != old.map(Vec::as_slice) {
@@ -499,7 +499,7 @@ fn package_changes(
         if let Some(new) = new {
             changes.push(cmd::SourceChange {
                 path,
-                before: old.map(Digest256::of_bytes),
+                before: old.map(|raw| Digest256::of_bytes(raw)),
                 after: Some(new.clone()),
             });
         } else {
@@ -520,7 +520,7 @@ fn package_changes(
                     "PG historical Claim archive package name",
                 ));
             }
-            let path = RelativePath::parse(format!("{reference}/{name}"))
+            let path = RelativePath::parse(&format!("{reference}/{name}"))
                 .map_err(|_| SourceCommandError::Invalid("PG historical Claim archive path"))?;
             if context.file(&path)?.is_some() {
                 return Err(SourceCommandError::Conflict(
@@ -599,8 +599,11 @@ pub(crate) fn pg_rederive_revision_indexes(
     Ok(indexes)
 }
 
-fn expected_live_form_path(config: &Value, schema: &str) -> SourceCommandResult<String> {
-    let source = super::text(config, "source_path")?;
+fn expected_live_form_path(
+    config: &tos_foundation::JsonValue,
+    schema: &str,
+) -> SourceCommandResult<String> {
+    let source = cmd::text(config, "source_path")?;
     if matches!(
         schema,
         "tos_local_claim_form_owner_v1"
@@ -614,7 +617,7 @@ fn expected_live_form_path(config: &Value, schema: &str) -> SourceCommandResult<
             .rsplit_once('/')
             .map(|(_, stem)| stem)
             .ok_or(SourceCommandError::Invalid("PG Claim form source parent"))?;
-        let id = super::text(config, "claim_id")?;
+        let id = cmd::text(config, "claim_id")?;
         let parent = source
             .rsplit_once('/')
             .map(|(parent, _)| parent)
@@ -658,7 +661,7 @@ fn expected_family_tag(context: &CommandContext, operation: &str) -> DurableResu
 
 fn exact_human_form_context(
     session: &mut SourceRevisionReadSession<'_>,
-    config: &Value,
+    config: &tos_foundation::JsonValue,
     owner_schema: &str,
     request_raw: &[u8],
     owner_raw: &[u8],
@@ -672,7 +675,7 @@ fn exact_human_form_context(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(CommandContext, Vec<cmd::SourceFile>, PreparedReadsetBinding)> {
     let identity = session.selection().identity();
-    let base_revision = session.selection().cohort.initial_revision;
+    let base_revision = session.selection().cohort.initial_revision();
     let max_members = budgets
         .max_members
         .checked_sub(software_members)
@@ -705,7 +708,7 @@ fn exact_human_form_context(
         "tos_local_claim_form_owner_v1" | "tos_local_claim_form_owner_v2"
     );
     let source = if claim_owner {
-        source_forms::select_form_claim(&source_raw, super::text(config, "claim_id")?)?
+        source_forms::select_form_claim(&source_raw, cmd::text(config, "claim_id")?)?
     } else {
         cmd::parse(&source_raw)?
     };
@@ -858,7 +861,7 @@ fn historical_metadata_schema_roots(
 
 fn exact_historical_context(
     session: &mut SourceRevisionReadSession<'_>,
-    config: &Value,
+    config: &tos_foundation::JsonValue,
     owner_raw: &[u8],
     request_raw: &[u8],
     recorded_at: String,
@@ -877,7 +880,7 @@ fn exact_historical_context(
     super::legacy_claim::engine::HistoricalIdentityIndex,
 )> {
     let identity = session.selection().identity();
-    let base_revision = session.selection().cohort.initial_revision;
+    let base_revision = session.selection().cohort.initial_revision();
     let max_members = budgets
         .max_members
         .checked_sub(software_members)
@@ -1434,7 +1437,10 @@ fn pg_source_profiles(context: &CommandContext) -> DurableResult<tos_foundation:
     Ok(profiles)
 }
 
-fn expected_historical_archive(context: &CommandContext, config: &Value) -> DurableResult<String> {
+fn expected_historical_archive(
+    context: &CommandContext,
+    config: &tos_foundation::JsonValue,
+) -> DurableResult<String> {
     let id = cmd::text(config, "claim_id").map_err(DurableError::Source)?;
     let source = cmd::text(config, "source_path").map_err(DurableError::Source)?;
     let home = source
@@ -1540,7 +1546,7 @@ impl PreparedPgSourceRevision for PreparedPgFormsHistoricalCommand {
                                 && predicate.owner == source_cohort::OWNER
                                 && predicate.scope == "source-home"
                                 && predicate.token == *directory
-                                && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                                && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
                     }) {
                         return Err(DurableError::Conflict("PG HumanForms directory predicate was not observed"));
                     }
@@ -1553,7 +1559,7 @@ impl PreparedPgSourceRevision for PreparedPgFormsHistoricalCommand {
                                     && predicate.owner == source_cohort::OWNER
                                     && predicate.scope == kind
                                     && predicate.token == *token
-                                    && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                                    && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
                         }) {
                             return Err(DurableError::Conflict(
                                 "PG historical Claim identity generation was not observed",
@@ -1563,16 +1569,13 @@ impl PreparedPgSourceRevision for PreparedPgFormsHistoricalCommand {
                 }
             }
         }
-        let operation = cmd::text(
-            &cmd::parse(&self.context.request_raw).map_err(DurableError::Source)?,
-            "operation",
-        )
-        .map_err(DurableError::Source)?;
+        let request = cmd::parse(&self.context.request_raw).map_err(DurableError::Source)?;
+        let operation = cmd::text(&request, "operation").map_err(DurableError::Source)?;
         let expected = expected_family_tag(&self.context, operation)?;
         if self.identity() != PgRecordRevisionIdentity::from_selection(&readset.selection)
             || self.family_tag != expected
-            || self.context.base_revision != readset.selection.cohort.initial_revision
-            || self.proposal.base_revision != readset.selection.cohort.initial_revision
+            || self.context.base_revision != readset.selection.cohort.initial_revision()
+            || self.proposal.base_revision != readset.selection.cohort.initial_revision()
         {
             return Err(DurableError::Conflict(
                 "PG HumanForms semantic preparation epoch differs",
@@ -1585,7 +1588,7 @@ impl PreparedPgSourceRevision for PreparedPgFormsHistoricalCommand {
                         && predicate.owner == source_cohort::OWNER
                         && predicate.scope == "form"
                         && predicate.token == *id
-                        && predicate.definition_version == readset.selection.cohort.definition.to_hex())
+                        && predicate.definition_version == readset.selection.cohort.definition_digest().to_hex())
             }) {
                 return Err(DurableError::Conflict("PG HumanForms unique identity generation was not observed"));
             }
@@ -1703,7 +1706,7 @@ fn prepare_id(domain: &str, command_id: &str) -> Vec<u8> {
 }
 
 fn validate_owner_config(
-    config: &Value,
+    config: &tos_foundation::JsonValue,
     schema: &str,
     store_root: &Path,
 ) -> SourceCommandResult<RelativePath> {
@@ -1720,7 +1723,7 @@ fn validate_owner_config(
             "PG HumanForms exact protected owner family",
         ));
     }
-    if super::text(config, "source_root")? != store_root.to_string_lossy() {
+    if cmd::text(config, "source_root")? != store_root.to_string_lossy() {
         return Err(SourceCommandError::Denied(
             "PG HumanForms owner root differs",
         ));
@@ -2008,7 +2011,8 @@ pub(super) fn run(
     });
     if let Some(prepared) = prepared {
         let proposal = prepared.proposal();
-        let command_id = super::text(&cmd::parse(&request_raw)?, "command_id")?;
+        let request = cmd::parse(&request_raw)?;
+        let command_id = cmd::text(&request, "command_id")?;
         let prepare_id = prepare_id(&selection.domain, command_id);
         let attempt = if proposal.replayed {
             db.recover_source_revision_attempt(

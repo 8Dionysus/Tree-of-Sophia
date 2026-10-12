@@ -15,10 +15,11 @@ use crate::source_revisions::{ReadonlyRecordFiles, RecordRead};
 use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
 use crate::source_text_owner::OwnerTextContext;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
-use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
+use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 type Result<T> = SourceCommandResult<T>;
 type Error = SourceCommandError;
@@ -38,7 +39,6 @@ fn map_input_refusal(refusal: tos_validation::item_rules::ItemRefusal) -> Error 
         }
         ItemRefusal::Source(_) => Error::Conflict("Sign selected source input changed"),
         ItemRefusal::Unsupported(_) => Error::Unsupported("Sign selected source input unavailable"),
-        #[cfg(feature = "native")]
         ItemRefusal::Executor(_) => Error::Unsupported("Sign selected source input execution"),
     }
 }
@@ -485,13 +485,13 @@ impl<'a, 'session, 'store> PgPublicSelection<'a, 'session, 'store> {
                             .iter()
                             .map(|owner| {
                                 (
-                                    JsonString::from_utf8(owner.path.clone()),
+                                    JsonString::from_utf8(&owner.path),
                                     cmd::string(&owner.member_digest.to_hex()),
                                 )
                             })
                             .collect(),
                     );
-                    (JsonString::from_utf8(identity.clone()), packets)
+                    (JsonString::from_utf8(identity), packets)
                 })
                 .collect(),
         );
@@ -1152,7 +1152,6 @@ pub(crate) fn candidate_schema_paths_from_config(
             ))?;
 
     let bindings = cmd::array(config, "source_records")?;
-    let inline = cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v1";
     if bindings.len() > 1024 {
         return Err(SourceCommandError::Invalid(
             "Sign configured source selection count",
@@ -2418,7 +2417,7 @@ pub(crate) fn expected_semantic_indexes_from_writes(
         candidate_id_from_current_bytes(&sign_write.subject, &sign_write.exact_bytes)?;
 
     let forms = cmd::parse(&form_write.exact_bytes)?;
-    if cmd::text(&cmd::field(&forms, "subject")?, "id")? != sign_id {
+    if cmd::text(cmd::field(&forms, "subject")?, "id")? != sign_id.as_str() {
         return Err(SourceCommandError::Conflict(
             "Sign PG form subject differs from Sign identity",
         ));
@@ -2505,7 +2504,7 @@ pub(crate) fn expected_inventory_contributions_from_writes(
         JsonValue::Object(
             items
                 .into_iter()
-                .map(|(path, digest)| (JsonString::from_utf8(path), cmd::string(&digest)))
+                .map(|(path, digest)| (JsonString::from_utf8(&path), cmd::string(&digest)))
                 .collect(),
         )
     };
@@ -2526,7 +2525,7 @@ pub(crate) fn expected_inventory_contributions_from_writes(
         .iter()
         .find(|write| write.subject == event_path)
         .ok_or(SourceCommandError::Invalid("Sign PG event bytes absent"))?;
-    let mut events = BTreeMap::new();
+    let mut events = BTreeMap::<String, JsonValue>::new();
     for (line, raw) in event_write
         .exact_bytes
         .split(|byte| *byte == b'\n')
@@ -2540,7 +2539,7 @@ pub(crate) fn expected_inventory_contributions_from_writes(
         let digest = cmd::record_digest(&event)?.to_hex();
         if events
             .insert(
-                JsonString::from_utf8(id),
+                id,
                 cmd::object(vec![
                     ("payload", event),
                     ("source_ref", cmd::string(&event_path)),
@@ -2556,19 +2555,24 @@ pub(crate) fn expected_inventory_contributions_from_writes(
     if events.is_empty() {
         return Err(SourceCommandError::Invalid("Sign PG event stream empty"));
     }
-    let event_rows = JsonValue::Object(events);
+    let event_rows = JsonValue::Object(
+        events
+            .into_iter()
+            .map(|(id, row)| (JsonString::from_utf8(&id), row))
+            .collect(),
+    );
     let mut contributions = BTreeMap::new();
     let mut seen_forms = BTreeSet::new();
     for item in writes {
         let path = &item.subject;
-        let mut records = BTreeMap::new();
+        let mut records = BTreeMap::<String, JsonValue>::new();
         for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
-            let rows = if *kind == "sign" && path == sign_path {
+            let rows = if *kind == "sign" && path == &sign_path {
                 sign_rows.clone()
             } else {
                 Vec::new()
             };
-            records.insert(JsonString::from_utf8(kind), JsonValue::Array(rows));
+            records.insert((*kind).to_owned(), JsonValue::Array(rows));
         }
         let form = if path.ends_with(".human-forms.json") {
             let set = cmd::parse(&item.exact_bytes)?;
@@ -2596,7 +2600,7 @@ pub(crate) fn expected_inventory_contributions_from_writes(
         } else {
             JsonValue::Null
         };
-        let member_profiles = if path == sign_path || form != JsonValue::Null {
+        let member_profiles = if path == &sign_path || form != JsonValue::Null {
             full_profiles.clone()
         } else {
             base_profiles.clone()
@@ -2606,17 +2610,25 @@ pub(crate) fn expected_inventory_contributions_from_writes(
                 "schema_version",
                 cmd::string("tos_pg_source_inventory_member_contribution_v1"),
             ),
-            ("records", JsonValue::Object(records)),
+            (
+                "records",
+                JsonValue::Object(
+                    records
+                        .into_iter()
+                        .map(|(kind, rows)| (JsonString::from_utf8(&kind), rows))
+                        .collect(),
+                ),
+            ),
             ("source_profiles", member_profiles),
             (
                 "events",
-                if path == event_path {
+                if path == &event_path {
                     event_rows.clone()
                 } else {
-                    JsonValue::Object(BTreeMap::new())
+                    JsonValue::Object(Vec::new())
                 },
             ),
-            ("anchors", JsonValue::Object(BTreeMap::new())),
+            ("anchors", JsonValue::Object(Vec::new())),
             ("form", form),
             ("claim_owner", JsonValue::Null),
         ]);

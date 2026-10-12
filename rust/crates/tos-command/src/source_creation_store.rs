@@ -113,7 +113,8 @@ mod collection_membership;
 pub(crate) use collection_membership::current_result_fields as collection_result_fields;
 pub(crate) use collection_membership::{
     COLLECTION_MEMBERSHIP_PG_FAMILY_TAG, PgCollectionMembershipOwnerPackage,
-    expected_collection_inventory_contributions, expected_collection_membership_revision_indexes,
+    check_collection_membership_configuration, expected_collection_inventory_contributions,
+    expected_collection_membership_revision_indexes,
     pg_current_result_fields as pg_collection_current_result_fields,
     prepare_pg_collection_membership, prepare_pg_collection_membership_preview,
     verify_pg_collection_context,

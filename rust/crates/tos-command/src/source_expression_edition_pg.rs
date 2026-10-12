@@ -20,7 +20,7 @@ use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:native-expression-edition";
 
@@ -105,7 +105,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
         || snapshot.verify_from_input(input.source_input(), limits.deadline, cancelled),
         cancelled,
     )?;
-    let profiles = expression_edition_source_profiles(context, worker, limits, cancelled)?;
+    let profiles = expression_edition_source_profiles(context, input, worker, limits, cancelled)?;
     let directories = owner.new_directories(fs, limits.deadline, cancelled)?;
     let scope = serde_value(&owner.scope()?)?;
     let mut request_raw = cmd::canonical(&owner.request)?;
@@ -248,7 +248,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
         .map(|file| {
             Ok(cmd::SourceChange {
                 path: file.path.clone(),
-                before: file.before.as_ref().map(Digest256::of_bytes),
+                before: file.before.as_ref().map(|raw| Digest256::of_bytes(raw)),
                 after: file.after.clone(),
             })
         })
@@ -673,7 +673,7 @@ pub(crate) fn current_result_fields_from_selected_pg<I: Copy + Eq>(
         cancelled,
     )
     .map_err(item_error)?;
-    let profiles = expression_edition_source_profiles(context, worker, limits, cancelled)?;
+    let profiles = expression_edition_source_profiles(context, input, worker, limits, cancelled)?;
     let scope = JsonValue::Object(
         config
             .as_object()
@@ -1108,7 +1108,7 @@ fn current_catalog_from_selected_input<I: Copy + Eq>(
                 "ExpressionEdition backlink absent",
             ));
         }
-        let claim_path = cmd::text(claim_entry, "source_claim_file_ref")?;
+        let claim_path = cmd::text(&claim_entry.1, "source_claim_file_ref")?;
         if !claim_path.ends_with("/source-claims.jsonl") {
             return Err(SourceCommandError::Unsupported(
                 "legacy Edition claim closure is not selectable",
@@ -1347,12 +1347,13 @@ fn add_dependency(
 
 fn expression_edition_source_profiles<I: Copy + Eq>(
     context: &CommandContext,
+    input: &dyn SourceCutInputWithIdentity<I>,
     worker: &mut CandidateCutWorkerSchemaExecutor<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     crate::source_claims::work_expression_source_descriptors_candidate(
-        context, worker, limits, cancelled,
+        context, input, worker, limits, cancelled,
     )?;
     let entity_path = relative("ToS/doctrine/semantic-interchange/entity-types.v1.json")?;
     let relation_path = relative("ToS/doctrine/semantic-interchange/relation-types.v1.json")?;
@@ -1613,7 +1614,9 @@ fn selected_prior_completion(
     let base_generation = cmd::integer(base, "generation")?;
     let base_token_valid = match cmd::field(base, "token")? {
         JsonValue::Null => base_generation == 0,
-        JsonValue::String(value) => base_generation > 0 && work_transaction::is_hash(value),
+        JsonValue::String(value) => {
+            base_generation > 0 && value.as_str().is_some_and(work_transaction::is_hash)
+        }
         _ => false,
     };
     if cmd::text(&manifest, "transaction_id")? != id

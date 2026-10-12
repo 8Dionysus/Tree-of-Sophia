@@ -96,7 +96,7 @@ pub(crate) struct PgArtifactCreationRequirements {
     pub(crate) unique_tokens: Vec<PgArtifactUniqueIndexRequirement>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct PgArtifactCreationObservations {
     pub(crate) artifact_id: String,
     pub(crate) home: PgSourceHomeObservation,

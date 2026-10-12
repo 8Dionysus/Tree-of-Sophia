@@ -363,7 +363,7 @@ pub(crate) struct PreparedPgPublicText {
     source_paths: BTreeSet<String>,
     identity_generations: BTreeMap<String, u64>,
     docs: BTreeMap<RelativePath, (SoftwareComponentSelectionV1, Vec<u8>)>,
-    implementation: JsonValue,
+    implementation: Vec<Value>,
     runtime: Digest256,
 }
 
@@ -378,7 +378,7 @@ impl PreparedPgPublicText {
         source_paths: BTreeSet<String>,
         identity_generations: BTreeMap<String, u64>,
         docs: BTreeMap<RelativePath, (SoftwareComponentSelectionV1, Vec<u8>)>,
-        implementation: JsonValue,
+        implementation: Vec<Value>,
         runtime: Digest256,
     ) -> SourceCommandResult<Self> {
         let paths = package
@@ -532,8 +532,8 @@ impl PreparedPgSourceRevision for PreparedPgPublicText {
 
     fn validate_readset(&self, readset: &SourceRevisionReadSet) -> Result<(), DurableError> {
         if self.identity != PgRecordRevisionIdentity::from_selection(&readset.selection)
-            || self.context.base_revision != readset.selection.cohort.initial_revision
-            || self.proposal.base_revision != readset.selection.cohort.initial_revision
+            || self.context.base_revision != readset.selection.cohort.initial_revision()
+            || self.proposal.base_revision != readset.selection.cohort.initial_revision()
             || self.proposal.operation != "native-text.create"
         {
             return Err(DurableError::Conflict(
@@ -738,7 +738,7 @@ fn semantic_package(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SemanticPackage> {
     let schemas = schemas(session, true, deadline, cancelled)?;
-    let source_revision = session.selection().cohort.initial_revision;
+    let source_revision = session.selection().cohort.initial_revision();
     let schema_files = schemas
         .iter()
         .map(|(path, raw)| {
@@ -1080,7 +1080,7 @@ fn selection_from_session(
     BTreeMap<String, Vec<u8>>,
 )> {
     let schemas = schemas(session, include_construction, deadline, cancelled)?;
-    let revision = session.selection().cohort.initial_revision;
+    let revision = session.selection().cohort.initial_revision();
     let schema_files = schemas
         .iter()
         .map(|(path, raw)| {
@@ -1188,7 +1188,7 @@ pub(crate) fn run(
                         "selected public Text source contract differs",
                     ));
                 }
-                let base_revision = session.selection().cohort.initial_revision;
+                let base_revision = session.selection().cohort.initial_revision();
                 if operation == "describe" {
                     let (selection, mut worker, _) =
                         selection_from_session(invocation, session, false, deadline, cancelled)

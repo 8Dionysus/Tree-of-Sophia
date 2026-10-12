@@ -1902,8 +1902,8 @@ fn read_archive_snapshot(
     }))
 }
 
-impl PrivateOwnerReadSession<'_> {
-    fn transaction_mut(&mut self) -> DurableResult<&mut postgres::Transaction<'_>> {
+impl<'connection> PrivateOwnerReadSession<'connection> {
+    fn transaction_mut(&mut self) -> DurableResult<&mut postgres::Transaction<'connection>> {
         self.transaction.as_mut().ok_or(DurableError::Corrupt(
             "private owner read session is closed",
         ))

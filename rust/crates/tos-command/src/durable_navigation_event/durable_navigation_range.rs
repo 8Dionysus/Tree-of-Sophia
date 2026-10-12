@@ -330,8 +330,8 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
     if owner_rows.len() > limits.max_current_cohorts {
         return Err(DurableError::Refused("navigation range owner count budget"));
     }
-    let record_component = strict_json_value(&record_raw, 64 * 1024 * 1024)?;
-    let claim_component = strict_json_value(&claim_raw, 64 * 1024 * 1024)?;
+    let record_component = super::strict_json_value(&record_raw, 64 * 1024 * 1024)?;
+    let claim_component = super::strict_json_value(&claim_raw, 64 * 1024 * 1024)?;
     let (terminal_manifest_raw, terminal_cohort_root) = range_terminal_manifest(
         coverage,
         record_set.root(),
@@ -580,10 +580,10 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
                         .iter()
                         .find(|prior| prior.claim_stream_path == *path && prior.claim_id == *id)
                         .map(|prior| match prior.basis {
-                            super::DurableNavigationEventRangePriorOwnerBasisV1::EventCohort {
+                            tos_compiler::source_navigation_claim_event::NavigationClaimEventRangePriorOwnerBasisV1::EventCohort {
                                 cohort_root,
                             } => cohort_root,
-                            super::DurableNavigationEventRangePriorOwnerBasisV1::Bootstrap {
+                            tos_compiler::source_navigation_claim_event::NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap {
                                 owner_root,
                             } => owner_root,
                         })
@@ -1287,7 +1287,7 @@ fn verify_range_claim_reverse_closure(
                             "navigation prior Record cohort root is absent",
                         ))?,
                 )?,
-                "bootstrap" => super::navigation_bootstrap_owner_root(
+                "bootstrap" => navigation_bootstrap_owner_root(
                     tx,
                     domain,
                     consumer_id,
@@ -1422,7 +1422,7 @@ fn verify_range_claim_reverse_closure(
                             "navigation prior Claim cohort root is absent",
                         ))?,
                 )?,
-                "bootstrap" => super::navigation_bootstrap_owner_root(
+                "bootstrap" => navigation_bootstrap_owner_root(
                     tx,
                     domain,
                     consumer_id,
@@ -2857,7 +2857,7 @@ fn verify_navigation_range_predecessor_root(
     let observed = if let Some(row) = event_root {
         Some(parse_digest(row.get("output_root"))?)
     } else if bootstrap_exists {
-        Some(super::navigation_bootstrap_owner_root(
+        Some(navigation_bootstrap_owner_root(
             tx,
             domain,
             consumer_id,
@@ -3368,7 +3368,7 @@ impl DurablePgCoordinator {
                 DurableError::Conflict("navigation historical member has no selected version"),
             )?;
         if selected.revision != member.revision
-            || selected.commit_seq != event_sequence
+            || selected.commit_sequence != event_sequence
             || selected.content_length != member.size_bytes
             || selected.content_digest != member.sha256
             || !selected.is_source
@@ -3397,7 +3397,7 @@ impl DurablePgCoordinator {
             source_path,
             selected.revision,
             selected.content_length,
-            selected.commit_seq,
+            selected.commit_sequence,
             projection_limits,
             false,
             std::time::Instant::now() + limits.statement_timeout,
@@ -3470,7 +3470,7 @@ impl DurablePgCoordinator {
             let exact = exact_range_event(
                 &mut self.client,
                 domain,
-                terminal.command_id.as_deref(),
+                terminal.command_id.clone(),
                 &witness,
                 limits,
             )?;

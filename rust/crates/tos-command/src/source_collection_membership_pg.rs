@@ -98,7 +98,7 @@ pub(crate) fn prepare_pg_collection_membership<'a, I: Copy + Eq>(
     let catalog = selected_membership_catalog(
         &owner,
         &before,
-        input.source_input(),
+        input,
         selected_catalog,
         worker,
         limits,
@@ -334,7 +334,13 @@ pub(crate) fn prepare_pg_collection_membership<'a, I: Copy + Eq>(
         .as_object()
         .ok_or(SourceCommandError::Invalid("Collection PG result fields"))?
     {
-        cmd::set(&mut response, key.as_str(), value.clone())?;
+        cmd::set(
+            &mut response,
+            key.as_str().ok_or(SourceCommandError::Invalid(
+                "Collection PG result field key",
+            ))?,
+            value.clone(),
+        )?;
     }
     let changes = plan
         .files
@@ -342,7 +348,7 @@ pub(crate) fn prepare_pg_collection_membership<'a, I: Copy + Eq>(
         .map(|file| {
             Ok(cmd::SourceChange {
                 path: file.path.clone(),
-                before: file.before.as_ref().map(Digest256::of_bytes),
+                before: file.before.as_ref().map(|raw| Digest256::of_bytes(raw)),
                 after: file.after.clone(),
             })
         })
@@ -417,7 +423,7 @@ pub(crate) fn prepare_pg_collection_membership_preview<I: Copy + Eq>(
     let catalog = selected_membership_catalog(
         &owner,
         &before,
-        input.source_input(),
+        input,
         selected_catalog,
         worker,
         limits,
@@ -1039,7 +1045,9 @@ fn selected_prior_completion(
     let generation = cmd::integer(base, "generation")?;
     let previous_token = match cmd::field(base, "token")? {
         JsonValue::Null => generation == 0,
-        JsonValue::String(value) => generation > 0 && work_transaction::is_hash(value),
+        JsonValue::String(value) => {
+            generation > 0 && value.as_str().is_some_and(work_transaction::is_hash)
+        }
         _ => false,
     };
     let state = snapshot
@@ -1824,8 +1832,8 @@ pub(crate) fn expected_collection_membership_revision_indexes(
             "PG Collection membership record write coverage differs",
         ));
     }
-    let (collection_path, collection_raw) = *collection_rows[0];
-    let collection = cmd::parse(*collection_raw).map_err(DurableError::Source)?;
+    let (collection_path, collection_raw) = collection_rows[0];
+    let collection = cmd::parse(collection_raw).map_err(DurableError::Source)?;
     if cmd::text(&collection, "record_type").map_err(DurableError::Source)? != "collection"
         || writes
             .iter()
@@ -1858,7 +1866,7 @@ pub(crate) fn expected_collection_membership_revision_indexes(
             "PG Collection membership Claim stream coverage differs",
         ));
     }
-    let (claim_path, claim_raw) = *claim_rows[0];
+    let (claim_path, claim_raw) = claim_rows[0];
     let claim_path_string = claim_path.to_owned();
     let claim_home =
         claim_path

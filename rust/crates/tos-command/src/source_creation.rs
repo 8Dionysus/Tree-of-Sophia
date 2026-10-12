@@ -108,7 +108,7 @@ impl CreationFamily {
             Self::Artifact => "native-artifact-create",
         }
     }
-    fn historical(self) -> bool {
+    pub(crate) fn historical(self) -> bool {
         matches!(self, Self::HistoricalV1 | Self::HistoricalV2)
     }
     fn corpus(self) -> bool {
@@ -1338,6 +1338,7 @@ pub(crate) fn initial_with_candidate_schema(
 ) -> SourceCommandResult<Vec<String>> {
     if family == CreationFamily::Artifact {
         return crate::source_artifact_native::initial_with_schema(
+            ctx,
             config,
             record,
             |refs, root, instance| {

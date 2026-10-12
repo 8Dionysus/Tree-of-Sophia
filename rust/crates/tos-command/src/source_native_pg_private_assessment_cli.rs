@@ -28,8 +28,9 @@ use crate::source_native_cli::private_assessment::AssessmentAppendPreparation;
 use crate::source_private_assessment_layers::PrivateAssessmentLayers;
 use crate::source_revisions::ReadonlyRecordFiles;
 use crate::source_sign::pg::PgOwnerAssessmentPublicSources;
+use crate::source_sign_native::SignNativeRead;
 use crate::source_text_owner::{OwnerTextContext, read_absolute};
-use crate::{DurableError, DurablePgCoordinator};
+use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
@@ -176,10 +177,13 @@ pub(crate) fn execute_selected_operation<W: CutSchemaExecutor>(
                     form_sets: private_form_sets,
                     source_paths: private_source_paths,
                 };
+                let public_form_paths = public_sources.form_paths.clone();
+                let public_form_sets = public_sources.form_sets.clone();
+                let public_source_paths = public_sources.record_paths.clone();
                 let public_maps = assessment::AssessmentFormMaps {
-                    form_paths: &public_sources.form_paths,
-                    form_sets: &public_sources.form_sets,
-                    source_paths: &public_sources.record_paths,
+                    form_paths: &public_form_paths,
+                    form_sets: &public_form_sets,
+                    source_paths: &public_source_paths,
                 };
                 let materialization = assessment::materialize_assessed_form_from_selected_maps(
                     Some(&private_maps),
@@ -601,7 +605,7 @@ fn source_binding(
         head_seq: selected.head_seq,
         source_epoch: selected.epoch,
         source_generation: selected.source_generation,
-        source_revision: selected.cohort.initial_revision.0,
+        source_revision: selected.cohort.initial_revision().0,
         source_audit_generation: selected.audit_generation,
         rights_version: selected.rights_version,
         rule_version: selected.rule_version,
@@ -1217,7 +1221,7 @@ pub(crate) fn run(
                         private_required_languages: &private_sources.required_languages,
                         native_summaries: &private_sources.native_summaries,
                         layers: Some(&layers),
-                        layer_preflight: Some(&layer_preflight),
+                        layer_preflight: layer_preflight.as_ref(),
                     },
                     &mut budget,
                     deadline,
@@ -1278,7 +1282,7 @@ pub(crate) fn run(
         })
         .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
     let preflight = AssessmentPreflight {
-        identity,
+        identity: initial_identity,
         worker: preflight_worker,
         schema_paths,
         schema_members,
@@ -1546,6 +1550,7 @@ pub(crate) fn run(
                             resolved
                                 .add_layer_records(&layers.records(), &mut budget)
                                 .map_err(DurableError::Source)?;
+                            let public_claim_dependencies = public.claim_dependencies.clone();
                             let plan = assessment::plan_assessment_evaluation(
                                 assessment::AssessmentEvaluationInputs {
                                     config,
@@ -1555,7 +1560,7 @@ pub(crate) fn run(
                                     resolved,
                                     public_fixity: &public.fixity,
                                     public_identity_snapshots: &public.identity_snapshots,
-                                    public_claim_dependencies: &public.claim_dependencies,
+                                    public_claim_dependencies: &public_claim_dependencies,
                                     private_source_snapshot: &private.owner_local_sources_snapshot,
                                     private_native_snapshots: &private.native_snapshots,
                                     private_required_source_refs: &private.required_source_refs,
@@ -1791,24 +1796,13 @@ pub(crate) fn run(
                             ))
                         },
                     )?;
-                let binding = source_binding(&readset, &operation.6, operation.7)
+                let binding = source_binding(&readset, &dependencies, private_generation)
                     .map_err(DurableError::Source)?;
-                let (
-                    operation,
-                    owner,
-                    grant,
-                    config_raw,
-                    target_ref,
-                    expected_current,
-                    dependencies,
-                    private_generation,
-                    package_histories,
-                ) = operation;
                 Ok(PgAssessmentAttempt {
                     operation,
                     owner,
                     grant,
-                    config_raw,
+                    config_raw: current_config_raw,
                     target_ref,
                     expected_current,
                     dependencies,
@@ -2021,12 +2015,7 @@ pub(crate) fn run(
                 ),
                 ("replayed", JsonValue::Bool(replay.replayed)),
                 ("grants_admission", JsonValue::Bool(false)),
-                (
-                    "result",
-                    serde_json::from_slice(&cmd::canonical(&result)?).map_err(|_| {
-                        SourceCommandError::Invalid("private Assessment result JSON")
-                    })?,
-                ),
+                ("result", result),
             ]))?)
             .map_err(|_| SourceCommandError::Invalid("private Assessment result JSON"))
         }

@@ -205,7 +205,9 @@ pub(crate) fn with_selected_navigation_producer_current<T>(
         })?;
     let model_path = crate::source_text_owner::normalized_absolute(&selection.model_path)
         .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation model path"))?;
-    let parent = ManagedAgentSelectedParent::open_persisted_navigation_selection(
+    let parent = ManagedAgentSelectedParent::<
+        tos_compiler::managed_source::ManagedSourceProofV2,
+    >::open_persisted_navigation_selection(
         generation,
         selection.source_proof_v2.clone(),
         &model_path,
@@ -771,7 +773,9 @@ pub fn with_selected_source_navigation<T, E>(
         .map_err(|error| {
             SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(error))
         })?;
-    let parent = ManagedAgentSelectedParent::open_persisted_navigation_selection(
+    let parent = ManagedAgentSelectedParent::<
+        tos_compiler::managed_source::ManagedSourceProofV2,
+    >::open_persisted_navigation_selection(
         generation,
         selection.source_proof_v2,
         &model_path,

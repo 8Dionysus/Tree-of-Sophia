@@ -41,11 +41,13 @@ use tos_compiler::{
         render_catalog_record,
     },
 };
-use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_bytes_v1};
+use tos_foundation::{Digest256, RelativePath};
 
 use crate::{
     DurableError, DurableNavigationEventContextV1, DurableResult,
-    source_navigation_claim_selection::{ClaimEventIdentityOwnerV1, relation_profile},
+    source_navigation_claim_selection::{
+        ClaimEventIdentityOwnerV1, canonical_serde_source_record_v1, relation_profile,
+    },
     source_navigation_producer::NavigationEventSourceCutIdentityV1,
 };
 
@@ -378,10 +380,10 @@ fn assemble_owner(
         None
     };
     let claim_forms = match claim_forms_bytes {
-        Some(raw) => Some(
+        Some(raw) => {
             materialize_checked_form_set(raw, &claim_forms_path, claim, forms_materializer, limits)
-                .map_err(|_| DurableError::Refused("selected Claim forms refused"))?,
-        ),
+                .map_err(|_| DurableError::Refused("selected Claim forms refused"))?
+        }
         None => None,
     };
 
@@ -531,8 +533,7 @@ fn assemble_owner(
         let display_schema = files
             .required(CLAIM_DISPLAY_FIELDS_SCHEMA)
             .map_err(|_| DurableError::Invalid("selected Claim display-fields schema absent"))?;
-        let display_bytes = crate::source_command::canonical(&claim["qualifiers"])
-            .map_err(|_| DurableError::Invalid("selected Claim display fields serialization"))?;
+        let display_bytes = canonical_serde_source_record_v1(&claim["qualifiers"], MAX_DOC_BYTES)?;
         validator
             .check_selected_event_document_exact(
                 identity.event_source_revision(),
@@ -1006,10 +1007,8 @@ fn resolve_metadata_identity<'a>(
         None
     };
     let materialized = match forms_bytes {
-        Some(raw) => Some(
-            materialize_checked_form_set(raw, &forms_path, &source, materializer, limits)
-                .map_err(|_| DurableError::Refused("selected metadata forms refused"))?,
-        ),
+        Some(raw) => materialize_checked_form_set(raw, &forms_path, &source, materializer, limits)
+            .map_err(|_| DurableError::Refused("selected metadata forms refused"))?,
         None => None,
     };
     let node = supplied_bibliographic_identity(
@@ -1070,13 +1069,7 @@ fn find_jsonl(
         if value.get(id_field).and_then(Value::as_str) != Some(id) {
             continue;
         }
-        let canonical = canonical_bytes_v1(
-            &value,
-            CanonicalProfile::SourceRecordDigestV1,
-            JsonLimits::new(max_bytes, 96, 1_000_000, 4096)
-                .map_err(|_| DurableError::Refused("selected source digest limits"))?,
-        )
-        .map_err(|_| DurableError::Invalid("selected source canonical digest"))?;
+        let canonical = canonical_serde_source_record_v1(&value, max_bytes)?;
         let location = json!({
             "source_ref":path,
             "source_line":index as u64 + 1,
@@ -1347,9 +1340,8 @@ fn resolve_evidence(
                     let schema = files.required(ANCHOR_SCHEMA).map_err(|_| {
                         DurableError::Invalid("selected Claim anchor schema absent")
                     })?;
-                    let anchor_raw = crate::source_command::canonical(&anchor).map_err(|_| {
-                        DurableError::Invalid("selected Claim anchor serialization")
-                    })?;
+                    let anchor_raw =
+                        canonical_serde_source_record_v1(&anchor, limits.catalog.max_row_bytes)?;
                     validator
                         .check_selected_event_document_exact(
                             event_revision,
@@ -1469,8 +1461,7 @@ fn resolve_provenance_evidence(
     let schema = files
         .required(schema_path)
         .map_err(|_| DurableError::Invalid("selected Claim evidence event schema absent"))?;
-    let event_raw = crate::source_command::canonical(event)
-        .map_err(|_| DurableError::Invalid("selected Claim evidence event serialization"))?;
+    let event_raw = canonical_serde_source_record_v1(event, limits.catalog.max_row_bytes)?;
     validator
         .check_selected_event_document_exact(
             event_revision,

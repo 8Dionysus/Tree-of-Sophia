@@ -30,7 +30,9 @@ use tos_validation::SchemaResource;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::record_biblio_cut::SourceCutPrefixCoverage;
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutWorkerLimits};
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits,
+};
 
 const INVOCATION_SCHEMA: &str = "tos_local_pg_private_owner_invocation_v1";
 const MAX_SCHEMA_FILES: usize = 128;
@@ -65,14 +67,14 @@ struct SelectedEpoch {
 fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
     let selected = session.selection();
     SelectedEpoch {
-        domain: selected.cohort.domain.clone(),
+        domain: selected.cohort.domain().clone(),
         job_id: selected.job_id.clone(),
         job_fence: selected.job_fence,
         contract: selected.contract,
         head_seq: selected.head_seq,
         epoch: selected.epoch,
         source_generation: selected.source_generation,
-        source_revision: selected.cohort.initial_revision.0,
+        source_revision: selected.cohort.initial_revision().0,
         source_audit_generation: selected.audit_generation,
         rights_version: selected.rights_version,
         rule_version: selected.rule_version,
@@ -225,8 +227,9 @@ impl crate::source_native_cli::private_owner::profile::PrivateSelectedSourceInpu
             ));
         }
         let mut session = self.session.borrow_mut();
-        let exists = ReadonlyRecordFiles::has_file(&mut **session, &relative, deadline, cancelled)
-            .map_err(|_| {
+        let exists =
+            ReadonlyRecordFiles::has_file(&mut **session, relative.as_str(), deadline, cancelled)
+                .map_err(|_| {
                 ItemRefusal::Source("private selected source presence read failed".into())
             })?;
         if !exists {
@@ -649,7 +652,7 @@ fn source_binding(
         head_seq: selected.head_seq,
         source_epoch: selected.epoch,
         source_generation: selected.source_generation,
-        source_revision: selected.cohort.initial_revision.0,
+        source_revision: selected.cohort.initial_revision().0,
         source_audit_generation: selected.audit_generation,
         rights_version: selected.rights_version,
         rule_version: selected.rule_version,
@@ -909,7 +912,7 @@ pub(crate) fn run(
             "budgets",
         ],
     )?;
-    if cmd::text(invocation, "schema_version")? != INVOCATION_SCHEMA {
+    if cmd::text(&parsed, "schema_version")? != INVOCATION_SCHEMA {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL private owner invocation profile",
         ));
@@ -922,9 +925,9 @@ pub(crate) fn run(
         ));
     }
     let _ =
-        crate::source_text_owner::normalized_absolute(cmd::text(invocation, "native_executable")?)?;
+        crate::source_text_owner::normalized_absolute(cmd::text(&parsed, "native_executable")?)?;
     let runtime = crate::source_serialization::observe_executable(deadline, cancelled)?;
-    let executable_digest = super::digest(cmd::text(invocation, "native_executable_sha256")?)?;
+    let executable_digest = super::digest(cmd::text(&parsed, "native_executable_sha256")?)?;
     if runtime.current_digest(deadline, cancelled)? != executable_digest {
         return Err(SourceCommandError::Conflict(
             "PostgreSQL private owner executable identity",
@@ -942,8 +945,8 @@ pub(crate) fn run(
     )?;
     let request_raw = pg::read_request(input)?;
     let request = cmd::parse(&request_raw)?;
-    let context_path = super::absolute(cmd::text(invocation, "owner_context")?)?;
-    let grant_path = super::absolute(cmd::text(invocation, "owner_config")?)?;
+    let context_path = super::absolute(cmd::text(&parsed, "owner_context")?)?;
+    let grant_path = super::absolute(cmd::text(&parsed, "owner_config")?)?;
     let grant_raw = read_absolute(&grant_path, uid, true, 1_048_576, deadline, cancelled)?;
     let grant_value = cmd::parse(&grant_raw)?;
     let grant_schema = cmd::text(&grant_value, "schema_version")?;
@@ -1157,10 +1160,14 @@ pub(crate) fn run(
         operation.as_str(),
         "source.create" | "claims.create" | "prepare-create"
     );
-    let mut identity_inputs = db
+    let identity_snapshot = db
         .read_private_owner_identity_inputs(&scope, Some(&target_ref), &basenames, creating)
         .map_err(pg::source_error)?;
-    let private_generation = identity_inputs.private_audit_generation;
+    let private_generation = identity_snapshot.private_audit_generation;
+    let mut identity_inputs = PrivateIdentityInputs {
+        files: identity_snapshot.files,
+        visited_entries: identity_snapshot.visited_entries,
+    };
     if target_current
         .as_ref()
         .is_some_and(|snapshot| snapshot.private_audit_generation != private_generation)
@@ -1389,8 +1396,12 @@ pub(crate) fn run(
         .map_err(pg::source_error)?;
 
     let mut dependencies = dependency_members;
-    for (path, raw) in &context.files {
-        insert_dependency(&mut dependencies, path.as_str().to_owned(), raw.clone())?;
+    for file in &context.files {
+        insert_dependency(
+            &mut dependencies,
+            file.path.as_str().to_owned(),
+            file.raw.clone(),
+        )?;
     }
     for (path, raw) in &identity_inputs.files {
         insert_dependency(&mut dependencies, path.clone(), raw.clone())?;
@@ -1590,7 +1601,13 @@ fn verify_readonly(
         ));
     }
     context.check_selected_software_inputs(software, components, deadline, cancelled)?;
-    same_private_current(db, scope, target_ref, expected_current, private_generation)?;
+    same_private_current(
+        db,
+        scope,
+        target_ref,
+        expected_current,
+        expected_private_generation,
+    )?;
     if private_generation(db, scope, deadline, cancelled)? != expected_private_generation {
         return Err(SourceCommandError::Conflict(
             "private owner identity generation changed",

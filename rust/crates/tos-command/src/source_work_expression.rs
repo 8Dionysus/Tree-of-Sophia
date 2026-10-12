@@ -3,8 +3,6 @@
 
 use super::work_transaction::{self, PublicationSnapshot};
 use super::{CreationFilesystem, MAX_BYTES, MAX_FILES, active, member_mode_matches, scan, walk};
-use crate::source_cohort::IndexRows;
-use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -1028,6 +1026,8 @@ impl CreationFilesystem {
                 limits.deadline,
                 cancelled,
             )?;
+            let manifest = Digest256::from_prefixed(&manifest)
+                .map_err(|_| SourceCommandError::Conflict("Work retained manifest digest"))?;
             let transition = foundation_value(row)?;
             if observed.transport
                 != tos_validation::native_compound::NativeTransportState::Committed
@@ -1341,8 +1341,6 @@ fn current_catalog(
         &JsonValue,
     ) -> SourceCommandResult<WorkRetainedVerification>,
     mut check_publication: impl FnMut() -> SourceCommandResult<()>,
-    deadline: Instant,
-    cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkCatalog> {
     check_publication()?;
     let selected_catalog = select_catalog(publication_token)?;
@@ -1601,12 +1599,11 @@ fn current_catalog_from_cut(
             Ok(WorkRetainedVerification {
                 transport: verified.transport,
                 transaction_id: verified.transaction_id,
-                manifest_sha256: verified.manifest_sha256,
+                manifest_sha256: Digest256::from_prefixed(&verified.manifest_sha256)
+                    .map_err(|_| SourceCommandError::Conflict("Work retained manifest digest"))?,
             })
         },
         check_publication,
-        deadline,
-        cancelled,
     )
 }
 
@@ -1659,12 +1656,11 @@ fn current_catalog_from_selected_input<I: Copy + Eq>(
             Ok(WorkRetainedVerification {
                 transport: verified.transport,
                 transaction_id: verified.transaction_id,
-                manifest_sha256: verified.manifest_sha256,
+                manifest_sha256: Digest256::from_prefixed(&verified.manifest_sha256)
+                    .map_err(|_| SourceCommandError::Conflict("Work retained manifest digest"))?,
             })
         },
         check_publication,
-        deadline,
-        cancelled,
     )
 }
 

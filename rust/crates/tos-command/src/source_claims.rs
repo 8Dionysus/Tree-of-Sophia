@@ -6,7 +6,7 @@ use crate::source_creation_store::{ClaimCatalogCapture, CreationFilesystem};
 use crate::source_forms::{
     apply_form_changes, materialize_source_forms, metadata_subject, prepare_form_change,
 };
-use crate::source_revisions::RecordRead;
+use crate::source_revisions::{RecordRead, RecordRevisionCommandContext};
 use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -21,6 +21,7 @@ use tos_foundation::{
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::PredicateRead;
+use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::{
     CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
 };
@@ -864,19 +865,47 @@ pub(crate) fn work_expression_source_descriptors(
 /// requiring a CorpusCutReader-bound schema executor.
 pub(crate) fn work_expression_source_descriptors_candidate<I: Copy + Eq>(
     ctx: &CommandContext,
+    input: &dyn SourceCutInputWithIdentity<I>,
     worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>,
     limits: tos_validation::item_rules::ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
+    let input_identity = *input.input_identity();
+    if worker.input_identity() != &input_identity {
+        return Err(SourceCommandError::Conflict(
+            "candidate schema worker and selected Work source input differ",
+        ));
+    }
+    let selected_files = [
+        ENTITIES,
+        RELATIONS,
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+    ]
+    .into_iter()
+    .map(|member| candidate_profile_member(ctx, input, member, limits.deadline, cancelled))
+    .collect::<SourceCommandResult<Vec<_>>>()?;
+    let selected = CandidateWorkProfileRead {
+        context: ctx,
+        input,
+        input_identity,
+        files: selected_files,
+    };
     crate::source_revisions::validate_source_profile_registry_candidate(
         worker,
         limits.deadline,
         cancelled,
-        ctx,
+        &selected,
     )?;
+    let relations = selected
+        .file(&path(RELATIONS)?)?
+        .ok_or(SourceCommandError::Unsupported(
+            "selected Work relation registry absent",
+        ))?;
     match worker.check(
         RELATIONS,
-        &canonical(&json_file(ctx, RELATIONS)?)?,
+        &canonical(&parse(relations)?)?,
         "ToS/contracts/semantic-relation-type-registry.schema.json",
         limits.deadline,
         cancelled,
@@ -891,9 +920,21 @@ pub(crate) fn work_expression_source_descriptors_candidate<I: Copy + Eq>(
     }
     let corpus = "ToS/contracts/corpus-record.schema.json";
     let descriptors = tos_validation::record_rules::work_expression_source_descriptors(
-        selected(ctx, ENTITIES)?,
-        selected(ctx, RELATIONS)?,
-        selected(ctx, corpus)?,
+        selected
+            .file(&path(ENTITIES)?)?
+            .ok_or(SourceCommandError::Unsupported(
+                "selected Work entity registry absent",
+            ))?,
+        selected
+            .file(&path(RELATIONS)?)?
+            .ok_or(SourceCommandError::Unsupported(
+                "selected Work relation registry absent",
+            ))?,
+        selected
+            .file(&path(corpus)?)?
+            .ok_or(SourceCommandError::Unsupported(
+                "selected Work corpus schema absent",
+            ))?,
         limits,
         cancelled,
     )
@@ -905,6 +946,97 @@ pub(crate) fn work_expression_source_descriptors_candidate<I: Copy + Eq>(
     let raw = serde_json::to_vec(&descriptors)
         .map_err(|_| SourceCommandError::Invalid("Work descriptors JSON"))?;
     parse(&raw)
+}
+
+/// The candidate source identity must come from the selected input, and the
+/// bytes exposed to the generic record validator must be read through that
+/// same input. The owner context is only an equality check against those bytes.
+struct CandidateWorkProfileRead<'a, I: Copy + Eq> {
+    context: &'a CommandContext,
+    input: &'a dyn SourceCutInputWithIdentity<I>,
+    input_identity: I,
+    files: Vec<SourceFile>,
+}
+
+impl<I: Copy + Eq> RecordRead for CandidateWorkProfileRead<'_, I> {
+    type Identity = I;
+
+    fn files(&self) -> &[SourceFile] {
+        &self.files
+    }
+
+    fn input_identity(&self) -> Self::Identity {
+        self.input_identity
+    }
+
+    fn effective_uid(&self) -> u64 {
+        self.context.effective_uid
+    }
+
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        RecordRead::schema_source_path(self.context)
+    }
+
+    fn writer(&self) -> Option<&CommandContext> {
+        Some(self.context)
+    }
+
+    fn check(&self) -> SourceCommandResult<()> {
+        self.context.check()?;
+        if self.input.input_identity() != &self.input_identity {
+            return Err(SourceCommandError::Conflict(
+                "selected Work source input identity changed",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn candidate_profile_member<I: Copy + Eq>(
+    context: &CommandContext,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    member: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SourceFile> {
+    let member_path = path(member)?;
+    let expected = context
+        .file(&member_path)?
+        .ok_or(SourceCommandError::Unsupported(
+            "selected Work profile member absent",
+        ))?;
+    let mut observed = None;
+    input
+        .source_input()
+        .with_current_member(
+            member,
+            cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES,
+            deadline,
+            cancelled,
+            &mut |meta, raw| {
+                if observed.is_some()
+                    || meta.path != member
+                    || meta.size_bytes != raw.len() as u64
+                    || raw != expected
+                {
+                    return Err(tos_validation::item_rules::ItemRefusal::Source(
+                        "selected Work profile bytes differ from the PG input".into(),
+                    ));
+                }
+                observed = Some(raw.to_vec());
+                Ok(())
+            },
+        )
+        .map_err(|_| {
+            SourceCommandError::Conflict("selected Work profile member changed in PG input")
+        })?;
+    let raw = observed.ok_or(SourceCommandError::Conflict(
+        "selected Work profile member absent from PG input",
+    ))?;
+    Ok(SourceFile {
+        path: member_path,
+        raw,
+    })
 }
 
 fn claim_scope(
@@ -1248,7 +1380,8 @@ pub(crate) fn pg_requires_catalog(ctx: &CommandContext) -> SourceCommandResult<b
             .try_fold(false, |required, next| Ok(required || next?)),
         "claim.revise" if !create => {
             let stream = rows(selected(ctx, source_path.as_str())?)?;
-            let id = text(&parse(&ctx.configuration_raw)?, "claim_id")?;
+            let config = parse(&ctx.configuration_raw)?;
+            let id = text(&config, "claim_id")?;
             let record = stream
                 .get(id)
                 .ok_or(SourceCommandError::Conflict("delegated Claim absent"))?;
@@ -5488,14 +5621,21 @@ pub(crate) fn agent_inventory_members_without_evidence<'a>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
-    let empty = JsonValue::Object(BTreeMap::new());
-    agent_inventory_members_from_evidence(ctx, &empty, &empty, executor, deadline, cancelled)
+    static EMPTY_EVIDENCE: JsonValue = JsonValue::Object(Vec::new());
+    agent_inventory_members_from_evidence(
+        ctx,
+        &EMPTY_EVIDENCE,
+        &EMPTY_EVIDENCE,
+        executor,
+        deadline,
+        cancelled,
+    )
 }
 
 fn agent_inventory_members_from_evidence<'a>(
     ctx: &'a CommandContext,
-    events: &JsonValue,
-    anchors: &JsonValue,
+    events: &'a JsonValue,
+    anchors: &'a JsonValue,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -7161,7 +7301,7 @@ fn collect_claim_dependency_ids(value: &JsonValue, output: &mut BTreeSet<String>
             }
         }
         JsonValue::Object(values) => {
-            for value in values.values() {
+            for (_, value) in values {
                 collect_claim_dependency_ids(value, output);
             }
         }
@@ -7498,9 +7638,16 @@ fn maintained_grounding(
                 "source record schema input map",
             ))?
         {
+            let name = name.as_str().ok_or(SourceCommandError::Invalid(
+                "source record schema input key",
+            ))?;
             if relevant_record_inputs
                 .as_object()
-                .and_then(|inputs| inputs.get(name))
+                .and_then(|inputs| {
+                    inputs
+                        .iter()
+                        .find_map(|(key, value)| (key.as_str() == Some(name)).then_some(value))
+                })
                 .is_some_and(|prior| prior != digest)
             {
                 return Err(SourceCommandError::Conflict(
@@ -7527,6 +7674,9 @@ fn maintained_grounding(
             })
             .cloned()
             .collect::<Vec<_>>();
+        let kind = kind
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("Claim record catalog key"))?;
         set(&mut relevant_records, kind, JsonValue::Array(selected))?;
     }
     let relevant_claims = prior

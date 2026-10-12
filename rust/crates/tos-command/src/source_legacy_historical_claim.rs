@@ -4282,7 +4282,8 @@ pub(crate) fn prepare_from_indexed_members(
             "historical Claim PG source revision differs",
         ));
     }
-    let operation = cmd::text(&cmd::parse(&ctx.request_raw)?, "operation")?;
+    let request = cmd::parse(&ctx.request_raw)?;
+    let operation = cmd::text(&request, "operation")?;
     let required = required_identity_tokens(&ctx.configuration_raw, current, operation)?
         .into_iter()
         .filter(|token| !token.starts_with("ToS/"))

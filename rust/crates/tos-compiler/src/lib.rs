@@ -292,7 +292,8 @@ pub use knowledge_source_navigation_relation::{
 pub use legacy::{LegacyPartitionedNavigation, partitioned_projection_closure};
 pub use native_knowledge_selection::{
     LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits,
-    NativeSelectionPaths, NativeSelectionProducer, prepare_native_knowledge_artifact,
+    NativeSelectionPaths, NativeSelectionProducer,
+    measure_existing_native_knowledge_artifact_custody, prepare_native_knowledge_artifact,
 };
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{

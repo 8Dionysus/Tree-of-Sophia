@@ -986,7 +986,7 @@ fn domain_schema_profile_from_copy(
                 if field_count == domain_index {
                     observed_domain = Some(decode_pg_copy_text_field(field)?.ok_or_else(error)?);
                 } else if field_count == profile_index {
-                    profile = Some(decode_pg_copy_text_field(field)?);
+                    profile = Some(decode_pg_copy_text_field(field)?.ok_or_else(error)?);
                 } else if field_count == baseline_index {
                     baseline_sequence = decode_pg_copy_text_field(field)?;
                 } else if field_count == head_index {

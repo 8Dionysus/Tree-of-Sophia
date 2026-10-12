@@ -253,7 +253,10 @@ impl SourceCutInput for PgGrowthCurrentInput<'_, '_> {
             &mut total_bytes,
             visit,
         )?;
-        SourceCutPrefixCoverage::after_verified_prefix_eof(directory, seen)
+        SourceCutPrefixCoverage::after_verified_prefix_eof(
+            directory,
+            u64::try_from(seen).map_err(|_| ItemRefusal::Budget)?,
+        )
     }
 
     fn with_current_member(

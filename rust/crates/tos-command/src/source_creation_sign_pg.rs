@@ -101,6 +101,7 @@ pub(crate) fn requirements(
         ));
     }
     let record = cmd::field(&request, "record")?;
+    let promotion_basis = cmd::field(record, "promotion_basis")?;
     let record_id = cmd::text(record, "record_id")?.to_owned();
     let candidate_id = cmd::text(&config, "promotion_candidate_id")?.to_owned();
     if record_id != cmd::text(&config, "record_id")?
@@ -108,8 +109,7 @@ pub(crate) fn requirements(
         || !revisions::valid_id(&candidate_id, "tos.claim.", false)
         || cmd::text(record, "record_type")? != "sign"
         || cmd::text(record, "schema_version")? != "tos_sign_description_record_v1"
-        || cmd::text(&cmd::field(record, "promotion_basis")?, "schema_version")?
-            != "tos_sign_promotion_basis_v1"
+        || cmd::text(promotion_basis, "schema_version")? != "tos_sign_promotion_basis_v1"
     {
         return Err(SourceCommandError::Denied(
             "PostgreSQL Sign record/candidate identity grant",
@@ -711,7 +711,7 @@ fn observations_match(
     }
     if cmd::text(record, "record_id")? != requirements.annotation_identity_token
         || cmd::text(
-            &cmd::field(&cmd::field(record, "promotion_basis")?, "candidate")?,
+            cmd::field(cmd::field(record, "promotion_basis")?, "candidate")?,
             "id",
         )? != requirements.candidate_token
     {

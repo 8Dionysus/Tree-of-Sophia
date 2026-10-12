@@ -675,9 +675,7 @@ fn stage_current_mixed_identities(
             for (id, _) in current_claim_rows(&file).map_err(source_error)? {
                 let mut index = index.borrow_mut();
                 let mut work = work.borrow_mut();
-                index
-                    .add_identity(SourceIdentityKind::Claim, &id, &member.path, &mut **work)
-                    .map_err(crate::source_current_cut::durable)?;
+                index.add_identity(SourceIdentityKind::Claim, &id, &member.path, &mut **work)?;
                 index_owned_key(
                     &mut **index,
                     "claim",
@@ -760,14 +758,12 @@ fn stage_current_mixed_identities(
                     .map_err(source_error)?;
             let mut index = index.borrow_mut();
             let mut work = work.borrow_mut();
-            index
-                .add_identity(
-                    SourceIdentityKind::SignCandidate,
-                    &candidate,
-                    &member.path,
-                    &mut **work,
-                )
-                .map_err(crate::source_current_cut::durable)?;
+            index.add_identity(
+                SourceIdentityKind::SignCandidate,
+                &candidate,
+                &member.path,
+                &mut **work,
+            )?;
             index_owned_key(
                 &mut **index,
                 "sign-candidate",
@@ -776,8 +772,7 @@ fn stage_current_mixed_identities(
                 &mut **work,
                 deadline,
                 cancelled,
-            )
-            .map_err(crate::source_current_cut::durable)?;
+            )?;
         }
         after = Some(member.path);
         count = count

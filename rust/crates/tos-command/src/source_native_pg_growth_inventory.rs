@@ -89,15 +89,19 @@ pub(crate) fn owner_contributions(
     let mut package_form_ids = BTreeSet::new();
     for write in writes {
         let path = write.subject.as_str();
-        let mut records = BTreeMap::new();
+        let mut records = BTreeMap::<String, JsonValue>::new();
         for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
             let rows = projected_records
                 .get(path)
                 .filter(|(record_kind, _)| record_kind.as_str() == *kind)
                 .map(|(_, row)| vec![row.clone()])
                 .unwrap_or_default();
-            records.insert(JsonString::from_utf8(kind), JsonValue::Array(rows));
+            records.insert((*kind).to_owned(), JsonValue::Array(rows));
         }
+        let records = records
+            .into_iter()
+            .map(|(kind, rows)| (JsonString::from_utf8(&kind), rows))
+            .collect::<Vec<_>>();
         let event_rows = if path == event_path {
             events.clone()
         } else {
@@ -219,7 +223,15 @@ fn evidence_projection(path: &str, raw: &[u8], id_field: &str) -> DurableResult<
         let value = cmd::object(vec![
             ("payload", payload),
             ("source_ref", cmd::string(path)),
-            ("source_line", cmd::number(physical_line + 1)),
+            (
+                "source_line",
+                cmd::number(
+                    u64::try_from(physical_line)
+                        .ok()
+                        .and_then(|line| line.checked_add(1))
+                        .ok_or(DurableError::Invalid("PG Growth evidence line"))?,
+                ),
+            ),
             ("source_sha256", cmd::string(&digest.to_hex())),
         ]);
         if entries.insert(id, value).is_some() {
@@ -309,7 +321,13 @@ fn claim_owner_projection(
         direct_members.push(cmd::object(vec![
             ("ref", cmd::string(&write.subject)),
             ("role", cmd::string(role)),
-            ("bytes", cmd::number(write.exact_bytes.len())),
+            (
+                "bytes",
+                cmd::number(
+                    u64::try_from(write.exact_bytes.len())
+                        .map_err(|_| DurableError::Invalid("PG Growth owner member bytes"))?,
+                ),
+            ),
             (
                 "sha256",
                 cmd::string(&Digest256::of_bytes(&write.exact_bytes).to_prefixed()),
@@ -372,5 +390,5 @@ fn json_lines(raw: &[u8]) -> DurableResult<Vec<JsonValue>> {
 }
 
 fn empty_object() -> JsonValue {
-    JsonValue::Object(BTreeMap::new())
+    JsonValue::Object(Vec::new())
 }

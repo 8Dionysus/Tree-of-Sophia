@@ -516,7 +516,7 @@ fn read_selected_publication(
     input
         .with_current_member(
             &reference,
-            MAX_STATE as u64,
+            MAX_STATE,
             deadline,
             cancelled,
             &mut |meta, raw| {

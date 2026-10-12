@@ -2015,7 +2015,7 @@ fn validate_owner_closure(owner: &tos_foundation::JsonValue) -> DurableResult<()
         .filter(|(key, _)| key.as_str() != Some("closure_sha256"))
         .map(|(key, value)| (key.clone(), value.clone()))
         .collect::<Vec<_>>();
-    core.sort_by(|left, right| left.0.cmp(&right.0));
+    core.sort_by(|left, right| left.0.as_str().cmp(&right.0.as_str()));
     if cmd::record_digest(&tos_foundation::JsonValue::Object(core)).map_err(source_error)?
         != owner_digest(owner, "closure_sha256")?
     {
@@ -3389,7 +3389,7 @@ fn validate_claim_owner(
         .collect::<Vec<_>>();
     // Canonical JSON sorts keys, so preserve a stable object regardless of
     // insertion order when verifying the owner closure root.
-    core.sort_by(|left, right| left.0.cmp(&right.0));
+    core.sort_by(|left, right| left.0.as_str().cmp(&right.0.as_str()));
     let core = tos_foundation::JsonValue::Object(core);
     if cmd::record_digest(&core)
         .map_err(source_error)?

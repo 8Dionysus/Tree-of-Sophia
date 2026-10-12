@@ -4,6 +4,7 @@
 
 use crate::{DurableError, DurableResult};
 use postgres::Transaction;
+use postgres::fallible_iterator::FallibleIterator;
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, Digest256Hasher, JsonValue, RelativePath};
 
@@ -111,7 +112,7 @@ pub(crate) struct ClaimNavigationReferenceObservation {
     pub(crate) completeness_generation: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct NavigationReferenceIndexRow {
     claim_id: String,
     path: String,
@@ -208,8 +209,14 @@ impl IndexRow {
     }
 }
 
-fn as_i64(value: usize) -> DurableResult<i64> {
-    i64::try_from(value).map_err(|_| DurableError::Refused("Claim dependency count overflow"))
+fn as_i64(value: impl TryInto<i64>) -> DurableResult<i64> {
+    value
+        .try_into()
+        .map_err(|_| DurableError::Refused("Claim dependency count overflow"))
+}
+
+fn as_u64(value: i64) -> DurableResult<u64> {
+    u64::try_from(value).map_err(|_| DurableError::Corrupt("Claim navigation sequence invalid"))
 }
 
 fn digest(value: &str) -> DurableResult<Digest256> {

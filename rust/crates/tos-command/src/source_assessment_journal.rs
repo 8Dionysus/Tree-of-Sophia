@@ -1385,7 +1385,7 @@ impl AssessmentPrivatePackageCapabilityV1 {
             .flatten()
             .map(|bytes| parse_head_bytes(bytes).map_err(DurableError::Source))
             .transpose()?
-            .map(cmd::string)
+            .map(|revision| cmd::string(&revision))
             .unwrap_or(JsonValue::Null);
         if !cmd::same(
             cmd::field(&batch, "previous_revision").map_err(DurableError::Source)?,
@@ -2063,12 +2063,9 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
             "assessment private history expected-head set",
         ));
     }
-    let mut all_targets = target_refs
-        .iter()
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
+    let mut all_targets = target_refs.iter().cloned().collect::<BTreeSet<_>>();
     for target_ref in source_target_refs {
-        if !all_targets.insert(target_ref.as_str())
+        if !all_targets.insert(target_ref.clone())
             || all_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
         {
             return Err(DurableError::Invalid(

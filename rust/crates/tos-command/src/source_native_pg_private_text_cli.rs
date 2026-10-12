@@ -90,14 +90,14 @@ struct SelectedEpoch {
 fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
     let selected = session.selection();
     SelectedEpoch {
-        domain: selected.cohort.domain.clone(),
+        domain: selected.cohort.domain().clone(),
         job_id: selected.job_id.clone(),
         job_fence: selected.job_fence,
         contract: selected.contract,
         head_seq: selected.head_seq,
         epoch: selected.epoch,
         source_generation: selected.source_generation,
-        source_revision: selected.cohort.initial_revision.0,
+        source_revision: selected.cohort.initial_revision().0,
         source_audit_generation: selected.audit_generation,
         rights_version: selected.rights_version,
         rule_version: selected.rule_version,
@@ -869,7 +869,7 @@ pub(crate) fn run(
     // Discover each exact missing owner-local member, close that PG session,
     // and hydrate only its private package before trying the selection again.
     let selected_source_for_identity = loop {
-        let resolved = db
+        let (resolved, _selection_readset) = db
             .with_source_revision_session(
                 &store,
                 &selection.domain,
@@ -1041,8 +1041,7 @@ pub(crate) fn run(
                         &delegated_tokens,
                         &target_ref,
                         &private_ancestry,
-                    )
-                    .map_err(DurableError::Source)?;
+                    )?;
                 let publication = context
                     .select_publication(deadline, cancelled)
                     .map_err(DurableError::Source)?;
@@ -1136,7 +1135,7 @@ pub(crate) fn run(
         target_current,
         source_binding,
         &request,
-        request_raw,
+        &request_raw,
         &software,
         &components,
         invocation_path,

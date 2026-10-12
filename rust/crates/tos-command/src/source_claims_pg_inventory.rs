@@ -220,7 +220,7 @@ fn creation_receipt_check(
         let bytes = original.get(name).ok_or(SourceCommandError::Conflict(
             "Claim original creation member absent",
         ))?;
-        let binding = field(&JsonValue::Object(receipt_files.clone()), name)?;
+        let binding = field(&JsonValue::Object(receipt_files.to_vec()), name)?;
         exact_keys(binding, &["sha256", "bytes"])?;
         if text(binding, "sha256")? != Digest256::of_bytes(bytes).to_prefixed()
             || integer(binding, "bytes")? != bytes.len() as u64
@@ -408,7 +408,7 @@ fn claim_owner_projection(
         let form_ids = if let Some(form) = &current_form {
             let subject = metadata_subject(record)?;
             apply_form_changes(Some(form), &subject, &[])?;
-            if text(&field(form, "subject")?, "id")? != text(&subject, "id")? {
+            if text(field(form, "subject")?, "id")? != text(&subject, "id")? {
                 return Err(SourceCommandError::Conflict("Claim form subject differs"));
             }
             ["forms", "prior_forms"]

@@ -17,6 +17,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 pub(crate) const PG_ITEM_ADOPTION_FAMILY_TAG: &str =
     "tos-pg-item-adoption-v1:tos_local_item_adoption_owner_v1:item.adopt";
@@ -498,12 +499,15 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
     }
     let mut predecessor = BTreeMap::new();
     for (name, row) in file_rows {
+        let name = name.as_str().ok_or(SourceCommandError::Invalid(
+            "PG Item recovery archive file name",
+        ))?;
         if ![
             "edition.json",
             "edition.human-forms.json",
             "source-revision-history.json",
         ]
-        .contains(&name.as_str())
+        .contains(&name)
         {
             return Err(SourceCommandError::Conflict(
                 "PG Item recovery archive file name differs",
@@ -530,7 +534,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             ))?;
         if raw.len() as u64 != cmd::integer(row, "bytes")?
             || Digest256::of_bytes(raw).to_prefixed() != digest
-            || predecessor.insert(name.clone(), raw.clone()).is_some()
+            || predecessor.insert(name.to_owned(), raw.clone()).is_some()
         {
             return Err(SourceCommandError::Conflict(
                 "PG Item recovery archive blob fixity differs",
@@ -1027,7 +1031,7 @@ pub(crate) fn current_closure(
                 .as_str()
                 .ok_or(SourceCommandError::Invalid("PG Item Edition origin ref"))
         })
-        .collect::<std::collections::BTreeSet<_>>();
+        .collect::<SourceCommandResult<std::collections::BTreeSet<_>>>()?;
     let observed_origins = origins
         .iter()
         .map(|claim| cmd::text(claim, "subject_ref"))
@@ -1356,6 +1360,7 @@ pub(crate) fn current_closure(
         before,
         related_items,
         claims,
+        claim_paths,
         catalog: super::ItemCatalog {
             digests,
             retained_transactions: BTreeMap::new(),
@@ -1859,7 +1864,7 @@ pub(crate) fn prepare_pg_item_adoption(
     }
     verify_current_topology(&mut closure, input, worker, limits, cancelled)?;
     let catalog = closure.catalog;
-    let grammar = super::unavailable_grammar(
+    let grammar = unavailable_grammar(
         &owner,
         &closure.before,
         input,
@@ -2820,7 +2825,7 @@ pub(crate) fn inventory_owner_contributions(
         JsonValue::Object(
             values
                 .into_iter()
-                .map(|(k, v)| (JsonString::from_utf8(k), cmd::string(&v)))
+                .map(|(k, v)| (JsonString::from_utf8(&k), cmd::string(&v)))
                 .collect(),
         )
     };
@@ -2840,11 +2845,11 @@ pub(crate) fn inventory_owner_contributions(
                 "Item adoption contribution leaves authored source",
             ));
         }
-        let mut records = BTreeMap::new();
+        let mut records = Vec::new();
         for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
             let mut rows = Vec::new();
-            if (kind == "edition" && path.ends_with("/edition.json"))
-                || (kind == "item" && path.ends_with("/item.json"))
+            if (*kind == "edition" && path.ends_with("/edition.json"))
+                || (*kind == "item" && path.ends_with("/item.json"))
             {
                 let record = cmd::parse(&write.exact_bytes).map_err(crate::DurableError::Source)?;
                 rows.push(
@@ -2857,12 +2862,13 @@ pub(crate) fn inventory_owner_contributions(
                 );
                 projected_profile_paths.insert(path.to_owned());
             }
-            records.insert(JsonString::from_utf8(*kind), JsonValue::Array(rows));
+            records.push((JsonString::from_utf8(*kind), JsonValue::Array(rows)));
         }
+        records.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
         let events = if path.ends_with("/source-create-provenance.jsonl")
             || path.ends_with("/provenance.jsonl")
         {
-            let mut values = BTreeMap::new();
+            let mut values = Vec::new();
             for (line, raw) in write.exact_bytes.split(|byte| *byte == b'\n').enumerate() {
                 if raw.iter().all(u8::is_ascii_whitespace) {
                     continue;
@@ -2872,34 +2878,30 @@ pub(crate) fn inventory_owner_contributions(
                     .map_err(crate::DurableError::Source)?
                     .to_owned();
                 let digest = cmd::record_digest(&event).map_err(crate::DurableError::Source)?;
-                if !seen_events.insert(id.clone())
-                    || values
-                        .insert(
-                            JsonString::from_utf8(id),
-                            cmd::object(vec![
-                                ("payload", event),
-                                ("source_ref", cmd::string(path)),
-                                (
-                                    "source_line",
-                                    cmd::number(u64::try_from(line + 1).map_err(|_| {
-                                        crate::DurableError::Corrupt(
-                                            "Item event line number overflow",
-                                        )
-                                    })?),
-                                ),
-                                ("source_sha256", cmd::string(&digest.to_hex())),
-                            ]),
-                        )
-                        .is_some()
-                {
+                if !seen_events.insert(id.clone()) {
                     return Err(crate::DurableError::Corrupt(
                         "Item adoption event identity repeats",
                     ));
                 }
+                values.push((
+                    JsonString::from_utf8(&id),
+                    cmd::object(vec![
+                        ("payload", event),
+                        ("source_ref", cmd::string(path)),
+                        (
+                            "source_line",
+                            cmd::number(u64::try_from(line + 1).map_err(|_| {
+                                crate::DurableError::Corrupt("Item event line number overflow")
+                            })?),
+                        ),
+                        ("source_sha256", cmd::string(&digest.to_hex())),
+                    ]),
+                ));
             }
+            values.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
             JsonValue::Object(values)
         } else {
-            JsonValue::Object(BTreeMap::new())
+            JsonValue::Object(Vec::new())
         };
         let form = if path.ends_with(".human-forms.json") {
             let set = cmd::parse(&write.exact_bytes).map_err(crate::DurableError::Source)?;
@@ -2955,7 +2957,7 @@ pub(crate) fn inventory_owner_contributions(
             ("records", JsonValue::Object(records)),
             ("source_profiles", source_profiles),
             ("events", events),
-            ("anchors", JsonValue::Object(BTreeMap::new())),
+            ("anchors", JsonValue::Object(Vec::new())),
             ("form", form),
             ("claim_owner", claim_owner),
         ]);

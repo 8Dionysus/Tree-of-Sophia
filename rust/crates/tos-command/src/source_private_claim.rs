@@ -19,9 +19,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
-use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
-};
+use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
@@ -1388,6 +1386,36 @@ fn require_contract_digest(
         ));
     }
     Ok(())
+}
+
+fn validate_private_native_identity_packet(
+    ctx: &CommandContext,
+    owner: &OwnerTextContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    context: &JsonValue,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
+    reads: &mut ExactReads,
+    name: &str,
+    packet: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let reference = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
+    let raw = selected_authored(
+        ctx, owner, cut, context, reference, 1_048_576, reads, deadline, cancelled,
+    )?;
+    let schema = cmd::parse(&raw)?;
+    let expected = format!("https://tree-of-sophia.local/{reference}");
+    let alternate = format!("https://treeofsophia.local/{reference}");
+    let id = cmd::text(&schema, "$id")?;
+    if id != expected && id != alternate {
+        return Err(SourceCommandError::Conflict(
+            "private Claim native identity schema differs from its owner path",
+        ));
+    }
+    require_contract_digest(worker, reference, &raw)?;
+    let instance = cmd::canonical(packet)?;
+    check_schema(worker, name, &instance, reference, deadline, cancelled)
 }
 
 fn field_texts(value: &JsonValue, field: &str, max: usize) -> SourceCommandResult<Vec<String>> {
@@ -4512,8 +4540,15 @@ fn ground_claims(
             owner, cut, context, &mut reads, deadline, cancelled,
         )?;
         let (identities, snapshot, schema_used) =
-            crate::source_revisions::native_identity_inventory_from_packet_members(
-                ctx, &packets, worker, deadline, cancelled, None,
+            crate::source_revisions::native_identity_inventory_from_packet_members_with_validator(
+                &packets,
+                None,
+                |name, packet| {
+                    validate_private_native_identity_packet(
+                        ctx, owner, cut, context, worker, &mut reads, name, packet, deadline,
+                        cancelled,
+                    )
+                },
             )?;
         if native_identity_subjects
             .iter()
@@ -5946,13 +5981,23 @@ fn resolve_assessment_claim_sources_with_entities(
                 .cloned()
                 .collect::<Vec<_>>();
             let (identities, snapshot, schema_used) =
-                crate::source_revisions::native_identity_inventory_from_packet_members(
-                    &inventory_context,
+                crate::source_revisions::native_identity_inventory_from_packet_members_with_validator(
                     &packet_members,
-                    worker,
-                    deadline,
-                    cancelled,
                     None,
+                    |name, packet| {
+                        validate_private_native_identity_packet(
+                            ctx,
+                            owner,
+                            cut,
+                            context,
+                            worker,
+                            &mut reads,
+                            name,
+                            packet,
+                            deadline,
+                            cancelled,
+                        )
+                    },
                 )?;
             if native_identity_subjects
                 .iter()

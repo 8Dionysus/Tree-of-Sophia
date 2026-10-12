@@ -240,7 +240,7 @@ pub struct DurableProjectionHit {
     pub rank: f32,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub enum DurableProjectionStatus {
     Current {
         through_seq: u64,

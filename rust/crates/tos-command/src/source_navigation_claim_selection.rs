@@ -10,7 +10,8 @@ use crate::{
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonValue, RelativePath, canonical_bytes_v1,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, RelativePath, canonical_bytes_v1,
+    parse_json,
 };
 
 const MAX_PATH_BYTES: usize = 4096;
@@ -335,7 +336,7 @@ fn claim_event_identity_archive_paths_for_refs(
         .map(|owner| (owner.id.as_str(), owner))
         .collect::<BTreeMap<_, _>>();
     let mut paths = BTreeSet::new();
-    for exact in membership_refs.values().flatten() {
+    for exact in membership_refs.values() {
         let owner = owner_by_id
             .get(exact.id.as_str())
             .copied()
@@ -1653,13 +1654,7 @@ fn exact_source_reference(
         .and_then(Value::as_u64)
         .filter(|version| *version > 0)
         .ok_or(DurableError::Corrupt("selected exact source version"))?;
-    let canonical = canonical_bytes_v1(
-        value,
-        CanonicalProfile::SourceRecordDigestV1,
-        JsonLimits::new(MAX_EXACT_RECORD_BYTES, 96, 1_000_000, 4096)
-            .map_err(|_| DurableError::Refused("Claim exact digest limits"))?,
-    )
-    .map_err(|_| DurableError::Corrupt("selected exact source digest"))?;
+    let canonical = canonical_serde_source_record_v1(value, MAX_EXACT_RECORD_BYTES)?;
     Ok(ExactSourceReferenceV1 {
         id: id.to_owned(),
         version,
@@ -1681,16 +1676,34 @@ fn exact_value_matches(
         .get(version_field)
         .and_then(Value::as_u64)
         .ok_or(DurableError::Corrupt("selected exact reference version"))?;
-    let canonical = canonical_bytes_v1(
-        value,
-        CanonicalProfile::SourceRecordDigestV1,
-        JsonLimits::new(MAX_EXACT_RECORD_BYTES, 96, 1_000_000, 4096)
-            .map_err(|_| DurableError::Refused("Claim exact digest limits"))?,
-    )
-    .map_err(|_| DurableError::Corrupt("selected exact reference digest"))?;
+    let canonical = canonical_serde_source_record_v1(value, MAX_EXACT_RECORD_BYTES)?;
     Ok(id == exact.id
         && version == exact.version
         && Digest256::of_bytes(&canonical).to_hex() == exact.digest)
+}
+
+/// Canonicalize a serde projection through the shared strict JSON grammar and
+/// the owner's SourceRecordDigest profile, rather than hashing serde's wire
+/// spelling directly.
+pub(crate) fn canonical_serde_source_record_v1(
+    value: &Value,
+    max_bytes: usize,
+) -> DurableResult<Vec<u8>> {
+    let limits = JsonLimits::new(max_bytes, 96, 1_000_000, 4096)
+        .map_err(|_| DurableError::Refused("Claim exact digest limits"))?;
+    let raw = serde_json::to_vec(value)
+        .map_err(|_| DurableError::Corrupt("selected exact JSON serialization"))?;
+    if raw.is_empty() || raw.len() > limits.max_bytes {
+        return Err(DurableError::Refused("Claim exact digest byte budget"));
+    }
+    let document = parse_json(&raw, JsonMode::PublishedStrict, limits)
+        .map_err(|_| DurableError::Corrupt("selected exact JSON parsing"))?;
+    canonical_bytes_v1(
+        document.root(),
+        CanonicalProfile::SourceRecordDigestV1,
+        limits,
+    )
+    .map_err(|_| DurableError::Corrupt("selected exact canonical digest"))
 }
 
 /// Turn point-index results into exact staged source addresses. The index

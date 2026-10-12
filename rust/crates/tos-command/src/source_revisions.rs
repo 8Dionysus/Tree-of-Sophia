@@ -1240,6 +1240,9 @@ pub(crate) trait RecordSchemaWorker: CutSchemaExecutor {
 
     fn input_identity(&self) -> Self::Identity;
     fn contract_digest(&self, contract: &str) -> Option<Digest256>;
+    fn collection_cut_worker(&mut self) -> Option<&mut CutWorkerSchemaExecutor> {
+        None
+    }
     fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
         None
     }
@@ -1275,6 +1278,10 @@ impl RecordSchemaWorker for CutWorkerSchemaExecutor {
 
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         CutWorkerSchemaExecutor::contract_digest(self, contract)
+    }
+
+    fn collection_cut_worker(&mut self) -> Option<&mut CutWorkerSchemaExecutor> {
+        Some(self)
     }
 
     fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
@@ -5983,10 +5990,36 @@ pub(crate) fn native_identity_inventory_from_packet_members(
     cancelled: &AtomicBool,
     reserved_id: Option<&str>,
 ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
+    native_identity_inventory_from_packet_members_with_validator(
+        packet_members,
+        reserved_id,
+        |name, packet| {
+            schema_at(
+                worker,
+                deadline,
+                cancelled,
+                ctx,
+                &["ToS/contracts/semantic-annotation-packet-v2.schema.json".into()],
+                "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+                packet,
+                Some(name),
+                true,
+            )
+        },
+    )
+}
+
+/// Shared inventory mechanics for callers whose selected schema authority is
+/// not the immutable corpus-cut worker. The caller-specific validator must
+/// retain its own exact resource binding.
+pub(crate) fn native_identity_inventory_from_packet_members_with_validator(
+    packet_members: &[SourceFile],
+    reserved_id: Option<&str>,
+    mut validate_packet: impl FnMut(&str, &JsonValue) -> SourceCommandResult<()>,
+) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
     let mut entries = BTreeMap::new();
     let mut identities: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut remaining = 8_388_608usize;
-    let contract = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
     for member in packet_members {
         let name = member.path.as_str();
         if entries.len() >= 1024 || member.raw.len() > remaining.min(1_048_576) {
@@ -6005,17 +6038,7 @@ pub(crate) fn native_identity_inventory_from_packet_members(
                 "native identity packet contract",
             ));
         }
-        schema_at(
-            worker,
-            deadline,
-            cancelled,
-            ctx,
-            &[contract.into()],
-            contract,
-            &packet,
-            Some(name),
-            true,
-        )?;
+        validate_packet(name, &packet)?;
         for entity in cmd::array(&packet, "entities")? {
             let entity_id = cmd::text(entity, "entity_id")?;
             if reserved_id == Some(entity_id) {
@@ -7681,9 +7704,15 @@ where
             max_issues: 256,
             deadline,
         });
+        let collection_worker =
+            worker
+                .collection_cut_worker()
+                .ok_or(SourceCommandError::Unsupported(
+                    "Collection version requires immutable-cut schema worker",
+                ))?;
         let observed = tos_validation::native_compound::verify_collection_version_from_cut(
             cut,
-            worker,
+            collection_worker,
             location,
             &exact_serde,
             limits,

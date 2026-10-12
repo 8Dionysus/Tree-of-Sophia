@@ -1388,7 +1388,13 @@ fn index_rows(
         })?;
     let mut rows = BTreeMap::<(String, String), String>::new();
     let mut identity_paths = BTreeMap::<String, String>::new();
-    let mut insert = |kind: &str, id: &str, path: &str| -> DurableResult<()> {
+    fn insert(
+        rows: &mut BTreeMap<(String, String), String>,
+        identity_paths: &mut BTreeMap<String, String>,
+        kind: &str,
+        id: &str,
+        path: &str,
+    ) -> DurableResult<()> {
         if kind != "path" {
             if identity_paths.get(id).is_some_and(|prior| prior != path) {
                 return Err(DurableError::Conflict(
@@ -1405,9 +1411,11 @@ fn index_rows(
         }
         rows.insert(key, path.to_owned());
         Ok(())
-    };
+    }
     for (id, entry) in &inventory.objects {
         insert(
+            &mut rows,
+            &mut identity_paths,
             "metadata",
             id,
             cmd::text(entry, "source_record_ref").map_err(|error| {
@@ -1417,6 +1425,8 @@ fn index_rows(
     }
     for (id, entry) in &inventory.claims {
         insert(
+            &mut rows,
+            &mut identity_paths,
             "claim",
             id,
             cmd::text(entry, "source_claim_file_ref").map_err(|error| {
@@ -1430,6 +1440,8 @@ fn index_rows(
             .ok_or(DurableError::Corrupt("owner evidence index object"))?
         {
             insert(
+                &mut rows,
+                &mut identity_paths,
                 kind,
                 id.as_str()
                     .ok_or(DurableError::Corrupt("owner evidence identity string"))?,
@@ -1444,7 +1456,13 @@ fn index_rows(
         if !file.path.as_str().starts_with("ToS/") {
             continue;
         }
-        insert("path", file.path.as_str(), file.path.as_str())?;
+        insert(
+            &mut rows,
+            &mut identity_paths,
+            "path",
+            file.path.as_str(),
+            file.path.as_str(),
+        )?;
         if file.path.as_str().starts_with("ToS/source-witnesses/")
             && file.path.as_str().ends_with(".human-forms.json")
         {
@@ -1466,6 +1484,8 @@ fn index_rows(
                     source_error_with_phase(error, "missing object field in HumanForm section")
                 })? {
                     insert(
+                        &mut rows,
+                        &mut identity_paths,
                         "form",
                         cmd::text(form, "form_id").map_err(|error| {
                             source_error_with_phase(
@@ -1586,7 +1606,9 @@ fn inventory_projections_for(
             .rsplit_once('/')
             .map(|(parent, _)| format!("{parent}/{}", source_claims::CLAIM_STREAM));
         let is_global_claim_form = match form_owner_stream.as_deref() {
-            Some(path) if grouped.files.contains_key(path) => is_global_claim_stream(ctx, path)?,
+            Some(path) if ctx.files.iter().any(|member| member.path.as_str() == path) => {
+                is_global_claim_stream(ctx, path)?
+            }
             _ => false,
         };
         let contribution = if has_global_claims
@@ -1596,6 +1618,12 @@ fn inventory_projections_for(
             source_claims::pg_inventory::claim_inventory_contribution(
                 ctx, file, &grouped, worker, deadline, cancelled,
             )
+            .map_err(|error| {
+                source_error_with_phase(
+                    error,
+                    "missing object field in Agent projection member or forms",
+                )
+            })?
         } else if has_global_claims
             && basename.ends_with(".human-forms.json")
             && is_global_claim_form
@@ -1603,19 +1631,25 @@ fn inventory_projections_for(
             source_claims::pg_inventory::claim_form_inventory_contribution(
                 file, &grouped, worker, deadline, cancelled,
             )
+            .map_err(|error| {
+                source_error_with_phase(
+                    error,
+                    "missing object field in Agent projection member or forms",
+                )
+            })?
         } else if is_item_claim_stream(location) {
             item_claim_owner_contribution(ctx, location)?
         } else {
             source_claims::agent_inventory_contribution(
                 ctx, file, &inventory, &grouped, worker, deadline, cancelled,
             )
-        }
-        .map_err(|error| {
-            source_error_with_phase(
-                error,
-                "missing object field in Agent projection member or forms",
-            )
-        })?;
+            .map_err(|error| {
+                source_error_with_phase(
+                    error,
+                    "missing object field in Agent projection member or forms",
+                )
+            })?
+        };
         let raw = cmd::canonical(&contribution).map_err(source_error)?;
         // Existing cold metadata-row admission; larger contributions cannot
         // silently enter the addressed route.
@@ -1759,8 +1793,12 @@ fn item_claim_owner_contribution(
     let bytes = EditionItemBytes {
         parent,
         child,
-        parent_receipt,
-        receipt: receipt.clone(),
+        parent_receipt: serde_json::from_slice(
+            &cmd::canonical(&parent_receipt).map_err(source_error)?,
+        )
+        .map_err(|_| DurableError::Corrupt("Item parent receipt JSON conversion"))?,
+        receipt: serde_json::from_slice(&cmd::canonical(&receipt).map_err(source_error)?)
+            .map_err(|_| DurableError::Corrupt("Item receipt JSON conversion"))?,
         transaction_id: cmd::text(&receipt, "transaction_id")
             .map_err(source_error)?
             .to_owned(),
@@ -2104,7 +2142,7 @@ fn revision_owner_projections(
         ]);
         let raw = cmd::canonical(&envelope).map_err(source_error)?;
         let digest = Digest256::of_bytes(&write.exact_bytes).to_hex();
-        addressed_inventory::AddressedMixedInventoryV1::checked_projection(path, &raw, &digest)?;
+        addressed_inventory::AddressedMixedInventoryV1::checked_projection(&path, &raw, &digest)?;
         if raw.len() > 1_048_576 {
             return Err(DurableError::Refused(
                 "source revision inventory projection exceeds member bound",
@@ -3628,6 +3666,11 @@ fn reads_bytes(reads: &SourceReads) -> DurableResult<Vec<u8>> {
                     "reads":values
                 })
             }
+        }
+        (Some(_), Some(_)) => {
+            return Err(DurableError::Invalid(
+                "managed original and source revision read profiles cannot be combined",
+            ));
         }
     };
     let encoded =
@@ -5236,9 +5279,9 @@ impl DurablePgCoordinator {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
-            &mut Transaction<'seek>,
+        seek: impl for<'lease, 'tx> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'lease, P>,
+            &mut Transaction<'tx>,
         ) -> T,
     ) -> DurableResult<T> {
         self.with_current_managed_model_and_tx_owner(
@@ -5275,9 +5318,9 @@ impl DurablePgCoordinator {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
-            &mut Transaction<'seek>,
+        seek: impl for<'lease, 'tx> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'lease, P>,
+            &mut Transaction<'tx>,
         ) -> T,
     ) -> DurableResult<T> {
         self.with_current_managed_model_and_tx_owner(
@@ -5315,9 +5358,9 @@ impl DurablePgCoordinator {
         job_fence: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
-            &mut Transaction<'seek>,
+        seek: impl for<'lease, 'tx> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'lease, P>,
+            &mut Transaction<'tx>,
         ) -> T,
     ) -> DurableResult<T> {
         active(deadline, cancelled)?;
@@ -6501,7 +6544,7 @@ impl DurablePgCoordinator {
                 history_membership_root: logical_membership_root(HISTORY_KEY_TAG, &history_rows),
                 current_membership_root: logical_membership_root(CURRENT_KEY_TAG, &current_rows),
             },
-            log_frontier: Some(VerifiedLogFrontier(log_hash)),
+            log_frontier: VerifiedLogFrontier(log_hash),
             history_rows,
             current_rows,
         };
@@ -7993,7 +8036,10 @@ impl DurablePgCoordinator {
         };
         drop(_guard);
         tx.commit()?;
-        if let Some(rows) = retained_owner_rows.as_ref() {
+        let files = if pg_forms_historical_family(&family_tag).is_some() || sign_promotion_family {
+            let rows = retained_owner_rows.as_ref().ok_or(DurableError::Corrupt(
+                "source revision retained owner rows absent",
+            ))?;
             let expected_rows = rows.iter().collect::<Vec<_>>();
             let retained_bytes = self.read_retained_source_rows(
                 store,
@@ -8026,6 +8072,11 @@ impl DurablePgCoordinator {
                     raw,
                 });
             }
+            files
+        } else {
+            Vec::new()
+        };
+        if pg_forms_historical_family(&family_tag).is_some() {
             let binding = reads.revision.as_ref().ok_or(DurableError::Corrupt(
                 "Forms/Historical source revision binding absent",
             ))?;
@@ -12153,7 +12204,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted source revision predecessor",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?);
                 reads.revision = Some(SourceRevisionReadBinding {
                     family_tag,
@@ -12204,7 +12256,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted source revision predecessor",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?);
                 let request_canonical_digest = Some(parse_hex(
                     object
@@ -12212,7 +12265,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted source revision canonical request digest",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?);
                 reads.revision = Some(SourceRevisionReadBinding {
                     family_tag,
@@ -12271,7 +12325,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted source revision predecessor",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?);
                 let request_canonical_digest = Some(parse_hex(
                     object
@@ -12279,7 +12334,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted source revision canonical request digest",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?);
                 let owner_configuration_raw = object
                     .get("owner_configuration_raw")
@@ -12300,7 +12356,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted Forms/Historical owner configuration digest",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?;
                 let owner_configuration_canonical_digest = parse_hex(
                     object
@@ -12308,7 +12365,8 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
                         .and_then(serde_json::Value::as_str)
                         .ok_or(DurableError::Corrupt(
                             "persisted Forms/Historical owner canonical configuration digest",
-                        ))?,
+                        ))?
+                        .to_owned(),
                 )?;
                 let config = cmd::parse(&owner_configuration_raw).map_err(source_error)?;
                 if Digest256::of_bytes(&owner_configuration_raw) != owner_configuration_raw_digest

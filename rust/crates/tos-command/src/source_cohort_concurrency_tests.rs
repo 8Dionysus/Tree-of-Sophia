@@ -1166,3 +1166,313 @@ fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_re
         &cancelled,
     );
 }
+
+struct PrivateOwnerReadRaceCapability {
+    write: crate::durable_private_packages::PrivateOwnerPackageWriteV1,
+    entered: Option<std::sync::mpsc::SyncSender<()>>,
+    resume: Option<std::sync::mpsc::Receiver<()>>,
+}
+
+struct PrivateOwnerReadRaceReleaseGuard(Option<std::sync::mpsc::Sender<()>>);
+
+impl PrivateOwnerReadRaceReleaseGuard {
+    fn release(&mut self) -> Result<(), ()> {
+        self.0
+            .take()
+            .map_or(Ok(()), |sender| sender.send(()).map_err(|_| ()))
+    }
+}
+
+impl Drop for PrivateOwnerReadRaceReleaseGuard {
+    fn drop(&mut self) {
+        if let Some(sender) = self.0.take() {
+            let _ = sender.send(());
+        }
+    }
+}
+
+impl crate::durable_private_packages::capability_seal::Sealed for PrivateOwnerReadRaceCapability {}
+
+impl crate::durable_private_packages::PrivateOwnerPackageCapabilityV1
+    for PrivateOwnerReadRaceCapability
+{
+    fn write(&self) -> &crate::durable_private_packages::PrivateOwnerPackageWriteV1 {
+        &self.write
+    }
+
+    fn revalidate(
+        &mut self,
+        current: Option<&crate::durable_private_packages::PrivateOwnerPackageSnapshotV1>,
+        replay: Option<&crate::durable_private_packages::PrivateOwnerPackageReplayV1>,
+    ) -> crate::DurableResult<()> {
+        if current != self.write.expected_current.as_ref() || replay.is_some() {
+            return Err(crate::DurableError::Conflict(
+                "private read-race fixture owner state changed",
+            ));
+        }
+        if let (Some(entered), Some(resume)) = (self.entered.take(), self.resume.take()) {
+            entered
+                .send(())
+                .map_err(|_| crate::DurableError::Refused("private read-race writer stopped"))?;
+            resume
+                .recv()
+                .map_err(|_| crate::DurableError::Refused("private read-race release stopped"))?;
+        }
+        Ok(())
+    }
+}
+
+fn private_read_race_source_binding(
+    database_url: &str,
+    domain: &str,
+    private_owner_audit_generation: u64,
+) -> crate::durable_private_packages::PrivateOwnerSourceBindingV1 {
+    use crate::durable_private_packages::PrivateOwnerSourceBindingV1;
+    use postgres::{Client, NoTls};
+
+    let mut client = Client::connect(database_url, NoTls).unwrap();
+    let row = client
+        .query_one(
+            "SELECT d.head_seq,d.source_epoch,d.source_generation,d.source_revision,
+                    d.rights_version,d.rule_version,d.contract_digest,f.generation,
+                    j.fence_epoch
+             FROM cmd2_domain d
+             JOIN cmd2_audit_fence f ON f.domain=d.domain
+             JOIN cmd2_job j ON j.domain=d.domain AND j.job_id=$2
+             WHERE d.domain=$1",
+            &[&domain, &JOB_ID],
+        )
+        .unwrap();
+    let digest = |index| {
+        Digest256::from_hex(row.get::<_, String>(index).trim())
+            .expect("selected source binding contains a valid digest")
+    };
+    PrivateOwnerSourceBindingV1 {
+        head_seq: u64::try_from(row.get::<_, i64>(0)).unwrap(),
+        source_epoch: u64::try_from(row.get::<_, Option<i64>>(1).unwrap()).unwrap(),
+        source_generation: u64::try_from(row.get::<_, Option<i64>>(2).unwrap()).unwrap(),
+        source_revision: digest(3),
+        source_audit_generation: u64::try_from(row.get::<_, i64>(7)).unwrap(),
+        rights_version: u64::try_from(row.get::<_, i64>(4)).unwrap(),
+        rule_version: u64::try_from(row.get::<_, i64>(5)).unwrap(),
+        contract_digest: digest(6),
+        job_id: JOB_ID.to_owned(),
+        job_fence: u64::try_from(row.get::<_, i64>(8)).unwrap(),
+        readset_digest: Digest256::of_bytes(b"private lock regression readset"),
+        dependency_digest: Digest256::of_bytes(b"private lock regression dependencies"),
+        private_owner_audit_generation,
+    }
+}
+
+fn private_read_race_write(
+    scope: crate::durable_private_packages::PrivateOwnerScopeV1,
+    target_ref: &str,
+    command_id: &str,
+    expected_current: Option<crate::durable_private_packages::PrivateOwnerPackageSnapshotV1>,
+    member_bytes: &[u8],
+    source_binding: crate::durable_private_packages::PrivateOwnerSourceBindingV1,
+) -> crate::durable_private_packages::PrivateOwnerPackageWriteV1 {
+    use crate::durable_private_packages::{
+        PrivateOwnerPackageFamilyV1, PrivateOwnerPackageWriteV1,
+    };
+
+    PrivateOwnerPackageWriteV1 {
+        scope,
+        family: PrivateOwnerPackageFamilyV1::Text,
+        target_ref: target_ref.to_owned(),
+        expected_current,
+        members: BTreeMap::from([("owner.txt".to_owned(), member_bytes.to_vec())]),
+        archives: Vec::new(),
+        command_id: command_id.to_owned(),
+        request_digest: Digest256::of_bytes(command_id.as_bytes()),
+        raw_request_digest: Digest256::of_bytes(format!("raw:{command_id}").as_bytes()),
+        owner_configuration_digest: Digest256::of_bytes(b"private lock regression owner config"),
+        source_binding,
+        response_bytes: b"{\"status\":\"private fixture\"}".to_vec(),
+    }
+}
+
+#[test]
+fn private_owner_read_waits_for_writer_commit_before_repeatable_read_snapshot() {
+    use crate::durable_private_packages::PrivateOwnerScopeV1;
+    use postgres::{Client, NoTls};
+    use std::sync::mpsc;
+
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let database_url = std::env::var("TOS_CMD_POSTGRES_URL")
+        .expect("private owner race test uses the selected PostgreSQL fixture");
+    let scope = PrivateOwnerScopeV1::for_context(
+        &fixture.domain,
+        Digest256::of_bytes(b"private owner lock ordering regression context"),
+    )
+    .unwrap();
+    let target_ref = "ToS/source-witnesses/private-lock-regression/owner";
+
+    let mut writer = DurablePgCoordinator::connect(&database_url).unwrap();
+    let initial = private_read_race_write(
+        scope.clone(),
+        target_ref,
+        "test:private-lock-regression:initial",
+        None,
+        b"old accepted private bytes",
+        private_read_race_source_binding(&database_url, &fixture.domain, 0),
+    );
+    let mut initial_capability = PrivateOwnerReadRaceCapability {
+        write: initial,
+        entered: None,
+        resume: None,
+    };
+    writer
+        .commit_private_owner_package(&mut initial_capability)
+        .expect("initial owner package is committed through the private package broker");
+    let old_snapshot = writer
+        .read_private_owner_current(
+            &scope,
+            target_ref,
+            Instant::now() + Duration::from_secs(5),
+            &cancelled,
+        )
+        .unwrap()
+        .expect("initial private current package exists");
+    assert_eq!(
+        old_snapshot.members["owner.txt"],
+        b"old accepted private bytes"
+    );
+
+    let (writer_entered_tx, writer_entered_rx) = mpsc::sync_channel(0);
+    let (writer_resume_tx, writer_resume_rx) = mpsc::channel();
+    let mut writer_release = PrivateOwnerReadRaceReleaseGuard(Some(writer_resume_tx));
+    let update = private_read_race_write(
+        scope.clone(),
+        target_ref,
+        "test:private-lock-regression:update",
+        Some(old_snapshot.clone()),
+        b"new accepted private bytes",
+        private_read_race_source_binding(
+            &database_url,
+            &fixture.domain,
+            old_snapshot.private_audit_generation,
+        ),
+    );
+    let writer_url = database_url.clone();
+    let writer_handle = thread::spawn(move || {
+        let mut coordinator = DurablePgCoordinator::connect(&writer_url).unwrap();
+        let mut capability = PrivateOwnerReadRaceCapability {
+            write: update,
+            entered: Some(writer_entered_tx),
+            resume: Some(writer_resume_rx),
+        };
+        coordinator.commit_private_owner_package(&mut capability)
+    });
+    writer_entered_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("writer capability is paused after acquiring the private owner lock");
+
+    let (reader_started_tx, reader_started_rx) = mpsc::sync_channel(0);
+    let (reader_callback_tx, reader_callback_rx) = mpsc::channel();
+    let reader_url = database_url.clone();
+    let reader_scope = scope.clone();
+    let reader_target = target_ref.to_owned();
+    let reader_handle = thread::spawn(move || {
+        let mut client = Client::connect(&reader_url, NoTls).unwrap();
+        let reader_pid: i32 = client
+            .query_one("SELECT pg_backend_pid()", &[])
+            .unwrap()
+            .get(0);
+        let mut coordinator = DurablePgCoordinator::from_configured_client(client);
+        let started = Instant::now();
+        reader_started_tx.send(reader_pid).unwrap();
+        let cancelled = AtomicBool::new(false);
+        let result = coordinator.with_private_owner_read_session(
+            &reader_scope,
+            Instant::now() + Duration::from_secs(10),
+            &cancelled,
+            |session, session_deadline, session_cancelled| {
+                reader_callback_tx.send(()).unwrap();
+                let generation = session.private_audit_generation();
+                let header = session
+                    .current_header(&reader_target, session_deadline, session_cancelled)?
+                    .expect("current package header exists after writer commit");
+                let member = session
+                    .read_current_member(
+                        &reader_target,
+                        "owner.txt",
+                        1024,
+                        session_deadline,
+                        session_cancelled,
+                    )?
+                    .expect("current member exists after writer commit");
+                Ok((generation, header, member))
+            },
+        );
+        (started.elapsed(), result)
+    });
+    let reader_pid = reader_started_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("reader is ready to enter the private owner read API");
+
+    // The writer remains paused inside the real package broker after it has
+    // taken the exclusive scope lock. Observe the reader's production
+    // shared-lock try before allowing the writer to commit. PostgreSQL keeps
+    // the last query text visible while the reader backs off, even when its
+    // session state is idle between attempts.
+    let mut observer = Client::connect(&database_url, NoTls).unwrap();
+    let wait_deadline = Instant::now() + Duration::from_secs(5);
+    let mut observed_shared_lock_try = false;
+    while Instant::now() < wait_deadline {
+        let shared_lock_try: bool = observer
+            .query_one(
+                "SELECT EXISTS (
+                   SELECT 1 FROM pg_stat_activity
+                   WHERE pid=$1 AND query LIKE 'SELECT pg_try_advisory_lock_shared%'
+                 )",
+                &[&reader_pid],
+            )
+            .unwrap()
+            .get(0);
+        if shared_lock_try {
+            observed_shared_lock_try = true;
+            break;
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
+    let callback_ran_before_commit = matches!(
+        reader_callback_rx.recv_timeout(Duration::from_millis(25)),
+        Ok(())
+    );
+    writer_release
+        .release()
+        .expect("paused owner writer is released to commit");
+    let write_receipt = writer_handle
+        .join()
+        .expect("private package writer thread completes")
+        .expect("replacement private package commits through the broker");
+    let (reader_wait, read_result) = reader_handle
+        .join()
+        .expect("private owner reader thread completes");
+    let (generation, header, selected_member) =
+        read_result.expect("reader observes the committed current package");
+
+    assert!(
+        observed_shared_lock_try,
+        "reader tried to acquire the shared owner lock while the writer still held it"
+    );
+    assert!(
+        !callback_ran_before_commit,
+        "reader did not open its repeatable-read owner view before the writer committed"
+    );
+    assert!(
+        reader_wait >= Duration::from_millis(25),
+        "read operation remained fenced until the writer committed"
+    );
+    assert_eq!(generation, write_receipt.private_audit_generation_after);
+    assert_eq!(header.revision, 2);
+    assert_eq!(header.package_digest, write_receipt.package_digest);
+    assert_eq!(header.commit_seq, write_receipt.commit_seq);
+    assert_eq!(selected_member.revision, 2);
+    assert_eq!(selected_member.private_audit_generation, generation);
+    assert_eq!(selected_member.bytes, b"new accepted private bytes");
+    assert_ne!(selected_member.bytes, b"old accepted private bytes");
+}

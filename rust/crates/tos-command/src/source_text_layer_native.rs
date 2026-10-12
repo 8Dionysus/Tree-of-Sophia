@@ -13,7 +13,7 @@ use crate::source_text_owner::{OwnerTextContext, OwnerTextInitialLayerSelection}
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const MAX_METADATA_BYTES: usize = 8_388_608;
 const MAX_METADATA_FILE_BYTES: usize = 1_048_576;
@@ -56,7 +56,7 @@ pub(crate) fn recheck_selected_inputs(
 
 pub(crate) fn prepare_initial_text(
     context: &mut OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     grant: &OwnerTextInitialLayerSelection,
     deadline: Instant,
     cancelled: &AtomicBool,

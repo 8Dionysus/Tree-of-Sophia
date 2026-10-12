@@ -17,6 +17,7 @@ use tos_compiler::{
         project_navigation_record_dependency_refresh_set_from_event_cut_v1,
         project_navigation_record_event_from_event_cut_v1,
     },
+    source_witness_catalog::CandidateEventSourceIdentityV1,
 };
 use tos_foundation::Digest256;
 
