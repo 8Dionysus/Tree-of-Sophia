@@ -3864,7 +3864,9 @@ mod tests {
             let digest = Digest256::of_bytes(&source).to_hex();
             let parsed =
                 AddressedMixedInventoryV1::checked_projection(&path, &raw, &digest).unwrap();
-            assert_eq!(parsed, projection);
+            // JsonValue keeps insertion order; compare the complete canonical
+            // transport bytes rather than the in-memory object construction order.
+            assert_eq!(cmd::canonical(&parsed).unwrap(), raw);
             let contribution = cmd::object(
                 [
                     "records",
