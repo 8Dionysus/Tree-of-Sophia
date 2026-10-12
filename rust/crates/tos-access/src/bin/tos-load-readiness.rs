@@ -2158,6 +2158,12 @@ const VOLATILE_JSON_PATHS: &[&str] = &[
     "/result/receipt/files/source-create-provenance.jsonl/sha256",
 ];
 
+// These fields distinguish an original successful commit from its exact
+// replay. They are ignored only for the replay response comparison, which
+// separately requires both flags to be true.
+const IDEMPOTENCY_REPLAY_JSON_PATHS: &[&str] =
+    &["/result/replayed", "/result/durable_commit/replayed"];
+
 fn outcomes(op: &Operation) -> Vec<ExpectedOutcome> {
     let mut values = vec![ExpectedOutcome {
         status: op.expected_status,
@@ -2696,12 +2702,21 @@ fn outcome_matches(
         let Ok(actual) = serde_json::from_slice::<Value>(raw) else {
             return false;
         };
-        let ignored_paths = expected
+        let mut ignored_paths = expected
             .ignored_json_paths
             .iter()
             .cloned()
             .collect::<BTreeSet<_>>();
+        if op.idempotency_replay_of.is_some() {
+            ignored_paths.extend(
+                IDEMPOTENCY_REPLAY_JSON_PATHS
+                    .iter()
+                    .map(|path| (*path).to_owned()),
+            );
+        }
         body_matches(body, &actual, &ignored_paths, "")
+            && (op.idempotency_replay_of.is_none()
+                || idempotency_replay_flags_are_true(op, &actual))
             && (!ignored_paths.contains("/result/revision")
                 || published_form_revision_matches(args, op, &actual))
             && (!ignored_paths.contains("/result/receipt/command_id")
@@ -2787,6 +2802,49 @@ fn expected_binding_operation(op: &Operation) -> bool {
 
 fn rights_revoke_operation(op: &Operation) -> bool {
     op.channel == "sdk" && operation_name(op) == Some("rights.revoke")
+}
+
+fn replayable_source_mutation_operation(op: &Operation) -> bool {
+    op.channel == "sdk" && matches!(operation_name(op), Some("source.create" | "record.revise"))
+}
+
+fn validate_revision_schema_provision_grant(op: &Operation, operation: &str) -> Result<(), String> {
+    if op.channel != "sdk"
+        || op.request
+            != json!({"schema_version":"tos_local_source_command_v1","operation":operation})
+        || op.bind_expected_from.is_some()
+    {
+        return Err(
+            "revision schema provisioning requires its exact protected owner operation".into(),
+        );
+    }
+    let invocation_path = PathBuf::from(
+        invocation_argument(op).ok_or("revision schema provisioning invocation absent")?,
+    );
+    let invocation = read_stage_json(&invocation_path)?;
+    if invocation["schema_version"] != "tos_local_pg_record_revision_invocation_v1" {
+        return Err("revision schema provisioning requires the ordinary PG revision owner".into());
+    }
+    let owner_path = PathBuf::from(
+        invocation["owner_config"]
+            .as_str()
+            .ok_or("revision schema provisioning owner configuration absent")?,
+    );
+    let owner = read_stage_json(&owner_path)?;
+    let allowed = owner["allowed_operations"]
+        .as_array()
+        .ok_or("revision schema provisioning owner grants absent")?;
+    if !allowed
+        .iter()
+        .any(|value| value.as_str() == Some(operation))
+        || (operation == "work.revision-schema.provision" && owner["record_type"] != "work")
+    {
+        return Err(
+            "revision schema provisioning is not present in the selected protected owner grant"
+                .into(),
+        );
+    }
+    Ok(())
 }
 
 fn rights_describe_binding_operation(op: &Operation) -> bool {
@@ -2880,6 +2938,24 @@ fn bind_expected_fields(op: &mut Operation, response: &Value) -> Result<(), Stri
             .get("expected_publication")
             .cloned()
             .ok_or("selected revision preview lacks expected_publication")?;
+    }
+    let bound_configuration = op.request["expected_configuration"].clone();
+    if let Some(expected_body) = op.expected_body.as_mut() {
+        if bound_configuration
+            .as_str()
+            .is_none_or(|value| !value.strip_prefix("sha256:").is_some_and(valid_sha))
+        {
+            return Err("bound mutation oracle requires the selected configuration digest".into());
+        }
+        let receipt_request = expected_body
+            .pointer_mut("/result/receipt/request")
+            .ok_or("bound mutation oracle lacks its recorded request")?;
+        if !receipt_request.is_object() || receipt_request.get("expected_configuration").is_none() {
+            return Err(
+                "bound mutation oracle lacks its recorded configuration precondition".into(),
+            );
+        }
+        receipt_request["expected_configuration"] = bound_configuration;
     }
     Ok(())
 }
@@ -3007,7 +3083,11 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
     let selection = invocation
         .get("source_selection")
         .ok_or("source.bootstrap selection absent")?;
-    if invocation["schema_version"] != "tos_local_pg_source_bootstrap_invocation_v1"
+    let invocation_schema = invocation["schema_version"].as_str();
+    let streamed_bootstrap =
+        invocation_schema == Some("tos_local_pg_source_bootstrap_streamed_invocation_v1");
+    let legacy_bootstrap = invocation_schema == Some("tos_local_pg_source_bootstrap_invocation_v1");
+    if !(streamed_bootstrap || legacy_bootstrap)
         || selection["initialization_mode"] != "initialize"
         || selection["initialize_schema"] != true
         || selection["job_fence"] != 1
@@ -3015,6 +3095,66 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
         || selection["job_id"].as_str().is_none_or(str::is_empty)
     {
         return Err("source.bootstrap must select a fresh initial CMD.2 domain at fence 1".into());
+    }
+    if streamed_bootstrap {
+        // The maintained streamed-bootstrap invocation carries an explicit
+        // set of bounded import/generation budgets. Keep the legacy invocation
+        // profile above supported, while requiring the streamed profile to
+        // retain its current top-level budget contract and enough capacity for
+        // the selected source membership before the owner is launched.
+        let budget_keys = [
+            "max_revisions",
+            "max_members",
+            "max_source_bytes",
+            "max_member_bytes",
+            "max_dependency_bytes_per_member",
+            "max_manifest_bytes",
+            "max_manifest_entries",
+            "max_manifest_row_bytes",
+            "max_index_bytes",
+            "max_sqlite_cache_bytes",
+            "index",
+            "workspace",
+            "generation",
+            "tree",
+            "item",
+        ];
+        let budgets = invocation
+            .get("streamed_budgets")
+            .and_then(Value::as_object)
+            .ok_or("streamed source.bootstrap budgets absent")?;
+        if budgets.len() != budget_keys.len()
+            || budget_keys.iter().any(|key| !budgets.contains_key(*key))
+        {
+            return Err("streamed source.bootstrap budget fields changed".into());
+        }
+        let member_count = selection["source_membership_count"]
+            .as_u64()
+            .filter(|count| *count > 0)
+            .ok_or("streamed source.bootstrap membership count absent")?;
+        let max_members = budgets["max_members"]
+            .as_u64()
+            .ok_or("streamed source.bootstrap member budget absent")?;
+        let generation = budgets["generation"]
+            .as_object()
+            .ok_or("streamed source.bootstrap generation budgets absent")?;
+        let generation_members = generation
+            .get("max_members")
+            .and_then(Value::as_u64)
+            .ok_or("streamed source.bootstrap generation member budget absent")?;
+        let generation_seconds = generation
+            .get("max_elapsed_seconds")
+            .and_then(Value::as_u64)
+            .ok_or("streamed source.bootstrap generation deadline absent")?;
+        if max_members < member_count
+            || generation_members < member_count
+            || generation_seconds == 0
+            || generation_seconds > 86_400
+        {
+            return Err(
+                "streamed source.bootstrap budgets do not cover the selected membership".into(),
+            );
+        }
     }
     let store_root = PathBuf::from(
         selection["store_root"]
@@ -3432,6 +3572,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     | "prepare-revise"
                     | "source.create"
                     | "record.revise"
+                    | "work.revision-schema.provision"
+                    | "record.revision-schema.provision"
                     | "rights.revoke"
             )
         {
@@ -3439,6 +3581,12 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 "setup accepts only bounded serial native bootstrap, preview and commit commands"
                     .into(),
             );
+        }
+        if matches!(
+            name,
+            "work.revision-schema.provision" | "record.revision-schema.provision"
+        ) {
+            validate_revision_schema_provision_grant(op, name)?;
         }
         for arg in &op.sdk_argv {
             if arg.len() > 4096 {
@@ -3818,7 +3966,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
         .iter()
         .take(args.sessions)
         .flat_map(|session| &session.operations)
-        .filter(|operation| native_mutation_operation(operation))
+        .filter(|operation| replayable_source_mutation_operation(operation))
     {
         if let Some(command_id) = operation.request["command_id"].as_str() {
             load_mutations.insert(command_id.to_owned(), operation);
@@ -3905,7 +4053,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             let target = load_mutations.get(target_command_id).copied().ok_or(
                 "postload idempotency replay must name a selected load-phase SDK mutation",
             )?;
-            if !native_mutation_operation(op)
+            if !replayable_source_mutation_operation(op)
                 || op.request["command_id"] != target.request["command_id"]
                 || op.request != target.request
                 || op.sdk_argv != target.sdk_argv
@@ -3915,6 +4063,15 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 || op.expected_body != target.expected_body
                 || op.expected_stderr_prefix != target.expected_stderr_prefix
                 || op.ignored_json_paths != target.ignored_json_paths
+                || op.expected_sha256.is_some()
+                || target.expected_sha256.is_some()
+                || op.expected_body.is_none()
+                || target.expected_body.is_none()
+                || !target.expected_body.as_ref().is_some_and(|body| {
+                    IDEMPOTENCY_REPLAY_JSON_PATHS
+                        .iter()
+                        .all(|path| body.pointer(path) == Some(&Value::Bool(false)))
+                })
                 || target.expected_status != 0
                 || target.conflict_group.is_some()
                 || !target.alternate_outcomes.is_empty()
@@ -4317,6 +4474,13 @@ fn signal_group(pid: i32, signal: i32) -> io::Result<()> {
             Err(io::Error::last_os_error())
         }
     }
+}
+
+fn idempotency_replay_flags_are_true(op: &Operation, response: &Value) -> bool {
+    matches!(operation_name(op), Some("source.create" | "record.revise"))
+        && IDEMPOTENCY_REPLAY_JSON_PATHS
+            .iter()
+            .all(|path| response.pointer(path) == Some(&Value::Bool(true)))
 }
 fn owns_listener(pid: u32, port: u16) -> bool {
     let Ok(entries) = fs::read_dir(format!("/proc/{pid}/fd")) else {

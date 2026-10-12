@@ -70,7 +70,7 @@ const SOFTWARE_COMPONENTS: &[&str] = &[
     "rust/crates/tos-command/src/source_work_transaction.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
 ];
-static WORK_REVISION_SCHEMA_PROVISION_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static REVISION_SCHEMA_PROVISION_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 const RECORD_PATH: &str = "ToS/source-witnesses/agents/parmenides-of-elea/agent.json";
 const FORMS_PATH: &str = "ToS/source-witnesses/agents/parmenides-of-elea/agent.human-forms.json";
 const HISTORY_PATH: &str =
@@ -1053,11 +1053,18 @@ fn bootstrap_case_on_lab(
     let record_raw = source.members[target.source_path].0.clone();
     let record: Value = serde_json::from_slice(&record_raw).unwrap();
     let uid = rustix::process::getuid().as_raw();
-    let allowed_operations = if target.record_type == "work" {
-        vec!["record.revise", "work.revision-schema.provision"]
-    } else {
-        vec!["record.revise"]
-    };
+    let mut allowed_operations = vec!["record.revise"];
+    if matches!(
+        target.owner_schema,
+        "tos_local_corpus_revision_owner_v2"
+            | "tos_local_corpus_revision_owner_v3"
+            | "tos_local_native_metadata_revision_owner_v1"
+    ) {
+        allowed_operations.push("record.revision-schema.provision");
+    }
+    if target.record_type == "work" {
+        allowed_operations.push("work.revision-schema.provision");
+    }
     let mut config = json!({
         "schema_version":target.owner_schema,
         "uid":uid,
@@ -1259,7 +1266,7 @@ fn provision_work_revision_extension(
     software: &SoftwareFixture,
     binary: &Path,
 ) {
-    let _guard = WORK_REVISION_SCHEMA_PROVISION_LOCK.lock().unwrap();
+    let _guard = REVISION_SCHEMA_PROVISION_LOCK.lock().unwrap();
     let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
     let invocation_path = case
         ._owner_scratch
@@ -1327,6 +1334,90 @@ fn provision_work_revision_extension(
         result["schema_version"],
         "tos_local_pg_work_revision_schema_provision_result_v1"
     );
+    assert_eq!(result["created"], !was_present);
+    assert_eq!(result["verified_schema_v1"], true);
+    assert_eq!(result["grants_admission"], false);
+}
+
+fn provision_selected_revision_extension(
+    case: &mut RevisionCase,
+    software: &SoftwareFixture,
+    binary: &Path,
+    invocation_path: &Path,
+    refusal_request: Option<&Value>,
+) {
+    let _guard = REVISION_SCHEMA_PROVISION_LOCK.lock().unwrap();
+    let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    invocation(
+        case,
+        software,
+        binary,
+        &worker_path,
+        invocation_path,
+        &case.owner_config,
+        "tos_local_pg_record_revision_invocation_v1",
+    );
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let was_present: bool = db
+        .query_one(
+            "SELECT to_regclass(current_schema() || '.cmd2_work_revision_history_v1') IS NOT NULL",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    drop(db);
+    if !was_present && let Some(request) = refusal_request {
+        let before_head = case.lab.head_seq();
+        let before_counts =
+            ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+        let source_path = case.target.source_path;
+        let before_source = source_member(case, source_path);
+        let refused = invoke_refusal(binary, invocation_path, &case.lab.url, request);
+        assert_eq!(refused.result["refused"], true);
+        assert!(
+            refused.result["stderr"]
+                .as_str()
+                .unwrap()
+                .contains("PG selected record revision extension absent"),
+            "selected-null mutation reports the absent retained-replay extension"
+        );
+        assert_eq!(case.lab.head_seq(), before_head);
+        assert_eq!(
+            ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table)),
+            before_counts,
+            "refusal before extension provisioning leaves all durable counters unchanged"
+        );
+        assert_eq!(
+            source_member(case, source_path),
+            before_source,
+            "refusal before extension provisioning leaves selected source bytes unchanged"
+        );
+        let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+        let still_absent: bool = db
+            .query_one(
+                "SELECT to_regclass(current_schema() || '.cmd2_work_revision_history_v1') IS NULL",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert!(still_absent, "a refused revision does not provision DDL");
+    }
+    let result = invoke(
+        binary,
+        invocation_path,
+        &case.lab.url,
+        &json!({
+            "schema_version":"tos_local_source_command_v1",
+            "operation":"record.revision-schema.provision"
+        }),
+        false,
+    )
+    .result;
+    assert_eq!(
+        result["schema_version"],
+        "tos_local_pg_selected_revision_schema_provision_result_v1"
+    );
+    assert_eq!(result["extension"], "cmd2_work_revision_history_v1");
     assert_eq!(result["created"], !was_present);
     assert_eq!(result["verified_schema_v1"], true);
     assert_eq!(result["grants_admission"], false);
@@ -3028,6 +3119,22 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     );
     let described = described_call.result;
     let describe_resources = described_call.resources;
+    let selected_owner = matches!(
+        target.owner_schema,
+        "tos_local_corpus_revision_owner_v2"
+            | "tos_local_corpus_revision_owner_v3"
+            | "tos_local_native_metadata_revision_owner_v1"
+    );
+    if selected_owner {
+        assert!(
+            described["command_operations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|operation| operation == "record.revision-schema.provision"),
+            "PG discovery reports the explicit selected revision schema route"
+        );
+    }
     assert_eq!(described["source"]["id"], target.record_id);
     assert_eq!(
         described["owner_configuration"],
@@ -3083,6 +3190,15 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
             | "tos_local_native_metadata_revision_owner_v1"
     ) {
         request["expected_publication"] = preview["publication_snapshot"].clone();
+    }
+    if selected_owner && request["expected_publication"].is_null() {
+        provision_selected_revision_extension(
+            case,
+            software,
+            binary,
+            &invocation_path,
+            Some(&request),
+        );
     }
     let before_head = case.lab.head_seq();
     let before_counts =
@@ -4228,6 +4344,119 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
         "TOS_PG_REAL_REVISION {}",
         serde_json::to_string(&output).unwrap()
     );
+}
+
+#[test]
+fn real_pg_selected_null_revision_requires_schema_and_replays_exactly() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let mut target = PARMENIDES_TARGET;
+    target.owner_schema = "tos_local_corpus_revision_owner_v2";
+    target.command_id = "test:pg-selected-null-revision";
+    let source = source_cut(&repository, 1, deadline, &cancelled);
+    let mut case = bootstrap_case_from_cut(&software, source, target, deadline, &cancelled);
+    let binary = native_binary();
+    let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let invocation_path = case
+        ._owner_scratch
+        .0
+        .join("selected-null-revision-invocation.json");
+    invocation(
+        &case,
+        &software,
+        &binary,
+        &worker_path,
+        &invocation_path,
+        &case.owner_config,
+        "tos_local_pg_record_revision_invocation_v1",
+    );
+
+    let described = invoke(
+        &binary,
+        &invocation_path,
+        &case.lab.url,
+        &json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+        false,
+    )
+    .result;
+    assert!(
+        described["command_operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|operation| operation == "record.revision-schema.provision")
+    );
+    let mut fields = json!({});
+    if let Some(preferred_label) = target.preferred_label {
+        fields["preferred_label"] = json!(preferred_label);
+    }
+    if let Some(notes) = target.notes {
+        fields["notes"] = json!(notes);
+    }
+    let preview_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-revise",
+        "fields":fields,
+        "forms":target.form_ids.iter().zip(target.form_fields).map(|(form_id,field_id)| json!({"form_id":form_id,"field_id":field_id})).collect::<Vec<_>>(),
+        "reason":"Isolated PG mechanics fixture only; no source, semantic, rights, or canon admission."
+    });
+    let preview = invoke(
+        &binary,
+        &invocation_path,
+        &case.lab.url,
+        &preview_request,
+        false,
+    )
+    .result;
+    let mut request = preview_request;
+    request["operation"] = json!("record.revise");
+    request["command_id"] = json!(target.command_id);
+    for (field, prepared) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_dependencies", "expected_dependencies"),
+        ("expected_source", "source"),
+        ("expected_revision", "revision"),
+    ] {
+        request[field] = preview[prepared].clone();
+    }
+    request["expected_publication"] = Value::Null;
+
+    provision_selected_revision_extension(
+        &mut case,
+        &software,
+        &binary,
+        &invocation_path,
+        Some(&request),
+    );
+    let before_head = case.lab.head_seq();
+    let discarded = invoke(&binary, &invocation_path, &case.lab.url, &request, true);
+    let committed_head = case.lab.head_seq();
+    assert_eq!(committed_head, before_head + 1);
+    let committed_history = source_member(&mut case, target.history_path);
+    let retry = invoke(&binary, &invocation_path, &case.lab.url, &request, false).result;
+    assert!(discarded.result.is_null());
+    assert_eq!(retry["replayed"], true);
+    assert_eq!(case.lab.head_seq(), committed_head);
+    assert_eq!(
+        source_member(&mut case, target.history_path),
+        committed_history,
+        "the exact retry retains the original revision timestamp and receipt"
+    );
+    let rows = Client::connect(&case.lab.url, NoTls)
+        .unwrap()
+        .query(
+            "SELECT generation,command_id,commit_seq
+             FROM cmd2_work_revision_history_v1
+             WHERE domain=$1 AND source_path=$2 AND record_id=$3",
+            &[&case.lab.domain, &target.source_path, &target.record_id],
+        )
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].get::<_, i64>(0), 1);
+    assert_eq!(rows[0].get::<_, String>(1), target.command_id);
+    assert_eq!(rows[0].get::<_, i64>(2), committed_head as i64);
 }
 
 #[test]

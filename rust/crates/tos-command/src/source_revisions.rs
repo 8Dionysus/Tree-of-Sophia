@@ -1531,6 +1531,7 @@ pub(crate) fn configuration(
         op != "record.revise"
             && !(family.selected() && op == "record.recover")
             && !(work_owner && op == "work.revision-schema.provision")
+            && !(family.selected() && op == "record.revision-schema.provision")
     }) {
         return Err(SourceCommandError::Denied(
             "record revision operation grant",
@@ -1576,6 +1577,24 @@ pub(crate) fn require_work_revision_schema_provision(
     {
         return Err(SourceCommandError::Denied(
             "protected Work revision schema provisioning grant",
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn require_selected_revision_schema_provision(
+    ctx: &CommandContext,
+) -> SourceCommandResult<()> {
+    let (config, family) = configuration(ctx)?;
+    if !family.selected()
+        || !has(
+            &config,
+            "allowed_operations",
+            "record.revision-schema.provision",
+        )?
+    {
+        return Err(SourceCommandError::Denied(
+            "protected selected revision schema provisioning grant",
         ));
     }
     Ok(())

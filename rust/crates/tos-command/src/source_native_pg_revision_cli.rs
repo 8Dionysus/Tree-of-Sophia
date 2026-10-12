@@ -256,7 +256,8 @@ fn request_bytes(input: impl Read) -> SourceCommandResult<Vec<u8>> {
     Ok(raw)
 }
 
-fn provision_work_revision_schema(
+fn provision_selected_revision_schema(
+    operation: &str,
     invocation_path: &Path,
     invocation_raw: &[u8],
     invocation: &Value,
@@ -295,7 +296,19 @@ fn provision_work_revision_schema(
         effective_uid: u64::from(uid),
         files: Vec::new(),
     };
-    crate::source_revisions::require_work_revision_schema_provision(&context)?;
+    match operation {
+        "work.revision-schema.provision" => {
+            crate::source_revisions::require_work_revision_schema_provision(&context)?;
+        }
+        "record.revision-schema.provision" => {
+            crate::source_revisions::require_selected_revision_schema_provision(&context)?;
+        }
+        _ => {
+            return Err(SourceCommandError::Unsupported(
+                "PostgreSQL selected revision schema operation",
+            ));
+        }
+    }
     owner_fs.current_context(&context, deadline, cancelled)?;
     let expected_executable_digest = digest(text(invocation, "native_executable_sha256")?)?;
     let owner_check = || {
@@ -344,7 +357,11 @@ fn provision_work_revision_schema(
         .provision_work_revision_schema(deadline, cancelled, owner_check)
         .map_err(source_error)?;
     Ok(json!({
-        "schema_version":"tos_local_pg_work_revision_schema_provision_result_v1",
+        "schema_version":if operation == "work.revision-schema.provision" {
+            "tos_local_pg_work_revision_schema_provision_result_v1"
+        } else {
+            "tos_local_pg_selected_revision_schema_provision_result_v1"
+        },
         "extension":"cmd2_work_revision_history_v1",
         "created":created,
         "verified_schema_v1":true,
@@ -457,17 +474,29 @@ pub(super) fn run(
     let operation = cmd::text(&request, "operation")?;
     if !matches!(
         operation,
-        "describe" | "prepare-revise" | "record.revise" | "work.revision-schema.provision"
+        "describe"
+            | "prepare-revise"
+            | "record.revise"
+            | "work.revision-schema.provision"
+            | "record.revision-schema.provision"
     ) {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL record revision operation",
         ));
     }
-    if operation == "work.revision-schema.provision" {
+    if matches!(
+        operation,
+        "work.revision-schema.provision" | "record.revision-schema.provision"
+    ) {
         cmd::exact_keys(&request, &["schema_version", "operation"])?;
-        if !work_owner {
+        if operation == "work.revision-schema.provision" && !work_owner {
             return Err(SourceCommandError::Denied(
                 "protected Work revision schema provisioning grant",
+            ));
+        }
+        if operation == "record.revision-schema.provision" && !revision_family.selected() {
+            return Err(SourceCommandError::Denied(
+                "protected selected revision schema provisioning grant",
             ));
         }
     }
@@ -499,8 +528,12 @@ pub(super) fn run(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
-    if operation == "work.revision-schema.provision" {
-        let result = provision_work_revision_schema(
+    if matches!(
+        operation,
+        "work.revision-schema.provision" | "record.revision-schema.provision"
+    ) {
+        let result = provision_selected_revision_schema(
+            operation,
             invocation_path,
             invocation_raw,
             invocation,
@@ -572,13 +605,13 @@ pub(super) fn run(
                             cancelled,
                         )?)
                     } else {
-                        session.observe_pg_selected_revision_if_provisioned(
+                        Some(session.observe_pg_selected_revision(
                             source_path,
                             record_id,
                             command_id,
                             deadline,
                             cancelled,
-                        )?
+                        )?)
                     }
                 } else {
                     None
@@ -704,6 +737,18 @@ pub(super) fn run(
     owner_fs.current_context(prepared.context(), deadline, cancelled)?;
 
     let mut result = value(&prepared.proposal().response)?;
+    if operation == "describe" && revision_family.selected() {
+        let operations =
+            result["command_operations"]
+                .as_array_mut()
+                .ok_or(SourceCommandError::Invalid(
+                    "selected revision command operations",
+                ))?;
+        operations.push(json!("record.revision-schema.provision"));
+        if work_owner {
+            operations.push(json!("work.revision-schema.provision"));
+        }
+    }
     // Transport work is reported separately from physical I/O and software
     // capture reads. The counters charge repeated source reads as performed;
     // they are not the cardinality of the deduplicated admission readset.

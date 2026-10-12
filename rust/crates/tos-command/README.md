@@ -223,22 +223,22 @@ An exact command retry returns the retained commit receipt. Its result envelope
 has `grants_admission: false`: source admission, external rights, semantic
 acceptance, publication and canon remain separate owner decisions.
 
-The optional Work history table is provisioned only through the explicit
-`work.revision-schema.provision` request on this invocation route. It requires
-the protected `tos_local_corpus_revision_owner_v3` Work configuration to grant
-that exact token in `allowed_operations`. Provisioning takes the core schema
+The optional selected-record history table is provisioned only through the
+explicit `record.revision-schema.provision` request on this invocation route.
+It requires the protected selected owner configuration to grant that exact
+token in `allowed_operations`. Work owners may continue using the compatible
+`work.revision-schema.provision` token. Provisioning takes the core schema
 initializer advisory lock, checks the existing CMD.2 schema, creates the
-extension in one bounded transaction when absent, and verifies the exact
-extension shape before commit. An already present but unknown extension is
-refused. Ordinary Work revision operations only check the extension; they do
-not run DDL. The provision result has `grants_admission: false`.
-Once provisioned, the same v1 table also retains selected non-Work
-`record.revise` commands whose `expected_publication` is null. Receipts remain
-scoped to the domain, store, source path and record identity, with exact request,
-configuration and member-version bindings. Work receipts keep their existing
-encoding. Selected owners do not provision this extension implicitly; domains
-without it retain their existing publication route. Replay and ready-attempt
-recovery still require the current owner authorization.
+existing `cmd2_work_revision_history_v1` extension in one bounded transaction
+when absent, and verifies its exact v1 shape before commit. An already present
+but unknown extension is refused. Ordinary selected-record revisions never run
+DDL implicitly. A selected `record.revise` with a null `expected_publication`
+is refused before preparation unless the extension is already provisioned;
+other publication-bound revisions keep their existing route. The provision
+result has `grants_admission: false`. Receipts remain scoped to the domain,
+store, source path and record identity, with exact request, configuration and
+member-version bindings. Work receipts keep their existing encoding. Replay and
+ready-attempt recovery still require the current owner authorization.
 
 The independent bounded source-change path awaits focused runtime verification.
 Record revisions and PG Agent creations commit against their exact source reads

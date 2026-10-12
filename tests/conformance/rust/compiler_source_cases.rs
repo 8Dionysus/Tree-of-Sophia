@@ -381,6 +381,10 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
                 row["sha256"] = json!(Digest256::of_bytes(raw).to_hex());
                 row["size_bytes"] = json!(raw.len());
             }
+            // The source-home capture assigns resource ordinals in selected
+            // inventory path order. The historical oracle is already sorted;
+            // restore that order after appending the current contract row.
+            wanted.sort_by_key(|v| v["path"].as_str().unwrap().to_owned());
         }
         for (ordinal, row) in wanted.iter().enumerate() {
             let id = row.get("id").or_else(|| row.get("path")).unwrap();

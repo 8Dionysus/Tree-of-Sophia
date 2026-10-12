@@ -1254,17 +1254,17 @@ impl SourceRevisionReadSession<'_> {
         .ok_or(DurableError::Refused("PG Work revision extension absent"))
     }
 
-    /// Reuse the same receipt format for selected non-Work owners when a
-    /// domain has explicitly provisioned the compatible v1 extension. Older
-    /// domains without it keep their existing selected-record route.
-    pub(crate) fn observe_pg_selected_revision_if_provisioned(
+    /// Reuse the Work-compatible receipt format for every selected record
+    /// owner. Selected-null revisions require the explicitly provisioned v1
+    /// extension so their commit and ready timestamp can be replayed exactly.
+    pub(crate) fn observe_pg_selected_revision(
         &mut self,
         source_path: &str,
         record_id: &str,
         requested_command_id: &str,
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> DurableResult<Option<crate::source_pg_work_revision::Observation>> {
+    ) -> DurableResult<crate::source_pg_work_revision::Observation> {
         self.observe_pg_record_revision(
             source_path,
             record_id,
@@ -1272,7 +1272,10 @@ impl SourceRevisionReadSession<'_> {
             false,
             deadline,
             cancelled,
-        )
+        )?
+        .ok_or(DurableError::Refused(
+            "PG selected record revision extension absent",
+        ))
     }
 
     fn observe_pg_record_revision(
