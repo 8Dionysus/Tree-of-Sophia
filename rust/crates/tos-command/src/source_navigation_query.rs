@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use postgres::{Row, Transaction};
+use postgres::Transaction;
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 use tos_query::{
@@ -18,8 +18,10 @@ use tos_query::{
 use crate::{
     DurableNavigationEventLimits, DurableNavigationHeldReadV2,
     DurableNavigationPublishedGenerationGuardV2, DurableProjectionProfile, DurableResult,
-    ManagedAgentSelectedParent, ManagedCurrentModelLease, ManagedSelectedProof,
-    source_managed_selection::{ManagedSelectionError, ManagedSelectionResult},
+    source_managed_selection::{
+        ManagedAgentSelectedParent, ManagedCurrentModelLease, ManagedSelectedProof,
+        ManagedSelectionError, ManagedSelectionResult,
+    },
     source_navigation_policy::{self, SourceNavigationPolicyReceiptV1},
 };
 

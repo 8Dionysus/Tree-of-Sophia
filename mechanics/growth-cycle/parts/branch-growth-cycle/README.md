@@ -135,6 +135,36 @@ bind them to actual source and authority records. Local invariant checks belong 
 
 ## Source-owner journal
 
+### Owner-local translation Alignment through the PG source command
+
+The protected `tos_local_native_alignment_owner_v1` grant remains the source
+of Alignment scope and authority. An explicitly selected local-owner invocation
+with schema `tos_local_pg_private_alignment_invocation_v1` supplies the source
+revision, software capture and worker budgets; it cannot select another owner
+path or widen the grant. It supports `describe`, `prepare-create`,
+`prepare-revise`, `alignment.create`, `alignment.revise`, `inspect`,
+`inspect-version` and `inspect-recovery`.
+
+The protected invocation has exactly `owner_context`, `owner_config`,
+`native_executable`, `native_executable_sha256`, `source_selection`,
+`software_capture`, `software_restored_root`, `software_selection`,
+`software_components`, `schema_worker` and `budgets`. The budgets object selects
+member/byte caps, schema-worker receipt caps and worker CPU/address-space caps;
+the adapter only tightens them against its fixed route limits.
+
+Public ToS inputs, schemas, rights and identity owners are selected through the
+held PG source revision. Owner-private Text and Alignment packages are read by
+exact reference from the scoped private package broker. Identity absence uses
+the separate public and owner-scoped private Text identity indexes, with an
+exception only for the exact digest-bound Alignment ancestry authorized by the
+grant. Create and revise write one immutable Alignment package with the current
+source and private-audit fences in the same broker transaction. Exact retries
+use the original command receipt; neither response reveals represented text.
+
+Alignment records preserve supplied correspondences as proposals: the route
+does not run an aligner, apply assessment, admit source, or grant semantic or
+canon status. `inspect` remains a metadata-only owner view, not acceptance.
+
 ### Sign issuance through the shared source command
 
 The existing `tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` entry

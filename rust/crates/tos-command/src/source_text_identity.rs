@@ -1,6 +1,7 @@
-//! The maintained owner-local Text creators check the complete bounded
-//! metadata namespace before assigning opaque IDs. This scan reads metadata
-//! only; a stable identity does not grant source or private-content access.
+//! The maintained owner-local Text and Translation Alignment creators check
+//! the complete bounded metadata namespace before assigning opaque IDs. This
+//! scan reads metadata only; a stable identity does not grant source or
+//! private-content access.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
@@ -55,6 +56,14 @@ pub(crate) fn is_candidate(name: &str) -> bool {
         && name.ends_with(".json")
         || name.contains("anchor") && name.ends_with(".jsonl")
         || name.contains("provenance") && name.ends_with(".jsonl")
+}
+
+/// Return whether one package member belongs to the native translation
+/// Alignment identity family. Alignment packages share the established ID
+/// parser and index, but do not index TextLayer, TextUnit, Anchor or event
+/// members carried alongside an alignment record.
+pub(crate) fn is_alignment_candidate(name: &str) -> bool {
+    name.contains("translation-alignment") && name.ends_with(".json")
 }
 
 fn same(meta: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
@@ -732,4 +741,33 @@ pub(crate) fn selected_public_identity_snapshot(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Digest256> {
     selected_identity_snapshot_with_ancestry(context, delegated, exclude, None, deadline, cancelled)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_alignment_candidate, text_identity_ids_for_member};
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn alignment_identity_uses_only_translation_alignment_json_members() {
+        assert!(is_alignment_candidate(
+            "native-translation-alignment.v1.json"
+        ));
+        assert!(!is_alignment_candidate("source-create-provenance.jsonl"));
+        assert!(!is_alignment_candidate("source-text-unit-packet.v1.json"));
+
+        let ids = text_identity_ids_for_member(
+            "native-translation-alignment.v1.json",
+            br#"{"schema_version":"tos_native_translation_alignment_record_v1","record_id":"tos.record.translation-alignment-record.r1","alignment_id":"tos.alignment.translation-alignment.a1","claim":{"claim_id":"tos.claim.translation-alignment-claim.c1"}}"#,
+        )
+        .expect("exact native alignment IDs parse");
+        assert_eq!(
+            ids,
+            BTreeSet::from([
+                "tos.alignment.translation-alignment.a1".to_owned(),
+                "tos.claim.translation-alignment-claim.c1".to_owned(),
+                "tos.record.translation-alignment-record.r1".to_owned(),
+            ])
+        );
+    }
 }

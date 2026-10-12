@@ -53,19 +53,21 @@ mod pg_claims;
 #[path = "source_native_pg_creation_cli.rs"]
 mod pg_creation;
 #[path = "source_native_pg_forms_historical_cli.rs"]
-mod pg_forms_historical;
+pub(crate) mod pg_forms_historical;
 #[path = "source_native_pg_growth_cli.rs"]
 mod pg_growth;
 #[path = "source_native_pg_item_adoption_cli.rs"]
 mod pg_item_adoption;
+pub(crate) use pg_growth::context_with_pg_exact_reads;
 pub(crate) use pg_growth::{
     PgGrowthCurrentInput, PgGrowthFamily, expected_growth_revision_indexes,
 };
-pub(crate) use pg_growth::context_with_pg_exact_reads;
-#[path = "source_native_pg_private_owner_cli.rs"]
-mod pg_private_owner;
+#[path = "source_native_pg_private_alignment_cli.rs"]
+mod pg_private_alignment;
 #[path = "source_native_pg_private_assessment_cli.rs"]
 pub(crate) mod pg_private_assessment;
+#[path = "source_native_pg_private_owner_cli.rs"]
+mod pg_private_owner;
 #[path = "source_native_pg_private_text_cli.rs"]
 mod pg_private_text;
 #[path = "source_native_pg_public_text_cli.rs"]
@@ -238,11 +240,13 @@ fn run_selected(
     let private_pg_owner_invocation = schema == "tos_local_pg_private_owner_invocation_v1";
     let private_pg_assessment_invocation =
         schema == "tos_local_pg_private_assessment_invocation_v1";
+    let private_pg_alignment_invocation = schema == "tos_local_pg_private_alignment_invocation_v1";
     if private_owner_process
         && schema != "tos_local_native_source_invocation_v1"
         && !private_pg_text_invocation
         && !private_pg_owner_invocation
         && !private_pg_assessment_invocation
+        && !private_pg_alignment_invocation
     {
         return Err(SourceCommandError::Denied(
             "private text invocation profile",
@@ -287,6 +291,22 @@ fn run_selected(
             ));
         }
         return pg_private_assessment::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if private_pg_alignment_invocation {
+        if !private_owner_process {
+            return Err(SourceCommandError::Denied(
+                "private PostgreSQL Alignment requires the local owner process",
+            ));
+        }
+        return pg_private_alignment::run(
             &selected,
             &raw,
             &invocation,
@@ -375,6 +395,17 @@ fn run_selected(
     }
     if schema == "tos_local_pg_agent_creation_invocation_v1" {
         return pg_creation::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_historical_profile_creation_invocation_v1" {
+        return pg_creation::family::run(
             &selected,
             &raw,
             &invocation,

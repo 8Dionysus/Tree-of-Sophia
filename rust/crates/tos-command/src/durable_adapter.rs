@@ -1111,17 +1111,17 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
 
 pub(crate) fn schema_profile_digest() -> Digest256 {
     let mut hasher = Digest256Hasher::new();
-    part(&mut hasher, b"cmd2-coordinator-schema-profile-v6");
+    part(&mut hasher, b"cmd2-coordinator-schema-profile-v8");
     part(
         &mut hasher,
-        durable_compatibility::DURABLE_SCHEMA_ABI_PROFILE_V5,
+        durable_compatibility::DURABLE_SCHEMA_ABI_PROFILE_V7,
     );
     part(&mut hasher, COLD_AUDIT_PROFILE);
     part(&mut hasher, RECEIPT_PROFILE);
     hasher.finalize()
 }
 
-const METADATA_TABLES: [(&str, &str); 17] = [
+const METADATA_TABLES: [(&str, &str); 19] = [
     ("cmd2_job", "job_id"),
     ("cmd2_predicate", "kind,owner,scope,token"),
     ("cmd2_attempt", "prepare_id"),
@@ -1135,6 +1135,7 @@ const METADATA_TABLES: [(&str, &str); 17] = [
     ("cmd2_source_inventory_projection", "subject,effective_seq"),
     ("cmd2_source_publication_current", "publication_generation"),
     ("cmd2_source_publication_history", "publication_generation"),
+    ("cmd2_source_publication_import", "domain"),
     (
         "cmd2_source_text_identity",
         "token COLLATE \"C\",path COLLATE \"C\"",
@@ -1144,6 +1145,10 @@ const METADATA_TABLES: [(&str, &str); 17] = [
         "token COLLATE \"C\",path COLLATE \"C\"",
     ),
     ("cmd2_source_claim_dependency", "claim_id COLLATE \"C\""),
+    (
+        "cmd2_source_claim_navigation_reference",
+        "path COLLATE \"C\",claim_id COLLATE \"C\",endpoint_kind COLLATE \"C\",endpoint COLLATE \"C\",basis COLLATE \"C\"",
+    ),
     (
         "cmd2_source_item_file_assignment",
         "manifest_path COLLATE \"C\",payload_ordinal",
@@ -1290,9 +1295,12 @@ fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool
                ('cmd2_history'),('cmd2_receipt'),('cmd2_log'),
                ('cmd2_source_inventory_projection'),('cmd2_outbox'),
                ('cmd2_source_text_identity'),
+               ('cmd2_source_annotation_identity'),
                ('cmd2_source_claim_dependency'),
+               ('cmd2_source_claim_navigation_reference'),
                ('cmd2_source_item_file_assignment'),
                ('cmd2_source_publication_current'),('cmd2_source_publication_history'),
+               ('cmd2_source_publication_import'),
                ('cmd2_source_navigation_policy_current'),('cmd2_source_navigation_policy_history')),
              required_indexes(name) AS (VALUES
                ('cmd2_current_source_cold_seek'),('cmd2_current_source_subject_c_seek'),
@@ -1300,9 +1308,16 @@ fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool
                ('cmd2_predicate_source_cold_seek'),
                ('cmd2_source_text_identity_token_seek'),
                ('cmd2_source_text_identity_path_seek'),
+               ('cmd2_source_annotation_identity_token_seek'),
+               ('cmd2_source_annotation_identity_path_seek'),
                ('cmd2_source_claim_dependency_subject_seek'),
                ('cmd2_source_claim_dependency_object_seek'),
                ('cmd2_source_claim_dependency_path_seek'),
+               ('cmd2_source_claim_navigation_reference_interval_identity'),
+               ('cmd2_source_claim_navigation_reference_active_unique'),
+               ('cmd2_source_claim_navigation_reference_endpoint_seek'),
+               ('cmd2_source_claim_navigation_reference_path_seek'),
+               ('cmd2_source_claim_navigation_reference_endpoint_active_seek'),
                ('cmd2_source_item_file_assignment_file_seek'),
                ('cmd2_source_item_file_assignment_manifest_seek'),
                ('cmd2_source_item_file_assignment_item_seek'),
@@ -1332,33 +1347,71 @@ fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool
                ('cmd2_refuse_cmd2_source_inventory_projection_truncate'),
                ('cmd2_audit_cmd2_source_text_identity'),
                ('cmd2_refuse_cmd2_source_text_identity_truncate'),
+               ('cmd2_audit_cmd2_source_annotation_identity'),
+               ('cmd2_refuse_cmd2_source_annotation_identity_truncate'),
                ('cmd2_audit_cmd2_source_claim_dependency'),
                ('cmd2_refuse_cmd2_source_claim_dependency_truncate'),
+               ('cmd2_audit_cmd2_source_claim_navigation_reference'),
+               ('cmd2_refuse_cmd2_source_claim_navigation_reference_truncate'),
                ('cmd2_audit_cmd2_source_item_file_assignment'),
                ('cmd2_refuse_cmd2_source_item_file_assignment_truncate'),
                ('cmd2_audit_cmd2_source_publication_current'),
                ('cmd2_refuse_cmd2_source_publication_current_truncate'),
                ('cmd2_audit_cmd2_source_publication_history'),
                ('cmd2_refuse_cmd2_source_publication_history_truncate'),
+               ('cmd2_audit_cmd2_source_publication_import'),
+               ('cmd2_refuse_cmd2_source_publication_import_truncate'),
                ('cmd2_refuse_cmd2_source_navigation_policy_current_truncate'),
-               ('cmd2_refuse_cmd2_source_navigation_policy_history_truncate'))
+               ('cmd2_refuse_cmd2_source_navigation_policy_history_truncate')),
+             required_columns(table_name,column_name,type_name,is_not_null) AS (VALUES
+               ('cmd2_source_publication_current','source_commit_seq','int8',false),
+               ('cmd2_source_publication_current','origin_kind','text',true),
+               ('cmd2_source_publication_current','import_event_id','text',false),
+               ('cmd2_source_publication_current','import_transition_index','int8',false),
+               ('cmd2_source_publication_current','import_receipt_digest','bpchar',false),
+               ('cmd2_source_publication_history','source_commit_seq','int8',false),
+               ('cmd2_source_publication_history','origin_kind','text',true),
+               ('cmd2_source_publication_history','import_event_id','text',false),
+               ('cmd2_source_publication_history','import_transition_index','int8',false),
+               ('cmd2_source_publication_history','import_receipt_digest','bpchar',false),
+               ('cmd2_source_publication_import','domain','text',true),
+               ('cmd2_source_publication_import','origin_kind','text',true),
+               ('cmd2_source_publication_import','import_event_id','text',true),
+               ('cmd2_source_publication_import','receipt_digest','bpchar',true),
+               ('cmd2_source_publication_import','receipt_bytes','bytea',true),
+               ('cmd2_source_publication_import','store_id','bytea',true),
+               ('cmd2_source_publication_import','bootstrap_source_revision','bpchar',true),
+               ('cmd2_source_publication_import','bootstrap_membership_digest','bpchar',true),
+               ('cmd2_source_publication_import','bootstrap_membership_count','int8',true),
+               ('cmd2_source_publication_import','import_source_head','int8',true),
+               ('cmd2_source_publication_import','chain_root_digest','bpchar',true),
+               ('cmd2_source_publication_import','transition_count','int8',true),
+               ('cmd2_source_publication_import','head_control_digest','bpchar',true),
+               ('cmd2_source_publication_import','terminal_generation','int8',true),
+               ('cmd2_source_publication_import','terminal_token','text',true))
              SELECT
-               (SELECT count(*)=20 FROM required_tables r JOIN pg_class c
+               (SELECT count(*)=23 FROM required_tables r JOIN pg_class c
                  ON c.relname=r.name AND c.relkind IN ('r','p')
                 JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname=current_schema())
-               AND (SELECT count(*)=17 FROM required_indexes r JOIN pg_class c
+               AND (SELECT count(*)=24 FROM required_indexes r JOIN pg_class c
                  ON c.relname=r.name AND c.relkind='i'
                 JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname=current_schema())
                AND (SELECT count(*)=5 FROM required_functions r JOIN pg_proc p
                  ON p.proname=r.name JOIN pg_namespace n ON n.oid=p.pronamespace
                 WHERE n.nspname=current_schema())
-               AND (SELECT count(*)=39 FROM required_triggers r JOIN pg_trigger t
+               AND (SELECT count(*)=45 FROM required_triggers r JOIN pg_trigger t
                  ON t.tgname=r.name AND NOT t.tgisinternal
                 JOIN pg_class c ON c.oid=t.tgrelid
                 JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname=current_schema())
+               AND (SELECT count(*)=25 FROM required_columns r
+                 JOIN pg_class c ON c.relname=r.table_name
+                 JOIN pg_namespace n ON n.oid=c.relnamespace AND n.nspname=current_schema()
+                 JOIN pg_attribute a ON a.attrelid=c.oid AND a.attname=r.column_name
+                   AND a.atttypid=to_regtype(r.type_name) AND a.attnotnull=r.is_not_null
+                   AND NOT a.attisdropped)
                AND EXISTS (
                  SELECT 1 FROM pg_attribute a
                  JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
@@ -1390,6 +1443,36 @@ fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool
                  SELECT 1 FROM pg_attribute a
                  WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_attempt'))
                    AND a.attname='source_publication_package' AND a.atttypid='bytea'::regtype
+                   AND NOT a.attisdropped
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_source_publication_current'))
+                   AND a.attname='source_commit_seq' AND a.atttypid='int8'::regtype
+                   AND NOT a.attnotnull AND NOT a.attisdropped
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_source_publication_import'))
+                   AND a.attname='receipt_bytes' AND a.atttypid='bytea'::regtype
+                   AND a.attnotnull AND NOT a.attisdropped
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_domain'))
+                   AND a.attname='source_claim_navigation_reference_baseline_seq'
+                   AND a.atttypid='int8'::regtype AND NOT a.attisdropped
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_source_claim_navigation_reference'))
+                   AND a.attname='valid_from_seq' AND a.atttypid='int8'::regtype
+                   AND NOT a.attisdropped
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_source_claim_navigation_reference'))
+                   AND a.attname='valid_to_seq' AND a.atttypid='int8'::regtype
                    AND NOT a.attisdropped
                )",
             &[],

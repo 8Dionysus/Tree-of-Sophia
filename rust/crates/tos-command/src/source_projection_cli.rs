@@ -16,20 +16,23 @@ use tos_foundation::{Digest256, RelativePath};
 use tos_query::{AbortProbe, AbortReason};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 
-pub const HELP: &str =
-    "usage: tos-native-owner-command source-projection --selection ABS_JSON < REQUEST_JSON
+pub const HELP: &str = r#"usage: tos-native-owner-command source-projection --selection ABS_JSON < REQUEST_JSON
 Private connection: TOS_SOURCE_PG_URL, PostgreSQL 16, numeric TCP loopback.
-Selection: tos_source_projection_selection_v1; existing domain, exact source
-contract digest, consumer, private STO root and explicit store limits.
-Requests: init, apply, advance-navigation, status, queue-age, search, search-text, exact-source. Init installs derived tables only.
+Selection for text projections: tos_source_projection_selection_v1; existing
+domain, exact source contract digest, consumer, private STO root and store limits.
+Navigation requests use a protected tos_local_source_navigation_owner_v1 config
+with the retained V2 model/proof, selected consumer/profile and explicit limits.
+Requests: init, apply, bootstrap-navigation, advance-navigation, status, queue-age, search, search-text, exact-source. Init installs derived tables only.
 Queue-age reports one selected consumer's oldest unprocessed sequence and persisted server-clock age; legacy timestamps remain unknown.
 Apply resumes the durable outbox cursor; search uses selected text token matching.
-Advance-navigation uses the protected source-navigation owner selection and leaves unsupported events pending.
+Navigation uses the protected source-navigation owner selection and its explicit resource limits.
+Bootstrap request: {"operation":"bootstrap-navigation"}; result: tos_source_navigation_bootstrap_result_v1.
+Advance request: {"operation":"advance-navigation","max_events":N}; unsupported events remain pending.
 Profiles: tos_source_selected_text_v1 (direct fields),
 tos_source_selected_text_v2 (also bound Agent source-copy HumanForms).
 Source admission, external rights and public activation remain owner operations.
 These profiles do not replace the full knowledge API or export readers.
-";
+"#;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -61,6 +64,7 @@ enum Request {
     Init,
     Status,
     QueueAge,
+    BootstrapNavigation,
     AdvanceNavigation {
         max_events: usize,
     },
@@ -348,6 +352,9 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
         }
         return crate::source_navigation_producer::run(&selection_path, *max_events, &cancelled);
     }
+    if matches!(&request, Request::BootstrapNavigation) {
+        return crate::source_navigation_producer::run_bootstrap(&selection_path, &cancelled);
+    }
     let deadline = Instant::now() + Duration::from_secs(60);
     let selection_bytes = crate::source_text_owner::read_absolute(
         &selection_path,
@@ -435,6 +442,9 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
         }
         Request::AdvanceNavigation { .. } => {
             Err("advance-navigation requires its protected source-navigation route")
+        }
+        Request::BootstrapNavigation => {
+            Err("bootstrap-navigation requires its protected source-navigation route")
         }
         Request::Apply { max_events } => {
             if !(1..=256).contains(&max_events) {

@@ -421,14 +421,26 @@ then restores the schema/data in one PostgreSQL transaction and checks the
 native committed-history cut. A missing dump schema is not filled in by lab
 initialization.
 
-New receipts use `tos_cmd2_quiescent_backup_v2`. Its bounded metadata census
-includes every `cmd2_source_inventory_projection` row for the selected domain,
-ordered by subject and effective sequence, with a framed row digest and exact
-row/byte counts; PostgreSQL returns only each row's byte length and SHA-256 to
-the transport. Backup and restore cold-verify the cut before recording this
-census from the same quiescent state. Cold verification is read-only. Restore also
-continues to accept `tos_cmd2_quiescent_backup_v1` with its original census
-coverage; that version carries no commitment to inventory-projection rows.
+New receipts use `tos_cmd2_quiescent_backup_v6`. The V6 bounded census binds the
+current durable-schema profile and adds the declared source-publication,
+Item-assignment, Annotation-Identity, and Claim-navigation-reference relation
+roots to the earlier receipt census. Backup and restore cold-verify the cut
+before recording or comparing these roots from the same quiescent state. Cold
+verification is read-only.
+
+Restore retains explicit wire readers for `tos_cmd2_quiescent_backup_v1` through
+`tos_cmd2_quiescent_backup_v5`; each receipt version carries only its declared
+census coverage. A receipt's `v1` label is not SQL-schema compatibility: it
+describes the old receipt/census wire, not permission to restore an old
+`durable_schema.sql` ABI. Every restored database must still pass the current
+CMD.2 schema and active audit-marker profile checks. The
+`cmd2_audit_delta_v1_domain` marker remains V1, but its `profile_digest` must
+match the current compiled audit-delta profile. A matching marker can be
+preserved across a same-profile database restore and reselected with a fresh
+target-bound descriptor; a historical raw-DDL/source-code profile is refused
+without an in-place marker rewrite or SQL-schema migration. Where retained
+authored source inputs are available, use the current source import/bootstrap
+route to build a fresh domain; a SQL backup receipt is not that export route.
 Unknown receipt versions are refused.
 Do not point either operation at another owner's live resources.
 

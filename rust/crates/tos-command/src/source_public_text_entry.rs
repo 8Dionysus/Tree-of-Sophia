@@ -331,7 +331,7 @@ impl SignNativeRead for Reader<'_> {
 }
 
 struct Prepared {
-    assembly: &PublicTextAssembly,
+    assembly: PublicTextAssembly,
     cache: PublicTextInputCache,
     dependencies: String,
     inventory: Digest256,

@@ -3,10 +3,10 @@
 //! The selected-source owner preparation remains a separate step; this type
 //! seals its exact proposal, semantic identities, Item Claim custody and PG
 //! readset into the common source-revision writer.
-use crate::source_cohort::revision::{PgRecordRevisionIdentity, SourceRevisionReadSet};
-use crate::source_cohort::{
-    self, IndexRows, PreparedPgSourceRevision, SourceRevisionReadSession, SourceRevisionWrite,
+use crate::source_cohort::revision::{
+    PgRecordRevisionIdentity, SourceRevisionReadSession, SourceRevisionReadSet,
 };
+use crate::source_cohort::{self, IndexRows, PreparedPgSourceRevision, SourceRevisionWrite};
 use crate::source_command::{
     self as cmd, CommandContext, PreparedCommand, SourceChange, SourceCommandError,
     SourceCommandResult,
@@ -26,7 +26,7 @@ use tos_source_store::SoftwareCaptureReader;
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 
-const ITEM_ADOPTION_FAMILY_TAG: &str = crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG;
+const ITEM_ADOPTION_FAMILY_TAG: &str = source_creation_store::PG_ITEM_ADOPTION_FAMILY_TAG;
 const ITEM_ADOPTION_INVOCATION: &str = "tos_local_pg_item_adoption_invocation_v1";
 const ITEM_ADOPTION_RESULT: &str = "tos_local_pg_item_adoption_result_v1";
 const MAX_ITEM_REQUEST_BYTES: usize = 1_048_576;
@@ -723,7 +723,7 @@ pub(super) fn run(
                 )
                 .map_err(DurableError::Source)?;
                 let semantic_indexes =
-                    crate::source_item_adoption::pg_expected_revision_indexes(&writes)?;
+                    source_creation_store::pg_expected_revision_indexes(&writes)?;
                 PreparedPgItemAdoptionRevision::observe_indexes(
                     session,
                     &semantic_indexes,
@@ -1062,7 +1062,7 @@ impl PreparedPgSourceRevision for PreparedPgItemAdoptionRevision {
         domain: &str,
         writes: &[SourceRevisionWrite],
     ) -> DurableResult<IndexRows> {
-        let expected = crate::source_item_adoption::pg_expected_revision_indexes(writes)?;
+        let expected = source_creation_store::pg_expected_revision_indexes(writes)?;
         if expected != self.semantic_indexes {
             return Err(DurableError::Corrupt(
                 "PG Item adoption semantic indexes differ from sealed output",
@@ -1096,7 +1096,7 @@ impl PreparedPgSourceRevision for PreparedPgItemAdoptionRevision {
         &self,
         writes: &[SourceRevisionWrite],
     ) -> DurableResult<BTreeMap<String, JsonValue>> {
-        crate::source_item_adoption::pg_inventory_owner_contributions(
+        source_creation_store::pg_inventory_owner_contributions(
             writes,
             &self.context.files,
             &self.item_claim_owner,

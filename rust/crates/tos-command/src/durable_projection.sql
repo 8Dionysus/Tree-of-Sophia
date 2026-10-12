@@ -316,6 +316,55 @@ ALTER TABLE cmd2_projection_navigation_coverage_event
 ALTER TABLE cmd2_projection_navigation_coverage_event
   ADD COLUMN IF NOT EXISTS cohort_manifest bytea;
 
+-- One atomic consumer advance may cover several consecutive committed events.
+-- This row retains the complete ordered event/member proof even when no owner
+-- output is produced; `terminal_cohort_manifest` seals the replacement set at
+-- the held head, including an empty set. The ordinary coverage_event table
+-- remains the unchanged single-event format for existing consumers.
+CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_coverage_range (
+  domain text NOT NULL,
+  consumer_id text NOT NULL,
+  cursor_before bigint NOT NULL CHECK (cursor_before >= 0),
+  through_seq bigint NOT NULL CHECK (through_seq > cursor_before),
+  held_source_head_seq bigint NOT NULL,
+  terminal_event_id text NOT NULL CHECK (octet_length(terminal_event_id) BETWEEN 1 AND 256),
+  range_root char(64) NOT NULL CHECK (range_root ~ '^[0-9a-f]{64}$'),
+  range_manifest bytea NOT NULL CHECK (octet_length(range_manifest) <= 67108864),
+  source_revision char(64) NOT NULL CHECK (source_revision ~ '^[0-9a-f]{64}$'),
+  input_root char(64) NOT NULL CHECK (input_root ~ '^[0-9a-f]{64}$'),
+  dependency_root char(64) NOT NULL CHECK (dependency_root ~ '^[0-9a-f]{64}$'),
+  output_root char(64) NOT NULL CHECK (output_root ~ '^[0-9a-f]{64}$'),
+  previous_coverage_root char(64) NOT NULL CHECK (previous_coverage_root ~ '^[0-9a-f]{64}$'),
+  coverage_root char(64) NOT NULL CHECK (coverage_root ~ '^[0-9a-f]{64}$'),
+  terminal_cohort_count integer NOT NULL CHECK (terminal_cohort_count >= 0),
+  terminal_cohort_root char(64) NOT NULL CHECK (terminal_cohort_root ~ '^[0-9a-f]{64}$'),
+  terminal_cohort_manifest bytea NOT NULL CHECK (octet_length(terminal_cohort_manifest) <= 67108864),
+  PRIMARY KEY (domain,consumer_id,through_seq),
+  CHECK (octet_length(range_manifest) > 0 AND octet_length(terminal_cohort_manifest) > 0),
+  FOREIGN KEY (domain,consumer_id)
+    REFERENCES cmd2_projection_navigation_consumer(domain,consumer_id) ON DELETE CASCADE
+);
+ALTER TABLE cmd2_projection_navigation_coverage_range
+  ADD COLUMN IF NOT EXISTS held_source_head_seq bigint;
+UPDATE cmd2_projection_navigation_coverage_range
+   SET held_source_head_seq=through_seq
+ WHERE held_source_head_seq IS NULL;
+ALTER TABLE cmd2_projection_navigation_coverage_range
+  ALTER COLUMN held_source_head_seq SET NOT NULL;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid='cmd2_projection_navigation_coverage_range'::regclass
+       AND conname='cmd2_projection_navigation_coverage_range_held_head_check'
+  ) THEN
+    ALTER TABLE cmd2_projection_navigation_coverage_range
+      ADD CONSTRAINT cmd2_projection_navigation_coverage_range_held_head_check
+      CHECK (held_source_head_seq >= through_seq);
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_coverage_range_start_seek
+  ON cmd2_projection_navigation_coverage_range(domain,consumer_id,cursor_before,through_seq);
+
 CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort (
   domain text NOT NULL,
   consumer_id text NOT NULL,
@@ -406,7 +455,7 @@ ALTER TABLE cmd2_projection_navigation_cohort
   DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_cohort_basis_shape_check;
 ALTER TABLE cmd2_projection_navigation_cohort
   ADD CONSTRAINT cmd2_projection_navigation_cohort_basis_kind_check CHECK (
-    basis_kind IN ('record-mutation','dependency-refresh','dependency-refresh-set','claim-mutation','claim-dependency-refresh','claim-revision-refresh')
+    basis_kind IN ('record-mutation','dependency-refresh','dependency-refresh-set','claim-mutation','claim-dependency-refresh','claim-revision-refresh','range-reconciliation','claim-range-reconciliation')
   );
 ALTER TABLE cmd2_projection_navigation_cohort
   DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_cohort_basis_history_sha256_check;
@@ -472,6 +521,24 @@ ALTER TABLE cmd2_projection_navigation_cohort
       AND claim_stream_rows_scanned IS NULL
       AND claim_event_basis_root IS NULL
       AND claim_navigation_manifest_root IS NULL)
+    OR (basis_kind='range-reconciliation'
+      AND basis_dependency_path IS NULL AND basis_dependency_sha256 IS NULL
+      AND basis_dependency_causes_json IS NULL AND basis_dependency_causes_root IS NULL
+      AND basis_history_path IS NULL AND basis_history_sha256 IS NULL
+      AND basis_claim_id IS NULL AND basis_revision_proof_root IS NULL
+      AND claim_owner_inventory_root IS NULL
+      AND claim_stream_rows_scanned IS NULL
+      AND claim_event_basis_root IS NULL
+      AND claim_navigation_manifest_root IS NULL)
+    OR (basis_kind='claim-range-reconciliation'
+      AND basis_dependency_path IS NULL AND basis_dependency_sha256 IS NULL
+      AND basis_dependency_causes_json IS NULL AND basis_dependency_causes_root IS NULL
+      AND basis_history_path IS NULL AND basis_history_sha256 IS NULL
+      AND basis_claim_id IS NULL AND basis_revision_proof_root IS NULL
+      AND claim_owner_inventory_root IS NOT NULL
+      AND claim_stream_rows_scanned IS NOT NULL
+      AND claim_event_basis_root IS NOT NULL
+      AND claim_navigation_manifest_root IS NOT NULL)
     OR (basis_kind IN ('record-mutation','dependency-refresh','dependency-refresh-set')
       AND claim_owner_inventory_root IS NULL
       AND claim_stream_rows_scanned IS NULL

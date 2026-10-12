@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS cmd2_domain (
   published_seq bigint NOT NULL DEFAULT 0 CHECK (published_seq >= 0),
   complete_cut_digest char(64),
   complete_cut_generation bigint CHECK (complete_cut_generation >= 0),
-  selected_generation_digest char(64)
+  selected_generation_digest char(64),
+  source_claim_navigation_reference_baseline_seq bigint
+    CHECK (source_claim_navigation_reference_baseline_seq >= 0)
 );
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS schema_profile_digest char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS published_seq bigint NOT NULL DEFAULT 0
@@ -24,6 +26,11 @@ ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_digest char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_generation bigint
   CHECK (complete_cut_generation >= 0);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS selected_generation_digest char(64);
+-- A NULL Claim-navigation baseline means the current-only index has not been
+-- declared complete for any as-of cut. Bootstrap records an exact baseline.
+ALTER TABLE cmd2_domain
+  ADD COLUMN IF NOT EXISTS source_claim_navigation_reference_baseline_seq bigint
+  CHECK (source_claim_navigation_reference_baseline_seq >= 0);
 -- Initial immutable selection and maintained controlled generation are distinct.
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_revision char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_membership_digest char(64);
@@ -198,6 +205,8 @@ CREATE TABLE IF NOT EXISTS cmd2_source_claim_navigation_reference (
   endpoint text COLLATE "C" NOT NULL CHECK (length(endpoint) BETWEEN 1 AND 4096),
   member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
   definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
+  valid_from_seq bigint NOT NULL CHECK (valid_from_seq >= 0),
+  valid_to_seq bigint CHECK (valid_to_seq IS NULL OR valid_to_seq > valid_from_seq),
   CONSTRAINT cmd2_source_claim_navigation_reference_public_path CHECK (
     path LIKE 'ToS/source-witnesses/%/source-claims.jsonl'
     AND path <> 'ToS/source-witnesses/owner-local'
@@ -209,16 +218,44 @@ CREATE TABLE IF NOT EXISTS cmd2_source_claim_navigation_reference (
       AND endpoint <> 'ToS/source-witnesses/owner-local'
       AND endpoint NOT LIKE 'ToS/source-witnesses/owner-local/%')
   ),
-  PRIMARY KEY(domain,path,claim_id,endpoint_kind,endpoint,basis)
+  PRIMARY KEY(domain,path,claim_id,endpoint_kind,endpoint,basis,valid_from_seq)
 );
 ALTER TABLE cmd2_source_claim_navigation_reference
   ADD COLUMN IF NOT EXISTS basis text COLLATE "C" NOT NULL DEFAULT 'claim-value'
   CHECK (basis IN ('claim-value','owner-input','shared-schema'));
 ALTER TABLE cmd2_source_claim_navigation_reference
-  DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_pkey;
+  ADD COLUMN IF NOT EXISTS valid_from_seq bigint
+  CHECK (valid_from_seq IS NULL OR valid_from_seq >= 0);
 ALTER TABLE cmd2_source_claim_navigation_reference
-  ADD CONSTRAINT cmd2_source_claim_navigation_reference_pkey
-  PRIMARY KEY(domain,path,claim_id,endpoint_kind,endpoint,basis);
+  ADD COLUMN IF NOT EXISTS valid_to_seq bigint
+  CHECK (valid_to_seq IS NULL OR (valid_from_seq IS NOT NULL AND valid_to_seq > valid_from_seq));
+ALTER TABLE cmd2_source_claim_navigation_reference
+  DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_interval_shape;
+ALTER TABLE cmd2_source_claim_navigation_reference
+  ADD CONSTRAINT cmd2_source_claim_navigation_reference_interval_shape
+  CHECK (valid_from_seq IS NULL OR valid_to_seq IS NULL OR valid_to_seq > valid_from_seq);
+-- Fresh empty tables can enforce the new non-NULL start. Existing current-only
+-- rows deliberately remain unversioned and cannot be mistaken for history;
+-- only a legitimate bootstrap/reindex may replace them with a declared cut.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM cmd2_source_claim_navigation_reference WHERE valid_from_seq IS NULL
+  ) THEN
+    ALTER TABLE cmd2_source_claim_navigation_reference
+      ALTER COLUMN valid_from_seq SET NOT NULL;
+  END IF;
+END $$;
+ALTER TABLE cmd2_source_claim_navigation_reference
+  DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_pkey;
+DROP INDEX IF EXISTS cmd2_source_claim_navigation_reference_interval_identity;
+CREATE UNIQUE INDEX cmd2_source_claim_navigation_reference_interval_identity
+  ON cmd2_source_claim_navigation_reference(
+    domain,path,claim_id,endpoint_kind,endpoint,basis,valid_from_seq
+  ) NULLS NOT DISTINCT;
+DROP INDEX IF EXISTS cmd2_source_claim_navigation_reference_active_unique;
+CREATE UNIQUE INDEX cmd2_source_claim_navigation_reference_active_unique
+  ON cmd2_source_claim_navigation_reference(domain,path,claim_id,endpoint_kind,endpoint,basis)
+  WHERE valid_from_seq IS NOT NULL AND valid_to_seq IS NULL;
 ALTER TABLE cmd2_source_claim_navigation_reference
   DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_public_path;
 ALTER TABLE cmd2_source_claim_navigation_reference
@@ -227,10 +264,15 @@ ALTER TABLE cmd2_source_claim_navigation_reference
     AND path <> 'ToS/source-witnesses/owner-local'
     AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
   );
-CREATE INDEX IF NOT EXISTS cmd2_source_claim_navigation_reference_endpoint_seek
-  ON cmd2_source_claim_navigation_reference(domain,endpoint_kind COLLATE "C",endpoint COLLATE "C",path COLLATE "C",claim_id COLLATE "C");
-CREATE INDEX IF NOT EXISTS cmd2_source_claim_navigation_reference_path_seek
-  ON cmd2_source_claim_navigation_reference(domain,path COLLATE "C",claim_id COLLATE "C");
+DROP INDEX IF EXISTS cmd2_source_claim_navigation_reference_endpoint_seek;
+CREATE INDEX cmd2_source_claim_navigation_reference_endpoint_seek
+  ON cmd2_source_claim_navigation_reference(domain,endpoint_kind COLLATE "C",endpoint COLLATE "C",valid_from_seq,path COLLATE "C",claim_id COLLATE "C");
+DROP INDEX IF EXISTS cmd2_source_claim_navigation_reference_path_seek;
+CREATE INDEX cmd2_source_claim_navigation_reference_path_seek
+  ON cmd2_source_claim_navigation_reference(domain,path COLLATE "C",valid_from_seq,claim_id COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_source_claim_navigation_reference_endpoint_active_seek
+  ON cmd2_source_claim_navigation_reference(domain,endpoint_kind COLLATE "C",endpoint COLLATE "C",path COLLATE "C",claim_id COLLATE "C")
+  WHERE valid_from_seq IS NOT NULL AND valid_to_seq IS NULL;
 -- Multiplicity-preserving current Item-manifest File assignments. Payload
 -- bytes remain in the protected custody store; this index contains metadata.
 CREATE TABLE IF NOT EXISTS cmd2_source_item_file_assignment (
@@ -277,6 +319,27 @@ ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_projections bytea;
 -- Its explicit generation-zero row is established from the full bootstrap cut;
 -- unrelated authored-source commits leave it unchanged. Transition history
 -- retains metadata-only packages while source bodies remain in current/history.
+-- A legacy STO chain is attached to the real bootstrap-completion event. Its
+-- original transitions retain their native generation/token and deliberately
+-- have no fabricated PostgreSQL commit sequence.
+CREATE TABLE IF NOT EXISTS cmd2_source_publication_import (
+  domain text PRIMARY KEY REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  origin_kind text NOT NULL CHECK (origin_kind='legacy_sto_import'),
+  import_event_id text NOT NULL CHECK (import_event_id ~ '^sha256:[0-9a-f]{64}$'),
+  receipt_digest char(64) NOT NULL CHECK (receipt_digest ~ '^[0-9a-f]{64}$'),
+  receipt_bytes bytea NOT NULL CHECK (octet_length(receipt_bytes) BETWEEN 1 AND 65536),
+  store_id bytea NOT NULL CHECK (octet_length(store_id) = 16),
+  bootstrap_source_revision char(64) NOT NULL CHECK (bootstrap_source_revision ~ '^[0-9a-f]{64}$'),
+  bootstrap_membership_digest char(64) NOT NULL CHECK (bootstrap_membership_digest ~ '^[0-9a-f]{64}$'),
+  bootstrap_membership_count bigint NOT NULL CHECK (bootstrap_membership_count >= 0),
+  import_source_head bigint NOT NULL CHECK (import_source_head >= 0),
+  chain_root_digest char(64) NOT NULL CHECK (chain_root_digest ~ '^[0-9a-f]{64}$'),
+  transition_count bigint NOT NULL CHECK (transition_count > 0),
+  head_control_digest char(64) NOT NULL CHECK (head_control_digest ~ '^[0-9a-f]{64}$'),
+  terminal_generation bigint NOT NULL CHECK (terminal_generation > 0),
+  terminal_token text NOT NULL CHECK (terminal_token ~ '^sha256:[0-9a-f]{64}$'),
+  UNIQUE (domain, import_event_id)
+);
 CREATE TABLE IF NOT EXISTS cmd2_source_publication_current (
   domain text PRIMARY KEY REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
   state text NOT NULL CHECK (state IN ('absent','present')),
@@ -287,23 +350,15 @@ CREATE TABLE IF NOT EXISTS cmd2_source_publication_current (
   transaction_id text CHECK (transaction_id IS NULL OR transaction_id ~ '^sha256:[0-9a-f]{64}$'),
   package_digest char(64) CHECK (package_digest IS NULL OR package_digest ~ '^[0-9a-f]{64}$'),
   package_bytes bytea CHECK (package_bytes IS NULL OR octet_length(package_bytes) BETWEEN 1 AND 1048576),
-  source_commit_seq bigint NOT NULL CHECK (source_commit_seq >= 0),
+  source_commit_seq bigint,
+  origin_kind text,
+  import_event_id text,
+  import_transition_index bigint,
+  import_receipt_digest char(64),
   store_id bytea NOT NULL CHECK (octet_length(store_id) = 16),
   bootstrap_source_revision char(64) NOT NULL CHECK (bootstrap_source_revision ~ '^[0-9a-f]{64}$'),
   bootstrap_membership_digest char(64) NOT NULL CHECK (bootstrap_membership_digest ~ '^[0-9a-f]{64}$'),
-  bootstrap_membership_count bigint NOT NULL CHECK (bootstrap_membership_count >= 0),
-  CHECK (
-    (state='absent' AND publication_generation=0 AND token IS NULL
-      AND base_token IS NULL AND base_generation=0 AND transaction_id IS NULL
-      AND package_digest IS NULL AND package_bytes IS NULL AND source_commit_seq=0)
-    OR
-    (state='present' AND publication_generation > 0 AND token IS NOT NULL
-      AND transaction_id IS NOT NULL AND package_digest IS NOT NULL
-      AND package_bytes IS NOT NULL AND source_commit_seq > 0
-      AND publication_generation = base_generation + 2
-      AND ((base_generation=0 AND base_token IS NULL)
-        OR (base_generation>0 AND base_token IS NOT NULL)))
-  )
+  bootstrap_membership_count bigint NOT NULL CHECK (bootstrap_membership_count >= 0)
 );
 CREATE TABLE IF NOT EXISTS cmd2_source_publication_history (
   domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
@@ -315,26 +370,134 @@ CREATE TABLE IF NOT EXISTS cmd2_source_publication_history (
   transaction_id text CHECK (transaction_id IS NULL OR transaction_id ~ '^sha256:[0-9a-f]{64}$'),
   package_digest char(64) CHECK (package_digest IS NULL OR package_digest ~ '^[0-9a-f]{64}$'),
   package_bytes bytea CHECK (package_bytes IS NULL OR octet_length(package_bytes) BETWEEN 1 AND 1048576),
-  source_commit_seq bigint NOT NULL CHECK (source_commit_seq >= 0),
+  source_commit_seq bigint,
+  origin_kind text,
+  import_event_id text,
+  import_transition_index bigint,
+  import_receipt_digest char(64),
   store_id bytea NOT NULL CHECK (octet_length(store_id) = 16),
   bootstrap_source_revision char(64) NOT NULL CHECK (bootstrap_source_revision ~ '^[0-9a-f]{64}$'),
   bootstrap_membership_digest char(64) NOT NULL CHECK (bootstrap_membership_digest ~ '^[0-9a-f]{64}$'),
   bootstrap_membership_count bigint NOT NULL CHECK (bootstrap_membership_count >= 0),
   PRIMARY KEY (domain, publication_generation),
-  UNIQUE (domain, source_commit_seq),
-  CHECK (
+  UNIQUE (domain, source_commit_seq)
+);
+-- Additive support for databases that already created the first publication
+-- ABI. Old present rows are genuine PG commits; the explicit absent row was a
+-- real bootstrap absence. Imported rows use NULL source_commit_seq only.
+ALTER TABLE cmd2_source_publication_current
+  ADD COLUMN IF NOT EXISTS origin_kind text,
+  ADD COLUMN IF NOT EXISTS import_event_id text,
+  ADD COLUMN IF NOT EXISTS import_transition_index bigint,
+  ADD COLUMN IF NOT EXISTS import_receipt_digest char(64);
+ALTER TABLE cmd2_source_publication_history
+  ADD COLUMN IF NOT EXISTS origin_kind text,
+  ADD COLUMN IF NOT EXISTS import_event_id text,
+  ADD COLUMN IF NOT EXISTS import_transition_index bigint,
+  ADD COLUMN IF NOT EXISTS import_receipt_digest char(64);
+ALTER TABLE cmd2_source_publication_current ALTER COLUMN source_commit_seq DROP NOT NULL;
+ALTER TABLE cmd2_source_publication_history ALTER COLUMN source_commit_seq DROP NOT NULL;
+UPDATE cmd2_source_publication_current SET origin_kind=CASE WHEN state='absent' THEN 'bootstrap_absent' ELSE 'pg_commit' END WHERE origin_kind IS NULL;
+UPDATE cmd2_source_publication_history SET origin_kind=CASE WHEN state='absent' THEN 'bootstrap_absent' ELSE 'pg_commit' END WHERE origin_kind IS NULL;
+ALTER TABLE cmd2_source_publication_current ALTER COLUMN origin_kind SET NOT NULL;
+ALTER TABLE cmd2_source_publication_history ALTER COLUMN origin_kind SET NOT NULL;
+ALTER TABLE cmd2_source_publication_current
+  DROP CONSTRAINT IF EXISTS cmd2_source_publication_current_source_commit_seq_check,
+  DROP CONSTRAINT IF EXISTS cmd2_source_publication_current_origin_check,
+  DROP CONSTRAINT IF EXISTS cmd2_source_publication_current_import_digest_check;
+ALTER TABLE cmd2_source_publication_history
+  DROP CONSTRAINT IF EXISTS cmd2_source_publication_history_source_commit_seq_check,
+  DROP CONSTRAINT IF EXISTS cmd2_source_publication_history_origin_check,
+  DROP CONSTRAINT IF EXISTS cmd2_source_publication_history_import_digest_check;
+DO $$
+DECLARE constraint_name text;
+BEGIN
+  FOR constraint_name IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid='cmd2_source_publication_current'::regclass AND contype='c'
+      AND pg_get_constraintdef(oid) ILIKE '%source_commit_seq%'
+  LOOP
+    EXECUTE format('ALTER TABLE cmd2_source_publication_current DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+  FOR constraint_name IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid='cmd2_source_publication_history'::regclass AND contype='c'
+      AND pg_get_constraintdef(oid) ILIKE '%source_commit_seq%'
+  LOOP
+    EXECUTE format('ALTER TABLE cmd2_source_publication_history DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+END $$;
+ALTER TABLE cmd2_source_publication_current
+  ADD CONSTRAINT cmd2_source_publication_current_source_commit_seq_check
+    CHECK (source_commit_seq IS NULL OR source_commit_seq >= 0),
+  ADD CONSTRAINT cmd2_source_publication_current_origin_check CHECK (
     (state='absent' AND publication_generation=0 AND token IS NULL
       AND base_token IS NULL AND base_generation=0 AND transaction_id IS NULL
-      AND package_digest IS NULL AND package_bytes IS NULL AND source_commit_seq=0)
+      AND package_digest IS NULL AND package_bytes IS NULL AND source_commit_seq=0
+      AND origin_kind='bootstrap_absent' AND import_event_id IS NULL
+      AND import_transition_index IS NULL AND import_receipt_digest IS NULL)
     OR
     (state='present' AND publication_generation > 0 AND token IS NOT NULL
       AND transaction_id IS NOT NULL AND package_digest IS NOT NULL
-      AND package_bytes IS NOT NULL AND source_commit_seq > 0
+      AND package_bytes IS NOT NULL
       AND publication_generation = base_generation + 2
       AND ((base_generation=0 AND base_token IS NULL)
-        OR (base_generation>0 AND base_token IS NOT NULL)))
-  )
-);
+        OR (base_generation>0 AND base_token IS NOT NULL))
+      AND ((origin_kind='pg_commit' AND source_commit_seq > 0
+            AND import_event_id IS NULL AND import_transition_index IS NULL
+            AND import_receipt_digest IS NULL)
+        OR (origin_kind='legacy_sto_import' AND source_commit_seq IS NULL
+            AND import_event_id IS NOT NULL AND import_transition_index > 0
+            AND import_receipt_digest IS NOT NULL)))
+  ),
+  ADD CONSTRAINT cmd2_source_publication_current_import_digest_check
+    CHECK (import_receipt_digest IS NULL OR import_receipt_digest ~ '^[0-9a-f]{64}$');
+ALTER TABLE cmd2_source_publication_history
+  ADD CONSTRAINT cmd2_source_publication_history_source_commit_seq_check
+    CHECK (source_commit_seq IS NULL OR source_commit_seq >= 0),
+  ADD CONSTRAINT cmd2_source_publication_history_origin_check CHECK (
+    (state='absent' AND publication_generation=0 AND token IS NULL
+      AND base_token IS NULL AND base_generation=0 AND transaction_id IS NULL
+      AND package_digest IS NULL AND package_bytes IS NULL AND source_commit_seq=0
+      AND origin_kind='bootstrap_absent' AND import_event_id IS NULL
+      AND import_transition_index IS NULL AND import_receipt_digest IS NULL)
+    OR
+    (state='present' AND publication_generation > 0 AND token IS NOT NULL
+      AND transaction_id IS NOT NULL AND package_digest IS NOT NULL
+      AND package_bytes IS NOT NULL
+      AND publication_generation = base_generation + 2
+      AND ((base_generation=0 AND base_token IS NULL)
+        OR (base_generation>0 AND base_token IS NOT NULL))
+      AND ((origin_kind='pg_commit' AND source_commit_seq > 0
+            AND import_event_id IS NULL AND import_transition_index IS NULL
+            AND import_receipt_digest IS NULL)
+        OR (origin_kind='legacy_sto_import' AND source_commit_seq IS NULL
+            AND import_event_id IS NOT NULL AND import_transition_index > 0
+            AND import_receipt_digest IS NOT NULL)))
+  ),
+  ADD CONSTRAINT cmd2_source_publication_history_import_digest_check
+    CHECK (import_receipt_digest IS NULL OR import_receipt_digest ~ '^[0-9a-f]{64}$');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='cmd2_source_publication_current'::regclass
+      AND conname='cmd2_source_publication_current_import_fk'
+  ) THEN
+    ALTER TABLE cmd2_source_publication_current ADD CONSTRAINT cmd2_source_publication_current_import_fk
+      FOREIGN KEY (domain, import_event_id)
+      REFERENCES cmd2_source_publication_import(domain, import_event_id) ON DELETE RESTRICT;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='cmd2_source_publication_history'::regclass
+      AND conname='cmd2_source_publication_history_import_fk'
+  ) THEN
+    ALTER TABLE cmd2_source_publication_history ADD CONSTRAINT cmd2_source_publication_history_import_fk
+      FOREIGN KEY (domain, import_event_id)
+      REFERENCES cmd2_source_publication_import(domain, import_event_id) ON DELETE RESTRICT;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS cmd2_source_publication_history_transaction_seek
   ON cmd2_source_publication_history(domain,transaction_id,publication_generation);
 
@@ -659,9 +822,9 @@ BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
     'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox',
-    'cmd2_source_index','cmd2_source_text_identity','cmd2_source_annotation_identity','cmd2_source_claim_dependency','cmd2_source_claim_navigation_reference',
+    'cmd2_source_index','cmd2_source_text_identity','cmd2_source_annotation_identity','cmd2_source_claim_dependency','cmd2_source_claim_navigation_reference','cmd2_source_item_file_assignment',
     'cmd2_source_inventory_projection','cmd2_source_publication_current',
-    'cmd2_source_publication_history'
+    'cmd2_source_publication_history','cmd2_source_publication_import'
   ] LOOP
     EXECUTE format(
       'CREATE OR REPLACE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON %I '

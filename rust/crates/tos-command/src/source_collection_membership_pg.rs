@@ -253,7 +253,7 @@ pub(crate) fn prepare_pg_collection_membership<'a, I: Copy + Eq>(
     worker
         .finish(limits.deadline, cancelled)
         .map_err(item_error)?;
-    super::work_expression::software_current(fs, context, limits.deadline, cancelled)?;
+    software_current(fs, context, limits.deadline, cancelled)?;
     fs.current_context(context, limits.deadline, cancelled)?;
     snapshot.verify_from_input(input.source_input(), limits.deadline, cancelled)?;
     fence.verify(limits.deadline, cancelled)?;
@@ -889,7 +889,7 @@ pub(crate) fn verify_pg_collection_context(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     fs.current_context(context, deadline, cancelled)?;
-    super::work_expression::software_current(fs, context, deadline, cancelled)?;
+    software_current(fs, context, deadline, cancelled)?;
     for path in absences {
         let (parent_path, name) = path
             .rsplit_once('/')

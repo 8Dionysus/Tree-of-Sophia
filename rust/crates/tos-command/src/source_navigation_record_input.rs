@@ -9,8 +9,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 use tos_compiler::{
-    resolve_selected_metadata_history_v1, selected_metadata_archive_manifest_paths_v1,
-    selected_metadata_archive_record_blob_path_v1, selected_metadata_record_schema_path_v1,
+    SelectedBibliographicFilesV1, resolve_selected_metadata_history_v1,
+    selected_metadata_archive_manifest_paths_v1, selected_metadata_archive_record_blob_path_v1,
+    selected_metadata_record_schema_path_v1,
     source_bibliographic::{BibliographicForms, BibliographicLimits},
     source_navigation_claim_event::NavigationClaimRevisionProofV1,
     source_navigation_event::{
@@ -18,16 +19,15 @@ use tos_compiler::{
         NavigationRecordDependencyRefreshCauseV1, NavigationRecordEventInputV1,
         NavigationVersionSourceInputV1,
     },
-    source_witness_catalog::{render_catalog_record, SourceCatalogValidator},
-    SelectedBibliographicFilesV1,
+    source_witness_catalog::{SourceCatalogValidator, render_catalog_record},
 };
 use tos_foundation::{Digest256, RelativePath};
 
 use crate::{
-    source_navigation_producer::NavigationEventSourceCutIdentityV1,
-    source_navigation_record_adapter::project_record_event_cohort_v1, DurableError,
-    DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
+    DurableError, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
     DurableNavigationEventContextV1, DurableNavigationEventSourceV1, DurableResult,
+    source_navigation_producer::NavigationEventSourceCutIdentityV1,
+    source_navigation_record_adapter::project_record_event_cohort_v1,
 };
 
 const MAX_PATHS: usize = 4096;
@@ -66,6 +66,446 @@ pub(crate) struct RecordOwnerV1 {
 pub(crate) struct RecordEventPathPlanV1 {
     pub(crate) owners: Vec<RecordOwnerV1>,
     pub(crate) paths: Vec<String>,
+}
+
+/// Receipt-checked Record creation from one exact historical range event.
+/// The original bytes are retained so the range compiler can bind the same
+/// source, receipt, and authored provenance event instead of consulting only
+/// the terminal files.
+#[derive(Clone, Debug)]
+pub(crate) struct RecordRangeSourceCreateV1 {
+    pub(crate) owner: RecordOwnerV1,
+    pub(crate) event_sequence: u64,
+    pub(crate) event_id: String,
+    pub(crate) command_id: String,
+    pub(crate) source_path: String,
+    pub(crate) source_sha256: Digest256,
+    pub(crate) source_bytes: Vec<u8>,
+    /// Optional human-form bytes as they existed at creation time. The current
+    /// terminal forms file may have changed since, so a range proof keeps the
+    /// historical member and binds it through the same create receipt/event.
+    pub(crate) forms_path: Option<String>,
+    pub(crate) forms_sha256: Option<Digest256>,
+    pub(crate) forms_bytes: Option<Vec<u8>>,
+    pub(crate) receipt_path: String,
+    pub(crate) receipt_sha256: Digest256,
+    pub(crate) receipt_bytes: Vec<u8>,
+    pub(crate) provenance_event_path: String,
+    pub(crate) provenance_event_sha256: Digest256,
+    pub(crate) provenance_event_bytes: Vec<u8>,
+}
+
+/// One exact source-revision history event carried in the bounded range.
+/// The historical bytes stay attached to the event that committed them; the
+/// terminal Record source is selected separately for rendering.
+#[derive(Clone, Debug)]
+pub(crate) struct RecordRangeRevisionV1 {
+    pub(crate) owner: RecordOwnerV1,
+    pub(crate) event_sequence: u64,
+    pub(crate) event_id: String,
+    pub(crate) command_id: String,
+    pub(crate) source_path: String,
+    pub(crate) source_bytes: Vec<u8>,
+    pub(crate) history_path: String,
+    pub(crate) history_bytes: Vec<u8>,
+}
+
+/// Read and validate every exact source-create receipt in a complete range.
+/// Claim receipts are left to the Claim range compiler; every other ToS
+/// source-create receipt must prove one Record owner in that same event.
+pub(crate) fn direct_source_create_records_for_range_v1(
+    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    maximum: usize,
+    mut read_member: impl FnMut(u64, &str) -> DurableResult<Vec<u8>>,
+) -> DurableResult<Vec<RecordRangeSourceCreateV1>> {
+    if maximum == 0 || maximum > MAX_PATHS {
+        return Err(DurableError::Invalid(
+            "navigation range direct Record owner limit",
+        ));
+    }
+    let mut owners = BTreeMap::<String, RecordRangeSourceCreateV1>::new();
+    for event in coverage.events() {
+        if event.event_kind != "command" {
+            continue;
+        }
+        let receipt_paths = event
+            .members
+            .iter()
+            .filter(|member| {
+                member.is_source
+                    && member.source_path.starts_with("ToS/")
+                    && member
+                        .source_path
+                        .ends_with(&format!("/{RECEIPT_HOME_FILE}"))
+            })
+            .map(|member| member.source_path.as_str())
+            .collect::<Vec<_>>();
+        for receipt_path in receipt_paths {
+            let receipt_member =
+                coverage
+                    .member(event.sequence, receipt_path)
+                    .ok_or(DurableError::Conflict(
+                        "range Record receipt left exact event coverage",
+                    ))?;
+            let receipt_bytes = read_member(event.sequence, receipt_path)?;
+            verify_range_member_bytes(receipt_member, &receipt_bytes, MAX_RECORD_BYTES)?;
+            let receipt = parse_value(&receipt_bytes, MAX_RECORD_BYTES)?;
+            match receipt.get("schema_version").and_then(Value::as_str) {
+                Some("tos_local_claim_create_receipt_v1")
+                    if receipt_path.starts_with("ToS/source-witnesses/relations/") =>
+                {
+                    continue;
+                }
+                Some("tos_local_source_create_receipt_v1") => {}
+                _ => {
+                    return Err(DurableError::Invalid(
+                        "range direct Record creation receipt profile",
+                    ));
+                }
+            }
+            let source_path =
+                receipt
+                    .get("source_path")
+                    .and_then(Value::as_str)
+                    .ok_or(DurableError::Invalid(
+                        "range direct Record creation source path",
+                    ))?;
+            let source_path = canonical_path(source_path)?.to_owned();
+            let home = receipt_path
+                .rsplit_once('/')
+                .map(|(home, _)| home)
+                .ok_or(DurableError::Invalid("range direct Record receipt home"))?;
+            if source_path
+                .rsplit_once('/')
+                .map(|(source_home, _)| source_home)
+                != Some(home)
+            {
+                return Err(DurableError::Conflict(
+                    "range direct Record receipt source is outside its home",
+                ));
+            }
+            let source_member = coverage
+                .member(event.sequence, &source_path)
+                .filter(|member| member.is_source)
+                .ok_or(DurableError::Invalid(
+                    "range direct Record source is not an exact command member",
+                ))?;
+            let source_bytes = read_member(event.sequence, &source_path)?;
+            verify_range_member_bytes(source_member, &source_bytes, MAX_RECORD_BYTES)?;
+            let record = parse_value(&source_bytes, MAX_RECORD_BYTES)?;
+            let id = receipt
+                .pointer("/source/id")
+                .and_then(Value::as_str)
+                .ok_or(DurableError::Invalid(
+                    "range direct Record receipt identity",
+                ))?;
+            let source_version = receipt.pointer("/source/version").and_then(Value::as_u64);
+            let source_digest = receipt
+                .pointer("/source/digest")
+                .and_then(Value::as_str)
+                .and_then(|value| value.strip_prefix("sha256:"));
+            let record_id = record
+                .get("record_id")
+                .or_else(|| record.get("artifact_id"))
+                .or_else(|| record.get("composite_id"))
+                .and_then(Value::as_str);
+            if source_version != Some(1)
+                || !id.starts_with("tos.")
+                || id.len() > 256
+                || record_id != Some(id)
+                || source_digest != Some(Digest256::of_bytes(&source_bytes).to_hex().as_str())
+            {
+                return Err(DurableError::Conflict(
+                    "range direct Record source differs from its creation receipt",
+                ));
+            }
+            let basename = source_path
+                .rsplit('/')
+                .next()
+                .ok_or(DurableError::Invalid("range direct Record basename"))?;
+            let source_binding = receipt
+                .get("files")
+                .and_then(|value| value.get(basename))
+                .ok_or(DurableError::Invalid(
+                    "range direct Record receipt source member absent",
+                ))?;
+            verify_receipt_file(source_binding, &source_bytes)?;
+
+            let provenance_event_path = format!("{home}/{EVENT_HOME_FILE}");
+            let provenance_member = coverage
+                .member(event.sequence, &provenance_event_path)
+                .filter(|member| member.is_source)
+                .ok_or(DurableError::Invalid(
+                    "range direct Record creation event is not a command member",
+                ))?;
+            let provenance_event_bytes = read_member(event.sequence, &provenance_event_path)?;
+            verify_range_member_bytes(
+                provenance_member,
+                &provenance_event_bytes,
+                MAX_RECORD_BYTES,
+            )?;
+            let event_binding = receipt
+                .get("files")
+                .and_then(|value| value.get(EVENT_HOME_FILE))
+                .ok_or(DurableError::Invalid(
+                    "range direct Record event receipt member absent",
+                ))?;
+            verify_receipt_file(event_binding, &provenance_event_bytes)?;
+            validate_creation_event_output(
+                &provenance_event_bytes,
+                receipt_path,
+                &source_path,
+                &source_bytes,
+                source_binding,
+            )?;
+            let source_basename = source_path
+                .rsplit('/')
+                .next()
+                .ok_or(DurableError::Invalid("range direct Record source basename"))?;
+            let forms_path = source_basename
+                .strip_suffix(".json")
+                .map(|stem| format!("{home}/{stem}.human-forms.json"))
+                .ok_or(DurableError::Invalid("range direct Record source suffix"))?;
+            let forms_basename = source_basename
+                .strip_suffix(".json")
+                .map(|stem| format!("{stem}.human-forms.json"))
+                .ok_or(DurableError::Invalid("range direct Record source suffix"))?;
+            let forms_binding = receipt
+                .get("files")
+                .and_then(|value| value.get(forms_basename.as_str()));
+            let forms_member = coverage.member(event.sequence, &forms_path);
+            let (forms_path, forms_sha256, forms_bytes) = match (forms_binding, forms_member) {
+                (Some(binding), Some(member)) if member.is_source => {
+                    let raw = read_member(event.sequence, &forms_path)?;
+                    verify_range_member_bytes(member, &raw, MAX_RECORD_BYTES)?;
+                    verify_receipt_file(binding, &raw)?;
+                    validate_creation_event_output(
+                        &provenance_event_bytes,
+                        receipt_path,
+                        &forms_path,
+                        &raw,
+                        binding,
+                    )?;
+                    (Some(forms_path), Some(member.sha256), Some(raw))
+                }
+                (None, None) => (None, None, None),
+                (None, Some(_)) | (Some(_), None) | (Some(_), Some(_)) => {
+                    return Err(DurableError::Conflict(
+                        "range direct Record creation forms differ from receipt membership",
+                    ));
+                }
+            };
+            let command_id = event.command_id.clone().ok_or(DurableError::Corrupt(
+                "range direct Record command identity is absent",
+            ))?;
+            let owner = RecordOwnerV1 {
+                source_path: source_path.clone(),
+                record_id: id.to_owned(),
+                origin: RecordOwnerOriginV1::DirectSourceCreate,
+            };
+            if owners
+                .insert(
+                    source_path.clone(),
+                    RecordRangeSourceCreateV1 {
+                        owner,
+                        event_sequence: event.sequence,
+                        event_id: event.event_id.clone(),
+                        command_id,
+                        source_path,
+                        source_sha256: source_member.sha256,
+                        source_bytes,
+                        forms_path,
+                        forms_sha256,
+                        forms_bytes,
+                        receipt_path: receipt_path.to_owned(),
+                        receipt_sha256: receipt_member.sha256,
+                        receipt_bytes,
+                        provenance_event_path,
+                        provenance_event_sha256: provenance_member.sha256,
+                        provenance_event_bytes,
+                    },
+                )
+                .is_some()
+            {
+                return Err(DurableError::Conflict(
+                    "range Record source has multiple creation receipts",
+                ));
+            }
+            if owners.len() > maximum {
+                return Err(DurableError::Refused(
+                    "range direct Record owner count budget",
+                ));
+            }
+        }
+    }
+    Ok(owners.into_values().collect())
+}
+
+/// Collect each retained Record revision from its exact historical CMD cut.
+/// The source file is identified by the history record ID among that same
+/// event's changed JSON members; later terminal bytes never stand in for the
+/// mutation that the event actually committed.
+pub(crate) fn direct_record_revisions_for_range_v1(
+    coverage: &crate::DurableNavigationEventRangeCoverageV1,
+    maximum: usize,
+    mut read_member: impl FnMut(u64, &str) -> DurableResult<Vec<u8>>,
+) -> DurableResult<Vec<RecordRangeRevisionV1>> {
+    if maximum == 0 || maximum > MAX_PATHS {
+        return Err(DurableError::Invalid(
+            "navigation range Record revision limit",
+        ));
+    }
+    let mut revisions = Vec::new();
+    for event in coverage.events() {
+        if event.event_kind != "command" {
+            continue;
+        }
+        let command_id = event.command_id.clone().ok_or(DurableError::Corrupt(
+            "range Record revision command identity is absent",
+        ))?;
+        for history_member in event.members.iter().filter(|member| {
+            member.is_source
+                && member.source_path.starts_with("ToS/")
+                && member
+                    .source_path
+                    .ends_with("/source-revision-history.json")
+        }) {
+            let history_path = history_member.source_path.clone();
+            let home = history_path
+                .rsplit_once('/')
+                .map(|(home, _)| home)
+                .ok_or(DurableError::Invalid("range Record revision history home"))?;
+            let history_bytes = read_member(event.sequence, &history_path)?;
+            verify_range_member_bytes(history_member, &history_bytes, MAX_RECORD_BYTES)?;
+            let history = parse_value(&history_bytes, MAX_RECORD_BYTES)?;
+            if !matches!(
+                history.get("schema_version").and_then(Value::as_str),
+                Some("tos_source_revision_history_v1" | "tos_source_revision_history_v2")
+            ) {
+                return Err(DurableError::Invalid(
+                    "range Record revision history profile",
+                ));
+            }
+            let record_id = history
+                .get("record_id")
+                .and_then(Value::as_str)
+                .filter(|id| id.starts_with("tos.") && id.len() <= 256)
+                .ok_or(DurableError::Invalid("range Record revision identity"))?;
+            let receipts = history
+                .get("receipts")
+                .and_then(Value::as_array)
+                .filter(|receipts| !receipts.is_empty() && receipts.len() <= 128)
+                .ok_or(DurableError::Invalid("range Record revision receipts"))?;
+            let latest = receipts.last().ok_or(DurableError::Invalid(
+                "range Record latest revision receipt",
+            ))?;
+            let source_ref = latest
+                .get("source")
+                .ok_or(DurableError::Invalid("range Record revision successor"))?;
+            if latest.get("command_id").and_then(Value::as_str) != Some(command_id.as_str())
+                || source_ref.get("id").and_then(Value::as_str) != Some(record_id)
+            {
+                return Err(DurableError::Conflict(
+                    "range Record revision history does not bind its event",
+                ));
+            }
+            let mut matching_sources = Vec::new();
+            for member in event.members.iter().filter(|member| {
+                member.is_source
+                    && member.source_path.starts_with(&format!("{home}/"))
+                    && member.source_path.ends_with(".json")
+                    && !member.source_path.ends_with(".human-forms.json")
+            }) {
+                let raw = read_member(event.sequence, &member.source_path)?;
+                verify_range_member_bytes(member, &raw, MAX_RECORD_BYTES)?;
+                let value = parse_value(&raw, MAX_RECORD_BYTES)?;
+                let id = value
+                    .get("record_id")
+                    .or_else(|| value.get("artifact_id"))
+                    .or_else(|| value.get("composite_id"))
+                    .and_then(Value::as_str);
+                if id == Some(record_id) {
+                    matching_sources.push((member.source_path.clone(), raw));
+                }
+            }
+            if matching_sources.len() != 1 {
+                return Err(DurableError::Conflict(
+                    "range Record revision source is not uniquely bound",
+                ));
+            }
+            let (source_path, source_bytes) = matching_sources
+                .pop()
+                .ok_or(DurableError::Corrupt("range Record revision source absent"))?;
+            let source_member =
+                coverage
+                    .member(event.sequence, &source_path)
+                    .ok_or(DurableError::Conflict(
+                        "range Record revision source left event coverage",
+                    ))?;
+            let source_value = parse_value(&source_bytes, MAX_RECORD_BYTES)?;
+            let version = source_value
+                .get("record_version")
+                .and_then(Value::as_u64)
+                .ok_or(DurableError::Invalid("range Record revision version"))?;
+            if source_ref.get("version").and_then(Value::as_u64) != Some(version)
+                || source_member.sha256 == Digest256::of_bytes(&[])
+            {
+                return Err(DurableError::Conflict(
+                    "range Record revision successor differs from event source",
+                ));
+            }
+            revisions.push(RecordRangeRevisionV1 {
+                owner: RecordOwnerV1 {
+                    source_path: source_path.clone(),
+                    record_id: record_id.to_owned(),
+                    origin: RecordOwnerOriginV1::PersistedAffected,
+                },
+                event_sequence: event.sequence,
+                event_id: event.event_id.clone(),
+                command_id: command_id.clone(),
+                source_path,
+                source_bytes,
+                history_path,
+                history_bytes,
+            });
+            if revisions.len() > maximum {
+                return Err(DurableError::Refused(
+                    "navigation range Record revision owner count",
+                ));
+            }
+        }
+    }
+    revisions.sort_by(|left, right| {
+        left.event_sequence
+            .cmp(&right.event_sequence)
+            .then_with(|| left.source_path.cmp(&right.source_path))
+    });
+    if revisions.windows(2).any(|pair| {
+        (pair[0].event_sequence, pair[0].source_path.as_str())
+            >= (pair[1].event_sequence, pair[1].source_path.as_str())
+    }) {
+        return Err(DurableError::Corrupt(
+            "range Record revision causes are not uniquely ordered",
+        ));
+    }
+    Ok(revisions)
+}
+
+fn verify_range_member_bytes(
+    member: &crate::DurableNavigationEventRangeMemberV1,
+    raw: &[u8],
+    maximum_bytes: usize,
+) -> DurableResult<()> {
+    if raw.is_empty()
+        || raw.len() > maximum_bytes
+        || raw.len() as u64 != member.size_bytes
+        || Digest256::of_bytes(raw) != member.sha256
+    {
+        return Err(DurableError::Conflict(
+            "range Record historical member digest or size differs",
+        ));
+    }
+    Ok(())
 }
 
 fn direct_source_create_owners(
@@ -393,15 +833,6 @@ pub(crate) fn required_paths(
         ));
     }
 
-    let mut paths = BTreeSet::new();
-    add_path(&mut paths, configured_event_path, max_dependencies)?;
-    for member in seed.members() {
-        add_path(&mut paths, &member.source_path, max_dependencies)?;
-    }
-    for selected in seed.selected_sources() {
-        add_path(&mut paths, &selected.source_path, max_dependencies)?;
-    }
-
     let mut by_path = BTreeMap::<String, RecordOwnerV1>::new();
     for owner in direct_source_create_owners(seed, max_dependencies)? {
         insert_record_owner(&mut by_path, owner, max_dependencies)?;
@@ -421,10 +852,52 @@ pub(crate) fn required_paths(
             max_dependencies,
         )?;
     }
+    required_paths_for_owners_v1(
+        seed,
+        &by_path.into_values().collect::<Vec<_>>(),
+        configured_event_path,
+        schema_paths,
+        max_dependencies,
+    )
+}
+
+/// Derive the terminal current-source closure for an already receipt-checked
+/// owner set. Range callers use this after they have validated every direct
+/// creation receipt at its historical event cut and unioned predecessor
+/// affected owners; the context itself stays a truthful terminal event row.
+pub(crate) fn required_paths_for_owners_v1(
+    terminal: &DurableNavigationEventContextV1,
+    owners: &[RecordOwnerV1],
+    configured_event_path: &str,
+    schema_paths: &[String],
+    max_dependencies: usize,
+) -> DurableResult<RecordEventPathPlanV1> {
+    if terminal.event_id().is_empty()
+        || terminal.event_sequence() == 0
+        || terminal.event_sequence() > terminal.source_head_sequence()
+        || terminal.consumer_cursor().sequence >= terminal.event_sequence()
+        || max_dependencies == 0
+        || max_dependencies > MAX_PATHS
+    {
+        return Err(DurableError::Invalid(
+            "navigation terminal Record path plan context or limits",
+        ));
+    }
+    let mut paths = BTreeSet::new();
+    add_path(&mut paths, configured_event_path, max_dependencies)?;
+    for member in terminal.members() {
+        add_path(&mut paths, &member.source_path, max_dependencies)?;
+    }
+    for selected in terminal.selected_sources() {
+        add_path(&mut paths, &selected.source_path, max_dependencies)?;
+    }
+    let mut by_path = BTreeMap::<String, RecordOwnerV1>::new();
+    for owner in owners {
+        insert_record_owner(&mut by_path, owner.clone(), max_dependencies)?;
+    }
     for owner in by_path.values() {
         add_owner_paths(&mut paths, owner, max_dependencies)?;
     }
-
     if !by_path.is_empty() {
         for path in [REGISTRY, REGISTRY_SCHEMA, EVENT_SCHEMA, FORMS_SCHEMA] {
             add_path(&mut paths, path, max_dependencies)?;
@@ -609,8 +1082,90 @@ pub(crate) fn assemble_record_claim_revision_refresh_cohort_v1(
     )
 }
 
+/// Assemble one terminal Record row for a complete committed source-event
+/// range. The compiler's range coordinator supplies the owner-specific cause
+/// root after sealing the exact predecessor/current owner closures.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn assemble_record_range_terminal_cohort_v1(
+    context: &DurableNavigationEventContextV1,
+    identity: NavigationEventSourceCutIdentityV1,
+    validator: &SourceCatalogValidator<'_>,
+    files: &SelectedBibliographicFilesV1,
+    owner: &RecordOwnerV1,
+    predecessor_cohort_root: Option<Digest256>,
+    coverage: &tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1,
+    cause_root: Digest256,
+    origin_forms_bytes: Option<&[u8]>,
+    forms_materializer: &mut dyn BibliographicForms,
+    limits: BibliographicLimits,
+) -> DurableResult<(
+    tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
+    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
+)> {
+    assemble_record_event_cohort_with_basis(
+        context,
+        identity,
+        validator,
+        files,
+        owner,
+        predecessor_cohort_root,
+        RecordProjectionBasisV1::Range {
+            coverage,
+            cause_root,
+            origin_forms_bytes,
+        },
+        forms_materializer,
+        limits,
+    )
+}
+
+/// Preview only the exact selected terminal dependency rows needed to derive
+/// complete Record reverse-owner sets. The temporary cohort is discarded in
+/// this function; its placeholder basis never reaches the range coordinator
+/// or the PG publisher. Final rows are rendered again with compiler-issued
+/// cause roots.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn preview_record_range_terminal_dependencies_v1(
+    context: &DurableNavigationEventContextV1,
+    identity: NavigationEventSourceCutIdentityV1,
+    validator: &SourceCatalogValidator<'_>,
+    files: &SelectedBibliographicFilesV1,
+    owner: &RecordOwnerV1,
+    predecessor_cohort_root: Option<Digest256>,
+    coverage: &tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1,
+    origin_forms_bytes: Option<&[u8]>,
+    forms_materializer: &mut dyn BibliographicForms,
+    limits: BibliographicLimits,
+) -> DurableResult<(
+    Vec<NavigationDependencyV1>,
+    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
+)> {
+    // This digest is only a non-empty renderer input. The resulting cohort is
+    // immediately dropped, and no value derived from this digest is retained.
+    let preview_basis = Digest256::of_bytes(b"tos-source-navigation-range-private-preview-v1");
+    let (cohort, cost) = assemble_record_range_terminal_cohort_v1(
+        context,
+        identity,
+        validator,
+        files,
+        owner,
+        predecessor_cohort_root,
+        coverage,
+        preview_basis,
+        origin_forms_bytes,
+        forms_materializer,
+        limits,
+    )?;
+    Ok((cohort.dependencies().to_vec(), cost))
+}
+
 enum RecordProjectionBasisV1<'a> {
     Mutation,
+    Range {
+        coverage: &'a tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1,
+        cause_root: Digest256,
+        origin_forms_bytes: Option<&'a [u8]>,
+    },
     DependencyRefresh {
         changed_dependency_path: &'a str,
         changed_dependency_bytes: &'a [u8],
@@ -637,7 +1192,8 @@ fn assemble_record_event_cohort_with_basis(
     tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
     tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
 )> {
-    if context.event_kind() != "command"
+    let range_basis = matches!(&basis, RecordProjectionBasisV1::Range { .. });
+    if (!range_basis && context.event_kind() != "command")
         || context.event_sequence() != identity.event_sequence()
         || context.source_head_sequence() != identity.source_head_sequence()
     {
@@ -865,7 +1421,14 @@ fn assemble_record_event_cohort_with_basis(
     let history = &selected_history.history;
     let event_id = context.event_id();
     let event_sequence = context.event_sequence();
-    let source_head_sequence = context.source_head_sequence();
+    // The renderer's range basis describes the event cut at `through`; the
+    // typed source-cut identity separately retains the held current head.
+    // Preserve the historical prefix here instead of relabeling it as the
+    // later held head.
+    let source_head_sequence = match &basis {
+        RecordProjectionBasisV1::Range { coverage, .. } => coverage.through_sequence(),
+        _ => context.source_head_sequence(),
+    };
     let predecessor_source_revision =
         context
             .consumer_cursor()
@@ -914,6 +1477,19 @@ fn assemble_record_event_cohort_with_basis(
         RecordProjectionBasisV1::Mutation => {
             project_record_event_cohort_v1(context, identity, input, limits)
         }
+        RecordProjectionBasisV1::Range {
+            coverage,
+            cause_root,
+            origin_forms_bytes,
+        } => tos_compiler::source_navigation_event::
+            project_navigation_record_range_terminal_event_from_event_cut_v1(
+                input,
+                coverage,
+                cause_root,
+                origin_forms_bytes,
+                limits,
+            )
+            .map_err(|_| DurableError::Refused("selected navigation Record range refused")),
         RecordProjectionBasisV1::DependencyRefresh {
             changed_dependency_path,
             changed_dependency_bytes,

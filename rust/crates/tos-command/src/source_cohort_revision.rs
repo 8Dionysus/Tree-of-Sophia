@@ -21,14 +21,13 @@ const MAX_SOURCE_IDENTITY_LOOKUPS: usize = 4_096;
 const MAX_SOURCE_IDENTITY_TOKEN_BYTES: usize = 4_096;
 const MAX_SIGN_CANDIDATE_TOKEN_BYTES: usize = 4_096;
 const MAX_SOURCE_PUBLICATION_PACKAGE_BYTES: usize = 1_048_576;
+const MAX_SOURCE_PUBLICATION_BLOB_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_SOURCE_PUBLICATION_VIRTUAL_LOOKUPS: u64 = 4_096;
 const MAX_SOURCE_PUBLICATION_PACKAGE_BYTES_READ: u64 = 64 * 1024 * 1024;
-const SOURCE_PUBLICATION_CONTROL_PATH: &str =
-    "ToS/source-witnesses/.metadata-publication.json";
-const SOURCE_PUBLICATION_JOURNAL_ROOT: &str =
-    "ToS/source-witnesses/.metadata-transactions";
-const SOURCE_PUBLICATION_ROW_FIELDS: &str =
-    "state,publication_generation,token,base_token,base_generation,transaction_id,package_digest,package_bytes,source_commit_seq,store_id,bootstrap_source_revision,bootstrap_membership_digest,bootstrap_membership_count";
+const MAX_SOURCE_PUBLICATION_IMPORT_BLOB_MEMBERS: usize = 4_096;
+const SOURCE_PUBLICATION_CONTROL_PATH: &str = "ToS/source-witnesses/.metadata-publication.json";
+const SOURCE_PUBLICATION_JOURNAL_ROOT: &str = "ToS/source-witnesses/.metadata-transactions";
+const SOURCE_PUBLICATION_ROW_FIELDS: &str = "state,publication_generation,token,base_token,base_generation,transaction_id,package_digest,package_bytes,origin_kind,source_commit_seq,import_event_id,import_transition_index,import_receipt_digest,store_id,bootstrap_source_revision,bootstrap_membership_digest,bootstrap_membership_count";
 
 /// The bounded initial Agent route treats these five identity namespaces as a
 /// single uniqueness domain.  Keep the list with the PG transport so the
@@ -59,7 +58,11 @@ struct SelectedSourcePublicationRow {
     transaction_id: Option<String>,
     package_digest: Option<String>,
     package_bytes: Option<Vec<u8>>,
-    source_commit_seq: u64,
+    origin_kind: String,
+    source_commit_seq: Option<u64>,
+    import_event_id: Option<String>,
+    import_transition_index: Option<u64>,
+    import_receipt_digest: Option<String>,
     store_id: [u8; 16],
     bootstrap_source_revision: String,
     bootstrap_membership_digest: String,
@@ -81,7 +84,17 @@ impl SelectedSourcePublicationRow {
             transaction_id: row.get("transaction_id"),
             package_digest: row.get("package_digest"),
             package_bytes: row.get("package_bytes"),
-            source_commit_seq: as_u64(row.get("source_commit_seq"))?,
+            origin_kind: row.get("origin_kind"),
+            source_commit_seq: row
+                .get::<_, Option<i64>>("source_commit_seq")
+                .map(as_u64)
+                .transpose()?,
+            import_event_id: row.get("import_event_id"),
+            import_transition_index: row
+                .get::<_, Option<i64>>("import_transition_index")
+                .map(as_u64)
+                .transpose()?,
+            import_receipt_digest: row.get("import_receipt_digest"),
             store_id,
             bootstrap_source_revision: row.get("bootstrap_source_revision"),
             bootstrap_membership_digest: row.get("bootstrap_membership_digest"),
@@ -95,7 +108,9 @@ impl SelectedSourcePublicationRow {
             || self.bootstrap_membership_digest
                 != selection.cohort.initial_membership.digest.to_hex()
             || self.bootstrap_membership_count != selection.cohort.initial_membership.count
-            || self.source_commit_seq > selection.head_seq
+            || self
+                .source_commit_seq
+                .is_some_and(|source_commit_seq| source_commit_seq > selection.head_seq)
         {
             return Err(DurableError::Conflict(
                 "source publication bootstrap or commit lineage differs",
@@ -104,13 +119,17 @@ impl SelectedSourcePublicationRow {
         match self.state.as_str() {
             "absent" => {
                 if self.publication_generation != 0
+                    || self.origin_kind != "bootstrap_absent"
                     || self.token.is_some()
                     || self.base_token.is_some()
                     || self.base_generation != 0
                     || self.transaction_id.is_some()
                     || self.package_digest.is_some()
                     || self.package_bytes.is_some()
-                    || self.source_commit_seq != 0
+                    || self.source_commit_seq != Some(0)
+                    || self.import_event_id.is_some()
+                    || self.import_transition_index.is_some()
+                    || self.import_receipt_digest.is_some()
                 {
                     return Err(DurableError::Corrupt(
                         "source publication absent row is not generation zero",
@@ -122,29 +141,27 @@ impl SelectedSourcePublicationRow {
                     .token
                     .as_deref()
                     .ok_or(DurableError::Corrupt("source publication token absent"))?;
-                let transaction_id = self
-                    .transaction_id
-                    .as_deref()
-                    .ok_or(DurableError::Corrupt("source publication transaction absent"))?;
-                let package_digest = self
-                    .package_digest
-                    .as_deref()
-                    .ok_or(DurableError::Corrupt("source publication package digest absent"))?;
+                let transaction_id = self.transaction_id.as_deref().ok_or(
+                    DurableError::Corrupt("source publication transaction absent"),
+                )?;
+                let package_digest = self.package_digest.as_deref().ok_or(
+                    DurableError::Corrupt("source publication package digest absent"),
+                )?;
                 let package_bytes = self
                     .package_bytes
                     .as_deref()
                     .ok_or(DurableError::Corrupt("source publication package absent"))?;
                 if self.publication_generation == 0
-                    || self.publication_generation != self.base_generation.checked_add(2).ok_or(
-                        DurableError::Corrupt("source publication generation overflow"),
-                    )?
+                    || self.publication_generation
+                        != self
+                            .base_generation
+                            .checked_add(2)
+                            .ok_or(DurableError::Corrupt(
+                                "source publication generation overflow",
+                            ))?
                     || !crate::source_work_transaction::is_hash(token)
                     || !crate::source_work_transaction::is_hash(transaction_id)
-                    || self.base_generation == 0
-                        && self
-                            .base_token
-                            .as_deref()
-                            .is_some()
+                    || self.base_generation == 0 && self.base_token.as_deref().is_some()
                     || self.base_generation > 0
                         && !self
                             .base_token
@@ -154,17 +171,37 @@ impl SelectedSourcePublicationRow {
                     || package_bytes.len() > MAX_SOURCE_PUBLICATION_PACKAGE_BYTES
                     || Digest256::from_hex(package_digest).is_err()
                     || Digest256::of_bytes(package_bytes).to_hex() != package_digest
-                    || self.source_commit_seq == 0
                 {
                     return Err(DurableError::Corrupt(
                         "source publication row fields or package digest differ",
                     ));
                 }
+                match self.origin_kind.as_str() {
+                    "pg_commit"
+                        if self.source_commit_seq.is_some_and(|seq| seq > 0)
+                            && self.import_event_id.is_none()
+                            && self.import_transition_index.is_none()
+                            && self.import_receipt_digest.is_none() => {}
+                    "legacy_sto_import"
+                        if self.source_commit_seq.is_none()
+                            && self
+                                .import_event_id
+                                .as_deref()
+                                .is_some_and(crate::source_work_transaction::is_hash)
+                            && self.import_transition_index.is_some_and(|index| index > 0)
+                            && self
+                                .import_receipt_digest
+                                .as_deref()
+                                .is_some_and(|digest| Digest256::from_hex(digest).is_ok()) => {}
+                    _ => {
+                        return Err(DurableError::Corrupt(
+                            "source publication origin lineage differs",
+                        ));
+                    }
+                }
             }
             _ => {
-                return Err(DurableError::Corrupt(
-                    "source publication state invalid",
-                ));
+                return Err(DurableError::Corrupt("source publication state invalid"));
             }
         }
         Ok(())
@@ -184,9 +221,7 @@ fn selected_publication_transaction_id(path: &str) -> DurableResult<String> {
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
-        return Err(DurableError::Invalid(
-            "source publication journal identity",
-        ));
+        return Err(DurableError::Invalid("source publication journal identity"));
     }
     Ok(format!("sha256:{id}"))
 }
@@ -199,13 +234,14 @@ fn selected_publication_package_member(
         .package_bytes
         .as_deref()
         .ok_or(DurableError::Corrupt("source publication package absent"))?;
-    let transaction_id = row
-        .transaction_id
-        .as_deref()
-        .ok_or(DurableError::Corrupt("source publication transaction absent"))?;
+    let transaction_id = row.transaction_id.as_deref().ok_or(DurableError::Corrupt(
+        "source publication transaction absent",
+    ))?;
     let id = transaction_id
         .strip_prefix("sha256:")
-        .ok_or(DurableError::Corrupt("source publication transaction identity"))?;
+        .ok_or(DurableError::Corrupt(
+            "source publication transaction identity",
+        ))?;
     let journal = format!("{SOURCE_PUBLICATION_JOURNAL_ROOT}/{id}");
     let control_raw = crate::source_work_transaction::selected_publication_virtual_member(
         package,
@@ -226,7 +262,9 @@ fn selected_publication_package_member(
         &completion_path,
     )
     .map_err(DurableError::Source)?
-    .ok_or(DurableError::Corrupt("source publication completion absent"))?;
+    .ok_or(DurableError::Corrupt(
+        "source publication completion absent",
+    ))?;
 
     let control = cmd::parse(&control_raw).map_err(DurableError::Source)?;
     crate::source_work_transaction::state(&control).map_err(DurableError::Source)?;
@@ -248,8 +286,7 @@ fn selected_publication_package_member(
         || cmd::text(&control, "transaction_id").map_err(DurableError::Source)? != transaction_id
         || cmd::integer(&control, "generation").map_err(DurableError::Source)?
             != row.publication_generation
-        || row.token.as_deref()
-            != Some(cmd::text(&control, "token").map_err(DurableError::Source)?)
+        || row.token.as_deref() != Some(cmd::text(&control, "token").map_err(DurableError::Source)?)
         || cmd::text(&manifest, "transaction_id").map_err(DurableError::Source)? != transaction_id
         || cmd::integer(base, "generation").map_err(DurableError::Source)? != row.base_generation
         || base_token != row.base_token
@@ -278,6 +315,88 @@ fn selected_publication_package_member(
         ))
 }
 
+fn selected_publication_import_receipt(
+    tx: &mut postgres::Transaction<'_>,
+    selection: &SourceRevisionSelection,
+    row: &SelectedSourcePublicationRow,
+) -> DurableResult<(
+    crate::source_work_transaction::LegacyPublicationImportBindingV1,
+    Vec<u8>,
+)> {
+    if row.origin_kind != "legacy_sto_import" {
+        return Err(DurableError::Corrupt(
+            "source publication import receipt requested for non-import row",
+        ));
+    }
+    let event_id = row.import_event_id.as_deref().ok_or(DurableError::Corrupt(
+        "source publication import event absent",
+    ))?;
+    let row_receipt_digest = row
+        .import_receipt_digest
+        .as_deref()
+        .ok_or(DurableError::Corrupt(
+            "source publication import receipt digest absent",
+        ))?;
+    let receipt = tx
+        .query_opt(
+            "SELECT origin_kind,import_event_id,receipt_digest,receipt_bytes,store_id,
+                    bootstrap_source_revision,bootstrap_membership_digest,
+                    bootstrap_membership_count,import_source_head,chain_root_digest,
+                    transition_count,head_control_digest,terminal_generation,terminal_token
+             FROM cmd2_source_publication_import
+             WHERE domain=$1 AND import_event_id=$2 FOR SHARE",
+            &[&selection.cohort.domain, &event_id],
+        )?
+        .ok_or(DurableError::Conflict(
+            "source publication import receipt is absent",
+        ))?;
+    let receipt_bytes: Vec<u8> = receipt.get("receipt_bytes");
+    let (binding, receipt_digest) =
+        crate::source_work_transaction::parse_legacy_selected_publication_import_receipt(
+            &receipt_bytes,
+        )
+        .map_err(DurableError::Source)?;
+    let store_id: [u8; 16] = receipt
+        .get::<_, Vec<u8>>("store_id")
+        .try_into()
+        .map_err(|_| DurableError::Corrupt("source publication import store identity"))?;
+    let import_index = row.import_transition_index.ok_or(DurableError::Corrupt(
+        "source publication import transition index absent",
+    ))?;
+    if receipt.get::<_, String>("origin_kind") != "legacy_sto_import"
+        || receipt.get::<_, String>("import_event_id") != event_id
+        || receipt.get::<_, String>("receipt_digest") != receipt_digest.to_hex()
+        || row_receipt_digest != receipt_digest.to_hex()
+        || binding.receipt_sha256 != receipt_digest
+        || binding.origin_kind != "legacy_sto_import"
+        || binding.import_event_id != event_id
+        || binding.domain != selection.cohort.domain
+        || binding.store_id != selection.cohort.store_id
+        || store_id != binding.store_id
+        || receipt.get::<_, String>("bootstrap_source_revision")
+            != binding.bootstrap_source_revision.0.to_hex()
+        || receipt.get::<_, String>("bootstrap_membership_digest")
+            != binding.bootstrap_membership.digest.to_hex()
+        || as_u64(receipt.get("bootstrap_membership_count"))? != binding.bootstrap_membership.count
+        || binding.bootstrap_source_revision != selection.cohort.initial_revision
+        || binding.bootstrap_membership != selection.cohort.initial_membership
+        || binding.through_seq != as_u64(receipt.get("import_source_head"))?
+        || binding.chain_root_sha256.to_hex() != receipt.get::<_, String>("chain_root_digest")
+        || binding.transition_count != as_u64(receipt.get("transition_count"))?
+        || binding.head_control_sha256.to_hex() != receipt.get::<_, String>("head_control_digest")
+        || binding.head_generation != as_u64(receipt.get("terminal_generation"))?
+        || binding.head_token != receipt.get::<_, String>("terminal_token")
+        || binding.through_seq > selection.head_seq
+        || binding.head_generation < row.publication_generation
+        || import_index > binding.transition_count
+    {
+        return Err(DurableError::Conflict(
+            "source publication import receipt binding differs",
+        ));
+    }
+    Ok((binding, receipt_bytes))
+}
+
 fn verify_selected_publication_parent(
     tx: &mut postgres::Transaction<'_>,
     selection: &SourceRevisionSelection,
@@ -291,10 +410,7 @@ fn verify_selected_publication_parent(
             "SELECT {SOURCE_PUBLICATION_ROW_FIELDS} FROM cmd2_source_publication_history
              WHERE domain=$1 AND publication_generation=$2 FOR SHARE"
         ),
-        &[
-            &selection.cohort.domain,
-            &as_i64(child.base_generation)?,
-        ],
+        &[&selection.cohort.domain, &as_i64(child.base_generation)?],
     )?;
     let parent = row
         .as_ref()
@@ -306,13 +422,69 @@ fn verify_selected_publication_parent(
     parent.verify_selection(selection)?;
     if parent.publication_generation != child.base_generation
         || parent.token != child.base_token
-        || parent.source_commit_seq >= child.source_commit_seq
         || (child.base_generation == 0 && parent.state != "absent")
         || (child.base_generation > 0 && parent.state != "present")
     {
         return Err(DurableError::Conflict(
             "source publication predecessor history differs",
         ));
+    }
+    match child.origin_kind.as_str() {
+        "legacy_sto_import" => {
+            let child_index = child.import_transition_index.ok_or(DurableError::Corrupt(
+                "source publication import transition index absent",
+            ))?;
+            let follows_import = parent.origin_kind == "legacy_sto_import"
+                && parent.import_event_id == child.import_event_id
+                && parent
+                    .import_transition_index
+                    .and_then(|index| index.checked_add(1))
+                    == Some(child_index);
+            let starts_import = parent.state == "absent" && child_index == 1;
+            if !follows_import && !starts_import {
+                return Err(DurableError::Conflict(
+                    "source publication import transition order differs",
+                ));
+            }
+            if follows_import {
+                selected_publication_import_receipt(tx, selection, &parent)?;
+            }
+        }
+        "pg_commit" => {
+            let child_seq = child.source_commit_seq.ok_or(DurableError::Corrupt(
+                "source publication commit sequence absent",
+            ))?;
+            let parent_seq = match parent.source_commit_seq {
+                Some(parent_seq) => parent_seq,
+                None if parent.origin_kind == "legacy_sto_import" => {
+                    let (binding, _) = selected_publication_import_receipt(tx, selection, &parent)?;
+                    if parent.publication_generation != binding.head_generation
+                        || parent.token.as_deref() != Some(binding.head_token.as_str())
+                        || parent.import_transition_index != Some(binding.transition_count)
+                    {
+                        return Err(DurableError::Conflict(
+                            "source publication import predecessor is not the imported head",
+                        ));
+                    }
+                    binding.through_seq
+                }
+                None => {
+                    return Err(DurableError::Corrupt(
+                        "source publication predecessor commit sequence absent",
+                    ));
+                }
+            };
+            if child_seq <= parent_seq {
+                return Err(DurableError::Conflict(
+                    "source publication commit sequence order differs",
+                ));
+            }
+        }
+        _ => {
+            return Err(DurableError::Corrupt(
+                "source publication predecessor origin invalid",
+            ));
+        }
     }
     Ok(())
 }
@@ -540,6 +712,9 @@ impl SourceRevisionIdentityClosure {
 pub(crate) struct SourceRevisionClaimNavigationClosure {
     domain: String,
     selection_identity: PgRecordRevisionIdentity,
+    as_of_sequence: u64,
+    baseline_sequence: u64,
+    held_source_head_sequence: u64,
     lookups: BTreeMap<
         (
             crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
@@ -572,33 +747,41 @@ impl SourceRevisionClaimNavigationClosure {
         self.selection_identity.digest()
     }
 
+    pub(crate) fn as_of_sequence(&self) -> u64 {
+        self.as_of_sequence
+    }
+
+    pub(crate) fn baseline_sequence(&self) -> u64 {
+        self.baseline_sequence
+    }
+
+    pub(crate) fn held_source_head_sequence(&self) -> u64 {
+        self.held_source_head_sequence
+    }
+
     /// Canonical commitment to this bounded reverse-reference closure. The
     /// readset remains the authority; this root is only a transport binding
     /// for compilers that need to seal affected-owner manifests.
     pub(crate) fn closure_root(&self) -> Digest256 {
         let mut hasher = Digest256Hasher::new();
-        part(
-            &mut hasher,
-            b"tos-pg-claim-navigation-closure-v1",
-        );
+        part(&mut hasher, b"tos-pg-claim-navigation-closure-v1");
         part(&mut hasher, self.domain.as_bytes());
         part(&mut hasher, self.selection_identity.digest().as_bytes());
-        part(
-            &mut hasher,
-            &(self.lookups.len() as u64).to_be_bytes(),
-        );
+        part(&mut hasher, &self.as_of_sequence.to_be_bytes());
+        part(&mut hasher, &self.baseline_sequence.to_be_bytes());
+        part(&mut hasher, &self.held_source_head_sequence.to_be_bytes());
+        part(&mut hasher, &(self.lookups.len() as u64).to_be_bytes());
         for ((kind, endpoint), observation) in &self.lookups {
             part(&mut hasher, kind.as_str().as_bytes());
             part(&mut hasher, endpoint.as_bytes());
             part(&mut hasher, observation.predicate_token.as_bytes());
+            part(&mut hasher, &observation.generation.to_be_bytes());
+            part(&mut hasher, observation.completeness_token.as_bytes());
             part(
                 &mut hasher,
-                &observation.generation.to_be_bytes(),
+                &observation.completeness_generation.to_be_bytes(),
             );
-            part(
-                &mut hasher,
-                &(observation.rows.len() as u64).to_be_bytes(),
-            );
+            part(&mut hasher, &(observation.rows.len() as u64).to_be_bytes());
             for row in &observation.rows {
                 part(&mut hasher, row.claim_id.as_bytes());
                 part(&mut hasher, row.path.as_bytes());
@@ -607,22 +790,21 @@ impl SourceRevisionClaimNavigationClosure {
                 part(&mut hasher, row.member_digest.as_bytes());
                 part(&mut hasher, &row.size_bytes.to_be_bytes());
                 part(&mut hasher, &row.commit_seq.to_be_bytes());
+                part(&mut hasher, &row.valid_from_seq.to_be_bytes());
+                part(
+                    &mut hasher,
+                    &row.valid_to_seq.unwrap_or_default().to_be_bytes(),
+                );
             }
         }
-        part(
-            &mut hasher,
-            &(self.member_facts.len() as u64).to_be_bytes(),
-        );
+        part(&mut hasher, &(self.member_facts.len() as u64).to_be_bytes());
         for (path, fact) in &self.member_facts {
             part(&mut hasher, path.as_bytes());
             part(&mut hasher, fact.digest.as_bytes());
             part(&mut hasher, &fact.size_bytes.to_be_bytes());
             part(&mut hasher, &fact.commit_seq.to_be_bytes());
         }
-        part(
-            &mut hasher,
-            &(self.members.len() as u64).to_be_bytes(),
-        );
+        part(&mut hasher, &(self.members.len() as u64).to_be_bytes());
         for (path, observation) in &self.members {
             let member = &observation.member;
             part(&mut hasher, path.as_bytes());
@@ -726,6 +908,8 @@ pub(crate) struct SourceRevisionReadSession<'a> {
         crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
     >,
     claim_navigation_members: BTreeMap<String, SourceRevisionObservation>,
+    claim_navigation_as_of_sequence: Option<u64>,
+    claim_navigation_baseline_sequence: Option<u64>,
 }
 
 impl SourceRevisionReadSet {
@@ -795,6 +979,8 @@ impl DurablePgCoordinator {
             work_revision: None,
             claim_navigation_lookups: BTreeMap::new(),
             claim_navigation_members: BTreeMap::new(),
+            claim_navigation_as_of_sequence: None,
+            claim_navigation_baseline_sequence: None,
         };
         let result = operation(&mut session)?;
         session.verify_fresh(deadline, cancelled)?;
@@ -804,7 +990,7 @@ impl DurablePgCoordinator {
             observations: session.observations,
             work: session.work,
             work_revision: session.work_revision,
-            claim_navigation_closure: if session.claim_navigation_lookups.is_empty() {
+            claim_navigation_closure: if session.claim_navigation_as_of_sequence.is_none() {
                 None
             } else {
                 let selection_identity = session.selection.identity();
@@ -827,6 +1013,13 @@ impl DurablePgCoordinator {
                 Some(SourceRevisionClaimNavigationClosure {
                     domain: session.selection.cohort.domain.clone(),
                     selection_identity,
+                    as_of_sequence: session
+                        .claim_navigation_as_of_sequence
+                        .ok_or(DurableError::Corrupt("Claim navigation as-of cut absent"))?,
+                    baseline_sequence: session
+                        .claim_navigation_baseline_sequence
+                        .ok_or(DurableError::Corrupt("Claim navigation baseline absent"))?,
+                    held_source_head_sequence: session.selection.head_seq,
                     lookups: session.claim_navigation_lookups,
                     member_facts,
                     members: session.claim_navigation_members,
@@ -1597,11 +1790,7 @@ impl SourceRevisionReadSession<'_> {
     ) -> DurableResult<Option<(String, RelativePath)>> {
         let tokens = BTreeSet::from([token.to_owned()]);
         let closure = self.lookup_source_identities(&tokens, deadline, cancelled)?;
-        let owner = closure
-            .owners()
-            .get(token)
-            .cloned()
-            .flatten();
+        let owner = closure.owners().get(token).cloned().flatten();
         Ok(owner)
     }
 
@@ -1626,9 +1815,7 @@ impl SourceRevisionReadSession<'_> {
             .iter()
             .any(|token| token.is_empty() || token.len() > MAX_SOURCE_IDENTITY_TOKEN_BYTES)
         {
-            return Err(DurableError::Invalid(
-                "bounded source identity token bound",
-            ));
+            return Err(DurableError::Invalid("bounded source identity token bound"));
         }
         if tokens.is_empty() {
             return Ok(SourceRevisionIdentityClosure {
@@ -1713,9 +1900,9 @@ impl SourceRevisionReadSession<'_> {
                         "bounded source identity path outside authored namespace",
                     ));
                 }
-                let slot = identities
-                    .get_mut(&token)
-                    .ok_or(DurableError::Corrupt("bounded source identity token absent"))?;
+                let slot = identities.get_mut(&token).ok_or(DurableError::Corrupt(
+                    "bounded source identity token absent",
+                ))?;
                 if slot.is_some() {
                     return Err(DurableError::Conflict(
                         "bounded source identity index is not globally unique",
@@ -1730,12 +1917,7 @@ impl SourceRevisionReadSession<'_> {
                  WHERE domain=$1 AND kind='unique' AND owner=$2
                    AND scope=ANY($3) AND token=ANY($4)
                  ORDER BY token COLLATE \"C\",scope COLLATE \"C\"",
-                &[
-                    &self.selection.cohort.domain,
-                    &OWNER,
-                    &kinds,
-                    &token_values,
-                ],
+                &[&self.selection.cohort.domain, &OWNER, &kinds, &token_values],
             )?;
             let mut generations = BTreeMap::new();
             for row in predicate_rows {
@@ -1764,10 +1946,7 @@ impl SourceRevisionReadSession<'_> {
             (identities, generations)
         };
 
-        Self::charge_work(
-            &mut self.work.unique_index_lookups,
-            tokens.len() as u64,
-        )?;
+        Self::charge_work(&mut self.work.unique_index_lookups, tokens.len() as u64)?;
         for token in tokens {
             for kind in PG_AGENT_INDEX_KINDS {
                 let generation = generations
@@ -2059,13 +2238,46 @@ impl SourceRevisionReadSession<'_> {
             crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
         >,
     > {
+        self.lookup_claim_navigation_references_at(
+            keys,
+            self.selection.head_seq,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Resolve exact reverse references at an authored-source cut while the
+    /// readset remains bound to the session's held current source head.
+    pub(crate) fn lookup_claim_navigation_references_at(
+        &mut self,
+        keys: &BTreeSet<(
+            crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+            String,
+        )>,
+        as_of_sequence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<
+        BTreeMap<
+            (
+                crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+                String,
+            ),
+            crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
+        >,
+    > {
         use crate::source_claim_dependency_index::{
             MAX_NAVIGATION_REFERENCE_LOOKUPS, MAX_NAVIGATION_REFERENCE_ROWS, MAX_STREAM_BYTES,
             NAVIGATION_REFERENCE_SCOPE,
         };
 
-        if keys.is_empty() {
-            return Ok(BTreeMap::new());
+        if self
+            .claim_navigation_as_of_sequence
+            .is_some_and(|existing| existing != as_of_sequence)
+        {
+            return Err(DurableError::Conflict(
+                "Claim navigation read session mixed as-of cuts",
+            ));
         }
         let additional = keys
             .iter()
@@ -2099,7 +2311,8 @@ impl SourceRevisionReadSession<'_> {
         }
         let gate = tx.query_one(
             "SELECT rights_allowed,rights_version,source_complete,source_generation,
-                    source_epoch,contract_digest,source_definition_digest
+                    source_epoch,contract_digest,source_definition_digest,head_seq,
+                    source_claim_navigation_reference_baseline_seq
              FROM cmd2_domain WHERE domain=$1 FOR SHARE",
             &[&domain],
         )?;
@@ -2119,6 +2332,22 @@ impl SourceRevisionReadSession<'_> {
                 "Claim navigation source read epoch changed",
             ));
         }
+        let held_source_head_sequence = as_u64(gate.get(7))?;
+        let baseline_sequence = gate
+            .get::<_, Option<i64>>(8)
+            .map(as_u64)
+            .transpose()?
+            .ok_or(DurableError::Conflict(
+                "Claim navigation interval baseline absent",
+            ))?;
+        if held_source_head_sequence != self.selection.head_seq
+            || as_of_sequence < baseline_sequence
+            || as_of_sequence > held_source_head_sequence
+        {
+            return Err(DurableError::Conflict(
+                "Claim navigation as-of cut is outside the held source interval",
+            ));
+        }
 
         let mut total_rows = self
             .claim_navigation_lookups
@@ -2135,12 +2364,14 @@ impl SourceRevisionReadSession<'_> {
             }
             active(deadline, cancelled)?;
             let observation =
-                crate::source_claim_dependency_index::lookup_current_navigation_references(
+                crate::source_claim_dependency_index::lookup_navigation_references_at(
                     &mut tx,
                     domain,
                     *kind,
                     endpoint,
                     self.selection.cohort.definition,
+                    as_of_sequence,
+                    held_source_head_sequence,
                 )?;
             if observation.kind != *kind || observation.endpoint != *endpoint {
                 return Err(DurableError::Corrupt(
@@ -2162,30 +2393,15 @@ impl SourceRevisionReadSession<'_> {
                 ));
             }
         }
-        active(deadline, cancelled)?;
-        tx.commit()?;
-        Self::charge_work(&mut self.work.claim_navigation_lookups, fresh.len() as u64)?;
-
+        let (completeness_token, completeness_generation) =
+            crate::source_claim_dependency_index::navigation_completeness_observation(
+                &mut tx,
+                domain,
+                self.selection.cohort.definition,
+            )?;
         let mut member_facts = BTreeMap::<String, (Digest256, u64, u64)>::new();
-        for ((kind, endpoint), observation) in fresh {
-            let token = &observation.predicate_token;
-            self.record_predicate(
-                "range",
-                NAVIGATION_REFERENCE_SCOPE,
-                token,
-                observation.generation,
-            );
+        for observation in fresh.values() {
             for row in &observation.rows {
-                if row.kind != kind || row.endpoint != endpoint {
-                    return Err(DurableError::Corrupt(
-                        "Claim navigation row belongs to another lookup",
-                    ));
-                }
-                if row.size_bytes > MAX_STREAM_BYTES as u64 {
-                    return Err(DurableError::Refused(
-                        "Claim navigation source member byte bound exceeded",
-                    ));
-                }
                 let path = row.path.as_str();
                 if !path.starts_with("ToS/source-witnesses/")
                     || path.starts_with("ToS/source-witnesses/owner-local/")
@@ -2201,45 +2417,153 @@ impl SourceRevisionReadSession<'_> {
                     .is_some_and(|existing| existing != facts)
                 {
                     return Err(DurableError::Conflict(
-                        "Claim navigation rows disagree on current stream facts",
+                        "Claim navigation rows disagree on as-of stream facts",
                     ));
                 }
+            }
+        }
+        let mut member_revisions = BTreeMap::new();
+        for (path, (expected_digest, expected_size, expected_commit_seq)) in &member_facts {
+            active(deadline, cancelled)?;
+            let row = tx
+                .query_opt(
+                    "SELECT revision,commit_seq,content_digest,content_length,source_mode
+                 FROM cmd2_history WHERE domain=$1 AND subject=$2 AND commit_seq<=$3
+                 ORDER BY revision DESC LIMIT 1",
+                    &[&domain, path, &as_i64(as_of_sequence)?],
+                )?
+                .ok_or(DurableError::Conflict(
+                    "Claim navigation as-of source history absent",
+                ))?;
+            let revision = as_u64(row.get(0))?;
+            let commit_seq = as_u64(row.get(1))?;
+            if commit_seq != *expected_commit_seq
+                || digest(row.get("content_digest"))? != *expected_digest
+                || as_u64(row.get("content_length"))? != *expected_size
+                || row.get::<_, Option<i32>>("source_mode").is_none()
+            {
+                return Err(DurableError::Conflict(
+                    "Claim navigation as-of history locator differs",
+                ));
+            }
+            member_revisions.insert(path.clone(), revision);
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Self::charge_work(&mut self.work.claim_navigation_lookups, fresh.len() as u64)?;
+        self.claim_navigation_as_of_sequence = Some(as_of_sequence);
+        self.claim_navigation_baseline_sequence = Some(baseline_sequence);
+        self.record_predicate(
+            "range",
+            NAVIGATION_REFERENCE_SCOPE,
+            &completeness_token,
+            completeness_generation,
+        );
+        for ((kind, endpoint), observation) in fresh {
+            let token = &observation.predicate_token;
+            self.record_predicate(
+                "range",
+                NAVIGATION_REFERENCE_SCOPE,
+                token,
+                observation.generation,
+            );
+            self.record_predicate(
+                "range",
+                NAVIGATION_REFERENCE_SCOPE,
+                &observation.completeness_token,
+                observation.completeness_generation,
+            );
+            for row in &observation.rows {
+                if row.kind != kind || row.endpoint != endpoint {
+                    return Err(DurableError::Corrupt(
+                        "Claim navigation row belongs to another lookup",
+                    ));
+                }
+                if row.size_bytes > MAX_STREAM_BYTES as u64 {
+                    return Err(DurableError::Refused(
+                        "Claim navigation source member byte bound exceeded",
+                    ));
+                }
+                let _ = row;
             }
             self.claim_navigation_lookups
                 .insert((kind, endpoint), observation);
         }
 
         for (path, (expected_digest, expected_size, expected_commit_seq)) in member_facts {
-            let observation = if let Some(observation) = self.observations.get(&path) {
-                observation.clone()
-            } else {
-                let relative = RelativePath::parse(&path)
-                    .map_err(|_| DurableError::Corrupt("Claim navigation source path"))?;
-                let member = self.read_current_member(
-                    &relative,
-                    MAX_STREAM_BYTES as u64,
-                    deadline,
-                    cancelled,
-                )?;
-                self.observations
-                    .get(&path)
-                    .cloned()
-                    .filter(|observation| observation.member.raw == member.raw)
-                    .ok_or(DurableError::Corrupt(
-                        "Claim navigation exact source observation absent",
-                    ))?
+            if self.claim_navigation_members.contains_key(&path) {
+                let member = &self.claim_navigation_members[&path].member;
+                if Digest256::of_bytes(&member.raw) != expected_digest
+                    || member.raw.len() as u64 != expected_size
+                    || member.commit_seq != expected_commit_seq
+                {
+                    return Err(DurableError::Conflict(
+                        "Claim navigation repeated as-of stream facts differ",
+                    ));
+                }
+                continue;
+            }
+            active(deadline, cancelled)?;
+            let relative = RelativePath::parse(&path)
+                .map_err(|_| DurableError::Corrupt("Claim navigation source path"))?;
+            let revision = member_revisions
+                .get(&path)
+                .copied()
+                .ok_or(DurableError::Corrupt(
+                    "Claim navigation as-of history revision absent",
+                ))?;
+            let (row, raw, placement, work) = self.coordinator.read_committed_source_selected(
+                self.store,
+                domain,
+                &path,
+                Some(revision),
+                MAX_STREAM_BYTES as u64,
+                deadline,
+                cancelled,
+                |row| cohort_matches(row, &self.selection.cohort, true),
+            )?;
+            let (metadata, dependency_claims) = expose_metadata(&row, &relative)?;
+            let member = ManagedCurrentMember {
+                path: relative.clone(),
+                custody_revision: revision,
+                current_generation: as_of_sequence,
+                commit_seq: as_u64(row.get("commit_seq"))?,
+                raw,
+                metadata,
+                dependency_claims,
+                placement,
             };
-            let member = &observation.member;
             if Digest256::of_bytes(&member.raw) != expected_digest
                 || member.metadata.sha256 != expected_digest
                 || member.raw.len() as u64 != expected_size
                 || member.commit_seq != expected_commit_seq
             {
                 return Err(DurableError::Conflict(
-                    "Claim navigation index differs from exact current stream",
+                    "Claim navigation index differs from exact as-of stream",
                 ));
             }
-            self.claim_navigation_members.insert(path, observation);
+            let locator = metadata_locator_digest(&row);
+            Self::charge_work(&mut self.work.exact_source_members_read, 1)?;
+            Self::charge_work(
+                &mut self.work.exact_source_bytes_read,
+                member.raw.len() as u64,
+            )?;
+            Self::charge_work(&mut self.work.historical_source_members_read, 1)?;
+            Self::charge_work(
+                &mut self.work.historical_source_bytes_read,
+                member.raw.len() as u64,
+            )?;
+            Self::charge_work(
+                &mut self.work.custody_metadata_bytes_read,
+                work.custody_metadata_bytes_read,
+            )?;
+            Self::charge_work(&mut self.work.segment_bytes_read, work.segment_bytes_read)?;
+            Self::charge_work(
+                &mut self.work.committed_member_rows_examined,
+                work.committed_member_rows_examined,
+            )?;
+            self.claim_navigation_members
+                .insert(path, SourceRevisionObservation { member, locator });
         }
 
         Ok(keys
@@ -2531,12 +2855,16 @@ impl SourceRevisionReadSession<'_> {
         tokens: &BTreeSet<String>,
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> DurableResult<BTreeMap<String, BTreeSet<crate::source_annotation_identity_index::AnnotationEntityOwner>>> {
+    ) -> DurableResult<
+        BTreeMap<String, BTreeSet<crate::source_annotation_identity_index::AnnotationEntityOwner>>,
+    > {
         if tokens.is_empty() {
             return Ok(BTreeMap::new());
         }
         if tokens.len() > MAX_ITEM_FILE_LOOKUPS
-            || tokens.iter().any(|token| token.is_empty() || token.len() > 4096)
+            || tokens
+                .iter()
+                .any(|token| token.is_empty() || token.len() > 4096)
         {
             return Err(DurableError::Refused(
                 "annotation identity point token bound",
@@ -2554,7 +2882,9 @@ impl SourceRevisionReadSession<'_> {
             if fence.get::<_, String>(1) != "normal"
                 || as_u64(fence.get(0))? != self.selection.audit_generation
             {
-                return Err(DurableError::Conflict("annotation identity audit fence changed"));
+                return Err(DurableError::Conflict(
+                    "annotation identity audit fence changed",
+                ));
             }
             let gate = tx.query_one(
                 "SELECT rights_allowed,source_complete,source_generation,source_epoch,
@@ -2574,7 +2904,9 @@ impl SourceRevisionReadSession<'_> {
                 || gate.get::<_, Option<String>>(5)
                     != Some(self.selection.cohort.definition.to_hex())
             {
-                return Err(DurableError::Conflict("annotation identity source epoch changed"));
+                return Err(DurableError::Conflict(
+                    "annotation identity source epoch changed",
+                ));
             }
             let mut owners = BTreeMap::new();
             let mut total = 0usize;
@@ -2588,16 +2920,15 @@ impl SourceRevisionReadSession<'_> {
                 total = total
                     .checked_add(found.len())
                     .filter(|count| *count <= MAX_ITEM_FILE_ROWS)
-                    .ok_or(DurableError::Refused("annotation identity point owner work bound"))?;
+                    .ok_or(DurableError::Refused(
+                        "annotation identity point owner work bound",
+                    ))?;
                 owners.insert(token.clone(), found);
             }
             tx.commit()?;
             owners
         };
-        Self::charge_work(
-            &mut self.work.item_file_lookups,
-            tokens.len() as u64,
-        )?;
+        Self::charge_work(&mut self.work.item_file_lookups, tokens.len() as u64)?;
         for token in tokens {
             self.observe_predicate_generation(
                 PredicateKind::Unique,
@@ -3002,14 +3333,166 @@ impl SourceRevisionReadSession<'_> {
 }
 
 impl SourceRevisionReadSession<'_> {
+    fn read_selected_import_publication_member(
+        &mut self,
+        row: &SelectedSourcePublicationRow,
+        receipt_bytes: &[u8],
+        requested_path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Vec<u8>> {
+        let package = row
+            .package_bytes
+            .as_deref()
+            .ok_or(DurableError::Corrupt("source publication package absent"))?;
+        let package_digest = row.package_digest.as_deref().ok_or(DurableError::Corrupt(
+            "source publication package digest absent",
+        ))?;
+        let (receipt_binding, receipt_digest) =
+            crate::source_work_transaction::parse_legacy_selected_publication_import_receipt(
+                receipt_bytes,
+            )
+            .map_err(DurableError::Source)?;
+        let import_event_id = row.import_event_id.as_deref().ok_or(DurableError::Corrupt(
+            "source publication import event absent",
+        ))?;
+        let import_transition_index = row.import_transition_index.ok_or(DurableError::Corrupt(
+            "source publication import transition index absent",
+        ))?;
+        let (package_binding, transition_index, refs) =
+            crate::source_work_transaction::legacy_selected_publication_import_package_refs(
+                package,
+            )
+            .map_err(DurableError::Source)?;
+        if package_binding != receipt_binding
+            || package_binding.import_event_id != import_event_id
+            || transition_index != import_transition_index
+            || package_binding.receipt_sha256 != receipt_digest
+            || Digest256::of_bytes(package)
+                != Digest256::from_hex(package_digest).map_err(|_| {
+                    DurableError::Corrupt("source publication package digest invalid")
+                })?
+        {
+            return Err(DurableError::Conflict(
+                "source publication import package binding differs",
+            ));
+        }
+        if refs
+            .iter()
+            .filter(|reference| reference.role == "selected_transaction_blob")
+            .count()
+            > MAX_SOURCE_PUBLICATION_IMPORT_BLOB_MEMBERS
+        {
+            return Err(DurableError::Refused(
+                "source publication import blob member budget exceeded",
+            ));
+        }
+        let mut blobs = BTreeMap::new();
+        let mut blob_bytes_read = 0u64;
+        for reference in refs
+            .iter()
+            .filter(|reference| reference.role == "selected_transaction_blob")
+        {
+            active(deadline, cancelled)?;
+            let path = RelativePath::parse(&reference.path)
+                .map_err(|_| DurableError::Corrupt("source publication import blob path"))?;
+            let member = self.read_current_member(
+                &path,
+                MAX_SOURCE_PUBLICATION_BLOB_BYTES,
+                deadline,
+                cancelled,
+            )?;
+            let expected = reference.after.as_ref().ok_or(DurableError::Corrupt(
+                "source publication import blob binding absent",
+            ))?;
+            if reference.before.is_some()
+                || member.metadata.sha256 != expected.sha256
+                || member.raw.len() as u64 != expected.byte_size
+            {
+                return Err(DurableError::Conflict(
+                    "source publication import blob differs from selected source",
+                ));
+            }
+            self.retained_state_bytes = self
+                .retained_state_bytes
+                .checked_add(path.as_str().len().saturating_mul(4) + member.raw.len())
+                .filter(|bytes| *bytes <= MAX_RETAINED_STATE_BYTES)
+                .ok_or(DurableError::Refused(
+                    "source publication import retained-state budget exceeded",
+                ))?;
+            blob_bytes_read = blob_bytes_read
+                .checked_add(member.raw.len() as u64)
+                .filter(|bytes| *bytes <= MAX_SOURCE_PUBLICATION_PACKAGE_BYTES_READ)
+                .ok_or(DurableError::Refused(
+                    "source publication import blob byte budget exceeded",
+                ))?;
+            if blobs.insert(reference.path.clone(), member.raw).is_some() {
+                return Err(DurableError::Corrupt(
+                    "source publication import blob path duplicated",
+                ));
+            }
+        }
+        let retained_writes = crate::source_work_transaction::
+            legacy_selected_publication_import_retained_writes_from_blobs(package, &blobs)
+                .map_err(DurableError::Source)?;
+        let parsed =
+            crate::source_work_transaction::parse_legacy_selected_publication_import_package(
+                package,
+                &retained_writes,
+            )
+            .map_err(DurableError::Source)?;
+        if parsed.canonical_bytes != package
+            || parsed.sha256.to_hex() != package_digest
+            || parsed.origin != receipt_binding
+            || parsed.transition_index != import_transition_index
+            || parsed.transaction_id != row.transaction_id.as_deref().unwrap_or_default()
+            || parsed.generation != row.publication_generation
+            || parsed.token != row.token.as_deref().unwrap_or_default()
+            || parsed.base_publication_generation != row.base_generation
+            || parsed.base_publication_token != row.base_token
+        {
+            return Err(DurableError::Conflict(
+                "source publication import transition differs from indexed row",
+            ));
+        }
+        if blob_bytes_read > MAX_SOURCE_PUBLICATION_PACKAGE_BYTES_READ {
+            return Err(DurableError::Refused(
+                "source publication import blob byte budget exceeded",
+            ));
+        }
+        let value = cmd::parse(package).map_err(DurableError::Source)?;
+        let (field, expected_digest) = if requested_path == SOURCE_PUBLICATION_CONTROL_PATH {
+            ("control", parsed.control_sha256)
+        } else {
+            let requested_transaction = selected_publication_transaction_id(requested_path)?;
+            if parsed.transaction_id != requested_transaction {
+                return Err(DurableError::Conflict(
+                    "source publication import journal transaction differs",
+                ));
+            }
+            if requested_path.ends_with("/manifest.json") {
+                ("manifest", parsed.manifest_sha256)
+            } else {
+                ("completion", parsed.completion_sha256)
+            }
+        };
+        let raw = cmd::canonical(cmd::field(&value, field).map_err(DurableError::Source)?)
+            .map_err(DurableError::Source)?;
+        if Digest256::of_bytes(&raw) != expected_digest {
+            return Err(DurableError::Conflict(
+                "source publication import sidecar bytes differ",
+            ));
+        }
+        Ok(raw)
+    }
+
     fn read_selected_publication_virtual_member(
         &mut self,
         path: &str,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<Option<Vec<u8>>> {
-        let is_control =
-            crate::source_work_transaction::is_selected_publication_control_path(path);
+        let is_control = crate::source_work_transaction::is_selected_publication_control_path(path);
         let is_journal =
             crate::source_work_transaction::is_selected_publication_journal_metadata_path(path);
         if !is_control && !is_journal {
@@ -3027,7 +3510,7 @@ impl SourceRevisionReadSession<'_> {
         }
         active(deadline, cancelled)?;
 
-        let (member, generation, package_bytes_read) = {
+        let (selected, selected_import_receipt, generation, package_bytes_read) = {
             let mut tx = self.coordinator.client.transaction()?;
             tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
             let fence = tx.query_one(
@@ -3057,8 +3540,7 @@ impl SourceRevisionReadSession<'_> {
                 || as_u64(gate.get(1))? != self.selection.rights_version
                 || as_u64(gate.get(2))? != self.selection.rule_version
                 || !gate.get::<_, bool>(3)
-                || gate.get::<_, Option<i64>>(4)
-                    != Some(as_i64(self.selection.source_generation)?)
+                || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.source_generation)?)
                 || gate.get::<_, Option<i64>>(5) != Some(as_i64(self.selection.epoch)?)
                 || as_u64(gate.get(6))? != self.selection.head_seq
                 || gate.get::<_, String>(7) != self.selection.contract.to_hex()
@@ -3085,6 +3567,18 @@ impl SourceRevisionReadSession<'_> {
                     "source publication current pointer is unavailable",
                 ))?;
             current.verify_selection(&self.selection)?;
+            if current.origin_kind == "legacy_sto_import" {
+                let (binding, _) =
+                    selected_publication_import_receipt(&mut tx, &self.selection, &current)?;
+                if current.publication_generation != binding.head_generation
+                    || current.token.as_deref() != Some(binding.head_token.as_str())
+                    || current.import_transition_index != Some(binding.transition_count)
+                {
+                    return Err(DurableError::Conflict(
+                        "source publication current pointer is not the imported head",
+                    ));
+                }
+            }
             let predicate = tx.query_opt(
                 "SELECT generation,complete,definition_version FROM cmd2_predicate
                  WHERE domain=$1 AND kind='unique' AND owner=$2
@@ -3137,11 +3631,12 @@ impl SourceRevisionReadSession<'_> {
                     Some(current.clone())
                 }
             } else {
-                let transaction_id = requested_transaction
-                    .as_deref()
-                    .ok_or(DurableError::Corrupt(
-                        "source publication journal transaction absent",
-                    ))?;
+                let transaction_id =
+                    requested_transaction
+                        .as_deref()
+                        .ok_or(DurableError::Corrupt(
+                            "source publication journal transaction absent",
+                        ))?;
                 let rows = tx.query(
                     &format!(
                         "SELECT {SOURCE_PUBLICATION_ROW_FIELDS}
@@ -3176,15 +3671,34 @@ impl SourceRevisionReadSession<'_> {
                             "source publication selected history lineage differs",
                         ));
                     }
+                    if selected.origin_kind == "legacy_sto_import" {
+                        selected_publication_import_receipt(&mut tx, &self.selection, &selected)?;
+                    }
                     verify_selected_publication_parent(&mut tx, &self.selection, &selected)?;
                     Some(selected)
                 }
                 None => None,
             };
+            let selected_import_receipt = selected
+                .as_ref()
+                .filter(|selected| selected.origin_kind == "legacy_sto_import")
+                .map(|selected| {
+                    selected_publication_import_receipt(&mut tx, &self.selection, selected)
+                        .map(|(_, bytes)| bytes)
+                })
+                .transpose()?;
             let package_bytes_read = selected
                 .as_ref()
                 .and_then(|selected| selected.package_bytes.as_ref())
-                .map_or(0, |bytes| bytes.len() as u64);
+                .map_or(0, |bytes| bytes.len() as u64)
+                .checked_add(
+                    selected_import_receipt
+                        .as_ref()
+                        .map_or(0, |bytes| bytes.len() as u64),
+                )
+                .ok_or(DurableError::Refused(
+                    "source publication package read budget exceeded",
+                ))?;
             if self
                 .work
                 .source_publication_package_bytes_read
@@ -3196,13 +3710,32 @@ impl SourceRevisionReadSession<'_> {
                     "source publication package read budget exceeded",
                 ));
             }
-            let member = selected
-                .as_ref()
-                .map(|selected| selected_publication_package_member(selected, path))
-                .transpose()?;
             active(deadline, cancelled)?;
             tx.commit()?;
-            (member, generation, package_bytes_read)
+            (
+                selected,
+                selected_import_receipt,
+                generation,
+                package_bytes_read,
+            )
+        };
+
+        let member = match selected.as_ref() {
+            Some(selected) if selected.origin_kind == "legacy_sto_import" => Some(
+                self.read_selected_import_publication_member(
+                    selected,
+                    selected_import_receipt
+                        .as_deref()
+                        .ok_or(DurableError::Corrupt(
+                            "source publication import receipt bytes absent",
+                        ))?,
+                    path,
+                    deadline,
+                    cancelled,
+                )?,
+            ),
+            Some(selected) => Some(selected_publication_package_member(selected, path)?),
+            None => None,
         };
 
         self.require_stable_predicate_generation(
@@ -3239,9 +3772,7 @@ impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
             let raw = self
                 .read_selected_publication_virtual_member(path.as_str(), deadline, cancelled)
                 .map_err(source_command_error)?
-                .ok_or(SourceCommandError::Conflict(
-                    "bounded source member absent",
-                ))?;
+                .ok_or(SourceCommandError::Conflict("bounded source member absent"))?;
             if raw.len() > max_bytes {
                 return Err(SourceCommandError::Unsupported(
                     "bounded source revision member budget",

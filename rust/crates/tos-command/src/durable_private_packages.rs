@@ -1,24 +1,26 @@
-//! Separate owner-private package persistence for profile, Claim and Text.
+//! Separate owner-private package persistence for profile, Claim, Text,
+//! Alignment and Assessment.
 //!
 //! This namespace is deliberately absent from public source selection and
-//! projection. Only the three crate-owned family capabilities below may ask
-//! the coordinator to commit bytes; public consumers receive neither table
+//! projection. Only sealed crate-owned family capabilities may ask the
+//! coordinator to commit bytes; public consumers receive neither table
 //! access nor private package rows.
 
 use super::{DurableError, DurablePgCoordinator, DurableResult, as_i64, as_u64, parse_hex, part};
-use postgres::GenericClient;
+use postgres::{Client, GenericClient};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 pub(crate) const PRIVATE_SCHEMA_PROFILE: &str =
-    super::durable_compatibility::PRIVATE_PACKAGE_ABI_PROFILE_V3;
+    super::durable_compatibility::PRIVATE_PACKAGE_ABI_PROFILE_V4;
 const MAX_TARGET_REF_BYTES: usize = 4096;
 const MAX_MEMBER_NAME_BYTES: usize = 128;
 const MAX_MEMBERS: usize = 64;
 const MAX_MEMBER_BYTES: usize = 12 * 1024 * 1024;
 const MAX_TEXT_PACKAGE_BYTES: usize = 12 * 1024 * 1024;
+const MAX_ALIGNMENT_PACKAGE_BYTES: usize = 12 * 1024 * 1024;
 const MAX_PROFILE_CLAIM_PACKAGE_BYTES: usize = 8 * 1024 * 1024;
 const MAX_ASSESSMENT_PACKAGE_BYTES: usize = 2 * 1024 * 1024;
 const MAX_ASSESSMENT_MEMBER_BYTES: usize = 1 * 1024 * 1024;
@@ -35,6 +37,7 @@ pub(crate) const MAX_PACKAGE_HISTORY_TARGETS: usize = 65;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PrivateOwnerPackageFamilyV1 {
     Text,
+    Alignment,
     Profile,
     Claim,
     Assessment,
@@ -44,6 +47,7 @@ impl PrivateOwnerPackageFamilyV1 {
     fn as_str(self) -> &'static str {
         match self {
             Self::Text => "text",
+            Self::Alignment => "alignment",
             Self::Profile => "profile",
             Self::Claim => "claim",
             Self::Assessment => "assessment",
@@ -109,6 +113,170 @@ pub(crate) struct PrivateOwnerPackageSnapshotV1 {
     pub(crate) private_audit_generation: u64,
 }
 
+/// Package metadata for owner operations that need existence and identity but
+/// must not hydrate private member bytes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateOwnerPackageHeaderV1 {
+    pub(crate) scope: PrivateOwnerScopeV1,
+    pub(crate) target_ref: String,
+    pub(crate) current: Option<PrivateOwnerPackageCurrentHeaderV1>,
+    pub(crate) private_audit_generation: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateOwnerPackageCurrentHeaderV1 {
+    pub(crate) family: PrivateOwnerPackageFamilyV1,
+    pub(crate) revision: u64,
+    pub(crate) package_digest: Digest256,
+    pub(crate) member_count: usize,
+    pub(crate) total_bytes: u64,
+    pub(crate) command_id: String,
+    pub(crate) commit_seq: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateOwnerSelectedMemberV1 {
+    pub(crate) target_ref: String,
+    pub(crate) member_name: String,
+    pub(crate) family: PrivateOwnerPackageFamilyV1,
+    pub(crate) revision: u64,
+    pub(crate) package_digest: Digest256,
+    pub(crate) member_digest: Digest256,
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) private_audit_generation: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateOwnerCommandReceiptMetadataV1 {
+    pub(crate) command_id: String,
+    pub(crate) target_digest: Digest256,
+    pub(crate) target_matches: bool,
+    pub(crate) family: PrivateOwnerPackageFamilyV1,
+    pub(crate) request_digest: Digest256,
+    pub(crate) raw_request_digest: Digest256,
+    pub(crate) owner_context_binding: Digest256,
+    pub(crate) owner_configuration_digest: Digest256,
+    pub(crate) package_digest: Digest256,
+    pub(crate) response_digest: Digest256,
+    pub(crate) commit_seq: u64,
+    pub(crate) private_audit_generation_after: u64,
+    /// Private generation observed by the original command's source binding.
+    pub(crate) source_private_generation: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateOwnerCommandMetadataV1 {
+    pub(crate) header: PrivateOwnerPackageHeaderV1,
+    /// Present for any receipt with this ID in the owner scope. `target_digest`
+    /// lets the caller distinguish a receipt for another target without
+    /// disclosing that target's path.
+    pub(crate) receipt: Option<PrivateOwnerCommandReceiptMetadataV1>,
+}
+
+/// A bounded private read view held under one RR snapshot and the owner-scope
+/// shared advisory lock. The session lock is acquired before this snapshot.
+/// Callbacks may open a second coordinator for public source reads, but must
+/// not attempt a private write in this same scope.
+pub(crate) struct PrivateOwnerReadSession<'connection> {
+    transaction: Option<postgres::Transaction<'connection>>,
+    scope: PrivateOwnerScopeV1,
+    private_audit_generation: u64,
+    current_headers: BTreeMap<String, Option<PrivateOwnerPackageCurrentHeaderV1>>,
+}
+
+/// Session-scoped shared advisory lock acquired before the RR transaction.
+/// Taking an xact advisory lock as the first statement of an RR transaction
+/// can establish the MVCC snapshot before a lock wait completes. This guard
+/// keeps the lock across the subsequent transaction and releases it on every
+/// ordinary return path and during unwinding.
+struct PrivateOwnerSharedReadLock<'client> {
+    client: &'client mut Client,
+    lock_a: i32,
+    lock_b: i32,
+    held: bool,
+}
+
+impl<'client> PrivateOwnerSharedReadLock<'client> {
+    fn acquire(
+        client: &'client mut Client,
+        scope: &PrivateOwnerScopeV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Self> {
+        let (lock_a, lock_b) = private_scope_advisory_keys(scope);
+        let mut delay = Duration::from_millis(5);
+        const MAX_DELAY: Duration = Duration::from_millis(50);
+        loop {
+            check_private_history_deadline(deadline, cancelled)?;
+            let acquired: bool = client
+                .query_one(
+                    "SELECT pg_try_advisory_lock_shared($1,$2)",
+                    &[&lock_a, &lock_b],
+                )?
+                .get(0);
+            if acquired {
+                return Ok(PrivateOwnerSharedReadLock {
+                    client,
+                    lock_a,
+                    lock_b,
+                    held: true,
+                });
+            }
+            check_private_history_deadline(deadline, cancelled)?;
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            std::thread::sleep(delay.min(MAX_DELAY).min(remaining));
+            delay = (delay * 2).min(MAX_DELAY);
+        }
+    }
+
+    fn release(mut self) -> DurableResult<()> {
+        let released: bool = self
+            .client
+            .query_one(
+                "SELECT pg_advisory_unlock_shared($1,$2)",
+                &[&self.lock_a, &self.lock_b],
+            )?
+            .get(0);
+        self.held = false;
+        if released {
+            Ok(())
+        } else {
+            Err(DurableError::Corrupt(
+                "private owner shared advisory lock was not held",
+            ))
+        }
+    }
+}
+
+impl Drop for PrivateOwnerSharedReadLock<'_> {
+    fn drop(&mut self) {
+        if self.held {
+            let _ = self.client.query_one(
+                "SELECT pg_advisory_unlock_shared($1,$2)",
+                &[&self.lock_a, &self.lock_b],
+            );
+            self.held = false;
+        }
+    }
+}
+
+fn with_private_owner_shared_read_lock<T>(
+    client: &mut Client,
+    scope: &PrivateOwnerScopeV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    operation: impl FnOnce(&mut Client) -> DurableResult<T>,
+) -> DurableResult<T> {
+    let mut lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
+    let result = check_private_history_deadline(deadline, cancelled)
+        .and_then(|()| operation(&mut *lock.client));
+    let released = lock.release();
+    match released {
+        Ok(()) => result,
+        Err(error) => Err(error),
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PrivateTextIdentityMatchV1 {
     pub(crate) token: String,
@@ -162,6 +330,10 @@ pub(crate) struct PrivateOwnerPackageWriteV1 {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PrivateOwnerPackageReplayV1 {
+    /// Whether this call resolved to an already committed command receipt.
+    /// A fresh append returns false; a sequential or raced existing receipt
+    /// returns true without inserting a second package or receipt.
+    pub(crate) replayed: bool,
     pub(crate) commit_seq: u64,
     pub(crate) package_digest: Digest256,
     pub(crate) private_audit_generation_after: u64,
@@ -417,6 +589,7 @@ fn validate_members(
     } else {
         match family {
             PrivateOwnerPackageFamilyV1::Text => MAX_TEXT_PACKAGE_BYTES,
+            PrivateOwnerPackageFamilyV1::Alignment => MAX_ALIGNMENT_PACKAGE_BYTES,
             PrivateOwnerPackageFamilyV1::Profile | PrivateOwnerPackageFamilyV1::Claim => {
                 MAX_PROFILE_CLAIM_PACKAGE_BYTES
             }
@@ -437,15 +610,33 @@ struct PrivateTextIdentityContribution {
 }
 
 fn private_text_identity_contributions(
+    family: PrivateOwnerPackageFamilyV1,
     target_ref: &str,
     members: &BTreeMap<String, Vec<u8>>,
 ) -> DurableResult<(Digest256, Vec<PrivateTextIdentityContribution>)> {
+    if !matches!(
+        family,
+        PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+    ) {
+        return Err(DurableError::Invalid(
+            "private owner identity package family",
+        ));
+    }
     if !target_ref.starts_with("ToS/") || tos_foundation::RelativePath::parse(target_ref).is_err() {
         return Err(DurableError::Invalid("private Text identity package route"));
     }
     let mut contributions = Vec::new();
     for (member_name, bytes) in members {
-        if !crate::source_text_identity::is_candidate(member_name) {
+        let candidate = match family {
+            PrivateOwnerPackageFamilyV1::Text => {
+                crate::source_text_identity::is_candidate(member_name)
+            }
+            PrivateOwnerPackageFamilyV1::Alignment => {
+                crate::source_text_identity::is_alignment_candidate(member_name)
+            }
+            _ => false,
+        };
+        if !candidate {
             continue;
         }
         let logical_path = format!("{target_ref}/{member_name}");
@@ -520,8 +711,12 @@ fn validate_private_text_identity_snapshot(
     stored_root: Option<Digest256>,
     stored_count: Option<usize>,
 ) -> DurableResult<(Option<Digest256>, Option<usize>)> {
-    if family == PrivateOwnerPackageFamilyV1::Text {
-        let (root, contributions) = private_text_identity_contributions(target_ref, members)?;
+    if matches!(
+        family,
+        PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+    ) {
+        let (root, contributions) =
+            private_text_identity_contributions(family, target_ref, members)?;
         if stored_root.is_some_and(|value| value != root)
             || stored_count.is_some_and(|value| value != contributions.len())
         {
@@ -598,9 +793,20 @@ fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> 
                ('cmd2_private_package_current','text_identity_root'),
                ('cmd2_private_package_current','text_identity_count')),
              required_constraints(name) AS (VALUES
+               ('cmd2_private_package_history_family_check'),
+               ('cmd2_private_package_history_assessment_shape_check'),
+               ('cmd2_private_package_history_alignment_size_check'),
+               ('cmd2_private_package_current_family_check'),
+               ('cmd2_private_package_current_assessment_shape_check'),
+               ('cmd2_private_package_current_alignment_size_check'),
                ('cmd2_private_package_current_text_identity_root_check'),
                ('cmd2_private_package_current_text_identity_count_check'),
-               ('cmd2_private_package_current_text_identity_shape_check')),
+               ('cmd2_private_package_current_text_identity_shape_check'),
+               ('cmd2_private_text_identity_family_check'),
+               ('cmd2_private_package_archive_family_check'),
+               ('cmd2_private_command_receipt_family_check'),
+               ('cmd2_private_log_family_check'),
+               ('cmd2_private_outbox_family_check')),
              required_functions(name) AS (VALUES
                ('cmd2_private_bump_audit_fence'),('cmd2_private_refuse_immutable_mutation'),
                ('cmd2_private_refuse_truncate'),('cmd2_private_guard_scope_update'),
@@ -647,7 +853,7 @@ fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> 
                  JOIN information_schema.columns c
                    ON c.table_schema=current_schema()
                   AND c.table_name=r.table_name AND c.column_name=r.column_name)
-               AND (SELECT count(*)=3 FROM required_constraints r JOIN pg_constraint c
+               AND (SELECT count(*)=14 FROM required_constraints r JOIN pg_constraint c
                  ON c.conname=r.name JOIN pg_class t ON t.oid=c.conrelid
                 JOIN pg_namespace n ON n.oid=t.relnamespace
                 WHERE n.nspname=current_schema())
@@ -718,6 +924,486 @@ fn verify_context_binding(
         &[&scope.domain, &scope.owner_scope],
     )?;
     Ok(row.is_none_or(|row| row.get::<_, String>(0) == scope.context_binding.to_hex()))
+}
+
+fn private_family_max_bytes(family: PrivateOwnerPackageFamilyV1) -> usize {
+    match family {
+        PrivateOwnerPackageFamilyV1::Text => MAX_TEXT_PACKAGE_BYTES,
+        PrivateOwnerPackageFamilyV1::Alignment => MAX_ALIGNMENT_PACKAGE_BYTES,
+        PrivateOwnerPackageFamilyV1::Profile | PrivateOwnerPackageFamilyV1::Claim => {
+            MAX_PROFILE_CLAIM_PACKAGE_BYTES
+        }
+        PrivateOwnerPackageFamilyV1::Assessment => MAX_ASSESSMENT_PACKAGE_BYTES,
+    }
+}
+
+fn private_family_member_max_bytes(family: PrivateOwnerPackageFamilyV1) -> usize {
+    if family == PrivateOwnerPackageFamilyV1::Assessment {
+        MAX_ASSESSMENT_MEMBER_BYTES
+    } else {
+        MAX_MEMBER_BYTES
+    }
+}
+
+fn verify_current_member_manifest(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    revision: u64,
+    expected_count: usize,
+    expected_total: u64,
+    expected_digest: Digest256,
+    family: PrivateOwnerPackageFamilyV1,
+) -> DurableResult<()> {
+    let rows = client.query(
+        "SELECT member_name,member_digest,octet_length(member_bytes)
+         FROM cmd2_private_package_member
+         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4
+         ORDER BY member_name COLLATE \"C\" LIMIT 66",
+        &[
+            &scope.domain,
+            &scope.owner_scope,
+            &target_ref,
+            &as_i64(revision)?,
+        ],
+    )?;
+    if rows.len() != expected_count {
+        return Err(DurableError::Corrupt(
+            "private package current member metadata count",
+        ));
+    }
+    let mut member_digests = BTreeMap::new();
+    let mut total = 0u64;
+    for row in rows {
+        let name: String = row.get(0);
+        let digest: String = row.get(1);
+        let size: i32 = row.get(2);
+        parse_hex(digest.clone())?;
+        if name.is_empty()
+            || name == "."
+            || name == ".."
+            || name.len() > MAX_MEMBER_NAME_BYTES
+            || name.contains('/')
+            || name.contains('\\')
+            || name.contains('\0')
+            || size < 0
+            || size as usize > private_family_member_max_bytes(family)
+            || member_digests.insert(name, digest).is_some()
+        {
+            return Err(DurableError::Corrupt(
+                "private package current member metadata shape",
+            ));
+        }
+        total = total
+            .checked_add(size as u64)
+            .ok_or(DurableError::Corrupt("private package total byte overflow"))?;
+    }
+    if total != expected_total
+        || package_digest_from_member_digests(&member_digests)? != expected_digest
+    {
+        return Err(DurableError::Corrupt(
+            "private package current member metadata digest or size",
+        ));
+    }
+    Ok(())
+}
+
+fn read_current_package_header(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    private_generation: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Option<PrivateOwnerPackageCurrentHeaderV1>> {
+    check_private_history_deadline(deadline, cancelled)?;
+    let row = client.query_opt(
+        "SELECT c.family,c.revision,c.package_digest,c.member_count,c.total_bytes,
+                c.command_id,c.commit_seq,c.text_identity_root,c.text_identity_count,
+                h.target_ref,h.family,h.revision,h.package_digest,h.member_count,h.total_bytes,
+                h.command_id,h.commit_seq,h.owner_context_binding,h.owner_configuration_digest,
+                h.request_digest,h.raw_request_digest,h.private_owner_audit_generation,
+                r.command_id,r.target_digest,r.family,r.request_digest,r.raw_request_digest,
+                r.owner_context_binding,r.owner_configuration_digest,r.package_digest,
+                r.commit_seq,r.private_audit_generation_after
+         FROM cmd2_private_package_current c
+         LEFT JOIN cmd2_private_package_history h
+           ON h.domain=c.domain AND h.owner_scope=c.owner_scope
+          AND h.target_ref=c.target_ref AND h.revision=c.revision
+         LEFT JOIN cmd2_private_command_receipt r
+           ON r.domain=c.domain AND r.owner_scope=c.owner_scope
+          AND r.command_id=c.command_id
+         WHERE c.domain=$1 AND c.owner_scope=$2 AND c.target_ref=$3",
+        &[&scope.domain, &scope.owner_scope, &target_ref],
+    )?;
+    check_private_history_deadline(deadline, cancelled)?;
+    let Some(row) = row else {
+        let has_history: bool = client
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM cmd2_private_package_history
+             WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3)",
+                &[&scope.domain, &scope.owner_scope, &target_ref],
+            )?
+            .get(0);
+        check_private_history_deadline(deadline, cancelled)?;
+        if has_history {
+            return Err(DurableError::Corrupt(
+                "private package history exists without a current header",
+            ));
+        }
+        return Ok(None);
+    };
+
+    macro_rules! required {
+        ($index:expr, $type:ty, $reason:expr) => {
+            row.get::<_, Option<$type>>($index)
+                .ok_or(DurableError::Corrupt($reason))?
+        };
+    }
+
+    let family = parse_family(row.get::<_, String>(0))?;
+    let revision = as_u64(row.get(1))?;
+    let package_digest = parse_hex(row.get::<_, String>(2))?;
+    let member_count: i32 = row.get(3);
+    let total_bytes = as_u64(row.get(4))?;
+    let command_id: String = row.get(5);
+    let commit_seq = as_u64(row.get(6))?;
+    let stored_identity_root = row.get::<_, Option<String>>(7);
+    let stored_identity_count = row.get::<_, Option<i32>>(8);
+    if member_count <= 0
+        || member_count as usize > MAX_MEMBERS
+        || revision == 0
+        || total_bytes == 0
+        || total_bytes > private_family_max_bytes(family) as u64
+        || command_id.is_empty()
+        || commit_seq == 0
+    {
+        return Err(DurableError::Corrupt(
+            "private package current header shape",
+        ));
+    }
+    match family {
+        PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment => {
+            let root = stored_identity_root.ok_or(DurableError::Corrupt(
+                "private package identity root absent",
+            ))?;
+            parse_hex(root)?;
+            let count = stored_identity_count.ok_or(DurableError::Corrupt(
+                "private package identity count absent",
+            ))?;
+            if count < 0 || count as usize > MAX_IDENTITY_ROWS {
+                return Err(DurableError::Corrupt("private package identity count"));
+            }
+        }
+        _ if stored_identity_root.is_some() || stored_identity_count.is_some() => {
+            return Err(DurableError::Corrupt(
+                "non-identity private family has an identity marker",
+            ));
+        }
+        _ => {}
+    }
+
+    let history_target: String = required!(9, String, "private package current history absent");
+    let history_family = parse_family(required!(
+        10,
+        String,
+        "private package current history absent"
+    ))?;
+    let history_revision = as_u64(required!(11, i64, "private package current history absent"))?;
+    let history_digest = parse_hex(required!(
+        12,
+        String,
+        "private package current history absent"
+    ))?;
+    let history_member_count = required!(13, i32, "private package current history absent");
+    let history_total_bytes = as_u64(required!(14, i64, "private package current history absent"))?;
+    let history_command_id = required!(15, String, "private package current history absent");
+    let history_commit_seq = as_u64(required!(16, i64, "private package current history absent"))?;
+    let history_context = required!(17, String, "private package current history absent");
+    let history_configuration = required!(18, String, "private package current history absent");
+    let history_request = required!(19, String, "private package current history absent");
+    let history_raw_request = required!(20, String, "private package current history absent");
+    let source_private_generation =
+        as_u64(required!(21, i64, "private package current history absent"))?;
+    let receipt_command_id = required!(22, String, "private package current receipt absent");
+    let receipt_target_digest = parse_hex(required!(
+        23,
+        String,
+        "private package current receipt absent"
+    ))?;
+    let receipt_family = parse_family(required!(
+        24,
+        String,
+        "private package current receipt absent"
+    ))?;
+    let receipt_request = required!(25, String, "private package current receipt absent");
+    let receipt_raw_request = required!(26, String, "private package current receipt absent");
+    let receipt_context = required!(27, String, "private package current receipt absent");
+    let receipt_configuration = required!(28, String, "private package current receipt absent");
+    let receipt_digest = parse_hex(required!(
+        29,
+        String,
+        "private package current receipt absent"
+    ))?;
+    let receipt_commit_seq = as_u64(required!(30, i64, "private package current receipt absent"))?;
+    let generation_after = as_u64(required!(31, i64, "private package current receipt absent"))?;
+    let exact_target_digest = Digest256::of_bytes(target_ref.as_bytes());
+    if history_target != target_ref
+        || history_family != family
+        || history_revision != revision
+        || history_digest != package_digest
+        || history_member_count != member_count
+        || history_total_bytes != total_bytes
+        || history_command_id != command_id
+        || history_commit_seq != commit_seq
+        || history_context != scope.context_binding.to_hex()
+        || receipt_command_id != command_id
+        || receipt_target_digest != exact_target_digest
+        || receipt_family != family
+        || receipt_request != history_request
+        || receipt_raw_request != history_raw_request
+        || receipt_context != history_context
+        || receipt_configuration != history_configuration
+        || receipt_digest != package_digest
+        || receipt_commit_seq != commit_seq
+        || source_private_generation >= generation_after
+        || generation_after > private_generation
+    {
+        return Err(DurableError::Corrupt(
+            "private package current header receipt binding",
+        ));
+    }
+    parse_hex(history_configuration)?;
+    parse_hex(history_request)?;
+    parse_hex(history_raw_request)?;
+    verify_current_member_manifest(
+        client,
+        scope,
+        target_ref,
+        revision,
+        member_count as usize,
+        total_bytes,
+        package_digest,
+        family,
+    )?;
+    check_private_history_deadline(deadline, cancelled)?;
+    Ok(Some(PrivateOwnerPackageCurrentHeaderV1 {
+        family,
+        revision,
+        package_digest,
+        member_count: member_count as usize,
+        total_bytes,
+        command_id,
+        commit_seq,
+    }))
+}
+
+fn read_private_command_receipt_metadata(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    command_id: &str,
+    private_generation: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Option<PrivateOwnerCommandReceiptMetadataV1>> {
+    check_private_history_deadline(deadline, cancelled)?;
+    let receipt_row = client.query_opt(
+        "SELECT target_digest,family,request_digest,raw_request_digest,
+                owner_context_binding,owner_configuration_digest,package_digest,
+                response_bytes,commit_seq,private_audit_generation_after
+         FROM cmd2_private_command_receipt
+         WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
+        &[&scope.domain, &scope.owner_scope, &command_id],
+    )?;
+    check_private_history_deadline(deadline, cancelled)?;
+    let history_row = client.query_opt(
+        "SELECT target_ref,family,package_digest,request_digest,raw_request_digest,
+                owner_context_binding,owner_configuration_digest,
+                private_owner_audit_generation,commit_seq
+         FROM cmd2_private_package_history
+         WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
+        &[&scope.domain, &scope.owner_scope, &command_id],
+    )?;
+    check_private_history_deadline(deadline, cancelled)?;
+    let receipt = match (receipt_row, history_row) {
+        (None, None) => None,
+        (Some(_), None) | (None, Some(_)) => {
+            return Err(DurableError::Corrupt(
+                "private command receipt/history cardinality differs",
+            ));
+        }
+        (Some(receipt), Some(history)) => {
+            let response_bytes: Vec<u8> = receipt.get(7);
+            let metadata = PrivateOwnerCommandReceiptMetadataV1 {
+                command_id: command_id.to_owned(),
+                target_digest: parse_hex(receipt.get(0))?,
+                target_matches: false,
+                family: parse_family(receipt.get(1))?,
+                request_digest: parse_hex(receipt.get(2))?,
+                raw_request_digest: parse_hex(receipt.get(3))?,
+                owner_context_binding: parse_hex(receipt.get(4))?,
+                owner_configuration_digest: parse_hex(receipt.get(5))?,
+                package_digest: parse_hex(receipt.get(6))?,
+                response_digest: Digest256::of_bytes(&response_bytes),
+                commit_seq: as_u64(receipt.get(8))?,
+                private_audit_generation_after: as_u64(receipt.get(9))?,
+                source_private_generation: as_u64(history.get(7))?,
+            };
+            let history_target: String = history.get(0);
+            let history_family = parse_family(history.get(1))?;
+            let history_digest = parse_hex(history.get(2))?;
+            let history_request = parse_hex(history.get(3))?;
+            let history_raw_request = parse_hex(history.get(4))?;
+            let history_context = parse_hex(history.get(5))?;
+            let history_configuration = parse_hex(history.get(6))?;
+            let history_commit_seq = as_u64(history.get(8))?;
+            if response_bytes.len() > MAX_RECEIPT_BYTES
+                || Digest256::of_bytes(history_target.as_bytes()) != metadata.target_digest
+                || history_family != metadata.family
+                || history_digest != metadata.package_digest
+                || history_request != metadata.request_digest
+                || history_raw_request != metadata.raw_request_digest
+                || history_context != metadata.owner_context_binding
+                || history_configuration != metadata.owner_configuration_digest
+                || history_commit_seq != metadata.commit_seq
+                || metadata.owner_context_binding != scope.context_binding
+                || metadata.source_private_generation >= metadata.private_audit_generation_after
+                || metadata.private_audit_generation_after > private_generation
+            {
+                return Err(DurableError::Corrupt(
+                    "private command receipt/history binding",
+                ));
+            }
+            Some(PrivateOwnerCommandReceiptMetadataV1 {
+                target_matches: Digest256::of_bytes(history_target.as_bytes())
+                    == Digest256::of_bytes(target_ref.as_bytes()),
+                ..metadata
+            })
+        }
+    };
+    check_private_history_deadline(deadline, cancelled)?;
+    Ok(receipt)
+}
+
+fn validate_private_text_identity_lookup(
+    scope: &PrivateOwnerScopeV1,
+    tokens: &BTreeSet<String>,
+    exclude_target: Option<&str>,
+    allowed_ancestry: &BTreeMap<String, Digest256>,
+) -> DurableResult<()> {
+    validate_scope(scope)?;
+    if tokens.len() > MAX_IDENTITY_ROWS
+        || tokens
+            .iter()
+            .any(|token| token.is_empty() || token.len() > 4096 || token.contains('\0'))
+        || allowed_ancestry.len() > MAX_IDENTITY_FILES
+    {
+        return Err(DurableError::Invalid("private Text identity lookup budget"));
+    }
+    if let Some(target_ref) = exclude_target {
+        validate_target_ref(target_ref)?;
+    }
+    for (path, _) in allowed_ancestry {
+        if path.is_empty()
+            || path.len() > MAX_TARGET_REF_BYTES
+            || path.contains('\0')
+            || tos_foundation::RelativePath::parse(path).is_err()
+            || !path.starts_with("ToS/")
+        {
+            return Err(DurableError::Invalid("private Text identity ancestry path"));
+        }
+    }
+    Ok(())
+}
+
+fn read_private_text_identity_matches_from_client(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    tokens: &BTreeSet<String>,
+    exclude_target: Option<&str>,
+    allowed_ancestry: &BTreeMap<String, Digest256>,
+    private_generation: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<PrivateTextIdentityLookupV1> {
+    check_private_identity_deadline(deadline, cancelled)?;
+    let mut matches = Vec::new();
+    if !tokens.is_empty() {
+        let token_values = tokens.iter().cloned().collect::<Vec<_>>();
+        let exclude_value = exclude_target.map(str::to_owned);
+        let limit = i64::try_from(MAX_IDENTITY_ROWS + 1)
+            .map_err(|_| DurableError::Invalid("private Text identity lookup budget"))?;
+        let rows = client.query(
+            "SELECT i.identity_token,i.target_ref,i.member_name,i.member_digest,
+                    i.revision,i.package_digest
+             FROM cmd2_private_text_identity i
+             JOIN cmd2_private_package_current c
+               ON c.domain=i.domain AND c.owner_scope=i.owner_scope
+              AND c.target_ref COLLATE \"C\"=i.target_ref AND c.family=i.family
+              AND c.family IN ('text','alignment')
+              AND c.revision=i.revision AND c.package_digest=i.package_digest
+              AND c.text_identity_root=i.identity_root
+             WHERE i.domain=$1 AND i.owner_scope=$2
+               AND i.identity_token=ANY($3::text[])
+               AND ($4::text IS NULL OR i.target_ref <> $4::text COLLATE \"C\")
+             ORDER BY i.identity_token COLLATE \"C\",i.target_ref COLLATE \"C\",
+                      i.member_name COLLATE \"C\" LIMIT $5",
+            &[
+                &scope.domain,
+                &scope.owner_scope,
+                &token_values,
+                &exclude_value,
+                &limit,
+            ],
+        )?;
+        check_private_identity_deadline(deadline, cancelled)?;
+        if rows.len() > MAX_IDENTITY_ROWS {
+            return Err(DurableError::Refused(
+                "private Text identity owner budget exceeded",
+            ));
+        }
+        let mut seen = BTreeSet::new();
+        for row in rows {
+            check_private_identity_deadline(deadline, cancelled)?;
+            let token: String = row.get(0);
+            let target_ref: String = row.get(1);
+            let member_name: String = row.get(2);
+            let member_digest = parse_hex(row.get(3))?;
+            let revision = as_u64(row.get(4))?;
+            let package_digest = parse_hex(row.get(5))?;
+            let path = format!("{target_ref}/{member_name}");
+            if path.len() > MAX_TARGET_REF_BYTES
+                || tos_foundation::RelativePath::parse(&path).is_err()
+                || !path.starts_with("ToS/")
+            {
+                return Err(DurableError::Corrupt(
+                    "private Text identity logical path budget",
+                ));
+            }
+            if allowed_ancestry.get(&path) == Some(&member_digest) {
+                continue;
+            }
+            if !seen.insert((token.clone(), path)) {
+                return Err(DurableError::Corrupt(
+                    "duplicate private Text identity point owner",
+                ));
+            }
+            matches.push(PrivateTextIdentityMatchV1 {
+                token,
+                target_ref,
+                member_name,
+                member_digest,
+                revision,
+                package_digest,
+            });
+        }
+    }
+    check_private_identity_deadline(deadline, cancelled)?;
+    Ok(PrivateTextIdentityLookupV1 {
+        matches,
+        private_audit_generation: private_generation,
+    })
 }
 
 fn read_current_snapshot(
@@ -805,6 +1491,7 @@ fn read_current_text_identity_contributions(
     client: &mut impl GenericClient,
     scope: &PrivateOwnerScopeV1,
     target_ref: &str,
+    family: PrivateOwnerPackageFamilyV1,
     revision: u64,
 ) -> DurableResult<Vec<PrivateTextIdentityContribution>> {
     let limit = i64::try_from(MAX_IDENTITY_ROWS + 1)
@@ -812,12 +1499,13 @@ fn read_current_text_identity_contributions(
     let rows = client.query(
         "SELECT identity_token,member_name,member_digest
          FROM cmd2_private_text_identity
-         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4
-         ORDER BY identity_token COLLATE \"C\",member_name COLLATE \"C\" LIMIT $5",
+         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND family=$4 AND revision=$5
+         ORDER BY identity_token COLLATE \"C\",member_name COLLATE \"C\" LIMIT $6",
         &[
             &scope.domain,
             &scope.owner_scope,
             &target_ref,
+            &family.as_str(),
             &as_i64(revision)?,
             &limit,
         ],
@@ -848,6 +1536,7 @@ fn read_current_text_identity_contributions(
 fn parse_family(value: String) -> DurableResult<PrivateOwnerPackageFamilyV1> {
     match value.as_str() {
         "text" => Ok(PrivateOwnerPackageFamilyV1::Text),
+        "alignment" => Ok(PrivateOwnerPackageFamilyV1::Alignment),
         "profile" => Ok(PrivateOwnerPackageFamilyV1::Profile),
         "claim" => Ok(PrivateOwnerPackageFamilyV1::Claim),
         "assessment" => Ok(PrivateOwnerPackageFamilyV1::Assessment),
@@ -1213,7 +1902,409 @@ fn read_archive_snapshot(
     }))
 }
 
+impl PrivateOwnerReadSession<'_> {
+    fn transaction_mut(&mut self) -> DurableResult<&mut postgres::Transaction<'_>> {
+        self.transaction.as_mut().ok_or(DurableError::Corrupt(
+            "private owner read session is closed",
+        ))
+    }
+
+    pub(crate) fn scope(&self) -> &PrivateOwnerScopeV1 {
+        &self.scope
+    }
+
+    pub(crate) fn private_audit_generation(&self) -> u64 {
+        self.private_audit_generation
+    }
+
+    pub(crate) fn current_header(
+        &mut self,
+        target_ref: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerPackageCurrentHeaderV1>> {
+        validate_target_ref(target_ref)?;
+        check_private_history_deadline(deadline, cancelled)?;
+        if let Some(header) = self.current_headers.get(target_ref) {
+            return Ok(header.clone());
+        }
+        let scope = self.scope.clone();
+        let generation = self.private_audit_generation;
+        let header = read_current_package_header(
+            self.transaction_mut()?,
+            &scope,
+            target_ref,
+            generation,
+            deadline,
+            cancelled,
+        )?;
+        self.current_headers
+            .insert(target_ref.to_owned(), header.clone());
+        Ok(header)
+    }
+
+    pub(crate) fn command_metadata(
+        &mut self,
+        target_ref: &str,
+        command_id: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PrivateOwnerCommandMetadataV1> {
+        validate_target_ref(target_ref)?;
+        if command_id.is_empty() || command_id.len() > 1024 || command_id.contains('\0') {
+            return Err(DurableError::Invalid("private package command ID"));
+        }
+        let current = self.current_header(target_ref, deadline, cancelled)?;
+        let scope = self.scope.clone();
+        let generation = self.private_audit_generation;
+        let receipt = read_private_command_receipt_metadata(
+            self.transaction_mut()?,
+            &scope,
+            target_ref,
+            command_id,
+            generation,
+            deadline,
+            cancelled,
+        )?;
+        Ok(PrivateOwnerCommandMetadataV1 {
+            header: PrivateOwnerPackageHeaderV1 {
+                scope,
+                target_ref: target_ref.to_owned(),
+                current,
+                private_audit_generation: generation,
+            },
+            receipt,
+        })
+    }
+
+    /// Read exactly one member from the selected current revision. A metadata
+    /// manifest check binds its member digest to the package digest before any
+    /// member bytes are returned.
+    pub(crate) fn read_current_member(
+        &mut self,
+        target_ref: &str,
+        member_name: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerSelectedMemberV1>> {
+        if member_name.is_empty()
+            || member_name == "."
+            || member_name == ".."
+            || member_name.len() > MAX_MEMBER_NAME_BYTES
+            || member_name.contains('/')
+            || member_name.contains('\\')
+            || member_name.contains('\0')
+            || max_bytes == 0
+        {
+            return Err(DurableError::Invalid("private package member read budget"));
+        }
+        let Some(header) = self.current_header(target_ref, deadline, cancelled)? else {
+            return Ok(None);
+        };
+        if !matches!(
+            header.family,
+            PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+        ) {
+            return Err(DurableError::Refused(
+                "private native source member family is not Text or Alignment",
+            ));
+        }
+        let max_bytes = max_bytes.min(private_family_member_max_bytes(header.family));
+        let scope = self.scope.clone();
+        let generation = self.private_audit_generation;
+        check_private_history_deadline(deadline, cancelled)?;
+        let member_metadata = self.transaction_mut()?.query_opt(
+            "SELECT member_digest,octet_length(member_bytes)
+             FROM cmd2_private_package_member
+             WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4
+               AND member_name=$5",
+            &[
+                &scope.domain,
+                &scope.owner_scope,
+                &target_ref,
+                &as_i64(header.revision)?,
+                &member_name,
+            ],
+        )?;
+        check_private_history_deadline(deadline, cancelled)?;
+        let Some(member_metadata) = member_metadata else {
+            return Ok(None);
+        };
+        let expected_member_digest = parse_hex(member_metadata.get::<_, String>(0))?;
+        let declared_size: i32 = member_metadata.get(1);
+        if declared_size < 0 {
+            return Err(DurableError::Corrupt("private package member size"));
+        }
+        let declared_size = declared_size as usize;
+        if declared_size > max_bytes {
+            return Err(DurableError::Refused(
+                "private package selected member byte budget exceeded",
+            ));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        let row = self.transaction_mut()?.query_one(
+            "SELECT member_bytes,member_digest
+             FROM cmd2_private_package_member
+             WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4
+               AND member_name=$5",
+            &[
+                &scope.domain,
+                &scope.owner_scope,
+                &target_ref,
+                &as_i64(header.revision)?,
+                &member_name,
+            ],
+        )?;
+        let bytes: Vec<u8> = row.get(0);
+        let stored_member_digest = parse_hex(row.get(1))?;
+        if bytes.len() != declared_size
+            || stored_member_digest != expected_member_digest
+            || Digest256::of_bytes(&bytes) != expected_member_digest
+        {
+            return Err(DurableError::Corrupt(
+                "private package selected member digest",
+            ));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        Ok(Some(PrivateOwnerSelectedMemberV1 {
+            target_ref: target_ref.to_owned(),
+            member_name: member_name.to_owned(),
+            family: header.family,
+            revision: header.revision,
+            package_digest: header.package_digest,
+            member_digest: expected_member_digest,
+            bytes,
+            private_audit_generation: generation,
+        }))
+    }
+
+    /// Hydrate a complete current package only when the owner operation has
+    /// explicitly reached the content-admission phase for this target.
+    pub(crate) fn read_alignment_output_package(
+        &mut self,
+        target_ref: &str,
+        max_total_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerPackageSnapshotV1>> {
+        validate_target_ref(target_ref)?;
+        if max_total_bytes == 0 || max_total_bytes > MAX_ARCHIVE_BYTES {
+            return Err(DurableError::Invalid("private package read byte budget"));
+        }
+        let Some(header) = self.current_header(target_ref, deadline, cancelled)? else {
+            return Ok(None);
+        };
+        if header.family != PrivateOwnerPackageFamilyV1::Alignment {
+            return Err(DurableError::Refused(
+                "private Alignment output target has another family",
+            ));
+        }
+        if header.total_bytes > max_total_bytes as u64 {
+            return Err(DurableError::Refused(
+                "private package selected byte budget exceeded",
+            ));
+        }
+        let scope = self.scope.clone();
+        let generation = self.private_audit_generation;
+        check_private_history_deadline(deadline, cancelled)?;
+        let snapshot =
+            read_current_snapshot(self.transaction_mut()?, &scope, target_ref, generation)?.ok_or(
+                DurableError::Corrupt("private package header disappeared in read snapshot"),
+            )?;
+        if snapshot.family != header.family
+            || snapshot.revision != header.revision
+            || snapshot.package_digest != header.package_digest
+            || snapshot.members.len() != header.member_count
+            || snapshot
+                .members
+                .values()
+                .map(|bytes| bytes.len() as u64)
+                .sum::<u64>()
+                != header.total_bytes
+        {
+            return Err(DurableError::Corrupt(
+                "private package body differs from selected header",
+            ));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        Ok(Some(snapshot))
+    }
+
+    pub(crate) fn read_text_identity_matches(
+        &mut self,
+        tokens: &BTreeSet<String>,
+        exclude_target: Option<&str>,
+        allowed_ancestry: &BTreeMap<String, Digest256>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PrivateTextIdentityLookupV1> {
+        validate_private_text_identity_lookup(
+            &self.scope,
+            tokens,
+            exclude_target,
+            allowed_ancestry,
+        )?;
+        let scope = self.scope.clone();
+        let generation = self.private_audit_generation;
+        read_private_text_identity_matches_from_client(
+            self.transaction_mut()?,
+            &scope,
+            tokens,
+            exclude_target,
+            allowed_ancestry,
+            generation,
+            deadline,
+            cancelled,
+        )
+    }
+}
+
 impl DurablePgCoordinator {
+    /// Run an owner operation against one private RR snapshot while holding
+    /// the owner-scope shared lock. The session lock is acquired before the
+    /// RR snapshot. The callback may use another coordinator for public source
+    /// reads, but must not recursively write this private scope. Package bytes
+    /// are available only through exact session reads.
+    pub(crate) fn with_private_owner_read_session<T>(
+        &mut self,
+        scope: &PrivateOwnerScopeV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: impl FnOnce(
+            &mut PrivateOwnerReadSession<'_>,
+            Instant,
+            &AtomicBool,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<T> {
+        validate_scope(scope)?;
+        check_private_history_deadline(deadline, cancelled)?;
+        require_private_schema(&mut self.client)?;
+        with_private_owner_shared_read_lock(
+            &mut self.client,
+            scope,
+            deadline,
+            cancelled,
+            |client| {
+                check_private_history_deadline(deadline, cancelled)?;
+                let mut transaction = client.transaction()?;
+                transaction.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
+                if !verify_context_binding(&mut transaction, scope)? {
+                    return Err(DurableError::Refused(
+                        "private owner context binding mismatch",
+                    ));
+                }
+                let private_audit_generation = private_audit_generation(&mut transaction, scope)?;
+                let mut session = PrivateOwnerReadSession {
+                    transaction: Some(transaction),
+                    scope: scope.clone(),
+                    private_audit_generation,
+                    current_headers: BTreeMap::new(),
+                };
+                let result = callback(&mut session, deadline, cancelled)?;
+                check_private_history_deadline(deadline, cancelled)?;
+                let transaction = session.transaction.take().ok_or(DurableError::Corrupt(
+                    "private owner read session is closed",
+                ))?;
+                transaction.commit()?;
+                Ok(result)
+            },
+        )
+    }
+
+    /// Read only the selected current package header under the owner-scope
+    /// shared lock. Member bytes and archives are never hydrated.
+    pub(crate) fn read_private_owner_current_header(
+        &mut self,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PrivateOwnerPackageHeaderV1> {
+        validate_scope(scope)?;
+        validate_target_ref(target_ref)?;
+        check_private_history_deadline(deadline, cancelled)?;
+        require_private_schema(&mut self.client)?;
+        with_private_owner_shared_read_lock(
+            &mut self.client,
+            scope,
+            deadline,
+            cancelled,
+            |client| {
+                let mut tx = client.transaction()?;
+                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
+                if !verify_context_binding(&mut tx, scope)? {
+                    return Err(DurableError::Refused(
+                        "private owner context binding mismatch",
+                    ));
+                }
+                let generation = private_audit_generation(&mut tx, scope)?;
+                let current = read_current_package_header(
+                    &mut tx, scope, target_ref, generation, deadline, cancelled,
+                )?;
+                check_private_history_deadline(deadline, cancelled)?;
+                tx.commit()?;
+                Ok(PrivateOwnerPackageHeaderV1 {
+                    scope: scope.clone(),
+                    target_ref: target_ref.to_owned(),
+                    current,
+                    private_audit_generation: generation,
+                })
+            },
+        )
+    }
+
+    /// Find one command receipt and its immutable history binding without
+    /// loading any private package member bytes. The current target header and
+    /// receipt are read under the same repeatable-read owner-scope fence.
+    pub(crate) fn read_private_owner_command_metadata(
+        &mut self,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        command_id: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PrivateOwnerCommandMetadataV1> {
+        validate_scope(scope)?;
+        validate_target_ref(target_ref)?;
+        if command_id.is_empty() || command_id.len() > 1024 || command_id.contains('\0') {
+            return Err(DurableError::Invalid("private package command ID"));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        require_private_schema(&mut self.client)?;
+        with_private_owner_shared_read_lock(
+            &mut self.client,
+            scope,
+            deadline,
+            cancelled,
+            |client| {
+                let mut tx = client.transaction()?;
+                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
+                if !verify_context_binding(&mut tx, scope)? {
+                    return Err(DurableError::Refused(
+                        "private owner context binding mismatch",
+                    ));
+                }
+                let generation = private_audit_generation(&mut tx, scope)?;
+                let current = read_current_package_header(
+                    &mut tx, scope, target_ref, generation, deadline, cancelled,
+                )?;
+                let header = PrivateOwnerPackageHeaderV1 {
+                    scope: scope.clone(),
+                    target_ref: target_ref.to_owned(),
+                    current,
+                    private_audit_generation: generation,
+                };
+                let receipt = read_private_command_receipt_metadata(
+                    &mut tx, scope, target_ref, command_id, generation, deadline, cancelled,
+                )?;
+                check_private_history_deadline(deadline, cancelled)?;
+                tx.commit()?;
+                Ok(PrivateOwnerCommandMetadataV1 { header, receipt })
+            },
+        )
+    }
+
     pub(crate) fn read_private_owner_current(
         &mut self,
         scope: &PrivateOwnerScopeV1,
@@ -1259,7 +2350,7 @@ impl DurablePgCoordinator {
     }
 
     /// Read and verify the exact append-only package history while holding a
-    /// shared transaction-scoped owner lock. The callback may perform a
+    /// shared owner-scope lock. The callback may perform a
     /// separate public source registration; private package writers take the
     /// matching exclusive lock before acquiring public source fences, so the
     /// history remains stable without blocking that registration.
@@ -1284,42 +2375,42 @@ impl DurablePgCoordinator {
         }
         check_private_history_deadline(deadline, cancelled)?;
         require_private_schema(&mut self.client)?;
-        let mut tx = self.client.transaction()?;
-        // Bound any single lock/read statement as well as the whole operation;
-        // caller deadline checks below prevent a long sequence of small reads
-        // from extending the operation indefinitely.
-        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
-        let (lock_a, lock_b) = private_scope_advisory_keys(scope);
-        check_private_history_deadline(deadline, cancelled)?;
-        tx.query_one(
-            "SELECT pg_advisory_xact_lock_shared($1,$2)",
-            &[&lock_a, &lock_b],
-        )?;
-        check_private_history_deadline(deadline, cancelled)?;
-        if !verify_context_binding(&mut tx, scope)? {
-            return Err(DurableError::Refused(
-                "private owner context binding mismatch",
-            ));
-        }
-        let generation = private_audit_generation(&mut tx, scope)?;
-        let history = read_package_history(
-            &mut tx,
+        with_private_owner_shared_read_lock(
+            &mut self.client,
             scope,
-            target_ref,
-            max_rows,
-            max_total_bytes,
-            generation,
             deadline,
             cancelled,
-        )?;
-        check_private_history_deadline(deadline, cancelled)?;
-        // Callback contract: use the supplied deadline/cancellation token for
-        // every public registration step and never recursively write this
-        // private owner scope while its shared lock is held.
-        let result = callback(&history, deadline, cancelled)?;
-        check_private_history_deadline(deadline, cancelled)?;
-        tx.commit()?;
-        Ok(result)
+            |client| {
+                let mut tx = client.transaction()?;
+                // Bound each read and use the supplied deadline checks to keep
+                // a long sequence of bounded reads inside the operation limit.
+                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
+                if !verify_context_binding(&mut tx, scope)? {
+                    return Err(DurableError::Refused(
+                        "private owner context binding mismatch",
+                    ));
+                }
+                let generation = private_audit_generation(&mut tx, scope)?;
+                let history = read_package_history(
+                    &mut tx,
+                    scope,
+                    target_ref,
+                    max_rows,
+                    max_total_bytes,
+                    generation,
+                    deadline,
+                    cancelled,
+                )?;
+                check_private_history_deadline(deadline, cancelled)?;
+                // Callback contract: use the supplied deadline/cancellation token
+                // for every public registration step and never recursively write
+                // this private owner scope while its shared lock is held.
+                let result = callback(&history, deadline, cancelled)?;
+                check_private_history_deadline(deadline, cancelled)?;
+                tx.commit()?;
+                Ok(result)
+            },
+        )
     }
 
     /// Read one bounded set of immutable package histories under a single
@@ -1367,73 +2458,74 @@ impl DurablePgCoordinator {
         }
         check_private_history_deadline(deadline, cancelled)?;
         require_private_schema(&mut self.client)?;
-        let mut tx = self.client.transaction()?;
-        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
-        let (lock_a, lock_b) = private_scope_advisory_keys(scope);
-        check_private_history_deadline(deadline, cancelled)?;
-        tx.query_one(
-            "SELECT pg_advisory_xact_lock_shared($1,$2)",
-            &[&lock_a, &lock_b],
-        )?;
-        check_private_history_deadline(deadline, cancelled)?;
-        if !verify_context_binding(&mut tx, scope)? {
-            return Err(DurableError::Refused(
-                "private owner context binding mismatch",
-            ));
-        }
-        let generation = private_audit_generation(&mut tx, scope)?;
-        let mut histories = BTreeMap::new();
-        let mut total_rows = 0usize;
-        let mut total_bytes = 0usize;
-        for target_ref in ordered_targets {
-            check_private_history_deadline(deadline, cancelled)?;
-            let remaining_rows = max_total_rows.saturating_sub(total_rows);
-            let remaining_bytes = max_total_bytes.saturating_sub(total_bytes);
-            let history = read_package_history(
-                &mut tx,
-                scope,
-                target_ref,
-                remaining_rows,
-                remaining_bytes,
-                generation,
-                deadline,
-                cancelled,
-            )?;
-            let observed_rows = history.history.len();
-            let observed_bytes = history
-                .history
-                .iter()
-                .try_fold(0usize, |total, entry| {
-                    let members = entry
-                        .members
-                        .values()
-                        .try_fold(0usize, |sum, bytes| sum.checked_add(bytes.len()))?;
-                    total
-                        .checked_add(members)?
-                        .checked_add(entry.response_bytes.len())
-                })
-                .ok_or(DurableError::Refused(
-                    "private owner aggregate history byte overflow",
-                ))?;
-            total_rows = total_rows
-                .checked_add(observed_rows)
-                .filter(|total| *total <= max_total_rows)
-                .ok_or(DurableError::Refused(
-                    "private owner aggregate history row budget exceeded",
-                ))?;
-            total_bytes = total_bytes
-                .checked_add(observed_bytes)
-                .filter(|total| *total <= max_total_bytes)
-                .ok_or(DurableError::Refused(
-                    "private owner aggregate history byte budget exceeded",
-                ))?;
-            histories.insert(target_ref.to_owned(), history);
-        }
-        check_private_history_deadline(deadline, cancelled)?;
-        let result = callback(&histories, deadline, cancelled)?;
-        check_private_history_deadline(deadline, cancelled)?;
-        tx.commit()?;
-        Ok(result)
+        with_private_owner_shared_read_lock(
+            &mut self.client,
+            scope,
+            deadline,
+            cancelled,
+            |client| {
+                let mut tx = client.transaction()?;
+                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
+                if !verify_context_binding(&mut tx, scope)? {
+                    return Err(DurableError::Refused(
+                        "private owner context binding mismatch",
+                    ));
+                }
+                let generation = private_audit_generation(&mut tx, scope)?;
+                let mut histories = BTreeMap::new();
+                let mut total_rows = 0usize;
+                let mut total_bytes = 0usize;
+                for target_ref in ordered_targets {
+                    check_private_history_deadline(deadline, cancelled)?;
+                    let remaining_rows = max_total_rows.saturating_sub(total_rows);
+                    let remaining_bytes = max_total_bytes.saturating_sub(total_bytes);
+                    let history = read_package_history(
+                        &mut tx,
+                        scope,
+                        target_ref,
+                        remaining_rows,
+                        remaining_bytes,
+                        generation,
+                        deadline,
+                        cancelled,
+                    )?;
+                    let observed_rows = history.history.len();
+                    let observed_bytes = history
+                        .history
+                        .iter()
+                        .try_fold(0usize, |total, entry| {
+                            let members = entry
+                                .members
+                                .values()
+                                .try_fold(0usize, |sum, bytes| sum.checked_add(bytes.len()))?;
+                            total
+                                .checked_add(members)?
+                                .checked_add(entry.response_bytes.len())
+                        })
+                        .ok_or(DurableError::Refused(
+                            "private owner aggregate history byte overflow",
+                        ))?;
+                    total_rows = total_rows
+                        .checked_add(observed_rows)
+                        .filter(|total| *total <= max_total_rows)
+                        .ok_or(DurableError::Refused(
+                            "private owner aggregate history row budget exceeded",
+                        ))?;
+                    total_bytes = total_bytes
+                        .checked_add(observed_bytes)
+                        .filter(|total| *total <= max_total_bytes)
+                        .ok_or(DurableError::Refused(
+                            "private owner aggregate history byte budget exceeded",
+                        ))?;
+                    histories.insert(target_ref.to_owned(), history);
+                }
+                check_private_history_deadline(deadline, cancelled)?;
+                let result = callback(&histories, deadline, cancelled)?;
+                check_private_history_deadline(deadline, cancelled)?;
+                tx.commit()?;
+                Ok(result)
+            },
+        )
     }
 
     pub(crate) fn read_private_owner_package_history(
@@ -1524,6 +2616,7 @@ impl DurablePgCoordinator {
             let digest: String = row.get(7);
             let family_max = match parse_family(family.clone())? {
                 PrivateOwnerPackageFamilyV1::Text => MAX_TEXT_PACKAGE_BYTES,
+                PrivateOwnerPackageFamilyV1::Alignment => MAX_ALIGNMENT_PACKAGE_BYTES,
                 PrivateOwnerPackageFamilyV1::Profile | PrivateOwnerPackageFamilyV1::Claim => {
                     MAX_PROFILE_CLAIM_PACKAGE_BYTES
                 }
@@ -1651,10 +2744,12 @@ impl DurablePgCoordinator {
         })
     }
 
-    /// Resolve only the delegated private Text tokens through the scoped
-    /// multivalued point index. Exact target exclusion and exact path+digest
-    /// ancestry admission mirror the public Text owner contract. The scalar
-    /// generation binds empty and non-empty lookups to the same snapshot.
+    /// Resolve delegated private Text and Alignment tokens through the scoped
+    /// multivalued point index. Alignment contributes only IDs parsed from
+    /// translation-alignment JSON members; Text retains its existing broader
+    /// candidate set. Exact target exclusion and exact path+digest ancestry
+    /// admission mirror the public Text owner contract. The scalar generation
+    /// binds empty and non-empty lookups to the same snapshot.
     pub(crate) fn read_private_text_identity_matches(
         &mut self,
         scope: &PrivateOwnerScopeV1,
@@ -1664,28 +2759,7 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<PrivateTextIdentityLookupV1> {
-        validate_scope(scope)?;
-        if tokens.len() > MAX_IDENTITY_ROWS
-            || tokens
-                .iter()
-                .any(|token| token.is_empty() || token.len() > 4096 || token.contains('\0'))
-            || allowed_ancestry.len() > MAX_IDENTITY_FILES
-        {
-            return Err(DurableError::Invalid("private Text identity lookup budget"));
-        }
-        if let Some(target_ref) = exclude_target {
-            validate_target_ref(target_ref)?;
-        }
-        for (path, _) in allowed_ancestry {
-            if path.is_empty()
-                || path.len() > MAX_TARGET_REF_BYTES
-                || path.contains('\0')
-                || tos_foundation::RelativePath::parse(path).is_err()
-                || !path.starts_with("ToS/")
-            {
-                return Err(DurableError::Invalid("private Text identity ancestry path"));
-            }
-        }
+        validate_private_text_identity_lookup(scope, tokens, exclude_target, allowed_ancestry)?;
         check_private_identity_deadline(deadline, cancelled)?;
         require_private_schema(&mut self.client)?;
         let mut tx = self.client.transaction()?;
@@ -1698,82 +2772,18 @@ impl DurablePgCoordinator {
             ));
         }
         let generation = private_audit_generation(&mut tx, scope)?;
-        let mut matches = Vec::new();
-        if !tokens.is_empty() {
-            let token_values = tokens.iter().cloned().collect::<Vec<_>>();
-            let exclude_value = exclude_target.map(str::to_owned);
-            let limit = i64::try_from(MAX_IDENTITY_ROWS + 1)
-                .map_err(|_| DurableError::Invalid("private Text identity lookup budget"))?;
-            let rows = tx.query(
-                "SELECT i.identity_token,i.target_ref,i.member_name,i.member_digest,
-                        i.revision,i.package_digest
-                 FROM cmd2_private_text_identity i
-                 JOIN cmd2_private_package_current c
-                   ON c.domain=i.domain AND c.owner_scope=i.owner_scope
-                  AND c.target_ref COLLATE \"C\"=i.target_ref AND c.family='text'
-                  AND c.revision=i.revision AND c.package_digest=i.package_digest
-                  AND c.text_identity_root=i.identity_root
-                 WHERE i.domain=$1 AND i.owner_scope=$2
-                   AND i.identity_token=ANY($3::text[])
-                   AND ($4::text IS NULL OR i.target_ref <> $4::text COLLATE \"C\")
-                 ORDER BY i.identity_token COLLATE \"C\",i.target_ref COLLATE \"C\",
-                          i.member_name COLLATE \"C\" LIMIT $5",
-                &[
-                    &scope.domain,
-                    &scope.owner_scope,
-                    &token_values,
-                    &exclude_value,
-                    &limit,
-                ],
-            )?;
-            check_private_identity_deadline(deadline, cancelled)?;
-            if rows.len() > MAX_IDENTITY_ROWS {
-                return Err(DurableError::Refused(
-                    "private Text identity owner budget exceeded",
-                ));
-            }
-            let mut seen = BTreeSet::new();
-            for row in rows {
-                check_private_identity_deadline(deadline, cancelled)?;
-                let token: String = row.get(0);
-                let target_ref: String = row.get(1);
-                let member_name: String = row.get(2);
-                let member_digest = parse_hex(row.get(3))?;
-                let revision = as_u64(row.get(4))?;
-                let package_digest = parse_hex(row.get(5))?;
-                let path = format!("{target_ref}/{member_name}");
-                if path.len() > MAX_TARGET_REF_BYTES
-                    || tos_foundation::RelativePath::parse(&path).is_err()
-                    || !path.starts_with("ToS/")
-                {
-                    return Err(DurableError::Corrupt(
-                        "private Text identity logical path budget",
-                    ));
-                }
-                if allowed_ancestry.get(&path) == Some(&member_digest) {
-                    continue;
-                }
-                if !seen.insert((token.clone(), path)) {
-                    return Err(DurableError::Corrupt(
-                        "duplicate private Text identity point owner",
-                    ));
-                }
-                matches.push(PrivateTextIdentityMatchV1 {
-                    token,
-                    target_ref,
-                    member_name,
-                    member_digest,
-                    revision,
-                    package_digest,
-                });
-            }
-        }
-        check_private_identity_deadline(deadline, cancelled)?;
+        let result = read_private_text_identity_matches_from_client(
+            &mut tx,
+            scope,
+            tokens,
+            exclude_target,
+            allowed_ancestry,
+            generation,
+            deadline,
+            cancelled,
+        )?;
         tx.commit()?;
-        Ok(PrivateTextIdentityLookupV1 {
-            matches,
-            private_audit_generation: generation,
-        })
+        Ok(result)
     }
 
     pub(crate) fn commit_private_owner_package(
@@ -1784,14 +2794,19 @@ impl DurablePgCoordinator {
         validate_write(&write)?;
         require_private_schema(&mut self.client)?;
         let (after_digest, after_total) = validate_members(write.family, &write.members, false)?;
-        let (text_identity_root, text_identity_rows) =
-            if write.family == PrivateOwnerPackageFamilyV1::Text {
-                let (root, rows) =
-                    private_text_identity_contributions(&write.target_ref, &write.members)?;
-                (Some(root), rows)
-            } else {
-                (None, Vec::new())
-            };
+        let (text_identity_root, text_identity_rows) = if matches!(
+            write.family,
+            PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+        ) {
+            let (root, rows) = private_text_identity_contributions(
+                write.family,
+                &write.target_ref,
+                &write.members,
+            )?;
+            (Some(root), rows)
+        } else {
+            (None, Vec::new())
+        };
         let mut archive_shapes = Vec::with_capacity(write.archives.len());
         for archive in &write.archives {
             let (digest, total) = validate_members(write.family, &archive.members, true)?;
@@ -1891,6 +2906,7 @@ impl DurablePgCoordinator {
         )?;
         let replay = if let Some(row) = receipt_row {
             let replay = PrivateOwnerPackageReplayV1 {
+                replayed: true,
                 commit_seq: as_u64(row.get(8))?,
                 package_digest: parse_hex(row.get(6))?,
                 private_audit_generation_after: as_u64(row.get(9))?,
@@ -1983,14 +2999,18 @@ impl DurablePgCoordinator {
                 "private package key belongs to another family",
             ));
         }
-        let previous_text_identity_count = if let Some(current) = current
-            .as_ref()
-            .filter(|snapshot| snapshot.family == PrivateOwnerPackageFamilyV1::Text)
-        {
+        let previous_text_identity_count = if let Some(current) =
+            current.as_ref().filter(|snapshot| {
+                matches!(
+                    snapshot.family,
+                    PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+                )
+            }) {
             let contributions = read_current_text_identity_contributions(
                 &mut tx,
                 &write.scope,
                 &write.target_ref,
+                current.family,
                 current.revision,
             )?;
             let root = private_text_identity_root(&write.target_ref, &contributions)?;
@@ -2003,11 +3023,12 @@ impl DurablePgCoordinator {
             }
             let deleted = tx.execute(
                 "DELETE FROM cmd2_private_text_identity
-                 WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4",
+                 WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND family=$4 AND revision=$5",
                 &[
                     &write.scope.domain,
                     &write.scope.owner_scope,
                     &write.target_ref,
+                    &current.family.as_str(),
                     &as_i64(current.revision)?,
                 ],
             )?;
@@ -2020,7 +3041,11 @@ impl DurablePgCoordinator {
         } else {
             0
         };
-        if write.family != PrivateOwnerPackageFamilyV1::Text && !text_identity_rows.is_empty() {
+        if !matches!(
+            write.family,
+            PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+        ) && !text_identity_rows.is_empty()
+        {
             return Err(DurableError::Corrupt(
                 "non-Text private package produced identity rows",
             ));
@@ -2155,7 +3180,7 @@ impl DurablePgCoordinator {
             &[&write.scope.domain, &write.scope.owner_scope, &write.target_ref, &write.family.as_str(),
               &revision_i64, &after_digest.to_hex(), &(write.members.len() as i32),
               &(after_total as i64), &text_identity_root.map(Digest256::to_hex),
-              &if write.family == PrivateOwnerPackageFamilyV1::Text {
+              &if matches!(write.family, PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment) {
                   Some(i32::try_from(text_identity_rows.len()).map_err(|_| DurableError::Invalid("private Text identity count"))?)
               } else {
                   None
@@ -2167,11 +3192,12 @@ impl DurablePgCoordinator {
                 "INSERT INTO cmd2_private_text_identity(
                    domain,owner_scope,target_ref,family,revision,package_digest,identity_root,
                    member_name,member_digest,identity_token)
-                 VALUES($1,$2,$3,'text',$4,$5,$6,$7,$8,$9)",
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
                 &[
                     &write.scope.domain,
                     &write.scope.owner_scope,
                     &write.target_ref,
+                    &write.family.as_str(),
                     &revision_i64,
                     &after_digest.to_hex(),
                     &text_identity_root
@@ -2250,6 +3276,7 @@ impl DurablePgCoordinator {
             ));
         }
         let receipt = PrivateOwnerPackageReplayV1 {
+            replayed: false,
             commit_seq,
             package_digest: after_digest,
             private_audit_generation_after: generation_after,

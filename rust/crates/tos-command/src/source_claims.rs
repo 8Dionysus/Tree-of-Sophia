@@ -6,6 +6,7 @@ use crate::source_creation_store::{ClaimCatalogCapture, CreationFilesystem};
 use crate::source_forms::{
     apply_form_changes, materialize_source_forms, metadata_subject, prepare_form_change,
 };
+use crate::source_revisions::RecordRead;
 use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -20,7 +21,9 @@ use tos_foundation::{
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::PredicateRead;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+};
 
 #[path = "source_claims_pg_inventory.rs"]
 pub(crate) mod pg_inventory;
@@ -681,11 +684,7 @@ pub(crate) fn pg_claim_creation_index_rows(
             }
         } else if basename.ends_with(".human-forms.json") {
             let set = parse(raw)?;
-            apply_form_changes(
-                Some(&set),
-                field(&set, "subject")?,
-                &[],
-            )?;
+            apply_form_changes(Some(&set), field(&set, "subject")?, &[])?;
             for section in ["forms", "prior_forms"] {
                 for form in array(&set, section)? {
                     let id = text(form, "form_id")?.to_owned();
@@ -711,9 +710,7 @@ pub(crate) fn pg_claim_creation_index_rows(
 
 /// Stable claim identities read by the durable index owner. Revisions may
 /// change Claim content but never add, remove, or retarget stream identities.
-pub(crate) fn pg_claim_stream_ids(
-    raw: &[u8],
-) -> SourceCommandResult<BTreeSet<String>> {
+pub(crate) fn pg_claim_stream_ids(raw: &[u8]) -> SourceCommandResult<BTreeSet<String>> {
     Ok(rows(raw)?.into_keys().collect())
 }
 
@@ -796,6 +793,31 @@ fn schema_check(
             "source Claim schema execution incomplete",
         )),
     }
+}
+
+fn schema_check_with_worker<W, C>(
+    executor: &mut W,
+    schema_ctx: &C,
+    path: &str,
+    value: &JsonValue,
+    contract: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()>
+where
+    W: crate::source_revisions::RecordSchemaWorker,
+    C: crate::source_revisions::RecordRead<Identity = W::Identity>,
+{
+    crate::source_revisions::schema_for_source_path_worker(
+        executor,
+        deadline,
+        cancelled,
+        schema_ctx,
+        &[contract.to_owned()],
+        contract,
+        path,
+        value,
+    )
 }
 /// Current read-only Work/Expression profile view, using the maintained
 /// registry compiler and the same bounded worker schema checks as Claim.
@@ -1588,18 +1610,7 @@ pub(crate) fn claim_creation_from_pg_complete_cut(
     if let Some(catalog) = &catalog_capture {
         catalog.borrow().bind_pg_complete_cut(cut)?;
     }
-    for input in ctx
-        .files
-        .iter()
-        .filter(|file| !file.path.as_str().starts_with("ToS/"))
-    {
-        let selected = selected_software_input(software, components, input, deadline, cancelled)?;
-        if selected != input.raw {
-            return Err(SourceCommandError::Conflict(
-                "selected Claim software component bytes differ",
-            ));
-        }
-    }
+    ctx.check_selected_software_inputs(software, components, deadline, cancelled)?;
     if let Some(budget) = &whole_call {
         budget.borrow_mut().read(cut.total_bytes())?;
     }
@@ -4481,6 +4492,164 @@ pub(crate) struct SelectedIdentityClosure {
     pub anchors: JsonValue,
 }
 
+trait MaintainedInventorySchemaWorker: crate::source_revisions::RecordSchemaWorker {
+    fn native_identity_inventory(
+        &mut self,
+        ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+        complete_members: Option<&[SourceFile]>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)>;
+
+    fn native_text_snapshot(
+        &mut self,
+        ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+        bindings: &[JsonValue],
+        record_inputs: &mut JsonValue,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>>;
+}
+
+impl MaintainedInventorySchemaWorker for CutWorkerSchemaExecutor {
+    fn native_identity_inventory(
+        &mut self,
+        ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+        complete_members: Option<&[SourceFile]>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
+        if let Some(cut) = cut {
+            let (identities, snapshot, schema_used) =
+                crate::source_revisions::native_identity_inventory_from_cut(
+                    ctx, cut, self, deadline, cancelled,
+                )?;
+            Ok((identities, Some(snapshot), schema_used))
+        } else if let Some(members) = complete_members {
+            let (identities, snapshot, schema_used) =
+                crate::source_revisions::native_identity_inventory_from_members(
+                    ctx, members, self, deadline, cancelled,
+                )?;
+            Ok((identities, Some(snapshot), schema_used))
+        } else {
+            Ok((BTreeMap::new(), None, false))
+        }
+    }
+
+    fn native_text_snapshot(
+        &mut self,
+        ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+        bindings: &[JsonValue],
+        record_inputs: &mut JsonValue,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        if bindings.is_empty() {
+            return Ok(None);
+        }
+        let cut = cut.ok_or(SourceCommandError::Unsupported(
+            "maintained native text binding snapshot adapter",
+        ))?;
+        let mut reader = ProfileMetadataReader {
+            ctx,
+            cut,
+            observed: BTreeMap::new(),
+            observed_bytes: 0,
+        };
+        let resolved = crate::source_sign_native::resolve_bindings(
+            &mut reader,
+            self,
+            bindings,
+            NativeReadScope::MetadataOnly,
+            deadline,
+            cancelled,
+        )?;
+        if resolved.summaries.len() != bindings.len() {
+            return Err(SourceCommandError::Conflict(
+                "native profile resolver summary count",
+            ));
+        }
+        for summary in &resolved.summaries {
+            if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true)) {
+                return Err(SourceCommandError::Denied(
+                    "profile native text binding has no declared public content",
+                ));
+            }
+        }
+        for input in &resolved.inputs {
+            if input.kind == NativeReadKind::Content
+                || reader
+                    .observed
+                    .get(&input.reference)
+                    .map(|(digest, _)| *digest)
+                    != Some(input.raw_sha256)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native profile exported read closure differs",
+                ));
+            }
+        }
+        for (name, digest) in resolved.schema_digests {
+            if Digest256::of_bytes(selected(ctx, &name)?) != digest {
+                return Err(SourceCommandError::Conflict(
+                    "native profile schema input differs from selected source",
+                ));
+            }
+            let value = string(&digest.to_hex());
+            if record_inputs
+                .object_get(&name)
+                .is_some_and(|prior| prior != &value)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native profile schema digest conflict",
+                ));
+            }
+            set(record_inputs, &name, value)?;
+        }
+        Ok(Some(resolved.input_snapshot))
+    }
+}
+
+impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
+    fn native_identity_inventory(
+        &mut self,
+        _ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+        complete_members: Option<&[SourceFile]>,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
+        if cut.is_some() || complete_members.is_some() {
+            return Err(SourceCommandError::Unsupported(
+                "candidate selected Claim closure cannot claim a complete native identity snapshot",
+            ));
+        }
+        Ok((BTreeMap::new(), None, false))
+    }
+
+    fn native_text_snapshot(
+        &mut self,
+        _ctx: &CommandContext,
+        _cut: Option<&CorpusCutReader>,
+        bindings: &[JsonValue],
+        _record_inputs: &mut JsonValue,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        if bindings.is_empty() {
+            Ok(None)
+        } else {
+            Err(SourceCommandError::Unsupported(
+                "candidate maintained native text binding snapshot adapter",
+            ))
+        }
+    }
+}
+
 /// Run the existing maintained owner parsers over an explicit selected source
 /// closure. Global absence and collision proofs must come from the caller's
 /// owner index or authenticated predicate reads; no complete-inventory claim
@@ -4517,16 +4686,87 @@ pub(crate) fn maintained_selected_identity_closure(
         files,
     };
     selected.check()?;
-    let inventory = maintained_inventory_inner_with_members(
-        &selected,
-        None,
-        false,
-        executor,
-        deadline,
-        cancelled,
-        None,
-        None,
+    let inventory = maintained_inventory_inner_with_worker(
+        &selected, &selected, None, false, executor, deadline, cancelled, None, None,
     )?;
+    selected_identity_closure(inventory)
+}
+
+/// Candidate-worker counterpart for a selected PG Claim source-home closure.
+/// The caller supplies the exact addressed members and separately seals their
+/// global uniqueness and source-home generations in the owner readset.
+pub(crate) fn maintained_selected_identity_closure_candidate(
+    typed_ctx: &crate::source_revisions::PgRecordRevisionCommandContext,
+    selected_authored_members: &[SourceFile],
+    executor: &mut CandidateCutWorkerSchemaExecutor<
+        crate::source_cohort::revision::PgRecordRevisionIdentity,
+    >,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SelectedIdentityClosure> {
+    typed_ctx.check()?;
+    if *executor.input_identity() != typed_ctx.identity() {
+        return Err(SourceCommandError::Conflict(
+            "candidate Claim closure and schema worker identities differ",
+        ));
+    }
+    let command = typed_ctx.command_context();
+    let mut authored = selected_authored_members.to_vec();
+    authored.sort_by(|left, right| left.path.cmp(&right.path));
+    if authored
+        .iter()
+        .any(|file| !file.path.as_str().starts_with("ToS/"))
+        || authored.windows(2).any(|pair| pair[0].path == pair[1].path)
+    {
+        return Err(SourceCommandError::Invalid(
+            "candidate Claim identity closure authored members",
+        ));
+    }
+    let typed_authored = typed_ctx
+        .files()
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .cloned()
+        .collect::<Vec<_>>();
+    if typed_authored != authored {
+        return Err(SourceCommandError::Conflict(
+            "candidate Claim closure authored members differ from typed input",
+        ));
+    }
+    let mut files = authored;
+    files.extend(
+        command
+            .files
+            .iter()
+            .filter(|file| !file.path.as_str().starts_with("ToS/"))
+            .cloned(),
+    );
+    files.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut typed_files = typed_ctx.files().to_vec();
+    typed_files.sort_by(|left, right| left.path.cmp(&right.path));
+    if typed_files != files {
+        return Err(SourceCommandError::Conflict(
+            "candidate Claim closure selected bytes differ from typed input",
+        ));
+    }
+    let selected = CommandContext {
+        base_revision: command.base_revision,
+        configuration_raw: command.configuration_raw.clone(),
+        request_raw: command.request_raw.clone(),
+        recorded_at: command.recorded_at.clone(),
+        effective_uid: command.effective_uid,
+        files,
+    };
+    selected.check()?;
+    let inventory = maintained_inventory_inner_with_worker(
+        &selected, typed_ctx, None, false, executor, deadline, cancelled, None, None,
+    )?;
+    selected_identity_closure(inventory)
+}
+
+fn selected_identity_closure(
+    inventory: MaintainedInventory,
+) -> SourceCommandResult<SelectedIdentityClosure> {
     if inventory.native_identity_snapshot.is_some() {
         return Err(SourceCommandError::Conflict(
             "selected Claim identity closure contains a global snapshot",
@@ -4586,7 +4826,10 @@ fn selected_claim_context_digest(ctx: &CommandContext) -> SourceCommandResult<Di
         .map(|file| {
             object(vec![
                 ("path", string(file.path.as_str())),
-                ("sha256", string(&Digest256::of_bytes(&file.raw).to_prefixed())),
+                (
+                    "sha256",
+                    string(&Digest256::of_bytes(&file.raw).to_prefixed()),
+                ),
             ])
         })
         .collect::<Vec<_>>();
@@ -5132,10 +5375,9 @@ pub(crate) fn maintained_global_claim_inventory_from_members(
             if basename == CLAIM_STREAM {
                 // Preserve the existing public/private namespace guard while
                 // allowing only this exact maintained Claim stream family.
-                if location
-                    .split('/')
-                    .any(|part| ["owner-local", "private", "payload", "local-content"].contains(&part))
-                {
+                if location.split('/').any(|part| {
+                    ["owner-local", "private", "payload", "local-content"].contains(&part)
+                }) {
                     return Err(SourceCommandError::Unsupported(
                         "mixed inventory requires private Claim owner",
                     ));
@@ -6050,6 +6292,34 @@ fn maintained_inventory_inner_with_members(
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
     complete_members: Option<&[SourceFile]>,
 ) -> SourceCommandResult<MaintainedInventory> {
+    maintained_inventory_inner_with_worker(
+        ctx,
+        ctx,
+        cut,
+        capture_member_inputs,
+        executor,
+        deadline,
+        cancelled,
+        whole_call,
+        complete_members,
+    )
+}
+
+fn maintained_inventory_inner_with_worker<W, C>(
+    ctx: &CommandContext,
+    schema_ctx: &C,
+    cut: Option<&CorpusCutReader>,
+    capture_member_inputs: bool,
+    executor: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
+    complete_members: Option<&[SourceFile]>,
+) -> SourceCommandResult<MaintainedInventory>
+where
+    W: MaintainedInventorySchemaWorker,
+    C: crate::source_revisions::RecordRead<Identity = W::Identity>,
+{
     let registry_raw = selected(ctx, ENTITIES)?;
     inventory_live_preflight(
         whole_call,
@@ -6061,29 +6331,16 @@ fn maintained_inventory_inner_with_members(
                 "Claim selected registry state overflow",
             ))?,
     )?;
-    let entities = crate::source_revisions::validate_source_profile_registry(
-        executor, deadline, cancelled, ctx,
+    let entities = crate::source_revisions::validate_source_profile_registry_for_worker(
+        executor, deadline, cancelled, schema_ctx,
     )?;
     let mut retained_inventory_state = retained_value_bytes(&entities)?;
     inventory_live_preflight(whole_call, 0, retained_inventory_state)?;
     let types = array(&entities, "types")?;
     // collect_records seeds its collision universe before reading metadata.
     // Even an empty snapshot is observed only by the cut-backed owner reader.
-    let (native_identities, native_identity_snapshot, native_schema_used) = if let Some(cut) = cut {
-        let (identities, snapshot, schema_used) =
-            crate::source_revisions::native_identity_inventory_from_cut(
-                ctx, cut, executor, deadline, cancelled,
-            )?;
-        (identities, Some(snapshot), schema_used)
-    } else if let Some(members) = complete_members {
-        let (identities, snapshot, schema_used) =
-            crate::source_revisions::native_identity_inventory_from_members(
-                ctx, members, executor, deadline, cancelled,
-            )?;
-        (identities, Some(snapshot), schema_used)
-    } else {
-        (BTreeMap::new(), None, false)
-    };
+    let (native_identities, native_identity_snapshot, native_schema_used) =
+        executor.native_identity_inventory(ctx, cut, complete_members, deadline, cancelled)?;
     let native_identity_state = native_identities
         .iter()
         .try_fold(0usize, |sum, (id, refs)| {
@@ -6256,11 +6513,11 @@ fn maintained_inventory_inner_with_members(
             if !location.starts_with(&format!("ToS/source-witnesses/{subtree}/")) {
                 return Err(SourceCommandError::Denied("native witness owner subtree"));
             }
-            crate::source_revisions::schema(
+            crate::source_revisions::schema_for_worker(
                 executor,
                 deadline,
                 cancelled,
-                ctx,
+                schema_ctx,
                 &[schema_ref.into()],
                 schema_ref,
                 &record,
@@ -6468,7 +6725,7 @@ fn maintained_inventory_inner_with_members(
                         ))?;
                     let resolved =
                         crate::source_revisions::resolve_record_version_evidence_at_selected(
-                            ctx,
+                            schema_ctx,
                             location,
                             tos_validation::item_rules::ItemLimits {
                                 max_member_bytes: 8_388_608usize.min(remaining_read as usize),
@@ -6522,13 +6779,9 @@ fn maintained_inventory_inner_with_members(
                         .max(resolved.returned_state_bytes);
                     budget.retain(returned_state)?;
                     (resolved.record, resolved.source_path)
-                } else if let Some(cut) = cut {
-                    crate::source_revisions::resolve_record_version_from_cut(
-                        ctx, cut, &exact, executor, deadline, cancelled,
-                    )?
                 } else {
-                    crate::source_revisions::resolve_record_version(
-                        ctx, &exact, executor, deadline, cancelled,
+                    crate::source_revisions::resolve_record_version_for_worker(
+                        schema_ctx, cut, &exact, executor, deadline, cancelled,
                     )?
                 };
                 if !same(&verified, &record)? || locator != location {
@@ -6720,16 +6973,18 @@ fn maintained_inventory_inner_with_members(
                         )?,
                     )?;
                     selected_schema = Some(text(route, "schema_ref")?.to_owned());
-                    schema_check(
+                    schema_check_with_worker(
                         executor,
+                        schema_ctx,
                         location,
                         &claim,
                         text(route, "schema_ref")?,
                         deadline,
                         cancelled,
                     )?;
-                    schema_check(
+                    schema_check_with_worker(
                         executor,
+                        schema_ctx,
                         location,
                         &claim,
                         "ToS/contracts/source-claim-record.schema.json",
@@ -6853,74 +7108,14 @@ fn maintained_inventory_inner_with_members(
             }
         }
     }
-    let native_text_snapshot = if native_bindings.is_empty() {
-        None
-    } else {
-        let cut = cut.ok_or(SourceCommandError::Unsupported(
-            "maintained native text binding snapshot adapter",
-        ))?;
-        let mut reader = ProfileMetadataReader {
-            ctx,
-            cut,
-            observed: BTreeMap::new(),
-            observed_bytes: 0,
-        };
-        let resolved = crate::source_sign_native::resolve_bindings(
-            &mut reader,
-            executor,
-            &native_bindings,
-            NativeReadScope::MetadataOnly,
-            deadline,
-            cancelled,
-        )?;
-        if resolved.summaries.len() != native_bindings.len() {
-            return Err(SourceCommandError::Conflict(
-                "native profile resolver summary count",
-            ));
-        }
-        for summary in &resolved.summaries {
-            if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true)) {
-                return Err(SourceCommandError::Denied(
-                    "profile native text binding has no declared public content",
-                ));
-            }
-        }
-        // The exported closure must name only metadata inputs authenticated
-        // by this same reader. Category-specific duplicates retain their roles.
-        for input in &resolved.inputs {
-            if input.kind == NativeReadKind::Content
-                || reader
-                    .observed
-                    .get(&input.reference)
-                    .map(|(digest, _)| *digest)
-                    != Some(input.raw_sha256)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "native profile exported read closure differs",
-                ));
-            }
-        }
-        for (name, digest) in resolved.schema_digests {
-            if Digest256::of_bytes(selected(ctx, &name)?) != digest {
-                return Err(SourceCommandError::Conflict(
-                    "native profile schema input differs from selected source",
-                ));
-            }
-            let value = string(&digest.to_hex());
-            if record_inputs
-                .object_get(&name)
-                .is_some_and(|prior| prior != &value)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "native profile schema digest conflict",
-                ));
-            }
-            set(&mut record_inputs, &name, value)?;
-        }
-        // The owner's batch snapshot contains exactly its successful shared
-        // cache inputs; it is not synthesized from caller-selected files.
-        Some(resolved.input_snapshot)
-    };
+    let native_text_snapshot = executor.native_text_snapshot(
+        ctx,
+        cut,
+        &native_bindings,
+        &mut record_inputs,
+        deadline,
+        cancelled,
+    )?;
     if !has_profiled_claim {
         prior_profile_inputs = object(vec![]);
     }
@@ -6989,15 +7184,7 @@ fn maintained_grounding(
     let (inventory, mut retained_budget) = match prepared_inventory {
         Some(prepared) => (prepared.inventory, Some(prepared.budget)),
         None => (
-            maintained_inventory_inner(
-                ctx,
-                None,
-                true,
-                executor,
-                deadline,
-                cancelled,
-                None,
-            )?,
+            maintained_inventory_inner(ctx, None, true, executor, deadline, cancelled, None)?,
             None,
         ),
     };
@@ -7298,15 +7485,18 @@ fn maintained_grounding(
             continue;
         };
         let location = text(entry, "source_record_ref")?;
-        let member_inputs = inventory
-            .record_member_inputs
-            .get(location)
-            .ok_or(SourceCommandError::Conflict(
-                "grounded source record schema inputs absent from selected closure",
-            ))?;
+        let member_inputs =
+            inventory
+                .record_member_inputs
+                .get(location)
+                .ok_or(SourceCommandError::Conflict(
+                    "grounded source record schema inputs absent from selected closure",
+                ))?;
         for (name, digest) in member_inputs
             .as_object()
-            .ok_or(SourceCommandError::Invalid("source record schema input map"))?
+            .ok_or(SourceCommandError::Invalid(
+                "source record schema input map",
+            ))?
         {
             if relevant_record_inputs
                 .as_object()
@@ -7359,12 +7549,7 @@ fn maintained_grounding(
         .filter(|(id, _)| relevant_claim_ids.contains(*id))
     {
         let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
-        claim_profile_inputs_selected(
-            ctx,
-            claim,
-            &descriptor,
-            &mut relevant_claim_profiles,
-        )?;
+        claim_profile_inputs_selected(ctx, claim, &descriptor, &mut relevant_claim_profiles)?;
     }
     let source_contracts = JsonValue::Object(
         relevant_record_inputs

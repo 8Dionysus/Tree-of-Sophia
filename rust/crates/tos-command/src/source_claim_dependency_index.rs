@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, Digest256Hasher, JsonValue, RelativePath};
 
 pub(crate) const PREDICATE_SCOPE: &str = "claim-dependency-v1";
-pub(crate) const NAVIGATION_REFERENCE_SCOPE: &str = "claim-navigation-reference-v1";
+pub(crate) const NAVIGATION_REFERENCE_SCOPE: &str = "claim-navigation-reference-v2";
 pub(crate) const MAX_CLAIM_STREAMS: usize = 4_096;
 pub(crate) const MAX_STREAM_BYTES: usize = 1_048_576;
 pub(crate) const MAX_TOTAL_CLAIM_BYTES: usize = 268_435_456;
@@ -19,7 +19,8 @@ const MAX_PATH_BYTES: usize = 4_096;
 const MAX_ID_BYTES: usize = 4_096;
 pub(crate) const MAX_NAVIGATION_REFERENCE_ROWS: usize = 262_144;
 pub(crate) const MAX_NAVIGATION_REFERENCE_LOOKUPS: usize = 8_192;
-const NAVIGATION_REFERENCE_COMPLETE_MARKER: &str = "claim-navigation-reference-index-complete-v2";
+const NAVIGATION_REFERENCE_COMPLETE_MARKER: &str =
+    "claim-navigation-reference-index-complete-v3-intervals";
 const NAVIGATION_SHARED_SOURCE_PATHS: &[&str] = &[
     "ToS/contracts/source-claim-record.schema.json",
     "ToS/contracts/human-form-set.schema.json",
@@ -95,6 +96,8 @@ pub(crate) struct ClaimNavigationReference {
     pub(crate) member_digest: Digest256,
     pub(crate) size_bytes: u64,
     pub(crate) commit_seq: u64,
+    pub(crate) valid_from_seq: u64,
+    pub(crate) valid_to_seq: Option<u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -104,6 +107,8 @@ pub(crate) struct ClaimNavigationReferenceObservation {
     pub(crate) rows: BTreeSet<ClaimNavigationReference>,
     pub(crate) predicate_token: String,
     pub(crate) generation: u64,
+    pub(crate) completeness_token: String,
+    pub(crate) completeness_generation: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -230,8 +235,7 @@ fn validate_public_path(path: &str) -> DurableResult<()> {
 }
 
 fn is_claim_stream_path(path: &str) -> bool {
-    path.starts_with("ToS/source-witnesses/relations/")
-        && path.ends_with("/source-claims.jsonl")
+    path.starts_with("ToS/source-witnesses/relations/") && path.ends_with("/source-claims.jsonl")
 }
 
 fn validate_claim_stream_path(path: &str) -> DurableResult<()> {
@@ -244,7 +248,7 @@ fn validate_claim_stream_path(path: &str) -> DurableResult<()> {
     Ok(())
 }
 
-fn text(value: &JsonValue, key: &'static str) -> DurableResult<&str> {
+fn text<'a>(value: &'a JsonValue, key: &'static str) -> DurableResult<&'a str> {
     value
         .object_get(key)
         .and_then(JsonValue::as_str)
@@ -581,6 +585,7 @@ fn read_navigation_member_rows(
         "SELECT claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest
          FROM cmd2_source_claim_navigation_reference
          WHERE domain=$1 AND path COLLATE \"C\"=$2 COLLATE \"C\"
+           AND valid_from_seq IS NOT NULL AND valid_to_seq IS NULL
          ORDER BY claim_id COLLATE \"C\",endpoint_kind COLLATE \"C\",endpoint COLLATE \"C\"
          LIMIT $3",
         &[&domain, &path, &limit],
@@ -611,45 +616,6 @@ fn read_navigation_member_rows(
         if !result.insert(value) {
             return Err(DurableError::Corrupt(
                 "duplicate Claim navigation reference member row",
-            ));
-        }
-    }
-    Ok(result)
-}
-
-fn read_navigation_full_rows(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-) -> DurableResult<BTreeSet<NavigationReferenceIndexRow>> {
-    let limit = as_i64(MAX_NAVIGATION_REFERENCE_ROWS + 1)?;
-    let rows = tx.query(
-        "SELECT claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest
-         FROM cmd2_source_claim_navigation_reference
-         WHERE domain=$1
-         ORDER BY path COLLATE \"C\",claim_id COLLATE \"C\",endpoint_kind COLLATE \"C\",endpoint COLLATE \"C\"
-         LIMIT $2",
-        &[&domain, &limit],
-    )?;
-    if rows.len() > MAX_NAVIGATION_REFERENCE_ROWS {
-        return Err(DurableError::Refused(
-            "Claim navigation reference full index bound exceeded",
-        ));
-    }
-    let mut result = BTreeSet::new();
-    for row in rows {
-        let value = NavigationReferenceIndexRow {
-            claim_id: row.get("claim_id"),
-            path: row.get("path"),
-            basis: NavigationReferenceBasis::parse(row.get("basis"))?,
-            kind: ClaimNavigationReferenceKind::parse(row.get("endpoint_kind"))?,
-            endpoint: row.get("endpoint"),
-            member_digest: digest(row.get("member_digest"))?,
-            definition_digest: digest(row.get("definition_digest"))?,
-        };
-        validate_navigation_reference_row(&value)?;
-        if !result.insert(value) {
-            return Err(DurableError::Corrupt(
-                "duplicate Claim navigation reference full row",
             ));
         }
     }
@@ -830,9 +796,7 @@ fn full_navigation_source_rows(
 ) -> DurableResult<BTreeSet<NavigationReferenceIndexRow>> {
     let shared_schema_paths = files
         .keys()
-        .filter(|path| {
-            path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
-        })
+        .filter(|path| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
         .cloned()
         .collect::<BTreeSet<_>>();
     let mut claim_streams = 0usize;
@@ -861,19 +825,11 @@ fn full_navigation_source_rows(
             definition,
             &shared_schema_paths,
         )?);
-        if rows.len() > MAX_NAVIGATION_REFERENCE_ROWS {
-            return Err(DurableError::Refused(
-                "Claim navigation reference full index bound exceeded",
-            ));
-        }
     }
     Ok(rows)
 }
 
-fn current_schema_paths(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-) -> DurableResult<BTreeSet<String>> {
+fn current_schema_paths(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<BTreeSet<String>> {
     let limit = as_i64(8193)?;
     let rows = tx.query(
         "SELECT subject FROM cmd2_current
@@ -910,8 +866,13 @@ fn existing_shared_schema_paths(
     let rows = tx.query(
         "SELECT DISTINCT endpoint FROM cmd2_source_claim_navigation_reference
          WHERE domain=$1 AND basis=$2 AND endpoint_kind='source-path'
+           AND valid_from_seq IS NOT NULL AND valid_to_seq IS NULL
          ORDER BY endpoint COLLATE \"C\" LIMIT $3",
-        &[&domain, &NavigationReferenceBasis::SharedSchema.as_str(), &limit],
+        &[
+            &domain,
+            &NavigationReferenceBasis::SharedSchema.as_str(),
+            &limit,
+        ],
     )?;
     if rows.len() > 8192 {
         return Err(DurableError::Refused(
@@ -992,6 +953,7 @@ fn replace_shared_schema_references(
     tx: &mut Transaction<'_>,
     domain: &str,
     definition: Digest256,
+    sequence: u64,
     old_schema_paths: &BTreeSet<String>,
     current_schema_paths: &BTreeSet<String>,
     changed_tokens: &mut BTreeSet<String>,
@@ -1016,10 +978,12 @@ fn replace_shared_schema_references(
                 "Claim navigation schema removal row bound exceeded",
             ))?;
         let rows = tx.query(
-            "SELECT claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest
+            "SELECT claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest,
+                    valid_from_seq,valid_to_seq
              FROM cmd2_source_claim_navigation_reference
              WHERE domain=$1 AND basis=$2 AND endpoint_kind='source-path'
                AND endpoint COLLATE \"C\"=$3 COLLATE \"C\"
+               AND valid_from_seq IS NOT NULL AND valid_to_seq IS NULL
              ORDER BY path COLLATE \"C\",claim_id COLLATE \"C\" LIMIT $4",
             &[
                 &domain,
@@ -1059,32 +1023,16 @@ fn replace_shared_schema_references(
     } else {
         current_claim_owner_facts(tx, domain, definition)?
     };
-    let current_rows: i64 = tx
-        .query_one(
-            "SELECT COUNT(*) FROM cmd2_source_claim_navigation_reference WHERE domain=$1",
-            &[&domain],
-        )?
-        .get(0);
-    let current_rows = usize::try_from(current_rows)
-        .map_err(|_| DurableError::Corrupt("Claim navigation index row count invalid"))?;
-    let rows_after_removal = current_rows
-        .checked_sub(removed_rows.len())
-        .ok_or(DurableError::Corrupt(
-            "Claim navigation schema removal count exceeds index",
-        ))?;
-    let maximum_additions = added
-        .len()
-        .checked_mul(current_owners.len())
-        .ok_or(DurableError::Refused(
-            "Claim navigation schema addition row bound exceeded",
-        ))?;
-    if rows_after_removal
-        .checked_add(maximum_additions)
-        .filter(|rows| *rows <= MAX_NAVIGATION_REFERENCE_ROWS)
-        .is_none()
-    {
+    let maximum_additions =
+        added
+            .len()
+            .checked_mul(current_owners.len())
+            .ok_or(DurableError::Refused(
+                "Claim navigation schema addition row bound exceeded",
+            ))?;
+    if maximum_additions > MAX_NAVIGATION_REFERENCE_ROWS {
         return Err(DurableError::Refused(
-            "Claim navigation schema dependency index bound exceeded",
+            "Claim navigation schema addition change-set bound exceeded",
         ));
     }
     for endpoint in &added {
@@ -1099,10 +1047,11 @@ fn replace_shared_schema_references(
                 definition_digest: definition,
             };
             validate_navigation_reference_row(&row)?;
-            let inserted = tx.execute(
+            tx.execute(
                 "INSERT INTO cmd2_source_claim_navigation_reference(
-                   domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest
-                 ) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING",
+                   domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest,
+                   valid_from_seq,valid_to_seq
+                 ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NULL)",
                 &[
                     &domain,
                     &row.claim_id,
@@ -1112,58 +1061,30 @@ fn replace_shared_schema_references(
                     &row.endpoint,
                     &row.member_digest.to_hex(),
                     &row.definition_digest.to_hex(),
+                    &as_i64(sequence)?,
                 ],
             )?;
-            if inserted == 1 {
-                changed_tokens.insert(row.token()?);
-            } else {
-                let existing = tx.query_opt(
-                    "SELECT member_digest,definition_digest FROM cmd2_source_claim_navigation_reference
-                     WHERE domain=$1 AND path=$2 AND claim_id=$3 AND basis=$4
-                       AND endpoint_kind=$5 AND endpoint=$6",
-                    &[
-                        &domain,
-                        &row.path,
-                        &row.claim_id,
-                        &row.basis.as_str(),
-                        &row.kind.as_str(),
-                        &row.endpoint,
-                    ],
-                )?;
-                let Some(existing) = existing else {
-                    return Err(DurableError::Conflict(
-                        "Claim navigation schema insertion lost its row",
-                    ));
-                };
-                if digest(existing.get("member_digest"))? != row.member_digest
-                    || digest(existing.get("definition_digest"))? != definition
-                {
-                    return Err(DurableError::Conflict(
-                        "Claim navigation schema insertion conflicts with current owner",
-                    ));
-                }
-            }
+            changed_tokens.insert(row.token()?);
         }
     }
-    for endpoint in &removed {
-        let deleted = tx.execute(
-            "DELETE FROM cmd2_source_claim_navigation_reference
-             WHERE domain=$1 AND basis=$2 AND endpoint_kind='source-path'
-               AND endpoint COLLATE \"C\"=$3 COLLATE \"C\"",
+    for (path, claim_id, endpoint) in &removed_rows {
+        let closed = tx.execute(
+            "UPDATE cmd2_source_claim_navigation_reference SET valid_to_seq=$6
+             WHERE domain=$1 AND path=$2 AND claim_id=$3 AND basis=$4
+               AND endpoint_kind='source-path' AND endpoint=$5
+               AND valid_from_seq IS NOT NULL AND valid_from_seq<$6 AND valid_to_seq IS NULL",
             &[
                 &domain,
+                path,
+                claim_id,
                 &NavigationReferenceBasis::SharedSchema.as_str(),
                 endpoint,
+                &as_i64(sequence)?,
             ],
         )?;
-        if usize::try_from(deleted).ok() != Some(
-            removed_rows
-                .iter()
-                .filter(|(_, _, removed_endpoint)| removed_endpoint == endpoint)
-                .count(),
-        ) {
+        if closed != 1 {
             return Err(DurableError::Conflict(
-                "Claim navigation schema removal changed during replacement",
+                "Claim navigation schema interval changed during replacement",
             ));
         }
     }
@@ -1177,18 +1098,39 @@ pub(crate) fn replace_current_members<'a, I>(
     domain: &str,
     members: I,
     definition: Digest256,
+    sequence: u64,
 ) -> DurableResult<()>
 where
     I: IntoIterator<Item = (&'a str, Option<&'a [u8]>)>,
 {
     let members = members.into_iter().collect::<Vec<_>>();
-    let schema_membership_changed = members.iter().any(|(path, _)| {
-        path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
-    });
+    let schema_membership_changed = members
+        .iter()
+        .any(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"));
     let claim_stream_changed = members
         .iter()
         .any(|(path, bytes)| bytes.is_some() && is_claim_stream_path(path));
     require_navigation_completeness_generation(tx, domain, definition)?;
+    let domain_row = tx.query_opt(
+        "SELECT source_claim_navigation_reference_baseline_seq,head_seq,source_complete
+         FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+        &[&domain],
+    )?;
+    let baseline = domain_row
+        .as_ref()
+        .and_then(|row| row.get::<_, Option<i64>>(0))
+        .map(as_u64)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "Claim navigation interval baseline absent",
+        ))?;
+    let domain_row = domain_row.ok_or(DurableError::Conflict("Claim navigation domain absent"))?;
+    let current_head = as_u64(domain_row.get(1))?;
+    if !domain_row.get::<_, bool>(2) || sequence <= baseline || sequence <= current_head {
+        return Err(DurableError::Conflict(
+            "Claim navigation source sequence does not follow its baseline",
+        ));
+    }
     let shared_schema_paths = if schema_membership_changed || claim_stream_changed {
         current_schema_paths(tx, domain)?
     } else {
@@ -1196,6 +1138,14 @@ where
     };
     let old_shared_schema_paths = if schema_membership_changed {
         existing_shared_schema_paths(tx, domain)?
+    } else {
+        BTreeSet::new()
+    };
+    let retained_shared_schema_paths = if schema_membership_changed {
+        old_shared_schema_paths
+            .intersection(&shared_schema_paths)
+            .cloned()
+            .collect::<BTreeSet<_>>()
     } else {
         BTreeSet::new()
     };
@@ -1215,9 +1165,14 @@ where
             Some(_) | None => BTreeMap::new(),
         };
         let old_navigation = read_navigation_member_rows(tx, domain, path, definition)?;
+        let member_schema_paths = if schema_membership_changed {
+            &retained_shared_schema_paths
+        } else {
+            &shared_schema_paths
+        };
         let new_navigation = match bytes {
             Some(bytes) if is_claim_stream_path(path) => {
-                navigation_reference_rows(path, bytes, definition, &shared_schema_paths)?
+                navigation_reference_rows(path, bytes, definition, member_schema_paths)?
             }
             Some(_) | None => BTreeSet::new(),
         };
@@ -1261,20 +1216,35 @@ where
                 ],
             )?;
         }
-        let deleted_navigation = tx.execute(
-            "DELETE FROM cmd2_source_claim_navigation_reference WHERE domain=$1 AND path COLLATE \"C\"=$2 COLLATE \"C\"",
-            &[&domain, &path],
-        )?;
-        if deleted_navigation != old_navigation.len() as u64 {
-            return Err(DurableError::Conflict(
-                "Claim navigation reference member changed during replacement",
-            ));
+        for row in old_navigation.difference(&new_navigation) {
+            let closed = tx.execute(
+                "UPDATE cmd2_source_claim_navigation_reference SET valid_to_seq=$8
+                 WHERE domain=$1 AND path=$2 AND claim_id=$3 AND basis=$4
+                   AND endpoint_kind=$5 AND endpoint=$6 AND member_digest=$7
+                   AND valid_from_seq IS NOT NULL AND valid_from_seq<$8 AND valid_to_seq IS NULL",
+                &[
+                    &domain,
+                    &row.path,
+                    &row.claim_id,
+                    &row.basis.as_str(),
+                    &row.kind.as_str(),
+                    &row.endpoint,
+                    &row.member_digest.to_hex(),
+                    &as_i64(sequence)?,
+                ],
+            )?;
+            if closed != 1 {
+                return Err(DurableError::Conflict(
+                    "Claim navigation reference interval changed during replacement",
+                ));
+            }
         }
-        for row in &new_navigation {
+        for row in new_navigation.difference(&old_navigation) {
             tx.execute(
                 "INSERT INTO cmd2_source_claim_navigation_reference(
-                   domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest
-                 ) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+                   domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest,
+                   valid_from_seq,valid_to_seq
+                 ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NULL)",
                 &[
                     &domain,
                     &row.claim_id,
@@ -1284,6 +1254,7 @@ where
                     &row.endpoint,
                     &row.member_digest.to_hex(),
                     &row.definition_digest.to_hex(),
+                    &as_i64(sequence)?,
                 ],
             )?;
         }
@@ -1293,6 +1264,7 @@ where
             tx,
             domain,
             definition,
+            sequence,
             &old_shared_schema_paths,
             &shared_schema_paths,
             &mut changed_navigation_tokens,
@@ -1491,6 +1463,41 @@ fn require_navigation_completeness_generation(
         .map_err(|_| DurableError::Corrupt("Claim navigation reference generation invalid"))
 }
 
+pub(crate) fn navigation_completeness_observation(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    definition: Digest256,
+) -> DurableResult<(String, u64)> {
+    Ok((
+        navigation_reference_complete_token()?,
+        require_navigation_completeness_generation(tx, domain, definition)?,
+    ))
+}
+
+fn navigation_cut(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<(u64, u64)> {
+    let row = tx
+        .query_opt(
+            "SELECT source_claim_navigation_reference_baseline_seq,head_seq,source_complete
+         FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?
+        .ok_or(DurableError::Conflict("Claim navigation domain absent"))?;
+    let baseline = row
+        .get::<_, Option<i64>>(0)
+        .map(as_u64)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "Claim navigation interval baseline absent",
+        ))?;
+    let head = as_u64(row.get(1))?;
+    if !row.get::<_, bool>(2) || baseline > head {
+        return Err(DurableError::Conflict(
+            "Claim navigation interval baseline or source completeness differs",
+        ));
+    }
+    Ok((baseline, head))
+}
+
 /// Rebuild the complete endpoint index only during the selected bootstrap.
 /// Ordinary source writes must use `replace_current_members`.
 pub(crate) fn rebuild_current(
@@ -1498,7 +1505,38 @@ pub(crate) fn rebuild_current(
     domain: &str,
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,
+    baseline_seq: u64,
 ) -> DurableResult<()> {
+    let (head, source_complete, existing_baseline): (u64, bool, Option<u64>) = {
+        let row = tx
+            .query_opt(
+                "SELECT head_seq,source_complete,source_claim_navigation_reference_baseline_seq
+             FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+                &[&domain],
+            )?
+            .ok_or(DurableError::Conflict("Claim navigation domain absent"))?;
+        (
+            as_u64(row.get(0))?,
+            row.get(1),
+            row.get::<_, Option<i64>>(2).map(as_u64).transpose()?,
+        )
+    };
+    if head != baseline_seq || source_complete || existing_baseline.is_some() {
+        return Err(DurableError::Conflict(
+            "Claim navigation rebuild is not at the fresh bootstrap cut",
+        ));
+    }
+    let legacy_rows: i64 = tx
+        .query_one(
+            "SELECT COUNT(*) FROM cmd2_source_claim_navigation_reference WHERE domain=$1",
+            &[&domain],
+        )?
+        .get(0);
+    if legacy_rows != 0 {
+        return Err(DurableError::Conflict(
+            "Claim navigation bootstrap refuses unversioned legacy rows",
+        ));
+    }
     let old = old_full_rows(tx, domain)?;
     let new = full_source_rows(files, definition)?;
     let mut changed_tokens = old_predicate_tokens(tx, domain, PREDICATE_SCOPE)?;
@@ -1536,7 +1574,9 @@ pub(crate) fn rebuild_current(
     }
     advance_predicate_generations(tx, domain, definition, &changed_tokens, true)?;
 
-    let old_navigation = read_navigation_full_rows(tx, domain)?;
+    // The preceding fresh-target guard proves there are no stored temporal
+    // rows to load. Historical/current intervals are never fabricated here.
+    let old_navigation = BTreeSet::new();
     let new_navigation = full_navigation_source_rows(files, definition)?;
     let mut changed_navigation_tokens = old_navigation_tokens(tx, domain)?;
     for row in old_navigation.symmetric_difference(&new_navigation) {
@@ -1549,8 +1589,9 @@ pub(crate) fn rebuild_current(
     for row in &new_navigation {
         tx.execute(
             "INSERT INTO cmd2_source_claim_navigation_reference(
-               domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest
-             ) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+               domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,definition_digest,
+               valid_from_seq,valid_to_seq
+             ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NULL)",
             &[
                 &domain,
                 &row.claim_id,
@@ -1560,6 +1601,7 @@ pub(crate) fn rebuild_current(
                 &row.endpoint,
                 &row.member_digest.to_hex(),
                 &row.definition_digest.to_hex(),
+                &as_i64(baseline_seq)?,
             ],
         )?;
     }
@@ -1571,7 +1613,14 @@ pub(crate) fn rebuild_current(
         NAVIGATION_REFERENCE_SCOPE,
         &changed_navigation_tokens,
         true,
-    )
+    )?;
+    tx.execute(
+        "UPDATE cmd2_domain SET source_claim_navigation_reference_baseline_seq=$2
+         WHERE domain=$1 AND source_claim_navigation_reference_baseline_seq IS NULL
+           AND source_complete=false AND head_seq=$2",
+        &[&domain, &as_i64(baseline_seq)?],
+    )?;
+    Ok(())
 }
 
 /// Verify exact equality with a complete selected ToS source. This is a cold
@@ -1582,6 +1631,7 @@ pub(crate) fn verify_current(
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,
 ) -> DurableResult<()> {
+    let (baseline_seq, head_seq) = navigation_cut(tx, domain)?;
     let expected = full_source_rows(files, definition)?;
     let expected_definition = definition.to_hex();
     let row_limit = as_i64(MAX_INDEX_ROWS + 1)?;
@@ -1682,22 +1732,113 @@ pub(crate) fn verify_current(
     }
 
     let expected_navigation = full_navigation_source_rows(files, definition)?;
-    let navigation_limit = as_i64(MAX_NAVIGATION_REFERENCE_ROWS + 1)?;
+    let mut intervals = tx.query_raw(
+        "SELECT i.claim_id,i.path,i.basis,i.endpoint_kind,i.endpoint,
+                i.member_digest,i.definition_digest,i.valid_from_seq,i.valid_to_seq,
+                h.content_digest AS history_digest,h.commit_seq AS history_commit_seq,
+                h.source_mode AS history_source_mode
+         FROM cmd2_source_claim_navigation_reference i
+         LEFT JOIN LATERAL (
+           SELECT content_digest,commit_seq,source_mode
+           FROM cmd2_history h
+           WHERE h.domain=i.domain AND h.subject=i.path AND h.commit_seq<=i.valid_from_seq
+           ORDER BY h.revision DESC LIMIT 1
+         ) h ON TRUE
+         WHERE i.domain=$1
+         ORDER BY i.path COLLATE \"C\",i.claim_id COLLATE \"C\",i.basis COLLATE \"C\",
+                  i.endpoint_kind COLLATE \"C\",i.endpoint COLLATE \"C\",i.valid_from_seq",
+        &[&domain],
+    )?;
+    let mut previous = BTreeMap::<
+        (
+            String,
+            String,
+            NavigationReferenceBasis,
+            ClaimNavigationReferenceKind,
+            String,
+        ),
+        Option<u64>,
+    >::new();
+    while let Some(row) = intervals.next()? {
+        let value = NavigationReferenceIndexRow {
+            claim_id: row.get("claim_id"),
+            path: row.get("path"),
+            basis: NavigationReferenceBasis::parse(row.get("basis"))?,
+            kind: ClaimNavigationReferenceKind::parse(row.get("endpoint_kind"))?,
+            endpoint: row.get("endpoint"),
+            member_digest: digest(row.get("member_digest"))?,
+            definition_digest: digest(row.get("definition_digest"))?,
+        };
+        validate_navigation_reference_row(&value)?;
+        let valid_from = as_u64(row.get("valid_from_seq"))?;
+        let valid_to = row
+            .get::<_, Option<i64>>("valid_to_seq")
+            .map(as_u64)
+            .transpose()?;
+        let history_digest: Option<String> = row.get("history_digest");
+        let history_commit_seq: Option<i64> = row.get("history_commit_seq");
+        let history_source_mode: Option<i32> = row.get("history_source_mode");
+        let history_digest =
+            history_digest
+                .as_deref()
+                .map(digest)
+                .transpose()?
+                .ok_or(DurableError::Corrupt(
+                    "Claim navigation interval source history absent",
+                ))?;
+        let history_commit_seq =
+            history_commit_seq
+                .map(as_u64)
+                .transpose()?
+                .ok_or(DurableError::Corrupt(
+                    "Claim navigation interval source sequence absent",
+                ))?;
+        if value.definition_digest.to_hex() != expected_definition
+            || history_digest != value.member_digest
+            || history_commit_seq > valid_from
+            || history_source_mode.is_none()
+            || valid_from < baseline_seq
+            || valid_from > head_seq
+            || valid_to.is_some_and(|end| end <= valid_from || end > head_seq)
+        {
+            return Err(DurableError::Conflict(
+                "Claim navigation interval differs from its source cut",
+            ));
+        }
+        let identity = (
+            value.path,
+            value.claim_id,
+            value.basis,
+            value.kind,
+            value.endpoint,
+        );
+        if let Some(previous_end) = previous.get(&identity) {
+            if previous_end.is_none_or(|end| end > valid_from) {
+                return Err(DurableError::Corrupt("Claim navigation intervals overlap"));
+            }
+        }
+        previous.insert(identity, valid_to);
+    }
+
+    let navigation_limit = as_i64(expected_navigation.len().checked_add(1).ok_or(
+        DurableError::Refused("Claim navigation selected row count overflow"),
+    )?)?;
     let navigation_rows = tx.query(
         "SELECT i.claim_id,i.path,i.basis,i.endpoint_kind,i.endpoint,i.member_digest,i.definition_digest,
+                i.valid_from_seq,
                 c.content_digest,c.content_length,c.commit_seq,
                 s.path AS identity_path,s.definition_digest AS identity_definition
          FROM cmd2_source_claim_navigation_reference i
          LEFT JOIN cmd2_current c ON c.domain=i.domain AND c.subject=i.path
          LEFT JOIN cmd2_source_index s ON s.domain=i.domain AND s.kind='claim' AND s.token=i.claim_id
-         WHERE i.domain=$1
+         WHERE i.domain=$1 AND i.valid_from_seq IS NOT NULL AND i.valid_to_seq IS NULL
          ORDER BY i.path COLLATE \"C\",i.claim_id COLLATE \"C\",i.endpoint_kind COLLATE \"C\",i.endpoint COLLATE \"C\"
          LIMIT $2",
         &[&domain, &navigation_limit],
     )?;
-    if navigation_rows.len() > MAX_NAVIGATION_REFERENCE_ROWS {
-        return Err(DurableError::Corrupt(
-            "Claim navigation reference cold index bound exceeded",
+    if navigation_rows.len() > expected_navigation.len() {
+        return Err(DurableError::Conflict(
+            "Claim navigation reference cold rowset exceeds selected source",
         ));
     }
     let mut observed_navigation = BTreeSet::new();
@@ -1713,6 +1854,7 @@ pub(crate) fn verify_current(
         };
         validate_navigation_reference_row(&value)?;
         let current_digest: Option<String> = row.get("content_digest");
+        let valid_from_seq = as_u64(row.get("valid_from_seq"))?;
         let content_length: Option<i64> = row.get("content_length");
         let commit_seq: Option<i64> = row.get("commit_seq");
         let indexed_path: Option<String> = row.get("identity_path");
@@ -1722,6 +1864,8 @@ pub(crate) fn verify_current(
             || current_digest.as_deref().map(digest).transpose()? != Some(value.member_digest)
             || content_length.and_then(|length| u64::try_from(length).ok()) != expected_len
             || commit_seq.is_none_or(|sequence| sequence <= 0)
+            || valid_from_seq < baseline_seq
+            || valid_from_seq > head_seq
             || indexed_path.as_deref() != Some(value.path.as_str())
             || identity_definition.as_deref() != Some(expected_definition.as_str())
         {
@@ -1908,6 +2052,7 @@ pub(crate) fn lookup_current_navigation_references(
 ) -> DurableResult<ClaimNavigationReferenceObservation> {
     let key_token = navigation_reference_token(kind, endpoint)?;
     let definition_hex = definition.to_hex();
+    let (baseline, head) = navigation_cut(tx, domain)?;
     let completeness_generation =
         require_navigation_completeness_generation(tx, domain, definition)?;
     let key_generation = tx.query_opt(
@@ -1938,12 +2083,14 @@ pub(crate) fn lookup_current_navigation_references(
     let limit = as_i64(MAX_NAVIGATION_REFERENCE_ROWS + 1)?;
     let rows = tx.query(
         "SELECT i.claim_id,i.path,i.basis,i.endpoint_kind,i.endpoint,i.member_digest,i.definition_digest,
+                i.valid_from_seq,i.valid_to_seq,
                 c.content_digest,c.content_length,c.commit_seq,
                 s.path AS identity_path,s.definition_digest AS identity_definition
          FROM cmd2_source_claim_navigation_reference i
          LEFT JOIN cmd2_current c ON c.domain=i.domain AND c.subject=i.path
          LEFT JOIN cmd2_source_index s ON s.domain=i.domain AND s.kind='claim' AND s.token=i.claim_id
          WHERE i.domain=$1 AND i.endpoint_kind=$2 AND i.endpoint COLLATE \"C\"=$3 COLLATE \"C\"
+           AND i.valid_from_seq IS NOT NULL AND i.valid_to_seq IS NULL
          ORDER BY i.path COLLATE \"C\",i.claim_id COLLATE \"C\" LIMIT $4",
         &[&domain, &kind.as_str(), &endpoint, &limit],
     )?;
@@ -1965,6 +2112,11 @@ pub(crate) fn lookup_current_navigation_references(
         };
         validate_navigation_reference_row(&value)?;
         let current_digest: Option<String> = row.get("content_digest");
+        let valid_from_seq = as_u64(row.get("valid_from_seq"))?;
+        let valid_to_seq = row
+            .get::<_, Option<i64>>("valid_to_seq")
+            .map(as_u64)
+            .transpose()?;
         let content_length: Option<i64> = row.get("content_length");
         let commit_seq: Option<i64> = row.get("commit_seq");
         let indexed_path: Option<String> = row.get("identity_path");
@@ -1986,6 +2138,9 @@ pub(crate) fn lookup_current_navigation_references(
             || current_digest.as_deref().map(digest).transpose()? != Some(value.member_digest)
             || indexed_path.as_deref() != Some(value.path.as_str())
             || identity_definition.as_deref() != Some(definition_hex.as_str())
+            || valid_from_seq < baseline
+            || valid_from_seq > head
+            || valid_to_seq.is_some()
         {
             return Err(DurableError::Conflict(
                 "Claim navigation point row differs from current source",
@@ -1999,6 +2154,8 @@ pub(crate) fn lookup_current_navigation_references(
             member_digest: value.member_digest,
             size_bytes,
             commit_seq,
+            valid_from_seq,
+            valid_to_seq,
         };
         result.insert(reference);
     }
@@ -2011,7 +2168,189 @@ pub(crate) fn lookup_current_navigation_references(
         kind,
         endpoint: endpoint.to_owned(),
         rows: result,
-        predicate_token: navigation_reference_complete_token()?,
-        generation: completeness_generation,
+        predicate_token: key_token,
+        generation: u64::try_from(key_generation)
+            .map_err(|_| DurableError::Corrupt("Claim navigation endpoint generation invalid"))?,
+        completeness_token: navigation_reference_complete_token()?,
+        completeness_generation,
+    })
+}
+
+/// Read exact reverse Claim references whose half-open interval contains an
+/// authored-source cut. The caller must hold the audit/domain share fence;
+/// the returned rows are checked against the newest committed source member
+/// at that cut, not `cmd2_current`.
+pub(crate) fn lookup_navigation_references_at(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    kind: ClaimNavigationReferenceKind,
+    endpoint: &str,
+    definition: Digest256,
+    as_of_sequence: u64,
+    held_source_head_sequence: u64,
+) -> DurableResult<ClaimNavigationReferenceObservation> {
+    let key_token = navigation_reference_token(kind, endpoint)?;
+    let definition_hex = definition.to_hex();
+    let (baseline, head) = navigation_cut(tx, domain)?;
+    if head != held_source_head_sequence
+        || as_of_sequence < baseline
+        || as_of_sequence > held_source_head_sequence
+    {
+        return Err(DurableError::Conflict(
+            "Claim navigation as-of cut is outside the held source interval",
+        ));
+    }
+    let completeness_token = navigation_reference_complete_token()?;
+    let completeness_generation =
+        require_navigation_completeness_generation(tx, domain, definition)?;
+    let key_generation = tx.query_opt(
+        "SELECT generation,complete,definition_version FROM cmd2_predicate
+         WHERE domain=$1 AND kind='range' AND owner=$2 AND scope=$3 AND token=$4",
+        &[
+            &domain,
+            &crate::source_cohort::OWNER,
+            &NAVIGATION_REFERENCE_SCOPE,
+            &key_token,
+        ],
+    )?;
+    let key_generation = match key_generation {
+        Some(row) => {
+            let generation: i64 = row.get("generation");
+            if generation < 0
+                || !row.get::<_, bool>("complete")
+                || row.get::<_, String>("definition_version") != definition_hex
+            {
+                return Err(DurableError::Conflict(
+                    "Claim navigation endpoint predicate is incomplete or stale",
+                ));
+            }
+            u64::try_from(generation).map_err(|_| {
+                DurableError::Corrupt("Claim navigation endpoint generation invalid")
+            })?
+        }
+        None => 0,
+    };
+    let as_of = as_i64(as_of_sequence)?;
+    let limit = as_i64(MAX_NAVIGATION_REFERENCE_ROWS + 1)?;
+    let rows = tx.query(
+        "SELECT i.claim_id,i.path,i.basis,i.endpoint_kind,i.endpoint,
+                i.member_digest,i.definition_digest,i.valid_from_seq,i.valid_to_seq,
+                h.content_digest AS history_digest,h.content_length AS history_length,
+                h.commit_seq AS history_commit_seq,h.source_mode AS history_source_mode
+         FROM cmd2_source_claim_navigation_reference i
+         LEFT JOIN LATERAL (
+           SELECT content_digest,content_length,commit_seq,source_mode
+           FROM cmd2_history h
+           WHERE h.domain=i.domain AND h.subject=i.path AND h.commit_seq<=$4
+           ORDER BY h.commit_seq DESC LIMIT 1
+         ) h ON TRUE
+         WHERE i.domain=$1 AND i.endpoint_kind=$2
+           AND i.endpoint COLLATE \"C\"=$3 COLLATE \"C\"
+           AND i.valid_from_seq IS NOT NULL AND i.valid_from_seq<=$4
+           AND (i.valid_to_seq IS NULL OR $4<i.valid_to_seq)
+         ORDER BY i.path COLLATE \"C\",i.claim_id COLLATE \"C\",
+                  i.basis COLLATE \"C\",i.valid_from_seq LIMIT $5",
+        &[&domain, &kind.as_str(), &endpoint, &as_of, &limit],
+    )?;
+    if rows.len() > MAX_NAVIGATION_REFERENCE_ROWS {
+        return Err(DurableError::Refused(
+            "Claim navigation as-of point result bound exceeded",
+        ));
+    }
+    let mut result = BTreeSet::new();
+    let mut interval_owners = BTreeSet::new();
+    for row in rows {
+        let basis = NavigationReferenceBasis::parse(row.get("basis"))?;
+        let value = NavigationReferenceIndexRow {
+            claim_id: row.get("claim_id"),
+            path: row.get("path"),
+            basis,
+            kind: ClaimNavigationReferenceKind::parse(row.get("endpoint_kind"))?,
+            endpoint: row.get("endpoint"),
+            member_digest: digest(row.get("member_digest"))?,
+            definition_digest: digest(row.get("definition_digest"))?,
+        };
+        validate_navigation_reference_row(&value)?;
+        let valid_from_seq = as_u64(row.get("valid_from_seq"))?;
+        let valid_to_seq = row
+            .get::<_, Option<i64>>("valid_to_seq")
+            .map(as_u64)
+            .transpose()?;
+        let history_digest: Option<String> = row.get("history_digest");
+        let history_length: Option<i64> = row.get("history_length");
+        let history_commit_seq: Option<i64> = row.get("history_commit_seq");
+        let history_source_mode: Option<i32> = row.get("history_source_mode");
+        let member_digest =
+            history_digest
+                .as_deref()
+                .map(digest)
+                .transpose()?
+                .ok_or(DurableError::Conflict(
+                    "Claim navigation as-of source history absent",
+                ))?;
+        let size_bytes = history_length
+            .map(as_u64)
+            .transpose()?
+            .ok_or(DurableError::Conflict(
+                "Claim navigation as-of source size absent",
+            ))?;
+        let commit_seq = history_commit_seq
+            .map(as_u64)
+            .transpose()?
+            .filter(|sequence| *sequence > 0 && *sequence <= as_of_sequence)
+            .ok_or(DurableError::Conflict(
+                "Claim navigation as-of source sequence absent",
+            ))?;
+        if value.kind != kind
+            || value.endpoint != endpoint
+            || value.definition_digest.to_hex() != definition_hex
+            || member_digest != value.member_digest
+            || history_source_mode.is_none()
+            || valid_from_seq < baseline
+            || valid_from_seq > as_of_sequence
+            || valid_to_seq.is_some_and(|sequence| {
+                sequence <= as_of_sequence || sequence <= valid_from_seq || sequence > head
+            })
+        {
+            return Err(DurableError::Conflict(
+                "Claim navigation as-of interval or source history differs",
+            ));
+        }
+        if !interval_owners.insert((
+            value.path.clone(),
+            value.claim_id.clone(),
+            value.basis,
+            value.kind,
+            value.endpoint.clone(),
+        )) {
+            return Err(DurableError::Corrupt(
+                "overlapping Claim navigation intervals at as-of cut",
+            ));
+        }
+        result.insert(ClaimNavigationReference {
+            claim_id: value.claim_id,
+            path: value.path,
+            kind,
+            endpoint: endpoint.to_owned(),
+            member_digest: value.member_digest,
+            size_bytes,
+            commit_seq,
+            valid_from_seq,
+            valid_to_seq,
+        });
+    }
+    if key_generation == 0 && !result.is_empty() {
+        return Err(DurableError::Corrupt(
+            "Claim navigation as-of rows lack an endpoint generation",
+        ));
+    }
+    Ok(ClaimNavigationReferenceObservation {
+        kind,
+        endpoint: endpoint.to_owned(),
+        rows: result,
+        predicate_token: key_token,
+        generation: key_generation,
+        completeness_token,
+        completeness_generation,
     })
 }

@@ -1000,7 +1000,7 @@ fn addressed_backup_restore_phase(phase: &str) {
     let cancelled = AtomicBool::new(false);
     let tool_kind = match phase {
         "backup" => "DUMP",
-        "restore" => "RESTORE",
+        "restore" | "restore-refuse-old-abi" | "restore-current-abi-v1-wire" => "RESTORE",
         _ => panic!("unknown V2 transport phase"),
     };
     let path = PathBuf::from(std::env::var_os(format!("TOS_CMD2_PG_{tool_kind}_PATH")).unwrap());
@@ -1023,8 +1023,74 @@ fn addressed_backup_restore_phase(phase: &str) {
             deadline,
             &cancelled,
         )
+    } else if phase == "restore-refuse-old-abi" {
+        // The operator runner pins the authentic Sept-26/8552 artifact. Its
+        // V1 receipt wire is readable, but its raw-DDL ABI is older than the
+        // current schema, so refusal must precede store copy and SQL restore.
+        let receipt_sha256 = std::env::var("TOS_CMD2_V2_RECEIPT_SHA256").unwrap();
+        let target_tables = || {
+            let mut target = Client::connect(&url, NoTls).unwrap();
+            target
+                .query_one(
+                    "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public'",
+                    &[],
+                )
+                .unwrap()
+                .get::<_, i64>(0)
+        };
+        let store_is_empty = || fs::read_dir(&store).unwrap().next().is_none();
+        assert_eq!(target_tables(), 0, "old-profile target starts empty");
+        assert!(
+            store_is_empty(),
+            "old-profile destination store starts empty"
+        );
+        let result = restore_into_fresh(
+            &RestoreSelection {
+                pg_url: &url,
+                domain: &domain,
+                store_root: &store,
+                backup_root: &backup,
+                receipt_sha256: &receipt_sha256,
+                tool,
+                store_limits: limits(),
+                fresh_target_owner_confirmed: true,
+            },
+            deadline,
+            &cancelled,
+        );
+        let error = result.expect_err("historical SQL ABI must be refused by offline preflight");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(
+            target_tables(),
+            0,
+            "refusal precedes target schema/data writes"
+        );
+        assert!(store_is_empty(), "refusal precedes retained-store copy");
+        println!(
+            "CMD2_V2_TRANSPORT_REFUSED {}",
+            serde_json::json!({
+                "status":"refused",
+                "reason":"historical_sql_abi",
+                "target_public_tables":0,
+                "store_entries":0
+            })
+        );
+        return;
     } else {
         let receipt_sha256 = std::env::var("TOS_CMD2_V2_RECEIPT_SHA256").unwrap();
+        if phase == "restore-current-abi-v1-wire" {
+            let raw = fs::read(backup.join("receipt.json")).unwrap();
+            let receipt: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+            assert_eq!(
+                receipt["schema"], "tos_cmd2_quiescent_backup_v1",
+                "the fixture exercises the retained V1 receipt wire"
+            );
+            assert_eq!(
+                receipt.as_object().unwrap().len(),
+                9,
+                "the fixture has exactly the historical V1 receipt fields"
+            );
+        }
         restore_into_fresh(
             &RestoreSelection {
                 pg_url: &url,
@@ -1040,11 +1106,160 @@ fn addressed_backup_restore_phase(phase: &str) {
             &cancelled,
         )
     }
-    .expect("maintained V2 DB/store transport must fit and verify its unchanged profile");
-    println!(
-        "CMD2_V2_TRANSPORT {}",
-        serde_json::to_string(&result).unwrap()
+    .expect("maintained addressed DB/store transport must verify its current profile");
+    let result_label = if phase == "restore-current-abi-v1-wire" {
+        "CMD2_CURRENT_ABI_V1_WIRE_ACCEPTED"
+    } else {
+        "CMD2_V2_TRANSPORT"
+    };
+    println!("{result_label} {}", serde_json::to_string(&result).unwrap());
+}
+
+// This is a transport compatibility fixture, not an authentic historical
+// backup. It preserves the current writer's dump, STO store, and cut bytes,
+// and serializes only the exact nine-field V1 envelope emitted by the original
+// serializer in 382e0584d7c8c7e0e96bca3a8a30bc475f8685b5.
+fn project_current_backup_as_v1_wire_for_test(
+    current_backup: &std::path::Path,
+    v1_wire_fixture: &std::path::Path,
+    expected_current_schema_profile: &str,
+) -> String {
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+
+    fn verify_store_members(root: &std::path::Path, members: &[serde_json::Value]) {
+        let mut expected_paths = std::collections::BTreeSet::new();
+        for member in members {
+            let relative = std::path::Path::new(member["path"].as_str().unwrap());
+            assert!(
+                relative
+                    .components()
+                    .all(|part| { matches!(part, std::path::Component::Normal(_)) })
+            );
+            let relative_text = relative.to_str().unwrap().replace('\\', "/");
+            assert!(expected_paths.insert(relative_text));
+            let bytes = fs::read(root.join(relative)).unwrap();
+            assert_eq!(bytes.len() as u64, member["bytes"].as_u64().unwrap());
+            assert_eq!(
+                Digest256::of_bytes(&bytes).to_hex(),
+                member["sha256"].as_str().unwrap()
+            );
+        }
+        let mut observed_paths = std::collections::BTreeSet::new();
+        fn visit(
+            base: &std::path::Path,
+            directory: &std::path::Path,
+            files: &mut std::collections::BTreeSet<String>,
+        ) {
+            for entry in fs::read_dir(directory).unwrap() {
+                let entry = entry.unwrap();
+                let kind = entry.file_type().unwrap();
+                if kind.is_dir() {
+                    visit(base, &entry.path(), files);
+                } else {
+                    assert!(kind.is_file(), "fixture store contains only regular files");
+                    let relative = entry.path().strip_prefix(base).unwrap();
+                    files.insert(relative.to_str().unwrap().replace('\\', "/"));
+                }
+            }
+        }
+        visit(root, root, &mut observed_paths);
+        assert_eq!(observed_paths, expected_paths);
+    }
+
+    let current_raw = fs::read(current_backup.join("receipt.json")).unwrap();
+    let current: serde_json::Value = serde_json::from_slice(&current_raw).unwrap();
+    assert_eq!(current["schema"], "tos_cmd2_quiescent_backup_v7");
+    assert!(current.get("profile").is_some());
+    assert!(current.get("metadata").is_some());
+    assert_eq!(current["source_admission"], false);
+    assert_eq!(current["production_quiescence_verified"], false);
+    assert_eq!(
+        current["metadata"]["durable_schema_profile_v1"]["schema"],
+        "tos_backup_durable_schema_profile_v1"
     );
+    assert_eq!(
+        current["metadata"]["durable_schema_profile_v1"]["sha256"], expected_current_schema_profile,
+        "the V7 source receipt is bound to the current live schema profile"
+    );
+    let dump_source = current_backup.join("metadata.dump");
+    let dump_bytes = fs::read(&dump_source).unwrap();
+    assert_eq!(
+        dump_bytes.len() as u64,
+        current["dump"]["bytes"].as_u64().unwrap()
+    );
+    assert_eq!(
+        Digest256::of_bytes(&dump_bytes).to_hex(),
+        current["dump"]["sha256"].as_str().unwrap()
+    );
+    drop(dump_bytes);
+    let members = current["store_members"].as_array().unwrap();
+    verify_store_members(&current_backup.join("store"), members);
+
+    assert!(fs::read_dir(v1_wire_fixture).unwrap().next().is_none());
+    fs::set_permissions(v1_wire_fixture, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::copy(&dump_source, v1_wire_fixture.join("metadata.dump")).unwrap();
+    let copied_dump = fs::read(v1_wire_fixture.join("metadata.dump")).unwrap();
+    assert_eq!(
+        copied_dump.len() as u64,
+        current["dump"]["bytes"].as_u64().unwrap(),
+        "the SQL archive byte count is unchanged"
+    );
+    assert_eq!(
+        Digest256::of_bytes(&copied_dump).to_hex(),
+        current["dump"]["sha256"].as_str().unwrap(),
+        "the SQL archive bytes are unchanged"
+    );
+    let fixture_store = v1_wire_fixture.join("store");
+    fs::create_dir(&fixture_store).unwrap();
+    fs::set_permissions(&fixture_store, fs::Permissions::from_mode(0o700)).unwrap();
+    copy_store_tree(&current_backup.join("store"), &fixture_store);
+    verify_store_members(&fixture_store, members);
+
+    let v1 = serde_json::json!({
+        "schema":"tos_cmd2_quiescent_backup_v1",
+        "domain":current["domain"].clone(),
+        "database":current["database"].clone(),
+        "cut":current["cut"].clone(),
+        "store_members":current["store_members"].clone(),
+        "dump":current["dump"].clone(),
+        "tool":current["tool"].clone(),
+        "source_admission":current["source_admission"].clone(),
+        "production_quiescence_verified":current["production_quiescence_verified"].clone(),
+    });
+    let expected_fields = [
+        "cut",
+        "database",
+        "domain",
+        "dump",
+        "production_quiescence_verified",
+        "schema",
+        "source_admission",
+        "store_members",
+        "tool",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        v1.as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>(),
+        expected_fields,
+        "the fixture is the historical nine-field V1 envelope"
+    );
+    let v1_raw = serde_json::to_vec(&v1).unwrap();
+    let mut receipt = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(v1_wire_fixture.join("receipt.json"))
+        .unwrap();
+    use std::io::Write;
+    receipt.write_all(&v1_raw).unwrap();
+    receipt.sync_all().unwrap();
+    Digest256::of_bytes(&v1_raw).to_hex()
 }
 
 fn run_addressed_transport_phase(
@@ -1114,6 +1329,13 @@ fn addressed_journal_snapshot(url: &str, domain: &str) -> serde_json::Value {
         )
         .unwrap()
         .get(0);
+    let schema_profile: String = tx
+        .query_one(
+            "SELECT schema_profile_digest FROM cmd2_domain WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap()
+        .get(0);
     let marker: String = tx
         .query_one(
             "SELECT row_to_json(p)::text FROM cmd2_audit_delta_v1_domain p WHERE domain=$1",
@@ -1136,7 +1358,13 @@ fn addressed_journal_snapshot(url: &str, domain: &str) -> serde_json::Value {
     }
     drop(rows);
     tx.commit().unwrap();
-    serde_json::json!([generation, marker, count, hash.finalize().to_hex()])
+    serde_json::json!([
+        generation,
+        schema_profile,
+        marker,
+        count,
+        hash.finalize().to_hex()
+    ])
 }
 
 fn maintained_agent_creation_operation<
@@ -4552,18 +4780,41 @@ fn maintained_agent_creation_operation<
     drop(cut);
     drop(sql);
     drop(lab);
+    // The current-writer and V1-wire restores each get their own fresh
+    // database and STO destination. The V1-wire target is used below for cold
+    // re-selection.
     let recovered_root = ScratchRoot::new();
+    let current_recovered_root = ScratchRoot::new();
     let backup_root = ScratchRoot::new();
+    let current_v1_wire_fixture_root = ScratchRoot::new();
+    let mut expected_reselect_journal = None;
     let url = if addressed {
         let restored_url = std::env::var("TOS_CMD2_V2_RESTORE_PG_URL")
-            .expect("V2 whole operation requires a distinct empty owned restore database");
+            .expect("addressed whole operation requires an empty current-writer restore database");
+        let v1_wire_restored_url = std::env::var("TOS_CMD2_V2_V1_WIRE_RESTORE_PG_URL")
+            .expect("V1-wire compatibility requires a second empty owned restore database");
         assert_ne!(url, restored_url, "restore target must be independent");
-        for root in [&copied.0, &backup_root.0, &recovered_root.0] {
+        assert_ne!(
+            url, v1_wire_restored_url,
+            "V1-wire target must be independent"
+        );
+        assert_ne!(
+            restored_url, v1_wire_restored_url,
+            "current-writer and V1-wire restores use separate fresh databases"
+        );
+        for root in [
+            &copied.0,
+            &backup_root.0,
+            &recovered_root.0,
+            &current_recovered_root.0,
+            &current_v1_wire_fixture_root.0,
+        ] {
             fs::set_permissions(root, fs::Permissions::from_mode(0o700)).unwrap();
         }
         let source_inventory_rows =
             ensure_source_inventory_projection_fixture(&url, &recovery_domain);
         let journal = addressed_journal_snapshot(&url, &recovery_domain);
+        expected_reselect_journal = Some(journal.clone());
         run_addressed_transport_phase(
             "backup",
             &url,
@@ -4576,12 +4827,51 @@ fn maintained_agent_creation_operation<
         let receipt = fs::read(backup_root.0.join("receipt.json")).unwrap();
         assert!(receipt.len() <= 1024 * 1024);
         let receipt_value: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
-        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v2");
+        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v7");
+        let metadata = &receipt_value["metadata"];
+        assert_eq!(
+            metadata["durable_schema_profile_v1"]["schema"],
+            "tos_backup_durable_schema_profile_v1"
+        );
+        assert_eq!(
+            metadata["durable_schema_profile_v1"]["sha256"], journal[1],
+            "the V7 receipt binds the active current schema profile"
+        );
+        for (key, schema) in [
+            ("source_publication_v1", "tos_backup_source_publication_v1"),
+            (
+                "source_item_file_assignment_v1",
+                "tos_backup_source_item_file_assignment_v1",
+            ),
+            (
+                "source_annotation_identity_v1",
+                "tos_backup_source_annotation_identity_v1",
+            ),
+            (
+                "source_claim_navigation_reference_v2",
+                "tos_backup_source_claim_navigation_reference_v2",
+            ),
+        ] {
+            assert_eq!(metadata[key]["schema"], schema);
+            assert_eq!(metadata[key]["state"], "present");
+            assert!(
+                metadata[key]["row_root"]
+                    .as_str()
+                    .and_then(|root| Digest256::from_hex(root).ok())
+                    .is_some(),
+                "V7 {key} root is a canonical digest"
+            );
+        }
+        assert!(
+            metadata["source_claim_navigation_reference_v2"]["baseline_sequence"]
+                .as_u64()
+                .is_some()
+        );
         assert!(
             !source_inventory_rows.is_empty(),
             "the addressed Agent fixture retains inventory overlay rows"
         );
-        let inventory_census = &receipt_value["metadata"]["source_inventory_projection_v1"];
+        let inventory_census = &metadata["source_inventory_projection_v1"];
         assert_eq!(
             inventory_census["schema"],
             "tos_backup_source_inventory_projection_v1"
@@ -4610,7 +4900,7 @@ fn maintained_agent_creation_operation<
             "restore",
             &restored_url,
             &recovery_domain,
-            &recovered_root.0,
+            &current_recovered_root.0,
             &backup_root.0,
             Some(&receipt_sha256),
             deadline,
@@ -4618,14 +4908,52 @@ fn maintained_agent_creation_operation<
         assert_eq!(
             journal,
             addressed_journal_snapshot(&restored_url, &recovery_domain),
-            "actual DB restore preserves exact V2 journal/profile/fence before cold selection"
+            "actual DB restore preserves the exact addressed journal/profile/fence before cold selection"
         );
         assert_eq!(
             source_inventory_projection_rows(&restored_url, &recovery_domain),
             source_inventory_rows,
-            "the actual addressed child transport preserves every committed overlay row"
+            "the actual current V7 child transport preserves every committed overlay row"
         );
-        restored_url
+        let v1_wire_receipt_sha256 = project_current_backup_as_v1_wire_for_test(
+            &backup_root.0,
+            &current_v1_wire_fixture_root.0,
+            journal[1].as_str().unwrap(),
+        );
+        let projected_receipt: serde_json::Value = serde_json::from_slice(
+            &fs::read(current_v1_wire_fixture_root.0.join("receipt.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(projected_receipt["schema"], "tos_cmd2_quiescent_backup_v1");
+        assert_eq!(projected_receipt["domain"], recovery_domain);
+        for key in ["database", "cut", "dump", "store_members", "tool"] {
+            assert_eq!(
+                projected_receipt[key], receipt_value[key],
+                "test-only V1 projection preserves current {key}"
+            );
+        }
+        assert!(projected_receipt.get("profile").is_none());
+        assert!(projected_receipt.get("metadata").is_none());
+        run_addressed_transport_phase(
+            "restore-current-abi-v1-wire",
+            &v1_wire_restored_url,
+            &recovery_domain,
+            &recovered_root.0,
+            &current_v1_wire_fixture_root.0,
+            Some(&v1_wire_receipt_sha256),
+            deadline,
+        );
+        assert_eq!(
+            journal,
+            addressed_journal_snapshot(&v1_wire_restored_url, &recovery_domain),
+            "V1-wire current-ABI restore preserves exact journal, active marker, and profile"
+        );
+        assert_eq!(
+            source_inventory_projection_rows(&v1_wire_restored_url, &recovery_domain),
+            source_inventory_rows,
+            "V1-wire current-ABI restore preserves every committed overlay row"
+        );
+        v1_wire_restored_url
     } else {
         copy_store_tree(&copied.0, &recovered_root.0);
         url
@@ -4728,6 +5056,52 @@ fn maintained_agent_creation_operation<
         )
     }
     .unwrap();
+    if addressed {
+        let (source_database_oid, source_selected_digest) =
+            interrupted_v1_checkpoint.expect("addressed fixture retains a V1 checkpoint");
+        let mut target_identity = Client::connect(&url, NoTls).unwrap();
+        let target_database_oid = u64::try_from(
+            target_identity
+                .query_one(
+                    "SELECT oid::bigint FROM pg_database WHERE datname=current_database()",
+                    &[],
+                )
+                .unwrap()
+                .get::<_, i64>(0),
+        )
+        .unwrap();
+        let target_selected_digest: String = target_identity
+            .query_one(
+                "SELECT selected_generation_digest FROM cmd2_domain WHERE domain=$1",
+                &[&recovery_domain],
+            )
+            .unwrap()
+            .get(0);
+        assert_ne!(target_database_oid, source_database_oid);
+        assert_ne!(target_selected_digest, source_selected_digest);
+        let target_descriptor = recovered_store
+            .inspect_generation_descriptor_v1(
+                Digest256::from_hex(&target_selected_digest).unwrap(),
+                generation_profile.generation,
+            )
+            .unwrap();
+        assert_eq!(
+            target_descriptor.cut.database_oid, target_database_oid,
+            "cold re-selection writes a descriptor bound to the restored database"
+        );
+        let selected_journal = addressed_journal_snapshot(&url, &recovery_domain);
+        let selected_journal = selected_journal.as_array().unwrap();
+        let original_journal = expected_reselect_journal
+            .as_ref()
+            .unwrap()
+            .as_array()
+            .unwrap();
+        assert_eq!(
+            &selected_journal[1..],
+            &original_journal[1..],
+            "same-profile V1 audit-marker and schema-profile history survive cross-database re-selection"
+        );
+    }
     // Record ordinary and controlled plans for the actual keyset queries.
     // These small-fixture observations do not establish whole-query capacity
     // or gate the current/cold/recovery protection checks below.

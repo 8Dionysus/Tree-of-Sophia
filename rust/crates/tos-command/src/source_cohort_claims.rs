@@ -57,9 +57,13 @@ impl PgSelectedClaimCut {
         identities: Vec<super::revision::SourceRevisionIdentityClosure>,
     ) -> DurableResult<PgClaimSourceProof> {
         members.sort_by(|left, right| left.path.cmp(&right.path));
-        if members.iter().any(|file| !file.path.as_str().starts_with("ToS/"))
+        if members
+            .iter()
+            .any(|file| !file.path.as_str().starts_with("ToS/"))
             || members.windows(2).any(|pair| pair[0].path == pair[1].path)
-            || directories.iter().any(|path| path != "ToS" && !path.starts_with("ToS/"))
+            || directories
+                .iter()
+                .any(|path| path != "ToS" && !path.starts_with("ToS/"))
             || identities
                 .iter()
                 .any(|closure| closure.selection_identity() != session.selection().identity())

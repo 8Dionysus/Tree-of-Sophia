@@ -13,7 +13,7 @@ use std::os::{
 };
 use std::{
     fs::{self, File, OpenOptions},
-    io::{self, Read, Write},
+    io::{self, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::atomic::{AtomicBool, Ordering},
@@ -28,12 +28,20 @@ const BACKUP_SCHEMA_V2: &str = "tos_cmd2_quiescent_backup_v2";
 const BACKUP_SCHEMA_V3: &str = "tos_cmd2_quiescent_backup_v3";
 const BACKUP_SCHEMA_V4: &str = "tos_cmd2_quiescent_backup_v4";
 const BACKUP_SCHEMA_V5: &str = "tos_cmd2_quiescent_backup_v5";
+const BACKUP_SCHEMA_V6: &str = "tos_cmd2_quiescent_backup_v6";
+const BACKUP_SCHEMA_V7: &str = "tos_cmd2_quiescent_backup_v7";
 const SOURCE_INVENTORY_CENSUS_V1: &str = "tos_backup_source_inventory_projection_v1";
 const SOURCE_NAVIGATION_CENSUS_V1: &str = "tos_backup_source_navigation_projection_v1";
 const SOURCE_NAVIGATION_POLICY_CENSUS_V1: &str = "tos_backup_source_navigation_policy_v1";
 const PRIVATE_PACKAGE_CENSUS_V2: &str = "tos_backup_private_owner_packages_v2";
 const SOURCE_PUBLICATION_CENSUS_V1: &str = "tos_backup_source_publication_v1";
 const SOURCE_ITEM_ASSIGNMENT_CENSUS_V1: &str = "tos_backup_source_item_file_assignment_v1";
+const SOURCE_ANNOTATION_IDENTITY_CENSUS_V1: &str = "tos_backup_source_annotation_identity_v1";
+const SOURCE_CLAIM_NAVIGATION_REFERENCE_CENSUS_V1: &str =
+    "tos_backup_source_claim_navigation_reference_v1";
+const SOURCE_CLAIM_NAVIGATION_REFERENCE_CENSUS_V2: &str =
+    "tos_backup_source_claim_navigation_reference_v2";
+const DURABLE_SCHEMA_PROFILE_CENSUS_V1: &str = "tos_backup_durable_schema_profile_v1";
 
 const SOURCE_NAVIGATION_POLICY_TABLES: [(&str, &str); 2] = [
     (
@@ -46,17 +54,34 @@ const SOURCE_NAVIGATION_POLICY_TABLES: [(&str, &str); 2] = [
     ),
 ];
 
-const SOURCE_PUBLICATION_TABLES: [(&str, &str); 2] = [
+const SOURCE_PUBLICATION_TABLES: [(&str, &str); 4] = [
+    ("cmd2_attempt", "prepare_id"),
     ("cmd2_source_publication_current", "domain COLLATE \"C\""),
     (
         "cmd2_source_publication_history",
         "domain COLLATE \"C\",publication_generation",
     ),
+    ("cmd2_source_publication_import", "domain COLLATE \"C\""),
 ];
 
 const SOURCE_ITEM_ASSIGNMENT_TABLES: [(&str, &str); 1] = [(
     "cmd2_source_item_file_assignment",
     "edition_id COLLATE \"C\",manifest_path COLLATE \"C\",payload_ordinal",
+)];
+
+const SOURCE_ANNOTATION_IDENTITY_TABLES: [(&str, &str); 1] = [(
+    "cmd2_source_annotation_identity",
+    "token COLLATE \"C\",path COLLATE \"C\"",
+)];
+
+const SOURCE_CLAIM_NAVIGATION_REFERENCE_TABLES: [(&str, &str); 1] = [(
+    "cmd2_source_claim_navigation_reference",
+    "path COLLATE \"C\",claim_id COLLATE \"C\",endpoint_kind COLLATE \"C\",endpoint COLLATE \"C\",basis COLLATE \"C\"",
+)];
+
+const SOURCE_CLAIM_NAVIGATION_REFERENCE_TABLES_V2: [(&str, &str); 1] = [(
+    "cmd2_source_claim_navigation_reference",
+    "path COLLATE \"C\",claim_id COLLATE \"C\",endpoint_kind COLLATE \"C\",endpoint COLLATE \"C\",basis COLLATE \"C\",valid_from_seq NULLS LAST",
 )];
 
 const PRIVATE_PACKAGE_TABLES: [(&str, &str); 11] = [
@@ -164,6 +189,8 @@ fn census_v2_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V3
         || schema == BACKUP_SCHEMA_V4
         || schema == BACKUP_SCHEMA_V5
+        || schema == BACKUP_SCHEMA_V6
+        || schema == BACKUP_SCHEMA_V7
     {
         Ok(true)
     } else {
@@ -174,7 +201,11 @@ fn census_v2_for_schema(schema: &str) -> io::Result<bool> {
 fn census_v3_for_schema(schema: &str) -> io::Result<bool> {
     if schema == BACKUP_SCHEMA_V1 || schema == BACKUP_SCHEMA_V2 {
         Ok(false)
-    } else if schema == BACKUP_SCHEMA_V3 || schema == BACKUP_SCHEMA_V4 || schema == BACKUP_SCHEMA_V5
+    } else if schema == BACKUP_SCHEMA_V3
+        || schema == BACKUP_SCHEMA_V4
+        || schema == BACKUP_SCHEMA_V5
+        || schema == BACKUP_SCHEMA_V6
+        || schema == BACKUP_SCHEMA_V7
     {
         Ok(true)
     } else {
@@ -185,7 +216,11 @@ fn census_v3_for_schema(schema: &str) -> io::Result<bool> {
 fn census_v4_for_schema(schema: &str) -> io::Result<bool> {
     if schema == BACKUP_SCHEMA_V1 || schema == BACKUP_SCHEMA_V2 || schema == BACKUP_SCHEMA_V3 {
         Ok(false)
-    } else if schema == BACKUP_SCHEMA_V4 || schema == BACKUP_SCHEMA_V5 {
+    } else if schema == BACKUP_SCHEMA_V4
+        || schema == BACKUP_SCHEMA_V5
+        || schema == BACKUP_SCHEMA_V6
+        || schema == BACKUP_SCHEMA_V7
+    {
         Ok(true)
     } else {
         Err(error())
@@ -199,7 +234,39 @@ fn census_v5_for_schema(schema: &str) -> io::Result<bool> {
         || schema == BACKUP_SCHEMA_V4
     {
         Ok(false)
-    } else if schema == BACKUP_SCHEMA_V5 {
+    } else if schema == BACKUP_SCHEMA_V5 || schema == BACKUP_SCHEMA_V6 || schema == BACKUP_SCHEMA_V7
+    {
+        Ok(true)
+    } else {
+        Err(error())
+    }
+}
+
+fn census_v6_for_schema(schema: &str) -> io::Result<bool> {
+    if schema == BACKUP_SCHEMA_V1
+        || schema == BACKUP_SCHEMA_V2
+        || schema == BACKUP_SCHEMA_V3
+        || schema == BACKUP_SCHEMA_V4
+        || schema == BACKUP_SCHEMA_V5
+    {
+        Ok(false)
+    } else if schema == BACKUP_SCHEMA_V6 || schema == BACKUP_SCHEMA_V7 {
+        Ok(true)
+    } else {
+        Err(error())
+    }
+}
+
+fn census_v7_for_schema(schema: &str) -> io::Result<bool> {
+    if schema == BACKUP_SCHEMA_V1
+        || schema == BACKUP_SCHEMA_V2
+        || schema == BACKUP_SCHEMA_V3
+        || schema == BACKUP_SCHEMA_V4
+        || schema == BACKUP_SCHEMA_V5
+        || schema == BACKUP_SCHEMA_V6
+    {
+        Ok(false)
+    } else if schema == BACKUP_SCHEMA_V7 {
         Ok(true)
     } else {
         Err(error())
@@ -550,12 +617,23 @@ fn client(url: &str, d: Instant, c: &AtomicBool) -> io::Result<Client> {
     require(v.parse::<u32>().map_err(|_| error())? / 10000 == 16)?;
     Ok(db)
 }
+
+fn require_current_cmd2_schema(url: &str, d: Instant, c: &AtomicBool) -> io::Result<()> {
+    let bounded = client(url, d, c)?;
+    let mut coordinator = DurablePgCoordinator::from_configured_client(bounded);
+    coordinator
+        .require_compatible_schema()
+        .map_err(|_| error())?;
+    active(d, c)
+}
+
 fn tool(
     tool: &PgTool<'_>,
     args: &[&str],
     input: Option<File>,
     output: Option<File>,
     pg_url: &str,
+    mode: PgToolMode,
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
@@ -572,44 +650,52 @@ fn tool(
             command.env_remove(name);
         }
     }
-    // PGDATABASE is a database name, not a connection URI. Decode the same
-    // configured target into private libpq environment without exposing URL argv.
-    let selected = selected_config(pg_url)?;
-    require(selected.get_hosts().len() == 1 && selected.get_ports().len() <= 1)?;
-    let host = match &selected.get_hosts()[0] {
-        postgres::config::Host::Tcp(host) => host.as_str(),
-        _ => return Err(error()),
+    // Offline archive inspection must have neither an argv target nor an
+    // inherited libpq target. Database-backed dump/restore keeps the existing
+    // selected connection behavior.
+    let database = if mode == PgToolMode::Database {
+        let selected = selected_config(pg_url)?;
+        require(selected.get_hosts().len() == 1 && selected.get_ports().len() <= 1)?;
+        let host = match &selected.get_hosts()[0] {
+            postgres::config::Host::Tcp(host) => host.as_str(),
+            _ => return Err(error()),
+        };
+        let user = selected.get_user().ok_or_else(error)?;
+        let database = selected.get_dbname().ok_or_else(error)?.to_owned();
+        command
+            .env("PGHOST", host)
+            .env(
+                "PGPORT",
+                selected
+                    .get_ports()
+                    .first()
+                    .copied()
+                    .unwrap_or(5432)
+                    .to_string(),
+            )
+            .env("PGUSER", user)
+            .env("PGDATABASE", &database)
+            .env("PGCONNECT_TIMEOUT", "5")
+            .env("PGSSLMODE", "disable");
+        if let Some(password) = selected.get_password() {
+            command.env(
+                "PGPASSWORD",
+                std::str::from_utf8(password).map_err(|_| error())?,
+            );
+        }
+        if let Some(options) = selected.get_options() {
+            command.env("PGOPTIONS", options);
+        }
+        Some(database)
+    } else {
+        require(input.is_some() && output.is_some())?;
+        None
     };
-    let user = selected.get_user().ok_or_else(error)?;
-    let database = selected.get_dbname().ok_or_else(error)?;
-    command
-        .env("PGHOST", host)
-        .env(
-            "PGPORT",
-            selected
-                .get_ports()
-                .first()
-                .copied()
-                .unwrap_or(5432)
-                .to_string(),
-        )
-        .env("PGUSER", user)
-        .env("PGDATABASE", database)
-        .env("PGCONNECT_TIMEOUT", "5")
-        .env("PGSSLMODE", "disable");
-    if let Some(password) = selected.get_password() {
-        command.env(
-            "PGPASSWORD",
-            std::str::from_utf8(password).map_err(|_| error())?,
-        );
-    }
-    if let Some(options) = selected.get_options() {
-        command.env("PGOPTIONS", options);
-    }
     command.args(args);
-    if input.is_some() {
+    if input.is_some() && mode == PgToolMode::Database {
         // pg_restore needs a database option to execute rather than emit SQL.
         // Only the decoded database name goes in argv, never the connection URL.
+        let database = database.ok_or_else(error)?;
         require(
             !database.contains('=')
                 && !database.starts_with("postgres://")
@@ -649,6 +735,400 @@ fn tool(
     require(hash(tool.path, d, c)? == identity)?;
     Ok(json!({"path":tool.path,"bytes":identity.0,"sha256":identity.1,"max_seconds":60}))
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PgToolMode {
+    Database,
+    OfflineArchiveEmit,
+}
+
+fn snapshot_authenticated_dump(
+    path: &Path,
+    expected: (u64, String),
+    cap: u64,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<File> {
+    require(expected.0 <= cap)?;
+    let mut source = OpenOptions::new()
+        .read(true)
+        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
+        .open(path)?;
+    let before = source.metadata()?;
+    require(before.is_file() && before.nlink() == 1 && before.len() == expected.0)?;
+    let mut snapshot = tempfile::tempfile()?;
+    let mut hasher = Digest256Hasher::new();
+    let mut total = 0u64;
+    let mut buffer = [0u8; 65536];
+    loop {
+        active(d, c)?;
+        let count = source.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        total = total.checked_add(count as u64).ok_or_else(error)?;
+        require(total <= cap && total <= expected.0)?;
+        hasher.update(&buffer[..count]);
+        snapshot.write_all(&buffer[..count])?;
+    }
+    let after = source.metadata()?;
+    let named = fs::symlink_metadata(path)?;
+    require(
+        total == expected.0
+            && hasher.finalize().to_hex() == expected.1
+            && (
+                before.dev(),
+                before.ino(),
+                before.len(),
+                before.mtime(),
+                before.mtime_nsec(),
+                before.ctime(),
+                before.ctime_nsec(),
+            ) == (
+                after.dev(),
+                after.ino(),
+                after.len(),
+                after.mtime(),
+                after.mtime_nsec(),
+                after.ctime(),
+                after.ctime_nsec(),
+            )
+            && (named.dev(), named.ino()) == (before.dev(), before.ino()),
+    )?;
+    snapshot.sync_all()?;
+    snapshot.seek(SeekFrom::Start(0))?;
+    Ok(snapshot)
+}
+
+fn emit_archive_sql(
+    tool_spec: &PgTool<'_>,
+    dump: &mut File,
+    args: &[&str],
+    pg_url: &str,
+    cap: u64,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Vec<u8>> {
+    let mut output = tempfile::tempfile()?;
+    dump.seek(SeekFrom::Start(0))?;
+    tool(
+        tool_spec,
+        args,
+        Some(dump.try_clone()?),
+        Some(output.try_clone()?),
+        pg_url,
+        PgToolMode::OfflineArchiveEmit,
+        d,
+        c,
+    )?;
+    let size = output.metadata()?.len();
+    require(size <= cap && size <= BYTES)?;
+    output.seek(SeekFrom::Start(0))?;
+    let mut raw = Vec::with_capacity(usize::try_from(size).map_err(|_| error())?);
+    output
+        .take(cap.checked_add(1).ok_or_else(error)?)
+        .read_to_end(&mut raw)?;
+    require(raw.len() as u64 == size)?;
+    Ok(raw)
+}
+
+fn verify_current_archive_abi_v1(
+    tool_spec: &PgTool<'_>,
+    dump: &mut File,
+    domain: &str,
+    pg_url: &str,
+    cap: u64,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<()> {
+    // Receipt schema versions describe the backup envelope, not its SQL ABI.
+    // Require the current physical family markers and the domain's exact
+    // compiled ABI digest before either caller-owned target is written.
+    let schema = emit_archive_sql(
+        tool_spec,
+        dump,
+        &["--schema-only", "--no-owner", "--no-privileges"],
+        pg_url,
+        cap,
+        d,
+        c,
+    )?;
+    let schema = std::str::from_utf8(&schema).map_err(|_| error())?;
+    for marker in [
+        "CREATE TABLE public.cmd2_source_inventory_projection (",
+        "source_configuration_raw_digest",
+        "source_configuration_canonical_digest",
+        "CREATE TABLE public.cmd2_source_annotation_identity (",
+        "CREATE TABLE public.cmd2_source_claim_navigation_reference (",
+        "source_claim_navigation_reference_baseline_seq",
+        "valid_from_seq",
+        "valid_to_seq",
+        "CREATE TABLE public.cmd2_source_publication_import (",
+        "CREATE TABLE public.cmd2_projection_navigation_consumer (",
+    ] {
+        require(schema.contains(marker))?;
+    }
+    let private_schema_markers = PRIVATE_PACKAGE_TABLES
+        .iter()
+        .map(|(table, _)| format!("CREATE TABLE public.{table} ("))
+        .chain(std::iter::once(
+            "CREATE TABLE public.cmd2_private_schema_profile (".to_owned(),
+        ));
+    let mut private_schema_table_count = 0usize;
+    for marker in private_schema_markers {
+        if schema.contains(&marker) {
+            private_schema_table_count += 1;
+        }
+    }
+    require(
+        private_schema_table_count == 0
+            || private_schema_table_count == PRIVATE_PACKAGE_TABLES.len() + 1,
+    )?;
+    if private_schema_table_count > 0 {
+        let private_profile_data = emit_archive_sql(
+            tool_spec,
+            dump,
+            &[
+                "--data-only",
+                "--table=cmd2_private_schema_profile",
+                "--no-owner",
+                "--no-privileges",
+            ],
+            pg_url,
+            cap,
+            d,
+            c,
+        )?;
+        let observed_private_profile = private_schema_profile_from_copy(&private_profile_data)?;
+        require(
+            observed_private_profile
+                == crate::durable_adapter::durable_private_packages::PRIVATE_SCHEMA_PROFILE,
+        )?;
+    }
+    let domain_data = emit_archive_sql(
+        tool_spec,
+        dump,
+        &[
+            "--data-only",
+            "--table=cmd2_domain",
+            "--no-owner",
+            "--no-privileges",
+        ],
+        pg_url,
+        cap,
+        d,
+        c,
+    )?;
+    let (observed, baseline_sequence, source_head_sequence) =
+        domain_schema_profile_from_copy(&domain_data, domain)?;
+    require(observed == crate::durable_adapter::schema_profile_digest().to_hex())?;
+    require(baseline_sequence <= source_head_sequence)
+}
+
+fn domain_schema_profile_from_copy(
+    raw: &[u8],
+    expected_domain: &str,
+) -> io::Result<(String, u64, u64)> {
+    let sql = std::str::from_utf8(raw).map_err(|_| error())?;
+    let mut lines = sql.lines();
+    let mut observed_profile = None;
+    let mut header_count = 0usize;
+    while let Some(line) = lines.next() {
+        let line = line.trim_end();
+        if !line.starts_with("COPY ")
+            || !line.contains("cmd2_domain")
+            || !line.ends_with("FROM stdin;")
+        {
+            continue;
+        }
+        header_count += 1;
+        let open = line.find('(').ok_or_else(error)?;
+        let close = line.rfind(") FROM stdin;").ok_or_else(error)?;
+        require(close > open)?;
+        let mut column_count = 0usize;
+        let mut domain_index = None;
+        let mut profile_index = None;
+        let mut baseline_index = None;
+        let mut head_index = None;
+        for column in line[open + 1..close].split(',') {
+            let column = column.trim().trim_matches('"');
+            if column == "domain" {
+                require(domain_index.replace(column_count).is_none())?;
+            } else if column == "schema_profile_digest" {
+                require(profile_index.replace(column_count).is_none())?;
+            } else if column == "source_claim_navigation_reference_baseline_seq" {
+                require(baseline_index.replace(column_count).is_none())?;
+            } else if column == "head_seq" {
+                require(head_index.replace(column_count).is_none())?;
+            }
+            column_count = column_count.checked_add(1).ok_or_else(error)?;
+            require(column_count <= 1024)?;
+        }
+        let domain_index = domain_index.ok_or_else(error)?;
+        let profile_index = profile_index.ok_or_else(error)?;
+        let baseline_index = baseline_index.ok_or_else(error)?;
+        let head_index = head_index.ok_or_else(error)?;
+        let mut row_count = 0usize;
+        let mut copy_ended = false;
+        while let Some(data) = lines.next() {
+            if data == "\\." {
+                copy_ended = true;
+                break;
+            }
+            row_count = row_count.checked_add(1).ok_or_else(error)?;
+            require(row_count == 1)?;
+            let mut observed_domain = None;
+            let mut profile = None;
+            let mut baseline_sequence = None;
+            let mut source_head_sequence = None;
+            let mut field_count = 0usize;
+            for field in data.split('\t') {
+                if field_count == domain_index {
+                    observed_domain = Some(decode_pg_copy_text_field(field)?.ok_or_else(error)?);
+                } else if field_count == profile_index {
+                    profile = Some(decode_pg_copy_text_field(field)?);
+                } else if field_count == baseline_index {
+                    baseline_sequence = decode_pg_copy_text_field(field)?;
+                } else if field_count == head_index {
+                    source_head_sequence =
+                        Some(decode_pg_copy_text_field(field)?.ok_or_else(error)?);
+                }
+                field_count = field_count.checked_add(1).ok_or_else(error)?;
+                require(field_count <= 1024)?;
+            }
+            require(field_count == column_count)?;
+            let domain = observed_domain.ok_or_else(error)?;
+            let profile = profile.ok_or_else(error)?;
+            let baseline_sequence = baseline_sequence
+                .ok_or_else(error)?
+                .parse::<u64>()
+                .map_err(|_| error())?;
+            let source_head_sequence = source_head_sequence
+                .ok_or_else(error)?
+                .parse::<u64>()
+                .map_err(|_| error())?;
+            require(domain == expected_domain && profile.len() == 64)?;
+            require(profile.bytes().all(|byte| byte.is_ascii_hexdigit()))?;
+            require(baseline_sequence <= source_head_sequence)?;
+            observed_profile = Some((
+                profile.to_ascii_lowercase(),
+                baseline_sequence,
+                source_head_sequence,
+            ));
+        }
+        require(copy_ended && row_count == 1)?;
+    }
+    require(header_count == 1)?;
+    observed_profile.ok_or_else(error)
+}
+
+fn decode_pg_copy_text_field(field: &str) -> io::Result<Option<String>> {
+    let bytes = field.as_bytes();
+    if bytes == b"\\N" {
+        return Ok(None);
+    }
+
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut cursor = 0usize;
+    while cursor < bytes.len() {
+        let byte = bytes[cursor];
+        cursor += 1;
+        if byte != b'\\' {
+            decoded.push(byte);
+            continue;
+        }
+
+        let escaped = *bytes.get(cursor).ok_or_else(error)?;
+        cursor += 1;
+        match escaped {
+            b'\\' => decoded.push(b'\\'),
+            b'b' => decoded.push(0x08),
+            b'f' => decoded.push(0x0c),
+            b'n' => decoded.push(b'\n'),
+            b'r' => decoded.push(b'\r'),
+            b't' => decoded.push(b'\t'),
+            b'v' => decoded.push(0x0b),
+            b'0'..=b'7' => {
+                let mut value = u16::from(escaped - b'0');
+                for _ in 0..2 {
+                    let Some(next @ b'0'..=b'7') = bytes.get(cursor).copied() else {
+                        break;
+                    };
+                    cursor += 1;
+                    value = value * 8 + u16::from(next - b'0');
+                }
+                decoded.push(u8::try_from(value).map_err(|_| error())?);
+            }
+            b'x' => {
+                let mut value = 0u8;
+                let mut digits = 0usize;
+                while digits < 2 {
+                    let Some(next) = bytes.get(cursor).copied() else {
+                        break;
+                    };
+                    let Some(digit) = (next as char).to_digit(16) else {
+                        break;
+                    };
+                    cursor += 1;
+                    value = value * 16 + u8::try_from(digit).map_err(|_| error())?;
+                    digits += 1;
+                }
+                require(digits > 0)?;
+                decoded.push(value);
+            }
+            _ => return Err(error()),
+        }
+    }
+    require(!decoded.contains(&0))?;
+    String::from_utf8(decoded).map(Some).map_err(|_| error())
+}
+
+fn private_schema_profile_from_copy(raw: &[u8]) -> io::Result<String> {
+    let sql = std::str::from_utf8(raw).map_err(|_| error())?;
+    let mut lines = sql.lines();
+    let mut header_count = 0usize;
+    let mut observed_profile = None;
+    while let Some(line) = lines.next() {
+        let line = line.trim_end();
+        if !line.starts_with("COPY ")
+            || !line.contains("cmd2_private_schema_profile")
+            || !line.ends_with("FROM stdin;")
+        {
+            continue;
+        }
+        header_count += 1;
+        let open = line.find('(').ok_or_else(error)?;
+        let close = line.rfind(") FROM stdin;").ok_or_else(error)?;
+        require(close > open)?;
+        let mut column_count = 0usize;
+        let mut profile_index = None;
+        for column in line[open + 1..close].split(',') {
+            if column.trim().trim_matches('"') == "profile_id" {
+                require(profile_index.replace(column_count).is_none())?;
+            }
+            column_count = column_count.checked_add(1).ok_or_else(error)?;
+            require(column_count <= 16)?;
+        }
+        let profile_index = profile_index.ok_or_else(error)?;
+        let data = lines.next().ok_or_else(error)?;
+        require(data != "\\.")?;
+        let mut field_count = 0usize;
+        let mut profile = None;
+        for field in data.split('\t') {
+            if field_count == profile_index {
+                profile = decode_pg_copy_text_field(field)?;
+            }
+            field_count = field_count.checked_add(1).ok_or_else(error)?;
+            require(field_count <= 16)?;
+        }
+        require(field_count == column_count)?;
+        observed_profile = Some(profile.ok_or_else(error)?);
+        require(lines.next().is_some_and(|line| line == "\\."))?;
+    }
+    require(header_count == 1)?;
+    observed_profile.ok_or_else(error)
+}
+
 fn frozen_domain(
     db: &mut Client,
     domain: &str,
@@ -1058,7 +1538,7 @@ fn validate_navigation_census(metadata: &Value, profile: BackupProfile) -> io::R
     require(census["schema"] == SOURCE_NAVIGATION_CENSUS_V1)?;
     require(tables.len() == NAVIGATION_TABLES.len())?;
     let state = census["state"].as_str().ok_or_else(error)?;
-    require(state == "absent" || state == "present")?;
+    require(state == "present")?;
     let mut total_rows = 0u64;
     for (table, _) in NAVIGATION_TABLES {
         let count = tables[table].as_u64().ok_or_else(error)?;
@@ -1073,12 +1553,8 @@ fn validate_navigation_census(metadata: &Value, profile: BackupProfile) -> io::R
             && rows <= profile.max_metadata_rows
             && bytes <= profile.max_metadata_bytes,
     )?;
-    if state == "absent" {
-        require(rows == 0 && bytes == 0 && census["row_root"].is_null())?;
-    } else {
-        let root = census["row_root"].as_str().ok_or_else(error)?;
-        require(tos_foundation::Digest256::from_hex(root).is_ok())?;
-    }
+    let root = census["row_root"].as_str().ok_or_else(error)?;
+    require(tos_foundation::Digest256::from_hex(root).is_ok())?;
     Ok(())
 }
 
@@ -1377,28 +1853,138 @@ fn frozen_domain_v5(
         "bytes":census_bytes,
         "row_root":if installed { json!(root.finalize().to_hex()) } else { Value::Null },
     });
+    Ok(result)
+}
+
+/// V6 adds current durable-schema identity and bounded row roots for the
+/// publication/import lineage and current source indexes. Keep V5's output
+/// shape frozen for receipts that already use that profile.
+fn frozen_domain_v6(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    frozen_domain_v6_inner(db, domain, store, profile, d, c, false)
+}
+
+fn frozen_domain_v7(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    frozen_domain_v6_inner(db, domain, store, profile, d, c, true)
+}
+
+fn frozen_domain_v6_inner(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+    claim_navigation_v2: bool,
+) -> io::Result<Value> {
+    let mut result = frozen_domain_v5(db, domain, store, profile, d, c)?;
+    let expected_schema_profile = crate::durable_adapter::schema_profile_digest().to_hex();
+    let schema_profile = db
+        .query_opt(
+            "SELECT schema_profile_digest FROM cmd2_domain WHERE domain=$1",
+            &[&domain],
+        )
+        .map_err(|_| error())?;
+    require(
+        schema_profile
+            .as_ref()
+            .and_then(|row| row.get::<_, Option<String>>(0))
+            .as_deref()
+            == Some(expected_schema_profile.as_str()),
+    )?;
+    result["durable_schema_profile_v1"] = json!({
+        "schema":DURABLE_SCHEMA_PROFILE_CENSUS_V1,
+        "sha256":expected_schema_profile,
+    });
+    for (census_key, census_schema, tables) in [
+        (
+            "source_publication_v1",
+            SOURCE_PUBLICATION_CENSUS_V1,
+            &SOURCE_PUBLICATION_TABLES[..],
+        ),
+        (
+            "source_item_file_assignment_v1",
+            SOURCE_ITEM_ASSIGNMENT_CENSUS_V1,
+            &SOURCE_ITEM_ASSIGNMENT_TABLES[..],
+        ),
+        (
+            "source_annotation_identity_v1",
+            SOURCE_ANNOTATION_IDENTITY_CENSUS_V1,
+            &SOURCE_ANNOTATION_IDENTITY_TABLES[..],
+        ),
+    ] {
+        append_relation_census_v1(
+            db,
+            domain,
+            profile,
+            d,
+            c,
+            census_key,
+            census_schema,
+            tables,
+            &mut result,
+        )?;
+        require(result[census_key]["state"] == "present")?;
+    }
+    let (claim_census_key, claim_census_schema, claim_tables) = if claim_navigation_v2 {
+        (
+            "source_claim_navigation_reference_v2",
+            SOURCE_CLAIM_NAVIGATION_REFERENCE_CENSUS_V2,
+            &SOURCE_CLAIM_NAVIGATION_REFERENCE_TABLES_V2[..],
+        )
+    } else {
+        (
+            "source_claim_navigation_reference_v1",
+            SOURCE_CLAIM_NAVIGATION_REFERENCE_CENSUS_V1,
+            &SOURCE_CLAIM_NAVIGATION_REFERENCE_TABLES[..],
+        )
+    };
     append_relation_census_v1(
         db,
         domain,
         profile,
         d,
         c,
-        "source_publication_v1",
-        SOURCE_PUBLICATION_CENSUS_V1,
-        &SOURCE_PUBLICATION_TABLES,
+        claim_census_key,
+        claim_census_schema,
+        claim_tables,
         &mut result,
     )?;
-    append_relation_census_v1(
-        db,
-        domain,
-        profile,
-        d,
-        c,
-        "source_item_file_assignment_v1",
-        SOURCE_ITEM_ASSIGNMENT_CENSUS_V1,
-        &SOURCE_ITEM_ASSIGNMENT_TABLES,
-        &mut result,
-    )?;
+    require(result[claim_census_key]["state"] == "present")?;
+    if claim_navigation_v2 {
+        let baseline_sequence = db
+            .query_one(
+                "SELECT source_claim_navigation_reference_baseline_seq FROM cmd2_domain WHERE domain=$1",
+                &[&domain],
+            )
+            .map_err(|_| error())?
+            .get::<_, Option<i64>>(0)
+            .ok_or_else(error)?;
+        let baseline_sequence = u64::try_from(baseline_sequence).map_err(|_| error())?;
+        let relation_root = result[claim_census_key]["row_root"]
+            .as_str()
+            .ok_or_else(error)?
+            .to_owned();
+        let mut root = Digest256Hasher::new();
+        root.update(b"tos-backup-source-claim-navigation-reference-v2-baseline\0");
+        root.update(&baseline_sequence.to_be_bytes());
+        root.update(relation_root.as_bytes());
+        result[claim_census_key]["baseline_sequence"] = json!(baseline_sequence);
+        result[claim_census_key]["row_root"] = json!(root.finalize().to_hex());
+    }
     Ok(result)
 }
 
@@ -1440,6 +2026,33 @@ fn validate_relation_census_v1(
     Ok(())
 }
 
+fn validate_durable_schema_profile_census(metadata: &Value) -> io::Result<()> {
+    let expected = crate::durable_adapter::schema_profile_digest().to_hex();
+    let census = &metadata["durable_schema_profile_v1"];
+    require(
+        census["schema"] == DURABLE_SCHEMA_PROFILE_CENSUS_V1
+            && census["sha256"].as_str() == Some(expected.as_str()),
+    )
+}
+
+fn validate_source_claim_navigation_reference_census_v2(
+    metadata: &Value,
+    profile: BackupProfile,
+) -> io::Result<()> {
+    validate_relation_census_v1(
+        metadata,
+        profile,
+        "source_claim_navigation_reference_v2",
+        SOURCE_CLAIM_NAVIGATION_REFERENCE_CENSUS_V2,
+        &SOURCE_CLAIM_NAVIGATION_REFERENCE_TABLES_V2,
+    )?;
+    require(
+        metadata["source_claim_navigation_reference_v2"]["baseline_sequence"]
+            .as_u64()
+            .is_some(),
+    )
+}
+
 fn validate_source_navigation_policy_census(
     metadata: &Value,
     profile: BackupProfile,
@@ -1473,9 +2086,9 @@ fn validate_source_navigation_policy_census(
     Ok(())
 }
 
-/// Add a bounded digest census for one optional relation set. The receipt
+/// Add a bounded digest census for one required relation set. The receipt
 /// records only row counts, byte counts, and a root; table payloads remain in
-/// the database dump. A partial relation set is never treated as absence.
+/// the database dump. A missing or partial V6 relation set is corruption.
 fn append_relation_census_v1(
     db: &mut Client,
     domain: &str,
@@ -1504,90 +2117,83 @@ fn append_relation_census_v1(
     let present_count = (0..tables.len())
         .filter(|index| presence.get::<_, bool>(*index))
         .count();
-    require(present_count == 0 || present_count == tables.len())?;
-    let installed = present_count == tables.len();
+    require(present_count == tables.len())?;
     let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
     let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
-    let scan_rows = i64::try_from(
-        profile
-            .max_metadata_rows
-            .checked_sub(total_rows)
-            .and_then(|remaining| remaining.checked_add(1))
-            .ok_or_else(error)?,
-    )
-    .map_err(|_| error())?;
+    // A V6-only relation census may include a table that the historical base
+    // census already counted. Bound the rescan itself by the full metadata
+    // budget; below, add only previously uncounted rows to the aggregate.
+    let scan_rows = i64::try_from(profile.max_metadata_rows.checked_add(1).ok_or_else(error)?)
+        .map_err(|_| error())?;
     let mut table_counts = serde_json::Map::new();
     let mut census_rows = 0u64;
     let mut census_bytes = 0u64;
     let mut root = Digest256Hasher::new();
     root.update(schema.as_bytes());
     root.update(&[0]);
-    root.update(if installed {
-        &b"present\0"[..]
-    } else {
-        &b"absent\0"[..]
-    });
-    if installed {
-        for (table, order) in tables {
+    root.update(b"present\0");
+    for (table, order) in tables {
+        active(d, c)?;
+        let query = format!(
+            "SELECT octet_length(row_to_json(t)::text),
+                    sha256(convert_to(row_to_json(t)::text,'UTF8'))
+             FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
+        );
+        let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
+        let mut rows = db.query_raw(&query, params).map_err(|_| error())?;
+        use postgres::fallible_iterator::FallibleIterator;
+        let mut count = 0u64;
+        let already_counted = result["counts"].get(*table).and_then(Value::as_u64);
+        root.update(table.as_bytes());
+        root.update(&[0]);
+        while let Some(row) = rows.next().map_err(|_| error())? {
             active(d, c)?;
-            let query = format!(
-                "SELECT octet_length(row_to_json(t)::text),
-                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
-                 FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
-            );
-            let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
-            let mut rows = db.query_raw(&query, params).map_err(|_| error())?;
-            use postgres::fallible_iterator::FallibleIterator;
-            let mut count = 0u64;
-            root.update(table.as_bytes());
-            root.update(&[0]);
-            while let Some(row) = rows.next().map_err(|_| error())? {
-                active(d, c)?;
-                let row_bytes = u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?)
-                    .map_err(|_| error())?;
-                let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
-                require(digest.len() == 32)?;
-                count = count.checked_add(1).ok_or_else(error)?;
-                census_rows = census_rows.checked_add(1).ok_or_else(error)?;
-                census_bytes = census_bytes.checked_add(row_bytes).ok_or_else(error)?;
+            let row_bytes = u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?)
+                .map_err(|_| error())?;
+            let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
+            require(digest.len() == 32)?;
+            count = count.checked_add(1).ok_or_else(error)?;
+            census_rows = census_rows.checked_add(1).ok_or_else(error)?;
+            census_bytes = census_bytes.checked_add(row_bytes).ok_or_else(error)?;
+            if already_counted.is_none() {
                 total_rows = total_rows.checked_add(1).ok_or_else(error)?;
                 total_bytes = total_bytes.checked_add(row_bytes).ok_or_else(error)?;
-                require(
-                    count <= profile.max_metadata_rows
-                        && census_rows <= profile.max_metadata_rows
-                        && total_rows <= profile.max_metadata_rows
-                        && census_bytes <= profile.max_metadata_bytes
-                        && total_bytes <= profile.max_metadata_bytes,
-                )?;
-                root.update(&row_bytes.to_be_bytes());
-                root.update(&digest);
             }
-            root.update(&count.to_be_bytes());
-            table_counts.insert((*table).to_owned(), json!(count));
+            require(
+                count <= profile.max_metadata_rows
+                    && census_rows <= profile.max_metadata_rows
+                    && total_rows <= profile.max_metadata_rows
+                    && census_bytes <= profile.max_metadata_bytes
+                    && total_bytes <= profile.max_metadata_bytes,
+            )?;
+            root.update(&row_bytes.to_be_bytes());
+            root.update(&digest);
         }
-    } else {
-        for (table, _) in tables {
-            table_counts.insert((*table).to_owned(), json!(0));
+        root.update(&count.to_be_bytes());
+        table_counts.insert((*table).to_owned(), json!(count));
+        if let Some(already_counted) = already_counted {
+            require(already_counted == count)?;
         }
     }
     active(d, c)?;
     let counts = result["counts"].as_object_mut().ok_or_else(error)?;
     for (table, _) in tables {
-        require(!counts.contains_key(*table))?;
-        counts.insert(
-            (*table).to_owned(),
-            table_counts.get(*table).cloned().ok_or_else(error)?,
-        );
+        let table_count = table_counts.get(*table).cloned().ok_or_else(error)?;
+        if let Some(existing) = counts.get(*table) {
+            require(existing == &table_count)?;
+        } else {
+            counts.insert((*table).to_owned(), table_count);
+        }
     }
     result["rows"] = json!(total_rows);
     result["bytes"] = json!(total_bytes);
     result[census_key] = json!({
         "schema":schema,
-        "state":if installed { "present" } else { "absent" },
+        "state":"present",
         "tables":table_counts,
         "rows":census_rows,
         "bytes":census_bytes,
-        "row_root":if installed { json!(root.finalize().to_hex()) } else { Value::Null },
+        "row_root":root.finalize().to_hex(),
     });
     Ok(())
 }
@@ -1706,9 +2312,10 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     let target = anchored(&backup);
     require(fs::read_dir(&target)?.next().is_none())?;
     let mut db = client(s.pg_url, d, c)?;
+    require_current_cmd2_schema(s.pg_url, d, c)?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
     let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
-    let metadata = frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)?;
+    let metadata = frozen_domain_v7(&mut db, s.domain, &store, profile, d, c)?;
     let database: String = db
         .query_one("SELECT current_database()", &[])
         .map_err(|_| error())?
@@ -1727,6 +2334,7 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         None,
         Some(dump_file.try_clone()?),
         s.pg_url,
+        PgToolMode::Database,
         d,
         c,
     )?;
@@ -1742,8 +2350,8 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         tos_fd_open::open_directory_at(&backup, Path::new("store")).map_err(|_| error())?;
     copy_store(&source, &copied, &members, profile, d, c)?;
     require(cut(s.pg_url, s.domain, &store, d, c)? == original_cut)?;
-    require(frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
-    let mut receipt = json!({"schema":BACKUP_SCHEMA_V5,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
+    require(frozen_domain_v7(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
+    let mut receipt = json!({"schema":BACKUP_SCHEMA_V7,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
     if metadata.get("managed_model_v2").is_some() {
         let oid = db
             .query_one(
@@ -1855,6 +2463,8 @@ pub fn restore_into_fresh_with_managed_binding(
     let census_v3 = census_v3_for_schema(schema)?;
     let census_v4 = census_v4_for_schema(schema)?;
     let census_v5 = census_v5_for_schema(schema)?;
+    let census_v6 = census_v6_for_schema(schema)?;
+    let census_v7 = census_v7_for_schema(schema)?;
     require(receipt["domain"] == s.domain)?;
     require(receipt.get("profile").is_some() == receipt.get("metadata").is_some())?;
     if census_v2 {
@@ -1953,6 +2563,9 @@ pub fn restore_into_fresh_with_managed_binding(
         }
         if census_v5 {
             validate_source_navigation_policy_census(metadata, profile)?;
+        }
+        if census_v6 {
+            validate_durable_schema_profile_census(metadata)?;
             validate_relation_census_v1(
                 metadata,
                 profile,
@@ -1967,13 +2580,40 @@ pub fn restore_into_fresh_with_managed_binding(
                 SOURCE_ITEM_ASSIGNMENT_CENSUS_V1,
                 &SOURCE_ITEM_ASSIGNMENT_TABLES,
             )?;
+            validate_relation_census_v1(
+                metadata,
+                profile,
+                "source_annotation_identity_v1",
+                SOURCE_ANNOTATION_IDENTITY_CENSUS_V1,
+                &SOURCE_ANNOTATION_IDENTITY_TABLES,
+            )?;
+            if !census_v7 {
+                validate_relation_census_v1(
+                    metadata,
+                    profile,
+                    "source_claim_navigation_reference_v1",
+                    SOURCE_CLAIM_NAVIGATION_REFERENCE_CENSUS_V1,
+                    &SOURCE_CLAIM_NAVIGATION_REFERENCE_TABLES,
+                )?;
+            }
+        }
+        if census_v7 {
+            validate_source_claim_navigation_reference_census_v2(metadata, profile)?;
         }
     }
+    let mut authenticated_dump =
+        snapshot_authenticated_dump(&dump, expected.clone(), profile.max_dump_bytes, d, c)?;
+    verify_current_archive_abi_v1(
+        &s.tool,
+        &mut authenticated_dump,
+        s.domain,
+        s.pg_url,
+        profile.max_dump_bytes,
+        d,
+        c,
+    )?;
     copy_store(&source, &restored, members, profile, d, c)?;
-    let dump_file = OpenOptions::new()
-        .read(true)
-        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
-        .open(&dump)?;
+    authenticated_dump.seek(SeekFrom::Start(0))?;
     let tool_receipt = tool(
         &s.tool,
         &[
@@ -1982,9 +2622,10 @@ pub fn restore_into_fresh_with_managed_binding(
             "--no-owner",
             "--no-privileges",
         ],
-        Some(dump_file),
+        Some(authenticated_dump.try_clone()?),
         None,
         s.pg_url,
+        PgToolMode::Database,
         d,
         c,
     )?;
@@ -1992,8 +2633,25 @@ pub fn restore_into_fresh_with_managed_binding(
         hash_bounded(&dump, profile.max_dump_bytes, d, c)? == expected
             && hash_bounded(&receipt_path, profile.max_receipt_bytes, d, c)?.1 == s.receipt_sha256,
     )?;
+    if census_v6 {
+        require_current_cmd2_schema(s.pg_url, d, c)?;
+    }
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
-    let (recovered_metadata, recovered) = if census_v5 {
+    let (recovered_metadata, recovered) = if census_v7 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v7(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else if census_v6 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v6(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else if census_v5 {
         let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
         let recovered_metadata = frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
@@ -2115,7 +2773,8 @@ fn backup_binding_digest(value: &Value, max_bytes: u64) -> io::Result<String> {
 mod tests {
     use super::{
         BACKUP_SCHEMA_V1, BACKUP_SCHEMA_V2, BACKUP_SCHEMA_V3, BACKUP_SCHEMA_V4, BACKUP_SCHEMA_V5,
-        census_v2_for_schema, census_v3_for_schema, census_v4_for_schema, census_v5_for_schema,
+        BACKUP_SCHEMA_V6, BACKUP_SCHEMA_V7, census_v2_for_schema, census_v3_for_schema,
+        census_v4_for_schema, census_v5_for_schema, census_v6_for_schema, census_v7_for_schema,
     };
 
     #[test]
@@ -2125,15 +2784,28 @@ mod tests {
         assert!(census_v2_for_schema(BACKUP_SCHEMA_V3).unwrap());
         assert!(census_v2_for_schema(BACKUP_SCHEMA_V4).unwrap());
         assert!(census_v2_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(census_v2_for_schema(BACKUP_SCHEMA_V6).unwrap());
+        assert!(census_v2_for_schema(BACKUP_SCHEMA_V7).unwrap());
         assert!(!census_v3_for_schema(BACKUP_SCHEMA_V2).unwrap());
         assert!(census_v3_for_schema(BACKUP_SCHEMA_V3).unwrap());
         assert!(census_v3_for_schema(BACKUP_SCHEMA_V4).unwrap());
         assert!(census_v3_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(census_v3_for_schema(BACKUP_SCHEMA_V6).unwrap());
+        assert!(census_v3_for_schema(BACKUP_SCHEMA_V7).unwrap());
         assert!(!census_v4_for_schema(BACKUP_SCHEMA_V3).unwrap());
         assert!(census_v4_for_schema(BACKUP_SCHEMA_V4).unwrap());
         assert!(census_v4_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(census_v4_for_schema(BACKUP_SCHEMA_V6).unwrap());
+        assert!(census_v4_for_schema(BACKUP_SCHEMA_V7).unwrap());
         assert!(!census_v5_for_schema(BACKUP_SCHEMA_V4).unwrap());
         assert!(census_v5_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(census_v5_for_schema(BACKUP_SCHEMA_V6).unwrap());
+        assert!(census_v5_for_schema(BACKUP_SCHEMA_V7).unwrap());
+        assert!(!census_v6_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(census_v6_for_schema(BACKUP_SCHEMA_V6).unwrap());
+        assert!(census_v6_for_schema(BACKUP_SCHEMA_V7).unwrap());
+        assert!(!census_v7_for_schema(BACKUP_SCHEMA_V6).unwrap());
+        assert!(census_v7_for_schema(BACKUP_SCHEMA_V7).unwrap());
         assert_eq!(
             census_v4_for_schema("unknown").unwrap_err().kind(),
             std::io::ErrorKind::InvalidData

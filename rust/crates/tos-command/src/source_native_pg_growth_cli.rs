@@ -7,8 +7,10 @@
 mod input;
 #[path = "source_native_pg_growth_owner_inputs.rs"]
 mod owner_inputs;
+#[path = "source_native_pg_growth_sign.rs"]
+mod sign;
 
-pub(super) use input::PgGrowthCurrentInput;
+pub(crate) use input::PgGrowthCurrentInput;
 pub(crate) use owner_inputs::context_with_pg_exact_reads;
 pub(super) use owner_inputs::{
     PgCollectionMembershipInputs, PgExpressionEditionInputs, PgExpressionResponsibilityInputs,
@@ -16,14 +18,16 @@ pub(super) use owner_inputs::{
 };
 
 use crate::source_cohort::revision::{
-    PgRecordRevisionIdentity, SourceReads, SourceRevisionReadSession, SourceRevisionReadSet,
+    PgRecordRevisionIdentity, SourceRevisionReadSession, SourceRevisionReadSet,
 };
-use crate::source_cohort::{self, IndexRows, PreparedPgSourceRevision, SourceRevisionWrite};
+use crate::source_cohort::{
+    self, IndexRows, PreparedPgSourceRevision, SourceReads, SourceRevisionWrite,
+};
 use crate::source_command::{
     self as cmd, CommandContext, PreparedCommand, SourceCommandError, SourceCommandResult,
 };
 use crate::source_creation_store::CreationFilesystem;
-use crate::source_work_expression::PgWorkExpressionOwnerPackage;
+use crate::source_creation_store::PgWorkExpressionOwnerPackage;
 use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use postgres::Transaction;
 use serde_json::{Value, json};
@@ -336,6 +340,28 @@ pub(super) fn run(
     let request_raw = read_request(input)?;
     let request = cmd::parse(&request_raw)?;
     let requested_operation = cmd::text(&request, "operation")?;
+    if owner_schema == "tos_local_sign_promote_owner_v2"
+        || owner_schema == "tos_local_sign_promote_owner_v1"
+    {
+        return sign::run(
+            invocation_path,
+            invocation_raw,
+            invocation,
+            &request_raw,
+            &request,
+            uid,
+            &selection,
+            &owner_path,
+            &owner_raw,
+            &owner_config,
+            expected_executable,
+            max_members,
+            max_total_bytes,
+            max_member_bytes,
+            deadline,
+            cancelled,
+        );
+    }
     if owner_schema == "tos_local_work_expression_owner_v1"
         && matches!(requested_operation, "describe" | "prepare-create")
     {
@@ -786,7 +812,7 @@ pub(super) fn run(
                 "PostgreSQL Growth owner configuration changed before commit",
             ));
         }
-        crate::source_work_expression::verify_pg_work_context(
+        crate::source_creation_store::verify_pg_work_context(
             &current_fs,
             prepared.prepared.context(),
             &BTreeSet::new(),
@@ -998,7 +1024,7 @@ fn run_pg_work_expression_preview(
             "PG Growth owner configuration changed before preview",
         ));
     }
-    crate::source_work_expression::verify_pg_work_context(
+    crate::source_creation_store::verify_pg_work_context(
         &current_fs,
         &prepared.1,
         &prepared.2,
@@ -1227,7 +1253,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
         .map_err(|_| SourceCommandError::Conflict("PG Growth selected catalog read epoch"))?;
     let (final_context, absences) =
         context_with_pg_exact_reads(&owner.context, session, deadline, cancelled)?;
-    crate::source_work_expression::verify_pg_work_context(
+    crate::source_creation_store::verify_pg_work_context(
         fs,
         &final_context,
         &absences,
@@ -2671,7 +2697,7 @@ fn prepare_pg_object_link_growth<'a>(
     limits: ItemLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<crate::source_object_link::PreparedPgObjectLink<'a>> {
+) -> SourceCommandResult<crate::source_creation_store::PreparedPgObjectLink<'a>> {
     let identity = session.selection().identity();
     let input = PgGrowthCurrentInput::new(session, 4096, MAX_GROWTH_SOFTWARE_MEMBER_BYTES as usize)
         .map_err(|_| SourceCommandError::Invalid("PG ObjectLink selected input budget"))?;
@@ -2696,7 +2722,7 @@ fn prepare_pg_object_link_growth<'a>(
         cancelled,
     )?;
     let requirements =
-        crate::source_object_link::pg_object_link_requirements(fs, &context, limits, cancelled)?;
+        crate::source_creation_store::pg_object_link_requirements(fs, &context, limits, cancelled)?;
     for home in requirements.homes() {
         session
             .observe_home_absence(home, deadline, cancelled)
@@ -2707,7 +2733,7 @@ fn prepare_pg_object_link_growth<'a>(
             .observe_unique_index(kind, token, deadline, cancelled)
             .map_err(|_| SourceCommandError::Conflict("ObjectLink PG identity absence"))?;
     }
-    let mut prepared = crate::source_object_link::prepare_pg_object_link(
+    let mut prepared = crate::source_creation_store::prepare_pg_object_link(
         fs,
         &context,
         &input,
@@ -3096,7 +3122,7 @@ fn run_pg_object_link_preview(
                     )
                     .map_err(DurableError::Source)?;
                 let mut preview = if operation == "describe" {
-                    crate::source_object_link::describe_pg_object_link(
+                    crate::source_creation_store::describe_pg_object_link(
                         owner_fs,
                         &context,
                         &input,
@@ -3114,7 +3140,7 @@ fn run_pg_object_link_preview(
                         cancelled,
                     )
                     .map_err(DurableError::Source)?;
-                    crate::source_object_link::prepare_pg_object_link_preview(
+                    crate::source_creation_store::prepare_pg_object_link_preview(
                         owner_fs,
                         &context,
                         &input,

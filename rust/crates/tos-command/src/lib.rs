@@ -71,7 +71,10 @@ mod source_navigation_record_adapter;
 mod source_navigation_record_input;
 pub mod source_projection_cli;
 pub mod source_search_projection;
+pub(crate) use durable_adapter::durable_private_packages;
 pub use durable_adapter::source_cohort;
+mod source_cohort_private_alignment;
+mod source_cohort_private_text;
 pub(crate) use durable_adapter::source_cohort::SourceRevisionAttempt;
 pub(crate) use durable_adapter::source_cohort::revision::{
     PgRecordRevisionIdentity, SourceRevisionReadSession, SourceRevisionReadSet,
@@ -104,12 +107,12 @@ pub use source_sign_native::{
     SignNativeRead as PublicNativeReadForConformance,
     resolve_assessment as resolve_public_native_assessment_for_conformance,
 };
-pub mod source_text_alignment_entry;
-mod source_text_identity;
-mod source_text_identity_index;
 mod source_annotation_identity_index;
 mod source_claim_dependency_index;
 mod source_item_file_index;
+pub mod source_text_alignment_entry;
+mod source_text_identity;
+mod source_text_identity_index;
 pub mod source_text_layer_derived_entry;
 mod source_text_layer_derived_proposal;
 pub mod source_text_layer_entry;
@@ -129,15 +132,20 @@ mod source_text_unit_proposal;
 use tos_foundation::Digest256;
 
 pub use durable_adapter::durable_projection::{
-    DurableNavigationEventAdvanceV2, DurableNavigationEventApply,
-    DurableNavigationEventCohortReadV1, DurableNavigationEventCohortSetV2,
-    DurableNavigationEventContextV1, DurableNavigationEventDependencyReadV1,
-    DurableNavigationEventLimits, DurableNavigationEventPendingReasonV2,
+    DurableNavigationBootstrapApplyV1, DurableNavigationEventAdvanceV2,
+    DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
+    DurableNavigationEventApply, DurableNavigationEventCohortReadV1,
+    DurableNavigationEventCohortSetV2, DurableNavigationEventContextV1,
+    DurableNavigationEventDependencyReadV1, DurableNavigationEventLimits,
+    DurableNavigationEventPendingReasonV2, DurableNavigationEventSeedV1,
     DurableNavigationEventSourceV1, DurableProjectionDocument, DurableProjectionExtractor,
     DurableProjectionHit, DurableProjectionLimits, DurableProjectionProfile,
     DurableProjectionProgress, DurableProjectionQueueAge, DurableProjectionQueueAgeStatus,
     DurableProjectionSearch, DurableProjectionSource, DurableProjectionStatus,
     DurableProjectionWork,
+};
+pub(crate) use durable_adapter::durable_projection::{
+    DurableNavigationHeldReadV2, DurableNavigationPublishedGenerationGuardV2,
 };
 pub use durable_adapter::{
     AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, ColdWorkspaceLimits,

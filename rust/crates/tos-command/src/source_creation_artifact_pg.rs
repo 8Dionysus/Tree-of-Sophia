@@ -5,7 +5,7 @@
 //! collision observations with exact PG readset predicates and a versioned
 //! dependency commitment.
 
-use super::{configuration, prepare_source_forms, CreationFamily, PreparedCreation};
+use super::{CreationFamily, PreparedCreation, configuration, prepare_source_forms};
 use crate::source_artifact_native;
 use crate::source_cohort::creation::{self, PgDependencyCommitment};
 use crate::source_cohort::revision::{
@@ -14,8 +14,7 @@ use crate::source_cohort::revision::{
 use crate::source_command::{
     self as cmd, CommandContext, CommandPlan, SourceCommandError, SourceCommandResult,
 };
-use crate::source_native_cli::revisions::PgRecordRevisionCommandContext;
-use crate::source_revisions as revisions;
+use crate::source_revisions::{self as revisions, PgRecordRevisionCommandContext};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;

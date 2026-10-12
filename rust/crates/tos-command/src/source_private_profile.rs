@@ -24,6 +24,7 @@ use tos_foundation::{
     emit_python_compact_json,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_validation::assessment::MAX_RECORD_BYTES;
 use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::SourceCutPrefixCoverage,
@@ -368,7 +369,7 @@ impl PrivateSelectedSourceInput for CorpusCutReader {
 }
 
 impl PrivateSelectedSourceInput
-    for crate::source_native_pg_growth_input::PgGrowthCurrentInput<'_, '_>
+    for crate::source_native_cli::PgGrowthCurrentInput<'_, '_>
 {
     fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
         PrivateSelectedSourceIdentity::PgRecord(

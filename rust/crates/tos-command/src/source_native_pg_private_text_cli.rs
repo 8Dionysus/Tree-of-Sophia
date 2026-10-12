@@ -1126,7 +1126,7 @@ pub(crate) fn run(
         )
         .map_err(pg::source_error)?;
 
-    let replayed = prepared.replayed();
+    let prepared_replayed = prepared.replayed();
     let source_binding =
         private_text_source_binding(&readset, &dependency_members, private_generation)
             .map_err(pg::source_error)?;
@@ -1158,7 +1158,7 @@ pub(crate) fn run(
         "commit_seq":replay.commit_seq,
         "package_sha256":replay.package_digest.to_prefixed(),
         "receipt_sha256":Digest256::of_bytes(&replay.response_bytes).to_prefixed(),
-        "replayed":replayed,
+        "replayed":prepared_replayed || replay.replayed,
         "grants_admission":false,
         "content_disclosure":"withheld"
     }))

@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_validation::item_rules::ItemLimits;
+use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 
 pub(crate) const PG_ITEM_ADOPTION_FAMILY_TAG: &str =
     "tos-pg-item-adoption-v1:tos_local_item_adoption_owner_v1:item.adopt";
@@ -537,7 +537,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             ));
         }
     }
-    predecessor_refs(&receipt, &predecessor)?;
+    let _ = exact_parent_before(&receipt, &predecessor)?;
     let predecessor_edition = cmd::parse(predecessor.get("edition.json").ok_or(
         SourceCommandError::Conflict("PG Item recovery predecessor Edition absent"),
     )?)?;
@@ -1857,7 +1857,7 @@ pub(crate) fn prepare_pg_item_adoption(
             "PG Item expected source, publication, or bootstrap revision changed",
         ));
     }
-    super::verify_current_topology(&mut closure, input, worker, limits, cancelled)?;
+    verify_current_topology(&mut closure, input, worker, limits, cancelled)?;
     let catalog = closure.catalog;
     let grammar = super::unavailable_grammar(
         &owner,

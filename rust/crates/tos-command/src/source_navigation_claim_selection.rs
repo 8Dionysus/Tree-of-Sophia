@@ -1034,6 +1034,149 @@ fn claim_event_streams_for_refresh_set_v1<'a>(
     Ok(streams)
 }
 
+/// Parse the exact terminal Claim streams selected by a multi-event range.
+/// Unlike a single-event mutation manifest, the stream set can contain many
+/// changed and reverse-indexed owners from different events in the range.
+fn claim_event_streams_for_range_v1<'a>(
+    context: &'a DurableNavigationEventContextV1,
+    source_paths: &[String],
+) -> DurableResult<Vec<ClaimEventOwnerStreamV1<'a>>> {
+    validate_range_event_context(context)?;
+    if source_paths.is_empty() || source_paths.len() > MAX_PATHS {
+        return Err(DurableError::Invalid("Claim range stream path count"));
+    }
+    let mut streams = Vec::with_capacity(source_paths.len());
+    let mut previous: Option<&str> = None;
+    for source_path in source_paths {
+        if !is_claim_stream_path(source_path)
+            || previous.is_some_and(|previous| previous >= source_path.as_str())
+        {
+            return Err(DurableError::Invalid("Claim range stream path order"));
+        }
+        previous = Some(source_path);
+        let bytes = selected_bytes(context, source_path)?;
+        streams.push(parse_claim_stream(source_path, bytes)?);
+    }
+    Ok(streams)
+}
+
+/// Stage current Claim forms, direct evidence, and stream support files for
+/// an exact already-selected range stream set.
+pub(crate) fn claim_event_range_current_owner_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+) -> DurableResult<Vec<String>> {
+    let streams = claim_event_streams_for_range_v1(context, source_paths)?;
+    let mut paths = BTreeSet::new();
+    for stream in streams {
+        add_stream_support_paths(&mut paths, &stream.source_path)?;
+        for owner in stream.owners {
+            add_claim_form_path(&mut paths, &stream.source_path, &owner.claim_id)?;
+            add_direct_evidence_paths(&mut paths, owner.exact_row_bytes)?;
+        }
+    }
+    paths_within_limit(paths)
+}
+
+/// Request the complete stable-identity set for a selected terminal range
+/// stream set.
+pub(crate) fn claim_event_range_identity_requests_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+) -> DurableResult<Vec<ClaimEventIdentityRequestV1>> {
+    let streams = claim_event_streams_for_range_v1(context, source_paths)?;
+    claim_event_identity_requests_for_streams(context, &streams)
+}
+
+pub(crate) fn claim_event_range_indexed_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+    owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let streams = claim_event_streams_for_range_v1(context, source_paths)?;
+    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
+    claim_event_indexed_paths_for_requests(context, &streams, &requests, owners)
+}
+
+pub(crate) fn claim_event_range_schema_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+    owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let streams = claim_event_streams_for_range_v1(context, source_paths)?;
+    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
+    claim_event_indexed_schema_paths_for_requests(context, &requests, owners)
+}
+
+pub(crate) fn claim_event_range_historical_endpoint_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+    owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let requests = claim_event_range_identity_requests_v1(context, source_paths)?;
+    claim_event_historical_endpoint_paths_for_requests(context, &requests, owners)
+}
+
+pub(crate) fn claim_event_range_historical_capture_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+    owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let requests = claim_event_range_identity_requests_v1(context, source_paths)?;
+    claim_event_historical_capture_paths_for_requests(context, &requests, owners)
+}
+
+pub(crate) fn claim_event_range_archive_manifest_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+) -> DurableResult<Vec<String>> {
+    let streams = claim_event_streams_for_range_v1(context, source_paths)?;
+    claim_event_archive_manifest_paths_for_streams(context, &streams)
+}
+
+pub(crate) fn claim_event_range_identity_archive_manifest_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+    owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let streams = claim_event_streams_for_range_v1(context, source_paths)?;
+    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
+    validate_identity_result_set(&requests, owners)?;
+    let (collection_refs, membership_refs) = claim_event_collection_order_refs_for_streams(&streams)?;
+    let mut paths = claim_event_identity_archive_paths_for_refs(
+        context,
+        owners,
+        &collection_refs,
+        &membership_refs,
+    )?
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    paths.extend(claim_event_identity_owner_archive_manifest_paths_for_requests(
+        context, &requests, owners,
+    )?);
+    paths_within_limit(paths)
+}
+
+pub(crate) fn claim_event_range_archive_blob_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    manifest_paths: &[String],
+) -> DurableResult<Vec<String>> {
+    claim_event_archive_blob_paths_for_manifests_v1(context, manifest_paths)
+}
+
+pub(crate) fn claim_event_range_identity_archive_blob_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_paths: &[String],
+    owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let manifests = claim_event_range_identity_archive_manifest_paths_v1(
+        context,
+        source_paths,
+        owners,
+    )?;
+    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
+}
+
 fn claim_event_archive_blob_paths_for_manifests_v1(
     context: &DurableNavigationEventContextV1,
     manifests: &[String],
@@ -1684,18 +1827,22 @@ pub(crate) fn claim_event_current_owner_paths_v1(
 }
 
 fn validate_event_context(context: &DurableNavigationEventContextV1) -> DurableResult<()> {
-    if context.event_kind() != "command"
-        || context.event_id().is_empty()
+    if context.event_id().is_empty()
         || context.event_id().len() > 256
         || context.event_sequence() == 0
         || context.event_sequence() > context.source_head_sequence()
-        || context.consumer_cursor().sequence.checked_add(1) != Some(context.event_sequence())
+        || context.consumer_cursor().sequence >= context.event_sequence()
+        || !matches!(context.event_kind(), "command" | "rights" | "rule")
     {
         return Err(DurableError::Conflict(
-            "Claim navigation event context differs",
+            "Claim navigation event or range context differs",
         ));
     }
     Ok(())
+}
+
+fn validate_range_event_context(context: &DurableNavigationEventContextV1) -> DurableResult<()> {
+    validate_event_context(context)
 }
 
 fn selected_source<'a>(

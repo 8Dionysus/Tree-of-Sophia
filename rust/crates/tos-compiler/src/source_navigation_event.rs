@@ -29,6 +29,225 @@ use crate::{
 const EVENT_ID_BYTES: usize = 256;
 const DEPENDENCY_PATH_BYTES: usize = 4096;
 const TOTAL_EVENT_BYTES: usize = 128 * 1024 * 1024;
+const MAX_EVENT_RANGE_EVENTS: usize = 256;
+const MAX_EVENT_RANGE_EVENT_MEMBERS: usize = 64;
+const MAX_EVENT_RANGE_TOTAL_MEMBERS: usize = 65_536;
+const MAX_EVENT_RANGE_COVERAGE_BYTES: usize = 64 * 1024 * 1024;
+
+/// One exact source member carried by a committed event in a contiguous
+/// navigation range.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NavigationEventRangeMemberV1 {
+    pub source_path: String,
+    pub revision: u64,
+    pub is_source: bool,
+    pub size_bytes: u64,
+    pub sha256: Digest256,
+}
+
+/// Exact durable event facts. `command_id` is populated only for command
+/// events; event identity and command identity remain separate fields.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NavigationEventRangeEventV1 {
+    pub sequence: u64,
+    pub event_id: String,
+    pub command_id: Option<String>,
+    pub event_kind: String,
+    pub member_root: Digest256,
+    pub members: Vec<NavigationEventRangeMemberV1>,
+}
+
+/// Untrusted range facts copied from the durable event reader. The sealer
+/// recomputes canonical coverage bytes and root before producing the private
+/// compiler-side capability.
+pub struct NavigationEventRangeCoverageInputV1<'a> {
+    pub cursor_before: u64,
+    pub through_sequence: u64,
+    pub terminal_event_id: &'a str,
+    pub events: &'a [NavigationEventRangeEventV1],
+    pub coverage_root: Digest256,
+    pub manifest_raw: &'a [u8],
+}
+
+/// Sealed exact `cursor_before + 1 ..= through_sequence` source-event range.
+/// It never combines several events into a synthetic event identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NavigationEventRangeCoverageV1 {
+    cursor_before: u64,
+    through_sequence: u64,
+    terminal_event_id: String,
+    events: Vec<NavigationEventRangeEventV1>,
+    coverage_root: Digest256,
+    manifest_raw: Vec<u8>,
+}
+
+impl NavigationEventRangeCoverageV1 {
+    pub fn cursor_before(&self) -> u64 {
+        self.cursor_before
+    }
+
+    pub fn through_sequence(&self) -> u64 {
+        self.through_sequence
+    }
+
+    pub fn terminal_event_id(&self) -> &str {
+        &self.terminal_event_id
+    }
+
+    pub fn events(&self) -> &[NavigationEventRangeEventV1] {
+        &self.events
+    }
+
+    pub fn coverage_root(&self) -> Digest256 {
+        self.coverage_root
+    }
+
+    pub fn manifest_raw(&self) -> &[u8] {
+        &self.manifest_raw
+    }
+
+    pub fn event(&self, sequence: u64) -> Option<&NavigationEventRangeEventV1> {
+        self.events.iter().find(|event| event.sequence == sequence)
+    }
+
+    pub fn member(
+        &self,
+        sequence: u64,
+        source_path: &str,
+    ) -> Option<&NavigationEventRangeMemberV1> {
+        self.event(sequence)?
+            .members
+            .iter()
+            .find(|member| member.source_path == source_path)
+    }
+
+    pub fn verify_integrity(&self) -> Result<()> {
+        let (manifest_raw, coverage_root) = range_coverage_manifest_v1(
+            self.cursor_before,
+            self.through_sequence,
+            &self.terminal_event_id,
+            &self.events,
+        )?;
+        if manifest_raw != self.manifest_raw || coverage_root != self.coverage_root {
+            return Err(Error::Invalid("navigation event range coverage root"));
+        }
+        Ok(())
+    }
+}
+
+/// Re-seal a durable range only when its canonical facts and exact root agree.
+pub fn seal_navigation_event_range_coverage_v1(
+    input: NavigationEventRangeCoverageInputV1<'_>,
+) -> Result<NavigationEventRangeCoverageV1> {
+    let (manifest_raw, coverage_root) = range_coverage_manifest_v1(
+        input.cursor_before,
+        input.through_sequence,
+        input.terminal_event_id,
+        input.events,
+    )?;
+    if manifest_raw != input.manifest_raw || coverage_root != input.coverage_root {
+        return Err(Error::Invalid("navigation event range coverage binding"));
+    }
+    let sealed = NavigationEventRangeCoverageV1 {
+        cursor_before: input.cursor_before,
+        through_sequence: input.through_sequence,
+        terminal_event_id: input.terminal_event_id.to_owned(),
+        events: input.events.to_vec(),
+        coverage_root,
+        manifest_raw,
+    };
+    sealed.verify_integrity()?;
+    Ok(sealed)
+}
+
+fn range_coverage_manifest_v1(
+    cursor_before: u64,
+    through_sequence: u64,
+    terminal_event_id: &str,
+    events: &[NavigationEventRangeEventV1],
+) -> Result<(Vec<u8>, Digest256)> {
+    if cursor_before >= through_sequence
+        || events.is_empty()
+        || events.len() > MAX_EVENT_RANGE_EVENTS
+        || events.len() as u64 != through_sequence - cursor_before
+        || events.first().map(|event| event.sequence) != Some(cursor_before + 1)
+        || events.last().map(|event| event.sequence) != Some(through_sequence)
+        || events.last().map(|event| event.event_id.as_str()) != Some(terminal_event_id)
+        || terminal_event_id.is_empty()
+        || terminal_event_id.len() > EVENT_ID_BYTES
+        || terminal_event_id
+            .bytes()
+            .any(|byte| byte.is_ascii_control())
+    {
+        return Err(Error::Invalid(
+            "navigation event range is not complete and contiguous",
+        ));
+    }
+    let mut previous_sequence = cursor_before;
+    let mut total_members = 0usize;
+    for event in events {
+        if event.event_id.is_empty()
+            || event.event_id.len() > EVENT_ID_BYTES
+            || event.event_id.bytes().any(|byte| byte.is_ascii_control())
+            || event.sequence != previous_sequence + 1
+            || !matches!(event.event_kind.as_str(), "command" | "rights" | "rule")
+            || (event.event_kind == "command"
+                && event
+                    .command_id
+                    .as_deref()
+                    .is_none_or(|value| value.is_empty() || value.len() > EVENT_ID_BYTES))
+            || (event.event_kind != "command" && event.command_id.is_some())
+            || (event.event_kind != "command" && !event.members.is_empty())
+            || event.members.len() > MAX_EVENT_RANGE_EVENT_MEMBERS
+        {
+            return Err(Error::Invalid("navigation event range event shape"));
+        }
+        previous_sequence = event.sequence;
+        total_members = total_members
+            .checked_add(event.members.len())
+            .ok_or(Error::Budget("navigation event range member count"))?;
+        let mut previous_path: Option<&str> = None;
+        for member in &event.members {
+            RelativePath::parse(&member.source_path)
+                .map_err(|_| Error::Invalid("navigation event range member path"))?;
+            if member.source_path.len() > DEPENDENCY_PATH_BYTES
+                || member.revision == 0
+                || previous_path.is_some_and(|previous| previous >= member.source_path.as_str())
+            {
+                return Err(Error::Invalid(
+                    "navigation event range member ordering or identity",
+                ));
+            }
+            previous_path = Some(member.source_path.as_str());
+        }
+    }
+    if total_members > MAX_EVENT_RANGE_TOTAL_MEMBERS {
+        return Err(Error::Budget("navigation event range member count"));
+    }
+    let value = json!({
+        "schema_version":"tos_source_navigation_event_range_coverage_v1",
+        "cursor_before":cursor_before,
+        "through_sequence":through_sequence,
+        "terminal_event_id":terminal_event_id,
+        "events":events.iter().map(|event| json!({
+            "sequence":event.sequence,
+            "event_id":event.event_id,
+            "event_kind":event.event_kind,
+            "command_id":event.command_id,
+            "member_root":event.member_root.to_hex(),
+            "members":event.members.iter().map(|member| json!({
+                "source_path":member.source_path,
+                "revision":member.revision,
+                "is_source":member.is_source,
+                "size_bytes":member.size_bytes,
+                "sha256":member.sha256.to_hex(),
+            })).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>(),
+    });
+    let manifest_raw = canonical(&value, MAX_EVENT_RANGE_COVERAGE_BYTES)?;
+    let coverage_root = Digest256::of_bytes(&manifest_raw);
+    Ok((manifest_raw, coverage_root))
+}
 
 /// Why one exact source address participates in a record cohort.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -197,6 +416,13 @@ pub struct NavigationRecordEventBudgetCostV1 {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NavigationRecordEventBasisV1 {
     Mutation,
+    /// One terminal owner replacement assembled from a contiguous set of
+    /// real source events. The terminal event identity stays real; these
+    /// roots bind the full range and owner-specific causal set.
+    RangeReconciliation {
+        coverage_root: Digest256,
+        cause_root: Digest256,
+    },
     DependencyRefresh {
         changed_dependency_path: RelativePath,
         changed_dependency_sha256: Digest256,
@@ -351,6 +577,7 @@ pub fn project_navigation_record_event_v1(
         limits,
         NavigationRecordEventBasisV1::Mutation,
         None,
+        None,
         NavigationEventSourceBinding::FullCut,
     )
 }
@@ -367,6 +594,43 @@ pub fn project_navigation_record_event_from_event_cut_v1(
         limits,
         NavigationRecordEventBasisV1::Mutation,
         None,
+        None,
+        NavigationEventSourceBinding::EventCut,
+    )
+}
+
+/// Render one terminal Record contribution for an exact contiguous event
+/// range. `input.event_id` and sequence remain the real final event in the
+/// coverage; the basis commits the range root and this owner's cause root.
+/// `origin_forms_*` are the exact creation-time form bytes retained by the
+/// selected Record history, when the creation receipt declared them.
+pub fn project_navigation_record_range_terminal_event_from_event_cut_v1(
+    input: NavigationRecordEventInputV1<'_>,
+    coverage: &NavigationEventRangeCoverageV1,
+    cause_root: Digest256,
+    origin_forms_bytes: Option<&[u8]>,
+    limits: BibliographicLimits,
+) -> Result<NavigationRecordEventCohortV1> {
+    coverage.verify_integrity()?;
+    if input.event_id != coverage.terminal_event_id()
+        || input.event_sequence != coverage.through_sequence()
+        || input.source_head_sequence != coverage.through_sequence()
+        || cause_root == Digest256::of_bytes(&[])
+        || origin_forms_bytes.is_some_and(|bytes| bytes.is_empty())
+    {
+        return Err(Error::Invalid(
+            "navigation Record range terminal event identity",
+        ));
+    }
+    project_navigation_record_event_with_basis(
+        input,
+        limits,
+        NavigationRecordEventBasisV1::RangeReconciliation {
+            coverage_root: coverage.coverage_root(),
+            cause_root,
+        },
+        None,
+        origin_forms_bytes,
         NavigationEventSourceBinding::EventCut,
     )
 }
@@ -394,6 +658,7 @@ pub fn project_navigation_record_dependency_refresh_v1(
         limits,
         basis,
         Some(changed_dependency_bytes),
+        None,
         NavigationEventSourceBinding::FullCut,
     )
 }
@@ -418,6 +683,7 @@ pub fn project_navigation_record_dependency_refresh_from_event_cut_v1(
         limits,
         basis,
         Some(changed_dependency_bytes),
+        None,
         NavigationEventSourceBinding::EventCut,
     )
 }
@@ -456,6 +722,7 @@ pub fn project_navigation_record_dependency_refresh_set_from_event_cut_v1(
         NavigationRecordEventBasisV1::DependencyRefreshSet {
             changed_dependencies: causes,
         },
+        None,
         None,
         NavigationEventSourceBinding::EventCut,
     )
@@ -524,6 +791,7 @@ pub fn project_navigation_record_claim_revision_refresh_v1(
         limits,
         basis,
         None,
+        None,
         NavigationEventSourceBinding::FullCut,
     )
 }
@@ -587,6 +855,7 @@ pub fn project_navigation_record_claim_revision_refresh_from_event_cut_v1(
         limits,
         basis,
         None,
+        None,
         NavigationEventSourceBinding::EventCut,
     )
 }
@@ -634,6 +903,7 @@ fn project_navigation_record_event_with_basis(
     limits: BibliographicLimits,
     basis: NavigationRecordEventBasisV1,
     changed_dependency_bytes: Option<&[u8]>,
+    origin_forms_bytes: Option<&[u8]>,
     source_binding: NavigationEventSourceBinding,
 ) -> Result<NavigationRecordEventCohortV1> {
     limits.validate()?;
@@ -799,6 +1069,49 @@ fn project_navigation_record_event_with_basis(
             input.event_file_bytes,
             input.source_record,
         )?,
+        NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
+            let (origin_record_bytes, origin_record) =
+                match (input.versions.first(), input.version_sources.first()) {
+                    (Some((_, resolution)), Some(Some(version_source)))
+                        if resolution.get("status").and_then(Value::as_str)
+                            == Some("available") =>
+                    {
+                        let record = resolution
+                            .get("record")
+                            .filter(|record| record.is_object())
+                            .ok_or(Error::Invalid(
+                                "navigation Record range origin version record absent",
+                            ))?;
+                        let raw = version_source.source_record_bytes;
+                        let parsed = strict_value(raw, limits.catalog.max_row_bytes)?;
+                        if !same_canonical(&parsed, record, limits.catalog.max_row_bytes)? {
+                            return Err(Error::Invalid(
+                                "navigation Record range origin version bytes differ",
+                            ));
+                        }
+                        (raw, record)
+                    }
+                    (None, None) if input.history.is_none() && input.history_bytes.is_none() => {
+                        (input.source_record_bytes, input.source_record)
+                    }
+                    _ => {
+                        return Err(Error::Invalid(
+                            "navigation Record range origin version is not retained",
+                        ));
+                    }
+                };
+            validate_event_record_binding(
+                &event_value,
+                &event_receipt,
+                &event_path,
+                &source_path,
+                origin_record_bytes,
+                origin_forms_bytes,
+                &forms_path,
+                input.event_file_bytes,
+                origin_record,
+            )?;
+        }
     }
     check_selected_navigation_document(
         input.validator,
@@ -2204,6 +2517,17 @@ fn input_root_with_cap(
         NavigationRecordEventBasisV1::Mutation => (
             "tos_source_navigation_event_input_v2",
             json!({"kind":"record-mutation"}),
+        ),
+        NavigationRecordEventBasisV1::RangeReconciliation {
+            coverage_root,
+            cause_root,
+        } => (
+            "tos_source_navigation_event_input_v5",
+            json!({
+                "kind":"range-reconciliation",
+                "coverage_root":coverage_root.to_hex(),
+                "cause_root":cause_root.to_hex(),
+            }),
         ),
         NavigationRecordEventBasisV1::DependencyRefresh {
             changed_dependency_path,

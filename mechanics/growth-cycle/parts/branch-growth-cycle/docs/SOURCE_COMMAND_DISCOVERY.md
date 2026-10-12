@@ -87,21 +87,23 @@ semantics remain unchanged.
 The same native front door accepts a separately configured
 `tos_local_pg_growth_invocation_v1` invocation for these maintained Growth
 owners: Work/Expression, Expression/Edition, Expression responsibility,
-Collection membership and ObjectLink. Their `describe` and `prepare-*`
+Collection membership, ObjectLink and Sign promotion. PG Sign requires its v2
+owner configuration and a separately protected Assessment owner v5/v6. Their
+`describe` and `prepare-*`
 operations read and validate the selected, fenced PostgreSQL/STO source
-revision without publishing a change. Their create/attach operation commits
-the owner package and its source indexes in that PostgreSQL revision; it does
-not publish a local filesystem transaction or mirror the PG change into local
+revision without publishing a change. Their mutation operation commits the
+owner package and its source indexes in that PostgreSQL revision; it does not
+publish a local filesystem transaction or mirror the PG change into local
 authored files.
 
 The local `*.recover` operations remain available only through the local
 filesystem owner route. PostgreSQL recovery is exact replay of the original
 mutation command: retry the same request with the same `command_id`. A PG
 invocation does not accept the local transaction-ID/resume/rollback request.
-Sign promotion remains on its separately guarded local route; it is not
-admitted by this PG Growth route until its Assessment history guard and typed
-commit package are connected. Backend selection does not broaden owner grants
-or replace assessment, rights, publication or canon authority.
+The compatible legacy Sign v1 owner remains on its existing local filesystem
+route; PG Sign uses the v2 protected Assessment history guard and typed commit
+package. Backend selection does not broaden owner grants or replace assessment,
+rights, publication or canon authority.
 
 The distinct `owner-local-text-layer-record-owner-ocr` handler records one
 authenticated signed `abyss-stack` OCR result under a separate protected grant.

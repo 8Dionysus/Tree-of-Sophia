@@ -73,6 +73,16 @@ target with its PostgreSQL service:
 cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
 ```
 
+The addressed backup/reselection case in this target also needs two separate
+empty databases on that same PostgreSQL 16 server, exposed as
+`TOS_CMD2_V2_RESTORE_PG_URL` and
+`TOS_CMD2_V2_V1_WIRE_RESTORE_PG_URL`. Set `TOS_CMD2_PG_DUMP_PATH` and
+`TOS_CMD2_PG_RESTORE_PATH` to the matching PostgreSQL 16 client tools, and set
+their `TOS_CMD2_PG_DUMP_SHA256` and `TOS_CMD2_PG_RESTORE_SHA256` values to the
+corresponding binary hashes. The [`Repo Validation workflow`](../.github/workflows/repo-validation.yml)
+shows the isolated-service setup; its restore database names include the
+workflow run and attempt so concurrent runs cannot share a target.
+
 Ignored restore and child-process probes retain their separate prerequisites and
 are not selected by this command.
 

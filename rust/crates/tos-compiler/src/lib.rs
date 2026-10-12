@@ -177,6 +177,7 @@ mod source_bibliographic_values;
 mod source_bibliographic_versions;
 pub mod source_navigation_claim_event;
 pub mod source_navigation_event;
+pub mod source_navigation_record_range;
 pub use managed_model_manifest::{
     ManagedManifestDeltaV2, ManagedManifestLimitsV2, ManagedManifestRecoveryRebindV2,
     ManagedManifestV2, ManagedOverlaySourceBindingV2,

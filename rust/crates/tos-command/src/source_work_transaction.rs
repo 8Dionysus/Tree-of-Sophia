@@ -23,7 +23,7 @@ use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevis
 use tos_source_store::{
     SourceCutDependencyWitness, SourceCutDirectoryWitness, SourceCutIdentityWitness,
     SourceCutMemberTuple, SourceCutMemberWitness, SourceCutObjectRefcountWitness,
-    SourceCutReadsetV1, SourcePresenceV1,
+    SourceCutReadsetV1, SourceMembershipV1, SourcePresenceV1,
 };
 use tos_validation::record_biblio_cut::SourceCutInput;
 
@@ -47,6 +47,10 @@ const PG_SOURCE_PARENT_PROFILE: &str = "tos_source_revision_parent_bindings_v1";
 const PG_SOURCE_PARENT_SCHEMA: &str = "tos_source_revision_parent_v1";
 const COMPLETION_SCHEMA: &str = "tos_selected_metadata_completion_v1";
 const PG_PUBLICATION_PACKAGE_SCHEMA: &str = "tos_pg_selected_publication_package_v1";
+const PG_LEGACY_PUBLICATION_PACKAGE_SCHEMA: &str = "tos_pg_legacy_selected_publication_package_v1";
+const PG_LEGACY_PUBLICATION_ORIGIN_SCHEMA: &str = "tos_pg_source_publication_import_origin_v1";
+const PG_LEGACY_PUBLICATION_ORIGIN_KIND: &str = "legacy_sto_import";
+const PG_LEGACY_PUBLICATION_RECEIPT_SCHEMA: &str = "tos_pg_source_publication_import_receipt_v1";
 const MAX_PG_PUBLICATION_PACKAGE: usize = 1024 * 1024;
 const PG_PUBLICATION_SOURCE_ROLE: &str = "authored_source";
 const PG_PUBLICATION_BLOB_ROLE: &str = "selected_transaction_blob";
@@ -88,6 +92,95 @@ pub(crate) struct SelectedPublicationRetainedWrite {
     pub(crate) path: String,
     pub(crate) before: Option<Vec<u8>>,
     pub(crate) after: Option<Vec<u8>>,
+}
+
+/// Exact legacy STO transition decoded for a future explicitly authorized PG
+/// history import. The original manifest and completion bytes remain intact;
+/// this type does not claim a PG source commit sequence or synthesize one.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LegacySelectedPublicationTransition {
+    pub(crate) transaction_id: String,
+    pub(crate) manifest_schema_version: String,
+    pub(crate) manifest_sha256: Digest256,
+    pub(crate) completion_sha256: Digest256,
+    pub(crate) control_sha256: Digest256,
+    pub(crate) manifest_bytes: Vec<u8>,
+    pub(crate) completion_bytes: Vec<u8>,
+    pub(crate) control_bytes: Vec<u8>,
+    pub(crate) generation: u64,
+    pub(crate) token: String,
+    pub(crate) base_publication_token: Option<String>,
+    pub(crate) base_publication_generation: u64,
+    pub(crate) source_refs: Vec<SelectedPublicationSourceRef>,
+    /// Exact source and transaction-blob bodies passed separately to the
+    /// import owner. They are not duplicated in the serialized package.
+    pub(crate) retained_writes: Vec<SelectedPublicationRetainedWrite>,
+}
+
+/// Provenance shared by every transition imported from one real source
+/// bootstrap-completion transaction. `through_seq` is the held PG source
+/// head for the bootstrap cut, never a fabricated legacy transaction seq.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LegacyPublicationImportBindingV1 {
+    pub(crate) origin_kind: String,
+    pub(crate) import_event_id: String,
+    pub(crate) domain: String,
+    pub(crate) store_id: [u8; 16],
+    pub(crate) bootstrap_source_revision: SourceRevision,
+    pub(crate) bootstrap_membership: SourceMembershipV1,
+    pub(crate) through_seq: u64,
+    pub(crate) chain_root_sha256: Digest256,
+    pub(crate) transition_count: u64,
+    pub(crate) head_generation: u64,
+    pub(crate) head_token: String,
+    pub(crate) head_control_sha256: Digest256,
+    pub(crate) receipt_sha256: Digest256,
+}
+
+/// One package row produced by the source-owned legacy import contract.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LegacySelectedPublicationImportPackage {
+    pub(crate) canonical_bytes: Vec<u8>,
+    pub(crate) sha256: Digest256,
+    pub(crate) origin: LegacyPublicationImportBindingV1,
+    pub(crate) transition_index: u64,
+    pub(crate) transaction_id: String,
+    pub(crate) manifest_schema_version: String,
+    pub(crate) manifest_sha256: Digest256,
+    pub(crate) completion_sha256: Digest256,
+    pub(crate) control_sha256: Digest256,
+    pub(crate) generation: u64,
+    pub(crate) token: String,
+    pub(crate) base_publication_token: Option<String>,
+    pub(crate) base_publication_generation: u64,
+    pub(crate) source_refs: Vec<SelectedPublicationSourceRef>,
+    pub(crate) retained_writes: Vec<SelectedPublicationRetainedWrite>,
+}
+
+/// Complete ordered import operation, ready for one atomic bootstrap commit.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LegacySelectedPublicationImportV1 {
+    pub(crate) binding: LegacyPublicationImportBindingV1,
+    pub(crate) receipt_bytes: Vec<u8>,
+    pub(crate) receipt_sha256: Digest256,
+    pub(crate) packages: Vec<LegacySelectedPublicationImportPackage>,
+}
+
+/// Canonical package facts needed to compare a persisted import row with its
+/// receipt and the relational history columns that mirror it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LegacySelectedPublicationImportRowBindingV1 {
+    pub(crate) package_sha256: Digest256,
+    pub(crate) transition_index: u64,
+    pub(crate) transaction_id: String,
+    pub(crate) manifest_schema_version: String,
+    pub(crate) manifest_sha256: Digest256,
+    pub(crate) completion_sha256: Digest256,
+    pub(crate) control_sha256: Digest256,
+    pub(crate) generation: u64,
+    pub(crate) token: String,
+    pub(crate) base_publication_token: Option<String>,
+    pub(crate) base_publication_generation: u64,
 }
 
 #[cfg(test)]
@@ -1995,6 +2088,1812 @@ pub(crate) fn selected_publication_transition_chain_from_exact_members(
     }
     reversed.reverse();
     Ok(reversed)
+}
+
+/// Decode a complete exact STO chain written by the legacy v1-v4 selected
+/// metadata codecs. This preserves each original sidecar byte sequence and
+/// proves the selected generation/token path. The result is only codec
+/// evidence; the separate import envelope binds the ordered chain to the real
+/// source bootstrap event without inventing per-transition PG commit rows.
+pub(crate) fn legacy_selected_publication_transition_chain_from_exact_members(
+    members: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<Vec<LegacySelectedPublicationTransition>> {
+    let control_path = format!("{HOME}/{CONTROL}");
+    let control_raw = members
+        .get(&control_path)
+        .ok_or(SourceCommandError::Invalid("PG publication control absent"))?;
+    let control = parse_canonical_member(control_raw, "PG publication control")?;
+    state(&control)?;
+    if cmd::text(&control, "phase")? != "ready" || cmd::text(&control, "outcome")? != "committed" {
+        return Err(SourceCommandError::Conflict(
+            "PG publication head is not committed",
+        ));
+    }
+    let transaction_root = format!("{HOME}/{TRANSACTIONS}/");
+    let mut transactions = BTreeMap::<String, BTreeMap<String, &[u8]>>::new();
+    for (path_name, raw) in members {
+        if path_name == &control_path {
+            continue;
+        }
+        let member =
+            path_name
+                .strip_prefix(&transaction_root)
+                .ok_or(SourceCommandError::Invalid(
+                    "unexpected PG publication chain member",
+                ))?;
+        let (id, name) = member.split_once('/').ok_or(SourceCommandError::Invalid(
+            "PG publication chain member path",
+        ))?;
+        if !valid_transaction_journal_id(id) {
+            return Err(SourceCommandError::Invalid("PG publication chain identity"));
+        }
+        RelativePath::parse(path_name)
+            .map_err(|_| SourceCommandError::Invalid("PG publication chain path"))?;
+        if !matches!(name, "manifest.json" | "completion.json")
+            && !name
+                .strip_suffix(".blob")
+                .is_some_and(valid_transaction_journal_id)
+        {
+            return Err(SourceCommandError::Invalid(
+                "unexpected PG publication chain journal member",
+            ));
+        }
+        if transactions
+            .entry(id.to_owned())
+            .or_default()
+            .insert(name.to_owned(), raw)
+            .is_some()
+        {
+            return Err(SourceCommandError::Invalid(
+                "duplicate PG publication chain journal member",
+            ));
+        }
+    }
+    if transactions.is_empty() {
+        return Err(SourceCommandError::Invalid("PG publication chain is empty"));
+    }
+
+    let mut transitions = Vec::with_capacity(transactions.len());
+    for (id, transaction) in &transactions {
+        transitions.push(legacy_publication_transition_from_exact_members(
+            id,
+            transaction,
+        )?);
+    }
+    let mut by_state = BTreeMap::new();
+    for (index, transition) in transitions.iter().enumerate() {
+        if by_state
+            .insert((transition.generation, transition.token.as_str()), index)
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "duplicate legacy publication transition state",
+            ));
+        }
+    }
+    let head_id = cmd::text(&control, "transaction_id")?;
+    let head_generation = cmd::integer(&control, "generation")?;
+    let head_token = cmd::text(&control, "token")?;
+    let head_index = by_state
+        .get(&(head_generation, head_token))
+        .copied()
+        .ok_or(SourceCommandError::Conflict(
+            "legacy publication head transaction absent",
+        ))?;
+    let head = &transitions[head_index];
+    if head.transaction_id != head_id || head.control_bytes.as_slice() != control_raw.as_slice() {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication head control differs",
+        ));
+    }
+
+    let mut reversed = Vec::with_capacity(transitions.len());
+    let mut visited = BTreeSet::new();
+    let mut cursor = head_index;
+    loop {
+        if !visited.insert(cursor) {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication transition cycle",
+            ));
+        }
+        let transition = &transitions[cursor];
+        reversed.push(transition.clone());
+        match (
+            transition.base_publication_generation,
+            transition.base_publication_token.as_deref(),
+        ) {
+            (0, None) => break,
+            (generation, Some(token)) => {
+                cursor = by_state.get(&(generation, token)).copied().ok_or(
+                    SourceCommandError::Conflict("legacy publication predecessor absent"),
+                )?;
+                if transitions[cursor].generation >= transition.generation {
+                    return Err(SourceCommandError::Conflict(
+                        "legacy publication transition order differs",
+                    ));
+                }
+            }
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication predecessor malformed",
+                ));
+            }
+        }
+    }
+    if visited.len() != transitions.len() {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication transition chain is incomplete",
+        ));
+    }
+    reversed.reverse();
+    Ok(reversed)
+}
+
+/// Build the source-owned import receipt and one metadata-only package per
+/// exact legacy STO transition. The `transitions` argument is already ordered
+/// oldest-to-newest by the exact-member decoder and is consumed so retained
+/// source/blob bodies are not copied into a second transition list.
+pub(crate) fn legacy_selected_publication_import_from_chain(
+    domain: &str,
+    store_id: [u8; 16],
+    bootstrap_source_revision: SourceRevision,
+    bootstrap_membership: SourceMembershipV1,
+    through_seq: u64,
+    selected_head_control: &[u8],
+    transitions: Vec<LegacySelectedPublicationTransition>,
+) -> SourceCommandResult<LegacySelectedPublicationImportV1> {
+    validate_legacy_publication_transition_chain(&transitions, selected_head_control)?;
+    let head = transitions.last().ok_or(SourceCommandError::Invalid(
+        "legacy publication chain is empty",
+    ))?;
+    let mut binding = LegacyPublicationImportBindingV1 {
+        origin_kind: PG_LEGACY_PUBLICATION_ORIGIN_KIND.to_owned(),
+        import_event_id: String::new(),
+        domain: domain.to_owned(),
+        store_id,
+        bootstrap_source_revision,
+        bootstrap_membership,
+        through_seq,
+        chain_root_sha256: legacy_chain_root_sha256(&transitions)?,
+        transition_count: u64::try_from(transitions.len())
+            .map_err(|_| SourceCommandError::Invalid("legacy publication transition count"))?,
+        head_generation: head.generation,
+        head_token: head.token.clone(),
+        head_control_sha256: head.control_sha256,
+        receipt_sha256: Digest256::from_bytes([0; 32]),
+    };
+    if binding.domain.is_empty() || binding.transition_count == 0 || !hash(&binding.head_token) {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import binding",
+        ));
+    }
+    binding.import_event_id = legacy_import_event_id(&binding)?;
+    let receipt_bytes = encoded(&legacy_import_receipt_value(&binding))?;
+    let receipt_sha256 = Digest256::of_bytes(&receipt_bytes);
+    binding.receipt_sha256 = receipt_sha256;
+
+    let mut packages = Vec::with_capacity(transitions.len());
+    for (index, transition) in transitions.into_iter().enumerate() {
+        let transition_index = u64::try_from(index + 1)
+            .map_err(|_| SourceCommandError::Invalid("legacy publication transition index"))?;
+        let canonical_bytes = legacy_import_package_bytes(&transition, &binding, transition_index)?;
+        let sha256 = Digest256::of_bytes(&canonical_bytes);
+        packages.push(LegacySelectedPublicationImportPackage {
+            canonical_bytes,
+            sha256,
+            origin: binding.clone(),
+            transition_index,
+            transaction_id: transition.transaction_id,
+            manifest_schema_version: transition.manifest_schema_version,
+            manifest_sha256: transition.manifest_sha256,
+            completion_sha256: transition.completion_sha256,
+            control_sha256: transition.control_sha256,
+            generation: transition.generation,
+            token: transition.token,
+            base_publication_token: transition.base_publication_token,
+            base_publication_generation: transition.base_publication_generation,
+            source_refs: transition.source_refs,
+            retained_writes: transition.retained_writes,
+        });
+    }
+    let import = LegacySelectedPublicationImportV1 {
+        binding,
+        receipt_bytes,
+        receipt_sha256,
+        packages,
+    };
+    validate_legacy_selected_publication_import(&import, selected_head_control)?;
+    Ok(import)
+}
+
+/// Check the exact receipt, ordered package set, source heads, sidecar hashes,
+/// and every referenced source/blob body before an import is persisted.
+pub(crate) fn validate_legacy_selected_publication_import(
+    import: &LegacySelectedPublicationImportV1,
+    selected_head_control: &[u8],
+) -> SourceCommandResult<()> {
+    if import.binding.origin_kind != PG_LEGACY_PUBLICATION_ORIGIN_KIND
+        || import.binding.domain.is_empty()
+        || import.binding.transition_count == 0
+        || usize::try_from(import.binding.transition_count).ok() != Some(import.packages.len())
+        || import.receipt_sha256 != import.binding.receipt_sha256
+        || Digest256::of_bytes(&import.receipt_bytes) != import.receipt_sha256
+        || encoded(&legacy_import_receipt_value(&import.binding))?.as_slice()
+            != import.receipt_bytes.as_slice()
+        || legacy_import_event_id(&import.binding)? != import.binding.import_event_id
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import receipt differs",
+        ));
+    }
+    let control = parse_canonical_member(selected_head_control, "legacy import selected head")?;
+    state(&control)?;
+    if cmd::text(&control, "phase")? != "ready"
+        || cmd::text(&control, "outcome")? != "committed"
+        || cmd::integer(&control, "generation")? != import.binding.head_generation
+        || cmd::text(&control, "token")? != import.binding.head_token
+        || Digest256::of_bytes(selected_head_control) != import.binding.head_control_sha256
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import head differs",
+        ));
+    }
+    let mut chain = Vec::with_capacity(import.packages.len());
+    for (index, package) in import.packages.iter().enumerate() {
+        let expected_index = u64::try_from(index + 1)
+            .map_err(|_| SourceCommandError::Invalid("legacy publication transition index"))?;
+        if package.origin != import.binding
+            || package.transition_index != expected_index
+            || Digest256::of_bytes(&package.canonical_bytes) != package.sha256
+        {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication import package binding differs",
+            ));
+        }
+        let decoded = parse_legacy_selected_publication_import_package(
+            &package.canonical_bytes,
+            &package.retained_writes,
+        )?;
+        if &decoded != package {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication import package changed",
+            ));
+        }
+        chain.push(legacy_package_chain_entry(package));
+        if index == 0 {
+            if package.base_publication_generation != 0 || package.base_publication_token.is_some()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication import genesis differs",
+                ));
+            }
+        } else {
+            let predecessor = &import.packages[index - 1];
+            if package.base_publication_generation != predecessor.generation
+                || package.base_publication_token.as_deref() != Some(&predecessor.token)
+                || package.generation <= predecessor.generation
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication import order differs",
+                ));
+            }
+        }
+    }
+    let chain_root = Digest256::of_bytes(&encoded(&JsonValue::Array(chain))?);
+    let head = import.packages.last().ok_or(SourceCommandError::Invalid(
+        "legacy publication chain is empty",
+    ))?;
+    if chain_root != import.binding.chain_root_sha256
+        || head.generation != import.binding.head_generation
+        || head.token != import.binding.head_token
+        || head.control_sha256 != import.binding.head_control_sha256
+        || head.transaction_id != cmd::text(&control, "transaction_id")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import chain root differs",
+        ));
+    }
+    Ok(())
+}
+
+/// Read only package provenance and the sorted exact STO references. This is
+/// suitable for a bounded PG cold reader that subsequently fetches those
+/// members and passes their bytes to the full parser.
+pub(crate) fn legacy_selected_publication_import_package_refs(
+    raw: &[u8],
+) -> SourceCommandResult<(
+    LegacyPublicationImportBindingV1,
+    u64,
+    Vec<SelectedPublicationSourceRef>,
+)> {
+    let (value, origin, refs) = legacy_import_package_parts(raw)?;
+    let transaction_id = cmd::text(&value, "transaction_id")?;
+    let manifest = cmd::field(&value, "manifest")?;
+    let control = cmd::field(&value, "control")?;
+    let completion = cmd::field(&value, "completion")?;
+    if cmd::text(manifest, "schema_version")? != origin.manifest_schema_version
+        || cmd::text(manifest, "transaction_id")? != transaction_id
+        || cmd::text(control, "transaction_id")? != transaction_id
+        || cmd::text(completion, "schema_version")? != COMPLETION_SCHEMA
+        || !cmd::same(cmd::field(completion, "publication")?, control)?
+        || Digest256::of_bytes(&encoded(manifest)?) != origin.manifest_sha256
+        || Digest256::of_bytes(&encoded(completion)?) != origin.completion_sha256
+        || Digest256::of_bytes(&encoded(control)?) != origin.control_sha256
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication package sidecar binding differs",
+        ));
+    }
+    Ok((origin.binding, origin.transition_index, refs))
+}
+
+/// Rehydrate exact per-transition source changes from only the transaction
+/// blobs named by a canonical import package. Historical before/after source
+/// bytes are selected by their package-bound digest from those retained blobs;
+/// current source files are never consulted.
+pub(crate) fn legacy_selected_publication_import_retained_writes_from_blobs(
+    raw_package: &[u8],
+    blob_members: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<Vec<SelectedPublicationRetainedWrite>> {
+    let (_, _, refs) = legacy_selected_publication_import_package_refs(raw_package)?;
+    let expected_blob_count = refs
+        .iter()
+        .filter(|source_ref| source_ref.role == PG_PUBLICATION_BLOB_ROLE)
+        .count();
+    if blob_members.len() != expected_blob_count {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import blob member set differs",
+        ));
+    }
+    let mut blobs_by_digest = BTreeMap::<Digest256, &[u8]>::new();
+    for source_ref in refs
+        .iter()
+        .filter(|source_ref| source_ref.role == PG_PUBLICATION_BLOB_ROLE)
+    {
+        let bytes = blob_members
+            .get(&source_ref.path)
+            .ok_or(SourceCommandError::Conflict(
+                "legacy publication import blob member absent",
+            ))?;
+        let binding = source_ref
+            .after
+            .as_ref()
+            .ok_or(SourceCommandError::Conflict(
+                "legacy publication import blob binding absent",
+            ))?;
+        if source_ref.before.is_some()
+            || u64::try_from(bytes.len()).ok() != Some(binding.byte_size)
+            || Digest256::of_bytes(bytes) != binding.sha256
+            || blobs_by_digest
+                .insert(binding.sha256, bytes.as_slice())
+                .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication import blob member binding differs",
+            ));
+        }
+    }
+    if blob_members.keys().any(|path| {
+        !refs
+            .iter()
+            .any(|source_ref| source_ref.path == path.as_str())
+    }) {
+        return Err(SourceCommandError::Invalid(
+            "unreferenced legacy publication import blob member",
+        ));
+    }
+    let mut writes = Vec::with_capacity(refs.len());
+    for source_ref in refs {
+        let (before, after) = match source_ref.role.as_str() {
+            PG_PUBLICATION_BLOB_ROLE => (
+                None,
+                Some(
+                    blob_members
+                        .get(&source_ref.path)
+                        .ok_or(SourceCommandError::Conflict(
+                            "legacy publication import blob member absent",
+                        ))?
+                        .clone(),
+                ),
+            ),
+            PG_PUBLICATION_SOURCE_ROLE => (
+                legacy_blob_for_binding(source_ref.before.as_ref(), &blobs_by_digest)?,
+                legacy_blob_for_binding(source_ref.after.as_ref(), &blobs_by_digest)?,
+            ),
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "legacy publication import ref role",
+                ));
+            }
+        };
+        writes.push(SelectedPublicationRetainedWrite {
+            path: source_ref.path,
+            before,
+            after,
+        });
+    }
+    Ok(writes)
+}
+
+fn legacy_blob_for_binding(
+    binding: Option<&SelectedPublicationBinding>,
+    blobs: &BTreeMap<Digest256, &[u8]>,
+) -> SourceCommandResult<Option<Vec<u8>>> {
+    binding
+        .map(|binding| {
+            let bytes = blobs
+                .get(&binding.sha256)
+                .copied()
+                .ok_or(SourceCommandError::Conflict(
+                    "legacy publication source image blob absent",
+                ))?;
+            if u64::try_from(bytes.len()).ok() != Some(binding.byte_size)
+                || Digest256::of_bytes(bytes) != binding.sha256
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication source image blob differs",
+                ));
+            }
+            Ok(bytes.to_vec())
+        })
+        .transpose()
+}
+
+/// Validate the separately persisted bootstrap-import receipt and recover the
+/// exact binding it commits to. The returned digest covers the canonical raw
+/// receipt bytes supplied by the caller.
+pub(crate) fn parse_legacy_selected_publication_import_receipt(
+    raw: &[u8],
+) -> SourceCommandResult<(LegacyPublicationImportBindingV1, Digest256)> {
+    if raw.is_empty() || raw.len() > MAX_STATE {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import receipt byte budget",
+        ));
+    }
+    let value = parse_canonical_member(raw, "legacy publication import receipt encoding")?;
+    cmd::exact_keys(
+        &value,
+        &[
+            "schema_version",
+            "origin_kind",
+            "import_event_id",
+            "domain",
+            "store_id",
+            "bootstrap_source_revision",
+            "bootstrap_membership_count",
+            "bootstrap_membership_sha256",
+            "through_seq",
+            "chain_root_sha256",
+            "transition_count",
+            "head_generation",
+            "head_token",
+            "head_control_sha256",
+        ],
+    )?;
+    if cmd::text(&value, "schema_version")? != PG_LEGACY_PUBLICATION_RECEIPT_SCHEMA {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import receipt schema",
+        ));
+    }
+    let origin_kind = cmd::text(&value, "origin_kind")?.to_owned();
+    let import_event_id = cmd::text(&value, "import_event_id")?.to_owned();
+    let domain = cmd::text(&value, "domain")?.to_owned();
+    let store_id = legacy_store_id_from_text(cmd::text(&value, "store_id")?)?;
+    let binding = LegacyPublicationImportBindingV1 {
+        origin_kind,
+        import_event_id,
+        domain,
+        store_id,
+        bootstrap_source_revision: SourceRevision(
+            Digest256::from_prefixed(cmd::text(&value, "bootstrap_source_revision")?)
+                .map_err(|_| SourceCommandError::Invalid("legacy import source revision"))?,
+        ),
+        bootstrap_membership: SourceMembershipV1 {
+            count: cmd::integer(&value, "bootstrap_membership_count")?,
+            digest: parse_readset_digest(&value, "bootstrap_membership_sha256")?,
+        },
+        through_seq: cmd::integer(&value, "through_seq")?,
+        chain_root_sha256: parse_readset_digest(&value, "chain_root_sha256")?,
+        transition_count: cmd::integer(&value, "transition_count")?,
+        head_generation: cmd::integer(&value, "head_generation")?,
+        head_token: cmd::text(&value, "head_token")?.to_owned(),
+        head_control_sha256: parse_readset_digest(&value, "head_control_sha256")?,
+        receipt_sha256: Digest256::of_bytes(raw),
+    };
+    if binding.origin_kind != PG_LEGACY_PUBLICATION_ORIGIN_KIND
+        || binding.domain.is_empty()
+        || binding.transition_count == 0
+        || !hash(&binding.import_event_id)
+        || !hash(&binding.head_token)
+        || legacy_import_event_id(&binding)? != binding.import_event_id
+        || encoded(&legacy_import_receipt_value(&binding))?.as_slice() != raw
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import receipt binding differs",
+        ));
+    }
+    Ok((binding, Digest256::of_bytes(raw)))
+}
+
+/// Validate every persisted imported history package against the one
+/// bootstrap receipt. This proves that the ordered DB rows retain the exact
+/// legacy sidecar chain and that their relational package facts agree with
+/// the canonical package bytes.
+pub(crate) fn validate_legacy_selected_publication_import_rows(
+    receipt_bytes: &[u8],
+    package_bytes: &[Vec<u8>],
+) -> SourceCommandResult<Vec<LegacySelectedPublicationImportRowBindingV1>> {
+    let (binding, receipt_sha256) =
+        parse_legacy_selected_publication_import_receipt(receipt_bytes)?;
+    if package_bytes.is_empty()
+        || package_bytes.len() > cmd::SELECTED_SOURCE_MAX_FILES
+        || u64::try_from(package_bytes.len()).ok() != Some(binding.transition_count)
+        || binding.transition_count > binding.bootstrap_membership.count
+    {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import row count budget",
+        ));
+    }
+    let mut total_bytes = 0usize;
+    let mut summaries = Vec::with_capacity(package_bytes.len());
+    let mut chain = Vec::with_capacity(package_bytes.len());
+    let mut previous: Option<(u64, String)> = None;
+    for (offset, raw) in package_bytes.iter().enumerate() {
+        total_bytes = total_bytes
+            .checked_add(raw.len())
+            .filter(|total| *total <= cmd::SELECTED_SOURCE_MAX_BYTES * 2)
+            .ok_or(SourceCommandError::Invalid(
+                "legacy publication import row byte budget",
+            ))?;
+        let (package_binding, transition_index, _) =
+            legacy_selected_publication_import_package_refs(raw)?;
+        let expected_index = u64::try_from(offset + 1)
+            .map_err(|_| SourceCommandError::Invalid("legacy publication transition index"))?;
+        if package_binding != binding || transition_index != expected_index {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication import row receipt or order differs",
+            ));
+        }
+        let (value, origin, _) = legacy_import_package_parts(raw)?;
+        let transaction_id = cmd::text(&value, "transaction_id")?.to_owned();
+        let manifest = cmd::field(&value, "manifest")?;
+        let control = cmd::field(&value, "control")?;
+        state(control)?;
+        let base = cmd::field(manifest, "base_publication")?;
+        cmd::exact_keys(base, &["token", "generation"])?;
+        let base_publication_generation = cmd::integer(base, "generation")?;
+        let base_publication_token = match cmd::field(base, "token")? {
+            JsonValue::Null if base_publication_generation == 0 => None,
+            JsonValue::String(_) if base_publication_generation > 0 => {
+                let token = cmd::text(base, "token")?;
+                if !hash(token) {
+                    return Err(SourceCommandError::Invalid(
+                        "legacy publication import row predecessor token",
+                    ));
+                }
+                Some(token.to_owned())
+            }
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "legacy publication import row predecessor",
+                ));
+            }
+        };
+        let generation = cmd::integer(control, "generation")?;
+        let token = cmd::text(control, "token")?.to_owned();
+        if cmd::text(manifest, "schema_version")? != origin.manifest_schema_version
+            || cmd::text(manifest, "transaction_id")? != transaction_id
+            || cmd::text(control, "transaction_id")? != transaction_id
+            || cmd::text(control, "phase")? != "ready"
+            || cmd::text(control, "outcome")? != "committed"
+            || cmd::text(control, "manifest_sha256")? != origin.manifest_sha256.to_prefixed()
+            || !hash(&token)
+            || generation != base_publication_generation.saturating_add(2)
+            || generation > MAX_GENERATION
+        {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication import row control differs",
+            ));
+        }
+        if let Some((previous_generation, previous_token)) = &previous {
+            if base_publication_generation != *previous_generation
+                || base_publication_token.as_deref() != Some(previous_token.as_str())
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication import row predecessor differs",
+                ));
+            }
+        } else if base_publication_generation != 0 || base_publication_token.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication import row genesis differs",
+            ));
+        }
+        previous = Some((generation, token.clone()));
+        chain.push(legacy_chain_entry_value(
+            &transaction_id,
+            &origin.manifest_schema_version,
+            origin.manifest_sha256,
+            origin.completion_sha256,
+            origin.control_sha256,
+            base_publication_token.as_deref(),
+            base_publication_generation,
+            generation,
+            &token,
+        ));
+        summaries.push(LegacySelectedPublicationImportRowBindingV1 {
+            package_sha256: Digest256::of_bytes(raw),
+            transition_index,
+            transaction_id,
+            manifest_schema_version: origin.manifest_schema_version,
+            manifest_sha256: origin.manifest_sha256,
+            completion_sha256: origin.completion_sha256,
+            control_sha256: origin.control_sha256,
+            generation,
+            token,
+            base_publication_token,
+            base_publication_generation,
+        });
+    }
+    let chain_root = Digest256::of_bytes(&encoded(&JsonValue::Array(chain))?);
+    let head = summaries.last().ok_or(SourceCommandError::Invalid(
+        "legacy publication import rows are empty",
+    ))?;
+    if chain_root != binding.chain_root_sha256
+        || head.generation != binding.head_generation
+        || head.token != binding.head_token
+        || head.control_sha256 != binding.head_control_sha256
+        || receipt_sha256 != binding.receipt_sha256
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import rows differ from receipt chain",
+        ));
+    }
+    Ok(summaries)
+}
+
+/// Fully parse an imported transition after the caller has read only the
+/// source/blob paths listed by `legacy_selected_publication_import_package_refs`.
+pub(crate) fn parse_legacy_selected_publication_import_package(
+    raw: &[u8],
+    retained_writes: &[SelectedPublicationRetainedWrite],
+) -> SourceCommandResult<LegacySelectedPublicationImportPackage> {
+    let (value, origin, source_refs) = legacy_import_package_parts(raw)?;
+    let transaction_id = cmd::text(&value, "transaction_id")?.to_owned();
+    let journal_id = transaction_id
+        .strip_prefix("sha256:")
+        .filter(|id| valid_transaction_journal_id(id))
+        .ok_or(SourceCommandError::Invalid(
+            "legacy publication import transaction identity",
+        ))?;
+    let manifest = cmd::field(&value, "manifest")?;
+    let completion = cmd::field(&value, "completion")?;
+    let control = cmd::field(&value, "control")?;
+    let manifest_bytes = encoded(manifest)?;
+    let completion_bytes = encoded(completion)?;
+    let control_bytes = encoded(control)?;
+    if cmd::text(manifest, "schema_version")? != origin.manifest_schema_version
+        || Digest256::of_bytes(&manifest_bytes) != origin.manifest_sha256
+        || Digest256::of_bytes(&completion_bytes) != origin.completion_sha256
+        || Digest256::of_bytes(&control_bytes) != origin.control_sha256
+        || cmd::text(manifest, "transaction_id")? != transaction_id
+        || cmd::text(control, "transaction_id")? != transaction_id
+        || cmd::text(completion, "schema_version")? != COMPLETION_SCHEMA
+        || !cmd::same(cmd::field(completion, "publication")?, control)?
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import original sidecar differs",
+        ));
+    }
+    let mut members = BTreeMap::<String, &[u8]>::new();
+    members.insert("manifest.json".to_owned(), &manifest_bytes);
+    members.insert("completion.json".to_owned(), &completion_bytes);
+    let transaction_root = format!("{HOME}/{TRANSACTIONS}/{journal_id}/");
+    let mut seen = BTreeSet::new();
+    for write in retained_writes {
+        RelativePath::parse(&write.path)
+            .map_err(|_| SourceCommandError::Invalid("legacy publication retained path"))?;
+        if !seen.insert(write.path.as_str()) {
+            return Err(SourceCommandError::Invalid(
+                "duplicate legacy publication retained path",
+            ));
+        }
+        if let Some(name) = write.path.strip_prefix(&transaction_root) {
+            let digest = name
+                .strip_suffix(".blob")
+                .filter(|digest| valid_transaction_journal_id(digest))
+                .ok_or(SourceCommandError::Invalid(
+                    "legacy publication retained blob path",
+                ))?;
+            if write.before.is_some() {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication retained blob before image differs",
+                ));
+            }
+            let bytes = write.after.as_deref().ok_or(SourceCommandError::Conflict(
+                "legacy publication retained blob is absent",
+            ))?;
+            if Digest256::of_bytes(bytes).to_hex() != digest
+                || members.insert(name.to_owned(), bytes).is_some()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication retained blob binding differs",
+                ));
+            }
+        }
+    }
+    let transition = legacy_publication_transition_from_exact_members(journal_id, &members)?;
+    if transition.source_refs != source_refs
+        || transition.retained_writes != retained_writes
+        || transition.transaction_id != transaction_id
+        || transition.manifest_schema_version != origin.manifest_schema_version
+        || transition.manifest_sha256 != origin.manifest_sha256
+        || transition.completion_sha256 != origin.completion_sha256
+        || transition.control_sha256 != origin.control_sha256
+        || origin.transition_index == 0
+        || origin.transition_index > origin.binding.transition_count
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import transition differs",
+        ));
+    }
+    let expected_bytes =
+        legacy_import_package_bytes(&transition, &origin.binding, origin.transition_index)?;
+    if expected_bytes.as_slice() != raw {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import package encoding differs",
+        ));
+    }
+    Ok(LegacySelectedPublicationImportPackage {
+        canonical_bytes: raw.to_vec(),
+        sha256: Digest256::of_bytes(raw),
+        origin: origin.binding,
+        transition_index: origin.transition_index,
+        transaction_id: transition.transaction_id,
+        manifest_schema_version: transition.manifest_schema_version,
+        manifest_sha256: transition.manifest_sha256,
+        completion_sha256: transition.completion_sha256,
+        control_sha256: transition.control_sha256,
+        generation: transition.generation,
+        token: transition.token,
+        base_publication_token: transition.base_publication_token,
+        base_publication_generation: transition.base_publication_generation,
+        source_refs: transition.source_refs,
+        retained_writes: transition.retained_writes,
+    })
+}
+
+fn validate_legacy_publication_transition_chain(
+    transitions: &[LegacySelectedPublicationTransition],
+    selected_head_control: &[u8],
+) -> SourceCommandResult<()> {
+    if transitions.is_empty() {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication chain is empty",
+        ));
+    }
+    let control = parse_canonical_member(selected_head_control, "legacy import selected head")?;
+    state(&control)?;
+    if cmd::text(&control, "phase")? != "ready" || cmd::text(&control, "outcome")? != "committed" {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import head is not committed",
+        ));
+    }
+    for (index, transition) in transitions.iter().enumerate() {
+        validate_legacy_publication_transition(transition)?;
+        if transition.manifest_schema_version == PG_SOURCE_MANIFEST_SCHEMA
+            || !matches!(
+                transition.manifest_schema_version.as_str(),
+                MANIFEST_SCHEMA
+                    | PROFILED_MANIFEST_SCHEMA
+                    | CANONICAL_FORM_MANIFEST_SCHEMA
+                    | SOURCE_READSET_MANIFEST_SCHEMA
+            )
+        {
+            return Err(SourceCommandError::Unsupported(
+                "selected publication import requires original legacy v1-v4 sidecars",
+            ));
+        }
+        if index == 0 {
+            if transition.base_publication_generation != 0
+                || transition.base_publication_token.is_some()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication import genesis differs",
+                ));
+            }
+        } else {
+            let predecessor = &transitions[index - 1];
+            if transition.base_publication_generation != predecessor.generation
+                || transition.base_publication_token.as_deref() != Some(&predecessor.token)
+                || transition.generation <= predecessor.generation
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication import order differs",
+                ));
+            }
+        }
+    }
+    let head = transitions.last().ok_or(SourceCommandError::Invalid(
+        "legacy publication chain is empty",
+    ))?;
+    if head.control_bytes.as_slice() != selected_head_control
+        || head.transaction_id != cmd::text(&control, "transaction_id")?
+        || head.generation != cmd::integer(&control, "generation")?
+        || head.token != cmd::text(&control, "token")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import head control differs",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_legacy_publication_transition(
+    transition: &LegacySelectedPublicationTransition,
+) -> SourceCommandResult<()> {
+    let journal_id = transition
+        .transaction_id
+        .strip_prefix("sha256:")
+        .filter(|id| valid_transaction_journal_id(id))
+        .ok_or(SourceCommandError::Invalid(
+            "legacy publication transition identity",
+        ))?;
+    let manifest = parse_canonical_member(&transition.manifest_bytes, "legacy import manifest")?;
+    let completion =
+        parse_canonical_member(&transition.completion_bytes, "legacy import completion")?;
+    let manifest_bytes = encoded(&manifest)?;
+    let completion_bytes = encoded(&completion)?;
+    if Digest256::of_bytes(&manifest_bytes) != transition.manifest_sha256
+        || Digest256::of_bytes(&completion_bytes) != transition.completion_sha256
+        || Digest256::of_bytes(&transition.control_bytes) != transition.control_sha256
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication transition sidecar digest differs",
+        ));
+    }
+    let mut members = BTreeMap::<String, &[u8]>::new();
+    members.insert("manifest.json".to_owned(), &manifest_bytes);
+    members.insert("completion.json".to_owned(), &completion_bytes);
+    let journal_prefix = format!("{HOME}/{TRANSACTIONS}/{journal_id}/");
+    let mut seen = BTreeSet::new();
+    for write in &transition.retained_writes {
+        RelativePath::parse(&write.path)
+            .map_err(|_| SourceCommandError::Invalid("legacy publication retained path"))?;
+        if !seen.insert(write.path.as_str()) {
+            return Err(SourceCommandError::Invalid(
+                "duplicate legacy publication retained path",
+            ));
+        }
+        if let Some(name) = write.path.strip_prefix(&journal_prefix) {
+            let digest = name
+                .strip_suffix(".blob")
+                .filter(|digest| valid_transaction_journal_id(digest))
+                .ok_or(SourceCommandError::Invalid(
+                    "legacy publication retained blob path",
+                ))?;
+            if write.before.is_some() {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication retained blob before image differs",
+                ));
+            }
+            let bytes = write.after.as_deref().ok_or(SourceCommandError::Conflict(
+                "legacy publication retained blob is absent",
+            ))?;
+            if Digest256::of_bytes(bytes).to_hex() != digest
+                || members.insert(name.to_owned(), bytes).is_some()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy publication retained blob binding differs",
+                ));
+            }
+        } else if write.path.starts_with(&format!("{HOME}/{TRANSACTIONS}/")) {
+            return Err(SourceCommandError::Invalid(
+                "legacy publication retained blob belongs to another transaction",
+            ));
+        }
+    }
+    let decoded = legacy_publication_transition_from_exact_members(journal_id, &members)?;
+    if &decoded != transition {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication transition differs from its exact members",
+        ));
+    }
+    Ok(())
+}
+
+fn legacy_chain_entry_value(
+    transaction_id: &str,
+    manifest_schema_version: &str,
+    manifest_sha256: Digest256,
+    completion_sha256: Digest256,
+    control_sha256: Digest256,
+    base_publication_token: Option<&str>,
+    base_publication_generation: u64,
+    generation: u64,
+    token: &str,
+) -> JsonValue {
+    cmd::object(vec![
+        ("transaction_id", cmd::string(transaction_id)),
+        (
+            "manifest_schema_version",
+            cmd::string(manifest_schema_version),
+        ),
+        (
+            "manifest_sha256",
+            cmd::string(&manifest_sha256.to_prefixed()),
+        ),
+        (
+            "completion_sha256",
+            cmd::string(&completion_sha256.to_prefixed()),
+        ),
+        ("control_sha256", cmd::string(&control_sha256.to_prefixed())),
+        (
+            "base_publication_token",
+            base_publication_token.map_or(JsonValue::Null, cmd::string),
+        ),
+        (
+            "base_publication_generation",
+            cmd::number(base_publication_generation),
+        ),
+        ("generation", cmd::number(generation)),
+        ("token", cmd::string(token)),
+    ])
+}
+
+fn legacy_chain_root_sha256(
+    transitions: &[LegacySelectedPublicationTransition],
+) -> SourceCommandResult<Digest256> {
+    let entries = transitions
+        .iter()
+        .map(|transition| {
+            legacy_chain_entry_value(
+                &transition.transaction_id,
+                &transition.manifest_schema_version,
+                transition.manifest_sha256,
+                transition.completion_sha256,
+                transition.control_sha256,
+                transition.base_publication_token.as_deref(),
+                transition.base_publication_generation,
+                transition.generation,
+                &transition.token,
+            )
+        })
+        .collect();
+    Ok(Digest256::of_bytes(&encoded(&JsonValue::Array(entries))?))
+}
+
+fn legacy_package_chain_entry(package: &LegacySelectedPublicationImportPackage) -> JsonValue {
+    legacy_chain_entry_value(
+        &package.transaction_id,
+        &package.manifest_schema_version,
+        package.manifest_sha256,
+        package.completion_sha256,
+        package.control_sha256,
+        package.base_publication_token.as_deref(),
+        package.base_publication_generation,
+        package.generation,
+        &package.token,
+    )
+}
+
+fn legacy_import_event_id(
+    binding: &LegacyPublicationImportBindingV1,
+) -> SourceCommandResult<String> {
+    let identity = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string(PG_LEGACY_PUBLICATION_ORIGIN_SCHEMA),
+        ),
+        ("origin_kind", cmd::string(&binding.origin_kind)),
+        ("domain", cmd::string(&binding.domain)),
+        (
+            "store_id",
+            cmd::string(&legacy_store_id_text(&binding.store_id)),
+        ),
+        (
+            "bootstrap_source_revision",
+            cmd::string(&binding.bootstrap_source_revision.0.to_prefixed()),
+        ),
+        (
+            "bootstrap_membership_count",
+            cmd::number(binding.bootstrap_membership.count),
+        ),
+        (
+            "bootstrap_membership_sha256",
+            cmd::string(&binding.bootstrap_membership.digest.to_prefixed()),
+        ),
+        ("through_seq", cmd::number(binding.through_seq)),
+        (
+            "chain_root_sha256",
+            cmd::string(&binding.chain_root_sha256.to_prefixed()),
+        ),
+        ("transition_count", cmd::number(binding.transition_count)),
+        ("head_generation", cmd::number(binding.head_generation)),
+        ("head_token", cmd::string(&binding.head_token)),
+        (
+            "head_control_sha256",
+            cmd::string(&binding.head_control_sha256.to_prefixed()),
+        ),
+    ]);
+    Ok(Digest256::of_bytes(&encoded(&identity)?).to_prefixed())
+}
+
+fn legacy_import_receipt_value(binding: &LegacyPublicationImportBindingV1) -> JsonValue {
+    cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string(PG_LEGACY_PUBLICATION_RECEIPT_SCHEMA),
+        ),
+        ("origin_kind", cmd::string(&binding.origin_kind)),
+        ("import_event_id", cmd::string(&binding.import_event_id)),
+        ("domain", cmd::string(&binding.domain)),
+        (
+            "store_id",
+            cmd::string(&legacy_store_id_text(&binding.store_id)),
+        ),
+        (
+            "bootstrap_source_revision",
+            cmd::string(&binding.bootstrap_source_revision.0.to_prefixed()),
+        ),
+        (
+            "bootstrap_membership_count",
+            cmd::number(binding.bootstrap_membership.count),
+        ),
+        (
+            "bootstrap_membership_sha256",
+            cmd::string(&binding.bootstrap_membership.digest.to_prefixed()),
+        ),
+        ("through_seq", cmd::number(binding.through_seq)),
+        (
+            "chain_root_sha256",
+            cmd::string(&binding.chain_root_sha256.to_prefixed()),
+        ),
+        ("transition_count", cmd::number(binding.transition_count)),
+        ("head_generation", cmd::number(binding.head_generation)),
+        ("head_token", cmd::string(&binding.head_token)),
+        (
+            "head_control_sha256",
+            cmd::string(&binding.head_control_sha256.to_prefixed()),
+        ),
+    ])
+}
+
+fn legacy_import_package_bytes(
+    transition: &LegacySelectedPublicationTransition,
+    binding: &LegacyPublicationImportBindingV1,
+    transition_index: u64,
+) -> SourceCommandResult<Vec<u8>> {
+    let control = parse_canonical_member(&transition.control_bytes, "legacy import control")?;
+    let manifest = parse_canonical_member(&transition.manifest_bytes, "legacy import manifest")?;
+    let completion =
+        parse_canonical_member(&transition.completion_bytes, "legacy import completion")?;
+    let value = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string(PG_LEGACY_PUBLICATION_PACKAGE_SCHEMA),
+        ),
+        ("transaction_id", cmd::string(&transition.transaction_id)),
+        ("control", control),
+        ("manifest", manifest),
+        ("completion", completion),
+        (
+            "source_refs",
+            JsonValue::Array(
+                transition
+                    .source_refs
+                    .iter()
+                    .map(source_ref_value)
+                    .collect(),
+            ),
+        ),
+        (
+            "origin",
+            legacy_import_origin_value(transition, binding, transition_index),
+        ),
+    ]);
+    let bytes = encoded(&value)?;
+    if bytes.is_empty() || bytes.len() > MAX_PG_PUBLICATION_PACKAGE {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication package byte budget",
+        ));
+    }
+    Ok(bytes)
+}
+
+fn legacy_import_origin_value(
+    transition: &LegacySelectedPublicationTransition,
+    binding: &LegacyPublicationImportBindingV1,
+    transition_index: u64,
+) -> JsonValue {
+    cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string(PG_LEGACY_PUBLICATION_ORIGIN_SCHEMA),
+        ),
+        ("origin_kind", cmd::string(&binding.origin_kind)),
+        ("import_event_id", cmd::string(&binding.import_event_id)),
+        ("domain", cmd::string(&binding.domain)),
+        (
+            "store_id",
+            cmd::string(&legacy_store_id_text(&binding.store_id)),
+        ),
+        (
+            "bootstrap_source_revision",
+            cmd::string(&binding.bootstrap_source_revision.0.to_prefixed()),
+        ),
+        (
+            "bootstrap_membership_count",
+            cmd::number(binding.bootstrap_membership.count),
+        ),
+        (
+            "bootstrap_membership_sha256",
+            cmd::string(&binding.bootstrap_membership.digest.to_prefixed()),
+        ),
+        ("through_seq", cmd::number(binding.through_seq)),
+        (
+            "chain_root_sha256",
+            cmd::string(&binding.chain_root_sha256.to_prefixed()),
+        ),
+        ("transition_count", cmd::number(binding.transition_count)),
+        ("transition_index", cmd::number(transition_index)),
+        ("head_generation", cmd::number(binding.head_generation)),
+        ("head_token", cmd::string(&binding.head_token)),
+        (
+            "head_control_sha256",
+            cmd::string(&binding.head_control_sha256.to_prefixed()),
+        ),
+        (
+            "receipt_sha256",
+            cmd::string(&binding.receipt_sha256.to_prefixed()),
+        ),
+        (
+            "original_manifest_schema_version",
+            cmd::string(&transition.manifest_schema_version),
+        ),
+        (
+            "manifest_sha256",
+            cmd::string(&transition.manifest_sha256.to_prefixed()),
+        ),
+        (
+            "completion_sha256",
+            cmd::string(&transition.completion_sha256.to_prefixed()),
+        ),
+        (
+            "control_sha256",
+            cmd::string(&transition.control_sha256.to_prefixed()),
+        ),
+    ])
+}
+
+struct LegacyImportPackageOrigin {
+    binding: LegacyPublicationImportBindingV1,
+    transition_index: u64,
+    manifest_schema_version: String,
+    manifest_sha256: Digest256,
+    completion_sha256: Digest256,
+    control_sha256: Digest256,
+}
+
+fn legacy_import_package_parts(
+    raw: &[u8],
+) -> SourceCommandResult<(
+    JsonValue,
+    LegacyImportPackageOrigin,
+    Vec<SelectedPublicationSourceRef>,
+)> {
+    if raw.is_empty() || raw.len() > MAX_PG_PUBLICATION_PACKAGE {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication package byte budget",
+        ));
+    }
+    let value = cmd::parse(raw)?;
+    if encoded(&value)?.as_slice() != raw {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication package encoding",
+        ));
+    }
+    cmd::exact_keys(
+        &value,
+        &[
+            "schema_version",
+            "transaction_id",
+            "control",
+            "manifest",
+            "completion",
+            "source_refs",
+            "origin",
+        ],
+    )?;
+    if cmd::text(&value, "schema_version")? != PG_LEGACY_PUBLICATION_PACKAGE_SCHEMA {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication package schema",
+        ));
+    }
+    let origin = legacy_import_origin_from_value(cmd::field(&value, "origin")?)?;
+    let refs = parse_publication_source_refs(cmd::field(&value, "source_refs")?)?;
+    validate_legacy_import_ref_paths(&refs, cmd::text(&value, "transaction_id")?)?;
+    Ok((value, origin, refs))
+}
+
+fn validate_legacy_import_ref_paths(
+    refs: &[SelectedPublicationSourceRef],
+    transaction_id: &str,
+) -> SourceCommandResult<()> {
+    let journal_id = transaction_id
+        .strip_prefix("sha256:")
+        .filter(|id| valid_transaction_journal_id(id))
+        .ok_or(SourceCommandError::Invalid(
+            "legacy publication import transaction identity",
+        ))?;
+    let journal_prefix = format!("{HOME}/{TRANSACTIONS}/{journal_id}/");
+    if refs.len() > MAX_FILES * 3 {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import source ref count",
+        ));
+    }
+    let mut authored_count = 0usize;
+    let mut blob_count = 0usize;
+    for source_ref in refs {
+        if source_ref
+            .before
+            .iter()
+            .chain(source_ref.after.iter())
+            .any(|binding| binding.byte_size > MAX_SIDE as u64)
+        {
+            return Err(SourceCommandError::Invalid(
+                "legacy publication import ref byte size",
+            ));
+        }
+        match source_ref.role.as_str() {
+            PG_PUBLICATION_SOURCE_ROLE => {
+                authored_count += 1;
+                let parsed = RelativePath::parse(&source_ref.path).map_err(|_| {
+                    SourceCommandError::Invalid("legacy publication source ref path")
+                })?;
+                let parts: Vec<_> = parsed.as_str().split('/').collect();
+                if source_ref.path.len() > 1024
+                    || source_ref.path.contains('\\')
+                    || source_ref.path.contains('\0')
+                    || parts.len() < 4
+                    || parts.len() > 24
+                    || parts[..2] != ["ToS", "source-witnesses"]
+                    || !(source_ref.path.ends_with(".json")
+                        || source_ref.path.ends_with(".jsonl")
+                        || source_ref.path.ends_with(".sha256")
+                        || source_ref.path.ends_with(".md"))
+                    || parts.iter().any(|part| {
+                        part.starts_with('.')
+                            || matches!(
+                                *part,
+                                "payload" | "private" | "local-content" | "owner-local" | "catalog"
+                            )
+                    })
+                    || source_ref
+                        .path
+                        .starts_with(&format!("{HOME}/{TRANSACTIONS}/"))
+                {
+                    return Err(SourceCommandError::Invalid(
+                        "legacy publication authored ref path is outside the public tree",
+                    ));
+                }
+            }
+            PG_PUBLICATION_BLOB_ROLE => {
+                blob_count += 1;
+                let name = source_ref
+                    .path
+                    .strip_prefix(&journal_prefix)
+                    .and_then(|name| name.strip_suffix(".blob"))
+                    .filter(|digest| valid_transaction_journal_id(digest))
+                    .ok_or(SourceCommandError::Invalid(
+                        "legacy publication blob ref path",
+                    ))?;
+                let expected_digest = Digest256::from_hex(name)
+                    .map_err(|_| SourceCommandError::Invalid("legacy publication blob digest"))?;
+                if source_ref.before.is_some()
+                    || source_ref.after.as_ref().map(|binding| binding.sha256)
+                        != Some(expected_digest)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "legacy publication blob ref binding differs",
+                    ));
+                }
+            }
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "legacy publication import ref role",
+                ));
+            }
+        }
+    }
+    if authored_count > MAX_FILES || blob_count > MAX_FILES * 2 {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import source ref count",
+        ));
+    }
+    Ok(())
+}
+
+fn legacy_import_origin_from_value(
+    value: &JsonValue,
+) -> SourceCommandResult<LegacyImportPackageOrigin> {
+    cmd::exact_keys(
+        value,
+        &[
+            "schema_version",
+            "origin_kind",
+            "import_event_id",
+            "domain",
+            "store_id",
+            "bootstrap_source_revision",
+            "bootstrap_membership_count",
+            "bootstrap_membership_sha256",
+            "through_seq",
+            "chain_root_sha256",
+            "transition_count",
+            "transition_index",
+            "head_generation",
+            "head_token",
+            "head_control_sha256",
+            "receipt_sha256",
+            "original_manifest_schema_version",
+            "manifest_sha256",
+            "completion_sha256",
+            "control_sha256",
+        ],
+    )?;
+    if cmd::text(value, "schema_version")? != PG_LEGACY_PUBLICATION_ORIGIN_SCHEMA {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import origin schema",
+        ));
+    }
+    let origin_kind = cmd::text(value, "origin_kind")?.to_owned();
+    if origin_kind != PG_LEGACY_PUBLICATION_ORIGIN_KIND {
+        return Err(SourceCommandError::Unsupported(
+            "legacy publication import origin kind",
+        ));
+    }
+    let store_id = legacy_store_id_from_text(cmd::text(value, "store_id")?)?;
+    let bootstrap_source_revision = SourceRevision(
+        Digest256::from_prefixed(cmd::text(value, "bootstrap_source_revision")?)
+            .map_err(|_| SourceCommandError::Invalid("legacy import source revision"))?,
+    );
+    let bootstrap_membership = SourceMembershipV1 {
+        count: cmd::integer(value, "bootstrap_membership_count")?,
+        digest: parse_readset_digest(value, "bootstrap_membership_sha256")?,
+    };
+    let head_token = cmd::text(value, "head_token")?.to_owned();
+    let import_event_id = cmd::text(value, "import_event_id")?.to_owned();
+    if !hash(&head_token) || !hash(&import_event_id) {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication import identity",
+        ));
+    }
+    let binding = LegacyPublicationImportBindingV1 {
+        origin_kind,
+        import_event_id,
+        domain: cmd::text(value, "domain")?.to_owned(),
+        store_id,
+        bootstrap_source_revision,
+        bootstrap_membership,
+        through_seq: cmd::integer(value, "through_seq")?,
+        chain_root_sha256: parse_readset_digest(value, "chain_root_sha256")?,
+        transition_count: cmd::integer(value, "transition_count")?,
+        head_generation: cmd::integer(value, "head_generation")?,
+        head_token,
+        head_control_sha256: parse_readset_digest(value, "head_control_sha256")?,
+        receipt_sha256: parse_readset_digest(value, "receipt_sha256")?,
+    };
+    let transition_index = cmd::integer(value, "transition_index")?;
+    let manifest_schema_version = cmd::text(value, "original_manifest_schema_version")?.to_owned();
+    if binding.domain.is_empty()
+        || binding.transition_count == 0
+        || transition_index == 0
+        || transition_index > binding.transition_count
+        || !matches!(
+            manifest_schema_version.as_str(),
+            MANIFEST_SCHEMA
+                | PROFILED_MANIFEST_SCHEMA
+                | CANONICAL_FORM_MANIFEST_SCHEMA
+                | SOURCE_READSET_MANIFEST_SCHEMA
+        )
+        || legacy_import_event_id(&binding)? != binding.import_event_id
+        || Digest256::of_bytes(&encoded(&legacy_import_receipt_value(&binding))?)
+            != binding.receipt_sha256
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication import origin binding differs",
+        ));
+    }
+    Ok(LegacyImportPackageOrigin {
+        binding,
+        transition_index,
+        manifest_schema_version,
+        manifest_sha256: parse_readset_digest(value, "manifest_sha256")?,
+        completion_sha256: parse_readset_digest(value, "completion_sha256")?,
+        control_sha256: parse_readset_digest(value, "control_sha256")?,
+    })
+}
+
+fn legacy_store_id_text(store_id: &[u8; 16]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut text = String::with_capacity(32);
+    for byte in store_id {
+        text.push(HEX[(*byte >> 4) as usize] as char);
+        text.push(HEX[(*byte & 15) as usize] as char);
+    }
+    text
+}
+
+fn legacy_store_id_from_text(value: &str) -> SourceCommandResult<[u8; 16]> {
+    if value.len() != 32
+        || value
+            .bytes()
+            .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
+    {
+        return Err(SourceCommandError::Invalid("legacy publication store ID"));
+    }
+    let mut store_id = [0; 16];
+    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+        let digit = |byte: u8| match byte {
+            b'0'..=b'9' => Some(byte - b'0'),
+            b'a'..=b'f' => Some(byte - b'a' + 10),
+            _ => None,
+        };
+        store_id[index] = (digit(pair[0])
+            .ok_or(SourceCommandError::Invalid("legacy publication store ID"))?
+            << 4)
+            | digit(pair[1]).ok_or(SourceCommandError::Invalid("legacy publication store ID"))?;
+    }
+    Ok(store_id)
+}
+
+fn valid_transaction_journal_id(id: &str) -> bool {
+    id.len() == 64
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+fn legacy_publication_transition_from_exact_members(
+    id: &str,
+    transaction: &BTreeMap<String, &[u8]>,
+) -> SourceCommandResult<LegacySelectedPublicationTransition> {
+    let manifest_raw =
+        transaction
+            .get("manifest.json")
+            .copied()
+            .ok_or(SourceCommandError::Conflict(
+                "legacy publication manifest absent",
+            ))?;
+    let completion_raw =
+        transaction
+            .get("completion.json")
+            .copied()
+            .ok_or(SourceCommandError::Conflict(
+                "legacy publication completion absent",
+            ))?;
+    if manifest_raw.len() > MAX_MANIFEST || completion_raw.len() > MAX_STATE {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication sidecar byte budget",
+        ));
+    }
+    let manifest = parse_canonical_member(manifest_raw, "legacy publication manifest")?;
+    let manifest_schema_version = cmd::text(&manifest, "schema_version")?.to_owned();
+    match manifest_schema_version.as_str() {
+        MANIFEST_SCHEMA | PROFILED_MANIFEST_SCHEMA | CANONICAL_FORM_MANIFEST_SCHEMA => {
+            cmd::exact_keys(
+                &manifest,
+                &[
+                    "schema_version",
+                    "transaction_id",
+                    "base_publication",
+                    "plan",
+                    "parents",
+                ],
+            )?;
+        }
+        SOURCE_READSET_MANIFEST_SCHEMA => {
+            cmd::exact_keys(
+                &manifest,
+                &[
+                    "schema_version",
+                    "transaction_id",
+                    "base_publication",
+                    "plan",
+                    "parents",
+                    "source_readset",
+                    "source_successor",
+                ],
+            )?;
+        }
+        _ => {
+            return Err(SourceCommandError::Unsupported(
+                "publication manifest is not a legacy v1-v4 transition",
+            ));
+        }
+    }
+    let transaction_id = format!("sha256:{id}");
+    if !valid_transaction_journal_id(id)
+        || cmd::text(&manifest, "transaction_id")? != transaction_id
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication manifest identity",
+        ));
+    }
+    let base = cmd::field(&manifest, "base_publication")?;
+    cmd::exact_keys(base, &["token", "generation"])?;
+    let base_publication_generation = cmd::integer(base, "generation")?;
+    let base_publication_token = match cmd::field(base, "token")? {
+        JsonValue::Null if base_publication_generation == 0 => None,
+        JsonValue::String(_) => {
+            let token = cmd::text(base, "token")?;
+            if !hash(token) || base_publication_generation == 0 {
+                return Err(SourceCommandError::Invalid(
+                    "legacy publication predecessor token",
+                ));
+            }
+            Some(token.to_owned())
+        }
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "legacy publication predecessor token",
+            ));
+        }
+    };
+    if base_publication_generation > MAX_GENERATION - 2 {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication predecessor generation",
+        ));
+    }
+
+    let summary = cmd::field(&manifest, "plan")?;
+    let item_profile = selected_profile(summary)?;
+    let canonical_form = canonical_forms_profile(summary)?;
+    if (manifest_schema_version == PROFILED_MANIFEST_SCHEMA) != item_profile.is_some()
+        || (manifest_schema_version == CANONICAL_FORM_MANIFEST_SCHEMA) != canonical_form.is_some()
+        || (manifest_schema_version == SOURCE_READSET_MANIFEST_SCHEMA
+            && (item_profile.is_some() || canonical_form.is_some()))
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication manifest/profile version differs",
+        ));
+    }
+    let bindings = publication_file_bindings(summary)?;
+    let expected_blobs = expected_blob_bindings(&bindings)?;
+    let mut blobs = BTreeMap::<String, &[u8]>::new();
+    let mut blob_bytes = 0usize;
+    for (name, bytes) in transaction {
+        if name == "manifest.json" || name == "completion.json" {
+            continue;
+        }
+        let digest = name
+            .strip_suffix(".blob")
+            .ok_or(SourceCommandError::Invalid(
+                "legacy publication journal member",
+            ))?;
+        let byte_size = expected_blobs
+            .get(digest)
+            .ok_or(SourceCommandError::Conflict(
+                "legacy publication has an unreferenced blob",
+            ))?;
+        blob_bytes = blob_bytes
+            .checked_add(bytes.len())
+            .filter(|total| *total <= 2 * MAX_SIDE)
+            .ok_or(SourceCommandError::Invalid(
+                "legacy publication blob byte budget",
+            ))?;
+        if bytes.len() > MAX_SIDE
+            || u64::try_from(bytes.len()).ok() != Some(*byte_size)
+            || Digest256::of_bytes(bytes).to_hex() != digest
+        {
+            return Err(SourceCommandError::Conflict(
+                "legacy publication blob binding differs",
+            ));
+        }
+        if blobs.insert(digest.to_owned(), bytes).is_some() {
+            return Err(SourceCommandError::Invalid(
+                "duplicate legacy publication blob",
+            ));
+        }
+    }
+    if blobs.len() != expected_blobs.len() {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication referenced blob absent",
+        ));
+    }
+
+    let companions = item_companions(cmd::field(summary, "authorization")?, item_profile.as_ref())?;
+    let mut files = Vec::with_capacity(bindings.len());
+    for (path_name, (before, after)) in &bindings {
+        let selected = |binding: Option<(Digest256, u64)>| -> SourceCommandResult<Option<Vec<u8>>> {
+            binding
+                .map(|(digest, size)| {
+                    let bytes = blobs
+                        .get(&digest.to_hex())
+                        .ok_or(SourceCommandError::Conflict(
+                            "legacy publication plan blob absent",
+                        ))?;
+                    if u64::try_from(bytes.len()).ok() != Some(size)
+                        || Digest256::of_bytes(bytes) != digest
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "legacy publication plan blob binding differs",
+                        ));
+                    }
+                    Ok(bytes.to_vec())
+                })
+                .transpose()
+        };
+        files.push(SelectedFile {
+            path: profiled_path(path_name, false, &companions, canonical_form.as_ref())?,
+            before: selected(*before)?,
+            after: selected(*after)?,
+        });
+    }
+    let directories = cmd::array(summary, "new_directories")?
+        .iter()
+        .map(|value| {
+            path(
+                value.as_str().ok_or(SourceCommandError::Invalid(
+                    "legacy publication directory path",
+                ))?,
+                true,
+            )
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let (source_readset, source_successor) =
+        if manifest_schema_version == SOURCE_READSET_MANIFEST_SCHEMA {
+            let readset = parse_source_readset(cmd::field(&manifest, "source_readset")?)?;
+            let successor = parse_source_successor(cmd::field(&manifest, "source_successor")?)?;
+            validate_source_successor(&readset, &successor)?;
+            (Some(readset), Some(successor))
+        } else {
+            (None, None)
+        };
+    let plan = WorkPlan {
+        transaction_id: transaction_id.clone(),
+        authorization: cmd::field(summary, "authorization")?.clone(),
+        item_path_profile: item_profile,
+        files,
+        new_directories: directories,
+        source_readset,
+        source_successor,
+    };
+    let frozen = freeze(plan)?;
+    if !cmd::same(&frozen.summary, summary)? {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication plan encoding differs",
+        ));
+    }
+    let expected_parents = parent_refs(&frozen)?;
+    let parents = cmd::field(&manifest, "parents")?;
+    let parent_entries = parents
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("legacy publication parent map"))?;
+    let declared_new: BTreeSet<_> = frozen
+        .directories
+        .iter()
+        .map(RelativePath::as_str)
+        .collect();
+    if parent_entries.len() != expected_parents.len()
+        || expected_parents
+            .iter()
+            .any(|reference| parents.object_get(reference).is_none())
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication parent closure differs",
+        ));
+    }
+    for (name, value) in parent_entries {
+        let reference = name
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("legacy publication parent ref"))?;
+        if value == &JsonValue::Null {
+            if !declared_new.contains(reference) {
+                return Err(SourceCommandError::Conflict(
+                    "undeclared absent legacy publication parent",
+                ));
+            }
+        } else {
+            cmd::exact_keys(value, &["device", "inode", "mode", "uid"])?;
+            let mode = cmd::integer(value, "mode")?;
+            if mode & 0o170000 != 0o040000 || mode & 0o022 != 0 {
+                return Err(SourceCommandError::Denied(
+                    "legacy publication parent mode unsafe",
+                ));
+            }
+            for key in ["device", "inode", "uid"] {
+                cmd::integer(value, key)?;
+            }
+        }
+    }
+
+    let completion = parse_canonical_member(completion_raw, "legacy publication completion")?;
+    cmd::exact_keys(&completion, &["schema_version", "publication"])?;
+    if cmd::text(&completion, "schema_version")? != COMPLETION_SCHEMA {
+        return Err(SourceCommandError::Invalid(
+            "legacy publication completion schema",
+        ));
+    }
+    let terminal = cmd::field(&completion, "publication")?;
+    state(terminal)?;
+    let manifest_sha256 = Digest256::of_bytes(manifest_raw);
+    let base_generation = base_publication_generation;
+    let generation = cmd::integer(terminal, "generation")?;
+    if cmd::text(terminal, "phase")? != "ready"
+        || cmd::text(terminal, "outcome")? != "committed"
+        || cmd::text(terminal, "transaction_id")? != transaction_id
+        || cmd::text(terminal, "manifest_sha256")? != manifest_sha256.to_prefixed()
+        || generation != base_generation + 2
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication completion/manifest binding",
+        ));
+    }
+    let control_bytes = encoded(terminal)?;
+    let control_sha256 = Digest256::of_bytes(&control_bytes);
+    let completion_sha256 = Digest256::of_bytes(completion_raw);
+    let terminal_generation = cmd::text(terminal, "token")?.to_owned();
+    let mut source_refs = source_refs_from_plan(&bindings);
+    for (digest, byte_size) in &expected_blobs {
+        let sha256 = Digest256::from_hex(digest)
+            .map_err(|_| SourceCommandError::Invalid("legacy publication blob digest"))?;
+        source_refs.push(SelectedPublicationSourceRef {
+            path: format!("{HOME}/{TRANSACTIONS}/{id}/{digest}.blob"),
+            role: PG_PUBLICATION_BLOB_ROLE.to_owned(),
+            before: None,
+            after: Some(SelectedPublicationBinding {
+                sha256,
+                byte_size: *byte_size,
+            }),
+        });
+    }
+    source_refs.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut retained_writes = frozen
+        .files
+        .iter()
+        .map(|file| SelectedPublicationRetainedWrite {
+            path: file.path.as_str().to_owned(),
+            before: file.before.clone(),
+            after: file.after.clone(),
+        })
+        .collect::<Vec<_>>();
+    retained_writes.extend(
+        blobs
+            .iter()
+            .map(|(digest, bytes)| SelectedPublicationRetainedWrite {
+                path: format!("{HOME}/{TRANSACTIONS}/{id}/{digest}.blob"),
+                before: None,
+                after: Some(bytes.to_vec()),
+            }),
+    );
+    retained_writes.sort_by(|left, right| left.path.cmp(&right.path));
+    if retained_writes.len() != source_refs.len()
+        || retained_writes
+            .iter()
+            .zip(&source_refs)
+            .any(|(write, source_ref)| write.path != source_ref.path)
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy publication retained write closure differs",
+        ));
+    }
+    Ok(LegacySelectedPublicationTransition {
+        transaction_id,
+        manifest_schema_version,
+        manifest_sha256,
+        completion_sha256,
+        control_sha256,
+        manifest_bytes: manifest_raw.to_vec(),
+        completion_bytes: completion_raw.to_vec(),
+        control_bytes,
+        generation,
+        token: terminal_generation,
+        base_publication_token,
+        base_publication_generation,
+        source_refs,
+        retained_writes,
+    })
 }
 
 fn publication_package_from_exact_transaction_members(

@@ -1210,6 +1210,38 @@ tool calls use the native registry and request parser in the same held source
 capture/model/evidence context. A source-derived projection is not an authored
 Foundation publication epoch or a rights/canon grant.
 
+The selected PostgreSQL source-navigation index has an explicit private
+maintenance entry through the existing native `source-projection` command. Use
+the protected `tos_local_source_navigation_owner_v1` JSON created by the
+selected source owner; it binds the CMD domain, source contract and live
+rule/rights/job fences, navigation consumer/profile, exact retained V2
+source proof and model expectation, bounded store/model settings, policy
+receipt, and a bounded nested producer selection (event/schema worker identity,
+dependency paths, event and aggregate limits). Bootstrap uses its event limits
+but does not execute the schema worker. Keep `TOS_SOURCE_PG_URL` in the private
+process environment.
+Bootstrap the complete selected current model before advancing event ranges:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-projection \
+  --selection /absolute/protected/tos-local-source-navigation-owner.json \
+  < /absolute/requests/bootstrap-navigation.json \
+  > /absolute/receipts/navigation-bootstrap.json
+```
+
+The bootstrap request is exactly
+`{"operation":"bootstrap-navigation"}`. Its stdout is one compact JSON
+object followed by a newline; the command flushes stdout and does not create the
+receipt file. The `tos_source_navigation_bootstrap_result_v1` receipt binds
+domain, consumer, profile, selected source revision and membership, current
+source head, published sequence and bootstrap root, resolved source-member
+count/bytes, and whether the operation replayed. Then advance bounded events
+with `{"operation":"advance-navigation","max_events":1}`; unsupported
+events remain pending. These maintenance operations publish only the private
+projection and issue no ToS admission, QRY disclosure, or canon grant. If a
+receipt write is lost after publication, repeating the exact bootstrap request
+is safe and reports `replayed: true`.
+
 An explicitly selected or discovered existing legacy QueryStore is authenticated
 against its five actual selected input digests and held read-only without a live
 journal. Its supported source paths are knowledge/corpus headers, fresh full

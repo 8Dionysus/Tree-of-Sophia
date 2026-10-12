@@ -36,6 +36,17 @@ use crate::source_managed_selection::{
     ManagedSelectionError, ManagedSelectionResult,
 };
 
+#[path = "durable_navigation_event/durable_navigation_range.rs"]
+mod durable_navigation_range;
+pub use durable_navigation_range::{
+    DurableNavigationEventRangeApplyV1, DurableNavigationEventRangeClaimMutationV1,
+    DurableNavigationEventRangeCoverageV1, DurableNavigationEventRangeDependencyCauseV1,
+    DurableNavigationEventRangeEventV1, DurableNavigationEventRangeMemberV1,
+    DurableNavigationEventRangePendingReasonV1, DurableNavigationEventRangePriorClaimOwnerV1,
+    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangePriorRecordOwnerV1,
+    DurableNavigationEventRangeSeedV1,
+};
+
 use super::{
     DomainSnapshot, DurableError, DurablePgCoordinator, DurableProjectionLimits,
     DurableProjectionProfile, DurableResult, EventMember, ProjectionEvent, as_i64, as_u64,
@@ -4028,6 +4039,10 @@ struct NavigationEventManifestCohortV2 {
     claim_navigation_manifest_root: Option<Digest256>,
     claim_source_line: Option<u64>,
     claim_trace_sha256: Option<Digest256>,
+    source_event_id: Option<String>,
+    source_event_version: Option<u64>,
+    predecessor_source_revision: Option<Digest256>,
+    predecessor_cohort_root: Option<Digest256>,
     source_revision: Digest256,
     input_root: Digest256,
     dependency_root: Digest256,
@@ -4154,6 +4169,7 @@ struct NavigationEventManifestV2 {
     claim_set: Option<NavigationEventManifestClaimSetV2>,
     claim_refresh_set: Option<NavigationEventManifestClaimRefreshSetV1>,
     claim_empty_closure: Option<NavigationEventManifestClaimEmptyClosureV1>,
+    claim_range_set: Option<NavigationEventManifestClaimRangeSetV1>,
 }
 
 #[derive(Clone, Debug)]
@@ -4199,6 +4215,14 @@ struct NavigationEventManifestClaimRefreshSetV1 {
 struct NavigationEventManifestClaimEmptyClosureV1 {
     closure_root: Digest256,
     covered_source_paths: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+struct NavigationEventManifestClaimRangeSetV1 {
+    range_manifest_root: Digest256,
+    owner_inventory_root: Digest256,
+    terminal_owner_ids: Vec<String>,
+    terminal_streams: Vec<NavigationEventManifestClaimStreamV1>,
 }
 
 fn verify_navigation_event_cohort_manifest(
@@ -4909,6 +4933,10 @@ fn verify_navigation_event_cohort_manifest(
                     claim_navigation_manifest_root: None,
                     claim_source_line,
                     claim_trace_sha256,
+                    source_event_id: None,
+                    source_event_version: None,
+                    predecessor_source_revision: None,
+                    predecessor_cohort_root: None,
                     source_revision,
                     input_root,
                     dependency_root,
@@ -5037,6 +5065,7 @@ fn verify_navigation_event_cohort_manifest(
         claim_set,
         claim_refresh_set: None,
         claim_empty_closure: None,
+        claim_range_set: None,
     })
 }
 
@@ -6143,6 +6172,10 @@ fn verify_navigation_event_cohort_manifest_v5(
                 claim_navigation_manifest_root,
                 claim_source_line,
                 claim_trace_sha256,
+                source_event_id: None,
+                source_event_version: None,
+                predecessor_source_revision: None,
+                predecessor_cohort_root: None,
                 source_revision,
                 input_root,
                 dependency_root,
@@ -6347,6 +6380,7 @@ fn verify_navigation_event_cohort_manifest_v5(
         claim_set,
         claim_refresh_set,
         claim_empty_closure,
+        claim_range_set: None,
     })
 }
 
@@ -6695,6 +6729,7 @@ struct SelectedVersion {
     is_source: bool,
 }
 
+#[derive(Clone)]
 struct PersistedRows {
     dependencies: Vec<NavigationDependencyV1>,
     nodes: Vec<PersistedNavigationNode>,
@@ -6904,6 +6939,7 @@ impl NavigationEventOwnerV2 {
     }
 }
 
+#[derive(Clone)]
 struct PersistedNavigationNode {
     node_id: String,
     visible: bool,
@@ -6911,6 +6947,7 @@ struct PersistedNavigationNode {
     sha256: Digest256,
 }
 
+#[derive(Clone)]
 struct PersistedNavigationEdge {
     edge_id: String,
     from_id: String,
@@ -8411,6 +8448,68 @@ fn prepare_navigation_adjacency_update<C: GenericClient>(
     Ok((updates, root))
 }
 
+fn read_navigation_event_range_owner_manifest_in_tx(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    consumer_id: &str,
+    event_sequence: u64,
+    event_id: &str,
+    source_path: &str,
+    record_id: &str,
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<NavigationEventManifestV2> {
+    let row = tx
+        .query_opt(
+            "SELECT cursor_before,through_seq,held_source_head_seq,terminal_event_id,range_root,range_manifest,
+                    source_revision,input_root,dependency_root,output_root,
+                    terminal_cohort_count,terminal_cohort_root,terminal_cohort_manifest
+               FROM cmd2_projection_navigation_coverage_range
+              WHERE domain=$1 AND consumer_id=$2 AND through_seq=$3 AND terminal_event_id=$4",
+            &[&domain, &consumer_id, &as_i64(event_sequence)?, &event_id],
+        )?
+        .ok_or(DurableError::Conflict(
+            "stored navigation range owner has no terminal range manifest",
+        ))?;
+    let cursor_before = as_u64(row.get("cursor_before"))?;
+    let through_sequence = as_u64(row.get("through_seq"))?;
+    let held_source_head_sequence = as_u64(row.get("held_source_head_seq"))?;
+    let range_root = parse_digest(row.get("range_root"))?;
+    let range_manifest = row.get::<_, Vec<u8>>("range_manifest");
+    let terminal_cohort_count = u32::try_from(row.get::<_, i32>("terminal_cohort_count"))
+        .map_err(|_| DurableError::Corrupt("navigation range cohort count is negative"))?;
+    let terminal_cohort_root = parse_digest(row.get("terminal_cohort_root"))?;
+    let terminal_cohort_manifest = row.get::<_, Vec<u8>>("terminal_cohort_manifest");
+    let manifest = durable_navigation_range::verify_navigation_event_range_terminal_manifest(
+        &terminal_cohort_manifest,
+        terminal_cohort_root,
+        terminal_cohort_count,
+        cursor_before,
+        through_sequence,
+        held_source_head_sequence,
+        event_id,
+        range_root,
+        &range_manifest,
+        parse_digest(row.get("input_root"))?,
+        parse_digest(row.get("dependency_root"))?,
+        parse_digest(row.get("output_root"))?,
+        limits.max_total_bytes as usize,
+    )?;
+    if through_sequence != event_sequence {
+        return Err(DurableError::Conflict(
+            "stored navigation range owner is not at the terminal sequence",
+        ));
+    }
+    if !manifest
+        .cohorts
+        .contains_key(&(source_path.to_owned(), record_id.to_owned()))
+    {
+        return Err(DurableError::Conflict(
+            "stored navigation range owner is absent from terminal manifest",
+        ));
+    }
+    Ok(manifest)
+}
+
 fn read_navigation_currentness_guard_in_tx(
     tx: &mut postgres::Transaction<'_>,
     domain: &str,
@@ -8537,21 +8636,73 @@ fn read_navigation_currentness_guard_in_tx_mode(
     }
     let coverage_row_cap = i64::try_from(coverage_span.saturating_add(1))
         .map_err(|_| DurableError::Refused("navigation coverage event count"))?;
+    let range_rows = tx.query(
+        "SELECT cursor_before,through_seq,held_source_head_seq,terminal_event_id,range_root,range_manifest,
+                source_revision,input_root,dependency_root,output_root,
+                previous_coverage_root,coverage_root,terminal_cohort_count,
+                terminal_cohort_root,terminal_cohort_manifest
+           FROM cmd2_projection_navigation_coverage_range
+          WHERE domain=$1 AND consumer_id=$2 AND through_seq>$3 AND through_seq<=$4
+          ORDER BY through_seq LIMIT $5",
+        &[
+            &domain,
+            &consumer_id,
+            &as_i64(bootstrap_sequence)?,
+            &as_i64(coverage_sequence)?,
+            &coverage_row_cap,
+        ],
+    )?;
+    let first_range_start = range_rows
+        .first()
+        .map(|row| as_u64(row.get::<_, i64>("cursor_before")))
+        .transpose()?
+        .unwrap_or(coverage_sequence);
+    if first_range_start < bootstrap_sequence || first_range_start > coverage_sequence {
+        return Ok(navigation_currentness_not_ready(
+            head,
+            Some(cursor),
+            DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+        ));
+    }
+    let legacy_span = first_range_start - bootstrap_sequence;
     let coverage_rows = tx.query(
         "SELECT event_sequence,event_id,source_path,record_id,source_revision,
                 input_root,dependency_root,output_root,previous_coverage_root,coverage_root,
                 cohort_count,cohort_set_root,cohort_manifest
          FROM cmd2_projection_navigation_coverage_event
-         WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3
-         ORDER BY event_sequence LIMIT $4",
+         WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3 AND event_sequence<=$4
+         ORDER BY event_sequence LIMIT $5",
         &[
             &domain,
             &consumer_id,
             &as_i64(bootstrap_sequence)?,
+            &as_i64(first_range_start)?,
             &coverage_row_cap,
         ],
     )?;
-    if coverage_rows.len() as u64 != coverage_span {
+    if coverage_rows.len() as u64 != legacy_span {
+        return Ok(navigation_currentness_not_ready(
+            head,
+            Some(cursor),
+            DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+        ));
+    }
+    if !range_rows.is_empty()
+        && !tx
+            .query(
+                "SELECT event_sequence
+                   FROM cmd2_projection_navigation_coverage_event
+                  WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3 AND event_sequence<=$4
+                  LIMIT 1",
+                &[
+                    &domain,
+                    &consumer_id,
+                    &as_i64(first_range_start)?,
+                    &as_i64(coverage_sequence)?,
+                ],
+            )?
+            .is_empty()
+    {
         return Ok(navigation_currentness_not_ready(
             head,
             Some(cursor),
@@ -8647,6 +8798,106 @@ fn read_navigation_currentness_guard_in_tx_mode(
         }
         terminal = Some((event_id, source_revision, input_root, output_root));
         expected_coverage_root = calculated;
+    }
+    let mut expected_range_cursor = first_range_start;
+    for row in &range_rows {
+        let cursor_before = as_u64(row.get("cursor_before"))?;
+        let through_sequence = as_u64(row.get("through_seq"))?;
+        let held_source_head_sequence = as_u64(row.get("held_source_head_seq"))?;
+        let terminal_event_id: String = row.get("terminal_event_id");
+        let range_root = parse_digest(row.get("range_root"))?;
+        let range_manifest = row.get::<_, Vec<u8>>("range_manifest");
+        let source_revision = parse_digest(row.get("source_revision"))?;
+        let input_root = parse_digest(row.get("input_root"))?;
+        let dependency_root = parse_digest(row.get("dependency_root"))?;
+        let output_root = parse_digest(row.get("output_root"))?;
+        let previous_root = parse_digest(row.get("previous_coverage_root"))?;
+        let stored_root = parse_digest(row.get("coverage_root"))?;
+        let cohort_count = u32::try_from(row.get::<_, i32>("terminal_cohort_count"))
+            .map_err(|_| DurableError::Corrupt("navigation range cohort count is negative"))?;
+        let terminal_cohort_root = parse_digest(row.get("terminal_cohort_root"))?;
+        let terminal_manifest = row.get::<_, Vec<u8>>("terminal_cohort_manifest");
+        manifest_bytes = manifest_bytes
+            .checked_add(range_manifest.len() as u64)
+            .and_then(|value| value.checked_add(terminal_manifest.len() as u64))
+            .ok_or(DurableError::Refused(
+                "navigation range manifest byte budget",
+            ))?;
+        if manifest_bytes > limits.max_total_bytes
+            || cursor_before != expected_range_cursor
+            || through_sequence <= cursor_before
+            || through_sequence > coverage_sequence
+            || held_source_head_sequence < through_sequence
+            || held_source_head_sequence > head
+        {
+            return Ok(navigation_currentness_not_ready(
+                head,
+                Some(cursor),
+                if manifest_bytes > limits.max_total_bytes {
+                    DurableNavigationCurrentIndexNotReadyReasonV1::BudgetExceeded
+                } else {
+                    DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch
+                },
+            ));
+        }
+        if durable_navigation_range::verify_navigation_event_range_terminal_manifest(
+            &terminal_manifest,
+            terminal_cohort_root,
+            cohort_count,
+            cursor_before,
+            through_sequence,
+            held_source_head_sequence,
+            &terminal_event_id,
+            range_root,
+            &range_manifest,
+            input_root,
+            dependency_root,
+            output_root,
+            limits.max_total_bytes as usize,
+        )
+        .is_err()
+        {
+            return Ok(navigation_currentness_not_ready(
+                head,
+                Some(cursor),
+                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+            ));
+        }
+        let calculated = durable_navigation_range::navigation_range_coverage_root_next(
+            expected_coverage_root,
+            cursor_before,
+            through_sequence,
+            held_source_head_sequence,
+            &terminal_event_id,
+            range_root,
+            source_revision,
+            dependency_root,
+            output_root,
+        );
+        if previous_root != expected_coverage_root || stored_root != calculated {
+            return Ok(navigation_currentness_not_ready(
+                head,
+                Some(cursor),
+                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+            ));
+        }
+        expected_coverage_root = calculated;
+        expected_range_cursor = through_sequence;
+        terminal = Some((terminal_event_id, source_revision, input_root, output_root));
+    }
+    let terminal_range_head_matches = range_rows
+        .last()
+        .map(|row| as_u64(row.get::<_, i64>("held_source_head_seq")))
+        .transpose()?
+        .is_none_or(|held_head| held_head == head);
+    if expected_range_cursor != coverage_sequence
+        || (coverage_sequence == head && !terminal_range_head_matches)
+    {
+        return Ok(navigation_currentness_not_ready(
+            head,
+            Some(cursor),
+            DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+        ));
     }
     if Some(expected_coverage_root) != coverage_root {
         return Ok(navigation_currentness_not_ready(
@@ -9339,6 +9590,15 @@ where
     )
 }
 
+#[derive(Clone, Copy)]
+struct DurableNavigationBootstrapHeldFencesV1<'a> {
+    contract: Digest256,
+    rule_version: u64,
+    rights_version: u64,
+    job_id: &'a str,
+    job_fence: u64,
+}
+
 impl DurablePgCoordinator {
     /// Publish the exact full-source baseline selected from a managed current
     /// generation. This establishes the only bootstrap point from which a
@@ -9352,6 +9612,79 @@ impl DurablePgCoordinator {
         selected: &ManagedAgentSelectedParent<P>,
         package: &DurableNavigationBootstrapPackageV1,
         limits: DurableNavigationEventLimits,
+    ) -> DurableResult<DurableNavigationBootstrapApplyV1> {
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::ReadCommitted)
+            .start()?;
+        let result = Self::publish_navigation_bootstrap_v1_inner(
+            &mut tx,
+            store,
+            domain,
+            consumer_id,
+            profile,
+            selected,
+            package,
+            limits,
+            None,
+        )?;
+        tx.commit()?;
+        Ok(result)
+    }
+
+    /// Publish inside the already-held managed source-navigation owner
+    /// transaction. The caller owns the RR transaction and its audit, domain,
+    /// rights, job, and source-store fences; this writer rechecks their exact
+    /// values in that same snapshot and never opens a nested transaction.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn publish_navigation_bootstrap_v1_in_tx<P: ManagedSelectedProof>(
+        tx: &mut postgres::Transaction<'_>,
+        store: &SegmentStore,
+        domain: &str,
+        consumer_id: &str,
+        profile: &DurableProjectionProfile,
+        selected: &ManagedAgentSelectedParent<P>,
+        package: &DurableNavigationBootstrapPackageV1,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        limits: DurableNavigationEventLimits,
+    ) -> DurableResult<DurableNavigationBootstrapApplyV1> {
+        validate_identifier(job_id, 256, "navigation bootstrap job ID")?;
+        let fences = DurableNavigationBootstrapHeldFencesV1 {
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+        };
+        Self::publish_navigation_bootstrap_v1_inner(
+            tx,
+            store,
+            domain,
+            consumer_id,
+            profile,
+            selected,
+            package,
+            limits,
+            Some(&fences),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn publish_navigation_bootstrap_v1_inner<P: ManagedSelectedProof>(
+        tx: &mut postgres::Transaction<'_>,
+        store: &SegmentStore,
+        domain: &str,
+        consumer_id: &str,
+        profile: &DurableProjectionProfile,
+        selected: &ManagedAgentSelectedParent<P>,
+        package: &DurableNavigationBootstrapPackageV1,
+        limits: DurableNavigationEventLimits,
+        held_fences: Option<&DurableNavigationBootstrapHeldFencesV1<'_>>,
     ) -> DurableResult<DurableNavigationBootstrapApplyV1> {
         let limits = limits.validate()?;
         validate_identifier(
@@ -9413,25 +9746,56 @@ impl DurablePgCoordinator {
                 .map_err(|_| DurableError::Invalid("navigation bootstrap owner binding JSON"))?;
         let header_raw = String::from_utf8(package.header_raw.clone())
             .map_err(|_| DurableError::Invalid("navigation bootstrap header UTF-8"))?;
-        let mut tx = self
-            .client
-            .build_transaction()
-            .isolation_level(IsolationLevel::ReadCommitted)
-            .start()?;
-        set_local_timeouts(&mut tx, limits.statement_timeout)?;
-        let snapshot = lock_domain_snapshot(&mut tx, domain)?;
+        set_local_timeouts(tx, limits.statement_timeout)?;
+        let snapshot = if held_fences.is_some() {
+            let isolation_row = tx.query_one("SHOW transaction_isolation", &[])?;
+            let isolation: String = isolation_row.get(0);
+            if isolation != "repeatable read" {
+                return Err(DurableError::Conflict(
+                    "navigation bootstrap requires the held repeatable-read owner transaction",
+                ));
+            }
+            read_domain_snapshot(tx, domain)?
+        } else {
+            lock_domain_snapshot(tx, domain)?
+        };
         snapshot.require_live_projection(profile)?;
+        if let Some(fences) = held_fences {
+            if snapshot.audit_generation != as_i64(selected.generation().audit_generation())?
+                || snapshot.rights_version != as_i64(fences.rights_version)?
+                || snapshot.rule_version != as_i64(fences.rule_version)?
+                || snapshot.contract_digest != fences.contract.to_hex()
+                || !snapshot.rights_allowed
+            {
+                return Err(DurableError::Conflict(
+                    "navigation bootstrap held source/rights fence differs",
+                ));
+            }
+            let job = tx.query_opt(
+                "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2",
+                &[&domain, &fences.job_id],
+            )?;
+            if job.map(|row| row.get::<_, i64>(0)) != Some(as_i64(fences.job_fence)?) {
+                return Err(DurableError::Refused(
+                    "navigation bootstrap held job fence differs",
+                ));
+            }
+        }
         if snapshot.head_seq()? != package.through_sequence {
             return Err(DurableError::Conflict(
                 "navigation bootstrap is not the current CMD head",
             ));
         }
-        let current = tx.query_one(
+        let current_sql = if held_fences.is_some() {
             "SELECT source_membership_digest,source_membership_count,source_generation,
                     source_complete,selected_generation_digest,source_projection_digest
-             FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
-            &[&domain],
-        )?;
+             FROM cmd2_domain WHERE domain=$1"
+        } else {
+            "SELECT source_membership_digest,source_membership_count,source_generation,
+                    source_complete,selected_generation_digest,source_projection_digest
+             FROM cmd2_domain WHERE domain=$1 FOR UPDATE"
+        };
+        let current = tx.query_one(current_sql, &[&domain])?;
         let current_membership: Option<String> = current.get("source_membership_digest");
         let current_members = current
             .get::<_, Option<i64>>("source_membership_count")
@@ -9526,7 +9890,6 @@ impl DurablePgCoordinator {
                         == Some(adjacency_root.to_hex().as_str())
                     && consumer.get::<_, bool>("adjacency_ready")
                 {
-                    tx.commit()?;
                     return Ok(DurableNavigationBootstrapApplyV1 {
                         through_sequence: package.through_sequence,
                         bootstrap_root: package.bootstrap_root,
@@ -9550,6 +9913,11 @@ impl DurablePgCoordinator {
         )?;
         tx.execute(
             "DELETE FROM cmd2_projection_navigation_coverage_event
+             WHERE domain=$1 AND consumer_id=$2",
+            &[&domain, &consumer_id],
+        )?;
+        tx.execute(
+            "DELETE FROM cmd2_projection_navigation_coverage_range
              WHERE domain=$1 AND consumer_id=$2",
             &[&domain, &consumer_id],
         )?;
@@ -9680,7 +10048,6 @@ impl DurablePgCoordinator {
             ));
         }
         active_navigation(deadline)?;
-        tx.commit()?;
         Ok(DurableNavigationBootstrapApplyV1 {
             through_sequence: package.through_sequence,
             bootstrap_root: package.bootstrap_root,
@@ -9821,7 +10188,9 @@ impl DurablePgCoordinator {
     }
 
     /// Resolve an exact committed event and a bounded set of source versions
-    /// at its CMD history cut. This is producer context, not a source receipt.
+    /// at its CMD history cut. An empty event path is allowed for memberless
+    /// rights/rule events whose dependency cut still needs to be selected.
+    /// This is producer context, not a source receipt.
     pub fn read_navigation_event_sources_v1(
         &mut self,
         store: &SegmentStore,
@@ -9852,7 +10221,9 @@ impl DurablePgCoordinator {
         if event_sequence == 0 {
             return Err(DurableError::Invalid("navigation event sequence"));
         }
-        validate_relative_path(event_path)?;
+        if !event_path.is_empty() {
+            validate_relative_path(event_path)?;
+        }
         let deadline = Instant::now() + limits.statement_timeout;
         let witness =
             resolve_event_witness(&mut self.client, domain, event_sequence, profile, limits)?;
@@ -9872,7 +10243,7 @@ impl DurablePgCoordinator {
                 "navigation event selected source path budget",
             ));
         }
-        if !paths.contains(event_path) {
+        if !event_path.is_empty() && !paths.contains(event_path) {
             return Err(DurableError::Invalid(
                 "navigation selected sources omit the event JSONL path",
             ));
@@ -11834,21 +12205,75 @@ impl DurablePgCoordinator {
         }
         let coverage_row_cap = i64::try_from(coverage_span.saturating_add(1))
             .map_err(|_| DurableError::Refused("navigation coverage event count"))?;
+        let range_rows = tx.query(
+        "SELECT cursor_before,through_seq,held_source_head_seq,terminal_event_id,range_root,range_manifest,
+                    source_revision,input_root,dependency_root,output_root,
+                    previous_coverage_root,coverage_root,terminal_cohort_count,
+                    terminal_cohort_root,terminal_cohort_manifest
+               FROM cmd2_projection_navigation_coverage_range
+              WHERE domain=$1 AND consumer_id=$2 AND through_seq>$3 AND through_seq<=$4
+              ORDER BY through_seq LIMIT $5",
+            &[
+                &domain,
+                &consumer_id,
+                &as_i64(bootstrap_sequence)?,
+                &as_i64(coverage_seq)?,
+                &coverage_row_cap,
+            ],
+        )?;
+        let first_range_start = range_rows
+            .first()
+            .map(|row| as_u64(row.get::<_, i64>("cursor_before")))
+            .transpose()?
+            .unwrap_or(coverage_seq);
+        if first_range_start < bootstrap_sequence || first_range_start > coverage_seq {
+            tx.commit()?;
+            return Ok(navigation_not_ready(
+                head,
+                Some(cursor),
+                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+            ));
+        }
+        let legacy_span = first_range_start - bootstrap_sequence;
         let coverage_rows = tx.query(
             "SELECT event_sequence,event_id,source_path,record_id,source_revision,
                     input_root,dependency_root,output_root,previous_coverage_root,coverage_root,
                     cohort_count,cohort_set_root,cohort_manifest
              FROM cmd2_projection_navigation_coverage_event
-             WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3
-             ORDER BY event_sequence LIMIT $4",
+             WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3 AND event_sequence<=$4
+             ORDER BY event_sequence LIMIT $5",
             &[
                 &domain,
                 &consumer_id,
                 &as_i64(bootstrap_sequence)?,
+                &as_i64(first_range_start)?,
                 &coverage_row_cap,
             ],
         )?;
-        if coverage_rows.len() as u64 != coverage_span {
+        if coverage_rows.len() as u64 != legacy_span {
+            tx.commit()?;
+            return Ok(navigation_not_ready(
+                head,
+                Some(cursor),
+                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+            ));
+        }
+        if !range_rows.is_empty()
+            && !tx
+                .query(
+                    "SELECT event_sequence
+                       FROM cmd2_projection_navigation_coverage_event
+                      WHERE domain=$1 AND consumer_id=$2 AND event_sequence>$3 AND event_sequence<=$4
+                      LIMIT 1",
+                    &[
+                        &domain,
+                        &consumer_id,
+                        &as_i64(first_range_start)?,
+                        &as_i64(coverage_seq)?,
+                    ],
+                )?
+                .is_empty()
+        {
             tx.commit()?;
             return Ok(navigation_not_ready(
                 head,
@@ -11967,9 +12392,125 @@ impl DurablePgCoordinator {
                     manifest.claim_set,
                     manifest.claim_refresh_set,
                     manifest.claim_empty_closure,
+                    manifest.claim_range_set,
                 ),
             );
             expected_coverage_root = calculated;
+        }
+        let mut expected_range_cursor = first_range_start;
+        for row in &range_rows {
+        let cursor_before = as_u64(row.get("cursor_before"))?;
+        let through_sequence = as_u64(row.get("through_seq"))?;
+        let held_source_head_sequence = as_u64(row.get("held_source_head_seq"))?;
+            let terminal_event_id: String = row.get("terminal_event_id");
+            let range_root = parse_digest(row.get("range_root"))?;
+            let range_manifest = row.get::<_, Vec<u8>>("range_manifest");
+            let source_revision = parse_digest(row.get("source_revision"))?;
+            let input_root = parse_digest(row.get("input_root"))?;
+            let dependency_root = parse_digest(row.get("dependency_root"))?;
+            let output_root = parse_digest(row.get("output_root"))?;
+            let previous_root = parse_digest(row.get("previous_coverage_root"))?;
+            let stored_root = parse_digest(row.get("coverage_root"))?;
+            let cohort_count = u32::try_from(row.get::<_, i32>("terminal_cohort_count"))
+                .map_err(|_| DurableError::Corrupt("navigation range cohort count is negative"))?;
+            let terminal_cohort_root = parse_digest(row.get("terminal_cohort_root"))?;
+            let terminal_manifest = row.get::<_, Vec<u8>>("terminal_cohort_manifest");
+            manifest_bytes = manifest_bytes
+                .checked_add(range_manifest.len() as u64)
+                .and_then(|value| value.checked_add(terminal_manifest.len() as u64))
+                .ok_or(DurableError::Refused(
+                    "navigation range manifest byte budget",
+                ))?;
+            if manifest_bytes > limits.max_total_bytes
+                || cursor_before != expected_range_cursor
+                || through_sequence <= cursor_before
+                || through_sequence > coverage_seq
+                || held_source_head_sequence < through_sequence
+                || held_source_head_sequence > head
+            {
+                tx.commit()?;
+                return Ok(navigation_not_ready(
+                    head,
+                    Some(cursor),
+                    if manifest_bytes > limits.max_total_bytes {
+                        DurableNavigationCurrentIndexNotReadyReasonV1::BudgetExceeded
+                    } else {
+                        DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch
+                    },
+                ));
+            }
+            let Some(manifest) =
+                durable_navigation_range::verify_navigation_event_range_terminal_manifest(
+                    &terminal_manifest,
+                    terminal_cohort_root,
+                    cohort_count,
+                    cursor_before,
+                    through_sequence,
+                    held_source_head_sequence,
+                    &terminal_event_id,
+                    range_root,
+                    &range_manifest,
+                    input_root,
+                    dependency_root,
+                    output_root,
+                    limits.max_total_bytes as usize,
+                )
+                .ok()
+            else {
+                tx.commit()?;
+                return Ok(navigation_not_ready(
+                    head,
+                    Some(cursor),
+                    DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+                ));
+            };
+            let calculated = durable_navigation_range::navigation_range_coverage_root_next(
+                expected_coverage_root,
+                cursor_before,
+                through_sequence,
+                held_source_head_sequence,
+                &terminal_event_id,
+                range_root,
+                source_revision,
+                dependency_root,
+                output_root,
+            );
+            if previous_root != expected_coverage_root || stored_root != calculated {
+                tx.commit()?;
+                return Ok(navigation_not_ready(
+                    head,
+                    Some(cursor),
+                    DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+                ));
+            }
+            coverage_events_by_sequence.insert(
+                through_sequence,
+                (
+                    terminal_event_id,
+                    manifest.cohorts,
+                    manifest.claim_set,
+                    manifest.claim_refresh_set,
+                    manifest.claim_empty_closure,
+                    manifest.claim_range_set,
+                ),
+            );
+            expected_coverage_root = calculated;
+            expected_range_cursor = through_sequence;
+        }
+        let terminal_range_head_matches = range_rows
+            .last()
+            .map(|row| as_u64(row.get::<_, i64>("held_source_head_seq")))
+            .transpose()?
+            .is_none_or(|held_head| held_head == head);
+        if expected_range_cursor != coverage_seq
+            || (coverage_seq == head && !terminal_range_head_matches)
+        {
+            tx.commit()?;
+            return Ok(navigation_not_ready(
+                head,
+                Some(cursor),
+                DurableNavigationCurrentIndexNotReadyReasonV1::CoverageChainMismatch,
+            ));
         }
         if Some(expected_coverage_root) != coverage_root {
             tx.commit()?;
@@ -12381,7 +12922,9 @@ impl DurablePgCoordinator {
                         || manifest_cohort.owner_kind
                             != if matches!(
                                 basis_kind.as_str(),
-                                "claim-mutation" | "claim-dependency-refresh"
+                                "claim-mutation"
+                                    | "claim-dependency-refresh"
+                                    | "claim-range-reconciliation"
                             ) {
                                 "claim"
                             } else {
@@ -12402,6 +12945,19 @@ impl DurablePgCoordinator {
                         || manifest_cohort.claim_event_basis_root != claim_event_basis_root
                         || manifest_cohort.claim_navigation_manifest_root
                             != claim_navigation_manifest_root
+                        || manifest_cohort
+                            .source_event_id
+                            .as_deref()
+                            .is_some_and(|expected| expected != source_event_id.as_str())
+                        || manifest_cohort
+                            .source_event_version
+                            .is_some_and(|expected| expected != source_event_version)
+                        || manifest_cohort
+                            .predecessor_source_revision
+                            .is_some_and(|expected| expected != predecessor_source_revision)
+                        || manifest_cohort
+                            .predecessor_cohort_root
+                            .is_some_and(|expected| Some(expected) != predecessor_cohort_root)
                         || manifest_cohort.input_root != input_root
                         || manifest_cohort.dependency_root != dependency_root
                         || manifest_cohort.output_root != output_root
@@ -12548,6 +13104,78 @@ impl DurablePgCoordinator {
                     || manifest_cohort.claim_navigation_manifest_root
                         != Some(refresh_set.affected_owner_manifest_root)
                     || manifest_cohort.claim_event_basis_root.is_none()
+                    || manifest_cohort.basis_revision_proof_root.is_some()
+                {
+                    tx.commit()?;
+                    return Ok(navigation_not_ready(
+                        head,
+                        Some(cursor),
+                        DurableNavigationCurrentIndexNotReadyReasonV1::IndexRootMismatch,
+                    ));
+                }
+                (
+                    Some(source_line),
+                    Some(trace_sha256),
+                    None,
+                    None,
+                    None,
+                    Some(local_stream.stream_sha256),
+                    manifest_cohort.claim_owner_inventory_root,
+                    manifest_cohort.claim_stream_rows_scanned,
+                    manifest_cohort.claim_event_basis_root,
+                    manifest_cohort.claim_navigation_manifest_root,
+                )
+            } else if basis_kind == "claim-range-reconciliation" {
+                let Some(range_set) = coverage_event.5.as_ref() else {
+                    tx.commit()?;
+                    return Ok(navigation_not_ready(
+                        head,
+                        Some(cursor),
+                        DurableNavigationCurrentIndexNotReadyReasonV1::IndexRootMismatch,
+                    ));
+                };
+                let Some(source_line) = manifest_cohort.claim_source_line else {
+                    tx.commit()?;
+                    return Ok(navigation_not_ready(
+                        head,
+                        Some(cursor),
+                        DurableNavigationCurrentIndexNotReadyReasonV1::IndexRootMismatch,
+                    ));
+                };
+                let Some(trace_sha256) = manifest_cohort.claim_trace_sha256 else {
+                    tx.commit()?;
+                    return Ok(navigation_not_ready(
+                        head,
+                        Some(cursor),
+                        DurableNavigationCurrentIndexNotReadyReasonV1::IndexRootMismatch,
+                    ));
+                };
+                let Some(local_stream) = range_set
+                    .terminal_streams
+                    .iter()
+                    .find(|stream| stream.source_path == source_path)
+                else {
+                    tx.commit()?;
+                    return Ok(navigation_not_ready(
+                        head,
+                        Some(cursor),
+                        DurableNavigationCurrentIndexNotReadyReasonV1::IndexRootMismatch,
+                    ));
+                };
+                if local_stream
+                    .owner_claim_ids
+                    .binary_search(&record_id)
+                    .is_err()
+                    || range_set
+                        .terminal_owner_ids
+                        .binary_search(&record_id)
+                        .is_err()
+                    || manifest_cohort.claim_owner_inventory_root
+                        != Some(range_set.owner_inventory_root)
+                    || manifest_cohort.claim_stream_rows_scanned != Some(local_stream.rows_scanned)
+                    || manifest_cohort.claim_event_basis_root.is_none()
+                    || manifest_cohort.claim_navigation_manifest_root
+                        != Some(range_set.range_manifest_root)
                     || manifest_cohort.basis_revision_proof_root.is_some()
                 {
                     tx.commit()?;
@@ -12806,6 +13434,23 @@ impl DurablePgCoordinator {
         let dependency_root = parse_digest(row.get("dependency_root"))?;
         let input_root = parse_digest(row.get("input_root"))?;
         let output_root = parse_digest(row.get("output_root"))?;
+        let range_manifest = if matches!(
+            basis_kind.as_str(),
+            "range-reconciliation" | "claim-range-reconciliation"
+        ) {
+            Some(read_navigation_event_range_owner_manifest_in_tx(
+                &mut tx,
+                domain,
+                consumer_id,
+                event_sequence,
+                &event_id,
+                &source_path,
+                &record_id,
+                limits,
+            )?)
+        } else {
+            None
+        };
         let (
             claim_source_line,
             claim_trace_sha256,
@@ -12817,7 +13462,45 @@ impl DurablePgCoordinator {
             manifest_claim_stream_rows_scanned,
             manifest_claim_event_basis_root,
             manifest_claim_navigation_root,
-        ) = if basis_kind == "dependency-refresh-set" {
+        ) = if basis_kind == "range-reconciliation" {
+            let manifest = range_manifest.as_ref().ok_or(DurableError::Corrupt(
+                "stored Record range manifest is absent",
+            ))?;
+            let manifest_cohort = manifest
+                .cohorts
+                .get(&(source_path.to_owned(), record_id.to_owned()))
+                .ok_or(DurableError::Conflict(
+                    "stored Record range owner is absent from terminal manifest",
+                ))?;
+            if manifest_cohort.owner_kind != "record"
+                || manifest_cohort.basis_kind != basis_kind
+                || manifest_cohort.source_revision != source_revision
+                || manifest_cohort.source_event_id.as_deref() != Some(source_event_id.as_str())
+                || manifest_cohort.source_event_version != Some(source_event_version)
+                || manifest_cohort.predecessor_source_revision != Some(predecessor_source_revision)
+                || manifest_cohort.predecessor_cohort_root != predecessor_cohort_root
+                || manifest_cohort.basis_dependency_path != basis_dependency_path
+                || manifest_cohort.basis_dependency_sha256 != basis_dependency_sha256
+                || manifest_cohort.basis_history_path != basis_history_path
+                || manifest_cohort.basis_history_sha256 != basis_history_sha256
+                || manifest_cohort.basis_claim_id != basis_claim_id
+                || manifest_cohort.basis_revision_proof_root != basis_revision_proof_root
+                || manifest_cohort.claim_owner_inventory_root.is_some()
+                || manifest_cohort.claim_stream_rows_scanned.is_some()
+                || manifest_cohort.claim_event_basis_root.is_some()
+                || manifest_cohort.claim_navigation_manifest_root.is_some()
+                || manifest_cohort.claim_source_line.is_some()
+                || manifest_cohort.claim_trace_sha256.is_some()
+                || manifest_cohort.input_root != input_root
+                || manifest_cohort.dependency_root != dependency_root
+                || manifest_cohort.output_root != output_root
+            {
+                return Err(DurableError::Conflict(
+                    "stored Record range cohort differs from terminal manifest",
+                ));
+            }
+            (None, None, None, None, None, None, None, None, None, None)
+        } else if basis_kind == "dependency-refresh-set" {
             let coverage = tx
                 .query_opt(
                     "SELECT cohort_count,cohort_set_root,cohort_manifest
@@ -12903,6 +13586,73 @@ impl DurablePgCoordinator {
                 ));
             }
             (None, None, None, None, None, None, None, None, None, None)
+        } else if basis_kind == "claim-range-reconciliation" {
+            let manifest = range_manifest.as_ref().ok_or(DurableError::Corrupt(
+                "stored Claim range manifest is absent",
+            ))?;
+            let manifest_cohort = manifest
+                .cohorts
+                .get(&(source_path.to_owned(), record_id.to_owned()))
+                .ok_or(DurableError::Conflict(
+                    "stored Claim range owner is absent from terminal manifest",
+                ))?;
+            let range_set = manifest
+                .claim_range_set
+                .as_ref()
+                .ok_or(DurableError::Conflict(
+                    "stored Claim range has no terminal inventory proof",
+                ))?;
+            let local_stream = range_set
+                .terminal_streams
+                .iter()
+                .find(|stream| stream.source_path == source_path)
+                .ok_or(DurableError::Conflict(
+                    "stored Claim range stream is absent from terminal inventory",
+                ))?;
+            if manifest_cohort.owner_kind != "claim"
+                || manifest_cohort.basis_kind != basis_kind
+                || manifest_cohort.source_revision != source_revision
+                || manifest_cohort.source_event_id.as_deref() != Some(source_event_id.as_str())
+                || manifest_cohort.source_event_version != Some(source_event_version)
+                || manifest_cohort.predecessor_source_revision != Some(predecessor_source_revision)
+                || manifest_cohort.predecessor_cohort_root != predecessor_cohort_root
+                || manifest_cohort.input_root != input_root
+                || manifest_cohort.dependency_root != dependency_root
+                || manifest_cohort.output_root != output_root
+                || manifest_cohort.claim_owner_inventory_root
+                    != Some(range_set.owner_inventory_root)
+                || manifest_cohort.claim_stream_rows_scanned != Some(local_stream.rows_scanned)
+                || manifest_cohort.claim_event_basis_root.is_none()
+                || manifest_cohort.claim_navigation_manifest_root
+                    != Some(range_set.range_manifest_root)
+                || manifest_cohort.claim_source_line.is_none()
+                || manifest_cohort.claim_trace_sha256.is_none()
+                || local_stream
+                    .owner_claim_ids
+                    .binary_search(&record_id)
+                    .is_err()
+                || range_set
+                    .terminal_owner_ids
+                    .binary_search(&record_id)
+                    .is_err()
+                || basis_revision_proof_root.is_some()
+            {
+                return Err(DurableError::Conflict(
+                    "stored Claim range cohort differs from terminal manifest",
+                ));
+            }
+            (
+                manifest_cohort.claim_source_line,
+                manifest_cohort.claim_trace_sha256,
+                None,
+                None,
+                None,
+                Some(local_stream.stream_sha256),
+                manifest_cohort.claim_owner_inventory_root,
+                manifest_cohort.claim_stream_rows_scanned,
+                manifest_cohort.claim_event_basis_root,
+                manifest_cohort.claim_navigation_manifest_root,
+            )
         } else if matches!(
             basis_kind.as_str(),
             "claim-mutation" | "claim-dependency-refresh"
@@ -13766,6 +14516,7 @@ fn read_selected_sources_at_cut(
         .iter()
         .map(|member| (member.source_path.as_str(), member))
         .collect::<BTreeMap<_, _>>();
+    let event_member_paths = members_by_path.keys().copied().collect::<BTreeSet<_>>();
     let mut total_bytes = 0u64;
     let mut output = Vec::with_capacity(selected.len());
     for (path, version) in selected {
@@ -13793,7 +14544,7 @@ fn read_selected_sources_at_cut(
                     }
                 }
                 let exact_source_bytes = if version.is_source {
-                    let source_byte_limit = if path == event_path {
+                    let source_byte_limit = if path == event_path || event_member_paths.contains(path.as_str()) {
                         limits.max_total_bytes
                     } else {
                         limits.max_row_bytes as u64

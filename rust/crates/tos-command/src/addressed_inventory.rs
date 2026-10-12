@@ -1868,8 +1868,9 @@ fn validate_claim_form_projection(
     raw_sha256: &str,
 ) -> DurableResult<()> {
     let basename = subject.rsplit('/').next().unwrap_or(subject);
-    let stem = basename
-        .strip_prefix("source-claims.")
+    let stem = ["source-claims.", "historical-claims."]
+        .iter()
+        .find_map(|prefix| basename.strip_prefix(prefix))
         .and_then(|name| name.strip_suffix(".human-forms.json"))
         .ok_or(DurableError::Corrupt("Claim form projection path"))?;
     let _ = Digest256::from_hex(stem)
@@ -1905,7 +1906,7 @@ fn validate_claim_form_projection(
 fn is_claim_form_path(subject: &str) -> bool {
     let basename = subject.rsplit('/').next().unwrap_or(subject);
     subject.starts_with("ToS/source-witnesses/")
-        && basename.starts_with("source-claims.")
+        && (basename.starts_with("source-claims.") || basename.starts_with("historical-claims."))
         && basename.ends_with(".human-forms.json")
 }
 
@@ -2694,6 +2695,362 @@ fn validate_item_lineage(
     Ok(())
 }
 
+fn validate_historical_claim_owner(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "package_home",
+            "source_path",
+            "source_profiles",
+            "stream_sha256",
+            "direct_members",
+            "history",
+            "archives",
+            "claims",
+            "creation_receipt_sha256",
+            "creation_receipt_command_id",
+            "closure_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let home = subject
+        .strip_suffix("/historical-claims.jsonl")
+        .ok_or(DurableError::Corrupt("Historical Claim owner source path"))?;
+    let stream_digest = Digest256::from_hex(raw_sha256)
+        .map_err(|_| DurableError::Corrupt("Historical Claim stream digest"))?;
+    if cmd::text(owner, "schema_version").map_err(source_error)?
+        != "tos_managed_historical_claim_owner_inventory_v1"
+        || cmd::text(owner, "package_home").map_err(source_error)? != home
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || owner_digest(owner, "stream_sha256")? != stream_digest
+    {
+        return Err(DurableError::Corrupt(
+            "Historical Claim owner source binding",
+        ));
+    }
+    collect_profile_map(owner)?;
+    let direct = validate_owner_member_rows(
+        cmd::field(owner, "direct_members").map_err(source_error)?,
+        &format!("{home}/"),
+        &[
+            "claim-stream",
+            "creation-request",
+            "creation-environment",
+            "creation-event",
+            "creation-receipt",
+            "revision-history",
+            "human-form-set",
+            "operational-lock",
+        ],
+    )?;
+    if direct
+        .get(subject)
+        .is_none_or(|(role, _, digest)| role != "claim-stream" || *digest != stream_digest)
+    {
+        return Err(DurableError::Corrupt(
+            "Historical Claim owner stream member absent",
+        ));
+    }
+    for (name, role) in [
+        ("source-create-request.json", "creation-request"),
+        ("source-create-environment.json", "creation-environment"),
+        ("source-create-provenance.jsonl", "creation-event"),
+        ("source-create-receipt.json", "creation-receipt"),
+    ] {
+        if direct
+            .get(&format!("{home}/{name}"))
+            .is_none_or(|(actual, _, _)| actual != role)
+        {
+            return Err(DurableError::Corrupt(
+                "Historical Claim creation package is incomplete",
+            ));
+        }
+    }
+    let receipt_path = format!("{home}/source-create-receipt.json");
+    let receipt_digest = owner_digest(owner, "creation_receipt_sha256")?;
+    if cmd::text(owner, "creation_receipt_command_id")
+        .map_err(source_error)?
+        .is_empty()
+        || direct
+            .get(&receipt_path)
+            .is_none_or(|(_, _, digest)| *digest != receipt_digest)
+    {
+        return Err(DurableError::Corrupt(
+            "Historical Claim creation receipt binding",
+        ));
+    }
+
+    let history = cmd::field(owner, "history").map_err(source_error)?;
+    cmd::exact_keys(history, &["ref", "present", "sha256", "receipts"]).map_err(source_error)?;
+    let history_path = format!("{home}/claim-revision-history.json");
+    let history_present = cmd::field(history, "present")
+        .map_err(source_error)?
+        .as_bool()
+        .ok_or(DurableError::Corrupt("Historical Claim history presence"))?;
+    let history_digest = cmd::field(history, "sha256").map_err(source_error)?;
+    if cmd::text(history, "ref").map_err(source_error)? != history_path
+        || !history_present
+        || direct.get(&history_path).is_none_or(|(role, _, digest)| {
+            role != "revision-history"
+                || history_digest
+                    .as_str()
+                    .and_then(|value| Digest256::from_prefixed(value).ok())
+                    != Some(*digest)
+        })
+    {
+        return Err(DurableError::Corrupt(
+            "Historical Claim history member binding",
+        ));
+    }
+
+    let archives = cmd::field(owner, "archives")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Historical Claim archive rows"))?;
+    let mut archive_by_path = BTreeMap::<String, String>::new();
+    let mut archive_order = Vec::with_capacity(archives.len());
+    for archive in archives {
+        cmd::exact_keys(archive, &["path", "manifest_sha256", "revision", "members"])
+            .map_err(source_error)?;
+        let path = cmd::text(archive, "path").map_err(source_error)?;
+        if !path.starts_with("ToS/source-witnesses/.record-revisions/")
+            || RelativePath::parse(path).is_err()
+        {
+            return Err(DurableError::Corrupt(
+                "Historical Claim archive path binding",
+            ));
+        }
+        owner_digest(archive, "manifest_sha256")?;
+        let revision = cmd::text(archive, "revision").map_err(source_error)?;
+        if revision.is_empty() {
+            return Err(DurableError::Corrupt(
+                "Historical Claim archive revision is empty",
+            ));
+        }
+        let members = cmd::field(archive, "members")
+            .map_err(source_error)?
+            .as_array()
+            .ok_or(DurableError::Corrupt("Historical Claim archive members"))?;
+        let mut previous_name: Option<&str> = None;
+        let mut names = BTreeSet::new();
+        for member in members {
+            cmd::exact_keys(member, &["name", "sha256", "bytes"]).map_err(source_error)?;
+            let name = cmd::text(member, "name").map_err(source_error)?;
+            let bytes = cmd::integer(member, "bytes").map_err(source_error)?;
+            let _ = owner_digest(member, "sha256")?;
+            if name.is_empty()
+                || name.contains('/')
+                || name == "."
+                || name == ".."
+                || bytes > 8_388_608
+                || previous_name.is_some_and(|prior| prior.as_bytes() >= name.as_bytes())
+                || !names.insert(name.to_owned())
+            {
+                return Err(DurableError::Corrupt(
+                    "Historical Claim archive member binding",
+                ));
+            }
+            previous_name = Some(name);
+        }
+        if !names.contains("source-claims.jsonl") {
+            return Err(DurableError::Corrupt(
+                "Historical Claim archive omits its stream",
+            ));
+        }
+        if archive_by_path
+            .insert(path.to_owned(), revision.to_owned())
+            .is_some()
+        {
+            return Err(DurableError::Corrupt(
+                "Historical Claim archive path is duplicated",
+            ));
+        }
+        archive_order.push(path.to_owned());
+    }
+
+    let receipts = cmd::field(history, "receipts")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Historical Claim history receipts"))?;
+    if receipts.len() != archive_by_path.len() || receipts.len() > 128 {
+        return Err(DurableError::Corrupt(
+            "Historical Claim receipt/archive count differs",
+        ));
+    }
+    let mut used_archives = BTreeSet::new();
+    for (index, receipt) in receipts.iter().enumerate() {
+        cmd::exact_keys(
+            receipt,
+            &[
+                "command_id",
+                "request_digest",
+                "previous_source",
+                "source",
+                "previous_revision",
+                "archive_path",
+                "receipt_sha256",
+            ],
+        )
+        .map_err(source_error)?;
+        let command_id = cmd::text(receipt, "command_id").map_err(source_error)?;
+        let archive_path = cmd::text(receipt, "archive_path").map_err(source_error)?;
+        let previous_revision = cmd::text(receipt, "previous_revision").map_err(source_error)?;
+        if archive_order.get(index).map(String::as_str) != Some(archive_path) {
+            return Err(DurableError::Corrupt(
+                "Historical Claim archive order differs from history",
+            ));
+        }
+        let archive_revision = archive_by_path
+            .get(archive_path)
+            .ok_or(DurableError::Corrupt(
+                "Historical Claim receipt archive is absent",
+            ))?;
+        let previous_source = cmd::field(receipt, "previous_source").map_err(source_error)?;
+        let source = cmd::field(receipt, "source").map_err(source_error)?;
+        if command_id.is_empty()
+            || Digest256::from_prefixed(cmd::text(receipt, "request_digest").map_err(source_error)?)
+                .is_err()
+            || Digest256::from_prefixed(cmd::text(receipt, "receipt_sha256").map_err(source_error)?)
+                .is_err()
+            || cmd::text(previous_source, "id").map_err(source_error)?
+                != cmd::text(source, "id").map_err(source_error)?
+            || cmd::text(source, "id").map_err(source_error)?.is_empty()
+            || previous_revision != archive_revision.as_str()
+            || !used_archives.insert(archive_path.to_owned())
+        {
+            return Err(DurableError::Corrupt(
+                "Historical Claim receipt/archive binding",
+            ));
+        }
+    }
+    if used_archives != archive_by_path.keys().cloned().collect() {
+        return Err(DurableError::Corrupt(
+            "Historical Claim archive closure differs",
+        ));
+    }
+
+    let claims = cmd::field(owner, "claims")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Historical Claim identity rows"))?;
+    let mut previous_claim: Option<&str> = None;
+    let mut claim_ids = BTreeSet::new();
+    let mut form_ids = BTreeSet::new();
+    let mut expected_forms = BTreeSet::new();
+    for claim in claims {
+        cmd::exact_keys(
+            claim,
+            &[
+                "claim_id",
+                "claim_version",
+                "claim_sha256",
+                "form_ref",
+                "form_present",
+                "form_sha256",
+                "form_ids",
+            ],
+        )
+        .map_err(source_error)?;
+        let claim_id = cmd::text(claim, "claim_id").map_err(source_error)?;
+        let form_hash = Digest256::of_bytes(claim_id.as_bytes()).to_hex();
+        let form_path = format!("{home}/historical-claims.{form_hash}.human-forms.json");
+        let form_present = cmd::field(claim, "form_present")
+            .map_err(source_error)?
+            .as_bool()
+            .ok_or(DurableError::Corrupt("Historical Claim form presence"))?;
+        let form_digest = cmd::field(claim, "form_sha256").map_err(source_error)?;
+        let ids = cmd::field(claim, "form_ids")
+            .map_err(source_error)?
+            .as_array()
+            .ok_or(DurableError::Corrupt("Historical Claim form IDs"))?;
+        if claim_id.is_empty()
+            || previous_claim.is_some_and(|previous| previous.as_bytes() >= claim_id.as_bytes())
+            || !claim_ids.insert(claim_id.to_owned())
+            || cmd::integer(claim, "claim_version").map_err(source_error)? == 0
+            || Digest256::from_prefixed(cmd::text(claim, "claim_sha256").map_err(source_error)?)
+                .is_err()
+            || cmd::text(claim, "form_ref").map_err(source_error)? != form_path
+            || form_present != direct.contains_key(&form_path)
+            || (form_present
+                && (form_digest == &tos_foundation::JsonValue::Null
+                    || direct.get(&form_path).is_none_or(|(role, _, digest)| {
+                        role != "human-form-set"
+                            || form_digest
+                                .as_str()
+                                .and_then(|value| Digest256::from_prefixed(value).ok())
+                                != Some(*digest)
+                    })))
+            || (!form_present
+                && (form_digest != &tos_foundation::JsonValue::Null || !ids.is_empty()))
+            || ids.iter().any(|id| {
+                id.as_str()
+                    .is_none_or(|id| id.is_empty() || !form_ids.insert(id.to_owned()))
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "Historical Claim identity/form binding",
+            ));
+        }
+        if form_present {
+            expected_forms.insert(form_path);
+        }
+        previous_claim = Some(claim_id);
+    }
+    let direct_forms = direct
+        .iter()
+        .filter(|(_, (role, _, _))| role == "human-form-set")
+        .map(|(path, _)| path.clone())
+        .collect::<BTreeSet<_>>();
+    if direct_forms != expected_forms {
+        return Err(DurableError::Corrupt(
+            "Historical Claim form package closure differs",
+        ));
+    }
+    let mut expected_direct = BTreeSet::from([
+        subject.to_owned(),
+        format!("{home}/source-create-request.json"),
+        format!("{home}/source-create-environment.json"),
+        format!("{home}/source-create-provenance.jsonl"),
+        receipt_path,
+        history_path,
+    ]);
+    expected_direct.extend(expected_forms);
+    for (path, (role, _, _)) in &direct {
+        if role == "operational-lock" {
+            if direct.get(path).is_none_or(|(_, bytes, _)| *bytes != 0) {
+                return Err(DurableError::Corrupt(
+                    "Historical Claim operational lock is not empty",
+                ));
+            }
+            let basename = path.rsplit('/').next().unwrap_or(path);
+            if !direct.iter().any(|(form_path, (form_role, _, _))| {
+                form_role == "human-form-set"
+                    && basename
+                        == format!(
+                            ".{}.writer.lock",
+                            form_path.rsplit('/').next().unwrap_or(form_path)
+                        )
+            }) {
+                return Err(DurableError::Corrupt(
+                    "Historical Claim orphan operational lock",
+                ));
+            }
+            expected_direct.insert(path.clone());
+        }
+    }
+    if direct.keys().cloned().collect::<BTreeSet<_>>() != expected_direct {
+        return Err(DurableError::Corrupt(
+            "Historical Claim direct package closure differs",
+        ));
+    }
+    validate_owner_closure(owner)
+}
+
 fn validate_claim_owner(
     owner: &tos_foundation::JsonValue,
     subject: &str,
@@ -2701,6 +3058,9 @@ fn validate_claim_owner(
 ) -> DurableResult<()> {
     let schema = cmd::text(owner, "schema_version").map_err(source_error)?;
     match schema {
+        "tos_managed_historical_claim_owner_inventory_v1" => {
+            return validate_historical_claim_owner(owner, subject, raw_sha256);
+        }
         "tos_managed_item_adoption_claim_owner_inventory_v1" => {
             return validate_item_claim_owner(owner, subject, raw_sha256);
         }
@@ -2782,10 +3142,10 @@ fn validate_claim_owner(
             "creation-request",
             "creation-environment",
             "creation-event",
-                    "creation-receipt",
-                    "revision-history",
-                    "human-form-set",
-                ],
+            "creation-receipt",
+            "revision-history",
+            "human-form-set",
+        ],
     )?;
     if direct
         .get(subject)

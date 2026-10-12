@@ -363,7 +363,7 @@ impl PgExpressionEditionInputs {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        crate::source_expression_edition::check_expression_edition_configuration(
+        crate::source_creation_store::check_expression_edition_configuration(
             fs,
             configuration,
             deadline,
@@ -446,7 +446,7 @@ impl PgExpressionResponsibilityInputs {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        crate::source_expression_responsibility::check_expression_responsibility_configuration(
+        crate::source_creation_store::check_expression_responsibility_configuration(
             fs,
             configuration,
             deadline,
@@ -511,7 +511,7 @@ impl PgCollectionMembershipInputs {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        crate::source_collection_membership::check_collection_membership_configuration(
+        crate::source_creation_store::check_collection_membership_configuration(
             fs,
             configuration,
             deadline,

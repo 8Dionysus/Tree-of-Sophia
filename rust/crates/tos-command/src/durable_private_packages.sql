@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_schema_profile (
   profile_id text NOT NULL
 );
 INSERT INTO cmd2_private_schema_profile(singleton,profile_id)
-VALUES (true,'tos-private-owner-package-abi-v3')
+VALUES (true,'tos-private-owner-package-abi-v4')
 ON CONFLICT (singleton) DO NOTHING;
 -- v1/v2 drafts lack the scoped Text identity index. They may be upgraded only
 -- when there is no Text current row whose identity contribution set is absent.
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_package_history (
   target_ref text NOT NULL CHECK (octet_length(target_ref) BETWEEN 1 AND 4096),
   revision bigint NOT NULL CHECK (revision > 0),
   family text NOT NULL CONSTRAINT cmd2_private_package_history_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   package_digest text NOT NULL CHECK (package_digest ~ '^[0-9a-f]{64}$'),
   previous_digest text CHECK (previous_digest IS NULL OR previous_digest ~ '^[0-9a-f]{64}$'),
   member_count integer NOT NULL CHECK (member_count BETWEEN 1 AND 64),
@@ -69,7 +69,9 @@ CREATE TABLE IF NOT EXISTS cmd2_private_package_history (
     REFERENCES cmd2_private_owner_scope(domain, owner_scope) ON DELETE RESTRICT,
   CHECK ((revision = 1) = (previous_digest IS NULL)),
   CONSTRAINT cmd2_private_package_history_assessment_shape_check
-    CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152))
+    CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152)),
+  CONSTRAINT cmd2_private_package_history_alignment_size_check
+    CHECK (family <> 'alignment' OR total_bytes <= 12582912)
 );
 CREATE TABLE IF NOT EXISTS cmd2_private_package_member (
   domain text NOT NULL,
@@ -92,7 +94,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_package_current (
   owner_scope text NOT NULL,
   target_ref text NOT NULL CHECK (octet_length(target_ref) BETWEEN 1 AND 4096),
   family text NOT NULL CONSTRAINT cmd2_private_package_current_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   revision bigint NOT NULL CHECK (revision > 0),
   package_digest text NOT NULL CHECK (package_digest ~ '^[0-9a-f]{64}$'),
   member_count integer NOT NULL CHECK (member_count BETWEEN 1 AND 65),
@@ -110,12 +112,14 @@ CREATE TABLE IF NOT EXISTS cmd2_private_package_current (
     DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT cmd2_private_package_current_assessment_shape_check
     CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152)),
+  CONSTRAINT cmd2_private_package_current_alignment_size_check
+    CHECK (family <> 'alignment' OR total_bytes <= 12582912),
   CONSTRAINT cmd2_private_package_current_text_identity_root_check
     CHECK (text_identity_root IS NULL OR text_identity_root ~ '^[0-9a-f]{64}$'),
   CONSTRAINT cmd2_private_package_current_text_identity_count_check
     CHECK (text_identity_count BETWEEN 0 AND 32768),
   CONSTRAINT cmd2_private_package_current_text_identity_shape_check
-    CHECK ((family = 'text') = (text_identity_root IS NOT NULL AND text_identity_count IS NOT NULL))
+    CHECK ((family IN ('text', 'alignment')) = (text_identity_root IS NOT NULL AND text_identity_count IS NOT NULL))
 );
 ALTER TABLE cmd2_private_package_current
   ADD COLUMN IF NOT EXISTS text_identity_root text,
@@ -124,7 +128,7 @@ DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM cmd2_private_package_current
-     WHERE family='text' AND (text_identity_root IS NULL OR text_identity_count IS NULL)
+     WHERE family IN ('text','alignment') AND (text_identity_root IS NULL OR text_identity_count IS NULL)
   ) THEN
     RAISE EXCEPTION 'private Text current package requires identity index rebuild';
   END IF;
@@ -139,7 +143,7 @@ ALTER TABLE cmd2_private_package_current
   ADD CONSTRAINT cmd2_private_package_current_text_identity_count_check
     CHECK (text_identity_count BETWEEN 0 AND 32768),
   ADD CONSTRAINT cmd2_private_package_current_text_identity_shape_check
-    CHECK ((family = 'text') = (text_identity_root IS NOT NULL AND text_identity_count IS NOT NULL));
+    CHECK ((family IN ('text', 'alignment')) = (text_identity_root IS NOT NULL AND text_identity_count IS NOT NULL));
 CREATE UNIQUE INDEX IF NOT EXISTS cmd2_private_package_current_text_identity_key
   ON cmd2_private_package_current(
     domain,owner_scope,target_ref,family,revision,package_digest,text_identity_root
@@ -148,7 +152,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_text_identity (
   domain text NOT NULL,
   owner_scope text NOT NULL,
   target_ref text COLLATE "C" NOT NULL CHECK (octet_length(target_ref) BETWEEN 1 AND 4096),
-  family text COLLATE "C" NOT NULL CHECK (family='text'),
+  family text COLLATE "C" NOT NULL CHECK (family IN ('text','alignment')),
   revision bigint NOT NULL CHECK (revision > 0),
   package_digest text NOT NULL CHECK (package_digest ~ '^[0-9a-f]{64}$'),
   identity_root text NOT NULL CHECK (identity_root ~ '^[0-9a-f]{64}$'),
@@ -165,6 +169,11 @@ CREATE TABLE IF NOT EXISTS cmd2_private_text_identity (
       domain,owner_scope,target_ref,revision,member_name,member_digest
     ) ON DELETE RESTRICT
 );
+ALTER TABLE cmd2_private_text_identity
+  DROP CONSTRAINT IF EXISTS cmd2_private_text_identity_family_check;
+ALTER TABLE cmd2_private_text_identity
+  ADD CONSTRAINT cmd2_private_text_identity_family_check
+    CHECK (family IN ('text','alignment'));
 CREATE INDEX IF NOT EXISTS cmd2_private_text_identity_point
   ON cmd2_private_text_identity(
     domain,owner_scope,identity_token COLLATE "C",target_ref COLLATE "C",member_name COLLATE "C"
@@ -179,7 +188,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_package_archive (
   target_ref text NOT NULL,
   archive_ref text NOT NULL CHECK (octet_length(archive_ref) BETWEEN 1 AND 4096),
   family text NOT NULL CONSTRAINT cmd2_private_package_archive_family_check
-    CHECK (family IN ('text', 'profile', 'claim')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim')),
   package_digest text NOT NULL CHECK (package_digest ~ '^[0-9a-f]{64}$'),
   member_count integer NOT NULL CHECK (member_count BETWEEN 1 AND 65),
   total_bytes bigint NOT NULL CHECK (total_bytes BETWEEN 1 AND 16777216),
@@ -211,7 +220,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_command_receipt (
   command_id text NOT NULL CHECK (octet_length(command_id) BETWEEN 1 AND 1024),
   target_digest text NOT NULL CHECK (target_digest ~ '^[0-9a-f]{64}$'),
   family text NOT NULL CONSTRAINT cmd2_private_command_receipt_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   request_digest text NOT NULL CHECK (request_digest ~ '^[0-9a-f]{64}$'),
   raw_request_digest text NOT NULL CHECK (raw_request_digest ~ '^[0-9a-f]{64}$'),
   owner_context_binding text NOT NULL CHECK (owner_context_binding ~ '^[0-9a-f]{64}$'),
@@ -231,7 +240,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_log (
   owner_scope text NOT NULL,
   commit_seq bigint NOT NULL CHECK (commit_seq > 0),
   family text NOT NULL CONSTRAINT cmd2_private_log_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   command_digest text NOT NULL CHECK (command_digest ~ '^[0-9a-f]{64}$'),
   target_digest text NOT NULL CHECK (target_digest ~ '^[0-9a-f]{64}$'),
   request_digest text NOT NULL CHECK (request_digest ~ '^[0-9a-f]{64}$'),
@@ -246,7 +255,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_outbox (
   owner_scope text NOT NULL,
   commit_seq bigint NOT NULL CHECK (commit_seq > 0),
   family text NOT NULL CONSTRAINT cmd2_private_outbox_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   target_digest text NOT NULL CHECK (target_digest ~ '^[0-9a-f]{64}$'),
   package_digest text NOT NULL CHECK (package_digest ~ '^[0-9a-f]{64}$'),
   member_count integer NOT NULL CHECK (member_count BETWEEN 0 AND 65),
@@ -255,40 +264,58 @@ CREATE TABLE IF NOT EXISTS cmd2_private_outbox (
     REFERENCES cmd2_private_owner_scope(domain, owner_scope) ON DELETE RESTRICT
 );
 
--- Replace the v1 family checks and install the exact assessment package
--- bounds. Reapplying these constraints makes the v1 -> v2 transition explicit
--- instead of accepting a v2 marker over the old narrower DDL.
+-- Replace the prior family checks and install exact Assessment and Alignment
+-- package bounds. Reapplying these constraints makes profile migrations
+-- explicit instead of accepting a newer marker over narrower DDL.
 ALTER TABLE cmd2_private_package_history
   DROP CONSTRAINT IF EXISTS cmd2_private_package_history_family_check,
-  DROP CONSTRAINT IF EXISTS cmd2_private_package_history_assessment_shape_check;
+  DROP CONSTRAINT IF EXISTS cmd2_private_package_history_assessment_shape_check,
+  DROP CONSTRAINT IF EXISTS cmd2_private_package_history_alignment_size_check;
 ALTER TABLE cmd2_private_package_history
   ADD CONSTRAINT cmd2_private_package_history_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   ADD CONSTRAINT cmd2_private_package_history_assessment_shape_check
-    CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152));
+    CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152)),
+  ADD CONSTRAINT cmd2_private_package_history_alignment_size_check
+    CHECK (family <> 'alignment' OR total_bytes <= 12582912);
 ALTER TABLE cmd2_private_package_current
   DROP CONSTRAINT IF EXISTS cmd2_private_package_current_family_check,
-  DROP CONSTRAINT IF EXISTS cmd2_private_package_current_assessment_shape_check;
+  DROP CONSTRAINT IF EXISTS cmd2_private_package_current_assessment_shape_check,
+  DROP CONSTRAINT IF EXISTS cmd2_private_package_current_alignment_size_check;
 ALTER TABLE cmd2_private_package_current
   ADD CONSTRAINT cmd2_private_package_current_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment')),
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   ADD CONSTRAINT cmd2_private_package_current_assessment_shape_check
-    CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152));
+    CHECK (family <> 'assessment' OR (member_count = 2 AND total_bytes <= 2097152)),
+  ADD CONSTRAINT cmd2_private_package_current_alignment_size_check
+    CHECK (family <> 'alignment' OR total_bytes <= 12582912);
+ALTER TABLE cmd2_private_package_archive
+  DROP CONSTRAINT IF EXISTS cmd2_private_package_archive_family_check;
+ALTER TABLE cmd2_private_package_archive
+  ADD CONSTRAINT cmd2_private_package_archive_family_check
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim'));
 ALTER TABLE cmd2_private_command_receipt
   DROP CONSTRAINT IF EXISTS cmd2_private_command_receipt_family_check;
 ALTER TABLE cmd2_private_command_receipt
   ADD CONSTRAINT cmd2_private_command_receipt_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment'));
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment'));
 ALTER TABLE cmd2_private_log
   DROP CONSTRAINT IF EXISTS cmd2_private_log_family_check;
 ALTER TABLE cmd2_private_log
   ADD CONSTRAINT cmd2_private_log_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment'));
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment'));
 ALTER TABLE cmd2_private_outbox
   DROP CONSTRAINT IF EXISTS cmd2_private_outbox_family_check;
 ALTER TABLE cmd2_private_outbox
   ADD CONSTRAINT cmd2_private_outbox_family_check
-    CHECK (family IN ('text', 'profile', 'claim', 'assessment'));
+    CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment'));
+
+-- Alignment identity rows use the same exact owner parser/index, but only
+-- native translation-alignment JSON members contribute. Install the new
+-- family tag only after all existing Text identity markers are checked.
+UPDATE cmd2_private_schema_profile
+   SET profile_id='tos-private-owner-package-abi-v4'
+ WHERE singleton AND profile_id='tos-private-owner-package-abi-v3';
 
 CREATE OR REPLACE FUNCTION cmd2_private_bump_audit_fence() RETURNS trigger
 LANGUAGE plpgsql AS $$

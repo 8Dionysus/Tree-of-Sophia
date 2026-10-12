@@ -8,8 +8,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, JsonMode, JsonValue, RelativePath};
 
 pub(crate) const PREDICATE_SCOPE: &str = "semantic-annotation-entity";
-const MAX_FILES: usize = 1_024;
-const MAX_BYTES: usize = 8_388_608;
+pub(crate) const MAX_FILES: usize = 1_024;
+pub(crate) const MAX_BYTES: usize = 8_388_608;
 const MAX_MEMBER_BYTES: usize = 1_048_576;
 const MAX_ROWS: usize = 65_536;
 
@@ -100,18 +100,24 @@ fn prior_member_rows(
         &[&domain, &path, &as_i64(MAX_ROWS + 1)?],
     )?;
     if rows.len() > MAX_ROWS {
-        return Err(DurableError::Corrupt("annotation identity member row bound"));
+        return Err(DurableError::Corrupt(
+            "annotation identity member row bound",
+        ));
     }
     let mut out = BTreeMap::new();
     for row in rows {
         if row.get::<_, String>(2) != definition.to_hex() {
-            return Err(DurableError::Conflict("annotation identity definition differs"));
+            return Err(DurableError::Conflict(
+                "annotation identity definition differs",
+            ));
         }
         let token: String = row.get(0);
         let digest = Digest256::from_hex(&row.get::<_, String>(1))
             .map_err(|_| DurableError::Corrupt("annotation identity member digest"))?;
         if out.insert(token, digest).is_some() {
-            return Err(DurableError::Corrupt("duplicate annotation identity member row"));
+            return Err(DurableError::Corrupt(
+                "duplicate annotation identity member row",
+            ));
         }
     }
     Ok(out)
@@ -147,17 +153,27 @@ fn advance_generations(
                 || row.get::<_, String>(1) != definition.to_hex()
                 || row.get::<_, i64>(2) >= i64::MAX
             {
-                return Err(DurableError::Conflict("annotation identity predicate changed"));
+                return Err(DurableError::Conflict(
+                    "annotation identity predicate changed",
+                ));
             }
             tx.execute(
                 "UPDATE cmd2_predicate SET generation=generation+1
                  WHERE domain=$1 AND kind='unique' AND owner=$2 AND scope=$3 AND token=$4
                    AND complete AND definition_version=$5 AND generation<9223372036854775807",
-                &[&domain, &crate::source_cohort::OWNER, &PREDICATE_SCOPE, token, &definition.to_hex()],
+                &[
+                    &domain,
+                    &crate::source_cohort::OWNER,
+                    &PREDICATE_SCOPE,
+                    token,
+                    &definition.to_hex(),
+                ],
             )?
         };
         if update != 1 {
-            return Err(DurableError::Conflict("annotation identity predicate generation"));
+            return Err(DurableError::Conflict(
+                "annotation identity predicate generation",
+            ));
         }
     }
     Ok(())
@@ -176,7 +192,9 @@ where
     let mut changed = BTreeSet::new();
     for (path, bytes) in members {
         if !seen.insert(path.to_owned()) {
-            return Err(DurableError::Invalid("duplicate annotation identity replacement path"));
+            return Err(DurableError::Invalid(
+                "duplicate annotation identity replacement path",
+            ));
         }
         let old = prior_member_rows(tx, domain, path, definition)?;
         let new = match bytes {
@@ -193,7 +211,9 @@ where
             &[&domain, &path],
         )?;
         if deleted != old.len() as u64 {
-            return Err(DurableError::Conflict("annotation identity contribution changed"));
+            return Err(DurableError::Conflict(
+                "annotation identity contribution changed",
+            ));
         }
         if let Some(raw) = bytes.filter(|_| is_packet(path)) {
             let member_digest = Digest256::of_bytes(raw).to_hex();
@@ -223,14 +243,20 @@ fn current_rows(
         bytes = bytes
             .checked_add(raw.len())
             .filter(|total| *total <= MAX_BYTES)
-            .ok_or(DurableError::Refused("annotation identity inventory byte bound"))?;
+            .ok_or(DurableError::Refused(
+                "annotation identity inventory byte bound",
+            ))?;
         if paths > MAX_FILES {
-            return Err(DurableError::Refused("annotation identity inventory member bound"));
+            return Err(DurableError::Refused(
+                "annotation identity inventory member bound",
+            ));
         }
         let digest = Digest256::of_bytes(raw);
         for token in member_rows(path, raw)? {
             if out.len() >= MAX_ROWS || out.insert((token, path.clone()), digest).is_some() {
-                return Err(DurableError::Refused("annotation identity inventory row bound"));
+                return Err(DurableError::Refused(
+                    "annotation identity inventory row bound",
+                ));
             }
         }
     }
@@ -250,7 +276,9 @@ pub(crate) fn rebuild_current(
         &[&domain, &as_i64(MAX_ROWS + 1)?],
     )?;
     if old_rows.len() > MAX_ROWS {
-        return Err(DurableError::Refused("annotation identity stored row bound"));
+        return Err(DurableError::Refused(
+            "annotation identity stored row bound",
+        ));
     }
     let mut old = BTreeMap::new();
     for row in old_rows {
@@ -260,12 +288,20 @@ pub(crate) fn rebuild_current(
             .map_err(|_| DurableError::Corrupt("annotation identity stored digest"))?;
         let def: String = row.get(3);
         if old.insert((token, path), (digest, def)).is_some() {
-            return Err(DurableError::Corrupt("duplicate annotation identity full row"));
+            return Err(DurableError::Corrupt(
+                "duplicate annotation identity full row",
+            ));
         }
     }
-    let mut changed = old.keys().map(|(token, _)| token.clone()).collect::<BTreeSet<_>>();
+    let mut changed = old
+        .keys()
+        .map(|(token, _)| token.clone())
+        .collect::<BTreeSet<_>>();
     changed.extend(new.keys().map(|(token, _)| token.clone()));
-    tx.execute("DELETE FROM cmd2_source_annotation_identity WHERE domain=$1", &[&domain])?;
+    tx.execute(
+        "DELETE FROM cmd2_source_annotation_identity WHERE domain=$1",
+        &[&domain],
+    )?;
     let def = definition.to_hex();
     for ((token, path), member_digest) in &new {
         tx.execute(
@@ -292,7 +328,9 @@ pub(crate) fn verify_current(
         &[&domain, &as_i64(MAX_ROWS + 1)?],
     )?;
     if rows.len() > MAX_ROWS || rows.len() != expected.len() {
-        return Err(DurableError::Conflict("annotation identity index completeness differs"));
+        return Err(DurableError::Conflict(
+            "annotation identity index completeness differs",
+        ));
     }
     let mut actual = BTreeMap::new();
     for row in rows {
@@ -304,11 +342,15 @@ pub(crate) fn verify_current(
             || row.get::<_, Option<String>>(4).as_deref() != Some(member.to_hex().as_str())
             || actual.insert((token, path), member).is_some()
         {
-            return Err(DurableError::Conflict("annotation identity index row differs"));
+            return Err(DurableError::Conflict(
+                "annotation identity index row differs",
+            ));
         }
     }
     if actual != expected {
-        return Err(DurableError::Conflict("annotation identity index source differs"));
+        return Err(DurableError::Conflict(
+            "annotation identity index source differs",
+        ));
     }
     Ok(())
 }
@@ -328,7 +370,9 @@ pub(crate) fn lookup_current_owners(
         &[&domain, &token, &as_i64(MAX_FILES + 1)?],
     )?;
     if rows.len() > MAX_FILES {
-        return Err(DurableError::Refused("annotation identity point owner bound"));
+        return Err(DurableError::Refused(
+            "annotation identity point owner bound",
+        ));
     }
     let mut owners = BTreeSet::new();
     for row in rows {
@@ -339,7 +383,9 @@ pub(crate) fn lookup_current_owners(
         if row.get::<_, String>(2) != definition.to_hex()
             || row.get::<_, Option<String>>(3).as_deref() != Some(digest.to_hex().as_str())
         {
-            return Err(DurableError::Conflict("annotation identity point source differs"));
+            return Err(DurableError::Conflict(
+                "annotation identity point source differs",
+            ));
         }
         owners.insert(AnnotationEntityOwner {
             path,

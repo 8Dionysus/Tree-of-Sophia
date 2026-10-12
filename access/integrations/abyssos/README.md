@@ -31,11 +31,13 @@ operation list. `--sessions 2|8|16|64|128|256` selects the stage (default 2);
 the harness launches each operation index as a concurrent wave across logical
 sessions. `--operation-count` caps measured operations independently and selects
 them in round order across selected sessions; a truncated conflict group is
-rejected by schedule validation. An operation declares `channel`,
-`label`, `request`, and an expected status plus either an exact
-`expected_sha256` or a complete `expected_body`. A semantic body expectation
-still checks exact JSON shape and fixed values; `ignored_json_paths` admits only
-the harness's bounded typed volatile fields. MCP, signed owner HTTP, and native
+rejected by schedule validation. Each operation declares `channel`, `label`,
+and `request`. Ordinary operations also declare an expected status plus either
+an exact `expected_sha256` or a complete `expected_body`. Bounded navigation
+advances use expected status zero and the harness's structural range oracle
+instead. A semantic body expectation still checks exact JSON shape and fixed
+values; `ignored_json_paths` admits only the harness's bounded typed volatile
+fields. MCP, signed owner HTTP, and native
 SDK channels keep separate in-flight limits. Native SDK concurrency is selected
 with `--sdk-in-flight 1..4` (default 4); each item is a separate native process.
 `--channel-mix mcp=P,owner_http=P,sdk=P,projection=P` selects the requested
@@ -112,8 +114,34 @@ adding a second command implementation. Setup is serial and its result is
 reported separately; load waves begin only after all setup operations pass.
 
 The `projection` channel invokes the existing native `source-projection`
-process for `init`, `status`, `apply`, `search`, `search-text`, or
-`exact-source`. An `apply` entry may set `interrupt_resume_after_ms`; the runner
+process for `init`, `status`, `apply`, `search`, `search-text`,
+`exact-source`, or bounded `advance-navigation`. Text operations use the
+`tos_source_projection_selection_v1` selection. Navigation uses the exact
+protected `tos_local_source_navigation_owner_v1` selection and its nested
+producer limits. A navigation schedule pairs one `bootstrap-navigation` as the
+final serial setup operation with one or more measured
+`advance-navigation` requests using the same owner file; bootstrap is never a
+repeated load operation. Keep it after source bootstrap and fixture setup so
+the measured advance starts from that exact baseline. Each measured navigation
+request must use `max_events: 1`, stay within the selected producer limit, and
+pass the ordinary installed CLI. The runner validates each declared navigation
+outcome: one contiguous published range within `max_events`, an already-current
+idle response, a replayed range, or a `more_pending/event_budget_exceeded` prefix
+that advances the cursor while leaving residual lag. Missing event proof,
+an event that cannot fit the first-item budget, malformed ranges, unknown tags,
+and cursor movement outside the declared bound fail the operation. It records
+sequence lag before and after each request; a
+published pending prefix is a valid load observation and does not claim that the
+projection is current. After all scheduled workers finish,
+the runner performs a separate quiescent postload drain through the same
+protected selection, with `max_events: 1` per call. It requires the source head
+to remain stable, each call to advance the cursor, and the final cursor to reach
+that head; the drain is bounded by the overall deadline and the finite step cap.
+Its work is reported separately from load throughput and channel mix.
+Navigation exposes no queue age, so the report marks age as unavailable instead
+of estimating it. Text projection operations continue to report the owner's
+queue-age result.
+An `apply` entry may set `interrupt_resume_after_ms`; the runner
 then checks the durable cursor before and after terminating the process,
 requires a partially advanced cursor still below the source head, resumes the
 same apply request, and verifies that status becomes `Current`. This requires
@@ -225,8 +253,8 @@ and canonical reservation before opening an exclusive mode-0600
 status and response hashes, retries, reconnects, conflict-group pass/fail,
 requested channel percentages and scheduled/started/passed/failed/not-started
 counts by channel, load-phase latency and completed-operation throughput,
-projection sequence lag and owner-reported
-oldest pending age, cgroup CPU/memory/physical-I/O deltas, memory pressure
+text-projection sequence lag and owner-reported oldest pending age, navigation
+sequence lag before/after bounded advances, cgroup CPU/memory/physical-I/O deltas, memory pressure
 events, actual owner-stage clone bytes, and report allocation. Historical queue
 events without an enqueue time remain `unknown_historical`; the runner does not
 estimate their age from client time. The catalog preflight records only handler

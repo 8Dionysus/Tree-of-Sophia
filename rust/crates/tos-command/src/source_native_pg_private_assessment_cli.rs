@@ -12,7 +12,7 @@ use crate::durable_private_packages::{
 };
 use crate::source_assessment_journal::{
     AssessmentHistory, ProtectedAssessmentPgGrant,
-    commit_private_assessment_batch_with_expected_heads,
+    commit_private_assessment_batch_with_expected_heads_and_currentness,
     with_private_assessment_and_source_histories_guard_selected_schema,
 };
 use crate::source_cohort::revision::{
@@ -24,8 +24,8 @@ use crate::source_command::{
 use crate::source_native_cli::pg_claims as pg;
 use crate::source_native_cli::private_assessment as assessment;
 use crate::source_native_cli::private_assessment::AssessmentAppendPreparation;
-use crate::source_native_pg_growth_input::PgGrowthCurrentInput;
-use crate::source_private_assessment_layers::{OwnerLocalLayerPreflight, PrivateAssessmentLayers};
+use crate::source_native_cli::PgGrowthCurrentInput;
+use crate::source_private_assessment_layers::PrivateAssessmentLayers;
 use crate::source_revisions::ReadonlyRecordFiles;
 use crate::source_sign::pg::PgOwnerAssessmentPublicSources;
 use crate::source_text_owner::{OwnerTextContext, read_absolute};
@@ -36,11 +36,11 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
+use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::{
-    AssessmentMechanicsReport, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
+    AssessmentMechanicsReport, AssessmentReadInput, AssessmentRecordInput,
     evaluate_current_assessment_selected,
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
@@ -499,6 +499,25 @@ fn source_files(files: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<Vec<So
         .collect()
 }
 
+fn command_context(
+    identity: PgRecordRevisionIdentity,
+    config_raw: &[u8],
+    request_raw: &[u8],
+    uid: u32,
+    files: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<CommandContext> {
+    let context = CommandContext {
+        base_revision: identity.bootstrap_revision,
+        configuration_raw: config_raw.to_vec(),
+        request_raw: request_raw.to_vec(),
+        recorded_at: crate::source_serialization::instant()?,
+        effective_uid: u64::from(uid),
+        files: source_files(files)?,
+    };
+    context.check()?;
+    Ok(context)
+}
+
 fn insert_dependency(
     members: &mut BTreeMap<String, Vec<u8>>,
     path: String,
@@ -513,6 +532,137 @@ fn insert_dependency(
         ));
     }
     Ok(())
+}
+
+fn selected_component_members(
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    max_member_bytes: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let mut members = BTreeMap::new();
+    for member in components.members() {
+        let raw = software
+            .read_selected_component(
+                components,
+                &member.path,
+                max_member_bytes,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| SourceCommandError::Conflict("private Assessment software changed"))?;
+        if raw.len() as u64 != member.size_bytes || Digest256::of_bytes(&raw) != member.sha256 {
+            return Err(SourceCommandError::Conflict(
+                "private Assessment software member identity changed",
+            ));
+        }
+        insert_dependency(&mut members, member.path.as_str().to_owned(), raw)?;
+    }
+    Ok(members)
+}
+
+fn package_head(history: &PrivateOwnerPackageHistoryV1) -> SourceCommandResult<Option<String>> {
+    let Some(current) = &history.current else {
+        if history.family.is_some() || !history.history.is_empty() {
+            return Err(SourceCommandError::Conflict(
+                "private Assessment package has history without a current head",
+            ));
+        }
+        return Ok(None);
+    };
+    let head = current
+        .members
+        .get("head")
+        .ok_or(SourceCommandError::Conflict(
+            "private Assessment package head member absent",
+        ))?;
+    let head = std::str::from_utf8(head)
+        .map_err(|_| SourceCommandError::Invalid("private Assessment package head UTF-8"))?;
+    if head.is_empty() || head.len() > 65 {
+        return Err(SourceCommandError::Invalid(
+            "private Assessment package head length",
+        ));
+    }
+    Ok(Some(head.to_owned()))
+}
+
+fn source_binding(
+    readset: &SourceRevisionReadSet,
+    dependencies: &BTreeMap<String, Vec<u8>>,
+    private_owner_audit_generation: u64,
+) -> SourceCommandResult<PrivateOwnerSourceBindingV1> {
+    let selected = readset.selection();
+    let reads = dependencies
+        .iter()
+        .map(|(path, bytes)| (path.clone(), bytes.clone()))
+        .collect::<Vec<_>>();
+    Ok(PrivateOwnerSourceBindingV1 {
+        head_seq: selected.head_seq,
+        source_epoch: selected.epoch,
+        source_generation: selected.source_generation,
+        source_revision: selected.cohort.initial_revision.0,
+        source_audit_generation: selected.audit_generation,
+        rights_version: selected.rights_version,
+        rule_version: selected.rule_version,
+        contract_digest: selected.contract,
+        job_id: selected.job_id.clone(),
+        job_fence: selected.job_fence,
+        readset_digest: private_owner_readset_digest(readset).map_err(pg::source_error)?,
+        dependency_digest: private_owner_dependency_digest(&reads).map_err(pg::source_error)?,
+        private_owner_audit_generation,
+    })
+}
+
+struct DeferredFinish<'a, W>(&'a mut W);
+
+impl<W: CutSchemaExecutor> CutSchemaExecutor for DeferredFinish<'_, W> {
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.0.selected_contract_digest(contract)
+    }
+
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, tos_validation::item_rules::ItemRefusal> {
+        self.0.check(path, raw, contract, deadline, cancelled)
+    }
+
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, tos_validation::item_rules::ItemRefusal> {
+        self.0
+            .check_reusing_scalar(path, raw, contract, deadline, cancelled)
+    }
+
+    fn finish(
+        &mut self,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> Result<(), tos_validation::item_rules::ItemRefusal> {
+        Ok(())
+    }
+}
+
+struct PgAssessmentAttempt {
+    operation: PgAssessmentOperation,
+    owner: OwnerTextContext,
+    grant: ProtectedAssessmentPgGrant,
+    config_raw: Vec<u8>,
+    target_ref: String,
+    expected_current: Option<PrivateOwnerPackageSnapshotV1>,
+    dependencies: BTreeMap<String, Vec<u8>>,
+    package_histories: BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+    source_binding: PrivateOwnerSourceBindingV1,
 }
 
 struct AssessmentPreflight {
@@ -645,7 +795,7 @@ pub(crate) fn run(
 
     let (
         (
-            identity,
+            initial_identity,
             mut owner,
             selected_context,
             grant,
@@ -761,19 +911,25 @@ pub(crate) fn run(
             },
         )
         .map_err(pg::source_error)?;
-
     let version = assessment::OwnerVersion::from_config(&config)?;
-    let _request = assessment::parse_request(&request_raw, version)?;
+    let request = assessment::parse_request(&request_raw, version)?;
     if !matches!(
         version,
         assessment::OwnerVersion::V5 | assessment::OwnerVersion::V6
-    ) || selected_context.is_null()
-    {
+    ) {
         return Err(SourceCommandError::Denied(
             "private PostgreSQL Assessment owner selection",
         ));
     }
-    owner.verify_current(deadline, cancelled)?;
+    if !matches!(
+        request.operation.as_str(),
+        "describe" | "inspect" | "append" | "materialize-form" | "read-layer-comparison"
+    ) {
+        return Err(SourceCommandError::Unsupported(
+            "private PostgreSQL Assessment operation",
+        ));
+    }
+    owner.snapshot(deadline, cancelled)?;
     grant.verify_current(deadline, cancelled)?;
     if read_absolute(
         invocation_path,
@@ -790,25 +946,1089 @@ pub(crate) fn run(
         ));
     }
 
-    // The selected PG source, protected v5/v6 grant, and candidate schema
-    // profile are now bound to one source epoch. Operation-history evaluation
-    // is deliberately fail-closed until its complete multi-target guard and
-    // private-broker writer are attached to this callable route.
-    let _ = (
-        max_members,
-        max_total_bytes,
+    let software_members = selected_component_members(
+        &software,
+        &components,
         max_member_bytes,
-        components,
-        software,
-        owner,
-        scope,
-        config_raw,
-        entity_raw,
-        relation_raw,
-        source_targets,
-        request_raw,
+        deadline,
+        cancelled,
+    )?;
+    let initial_source_packages = if source_targets.is_empty() {
+        BTreeMap::new()
+    } else {
+        history_db
+            .with_private_owner_package_histories_guard(
+                &scope,
+                &source_targets,
+                crate::durable_private_packages::MAX_PACKAGE_HISTORY_ROWS,
+                crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES,
+                deadline,
+                cancelled,
+                |histories, _, _| Ok(histories.clone()),
+            )
+            .map_err(pg::source_error)?
+    };
+    let mut schema_paths =
+        crate::source_private_assessment_pg_sources::private_source_schema_paths(
+            &owner,
+            &config,
+            &initial_source_packages,
+            &entity_raw,
+            &relation_raw,
+        )?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    schema_paths.insert(CONTEXT_SCHEMA.to_owned());
+    schema_paths.insert(BATCH_SCHEMA.to_owned());
+    for path in crate::source_private_assessment_layers::selected_pg_contract_paths() {
+        schema_paths.insert((*path).to_owned());
+    }
+    for path in software_members.keys() {
+        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
+            schema_paths.insert(path.clone());
+        }
+    }
+    if schema_paths.len() > MAX_SCHEMA_FILES {
+        return Err(SourceCommandError::Invalid(
+            "private Assessment schema path budget",
+        ));
+    }
+    let schema_paths = schema_paths.into_iter().collect::<Vec<_>>();
+    let layer_preflight = Some(
+        crate::source_private_assessment_layers::preflight_owner_local_layers(
+            &config,
+            cmd::field(&config, "subjects")?,
+            cmd::text(&config, "schema_version")?,
+        )?,
     );
-    Err(SourceCommandError::Unsupported(
-        "private PostgreSQL Assessment history-bound operation runtime",
-    ))
+
+    let ((mut preflight_worker, schema_members, lock_subjects, subject_targets), _) = source_db
+        .with_source_revision_session(
+            &store,
+            &selection.domain,
+            &selection.job_id,
+            selection.job_fence,
+            deadline,
+            cancelled,
+            |session| {
+                let identity = session.selection().identity();
+                if identity != initial_identity || identity.contract != selection.contract {
+                    return Err(DurableError::Conflict(
+                        "private Assessment source identity changed",
+                    ));
+                }
+                let mut schemas = BTreeMap::new();
+                let mut schema_total = 0u64;
+                for path in &schema_paths {
+                    let raw = pg_read_member(
+                        session,
+                        path,
+                        MAX_SCHEMA_MEMBER_BYTES as usize,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
+                    schema_total = schema_total
+                        .checked_add(raw.len() as u64)
+                        .filter(|total| *total <= MAX_SCHEMA_BYTES)
+                        .ok_or(DurableError::Invalid(
+                            "private Assessment selected schema byte budget",
+                        ))?;
+                    schemas.insert(path.clone(), raw);
+                }
+                let current_entity =
+                    pg_read_member(session, ENTITY_REGISTRY, 4_194_304, deadline, cancelled)
+                        .map_err(DurableError::Source)?;
+                let current_relation =
+                    pg_read_member(session, RELATION_REGISTRY, 4_194_304, deadline, cancelled)
+                        .map_err(DurableError::Source)?;
+                if current_entity != entity_raw || current_relation != relation_raw {
+                    return Err(DurableError::Conflict(
+                        "private Assessment semantic registries changed",
+                    ));
+                }
+                let mut authored = schemas.clone();
+                insert_dependency(&mut authored, ENTITY_REGISTRY.to_owned(), current_entity)
+                    .map_err(DurableError::Source)?;
+                insert_dependency(
+                    &mut authored,
+                    RELATION_REGISTRY.to_owned(),
+                    current_relation,
+                )
+                .map_err(DurableError::Source)?;
+                for (path, raw) in &software_members {
+                    if !path.starts_with("ToS/") {
+                        continue;
+                    }
+                    if path.starts_with("ToS/source-witnesses/owner-local/") {
+                        return Err(DurableError::Refused(
+                            "private Assessment software contains owner-local material",
+                        ));
+                    }
+                    let selected = pg_read_member(
+                        session,
+                        path,
+                        usize::try_from(max_member_bytes)
+                            .unwrap_or(MAX_PG_ASSESSMENT_MEMBER_BYTES as usize),
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
+                    if &selected != raw {
+                        return Err(DurableError::Conflict(
+                            "private Assessment selected software differs from PG source",
+                        ));
+                    }
+                    insert_dependency(&mut authored, path.clone(), selected)
+                        .map_err(DurableError::Source)?;
+                }
+                let context_schema = schemas.get(CONTEXT_SCHEMA).ok_or(DurableError::Conflict(
+                    "private Assessment context schema absent",
+                ))?;
+                let identity = session.selection().identity();
+                let mut worker = assessment::selected_assessment_candidate_worker(
+                    invocation,
+                    session,
+                    identity,
+                    &schema_paths,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                let (mut owner, selected_context) = OwnerTextContext::select_pg(
+                    &context_path,
+                    context_schema,
+                    &mut worker,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                owner
+                    .install_pg_selected_members(authored.clone())
+                    .map_err(DurableError::Source)?;
+                let mut command_files = authored;
+                for (path, raw) in &software_members {
+                    insert_dependency(&mut command_files, path.clone(), raw.clone())
+                        .map_err(DurableError::Source)?;
+                }
+                let context =
+                    command_context(identity, &config_raw, &request_raw, uid, &command_files)
+                        .map_err(DurableError::Source)?;
+                let mut input = PgGrowthCurrentInput::new(
+                    session,
+                    max_members,
+                    usize::try_from(max_member_bytes)
+                        .unwrap_or(MAX_PG_ASSESSMENT_MEMBER_BYTES as usize),
+                )
+                .map_err(|_| {
+                    DurableError::Source(SourceCommandError::Invalid(
+                        "private Assessment PG input budget",
+                    ))
+                })?;
+                let private_sources =
+                    crate::source_private_assessment_pg_sources::select_owner_local_sources_pg(
+                        &mut owner,
+                        &selected_context,
+                        &config,
+                        &context,
+                        &input,
+                        &initial_source_packages,
+                        &mut worker,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
+                if private_sources.target_refs != source_targets {
+                    return Err(DurableError::Conflict(
+                        "private Assessment source package target set changed",
+                    ));
+                }
+                let mut public_sources =
+                    crate::source_sign::pg::select_owner_assessment_public_sources_pg(
+                        &input,
+                        &config,
+                        &mut worker,
+                        Some(&owner),
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
+                let mut budget = assessment::OperationBudget::new(invocation, deadline)
+                    .map_err(DurableError::Source)?;
+                budget
+                    .charge_bytes(
+                        private_sources
+                            .input_bytes()
+                            .map_err(DurableError::Source)?,
+                    )
+                    .map_err(DurableError::Source)?;
+                budget
+                    .charge_bytes(public_sources.input_bytes().map_err(DurableError::Source)?)
+                    .map_err(DurableError::Source)?;
+                let mut resolved = assessment::AssessmentResolvedSources::from_selected_rows(
+                    &public_sources.rows,
+                    &private_sources.records,
+                    &public_sources.native_rows,
+                    &private_sources.native_records,
+                    &mut budget,
+                )
+                .map_err(DurableError::Source)?;
+                let layers =
+                    crate::source_private_assessment_layers::select_owner_local_layers_selected_pg(
+                        &mut owner,
+                        &selected_context,
+                        &config,
+                        &resolved
+                            .source_records
+                            .iter()
+                            .map(assessment::record_input)
+                            .collect::<SourceCommandResult<Vec<_>>>()
+                            .map_err(DurableError::Source)?,
+                        &identity,
+                        &schemas,
+                        &mut worker,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
+                budget
+                    .charge_bytes(usize::try_from(layers.input_bytes()).map_err(|_| {
+                        DurableError::Source(SourceCommandError::Invalid(
+                            "private Assessment layer input byte conversion",
+                        ))
+                    })?)
+                    .map_err(DurableError::Source)?;
+                resolved
+                    .add_layer_records(&layers.records(), &mut budget)
+                    .map_err(DurableError::Source)?;
+                let plan = assessment::plan_assessment_evaluation(
+                    assessment::AssessmentEvaluationInputs {
+                        config: &config,
+                        configuration_raw: &config_raw,
+                        request: &request,
+                        version,
+                        resolved,
+                        public_fixity: &public_sources.fixity,
+                        public_identity_snapshots: &public_sources.identity_snapshots,
+                        public_claim_dependencies: &public_sources.claim_dependencies,
+                        private_source_snapshot: &private_sources.owner_local_sources_snapshot,
+                        private_native_snapshots: &private_sources.native_snapshots,
+                        private_required_source_refs: &private_sources.required_source_refs,
+                        private_required_languages: &private_sources.required_languages,
+                        native_summaries: &private_sources.native_summaries,
+                        layers: Some(&layers),
+                        layer_preflight: Some(&layer_preflight),
+                    },
+                    &mut budget,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                let lock_subjects = plan.lock_subjects.clone();
+                let mut subject_targets = lock_subjects
+                    .iter()
+                    .map(|subject| {
+                        Ok((
+                            subject.clone(),
+                            grant
+                                .target_ref(&owner, subject)
+                                .map_err(DurableError::Source)?,
+                        ))
+                    })
+                    .collect::<DurableResult<Vec<_>>>()?;
+                subject_targets.sort_by(|left, right| left.0.cmp(&right.0));
+                Ok((worker, schemas, lock_subjects, subject_targets))
+            },
+        )
+        .map_err(pg::source_error)?;
+    let mut all_targets = subject_targets
+        .iter()
+        .map(|(_, target)| target.clone())
+        .chain(source_targets.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if all_targets.is_empty()
+        || all_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
+    {
+        return Err(SourceCommandError::Invalid(
+            "private Assessment package history target budget",
+        ));
+    }
+    let baseline_packages = history_db
+        .with_private_owner_package_histories_guard(
+            &scope,
+            &all_targets,
+            crate::durable_private_packages::MAX_PACKAGE_HISTORY_ROWS,
+            crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES,
+            deadline,
+            cancelled,
+            |histories, _, _| Ok(histories.clone()),
+        )
+        .map_err(pg::source_error)?;
+    let expected_heads = subject_targets
+        .iter()
+        .map(|(subject, target)| {
+            Ok((
+                subject.clone(),
+                package_head(baseline_packages.get(target).ok_or(
+                    SourceCommandError::Conflict("private Assessment baseline history absent"),
+                )?)?,
+            ))
+        })
+        .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
+    let preflight = AssessmentPreflight {
+        identity,
+        worker: preflight_worker,
+        schema_paths,
+        schema_members,
+        lock_subjects,
+        subject_targets,
+        expected_heads,
+    };
+
+    let mut worker = preflight.worker;
+    let attempt = with_private_assessment_and_source_histories_guard_selected_schema(
+            &mut history_db,
+            &scope,
+            &preflight.subject_targets,
+            &source_targets,
+            &preflight.expected_heads,
+            preflight
+                .schema_members
+                .get(BATCH_SCHEMA)
+                .ok_or(SourceCommandError::Conflict(
+                    "private Assessment batch schema absent",
+                ))?,
+            &preflight.identity,
+            &mut worker,
+            crate::durable_private_packages::MAX_PACKAGE_HISTORY_ROWS,
+            crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES,
+            deadline,
+            cancelled,
+            |histories, assessment_packages, source_packages, held_deadline, held_cancelled| {
+                let ((operation, owner, grant, current_config_raw, target_ref, expected_current, dependencies, private_generation, package_histories), readset) =
+                    source_db.with_source_revision_session(
+                        &store,
+                        &selection.domain,
+                        &selection.job_id,
+                        selection.job_fence,
+                        held_deadline,
+                        held_cancelled,
+                        |session| {
+                            let identity = session.selection().identity();
+                            if identity != preflight.identity || identity.contract != selection.contract {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment source identity changed during history guard",
+                                ));
+                            }
+                            let mut schemas = BTreeMap::new();
+                            for path in &preflight.schema_paths {
+                                schemas.insert(
+                                    path.clone(),
+                                    pg_read_member(
+                                        session,
+                                        path,
+                                        MAX_SCHEMA_MEMBER_BYTES as usize,
+                                        held_deadline,
+                                        held_cancelled,
+                                    )
+                                    .map_err(DurableError::Source)?,
+                                );
+                            }
+                            if schemas != preflight.schema_members {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment selected schema bytes changed",
+                                ));
+                            }
+                            let current_entity = pg_read_member(
+                                session,
+                                ENTITY_REGISTRY,
+                                4_194_304,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let current_relation = pg_read_member(
+                                session,
+                                RELATION_REGISTRY,
+                                4_194_304,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            if current_entity != entity_raw || current_relation != relation_raw {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment semantic registries changed",
+                                ));
+                            }
+                            let mut authored = schemas.clone();
+                            insert_dependency(
+                                &mut authored,
+                                ENTITY_REGISTRY.to_owned(),
+                                current_entity,
+                            )
+                            .map_err(DurableError::Source)?;
+                            insert_dependency(
+                                &mut authored,
+                                RELATION_REGISTRY.to_owned(),
+                                current_relation,
+                            )
+                            .map_err(DurableError::Source)?;
+                            for (path, raw) in &software_members {
+                                if !path.starts_with("ToS/") {
+                                    continue;
+                                }
+                                let selected = pg_read_member(
+                                    session,
+                                    path,
+                                    usize::try_from(max_member_bytes).unwrap_or(
+                                        MAX_PG_ASSESSMENT_MEMBER_BYTES as usize,
+                                    ),
+                                    held_deadline,
+                                    held_cancelled,
+                                )
+                                .map_err(DurableError::Source)?;
+                                if &selected != raw {
+                                    return Err(DurableError::Conflict(
+                                        "private Assessment selected software differs from PG source",
+                                    ));
+                                }
+                                insert_dependency(&mut authored, path.clone(), selected)
+                                    .map_err(DurableError::Source)?;
+                            }
+                            let context_schema = schemas
+                                .get(CONTEXT_SCHEMA)
+                                .ok_or(DurableError::Conflict(
+                                    "private Assessment context schema absent",
+                                ))?;
+                            let mut selected_worker = DeferredFinish(&mut worker);
+                            let (mut owner, selected_context) = OwnerTextContext::select_pg(
+                                &context_path,
+                                context_schema,
+                                &mut selected_worker,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            owner
+                                .install_pg_selected_members(authored.clone())
+                                .map_err(DurableError::Source)?;
+                            let grant = ProtectedAssessmentPgGrant::select(
+                                &grant_path,
+                                &context_path,
+                                &owner,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let config = grant.configuration();
+                            let current_config_raw = grant.configuration_raw().to_vec();
+                            if current_config_raw != config_raw
+                                || PrivateOwnerScopeV1::for_context(
+                                    &selection.domain,
+                                    owner
+                                        .private_owner_scope_binding(held_deadline, held_cancelled)
+                                        .map_err(DurableError::Source)?,
+                                )
+                                .map_err(|_| DurableError::Invalid("private Assessment scope"))?
+                                    != scope
+                            {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment owner configuration or scope changed",
+                                ));
+                            }
+                            let version = assessment::OwnerVersion::from_config(config)
+                                .map_err(DurableError::Source)?;
+                            let request = assessment::parse_request(&request_raw, version)
+                                .map_err(DurableError::Source)?;
+                            let mut command_files = authored;
+                            for (path, raw) in &software_members {
+                                insert_dependency(&mut command_files, path.clone(), raw.clone())
+                                    .map_err(DurableError::Source)?;
+                            }
+                            let command = command_context(
+                                identity,
+                                &current_config_raw,
+                                &request_raw,
+                                uid,
+                                &command_files,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let mut input = PgGrowthCurrentInput::new(
+                                session,
+                                max_members,
+                                usize::try_from(max_member_bytes).unwrap_or(
+                                    MAX_PG_ASSESSMENT_MEMBER_BYTES as usize,
+                                ),
+                            )
+                            .map_err(|_| {
+                                DurableError::Source(SourceCommandError::Invalid(
+                                    "private Assessment PG input budget",
+                                ))
+                            })?;
+                            let private = crate::source_private_assessment_pg_sources::select_owner_local_sources_pg(
+                                &mut owner,
+                                &selected_context,
+                                config,
+                                &command,
+                                &input,
+                                source_packages,
+                                &mut selected_worker.0,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            if private.target_refs != source_targets {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment source package target set changed",
+                                ));
+                            }
+                            let mut public = crate::source_sign::pg::select_owner_assessment_public_sources_pg(
+                                &input,
+                                config,
+                                &mut selected_worker.0,
+                                Some(&owner),
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let mut budget = assessment::OperationBudget::new(invocation, held_deadline)
+                                .map_err(DurableError::Source)?;
+                            budget
+                                .charge_bytes(
+                                    private
+                                        .input_bytes()
+                                        .map_err(DurableError::Source)?,
+                                )
+                                .map_err(DurableError::Source)?;
+                            budget
+                                .charge_bytes(
+                                    public
+                                        .input_bytes()
+                                        .map_err(DurableError::Source)?,
+                                )
+                                .map_err(DurableError::Source)?;
+                            let mut resolved = assessment::AssessmentResolvedSources::from_selected_rows(
+                                &public.rows,
+                                &private.records,
+                                &public.native_rows,
+                                &private.native_records,
+                                &mut budget,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let layers = crate::source_private_assessment_layers::select_owner_local_layers_selected_pg(
+                                &mut owner,
+                                &selected_context,
+                                config,
+                                &resolved
+                                    .source_records
+                                    .iter()
+                                    .map(assessment::record_input)
+                                    .collect::<SourceCommandResult<Vec<_>>>()
+                                    .map_err(DurableError::Source)?,
+                                &identity,
+                                &schemas,
+                                &mut selected_worker.0,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            budget
+                                .charge_bytes(
+                                    usize::try_from(layers.input_bytes()).map_err(|_| {
+                                        DurableError::Source(SourceCommandError::Invalid(
+                                            "private Assessment layer input byte conversion",
+                                        ))
+                                    })?,
+                                )
+                                .map_err(DurableError::Source)?;
+                            resolved
+                                .add_layer_records(&layers.records(), &mut budget)
+                                .map_err(DurableError::Source)?;
+                            let plan = assessment::plan_assessment_evaluation(
+                                assessment::AssessmentEvaluationInputs {
+                                    config,
+                                    configuration_raw: &current_config_raw,
+                                    request: &request,
+                                    version,
+                                    resolved,
+                                    public_fixity: &public.fixity,
+                                    public_identity_snapshots: &public.identity_snapshots,
+                                    public_claim_dependencies: &public.claim_dependencies,
+                                    private_source_snapshot: &private.owner_local_sources_snapshot,
+                                    private_native_snapshots: &private.native_snapshots,
+                                    private_required_source_refs: &private.required_source_refs,
+                                    private_required_languages: &private.required_languages,
+                                    native_summaries: &private.native_summaries,
+                                    layers: Some(&layers),
+                                    layer_preflight: layer_preflight.as_ref(),
+                                },
+                                &mut budget,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            if plan.lock_subjects != preflight.lock_subjects {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment history closure changed",
+                                ));
+                            }
+                            let mut current_targets = plan
+                                .lock_subjects
+                                .iter()
+                                .map(|subject| {
+                                    Ok((
+                                        subject.clone(),
+                                        grant
+                                            .target_ref(&owner, subject)
+                                            .map_err(DurableError::Source)?,
+                                    ))
+                                })
+                                .collect::<DurableResult<Vec<_>>>()?;
+                            current_targets.sort_by(|left, right| left.0.cmp(&right.0));
+                            if current_targets != preflight.subject_targets {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment target mapping changed",
+                                ));
+                            }
+                            let private_generation = assessment_packages
+                                .values()
+                                .chain(source_packages.values())
+                                .map(|package| package.private_audit_generation)
+                                .next()
+                                .ok_or(DurableError::Invalid(
+                                    "private Assessment audit generation absent",
+                                ))?;
+                            if assessment_packages
+                                .values()
+                                .chain(source_packages.values())
+                                .any(|package| package.private_audit_generation != private_generation)
+                            {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment package audit generations differ",
+                                ));
+                            }
+                            private
+                                .verify_current(&owner, &input, source_packages, held_deadline, held_cancelled)
+                                .map_err(DurableError::Source)?;
+                            public
+                                .verify_current(&input, held_deadline, held_cancelled)
+                                .map_err(DurableError::Source)?;
+                            layers
+                                .verify_current(&owner, held_deadline, held_cancelled)
+                                .map_err(DurableError::Source)?;
+                            owner
+                                .verify_current(held_deadline, held_cancelled)
+                                .map_err(DurableError::Source)?;
+                            grant
+                                .verify_current(held_deadline, held_cancelled)
+                                .map_err(DurableError::Source)?;
+                            let subject = &request.subject_id;
+                            for lock_subject in &plan.lock_subjects {
+                                let history = histories.get(lock_subject).ok_or(
+                                    DurableError::Invalid(
+                                        "private Assessment locked subject history absent",
+                                    ),
+                                )?;
+                                budget
+                                    .charge_work(1)
+                                    .map_err(DurableError::Source)?;
+                                budget
+                                    .charge_bytes(
+                                        history
+                                            .input_bytes()
+                                            .map_err(DurableError::Source)?,
+                                    )
+                                    .map_err(DurableError::Source)?;
+                                budget
+                                    .charge_work(
+                                        history
+                                            .submissions
+                                            .len()
+                                            .saturating_add(history.batches.len()),
+                                    )
+                                    .map_err(DurableError::Source)?;
+                            }
+                            let history = histories.get(subject).ok_or(DurableError::Invalid(
+                                "private Assessment subject history absent",
+                            ))?;
+                            let mut evaluate = |read_input: &AssessmentReadInput,
+                                                schema_worker: &mut DeferredFinish<'_, CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>>,
+                                                limits: tos_validation::assessment::AssessmentLimits,
+                                                cancelled: &AtomicBool| {
+                                evaluate_current_assessment_selected(
+                                    read_input,
+                                    &identity,
+                                    identity.digest(),
+                                    &mut schema_worker.0,
+                                    limits,
+                                    cancelled,
+                                )
+                                .map_err(assessment::map_assessment_refusal)
+                            };
+                            let evaluation = assessment::evaluate_assessment_histories(
+                                &plan,
+                                histories,
+                                &command.recorded_at,
+                                None,
+                                identity.digest(),
+                                &mut selected_worker,
+                                &mut budget,
+                                held_cancelled,
+                                &mut evaluate,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let operation = execute_selected_operation(
+                                &request,
+                                version,
+                                config,
+                                &command,
+                                &plan,
+                                history,
+                                &evaluation,
+                                &private.records,
+                                &private.native_summaries,
+                                &private.form_paths,
+                                &private.form_sets,
+                                &private.source_paths,
+                                &mut public,
+                                Some(&layers),
+                                &mut selected_worker,
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?;
+                            let mut dependencies = authored;
+                            for (path, raw) in &software_members {
+                                insert_dependency(&mut dependencies, path.clone(), raw.clone())
+                                    .map_err(DurableError::Source)?;
+                            }
+                            for (path, raw) in private.dependency_members() {
+                                insert_dependency(&mut dependencies, path, raw)
+                                    .map_err(DurableError::Source)?;
+                            }
+                            for (path, raw) in &public.selected_members {
+                                insert_dependency(&mut dependencies, path.clone(), raw.clone())
+                                    .map_err(DurableError::Source)?;
+                            }
+                            let context_snapshot = owner
+                                .snapshot(held_deadline, held_cancelled)
+                                .map_err(DurableError::Source)?
+                                .to_prefixed();
+                            insert_dependency(
+                                &mut dependencies,
+                                "private-owner/context-snapshot.sha256".to_owned(),
+                                context_snapshot.as_bytes().to_vec(),
+                            )
+                            .map_err(DurableError::Source)?;
+                            if let Some(layers) = Some(&layers) {
+                                insert_dependency(
+                                    &mut dependencies,
+                                    "private-owner/native-layer-assessment-snapshot.sha256".to_owned(),
+                                    layers.source_snapshot.as_bytes().to_vec(),
+                                )
+                                .map_err(DurableError::Source)?;
+                            }
+                            let target_ref = grant
+                                .target_ref(&owner, subject)
+                                .map_err(DurableError::Source)?;
+                            let expected_current = assessment_packages
+                                .get(subject)
+                                .and_then(|package| package.current.clone());
+                            let mut package_histories = BTreeMap::new();
+                            for (subject_id, assessment_target) in &preflight.subject_targets {
+                                let history = assessment_packages.get(subject_id).ok_or(
+                                    DurableError::Invalid(
+                                        "private Assessment subject package history absent",
+                                    ),
+                                )?;
+                                if package_histories
+                                    .insert(assessment_target.clone(), history.clone())
+                                    .is_some()
+                                {
+                                    return Err(DurableError::Conflict(
+                                        "private Assessment package target collision",
+                                    ));
+                                }
+                            }
+                            for (target, history) in source_packages {
+                                if package_histories.insert(target.clone(), history.clone()).is_some() {
+                                    return Err(DurableError::Conflict(
+                                        "private Assessment history target collision",
+                                    ));
+                                }
+                            }
+                            if read_absolute(
+                                invocation_path,
+                                uid,
+                                true,
+                                invocation_raw.len(),
+                                held_deadline,
+                                held_cancelled,
+                            )
+                            .map_err(DurableError::Source)?
+                                != invocation_raw
+                                || runtime
+                                    .current_digest(held_deadline, held_cancelled)
+                                    .map_err(DurableError::Source)?
+                                    != executable_digest
+                            {
+                                return Err(DurableError::Conflict(
+                                    "private Assessment invocation or executable changed",
+                                ));
+                            }
+                            Ok((
+                                operation,
+                                owner,
+                                grant,
+                                current_config_raw,
+                                target_ref,
+                                expected_current,
+                                dependencies,
+                                private_generation,
+                                package_histories,
+                            ))
+                        },
+                    )?;
+                let binding = source_binding(&readset, &operation.6, operation.7)
+                    .map_err(DurableError::Source)?;
+                let (
+                    operation,
+                    owner,
+                    grant,
+                    config_raw,
+                    target_ref,
+                    expected_current,
+                    dependencies,
+                    private_generation,
+                    package_histories,
+                ) = operation;
+                Ok(PgAssessmentAttempt {
+                    operation,
+                    owner,
+                    grant,
+                    config_raw,
+                    target_ref,
+                    expected_current,
+                    dependencies,
+                    package_histories,
+                    source_binding: binding,
+                })
+            },
+        )
+        .map_err(pg::source_error)?;
+
+    let context_snapshot = attempt.owner.snapshot(deadline, cancelled)?.to_prefixed();
+    if attempt
+        .dependencies
+        .get("private-owner/context-snapshot.sha256")
+        .map(Vec::as_slice)
+        != Some(context_snapshot.as_bytes())
+    {
+        return Err(SourceCommandError::Conflict(
+            "private Assessment owner context changed after selection",
+        ));
+    }
+    attempt.grant.verify_current(deadline, cancelled)?;
+    if attempt.grant.configuration_raw() != attempt.config_raw
+        || read_absolute(
+            invocation_path,
+            uid,
+            true,
+            invocation_raw.len(),
+            deadline,
+            cancelled,
+        )? != invocation_raw
+        || runtime.current_digest(deadline, cancelled)? != executable_digest
+        || selected_component_members(
+            &software,
+            &components,
+            max_member_bytes,
+            deadline,
+            cancelled,
+        )? != software_members
+    {
+        return Err(SourceCommandError::Conflict(
+            "private Assessment invocation, owner grant or software changed",
+        ));
+    }
+    all_targets = attempt.package_histories.keys().cloned().collect();
+    let current_package_histories = history_db
+        .with_private_owner_package_histories_guard(
+            &scope,
+            &all_targets,
+            crate::durable_private_packages::MAX_PACKAGE_HISTORY_ROWS,
+            crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES,
+            deadline,
+            cancelled,
+            |histories, _, _| Ok(histories.clone()),
+        )
+        .map_err(pg::source_error)?;
+    if current_package_histories != attempt.package_histories {
+        return Err(SourceCommandError::Conflict(
+            "private Assessment source or history packages changed after selection",
+        ));
+    }
+
+    match attempt.operation {
+        PgAssessmentOperation::Read(result) => {
+            serde_json::from_slice(&cmd::canonical(&cmd::object(vec![
+                (
+                    "schema_version",
+                    cmd::string("tos_native_pg_private_assessment_result_v1"),
+                ),
+                ("authentication", cmd::string("local-unix-account")),
+                ("family", cmd::string("assessment")),
+                (
+                    "command_id",
+                    request
+                        .command_id
+                        .as_ref()
+                        .map(|value| cmd::string(value))
+                        .unwrap_or(JsonValue::Null),
+                ),
+                ("replayed", JsonValue::Bool(false)),
+                ("grants_admission", JsonValue::Bool(false)),
+                ("result", result),
+            ]))?)
+            .map_err(|_| SourceCommandError::Invalid("private Assessment result JSON"))
+        }
+        PgAssessmentOperation::Append(AssessmentAppendPreparation::Replayed(result)) => {
+            serde_json::from_slice(&cmd::canonical(&cmd::object(vec![
+                (
+                    "schema_version",
+                    cmd::string("tos_native_pg_private_assessment_result_v1"),
+                ),
+                ("authentication", cmd::string("local-unix-account")),
+                ("family", cmd::string("assessment")),
+                (
+                    "command_id",
+                    request
+                        .command_id
+                        .as_ref()
+                        .map(|value| cmd::string(value))
+                        .unwrap_or(JsonValue::Null),
+                ),
+                ("replayed", JsonValue::Bool(true)),
+                ("grants_admission", JsonValue::Bool(false)),
+                ("result", result),
+            ]))?)
+            .map_err(|_| SourceCommandError::Invalid("private Assessment result JSON"))
+        }
+        PgAssessmentOperation::Append(AssessmentAppendPreparation::New {
+            batch,
+            request_digest,
+            result,
+            ..
+        }) => {
+            let command_id = request
+                .command_id
+                .as_deref()
+                .ok_or(SourceCommandError::Invalid(
+                    "private Assessment append command identity absent",
+                ))?;
+            let response_bytes = cmd::canonical(&result)?;
+            let expected_package_heads = preflight
+                .subject_targets
+                .iter()
+                .map(|(subject_id, target)| {
+                    Ok((
+                        target.clone(),
+                        preflight.expected_heads.get(subject_id).cloned().ok_or(
+                            SourceCommandError::Conflict(
+                                "private Assessment expected subject head absent",
+                            ),
+                        )?,
+                    ))
+                })
+                .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
+            let write = PrivateOwnerPackageWriteV1 {
+                scope: scope.clone(),
+                family: PrivateOwnerPackageFamilyV1::Assessment,
+                target_ref: attempt.target_ref.clone(),
+                expected_current: attempt.expected_current.clone(),
+                members: BTreeMap::new(),
+                archives: Vec::new(),
+                command_id: command_id.to_owned(),
+                request_digest,
+                raw_request_digest: Digest256::of_bytes(&request_raw),
+                owner_configuration_digest: Digest256::of_bytes(&attempt.config_raw),
+                source_binding: attempt.source_binding,
+                response_bytes,
+            };
+            let revalidate_currentness = || -> SourceCommandResult<()> {
+                let context_snapshot = attempt.owner.snapshot(deadline, cancelled)?.to_prefixed();
+                if attempt
+                    .dependencies
+                    .get("private-owner/context-snapshot.sha256")
+                    .map(Vec::as_slice)
+                    != Some(context_snapshot.as_bytes())
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Assessment owner context changed before commit",
+                    ));
+                }
+                attempt.grant.verify_current(deadline, cancelled)?;
+                if attempt.grant.configuration_raw() != attempt.config_raw
+                    || read_absolute(
+                        invocation_path,
+                        uid,
+                        true,
+                        invocation_raw.len(),
+                        deadline,
+                        cancelled,
+                    )? != invocation_raw
+                    || runtime.current_digest(deadline, cancelled)? != executable_digest
+                    || selected_component_members(
+                        &software,
+                        &components,
+                        max_member_bytes,
+                        deadline,
+                        cancelled,
+                    )? != software_members
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Assessment commit inputs changed",
+                    ));
+                }
+                Ok(())
+            };
+            let replay = commit_private_assessment_batch_with_expected_heads_and_currentness(
+                &mut commit_db,
+                write,
+                &batch,
+                expected_package_heads,
+                revalidate_currentness,
+            )
+            .map_err(pg::source_error)?;
+            serde_json::from_slice(&cmd::canonical(&cmd::object(vec![
+                (
+                    "schema_version",
+                    cmd::string("tos_native_pg_private_assessment_result_v1"),
+                ),
+                ("authentication", cmd::string("local-unix-account")),
+                ("family", cmd::string("assessment")),
+                ("command_id", cmd::string(command_id)),
+                ("commit_seq", cmd::number(replay.commit_seq)),
+                (
+                    "package_sha256",
+                    cmd::string(&replay.package_digest.to_prefixed()),
+                ),
+                (
+                    "receipt_sha256",
+                    cmd::string(&Digest256::of_bytes(&replay.response_bytes).to_prefixed()),
+                ),
+                ("replayed", JsonValue::Bool(replay.replayed)),
+                ("grants_admission", JsonValue::Bool(false)),
+                (
+                    "result",
+                    serde_json::from_slice(&cmd::canonical(&result)?).map_err(|_| {
+                        SourceCommandError::Invalid("private Assessment result JSON")
+                    })?,
+                ),
+            ]))?)
+            .map_err(|_| SourceCommandError::Invalid("private Assessment result JSON"))
+        }
+    }
 }

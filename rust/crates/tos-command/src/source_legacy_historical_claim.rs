@@ -4322,13 +4322,52 @@ pub(crate) fn pg_revision_owner_contribution(
     ctx: &CommandContext,
     proposal: &PreparedCommand,
 ) -> SourceCommandResult<JsonValue> {
+    let request = cmd::parse(&ctx.request_raw)?;
+    let command_id = cmd::text(&request, "command_id")?.to_owned();
+    let request_canonical_digest = cmd::record_digest(&request)?;
+    pg_revision_owner_contribution_for_attempt(
+        ctx,
+        proposal,
+        &command_id,
+        request_canonical_digest,
+        proposal.configuration_raw_sha256,
+        proposal.configuration_canonical_sha256,
+        "tos-pg-historical-claim-v1:tos_local_historical_claim_revision_owner_v1:claim.revise",
+    )
+}
+
+/// Rebuild the historical Claim owner projection for a recovered attempt.
+/// The caller binds the attempt raw-request digest to its exact retry input;
+/// this function separately checks the canonical digest retained in the
+/// owner-generated history receipt without reconstructing the original input.
+pub(crate) fn pg_revision_owner_contribution_for_attempt(
+    ctx: &CommandContext,
+    proposal: &PreparedCommand,
+    command_id: &str,
+    request_canonical_digest: Digest256,
+    configuration_raw_digest: Digest256,
+    configuration_canonical_digest: Digest256,
+    family_tag: &str,
+) -> SourceCommandResult<JsonValue> {
     if proposal.replayed || proposal.operation != "claim.revise" || proposal.changes.is_empty() {
         return Err(SourceCommandError::Conflict(
             "historical Claim owner projection requires a fresh revision",
         ));
     }
     let config = cmd::parse(&ctx.configuration_raw)?;
-    if cmd::text(&config, "schema_version")? != REVISION_OWNER {
+    let expected_family_tag =
+        "tos-pg-historical-claim-v1:tos_local_historical_claim_revision_owner_v1:claim.revise";
+    if cmd::text(&config, "schema_version")? != REVISION_OWNER
+        || proposal.handler_id != "legacy-historical-claim-revision"
+        || !(1..=256).contains(&command_id.chars().count())
+        || family_tag != expected_family_tag
+        || proposal.base_revision != ctx.base_revision
+        || proposal.request_canonical_sha256 != request_canonical_digest
+        || Digest256::of_bytes(&ctx.configuration_raw) != configuration_raw_digest
+        || proposal.configuration_raw_sha256 != configuration_raw_digest
+        || cmd::record_digest(&config)? != configuration_canonical_digest
+        || proposal.configuration_canonical_sha256 != configuration_canonical_digest
+    {
         return Err(SourceCommandError::Denied(
             "historical Claim owner projection configuration",
         ));
@@ -4423,10 +4462,9 @@ pub(crate) fn pg_revision_owner_contribution(
         ));
     }
     let last_receipt = history_receipts.last().ok_or(invalid())?;
-    let request = cmd::parse(&ctx.request_raw)?;
     let predecessor_revision = source_revisions::revision(&current)?;
-    if cmd::text(last_receipt, "command_id")? != cmd::text(&request, "command_id")?
-        || cmd::text(last_receipt, "request_digest")? != cmd::record_digest(&request)?.to_prefixed()
+    if cmd::text(last_receipt, "command_id")? != command_id
+        || cmd::text(last_receipt, "request_digest")? != request_canonical_digest.to_prefixed()
         || !same(
             cmd::field(last_receipt, "previous_source")?,
             &subject(&current_claim)?,

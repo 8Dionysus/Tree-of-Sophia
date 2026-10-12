@@ -4,7 +4,7 @@
 //! the exact selected PG identity/absence observations and schema worker.
 
 use super::{
-    configuration, initial_identity, prepare_source_forms, CreationFamily, PreparedCreation,
+    CreationFamily, PreparedCreation, configuration, initial_identity, prepare_source_forms,
 };
 use crate::source_cohort::revision::{
     PgRecordRevisionIdentity, PgSourceHomeObservation, PgSourceUniqueIndexObservation,
@@ -247,6 +247,92 @@ impl PreparedPgSignCreation {
     }
 }
 
+/// Build the maintained Sign `describe` or `prepare` response from a bounded
+/// PG-selected context. This keeps the native creation response shape and
+/// initial-profile validation with the Sign owner while avoiding a corpus cut.
+pub(crate) fn selected_information(
+    context: &CommandContext,
+    identity: PgRecordRevisionIdentity,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    target_exists: bool,
+    promotion: Option<&JsonValue>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    if worker.input_identity() != &identity {
+        return Err(SourceCommandError::Conflict(
+            "PG Sign information worker identity changed",
+        ));
+    }
+    let schema_context = PgRecordRevisionCommandContext::new(context.clone(), identity);
+    let (family, config, _) = configuration(context)?;
+    if family != CreationFamily::Sign {
+        return Err(SourceCommandError::Unsupported(
+            "PG Sign information owner family",
+        ));
+    }
+    let request = cmd::parse(&cmd::canonical(&cmd::parse(&context.request_raw)?)?)?;
+    let operation = cmd::text(&request, "operation")?;
+    if !["describe", "prepare"].contains(&operation)
+        || cmd::text(&request, "schema_version")? != "tos_local_source_command_v1"
+    {
+        return Err(SourceCommandError::Invalid("PG Sign information request"));
+    }
+    cmd::exact_keys(
+        &request,
+        if operation == "describe" {
+            &["schema_version", "operation"]
+        } else {
+            &["schema_version", "operation", "record"]
+        },
+    )?;
+    revisions::validate_source_profile_registry_candidate(
+        worker,
+        deadline,
+        cancelled,
+        &schema_context,
+    )?;
+    let mut response =
+        super::creation_information(context, family, target_exists, JsonValue::Null, false)?;
+    if operation == "describe" {
+        cmd::set(
+            &mut response,
+            "promotion",
+            promotion.cloned().unwrap_or(JsonValue::Null),
+        )?;
+        return Ok(response);
+    }
+    if !cmd::array(&config, "allowed_operations")?
+        .iter()
+        .any(|value| value.as_str() == Some(family.operation()))
+    {
+        return Err(SourceCommandError::Denied(
+            "PG Sign creation operation not delegated",
+        ));
+    }
+    let record = cmd::field(&request, "record")?;
+    initial_identity(&config, record)?;
+    validate_initial_sign_profile(
+        context, identity, &config, record, worker, deadline, cancelled,
+    )?;
+    cmd::set(
+        &mut response,
+        "prepared_source",
+        crate::source_forms::metadata_subject(record)?,
+    )?;
+    cmd::set(
+        &mut response,
+        "source_fields",
+        JsonValue::Array(
+            crate::source_forms::metadata_fields(record)?
+                .into_iter()
+                .map(|field| field.public())
+                .collect(),
+        ),
+    )?;
+    Ok(response)
+}
+
 /// Output handed to the shared Growth revision runner. The common writer
 /// still derives structural rows and verifies owner rows from exact writes.
 pub(crate) struct PgSerializedSignCreation {
@@ -291,9 +377,10 @@ pub(crate) fn prepare_pg_sign_creation(
     context.check()?;
     for path in REQUIRED_SCHEMA_INPUTS {
         if context
-            .file(&RelativePath::parse(path).map_err(|_| {
-                SourceCommandError::Invalid("Sign schema input path")
-            })?)?
+            .file(
+                &RelativePath::parse(path)
+                    .map_err(|_| SourceCommandError::Invalid("Sign schema input path"))?,
+            )?
             .is_none()
         {
             return Err(SourceCommandError::Unsupported(
@@ -348,7 +435,9 @@ pub(crate) fn prepare_pg_sign_creation(
         ));
     }
     validate_basis_binding(&basis, &config, owner_snapshot)?;
-    validate_initial_sign_profile(&context, identity, &config, record, worker, deadline, cancelled)?;
+    validate_initial_sign_profile(
+        &context, identity, &config, record, worker, deadline, cancelled,
+    )?;
 
     let requirements = requirements(&context)?;
     if requirements.home != home
@@ -378,7 +467,9 @@ pub(crate) fn prepare_pg_sign_creation(
         &mut validate_form_schema,
     )?;
     if cancelled.load(std::sync::atomic::Ordering::Relaxed) || Instant::now() >= deadline {
-        return Err(SourceCommandError::Denied("PG Sign creation deadline/cancellation"));
+        return Err(SourceCommandError::Denied(
+            "PG Sign creation deadline/cancellation",
+        ));
     }
     let record_file = cmd::published(record)?;
     let form_file = cmd::published(&forms.set)?;
@@ -450,7 +541,10 @@ fn validate_basis_binding(
     if cmd::text(basis, "schema_version")? != "tos_sign_promotion_basis_v1"
         || cmd::text(basis, "use")? != "sign-promotion"
         || cmd::field(basis, "grants_current_use")? != &JsonValue::Bool(false)
-        || !matches!(cmd::text(basis, "status")?, "admitted" | "admitted-with-limits")
+        || !matches!(
+            cmd::text(basis, "status")?,
+            "admitted" | "admitted-with-limits"
+        )
         || !revisions::valid_id(cmd::text(candidate, "id")?, "tos.claim.", false)
         || cmd::text(candidate, "id")? != cmd::text(config, "promotion_candidate_id")?
         || !revisions::valid_id(cmd::text(policy, "id")?, "tos.policy.", false)
@@ -468,7 +562,9 @@ fn validate_basis_binding(
     Digest256::from_prefixed(cmd::text(policy, "digest")?)
         .map_err(|_| SourceCommandError::Invalid("PG Sign basis policy digest"))?;
     if parsed_snapshot != owner_snapshot {
-        return Err(SourceCommandError::Conflict("PG Sign current basis binding differs"));
+        return Err(SourceCommandError::Conflict(
+            "PG Sign current basis binding differs",
+        ));
     }
     Ok(())
 }
@@ -492,8 +588,7 @@ fn validate_initial_sign_profile(
     let matching = cmd::array(&registry, "types")?
         .iter()
         .filter(|entry| {
-            entry.object_get("type_id").and_then(JsonValue::as_str)
-                == Some("tos.entity.sign")
+            entry.object_get("type_id").and_then(JsonValue::as_str) == Some("tos.entity.sign")
         })
         .collect::<Vec<_>>();
     let entry = match matching.as_slice() {
@@ -518,7 +613,10 @@ fn validate_initial_sign_profile(
             cmd::text(profile, "id_prefix")?,
             false,
         )
-        || !matches!(cmd::text(record, "visibility")?, "public" | "public_metadata_only")
+        || !matches!(
+            cmd::text(record, "visibility")?,
+            "public" | "public_metadata_only"
+        )
         || !matches!(
             cmd::text(record, "identity_status")?,
             "provisional" | "verified" | "disputed" | "superseded"
@@ -539,9 +637,7 @@ fn validate_initial_sign_profile(
     }
     let routes = cmd::array(profile, "schemas")?
         .iter()
-        .filter(|route| {
-            route.object_get("schema_version") == record.object_get("schema_version")
-        })
+        .filter(|route| route.object_get("schema_version") == record.object_get("schema_version"))
         .collect::<Vec<_>>();
     let route = match routes.as_slice() {
         [route] => *route,
@@ -556,7 +652,9 @@ fn validate_initial_sign_profile(
                 dependency
                     .as_str()
                     .map(str::to_owned)
-                    .ok_or(SourceCommandError::Invalid("Sign profile schema dependency"))
+                    .ok_or(SourceCommandError::Invalid(
+                        "Sign profile schema dependency",
+                    ))
             })
             .collect::<SourceCommandResult<Vec<_>>>()?,
     );
@@ -602,17 +700,20 @@ fn observations_match(
         return Ok(false);
     }
     if observations.identities.sign_id != requirements.annotation_identity_token
-        || !observations.identities.annotation_identity_owners.is_empty()
+        || !observations
+            .identities
+            .annotation_identity_owners
+            .is_empty()
         || observations.identities.candidate_id != requirements.candidate_token
         || observations.identities.prior_candidate_path.is_some()
     {
         return Ok(false);
     }
     if cmd::text(record, "record_id")? != requirements.annotation_identity_token
-        || cmd::text(&cmd::field(
-            &cmd::field(record, "promotion_basis")?,
-            "candidate",
-        )?, "id")? != requirements.candidate_token
+        || cmd::text(
+            &cmd::field(&cmd::field(record, "promotion_basis")?, "candidate")?,
+            "id",
+        )? != requirements.candidate_token
     {
         return Ok(false);
     }
@@ -661,7 +762,9 @@ fn dependency_commitment(
             )
             .is_some()
         {
-            return Err(SourceCommandError::Invalid("duplicate PG Sign selected input"));
+            return Err(SourceCommandError::Invalid(
+                "duplicate PG Sign selected input",
+            ));
         }
     }
     let inputs = input_rows
@@ -697,11 +800,23 @@ fn dependency_commitment(
         .collect();
     let capture = components.capture();
     cmd::record_digest(&cmd::object(vec![
-        ("profile", cmd::string("tos_pg_sign_promotion_dependencies_v1")),
-        ("input_identity", cmd::string(&identity.digest().to_prefixed())),
+        (
+            "profile",
+            cmd::string("tos_pg_sign_promotion_dependencies_v1"),
+        ),
+        (
+            "input_identity",
+            cmd::string(&identity.digest().to_prefixed()),
+        ),
         ("owner_snapshot", cmd::string(&owner_snapshot.to_prefixed())),
-        ("configuration", cmd::string(&cmd::record_digest(config)?.to_prefixed())),
-        ("record", cmd::string(&cmd::record_digest(record)?.to_prefixed())),
+        (
+            "configuration",
+            cmd::string(&cmd::record_digest(config)?.to_prefixed()),
+        ),
+        (
+            "record",
+            cmd::string(&cmd::record_digest(record)?.to_prefixed()),
+        ),
         (
             "forms",
             cmd::string(&cmd::record_digest(&JsonValue::Array(forms.to_vec()))?.to_prefixed()),
@@ -724,7 +839,10 @@ fn dependency_commitment(
             cmd::object(vec![
                 ("path", cmd::string(observations.home.parent.as_str())),
                 ("generation", cmd::number(observations.home.generation)),
-                ("child_count", cmd::number(observations.home.children.len() as u64)),
+                (
+                    "child_count",
+                    cmd::number(observations.home.children.len() as u64),
+                ),
             ]),
         ),
         ("unique_observations", JsonValue::Array(unique)),

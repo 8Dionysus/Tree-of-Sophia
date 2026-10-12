@@ -559,6 +559,46 @@ fn form_ids(raw: &[u8]) -> DurableResult<BTreeSet<String>> {
     Ok(ids)
 }
 
+pub(crate) fn pg_rederive_revision_indexes(
+    context: &CommandContext,
+    writes: &[crate::source_cohort::SourceRevisionWrite],
+) -> DurableResult<BTreeSet<(String, String, String)>> {
+    let mut indexes = BTreeSet::new();
+    for write in writes {
+        let path = RelativePath::parse(&write.subject)
+            .map_err(|_| DurableError::Corrupt("PG Forms/Historical recovery path"))?;
+        let predecessor = context.file(&path).map_err(DurableError::Source)?;
+        match (write.expected_predecessor, predecessor) {
+            (Some((_, digest)), Some(raw)) if Digest256::of_bytes(raw) == digest => {}
+            (None, None) => {}
+            _ => {
+                return Err(DurableError::Conflict(
+                    "PG Forms/Historical recovery predecessor differs from retained readset",
+                ));
+            }
+        }
+        if write.expected_predecessor.is_none() {
+            indexes.insert((
+                "path".to_owned(),
+                write.subject.clone(),
+                write.subject.clone(),
+            ));
+        }
+        let is_live_form = write.subject.ends_with(".human-forms.json")
+            && !write
+                .subject
+                .starts_with("ToS/source-witnesses/.record-revisions/");
+        if is_live_form {
+            let successor_ids = form_ids(&write.exact_bytes)?;
+            let predecessor_ids = predecessor.map(form_ids).transpose()?.unwrap_or_default();
+            for id in successor_ids.difference(&predecessor_ids) {
+                indexes.insert(("form".to_owned(), id.clone(), write.subject.clone()));
+            }
+        }
+    }
+    Ok(indexes)
+}
+
 fn expected_live_form_path(config: &Value, schema: &str) -> SourceCommandResult<String> {
     let source = super::text(config, "source_path")?;
     if matches!(
@@ -1143,11 +1183,26 @@ impl PreparedPgFormsHistoricalCommand {
                             "PG HumanForms form identity repeats in successor package",
                         ));
                     }
-                    indexes.insert(("form".into(), id, change.path.as_str().into()));
+                    if !predecessor_ids.contains(&id) {
+                        indexes.insert(("form".into(), id, change.path.as_str().into()));
+                    }
                 }
             }
         }
-        let owner_contributions = pg_owner_contributions(&context, &proposal, schema, operation)?;
+        let command_id = cmd::text(&request, "command_id").map_err(DurableError::Source)?;
+        let request_canonical_digest =
+            cmd::record_digest(&request).map_err(DurableError::Source)?;
+        let owner_contributions = pg_owner_contributions_for_attempt(
+            &context,
+            &proposal,
+            schema,
+            operation,
+            command_id,
+            request_canonical_digest,
+            Digest256::of_bytes(&context.configuration_raw),
+            proposal.configuration_canonical_sha256,
+            &family_tag,
+        )?;
         Ok(Self {
             context,
             proposal,
@@ -1160,13 +1215,114 @@ impl PreparedPgFormsHistoricalCommand {
     }
 }
 
-fn pg_owner_contributions(
+pub(crate) fn pg_owner_contributions_for_attempt(
     context: &CommandContext,
     proposal: &PreparedCommand,
     owner_schema: &str,
     operation: &str,
+    command_id: &str,
+    request_canonical_digest: Digest256,
+    configuration_raw_digest: Digest256,
+    configuration_canonical_digest: Digest256,
+    family_tag: &str,
 ) -> DurableResult<BTreeMap<String, tos_foundation::JsonValue>> {
+    let (tag_schema, tag_operation, handler) = match family_tag {
+        "tos-pg-human-forms-v1:tos_local_source_command_owner_v1:apply" => (
+            "tos_local_source_command_owner_v1",
+            "apply",
+            "public-source-forms",
+        ),
+        "tos-pg-human-forms-v1:tos_local_canonical_form_owner_v1:apply" => (
+            "tos_local_canonical_form_owner_v1",
+            "apply",
+            "canonical-node-forms",
+        ),
+        "tos-pg-human-forms-v1:tos_local_claim_form_owner_v1:apply" => (
+            "tos_local_claim_form_owner_v1",
+            "apply",
+            "public-source-forms",
+        ),
+        "tos-pg-human-forms-v1:tos_local_claim_form_owner_v2:apply" => (
+            "tos_local_claim_form_owner_v2",
+            "apply",
+            "public-source-forms",
+        ),
+        "tos-pg-historical-claim-v1:tos_local_historical_claim_form_owner_v1:apply" => (
+            "tos_local_historical_claim_form_owner_v1",
+            "apply",
+            "legacy-historical-claim-forms",
+        ),
+        "tos-pg-historical-claim-v1:tos_local_historical_claim_revision_owner_v1:claim.revise" => (
+            "tos_local_historical_claim_revision_owner_v1",
+            "claim.revise",
+            "legacy-historical-claim-revision",
+        ),
+        _ => {
+            return Err(DurableError::Refused(
+                "PG HumanForms recovery family tag is unsupported",
+            ));
+        }
+    };
+    let config = cmd::parse(&context.configuration_raw).map_err(DurableError::Source)?;
+    if owner_schema != tag_schema
+        || operation != tag_operation
+        || cmd::text(&config, "schema_version").map_err(DurableError::Source)? != tag_schema
+        || proposal.operation != operation
+        || proposal.handler_id != handler
+        || proposal.base_revision != context.base_revision
+        || proposal.request_canonical_sha256 != request_canonical_digest
+        || Digest256::of_bytes(&context.configuration_raw) != configuration_raw_digest
+        || proposal.configuration_raw_sha256 != configuration_raw_digest
+        || cmd::record_digest(&config).map_err(DurableError::Source)?
+            != configuration_canonical_digest
+        || proposal.configuration_canonical_sha256 != configuration_canonical_digest
+        || !(1..=256).contains(&command_id.chars().count())
+    {
+        return Err(DurableError::Conflict(
+            "PG HumanForms recovery owner binding differs",
+        ));
+    }
     if proposal.replayed || proposal.changes.is_empty() {
+        if !proposal.changes.is_empty() {
+            return Err(DurableError::Conflict(
+                "PG HumanForms replay contains source writes",
+            ));
+        }
+        return Ok(BTreeMap::new());
+    }
+    let historical_claim_owner = if operation == "claim.revise" {
+        Some(
+            super::legacy_claim::engine::pg_revision_owner_contribution_for_attempt(
+                context,
+                proposal,
+                command_id,
+                request_canonical_digest,
+                configuration_raw_digest,
+                configuration_canonical_digest,
+                family_tag,
+            )
+            .map_err(DurableError::Source)?,
+        )
+    } else {
+        None
+    };
+    pg_owner_contributions_with_historical_owner(
+        context,
+        proposal,
+        owner_schema,
+        operation,
+        historical_claim_owner,
+    )
+}
+
+fn pg_owner_contributions_with_historical_owner(
+    context: &CommandContext,
+    proposal: &PreparedCommand,
+    owner_schema: &str,
+    operation: &str,
+    historical_claim_owner: Option<tos_foundation::JsonValue>,
+) -> DurableResult<BTreeMap<String, tos_foundation::JsonValue>> {
+    if proposal.changes.is_empty() {
         return Ok(BTreeMap::new());
     }
     let config = cmd::parse(&context.configuration_raw).map_err(DurableError::Source)?;
@@ -1199,16 +1355,6 @@ fn pg_owner_contributions(
                 .map_err(DurableError::Source)?
         }
         _ => cmd::parse(source_raw).map_err(DurableError::Source)?,
-    };
-    let historical_claim_owner = if owner_schema == "tos_local_historical_claim_revision_owner_v1"
-        && operation == "claim.revise"
-    {
-        Some(
-            super::legacy_claim::engine::pg_revision_owner_contribution(context, proposal)
-                .map_err(DurableError::Source)?,
-        )
-    } else {
-        None
     };
     let source_profiles = pg_source_profiles(context)?;
     let mut contributions = BTreeMap::new();

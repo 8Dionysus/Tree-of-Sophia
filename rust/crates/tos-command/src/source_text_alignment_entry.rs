@@ -109,6 +109,60 @@ struct PreparedAlignment {
     dependencies: String,
 }
 
+/// A complete Alignment owner package prepared from the selected PG source
+/// readset. It retains the owner-specific semantic state until the broker's
+/// commit callback rechecks the exact grant, context and selected dependencies.
+pub(crate) struct PreparedNativeAlignmentPackage {
+    prepared: PreparedAlignment,
+    source_path: String,
+    files: BTreeMap<String, Vec<u8>>,
+    receipt: JsonValue,
+    request_digest: Digest256,
+    owner_context_binding: Digest256,
+    replayed: bool,
+}
+
+impl PreparedNativeAlignmentPackage {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.files
+    }
+
+    pub(crate) fn receipt(&self) -> &JsonValue {
+        &self.receipt
+    }
+
+    pub(crate) fn owner_configuration(&self) -> &str {
+        &self.prepared.owner_configuration
+    }
+
+    pub(crate) fn owner_context_binding(&self) -> Digest256 {
+        self.owner_context_binding
+    }
+
+    pub(crate) fn request_digest(&self) -> Digest256 {
+        self.request_digest
+    }
+
+    pub(crate) fn replayed(&self) -> bool {
+        self.replayed
+    }
+
+    pub(crate) fn verify_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.prepared
+            .verify_pg_current(software, components, deadline, cancelled)
+    }
+}
+
 // A context transports bytes; this borrowed Alignment grant supplies the live
 // permission fence for every actual resolver read, including its final reread.
 struct AlignmentRead<'a> {
@@ -175,7 +229,7 @@ fn truth(value: &JsonValue) -> SourceCommandResult<bool> {
     }
 }
 
-fn selected_contracts(
+pub(crate) fn selected_contracts(
     context: &OwnerTextContext,
     worker: &CutWorkerSchemaExecutor,
     deadline: Instant,
@@ -193,6 +247,17 @@ fn selected_contracts(
         selected.insert(name.to_owned(), digest);
     }
     Ok(selected)
+}
+
+pub(crate) fn selected_configuration(
+    context: &OwnerTextContext,
+    grant: &OwnerTextAlignmentSelection,
+    worker: &CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<String> {
+    let contracts = selected_contracts(context, worker, deadline, cancelled)?;
+    configuration(context, grant, &contracts, deadline, cancelled)
 }
 
 fn configuration(
@@ -1257,9 +1322,12 @@ fn prepare(
     .iter()
     .map(|key| cmd::text(&grant.config, key))
     .collect::<SourceCommandResult<Vec<_>>>()?;
-    let inventory = selected_alignment_identity_snapshot(
-        &context, &ids, exclude, &ancestry, deadline, cancelled,
-    )?;
+    let inventory = match context.pg_identity_snapshot()? {
+        Some(selected) => selected,
+        None => selected_alignment_identity_snapshot(
+            &context, &ids, exclude, &ancestry, deadline, cancelled,
+        )?,
+    };
     let software_rows = selected_components(software, components, deadline, cancelled)?;
     let inputs = input_bytes(
         &context,
@@ -1445,6 +1513,94 @@ impl PreparedAlignment {
             .verify_current(self.context.account_uid(), deadline, cancelled)?;
         Ok(())
     }
+
+    fn verify_pg_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.verify_stage_current(deadline, cancelled)?;
+        for (name, digest) in &self.contracts {
+            if Digest256::of_bytes(&self.context.read(name, MAX_CONTRACT, deadline, cancelled)?)
+                != *digest
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PostgreSQL Alignment selected contract changed",
+                ));
+            }
+        }
+        if configuration(
+            &self.context,
+            &self.grant,
+            &self.contracts,
+            deadline,
+            cancelled,
+        )? != self.owner_configuration
+            || self.context.pg_identity_snapshot()? != Some(self.inventory)
+        {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Alignment selected identity or configuration changed",
+            ));
+        }
+        let mut metadata = 8_388_608usize;
+        let mut content = 8_388_608usize;
+        for input in &self.resolved.inputs {
+            active(deadline, cancelled)?;
+            let remaining = if input.category == "content" {
+                &mut content
+            } else {
+                &mut metadata
+            };
+            let limit = if input.category == "content" {
+                *remaining
+            } else {
+                (*remaining).min(MAX_CONTRACT)
+            };
+            let raw = self
+                .context
+                .read(&input.reference, limit, deadline, cancelled)?;
+            *remaining =
+                remaining
+                    .checked_sub(raw.len())
+                    .ok_or(SourceCommandError::Unsupported(
+                        "PostgreSQL Alignment selected reread budget",
+                    ))?;
+            if raw.len() != input.raw_size || Digest256::of_bytes(&raw) != input.raw_sha256 {
+                return Err(SourceCommandError::Conflict(
+                    "PostgreSQL Alignment selected source changed",
+                ));
+            }
+        }
+        let mut historic = 8_388_608usize;
+        for (path, (digest, size)) in &self.history_inputs {
+            active(deadline, cancelled)?;
+            let raw = self
+                .context
+                .read(path, historic.min(MAX_RECORD), deadline, cancelled)?;
+            historic = historic
+                .checked_sub(raw.len())
+                .ok_or(SourceCommandError::Unsupported(
+                    "PostgreSQL Alignment history reread budget",
+                ))?;
+            if raw.len() != *size || Digest256::of_bytes(&raw) != *digest {
+                return Err(SourceCommandError::Conflict(
+                    "PostgreSQL Alignment history changed",
+                ));
+            }
+        }
+        if selected_components(software, components, deadline, cancelled)? != self.software_rows {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Alignment selected software changed",
+            ));
+        }
+        self.context
+            .verify_publication(&self.publication, deadline, cancelled)?;
+        self.grant
+            .verify_current(self.context.account_uid(), deadline, cancelled)?;
+        Ok(())
+    }
 }
 
 fn request_create(
@@ -1480,6 +1636,189 @@ fn request_create(
         ));
     }
     Ok(())
+}
+
+/// Prepare an Alignment proposal after its public and private identity points
+/// have been selected from the PG indexes and installed in the context.
+pub(crate) fn prepare_pg_alignment_preview(
+    context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    proposal: &JsonValue,
+    target_exists: bool,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentPreview> {
+    if context.pg_identity_snapshot()?.is_none() {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL Alignment identity point snapshot absent",
+        ));
+    }
+    let prepared = prepare(
+        context, grant, proposal, software, components, worker, None, deadline, cancelled,
+    )?;
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_pg_current(software, components, deadline, cancelled)?;
+    Ok(NativeAlignmentPreview {
+        owner_configuration: prepared.owner_configuration,
+        expected_dependencies: prepared.dependencies,
+        source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
+        target_exists,
+    })
+}
+
+/// Construct the exact immutable Alignment package for the transactional
+/// private-owner broker. An existing target is accepted only as an exact
+/// original-command replay; there is no PG staging directory to resume.
+pub(crate) fn prepare_pg_alignment_package(
+    context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    request: &JsonValue,
+    retained: Option<&BTreeMap<String, Vec<u8>>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedNativeAlignmentPackage> {
+    if context.pg_identity_snapshot()?.is_none() {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL Alignment identity point snapshot absent",
+        ));
+    }
+    let mut prepared = prepare(
+        context, grant, request, software, components, worker, None, deadline, cancelled,
+    )?;
+    request_create(request, &prepared, true)?;
+    let (files, receipt, replayed) = if let Some(retained) = retained {
+        let receipt = verify_retained(&prepared, request, retained, worker, deadline, cancelled)?;
+        (retained.clone(), receipt, true)
+    } else {
+        let receipt = assemble_pg_alignment_package(
+            &mut prepared,
+            request,
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        (prepared.files.clone(), receipt, false)
+    };
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_pg_current(software, components, deadline, cancelled)?;
+    let request_digest = Digest256::of_bytes(&cmd::canonical(request)?);
+    let owner_context_binding = prepared
+        .context
+        .private_owner_scope_binding(deadline, cancelled)?;
+    let source_path = cmd::text(&prepared.grant.config, "source_path")?.to_owned();
+    Ok(PreparedNativeAlignmentPackage {
+        prepared,
+        source_path,
+        files,
+        receipt,
+        request_digest,
+        owner_context_binding,
+        replayed,
+    })
+}
+
+fn assemble_pg_alignment_package(
+    prepared: &mut PreparedAlignment,
+    request: &JsonValue,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let source_path = cmd::text(&prepared.grant.config, "source_path")?.to_owned();
+    let home = source_path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("native alignment home"))?
+        .0;
+    let inputs = capture_inputs(prepared, deadline, cancelled)?;
+    let rights = capture_rights(prepared)?;
+    capture_owner_alignment(
+        request,
+        cmd::text(&prepared.grant.config, "provenance_event_id")?,
+        home,
+        &source_path,
+        &rights,
+        inputs,
+        &mut prepared.files,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    let event_raw = prepared
+        .files
+        .get("source-create-provenance.jsonl")
+        .ok_or(SourceCommandError::Invalid("native alignment event output"))?;
+    checked_schema(
+        worker,
+        &format!("{home}/source-create-provenance.jsonl"),
+        event_raw,
+        EVENT_SCHEMA,
+        deadline,
+        cancelled,
+    )?;
+    let receipt = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_local_source_create_receipt_v1"),
+        ),
+        ("command_id", cmd::field(request, "command_id")?.clone()),
+        (
+            "request_digest",
+            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+        ),
+        (
+            "principal_id",
+            cmd::field(&prepared.grant.config, "principal_id")?.clone(),
+        ),
+        (
+            "authority_ref",
+            cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
+        ),
+        (
+            "owner_configuration",
+            cmd::string(&prepared.owner_configuration),
+        ),
+        ("recorded_at", cmd::string(&instant()?)),
+        ("source_path", cmd::string(&source_path)),
+        (
+            "source",
+            cmd::reference(&prepared.body, "record_id", "record_version")?,
+        ),
+        ("dependencies", cmd::string(&prepared.dependencies)),
+        ("files", file_refs(prepared.files.iter())),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    let receipt_raw = line(&receipt)?;
+    let receipt = cmd::parse(&receipt_raw)?;
+    prepared
+        .files
+        .insert("source-create-receipt.json".into(), receipt_raw);
+    if prepared.files.len() != FILES.len()
+        || prepared
+            .files
+            .keys()
+            .any(|name| !FILES.contains(&name.as_str()))
+        || prepared
+            .files
+            .values()
+            .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+            .is_none_or(|n| n > MAX_PACKAGE)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "native alignment complete package budget",
+        ));
+    }
+    Ok(receipt)
 }
 
 /// Preview is an independently bounded preparation, not authority to write.
@@ -2287,6 +2626,114 @@ fn selected_inspection_record(
     }
 }
 
+fn selected_inspection_record_pg(
+    context: &OwnerTextContext,
+    grant: &OwnerTextAlignmentSelection,
+    current_files: Option<&BTreeMap<String, Vec<u8>>>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, JsonValue)> {
+    let source_path = cmd::text(&grant.config, "source_path")?;
+    if let Some(files) = current_files {
+        if files.len() != FILES.len()
+            || files.keys().any(|name| !FILES.contains(&name.as_str()))
+            || files
+                .values()
+                .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
+                .is_none_or(|sum| sum > MAX_PACKAGE)
+        {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Alignment current package shape",
+            ));
+        }
+        let raw = files.get(BASENAME).ok_or(SourceCommandError::Conflict(
+            "PostgreSQL Alignment inspected record absent",
+        ))?;
+        let body = cmd::parse(raw)?;
+        let retained_config =
+            cmd::parse(files.get("source-create-owner-configuration.json").ok_or(
+                SourceCommandError::Conflict("PostgreSQL Alignment inspected grant absent"),
+            )?)?;
+        let receipt_raw =
+            files
+                .get("source-create-receipt.json")
+                .ok_or(SourceCommandError::Conflict(
+                    "PostgreSQL Alignment inspected receipt absent",
+                ))?;
+        let receipt = cmd::parse(receipt_raw)?;
+        let event_raw =
+            files
+                .get("source-create-provenance.jsonl")
+                .ok_or(SourceCommandError::Conflict(
+                    "PostgreSQL Alignment inspected event absent",
+                ))?;
+        let home = source_path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid(
+                "native alignment inspection home",
+            ))?
+            .0;
+        checked_schema(
+            worker,
+            &format!("{home}/source-create-provenance.jsonl"),
+            event_raw,
+            EVENT_SCHEMA,
+            deadline,
+            cancelled,
+        )?;
+        if !same(
+            cmd::field(&receipt, "files")?,
+            &file_refs(
+                files
+                    .iter()
+                    .filter(|(name, _)| name.as_str() != "source-create-receipt.json"),
+            ),
+        )? || !same(
+            cmd::field(&receipt, "source")?,
+            &cmd::reference(&body, "record_id", "record_version")?,
+        )? || cmd::text(&receipt, "owner_configuration")?.is_empty()
+            || !same(
+                cmd::field(&retained_config, "source_path")?,
+                cmd::field(&grant.config, "source_path")?,
+            )?
+            || !same(
+                cmd::field(&body, "record_id")?,
+                cmd::field(&grant.config, "record_id")?,
+            )?
+            || !same(
+                cmd::field(&body, "alignment_id")?,
+                cmd::field(&grant.config, "alignment_id")?,
+            )?
+            || !same(
+                cmd::field(&body, "native_bindings")?,
+                cmd::field(&grant.config, "native_bindings")?,
+            )?
+            || line(&receipt)? != *receipt_raw
+        {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Alignment inspected package binding",
+            ));
+        }
+        return Ok((record_ref(source_path, &body, raw)?, body));
+    }
+    let selected = cmd::field(&grant.config, "predecessor")?;
+    if selected == &JsonValue::Null {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL Alignment inspected record absent",
+        ));
+    }
+    let path = cmd::text(selected, "record_ref")?;
+    let raw = context.read(path, MAX_RECORD, deadline, cancelled)?;
+    let body = cmd::parse(&raw)?;
+    if !same(selected, &record_ref(path, &body, &raw)?)? {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL Alignment predecessor selection",
+        ));
+    }
+    Ok((selected.clone(), body))
+}
+
 /// Inspect the delegated current record or one exact member of its verified
 /// immutable ancestry. Only metadata/rights bindings are resolved here.
 pub fn inspect_owner_alignment_from_cut(
@@ -2315,6 +2762,64 @@ pub(crate) fn inspect_owner_alignment_selected(
     let publication = context.select_publication(deadline, cancelled)?;
     let (current_ref, body) =
         selected_inspection_record(&context, &grant, worker, deadline, cancelled)?;
+    inspect_owner_alignment_record(
+        context,
+        grant,
+        exact_version,
+        worker,
+        publication,
+        current_ref,
+        body,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn inspect_pg_owner_alignment_selected(
+    context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    current_files: Option<&BTreeMap<String, Vec<u8>>>,
+    exact_version: Option<&JsonValue>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentInspection> {
+    let publication = context.select_publication(deadline, cancelled)?;
+    let (current_ref, body) = selected_inspection_record_pg(
+        &context,
+        &grant,
+        current_files,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    inspect_owner_alignment_record(
+        context,
+        grant,
+        exact_version,
+        worker,
+        publication,
+        current_ref,
+        body,
+        deadline,
+        cancelled,
+    )
+}
+
+fn inspect_owner_alignment_record(
+    mut context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    exact_version: Option<&JsonValue>,
+    worker: &mut CutWorkerSchemaExecutor,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    current_ref: JsonValue,
+    body: JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentInspection> {
+    let owner_configuration =
+        selected_configuration(&context, &grant, worker, deadline, cancelled)?;
+    let owner_context_binding = context.private_owner_scope_binding(deadline, cancelled)?;
     if cmd::field(&body, "record_id")? != cmd::field(&grant.config, "record_id")?
         || cmd::field(&body, "alignment_id")? != cmd::field(&grant.config, "alignment_id")?
         || !same(
@@ -2401,6 +2906,18 @@ pub(crate) fn inspect_owner_alignment_selected(
     drop(history);
     context.verify_publication(&publication, deadline, cancelled)?;
     finish_creation_worker(worker, deadline, cancelled)?;
+    let current_grant =
+        OwnerTextAlignmentSelection::select(&context, &grant.path, deadline, cancelled)?;
+    let current_configuration =
+        selected_configuration(&context, &current_grant, worker, deadline, cancelled)?;
+    if current_grant.raw != grant.raw
+        || current_configuration != owner_configuration
+        || context.private_owner_scope_binding(deadline, cancelled)? != owner_context_binding
+    {
+        return Err(SourceCommandError::Conflict(
+            "native alignment inspection selection changed",
+        ));
+    }
     let mapping = cmd::field(cmd::field(&selected.1, "claim")?, "mapping")?;
     let summary = cmd::object(vec![
         (

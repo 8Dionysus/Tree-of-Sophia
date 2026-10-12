@@ -319,6 +319,37 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         "cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture",
     );
     assert!(postgres["env"]["TOS_CMD_POSTGRES_URL"].as_str().is_some());
+    let current_restore = postgres["env"]["TOS_CMD2_V2_RESTORE_PG_URL"]
+        .as_str()
+        .expect("addressed current-writer restore target is configured");
+    let v1_wire_restore = postgres["env"]["TOS_CMD2_V2_V1_WIRE_RESTORE_PG_URL"]
+        .as_str()
+        .expect("current-ABI V1-wire restore target is configured");
+    assert_ne!(current_restore, v1_wire_restore);
+    assert!(current_restore.contains("${{ github.run_id }}_${{ github.run_attempt }}"));
+    assert!(v1_wire_restore.contains("${{ github.run_id }}_${{ github.run_attempt }}"));
+    assert!(
+        postgres["env"]["TOS_CMD2_V2_RESTORE_DATABASE"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        postgres["env"]["TOS_CMD2_V2_V1_WIRE_RESTORE_DATABASE"]
+            .as_str()
+            .is_some()
+    );
+    let postgres_run = run(postgres);
+    for line in [
+        "postgresql-client-16",
+        "pg_dump --version",
+        "pg_restore --version",
+        "CREATE DATABASE",
+    ] {
+        assert!(
+            postgres_run.contains(line),
+            "PostgreSQL runner lacks {line}"
+        );
+    }
     assert!(!jobs["rust"]["services"]["postgres"].is_badvalue());
     let gate = steps(jobs, "required_gate").last().unwrap();
     assert_eq!(run(gate), "\"$TOS_SOFTWARE_CI_EXECUTOR\" gate");

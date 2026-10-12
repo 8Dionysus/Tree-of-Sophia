@@ -7,8 +7,10 @@
 use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_cohort::{IndexRows, SourceRevisionWrite};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_creation_store::active;
 use crate::source_forms;
-use crate::source_native_pg_growth_input::PgGrowthCurrentInput;
+use crate::source_native_cli::PgGrowthCurrentInput;
+use crate::source_native_cli::private_assessment as assessment;
 use crate::source_revisions::{ReadonlyRecordFiles, RecordRead};
 use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
 use crate::source_text_owner::OwnerTextContext;
@@ -25,6 +27,7 @@ const PUBLICATION: &str = "ToS/source-witnesses/.metadata-publication.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const MAX_NATIVE_ID_TOKENS: usize = 1024;
+const SIGN_DESCRIPTION_SCHEMA: &str = "ToS/contracts/sign-description-record.schema.json";
 
 fn map_input_refusal(refusal: tos_validation::item_rules::ItemRefusal) -> Error {
     use tos_validation::item_rules::ItemRefusal;
@@ -641,7 +644,7 @@ const SIGN_SCHEMA_ROOTS: &[&str] = &[
     "ToS/contracts/source-claim-record.schema.json",
     "ToS/contracts/historical-claim.schema.json",
     "ToS/contracts/historical-record.schema.json",
-    "ToS/contracts/sign-description-record.schema.json",
+    SIGN_DESCRIPTION_SCHEMA,
     "ToS/contracts/human-form.schema.json",
     "ToS/contracts/human-form-set.schema.json",
     "ToS/contracts/human-form-template.schema.json",
@@ -980,7 +983,7 @@ pub(crate) fn promotion_view_from_report(
 /// held-history callback; this helper keeps the Sign subject and opaque PG
 /// identity bound while reusing the shared Assessment evaluator.
 pub(crate) fn evaluate_promotion_view_selected_pg(
-    plan: &crate::source_native_private_assessment_cli::AssessmentEvaluationPlan<'_>,
+    plan: &assessment::AssessmentEvaluationPlan<'_>,
     histories: &BTreeMap<String, crate::source_assessment_journal::AssessmentHistory>,
     public_sources: &PgOwnerAssessmentPublicSources<'_>,
     expected_candidate_id: &str,
@@ -989,13 +992,10 @@ pub(crate) fn evaluate_promotion_view_selected_pg(
     worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
-    budget: &mut crate::source_native_private_assessment_cli::OperationBudget,
+    budget: &mut assessment::OperationBudget,
     require_ready: bool,
     cancelled: &AtomicBool,
-) -> Result<(
-    JsonValue,
-    crate::source_native_private_assessment_cli::AssessmentEvaluationResult,
-)> {
+) -> Result<(JsonValue, assessment::AssessmentEvaluationResult)> {
     let candidate_id = plan.request.subject_id.as_str();
     if candidate_id != expected_candidate_id
         || worker.input_identity() != &identity
@@ -1024,7 +1024,7 @@ pub(crate) fn evaluate_promotion_view_selected_pg(
             )
             .map_err(map_selected_assessment_refusal)
         };
-    let evaluation = crate::source_native_private_assessment_cli::evaluate_assessment_histories(
+    let evaluation = assessment::evaluate_assessment_histories(
         plan,
         histories,
         observed_now,
@@ -2496,6 +2496,11 @@ pub(crate) fn expected_inventory_contributions_from_writes(
             "Sign PG source profile input closure",
         ));
     }
+    if !full_profiles.contains_key(SIGN_DESCRIPTION_SCHEMA) {
+        return Err(SourceCommandError::Invalid(
+            "Sign PG retained description schema closure",
+        ));
+    }
     let profiles = |items: BTreeMap<String, String>| {
         JsonValue::Object(
             items
@@ -2510,7 +2515,7 @@ pub(crate) fn expected_inventory_contributions_from_writes(
     sign_rows.push(crate::source_claims::pg_catalogue_record_value(
         &record,
         &sign_path,
-        Some("ToS/contracts/sign-description-record.schema.json"),
+        Some(SIGN_DESCRIPTION_SCHEMA),
     )?);
     let event_path = write
         .subject

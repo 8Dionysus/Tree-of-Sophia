@@ -13,15 +13,16 @@ use tos_compiler::{NavigationHeaderClaim, VerifiedKnowledgeModel};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
 use tos_segment_store::SegmentStore;
 
+use crate::DurableNavigationBootstrapApplyV1;
 use crate::durable_adapter::durable_projection::{
     DurableNavigationBootstrapOwnerSourceV1, DurableNavigationBootstrapPackageV1,
     DurableNavigationBootstrapRowKindV1, DurableNavigationBootstrapRowV1,
     DurableNavigationEventLimits, DurableNavigationOriginalRightWitnessV1,
     DurableProjectionProfile,
 };
-use crate::source_current_cut::ManagedCurrentSourceGeneration;
 use crate::source_creation::ManagedSerializedCreation;
 use crate::source_creation_store::CreationFilesystem;
+use crate::source_current_cut::ManagedCurrentSourceGeneration;
 use crate::source_managed_selection::{
     ManagedAgentSelectedParent, ManagedSelectedProof, ManagedSelectionError, ManagedSelectionResult,
 };
@@ -62,10 +63,7 @@ pub fn capture_source_navigation_bootstrap_v1(
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<SourceNavigationBootstrapCaptureV1> {
     let limits = checked_limits(limits)?;
-    require_source_navigation_profile(
-        &model.selection().model_abi,
-        model.selection_profile(),
-    )?;
+    require_source_navigation_profile(&model.selection().model_abi, model.selection_profile())?;
     model
         .check_pin()
         .map_err(|_| DurableError::Corrupt("selected navigation model pin"))?;
@@ -279,9 +277,7 @@ pub fn publish_current_source_navigation_bootstrap_v1<P: ManagedSelectedProof>(
     limits: DurableNavigationEventLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> ManagedSelectionResult<
-    crate::durable_adapter::DurableNavigationBootstrapApplyV1,
-> {
+) -> ManagedSelectionResult<DurableNavigationBootstrapApplyV1> {
     let capture = selected.with_current_model(
         coordinator,
         store,

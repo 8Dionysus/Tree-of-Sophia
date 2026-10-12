@@ -26,9 +26,11 @@ use tos_compiler::{
         NavigationClaimDependencyRefreshSetInputV1, NavigationClaimEventAffectedOwnerManifestV1,
         NavigationClaimEventBudgetCostV1, NavigationClaimEventCohortV1,
         NavigationClaimEventCommonInputV1, NavigationClaimEventInputV1,
-        NavigationClaimEventOwnerInventoryV1, NavigationClaimEventSourceFileV1,
-        NavigationClaimIdentitySourceV1,
+        NavigationClaimEventOwnerInventoryV1, NavigationClaimEventRangeManifestV1,
+        NavigationClaimEventRangeOwnerCohortV1, NavigationClaimEventRangeOwnerInputV1,
+        NavigationClaimEventSourceFileV1, NavigationClaimIdentitySourceV1,
         project_navigation_claim_dependency_refresh_set_with_inventory_v1,
+        project_navigation_claim_event_range_owner_with_inventory_v1,
         project_navigation_claim_event_with_inventory_v1,
     },
     source_navigation_event::{
@@ -69,6 +71,9 @@ enum Cause<'a> {
     },
     RefreshSet {
         manifest: &'a NavigationClaimDependencyRefreshOwnerManifestSetV1,
+    },
+    Range {
+        manifest: &'a NavigationClaimEventRangeManifestV1,
     },
 }
 
@@ -117,6 +122,7 @@ pub(crate) fn assemble_selected_claim_event_cohort_v1(
         Contribution::Refresh(_, _) => {
             Err(DurableError::Corrupt("Claim mutation returned refresh"))
         }
+        Contribution::Range(_, _) => Err(DurableError::Corrupt("Claim mutation returned range")),
     }
 }
 
@@ -160,6 +166,7 @@ pub(crate) fn assemble_selected_claim_dependency_refresh_set_cohort_v1(
         Contribution::Mutation(_, _) => {
             Err(DurableError::Corrupt("Claim refresh returned mutation"))
         }
+        Contribution::Range(_, _) => Err(DurableError::Corrupt("Claim refresh returned range")),
     }
 }
 
@@ -172,6 +179,55 @@ enum Contribution {
         NavigationClaimDependencyRefreshCohortV1,
         NavigationClaimEventBudgetCostV1,
     ),
+    Range(
+        NavigationClaimEventRangeOwnerCohortV1,
+        NavigationClaimEventBudgetCostV1,
+    ),
+}
+
+/// Assemble one terminal Claim owner for a complete committed event range.
+/// The selected Claim bytes come from the terminal source cut; the manifest
+/// retains each historical mutation and dependency cause separately.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn assemble_selected_claim_event_range_owner_v1(
+    context: &DurableNavigationEventContextV1,
+    identity: NavigationEventSourceCutIdentityV1,
+    validator: &SourceCatalogValidator<'_>,
+    files: &SelectedBibliographicFilesV1,
+    inventory: &NavigationClaimEventOwnerInventoryV1,
+    manifest: &NavigationClaimEventRangeManifestV1,
+    identity_owners: &[ClaimEventIdentityOwnerV1],
+    owner_stream_path: &str,
+    claim_id: &str,
+    predecessor_cohort_root: Option<Digest256>,
+    forms_materializer: &mut dyn BibliographicForms,
+    limits: BibliographicLimits,
+) -> DurableResult<(
+    NavigationClaimEventRangeOwnerCohortV1,
+    NavigationClaimEventBudgetCostV1,
+)> {
+    manifest
+        .verify_integrity()
+        .map_err(|_| DurableError::Conflict("Claim range manifest differs"))?;
+    match assemble_owner(
+        context,
+        identity,
+        validator,
+        files,
+        inventory,
+        identity_owners,
+        owner_stream_path,
+        claim_id,
+        predecessor_cohort_root,
+        Cause::Range { manifest },
+        forms_materializer,
+        limits,
+    )? {
+        Contribution::Range(cohort, cost) => Ok((cohort, cost)),
+        _ => Err(DurableError::Corrupt(
+            "Claim range renderer returned another basis",
+        )),
+    }
 }
 
 struct OwnedIdentitySource<'a> {
@@ -199,10 +255,20 @@ fn assemble_owner(
     forms_materializer: &mut dyn BibliographicForms,
     limits: BibliographicLimits,
 ) -> DurableResult<Contribution> {
-    if context.event_kind() != "command"
+    let range_manifest = match cause {
+        Cause::Range { manifest } => Some(manifest),
+        _ => None,
+    };
+    if (range_manifest.is_none() && context.event_kind() != "command")
         || context.event_sequence() != identity.event_sequence()
         || context.source_head_sequence() != identity.source_head_sequence()
-        || context.event_sequence() != context.source_head_sequence()
+        || (range_manifest.is_none() && context.event_sequence() != context.source_head_sequence())
+        || range_manifest.is_some_and(|manifest| {
+            manifest.coverage().through_sequence() != context.event_sequence()
+                || manifest.coverage().terminal_event_id() != context.event_id()
+                || manifest.coverage().cursor_before() != context.consumer_cursor().sequence
+                || identity.range_coverage_binding() != Some(manifest.coverage().coverage_root())
+        })
     {
         return Err(DurableError::Conflict(
             "selected Claim event identity differs",
@@ -695,7 +761,13 @@ fn assemble_owner(
         validator,
         event_id: context.event_id(),
         event_sequence: context.event_sequence(),
-        source_head_sequence: context.source_head_sequence(),
+        // The range renderer validates its event-cut input at the prefix;
+        // `identity` still binds the distinct held current source head.
+        source_head_sequence: if range_manifest.is_some() {
+            context.event_sequence()
+        } else {
+            context.source_head_sequence()
+        },
         predecessor_source_revision,
         predecessor_cohort_root,
         source_path,
@@ -804,6 +876,17 @@ fn assemble_owner(
                 .map_err(|_| DurableError::Refused("selected Claim refresh budget refused"))?;
             Ok(Contribution::Refresh(cohort, cost))
         }
+        Cause::Range { manifest } => {
+            let input = NavigationClaimEventRangeOwnerInputV1 { common };
+            let cohort = project_navigation_claim_event_range_owner_with_inventory_v1(
+                input, manifest, inventory, limits,
+            )
+            .map_err(|_| DurableError::Refused("selected Claim range renderer refused"))?;
+            let cost = cohort
+                .budget_cost()
+                .map_err(|_| DurableError::Refused("selected Claim range budget refused"))?;
+            Ok(Contribution::Range(cohort, cost))
+        }
     }
 }
 
@@ -814,6 +897,7 @@ fn mutation_path(cause: Cause<'_>) -> Option<&str> {
             ..
         } => Some(mutation_receipt_path),
         Cause::RefreshSet { .. } => None,
+        Cause::Range { .. } => None,
     }
 }
 

@@ -71,8 +71,8 @@ pub use object_link::{
     recover_isolated_object_link_from_captures, replay_isolated_object_link_from_captures,
 };
 pub(crate) use object_link::{
-    PgObjectLinkRequirements, PreparedPgObjectLink, pg_object_link_requirements,
-    prepare_pg_object_link,
+    PgObjectLinkPreview, PgObjectLinkRequirements, PreparedPgObjectLink, describe_pg_object_link,
+    pg_object_link_requirements, prepare_pg_object_link, prepare_pg_object_link_preview,
 };
 #[path = "source_work_expression.rs"]
 mod work_expression;
@@ -93,9 +93,10 @@ pub use work_expression::{
 mod item_adoption;
 pub(crate) use item_adoption::PgItemAdoptionSelection;
 pub(crate) use item_adoption::current_result_fields as item_result_fields;
+pub(crate) use item_adoption::pg_claim_owner_contribution;
+pub(crate) use item_adoption::pg_item_adoption_response_from_attempt;
 pub(crate) use item_adoption::pg_item_adoption_transaction_id;
 pub(crate) use item_adoption::pg_item_adoption_transaction_id_from_request;
-pub(crate) use item_adoption::pg_item_adoption_response_from_attempt;
 pub(crate) use item_adoption::pg_select_owner as select_pg_item_adoption_owner;
 pub(crate) use item_adoption::verify_pg_item_adoption_owner;
 pub use item_adoption::{
@@ -103,7 +104,10 @@ pub use item_adoption::{
     prepare_isolated_item_adoption_from_proposal, recover_isolated_item_adoption_from_captures,
     replay_isolated_item_adoption_from_captures,
 };
-pub(crate) use item_adoption::{PgItemAdoptionOwnerPlan, prepare_pg_item_adoption};
+pub(crate) use item_adoption::{
+    PG_ITEM_ADOPTION_FAMILY_TAG, PgItemAdoptionOwnerPlan, pg_expected_revision_indexes,
+    pg_inventory_owner_contributions, prepare_pg_item_adoption,
+};
 #[path = "source_collection_membership.rs"]
 mod collection_membership;
 pub(crate) use collection_membership::current_result_fields as collection_result_fields;
@@ -123,6 +127,15 @@ pub use collection_membership::{
 };
 #[path = "source_expression_responsibility.rs"]
 mod expression_responsibility;
+pub(crate) use expression_responsibility::current_result_fields as responsibility_result_fields;
+pub use expression_responsibility::{
+    ExpressionResponsibilityPreparation, ExpressionResponsibilityPublication,
+    ExpressionResponsibilityRecoveryDecision, check_expression_responsibility_configuration,
+    execute_isolated_expression_responsibility_from_captures,
+    prepare_isolated_expression_responsibility_from_proposal,
+    recover_isolated_expression_responsibility_from_captures,
+    replay_isolated_expression_responsibility_from_captures,
+};
 pub(crate) use expression_responsibility::{
     PG_FAMILY_TAG as EXPRESSION_RESPONSIBILITY_PG_FAMILY_TAG,
     PgExpressionResponsibilityOwnerPackage,
@@ -134,6 +147,14 @@ pub(crate) use expression_responsibility::{
 };
 #[path = "source_expression_edition.rs"]
 mod expression_edition;
+pub(crate) use expression_edition::current_result_fields as edition_result_fields;
+pub use expression_edition::{
+    ExpressionEditionPreparation, ExpressionEditionPublication, ExpressionEditionRecoveryDecision,
+    check_expression_edition_configuration, execute_isolated_expression_edition_from_captures,
+    prepare_isolated_expression_edition_from_proposal,
+    recover_isolated_expression_edition_from_captures,
+    replay_isolated_expression_edition_from_captures,
+};
 pub(crate) use expression_edition::{
     PG_FAMILY_TAG as EXPRESSION_EDITION_PG_FAMILY_TAG, PgExpressionEditionOwnerPackage,
     expected_expression_edition_inventory_contributions,
@@ -5291,29 +5312,6 @@ impl Drop for PendingCreation<'_> {
         }
     }
 }
-
-#[path = "source_expression_responsibility.rs"]
-mod expression_responsibility;
-pub(crate) use expression_responsibility::current_result_fields as responsibility_result_fields;
-pub use expression_responsibility::{
-    ExpressionResponsibilityPreparation, ExpressionResponsibilityPublication,
-    ExpressionResponsibilityRecoveryDecision, check_expression_responsibility_configuration,
-    execute_isolated_expression_responsibility_from_captures,
-    prepare_isolated_expression_responsibility_from_proposal,
-    recover_isolated_expression_responsibility_from_captures,
-    replay_isolated_expression_responsibility_from_captures,
-};
-
-#[path = "source_expression_edition.rs"]
-mod expression_edition;
-pub(crate) use expression_edition::current_result_fields as edition_result_fields;
-pub use expression_edition::{
-    ExpressionEditionPreparation, ExpressionEditionPublication, ExpressionEditionRecoveryDecision,
-    check_expression_edition_configuration, execute_isolated_expression_edition_from_captures,
-    prepare_isolated_expression_edition_from_proposal,
-    recover_isolated_expression_edition_from_captures,
-    replay_isolated_expression_edition_from_captures,
-};
 
 pub use work_expression::resume_isolated_work_expression_from_captures;
 pub(crate) use work_expression::{

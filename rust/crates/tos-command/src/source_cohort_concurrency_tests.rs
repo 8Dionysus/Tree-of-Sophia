@@ -56,6 +56,7 @@ fn family_tagged_source_revision_read_envelope_roundtrips_exact_event_cut() {
                     .to_owned(),
             source_head_sequence: 41,
             predecessor_source_revision: SourceRevision(Digest256::of_bytes(b"predecessor")),
+            request_canonical_digest: None,
         }),
     };
     let encoded = reads_bytes(&reads).expect("family-tagged read envelope encodes");

@@ -65,6 +65,9 @@ pub(crate) mod sign_pg;
 #[path = "source_creation_artifact_pg.rs"]
 pub(crate) mod artifact_pg;
 
+#[path = "source_creation_pg_family.rs"]
+pub(crate) mod pg_family;
+
 pub(crate) fn pg_agent_creation_requirements(
     context: &CommandContext,
 ) -> SourceCommandResult<pg::PgAgentCreationRequirements> {
@@ -113,7 +116,7 @@ impl CreationFamily {
     fn corpus(self) -> bool {
         matches!(self, Self::CorpusV1 | Self::CorpusV2)
     }
-    fn operation(self) -> &'static str {
+    pub(crate) fn operation(self) -> &'static str {
         if self.historical() {
             "historical.create"
         } else if self == Self::Sign {
@@ -1320,6 +1323,114 @@ fn initial(
     Ok(profile_resources)
 }
 
+/// Candidate-worker counterpart used by the bounded PG creation route. It
+/// shares the same initial identity and family gates while validating only
+/// the exact profile/schema resources selected by the caller.
+pub(crate) fn initial_with_candidate_schema(
+    ctx: &CommandContext,
+    identity: crate::source_cohort::revision::PgRecordRevisionIdentity,
+    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+        crate::source_cohort::revision::PgRecordRevisionIdentity,
+    >,
+    config: &JsonValue,
+    family: CreationFamily,
+    record: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<String>> {
+    if family == CreationFamily::Artifact {
+        return crate::source_artifact_native::initial_with_schema(
+            config,
+            record,
+            |refs, root, instance| {
+                let schema_context =
+                    revisions::PgRecordRevisionCommandContext::new(ctx.clone(), identity);
+                revisions::schema_candidate(
+                    worker,
+                    deadline,
+                    cancelled,
+                    &schema_context,
+                    refs,
+                    root,
+                    instance,
+                )
+            },
+        );
+    }
+    if family.corpus() {
+        let schema_context = revisions::PgRecordRevisionCommandContext::new(ctx.clone(), identity);
+        let mut validate_schema = |refs: &[String], root: &str, instance: &JsonValue| {
+            revisions::schema_candidate(
+                worker,
+                deadline,
+                cancelled,
+                &schema_context,
+                refs,
+                root,
+                instance,
+            )
+        };
+        return initial_corpus_with_schema(config, family, record, &mut validate_schema);
+    }
+    if !matches!(family, CreationFamily::HistoricalV1 | CreationFamily::HistoricalV2 | CreationFamily::PublicProfile) {
+        return Err(SourceCommandError::Unsupported(
+            "candidate initial source creation family",
+        ));
+    }
+    initial_identity(config, record)?;
+    if family.historical() {
+        let kind = cmd::text(record, "record_type")?;
+        let path = cmd::text(config, "source_path")?;
+        if !["historical-event", "historical-process", "historical-state"].contains(&kind)
+            || !path.ends_with(&format!("/{kind}.json"))
+            || !revisions::valid_id(
+                cmd::text(record, "record_id")?,
+                &format!("tos.{kind}."),
+                false,
+            )
+            || !["public", "public_metadata_only"].contains(&cmd::text(record, "visibility")?)
+        {
+            return Err(SourceCommandError::Denied(
+                "historical creation typed public identity",
+            ));
+        }
+        let schema_context = revisions::PgRecordRevisionCommandContext::new(ctx.clone(), identity);
+        revisions::schema_candidate(
+            worker,
+            deadline,
+            cancelled,
+            &schema_context,
+            &[
+                "ToS/contracts/corpus-record.schema.json".into(),
+                "ToS/contracts/historical-record.schema.json".into(),
+            ],
+            "ToS/contracts/historical-record.schema.json",
+            record,
+        )?;
+        return Ok(Vec::new());
+    }
+    let schema_context = revisions::PgRecordRevisionCommandContext::new(ctx.clone(), identity);
+    let (profile, resources, _, _) = revisions::public_profile_candidate(
+        worker,
+        deadline,
+        cancelled,
+        &schema_context,
+        config,
+        record,
+    )?;
+    if profile.object_get("creation_gate").is_some() {
+        return Err(SourceCommandError::Denied(
+            "profile requires explicit Sign promotion gate",
+        ));
+    }
+    if profile.object_get("native_binding_adapter").is_some() {
+        return Err(SourceCommandError::Unsupported(
+            "creation exact native content verification pending resolver content route",
+        ));
+    }
+    Ok(resources)
+}
+
 fn historical_claims(
     ctx: &CommandContext,
     config: &JsonValue,
@@ -1331,10 +1442,42 @@ fn historical_claims(
     cancelled: &AtomicBool,
     evidence: &mut Vec<JsonValue>,
 ) -> SourceCommandResult<Vec<u8>> {
+    let mut validate_schema = |refs: &[String], root: &str, instance: &JsonValue| {
+        revisions::schema(worker, deadline, cancelled, ctx, refs, root, instance)
+    };
+    historical_claims_with_schema(
+        ctx,
+        config,
+        record,
+        rows,
+        &inventory.objects,
+        &inventory.claims,
+        &inventory.events,
+        &inventory.anchors,
+        &mut validate_schema,
+        evidence,
+    )
+}
+
+/// Historical Claim semantics shared by cut-backed and candidate-worker
+/// preparation. The selected maps are point dependencies only; callers must
+/// establish global identity absence through their authenticated index route.
+pub(crate) fn historical_claims_with_schema(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    record: &JsonValue,
+    rows: &[JsonValue],
+    selected_objects: &BTreeMap<String, JsonValue>,
+    selected_claims: &BTreeMap<String, JsonValue>,
+    selected_events: &JsonValue,
+    selected_anchors: &JsonValue,
+    mut validate_schema: impl FnMut(&[String], &str, &JsonValue) -> SourceCommandResult<()>,
+    evidence: &mut Vec<JsonValue>,
+) -> SourceCommandResult<Vec<u8>> {
     let registry = json(ctx, RELATIONS)?;
     let entities = json(ctx, ENTITIES)?;
     let types = cmd::array(&entities, "types")?;
-    let mut objects = inventory.objects.clone();
+    let mut objects = selected_objects.clone();
     objects.insert(
         cmd::text(record, "record_id")?.into(),
         cmd::object(vec![
@@ -1349,7 +1492,7 @@ fn historical_claims(
             ),
         ]),
     );
-    let mut ids = inventory.claims.keys().cloned().collect::<BTreeSet<_>>();
+    let mut ids = selected_claims.keys().cloned().collect::<BTreeSet<_>>();
     let mut output = Vec::new();
     for claim in rows {
         let id = cmd::text(claim, "claim_id")?;
@@ -1374,11 +1517,7 @@ fn historical_claims(
                 "historical Claim identity exists or repeats",
             ));
         }
-        revisions::schema(
-            worker,
-            deadline,
-            cancelled,
-            ctx,
+        validate_schema(
             &[
                 "ToS/contracts/historical-claim.schema.json".into(),
                 "ToS/contracts/claim-packet.schema.json".into(),
@@ -1479,11 +1618,7 @@ fn historical_claims(
             .and_then(JsonValue::as_str)
             == Some("tos_claim_display_fields_v1")
         {
-            revisions::schema(
-                worker,
-                deadline,
-                cancelled,
-                ctx,
+            validate_schema(
                 &[
                     "ToS/contracts/corpus-record.schema.json".into(),
                     "ToS/contracts/claim-display-fields.schema.json".into(),
@@ -1500,7 +1635,7 @@ fn historical_claims(
                 ));
             }
         }
-        if inventory.events.object_get(event).is_none()
+        if selected_events.object_get(event).is_none()
             && config
                 .object_get("provenance_event_id")
                 .and_then(JsonValue::as_str)
@@ -1534,8 +1669,8 @@ fn historical_claims(
                     ctx,
                     name,
                     &objects,
-                    &inventory.anchors,
-                    &inventory.events,
+                    selected_anchors,
+                    selected_events,
                 )?);
             }
         }

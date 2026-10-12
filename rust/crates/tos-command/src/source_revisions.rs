@@ -1002,6 +1002,10 @@ impl PgRecordRevisionCommandContext {
             self.publication_observation_digest.get(),
         )
     }
+
+    pub(crate) fn identity(&self) -> PgRecordRevisionIdentity {
+        self.identity
+    }
 }
 
 impl RecordRead for PgRecordRevisionCommandContext {
@@ -1231,11 +1235,14 @@ impl<I: Copy + Eq> RecordRead for CandidateRecordVersionReadInput<'_, I> {
 /// metadata context. Candidate workers prove their resource closure through
 /// that identity and prepared schema-set binding; immutable-cut workers still
 /// compare each selected schema's exact source bytes.
-trait RecordSchemaWorker: CutSchemaExecutor {
+pub(crate) trait RecordSchemaWorker: CutSchemaExecutor {
     type Identity: Copy + Eq;
 
     fn input_identity(&self) -> Self::Identity;
     fn contract_digest(&self, contract: &str) -> Option<Digest256>;
+    fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
+        None
+    }
     fn resource_closure_bound_to_identity(&self) -> bool {
         false
     }
@@ -1270,6 +1277,10 @@ impl RecordSchemaWorker for CutWorkerSchemaExecutor {
         CutWorkerSchemaExecutor::contract_digest(self, contract)
     }
 
+    fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
+        Some(CutWorkerSchemaExecutor::source_revision(self))
+    }
+
     fn public_profile(
         &mut self,
         cut: Option<&CorpusCutReader>,
@@ -1296,6 +1307,23 @@ impl<I: Copy + Eq> RecordSchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
 
     fn resource_closure_bound_to_identity(&self) -> bool {
         true
+    }
+
+    fn public_profile(
+        &mut self,
+        cut: Option<&CorpusCutReader>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        ctx: &impl RecordRead<Identity = Self::Identity>,
+        config: &JsonValue,
+        record: &JsonValue,
+    ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+        if cut.is_some() {
+            return Err(SourceCommandError::Unsupported(
+                "candidate public profile cannot use a corpus cut",
+            ));
+        }
+        public_profile_candidate(self, deadline, cancelled, ctx, config, record)
     }
 }
 
@@ -5469,6 +5497,56 @@ pub(crate) fn schema_candidate<I: Copy + Eq>(
     )
 }
 
+/// Validate one schema through either a cut worker or a candidate worker,
+/// keeping its selected read identity attached to the exact source closure.
+pub(crate) fn schema_for_worker<W, C>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &C,
+    refs: &[String],
+    root: &str,
+    instance: &JsonValue,
+) -> SourceCommandResult<()>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    schema_at(
+        worker, deadline, cancelled, ctx, refs, root, instance, None, false,
+    )
+}
+
+/// Owner-path form of `schema_for_worker`; the path remains a checked part of
+/// the schema execution input for both candidate and immutable-cut reads.
+pub(crate) fn schema_for_source_path_worker<W, C>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &C,
+    refs: &[String],
+    root: &str,
+    source_path: &str,
+    instance: &JsonValue,
+) -> SourceCommandResult<()>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    path(source_path)?;
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        refs,
+        root,
+        instance,
+        Some(source_path),
+        false,
+    )
+}
+
 // Reuse is limited to an actual scalar result from this selected worker operation.
 // The caller still reads and checks the current source/resource dependencies.
 fn schema_at<W, C>(
@@ -5857,7 +5935,7 @@ fn selected_native_identity_inventory(
         {
             continue;
         }
-        if entries.len() >= 1024 || member.size_bytes > remaining.min(1_048_576) as u64 {
+        if packet_members.len() >= 1024 || member.size_bytes > remaining.min(1_048_576) as u64 {
             return Err(SourceCommandError::Invalid(
                 "native identity inventory metadata budget",
             ));
@@ -6597,6 +6675,21 @@ pub(crate) fn validate_source_profile_registry_candidate<I: Copy + Eq>(
     validate_source_profile_registry_with(worker, deadline, cancelled, ctx)
 }
 
+/// Generic owner-worker entry for selected metadata closures. It preserves
+/// the candidate resource-closure check and the cut worker's exact-byte check.
+pub(crate) fn validate_source_profile_registry_for_worker<W, C>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &C,
+) -> SourceCommandResult<JsonValue>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    validate_source_profile_registry_with(worker, deadline, cancelled, ctx)
+}
+
 fn validate_source_profile_registry_with<W, C>(
     worker: &mut W,
     deadline: Instant,
@@ -6923,6 +7016,132 @@ pub(crate) fn public_profile(
     ))
 }
 
+/// Candidate-worker counterpart for selected public-profile source owners.
+/// The owner separately proves identity availability through its selected
+/// uniqueness closure; this helper validates the same profile and schema
+/// contracts but emits no corpus-wide identity snapshot.
+pub(crate) fn public_profile_candidate<I: Copy + Eq>(
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &impl RecordRead<Identity = I>,
+    config: &JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+    let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
+    let registry = validate_source_profile_registry_candidate(worker, deadline, cancelled, ctx)?;
+    let entities = cmd::array(&registry, "types")?
+        .iter()
+        .map(|entry| Ok((cmd::text(entry, "type_id")?, entry)))
+        .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
+    let entry = entities
+        .get(cmd::text(config, "profile_type_id")?)
+        .ok_or(SourceCommandError::Denied("profile type absent"))?;
+    let profile = cmd::field(entry, "source_record_profile")?;
+    let kind = cmd::text(profile, "record_type")?;
+    let source_path = cmd::text(config, "source_path")?;
+    let (_, base) = split(source_path)?;
+    if base != cmd::text(profile, "source_basename")?
+        || cmd::text(record, "record_type")? != kind
+        || cmd::text(record, "record_id")? != cmd::text(config, "record_id")?
+        || !valid_id(
+            cmd::text(record, "record_id")?,
+            cmd::text(profile, "id_prefix")?,
+            false,
+        )
+        || !matches!(
+            cmd::text(record, "visibility")?,
+            "public" | "public_metadata_only"
+        )
+        || !matches!(
+            cmd::text(record, "identity_status")?,
+            "provisional" | "verified" | "disputed" | "superseded"
+        )
+        || strip(cmd::text(record, "preferred_label")?)?.is_empty()
+        || cmd::integer(record, "record_version")? == 0
+    {
+        return Err(SourceCommandError::Denied(
+            "public profile exact identity, visibility or metadata",
+        ));
+    }
+    if kind == "composite"
+        && (!source_path.starts_with("ToS/source-witnesses/scholarly-composites/")
+            || source_path.split('/').count() < 7)
+    {
+        return Err(SourceCommandError::Denied(
+            "retained composite profile path",
+        ));
+    }
+    if profile.object_get("native_binding_adapter").is_some()
+        || record.object_get("native_text_binding").is_some()
+    {
+        return Err(SourceCommandError::Unsupported(
+            "candidate public profile native text binding adapter",
+        ));
+    }
+    let routes = cmd::array(profile, "schemas")?
+        .iter()
+        .filter(|route| {
+            cmd::text(route, "schema_version").ok() == cmd::text(record, "schema_version").ok()
+        })
+        .collect::<Vec<_>>();
+    if routes.len() != 1 {
+        return Err(SourceCommandError::Unsupported(
+            "profile exact schema version unavailable",
+        ));
+    }
+    let root = cmd::text(routes[0], "schema_ref")?;
+    let mut resources = vec![CORPUS_SCHEMA.to_string()];
+    resources.extend(texts(routes[0], "schema_dependencies", 128)?);
+    resources.push(root.into());
+    let mut seen = BTreeSet::new();
+    resources.retain(|resource| seen.insert(resource.clone()));
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &resources,
+        root,
+        record,
+        Some(source_path),
+        true,
+    )?;
+    let shared = "ToS/contracts/source-metadata-record.schema.json";
+    if !resources.iter().any(|resource| resource == shared) {
+        return Err(SourceCommandError::Unsupported(
+            "profile shared metadata worker contract absent from exact declared route",
+        ));
+    }
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &resources,
+        shared,
+        record,
+        Some(source_path),
+        true,
+    )?;
+    resources.insert(0, contract.into());
+    resources.insert(0, REGISTRY.into());
+    if resources.len() > 128
+        || resources
+            .iter()
+            .map(|name| required(ctx, name).map(<[u8]>::len))
+            .collect::<SourceCommandResult<Vec<_>>>()?
+            .into_iter()
+            .sum::<usize>()
+            > 8_388_608
+    {
+        return Err(SourceCommandError::Invalid(
+            "source profile contract snapshot budget",
+        ));
+    }
+    Ok((profile.clone(), resources, None, None))
+}
+
 /// Resolve an exact metadata version through its selected current source home
 /// and complete retained record-revision predecessor closure. This is a read
 /// seam for typed Claim owners, with the same concrete source-cut worker.
@@ -6935,8 +7154,32 @@ pub fn resolve_record_version(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, String)> {
+    resolve_record_version_for_worker(ctx, None, exact, worker, deadline, cancelled)
+}
+
+/// Resolve one exact metadata version through the selected current source home
+/// with the worker and identity supplied by its owner. Candidate callers must
+/// provide the exact current source-home closure in `ctx`; this helper makes no
+/// global absence claim.
+pub(crate) fn resolve_record_version_for_worker<W, C>(
+    ctx: &C,
+    cut: Option<&CorpusCutReader>,
+    exact: &JsonValue,
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, String)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    if cut.is_some_and(|cut| worker.source_revision() != Some(cut.current().revision())) {
+        return Err(SourceCommandError::Conflict(
+            "metadata resolver selected cut differs",
+        ));
+    }
     let resolved =
-        resolve_record_version_selected(ctx, None, None, None, exact, worker, deadline, cancelled)?;
+        resolve_record_version_selected(ctx, cut, None, None, exact, worker, deadline, cancelled)?;
     Ok((resolved.record, resolved.source_path))
 }
 
@@ -7210,15 +7453,19 @@ pub(crate) fn resolve_record_version_evidence_at_from_cut(
 /// The Claim inventory supplies an exact selected physical owner path and
 /// rejects duplicate identities before it returns. Keep bounded history/copy
 /// observations without another global selected-file discovery pass.
-pub(crate) fn resolve_record_version_evidence_at_selected(
-    ctx: &CommandContext,
+pub(crate) fn resolve_record_version_evidence_at_selected<W, C>(
+    ctx: &C,
     owner_path: &str,
     limits: ItemLimits,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<ResolvedRecordVersion> {
+) -> SourceCommandResult<ResolvedRecordVersion>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     resolve_record_version_selected(
         ctx,
         None,
@@ -7264,16 +7511,20 @@ pub fn resolve_record_version_readonly(
     Ok(resolved)
 }
 
-fn resolve_record_version_selected(
-    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
+fn resolve_record_version_selected<W, C>(
+    ctx: &C,
     cut: Option<&CorpusCutReader>,
     selected_path: Option<&str>,
     collection_limits: Option<ItemLimits>,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<ResolvedRecordVersion> {
+) -> SourceCommandResult<ResolvedRecordVersion>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     // The selected-owner route is reached only through a whole Claim
     // inventory which rejects duplicate identities before returning. Rechecking
     // its entire file vector for every participant would turn one bounded
@@ -7282,7 +7533,7 @@ fn resolve_record_version_selected(
         ctx.check()?;
     }
     exact_ref(exact)?;
-    if worker.source_revision() != ctx.input_identity() {
+    if worker.input_identity() != ctx.input_identity() {
         return Err(SourceCommandError::Conflict(
             "metadata resolver worker and source cut differ",
         ));

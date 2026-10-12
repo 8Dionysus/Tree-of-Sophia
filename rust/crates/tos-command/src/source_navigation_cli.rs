@@ -157,6 +157,7 @@ pub(crate) fn with_selected_navigation_producer_current<T>(
     consume: impl for<'hold> FnOnce(
         &'hold tos_compiler::VerifiedKnowledgeModel<'hold>,
         &'hold ManagedCurrentModelLeaseV2<'hold>,
+        &'hold ManagedAgentSelectedParent<tos_compiler::managed_source::ManagedSourceProofV2>,
         &'hold tos_compiler::managed_source::ManagedSourceProofV2,
         &'hold tos_compiler::KnowledgeSelectedExpectation,
         &'hold NavigationProducerHeldOwnerIdentity,
@@ -243,6 +244,7 @@ pub(crate) fn with_selected_navigation_producer_current<T>(
                 consume(
                     model,
                     lease,
+                    &parent,
                     parent.source_proof(),
                     parent.selection_expectation(),
                     &facts,

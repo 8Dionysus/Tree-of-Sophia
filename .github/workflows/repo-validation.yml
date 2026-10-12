@@ -921,8 +921,27 @@ jobs:
           CARGO_BUILD_JOBS: "2"
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
           TOS_CMD_POSTGRES_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_lab
+          TOS_CMD2_V2_RESTORE_DATABASE: tos_cmd_restore_current_${{ github.run_id }}_${{ github.run_attempt }}
+          TOS_CMD2_V2_V1_WIRE_RESTORE_DATABASE: tos_cmd_restore_v1_wire_${{ github.run_id }}_${{ github.run_attempt }}
+          TOS_CMD2_V2_RESTORE_PG_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_restore_current_${{ github.run_id }}_${{ github.run_attempt }}
+          TOS_CMD2_V2_V1_WIRE_RESTORE_PG_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_restore_v1_wire_${{ github.run_id }}_${{ github.run_attempt }}
         run: |
           : "${TOS_CMD_POSTGRES_URL:?dedicated PostgreSQL connection is required}"
+          : "${TOS_CMD2_V2_RESTORE_PG_URL:?fresh current-writer restore database is required}"
+          : "${TOS_CMD2_V2_V1_WIRE_RESTORE_PG_URL:?fresh V1-wire restore database is required}"
+          test "${TOS_CMD2_V2_RESTORE_PG_URL##*/}" = "$TOS_CMD2_V2_RESTORE_DATABASE"
+          test "${TOS_CMD2_V2_V1_WIRE_RESTORE_PG_URL##*/}" = "$TOS_CMD2_V2_V1_WIRE_RESTORE_DATABASE"
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends postgresql-client-16
+          export TOS_CMD2_PG_DUMP_PATH=/usr/lib/postgresql/16/bin/pg_dump
+          export TOS_CMD2_PG_RESTORE_PATH=/usr/lib/postgresql/16/bin/pg_restore
+          "$TOS_CMD2_PG_DUMP_PATH" --version | grep -Eq ' \(PostgreSQL\) 16\.'
+          "$TOS_CMD2_PG_RESTORE_PATH" --version | grep -Eq ' \(PostgreSQL\) 16\.'
+          psql "$TOS_CMD_POSTGRES_URL" -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE \"$TOS_CMD2_V2_RESTORE_DATABASE\"" \
+            -c "CREATE DATABASE \"$TOS_CMD2_V2_V1_WIRE_RESTORE_DATABASE\""
+          export TOS_CMD2_PG_DUMP_SHA256="$(sha256sum "$TOS_CMD2_PG_DUMP_PATH" | cut -d ' ' -f 1)"
+          export TOS_CMD2_PG_RESTORE_SHA256="$(sha256sum "$TOS_CMD2_PG_RESTORE_PATH" | cut -d ' ' -f 1)"
           cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
 
       - name: Unmount isolated fs-verity test filesystem

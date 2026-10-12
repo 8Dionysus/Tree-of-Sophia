@@ -5,8 +5,7 @@
 //! exact owner authorization, and the source-side publication proposal.
 
 use super::*;
-use crate::source_cohort::IndexRows;
-use crate::source_cohort::revision::SourceRevisionWrite;
+use crate::source_cohort::{IndexRows, SourceRevisionWrite};
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{CreationFilesystem, SelectedSourceWitnessCatalog};
 use std::collections::{BTreeMap, BTreeSet};

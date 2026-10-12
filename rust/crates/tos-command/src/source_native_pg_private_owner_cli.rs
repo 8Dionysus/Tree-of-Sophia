@@ -924,7 +924,7 @@ pub(crate) fn run(
     let _ =
         crate::source_text_owner::normalized_absolute(cmd::text(invocation, "native_executable")?)?;
     let runtime = crate::source_serialization::observe_executable(deadline, cancelled)?;
-    let executable_digest = pg::digest(cmd::text(invocation, "native_executable_sha256")?)?;
+    let executable_digest = super::digest(cmd::text(invocation, "native_executable_sha256")?)?;
     if runtime.current_digest(deadline, cancelled)? != executable_digest {
         return Err(SourceCommandError::Conflict(
             "PostgreSQL private owner executable identity",
@@ -1089,7 +1089,7 @@ pub(crate) fn run(
                         )
                     }
                     PrivateOwnerPackageFamilyV1::Claim => {
-                        super::private_owner::claim::identity_basenames_pg(
+                        super::private_owner::claim::claim_identity_basenames_pg(
                             &command,
                             &cut,
                             &selected,
@@ -1491,7 +1491,7 @@ pub(crate) fn run(
             "commit_seq":replay.commit_seq,
             "package_sha256":replay.package_digest.to_prefixed(),
             "receipt_sha256":Digest256::of_bytes(&replay.response_bytes).to_prefixed(),
-            "replayed":false,
+            "replayed":replay.replayed,
             "grants_admission":false,
             "content_disclosure":"owner-local",
             "result":result

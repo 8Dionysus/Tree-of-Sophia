@@ -7,8 +7,8 @@
 use super::work_transaction::{self, WorkCorpusFence, WorkPlan};
 use super::{
     WorkOwner, catalog_lines, current_catalog_from_selected_input, dependency_bindings,
-    finished_receipt, item_error, read_selected_source_member, relative, software_current,
-    work_expression_materializations,
+    finished_receipt, foundation_value, item_error, read_selected_source_member, relative,
+    serde_value, software_current, work_expression_materializations,
 };
 use crate::source_cohort::{IndexRows, SourceRevisionWrite};
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};

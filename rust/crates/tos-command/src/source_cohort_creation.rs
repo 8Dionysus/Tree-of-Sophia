@@ -22,6 +22,9 @@ pub(crate) const PG_CORPUS_CREATION_PROFILE: &[u8] = b"tos.source-file.agent-cre
 pub(crate) const PG_CREATION: &[u8] = PG_CORPUS_CREATION_PROFILE;
 const PG_ARTIFACT_INDEXES_PROFILE: &str = "tos-pg-artifact-creation-indexes-v1";
 const PG_ARTIFACT_FAMILY_TAG: &str = crate::source_creation::artifact_pg::ARTIFACT_FAMILY_TAG;
+/// New creation-family rows use a distinct profile so existing Corpus and
+/// Artifact source-index bytes remain stable across this admission extension.
+const PG_FAMILY_INDEXES_PROFILE: &str = "tos-pg-family-creation-indexes-v2";
 // This is a new bounded semantic commitment, deliberately separate from the
 // legacy complete `source-inventory/all` predicate and its v1 namespace.
 pub(crate) const COMMITMENT_VERSION: u16 = 2;
@@ -65,6 +68,11 @@ pub(crate) trait PgCreationInput {
     /// binds every plan field into the durable delta.
     fn plan(&self) -> &CommandPlan;
     fn family_tag(&self) -> &str;
+    /// New family adapters bind the exact invocation and selected software
+    /// capture/components so a ready retry cannot substitute another run.
+    fn replay_binding(&self) -> Option<Digest256> {
+        None
+    }
     fn record_type(&self) -> &str;
     fn home(&self) -> &RelativePath;
     fn files(&self) -> &BTreeMap<String, Vec<u8>>;
@@ -105,6 +113,7 @@ pub(crate) struct PgCreationAttempt {
     pub(crate) indexes: IndexRows,
     pub(crate) index_binding: Vec<u8>,
     pub(crate) dependency_commitment: PgDependencyCommitment,
+    pub(crate) replay_binding: Option<Digest256>,
     pub(crate) predicate_keys: BTreeSet<(String, String, String)>,
     pub(crate) writes: Vec<SourceRevisionWrite>,
     pub(crate) identity: Option<PgRecordRevisionIdentity>,
@@ -125,12 +134,14 @@ fn identity_digest(
     let profile: &[u8] = match record_type {
         "agent" => b"tos-pg-agent-creation-read-epoch-v1",
         "artifact" => b"tos-pg-artifact-creation-read-epoch-v1",
+        _ if is_pg_family_tag(family_tag) => b"tos-pg-family-creation-read-epoch-v1",
         _ => b"tos-pg-corpus-creation-read-epoch-v1",
     };
     part(&mut hasher, profile);
-    if record_type == "artifact" {
+    if record_type == "artifact" || is_pg_family_tag(family_tag) {
         part(&mut hasher, family_tag.as_bytes());
-    } else if record_type != "agent" {
+    }
+    if record_type != "agent" {
         part(&mut hasher, record_type.as_bytes());
     }
     part(&mut hasher, identity.domain_digest.as_bytes());
@@ -163,6 +174,7 @@ fn indexes_bytes(
     identity: PgRecordRevisionIdentity,
     record_type: &str,
     family_tag: &str,
+    replay_binding: Option<Digest256>,
 ) -> DurableResult<Vec<u8>> {
     let rows = indexes.iter().collect::<Vec<_>>();
     let value = match record_type {
@@ -180,6 +192,20 @@ fn indexes_bytes(
             "read_epoch": identity_digest(identity, record_type, family_tag).to_hex(),
             "indexes": rows,
         }),
+        _ if is_pg_family_tag(family_tag) => {
+            let replay_binding = replay_binding.ok_or(DurableError::Invalid(
+                "bounded PG family replay binding absent",
+            ))?;
+            serde_json::json!({
+                "profile": PG_FAMILY_INDEXES_PROFILE,
+                "record_type": record_type,
+                "family_tag": family_tag,
+                "commitment": [commitment.version, commitment.digest.to_hex()],
+                "read_epoch": identity_digest(identity, record_type, family_tag).to_hex(),
+                "replay_binding": replay_binding.to_hex(),
+                "indexes": rows,
+            })
+        }
         _ => serde_json::json!({
             "profile": "tos-pg-corpus-creation-indexes-v2",
             "record_type": record_type,
@@ -200,37 +226,89 @@ fn parse_pg_indexes(
     Digest256,
     String,
     Option<String>,
+    Option<Digest256>,
 )> {
     let value: serde_json::Value = serde_json::from_slice(raw)
         .map_err(|_| DurableError::Corrupt("bounded PG creation indexes encoding"))?;
-    let (record_type, family_tag) = match value.get("profile").and_then(|v| v.as_str()) {
-        Some("tos-pg-agent-creation-indexes-v2") => ("agent".to_owned(), None),
-        Some("tos-pg-corpus-creation-indexes-v2") => {
-            let record_type = value
-                .get("record_type")
-                .and_then(|v| v.as_str())
-                .ok_or(DurableError::Corrupt("bounded Corpus record type"))?;
-            if !["place", "organization", "work", "collection"].contains(&record_type) {
-                return Err(DurableError::Corrupt("bounded Corpus record type"));
+    let (record_type, family_tag, replay_binding) =
+        match value.get("profile").and_then(|v| v.as_str()) {
+            Some("tos-pg-agent-creation-indexes-v2") => ("agent".to_owned(), None, None),
+            Some("tos-pg-corpus-creation-indexes-v2") => {
+                let record_type = value
+                    .get("record_type")
+                    .and_then(|v| v.as_str())
+                    .ok_or(DurableError::Corrupt("bounded Corpus record type"))?;
+                if !["place", "organization", "work", "collection"].contains(&record_type) {
+                    return Err(DurableError::Corrupt("bounded Corpus record type"));
+                }
+                (record_type.to_owned(), None, None)
             }
-            (record_type.to_owned(), None)
-        }
-        Some(PG_ARTIFACT_INDEXES_PROFILE) => {
-            let record_type = value
-                .get("record_type")
-                .and_then(|v| v.as_str())
-                .ok_or(DurableError::Corrupt("bounded Artifact record type"))?;
-            let family_tag = value
-                .get("family_tag")
-                .and_then(|v| v.as_str())
-                .ok_or(DurableError::Corrupt("bounded Artifact family tag"))?;
-            if record_type != "artifact" || family_tag != PG_ARTIFACT_FAMILY_TAG {
-                return Err(DurableError::Corrupt("bounded Artifact indexes family"));
+            Some(PG_ARTIFACT_INDEXES_PROFILE) => {
+                let record_type = value
+                    .get("record_type")
+                    .and_then(|v| v.as_str())
+                    .ok_or(DurableError::Corrupt("bounded Artifact record type"))?;
+                let family_tag = value
+                    .get("family_tag")
+                    .and_then(|v| v.as_str())
+                    .ok_or(DurableError::Corrupt("bounded Artifact family tag"))?;
+                if record_type != "artifact" || family_tag != PG_ARTIFACT_FAMILY_TAG {
+                    return Err(DurableError::Corrupt("bounded Artifact indexes family"));
+                }
+                (record_type.to_owned(), Some(family_tag.to_owned()), None)
             }
-            (record_type.to_owned(), Some(family_tag.to_owned()))
-        }
-        _ => return Err(DurableError::Corrupt("bounded PG creation indexes profile")),
-    };
+            Some(PG_FAMILY_INDEXES_PROFILE) => {
+                if serde_json::to_vec(&value).ok().as_deref() != Some(raw) {
+                    return Err(DurableError::Corrupt(
+                        "bounded PG family creation indexes are noncanonical",
+                    ));
+                }
+                let object = value
+                    .as_object()
+                    .filter(|object| {
+                        object.len() == 7
+                            && [
+                                "profile",
+                                "record_type",
+                                "family_tag",
+                                "commitment",
+                                "read_epoch",
+                                "replay_binding",
+                                "indexes",
+                            ]
+                            .iter()
+                            .all(|key| object.contains_key(*key))
+                    })
+                    .ok_or(DurableError::Corrupt(
+                        "bounded PG family creation index fields",
+                    ))?;
+                let record_type = object
+                    .get("record_type")
+                    .and_then(|value| value.as_str())
+                    .filter(|value| !value.is_empty() && value.len() <= 128)
+                    .ok_or(DurableError::Corrupt(
+                        "bounded PG family creation record type",
+                    ))?;
+                let family_tag = object
+                    .get("family_tag")
+                    .and_then(|value| value.as_str())
+                    .filter(|tag| is_pg_family_tag(tag))
+                    .ok_or(DurableError::Corrupt("bounded PG family creation tag"))?;
+                let replay_binding = Digest256::from_hex(
+                    object
+                        .get("replay_binding")
+                        .and_then(|value| value.as_str())
+                        .ok_or(DurableError::Corrupt("bounded PG family replay binding"))?,
+                )
+                .map_err(|_| DurableError::Corrupt("bounded PG family replay binding"))?;
+                (
+                    record_type.to_owned(),
+                    Some(family_tag.to_owned()),
+                    Some(replay_binding),
+                )
+            }
+            _ => return Err(DurableError::Corrupt("bounded PG creation indexes profile")),
+        };
     let commitment = value
         .get("commitment")
         .and_then(|v| v.as_array())
@@ -295,11 +373,21 @@ fn parse_pg_indexes(
         read_epoch,
         record_type,
         family_tag,
+        replay_binding,
     ))
 }
 
 fn fixed_index(kind: &str) -> bool {
     PG_CREATION_INDEX_KINDS.contains(&kind)
+}
+
+fn is_pg_family_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        crate::source_creation::pg_family::PG_HISTORICAL_V1_FAMILY_TAG
+            | crate::source_creation::pg_family::PG_HISTORICAL_V2_FAMILY_TAG
+            | crate::source_creation::pg_family::PG_PUBLIC_PROFILE_FAMILY_TAG
+    )
 }
 
 fn source_dependencies(reads: &SourceReads) -> Vec<String> {
@@ -382,10 +470,26 @@ fn creation_delta(
             part(&mut hasher, b"tos-pg-artifact-creation-delta-v1");
             part(&mut hasher, input.family_tag().as_bytes());
         }
+        _ if is_pg_family_tag(input.family_tag()) => {
+            part(&mut hasher, b"tos-pg-family-creation-delta-v2");
+            part(&mut hasher, input.family_tag().as_bytes());
+            part(&mut hasher, input.record_type().as_bytes());
+        }
         record_type => {
             part(&mut hasher, b"tos-pg-corpus-creation-delta-v1");
             part(&mut hasher, record_type.as_bytes());
         }
+    }
+    if is_pg_family_tag(input.family_tag()) {
+        part(
+            &mut hasher,
+            input
+                .replay_binding()
+                .ok_or(DurableError::Invalid(
+                    "bounded PG family replay binding absent",
+                ))?
+                .as_bytes(),
+        );
     }
     part(&mut hasher, selection.cohort.domain.as_bytes());
     part(&mut hasher, selection.contract.as_bytes());
@@ -427,10 +531,7 @@ fn creation_delta(
 
 fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevisionWrite>> {
     let plan = input.plan();
-    if plan.operation != "source.create"
-        || plan.changes.is_empty()
-        || plan.changes.len() > MAX_MEMBERS
-    {
+    if plan.changes.is_empty() || plan.changes.len() > MAX_MEMBERS {
         return Err(DurableError::Refused(
             "bounded PG creation requires an admitted initial source package",
         ));
@@ -442,6 +543,24 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
         cmd::text(&config, "schema_version").map_err(source_error)?,
     )
     .map_err(source_error)?;
+    let expected_operation = match family {
+        crate::source_creation::CreationFamily::HistoricalV1
+        | crate::source_creation::CreationFamily::HistoricalV2 => "historical.create",
+        crate::source_creation::CreationFamily::PublicProfile
+        | crate::source_creation::CreationFamily::CorpusV1
+        | crate::source_creation::CreationFamily::CorpusV2
+        | crate::source_creation::CreationFamily::Artifact => "source.create",
+        crate::source_creation::CreationFamily::Sign => {
+            return Err(DurableError::Refused(
+                "Sign promotion is not a source creation family",
+            ));
+        }
+    };
+    if plan.operation != expected_operation {
+        return Err(DurableError::Refused(
+            "bounded PG creation operation differs from family",
+        ));
+    }
     let (expected_tag, record_filename, forms_filename, record_id) = match family {
         crate::source_creation::CreationFamily::CorpusV1
         | crate::source_creation::CreationFamily::CorpusV2 => {
@@ -514,6 +633,67 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
                     .to_owned(),
             )
         }
+        crate::source_creation::CreationFamily::HistoricalV1
+        | crate::source_creation::CreationFamily::HistoricalV2
+        | crate::source_creation::CreationFamily::PublicProfile => {
+            if plan.handler_id != family.handler_id() {
+                return Err(DurableError::Refused(
+                    "bounded PG family creation handler differs",
+                ));
+            }
+            let record_type = cmd::text(record, "record_type").map_err(source_error)?;
+            if input.record_type() != record_type {
+                return Err(DurableError::Conflict(
+                    "bounded PG family record type differs from semantic package",
+                ));
+            }
+            let source_path = cmd::text(&config, "source_path").map_err(source_error)?;
+            let home_prefix = format!("{}/", input.home().as_str());
+            let record_filename = source_path
+                .strip_prefix(&home_prefix)
+                .filter(|name| {
+                    !name.is_empty()
+                        && !name.contains('/')
+                        && name.ends_with(".json")
+                        && RelativePath::parse(source_path).is_ok()
+                })
+                .ok_or(DurableError::Conflict(
+                    "bounded PG family source path differs from selected home",
+                ))?
+                .to_owned();
+            if family.historical() && record_filename != format!("{record_type}.json") {
+                return Err(DurableError::Conflict(
+                    "bounded PG Historical source basename differs from record type",
+                ));
+            }
+            let tag = match family {
+                crate::source_creation::CreationFamily::HistoricalV1 => {
+                    crate::source_creation::pg_family::PG_HISTORICAL_V1_FAMILY_TAG
+                }
+                crate::source_creation::CreationFamily::HistoricalV2 => {
+                    crate::source_creation::pg_family::PG_HISTORICAL_V2_FAMILY_TAG
+                }
+                crate::source_creation::CreationFamily::PublicProfile => {
+                    crate::source_creation::pg_family::PG_PUBLIC_PROFILE_FAMILY_TAG
+                }
+                _ => {
+                    return Err(DurableError::Refused(
+                        "bounded PG creation family tag is not admitted",
+                    ));
+                }
+            };
+            (
+                tag,
+                record_filename.clone(),
+                format!(
+                    "{}.human-forms.json",
+                    record_filename.trim_end_matches(".json")
+                ),
+                cmd::text(record, "record_id")
+                    .map_err(source_error)?
+                    .to_owned(),
+            )
+        }
         _ => {
             return Err(DurableError::Refused(
                 "bounded PG creation family is not admitted",
@@ -537,6 +717,48 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
             ));
         }
     }
+    if is_pg_family_tag(expected_tag) {
+        let expected_members = match family {
+            crate::source_creation::CreationFamily::HistoricalV1 => [
+                record_filename.as_str(),
+                forms_filename.as_str(),
+                "historical-claims.jsonl",
+                "source-create-receipt.json",
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>(),
+            crate::source_creation::CreationFamily::HistoricalV2 => [
+                record_filename.as_str(),
+                forms_filename.as_str(),
+                "historical-claims.jsonl",
+                "source-create-request.json",
+                "source-create-environment.json",
+                "source-create-provenance.jsonl",
+                "source-create-receipt.json",
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>(),
+            crate::source_creation::CreationFamily::PublicProfile => [
+                record_filename.as_str(),
+                forms_filename.as_str(),
+                "source-create-request.json",
+                "source-create-environment.json",
+                "source-create-provenance.jsonl",
+                "source-create-receipt.json",
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>(),
+            _ => return Err(DurableError::Corrupt("bounded PG family creation tag")),
+        };
+        if input.files().keys().cloned().collect::<BTreeSet<_>>() != expected_members {
+            return Err(DurableError::Conflict(
+                "bounded PG family package member closure differs",
+            ));
+        }
+    }
     let serialized = input
         .files()
         .get(&record_filename)
@@ -552,13 +774,15 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
         record_id,
         format!("{}/{}", input.home().as_str(), record_filename),
     ));
-    expected_indexes.insert((
-        "event".to_owned(),
-        cmd::text(&config, "provenance_event_id")
-            .map_err(source_error)?
-            .to_owned(),
-        format!("{}/source-create-provenance.jsonl", input.home().as_str()),
-    ));
+    if family != crate::source_creation::CreationFamily::HistoricalV1 {
+        expected_indexes.insert((
+            "event".to_owned(),
+            cmd::text(&config, "provenance_event_id")
+                .map_err(source_error)?
+                .to_owned(),
+            format!("{}/source-create-provenance.jsonl", input.home().as_str()),
+        ));
+    }
     for selection in cmd::array(&request, "forms").map_err(source_error)? {
         expected_indexes.insert((
             "form".to_owned(),
@@ -567,6 +791,21 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
                 .to_owned(),
             format!("{}/{}", input.home().as_str(), forms_filename),
         ));
+    }
+    if matches!(
+        family,
+        crate::source_creation::CreationFamily::HistoricalV1
+            | crate::source_creation::CreationFamily::HistoricalV2
+    ) {
+        for claim in cmd::array(&request, "claims").map_err(source_error)? {
+            expected_indexes.insert((
+                "claim".to_owned(),
+                cmd::text(claim, "claim_id")
+                    .map_err(source_error)?
+                    .to_owned(),
+                format!("{}/historical-claims.jsonl", input.home().as_str()),
+            ));
+        }
     }
     if input.indexes() != &expected_indexes {
         return Err(DurableError::Conflict(
@@ -608,6 +847,20 @@ fn creation_writes(input: &dyn PgCreationInput) -> DurableResult<Vec<SourceRevis
             proposed_revision: 1,
             exact_bytes: after,
         });
+    }
+    if is_pg_family_tag(expected_tag) {
+        let owner_indexes = crate::source_creation::pg_family::recovery_package_contract(
+            expected_tag,
+            input.record_type(),
+            input.home(),
+            &writes,
+        )
+        .map_err(source_error)?;
+        if owner_indexes != expected_indexes || input.indexes() != &owner_indexes {
+            return Err(DurableError::Conflict(
+                "bounded PG family owner indexes differ from exact package",
+            ));
+        }
     }
     Ok(writes)
 }
@@ -687,6 +940,64 @@ fn verify_recovered_initial_record(
     family_tag: Option<&str>,
     writes: &[SourceRevisionWrite],
 ) -> DurableResult<()> {
+    if let Some(family_tag) = family_tag.filter(|tag| is_pg_family_tag(tag)) {
+        let owner_indexes = indexes
+            .iter()
+            .filter(|(kind, _, _)| kind != "path")
+            .cloned()
+            .collect::<IndexRows>();
+        let metadata = owner_indexes
+            .iter()
+            .filter(|(kind, _, _)| kind == "metadata")
+            .collect::<Vec<_>>();
+        if metadata.len() != 1 {
+            return Err(DurableError::Corrupt(
+                "bounded PG family recovery metadata identity differs",
+            ));
+        }
+        let source_path = metadata[0].2.as_str();
+        let (home, record_filename) = source_path.rsplit_once('/').ok_or(DurableError::Corrupt(
+            "bounded PG family recovery metadata path differs",
+        ))?;
+        if !source_path.starts_with("ToS/")
+            || record_filename.is_empty()
+            || !record_filename.ends_with(".json")
+            || RelativePath::parse(source_path).is_err()
+            || RelativePath::parse(home).is_err()
+        {
+            return Err(DurableError::Corrupt(
+                "bounded PG family recovery metadata path differs",
+            ));
+        }
+        let expected_owner_indexes = crate::source_creation::pg_family::recovery_package_contract(
+            family_tag,
+            record_type,
+            home,
+            writes,
+        )
+        .map_err(source_error)?;
+        let expected_paths = writes
+            .iter()
+            .map(|write| {
+                (
+                    "path".to_owned(),
+                    write.subject.clone(),
+                    write.subject.clone(),
+                )
+            })
+            .collect::<IndexRows>();
+        let actual_paths = indexes
+            .iter()
+            .filter(|(kind, _, _)| kind == "path")
+            .cloned()
+            .collect::<IndexRows>();
+        if owner_indexes != expected_owner_indexes || actual_paths != expected_paths {
+            return Err(DurableError::Corrupt(
+                "bounded PG family recovery package/index contract differs",
+            ));
+        }
+        return Ok(());
+    }
     if record_type != crate::source_creation::artifact_pg::ARTIFACT_RECORD_TYPE {
         if family_tag.is_some() {
             return Err(DurableError::Corrupt(
@@ -1087,6 +1398,12 @@ impl DurablePgCoordinator {
                 "bounded PG creation dependency commitment profile",
             ));
         }
+        let replay_binding = input.replay_binding();
+        if is_pg_family_tag(input.family_tag()) && replay_binding.is_none() {
+            return Err(DurableError::Invalid(
+                "bounded PG family replay binding absent",
+            ));
+        }
         if input.home_observation().parent != *input.home()
             || !input.home_observation().children.is_empty()
             || input.home_observation().generation
@@ -1243,13 +1560,15 @@ impl DurablePgCoordinator {
             .collect::<BTreeSet<_>>();
         let delta = creation_delta(input, readset, &writes, &indexes, &reads)?;
         let record_type = input.record_type().to_owned();
-        let family_tag = (record_type == "artifact").then(|| input.family_tag().to_owned());
+        let family_tag = (record_type == "artifact" || is_pg_family_tag(input.family_tag()))
+            .then(|| input.family_tag().to_owned());
         let indexes_encoded = indexes_bytes(
             &indexes,
             commitment,
             input.identity(),
             &record_type,
             input.family_tag(),
+            replay_binding,
         )?;
         let reads_encoded = reads_bytes(&reads)?;
         let empty_projections = projections_bytes(&ProjectionRows::new())?;
@@ -1304,6 +1623,7 @@ impl DurablePgCoordinator {
                 indexes: indexes.clone(),
                 index_binding: indexes_encoded.clone(),
                 dependency_commitment: commitment,
+                replay_binding,
                 predicate_keys,
                 writes,
                 identity: Some(input.identity()),
@@ -1437,6 +1757,7 @@ impl DurablePgCoordinator {
             indexes: indexes.clone(),
             index_binding: indexes_encoded.clone(),
             dependency_commitment: commitment,
+            replay_binding,
             predicate_keys,
             writes,
             identity: Some(input.identity()),
@@ -1555,7 +1876,7 @@ impl DurablePgCoordinator {
                 .get::<_, Option<Vec<u8>>>("source_reads")
                 .ok_or(DurableError::Corrupt("bounded PG creation reads absent"))?,
         )?;
-        let (indexes, dependency_commitment, _read_epoch, record_type, family_tag) =
+        let (indexes, dependency_commitment, _read_epoch, record_type, family_tag, replay_binding) =
             parse_pg_indexes(
                 &attempt
                     .get::<_, Option<Vec<u8>>>("source_indexes")
@@ -1697,6 +2018,7 @@ impl DurablePgCoordinator {
                 .get::<_, Option<Vec<u8>>>("source_indexes")
                 .ok_or(DurableError::Corrupt("bounded PG creation indexes absent"))?,
             dependency_commitment,
+            replay_binding,
             predicate_keys,
             writes,
             identity: None,
@@ -1890,12 +2212,46 @@ pub(super) fn check_commit_owner(
     replayed: bool,
 ) -> DurableResult<()> {
     owner_check()?;
-    let family_tag_matches = if attempt.record_type == "artifact" {
-        attempt.family_tag.as_deref()
-            == Some(crate::source_creation::artifact_pg::ARTIFACT_FAMILY_TAG)
-    } else {
-        attempt.family_tag.is_none()
+    let family_tag_matches = match (attempt.record_type.as_str(), attempt.family_tag.as_deref()) {
+        ("artifact", Some(tag)) => tag == crate::source_creation::artifact_pg::ARTIFACT_FAMILY_TAG,
+        ("artifact", None) => false,
+        (_, None) => true,
+        (_, Some(tag)) => is_pg_family_tag(tag),
     };
+    if attempt.family_tag.as_deref().is_some_and(is_pg_family_tag) {
+        verify_recovered_initial_record(
+            &attempt.indexes,
+            &attempt.record_type,
+            attempt.family_tag.as_deref(),
+            &attempt.writes,
+        )?;
+    }
+    let (
+        bound_indexes,
+        bound_commitment,
+        bound_read_epoch,
+        bound_record_type,
+        bound_family_tag,
+        bound_replay_binding,
+    ) = parse_pg_indexes(&attempt.index_binding)?;
+    if bound_indexes != attempt.indexes
+        || bound_commitment != attempt.dependency_commitment
+        || bound_record_type != attempt.record_type
+        || bound_family_tag != attempt.family_tag
+        || bound_replay_binding != attempt.replay_binding
+        || attempt.identity.is_some_and(|identity| {
+            bound_read_epoch
+                != identity_digest(
+                    identity,
+                    &attempt.record_type,
+                    attempt.family_tag.as_deref().unwrap_or(""),
+                )
+        })
+    {
+        return Err(DurableError::Corrupt(
+            "bounded PG creation in-memory attempt differs from index binding",
+        ));
+    }
     let domain = tx.query_one(
         "SELECT * FROM cmd2_domain WHERE domain=$1",
         &[&request.domain],
@@ -1919,7 +2275,7 @@ pub(super) fn check_commit_owner(
         || !matches!(
             attempt.record_type.as_str(),
             "agent" | "place" | "organization" | "work" | "collection" | "artifact"
-        )
+        ) && !attempt.family_tag.as_deref().is_some_and(is_pg_family_tag)
         || attempt.contract != request.expected_contract_digest
         || attempt.rule_version != request.expected_rule_version
         || attempt.rights_version != request.expected_rights_version

@@ -30,6 +30,9 @@ const MAX_OPS: usize = 4096;
 const MAX_NONCES: usize = 1024;
 const MAX_OPERATIONS_PER_SECOND: f64 = 10_000.0;
 const MAX_RUN_SECONDS: u64 = 3600;
+const NAVIGATION_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
+const NAVIGATION_SELECTION_SCHEMA: &str = "tos_local_pg_source_navigation_selection_v1";
+const NAVIGATION_PRODUCER_SCHEMA: &str = "tos_local_pg_source_navigation_producer_v1";
 static STOP: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone)]
@@ -989,36 +992,332 @@ fn selected_sdk_store_roots(plan: &Plan, session_limit: usize) -> Result<Vec<Pat
     Ok(selected.into_iter().collect())
 }
 
+#[derive(Clone)]
+struct ProjectionSelectionBinding {
+    store_root: PathBuf,
+    domain: String,
+    source_contract_sha256: String,
+    navigation: bool,
+}
+
+fn projection_selection_path(operation: &Operation) -> Result<PathBuf, String> {
+    let paths = operation
+        .projection_argv
+        .windows(2)
+        .filter(|pair| pair[0] == "--selection")
+        .map(|pair| PathBuf::from(&pair[1]))
+        .collect::<Vec<_>>();
+    if paths.len() != 1
+        || !paths[0].is_absolute()
+        || operation
+            .projection_argv
+            .first()
+            .is_none_or(|path| !Path::new(path).is_absolute())
+    {
+        return Err("projection route requires one explicit --selection path".into());
+    }
+    paths[0]
+        .canonicalize()
+        .map_err(|e| format!("projection selection identity: {e}"))
+}
+
+fn projection_selection_binding(
+    value: &Value,
+    request_operation: &str,
+) -> Result<ProjectionSelectionBinding, String> {
+    let request_navigation = matches!(
+        request_operation,
+        "bootstrap-navigation" | "advance-navigation"
+    );
+    let navigation = value["schema_version"] == NAVIGATION_OWNER_SCHEMA;
+    if navigation != request_navigation {
+        return Err("projection request and protected selection types differ".into());
+    }
+    let selected = if navigation {
+        if value["schema_version"] != NAVIGATION_OWNER_SCHEMA
+            || value["uid"].as_u64() != Some(unsafe { libc::geteuid() } as u64)
+            || value["expires_at"].as_str().is_none_or(str::is_empty)
+            || value["source_root"].as_str().is_none_or(str::is_empty)
+        {
+            return Err("navigation projection requires its protected owner configuration".into());
+        }
+        &value["source_navigation"]
+    } else {
+        value
+    };
+    let expected_schema = if navigation {
+        NAVIGATION_SELECTION_SCHEMA
+    } else {
+        "tos_source_projection_selection_v1"
+    };
+    if selected["schema_version"] != expected_schema {
+        return Err("projection selection schema does not match its request".into());
+    }
+    let store_root = selected["store_root"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or("projection selected store root absent")?;
+    let domain = selected["domain"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or("projection selected domain absent")?;
+    let source_contract_sha256 = selected["source_contract_sha256"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or("projection selected source contract absent")?;
+    let store_root = PathBuf::from(store_root);
+    if !store_root.is_absolute() {
+        return Err("projection selected store root must be absolute".into());
+    }
+    if navigation {
+        for (label, path) in [
+            ("source root", value["source_root"].as_str()),
+            ("navigation model", selected["model_path"].as_str()),
+        ] {
+            if path.is_none_or(|path| path.is_empty() || !Path::new(path).is_absolute()) {
+                return Err(format!(
+                    "navigation {label} must be an explicit absolute path"
+                ));
+            }
+        }
+        let producer = selected
+            .get("producer")
+            .and_then(Value::as_object)
+            .ok_or("navigation projection producer selection absent")?;
+        if producer.get("schema_version").and_then(Value::as_str)
+            != Some(NAVIGATION_PRODUCER_SCHEMA)
+            || producer
+                .get("max_events")
+                .and_then(Value::as_u64)
+                .is_none_or(|max_events| !(1..=256).contains(&max_events))
+            || producer
+                .get("schema_worker_path")
+                .and_then(Value::as_str)
+                .is_none_or(|path| path.is_empty() || !Path::new(path).is_absolute())
+            || producer
+                .get("schema_worker_sha256")
+                .and_then(Value::as_str)
+                .is_none_or(|digest| !valid_sha(digest))
+        {
+            return Err(
+                "navigation projection producer selection is incomplete or unbounded".into(),
+            );
+        }
+    }
+    Ok(ProjectionSelectionBinding {
+        store_root,
+        domain: domain.to_owned(),
+        source_contract_sha256: source_contract_sha256.to_owned(),
+        navigation,
+    })
+}
+
 fn selected_projection_inputs(plan: &Plan, session_limit: usize) -> Result<Vec<PathBuf>, String> {
     let mut selected = BTreeSet::new();
     for operation in plan
-        .sessions
+        .setup
         .iter()
-        .take(session_limit)
-        .flat_map(|session| &session.operations)
+        .chain(
+            plan.sessions
+                .iter()
+                .take(session_limit)
+                .flat_map(|session| &session.operations),
+        )
         .filter(|operation| operation.channel == "projection")
     {
-        let paths = operation
-            .projection_argv
-            .windows(2)
-            .filter(|pair| pair[0] == "--selection")
-            .map(|pair| PathBuf::from(&pair[1]))
-            .collect::<Vec<_>>();
-        if paths.len() != 1 || !Path::new(&operation.projection_argv[0]).is_absolute() {
-            return Err("projection route requires one explicit --selection path".into());
-        }
-        let selection = paths[0]
-            .canonicalize()
-            .map_err(|e| format!("projection selection identity: {e}"))?;
+        let selection = projection_selection_path(operation)?;
         let value = read_stage_json(&selection)?;
-        if value["schema_version"] != "tos_source_projection_selection_v1"
-            || value["store_root"].as_str().is_none()
-        {
-            return Err("projection selection must bind a source store".into());
-        }
+        projection_selection_binding(
+            &value,
+            operation.request["operation"]
+                .as_str()
+                .ok_or("projection request operation absent")?,
+        )?;
         selected.insert(selection);
     }
     Ok(selected.into_iter().collect())
+}
+
+fn required_stage_path(value: &Value, pointer: &str, from: &Path, to: &Path) -> Result<(), String> {
+    let text = value
+        .pointer(pointer)
+        .and_then(Value::as_str)
+        .filter(|text| !text.is_empty())
+        .ok_or_else(|| format!("navigation owner path absent at {pointer}"))?;
+    let path = Path::new(text);
+    if !path.is_absolute() {
+        return Err(format!(
+            "navigation owner path must be absolute at {pointer}"
+        ));
+    }
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|e| format!("navigation owner path metadata at {pointer}: {e}"))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!(
+            "navigation owner path cannot be a symlink at {pointer}"
+        ));
+    }
+    let canonical = path
+        .canonicalize()
+        .map_err(|e| format!("navigation owner path identity at {pointer}: {e}"))?;
+    let relative = canonical.strip_prefix(from).map_err(|_| {
+        format!("navigation owner path must be inside the private stage at {pointer}")
+    })?;
+    let staged = to
+        .join(relative)
+        .canonicalize()
+        .map_err(|e| format!("rebased navigation owner path at {pointer}: {e}"))?;
+    if !staged.starts_with(to) {
+        return Err(format!(
+            "rebased navigation owner path escaped the stage at {pointer}"
+        ));
+    }
+    let parent = pointer
+        .rsplit_once('/')
+        .map(|(parent, _)| parent)
+        .ok_or("invalid navigation owner path pointer")?;
+    let key = pointer
+        .rsplit('/')
+        .next()
+        .ok_or("invalid navigation owner path pointer")?;
+    let owner = value
+        .pointer_mut(parent)
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| format!("navigation owner object absent at {parent}"))?;
+    owner.insert(
+        key.to_owned(),
+        json!(
+            staged
+                .to_str()
+                .ok_or("staged navigation path is not UTF-8")?
+        ),
+    );
+    Ok(())
+}
+
+fn validate_navigation_stage_paths(value: &Value, baseline: &Path) -> Result<(), String> {
+    for pointer in [
+        "/source_root",
+        "/source_navigation/store_root",
+        "/source_navigation/model_path",
+    ] {
+        let text = value
+            .pointer(pointer)
+            .and_then(Value::as_str)
+            .filter(|text| !text.is_empty())
+            .ok_or_else(|| format!("navigation owner path absent at {pointer}"))?;
+        let path = Path::new(text);
+        if !path.is_absolute() {
+            return Err(format!(
+                "navigation owner path must be absolute at {pointer}"
+            ));
+        }
+        let metadata = fs::symlink_metadata(path)
+            .map_err(|e| format!("navigation owner path metadata at {pointer}: {e}"))?;
+        if metadata.file_type().is_symlink()
+            || !path
+                .canonicalize()
+                .map_err(|e| format!("navigation owner path identity at {pointer}: {e}"))?
+                .starts_with(baseline)
+        {
+            return Err(format!(
+                "navigation owner path must resolve inside the private stage at {pointer}"
+            ));
+        }
+    }
+    if let Some(worker_path) = value
+        .pointer("/source_navigation/producer/schema_worker_path")
+        .and_then(Value::as_str)
+    {
+        let worker = Path::new(worker_path);
+        if !worker.is_absolute() {
+            return Err("navigation schema worker path must be absolute".into());
+        }
+        let canonical = worker
+            .canonicalize()
+            .map_err(|e| format!("navigation schema worker identity: {e}"))?;
+        if canonical.starts_with(baseline) {
+            let metadata = fs::symlink_metadata(worker)
+                .map_err(|e| format!("navigation schema worker metadata: {e}"))?;
+            if metadata.file_type().is_symlink() || !metadata.is_file() {
+                return Err(
+                    "staged navigation schema worker must be a regular non-symlink file".into(),
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+fn rebase_navigation_owner_paths(value: &mut Value, from: &Path, to: &Path) -> Result<(), String> {
+    // This protected selection also carries policy, proof, identity and
+    // expectation evidence. Rebase only its known absolute paths and compare
+    // the remaining JSON tree unchanged.
+    let original = value.clone();
+    for pointer in [
+        "/source_root",
+        "/source_navigation/store_root",
+        "/source_navigation/model_path",
+    ] {
+        required_stage_path(value, pointer, from, to)?;
+    }
+    if value
+        .pointer("/source_navigation/producer/schema_worker_path")
+        .is_some()
+    {
+        let worker_path = value["source_navigation"]["producer"]["schema_worker_path"]
+            .as_str()
+            .ok_or("navigation schema worker path is invalid")?;
+        let worker = Path::new(worker_path);
+        if !worker.is_absolute() {
+            return Err("navigation schema worker path must be absolute".into());
+        }
+        let canonical = worker
+            .canonicalize()
+            .map_err(|e| format!("navigation schema worker identity: {e}"))?;
+        if let Ok(relative) = canonical.strip_prefix(from) {
+            let metadata = fs::symlink_metadata(worker)
+                .map_err(|e| format!("navigation schema worker metadata: {e}"))?;
+            if metadata.file_type().is_symlink() || !metadata.is_file() {
+                return Err(
+                    "staged navigation schema worker must be a regular non-symlink file".into(),
+                );
+            }
+            let staged = to.join(relative);
+            let staged_metadata = fs::symlink_metadata(&staged)
+                .map_err(|e| format!("staged navigation schema worker metadata: {e}"))?;
+            if !staged_metadata.is_file()
+                || staged_metadata.file_type().is_symlink()
+                || !staged.starts_with(to)
+            {
+                return Err("staged navigation schema worker is unavailable".into());
+            }
+            value["source_navigation"]["producer"]["schema_worker_path"] = json!(
+                staged
+                    .to_str()
+                    .ok_or("staged schema worker path is not UTF-8")?
+            );
+        }
+    }
+    let mut original_non_paths = original;
+    let mut rebased_non_paths = value.clone();
+    for pointer in [
+        "/source_root",
+        "/source_navigation/store_root",
+        "/source_navigation/model_path",
+        "/source_navigation/producer/schema_worker_path",
+    ] {
+        if let Some(path) = original_non_paths.pointer_mut(pointer) {
+            *path = Value::Null;
+        }
+        if let Some(path) = rebased_non_paths.pointer_mut(pointer) {
+            *path = Value::Null;
+        }
+    }
+    if original_non_paths != rebased_non_paths {
+        return Err("navigation stage rebase changed protected non-path configuration".into());
+    }
+    Ok(())
 }
 
 fn read_stage_json(path: &Path) -> Result<Value, String> {
@@ -1138,18 +1437,24 @@ fn prepare_owner_stage(
     }
     for selection in &projection_inputs {
         let value = read_stage_json(selection)?;
-        let store_root = PathBuf::from(
-            value["store_root"]
-                .as_str()
-                .ok_or("projection selected store root absent")?,
-        )
-        .canonicalize()
-        .map_err(|e| format!("projection store root: {e}"))?;
+        let request_operation = if value["schema_version"] == NAVIGATION_OWNER_SCHEMA {
+            "advance-navigation"
+        } else {
+            "status"
+        };
+        let binding = projection_selection_binding(&value, request_operation)?;
+        let store_root = binding
+            .store_root
+            .canonicalize()
+            .map_err(|e| format!("projection store root: {e}"))?;
         if !selection.starts_with(&baseline) || !store_root.starts_with(&baseline) {
             return Err(
                 "projection selection and source store must be inside the selected stage baseline"
                     .into(),
             );
+        }
+        if binding.navigation {
+            validate_navigation_stage_paths(&value, &baseline)?;
         }
     }
     let destination = args.output.join("owner-stage");
@@ -1335,7 +1640,11 @@ fn prepare_owner_stage(
             .mode()
             & 0o777;
         let mut selection = read_stage_json(&selection_path)?;
-        rebase_json_paths(&mut selection, &baseline, &destination)?;
+        if selection["schema_version"] == NAVIGATION_OWNER_SCHEMA {
+            rebase_navigation_owner_paths(&mut selection, &baseline, &destination)?;
+        } else {
+            rebase_json_paths(&mut selection, &baseline, &destination)?;
+        }
         fs::write(
             &selection_path,
             serde_json::to_vec(&selection).map_err(|_| "projection selection encode failed")?,
@@ -2333,17 +2642,23 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
     let store_limits = selection["store_limits"].clone();
     for projection_selection_path in selected_projection_inputs(plan, args.sessions)? {
         let projection_selection = read_stage_json(&projection_selection_path)?;
-        let projection_store = PathBuf::from(
-            projection_selection["store_root"]
-                .as_str()
-                .ok_or("projection store root absent")?,
-        )
-        .canonicalize()
-        .map_err(|e| format!("projection selected store root: {e}"))?;
+        let request_operation = if projection_selection["schema_version"] == NAVIGATION_OWNER_SCHEMA
+        {
+            "advance-navigation"
+        } else {
+            "status"
+        };
+        let projection_binding =
+            projection_selection_binding(&projection_selection, request_operation)?;
+        let projection_store = projection_binding
+            .store_root
+            .canonicalize()
+            .map_err(|e| format!("projection selected store root: {e}"))?;
         if !projection_selection_path.starts_with(&baseline)
             || projection_store != store_root
-            || projection_selection["domain"] != domain
-            || projection_selection["source_contract_sha256"] != contract
+            || projection_binding.domain != domain.as_str().ok_or("bootstrap domain absent")?
+            || projection_binding.source_contract_sha256
+                != contract.as_str().ok_or("bootstrap contract absent")?
         {
             return Err(
                 "projection selection changed the fresh bootstrap domain, contract or store".into(),
@@ -2431,7 +2746,111 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
     Ok(true)
 }
 
+fn validate_projection_operation(
+    operation: &Operation,
+    args: &Args,
+    allowed_operations: &[&str],
+) -> Result<(), String> {
+    let operation_name = operation.request["operation"]
+        .as_str()
+        .ok_or("projection request operation absent")?;
+    if operation.projection_argv.is_empty()
+        || operation.projection_argv.len() > 32
+        || operation.projection_argv[0].is_empty()
+        || !Path::new(&operation.projection_argv[0]).is_absolute()
+        || !operation
+            .projection_argv
+            .iter()
+            .any(|argument| argument == "source-projection")
+        || !allowed_operations.contains(&operation_name)
+        || operation
+            .projection_argv
+            .windows(2)
+            .filter(|pair| pair[0] == "--selection")
+            .count()
+            != 1
+        || !operation.request.is_object()
+        || !operation.sdk_argv.is_empty()
+        || operation.retry_same_command_id
+        || operation.reconnect_before
+        || operation.conflict_group.is_some()
+        || operation.bind_expected_configuration_from_owner
+        || operation.bind_expected_from.is_some()
+        || json_bytes(&operation.request)?.len() > args.request_cap
+    {
+        return Err("projection operation requires the installed source-projection CLI, one private selection and an allowed bounded request".into());
+    }
+    let selection_path = projection_selection_path(operation)?;
+    let selection = read_stage_json(&selection_path)?;
+    let binding = projection_selection_binding(&selection, operation_name)?;
+    if let Some(max_events) = operation.request["max_events"].as_u64() {
+        if max_events == 0 || max_events > 256 {
+            return Err("projection max_events must be between 1 and 256".into());
+        }
+        if binding.navigation
+            && max_events
+                > selection["source_navigation"]["producer"]["max_events"]
+                    .as_u64()
+                    .ok_or("navigation producer event limit absent")?
+        {
+            return Err("navigation request exceeds the protected producer event limit".into());
+        }
+    }
+    match operation_name {
+        "bootstrap-navigation" => {
+            if operation
+                .request
+                .as_object()
+                .is_none_or(|fields| fields.len() != 1 || !fields.contains_key("operation"))
+                || operation.interrupt_resume_after_ms.is_some()
+            {
+                return Err(
+                    "navigation bootstrap is a one-time setup request with no extra fields".into(),
+                );
+            }
+        }
+        "advance-navigation" => {
+            if operation.request.as_object().is_none_or(|fields| {
+                fields.len() != 2
+                    || !fields.contains_key("operation")
+                    || !fields.contains_key("max_events")
+            }) || operation.request["max_events"].as_u64() != Some(1)
+                || operation.expected_status != 0
+                || operation.expected_sha256.is_some()
+                || operation.expected_body.is_some()
+                || !operation.ignored_json_paths.is_empty()
+                || !operation.alternate_outcomes.is_empty()
+                || operation.interrupt_resume_after_ms.is_some()
+            {
+                return Err("navigation load advancement requires one bounded event and a successful exact response".into());
+            }
+        }
+        _ => {}
+    }
+    if operation.interrupt_resume_after_ms.is_some()
+        && (operation_name != "apply"
+            || operation.request["max_events"]
+                .as_u64()
+                .is_none_or(|events| events < 2)
+            || operation.interrupt_resume_after_ms == Some(0)
+            || operation
+                .interrupt_resume_after_ms
+                .is_some_and(|millis| millis >= args.deadline_seconds.saturating_mul(1000)))
+    {
+        return Err("projection interruption requires bounded multi-event apply progress".into());
+    }
+    for argument in &operation.projection_argv {
+        if argument.len() > 4096 {
+            return Err("projection argv element exceeds 4096 bytes".into());
+        }
+    }
+    Ok(())
+}
+
 fn outcome_report(op: &Operation) -> Value {
+    if op.channel == "projection" && op.request["operation"] == "advance-navigation" {
+        return json!([{"status":0,"oracle":"bounded-navigation-range"}]);
+    }
     Value::Array(outcomes(op).iter().map(outcome_summary).collect())
 }
 
@@ -2459,6 +2878,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
     let mut command_ids = BTreeSet::new();
     let mut setup_labels = BTreeSet::new();
     let mut setup_previews: BTreeMap<String, (String, String)> = BTreeMap::new();
+    let mut navigation_bootstrap_setup_count = 0usize;
     let mut needs_mcp = false;
     let mut needs_owner = false;
     let mut conflicts: BTreeMap<(usize, String), Vec<(usize, String, Vec<ExpectedOutcome>)>> =
@@ -2470,6 +2890,41 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
     for (setup_index, op) in plan.setup.iter().enumerate() {
         let request_bytes = json_bytes(&op.request)?;
         let name = operation_name(op).ok_or("setup operation name absent")?;
+        if op.channel == "projection" {
+            if name != "bootstrap-navigation"
+                || setup_index + 1 != plan.setup.len()
+                || navigation_bootstrap_setup_count != 0
+                || op.label.is_empty()
+                || op.label.len() > 64
+                || !op.label.is_ascii()
+                || !setup_labels.insert(op.label.clone())
+                || op.expected_status != 0
+                || !valid_expected(
+                    &ExpectedOutcome {
+                        status: op.expected_status,
+                        sha256: op.expected_sha256.clone(),
+                        body: op.expected_body.clone(),
+                        ignored_json_paths: op.ignored_json_paths.clone(),
+                    },
+                    true,
+                    args.response_cap,
+                )
+                || !op.alternate_outcomes.is_empty()
+                || op.retry_same_command_id
+                || op.reconnect_before
+                || op.conflict_group.is_some()
+                || op.bind_expected_configuration_from_owner
+                || op.bind_expected_from.is_some()
+            {
+                return Err(
+                    "navigation bootstrap is permitted once, as the final serial setup operation"
+                        .into(),
+                );
+            }
+            validate_projection_operation(op, args, &["bootstrap-navigation"])?;
+            navigation_bootstrap_setup_count += 1;
+            continue;
+        }
         if name == "describe" && op.channel == "sdk" {
             let path =
                 PathBuf::from(invocation_argument(op).ok_or("setup describe invocation absent")?);
@@ -2671,10 +3126,20 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 body: op.expected_body.clone(),
                 ignored_json_paths: op.ignored_json_paths.clone(),
             };
+            let navigation_advance =
+                op.channel == "projection" && op.request["operation"] == "advance-navigation";
+            let primary_valid = if navigation_advance {
+                op.expected_status == 0
+                    && op.expected_sha256.is_none()
+                    && op.expected_body.is_none()
+                    && op.ignored_json_paths.is_empty()
+            } else {
+                valid_expected(&primary, native_process, args.response_cap)
+            };
             if op.label.is_empty()
                 || op.label.len() > 64
                 || !op.label.is_ascii()
-                || !valid_expected(&primary, native_process, args.response_cap)
+                || !primary_valid
                 || op.alternate_outcomes.len() > 1
                 || op
                     .alternate_outcomes
@@ -2846,57 +3311,26 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     }
                 }
                 "projection" => {
-                    let selection_args = op
-                        .projection_argv
-                        .windows(2)
-                        .filter(|pair| pair[0] == "--selection")
-                        .collect::<Vec<_>>();
                     let projection_operation = op.request["operation"].as_str();
-                    if op.projection_argv.is_empty()
-                        || op.projection_argv.len() > 32
-                        || op.projection_argv[0].is_empty()
-                        || !Path::new(&op.projection_argv[0]).is_absolute()
-                        || !op
-                            .projection_argv
-                            .iter()
-                            .any(|arg| arg == "source-projection")
-                        || selection_args.len() != 1
-                        || !Path::new(selection_args[0][1]).is_absolute()
-                        || !op.sdk_argv.is_empty()
-                        || !op.request.is_object()
-                        || !matches!(
-                            projection_operation,
-                            Some(
-                                "init"
-                                    | "status"
-                                    | "apply"
-                                    | "search"
-                                    | "search-text"
-                                    | "exact-source"
-                            )
-                        )
-                        || json_bytes(&op.request)?.len() > args.request_cap
-                        || op.retry_same_command_id
-                        || op.reconnect_before
-                        || op.conflict_group.is_some()
-                        || op.bind_expected_configuration_from_owner
-                        || op.bind_expected_from.is_some()
-                        || (op.interrupt_resume_after_ms.is_some()
-                            && (projection_operation != Some("apply")
-                                || op.request["max_events"]
-                                    .as_u64()
-                                    .is_none_or(|events| events < 2)
-                                || op.interrupt_resume_after_ms == Some(0)
-                                || op.interrupt_resume_after_ms.is_some_and(|ms| {
-                                    ms >= args.deadline_seconds.saturating_mul(1000)
-                                })))
+                    validate_projection_operation(
+                        op,
+                        args,
+                        &[
+                            "init",
+                            "status",
+                            "apply",
+                            "search",
+                            "search-text",
+                            "exact-source",
+                            "advance-navigation",
+                        ],
+                    )?;
+                    if projection_operation == Some("advance-navigation") && op.expected_status != 0
                     {
-                        return Err("projection operation requires the existing source-projection CLI, one private selection and a supported request".into());
-                    }
-                    for arg in &op.projection_argv {
-                        if arg.len() > 4096 {
-                            return Err("projection argv element exceeds4096 bytes".into());
-                        }
+                        return Err(
+                            "navigation advancement expects the ordinary successful response"
+                                .into(),
+                        );
                     }
                 }
                 _ => return Err("channel must be mcp, owner_http, sdk or projection".into()),
@@ -2917,6 +3351,39 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 ));
             } else if !op.alternate_outcomes.is_empty() {
                 return Err("alternate_outcomes require a conflict_group".into());
+            }
+        }
+    }
+    let navigation_bootstrap_operations = plan
+        .setup
+        .iter()
+        .filter(|operation| {
+            operation.channel == "projection"
+                && operation.request["operation"] == "bootstrap-navigation"
+        })
+        .collect::<Vec<_>>();
+    let navigation_advance_operations = plan
+        .sessions
+        .iter()
+        .take(args.sessions)
+        .flat_map(|session| &session.operations)
+        .filter(|operation| {
+            operation.channel == "projection"
+                && operation.request["operation"] == "advance-navigation"
+        })
+        .collect::<Vec<_>>();
+    if navigation_bootstrap_operations.len() != navigation_bootstrap_setup_count
+        || (navigation_advance_operations.is_empty() != navigation_bootstrap_operations.is_empty())
+    {
+        return Err(
+            "scheduled navigation advancement requires exactly one one-time setup bootstrap".into(),
+        );
+    }
+    if let Some(bootstrap) = navigation_bootstrap_operations.first() {
+        let bootstrap_selection = projection_selection_path(bootstrap)?;
+        for advance in &navigation_advance_operations {
+            if projection_selection_path(advance)? != bootstrap_selection {
+                return Err("navigation setup and measured advancement must use the same protected owner configuration".into());
             }
         }
     }
@@ -3852,6 +4319,441 @@ fn projection_queue_age(
     }))
 }
 
+fn navigation_response_body(attempt: Option<&Attempt>) -> Result<Value, String> {
+    let attempt = attempt.ok_or("navigation command response absent")?;
+    if attempt.status != 0 || attempt.interrupted {
+        return Err("navigation command did not complete successfully".into());
+    }
+    let body = attempt
+        .body
+        .as_deref()
+        .ok_or("navigation command response body absent")?;
+    serde_json::from_slice(body).map_err(|_| "navigation command response is not JSON".into())
+}
+
+fn navigation_bootstrap_observation(
+    op: &Operation,
+    attempt: Option<&Attempt>,
+) -> Result<Value, String> {
+    let response = navigation_response_body(attempt)?;
+    let selection = read_stage_json(&projection_selection_path(op)?)?;
+    let selected = &selection["source_navigation"];
+    let expected_revision = selected["expectation"]["membership_root"]
+        .as_str()
+        .ok_or("navigation source expectation membership root absent")?;
+    let expected_source_membership_count =
+        selected["source_proof_v2"]["generation"]["current_members"]
+            .as_u64()
+            .ok_or("navigation retained source membership count absent")?;
+    let source_head_sequence = response["source_head_sequence"]
+        .as_u64()
+        .ok_or("navigation bootstrap source head absent")?;
+    let through_sequence = response["through_sequence"]
+        .as_u64()
+        .ok_or("navigation bootstrap cursor absent")?;
+    let source_membership_count = response["source_membership_count"]
+        .as_u64()
+        .ok_or("navigation bootstrap source member count absent")?;
+    let selected_owner_source_count = response["selected_owner_source_count"]
+        .as_u64()
+        .ok_or("navigation bootstrap owner source count absent")?;
+    let selected_owner_source_bytes = response["selected_owner_source_bytes"]
+        .as_u64()
+        .ok_or("navigation bootstrap owner source bytes absent")?;
+    let root = response["bootstrap_root"]
+        .as_str()
+        .ok_or("navigation bootstrap root absent")?;
+    if response["schema_version"] != "tos_source_navigation_bootstrap_result_v1"
+        || response["domain"] != selected["domain"]
+        || response["consumer_id"] != selected["consumer_id"]
+        || response["profile"] != selected["profile_id"]
+        || response["source_revision"] != expected_revision
+        || source_membership_count == 0
+        || source_membership_count != expected_source_membership_count
+        || source_head_sequence != through_sequence
+        || !valid_sha(root)
+        || response["replayed"] != false
+    {
+        return Err(
+            "navigation bootstrap did not bind the selected source and new current cursor".into(),
+        );
+    }
+    Ok(json!({
+        "profile": response["profile"],
+        "source_revision": response["source_revision"],
+        "source_membership_count": source_membership_count,
+        "source_head_sequence": source_head_sequence,
+        "through_sequence": through_sequence,
+        "bootstrap_root": root,
+        "selected_owner_source_count": selected_owner_source_count,
+        "selected_owner_source_bytes": selected_owner_source_bytes,
+        "replayed": false
+    }))
+}
+
+fn navigation_advance_observation(
+    op: &Operation,
+    attempt: Option<&Attempt>,
+) -> Result<Value, String> {
+    let response = navigation_response_body(attempt)?;
+    let selection = read_stage_json(&projection_selection_path(op)?)?;
+    let selected = &selection["source_navigation"];
+    let profile = selected["profile_id"]
+        .as_str()
+        .ok_or("navigation selected profile absent")?;
+    let cursor_before = response["cursor_before"]
+        .as_u64()
+        .ok_or("navigation cursor-before sequence absent")?;
+    let cursor_sequence = response["cursor_sequence"]
+        .as_u64()
+        .ok_or("navigation cursor sequence absent")?;
+    let source_head_sequence = response["source_head_sequence"]
+        .as_u64()
+        .ok_or("navigation source head sequence absent")?;
+    let published = response["published"]
+        .as_array()
+        .ok_or("navigation published ranges absent")?;
+    let max_events = op.request["max_events"]
+        .as_u64()
+        .filter(|events| *events > 0 && *events <= 256)
+        .ok_or("navigation request event bound absent")?;
+    let stop = response["stop"]
+        .as_str()
+        .ok_or("navigation stop tag absent")?;
+    if response["schema_version"] != "tos_source_navigation_advance_result_v1"
+        || response["profile"] != profile
+        || cursor_sequence < cursor_before
+        || cursor_sequence > source_head_sequence
+    {
+        return Err("navigation response identity or cursor order is invalid".into());
+    }
+
+    let sequence_lag_before = source_head_sequence - cursor_before;
+    let sequence_lag_after = source_head_sequence - cursor_sequence;
+    let mut range_root = None::<String>;
+    let mut range_event_count = None::<u64>;
+    let mut replayed = false;
+    let mut idle = false;
+    let mut more_pending = false;
+    match stop {
+        "up_to_date" if published.is_empty() => {
+            if response.get("pending_reason").is_some()
+                || cursor_before != cursor_sequence
+                || cursor_sequence != source_head_sequence
+                || response.get("range_root").is_some()
+            {
+                return Err("navigation idle result is not current or carries range data".into());
+            }
+            idle = true;
+        }
+        "up_to_date" | "more_pending" if published.len() == 1 => {
+            let work = response
+                .get("work")
+                .and_then(Value::as_object)
+                .ok_or("navigation work counters absent")?;
+            let range = &published[0];
+            let range_cursor_before = range["cursor_before"]
+                .as_u64()
+                .ok_or("navigation published range cursor-before absent")?;
+            let range_through = range["through_sequence"]
+                .as_u64()
+                .ok_or("navigation published range endpoint absent")?;
+            let event_count = work["range_event_count"]
+                .as_u64()
+                .ok_or("navigation published range event count absent")?;
+            for key in [
+                "events",
+                "cursor_lag_events",
+                "range_member_count",
+                "range_member_bytes",
+                "terminal_selected_source_count",
+                "terminal_selected_source_bytes",
+                "source_members",
+                "source_bytes",
+                "selected_source_count",
+                "selected_source_bytes",
+                "record_candidates",
+                "record_rows",
+                "claim_streams",
+                "claim_rows",
+                "max_events",
+            ] {
+                if work[key].as_u64().is_none() {
+                    return Err(format!("navigation work counter {key} absent"));
+                }
+            }
+            let root = range["coverage_root"]
+                .as_str()
+                .ok_or("navigation published range coverage root absent")?;
+            let terminal_event_id = range["terminal_event_id"]
+                .as_str()
+                .filter(|id| !id.is_empty())
+                .ok_or("navigation published terminal event ID absent")?;
+            let terminal_root = range["terminal_cohort_root"]
+                .as_str()
+                .ok_or("navigation published terminal cohort root absent")?;
+            for key in [
+                "record_owner_set_root",
+                "claim_owner_set_root",
+                "claim_range_manifest_root",
+            ] {
+                if !range[key].as_str().is_some_and(valid_sha) {
+                    return Err(format!("navigation published {key} absent or invalid"));
+                }
+            }
+            for key in [
+                "record_replaced_owner_count",
+                "claim_replaced_owner_count",
+                "record_removed_owner_count",
+                "claim_removed_owner_count",
+                "replacement_owner_count",
+            ] {
+                if range[key].as_u64().is_none() {
+                    return Err(format!("navigation published {key} absent"));
+                }
+            }
+            replayed = range["replayed"]
+                .as_bool()
+                .ok_or("navigation published replay marker absent")?;
+            let is_more_pending = stop == "more_pending";
+            if range_cursor_before != cursor_before
+                || range_through != cursor_sequence
+                || range_through <= range_cursor_before
+                || range_through - range_cursor_before != event_count
+                || work["events"].as_u64() != Some(event_count)
+                || event_count > max_events
+                || work["cursor_lag_events"].as_u64() != Some(sequence_lag_before)
+                || work["terminal_selected_source_count"].as_u64()
+                    != work["selected_source_count"].as_u64()
+                || work["terminal_selected_source_bytes"].as_u64()
+                    != work["selected_source_bytes"].as_u64()
+                || work["max_events"]
+                    .as_u64()
+                    .is_none_or(|events| events == 0 || events > 256)
+                || (is_more_pending
+                    && (range_through >= source_head_sequence
+                        || response["pending_reason"] != "event_budget_exceeded"))
+                || (!is_more_pending
+                    && (range_through != source_head_sequence
+                        || !response["pending_reason"].is_null()))
+                || response["range_root"].as_str() != Some(root)
+                || !valid_sha(root)
+                || !valid_sha(terminal_root)
+                || terminal_event_id.is_empty()
+            {
+                return Err(
+                    "navigation publication is not a continuous bounded range at the held head"
+                        .into(),
+                );
+            }
+            range_root = Some(root.to_owned());
+            range_event_count = Some(event_count);
+            more_pending = is_more_pending;
+        }
+        _ => {
+            let reason = response
+                .get("pending_reason")
+                .and_then(Value::as_str)
+                .unwrap_or("none");
+            return Err(format!(
+                "navigation result has unsupported stop/publication tag {stop} ({reason})"
+            ));
+        }
+    }
+    Ok(json!({
+        "profile": profile,
+        "cursor_before": cursor_before,
+        "cursor_sequence": cursor_sequence,
+        "source_head_sequence": source_head_sequence,
+        "sequence_lag_before": sequence_lag_before,
+        "sequence_lag_after": sequence_lag_after,
+        "advanced": cursor_sequence > cursor_before,
+        "idle_current": idle,
+        "more_pending_prefix": more_pending,
+        "replayed": replayed,
+        "published_ranges": published.len(),
+        "published": published,
+        "range_event_count": range_event_count,
+        "work": response.get("work"),
+        "range_root": range_root,
+        "stop": stop,
+        "pending_reason": response.get("pending_reason").and_then(Value::as_str),
+        "oldest_unprocessed_age_status": "not_exposed_by_navigation_owner"
+    }))
+}
+
+fn navigation_quiescent_drain(
+    template: &Operation,
+    args: &Args,
+    pids: &Arc<Mutex<Vec<i32>>>,
+    cgroup: &Path,
+    resource_baseline: &ResourceSnapshot,
+    deadline: Instant,
+) -> Value {
+    let started = Instant::now();
+    let mut op = template.clone();
+    op.label = "navigation-quiescent-postload-drain".into();
+    op.request = json!({"operation":"advance-navigation","max_events":1});
+    let mut steps = 0usize;
+    let mut more_pending_prefixes = 0usize;
+    let mut replayed_ranges = 0usize;
+    let mut range_event_count = 0u64;
+    let mut source_member_count = 0u64;
+    let mut source_bytes = 0u64;
+    let mut selected_source_count = 0u64;
+    let mut selected_source_bytes = 0u64;
+    let mut record_row_count = 0u64;
+    let mut claim_row_count = 0u64;
+    let mut externally_advanced_events = 0u64;
+    let mut quiescent_head = None::<u64>;
+    let mut initial_cursor = None::<u64>;
+    let mut final_cursor = None::<u64>;
+    let mut max_lag_before = 0u64;
+    let mut last_response_sha256 = None::<String>;
+    let mut error = None::<String>;
+    let mut complete = false;
+
+    loop {
+        if steps >= MAX_OPS {
+            error = Some("navigation postload drain exceeded its finite step bound".into());
+            break;
+        }
+        if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
+            error =
+                Some("navigation postload drain stopped at workload deadline/cancellation".into());
+            break;
+        }
+        let current_resources = match resource_snapshot(cgroup) {
+            Ok(resources) => resources,
+            Err(reason) => {
+                error = Some(reason);
+                break;
+            }
+        };
+        if resource_stop_observed_since(resource_baseline, &current_resources) {
+            error = Some(
+                "navigation postload drain stopped at the predeclared resource threshold".into(),
+            );
+            break;
+        }
+        let attempt = match projection_process(
+            &op,
+            &args.output,
+            deadline,
+            args.request_cap,
+            args.response_cap,
+            pids,
+            None,
+        ) {
+            Ok(attempt) => attempt,
+            Err(reason) => {
+                error = Some(reason);
+                break;
+            }
+        };
+        let observation = match navigation_advance_observation(&op, Some(&attempt)) {
+            Ok(observation) => observation,
+            Err(reason) => {
+                error = Some(reason);
+                break;
+            }
+        };
+        steps += 1;
+        last_response_sha256 = Some(attempt.sha256);
+        let cursor_before = observation["cursor_before"].as_u64().unwrap_or(0);
+        let cursor_sequence = observation["cursor_sequence"].as_u64().unwrap_or(0);
+        let source_head_sequence = observation["source_head_sequence"].as_u64().unwrap_or(0);
+        let lag_before = observation["sequence_lag_before"].as_u64().unwrap_or(0);
+        let lag_after = observation["sequence_lag_after"].as_u64().unwrap_or(0);
+        max_lag_before = max_lag_before.max(lag_before);
+        initial_cursor.get_or_insert(cursor_before);
+        if observation["more_pending_prefix"] == true {
+            more_pending_prefixes += 1;
+        }
+        if observation["replayed"] == true {
+            replayed_ranges += 1;
+        }
+        range_event_count = range_event_count
+            .saturating_add(observation["range_event_count"].as_u64().unwrap_or(0));
+        let work = &observation["work"];
+        source_member_count =
+            source_member_count.saturating_add(work["source_members"].as_u64().unwrap_or(0));
+        source_bytes = source_bytes.saturating_add(work["source_bytes"].as_u64().unwrap_or(0));
+        selected_source_count = selected_source_count
+            .saturating_add(work["selected_source_count"].as_u64().unwrap_or(0));
+        selected_source_bytes = selected_source_bytes
+            .saturating_add(work["selected_source_bytes"].as_u64().unwrap_or(0));
+        record_row_count =
+            record_row_count.saturating_add(work["record_rows"].as_u64().unwrap_or(0));
+        claim_row_count = claim_row_count.saturating_add(work["claim_rows"].as_u64().unwrap_or(0));
+
+        if let Some(expected_head) = quiescent_head {
+            if source_head_sequence != expected_head {
+                error = Some("source head changed during the quiescent postload drain".into());
+                final_cursor = Some(cursor_sequence);
+                break;
+            }
+        } else {
+            quiescent_head = Some(source_head_sequence);
+        }
+        if let Some(previous_cursor) = final_cursor {
+            if cursor_before < previous_cursor || cursor_sequence < previous_cursor {
+                error = Some("navigation postload cursor moved backwards".into());
+                final_cursor = Some(cursor_sequence);
+                break;
+            }
+            externally_advanced_events = externally_advanced_events
+                .saturating_add(cursor_before.saturating_sub(previous_cursor));
+            if cursor_sequence == previous_cursor && lag_after > 0 {
+                error = Some("navigation postload drain made no cursor progress".into());
+                break;
+            }
+        }
+        final_cursor = Some(cursor_sequence);
+        if cursor_sequence == source_head_sequence && observation["stop"] == "up_to_date" {
+            complete = true;
+            break;
+        }
+        if observation["stop"] != "more_pending" || lag_after == 0 {
+            error =
+                Some("navigation postload drain did not return a bounded pending prefix".into());
+            break;
+        }
+        if cursor_sequence <= cursor_before {
+            error = Some("navigation postload pending prefix did not advance its cursor".into());
+            break;
+        }
+    }
+
+    json!({
+        "phase":"quiescent-postload-drain",
+        "passed":complete && error.is_none(),
+        "complete":complete,
+        "steps":steps,
+        "step_limit":MAX_OPS,
+        "max_events_per_step":1,
+        "quiescent_source_head_sequence":quiescent_head,
+        "initial_cursor_sequence":initial_cursor,
+        "final_cursor_sequence":final_cursor,
+        "initial_sequence_lag":quiescent_head.zip(initial_cursor).map(|(head,cursor)| head.saturating_sub(cursor)),
+        "remaining_sequence_lag":quiescent_head.zip(final_cursor).map(|(head,cursor)| head.saturating_sub(cursor)),
+        "max_sequence_lag_before":if steps > 0 { Some(max_lag_before) } else { None },
+        "more_pending_prefix_steps":more_pending_prefixes,
+        "replayed_range_steps":replayed_ranges,
+        "published_range_events":range_event_count,
+        "published_source_members":source_member_count,
+        "published_source_bytes":source_bytes,
+        "selected_source_count":selected_source_count,
+        "selected_source_bytes":selected_source_bytes,
+        "record_rows":record_row_count,
+        "claim_rows":claim_row_count,
+        "concurrently_advanced_cursor_events":externally_advanced_events,
+        "last_response_sha256":last_response_sha256,
+        "elapsed_seconds":started.elapsed().as_secs_f64(),
+        "error":error
+    })
+}
+
 fn run_operation(
     op: &Operation,
     session: &mut McpSession,
@@ -3871,6 +4773,8 @@ fn run_operation(
     let mut projection_status_checks = 0usize;
     let mut projection_cursor_observation = Value::Null;
     let mut projection_queue_age_observation = Value::Null;
+    let mut projection_navigation_bootstrap_observation_value = Value::Null;
+    let mut projection_navigation_advance_observation_value = Value::Null;
     let mut attempts = Vec::new();
     let mut error = None;
     let _channel_permit = match op.channel.as_str() {
@@ -4160,17 +5064,34 @@ fn run_operation(
         }
     }
     if op.channel == "projection" && error.is_none() {
-        projection_status_checks += 1;
-        match projection_queue_age(
-            op,
-            &args.output,
-            deadline,
-            args.request_cap,
-            args.response_cap,
-            pids,
-        ) {
-            Ok(observation) => projection_queue_age_observation = observation,
-            Err(e) => error = Some(e),
+        match op.request["operation"].as_str() {
+            Some("bootstrap-navigation") => {
+                match navigation_bootstrap_observation(op, attempts.last()) {
+                    Ok(observation) => {
+                        projection_navigation_bootstrap_observation_value = observation
+                    }
+                    Err(reason) => error = Some(reason),
+                }
+            }
+            Some("advance-navigation") => match navigation_advance_observation(op, attempts.last())
+            {
+                Ok(observation) => projection_navigation_advance_observation_value = observation,
+                Err(reason) => error = Some(reason),
+            },
+            _ => {
+                projection_status_checks += 1;
+                match projection_queue_age(
+                    op,
+                    &args.output,
+                    deadline,
+                    args.request_cap,
+                    args.response_cap,
+                    pids,
+                ) {
+                    Ok(observation) => projection_queue_age_observation = observation,
+                    Err(e) => error = Some(e),
+                }
+            }
         }
     }
     let final_attempt = attempts.last().cloned();
@@ -4178,14 +5099,25 @@ fn run_operation(
         || final_attempt
             .as_ref()
             .is_some_and(|a| a.authenticated == Some(true));
-    let expected = outcomes(op);
-    let matched_outcome = final_attempt.as_ref().and_then(|attempt| {
-        expected
-            .iter()
-            .find(|value| outcome_matches(args, op, value, attempt))
-    });
-    let passed = error.is_none() && auth_ok && matched_outcome.is_some();
     let status = final_attempt.as_ref().map(|a| a.status);
+    let navigation_advance =
+        op.channel == "projection" && op.request["operation"] == "advance-navigation";
+    let expected = outcomes(op);
+    let matched_outcome = if navigation_advance {
+        None
+    } else {
+        final_attempt.as_ref().and_then(|attempt| {
+            expected
+                .iter()
+                .find(|value| outcome_matches(args, op, value, attempt))
+        })
+    };
+    let response_oracle_matches = if navigation_advance {
+        status == Some(0) && !projection_navigation_advance_observation_value.is_null()
+    } else {
+        matched_outcome.is_some()
+    };
+    let passed = error.is_none() && auth_ok && response_oracle_matches;
     let conflict = match final_attempt.as_ref() {
         Some(attempt) if op.channel == "sdk" => sdk_conflict_attempt(attempt),
         Some(attempt) => {
@@ -4212,8 +5144,12 @@ fn run_operation(
         .and_then(|body| serde_json::from_slice::<Value>(body).ok());
     let attempt_values = attempts.iter().map(|a| json!({"status":a.status,"response_bytes":a.bytes,"response_sha256":a.sha256,"response_available_to_oracle":a.body.is_some(),"response_disposition":if a.interrupted {"interrupted"} else if a.body.is_none() {"dropped"} else {"delivered"},"interrupted":a.interrupted,"elapsed_ms":a.elapsed_ms,"response_authenticated":a.authenticated})).collect::<Vec<_>>();
     let expected_report = outcome_report(op);
-    let matched_report = matched_outcome.map(outcome_summary);
-    let value = json!({"event":"operation","label":op.label,"channel":op.channel,"status":status,"expected_outcomes":expected_report,"matched_outcome":matched_report,"response_sha256":final_attempt.as_ref().map(|a|a.sha256.clone()),"passed":passed,"transport_error":transport_error,"error":error,"conflict_group":op.conflict_group,"conflict":conflict,"attempts":attempt_values,"retry_count":retry_count,"reconnect_count":reconnect_count,"projection_interruptions":projection_interruptions,"projection_resumes":projection_resumes,"projection_status_checks":projection_status_checks,"projection_cursor":projection_cursor_observation,"projection_queue_age":projection_queue_age_observation,"reconnect":reconnect_observation,"elapsed_ms":started.elapsed().as_secs_f64()*1000.0});
+    let matched_report = if navigation_advance && passed {
+        Some(json!({"status":0,"oracle":"bounded-navigation-range"}))
+    } else {
+        matched_outcome.map(outcome_summary)
+    };
+    let value = json!({"event":"operation","label":op.label,"channel":op.channel,"status":status,"expected_outcomes":expected_report,"matched_outcome":matched_report,"response_sha256":final_attempt.as_ref().map(|a|a.sha256.clone()),"passed":passed,"transport_error":transport_error,"error":error,"conflict_group":op.conflict_group,"conflict":conflict,"attempts":attempt_values,"retry_count":retry_count,"reconnect_count":reconnect_count,"projection_interruptions":projection_interruptions,"projection_resumes":projection_resumes,"projection_status_checks":projection_status_checks,"projection_cursor":projection_cursor_observation,"projection_queue_age":projection_queue_age_observation,"projection_navigation_bootstrap":projection_navigation_bootstrap_observation_value,"projection_navigation_advance":projection_navigation_advance_observation_value,"reconnect":reconnect_observation,"elapsed_ms":started.elapsed().as_secs_f64()*1000.0});
     OpResult {
         value,
         passed,
@@ -4257,6 +5193,15 @@ fn signal_all(pids: &Arc<Mutex<Vec<i32>>>, signal: i32) {
 }
 fn resource_delta(start: &ResourceSnapshot, end: &ResourceSnapshot) -> Value {
     json!({"cpu_usage_usec":end.cpu_usec.saturating_sub(start.cpu_usec),"memory_current_start_bytes":start.memory_current,"memory_current_end_bytes":end.memory_current,"memory_peak_bytes":end.memory_peak,"memory_limit_bytes":end.memory_limit,"memory_high_events_delta":end.memory_high_events.saturating_sub(start.memory_high_events),"memory_max_events_delta":end.memory_max_events.saturating_sub(start.memory_max_events),"memory_oom_events_delta":end.memory_oom_events.saturating_sub(start.memory_oom_events),"memory_oom_kill_events_delta":end.memory_oom_kill_events.saturating_sub(start.memory_oom_kill_events),"io_read_bytes":end.io_read_bytes.saturating_sub(start.io_read_bytes),"io_write_bytes":end.io_write_bytes.saturating_sub(start.io_write_bytes)})
+}
+
+fn resource_stop_observed_since(start: &ResourceSnapshot, end: &ResourceSnapshot) -> bool {
+    end.memory_limit
+        .is_some_and(|limit| end.memory_peak as u128 * 10 >= limit as u128 * 9)
+        || end.memory_high_events > start.memory_high_events
+        || end.memory_max_events > start.memory_max_events
+        || end.memory_oom_events > start.memory_oom_events
+        || end.memory_oom_kill_events > start.memory_oom_kill_events
 }
 
 fn limit_plan_operations(
@@ -4480,6 +5425,36 @@ fn main_result() -> Result<i32, String> {
         .flat_map(|session| &session.operations)
         .filter(|operation| operation.channel == "projection")
         .count();
+    let projection_setup_operations = plan
+        .setup
+        .iter()
+        .filter(|operation| operation.channel == "projection")
+        .count();
+    let projection_navigation_bootstrap_operations = plan
+        .setup
+        .iter()
+        .filter(|operation| {
+            operation.channel == "projection"
+                && operation.request["operation"] == "bootstrap-navigation"
+        })
+        .count();
+    let projection_navigation_operations = plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .filter(|operation| {
+            operation.channel == "projection"
+                && matches!(
+                    operation.request["operation"].as_str(),
+                    Some("bootstrap-navigation" | "advance-navigation")
+                )
+        })
+        .count();
     let mut sdk_indexes = BTreeMap::new();
     for operation in plan.setup.iter().chain(
         plan.sessions
@@ -4498,12 +5473,12 @@ fn main_result() -> Result<i32, String> {
         }
     }
     let mut projection_indexes = BTreeMap::new();
-    for operation in plan
-        .sessions
-        .iter()
-        .take(args.sessions)
-        .flat_map(|session| &session.operations)
-    {
+    for operation in plan.setup.iter().chain(
+        plan.sessions
+            .iter()
+            .take(args.sessions)
+            .flat_map(|session| &session.operations),
+    ) {
         if operation.channel == "projection" {
             let path = PathBuf::from(&operation.projection_argv[0]);
             if !projection_indexes.contains_key(&path) {
@@ -4651,6 +5626,7 @@ fn main_result() -> Result<i32, String> {
                 "scheduled_source_read_operations": source_read_operations,
                 "scheduled_sdk_source_commands": sdk_source_command_operations,
                 "scheduled_projection_operations": projection_operations,
+                "serial_projection_setup_operations": projection_setup_operations,
                 "operation_count_limit": args.operation_count,
                 "requested_channel_mix_percent": args.channel_mix.as_ref(),
                 "operations_per_second_limit": args.operations_per_second,
@@ -4883,6 +5859,14 @@ fn main_result() -> Result<i32, String> {
     let mut projection_queue_age_status_counts = BTreeMap::<String, usize>::new();
     let mut projection_max_sequence_lag = 0u64;
     let mut projection_max_known_queue_age_millis = None::<u64>;
+    let mut projection_navigation_bootstrap_observations = 0usize;
+    let mut projection_navigation_advance_samples = 0usize;
+    let mut projection_navigation_advanced = 0usize;
+    let mut projection_navigation_idle_current = 0usize;
+    let mut projection_navigation_more_pending_prefix = 0usize;
+    let mut projection_navigation_replayed = 0usize;
+    let mut projection_navigation_max_sequence_lag_before = None::<u64>;
+    let mut projection_navigation_max_sequence_lag_after = None::<u64>;
     for operation in plan
         .sessions
         .iter()
@@ -4923,6 +5907,9 @@ fn main_result() -> Result<i32, String> {
             &gates,
             deadline,
         );
+        if result.value["projection_navigation_bootstrap"].is_object() {
+            projection_navigation_bootstrap_observations += 1;
+        }
         if result.passed && result.response_body.is_none() {
             result.passed = false;
             result.successful = false;
@@ -5117,6 +6104,42 @@ fn main_result() -> Result<i32, String> {
                     *failed_channel_mix.entry(op.channel.clone()).or_default() += 1;
                 }
                 if op.channel == "projection" {
+                    let navigation = &result.value["projection_navigation_advance"];
+                    if let Some(observation) = navigation.as_object() {
+                        projection_navigation_advance_samples += 1;
+                        if observation["advanced"] == true {
+                            projection_navigation_advanced += 1;
+                        }
+                        if observation["idle_current"] == true {
+                            projection_navigation_idle_current += 1;
+                        }
+                        if observation["more_pending_prefix"] == true {
+                            projection_navigation_more_pending_prefix += 1;
+                        }
+                        if observation["replayed"] == true {
+                            projection_navigation_replayed += 1;
+                        }
+                        if let Some(lag) = observation
+                            .get("sequence_lag_before")
+                            .and_then(Value::as_u64)
+                        {
+                            projection_navigation_max_sequence_lag_before = Some(
+                                projection_navigation_max_sequence_lag_before
+                                    .unwrap_or(0)
+                                    .max(lag),
+                            );
+                        }
+                        if let Some(lag) = observation
+                            .get("sequence_lag_after")
+                            .and_then(Value::as_u64)
+                        {
+                            projection_navigation_max_sequence_lag_after = Some(
+                                projection_navigation_max_sequence_lag_after
+                                    .unwrap_or(0)
+                                    .max(lag),
+                            );
+                        }
+                    }
                     let queue_age = &result.value["projection_queue_age"];
                     if let Some(observation) = queue_age.as_object() {
                         projection_queue_age_samples += 1;
@@ -5185,6 +6208,48 @@ fn main_result() -> Result<i32, String> {
         }
     }
     let load_elapsed_seconds = load_started_at.elapsed().as_secs_f64();
+    let navigation_advance_template = plan
+        .sessions
+        .iter()
+        .take(args.sessions)
+        .flat_map(|session| &session.operations)
+        .find(|operation| {
+            operation.channel == "projection"
+                && operation.request["operation"] == "advance-navigation"
+        })
+        .cloned();
+    let postload_navigation_drain = if let Some(template) = navigation_advance_template {
+        let drain = if setup_failures == 0 {
+            navigation_quiescent_drain(
+                &template,
+                &args,
+                &pids,
+                &cgroup,
+                &resources_before,
+                deadline,
+            )
+        } else {
+            json!({
+                "phase":"quiescent-postload-drain",
+                "passed":false,
+                "complete":false,
+                "steps":0,
+                "skipped":"serial setup did not complete"
+            })
+        };
+        if drain["passed"] != true && setup_failures == 0 {
+            errors += 1;
+        }
+        emit(
+            &mut output,
+            &mut written,
+            args.output_cap,
+            &json!({"event":"projection_postload","navigation_drain":drain}),
+        )?;
+        drain
+    } else {
+        Value::Null
+    };
     let load_operations_not_started =
         load_operations_scheduled.saturating_sub(load_operations_started);
     let mut not_started_channel_mix = scheduled_channel_mix.clone();
@@ -5365,6 +6430,7 @@ fn main_result() -> Result<i32, String> {
             "scheduled_source_read_operations": source_read_operations,
             "scheduled_sdk_source_commands": sdk_source_command_operations,
             "scheduled_projection_operations": projection_operations,
+            "serial_projection_setup_operations": projection_setup_operations,
             "started": successes + errors,
             "failures": errors,
             "conflicts": conflicts,
@@ -5380,6 +6446,19 @@ fn main_result() -> Result<i32, String> {
                 "oldest_unprocessed_age_status_counts": projection_queue_age_status_counts,
                 "max_sequence_lag": if projection_queue_age_samples > 0 { Some(projection_max_sequence_lag) } else { None },
                 "max_known_oldest_unprocessed_age_millis": projection_max_known_queue_age_millis
+            },
+            "projection_navigation": {
+                "bootstrap_setup_operations": projection_navigation_bootstrap_operations,
+                "bootstrap_current_observations": projection_navigation_bootstrap_observations,
+                "advance_samples": projection_navigation_advance_samples,
+                "advanced_samples": projection_navigation_advanced,
+                "idle_current_samples": projection_navigation_idle_current,
+                "more_pending_prefix_samples": projection_navigation_more_pending_prefix,
+                "replayed_samples": projection_navigation_replayed,
+                "max_sequence_lag_before": projection_navigation_max_sequence_lag_before,
+                "max_sequence_lag_after": projection_navigation_max_sequence_lag_after,
+                "quiescent_postload_drain": postload_navigation_drain,
+                "oldest_unprocessed_age_status": if projection_navigation_operations > 0 { Some("not_exposed_by_navigation_owner") } else { None }
             },
             "all_operation_latency_ms": {
                 "samples": all_latencies.len(),

@@ -1172,12 +1172,17 @@ struct CompleteMixedProjectionPassV1 {
     // Candidate bodies are retained from the same full current-member pass so
     // the Text point index can be rebuilt without another corpus scan.
     text_identity_candidates: BTreeMap<String, Vec<u8>>,
+    // Public semantic annotation packets from that same full source pass.
+    annotation_identity_candidates: BTreeMap<String, Vec<u8>>,
     // Exact public Claim streams from that same bounded pass support cold
     // equality verification of the reverse Claim dependency index.
     claim_dependency_candidates: BTreeMap<String, Vec<u8>>,
     // Current Item records and manifests needed to verify the File assignment
     // index without a second source read.
     item_file_candidates: BTreeMap<String, Vec<u8>>,
+    // Exact selected publication control and journal members from this same
+    // bounded source pass; unrelated source bodies are never retained here.
+    legacy_publication_members: BTreeMap<String, Vec<u8>>,
 }
 
 fn render_current_mixed_projections(
@@ -1202,9 +1207,13 @@ fn render_current_mixed_projections(
     let mut claim_source_profiles = None::<tos_foundation::JsonValue>;
     let mut text_identity_candidates = BTreeMap::new();
     let mut text_identity_candidate_bytes = 0usize;
+    let mut annotation_identity_candidates = BTreeMap::new();
+    let mut annotation_identity_candidate_bytes = 0usize;
     let mut claim_dependency_candidates = BTreeMap::new();
     let mut claim_dependency_candidate_bytes = 0usize;
     let mut item_file_candidates = BTreeMap::new();
+    let mut legacy_publication_members = BTreeMap::new();
+    let mut legacy_publication_bytes = 0usize;
     let mut item_manifest_count = 0usize;
     let mut item_manifest_bytes = 0usize;
     let mut item_record_count = 0usize;
@@ -1236,6 +1245,31 @@ fn render_current_mixed_projections(
                 cancelled,
             )
             .map_err(source_error)?;
+        if member.path == "ToS/source-witnesses/.metadata-publication.json"
+            || member
+                .path
+                .starts_with("ToS/source-witnesses/.metadata-transactions/")
+        {
+            if legacy_publication_members.len() >= 4096 {
+                return Err(DurableError::Refused(
+                    "streamed legacy publication member count bound",
+                ));
+            }
+            legacy_publication_bytes = legacy_publication_bytes
+                .checked_add(raw.len())
+                .filter(|bytes| *bytes <= 33_554_432)
+                .ok_or(DurableError::Refused(
+                    "streamed legacy publication byte bound",
+                ))?;
+            if legacy_publication_members
+                .insert(member.path.clone(), raw.clone())
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed legacy publication member",
+                ));
+            }
+        }
         let file = SourceFile { path, raw };
         let index = epoch.index;
         let work = epoch.index_work;
@@ -1425,6 +1459,29 @@ fn render_current_mixed_projections(
                 ));
             }
         }
+        if crate::source_annotation_identity_index::is_packet(&member.path) {
+            if annotation_identity_candidates.len()
+                >= crate::source_annotation_identity_index::MAX_FILES
+            {
+                return Err(DurableError::Refused(
+                    "streamed annotation identity candidate file bound",
+                ));
+            }
+            annotation_identity_candidate_bytes = annotation_identity_candidate_bytes
+                .checked_add(file.raw.len())
+                .filter(|bytes| *bytes <= crate::source_annotation_identity_index::MAX_BYTES)
+                .ok_or(DurableError::Refused(
+                    "streamed annotation identity candidate byte bound",
+                ))?;
+            if annotation_identity_candidates
+                .insert(member.path.clone(), file.raw.clone())
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed annotation identity candidate path",
+                ));
+            }
+        }
         let basename = member.path.rsplit('/').next().unwrap_or(&member.path);
         if member.path.starts_with("ToS/")
             && !member.path.starts_with("ToS/source-witnesses/owner-local/")
@@ -1540,14 +1597,17 @@ fn render_current_mixed_projections(
         members: count,
         projection_digest: transcript.finalize(),
         text_identity_candidates,
+        annotation_identity_candidates,
         claim_dependency_candidates,
         item_file_candidates,
+        legacy_publication_members,
     })
 }
 
 struct CompleteStreamedMixedSourceAssessmentV1 {
     members: u64,
     projection_digest: Digest256,
+    publication_import: Option<crate::source_work_transaction::LegacySelectedPublicationImportV1>,
 }
 
 fn compare_current_owner_indexes(
@@ -1691,6 +1751,7 @@ fn compare_current_owner_indexes(
     Ok(CompleteStreamedMixedSourceAssessmentV1 {
         members: projected.members,
         projection_digest: projected.projection_digest,
+        publication_import: None,
     })
 }
 
@@ -2026,7 +2087,7 @@ fn assess_held_current_source(
             cancelled,
         )?;
     }
-    let assessment = compare_current_owner_indexes(
+    let mut assessment = compare_current_owner_indexes(
         tx,
         max_statement_ms,
         domain,
@@ -2040,25 +2101,79 @@ fn assess_held_current_source(
         deadline,
         cancelled,
     )?;
+    assessment.publication_import = super::legacy_selected_publication_import_from_members(
+        &projected.legacy_publication_members,
+        domain,
+        store.store_id(),
+        original_content.revision,
+        original_content.membership,
+        cold.through_commit_seq,
+    )?;
     set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
-    crate::source_text_identity_index::verify_current(
-        tx,
-        domain,
-        &projected.text_identity_candidates,
-        definition(),
-    )?;
-    crate::source_claim_dependency_index::verify_current(
-        tx,
-        domain,
-        &projected.claim_dependency_candidates,
-        definition(),
-    )?;
-    crate::source_item_file_index::verify_current(
-        tx,
-        domain,
-        &projected.item_file_candidates,
-        definition(),
-    )?;
+    if fresh_sink {
+        crate::source_text_identity_index::rebuild_current(
+            tx,
+            domain,
+            &projected.text_identity_candidates,
+            definition(),
+        )?;
+    } else {
+        crate::source_text_identity_index::verify_current(
+            tx,
+            domain,
+            &projected.text_identity_candidates,
+            definition(),
+        )?;
+    }
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    if fresh_sink {
+        crate::source_annotation_identity_index::rebuild_current(
+            tx,
+            domain,
+            &projected.annotation_identity_candidates,
+            definition(),
+        )?;
+    } else {
+        crate::source_annotation_identity_index::verify_current(
+            tx,
+            domain,
+            &projected.annotation_identity_candidates,
+            definition(),
+        )?;
+    }
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    if fresh_sink {
+        crate::source_claim_dependency_index::rebuild_current(
+            tx,
+            domain,
+            &projected.claim_dependency_candidates,
+            definition(),
+            cold.through_commit_seq,
+        )?;
+    } else {
+        crate::source_claim_dependency_index::verify_current(
+            tx,
+            domain,
+            &projected.claim_dependency_candidates,
+            definition(),
+        )?;
+    }
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    if fresh_sink {
+        crate::source_item_file_index::rebuild_current(
+            tx,
+            domain,
+            &projected.item_file_candidates,
+            definition(),
+        )?;
+    } else {
+        crate::source_item_file_index::verify_current(
+            tx,
+            domain,
+            &projected.item_file_candidates,
+            definition(),
+        )?;
+    }
     // A successful semantic pass cannot outlive a failed validator child.
     finish_worker(worker, deadline, cancelled)?;
     let inventory = build_assessed_inventory(
@@ -2410,6 +2525,7 @@ impl DurablePgCoordinator {
                     initial_membership,
                     before.through_commit_seq,
                     cohort.definition,
+                    assessment.publication_import.as_ref(),
                 )?;
                 // Locks remain held. Completion includes empty and absent predicates;
                 // only existing owned definitions are re-enabled, never invented grants.

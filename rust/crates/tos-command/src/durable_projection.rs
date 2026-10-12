@@ -17,6 +17,7 @@ pub(crate) mod durable_source_text_search;
 
 #[path = "durable_navigation_event.rs"]
 mod durable_navigation_event;
+pub(crate) use durable_navigation_event::DurableNavigationOriginalRightWitnessV1;
 pub(crate) use durable_navigation_event::{
     DurableNavigationAdjacencyCertificateReadV1, DurableNavigationCurrentnessGuardV1,
     DurableNavigationCurrentnessV1, DurableNavigationHeldReadV2,
@@ -39,8 +40,13 @@ pub use durable_navigation_event::{
     DurableNavigationEventCohortReadV1, DurableNavigationEventCohortSetV2,
     DurableNavigationEventContextV1, DurableNavigationEventCursorV1,
     DurableNavigationEventDependencyReadV1, DurableNavigationEventLimits,
-    DurableNavigationEventPendingReasonV2, DurableNavigationEventSeedV1,
-    DurableNavigationEventSourceV1,
+    DurableNavigationEventPendingReasonV2, DurableNavigationEventRangeApplyV1,
+    DurableNavigationEventRangeClaimMutationV1, DurableNavigationEventRangeCoverageV1,
+    DurableNavigationEventRangeDependencyCauseV1, DurableNavigationEventRangeEventV1,
+    DurableNavigationEventRangeMemberV1, DurableNavigationEventRangePendingReasonV1,
+    DurableNavigationEventRangePriorClaimOwnerV1, DurableNavigationEventRangePriorOwnerBasisV1,
+    DurableNavigationEventRangePriorRecordOwnerV1, DurableNavigationEventRangeSeedV1,
+    DurableNavigationEventSeedV1, DurableNavigationEventSourceV1,
 };
 
 const MAX_PROJECTION_TIMEOUT: Duration = Duration::from_secs(300);

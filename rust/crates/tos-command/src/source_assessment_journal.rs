@@ -1478,6 +1478,28 @@ pub(crate) fn commit_private_assessment_batch_with_expected_heads(
     coordinator.commit_private_owner_package(&mut capability)
 }
 
+/// Commit an Assessment append while rechecking its protected owner inputs
+/// from inside the broker's exclusive scope transaction. The callback runs
+/// for both a fresh append and a matching broker receipt replay.
+pub(crate) fn commit_private_assessment_batch_with_expected_heads_and_currentness<F>(
+    coordinator: &mut DurablePgCoordinator,
+    write: PrivateOwnerPackageWriteV1,
+    batch: &JsonValue,
+    expected_heads: BTreeMap<String, Option<String>>,
+    revalidate_currentness: F,
+) -> DurableResult<PrivateOwnerPackageReplayV1>
+where
+    F: FnMut() -> SourceCommandResult<()>,
+{
+    let inner = AssessmentPrivatePackageCapabilityV1::from_batch(write, batch)?
+        .with_expected_history_heads(expected_heads)?;
+    let mut capability = AssessmentPrivatePackageCurrentCapabilityV1 {
+        inner,
+        revalidate_currentness,
+    };
+    coordinator.commit_private_owner_package(&mut capability)
+}
+
 /// Select and authenticate one assessment history from the broker's immutable
 /// package revisions. Appenders retain the returned package snapshot as their
 /// expected-current CAS value; all records are from one broker read snapshot.
@@ -1637,6 +1659,35 @@ impl PrivateOwnerPackageCapabilityV1 for AssessmentPrivatePackageCapabilityV1 {
             }
         }
         Ok(())
+    }
+}
+
+struct AssessmentPrivatePackageCurrentCapabilityV1<F> {
+    inner: AssessmentPrivatePackageCapabilityV1,
+    revalidate_currentness: F,
+}
+
+impl<F> capability_seal::Sealed for AssessmentPrivatePackageCurrentCapabilityV1<F> {}
+
+impl<F> PrivateOwnerPackageCapabilityV1 for AssessmentPrivatePackageCurrentCapabilityV1<F>
+where
+    F: FnMut() -> SourceCommandResult<()>,
+{
+    fn write(&self) -> &PrivateOwnerPackageWriteV1 {
+        &self.inner.write
+    }
+
+    fn expected_history_heads(&self) -> Option<&BTreeMap<String, Option<Vec<u8>>>> {
+        self.inner.expected_history_heads.as_ref()
+    }
+
+    fn revalidate(
+        &mut self,
+        current: Option<&PrivateOwnerPackageSnapshotV1>,
+        replay: Option<&PrivateOwnerPackageReplayV1>,
+    ) -> DurableResult<()> {
+        self.inner.revalidate(current, replay)?;
+        (self.revalidate_currentness)().map_err(DurableError::Source)
     }
 }
 

@@ -20,7 +20,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
+use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::{
     CorpusCutReader, CorpusReader, SoftwareCaptureReader, SoftwareComponentSelectionV1,
 };
@@ -1590,12 +1590,12 @@ fn selected_command_context(
 /// set from already-selected transport-neutral owner inputs. The caller must
 /// acquire exactly these histories under its own journal transport before
 /// asking the history evaluator to calculate any admission basis.
-pub(crate) fn plan_assessment_evaluation(
-    inputs: AssessmentEvaluationInputs<'_>,
+pub(crate) fn plan_assessment_evaluation<'a>(
+    inputs: AssessmentEvaluationInputs<'a>,
     budget: &mut OperationBudget,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<AssessmentEvaluationPlan<'_>> {
+) -> SourceCommandResult<AssessmentEvaluationPlan<'a>> {
     let AssessmentEvaluationInputs {
         config,
         configuration_raw,
@@ -2260,59 +2260,6 @@ fn run_selected(
     {
         return Err(SourceCommandError::Denied(
             "native assessment append requires every selected current source read",
-        ));
-    }
-    let parent_assessment = if let Some(parent) = &parent_context {
-        let id = cmd::text(&parent.record, "id")?;
-        let parent_history = histories.get(id).ok_or(SourceCommandError::Invalid(
-            "assessment parent Claim history absent",
-        ))?;
-        let parent_bases = quality_bases
-            .iter()
-            .filter(|(requirement, _)| parent_quality_requirements.contains(requirement))
-            .map(|(_, basis)| record_input(basis))
-            .collect::<SourceCommandResult<Vec<_>>>()?;
-        let parent_report = evaluate_selected_subject(
-            &config,
-            id,
-            &parent.scope,
-            &source_records,
-            &native_records,
-            &record_rows,
-            &parent
-                .required_sources
-                .iter()
-                .map(owner_reference)
-                .collect::<SourceCommandResult<Vec<_>>>()?,
-            &parent_bases,
-            &parent_history.submissions,
-            &[],
-            AssessmentSourceRoute::SourceBoundClaim,
-            None,
-            &now,
-            &mut selected.worker,
-            &mut budget,
-            cancelled,
-        )?;
-        let packet = parent_assessment_packet(
-            &parent.record,
-            &parent_report,
-            parent_history,
-            &parent.scope,
-        )?;
-        if selected.version.has_layer_quality() {
-            current_snapshot = extend_subject_assessment_snapshot(&current_snapshot, &packet)?;
-        }
-        Some(packet)
-    } else {
-        None
-    };
-    if selected.version.has_layer_quality()
-        && selected.request.operation != "describe"
-        && selected.request.expected_snapshot.as_deref() != Some(&current_snapshot)
-    {
-        return Err(SourceCommandError::Conflict(
-            "private assessment current quality basis snapshot is stale",
         ));
     }
     verify_selected_sources(
@@ -3004,7 +2951,7 @@ fn evaluate_and_charge_assessment(
     Ok(report)
 }
 
-fn map_assessment_refusal(error: AssessmentRefusal) -> SourceCommandError {
+pub(crate) fn map_assessment_refusal(error: AssessmentRefusal) -> SourceCommandError {
     let error = match error {
         AssessmentRefusal::Schema(error) => {
             AssessmentRefusal::Schema(error.compatibility_category())

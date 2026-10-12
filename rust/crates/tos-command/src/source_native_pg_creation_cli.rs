@@ -34,6 +34,9 @@ const MAX_CONTEXT_MEMBERS: u64 = 512;
 const MAX_CONTEXT_BYTES: u64 = 33_554_432;
 const MAX_CONTEXT_MEMBER_BYTES: u64 = 8_388_608;
 
+#[path = "source_native_pg_family_creation_cli.rs"]
+pub(crate) mod family;
+
 struct SourceSelection {
     domain: String,
     contract: Digest256,

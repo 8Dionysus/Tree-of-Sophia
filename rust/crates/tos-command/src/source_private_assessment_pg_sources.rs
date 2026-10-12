@@ -9,8 +9,10 @@ use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{
     self as cmd, CommandContext, SourceCommandError, SourceCommandResult, SourceFile,
 };
-use crate::source_native_pg_growth_input::PgGrowthCurrentInput;
-use crate::source_private_profile::{PrivateSelectedSourceIdentity, PrivateSelectedSourceInput};
+use crate::source_native_cli::PgGrowthCurrentInput;
+use crate::source_native_cli::private_owner::profile::{
+    PrivateSelectedSourceIdentity, PrivateSelectedSourceInput,
+};
 use crate::source_revisions::RecordRead;
 use crate::source_sign_native::{NativeInput, NativeReadKind, NativeReadScope, SignNativeRead};
 use crate::source_text_owner::OwnerTextContext;
@@ -1840,7 +1842,9 @@ pub(crate) fn select_owner_local_sources_pg(
         identity,
         files: std::mem::take(&mut selected_files),
     };
-    crate::source_private_profile::candidate_record_binding_matches(ctx, input, &selected, worker)?;
+    crate::source_native_cli::private_owner::profile::candidate_record_binding_matches(
+        ctx, input, &selected, worker,
+    )?;
     let context_snapshot = owner.snapshot(deadline, cancelled)?.to_prefixed();
 
     let selection_rows = cmd::object(vec![
@@ -1970,18 +1974,19 @@ pub(crate) fn select_owner_local_sources_pg(
                 "private assessment PG record budget",
             ));
         }
-        let validated = crate::source_private_profile::validate_identity_record_pg(
-            &selection.profile_type_id,
-            &selection.path,
-            &selection.record_id,
-            raw,
-            ctx,
-            input,
-            &selected,
-            worker,
-            deadline,
-            cancelled,
-        )?;
+        let validated =
+            crate::source_native_cli::private_owner::profile::validate_identity_record_pg(
+                &selection.profile_type_id,
+                &selection.path,
+                &selection.record_id,
+                raw,
+                ctx,
+                input,
+                &selected,
+                worker,
+                deadline,
+                cancelled,
+            )?;
         source_paths.insert(selection.record_id.clone(), selection.path.clone());
         let mut profile_contracts = BTreeMap::new();
         for dependency in &validated.dependencies {
@@ -2141,7 +2146,7 @@ pub(crate) fn select_owner_local_sources_pg(
                 form_path.rsplit('/').next().unwrap_or_default(),
             )?;
             let forms = cmd::parse(form_raw)?;
-            crate::source_private_profile::validate_form_set_pg(
+            crate::source_native_cli::private_owner::profile::validate_form_set_pg(
                 ctx,
                 &selected_cut,
                 &selected,
