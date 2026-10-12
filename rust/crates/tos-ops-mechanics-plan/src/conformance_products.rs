@@ -6,7 +6,7 @@ use std::{
     io::{self, Read},
     path::{Path, PathBuf},
     sync::atomic::{AtomicI32, Ordering},
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tos_foundation::Digest256Hasher;
 
@@ -21,12 +21,23 @@ fn check(deadline: Instant, cancel: &AtomicI32) -> io::Result<()> {
     }
     Ok(())
 }
+
+/// Start a separately bounded phase without extending the enclosing lane.
+pub(crate) fn selection_deadline(
+    now: Instant,
+    lane_deadline: Instant,
+    phase_wall: Duration,
+) -> Instant {
+    lane_deadline.min(now + phase_wall)
+}
+
 fn cargo_test(argv: &[String]) -> bool {
     argv.first()
         .is_some_and(|p| Path::new(p).file_name().is_some_and(|p| p == "cargo"))
         && argv.get(1).is_some_and(|p| p == "test")
         && argv.iter().any(|p| p == "--workspace")
 }
+
 pub(crate) fn preparation(argv: &[String]) -> bool {
     cargo_test(argv)
         && argv.iter().any(|p| p == "--no-run")
@@ -268,5 +279,37 @@ impl Products {
                 self.executable_sha.clone(),
             ),
         ])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn post_build_selection_gets_its_own_budget_but_cannot_renew_the_lane() {
+        let compile_started = Instant::now();
+        let phase_wall = crate::executor::Limits::default().command_wall;
+        let compile_deadline = compile_started + phase_wall;
+        let remaining_compile_budget = Duration::from_secs(8);
+        let compile_finished = compile_deadline - remaining_compile_budget;
+        let selection_started =
+            compile_finished + remaining_compile_budget + Duration::from_millis(1);
+        let lane_deadline = compile_started + Duration::from_secs(10_800);
+
+        let selection = selection_deadline(selection_started, lane_deadline, phase_wall);
+        assert!(selection_started > compile_deadline);
+        assert_eq!(selection, selection_started + phase_wall);
+        assert!(selection > compile_deadline);
+
+        let expired_lane = Instant::now() - Duration::from_millis(1);
+        let bounded = selection_deadline(Instant::now(), expired_lane, phase_wall);
+        assert_eq!(bounded, expired_lane);
+        assert!(check(bounded, &AtomicI32::new(0)).is_err());
+
+        let cancelled = AtomicI32::new(15);
+        let fresh_lane = Instant::now() + phase_wall;
+        let bounded = selection_deadline(Instant::now(), fresh_lane, phase_wall);
+        assert!(check(bounded, &cancelled).is_err());
     }
 }

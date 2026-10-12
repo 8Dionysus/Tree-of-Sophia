@@ -536,6 +536,21 @@ fn edition_rowset_tokens(
         .collect()
 }
 
+/// Exact current range-predicate tokens derived from the selected Item
+/// manifests and their bound source members. Retained generations are added
+/// by the streamed source comparison separately.
+pub(crate) fn current_predicate_tokens(
+    files: &BTreeMap<String, Vec<u8>>,
+    definition: Digest256,
+) -> DurableResult<[BTreeSet<String>; 3]> {
+    let rows = full_source_rows(files, definition)?;
+    Ok([
+        file_rowset_tokens(&rows)?,
+        rights_rowset_tokens(&rows)?,
+        edition_rowset_tokens(&rows)?,
+    ])
+}
+
 fn parse_rights_member(bytes: &[u8]) -> DurableResult<(String, Digest256)> {
     if bytes.len() > MAX_MANIFEST_BYTES {
         return Err(DurableError::Refused(

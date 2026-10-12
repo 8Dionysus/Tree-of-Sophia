@@ -27,7 +27,7 @@ pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceW
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 use tos_compiler::managed_source::ManagedProducerProof;
-use tos_foundation::{RelativePath, SourceRevision};
+use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_segment_store::{FrameInput, OwnerBinding};
 use tos_source_store::{
     CorpusCutReader, MemberMetadata, SoftwareCaptureReader, SoftwareComponentSelectionV1,
@@ -56,6 +56,70 @@ pub(crate) mod revision;
 const ORIGINAL: &[u8] = b"tos.source-file.original-v1";
 const CREATION: &[u8] = b"tos.source-file.agent-create-v1";
 pub(crate) const OWNER: &str = "native-corpus-create:agent";
+
+/// Recognized source-cohort predicate contracts across bootstrap, streamed
+/// cold verification, and bounded PG creation. Hash-shaped tokens stay
+/// owner-specific: navigation uses prefixed digests while PG Work revisions
+/// use bare lowercase hex digests.
+pub(crate) fn valid_owned_predicate_shape(
+    owner: &str,
+    kind: &str,
+    scope: &str,
+    token: &str,
+) -> bool {
+    fn lower_hex(bytes: &[u8]) -> bool {
+        bytes
+            .iter()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+    }
+
+    fn prefixed_digest(token: &str) -> bool {
+        token.len() == 71
+            && token.starts_with("sha256:")
+            && lower_hex(&token.as_bytes()[7..])
+            && Digest256::from_hex(&token[7..]).is_ok()
+    }
+
+    fn bare_digest(token: &str) -> bool {
+        token.len() == 64 && lower_hex(token.as_bytes()) && Digest256::from_hex(token).is_ok()
+    }
+
+    if owner != OWNER {
+        return false;
+    }
+    match (kind, scope) {
+        ("range", "source-home") => {
+            (token == "ToS" || token.starts_with("ToS/"))
+                && !token.ends_with('/')
+                && RelativePath::parse(token).is_ok()
+        }
+        ("range", "source-inventory") => token == "all",
+        ("range", creation::DEPENDENCY_SCOPE) => token == creation::COMMITMENT_VERSION.to_string(),
+        ("range", "claim-dependency-v1")
+        | ("range", "item-edition-v1")
+        | ("range", "item-file-v1")
+        | ("range", "item-rights-v1") => prefixed_digest(token),
+        ("range", crate::source_claim_dependency_index::NAVIGATION_REFERENCE_SCOPE) => {
+            token.starts_with("sha256:")
+                && token.len() == 71
+                && lower_hex(&token.as_bytes()[7..])
+                && Digest256::from_prefixed(token).is_ok()
+        }
+        ("range", crate::source_pg_work_revision::PREDICATE_SCOPE) => bare_digest(token),
+        ("unique", "metadata" | "claim" | "event" | "anchor" | "form") => !token.is_empty(),
+        ("unique", "path") => {
+            token.starts_with("ToS/") && !token.ends_with('/') && RelativePath::parse(token).is_ok()
+        }
+        ("unique", "sign-candidate") => {
+            token.len() <= 4096 && crate::source_revisions::valid_id(token, "tos.claim.", false)
+        }
+        ("unique", "text-identity" | "semantic-annotation-entity") => {
+            (1..=4096).contains(&token.len())
+        }
+        ("unique", "source-publication") => token == "current",
+        _ => false,
+    }
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ManagedManifestSelectionV2 {
     pub model_version: u64,
@@ -10532,26 +10596,7 @@ impl DurablePgCoordinator {
                 let scope: String = row.get("scope");
                 let token: String = row.get("token");
                 if row.get::<_, String>("definition_version") != definition().to_hex()
-                    || !["unique", "range"].contains(&kind.as_str())
-                    || (kind == "range"
-                        && !["source-home", "source-inventory"].contains(&scope.as_str())
-                        && !(scope == creation::DEPENDENCY_SCOPE
-                            && token == creation::COMMITMENT_VERSION.to_string()))
-                    || (scope == "source-inventory" && token != "all")
-                    || (kind == "unique"
-                        && ![
-                            "metadata",
-                            "claim",
-                            "event",
-                            "anchor",
-                            "form",
-                            "sign-candidate",
-                            "path",
-                            "text-identity",
-                            "source-publication",
-                        ]
-                        .contains(&scope.as_str()))
-                    || (kind == "unique" && scope == "source-publication" && token != "current")
+                    || !valid_owned_predicate_shape(OWNER, &kind, &scope, &token)
                     || !predicate_keys.insert((kind, scope, token))
                 {
                     return Err(DurableError::Corrupt(
@@ -13273,5 +13318,73 @@ mod public_text_rederivation_tests {
             )
             .is_err()
         );
+    }
+}
+
+#[cfg(test)]
+mod owned_predicate_shape_tests {
+    use super::*;
+
+    #[test]
+    fn recognizes_current_owner_scopes_and_rejects_malformed_or_unknown_rows() {
+        let digest = Digest256::of_bytes(b"predicate-shape");
+        let prefixed = digest.to_prefixed();
+        let bare = digest.to_hex();
+        let uppercase = format!("sha256:{}", "A".repeat(64));
+        let valid = [
+            ("range", "source-home", "ToS"),
+            ("range", "source-home", "ToS/source-witnesses/example"),
+            ("range", "source-inventory", "all"),
+            ("range", "source-dependencies-v2", "2"),
+            ("range", "claim-dependency-v1", prefixed.as_str()),
+            ("range", "claim-navigation-reference-v2", prefixed.as_str()),
+            ("range", "item-edition-v1", prefixed.as_str()),
+            ("range", "item-file-v1", prefixed.as_str()),
+            ("range", "item-rights-v1", prefixed.as_str()),
+            ("range", "pg-work-revision-v1", bare.as_str()),
+            ("unique", "metadata", "tos.agent.example"),
+            ("unique", "path", "ToS/source-witnesses/example"),
+            ("unique", "text-identity", "tos.textunit.example"),
+            ("unique", "semantic-annotation-entity", "tos.entity.example"),
+            ("unique", "sign-candidate", "tos.claim.example"),
+            ("unique", "source-publication", "current"),
+        ];
+        for (kind, scope, token) in valid {
+            assert!(
+                valid_owned_predicate_shape(OWNER, kind, scope, token),
+                "{scope}"
+            );
+        }
+
+        let invalid = [
+            ("range", "claim-dependency-v1", bare.as_str()),
+            ("range", "claim-navigation-reference-v2", bare.as_str()),
+            ("range", "item-edition-v1", "sha256:not-a-digest"),
+            ("range", "item-file-v1", "sha256:not-a-digest"),
+            ("range", "item-rights-v1", "sha256:not-a-digest"),
+            ("range", "item-rights-v1", uppercase.as_str()),
+            ("range", "pg-work-revision-v1", prefixed.as_str()),
+            ("range", "source-dependencies-v2", "3"),
+            ("range", "unrecognized", "token"),
+            ("unique", "semantic-annotation-entity", ""),
+            ("unique", "text-identity", ""),
+            ("unique", "source-publication", "stale"),
+            ("unique", "unrecognized", "token"),
+        ];
+        for (kind, scope, token) in invalid {
+            assert!(!valid_owned_predicate_shape(OWNER, kind, scope, token));
+        }
+        assert!(!valid_owned_predicate_shape(
+            "other-owner",
+            "range",
+            "claim-navigation-reference-v2",
+            &prefixed,
+        ));
+        assert!(!valid_owned_predicate_shape(
+            OWNER,
+            "other-kind",
+            "claim-navigation-reference-v2",
+            &prefixed,
+        ));
     }
 }

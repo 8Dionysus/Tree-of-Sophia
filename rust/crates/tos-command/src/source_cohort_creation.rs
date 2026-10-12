@@ -1257,57 +1257,11 @@ fn valid_predicate_shape(predicate: &PredicateToken) -> bool {
     if predicate.owner != OWNER || predicate.definition_version != definition().to_hex() {
         return false;
     }
-    match (predicate.kind, predicate.scope.as_str()) {
-        (PredicateKind::Range, "source-home") => {
-            predicate.token.starts_with("ToS/") && !predicate.token.ends_with('/')
-        }
-        (PredicateKind::Range, DEPENDENCY_SCOPE) => {
-            predicate.token == COMMITMENT_VERSION.to_string()
-        }
-        (PredicateKind::Range, "claim-dependency-v1") => {
-            let bytes = predicate.token.as_bytes();
-            bytes.len() == 71
-                && bytes.starts_with(b"sha256:")
-                && bytes[7..]
-                    .iter()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
-        }
-        (PredicateKind::Range, "item-edition-v1") => {
-            let bytes = predicate.token.as_bytes();
-            bytes.len() == 71
-                && bytes.starts_with(b"sha256:")
-                && bytes[7..]
-                    .iter()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
-        }
-        (PredicateKind::Range, "item-file-v1") => {
-            let bytes = predicate.token.as_bytes();
-            bytes.len() == 71
-                && bytes.starts_with(b"sha256:")
-                && bytes[7..]
-                    .iter()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
-        }
-        (PredicateKind::Range, "item-rights-v1") => {
-            let bytes = predicate.token.as_bytes();
-            bytes.len() == 71
-                && bytes.starts_with(b"sha256:")
-                && bytes[7..]
-                    .iter()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
-        }
-        (PredicateKind::Unique, "path") => {
-            predicate.token.starts_with("ToS/") && !predicate.token.ends_with('/')
-        }
-        (PredicateKind::Unique, "source-publication") => predicate.token == "current",
-        (PredicateKind::Unique, "text-identity") => (1..=4096).contains(&predicate.token.len()),
-        (PredicateKind::Unique, "sign-candidate") => {
-            (1..=4096).contains(&predicate.token.len())
-                && crate::source_revisions::valid_id(&predicate.token, "tos.claim.", false)
-        }
-        (PredicateKind::Unique, scope) => fixed_index(scope) && !predicate.token.is_empty(),
-        _ => false,
-    }
+    let kind = match predicate.kind {
+        PredicateKind::Range => "range",
+        PredicateKind::Unique => "unique",
+    };
+    super::valid_owned_predicate_shape(&predicate.owner, kind, &predicate.scope, &predicate.token)
 }
 
 fn check_predicate_reads(

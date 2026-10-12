@@ -811,6 +811,20 @@ fn navigation_rowset_tokens(
         .collect()
 }
 
+/// Current source-derived range tokens for both Claim-owned indexes. The
+/// navigation completeness marker exists even when the selected cut has no
+/// Claim stream; older predicate generations are retained by the caller.
+pub(crate) fn current_predicate_tokens(
+    files: &BTreeMap<String, Vec<u8>>,
+    definition: Digest256,
+) -> DurableResult<(BTreeSet<String>, BTreeSet<String>)> {
+    let dependencies = rowset_tokens(&full_source_rows(files, definition)?)?;
+    let navigation_rows = full_navigation_source_rows(files, definition)?;
+    let mut navigation = navigation_rowset_tokens(&navigation_rows)?;
+    navigation.insert(navigation_reference_complete_token()?);
+    Ok((dependencies, navigation))
+}
+
 fn full_navigation_source_rows(
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,

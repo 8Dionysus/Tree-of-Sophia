@@ -1089,9 +1089,18 @@ mod native {
                     crate::growth_native_plan::verify_result(&command.argv, &cargo_stdout)?;
                 }
                 if status.unwrap().success() && preparing {
+                    // Cargo compilation and selection/hashing of its actual
+                    // products are separate bounded phases. Preserve the
+                    // enclosing lane deadline without charging compilation
+                    // time against post-build selection.
+                    let selection_deadline = crate::conformance_products::selection_deadline(
+                        Instant::now(),
+                        lane_deadline,
+                        command_wall,
+                    );
                     products = Some(crate::conformance_products::Products::select(
                         &cargo_stdout,
-                        deadline,
+                        selection_deadline,
                         cancel,
                     )?);
                 }

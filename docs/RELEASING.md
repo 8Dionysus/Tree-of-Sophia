@@ -70,6 +70,9 @@ owner surfaces.
    Conformance and Growth consume the pinned workspace images before package
    tests can relink the shared Cargo binary paths with different feature sets.
    The image digest checks remain active throughout those consumer steps.
+   Selecting and hashing prepared Cargo images gets a separate bounded phase
+   after successful compilation, using the same per-command allowance and
+   retaining the enclosing lane deadline and cancellation state.
    The retained source-cut fixture also needs the exact commit named in
    `tests/conformance/rust/retained-opening-source.txt` and its fourteen selected
    metadata blobs. CI fetches that shallow commit and those blobs before the

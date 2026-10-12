@@ -1695,12 +1695,7 @@ fn render_current_mixed_projections(
             "streamed complete projection pass EOF differs",
         ));
     }
-    epoch
-        .index
-        .borrow_mut()
-        .finish_source_inputs(&mut **epoch.index_work.borrow_mut())?;
-    active(deadline, cancelled)?;
-    Ok(CompleteMixedProjectionPassV1 {
+    let projected = CompleteMixedProjectionPassV1 {
         members: count,
         projection_digest: transcript.finalize(),
         text_identity_candidates,
@@ -1708,13 +1703,152 @@ fn render_current_mixed_projections(
         claim_dependency_candidates,
         item_file_candidates,
         legacy_publication_members,
-    })
+    };
+    // Predicate expectations are part of source assessment input. Stage them
+    // while the index is still open, before closing semantic source inputs.
+    let mut index_work = epoch.index_work.borrow_mut();
+    stage_current_owner_predicate_expectations(
+        &mut **epoch.index.borrow_mut(),
+        &mut **index_work,
+        &projected,
+        epoch.fresh_sink,
+        deadline,
+        cancelled,
+    )?;
+    epoch
+        .index
+        .borrow_mut()
+        .finish_source_inputs(&mut **index_work)?;
+    active(deadline, cancelled)?;
+    Ok(projected)
 }
 
 struct CompleteStreamedMixedSourceAssessmentV1 {
     members: u64,
     projection_digest: Digest256,
     publication_import: Option<crate::source_work_transaction::LegacySelectedPublicationImportV1>,
+}
+
+fn add_expected_owned_predicate(
+    index: &mut SourceAssessmentIndex,
+    work: &mut SourceAssessmentWork,
+    kind: &str,
+    scope: &str,
+    token: &str,
+    version: &str,
+) -> DurableResult<()> {
+    if !super::valid_owned_predicate_shape(OWNER, kind, scope, token) {
+        return Err(DurableError::Corrupt(
+            "streamed expected predicate owner definition differs",
+        ));
+    }
+    index.add_predicate_row(
+        &super::source_cohort_stream_index::AssessmentPredicateRow {
+            kind: kind.to_owned(),
+            owner: OWNER.to_owned(),
+            scope: scope.to_owned(),
+            token: token.to_owned(),
+            definition_version: version.to_owned(),
+        },
+        work,
+    )
+}
+
+/// Seed the streamed expected-predicate spool from current source-derived
+/// owner tokens before source inputs are closed. Valid retained absence keys
+/// are observed separately during comparison; they do not replace these
+/// current source-derived expectations.
+fn stage_current_owner_predicate_expectations(
+    index: &mut SourceAssessmentIndex,
+    work: &mut SourceAssessmentWork,
+    projected: &CompleteMixedProjectionPassV1,
+    fresh_sink: bool,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    if fresh_sink {
+        // Owner-local rows are intentionally rebuilt only after comparison on
+        // an empty bootstrap target. The generic expected predicates were
+        // already staged from the complete current source members.
+        return Ok(());
+    }
+    let version = definition().to_hex();
+    for token in crate::source_text_identity_index::current_predicate_tokens(
+        &projected.text_identity_candidates,
+    )? {
+        add_expected_owned_predicate(
+            index,
+            work,
+            "unique",
+            crate::source_text_identity_index::PREDICATE_SCOPE,
+            &token,
+            &version,
+        )?;
+    }
+    for token in crate::source_annotation_identity_index::current_predicate_tokens(
+        &projected.annotation_identity_candidates,
+    )? {
+        add_expected_owned_predicate(
+            index,
+            work,
+            "unique",
+            crate::source_annotation_identity_index::PREDICATE_SCOPE,
+            &token,
+            &version,
+        )?;
+    }
+    let (claim_tokens, navigation_tokens) =
+        crate::source_claim_dependency_index::current_predicate_tokens(
+            &projected.claim_dependency_candidates,
+            definition(),
+        )?;
+    for token in claim_tokens {
+        add_expected_owned_predicate(
+            index,
+            work,
+            "range",
+            crate::source_claim_dependency_index::PREDICATE_SCOPE,
+            &token,
+            &version,
+        )?;
+    }
+    for token in navigation_tokens {
+        add_expected_owned_predicate(
+            index,
+            work,
+            "range",
+            crate::source_claim_dependency_index::NAVIGATION_REFERENCE_SCOPE,
+            &token,
+            &version,
+        )?;
+    }
+    let [item_file_tokens, item_rights_tokens, item_edition_tokens] =
+        crate::source_item_file_index::current_predicate_tokens(
+            &projected.item_file_candidates,
+            definition(),
+        )?;
+    for (scope, tokens) in [
+        (
+            crate::source_item_file_index::PREDICATE_SCOPE,
+            item_file_tokens,
+        ),
+        (
+            crate::source_item_file_index::RIGHTS_PREDICATE_SCOPE,
+            item_rights_tokens,
+        ),
+        (
+            crate::source_item_file_index::EDITION_PREDICATE_SCOPE,
+            item_edition_tokens,
+        ),
+    ] {
+        for token in tokens {
+            add_expected_owned_predicate(index, work, "range", scope, &token, &version)?;
+        }
+    }
+    // source-publication/current is optional at this point: its exact shape is
+    // checked with every retained row, while ensure_source_publication_bootstrap_state
+    // owns its lineage validation and may seed it after this comparison.
+    active(deadline, cancelled)
 }
 
 fn compare_current_owner_indexes(
@@ -1806,21 +1940,7 @@ fn compare_current_owner_indexes(
             let definition_version: String = row.get("definition_version");
             if owner != OWNER
                 || definition_version != version
-                || !["unique", "range"].contains(&kind.as_str())
-                || (kind == "range"
-                    && !["source-home", "source-inventory"].contains(&scope.as_str()))
-                || (scope == "source-inventory" && token != "all")
-                || (kind == "unique"
-                    && ![
-                        "metadata",
-                        "claim",
-                        "event",
-                        "anchor",
-                        "form",
-                        "sign-candidate",
-                        "path",
-                    ]
-                    .contains(&scope.as_str()))
+                || !super::valid_owned_predicate_shape(&owner, &kind, &scope, &token)
             {
                 return Err(DurableError::Corrupt(
                     "streamed stored predicate owner definition differs",
@@ -2882,5 +3002,134 @@ impl super::PrivateGenerationWorkspace {
         let reader = result.map_err(|error| DurableError::Refused(error.detail))?;
         active(deadline, cancelled)?;
         Ok(reader)
+    }
+}
+
+#[cfg(test)]
+mod predicate_expectation_tests {
+    use super::*;
+    use std::collections::BTreeMap;
+    use std::sync::Arc;
+    use std::sync::atomic::AtomicBool;
+    use std::time::Duration;
+
+    #[test]
+    fn current_predicates_are_staged_before_source_inputs_close() {
+        let temporary = tempfile::tempdir().expect("temporary source workspace");
+        let workspace = PrivateGenerationWorkspace::open(
+            temporary.path(),
+            ColdWorkspaceLimits {
+                max_scratch_written_bytes: 1_000_000,
+                max_run_bytes: 4096,
+                max_runs: 2,
+                merge_fan_in: 2,
+                max_rows: 128,
+                max_key_bytes: 4096,
+            },
+        )
+        .expect("private source workspace");
+        let limits = SourceAssessmentLimits {
+            max_rows: 128,
+            max_logical_bytes: 1_000_000,
+            max_key_bytes: 4096,
+            max_value_bytes: 65_536,
+            max_placement_bytes: 65_536,
+            max_sqlite_file_bytes: 1_000_000,
+            max_vm_steps: 1_000_000,
+        };
+        let mut work = SourceAssessmentWork::default();
+        let mut index = SourceAssessmentIndex::open(
+            &workspace,
+            limits,
+            Instant::now() + Duration::from_secs(20),
+            Arc::new(AtomicBool::new(false)),
+            &mut work,
+        )
+        .expect("source assessment index");
+        let projected = CompleteMixedProjectionPassV1 {
+            members: 0,
+            projection_digest: Digest256::of_bytes(b"empty projected source"),
+            text_identity_candidates: BTreeMap::new(),
+            annotation_identity_candidates: BTreeMap::new(),
+            claim_dependency_candidates: BTreeMap::new(),
+            item_file_candidates: BTreeMap::new(),
+            legacy_publication_members: BTreeMap::new(),
+        };
+
+        stage_current_owner_predicate_expectations(
+            &mut index,
+            &mut work,
+            &projected,
+            false,
+            Instant::now() + Duration::from_secs(20),
+            &AtomicBool::new(false),
+        )
+        .expect("stage current owner predicates while open");
+        let (_, navigation_tokens) =
+            crate::source_claim_dependency_index::current_predicate_tokens(
+                &projected.claim_dependency_candidates,
+                definition(),
+            )
+            .expect("current Claim navigation marker");
+        assert_eq!(navigation_tokens.len(), 1);
+
+        index
+            .finish_source_inputs(&mut work)
+            .expect("close source inputs");
+        assert!(
+            stage_current_owner_predicate_expectations(
+                &mut index,
+                &mut work,
+                &projected,
+                false,
+                Instant::now() + Duration::from_secs(20),
+                &AtomicBool::new(false),
+            )
+            .is_err()
+        );
+
+        let version = definition().to_hex();
+        // This optional lineage row is validated by the dedicated publication
+        // gate and may appear as a valid retained owner row without a current
+        // source-derived expectation.
+        assert!(super::super::valid_owned_predicate_shape(
+            OWNER,
+            "unique",
+            "source-publication",
+            "current",
+        ));
+        index
+            .observe_predicate_row(
+                &super::super::source_cohort_stream_index::AssessmentPredicateRow {
+                    kind: "unique".to_owned(),
+                    owner: OWNER.to_owned(),
+                    scope: "source-publication".to_owned(),
+                    token: "current".to_owned(),
+                    definition_version: version.clone(),
+                },
+                &mut work,
+            )
+            .expect("observe optional publication lineage row");
+        assert!(index.finish_predicate_comparison(&mut work).is_err());
+
+        index
+            .observe_predicate_row(
+                &super::super::source_cohort_stream_index::AssessmentPredicateRow {
+                    kind: "range".to_owned(),
+                    owner: OWNER.to_owned(),
+                    scope: crate::source_claim_dependency_index::NAVIGATION_REFERENCE_SCOPE
+                        .to_owned(),
+                    token: navigation_tokens
+                        .first()
+                        .expect("navigation completeness token")
+                        .clone(),
+                    definition_version: version,
+                },
+                &mut work,
+            )
+            .expect("observe required current navigation marker");
+        index
+            .finish_predicate_comparison(&mut work)
+            .expect("require all current source predicates");
     }
 }

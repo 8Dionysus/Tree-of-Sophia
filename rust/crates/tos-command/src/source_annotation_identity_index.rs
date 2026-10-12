@@ -263,6 +263,18 @@ fn current_rows(
     Ok(out)
 }
 
+/// Exact unique-predicate tokens derived from current public annotation
+/// packets. The caller adds retained generations from the durable predicate
+/// table separately.
+pub(crate) fn current_predicate_tokens(
+    files: &BTreeMap<String, Vec<u8>>,
+) -> DurableResult<BTreeSet<String>> {
+    Ok(current_rows(files)?
+        .into_keys()
+        .map(|(token, _path)| token)
+        .collect())
+}
+
 pub(crate) fn rebuild_current(
     tx: &mut Transaction<'_>,
     domain: &str,
