@@ -96,6 +96,33 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
             .lookup_sign_promotion_candidate(token, deadline, cancelled)
     }
 
+    /// Record an owner-selected output-home absence without releasing this
+    /// exact input's mutable borrow of the source revision session.
+    pub(crate) fn observe_home_absence(
+        &self,
+        home: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> crate::DurableResult<crate::source_cohort::revision::PgSourceHomeObservation> {
+        self.session
+            .borrow_mut()
+            .observe_home_absence(home, deadline, cancelled)
+    }
+
+    /// Record a semantic unique-index predicate in the same read session
+    /// used for the selected owner inputs.
+    pub(crate) fn observe_unique_index(
+        &self,
+        kind: &str,
+        token: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> crate::DurableResult<crate::source_cohort::revision::PgSourceUniqueIndexObservation> {
+        self.session
+            .borrow_mut()
+            .observe_unique_index(kind, token, deadline, cancelled)
+    }
+
     /// Enumerate one selected PG directory through its bounded source index.
     /// Callers must keep this to an owner-selected subtree and let the session
     /// readset bind the exact listing.

@@ -90,7 +90,7 @@ struct SelectedEpoch {
 fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
     let selected = session.selection();
     SelectedEpoch {
-        domain: selected.cohort.domain().clone(),
+        domain: selected.cohort.domain().to_owned(),
         job_id: selected.job_id.clone(),
         job_fence: selected.job_fence,
         contract: selected.contract,

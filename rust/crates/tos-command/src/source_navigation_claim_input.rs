@@ -243,18 +243,18 @@ struct OwnedIdentitySource<'a> {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn assemble_owner(
-    context: &DurableNavigationEventContextV1,
+fn assemble_owner<'a, 'validator>(
+    context: &'a DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    identity_owners: &[ClaimEventIdentityOwnerV1],
-    owner_stream_path: &str,
-    claim_id: &str,
+    validator: &'a SourceCatalogValidator<'validator>,
+    files: &'a SelectedBibliographicFilesV1,
+    inventory: &'a NavigationClaimEventOwnerInventoryV1,
+    identity_owners: &'a [ClaimEventIdentityOwnerV1],
+    owner_stream_path: &'a str,
+    claim_id: &'a str,
     predecessor_cohort_root: Option<Digest256>,
-    cause: Cause<'_>,
-    forms_materializer: &mut dyn BibliographicForms,
+    cause: Cause<'a>,
+    forms_materializer: &'a mut dyn BibliographicForms,
     limits: BibliographicLimits,
 ) -> DurableResult<Contribution> {
     let range_manifest = match cause {

@@ -1264,7 +1264,7 @@ impl SourceRevisionReadSession<'_> {
             source_path,
             record_id,
         );
-        let domain = self.selection.cohort.domain.as_str();
+        let domain = self.selection.cohort.domain.clone();
         let mut tx = self.coordinator.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
         let fence = tx.query_one(
@@ -2373,7 +2373,7 @@ impl SourceRevisionReadSession<'_> {
             let observation =
                 crate::source_claim_dependency_index::lookup_navigation_references_at(
                     &mut tx,
-                    domain,
+                    domain.as_str(),
                     *kind,
                     endpoint,
                     self.selection.cohort.definition,
@@ -2403,7 +2403,7 @@ impl SourceRevisionReadSession<'_> {
         let (completeness_token, completeness_generation) =
             crate::source_claim_dependency_index::navigation_completeness_observation(
                 &mut tx,
-                domain,
+                domain.as_str(),
                 self.selection.cohort.definition,
             )?;
         let mut member_facts = BTreeMap::<String, (Digest256, u64, u64)>::new();
@@ -2521,7 +2521,7 @@ impl SourceRevisionReadSession<'_> {
                 ))?;
             let (row, raw, placement, work) = self.coordinator.read_committed_source_selected(
                 self.store,
-                domain,
+                domain.as_str(),
                 &path,
                 Some(revision),
                 MAX_STREAM_BYTES as u64,

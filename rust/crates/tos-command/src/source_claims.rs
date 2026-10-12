@@ -1010,7 +1010,7 @@ fn candidate_profile_member<I: Copy + Eq>(
         .source_input()
         .with_current_member(
             member,
-            cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES,
+            SELECTED_SOURCE_MAX_MEMBER_BYTES,
             deadline,
             cancelled,
             &mut |meta, raw| {

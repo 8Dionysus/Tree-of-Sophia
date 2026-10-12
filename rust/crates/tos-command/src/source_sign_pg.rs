@@ -153,7 +153,7 @@ impl<I: Copy + Eq> RecordRead for CandidateProfileRead<I> {
 /// Exact current public-source snapshot for PG-backed Sign and private
 /// Assessment consumers. Its membership claim is limited to configured
 /// selected carriers and typed per-token identity-index lookups.
-pub(crate) struct PgOwnerAssessmentPublicSources<'context> {
+pub(crate) struct PgOwnerAssessmentPublicSources {
     pub(crate) rows: Vec<JsonValue>,
     pub(crate) native_rows: Vec<JsonValue>,
     pub(crate) native_summaries: Vec<JsonValue>,
@@ -168,13 +168,12 @@ pub(crate) struct PgOwnerAssessmentPublicSources<'context> {
     pub(crate) owner_snapshot: Digest256,
     pub(crate) publication: Option<Vec<u8>>,
     publication_selected: bool,
-    owner_context: Option<&'context OwnerTextContext>,
     identity_owners:
         BTreeMap<String, BTreeSet<crate::source_annotation_identity_index::AnnotationEntityOwner>>,
     native_identity_owner_context: Option<String>,
 }
 
-impl PgOwnerAssessmentPublicSources<'_> {
+impl PgOwnerAssessmentPublicSources {
     pub(crate) fn input_bytes(&self) -> Result<usize> {
         self.selected_members
             .values()
@@ -191,6 +190,7 @@ impl PgOwnerAssessmentPublicSources<'_> {
     pub(crate) fn verify_current(
         &self,
         input: &PgGrowthCurrentInput<'_, '_>,
+        owner_context: Option<&OwnerTextContext>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<()> {
@@ -206,13 +206,12 @@ impl PgOwnerAssessmentPublicSources<'_> {
                 return Err(Error::Conflict("Sign PG selected public member changed"));
             }
         }
-        if let Some(context) = self.owner_context {
+        if let Some(expected) = &self.native_identity_owner_context {
+            let context = owner_context.ok_or(Error::Conflict(
+                "Sign PG owner text context absent during currentness check",
+            ))?;
             let current = context.snapshot(deadline, cancelled)?.to_prefixed();
-            if self
-                .native_identity_owner_context
-                .as_ref()
-                .is_some_and(|expected| expected != &current)
-            {
+            if expected != &current {
                 return Err(Error::Conflict("Sign PG owner text context changed"));
             }
         }
@@ -985,7 +984,7 @@ pub(crate) fn promotion_view_from_report(
 pub(crate) fn evaluate_promotion_view_selected_pg(
     plan: &assessment::AssessmentEvaluationPlan<'_>,
     histories: &BTreeMap<String, crate::source_assessment_journal::AssessmentHistory>,
-    public_sources: &PgOwnerAssessmentPublicSources<'_>,
+    public_sources: &PgOwnerAssessmentPublicSources,
     expected_candidate_id: &str,
     observed_now: &str,
     identity: PgRecordRevisionIdentity,
@@ -1080,7 +1079,7 @@ fn map_selected_assessment_refusal(
 pub(crate) fn verify_recoverable_basis_current(
     basis: &PgSignRecoverableBasis,
     history: &crate::source_assessment_journal::AssessmentHistory,
-    public_sources: &PgOwnerAssessmentPublicSources<'_>,
+    public_sources: &PgOwnerAssessmentPublicSources,
     assessment_configuration: &JsonValue,
 ) -> Result<()> {
     let candidate_id = cmd::text(&basis.candidate, "id")?;
@@ -1901,16 +1900,16 @@ fn native_envelopes_pg(
 /// private Assessment evaluation. All source bytes and index probes are read
 /// through the caller's held PG session; this is not a corpus membership
 /// claim and never synthesizes a `SourceRevision`.
-pub(crate) fn select_owner_assessment_public_sources_pg<'context>(
+pub(crate) fn select_owner_assessment_public_sources_pg(
     input: &PgGrowthCurrentInput<'_, '_>,
     config: &JsonValue,
     worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
-    owner_context: Option<&'context OwnerTextContext>,
+    owner_context: Option<&OwnerTextContext>,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> Result<PgOwnerAssessmentPublicSources<'context>> {
+) -> Result<PgOwnerAssessmentPublicSources> {
     active(deadline, cancelled)?;
     let identity = *input.input_identity();
     if worker.input_identity() != &identity {
@@ -2160,7 +2159,7 @@ pub(crate) fn select_owner_assessment_public_sources_pg<'context>(
         )?;
         identity_snapshots.insert(
             "native_text_binding_snapshot".to_owned(),
-            cmd::string(binding_snapshot),
+            cmd::string(&binding_snapshot),
         );
     }
     let uses_owner_local_native = config
@@ -2211,11 +2210,10 @@ pub(crate) fn select_owner_assessment_public_sources_pg<'context>(
         owner_snapshot,
         publication,
         publication_selected: !inline,
-        owner_context,
         identity_owners: reader.identity_owners.clone(),
         native_identity_owner_context,
     };
-    public_sources.verify_current(input, deadline, cancelled)?;
+    public_sources.verify_current(input, owner_context, deadline, cancelled)?;
     Ok(public_sources)
 }
 

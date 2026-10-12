@@ -551,7 +551,8 @@ fn capture_carrier_table(
                 max_integer_digits: 4_300,
             },
         )
-        .map_err(|_| DurableError::Corrupt("selected navigation carrier JSON"))?;
+        .map_err(|_| DurableError::Corrupt("selected navigation carrier JSON"))?
+        .into_root();
         let id_field = match kind {
             DurableNavigationBootstrapRowKindV1::Node => "node_id",
             DurableNavigationBootstrapRowKindV1::Edge => "edge_id",
@@ -560,22 +561,28 @@ fn capture_carrier_table(
                 return Err(DurableError::Invalid("unexpected diagnostic carrier table"));
             }
         };
-        if value.get(id_field).and_then(|value| value.as_str()) != Some(id.as_str()) {
+        if value.object_get(id_field).and_then(|value| value.as_str()) != Some(id.as_str()) {
             return Err(DurableError::Corrupt("selected navigation carrier key"));
         }
         let mut refs = BTreeSet::new();
         let mut explicit_owner = None;
-        if let Some(path) = value.get("source_ref").and_then(|value| value.as_str()) {
+        if let Some(path) = value
+            .object_get("source_ref")
+            .and_then(|value| value.as_str())
+        {
             let path = checked_path(path)?.into_string();
             explicit_owner = Some(path.clone());
             refs.insert(path);
         }
-        if let Some(path) = value.get("path").and_then(|value| value.as_str()) {
+        if let Some(path) = value.object_get("path").and_then(|value| value.as_str()) {
             let path = checked_path(path)?.into_string();
             explicit_owner.get_or_insert_with(|| path.clone());
             refs.insert(path);
         }
-        if let Some(paths) = value.get("source_refs").and_then(|value| value.as_array()) {
+        if let Some(paths) = value
+            .object_get("source_refs")
+            .and_then(|value| value.as_array())
+        {
             for path in paths {
                 let path = path
                     .as_str()
@@ -596,16 +603,18 @@ fn capture_carrier_table(
             ));
         }
         let owner_record_id = value
-            .get("record_id")
+            .object_get("record_id")
             .and_then(|value| value.as_str())
             .or_else(|| {
                 value
-                    .pointer("/record/record_id")
+                    .object_get("record")
+                    .and_then(|record| record.object_get("record_id"))
                     .and_then(|value| value.as_str())
             })
             .or_else(|| {
                 value
-                    .pointer("/source_record/record_id")
+                    .object_get("source_record")
+                    .and_then(|record| record.object_get("record_id"))
                     .and_then(|value| value.as_str())
             })
             .filter(|record_id| !record_id.is_empty() && record_id.len() <= MAX_BOOTSTRAP_ID_BYTES)
@@ -668,6 +677,6 @@ fn has_uri_scheme(value: &str) -> bool {
     };
     !scheme.is_empty()
         && scheme.bytes().enumerate().all(|(index, byte)| {
-            byte.is_ascii_alphabetic() || (index > 0 && b"+-.").contains(&byte)
+            byte.is_ascii_alphabetic() || (index > 0 && b"+-.".contains(&byte))
         })
 }

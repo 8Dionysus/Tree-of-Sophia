@@ -811,6 +811,7 @@ impl DurableNavigationEventCohortSetV2 {
                             },
                         )
                 }
+                NavigationRecordEventBasisV1::RangeReconciliation { .. } => false,
             };
             if cohort.event_id != context.event_id
                 || cohort.event_sequence != context.event_sequence
@@ -1306,6 +1307,7 @@ impl DurableNavigationEventCohortSetV2 {
                             },
                         )
                 }
+                NavigationRecordEventBasisV1::RangeReconciliation { .. } => false,
             };
             if cohort.event_id != context.event_id
                 || cohort.event_sequence != context.event_sequence
@@ -9202,11 +9204,11 @@ pub(crate) fn with_published_navigation_generation_v2<P, T>(
     limits: DurableNavigationEventLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-    consume: impl for<'hold, 'guard> FnOnce(
-        &'hold VerifiedKnowledgeModel<'hold>,
-        &'hold ManagedCurrentModelLease<'hold, P>,
+    consume: impl for<'model, 'lease, 'guard, 'tx> FnOnce(
+        &'model VerifiedKnowledgeModel<'static>,
+        &'lease ManagedCurrentModelLease<'lease, P>,
         &'guard DurableNavigationPublishedGenerationGuardV2,
-        &mut postgres::Transaction<'hold>,
+        &mut postgres::Transaction<'tx>,
     ) -> ManagedSelectionResult<T>,
 ) -> ManagedSelectionResult<DurableNavigationHeldReadV2<T>>
 where
@@ -9409,11 +9411,11 @@ pub(crate) fn with_published_navigation_generation_v2_selected_owner<P, T>(
     limits: DurableNavigationEventLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-    consume: impl for<'hold, 'guard> FnOnce(
-        &'hold VerifiedKnowledgeModel<'hold>,
-        &'hold ManagedCurrentModelLease<'hold, P>,
+    consume: impl for<'model, 'lease, 'guard, 'tx> FnOnce(
+        &'model VerifiedKnowledgeModel<'static>,
+        &'lease ManagedCurrentModelLease<'lease, P>,
         &'guard DurableNavigationPublishedGenerationGuardV2,
-        &mut postgres::Transaction<'hold>,
+        &mut postgres::Transaction<'tx>,
     ) -> ManagedSelectionResult<T>,
 ) -> ManagedSelectionResult<DurableNavigationHeldReadV2<T>>
 where
@@ -11979,6 +11981,15 @@ impl DurablePgCoordinator {
                         .iter()
                         .all(|cause| changed_paths.contains(cause.path.as_str()))
             }
+            NavigationRecordEventBasisV1::ClaimRevisionRefresh {
+                changed_dependency_path,
+                history_path,
+                ..
+            } => {
+                changed_paths.contains(changed_dependency_path.as_str())
+                    && changed_paths.contains(history_path.as_str())
+            }
+            NavigationRecordEventBasisV1::RangeReconciliation { .. } => false,
         };
         if matches!(
             cohort.basis(),
@@ -14058,6 +14069,7 @@ impl DurablePgCoordinator {
                 &rows,
                 limits,
             )?;
+            let cohort_manifest_sha256 = Digest256::of_bytes(&cohort_manifest_raw);
             Some((
                 previous_coverage_root,
                 navigation_coverage_root_next(
@@ -14070,12 +14082,12 @@ impl DurablePgCoordinator {
                     cohort.input_root,
                     cohort.dependency_root,
                     cohort.output_root,
-                    Digest256::of_bytes(&cohort_manifest_raw),
+                    cohort_manifest_sha256,
                 ),
                 adjacency_updates,
                 adjacency_root,
                 cohort_manifest_raw,
-                Digest256::of_bytes(&cohort_manifest_raw),
+                cohort_manifest_sha256,
             ))
         } else {
             None
@@ -15498,6 +15510,11 @@ fn verify_event_manifest(
                     "Claim revision current version differs from retained history",
                 ));
             }
+        }
+        NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
+            return Err(DurableError::Conflict(
+                "range Record evidence requires the exact range manifest",
+            ));
         }
     }
     Ok(())

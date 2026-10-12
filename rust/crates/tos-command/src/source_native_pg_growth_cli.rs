@@ -1763,7 +1763,7 @@ fn prepare_pg_growth_family_preview(
         selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.context(
+    let context = selected.selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2265,7 +2265,7 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
             .member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.context(
+    let context = selected.selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2693,7 +2693,7 @@ fn prepare_pg_object_link_growth<'a>(
     components: &SoftwareComponentSelectionV1,
     limits: ItemLimits,
     deadline: Instant,
-    cancelled: &AtomicBool,
+    cancelled: &'a AtomicBool,
 ) -> SourceCommandResult<crate::source_creation_store::PreparedPgObjectLink<'a>> {
     let identity = session.selection().identity();
     let input = PgGrowthCurrentInput::new(session, 4096, MAX_GROWTH_SOFTWARE_MEMBER_BYTES as usize)
@@ -2704,7 +2704,7 @@ fn prepare_pg_object_link_growth<'a>(
         selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.context(
+    let context = selected.selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2721,12 +2721,12 @@ fn prepare_pg_object_link_growth<'a>(
     let requirements =
         crate::source_creation_store::pg_object_link_requirements(fs, &context, limits, cancelled)?;
     for home in requirements.homes() {
-        session
+        input
             .observe_home_absence(home, deadline, cancelled)
             .map_err(|_| SourceCommandError::Conflict("ObjectLink PG home absence"))?;
     }
     for (kind, token) in requirements.unique_indexes() {
-        session
+        input
             .observe_unique_index(kind, token, deadline, cancelled)
             .map_err(|_| SourceCommandError::Conflict("ObjectLink PG identity absence"))?;
     }

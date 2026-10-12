@@ -216,11 +216,12 @@ fn creation_receipt_check(
             "Claim creation receipt member set differs",
         ));
     }
+    let receipt_file_map = JsonValue::Object(receipt_files.to_vec());
     for name in original_names {
         let bytes = original.get(name).ok_or(SourceCommandError::Conflict(
             "Claim original creation member absent",
         ))?;
-        let binding = field(&JsonValue::Object(receipt_files.to_vec()), name)?;
+        let binding = field(&receipt_file_map, name)?;
         exact_keys(binding, &["sha256", "bytes"])?;
         if text(binding, "sha256")? != Digest256::of_bytes(bytes).to_prefixed()
             || integer(binding, "bytes")? != bytes.len() as u64

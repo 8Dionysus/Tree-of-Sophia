@@ -318,13 +318,9 @@ pub(crate) fn context_with_pg_exact_reads(
                     ));
                 }
                 let relative = canonical_path(&key)?;
-                if session
-                    .has_file(&key, deadline, cancelled)
-                    .map_err(|_| {
-                        SourceCommandError::Conflict("PG Growth exact absence probe failed")
-                    })?
-                    .is_some()
-                {
+                if session.has_file(&key, deadline, cancelled).map_err(|_| {
+                    SourceCommandError::Conflict("PG Growth exact absence probe failed")
+                })? {
                     return Err(SourceCommandError::Conflict(
                         "PG Growth exact path absence changed",
                     ));

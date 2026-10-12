@@ -1145,19 +1145,16 @@ pub(crate) fn recovery_package_contract(
     let metadata_raw = members[source_name];
     let metadata = cmd::parse(metadata_raw)?;
     let record_id = cmd::text(&metadata, "record_id")?;
+    let record_id_prefix = if family.historical() {
+        format!("tos.{record_type}.")
+    } else {
+        "tos.".to_owned()
+    };
     if cmd::text(&metadata, "record_type")? != record_type
         || cmd::integer(&metadata, "record_version")? != 1
         || cmd::text(&metadata, "identity_status")? != "provisional"
         || cmd::text(&metadata, "same_as_posture")? != "no_equivalence_claim"
-        || !revisions::valid_id(
-            record_id,
-            if family.historical() {
-                &format!("tos.{record_type}.")
-            } else {
-                "tos."
-            },
-            false,
-        )
+        || !revisions::valid_id(record_id, &record_id_prefix, false)
         || cmd::published(&metadata)? != metadata_raw
     {
         return Err(SourceCommandError::Conflict(

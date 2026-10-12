@@ -271,8 +271,8 @@ pub struct NavigationClaimEventRangeManifestV1 {
 /// Terminal Claim projection input for a complete contiguous CMD range. The
 /// common semantic fields are exact terminal-cut inputs; the separate range
 /// manifest supplies event-by-event mutation and dependency causality.
-pub struct NavigationClaimEventRangeOwnerInputV1<'a> {
-    pub common: NavigationClaimEventCommonInputV1<'a>,
+pub struct NavigationClaimEventRangeOwnerInputV1<'a, 'validator> {
+    pub common: NavigationClaimEventCommonInputV1<'a, 'validator>,
 }
 
 /// One terminal Claim replacement bound to a real contiguous range, rather
@@ -1525,8 +1525,8 @@ pub struct NavigationClaimIdentitySourceV1<'a> {
 /// entry from the exact stream line, materializes the exact form set, verifies
 /// current identity records against their selected bytes, and binds every
 /// selected byte to the dependency manifest before sealing the projection.
-pub struct NavigationClaimEventInputV1<'a> {
-    pub validator: &'a SourceCatalogValidator<'a>,
+pub struct NavigationClaimEventInputV1<'a, 'validator> {
+    pub validator: &'a SourceCatalogValidator<'validator>,
     pub event_id: &'a str,
     pub event_sequence: u64,
     pub source_head_sequence: u64,
@@ -1583,8 +1583,8 @@ pub struct NavigationClaimEventInputV1<'a> {
 
 /// Semantic source closure shared by Claim mutation and dependency refresh.
 /// The refresh input nests this type but deliberately has no mutation receipt.
-pub struct NavigationClaimEventCommonInputV1<'a> {
-    pub validator: &'a SourceCatalogValidator<'a>,
+pub struct NavigationClaimEventCommonInputV1<'a, 'validator> {
+    pub validator: &'a SourceCatalogValidator<'validator>,
     pub event_id: &'a str,
     pub event_sequence: u64,
     pub source_head_sequence: u64,
@@ -1625,8 +1625,8 @@ pub struct NavigationClaimEventCommonInputV1<'a> {
 }
 
 /// Exact cause and reverse-closure binding for a non-Claim source event.
-pub struct NavigationClaimDependencyRefreshInputV1<'a> {
-    pub common: NavigationClaimEventCommonInputV1<'a>,
+pub struct NavigationClaimDependencyRefreshInputV1<'a, 'validator> {
+    pub common: NavigationClaimEventCommonInputV1<'a, 'validator>,
     pub changed_dependency_path: &'a str,
     pub changed_dependency_sha256: Digest256,
     /// Opaque root from the exact selected CMD event's
@@ -1638,8 +1638,8 @@ pub struct NavigationClaimDependencyRefreshInputV1<'a> {
 /// Refresh cause for a compound event. The owner manifest set carries all
 /// changed paths, their individual reverse results, and the complete stream
 /// union, so the producer supplies it once for every Claim contribution.
-pub struct NavigationClaimDependencyRefreshSetInputV1<'a> {
-    pub common: NavigationClaimEventCommonInputV1<'a>,
+pub struct NavigationClaimDependencyRefreshSetInputV1<'a, 'validator> {
+    pub common: NavigationClaimEventCommonInputV1<'a, 'validator>,
     pub affected_owner_manifest_set: &'a NavigationClaimDependencyRefreshOwnerManifestSetV1,
 }
 
@@ -1658,8 +1658,8 @@ enum NavigationClaimEventCauseInputV1<'a> {
     },
 }
 
-impl<'a> NavigationClaimEventInputV1<'a> {
-    fn into_common(self) -> NavigationClaimEventCommonInputV1<'a> {
+impl<'a, 'validator> NavigationClaimEventInputV1<'a, 'validator> {
+    fn into_common(self) -> NavigationClaimEventCommonInputV1<'a, 'validator> {
         NavigationClaimEventCommonInputV1 {
             validator: self.validator,
             event_id: self.event_id,
@@ -1760,6 +1760,9 @@ impl NavigationClaimDependencyRefreshCohortV1 {
     }
     pub fn claim_stream_rows_scanned(&self) -> u64 {
         self.claim_stream_rows_scanned
+    }
+    pub fn trace_sha256(&self) -> Digest256 {
+        self.trace_sha256
     }
     pub fn proof(&self) -> &NavigationClaimDependencyRefreshProofV1 {
         &self.proof
@@ -3468,7 +3471,7 @@ impl NavigationClaimEventCohortV1 {
 /// contribution. The caller remains responsible for the owner-side source
 /// selection and for binding the mutation receipt to the committed event.
 pub fn project_navigation_claim_event_v1(
-    input: NavigationClaimEventInputV1<'_>,
+    input: NavigationClaimEventInputV1<'_, '_>,
     limits: BibliographicLimits,
 ) -> Result<NavigationClaimEventCohortV1> {
     let inventory = prepare_navigation_claim_event_owner_inventory_v1(input.source_files, limits)?;
@@ -3479,7 +3482,7 @@ pub fn project_navigation_claim_event_v1(
 /// owners in the selected event cut. Full-stream parsing is charged once in
 /// the inventory; this call accounts only owner-specific historical scans.
 pub fn project_navigation_claim_event_with_inventory_v1(
-    input: NavigationClaimEventInputV1<'_>,
+    input: NavigationClaimEventInputV1<'_, '_>,
     inventory: &NavigationClaimEventOwnerInventoryV1,
     limits: BibliographicLimits,
 ) -> Result<NavigationClaimEventCohortV1> {
@@ -3501,7 +3504,7 @@ pub fn project_navigation_claim_event_with_inventory_v1(
 /// changed. The event cause is a separately sealed reverse-closure basis and
 /// carries no Claim mutation receipt.
 pub fn project_navigation_claim_dependency_refresh_with_inventory_v1(
-    input: NavigationClaimDependencyRefreshInputV1<'_>,
+    input: NavigationClaimDependencyRefreshInputV1<'_, '_>,
     inventory: &NavigationClaimEventOwnerInventoryV1,
     limits: BibliographicLimits,
 ) -> Result<NavigationClaimDependencyRefreshCohortV1> {
@@ -3523,7 +3526,7 @@ pub fn project_navigation_claim_dependency_refresh_with_inventory_v1(
 /// Resolve one Claim owner for a compound non-Claim event. All changed
 /// dependency causes and reverse closures are supplied by one sealed set.
 pub fn project_navigation_claim_dependency_refresh_set_with_inventory_v1(
-    input: NavigationClaimDependencyRefreshSetInputV1<'_>,
+    input: NavigationClaimDependencyRefreshSetInputV1<'_, '_>,
     inventory: &NavigationClaimEventOwnerInventoryV1,
     limits: BibliographicLimits,
 ) -> Result<NavigationClaimDependencyRefreshCohortV1> {
@@ -3543,7 +3546,7 @@ pub fn project_navigation_claim_dependency_refresh_set_with_inventory_v1(
 /// cohort is owned by the range and terminal source head, not by a synthetic
 /// union event.
 pub fn project_navigation_claim_event_range_owner_with_inventory_v1(
-    input: NavigationClaimEventRangeOwnerInputV1<'_>,
+    input: NavigationClaimEventRangeOwnerInputV1<'_, '_>,
     manifest: &NavigationClaimEventRangeManifestV1,
     inventory: &NavigationClaimEventOwnerInventoryV1,
     limits: BibliographicLimits,
@@ -3559,7 +3562,7 @@ pub fn project_navigation_claim_event_range_owner_with_inventory_v1(
 }
 
 fn project_navigation_claim_event_core_v1(
-    mut input: NavigationClaimEventCommonInputV1<'_>,
+    mut input: NavigationClaimEventCommonInputV1<'_, '_>,
     cause: NavigationClaimEventCauseInputV1<'_>,
     inventory: &NavigationClaimEventOwnerInventoryV1,
     limits: BibliographicLimits,
@@ -5690,8 +5693,8 @@ fn claim_forms_path(source_path: &str, id: &str) -> Result<RelativePath> {
     ))
 }
 
-fn validate_dependencies<'a>(
-    input: &NavigationClaimEventCommonInputV1<'a>,
+fn validate_dependencies<'a, 'validator>(
+    input: &NavigationClaimEventCommonInputV1<'a, 'validator>,
     max_files: u64,
     max_manifest_bytes: usize,
 ) -> Result<(Vec<NavigationDependencyV1>, BTreeMap<String, &'a [u8]>)> {
@@ -6717,7 +6720,7 @@ fn identity_forms_path(source_path: &str) -> Result<RelativePath> {
 }
 
 fn validate_identity_sources(
-    input: &mut NavigationClaimEventCommonInputV1<'_>,
+    input: &mut NavigationClaimEventCommonInputV1<'_, '_>,
     dependencies: &[NavigationDependencyV1],
     source_files: &BTreeMap<String, &[u8]>,
     revision: Digest256,
@@ -7071,7 +7074,7 @@ fn verify_claim_creation_output(
 }
 
 fn validate_provenance_event(
-    input: &NavigationClaimEventCommonInputV1<'_>,
+    input: &NavigationClaimEventCommonInputV1<'_, '_>,
     claim: &Value,
     revision: Digest256,
     limits: BibliographicLimits,

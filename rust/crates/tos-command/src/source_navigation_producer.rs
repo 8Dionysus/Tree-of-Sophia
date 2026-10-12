@@ -533,7 +533,11 @@ fn process_ready_range(
             .ok_or(DurableError::Conflict(
                 "navigation range as-of Claim closure was not retained",
             ))?;
-        readset.verify_readset(&closure)?;
+        if closure.selection_identity() != readset.selection().identity() {
+            return Err(DurableError::Conflict(
+                "navigation range Claim closure differs from its readset selection",
+            ));
+        }
         let identity = closure.selection_identity();
         if closure.domain() != selection.domain
             || closure.as_of_sequence() != coverage.through_sequence()
@@ -1606,7 +1610,7 @@ fn process_ready_range(
         if let Some(error) = project_error {
             return Err(error);
         }
-        set_result.map_err(|_| DurableError::Conflict("Record range set refused"))?
+        set_result
     };
 
     check_active()?;
@@ -2546,7 +2550,7 @@ fn verify_range_terminal_context(
             .ok_or(DurableError::Conflict(
                 "terminal navigation member left the exact event range",
             ))?;
-        if selected_member.revision != member.revision
+        if selected_member.revision != Some(member.revision)
             || selected_member.is_source != member.is_source
             || selected_member.content_length != Some(member.size_bytes)
             || selected_member.content_digest != Some(member.sha256)
@@ -2606,7 +2610,7 @@ fn verify_range_terminal_context(
                 ))?;
             if selected.is_source != member.1.is_source
                 || selected.commit_sequence != Some(member.0)
-                || selected.revision != member.1.revision
+                || selected.revision != Some(member.1.revision)
                 || selected.content_length != Some(member.1.size_bytes)
                 || selected.content_digest != Some(member.1.sha256)
             {

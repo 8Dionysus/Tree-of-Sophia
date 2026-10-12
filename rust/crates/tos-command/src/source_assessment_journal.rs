@@ -2021,6 +2021,7 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
         &BTreeMap<String, AssessmentHistory>,
         &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
         &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        &mut CandidateCutWorkerSchemaExecutor<I>,
         Instant,
         &AtomicBool,
     ) -> DurableResult<T>,
@@ -2131,6 +2132,7 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
                 &histories,
                 &packages_by_subject,
                 &source_packages,
+                worker,
                 held_deadline,
                 held_cancelled,
             )?;

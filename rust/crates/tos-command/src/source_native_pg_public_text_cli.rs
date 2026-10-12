@@ -344,7 +344,7 @@ struct SemanticPackage {
     input_files: BTreeMap<String, Vec<u8>>,
     identity_generations: BTreeMap<String, u64>,
     dependencies: String,
-    software_rows: JsonValue,
+    software_rows: Vec<Value>,
     software_files: Vec<cmd::SourceFile>,
     runtime_digest: Digest256,
     home: String,

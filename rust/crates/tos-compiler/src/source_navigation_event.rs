@@ -324,8 +324,8 @@ pub struct NavigationVersionSourceInputV1<'a> {
 /// Bounded source-owner envelope for replacing one metadata record's graph
 /// contribution after one committed event. Values are exact selected bytes
 /// parsed by the caller; `source_sha256` binds the untouched record bytes.
-pub struct NavigationRecordEventInputV1<'a> {
-    pub validator: &'a crate::source_witness_catalog::SourceCatalogValidator<'a>,
+pub struct NavigationRecordEventInputV1<'a, 'validator> {
+    pub validator: &'a crate::source_witness_catalog::SourceCatalogValidator<'validator>,
     /// Committed CMD outbox ID from the owner-resolved event context. The
     /// publisher rechecks it against the event sequence; it is distinct from
     /// the authored provenance `event_id`.
@@ -569,7 +569,7 @@ impl NavigationRecordEventCohortV1 {
 /// replacement cohort. The authenticated source owner remains responsible
 /// for proving event-cut membership and dependency observations.
 pub fn project_navigation_record_event_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     limits: BibliographicLimits,
 ) -> Result<NavigationRecordEventCohortV1> {
     project_navigation_record_event_with_basis(
@@ -586,7 +586,7 @@ pub fn project_navigation_record_event_v1(
 /// `SourceRevision`. The validator and caller-owned event identity remain
 /// bound to the exact addressed source set.
 pub fn project_navigation_record_event_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     limits: BibliographicLimits,
 ) -> Result<NavigationRecordEventCohortV1> {
     project_navigation_record_event_with_basis(
@@ -605,7 +605,7 @@ pub fn project_navigation_record_event_from_event_cut_v1(
 /// `origin_forms_*` are the exact creation-time form bytes retained by the
 /// selected Record history, when the creation receipt declared them.
 pub fn project_navigation_record_range_terminal_event_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     coverage: &NavigationEventRangeCoverageV1,
     cause_root: Digest256,
     origin_forms_bytes: Option<&[u8]>,
@@ -640,7 +640,7 @@ pub fn project_navigation_record_range_terminal_event_from_event_cut_v1(
 /// the supplied exact source cut and in the provenance output/receipt; this
 /// path does not require or invent a write to the record itself.
 pub fn project_navigation_record_dependency_refresh_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     changed_dependency_path: &str,
     changed_dependency_bytes: &[u8],
     limits: BibliographicLimits,
@@ -665,7 +665,7 @@ pub fn project_navigation_record_dependency_refresh_v1(
 
 /// PG event-cut variant of the bounded dependency refresh route.
 pub fn project_navigation_record_dependency_refresh_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     changed_dependency_path: &str,
     changed_dependency_bytes: &[u8],
     limits: BibliographicLimits,
@@ -692,7 +692,7 @@ pub fn project_navigation_record_dependency_refresh_from_event_cut_v1(
 /// single-path cohorts, the sealed basis names the full canonical set of
 /// changed dependencies relevant to this owner.
 pub fn project_navigation_record_dependency_refresh_set_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     changed_dependencies: &[NavigationRecordDependencyRefreshCauseV1],
     limits: BibliographicLimits,
 ) -> Result<NavigationRecordEventCohortV1> {
@@ -734,7 +734,7 @@ pub fn project_navigation_record_dependency_refresh_set_from_event_cut_v1(
 /// the proof separately binds the current CMD event that changed its Claim
 /// dependency.
 pub fn project_navigation_record_claim_revision_refresh_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     proof: &NavigationClaimRevisionProofV1,
     limits: BibliographicLimits,
 ) -> Result<NavigationRecordEventCohortV1> {
@@ -798,7 +798,7 @@ pub fn project_navigation_record_claim_revision_refresh_v1(
 
 /// PG event-cut variant of the Claim revision refresh route.
 pub fn project_navigation_record_claim_revision_refresh_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     proof: &NavigationClaimRevisionProofV1,
     limits: BibliographicLimits,
 ) -> Result<NavigationRecordEventCohortV1> {
@@ -899,7 +899,7 @@ fn check_selected_navigation_document(
 }
 
 fn project_navigation_record_event_with_basis(
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     limits: BibliographicLimits,
     basis: NavigationRecordEventBasisV1,
     changed_dependency_bytes: Option<&[u8]>,
@@ -1780,7 +1780,7 @@ fn validate_history_view(
 }
 
 fn validate_dependencies(
-    input: &NavigationRecordEventInputV1<'_>,
+    input: &NavigationRecordEventInputV1<'_, '_>,
     event_path: &RelativePath,
     event_schema_path: &RelativePath,
     event_receipt_path: &RelativePath,

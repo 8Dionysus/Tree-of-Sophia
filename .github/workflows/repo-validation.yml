@@ -301,6 +301,21 @@ jobs:
             "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-native-owner-command" \
             "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-native-owner-command" >> "$GITHUB_ENV"
 
+      - name: Preserve unqualified native Stage 1 inputs
+        # These build receipts and binaries are separate from downstream validation and release qualification.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tos-native-stage1-unqualified-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/software-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access
+            ${{ runner.temp }}/software-cargo-target/x86_64-unknown-linux-gnu/debug/tos-native-owner-command
+            ${{ runner.temp }}/software-cargo-target/x86_64-unknown-linux-gnu/debug/tos-schema-worker
+            ${{ runner.temp }}/tos-native-build.json
+            ${{ runner.temp }}/tos-native-owner-command-build.json
+            ${{ runner.temp }}/tos-schema-worker-build.json
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Validate software contracts and build browser assets
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
 

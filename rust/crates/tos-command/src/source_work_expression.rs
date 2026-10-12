@@ -1028,10 +1028,14 @@ impl CreationFilesystem {
             )?;
             let manifest = Digest256::from_prefixed(&manifest)
                 .map_err(|_| SourceCommandError::Conflict("Work retained manifest digest"))?;
+            let observed_manifest =
+                Digest256::from_prefixed(&observed.manifest_sha256).map_err(|_| {
+                    SourceCommandError::Conflict("Work retained observed manifest digest")
+                })?;
             let transition = foundation_value(row)?;
             if observed.transport
                 != tos_validation::native_compound::NativeTransportState::Committed
-                || observed.manifest_sha256 != manifest
+                || observed_manifest != manifest
                 || observed.claim_id != id
                 || cmd::text(cmd::field(&plan.authorization, "scope")?, "claim_id")? != id
                 || observed.work_parent_transition_sha256.as_deref()

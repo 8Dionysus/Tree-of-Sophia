@@ -616,14 +616,15 @@ pub(super) fn run(
     });
     if let Some(prepared) = prepared {
         let proposal = prepared.proposal();
-        let command_id = cmd::text(&cmd::parse(&request_raw)?, "command_id")?;
-        let prepare_id = prepare_id(&selection.domain, command_id);
+        let request = cmd::parse(&request_raw)?;
+        let command_id = cmd::text(&request, "command_id")?.to_owned();
+        let prepare_id = prepare_id(&selection.domain, &command_id);
         let attempt = if proposal.replayed {
             db.recover_source_revision_attempt(
                 &store,
                 &selection.domain,
                 &prepare_id,
-                command_id,
+                &command_id,
                 Digest256::of_bytes(&request_raw),
                 proposal.configuration_raw_sha256,
                 proposal.configuration_canonical_sha256,

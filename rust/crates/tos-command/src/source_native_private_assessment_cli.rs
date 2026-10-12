@@ -2135,6 +2135,8 @@ fn run_selected(
         })?)?;
         resolved.add_layer_records(&layer_sources.records(), &mut budget)?;
     }
+    let public_fixity = public_sources.fixity.clone();
+    let public_identity_snapshots = public_sources.identity_snapshots.clone();
     let public_claim_dependencies = public_sources.claim_dependencies.clone();
     let plan = plan_assessment_evaluation(
         AssessmentEvaluationInputs {
@@ -2143,8 +2145,8 @@ fn run_selected(
             request: &selected.request,
             version: selected.version,
             resolved,
-            public_fixity: &public_sources.fixity,
-            public_identity_snapshots: &public_sources.identity_snapshots,
+            public_fixity: &public_fixity,
+            public_identity_snapshots: &public_identity_snapshots,
             public_claim_dependencies: &public_claim_dependencies,
             private_source_snapshot: &selected.private_sources.owner_local_sources_snapshot,
             private_native_snapshots: &selected.private_sources.native_snapshots,

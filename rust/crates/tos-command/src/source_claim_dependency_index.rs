@@ -1739,92 +1739,95 @@ pub(crate) fn verify_current(
     }
 
     let expected_navigation = full_navigation_source_rows(files, definition)?;
-    let mut intervals = tx.query_raw(
-        "SELECT i.claim_id,i.path,i.basis,i.endpoint_kind,i.endpoint,
-                i.member_digest,i.definition_digest,i.valid_from_seq,i.valid_to_seq,
-                h.content_digest AS history_digest,h.commit_seq AS history_commit_seq,
-                h.source_mode AS history_source_mode
-         FROM cmd2_source_claim_navigation_reference i
-         LEFT JOIN LATERAL (
-           SELECT content_digest,commit_seq,source_mode
-           FROM cmd2_history h
-           WHERE h.domain=i.domain AND h.subject=i.path AND h.commit_seq<=i.valid_from_seq
-           ORDER BY h.revision DESC LIMIT 1
-         ) h ON TRUE
-         WHERE i.domain=$1
-         ORDER BY i.path COLLATE \"C\",i.claim_id COLLATE \"C\",i.basis COLLATE \"C\",
-                  i.endpoint_kind COLLATE \"C\",i.endpoint COLLATE \"C\",i.valid_from_seq",
-        &[&domain],
-    )?;
-    let mut previous = BTreeMap::<
-        (
+    {
+        let mut intervals = tx.query_raw(
+            "SELECT i.claim_id,i.path,i.basis,i.endpoint_kind,i.endpoint,
+                    i.member_digest,i.definition_digest,i.valid_from_seq,i.valid_to_seq,
+                    h.content_digest AS history_digest,h.commit_seq AS history_commit_seq,
+                    h.source_mode AS history_source_mode
+             FROM cmd2_source_claim_navigation_reference i
+             LEFT JOIN LATERAL (
+               SELECT content_digest,commit_seq,source_mode
+               FROM cmd2_history h
+               WHERE h.domain=i.domain AND h.subject=i.path AND h.commit_seq<=i.valid_from_seq
+               ORDER BY h.revision DESC LIMIT 1
+             ) h ON TRUE
+             WHERE i.domain=$1
+             ORDER BY i.path COLLATE \"C\",i.claim_id COLLATE \"C\",i.basis COLLATE \"C\",
+                      i.endpoint_kind COLLATE \"C\",i.endpoint COLLATE \"C\",i.valid_from_seq",
+            &[&domain],
+        )?;
+        let mut previous_identity: Option<(
             String,
             String,
             NavigationReferenceBasis,
             ClaimNavigationReferenceKind,
             String,
-        ),
-        Option<u64>,
-    >::new();
-    while let Some(row) = intervals.next()? {
-        let value = NavigationReferenceIndexRow {
-            claim_id: row.get("claim_id"),
-            path: row.get("path"),
-            basis: NavigationReferenceBasis::parse(row.get("basis"))?,
-            kind: ClaimNavigationReferenceKind::parse(row.get("endpoint_kind"))?,
-            endpoint: row.get("endpoint"),
-            member_digest: digest(row.get("member_digest"))?,
-            definition_digest: digest(row.get("definition_digest"))?,
-        };
-        validate_navigation_reference_row(&value)?;
-        let valid_from = as_u64(row.get("valid_from_seq"))?;
-        let valid_to = row
-            .get::<_, Option<i64>>("valid_to_seq")
-            .map(as_u64)
-            .transpose()?;
-        let history_digest: Option<String> = row.get("history_digest");
-        let history_commit_seq: Option<i64> = row.get("history_commit_seq");
-        let history_source_mode: Option<i32> = row.get("history_source_mode");
-        let history_digest =
-            history_digest
-                .as_deref()
-                .map(digest)
-                .transpose()?
-                .ok_or(DurableError::Corrupt(
-                    "Claim navigation interval source history absent",
-                ))?;
-        let history_commit_seq =
-            history_commit_seq
+        )> = None;
+        let mut previous_end: Option<u64> = None;
+        while let Some(row) = intervals.next()? {
+            let value = NavigationReferenceIndexRow {
+                claim_id: row.get("claim_id"),
+                path: row.get("path"),
+                basis: NavigationReferenceBasis::parse(row.get("basis"))?,
+                kind: ClaimNavigationReferenceKind::parse(row.get("endpoint_kind"))?,
+                endpoint: row.get("endpoint"),
+                member_digest: digest(row.get("member_digest"))?,
+                definition_digest: digest(row.get("definition_digest"))?,
+            };
+            validate_navigation_reference_row(&value)?;
+            let valid_from = as_u64(row.get("valid_from_seq"))?;
+            let valid_to = row
+                .get::<_, Option<i64>>("valid_to_seq")
                 .map(as_u64)
-                .transpose()?
-                .ok_or(DurableError::Corrupt(
-                    "Claim navigation interval source sequence absent",
-                ))?;
-        if value.definition_digest.to_hex() != expected_definition
-            || history_digest != value.member_digest
-            || history_commit_seq > valid_from
-            || history_source_mode.is_none()
-            || valid_from < baseline_seq
-            || valid_from > head_seq
-            || valid_to.is_some_and(|end| end <= valid_from || end > head_seq)
-        {
-            return Err(DurableError::Conflict(
-                "Claim navigation interval differs from its source cut",
-            ));
-        }
-        let identity = (
-            value.path,
-            value.claim_id,
-            value.basis,
-            value.kind,
-            value.endpoint,
-        );
-        if let Some(previous_end) = previous.get(&identity) {
-            if previous_end.is_none_or(|end| end > valid_from) {
-                return Err(DurableError::Corrupt("Claim navigation intervals overlap"));
+                .transpose()?;
+            let history_digest: Option<String> = row.get("history_digest");
+            let history_commit_seq: Option<i64> = row.get("history_commit_seq");
+            let history_source_mode: Option<i32> = row.get("history_source_mode");
+            let history_digest =
+                history_digest
+                    .as_deref()
+                    .map(digest)
+                    .transpose()?
+                    .ok_or(DurableError::Corrupt(
+                        "Claim navigation interval source history absent",
+                    ))?;
+            let history_commit_seq =
+                history_commit_seq
+                    .map(as_u64)
+                    .transpose()?
+                    .ok_or(DurableError::Corrupt(
+                        "Claim navigation interval source sequence absent",
+                    ))?;
+            if value.definition_digest.to_hex() != expected_definition
+                || history_digest != value.member_digest
+                || history_commit_seq > valid_from
+                || history_source_mode.is_none()
+                || valid_from < baseline_seq
+                || valid_from > head_seq
+                || valid_to.is_some_and(|end| end <= valid_from || end > head_seq)
+            {
+                return Err(DurableError::Conflict(
+                    "Claim navigation interval differs from its source cut",
+                ));
             }
+            let identity = (
+                value.path,
+                value.claim_id,
+                value.basis,
+                value.kind,
+                value.endpoint,
+            );
+            let same_identity = previous_identity.as_ref() == Some(&identity);
+            if same_identity {
+                if previous_end.is_none_or(|end| end > valid_from) {
+                    return Err(DurableError::Corrupt("Claim navigation intervals overlap"));
+                }
+            } else {
+                previous_identity = Some(identity);
+            }
+            previous_end = valid_to;
         }
-        previous.insert(identity, valid_to);
     }
 
     let navigation_limit = as_i64(expected_navigation.len().checked_add(1).ok_or(

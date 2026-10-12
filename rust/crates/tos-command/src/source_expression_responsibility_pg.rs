@@ -453,8 +453,14 @@ pub(crate) fn prepare_pg_expression_responsibility_preview<I: Copy + Eq>(
         .ok_or(SourceCommandError::Invalid(
             "ExpressionResponsibility preview Claim home",
         ))?
-        .0;
-    verify_empty_prefix(input.source_input(), claim_home, limits.deadline, cancelled)?;
+        .0
+        .to_owned();
+    verify_empty_prefix(
+        input.source_input(),
+        &claim_home,
+        limits.deadline,
+        cancelled,
+    )?;
 
     let expression = cmd::parse(before.get("expression.json").ok_or(
         SourceCommandError::Conflict("ExpressionResponsibility preview selected record absent"),

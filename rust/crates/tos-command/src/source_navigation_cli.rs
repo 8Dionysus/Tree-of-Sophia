@@ -154,14 +154,14 @@ pub(crate) fn with_selected_navigation_producer_current<T>(
     selected: &SelectedSourceNavigation,
     deadline: Instant,
     cancelled: &AtomicBool,
-    consume: impl for<'hold> FnOnce(
-        &'hold tos_compiler::VerifiedKnowledgeModel<'hold>,
-        &'hold ManagedCurrentModelLeaseV2<'hold>,
-        &'hold ManagedAgentSelectedParent<tos_compiler::managed_source::ManagedSourceProofV2>,
-        &'hold tos_compiler::managed_source::ManagedSourceProofV2,
-        &'hold tos_compiler::KnowledgeSelectedExpectation,
-        &'hold NavigationProducerHeldOwnerIdentity,
-        &mut postgres::Transaction<'hold>,
+    consume: impl for<'model, 'lease, 'tx> FnOnce(
+        &'model tos_compiler::VerifiedKnowledgeModel<'static>,
+        &'lease ManagedCurrentModelLeaseV2<'lease>,
+        &ManagedAgentSelectedParent<tos_compiler::managed_source::ManagedSourceProofV2>,
+        &tos_compiler::managed_source::ManagedSourceProofV2,
+        &tos_compiler::KnowledgeSelectedExpectation,
+        &NavigationProducerHeldOwnerIdentity,
+        &mut postgres::Transaction<'tx>,
         &NavigationProducerOwnerSelection<'_>,
     ) -> ManagedSelectionResult<T>,
 ) -> Result<T, SourceNavigationSelectionError> {

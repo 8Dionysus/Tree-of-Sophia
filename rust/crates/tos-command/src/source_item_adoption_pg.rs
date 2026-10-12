@@ -2015,9 +2015,8 @@ pub(crate) fn prepare_pg_item_adoption(
         ));
     }
     let archive_path = core.archive_path().to_owned();
-    let borrowed = core
-        .outputs()
-        .map_err(super::item_error)?
+    let outputs = core.outputs().map_err(super::item_error)?;
+    let borrowed = outputs
         .iter()
         .map(|(path, bytes)| (path.as_str(), *bytes))
         .collect::<Vec<_>>();

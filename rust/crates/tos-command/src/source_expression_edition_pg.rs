@@ -409,11 +409,16 @@ pub(crate) fn prepare_pg_expression_edition_preview<I: Copy + Eq>(
         .edition_path
         .as_str()
         .rsplit_once('/')
-        .map(|(home, _)| home)
+        .map(|(home, _)| home.to_owned())
         .ok_or(SourceCommandError::Invalid(
             "ExpressionEdition preview Claim home",
         ))?;
-    verify_empty_prefix(input.source_input(), claim_home, limits.deadline, cancelled)?;
+    verify_empty_prefix(
+        input.source_input(),
+        &claim_home,
+        limits.deadline,
+        cancelled,
+    )?;
     let before =
         selected_before_from_input(&owner, input.source_input(), &snapshot, limits, cancelled)?;
     let source_catalog = current_catalog_from_selected_input(

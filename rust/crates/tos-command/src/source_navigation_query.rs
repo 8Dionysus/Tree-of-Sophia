@@ -166,8 +166,8 @@ pub enum SourceNavigationPublishedReadV2<T> {
 /// published-generation readiness. `consume` must finish any transport write
 /// before it returns.
 #[allow(clippy::too_many_arguments)]
-pub fn with_published_source_navigation_v2<P, T, E>(
-    selected: &ManagedAgentSelectedParent<P>,
+pub fn with_published_source_navigation_v2<'selected, 'request, P, T, E>(
+    selected: &'selected ManagedAgentSelectedParent<P>,
     coordinator: &mut crate::DurablePgCoordinator,
     store: &tos_segment_store::SegmentStore,
     filesystem: &crate::source_creation_store::CreationFilesystem,
@@ -176,16 +176,18 @@ pub fn with_published_source_navigation_v2<P, T, E>(
     rights_version: u64,
     job_id: &str,
     job_fence: u64,
-    domain: &str,
-    consumer_id: &str,
+    domain: &'request str,
+    consumer_id: &'request str,
     projection_profile: &DurableProjectionProfile,
     limits: DurableNavigationEventLimits,
     policy_receipt: &SourceNavigationPolicyReceiptV1,
     policy_receipt_sha256: Digest256,
     owner_configuration_sha256: Digest256,
     deadline: Instant,
-    cancelled: &AtomicBool,
-    consume: impl for<'hold> FnOnce(SourceNavigationPgReadModel<'hold, P>) -> Result<T, E>,
+    cancelled: &'request AtomicBool,
+    consume: impl for<'lease, 'tx_ref, 'tx> FnOnce(
+        SourceNavigationPgReadModel<'lease, 'tx_ref, 'tx, 'selected, 'request, P>,
+    ) -> Result<T, E>,
 ) -> ManagedSelectionResult<SourceNavigationPublishedReadV2<Result<T, E>>>
 where
     P: ManagedSelectedProof,
@@ -295,29 +297,36 @@ where
 
 /// Indexed QRY adapter over the authenticated baseline/event overlay.
 /// Construction is private to the owner callback above.
-pub struct SourceNavigationPgReadModel<'hold, P: ManagedSelectedProof> {
-    tx: &'hold mut Transaction<'hold>,
-    domain: &'hold str,
-    consumer_id: &'hold str,
+pub struct SourceNavigationPgReadModel<
+    'lease,
+    'tx_ref,
+    'tx,
+    'selected,
+    'request,
+    P: ManagedSelectedProof,
+> {
+    tx: &'tx_ref mut Transaction<'tx>,
+    domain: &'request str,
+    consumer_id: &'request str,
     guard: DurableNavigationPublishedGenerationGuardV2,
     binding: Binding,
     disclosure_scope: DisclosureScope,
     policy: Box<dyn CurrentPolicy>,
-    source: &'hold ManagedCurrentModelLease<'hold, P>,
-    proof: &'hold P,
+    source: &'lease ManagedCurrentModelLease<'lease, P>,
+    proof: &'selected P,
     deadline: Instant,
-    cancelled: &'hold AtomicBool,
+    cancelled: &'request AtomicBool,
     abort_probe: Option<Arc<dyn AbortProbe>>,
     limits: DurableNavigationEventLimits,
 }
 
-struct ManagedPgDisclosureLease<'hold, P: ManagedSelectedProof> {
+struct ManagedPgDisclosureLease<'lease, 'selected, P: ManagedSelectedProof> {
     inner: Box<dyn DisclosureLease>,
-    source: &'hold ManagedCurrentModelLease<'hold, P>,
-    proof: &'hold P,
+    source: &'lease ManagedCurrentModelLease<'lease, P>,
+    proof: &'selected P,
 }
 
-impl<P: ManagedSelectedProof> DisclosureLease for ManagedPgDisclosureLease<'_, P> {
+impl<P: ManagedSelectedProof> DisclosureLease for ManagedPgDisclosureLease<'_, '_, P> {
     fn recheck(&mut self) -> Result<(), QueryError> {
         self.inner.recheck()?;
         source_error(self.source, self.proof)?;
@@ -326,7 +335,7 @@ impl<P: ManagedSelectedProof> DisclosureLease for ManagedPgDisclosureLease<'_, P
     }
 }
 
-impl<'hold, P: ManagedSelectedProof> SourceNavigationPgReadModel<'hold, P> {
+impl<P: ManagedSelectedProof> SourceNavigationPgReadModel<'_, '_, '_, '_, '_, P> {
     pub fn set_abort_probe(&mut self, probe: Arc<dyn AbortProbe>) {
         self.abort_probe = Some(probe);
     }
@@ -551,7 +560,7 @@ impl<'hold, P: ManagedSelectedProof> SourceNavigationPgReadModel<'hold, P> {
     }
 }
 
-impl<P: ManagedSelectedProof> ReadModel for SourceNavigationPgReadModel<'_, P> {
+impl<P: ManagedSelectedProof> ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_, '_, P> {
     fn check_interrupt(&mut self) -> Result<(), QueryError> {
         self.check_current()
     }
@@ -694,7 +703,7 @@ impl<P: ManagedSelectedProof> ReadModel for SourceNavigationPgReadModel<'_, P> {
             .len()
             <= max_rows;
         let mut edges = Vec::with_capacity(max_rows.min(rows.len()));
-        let mut charged_bytes = 8 + 64;
+        let mut charged_bytes = 8u64 + 64;
         let mut effective =
             std::collections::BTreeMap::<String, (String, String, bool, Digest256, Vec<u8>)>::new();
         for row in &rows {

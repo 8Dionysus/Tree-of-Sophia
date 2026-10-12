@@ -799,7 +799,7 @@ pub(super) fn run(
                 deadline,
                 cancelled,
             )?;
-            let mut result = serde_json::from_slice(&cmd::canonical(&response)?)
+            let mut result: serde_json::Value = serde_json::from_slice(&cmd::canonical(&response)?)
                 .map_err(|_| SourceCommandError::Invalid("PG Item no-metadata result JSON"))?;
             result["source_read_work"] = item_source_read_work(&readset.work);
             return Ok(pg_item_no_commit_result(result));

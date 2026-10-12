@@ -1185,15 +1185,15 @@ enum RecordProjectionBasisV1<'a> {
     },
 }
 
-fn assemble_record_event_cohort_with_basis(
-    context: &DurableNavigationEventContextV1,
+fn assemble_record_event_cohort_with_basis<'a, 'validator>(
+    context: &'a DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    owner: &RecordOwnerV1,
+    validator: &'a SourceCatalogValidator<'validator>,
+    files: &'a SelectedBibliographicFilesV1,
+    owner: &'a RecordOwnerV1,
     predecessor_cohort_root: Option<Digest256>,
-    basis: RecordProjectionBasisV1<'_>,
-    forms_materializer: &mut dyn BibliographicForms,
+    basis: RecordProjectionBasisV1<'a>,
+    forms_materializer: &'a mut dyn BibliographicForms,
     limits: BibliographicLimits,
 ) -> DurableResult<(
     tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,

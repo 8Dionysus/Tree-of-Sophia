@@ -83,7 +83,7 @@ pub(crate) fn execute_selected_operation<W: CutSchemaExecutor>(
     private_form_paths: &BTreeMap<String, String>,
     private_form_sets: &BTreeMap<String, JsonValue>,
     private_source_paths: &BTreeMap<String, String>,
-    public_sources: &mut PgOwnerAssessmentPublicSources<'_>,
+    public_sources: &mut PgOwnerAssessmentPublicSources,
     layers: Option<&PrivateAssessmentLayers>,
     worker: &mut W,
     deadline: Instant,
@@ -287,7 +287,7 @@ fn describe_context(
     private_records: &[AssessmentRecordInput],
     private_native_summaries: &[JsonValue],
     private_form_paths: &BTreeMap<String, String>,
-    public_sources: &PgOwnerAssessmentPublicSources<'_>,
+    public_sources: &PgOwnerAssessmentPublicSources,
     layers: Option<&PrivateAssessmentLayers>,
 ) -> SourceCommandResult<JsonValue> {
     let current_body = cmd::field(current, "payload")?;
@@ -1310,7 +1310,7 @@ pub(crate) fn run(
             crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES,
             deadline,
             cancelled,
-            |histories, assessment_packages, source_packages, held_deadline, held_cancelled| {
+            |histories, assessment_packages, source_packages, guarded_worker, held_deadline, held_cancelled| {
                 let ((operation, owner, grant, current_config_raw, target_ref, expected_current, dependencies, private_generation, package_histories), readset) =
                     source_db.with_source_revision_session(
                         &store,
@@ -1406,7 +1406,7 @@ pub(crate) fn run(
                                 .ok_or(DurableError::Conflict(
                                     "private Assessment context schema absent",
                                 ))?;
-                            let mut selected_worker = DeferredFinish(&mut worker);
+                            let mut selected_worker = DeferredFinish(guarded_worker);
                             let (mut owner, selected_context) = OwnerTextContext::select_pg(
                                 &context_path,
                                 context_schema,
@@ -1446,7 +1446,7 @@ pub(crate) fn run(
                                 .map_err(DurableError::Source)?;
                             let request = assessment::parse_request(&request_raw, version)
                                 .map_err(DurableError::Source)?;
-                            let mut command_files = authored;
+                            let mut command_files = authored.clone();
                             for (path, raw) in &software_members {
                                 insert_dependency(&mut command_files, path.clone(), raw.clone())
                                     .map_err(DurableError::Source)?;
@@ -1550,6 +1550,8 @@ pub(crate) fn run(
                             resolved
                                 .add_layer_records(&layers.records(), &mut budget)
                                 .map_err(DurableError::Source)?;
+                            let public_fixity = public.fixity.clone();
+                            let public_identity_snapshots = public.identity_snapshots.clone();
                             let public_claim_dependencies = public.claim_dependencies.clone();
                             let plan = assessment::plan_assessment_evaluation(
                                 assessment::AssessmentEvaluationInputs {
@@ -1558,8 +1560,8 @@ pub(crate) fn run(
                                     request: &request,
                                     version,
                                     resolved,
-                                    public_fixity: &public.fixity,
-                                    public_identity_snapshots: &public.identity_snapshots,
+                                    public_fixity: &public_fixity,
+                                    public_identity_snapshots: &public_identity_snapshots,
                                     public_claim_dependencies: &public_claim_dependencies,
                                     private_source_snapshot: &private.owner_local_sources_snapshot,
                                     private_native_snapshots: &private.native_snapshots,
@@ -1618,7 +1620,7 @@ pub(crate) fn run(
                                 .verify_current(&owner, &input, source_packages, held_deadline, held_cancelled)
                                 .map_err(DurableError::Source)?;
                             public
-                                .verify_current(&input, held_deadline, held_cancelled)
+                                .verify_current(&input, Some(&owner), held_deadline, held_cancelled)
                                 .map_err(DurableError::Source)?;
                             layers
                                 .verify_current(&owner, held_deadline, held_cancelled)

@@ -82,6 +82,10 @@ their `TOS_CMD2_PG_DUMP_SHA256` and `TOS_CMD2_PG_RESTORE_SHA256` values to the
 corresponding binary hashes. The [`Repo Validation workflow`](../.github/workflows/repo-validation.yml)
 shows the isolated-service setup; its restore database names include the
 workflow run and attempt so concurrent runs cannot share a target.
+The current-writer leg verifies the V8 source-navigation census, including the
+range-coverage table; the separate V1-wire leg projects only the historical
+nine-field receipt envelope over the same current dump, cut and store bytes.
+That projection exercises wire compatibility and is not an authentic old dump.
 
 Ignored restore and child-process probes retain their separate prerequisites and
 are not selected by this command.

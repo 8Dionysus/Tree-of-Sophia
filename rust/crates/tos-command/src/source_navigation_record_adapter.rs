@@ -36,7 +36,7 @@ use crate::{
 pub(crate) fn project_record_event_cohort_v1(
     context: &DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     limits: BibliographicLimits,
 ) -> DurableResult<(
     NavigationRecordEventCohortV1,
@@ -53,7 +53,7 @@ pub(crate) fn project_record_event_cohort_v1(
 pub(crate) fn project_record_dependency_refresh_cohort_v1(
     context: &DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     changed_dependency_path: &str,
     changed_dependency_bytes: &[u8],
     limits: BibliographicLimits,
@@ -76,7 +76,7 @@ pub(crate) fn project_record_dependency_refresh_cohort_v1(
 pub(crate) fn project_record_dependency_refresh_set_cohort_v1(
     context: &DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     changed_dependencies: &[NavigationRecordDependencyRefreshCauseV1],
     limits: BibliographicLimits,
 ) -> DurableResult<(
@@ -98,7 +98,7 @@ pub(crate) fn project_record_dependency_refresh_set_cohort_v1(
 pub(crate) fn project_record_claim_revision_refresh_cohort_v1(
     context: &DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     proof: &NavigationClaimRevisionProofV1,
     limits: BibliographicLimits,
 ) -> DurableResult<(
@@ -113,10 +113,10 @@ pub(crate) fn project_record_claim_revision_refresh_cohort_v1(
 fn project_record_event_with_basis(
     context: &DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
-    input: NavigationRecordEventInputV1<'_>,
+    input: NavigationRecordEventInputV1<'_, '_>,
     limits: BibliographicLimits,
     project: impl FnOnce(
-        NavigationRecordEventInputV1<'_>,
+        NavigationRecordEventInputV1<'_, '_>,
         BibliographicLimits,
     ) -> tos_compiler::Result<NavigationRecordEventCohortV1>,
 ) -> DurableResult<(
@@ -170,7 +170,7 @@ fn project_record_event_with_basis(
 
 fn validate_committed_member_dependencies(
     context: &DurableNavigationEventContextV1,
-    input: &NavigationRecordEventInputV1<'_>,
+    input: &NavigationRecordEventInputV1<'_, '_>,
 ) -> DurableResult<()> {
     for member in context.members() {
         let mut matches = input

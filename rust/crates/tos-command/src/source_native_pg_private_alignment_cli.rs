@@ -1164,7 +1164,7 @@ pub(crate) fn run(
         } else {
             None
         };
-        let ((selected_epoch, selected), current, history) = db
+        let ((selected_epoch, selected), current, history, selected_readset) = db
             .with_private_owner_read_session(
                 &scope,
                 deadline,
@@ -1175,7 +1175,7 @@ pub(crate) fn run(
                             "PostgreSQL Alignment private generation changed",
                         ));
                     }
-                    let (((selected_epoch, selected), current), _) = source_db
+                    let (((selected_epoch, selected), current), selected_readset) = source_db
                         .with_source_revision_session(
                             &store,
                             &selection.domain,
@@ -1238,7 +1238,12 @@ pub(crate) fn run(
                         cancelled,
                     )
                     .map_err(DurableError::Source)?;
-                    Ok(((selected_epoch, selected), current, history))
+                    Ok((
+                        (selected_epoch, selected),
+                        current,
+                        history,
+                        selected_readset,
+                    ))
                 },
             )
             .map_err(pg::source_error)?;
@@ -1247,7 +1252,7 @@ pub(crate) fn run(
         selected_source_members.retain(|path, _| !schema_members.contains_key(path));
         context.extend_pg_selected_members(selected_source_members.clone())?;
 
-        let (inspection, selected_sources) = db
+        let ((inspection, selected_sources), inspection_readset) = db
             .with_private_owner_read_session(
                 &scope,
                 deadline,
@@ -1315,6 +1320,11 @@ pub(crate) fn run(
                 },
             )
             .map_err(pg::source_error)?;
+        if selected_readset.selection().identity() != inspection_readset.selection().identity() {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Alignment inspection source readset changed",
+            ));
+        }
         let result = inspection_result(
             &owner_configuration,
             delegated_operation,

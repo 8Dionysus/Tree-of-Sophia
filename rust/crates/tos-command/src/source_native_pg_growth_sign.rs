@@ -418,7 +418,7 @@ fn evaluate_sign_view(
     invocation: &Value,
     config: &JsonValue,
     config_raw: &[u8],
-    public: &crate::source_sign::pg::PgOwnerAssessmentPublicSources<'_>,
+    public: &crate::source_sign::pg::PgOwnerAssessmentPublicSources,
     private: &crate::source_private_assessment_pg_sources::PgPrivateAssessmentSources,
     owner: &mut OwnerTextContext,
     selected_context: &JsonValue,
@@ -818,7 +818,7 @@ pub(super) fn run(
         MAX_PACKAGE_HISTORY_BYTES,
         deadline,
         cancelled,
-        |histories, _, source_packages, held_deadline, held_cancelled| {
+        |histories, _, source_packages, _guarded_worker, held_deadline, held_cancelled| {
             let ((outcome, mut owner, grant), readset) = source_db
                 .with_source_revision_session(
                     &store,
@@ -1000,7 +1000,7 @@ pub(super) fn run(
                             )
                             .map_err(crate::DurableError::Source)?;
                         public_sources
-                            .verify_current(&input, held_deadline, held_cancelled)
+                            .verify_current(&input, Some(&owner), held_deadline, held_cancelled)
                             .map_err(crate::DurableError::Source)?;
                         let history = histories.get(&candidate).ok_or(
                             crate::DurableError::Conflict(
@@ -1039,6 +1039,14 @@ pub(super) fn run(
                                     &candidate,
                                     histories,
                                     operation != "describe",
+                                    held_deadline,
+                                    held_cancelled,
+                                )
+                                .map_err(crate::DurableError::Source)?;
+                            public_sources
+                                .verify_current(
+                                    &input,
+                                    Some(&owner),
                                     held_deadline,
                                     held_cancelled,
                                 )
