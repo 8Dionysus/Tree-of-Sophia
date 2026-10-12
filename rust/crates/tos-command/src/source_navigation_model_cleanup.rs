@@ -25,6 +25,7 @@ pub(crate) const MAX_MANAGED_SOURCE_CUT_CLEANUP_ENTRIES_V1: usize = MAX_FILES * 
 const MAX_HOST_EXPORT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 /// Explicit limits for inventorying and removing the staged export.
+#[derive(Clone, Copy)]
 pub(crate) struct ManagedSourceCutCleanupLimitsV1 {
     pub(crate) max_entries: usize,
     pub(crate) max_total_bytes: u64,
@@ -66,6 +67,7 @@ pub(crate) struct ManagedSourceCutCleanupManifestV1 {
     directories: Vec<DirectoryEntry>,
     files: Vec<FileEntry>,
     expected_normalization: Option<ExpectedNormalizationInputV1>,
+    allow_partial: bool,
     max_entries: usize,
     max_total_bytes: u64,
     max_file_bytes: u64,
@@ -78,6 +80,44 @@ pub(crate) fn capture_managed_source_cut_cleanup_v1(
     isolated: &IsolatedCreationRoot,
     expected_normalization: Option<ExpectedNormalizationInputV1>,
     limits: ManagedSourceCutCleanupLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<ManagedSourceCutCleanupManifestV1> {
+    capture_managed_source_cut_cleanup_with_policy_v1(
+        isolated,
+        expected_normalization,
+        limits,
+        false,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Capture only observed entries from the fixed source-export layout. This is
+/// for failure cleanup before the writer has completed its content-addressed
+/// tree; it never guesses absent members or admits arbitrary recursive paths.
+pub(crate) fn capture_partial_managed_source_cut_cleanup_v1(
+    isolated: &IsolatedCreationRoot,
+    expected_normalization: Option<ExpectedNormalizationInputV1>,
+    limits: ManagedSourceCutCleanupLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<ManagedSourceCutCleanupManifestV1> {
+    capture_managed_source_cut_cleanup_with_policy_v1(
+        isolated,
+        expected_normalization,
+        limits,
+        true,
+        deadline,
+        cancelled,
+    )
+}
+
+fn capture_managed_source_cut_cleanup_with_policy_v1(
+    isolated: &IsolatedCreationRoot,
+    expected_normalization: Option<ExpectedNormalizationInputV1>,
+    limits: ManagedSourceCutCleanupLimitsV1,
+    allow_partial: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<ManagedSourceCutCleanupManifestV1> {
@@ -101,176 +141,188 @@ pub(crate) fn capture_managed_source_cut_cleanup_v1(
     if expected_normalization.is_some() {
         expected_root.insert(INPUT_DIR.to_owned());
     }
-    require_names(
-        &root,
-        &expected_root,
-        limits.max_entries,
-        deadline,
-        cancelled,
-    )?;
+    let root_names = list_names(&root, limits.max_entries, deadline, cancelled)?;
+    require_names_or_subset(&root_names, &expected_root, allow_partial)?;
 
-    let export = push_directory(
-        &root,
-        0,
-        EXPORT_DIR,
-        uid,
-        &mut directories,
-        deadline,
-        cancelled,
-    )?;
-    let export_directory = directories[export - 1]
-        .file
-        .try_clone()
-        .map_err(|_| Error::Invalid("navigation cleanup export descriptor"))?;
-    let expected_export = BTreeSet::from(["objects".to_owned(), "revisions".to_owned()]);
-    require_names(
-        &export_directory,
-        &expected_export,
-        limits.max_entries,
-        deadline,
-        cancelled,
-    )?;
-
-    let objects = push_directory(
-        &export_directory,
-        export,
-        "objects",
-        uid,
-        &mut directories,
-        deadline,
-        cancelled,
-    )?;
-    let revisions = push_directory(
-        &export_directory,
-        export,
-        "revisions",
-        uid,
-        &mut directories,
-        deadline,
-        cancelled,
-    )?;
-
-    let object_names = list_names(
-        &directories[objects - 1].file,
-        limits.max_entries,
-        deadline,
-        cancelled,
-    )?;
-    for name in object_names {
-        active(deadline, cancelled)?;
-        let expected_digest = parse_digest_name(&name)?;
-        let file = tos_fd_open::open_regular_at(&directories[objects - 1].file, Path::new(&name))
-            .map_err(|_| Error::Conflict("navigation cleanup object replaced or unsafe"))?;
-        let entry = capture_file(
-            objects,
-            name,
-            file,
-            uid,
-            IMMUTABLE_FILE_MODE,
-            limits.max_file_bytes,
-            &mut total_bytes,
-            limits.max_total_bytes,
-            deadline,
-            cancelled,
-        )?;
-        if entry.sha256 != expected_digest {
-            return Err(Error::Conflict(
-                "navigation cleanup object name digest differs",
-            ));
-        }
-        files.push(entry);
-    }
-
-    let revision_names = list_names(
-        &directories[revisions - 1].file,
-        limits.max_entries,
-        deadline,
-        cancelled,
-    )?;
-    let revisions_directory = directories[revisions - 1]
-        .file
-        .try_clone()
-        .map_err(|_| Error::Invalid("navigation cleanup revisions descriptor"))?;
-    for revision in revision_names {
-        active(deadline, cancelled)?;
-        let _ = parse_digest_name(&revision)?;
-        let revision_index = push_directory(
-            &revisions_directory,
-            revisions,
-            &revision,
+    if root_names.contains(EXPORT_DIR) {
+        let export = push_directory(
+            &root,
+            0,
+            EXPORT_DIR,
             uid,
             &mut directories,
             deadline,
             cancelled,
         )?;
-        let expected = BTreeSet::from([SNAPSHOT_FILE.to_owned()]);
-        require_names(
-            &directories[revision_index - 1].file,
-            &expected,
-            limits.max_entries,
-            deadline,
-            cancelled,
-        )?;
-        let file = tos_fd_open::open_regular_at(
-            &directories[revision_index - 1].file,
-            Path::new(SNAPSHOT_FILE),
-        )
-        .map_err(|_| Error::Conflict("navigation cleanup snapshot replaced or unsafe"))?;
-        files.push(capture_file(
-            revision_index,
-            SNAPSHOT_FILE.to_owned(),
-            file,
-            uid,
-            IMMUTABLE_FILE_MODE,
-            limits.max_file_bytes,
-            &mut total_bytes,
-            limits.max_total_bytes,
-            deadline,
-            cancelled,
-        )?);
+        let export_directory = directories[export - 1]
+            .file
+            .try_clone()
+            .map_err(|_| Error::Invalid("navigation cleanup export descriptor"))?;
+        let expected_export = BTreeSet::from(["objects".to_owned(), "revisions".to_owned()]);
+        let export_names = list_names(&export_directory, limits.max_entries, deadline, cancelled)?;
+        require_names_or_subset(&export_names, &expected_export, allow_partial)?;
+
+        if export_names.contains("objects") {
+            let objects = push_directory(
+                &export_directory,
+                export,
+                "objects",
+                uid,
+                &mut directories,
+                deadline,
+                cancelled,
+            )?;
+            let object_names = list_names(
+                &directories[objects - 1].file,
+                limits.max_entries,
+                deadline,
+                cancelled,
+            )?;
+            for name in object_names {
+                active(deadline, cancelled)?;
+                let expected_digest = parse_digest_name(&name)?;
+                let file =
+                    tos_fd_open::open_regular_at(&directories[objects - 1].file, Path::new(&name))
+                        .map_err(|_| {
+                            Error::Conflict("navigation cleanup object replaced or unsafe")
+                        })?;
+                let entry = capture_file(
+                    objects,
+                    name,
+                    file,
+                    uid,
+                    IMMUTABLE_FILE_MODE,
+                    limits.max_file_bytes,
+                    &mut total_bytes,
+                    limits.max_total_bytes,
+                    deadline,
+                    cancelled,
+                )?;
+                if entry.sha256 != expected_digest {
+                    return Err(Error::Conflict(
+                        "navigation cleanup object name digest differs",
+                    ));
+                }
+                files.push(entry);
+            }
+        }
+
+        if export_names.contains("revisions") {
+            let revisions = push_directory(
+                &export_directory,
+                export,
+                "revisions",
+                uid,
+                &mut directories,
+                deadline,
+                cancelled,
+            )?;
+            let revision_names = list_names(
+                &directories[revisions - 1].file,
+                limits.max_entries,
+                deadline,
+                cancelled,
+            )?;
+            let revisions_directory = directories[revisions - 1]
+                .file
+                .try_clone()
+                .map_err(|_| Error::Invalid("navigation cleanup revisions descriptor"))?;
+            for revision in revision_names {
+                active(deadline, cancelled)?;
+                let _ = parse_digest_name(&revision)?;
+                let revision_index = push_directory(
+                    &revisions_directory,
+                    revisions,
+                    &revision,
+                    uid,
+                    &mut directories,
+                    deadline,
+                    cancelled,
+                )?;
+                let expected = BTreeSet::from([SNAPSHOT_FILE.to_owned()]);
+                require_names(
+                    &directories[revision_index - 1].file,
+                    &expected,
+                    limits.max_entries,
+                    deadline,
+                    cancelled,
+                )?;
+                let file = tos_fd_open::open_regular_at(
+                    &directories[revision_index - 1].file,
+                    Path::new(SNAPSHOT_FILE),
+                )
+                .map_err(|_| Error::Conflict("navigation cleanup snapshot replaced or unsafe"))?;
+                files.push(capture_file(
+                    revision_index,
+                    SNAPSHOT_FILE.to_owned(),
+                    file,
+                    uid,
+                    IMMUTABLE_FILE_MODE,
+                    limits.max_file_bytes,
+                    &mut total_bytes,
+                    limits.max_total_bytes,
+                    deadline,
+                    cancelled,
+                )?);
+            }
+        }
+    } else if !allow_partial {
+        return Err(Error::Conflict("navigation cleanup source export absent"));
     }
 
     if let Some(expected) = expected_normalization {
-        let input_index = push_directory(
-            &root,
-            0,
-            INPUT_DIR,
-            uid,
-            &mut directories,
-            deadline,
-            cancelled,
-        )?;
-        let expected_names = BTreeSet::from([NORMALIZATION_FILE.to_owned()]);
-        require_names(
-            &directories[input_index - 1].file,
-            &expected_names,
-            limits.max_entries,
-            deadline,
-            cancelled,
-        )?;
-        let file = tos_fd_open::open_regular_at(
-            &directories[input_index - 1].file,
-            Path::new(NORMALIZATION_FILE),
-        )
-        .map_err(|_| Error::Conflict("navigation cleanup normalization input unsafe"))?;
-        let entry = capture_file(
-            input_index,
-            NORMALIZATION_FILE.to_owned(),
-            file,
-            uid,
-            PRIVATE_INPUT_MODE,
-            limits.max_file_bytes,
-            &mut total_bytes,
-            limits.max_total_bytes,
-            deadline,
-            cancelled,
-        )?;
-        if entry.size_bytes != expected.size_bytes || entry.sha256 != expected.sha256 {
+        if root_names.contains(INPUT_DIR) {
+            let input_index = push_directory(
+                &root,
+                0,
+                INPUT_DIR,
+                uid,
+                &mut directories,
+                deadline,
+                cancelled,
+            )?;
+            let expected_names = BTreeSet::from([NORMALIZATION_FILE.to_owned()]);
+            let input_names = list_names(
+                &directories[input_index - 1].file,
+                limits.max_entries,
+                deadline,
+                cancelled,
+            )?;
+            require_names_or_subset(&input_names, &expected_names, allow_partial)?;
+            if input_names.contains(NORMALIZATION_FILE) {
+                let file = tos_fd_open::open_regular_at(
+                    &directories[input_index - 1].file,
+                    Path::new(NORMALIZATION_FILE),
+                )
+                .map_err(|_| Error::Conflict("navigation cleanup normalization input unsafe"))?;
+                let entry = capture_file(
+                    input_index,
+                    NORMALIZATION_FILE.to_owned(),
+                    file,
+                    uid,
+                    PRIVATE_INPUT_MODE,
+                    limits.max_file_bytes,
+                    &mut total_bytes,
+                    limits.max_total_bytes,
+                    deadline,
+                    cancelled,
+                )?;
+                if entry.size_bytes != expected.size_bytes || entry.sha256 != expected.sha256 {
+                    return Err(Error::Conflict(
+                        "navigation cleanup normalization input differs",
+                    ));
+                }
+                files.push(entry);
+            } else if !allow_partial {
+                return Err(Error::Conflict(
+                    "navigation cleanup normalization input absent",
+                ));
+            }
+        } else if !allow_partial {
             return Err(Error::Conflict(
-                "navigation cleanup normalization input differs",
+                "navigation cleanup normalization directory absent",
             ));
         }
-        files.push(entry);
     }
 
     if directories.len() + files.len() > limits.max_entries {
@@ -282,6 +334,7 @@ pub(crate) fn capture_managed_source_cut_cleanup_v1(
         directories,
         files,
         expected_normalization,
+        allow_partial,
         max_entries: limits.max_entries,
         max_total_bytes: limits.max_total_bytes,
         max_file_bytes: limits.max_file_bytes,
@@ -448,6 +501,24 @@ fn require_names(
     if &names != expected {
         return Err(Error::Conflict(
             "navigation cleanup tree has unknown entries",
+        ));
+    }
+    Ok(())
+}
+
+fn require_names_or_subset(
+    found: &BTreeSet<String>,
+    allowed: &BTreeSet<String>,
+    allow_partial: bool,
+) -> Result<()> {
+    let unexpected = if allow_partial {
+        !found.is_subset(allowed)
+    } else {
+        found != allowed
+    };
+    if unexpected {
+        return Err(Error::Conflict(
+            "navigation cleanup tree has unexpected or missing entries",
         ));
     }
     Ok(())
@@ -658,28 +729,36 @@ fn verify_inventory(
         .iter()
         .filter(|entry| entry.name == NORMALIZATION_FILE)
         .count();
-    if manifest.expected_normalization.is_some() != (normalization_count == 1)
-        || normalization_count > 1
+    if normalization_count > 1
+        || manifest.expected_normalization.is_none() && normalization_count != 0
+        || !manifest.allow_partial
+            && manifest.expected_normalization.is_some() != (normalization_count == 1)
     {
         return Err(Error::Conflict(
             "navigation cleanup normalization manifest differs",
         ));
     }
     if let Some(expected) = manifest.expected_normalization {
-        let input = manifest
+        match manifest
             .files
             .iter()
             .find(|entry| entry.name == NORMALIZATION_FILE)
-            .ok_or(Error::Conflict(
-                "navigation cleanup normalization input absent",
-            ))?;
-        if input.size_bytes != expected.size_bytes
-            || input.sha256 != expected.sha256
-            || input.mode != PRIVATE_INPUT_MODE
         {
-            return Err(Error::Conflict(
-                "navigation cleanup normalization manifest differs",
-            ));
+            Some(input)
+                if input.size_bytes == expected.size_bytes
+                    && input.sha256 == expected.sha256
+                    && input.mode == PRIVATE_INPUT_MODE => {}
+            Some(_) => {
+                return Err(Error::Conflict(
+                    "navigation cleanup normalization manifest differs",
+                ));
+            }
+            None if manifest.allow_partial => {}
+            None => {
+                return Err(Error::Conflict(
+                    "navigation cleanup normalization input absent",
+                ));
+            }
         }
     }
     Ok(())

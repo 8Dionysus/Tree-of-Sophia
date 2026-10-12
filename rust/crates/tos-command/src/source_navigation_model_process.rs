@@ -152,7 +152,7 @@ pub(crate) fn launch_source_navigation_model_compile(
         EXECUTABLE_MAX_BYTES,
         "source-navigation tos-access image",
     )?;
-    let (unshare_image, _unshare_digest) = pinned_executable(
+    let (unshare_image, unshare_digest) = pinned_executable(
         &launcher.unshare_path,
         &launcher.unshare_sha256,
         EXECUTABLE_MAX_BYTES,
@@ -250,6 +250,10 @@ pub(crate) fn launch_source_navigation_model_compile(
             &format!("sha256:{access_hex}"),
             "--expected-consumer-sha256",
             &format!("sha256:{native_hex}"),
+            "--expected-unshare-sha256",
+            &format!("sha256:{}", unshare_digest.to_hex()),
+            "--unshare-image-fd",
+            &unshare_fd.to_string(),
             "--",
         ])
         .arg(&native_path)

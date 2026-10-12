@@ -12,14 +12,14 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::atomic::AtomicBool,
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tos_compiler::SourceBinding;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_segment_store::SegmentStore;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader,
-    SoftwareComponentSelectionV1, SourceMembershipV1,
+    SoftwareComponentSelectionV1,
 };
 
 use crate::{
@@ -27,6 +27,8 @@ use crate::{
     source_creation_store::active,
 };
 use tos_validation::executor::ExactWorkerIdentity;
+
+const HOST_FINALIZATION_RESERVE_MS: u64 = 60_000;
 
 fn stage_file_identity(parent: &File, leaf: &str) -> SourceCommandResult<(u64, u64)> {
     let file = tos_fd_open::open_regular_at(parent, Path::new(leaf))
@@ -135,6 +137,62 @@ fn preserve_cleanup_failures(
             details.join("; ")
         ))
     }
+}
+
+fn cleanup_partial_source_export(
+    isolated: &crate::source_creation_store::IsolatedCreationRoot,
+    expected_normalization: Option<
+        super::source_navigation_model_cleanup::ExpectedNormalizationInputV1,
+    >,
+    limits: super::source_navigation_model_cleanup::ManagedSourceCutCleanupLimitsV1,
+) -> SourceCommandResult<()> {
+    let cleanup_deadline = Instant::now() + Duration::from_millis(HOST_FINALIZATION_RESERVE_MS);
+    let cleanup_cancelled = AtomicBool::new(false);
+    let manifest =
+        super::source_navigation_model_cleanup::capture_partial_managed_source_cut_cleanup_v1(
+            isolated,
+            expected_normalization,
+            limits,
+            cleanup_deadline,
+            &cleanup_cancelled,
+        )?;
+    super::source_navigation_model_cleanup::cleanup_managed_source_cut_export_v1(
+        isolated,
+        manifest,
+        cleanup_deadline,
+        &cleanup_cancelled,
+    )?;
+    isolated.cleanup_empty(cleanup_deadline, &cleanup_cancelled)
+}
+
+fn cleanup_captured_source_export(
+    isolated: &crate::source_creation_store::IsolatedCreationRoot,
+    manifest: super::source_navigation_model_cleanup::ManagedSourceCutCleanupManifestV1,
+) -> SourceCommandResult<()> {
+    let cleanup_deadline = Instant::now() + Duration::from_millis(HOST_FINALIZATION_RESERVE_MS);
+    let cleanup_cancelled = AtomicBool::new(false);
+    super::source_navigation_model_cleanup::cleanup_managed_source_cut_export_v1(
+        isolated,
+        manifest,
+        cleanup_deadline,
+        &cleanup_cancelled,
+    )?;
+    isolated.cleanup_empty(cleanup_deadline, &cleanup_cancelled)
+}
+
+fn preserve_partial_source_cleanup_failure(
+    primary: SourceCommandError,
+    isolated: &crate::source_creation_store::IsolatedCreationRoot,
+    expected_normalization: Option<
+        super::source_navigation_model_cleanup::ExpectedNormalizationInputV1,
+    >,
+    limits: super::source_navigation_model_cleanup::ManagedSourceCutCleanupLimitsV1,
+) -> SourceCommandError {
+    preserve_cleanup_failures(
+        primary,
+        cleanup_partial_source_export(isolated, expected_normalization, limits).err(),
+        None,
+    )
 }
 
 fn record_export_object(
@@ -262,6 +320,7 @@ fn stage_normalization_input(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PathBuf> {
+    active(deadline, cancelled)?;
     let root = isolated.verify_current(deadline, cancelled)?;
     rustix::fs::mkdirat(&root, "inputs", rustix::fs::Mode::from_raw_mode(0o700))
         .map_err(|_| SourceCommandError::Conflict("source-navigation compiler input directory"))?;
@@ -292,30 +351,84 @@ fn stage_normalization_input(
         SourceCommandError::Conflict("source-navigation normalization input already exists")
     })?;
     let mut file = File::from(raw_fd);
-    active(deadline, cancelled)?;
-    file.write_all(raw)
-        .and_then(|()| file.sync_all())
-        .map_err(|_| SourceCommandError::Invalid("source-navigation normalization input write"))?;
-    let metadata = file.metadata().map_err(|_| {
+    let initial = file.metadata().map_err(|_| {
         SourceCommandError::Invalid("source-navigation normalization input metadata")
     })?;
-    if !metadata.is_file()
-        || metadata.uid() != rustix::process::geteuid().as_raw()
+    let identity = (initial.dev(), initial.ino());
+    let write_result = (|| -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        file.write_all(raw)
+            .and_then(|()| file.sync_all())
+            .map_err(|_| {
+                SourceCommandError::Invalid("source-navigation normalization input write")
+            })?;
+        let metadata = file.metadata().map_err(|_| {
+            SourceCommandError::Invalid("source-navigation normalization input metadata")
+        })?;
+        if !metadata.is_file()
+            || metadata.uid() != rustix::process::geteuid().as_raw()
+            || metadata.mode() & 0o7777 != 0o400
+            || metadata.nlink() != 1
+            || metadata.len() != raw.len() as u64
+        {
+            return Err(SourceCommandError::Conflict(
+                "source-navigation normalization input differs",
+            ));
+        }
+        inputs
+            .sync_all()
+            .and_then(|()| root.sync_all())
+            .map_err(|_| {
+                SourceCommandError::Invalid("source-navigation compiler input directory sync")
+            })?;
+        Ok(())
+    })();
+    if let Err(primary) = write_result {
+        let cleanup = remove_staged_normalization_input(&inputs, &file, identity);
+        return Err(preserve_cleanup_failures(primary, cleanup.err(), None));
+    }
+    Ok(isolated.path().join("inputs/knowledge_normalization.rs"))
+}
+
+fn remove_staged_normalization_input(
+    inputs: &File,
+    held_file: &File,
+    expected_identity: (u64, u64),
+) -> SourceCommandResult<()> {
+    let uid = rustix::process::geteuid().as_raw();
+    let held = held_file
+        .metadata()
+        .map_err(|_| SourceCommandError::Invalid("normalization cleanup held metadata"))?;
+    let named = tos_fd_open::open_regular_at(inputs, Path::new("knowledge_normalization.rs"))
+        .map_err(|_| SourceCommandError::Conflict("normalization cleanup file replaced"))?;
+    let metadata = named
+        .metadata()
+        .map_err(|_| SourceCommandError::Invalid("normalization cleanup named metadata"))?;
+    if !held.is_file()
+        || !metadata.is_file()
+        || (held.dev(), held.ino()) != expected_identity
+        || (metadata.dev(), metadata.ino()) != expected_identity
+        || held.uid() != uid
+        || metadata.uid() != uid
+        || held.mode() & 0o7777 != 0o400
         || metadata.mode() & 0o7777 != 0o400
+        || held.nlink() != 1
         || metadata.nlink() != 1
-        || metadata.len() != raw.len() as u64
     {
         return Err(SourceCommandError::Conflict(
-            "source-navigation normalization input differs",
+            "normalization cleanup file identity changed",
         ));
     }
+    drop(named);
+    rustix::fs::unlinkat(
+        inputs,
+        "knowledge_normalization.rs",
+        rustix::fs::AtFlags::empty(),
+    )
+    .map_err(|_| SourceCommandError::Conflict("normalization cleanup unlink failed"))?;
     inputs
         .sync_all()
-        .and_then(|()| root.sync_all())
-        .map_err(|_| {
-            SourceCommandError::Invalid("source-navigation compiler input directory sync")
-        })?;
-    Ok(isolated.path().join("inputs/knowledge_normalization.rs"))
+        .map_err(|_| SourceCommandError::Invalid("normalization cleanup directory fsync"))
 }
 
 const OWNER_SCHEMA: &str = "tos_local_source_navigation_model_prepare_owner_v1";
@@ -603,10 +716,6 @@ fn selected_positive(value: &Value, key: &str, cap: u64) -> SourceCommandResult<
         .ok_or(SourceCommandError::Invalid(
             "selected source-navigation producer budget",
         ))
-}
-
-fn same_membership(left: SourceMembershipV1, right: SourceMembershipV1) -> bool {
-    left.count == right.count && left.digest == right.digest
 }
 
 fn hash_configuration(parts: &[&[u8]]) -> Digest256 {
@@ -960,11 +1069,6 @@ fn prepare_initial(
         ));
     }
     let host_export_parent = super::absolute(&owner.host_export_stage_parent)?;
-    let isolated = crate::source_creation_store::IsolatedCreationRoot::create(
-        &host_export_parent,
-        deadline,
-        cancelled,
-    )?;
     let invocation_worker = &invocation["schema_worker"];
     let producer_worker = &owner.source_navigation["producer"];
     if super::absolute(super::text(invocation_worker, "absolute_path")?)?
@@ -991,105 +1095,9 @@ fn prepare_initial(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
-    let export_start = Instant::now();
-    let export = crate::source_current_cut::select_current_source_cut_addressed(
-        &mut coordinator,
-        &store,
-        &selection.domain,
-        original_cut,
-        bootstrap_source_revision,
-        source_membership,
-        &bootstrap.context,
-        &bootstrap.software,
-        &bootstrap.components,
-        &mut worker,
-        None,
-        &isolated,
-        None,
-        tos_source_store::ReadLimits {
-            max_manifest_bytes: 1_048_576,
-            max_manifest_entries: owner.model_limits.max_source_members as usize,
-            max_selected_object_bytes: owner.model_limits.max_source_total_bytes,
-            json: tos_foundation::JsonLimits::default(),
-        },
-        CutReadLimits {
-            max_revisions: 4,
-            max_members: owner.model_limits.max_source_members,
-            max_total_bytes: owner.model_limits.max_source_total_bytes,
-            max_member_bytes: owner.model_limits.max_source_member_bytes,
-        },
-        selection.tree_limits.into_limits(),
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| SourceCommandError::Conflict("addressed source-navigation cut"))?;
-    bootstrap
-        .owner_check(
-            &bootstrap_invocation_path,
-            &bootstrap_invocation_raw,
-            uid,
-            deadline,
-            cancelled,
-        )
-        .map_err(|_| SourceCommandError::Conflict("bootstrap changed during source selection"))?;
-    let revision = export.cut().current().revision();
-    let membership = export.membership();
-    let projection = coordinator
-        .visit_managed_model_catalogue_with_work(
-            export.generation(),
-            deadline,
-            cancelled,
-            &mut crate::ManagedSourceWorkV1::default(),
-            |_| Ok(()),
-        )
-        .map_err(|_| SourceCommandError::Conflict("managed source projection incomplete"))?;
-    let proof = <tos_compiler::managed_source::ManagedSourceProofV2 as crate::source_managed_selection::ManagedSelectedProof>::from_selected(
-        export.generation(), projection, (&revision.0.to_hex(), &membership.digest.to_hex(), membership.count), None,
-    ).map_err(|_| SourceCommandError::Conflict("managed source proof unavailable"))?;
-    let current_source_bytes = export
-        .files()
-        .values()
-        .try_fold(0u64, |total, bytes| total.checked_add(bytes.len() as u64))
-        .ok_or(SourceCommandError::Invalid("selected source size overflow"))?;
-    if export.files().len() as u64 > owner.model_limits.max_source_members
-        || current_source_bytes > owner.model_limits.max_source_total_bytes
-        || !same_membership(membership, source_membership)
-    {
-        return Err(SourceCommandError::Conflict(
-            "selected source export limits or membership differ",
-        ));
-    }
-    let normalization_input_path =
-        stage_normalization_input(&isolated, &normalization_raw, deadline, cancelled)?;
-    let cleanup_manifest =
-        super::source_navigation_model_cleanup::capture_managed_source_cut_cleanup_v1(
-            &isolated,
-            Some(
-                super::source_navigation_model_cleanup::ExpectedNormalizationInputV1 {
-                    size_bytes: normalization_member.size_bytes,
-                    sha256: normalization_member.sha256,
-                },
-            ),
-            super::source_navigation_model_cleanup::ManagedSourceCutCleanupLimitsV1 {
-                max_entries: cleanup_max_entries,
-                max_total_bytes: host_export_bytes,
-                max_file_bytes: host_export_bytes,
-            },
-            deadline,
-            cancelled,
-        )?;
-    let source_binding = SourceBinding {
-        owner_profile: "tos-managed-source-navigation-v2".into(),
-        source_cut: revision.0.to_hex(),
-        through_commit_seq: export.generation().commit_seq(),
-        membership_root: membership.digest.to_hex(),
-        index_generation: proof.generation.installed_generation_sha256.clone(),
-        route_map_version: "tos-source-navigation-managed-current-v2".into(),
-        reader_abi: tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI.into(),
-        projection_root_sha256: proof.generation.inventory_projection_sha256.clone(),
-        complete: true,
-    };
 
+    // Validate all owner-controlled compile settings before creating the
+    // random host export root, whose first nonempty state is source-owned data.
     let producer = &owner.source_navigation["producer"];
     let event_limits = &producer["event_limits"];
     let aggregate_limits = &producer["aggregate_limits"];
@@ -1131,36 +1139,15 @@ fn prepare_initial(
         })?;
     if schema_worker_identity.absolute_path != selected_worker_path
         || schema_worker_identity.sha256 != selected_worker_digest
-        || !same_membership(
-            original_cut
-                .stream(bootstrap_source_revision)
-                .map_err(|_| {
-                    SourceCommandError::Conflict("selected bootstrap membership unavailable")
-                })?
-                .expectation(),
-            membership,
-        )
     {
         return Err(SourceCommandError::Denied(
-            "source-navigation producer worker or source binding differs",
+            "source-navigation producer worker differs",
         ));
     }
     selection
         .process_limits
         .verify_current()
         .map_err(|_| SourceCommandError::Denied("selected native process limits differ"))?;
-
-    let configuration_digest = hash_configuration(&[
-        owner_raw.as_slice(),
-        invocation_raw,
-        request_raw,
-        &normalization_raw,
-        proof.generation.installed_generation_sha256.as_bytes(),
-        proof.generation.inventory_projection_sha256.as_bytes(),
-        revision.0.as_bytes(),
-        membership.digest.as_bytes(),
-    ]);
-    let model_receipt_id = format!("sha256:{}", configuration_digest.to_hex());
     let launcher = super::source_navigation_model_process::SourceNavigationModelLauncherV1 {
         tos_access_path: PathBuf::from(super::text(&owner.launcher, "tos_access_path")?),
         tos_access_sha256: super::text(&owner.launcher, "tos_access_sha256")?.to_owned(),
@@ -1183,11 +1170,168 @@ fn prepare_initial(
             working_ram_bytes: owner.model_limits.working_ram_bytes,
             max_model_bytes: owner.model_limits.max_model_bytes,
         };
-    let child_stage = crate::source_creation_store::IsolatedCreationRoot::create(
-        &launcher.persistent_staging_root,
+
+    let export_start = Instant::now();
+    let isolated = crate::source_creation_store::IsolatedCreationRoot::create(
+        &host_export_parent,
         deadline,
         cancelled,
     )?;
+    let cleanup_limits = super::source_navigation_model_cleanup::ManagedSourceCutCleanupLimitsV1 {
+        max_entries: cleanup_max_entries,
+        max_total_bytes: host_export_bytes,
+        max_file_bytes: host_export_bytes,
+    };
+    let expected_normalization =
+        super::source_navigation_model_cleanup::ExpectedNormalizationInputV1 {
+            size_bytes: normalization_member.size_bytes,
+            sha256: normalization_member.sha256,
+        };
+    let staged_source = (|| {
+        let export = crate::source_current_cut::select_current_source_cut_addressed(
+            &mut coordinator,
+            &store,
+            &selection.domain,
+            original_cut,
+            bootstrap_source_revision,
+            source_membership,
+            &bootstrap.context,
+            &bootstrap.software,
+            &bootstrap.components,
+            &mut worker,
+            None,
+            &isolated,
+            None,
+            tos_source_store::ReadLimits {
+                max_manifest_bytes: 1_048_576,
+                max_manifest_entries: owner.model_limits.max_source_members as usize,
+                max_selected_object_bytes: owner.model_limits.max_source_total_bytes,
+                json: tos_foundation::JsonLimits::default(),
+            },
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: owner.model_limits.max_source_members,
+                max_total_bytes: owner.model_limits.max_source_total_bytes,
+                max_member_bytes: owner.model_limits.max_source_member_bytes,
+            },
+            selection.tree_limits.into_limits(),
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Conflict("addressed source-navigation cut"))?;
+        bootstrap
+            .owner_check(
+                &bootstrap_invocation_path,
+                &bootstrap_invocation_raw,
+                uid,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| {
+                SourceCommandError::Conflict("bootstrap changed during source selection")
+            })?;
+        let revision = export.cut().current().revision();
+        let membership = export.membership();
+        let projection = coordinator
+            .visit_managed_model_catalogue_with_work(
+                export.generation(),
+                deadline,
+                cancelled,
+                &mut crate::ManagedSourceWorkV1::default(),
+                |_| Ok(()),
+            )
+            .map_err(|_| SourceCommandError::Conflict("managed source projection incomplete"))?;
+        let proof = <tos_compiler::managed_source::ManagedSourceProofV2 as crate::source_managed_selection::ManagedSelectedProof>::from_selected(
+            export.generation(), projection, (&revision.0.to_hex(), &membership.digest.to_hex(), membership.count), None,
+        ).map_err(|_| SourceCommandError::Conflict("managed source proof unavailable"))?;
+        let current_source_bytes = export
+            .files()
+            .values()
+            .try_fold(0u64, |total, bytes| total.checked_add(bytes.len() as u64))
+            .ok_or(SourceCommandError::Invalid("selected source size overflow"))?;
+        if export.files().len() as u64 > owner.model_limits.max_source_members
+            || current_source_bytes > owner.model_limits.max_source_total_bytes
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected source export exceeds configured limits",
+            ));
+        }
+        let normalization_input_path =
+            stage_normalization_input(&isolated, &normalization_raw, deadline, cancelled)?;
+        let cleanup_manifest =
+            super::source_navigation_model_cleanup::capture_managed_source_cut_cleanup_v1(
+                &isolated,
+                Some(expected_normalization),
+                cleanup_limits,
+                deadline,
+                cancelled,
+            )?;
+        Ok((
+            export,
+            revision,
+            membership,
+            proof,
+            current_source_bytes,
+            normalization_input_path,
+            cleanup_manifest,
+        ))
+    })();
+    let (
+        export,
+        revision,
+        membership,
+        proof,
+        current_source_bytes,
+        normalization_input_path,
+        cleanup_manifest,
+    ) = match staged_source {
+        Ok(staged) => staged,
+        Err(primary) => {
+            return Err(preserve_partial_source_cleanup_failure(
+                primary,
+                &isolated,
+                Some(expected_normalization),
+                cleanup_limits,
+            ));
+        }
+    };
+    let source_binding = SourceBinding {
+        owner_profile: "tos-managed-source-navigation-v2".into(),
+        source_cut: revision.0.to_hex(),
+        through_commit_seq: export.generation().commit_seq(),
+        membership_root: membership.digest.to_hex(),
+        index_generation: proof.generation.installed_generation_sha256.clone(),
+        route_map_version: "tos-source-navigation-managed-current-v2".into(),
+        reader_abi: tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI.into(),
+        projection_root_sha256: proof.generation.inventory_projection_sha256.clone(),
+        complete: true,
+    };
+
+    let configuration_digest = hash_configuration(&[
+        owner_raw.as_slice(),
+        invocation_raw,
+        request_raw,
+        &normalization_raw,
+        proof.generation.installed_generation_sha256.as_bytes(),
+        proof.generation.inventory_projection_sha256.as_bytes(),
+        revision.0.as_bytes(),
+        membership.digest.as_bytes(),
+    ]);
+    let model_receipt_id = format!("sha256:{}", configuration_digest.to_hex());
+    let child_stage = match crate::source_creation_store::IsolatedCreationRoot::create(
+        &launcher.persistent_staging_root,
+        deadline,
+        cancelled,
+    ) {
+        Ok(stage) => stage,
+        Err(primary) => {
+            return Err(preserve_cleanup_failures(
+                primary,
+                cleanup_captured_source_export(&isolated, cleanup_manifest).err(),
+                None,
+            ));
+        }
+    };
     let mut compile_request = super::source_navigation_model_compile::SourceNavigationModelCompileRequestV1 {
         schema_version: "tos_source_navigation_model_compile_request_v1".into(),
         read_only_input_root: isolated.path().to_path_buf(),
@@ -1257,7 +1401,6 @@ fn prepare_initial(
             .as_millis(),
     )
     .unwrap_or(u64::MAX);
-    const HOST_FINALIZATION_RESERVE_MS: u64 = 60_000;
     let child_budget_ms = remaining_ms
         .saturating_sub(HOST_FINALIZATION_RESERVE_MS)
         .min(owner.model_limits.max_total_ms);
@@ -1273,21 +1416,16 @@ fn prepare_initial(
     let model_ms = model_start.elapsed().as_millis();
     drop(worker);
     drop(export);
-    let export_cleanup =
-        super::source_navigation_model_cleanup::cleanup_managed_source_cut_export_v1(
-            &isolated,
-            cleanup_manifest,
-            deadline,
-            cancelled,
-        )
-        .and_then(|()| isolated.cleanup_empty(deadline, cancelled));
+    let export_cleanup = cleanup_captured_source_export(&isolated, cleanup_manifest);
+    let cleanup_deadline = Instant::now() + Duration::from_millis(HOST_FINALIZATION_RESERVE_MS);
+    let cleanup_cancelled = AtomicBool::new(false);
     let child_stage_cleanup = if child_result.is_err() || export_cleanup.is_err() {
         Some(cleanup_failed_child_stage(
             &child_stage,
             "source-navigation-model.sqlite",
             owner.model_limits.max_model_bytes,
-            deadline,
-            cancelled,
+            cleanup_deadline,
+            &cleanup_cancelled,
         ))
     } else {
         None

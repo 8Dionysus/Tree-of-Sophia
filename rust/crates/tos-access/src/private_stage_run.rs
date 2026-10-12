@@ -231,6 +231,20 @@ fn open_pinned_image(path: &Path, expected: Digest256, end: Cutoff) -> Result<Fi
     verify_pinned_image(&mut file, expected, end)?;
     Ok(file)
 }
+
+fn take_pinned_image_fd(fd: i32, expected: Digest256, end: Cutoff) -> Result<File, String> {
+    if fd < 3 || unsafe { libc::fcntl(fd, libc::F_GETFD) } < 0 {
+        return Err("pinned executable descriptor is unavailable".into());
+    }
+    // Transfer the owner-opened image descriptor; do not reopen its selected path.
+    let mut file = unsafe { File::from_raw_fd(fd) };
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC) } < 0 {
+        return Err("pinned executable descriptor close-on-exec binding failed".into());
+    }
+    verify_pinned_image(&mut file, expected, end)?;
+    Ok(file)
+}
 fn directory(path: &Path) -> Result<File, String> {
     path_shape(path)?;
     let mut held = unsafe {
@@ -985,6 +999,8 @@ struct Options {
     consumer: PathBuf,
     expected_controller_sha256: Option<Digest256>,
     expected_consumer_sha256: Option<Digest256>,
+    expected_unshare_sha256: Option<Digest256>,
+    unshare_image_fd: Option<i32>,
     scratch: PathBuf,
     quota: u64,
     inodes: u64,
@@ -1157,6 +1173,9 @@ fn retained_fd_roles(fds: [Option<i32>; 2]) -> Result<(), String> {
 fn limits(o: &Options) -> Result<(), String> {
     if o.expected_controller_sha256.is_some() != o.expected_consumer_sha256.is_some() {
         return Err("controller and consumer image pins must be selected together".into());
+    }
+    if o.expected_unshare_sha256.is_some() != o.unshare_image_fd.is_some() {
+        return Err("unshare image digest and descriptor must be selected together".into());
     }
     if o.search_cache.is_some() && o.persistent.is_some() {
         return Err(
@@ -1729,9 +1748,25 @@ fn outer(o: &Options) -> Result<i32, String> {
         return Err("ordinary unprivileged caller required".into());
     }
     path_shape(&o.unshare)?;
-    if !o.unshare.is_file() {
+    if o.expected_unshare_sha256.is_none() && !o.unshare.is_file() {
         return Err("explicit generic unshare executable absent".into());
     }
+    let unshare_image = match (o.expected_unshare_sha256, o.unshare_image_fd) {
+        (Some(expected), Some(fd)) => {
+            if [o.control_fd, o.retained_fds[0], o.retained_fds[1]]
+                .into_iter()
+                .flatten()
+                .any(|role| role == fd)
+            {
+                return Err(
+                    "pinned unshare image descriptor overlaps another private-stage role".into(),
+                );
+            }
+            Some(take_pinned_image_fd(fd, expected, end)?)
+        }
+        (None, None) => None,
+        _ => return Err("unshare image digest and descriptor must be selected together".into()),
+    };
     let scratch = directory(&o.scratch)?;
     if scratch.metadata().map_err(|e| e.to_string())?.mode() & 0o077 != 0 {
         return Err("caller selected scratch parent must be private0700".into());
@@ -1813,7 +1848,16 @@ fn outer(o: &Options) -> Result<i32, String> {
         Some((controller, _)) => PathBuf::from(format!("/proc/self/fd/{}", controller.as_raw_fd())),
         None => std::env::current_exe().map_err(|e| e.to_string())?,
     };
-    let mut command = Command::new(&o.unshare);
+    // The descriptor remains close-on-exec: the kernel resolves this exact ELF
+    // image for unshare, then closes the pin before the namespace child starts.
+    let unshare_exec = unshare_image
+        .as_ref()
+        .map(|image| PathBuf::from(format!("/proc/self/fd/{}", image.as_raw_fd())))
+        .unwrap_or_else(|| o.unshare.clone());
+    let mut command = Command::new(&unshare_exec);
+    if unshare_image.is_some() {
+        command.arg0(&o.unshare);
+    }
     command
         .args([
             "--user",
@@ -1967,6 +2011,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         }
     };
     drop(pinned_images);
+    drop(unshare_image);
     if let Some(relay) = retained_reply.as_mut() {
         drop(relay.sender.take());
     }
@@ -2333,7 +2378,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
     end.check()?;
-    let consumer_image = pinned_consumer_image(o, i, end)?;
+    let mut consumer_image = pinned_consumer_image(o, i, end)?;
     match (o.control_fd, i.control_auth.as_ref()) {
         (None, None) => (),
         (Some(fd), Some(auth))
@@ -2994,7 +3039,7 @@ fn selected_image_pin(value: Option<&str>) -> Result<Option<Digest256>, String> 
 }
 
 fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
-    if args.len() > ARGC + 50
+    if args.len() > ARGC + 54
         || args.iter().any(|s| s.len() > PATH_BYTES)
         || args
             .iter()
@@ -3039,6 +3084,14 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     if expected_controller_sha256.is_some() != expected_consumer_sha256.is_some() {
         return Err("controller and consumer image pins must be selected together".into());
     }
+    let expected_unshare_sha256 = selected_image_pin(values.remove("--expected-unshare-sha256"))?;
+    let unshare_image_fd = values
+        .remove("--unshare-image-fd")
+        .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    if expected_unshare_sha256.is_some() != unshare_image_fd.is_some() {
+        return Err("unshare image digest and descriptor must be selected together".into());
+    }
     let controller_image_fd = values
         .remove("--controller-image-fd")
         .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
@@ -3060,6 +3113,21 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         (true, false, None, None) => (),
         (true, true, Some(controller), Some(consumer)) if controller >= 3 && consumer >= 3 => (),
         _ => return Err("inner pinned image descriptor/digest handoff differs".into()),
+    }
+    match (
+        inner_flag,
+        expected_controller_sha256.is_some(),
+        expected_unshare_sha256.is_some(),
+        unshare_image_fd,
+    ) {
+        (false, false, false, None) => (),
+        (false, true, true, Some(fd)) if fd >= 3 => (),
+        (true, _, false, None) => (),
+        _ => {
+            return Err(
+                "unshare image pin is outer issuer-only and must accompany compiler pins".into(),
+            );
+        }
     }
     let retained_fds = [
         values.remove("--state-reply-fd"),
@@ -3128,6 +3196,8 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         consumer: PathBuf::from(get("--consumer-cgroup")?),
         expected_controller_sha256,
         expected_consumer_sha256,
+        expected_unshare_sha256,
+        unshare_image_fd,
         scratch: PathBuf::from(get("--scratch-parent")?),
         quota: n!("--quota-bytes"),
         inodes: n!("--inodes"),
@@ -3525,6 +3595,10 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
     let o = Options {
         unshare,
         consumer: consumer.clone(),
+        expected_controller_sha256: None,
+        expected_consumer_sha256: None,
+        expected_unshare_sha256: None,
+        unshare_image_fd: None,
         scratch,
         quota: SDK_SETUP_BYTES,
         inodes: 65536,
