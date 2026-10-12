@@ -49,6 +49,10 @@ pub(crate) struct PgSourceTextIdentityObservation {
 }
 
 pub(crate) fn is_candidate(name: &str) -> bool {
+    // Schema documents describe this namespace; they do not own record IDs.
+    if name.ends_with(".schema.json") {
+        return false;
+    }
     (name.contains("source-text-unit")
         || name.contains("source-text-layer")
         || name.contains("source-anchor")
@@ -63,7 +67,7 @@ pub(crate) fn is_candidate(name: &str) -> bool {
 /// parser and index, but do not index TextLayer, TextUnit, Anchor or event
 /// members carried alongside an alignment record.
 pub(crate) fn is_alignment_candidate(name: &str) -> bool {
-    name.contains("translation-alignment") && name.ends_with(".json")
+    name.contains("translation-alignment") && name.ends_with(".json") && is_candidate(name)
 }
 
 fn same(meta: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
@@ -745,8 +749,36 @@ pub(crate) fn selected_public_identity_snapshot(
 
 #[cfg(test)]
 mod tests {
-    use super::{is_alignment_candidate, text_identity_ids_for_member};
+    use super::{is_alignment_candidate, is_candidate, text_identity_ids_for_member};
     use std::collections::BTreeSet;
+
+    #[test]
+    fn identity_candidates_distinguish_contracts_from_owned_records() {
+        for name in [
+            "native-translation-alignment-record-v1.schema.json",
+            "source-anchor-v2.schema.json",
+            "source-anchor.schema.json",
+            "source-text-layer.schema.json",
+            "source-text-unit-packet-v1.schema.json",
+            "translation-alignment-packet-v1.schema.json",
+        ] {
+            assert!(!is_candidate(name));
+            assert!(!is_alignment_candidate(name));
+            assert!(text_identity_ids_for_member(name, br#"{}"#).is_err());
+        }
+        for name in [
+            "native-translation-alignment.v1.json",
+            "source-anchor.v2.json",
+            "source-text-layer.v1.json",
+            "source-text-unit-packet.v1.json",
+            "translation-alignment-packet.v1.json",
+            "source-create-provenance.jsonl",
+        ] {
+            assert!(is_candidate(name));
+            // Missing schema_version still fails for actual record candidates.
+            assert!(text_identity_ids_for_member(name, br#"{}"#).is_err());
+        }
+    }
 
     #[test]
     fn alignment_identity_uses_only_translation_alignment_json_members() {
@@ -754,6 +786,9 @@ mod tests {
             "native-translation-alignment.v1.json"
         ));
         assert!(!is_alignment_candidate("source-create-provenance.jsonl"));
+        assert!(!is_alignment_candidate(
+            "translation-alignment-provenance.jsonl"
+        ));
         assert!(!is_alignment_candidate("source-text-unit-packet.v1.json"));
 
         let ids = text_identity_ids_for_member(

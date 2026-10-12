@@ -541,12 +541,14 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         node_id: "id.beta".into(),
         ..request.clone()
     };
-    let empty = source_descend(&mut model, &beta, budget()).unwrap();
-    let empty = parse_json(&empty, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-    assert_eq!(
-        field(field(empty.root(), "counts"), "edges").as_u64(),
-        Some(0)
-    );
+    {
+        let empty = source_descend(&mut model, &beta, budget()).unwrap();
+        let empty = parse_json(&empty, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        assert_eq!(
+            field(field(empty.root(), "counts"), "edges").as_u64(),
+            Some(0)
+        );
+    }
     let mut byte_tight = budget();
     byte_tight.max_bytes = 1;
     assert_eq!(
