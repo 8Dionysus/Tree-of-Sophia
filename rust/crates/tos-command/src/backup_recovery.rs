@@ -903,9 +903,13 @@ fn emit_archive_sql(
 ) -> io::Result<Vec<u8>> {
     let mut output = tempfile::tempfile()?;
     dump.seek(SeekFrom::Start(0))?;
+    // PostgreSQL 16 requires pg_restore to select a database or script output.
+    // Keep this inspection database-free; `--file=-` writes SQL to captured stdout.
+    let mut output_args = args.to_vec();
+    output_args.push("--file=-");
     tool(
         tool_spec,
-        args,
+        &output_args,
         Some(dump.try_clone()?),
         Some(output.try_clone()?),
         pg_url,

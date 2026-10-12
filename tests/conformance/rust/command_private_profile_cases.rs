@@ -200,7 +200,7 @@ fn selected_capture(
         ReadLimits {
             max_manifest_bytes: 1_048_576,
             max_manifest_entries: 512,
-            max_selected_object_bytes: 2_097_152,
+            max_selected_object_bytes: 4_194_304,
             json: JsonLimits::default(),
         },
         deadline,

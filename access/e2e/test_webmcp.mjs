@@ -266,7 +266,7 @@ test('test_corpus_note_exit_recovers_exact_draft',async()=>withVite(async base=>
 
 // 16. Two-connection collection deletion remains atomic.
 test('test_research_shelf_collection_delete_is_atomic',async()=>withVite(async base=>{
-  const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.TOS_E2E_CHROMIUM?{executablePath:process.env.TOS_E2E_CHROMIUM}:{})});try{const page=await browser.newPage({locale:'ru-RU'});await page.goto(base+'/static/fixtures/research-shelf.html',{waitUntil:'domcontentloaded'});const proof=page.locator('#research-shelf-proof[data-state]');await proof.waitFor({state:'visible'});const value=JSON.parse(await proof.innerText());assert.equal(await proof.getAttribute('data-state'),'passed');assert.ok(value.tests.collectionDetach.ok);assert.ok(value.tests.collectionDeleteRollback.ok);assert.ok(Object.values(value.tests).every(item=>item.ok));}finally{await browser.close();}
+  const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.TOS_E2E_CHROMIUM?{executablePath:process.env.TOS_E2E_CHROMIUM}:{})});try{const page=await browser.newPage({locale:'ru-RU'});await page.goto(base+'/static/fixtures/research-shelf.html',{waitUntil:'domcontentloaded'});const proof=page.locator('#research-shelf-proof[data-state]');await proof.waitFor({state:'visible'});const value=JSON.parse(await proof.innerText());assert.equal(await proof.getAttribute('data-state'),'passed',JSON.stringify(value));assert.ok(value.tests.collectionDetach.ok);assert.ok(value.tests.collectionDeleteRollback.ok);assert.ok(Object.values(value.tests).every(item=>item.ok));}finally{await browser.close();}
 }));
 
 // 17. A large relation area requires explicit all-tree scope confirmation.

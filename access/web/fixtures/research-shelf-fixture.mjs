@@ -1,4 +1,9 @@
+import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
+import {installResearchShelfRules} from '../src/research-shelf/rules.mjs';
 import {createResearchShelfStore} from '../src/research-shelf/storage.mjs';
+
+await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
+installResearchShelfRules(rules);
 
 const output=document.querySelector('#research-shelf-proof');
 const revision='a'.repeat(64),content='b'.repeat(64);
