@@ -814,13 +814,16 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const NIETZSCHE_AGENT_PATH: &str = "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json";
-    const NIETZSCHE_FORMS_PATH: &str =
-        "ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json";
-    const NIETZSCHE_AGENT_BYTES: &[u8] =
-        include_bytes!("../../../../ToS/source-witnesses/agents/friedrich-nietzsche/agent.json");
-    const NIETZSCHE_FORMS_BYTES: &[u8] = include_bytes!(
-        "../../../../ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json"
+    // Keep paired source-copy bytes inside the Rust fixture tree for sparse CI;
+    // these canonical virtual paths exercise adjacency without ToS/ checkout bytes.
+    const FIXTURE_AGENT_PATH: &str = "ToS/source-witnesses/agents/revision-fixture/agent.json";
+    const FIXTURE_FORMS_PATH: &str =
+        "ToS/source-witnesses/agents/revision-fixture/agent.human-forms.json";
+    const FIXTURE_AGENT_BYTES: &[u8] = include_bytes!(
+        "../tests/fixtures/source-native-python-v1/fixtures/record-family-3/ToS/source-witnesses/history/synthetic/episode/agent.json"
+    );
+    const FIXTURE_FORMS_BYTES: &[u8] = include_bytes!(
+        "../tests/fixtures/source-native-python-v1/fixtures/record-family-3/ToS/source-witnesses/history/synthetic/episode/agent.human-forms.json"
     );
     const HISTORY_CLAIMS_PATH: &str = concat!(
         "ToS/source-witnesses/history/",
@@ -830,12 +833,12 @@ mod tests {
     #[test]
     fn v2_maps_only_the_exact_adjacent_agent_source_paths() {
         assert_eq!(
-            agent_human_forms_path_for_metadata(NIETZSCHE_AGENT_PATH).as_deref(),
-            Some(NIETZSCHE_FORMS_PATH)
+            agent_human_forms_path_for_metadata(FIXTURE_AGENT_PATH).as_deref(),
+            Some(FIXTURE_FORMS_PATH)
         );
         assert_eq!(
-            agent_metadata_path_for_human_forms(NIETZSCHE_FORMS_PATH).as_deref(),
-            Some(NIETZSCHE_AGENT_PATH)
+            agent_metadata_path_for_human_forms(FIXTURE_FORMS_PATH).as_deref(),
+            Some(FIXTURE_AGENT_PATH)
         );
         assert!(
             agent_human_forms_path_for_metadata("ToS/source-witnesses/works/foo/work.json")
@@ -852,46 +855,44 @@ mod tests {
     #[test]
     fn v2_materializes_only_current_ready_agent_source_copy_forms() {
         let documents = project_source_text_v2(
-            NIETZSCHE_FORMS_PATH,
-            NIETZSCHE_FORMS_BYTES,
-            Some((NIETZSCHE_AGENT_PATH, NIETZSCHE_AGENT_BYTES)),
+            FIXTURE_FORMS_PATH,
+            FIXTURE_FORMS_BYTES,
+            Some((FIXTURE_AGENT_PATH, FIXTURE_AGENT_BYTES)),
         )
         .unwrap();
 
-        assert_eq!(documents.len(), 3);
+        assert_eq!(documents.len(), 2);
         let name = documents
             .iter()
-            .find(|document| {
-                document
-                    .id
-                    .ends_with("ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3")
-            })
+            .find(|document| document.id == "tos.form.revision-name")
             .unwrap();
         assert_eq!(name.kind, "human_form/name");
-        assert_eq!(name.title, "Friedrich Nietzsche");
+        assert_eq!(name.title, "Условный эпизод");
         assert_eq!(name.body, "");
         let hover = documents
             .iter()
             .find(|document| document.kind == "human_form/hover")
             .unwrap();
-        assert_eq!(
-            hover.body,
-            "Author identity is established for the current route. The DNB/GND authority identifier is reconciled through the exact Ecce Homo work and 1908-edition discovery record."
+        assert_eq!(hover.id, "tos.form.revision-note");
+        assert_eq!(hover.body, "Не историческое свидетельство.");
+        assert!(
+            documents.iter().all(|document| {
+                document.dependencies == [FIXTURE_FORMS_PATH, FIXTURE_AGENT_PATH]
+            })
         );
-        assert!(documents.iter().all(|document| {
-            document.dependencies == [NIETZSCHE_FORMS_PATH, NIETZSCHE_AGENT_PATH]
-        }));
     }
 
     #[test]
     fn v2_withholds_source_copy_when_exact_agent_input_makes_pair_stale() {
-        let changed_agent = std::str::from_utf8(NIETZSCHE_AGENT_BYTES)
-            .unwrap()
-            .replacen("Friedrich Nietzsche", "Changed Nietzsche", 1);
+        let changed_agent = std::str::from_utf8(FIXTURE_AGENT_BYTES).unwrap().replacen(
+            "Условный эпизод",
+            "Изменённый эпизод",
+            1,
+        );
         let documents = project_source_text_v2(
-            NIETZSCHE_FORMS_PATH,
-            NIETZSCHE_FORMS_BYTES,
-            Some((NIETZSCHE_AGENT_PATH, changed_agent.as_bytes())),
+            FIXTURE_FORMS_PATH,
+            FIXTURE_FORMS_BYTES,
+            Some((FIXTURE_AGENT_PATH, changed_agent.as_bytes())),
         )
         .unwrap();
         assert!(documents.is_empty());
@@ -901,11 +902,11 @@ mod tests {
     fn v2_rejects_non_adjacent_sibling_bytes() {
         assert_eq!(
             project_source_text_v2(
-                NIETZSCHE_FORMS_PATH,
-                NIETZSCHE_FORMS_BYTES,
+                FIXTURE_FORMS_PATH,
+                FIXTURE_FORMS_BYTES,
                 Some((
                     "ToS/source-witnesses/agents/other/agent.json",
-                    NIETZSCHE_AGENT_BYTES
+                    FIXTURE_AGENT_BYTES
                 )),
             ),
             Err("sibling metadata path does not match HumanForms source")

@@ -334,6 +334,11 @@ fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
             "tos_corpus_mcp_search_v2",
         ),
         (
+            "search-filtered",
+            "tos_corpus_mcp_search_v1",
+            "tos_corpus_mcp_search_v2",
+        ),
+        (
             "packet",
             "tos_corpus_mcp_packet_v1",
             "tos_corpus_mcp_packet_v2",
@@ -348,7 +353,10 @@ fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
         replace_exact_string(field_mut(response, "schema"), historical, native);
         adapted += 1;
     }
-    assert_eq!(adapted, 3, "only the three versioned search packets adapt");
+    assert_eq!(
+        adapted, 4,
+        "both search branches and both composed packets use the current schemas"
+    );
 }
 
 fn adapt_historical_contract_availability(oracle: &mut JsonValue) {

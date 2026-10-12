@@ -8,6 +8,7 @@ use std::fs;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
+use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_segment_store::{SegmentLimits, SegmentStore};
@@ -57,6 +58,9 @@ fn family_tagged_source_revision_read_envelope_roundtrips_exact_event_cut() {
             source_head_sequence: 41,
             predecessor_source_revision: SourceRevision(Digest256::of_bytes(b"predecessor")),
             request_canonical_digest: None,
+            owner_configuration_raw: None,
+            owner_configuration_raw_digest: None,
+            owner_configuration_canonical_digest: None,
         }),
     };
     let encoded = reads_bytes(&reads).expect("family-tagged read envelope encodes");
@@ -1328,12 +1332,7 @@ fn private_owner_read_waits_for_writer_commit_before_repeatable_read_snapshot() 
         .commit_private_owner_package(&mut initial_capability)
         .expect("initial owner package is committed through the private package broker");
     let old_snapshot = writer
-        .read_private_owner_current(
-            &scope,
-            target_ref,
-            Instant::now() + Duration::from_secs(5),
-            &cancelled,
-        )
+        .read_private_owner_current(&scope, target_ref)
         .unwrap()
         .expect("initial private current package exists");
     assert_eq!(
