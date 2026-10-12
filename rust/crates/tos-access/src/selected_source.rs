@@ -26,7 +26,10 @@ fn unavailable() -> AccessError {
 fn owner_error(error: tos_command::source_command::SourceCommandError) -> AccessError {
     use tos_command::source_command::SourceCommandError as E;
     let (code, message) = match error {
-        E::Invalid(message) => (AccessErrorCode::InvalidRequest, message),
+        E::Invalid(message)
+        | E::InvalidAt {
+            reason: message, ..
+        } => (AccessErrorCode::InvalidRequest, message),
         E::Conflict(message) => (AccessErrorCode::StaleSelection, message),
         E::Denied(message) => (AccessErrorCode::PolicyDenied, message),
         E::DeniedWithReason(_) => (AccessErrorCode::PolicyDenied, "source owner access refused"),
