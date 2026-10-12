@@ -9,9 +9,9 @@ use crate::source_creation_store::{LegacyArchiveReader, LegacyPackage};
 use crate::{source_claims, source_forms, source_revisions};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
+use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::CorpusCutReader;
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
@@ -40,6 +40,7 @@ const CLAIM_REGISTRY_REFS: &[&str] = &[
 ];
 const HISTORICAL_GROUND_IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+    "rust/crates/tos-command/src/source_claims.rs",
     "rust/crates/tos-command/src/source_corpus_index_projection.rs",
     "rust/crates/tos-compiler/src/source_bibliographic.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
@@ -56,6 +57,29 @@ const REVISION_IMPLEMENTATIONS: &[&str] = &[
     "ToS/contracts/human-form-template.schema.json",
 ];
 const SOURCE_HISTORY: &str = "source-revision-history.json";
+
+pub(crate) fn pg_required_contract_paths() -> Vec<String> {
+    CLAIM_SCHEMA_CONTRACTS
+        .iter()
+        .chain(CLAIM_REGISTRY_REFS)
+        .chain(
+            REVISION_IMPLEMENTATIONS
+                .iter()
+                .filter(|name| name.starts_with("ToS/contracts/")),
+        )
+        .chain(
+            [
+                "ToS/contracts/semantic-entity-type-registry.schema.json",
+                "ToS/contracts/semantic-relation-type-registry.schema.json",
+                "ToS/contracts/provenance-event-v2.schema.json",
+            ]
+            .iter(),
+        )
+        .map(|name| (*name).to_owned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
 
 pub(crate) struct LegacyClaimPlan {
     pub(crate) files: Option<LegacyPackage>,
@@ -79,6 +103,170 @@ struct Owner {
 struct History {
     payload: JsonValue,
     initial_stream: Vec<u8>,
+}
+
+/// Exact point lookups from the maintained PG identity index. Absence is a
+/// first-class result; this is a selected dependency closure, never a claim
+/// that all authored identities were materialized.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct HistoricalIdentityIndex {
+    pub(crate) entries: BTreeMap<String, Option<(String, RelativePath)>>,
+}
+
+impl HistoricalIdentityIndex {
+    fn resolution(&self, token: &str) -> SourceCommandResult<Option<&(String, RelativePath)>> {
+        self.entries
+            .get(token)
+            .map(Option::as_ref)
+            .ok_or(SourceCommandError::Conflict(
+                "historical Claim PG identity input was not selected",
+            ))
+    }
+
+    fn selected_digest(&self) -> SourceCommandResult<JsonValue> {
+        self.entries
+            .iter()
+            .map(|(token, resolution)| {
+                let value = match resolution {
+                    Some((kind, path)) => cmd::object(vec![
+                        ("kind", cmd::string(kind)),
+                        ("path", cmd::string(path.as_str())),
+                    ]),
+                    None => JsonValue::Null,
+                };
+                Ok((JsonString::from_utf8(token), value))
+            })
+            .collect::<SourceCommandResult<Vec<_>>>()
+            .map(JsonValue::Object)
+    }
+}
+
+trait HistoricalCurrentSource {
+    fn revision(&self) -> SourceRevision;
+    fn identity_index(&self) -> Option<&HistoricalIdentityIndex> {
+        None
+    }
+    fn member_metadata(&self, path: &RelativePath)
+    -> SourceCommandResult<Option<(Digest256, u64)>>;
+    fn read_member(
+        &self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>>;
+}
+
+struct CorpusHistoricalCurrentSource<'a>(&'a CorpusCutReader);
+
+impl HistoricalCurrentSource for CorpusHistoricalCurrentSource<'_> {
+    fn revision(&self) -> SourceRevision {
+        self.0.current().revision()
+    }
+
+    fn member_metadata(
+        &self,
+        path: &RelativePath,
+    ) -> SourceCommandResult<Option<(Digest256, u64)>> {
+        Ok(self
+            .0
+            .current()
+            .member(path)
+            .map(|member| (member.sha256, member.size_bytes)))
+    }
+
+    fn read_member(
+        &self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        self.0
+            .read_member(revision, path, max_bytes as u64, deadline, cancelled)
+            .map(|member| member.raw)
+            .map_err(|_| {
+                SourceCommandError::Conflict("historical Claim secure source read refused")
+            })
+    }
+}
+
+struct MembersHistoricalCurrentSource<'a> {
+    revision: SourceRevision,
+    members: &'a [SourceFile],
+    identity_index: Option<&'a HistoricalIdentityIndex>,
+}
+
+impl HistoricalCurrentSource for MembersHistoricalCurrentSource<'_> {
+    fn revision(&self) -> SourceRevision {
+        self.revision
+    }
+
+    fn identity_index(&self) -> Option<&HistoricalIdentityIndex> {
+        self.identity_index
+    }
+
+    fn member_metadata(
+        &self,
+        path: &RelativePath,
+    ) -> SourceCommandResult<Option<(Digest256, u64)>> {
+        let mut found = None;
+        for member in self.members {
+            if member.path != *path {
+                continue;
+            }
+            if found.is_some() {
+                return Err(SourceCommandError::Invalid(
+                    "duplicate historical Claim current member",
+                ));
+            }
+            found = Some((Digest256::of_bytes(&member.raw), member.raw.len() as u64));
+        }
+        Ok(found)
+    }
+
+    fn read_member(
+        &self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        if revision != self.revision {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim source revision differs",
+            ));
+        }
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(SourceCommandError::Denied(
+                "historical Claim source read cancelled or expired",
+            ));
+        }
+        let mut found = None;
+        for member in self.members {
+            if member.path != *path {
+                continue;
+            }
+            if found.is_some() {
+                return Err(SourceCommandError::Invalid(
+                    "duplicate historical Claim current member",
+                ));
+            }
+            found = Some(member.raw.as_slice());
+        }
+        let raw = found.ok_or(SourceCommandError::Unsupported(
+            "historical Claim source member absent",
+        ))?;
+        if raw.len() > max_bytes {
+            return Err(SourceCommandError::Invalid(
+                "historical Claim source member byte budget",
+            ));
+        }
+        Ok(raw.to_vec())
+    }
 }
 
 fn invalid() -> SourceCommandError {
@@ -201,7 +389,8 @@ fn form_id(value: &str) -> bool {
 
 fn owner(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
+    authored_members: &[SourceFile],
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -330,11 +519,21 @@ fn owner(
     }
     let contracts = contract_digests(ctx)?;
     let form_identity_inputs = if !is_revision {
-        let inventory =
-            source_claims::maintained_inventory_from_cut(ctx, cut, worker, deadline, cancelled)?;
-        form_identity_inputs(
-            ctx, cut, &inventory, &config, &path, id, worker, deadline, cancelled,
-        )?
+        if let Some(index) = cut.identity_index() {
+            selected_form_identity_inputs(ctx, index, &config, &path, id)?
+        } else {
+            let inventory = source_claims::maintained_inventory_from_members(
+                ctx,
+                authored_members,
+                false,
+                worker,
+                deadline,
+                cancelled,
+            )?;
+            form_identity_inputs(
+                ctx, cut, &inventory, &config, &path, id, worker, deadline, cancelled,
+            )?
+        }
     } else {
         cmd::object(vec![])
     };
@@ -375,7 +574,7 @@ fn owner(
 /// form lineage; every sibling set is an identity collision boundary.
 fn form_identity_inputs(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
     inventory: &source_claims::MaintainedInventory,
     config: &JsonValue,
     target: &RelativePath,
@@ -442,18 +641,19 @@ fn form_identity_inputs(
     let mut inputs = Vec::new();
     for name in paths {
         let path = rel(&name)?;
-        if cut.current().member(&path).is_none() {
+        if cut.member_metadata(&path)?.is_none() {
             continue;
         }
         let raw = ctx.file(&path)?.ok_or(SourceCommandError::Unsupported(
             "complete historical Claim form inventory input absent",
         ))?;
-        let secure = cut
-            .read_member(ctx.base_revision, &path, 2_097_152, deadline, cancelled)
-            .map_err(|_| {
-                SourceCommandError::Conflict("historical Claim form inventory read refused")
-            })?;
-        if secure.raw != raw {
+        let secure = cut.read_member(ctx.base_revision, &path, 2_097_152, deadline, cancelled)?;
+        let (digest, size) = cut
+            .member_metadata(&path)?
+            .ok_or(SourceCommandError::Conflict(
+                "historical Claim form inventory member disappeared",
+            ))?;
+        if secure != raw || digest != Digest256::of_bytes(raw) || size != raw.len() as u64 {
             return Err(SourceCommandError::Conflict(
                 "historical Claim form inventory differs from authored cut",
             ));
@@ -502,6 +702,156 @@ fn form_identity_inputs(
         ));
     }
     Ok(JsonValue::Object(inputs))
+}
+
+fn selected_form_identity_inputs(
+    ctx: &CommandContext,
+    index: &HistoricalIdentityIndex,
+    config: &JsonValue,
+    target: &RelativePath,
+    claim_id: &str,
+) -> SourceCommandResult<JsonValue> {
+    let allocated = texts(config, "allowed_form_ids", 32)?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let target_form = package_form_name(target.as_str(), claim_id)?;
+    let target_form_path = format!(
+        "{}/{}",
+        target.as_str().rsplit_once('/').ok_or(invalid())?.0,
+        target_form
+    );
+    let mut selected_form_ids = BTreeMap::new();
+    for member in &ctx.files {
+        if !member.path.as_str().ends_with(".human-forms.json")
+            || member.path.as_str().contains("/.record-revisions/")
+        {
+            continue;
+        }
+        let set = cmd::parse(&member.raw)?;
+        let mut ids = BTreeSet::new();
+        for section in ["forms", "prior_forms"] {
+            for form in cmd::array(&set, section)? {
+                ids.insert(cmd::text(form, "form_id")?.to_owned());
+            }
+        }
+        selected_form_ids.insert(member.path.as_str().to_owned(), ids);
+    }
+    let mut inputs = Vec::new();
+    for id in allocated {
+        let value = match index.resolution(&id)? {
+            None if selected_form_ids.values().any(|ids| ids.contains(&id)) => {
+                return Err(SourceCommandError::Conflict(
+                    "historical Claim selected form is missing from PG identity index",
+                ));
+            }
+            None => JsonValue::Null,
+            Some((kind, path)) if kind == "form" && path.as_str() == target_form_path => {
+                let raw = ctx.file(path)?.ok_or(SourceCommandError::Conflict(
+                    "historical Claim indexed form set is absent",
+                ))?;
+                let set = cmd::parse(raw)?;
+                let present = ["forms", "prior_forms"].into_iter().any(|key| {
+                    set.object_get(key)
+                        .and_then(JsonValue::as_array)
+                        .is_some_and(|forms| {
+                            forms.iter().any(|form| {
+                                form.object_get("form_id").and_then(JsonValue::as_str)
+                                    == Some(id.as_str())
+                            })
+                        })
+                });
+                if !present {
+                    return Err(SourceCommandError::Conflict(
+                        "historical Claim indexed form identity differs from its selected set",
+                    ));
+                }
+                cmd::object(vec![
+                    ("kind", cmd::string(kind)),
+                    ("path", cmd::string(path.as_str())),
+                ])
+            }
+            Some(_) => {
+                return Err(SourceCommandError::Conflict(
+                    "form identity already exists on another subject",
+                ));
+            }
+        };
+        inputs.push((JsonString::from_utf8(&id), value));
+    }
+    Ok(JsonValue::Object(inputs))
+}
+
+/// Return the source identity tokens and direct ToS path evidence needed by a
+/// historical Claim revision or form operation. The caller resolves identity
+/// tokens through the admitted PG index, reads direct ToS paths exactly, and
+/// binds all results into the prepared readset.
+pub(crate) fn required_identity_tokens(
+    config_raw: &[u8],
+    current: &LegacyPackage,
+    operation: &str,
+) -> SourceCommandResult<BTreeSet<String>> {
+    let config = cmd::parse(config_raw)?;
+    let owner_schema = cmd::text(&config, "schema_version")?;
+    let needs_form_collisions = owner_schema == FORM_OWNER;
+    let needs_grounding =
+        owner_schema == REVISION_OWNER && matches!(operation, "prepare-revise" | "claim.revise");
+    if !needs_form_collisions && !needs_grounding {
+        return Ok(BTreeSet::new());
+    }
+    let claim_id = cmd::text(&config, "claim_id")?;
+    let stream = current.get(STREAM).ok_or(invalid())?;
+    let mut rows = claim_rows(stream)?;
+    let claim = rows.remove(claim_id).ok_or(SourceCommandError::Conflict(
+        "delegated historical Claim is absent",
+    ))?;
+    let mut tokens = BTreeSet::new();
+    if needs_grounding {
+        tokens.insert(cmd::text(&claim, "subject_ref")?.to_owned());
+        let object = cmd::field(&claim, "object")?;
+        if let Some(id) = object.as_str() {
+            tokens.insert(id.to_owned());
+        } else if let Some(id) = object
+            .object_get("relative")
+            .and_then(|value| value.object_get("anchor_ref"))
+            .and_then(JsonValue::as_str)
+        {
+            tokens.insert(id.to_owned());
+        }
+        tokens.insert(cmd::text(&claim, "provenance_event_ref")?.to_owned());
+        for key in ["evidence_refs", "counterevidence_refs"] {
+            if let Some(values) = claim.object_get(key) {
+                for value in values.as_array().ok_or(invalid())? {
+                    let reference = value.as_str().ok_or(invalid())?;
+                    tokens.insert(reference.to_owned());
+                }
+            }
+        }
+    }
+    if needs_form_collisions || needs_grounding {
+        for id in texts(&config, "allowed_form_ids", 32)? {
+            if !form_id(&id) {
+                return Err(SourceCommandError::Denied(
+                    "historical Claim form identity scope",
+                ));
+            }
+            tokens.insert(id);
+        }
+    }
+    let token_bytes = tokens.iter().try_fold(0usize, |sum, token| {
+        if token.len() > 8_192 {
+            return None;
+        }
+        sum.checked_add(token.len())
+    });
+    if tokens.iter().any(String::is_empty)
+        || tokens.len() > 256
+        || token_bytes.is_none_or(|bytes| bytes > 131_072)
+    {
+        return Err(SourceCommandError::Invalid(
+            "historical Claim identity lookup budget",
+        ));
+    }
+    Ok(tokens)
 }
 
 fn validate_request_shape(request: &JsonValue, revision: bool) -> SourceCommandResult<()> {
@@ -614,6 +964,14 @@ fn claim_rows(raw: &[u8]) -> SourceCommandResult<BTreeMap<String, JsonValue>> {
         }
     }
     Ok(rows)
+}
+
+pub(crate) fn pg_selected_claim(raw: &[u8], claim_id: &str) -> SourceCommandResult<JsonValue> {
+    claim_rows(raw)?
+        .remove(claim_id)
+        .ok_or(SourceCommandError::Conflict(
+            "historical Claim selected form source is absent",
+        ))
 }
 
 fn subject(record: &JsonValue) -> SourceCommandResult<JsonValue> {
@@ -2343,14 +2701,14 @@ fn creation_lineage(
 
 fn validate_cut(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
     path: &RelativePath,
     current: &LegacyPackage,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     ctx.check()?;
-    if cut.current().revision() != ctx.base_revision {
+    if cut.revision() != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
             "historical Claim source cut changed",
         ));
@@ -2363,21 +2721,18 @@ fn validate_cut(
             "historical Claim package differs from source cut",
         ));
     }
-    let metadata = cut
-        .current()
-        .member(path)
+    let (digest, size) = cut
+        .member_metadata(path)?
         .ok_or(SourceCommandError::Conflict(
             "historical Claim stream absent from anchored source cut",
         ))?;
-    if metadata.sha256 != Digest256::of_bytes(bytes) || metadata.size_bytes != bytes.len() as u64 {
+    if digest != Digest256::of_bytes(bytes) || size != bytes.len() as u64 {
         return Err(SourceCommandError::Conflict(
             "historical Claim source cut descriptor differs",
         ));
     }
-    let member = cut
-        .read_member(ctx.base_revision, path, 1_048_576, deadline, cancelled)
-        .map_err(|_| SourceCommandError::Conflict("historical Claim secure source read refused"))?;
-    if member.raw != bytes {
+    let member = cut.read_member(ctx.base_revision, path, 1_048_576, deadline, cancelled)?;
+    if member != bytes {
         return Err(SourceCommandError::Conflict(
             "historical Claim secure source read differs",
         ));
@@ -2527,15 +2882,122 @@ fn claim_scope(owner: &Owner, request: &JsonValue, record: &JsonValue) -> Source
 
 fn historical_grounding(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
+    authored_members: &[SourceFile],
     config: &JsonValue,
     claim: &JsonValue,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(String, JsonValue)> {
-    let inventory =
-        source_claims::maintained_inventory_from_cut(ctx, cut, worker, deadline, cancelled)?;
+    let (
+        objects,
+        events,
+        anchors,
+        record_inputs,
+        native_identity_snapshot,
+        native_text_snapshot,
+        form_inputs,
+        identity_index_digest,
+    ) = if let Some(index) = cut.identity_index() {
+        let selected = source_claims::maintained_selected_identity_closure(
+            ctx,
+            authored_members,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        for (token, resolution) in &index.entries {
+            let Some((kind, path)) = resolution else {
+                if selected.objects.contains_key(token)
+                    || selected.events.object_get(token).is_some()
+                    || selected.anchors.object_get(token).is_some()
+                    || selected.claims.contains_key(token)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "historical Claim PG identity absence differs from selected bytes",
+                    ));
+                }
+                continue;
+            };
+            let indexed_path = path.as_str();
+            let selected_path = match kind.as_str() {
+                "metadata" => selected
+                    .objects
+                    .get(token)
+                    .and_then(|entry| entry.object_get("source_record_ref"))
+                    .and_then(JsonValue::as_str),
+                "event" => selected
+                    .events
+                    .object_get(token)
+                    .and_then(|entry| entry.object_get("source_ref"))
+                    .and_then(JsonValue::as_str),
+                "anchor" => selected
+                    .anchors
+                    .object_get(token)
+                    .and_then(|entry| entry.object_get("source_ref"))
+                    .and_then(JsonValue::as_str),
+                "claim" | "form" => continue,
+                _ => {
+                    return Err(SourceCommandError::Conflict(
+                        "historical Claim identity index kind is unsupported",
+                    ));
+                }
+            };
+            if selected_path != Some(indexed_path) {
+                return Err(SourceCommandError::Conflict(
+                    "historical Claim selected identity differs from PG index",
+                ));
+            }
+        }
+        let form_inputs = selected_form_identity_inputs(
+            ctx,
+            index,
+            config,
+            &rel(cmd::text(config, "source_path")?)?,
+            cmd::text(config, "claim_id")?,
+        )?;
+        (
+            selected.objects,
+            selected.events,
+            selected.anchors,
+            selected.record_inputs,
+            None,
+            None,
+            form_inputs,
+            Some(index.selected_digest()?),
+        )
+    } else {
+        let inventory = source_claims::maintained_inventory_from_members(
+            ctx,
+            authored_members,
+            false,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        let form_inputs = form_identity_inputs(
+            ctx,
+            cut,
+            &inventory,
+            config,
+            &rel(cmd::text(config, "source_path")?)?,
+            cmd::text(config, "claim_id")?,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        (
+            inventory.objects,
+            inventory.events,
+            inventory.anchors,
+            inventory.record_inputs,
+            inventory.native_identity_snapshot,
+            inventory.native_text_snapshot,
+            form_inputs,
+            None,
+        )
+    };
     let entities = ctx
         .file(&rel(
             "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -2571,7 +3033,7 @@ fn historical_grounding(
             "historical predicate registry mapping",
         ));
     }
-    let objects = &inventory.objects;
+    let objects = &objects;
     let subject_id = cmd::text(claim, "subject_ref")?;
     let object_value = cmd::field(claim, "object")?;
     let mut identities = BTreeSet::from([subject_id.to_owned()]);
@@ -2644,8 +3106,7 @@ fn historical_grounding(
             ));
         }
     }
-    if !inventory
-        .events
+    if !events
         .object_get(cmd::text(claim, "provenance_event_ref")?)
         .is_some()
     {
@@ -2680,11 +3141,7 @@ fn historical_grounding(
                     }
                 }
                 evidence_bindings.push(source_claims::maintained_evidence(
-                    ctx,
-                    reference,
-                    objects,
-                    &inventory.anchors,
-                    &inventory.events,
+                    ctx, reference, objects, &anchors, &events,
                 )?);
             }
         }
@@ -2752,10 +3209,13 @@ fn historical_grounding(
             ]),
         ));
     }
-    let bindings = cmd::object(vec![
+    let mut bindings = cmd::object(vec![
         ("objects", JsonValue::Object(object_bindings)),
         ("evidence", JsonValue::Object(bound_evidence)),
     ]);
+    if let Some(index) = &identity_index_digest {
+        cmd::set(&mut bindings, "identity_index", index.clone())?;
+    }
     let contracts = contract_digests(ctx)?;
     let mut implementation = Vec::new();
     for name in HISTORICAL_GROUND_IMPLEMENTATIONS {
@@ -2769,20 +3229,8 @@ fn historical_grounding(
             cmd::string(&Digest256::of_bytes(bytes).to_prefixed()),
         ));
     }
-    let form_inputs = form_identity_inputs(
-        ctx,
-        cut,
-        &inventory,
-        config,
-        &rel(cmd::text(config, "source_path")?)?,
-        cmd::text(config, "claim_id")?,
-        worker,
-        deadline,
-        cancelled,
-    )?;
     let source_contracts = JsonValue::Object(
-        inventory
-            .record_inputs
+        record_inputs
             .as_object()
             .ok_or(invalid())?
             .iter()
@@ -2793,10 +3241,10 @@ fn historical_grounding(
             .collect::<SourceCommandResult<Vec<_>>>()?,
     );
     let mut profile_inputs = vec![("source_contracts", source_contracts)];
-    if let Some(snapshot) = &inventory.native_identity_snapshot {
+    if let Some(snapshot) = &native_identity_snapshot {
         profile_inputs.push(("native_semantic_identity_snapshot", cmd::string(snapshot)));
     }
-    if let Some(snapshot) = &inventory.native_text_snapshot {
+    if let Some(snapshot) = &native_text_snapshot {
         let mut native_implementation = Vec::new();
         for name in [
             "rust/crates/tos-command/src/source_sign_native.rs",
@@ -2818,7 +3266,7 @@ fn historical_grounding(
         ));
         profile_inputs.push(("native_text_binding_snapshot", cmd::string(snapshot)));
     }
-    let ground = cmd::object(vec![
+    let mut ground = cmd::object(vec![
         ("contracts", contracts),
         (
             "objects",
@@ -2830,12 +3278,15 @@ fn historical_grounding(
             ),
         ),
         ("profiles", cmd::object(profile_inputs)),
-        ("events", inventory.events),
-        ("anchors", inventory.anchors),
+        ("events", events),
+        ("anchors", anchors),
         ("bindings", bindings.clone()),
         ("form_identity_inputs", form_inputs),
         ("implementation", JsonValue::Object(implementation.clone())),
     ]);
+    if let Some(index) = identity_index_digest {
+        cmd::set(&mut ground, "identity_index", index)?;
+    }
     let grounding = cmd::record_digest(&ground)?.to_prefixed();
     let mut revision_implementation = Vec::new();
     for name in REVISION_IMPLEMENTATIONS {
@@ -2860,7 +3311,8 @@ fn historical_grounding(
 
 fn revision_proposal(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
+    authored_members: &[SourceFile],
     owner: &Owner,
     current: &LegacyPackage,
     claim: &JsonValue,
@@ -2882,6 +3334,7 @@ fn revision_proposal(
     let (dependencies, bindings) = historical_grounding(
         ctx,
         cut,
+        authored_members,
         &owner.config,
         &revised,
         worker,
@@ -2961,7 +3414,6 @@ fn revision_result(
 
 fn validate_claim_head(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
     owner: &Owner,
     current: &LegacyPackage,
     history: &History,
@@ -3010,13 +3462,14 @@ fn validate_claim_head(
         )?;
         let _ = source_forms::materialize_source_forms(&claim, set)?;
     }
-    let _ = (cut, reader, worker, deadline, cancelled);
+    let _ = (reader, worker, deadline, cancelled);
     Ok((claim, set))
 }
 
 fn prepare_revision(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
+    authored_members: &[SourceFile],
     owner: &Owner,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
@@ -3039,7 +3492,6 @@ fn prepare_revision(
     )?;
     let (claim, forms) = validate_claim_head(
         ctx,
-        cut,
         owner,
         current,
         &history,
@@ -3098,6 +3550,7 @@ fn prepare_revision(
         let (revised, _, views, refs, dependencies, bindings) = revision_proposal(
             ctx,
             cut,
+            authored_members,
             owner,
             current,
             &claim,
@@ -3186,6 +3639,7 @@ fn prepare_revision(
     let (revised, proposed, views, refs, dependencies, bindings) = revision_proposal(
         ctx,
         cut,
+        authored_members,
         owner,
         current,
         &claim,
@@ -3294,7 +3748,8 @@ fn prepare_revision(
 
 fn prepare_forms(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &impl HistoricalCurrentSource,
+    authored_members: &[SourceFile],
     owner: &Owner,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
@@ -3317,7 +3772,6 @@ fn prepare_forms(
     )?;
     let (claim, set) = validate_claim_head(
         ctx,
-        cut,
         owner,
         current,
         &history,
@@ -3686,6 +4140,74 @@ fn form_result(
     Ok(result)
 }
 
+fn validate_authored_members(
+    ctx: &CommandContext,
+    authored_members: &[SourceFile],
+) -> SourceCommandResult<()> {
+    let mut selected = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .cloned()
+        .collect::<Vec<_>>();
+    selected.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut supplied = authored_members.to_vec();
+    supplied.sort_by(|left, right| left.path.cmp(&right.path));
+    if selected != supplied
+        || supplied.windows(2).any(|pair| pair[0].path == pair[1].path)
+        || supplied
+            .iter()
+            .any(|file| !file.path.as_str().starts_with("ToS/"))
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim context differs from selected authored members",
+        ));
+    }
+    Ok(())
+}
+
+fn prepare_with_source(
+    ctx: &CommandContext,
+    cut: &impl HistoricalCurrentSource,
+    authored_members: &[SourceFile],
+    current: &LegacyPackage,
+    reader: &mut impl LegacyArchiveReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<LegacyClaimPlan> {
+    validate_authored_members(ctx, authored_members)?;
+    let owner = owner(ctx, cut, authored_members, worker, deadline, cancelled)?;
+    // Validate both independently retained ledgers' exact locators and the
+    // combined bounded archive set before streaming any historical packages.
+    let _archive_refs = required_archives(current, &owner.config)?;
+    if cmd::text(&owner.config, "schema_version")? == REVISION_OWNER {
+        prepare_revision(
+            ctx,
+            cut,
+            authored_members,
+            &owner,
+            current,
+            reader,
+            worker,
+            deadline,
+            cancelled,
+        )
+    } else {
+        prepare_forms(
+            ctx,
+            cut,
+            authored_members,
+            &owner,
+            current,
+            reader,
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+}
+
 pub(crate) fn prepare(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
@@ -3695,17 +4217,553 @@ pub(crate) fn prepare(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<LegacyClaimPlan> {
-    let owner = owner(ctx, cut, worker, deadline, cancelled)?;
-    // Validate both independently retained ledgers' exact locators and the
-    // combined bounded archive set before streaming any historical packages.
-    let _archive_refs = required_archives(current, &owner.config)?;
-    if cmd::text(&owner.config, "schema_version")? == REVISION_OWNER {
-        prepare_revision(
-            ctx, cut, &owner, current, reader, worker, deadline, cancelled,
+    let authored_members = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .cloned()
+        .collect::<Vec<_>>();
+    prepare_with_source(
+        ctx,
+        &CorpusHistoricalCurrentSource(cut),
+        &authored_members,
+        current,
+        reader,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn prepare_from_members(
+    ctx: &CommandContext,
+    source_revision: SourceRevision,
+    authored_members: &[SourceFile],
+    current: &LegacyPackage,
+    reader: &mut impl LegacyArchiveReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<LegacyClaimPlan> {
+    if source_revision != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim PG source revision differs",
+        ));
+    }
+    prepare_with_source(
+        ctx,
+        &MembersHistoricalCurrentSource {
+            revision: source_revision,
+            members: authored_members,
+            identity_index: None,
+        },
+        authored_members,
+        current,
+        reader,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn prepare_from_indexed_members(
+    ctx: &CommandContext,
+    source_revision: SourceRevision,
+    authored_members: &[SourceFile],
+    identity_index: &HistoricalIdentityIndex,
+    current: &LegacyPackage,
+    reader: &mut impl LegacyArchiveReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<LegacyClaimPlan> {
+    if source_revision != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim PG source revision differs",
+        ));
+    }
+    let operation = cmd::text(&cmd::parse(&ctx.request_raw)?, "operation")?;
+    let required = required_identity_tokens(&ctx.configuration_raw, current, operation)?
+        .into_iter()
+        .filter(|token| !token.starts_with("ToS/"))
+        .collect::<BTreeSet<_>>();
+    if identity_index
+        .entries
+        .keys()
+        .cloned()
+        .collect::<BTreeSet<_>>()
+        != required
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim PG identity lookup set differs",
+        ));
+    }
+    prepare_with_source(
+        ctx,
+        &MembersHistoricalCurrentSource {
+            revision: source_revision,
+            members: authored_members,
+            identity_index: Some(identity_index),
+        },
+        authored_members,
+        current,
+        reader,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Derive the digest-only historical Claim owner closure for the exact
+/// successor already prepared by this owner. This stays separate from the
+/// global Claim inventory contract: historical Claims have their own stream,
+/// creation receipt and retained archive protocol.
+pub(crate) fn pg_revision_owner_contribution(
+    ctx: &CommandContext,
+    proposal: &PreparedCommand,
+) -> SourceCommandResult<JsonValue> {
+    if proposal.replayed || proposal.operation != "claim.revise" || proposal.changes.is_empty() {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim owner projection requires a fresh revision",
+        ));
+    }
+    let config = cmd::parse(&ctx.configuration_raw)?;
+    if cmd::text(&config, "schema_version")? != REVISION_OWNER {
+        return Err(SourceCommandError::Denied(
+            "historical Claim owner projection configuration",
+        ));
+    }
+    let source_path = cmd::text(&config, "source_path")?;
+    let home = source_path
+        .strip_suffix(&format!("/{STREAM}"))
+        .ok_or(invalid())?;
+    let claim_id = cmd::text(&config, "claim_id")?;
+    let current = pg_package_from_context(ctx, home)?;
+    let mut successor = current.clone();
+    for change in &proposal.changes {
+        let path = change.path.as_str();
+        let Some(name) = path.strip_prefix(&format!("{home}/")) else {
+            continue;
+        };
+        if name.is_empty() || name.contains('/') {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim successor is not a flat owner package",
+            ));
+        }
+        let before = successor.get(name);
+        match (change.before, before) {
+            (None, None) => {}
+            (Some(expected), Some(raw)) if Digest256::of_bytes(raw) == expected => {}
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "historical Claim successor predecessor differs",
+                ));
+            }
+        }
+        match &change.after {
+            Some(raw) => {
+                successor.insert(name.to_owned(), raw.clone());
+            }
+            None => {
+                successor.remove(name);
+            }
+        }
+    }
+    let current_stream = current.get(STREAM).ok_or(invalid())?;
+    let successor_stream = successor.get(STREAM).ok_or(invalid())?;
+    let current_claim =
+        claim_rows(current_stream)?
+            .remove(claim_id)
+            .ok_or(SourceCommandError::Conflict(
+                "historical Claim predecessor identity is absent",
+            ))?;
+    let successor_claim =
+        claim_rows(successor_stream)?
+            .remove(claim_id)
+            .ok_or(SourceCommandError::Conflict(
+                "historical Claim successor identity is absent",
+            ))?;
+    let current_version = cmd::integer(&current_claim, "claim_version")?;
+    let successor_version = cmd::integer(&successor_claim, "claim_version")?;
+    if current_version.checked_add(1) != Some(successor_version)
+        || replace_row(current_stream, &successor_claim)?.as_slice() != successor_stream.as_slice()
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim successor row or version differs",
+        ));
+    }
+
+    let form_name = package_form_name(source_path, claim_id)?;
+    let form_raw = successor.get(&form_name);
+    if let Some(raw) = form_raw {
+        let _ =
+            source_forms::pg_form_projection_contribution(&successor_claim, successor_stream, raw)?;
+    }
+
+    let history_raw = successor.get(HISTORY).ok_or(invalid())?;
+    let history = cmd::parse(history_raw)?;
+    let history_receipts = cmd::array(&history, "receipts")?;
+    let previous_history_receipts = match current.get(HISTORY) {
+        Some(raw) => {
+            let current_history = cmd::parse(raw)?;
+            cmd::array(&current_history, "receipts")?.to_vec()
+        }
+        None => Vec::new(),
+    };
+    if history_receipts.is_empty()
+        || history_receipts.len() > 128
+        || history_receipts.len() != previous_history_receipts.len() + 1
+        || previous_history_receipts
+            .iter()
+            .zip(history_receipts)
+            .any(|(before, after)| before != after)
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim successor history is not one exact append",
+        ));
+    }
+    let last_receipt = history_receipts.last().ok_or(invalid())?;
+    let request = cmd::parse(&ctx.request_raw)?;
+    let predecessor_revision = source_revisions::revision(&current)?;
+    if cmd::text(last_receipt, "command_id")? != cmd::text(&request, "command_id")?
+        || cmd::text(last_receipt, "request_digest")? != cmd::record_digest(&request)?.to_prefixed()
+        || !same(
+            cmd::field(last_receipt, "previous_source")?,
+            &subject(&current_claim)?,
+        )?
+        || !same(
+            cmd::field(last_receipt, "source")?,
+            &subject(&successor_claim)?,
+        )?
+        || cmd::text(cmd::field(last_receipt, "source")?, "id")? != claim_id
+        || cmd::text(last_receipt, "previous_revision")? != predecessor_revision
+        || cmd::text(last_receipt, "archive_path")?
+            != archive_reference(claim_id, &predecessor_revision)?
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim successor history tail differs",
+        ));
+    }
+
+    let mut archives = Vec::new();
+    for (index, receipt) in history_receipts.iter().enumerate() {
+        let archive_path = cmd::text(receipt, "archive_path")?;
+        let archived_bytes = pg_archive_from_context(ctx, proposal, archive_path)?;
+        let (archived, _) = decode_archive(archived_bytes.clone(), &config, receipt)?;
+        if index + 1 == history_receipts.len() && archived != current {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim latest archive does not match predecessor package",
+            ));
+        }
+        let members = archived
+            .iter()
+            .map(|(name, raw)| {
+                cmd::object(vec![
+                    ("name", cmd::string(name)),
+                    (
+                        "sha256",
+                        cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+                    ),
+                    ("bytes", cmd::number(raw.len() as u64)),
+                ])
+            })
+            .collect::<Vec<_>>();
+        archives.push(cmd::object(vec![
+            ("path", cmd::string(archive_path)),
+            (
+                "manifest_sha256",
+                cmd::string(
+                    &Digest256::of_bytes(archived_bytes.get("manifest.json").ok_or(invalid())?)
+                        .to_prefixed(),
+                ),
+            ),
+            (
+                "revision",
+                cmd::field(receipt, "previous_revision")?.clone(),
+            ),
+            ("members", JsonValue::Array(members)),
+        ]));
+    }
+
+    let direct_members = successor
+        .iter()
+        .map(|(name, raw)| {
+            let role = historical_package_role(name)?;
+            Ok(cmd::object(vec![
+                ("ref", cmd::string(&format!("{home}/{name}"))),
+                ("role", cmd::string(role)),
+                (
+                    "sha256",
+                    cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+                ),
+                ("bytes", cmd::number(raw.len() as u64)),
+            ]))
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let claims = claim_rows(successor_stream)?
+        .into_iter()
+        .map(|(id, claim)| {
+            let form_name = package_form_name(source_path, &id)?;
+            let form = successor.get(&form_name);
+            let ids = match form {
+                Some(raw) => {
+                    let set = cmd::parse(raw)?;
+                    ["forms", "prior_forms"]
+                        .into_iter()
+                        .map(|section| cmd::array(&set, section))
+                        .collect::<SourceCommandResult<Vec<_>>>()?
+                        .into_iter()
+                        .flatten()
+                        .map(|form| cmd::field(form, "form_id").cloned())
+                        .collect::<SourceCommandResult<Vec<_>>>()?
+                }
+                None => Vec::new(),
+            };
+            Ok(cmd::object(vec![
+                ("claim_id", cmd::string(&id)),
+                (
+                    "claim_version",
+                    cmd::number(cmd::integer(&claim, "claim_version")?),
+                ),
+                (
+                    "claim_sha256",
+                    cmd::string(&cmd::record_digest(&claim)?.to_prefixed()),
+                ),
+                ("form_ref", cmd::string(&format!("{home}/{form_name}"))),
+                ("form_present", JsonValue::Bool(form.is_some())),
+                (
+                    "form_sha256",
+                    form.map(|raw| cmd::string(&Digest256::of_bytes(raw).to_prefixed()))
+                        .unwrap_or(JsonValue::Null),
+                ),
+                ("form_ids", JsonValue::Array(ids)),
+            ]))
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let history_rows = history_receipts
+        .iter()
+        .map(|receipt| {
+            Ok(cmd::object(vec![
+                ("command_id", cmd::field(receipt, "command_id")?.clone()),
+                (
+                    "request_digest",
+                    cmd::field(receipt, "request_digest")?.clone(),
+                ),
+                (
+                    "previous_source",
+                    cmd::field(receipt, "previous_source")?.clone(),
+                ),
+                ("source", cmd::field(receipt, "source")?.clone()),
+                (
+                    "previous_revision",
+                    cmd::field(receipt, "previous_revision")?.clone(),
+                ),
+                ("archive_path", cmd::field(receipt, "archive_path")?.clone()),
+                (
+                    "receipt_sha256",
+                    cmd::string(&cmd::record_digest(receipt)?.to_prefixed()),
+                ),
+            ]))
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let creation_receipt = cmd::parse(
+        successor
+            .get("source-create-receipt.json")
+            .ok_or(invalid())?,
+    )?;
+    let owner_core = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_managed_historical_claim_owner_inventory_v1"),
+        ),
+        ("package_home", cmd::string(home)),
+        ("source_path", cmd::string(source_path)),
+        ("source_profiles", pg_source_profiles(ctx)?),
+        (
+            "stream_sha256",
+            cmd::string(&Digest256::of_bytes(successor_stream).to_prefixed()),
+        ),
+        ("direct_members", JsonValue::Array(direct_members)),
+        (
+            "history",
+            cmd::object(vec![
+                ("ref", cmd::string(&format!("{home}/{HISTORY}"))),
+                ("present", JsonValue::Bool(true)),
+                (
+                    "sha256",
+                    cmd::string(&Digest256::of_bytes(history_raw).to_prefixed()),
+                ),
+                ("receipts", JsonValue::Array(history_rows)),
+            ]),
+        ),
+        ("archives", JsonValue::Array(archives)),
+        ("claims", JsonValue::Array(claims)),
+        (
+            "creation_receipt_sha256",
+            cmd::string(
+                &Digest256::of_bytes(
+                    successor
+                        .get("source-create-receipt.json")
+                        .ok_or(invalid())?,
+                )
+                .to_prefixed(),
+            ),
+        ),
+        (
+            "creation_receipt_command_id",
+            cmd::field(&creation_receipt, "command_id")?.clone(),
+        ),
+    ]);
+    let closure = cmd::record_digest(&owner_core)?.to_prefixed();
+    let mut owner = owner_core;
+    cmd::set(&mut owner, "closure_sha256", cmd::string(&closure))?;
+    Ok(owner)
+}
+
+fn pg_source_profiles(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
+    let registry_refs = CLAIM_REGISTRY_REFS.iter().copied().collect::<BTreeSet<_>>();
+    let mut profiles = cmd::object(Vec::new());
+    for member in &ctx.files {
+        let path = member.path.as_str();
+        if (path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+            || registry_refs.contains(path)
+        {
+            cmd::set(
+                &mut profiles,
+                path,
+                cmd::string(&Digest256::of_bytes(&member.raw).to_hex()),
+            )?;
+        }
+    }
+    Ok(profiles)
+}
+
+fn pg_package_from_context(ctx: &CommandContext, home: &str) -> SourceCommandResult<LegacyPackage> {
+    let prefix = format!("{home}/");
+    let mut package = LegacyPackage::new();
+    for member in &ctx.files {
+        let Some(name) = member.path.as_str().strip_prefix(&prefix) else {
+            continue;
+        };
+        if name.is_empty()
+            || name.contains('/')
+            || package
+                .insert(name.to_owned(), member.raw.clone())
+                .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim selected package is not flat or unique",
+            ));
+        }
+    }
+    Ok(package)
+}
+
+fn pg_archive_from_context(
+    ctx: &CommandContext,
+    proposal: &PreparedCommand,
+    archive_path: &str,
+) -> SourceCommandResult<LegacyPackage> {
+    let prefix = format!("{archive_path}/");
+    let mut package = LegacyPackage::new();
+    for member in &ctx.files {
+        let Some(name) = member.path.as_str().strip_prefix(&prefix) else {
+            continue;
+        };
+        if name.is_empty()
+            || name.contains('/')
+            || package
+                .insert(name.to_owned(), member.raw.clone())
+                .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim archive read is not flat or unique",
+            ));
+        }
+    }
+    for change in &proposal.changes {
+        let Some(name) = change.path.as_str().strip_prefix(&prefix) else {
+            continue;
+        };
+        if name.is_empty() || name.contains('/') {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim archive successor is not flat",
+            ));
+        }
+        if let Some(raw) = &change.after {
+            package.insert(name.to_owned(), raw.clone());
+        } else {
+            package.remove(name);
+        }
+    }
+    if package.is_empty() {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim retained archive is absent",
+        ));
+    }
+    Ok(package)
+}
+
+fn historical_package_role(name: &str) -> SourceCommandResult<&'static str> {
+    match name {
+        STREAM => Ok("claim-stream"),
+        "source-create-request.json" => Ok("creation-request"),
+        "source-create-environment.json" => Ok("creation-environment"),
+        "source-create-provenance.jsonl" => Ok("creation-event"),
+        "source-create-receipt.json" => Ok("creation-receipt"),
+        HISTORY => Ok("revision-history"),
+        name if name.ends_with(".human-forms.json") => Ok("human-form-set"),
+        name if name.ends_with(".writer.lock") => Ok("operational-lock"),
+        _ => Err(SourceCommandError::Conflict(
+            "unrecognized historical Claim package member",
+        )),
+    }
+}
+
+#[cfg(test)]
+mod pg_identity_selection_tests {
+    use super::*;
+
+    fn current_package() -> LegacyPackage {
+        BTreeMap::from([(
+            STREAM.to_owned(),
+            br#"{"claim_id":"tos.claim.note-1","subject_ref":"tos.entity.author-1","object":"tos.entity.concept-1","provenance_event_ref":"tos.event.note-1","evidence_refs":["tos.entity.source-1","ToS/source-witnesses/history/episode/evidence.txt"],"counterevidence_refs":["tos.anchor.note-1"]}"#.to_vec(),
+        )])
+    }
+
+    fn owner_config(schema: &str) -> Vec<u8> {
+        format!(
+            r#"{{"schema_version":"{schema}","claim_id":"tos.claim.note-1","allowed_form_ids":["tos.form.note-1"]}}"#
         )
-    } else {
-        prepare_forms(
-            ctx, cut, &owner, current, reader, worker, deadline, cancelled,
-        )
+        .into_bytes()
+    }
+
+    #[test]
+    fn pg_historical_identity_selection_is_operation_scoped() {
+        let current = current_package();
+        let revision = owner_config(REVISION_OWNER);
+        let form = owner_config(FORM_OWNER);
+
+        assert!(
+            required_identity_tokens(&revision, &current, "describe")
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            required_identity_tokens(&revision, &current, "prepare-revise").unwrap(),
+            BTreeSet::from([
+                "tos.entity.author-1".to_owned(),
+                "tos.entity.concept-1".to_owned(),
+                "tos.event.note-1".to_owned(),
+                "tos.entity.source-1".to_owned(),
+                "ToS/source-witnesses/history/episode/evidence.txt".to_owned(),
+                "tos.anchor.note-1".to_owned(),
+                "tos.form.note-1".to_owned(),
+            ])
+        );
+        assert_eq!(
+            required_identity_tokens(&form, &current, "apply").unwrap(),
+            BTreeSet::from(["tos.form.note-1".to_owned()])
+        );
     }
 }

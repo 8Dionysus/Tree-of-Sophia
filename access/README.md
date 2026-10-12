@@ -1255,6 +1255,21 @@ released snapshot performs bounded native integrity and member-binding checks;
 - `contracts/runtime-manifest.v1.json` defines dual runtime posture.
 - `contracts/runtime-data.v1.json` is the data publication allowlist; the software archive has a separate code-only member contract.
 - `contracts/query-operations.v1.json` owns transport-neutral read operations.
+- Projection search returns `tos_corpus_mcp_search_v2` or
+  `tos_philosophy_mcp_search_v2`. Both normalize queries with the maintained
+  Python lower/strip profile and search JSON string values only, in owner
+  collection and source-ordinal order. Corpus search accepts an optional exact
+  `resource_kind`; the Worker applies one global bounded candidate and input
+  budget across all D1 pages and returns `413` when that profile is exceeded.
+  Search-bearing corpus and philosophy compositions use
+  `tos_corpus_mcp_packet_v2` and `tos_philosophy_mcp_packet_v2` respectively.
+  The D1 Worker admits these search and source-gap semantics only when the
+  bounded producer-profile metadata identifies `tos-rust-public-d1-full-v2`,
+  read-model v9, and the same `data_revision` as the published data. A missing
+  or older profile returns `503` until a matching publication is imported;
+  the producer-profile change also changes `data_revision`, so a same-schema
+  v9 baseline receives an ordinary delta instead of being mistaken for the
+  already-published target.
 - `contracts/knowledge-api.v1.json` maps the knowledge catalog, search,
   inspection, stored-lens, and compile operations across HTTP, MCP, and CLI.
 - `contracts/source-text-gateway.v1.md` and

@@ -23,7 +23,9 @@ use tos_validation::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, SharedSchemaWorkerQuota,
     VerifiedWorkerImageHandle,
 };
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerLimits, CutWorkerSchemaExecutor,
+};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
 /// Keep every schema-owner refusal typed across the compiler's IO carrier.
@@ -229,6 +231,14 @@ trait CandidateCatalogSchemas: CutSchemaExecutor {
     fn cumulative_cost(&self) -> SchemaResult<CutSchemaDiagnosticsCumulativeCost>;
     fn execution_count(&self) -> SchemaResult<usize>;
 }
+
+/// Opaque source-cut identity for one selected event compilation. The
+/// implementing owner derives this from its authenticated PG read identity,
+/// exact event/member selection and current source-generation fences; it is
+/// deliberately not a `SourceRevision` or whole-corpus membership claim.
+pub trait CandidateEventSourceIdentityV1: Copy + Eq {
+    fn event_source_revision(&self) -> Digest256;
+}
 struct BorrowedCandidateSchemas<'a, I: Copy + Eq> {
     schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
     identity: I,
@@ -409,6 +419,14 @@ impl CatalogSchemas<'_> {
     }
 }
 impl CutSchemaExecutor for CatalogSchemas<'_> {
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        match self {
+            Self::Candidate(s) => s.contract_digest(contract),
+            Self::Resident(s) => s.contract_digest(contract),
+            Self::Spooling(s) => s.contract_digest(contract),
+        }
+    }
+
     fn check(
         &mut self,
         path: &str,
@@ -457,6 +475,16 @@ pub struct SourceCatalogValidator<'a> {
     worker_pin: ExactWorkerIdentity,
     budget_pin: ExecutorBudget,
     deadline: Instant,
+    event_source_revision: Option<Digest256>,
+}
+
+/// One exact selected-contract check for an authored source instance. The
+/// schema bytes are supplied as a binding witness and compared with the
+/// selected stage before the maintained executor runs.
+pub(crate) struct CatalogSchemaInstanceV1<'a> {
+    pub schema_path: &'a str,
+    pub schema_bytes: &'a [u8],
+    pub instance_bytes: &'a [u8],
 }
 
 #[derive(Clone)]
@@ -466,6 +494,7 @@ struct Profile {
 }
 struct Contracts {
     values: BTreeMap<String, Value>,
+    source_bytes: BTreeMap<String, Vec<u8>>,
     resources: Vec<SchemaResource>,
     ids: BTreeMap<String, String>,
     records: Vec<(String, Profile)>,
@@ -807,6 +836,25 @@ fn root_item(h: &mut Digest256Hasher, id: &str, sha: &Digest256) {
     h.update(id.as_bytes());
     h.update(sha.as_bytes());
 }
+
+fn valid_json_pointer_fragment(pointer: &str) -> bool {
+    if !pointer.starts_with('/') || pointer.contains('\0') {
+        return false;
+    }
+    let bytes = pointer.as_bytes();
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'~' {
+            if !matches!(bytes.get(index + 1), Some(&b'0') | Some(&b'1')) {
+                return false;
+            }
+            index += 1;
+        }
+        index += 1;
+    }
+    true
+}
+
 fn binding_value(b: &crate::SourceBinding) -> Value {
     json!({"owner_profile":b.owner_profile,"source_cut":b.source_cut,"through_commit_seq":b.through_commit_seq,
         "membership_root":b.membership_root,"index_generation":b.index_generation,"route_map_version":b.route_map_version,
@@ -897,6 +945,32 @@ fn input_root<B: CatalogInputBinding>(
 }
 
 impl<'a> SourceCatalogValidator<'a> {
+    /// Revision of the exact source cut selected by this already-pinned schema
+    /// worker. Event-local producers use this instead of accepting a second,
+    /// independently supplied source-revision label.
+    pub fn selected_source_revision(&self) -> Result<SourceRevision> {
+        self.guard()?;
+        let revision = self
+            .schemas
+            .try_borrow()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .execution_binding()?
+            .source_revision;
+        self.verify_schema_binding(revision)?;
+        Ok(revision)
+    }
+
+    /// Digest of the exact event-local PG source cut selected by the protected
+    /// owner adapter. This is intentionally distinct from `SourceRevision`:
+    /// addressed PG event members do not prove a complete V1 corpus cut.
+    pub fn selected_event_source_revision(&self) -> Result<Digest256> {
+        let revision = self
+            .event_source_revision
+            .ok_or(Error::Invalid("catalog candidate has no event source cut"))?;
+        self.verify_event_schema_binding(revision)?;
+        Ok(revision)
+    }
+
     /// Borrow the already configured actual candidate worker. No second worker,
     /// schema probe fallback or manufactured published revision is introduced.
     pub fn from_candidate_prepared<I: Copy + Eq + 'static>(
@@ -906,6 +980,138 @@ impl<'a> SourceCatalogValidator<'a> {
         deadline: Instant,
         identity: &I,
         schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
+    ) -> Result<Self> {
+        Self::from_candidate_prepared_inner(
+            worker, budget, cancelled, deadline, identity, schemas, None,
+        )
+    }
+
+    /// Prepare the same exact candidate worker for an authenticated PG event
+    /// cut. Its owner-supplied typed identity exposes a separate digest and
+    /// never manufactures the V1 `SourceRevision` required by a whole cut.
+    pub fn from_candidate_event_prepared<I: CandidateEventSourceIdentityV1 + 'static>(
+        worker: &'a ExactWorkerIdentity,
+        budget: ExecutorBudget,
+        cancelled: &'a AtomicBool,
+        deadline: Instant,
+        identity: &I,
+        schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
+    ) -> Result<Self> {
+        let event_source_revision = identity.event_source_revision();
+        Self::from_candidate_prepared_inner(
+            worker,
+            budget,
+            cancelled,
+            deadline,
+            identity,
+            schemas,
+            Some(event_source_revision),
+        )
+    }
+
+    /// Check one exact event-cut document using only the selected candidate
+    /// schema set and its pinned worker. The owner passes a digest produced
+    /// from its PG/event identity, never a synthesized `SourceRevision`.
+    pub fn check_selected_event_document_exact(
+        &self,
+        revision: Digest256,
+        path: &str,
+        schema_path: &str,
+        schema_bytes: &[u8],
+        raw: &[u8],
+    ) -> Result<()> {
+        self.verify_event_schema_binding(revision)?;
+        if schema_bytes.is_empty()
+            || schema_path.is_empty()
+            || self
+                .schemas
+                .try_borrow()
+                .map_err(|_| Error::Invalid("catalog executor already in use"))?
+                .selected_contract_digest(schema_path)
+                != Some(Digest256::of_bytes(schema_bytes))
+        {
+            return Err(Error::Invalid("catalog selected exact schema bytes differ"));
+        }
+        let mut schemas = self
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let valid = schemas
+            .check(path, raw, schema_path, self.deadline, self.cancelled)
+            .map_err(|refusal| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    CatalogSchemaRefusal(refusal),
+                ))
+            })?;
+        if !valid {
+            return Err(Error::Invalid("selected native projection schema rejected"));
+        }
+        self.guard()
+    }
+
+    /// Check one exact event-cut JSON fragment with the same selected base
+    /// schema bytes and pinned candidate worker. The caller supplies a strict
+    /// JSON Pointer fragment (including `#`); it is never resolved from an
+    /// independently selected schema or manufactured source revision.
+    pub fn check_selected_event_document_fragment_exact(
+        &self,
+        revision: Digest256,
+        path: &str,
+        schema_path: &str,
+        schema_bytes: &[u8],
+        fragment: &str,
+        raw: &[u8],
+    ) -> Result<()> {
+        self.verify_event_schema_binding(revision)?;
+        if schema_bytes.is_empty()
+            || schema_path.is_empty()
+            || schema_path.contains('#')
+            || self
+                .schemas
+                .try_borrow()
+                .map_err(|_| Error::Invalid("catalog executor already in use"))?
+                .selected_contract_digest(schema_path)
+                != Some(Digest256::of_bytes(schema_bytes))
+        {
+            return Err(Error::Invalid("catalog selected exact schema bytes differ"));
+        }
+        let pointer = fragment
+            .strip_prefix('#')
+            .filter(|pointer| pointer.starts_with('/') && !pointer.contains('#'))
+            .ok_or(Error::Invalid("catalog schema fragment selector"))?;
+        if pointer.len() > 4095 || !valid_json_pointer_fragment(pointer) {
+            return Err(Error::Invalid("catalog schema fragment selector"));
+        }
+        let contract = format!("{schema_path}#{pointer}");
+        let mut schemas = self
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let valid = schemas
+            .check(path, raw, &contract, self.deadline, self.cancelled)
+            .map_err(|refusal| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    CatalogSchemaRefusal(refusal),
+                ))
+            })?;
+        if !valid {
+            return Err(Error::Invalid(
+                "selected native projection schema fragment rejected",
+            ));
+        }
+        self.guard()
+    }
+
+    fn from_candidate_prepared_inner<I: Copy + Eq + 'static>(
+        worker: &'a ExactWorkerIdentity,
+        budget: ExecutorBudget,
+        cancelled: &'a AtomicBool,
+        deadline: Instant,
+        identity: &I,
+        schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
+        event_source_revision: Option<Digest256>,
     ) -> Result<Self> {
         let prepared = schemas.prepared_execution_binding();
         if schemas.input_identity() != identity
@@ -936,6 +1142,7 @@ impl<'a> SourceCatalogValidator<'a> {
             worker_pin: worker.clone(),
             budget_pin: budget,
             deadline,
+            event_source_revision,
         })
     }
 
@@ -1068,6 +1275,7 @@ impl<'a> SourceCatalogValidator<'a> {
             worker_pin: image.identity().clone(),
             budget_pin: budget,
             deadline,
+            event_source_revision: None,
         })
     }
 
@@ -1129,6 +1337,7 @@ impl<'a> SourceCatalogValidator<'a> {
             worker_pin: image.identity().clone(),
             budget_pin: budget,
             deadline,
+            event_source_revision: None,
         })
     }
     fn from_cut_inner(
@@ -1173,6 +1382,7 @@ impl<'a> SourceCatalogValidator<'a> {
             worker_pin: worker.clone(),
             budget_pin: budget,
             deadline,
+            event_source_revision: None,
         })
     }
 
@@ -1326,6 +1536,33 @@ impl<'a> SourceCatalogValidator<'a> {
             return Err(Error::Invalid("selected native projection schema rejected"));
         }
         self.guard()
+    }
+
+    /// Check an exact owner document while binding the supplied schema bytes
+    /// to the resource selected by this validator's already-pinned worker.
+    /// This lets event-local producers reuse the selected schema executor
+    /// without rebuilding a whole KnowledgeStage/catalog view.
+    pub fn check_selected_document_exact(
+        &self,
+        revision: SourceRevision,
+        path: &str,
+        schema_path: &str,
+        schema_bytes: &[u8],
+        raw: &[u8],
+    ) -> Result<()> {
+        self.verify_schema_binding(revision)?;
+        if schema_bytes.is_empty()
+            || schema_path.is_empty()
+            || self
+                .schemas
+                .try_borrow()
+                .map_err(|_| Error::Invalid("catalog executor already in use"))?
+                .selected_contract_digest(schema_path)
+                != Some(Digest256::of_bytes(schema_bytes))
+        {
+            return Err(Error::Invalid("catalog selected exact schema bytes differ"));
+        }
+        self.check_selected_document(revision, path, raw, schema_path)
     }
 
     /// Bounded exact execution observations, separate from source membership.
@@ -1497,6 +1734,31 @@ impl<'a> SourceCatalogValidator<'a> {
         }
         Ok(())
     }
+
+    fn verify_event_schema_binding(&self, revision: Digest256) -> Result<()> {
+        self.guard()?;
+        if self.event_source_revision != Some(revision) {
+            return Err(Error::Invalid("catalog event source cut binding differs"));
+        }
+        let schemas = self
+            .schemas
+            .try_borrow()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let CatalogSchemas::Candidate(candidate) = &*schemas else {
+            return Err(Error::Invalid(
+                "catalog event source cut requires candidate schemas",
+            ));
+        };
+        let binding = candidate
+            .prepared_binding()
+            .map_err(|e| Error::Source(format!("catalog event candidate binding:{e:?}")))?;
+        if binding.worker_sha256 != self.worker_pin.sha256
+            || binding.schema_profile != FormatProfile::LegacyPythonObserved20260923
+        {
+            return Err(Error::Invalid("catalog exact event schema binding"));
+        }
+        Ok(())
+    }
     fn bind_contracts(&self, c: &Contracts) -> Result<()> {
         self.guard()?;
         let resources = SchemaBackendProbe::new(
@@ -1640,6 +1902,7 @@ fn contracts(
 ) -> Result<Contracts> {
     let mut c = Contracts {
         values: BTreeMap::new(),
+        source_bytes: BTreeMap::new(),
         resources: Vec::new(),
         ids: BTreeMap::new(),
         records: Vec::new(),
@@ -1668,6 +1931,7 @@ fn contracts(
             let value = SourceRow::parse(&row.payload, l.max_row_bytes)?
                 .value()
                 .clone();
+            c.source_bytes.insert(row.id.clone(), row.payload.clone());
             if row.id.ends_with(".schema.json") {
                 let uri = text(&value, "$id")?.to_owned();
                 if !uri_seen.insert(uri.clone()) {
@@ -3123,6 +3387,39 @@ pub(crate) fn check_catalog_schema(
 ) -> Result<()> {
     let c = contracts(stage, validator, l, &mut IgnoreCatalogProfiles)?;
     validator.check(&c, schema, fragment, raw)
+}
+
+/// Verify several exact schema/instance pairs against one selected source
+/// stage. This is used by event-local replacement producers so historical
+/// versions use their own schema routes without rescanning or trusting a
+/// caller-provided schema precondition.
+pub(crate) fn check_catalog_schema_instances(
+    stage: &KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    instances: &[CatalogSchemaInstanceV1<'_>],
+) -> Result<()> {
+    if instances.is_empty() {
+        return Ok(());
+    }
+    let contracts = contracts(stage, validator, l, &mut IgnoreCatalogProfiles)?;
+    for instance in instances {
+        if contracts
+            .source_bytes
+            .get(instance.schema_path)
+            .map(Vec::as_slice)
+            != Some(instance.schema_bytes)
+        {
+            return Err(Error::Invalid("catalog selected schema exact bytes differ"));
+        }
+        validator.check(
+            &contracts,
+            instance.schema_path,
+            "",
+            instance.instance_bytes,
+        )?;
+    }
+    Ok(())
 }
 
 /// Pure catalog projection after the caller has verified exact owner grammar,

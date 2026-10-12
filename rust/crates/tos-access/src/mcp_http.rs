@@ -459,7 +459,23 @@ fn serve_one(
             .query_timeout
             .map(|v| now.checked_add(v).unwrap_or(now)),
     });
-    let frame = state.handle_line_with_probe(executor, &body, probe.clone());
+    let mut direct_write = |frame: &[u8]| {
+        write_http_with_probe(
+            stream,
+            200,
+            frame,
+            initialize.then_some(id.as_str()),
+            Some(probe.as_ref()),
+        )
+    };
+    let (frame, directly_written) = state.handle_line_with_probe_and_delivery(
+        executor,
+        &body,
+        probe.clone(),
+        b"",
+        &mut direct_write,
+    )?;
+    drop(direct_write);
     let result = match frame {
         Some(frame) => state.write_reply(frame, b"", |frame| {
             write_http_with_probe(
@@ -470,6 +486,7 @@ fn serve_one(
                 Some(probe.as_ref()),
             )
         }),
+        None if directly_written => Ok(()),
         None => write_http_with_probe(stream, 202, b"", None, Some(probe.as_ref())),
     };
     if initialize && (!state.initializing() || result.is_err()) {

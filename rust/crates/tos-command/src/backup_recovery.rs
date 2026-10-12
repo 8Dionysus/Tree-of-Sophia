@@ -25,12 +25,181 @@ use tos_segment_store::{SegmentLimits, SegmentStore};
 const BYTES: u64 = 64 * 1024 * 1024;
 const BACKUP_SCHEMA_V1: &str = "tos_cmd2_quiescent_backup_v1";
 const BACKUP_SCHEMA_V2: &str = "tos_cmd2_quiescent_backup_v2";
+const BACKUP_SCHEMA_V3: &str = "tos_cmd2_quiescent_backup_v3";
+const BACKUP_SCHEMA_V4: &str = "tos_cmd2_quiescent_backup_v4";
+const BACKUP_SCHEMA_V5: &str = "tos_cmd2_quiescent_backup_v5";
 const SOURCE_INVENTORY_CENSUS_V1: &str = "tos_backup_source_inventory_projection_v1";
+const SOURCE_NAVIGATION_CENSUS_V1: &str = "tos_backup_source_navigation_projection_v1";
+const SOURCE_NAVIGATION_POLICY_CENSUS_V1: &str = "tos_backup_source_navigation_policy_v1";
+const PRIVATE_PACKAGE_CENSUS_V2: &str = "tos_backup_private_owner_packages_v2";
+const SOURCE_PUBLICATION_CENSUS_V1: &str = "tos_backup_source_publication_v1";
+const SOURCE_ITEM_ASSIGNMENT_CENSUS_V1: &str = "tos_backup_source_item_file_assignment_v1";
+
+const SOURCE_NAVIGATION_POLICY_TABLES: [(&str, &str); 2] = [
+    (
+        "cmd2_source_navigation_policy_current",
+        "consumer_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_source_navigation_policy_history",
+        "consumer_id COLLATE \"C\",policy_version",
+    ),
+];
+
+const SOURCE_PUBLICATION_TABLES: [(&str, &str); 2] = [
+    ("cmd2_source_publication_current", "domain COLLATE \"C\""),
+    (
+        "cmd2_source_publication_history",
+        "domain COLLATE \"C\",publication_generation",
+    ),
+];
+
+const SOURCE_ITEM_ASSIGNMENT_TABLES: [(&str, &str); 1] = [(
+    "cmd2_source_item_file_assignment",
+    "edition_id COLLATE \"C\",manifest_path COLLATE \"C\",payload_ordinal",
+)];
+
+const PRIVATE_PACKAGE_TABLES: [(&str, &str); 11] = [
+    (
+        "cmd2_private_owner_scope",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_owner_audit_fence",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_package_current",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",target_ref COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_package_history",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",target_ref COLLATE \"C\",revision",
+    ),
+    (
+        "cmd2_private_package_member",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",target_ref COLLATE \"C\",revision,member_name COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_package_archive",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",target_ref COLLATE \"C\",archive_ref COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_package_archive_member",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",target_ref COLLATE \"C\",archive_ref COLLATE \"C\",member_name COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_command_receipt",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",command_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_private_log",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",commit_seq",
+    ),
+    (
+        "cmd2_private_outbox",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",commit_seq",
+    ),
+    (
+        "cmd2_private_text_identity",
+        "domain COLLATE \"C\",owner_scope COLLATE \"C\",identity_token COLLATE \"C\",target_ref COLLATE \"C\",revision,member_name COLLATE \"C\"",
+    ),
+];
+
+const NAVIGATION_TABLES: [(&str, &str); 12] = [
+    (
+        "cmd2_projection_navigation_consumer",
+        "consumer_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_bootstrap",
+        "consumer_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_bootstrap_owner",
+        "consumer_id COLLATE \"C\",owner_source_path COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_bootstrap_row",
+        "consumer_id COLLATE \"C\",row_kind COLLATE \"C\",row_id COLLATE \"C\",owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_bootstrap_dependency",
+        "consumer_id COLLATE \"C\",owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\",dependency_path COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_adjacency_certificate",
+        "consumer_id COLLATE \"C\",node_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_coverage_event",
+        "consumer_id COLLATE \"C\",event_sequence",
+    ),
+    (
+        "cmd2_projection_navigation_cohort",
+        "consumer_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_dependency",
+        "consumer_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\",dependency_path COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_node",
+        "consumer_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\",node_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_edge",
+        "consumer_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\",edge_id COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_diagnostic",
+        "consumer_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\",diagnostic_ordinal",
+    ),
+];
 
 fn census_v2_for_schema(schema: &str) -> io::Result<bool> {
     if schema == BACKUP_SCHEMA_V1 {
         Ok(false)
-    } else if schema == BACKUP_SCHEMA_V2 {
+    } else if schema == BACKUP_SCHEMA_V2
+        || schema == BACKUP_SCHEMA_V3
+        || schema == BACKUP_SCHEMA_V4
+        || schema == BACKUP_SCHEMA_V5
+    {
+        Ok(true)
+    } else {
+        Err(error())
+    }
+}
+
+fn census_v3_for_schema(schema: &str) -> io::Result<bool> {
+    if schema == BACKUP_SCHEMA_V1 || schema == BACKUP_SCHEMA_V2 {
+        Ok(false)
+    } else if schema == BACKUP_SCHEMA_V3 || schema == BACKUP_SCHEMA_V4 || schema == BACKUP_SCHEMA_V5
+    {
+        Ok(true)
+    } else {
+        Err(error())
+    }
+}
+
+fn census_v4_for_schema(schema: &str) -> io::Result<bool> {
+    if schema == BACKUP_SCHEMA_V1 || schema == BACKUP_SCHEMA_V2 || schema == BACKUP_SCHEMA_V3 {
+        Ok(false)
+    } else if schema == BACKUP_SCHEMA_V4 || schema == BACKUP_SCHEMA_V5 {
+        Ok(true)
+    } else {
+        Err(error())
+    }
+}
+
+fn census_v5_for_schema(schema: &str) -> io::Result<bool> {
+    if schema == BACKUP_SCHEMA_V1
+        || schema == BACKUP_SCHEMA_V2
+        || schema == BACKUP_SCHEMA_V3
+        || schema == BACKUP_SCHEMA_V4
+    {
+        Ok(false)
+    } else if schema == BACKUP_SCHEMA_V5 {
         Ok(true)
     } else {
         Err(error())
@@ -489,6 +658,11 @@ fn frozen_domain(
     c: &AtomicBool,
 ) -> io::Result<Value> {
     active(d, c)?;
+    // `row_to_json` includes timestamptz values using the session timezone.
+    // Bind the outbox enqueue timestamp to UTC in this backup census so a
+    // restore compares the same bytes regardless of the client environment.
+    db.batch_execute("SET TIME ZONE 'UTC'")
+        .map_err(|_| error())?;
     let rows = db
         .query("SELECT domain FROM cmd2_domain LIMIT 2", &[])
         .map_err(|_| error())?;
@@ -511,6 +685,8 @@ fn frozen_domain(
         "cmd2_receipt",
         "cmd2_outbox",
         "cmd2_source_index",
+        "cmd2_source_text_identity",
+        "cmd2_source_claim_navigation_reference",
         "cmd2_predicate",
     ];
     let work_revision_presence = db.query_one(
@@ -759,6 +935,663 @@ fn frozen_domain_v2(
     Ok(result)
 }
 
+/// Add a bounded census for the six source-navigation projection relations.
+/// All six absent means this older database has no installed schema; a
+/// partially installed relation set is corrupt and cannot be backed up.
+fn frozen_domain_v3(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    let mut result = frozen_domain_v2(db, domain, store, profile, d, c)?;
+    let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
+    let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
+    let names = NAVIGATION_TABLES
+        .iter()
+        .map(|(table, _)| format!("'public.{table}'"))
+        .collect::<Vec<_>>();
+    let presence_sql = format!(
+        "SELECT {}",
+        names
+            .iter()
+            .map(|name| format!("to_regclass({name}) IS NOT NULL"))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    let presence = db.query_one(&presence_sql, &[]).map_err(|_| error())?;
+    let present_count = (0..NAVIGATION_TABLES.len())
+        .filter(|index| presence.get::<_, bool>(*index))
+        .count();
+    require(present_count == 0 || present_count == NAVIGATION_TABLES.len())?;
+    let installed = present_count == NAVIGATION_TABLES.len();
+    let scan_rows = i64::try_from(
+        profile
+            .max_metadata_rows
+            .checked_sub(total_rows)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(error)?,
+    )
+    .map_err(|_| error())?;
+    let mut table_counts = serde_json::Map::new();
+    let mut census_rows = 0u64;
+    let mut census_bytes = 0u64;
+    let mut root = Digest256Hasher::new();
+    root.update(b"tos-backup-source-navigation-projection-v1\0");
+    root.update(if installed {
+        &b"present\0"[..]
+    } else {
+        &b"absent\0"[..]
+    });
+    if installed {
+        for (table, order) in NAVIGATION_TABLES {
+            active(d, c)?;
+            let query = format!(
+                "SELECT octet_length(row_to_json(t)::text),
+                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
+                 FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
+            );
+            let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
+            let mut rows = db.query_raw(&query, params).map_err(|_| error())?;
+            use postgres::fallible_iterator::FallibleIterator;
+            let mut count = 0u64;
+            root.update(table.as_bytes());
+            root.update(&[0]);
+            while let Some(row) = rows.next().map_err(|_| error())? {
+                active(d, c)?;
+                let row_bytes = u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?)
+                    .map_err(|_| error())?;
+                let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
+                require(digest.len() == 32)?;
+                count = count.checked_add(1).ok_or_else(error)?;
+                census_rows = census_rows.checked_add(1).ok_or_else(error)?;
+                census_bytes = census_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                total_rows = total_rows.checked_add(1).ok_or_else(error)?;
+                total_bytes = total_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                require(
+                    count <= profile.max_metadata_rows
+                        && census_rows <= profile.max_metadata_rows
+                        && total_rows <= profile.max_metadata_rows
+                        && census_bytes <= profile.max_metadata_bytes
+                        && total_bytes <= profile.max_metadata_bytes,
+                )?;
+                root.update(&row_bytes.to_be_bytes());
+                root.update(&digest);
+            }
+            root.update(&count.to_be_bytes());
+            table_counts.insert(table.into(), json!(count));
+        }
+    } else {
+        for (table, _) in NAVIGATION_TABLES {
+            table_counts.insert(table.into(), json!(0));
+        }
+    }
+    active(d, c)?;
+    {
+        let counts = result["counts"].as_object_mut().ok_or_else(error)?;
+        for (table, _) in NAVIGATION_TABLES {
+            require(!counts.contains_key(table))?;
+            counts.insert(
+                table.into(),
+                table_counts.get(table).cloned().ok_or_else(error)?,
+            );
+        }
+    }
+    result["rows"] = json!(total_rows);
+    result["bytes"] = json!(total_bytes);
+    result["source_navigation_projection_v1"] = json!({
+        "schema":SOURCE_NAVIGATION_CENSUS_V1,
+        "state":if installed { "present" } else { "absent" },
+        "tables":table_counts,
+        "rows":census_rows,
+        "bytes":census_bytes,
+        "row_root":if installed { json!(root.finalize().to_hex()) } else { Value::Null },
+    });
+    Ok(result)
+}
+
+fn validate_navigation_census(metadata: &Value, profile: BackupProfile) -> io::Result<()> {
+    let census = &metadata["source_navigation_projection_v1"];
+    let tables = census["tables"].as_object().ok_or_else(error)?;
+    require(census["schema"] == SOURCE_NAVIGATION_CENSUS_V1)?;
+    require(tables.len() == NAVIGATION_TABLES.len())?;
+    let state = census["state"].as_str().ok_or_else(error)?;
+    require(state == "absent" || state == "present")?;
+    let mut total_rows = 0u64;
+    for (table, _) in NAVIGATION_TABLES {
+        let count = tables[table].as_u64().ok_or_else(error)?;
+        require(count <= profile.max_metadata_rows)?;
+        require(metadata["counts"][table].as_u64() == Some(count))?;
+        total_rows = total_rows.checked_add(count).ok_or_else(error)?;
+    }
+    let rows = census["rows"].as_u64().ok_or_else(error)?;
+    let bytes = census["bytes"].as_u64().ok_or_else(error)?;
+    require(
+        rows == total_rows
+            && rows <= profile.max_metadata_rows
+            && bytes <= profile.max_metadata_bytes,
+    )?;
+    if state == "absent" {
+        require(rows == 0 && bytes == 0 && census["row_root"].is_null())?;
+    } else {
+        let root = census["row_root"].as_str().ok_or_else(error)?;
+        require(tos_foundation::Digest256::from_hex(root).is_ok())?;
+    }
+    Ok(())
+}
+
+/// Add a bounded digest census for the owner-private package namespace. The
+/// receipt carries only table counts and an opaque row root; private target
+/// references and member bytes remain inside the encrypted/owner-selected dump.
+/// A partial install is corruption because it cannot be restored as the same
+/// private package ABI.
+fn frozen_domain_v4(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    let mut result = frozen_domain_v3(db, domain, store, profile, d, c)?;
+    let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
+    let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
+    let mut names = PRIVATE_PACKAGE_TABLES
+        .iter()
+        .map(|(table, _)| format!("'public.{table}'"))
+        .collect::<Vec<_>>();
+    names.push("'public.cmd2_private_schema_profile'".to_owned());
+    let presence_sql = format!(
+        "SELECT {}",
+        names
+            .iter()
+            .map(|name| format!("to_regclass({name}) IS NOT NULL"))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    let presence = db.query_one(&presence_sql, &[]).map_err(|_| error())?;
+    let present_count = (0..names.len())
+        .filter(|index| presence.get::<_, bool>(*index))
+        .count();
+    require(present_count == 0 || present_count == names.len())?;
+    let installed = present_count == names.len();
+    let schema_profile = if installed {
+        crate::durable_adapter::durable_private_packages::require_compatible_private_package_schema(
+            db,
+        )
+        .map_err(|_| error())?;
+        let rows = db
+            .query(
+                "SELECT profile_id FROM cmd2_private_schema_profile WHERE singleton",
+                &[],
+            )
+            .map_err(|_| error())?;
+        require(rows.len() == 1)?;
+        let profile_id: String = rows[0].get(0);
+        require(
+            profile_id == crate::durable_adapter::durable_private_packages::PRIVATE_SCHEMA_PROFILE,
+        )?;
+        Value::String(profile_id)
+    } else {
+        Value::Null
+    };
+    let scan_rows = i64::try_from(
+        profile
+            .max_metadata_rows
+            .checked_sub(total_rows)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(error)?,
+    )
+    .map_err(|_| error())?;
+    let mut table_counts = serde_json::Map::new();
+    let mut census_rows = 0u64;
+    let mut census_bytes = 0u64;
+    let mut root = Digest256Hasher::new();
+    root.update(b"tos-backup-private-owner-packages-v2\0");
+    root.update(if installed {
+        &b"present\0"[..]
+    } else {
+        &b"absent\0"[..]
+    });
+    if installed {
+        root.update(schema_profile.as_str().ok_or_else(error)?.as_bytes());
+        for (table, order) in PRIVATE_PACKAGE_TABLES {
+            active(d, c)?;
+            let query = format!(
+                "SELECT octet_length(row_to_json(t)::text),
+                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
+                 FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
+            );
+            let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
+            let mut rows = db.query_raw(&query, params).map_err(|_| error())?;
+            use postgres::fallible_iterator::FallibleIterator;
+            let mut count = 0u64;
+            root.update(table.as_bytes());
+            root.update(&[0]);
+            while let Some(row) = rows.next().map_err(|_| error())? {
+                active(d, c)?;
+                let row_bytes = u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?)
+                    .map_err(|_| error())?;
+                let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
+                require(digest.len() == 32)?;
+                count = count.checked_add(1).ok_or_else(error)?;
+                census_rows = census_rows.checked_add(1).ok_or_else(error)?;
+                census_bytes = census_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                total_rows = total_rows.checked_add(1).ok_or_else(error)?;
+                total_bytes = total_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                require(
+                    count <= profile.max_metadata_rows
+                        && census_rows <= profile.max_metadata_rows
+                        && total_rows <= profile.max_metadata_rows
+                        && census_bytes <= profile.max_metadata_bytes
+                        && total_bytes <= profile.max_metadata_bytes,
+                )?;
+                root.update(&row_bytes.to_be_bytes());
+                root.update(&digest);
+            }
+            root.update(&count.to_be_bytes());
+            table_counts.insert(table.into(), json!(count));
+        }
+    } else {
+        for (table, _) in PRIVATE_PACKAGE_TABLES {
+            table_counts.insert(table.into(), json!(0));
+        }
+    }
+    active(d, c)?;
+    {
+        let counts = result["counts"].as_object_mut().ok_or_else(error)?;
+        for (table, _) in PRIVATE_PACKAGE_TABLES {
+            require(!counts.contains_key(table))?;
+            counts.insert(
+                table.into(),
+                table_counts.get(table).cloned().ok_or_else(error)?,
+            );
+        }
+    }
+    result["rows"] = json!(total_rows);
+    result["bytes"] = json!(total_bytes);
+    result["private_owner_packages_v2"] = json!({
+        "schema":PRIVATE_PACKAGE_CENSUS_V2,
+        "state":if installed { "present" } else { "absent" },
+        "profile_id":schema_profile,
+        "tables":table_counts,
+        "rows":census_rows,
+        "bytes":census_bytes,
+        "row_root":if installed { json!(root.finalize().to_hex()) } else { Value::Null },
+    });
+    Ok(result)
+}
+
+fn validate_private_package_census(metadata: &Value, profile: BackupProfile) -> io::Result<()> {
+    let census = &metadata["private_owner_packages_v2"];
+    let tables = census["tables"].as_object().ok_or_else(error)?;
+    require(census["schema"] == PRIVATE_PACKAGE_CENSUS_V2)?;
+    require(tables.len() == PRIVATE_PACKAGE_TABLES.len())?;
+    let state = census["state"].as_str().ok_or_else(error)?;
+    require(state == "absent" || state == "present")?;
+    let mut total_rows = 0u64;
+    for (table, _) in PRIVATE_PACKAGE_TABLES {
+        let count = tables[table].as_u64().ok_or_else(error)?;
+        require(count <= profile.max_metadata_rows)?;
+        require(metadata["counts"][table].as_u64() == Some(count))?;
+        total_rows = total_rows.checked_add(count).ok_or_else(error)?;
+    }
+    let rows = census["rows"].as_u64().ok_or_else(error)?;
+    let bytes = census["bytes"].as_u64().ok_or_else(error)?;
+    require(
+        rows == total_rows
+            && rows <= profile.max_metadata_rows
+            && bytes <= profile.max_metadata_bytes,
+    )?;
+    if state == "absent" {
+        require(
+            rows == 0
+                && bytes == 0
+                && census["row_root"].is_null()
+                && census["profile_id"].is_null(),
+        )?;
+    } else {
+        require(
+            census["profile_id"].as_str()
+                == Some(crate::durable_adapter::durable_private_packages::PRIVATE_SCHEMA_PROFILE),
+        )?;
+        let root = census["row_root"].as_str().ok_or_else(error)?;
+        require(tos_foundation::Digest256::from_hex(root).is_ok())?;
+    }
+    Ok(())
+}
+
+/// Add a bounded digest census for explicit source-navigation current-use
+/// policy and withdrawal history. An absent pair is an older schema with no
+/// navigation policy store; a partial pair is corruption.
+fn frozen_domain_v5(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    let mut result = frozen_domain_v4(db, domain, store, profile, d, c)?;
+    let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
+    let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
+    let names = SOURCE_NAVIGATION_POLICY_TABLES
+        .iter()
+        .map(|(table, _)| format!("'public.{table}'"))
+        .collect::<Vec<_>>();
+    let presence_sql = format!(
+        "SELECT {}",
+        names
+            .iter()
+            .map(|name| format!("to_regclass({name}) IS NOT NULL"))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    let presence = db.query_one(&presence_sql, &[]).map_err(|_| error())?;
+    let present_count = (0..names.len())
+        .filter(|index| presence.get::<_, bool>(*index))
+        .count();
+    require(present_count == 0 || present_count == names.len())?;
+    let installed = present_count == names.len();
+    let scan_rows = i64::try_from(
+        profile
+            .max_metadata_rows
+            .checked_sub(total_rows)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(error)?,
+    )
+    .map_err(|_| error())?;
+    let mut table_counts = serde_json::Map::new();
+    let mut census_rows = 0u64;
+    let mut census_bytes = 0u64;
+    let mut root = Digest256Hasher::new();
+    root.update(b"tos-backup-source-navigation-policy-v1\0");
+    root.update(if installed {
+        &b"present\0"[..]
+    } else {
+        &b"absent\0"[..]
+    });
+    if installed {
+        for (table, order) in SOURCE_NAVIGATION_POLICY_TABLES {
+            active(d, c)?;
+            let query = format!(
+                "SELECT octet_length(row_to_json(t)::text),
+                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
+                 FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
+            );
+            let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
+            let mut rows = db.query_raw(&query, params).map_err(|_| error())?;
+            use postgres::fallible_iterator::FallibleIterator;
+            let mut count = 0u64;
+            root.update(table.as_bytes());
+            root.update(&[0]);
+            while let Some(row) = rows.next().map_err(|_| error())? {
+                active(d, c)?;
+                let row_bytes = u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?)
+                    .map_err(|_| error())?;
+                let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
+                require(digest.len() == 32)?;
+                count = count.checked_add(1).ok_or_else(error)?;
+                census_rows = census_rows.checked_add(1).ok_or_else(error)?;
+                census_bytes = census_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                total_rows = total_rows.checked_add(1).ok_or_else(error)?;
+                total_bytes = total_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                require(
+                    count <= profile.max_metadata_rows
+                        && census_rows <= profile.max_metadata_rows
+                        && total_rows <= profile.max_metadata_rows
+                        && census_bytes <= profile.max_metadata_bytes
+                        && total_bytes <= profile.max_metadata_bytes,
+                )?;
+                root.update(&row_bytes.to_be_bytes());
+                root.update(&digest);
+            }
+            root.update(&count.to_be_bytes());
+            table_counts.insert(table.into(), json!(count));
+        }
+    } else {
+        for (table, _) in SOURCE_NAVIGATION_POLICY_TABLES {
+            table_counts.insert(table.into(), json!(0));
+        }
+    }
+    active(d, c)?;
+    {
+        let counts = result["counts"].as_object_mut().ok_or_else(error)?;
+        for (table, _) in SOURCE_NAVIGATION_POLICY_TABLES {
+            require(!counts.contains_key(table))?;
+            counts.insert(
+                table.into(),
+                table_counts.get(table).cloned().ok_or_else(error)?,
+            );
+        }
+    }
+    result["rows"] = json!(total_rows);
+    result["bytes"] = json!(total_bytes);
+    result["source_navigation_policy_v1"] = json!({
+        "schema":SOURCE_NAVIGATION_POLICY_CENSUS_V1,
+        "state":if installed { "present" } else { "absent" },
+        "tables":table_counts,
+        "rows":census_rows,
+        "bytes":census_bytes,
+        "row_root":if installed { json!(root.finalize().to_hex()) } else { Value::Null },
+    });
+    append_relation_census_v1(
+        db,
+        domain,
+        profile,
+        d,
+        c,
+        "source_publication_v1",
+        SOURCE_PUBLICATION_CENSUS_V1,
+        &SOURCE_PUBLICATION_TABLES,
+        &mut result,
+    )?;
+    append_relation_census_v1(
+        db,
+        domain,
+        profile,
+        d,
+        c,
+        "source_item_file_assignment_v1",
+        SOURCE_ITEM_ASSIGNMENT_CENSUS_V1,
+        &SOURCE_ITEM_ASSIGNMENT_TABLES,
+        &mut result,
+    )?;
+    Ok(result)
+}
+
+fn validate_relation_census_v1(
+    metadata: &Value,
+    profile: BackupProfile,
+    census_key: &str,
+    schema: &str,
+    tables: &[(&str, &str)],
+) -> io::Result<()> {
+    let census = &metadata[census_key];
+    let counts = census["tables"].as_object().ok_or_else(error)?;
+    require(census["schema"] == schema && counts.len() == tables.len())?;
+    let state = census["state"].as_str().ok_or_else(error)?;
+    require(state == "absent" || state == "present")?;
+    let mut total_rows = 0u64;
+    for (table, _) in tables {
+        let count = counts
+            .get(*table)
+            .and_then(Value::as_u64)
+            .ok_or_else(error)?;
+        require(count <= profile.max_metadata_rows)?;
+        require(metadata["counts"][*table].as_u64() == Some(count))?;
+        total_rows = total_rows.checked_add(count).ok_or_else(error)?;
+    }
+    let rows = census["rows"].as_u64().ok_or_else(error)?;
+    let bytes = census["bytes"].as_u64().ok_or_else(error)?;
+    require(
+        rows == total_rows
+            && rows <= profile.max_metadata_rows
+            && bytes <= profile.max_metadata_bytes,
+    )?;
+    if state == "absent" {
+        require(rows == 0 && bytes == 0 && census["row_root"].is_null())?;
+    } else {
+        let root = census["row_root"].as_str().ok_or_else(error)?;
+        require(tos_foundation::Digest256::from_hex(root).is_ok())?;
+    }
+    Ok(())
+}
+
+fn validate_source_navigation_policy_census(
+    metadata: &Value,
+    profile: BackupProfile,
+) -> io::Result<()> {
+    let census = &metadata["source_navigation_policy_v1"];
+    let tables = census["tables"].as_object().ok_or_else(error)?;
+    require(census["schema"] == SOURCE_NAVIGATION_POLICY_CENSUS_V1)?;
+    require(tables.len() == SOURCE_NAVIGATION_POLICY_TABLES.len())?;
+    let state = census["state"].as_str().ok_or_else(error)?;
+    require(state == "absent" || state == "present")?;
+    let mut total_rows = 0u64;
+    for (table, _) in SOURCE_NAVIGATION_POLICY_TABLES {
+        let count = tables[table].as_u64().ok_or_else(error)?;
+        require(count <= profile.max_metadata_rows)?;
+        require(metadata["counts"][table].as_u64() == Some(count))?;
+        total_rows = total_rows.checked_add(count).ok_or_else(error)?;
+    }
+    let rows = census["rows"].as_u64().ok_or_else(error)?;
+    let bytes = census["bytes"].as_u64().ok_or_else(error)?;
+    require(
+        rows == total_rows
+            && rows <= profile.max_metadata_rows
+            && bytes <= profile.max_metadata_bytes,
+    )?;
+    if state == "absent" {
+        require(rows == 0 && bytes == 0 && census["row_root"].is_null())?;
+    } else {
+        let root = census["row_root"].as_str().ok_or_else(error)?;
+        require(tos_foundation::Digest256::from_hex(root).is_ok())?;
+    }
+    Ok(())
+}
+
+/// Add a bounded digest census for one optional relation set. The receipt
+/// records only row counts, byte counts, and a root; table payloads remain in
+/// the database dump. A partial relation set is never treated as absence.
+fn append_relation_census_v1(
+    db: &mut Client,
+    domain: &str,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+    census_key: &str,
+    schema: &str,
+    tables: &[(&str, &str)],
+    result: &mut Value,
+) -> io::Result<()> {
+    require(!tables.is_empty())?;
+    let names = tables
+        .iter()
+        .map(|(table, _)| format!("'public.{table}'"))
+        .collect::<Vec<_>>();
+    let presence_sql = format!(
+        "SELECT {}",
+        names
+            .iter()
+            .map(|name| format!("to_regclass({name}) IS NOT NULL"))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    let presence = db.query_one(&presence_sql, &[]).map_err(|_| error())?;
+    let present_count = (0..tables.len())
+        .filter(|index| presence.get::<_, bool>(*index))
+        .count();
+    require(present_count == 0 || present_count == tables.len())?;
+    let installed = present_count == tables.len();
+    let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
+    let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
+    let scan_rows = i64::try_from(
+        profile
+            .max_metadata_rows
+            .checked_sub(total_rows)
+            .and_then(|remaining| remaining.checked_add(1))
+            .ok_or_else(error)?,
+    )
+    .map_err(|_| error())?;
+    let mut table_counts = serde_json::Map::new();
+    let mut census_rows = 0u64;
+    let mut census_bytes = 0u64;
+    let mut root = Digest256Hasher::new();
+    root.update(schema.as_bytes());
+    root.update(&[0]);
+    root.update(if installed {
+        &b"present\0"[..]
+    } else {
+        &b"absent\0"[..]
+    });
+    if installed {
+        for (table, order) in tables {
+            active(d, c)?;
+            let query = format!(
+                "SELECT octet_length(row_to_json(t)::text),
+                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
+                 FROM (SELECT * FROM {table} WHERE domain=$1 ORDER BY {order} LIMIT $2) t"
+            );
+            let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
+            let mut rows = db.query_raw(&query, params).map_err(|_| error())?;
+            use postgres::fallible_iterator::FallibleIterator;
+            let mut count = 0u64;
+            root.update(table.as_bytes());
+            root.update(&[0]);
+            while let Some(row) = rows.next().map_err(|_| error())? {
+                active(d, c)?;
+                let row_bytes = u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?)
+                    .map_err(|_| error())?;
+                let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
+                require(digest.len() == 32)?;
+                count = count.checked_add(1).ok_or_else(error)?;
+                census_rows = census_rows.checked_add(1).ok_or_else(error)?;
+                census_bytes = census_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                total_rows = total_rows.checked_add(1).ok_or_else(error)?;
+                total_bytes = total_bytes.checked_add(row_bytes).ok_or_else(error)?;
+                require(
+                    count <= profile.max_metadata_rows
+                        && census_rows <= profile.max_metadata_rows
+                        && total_rows <= profile.max_metadata_rows
+                        && census_bytes <= profile.max_metadata_bytes
+                        && total_bytes <= profile.max_metadata_bytes,
+                )?;
+                root.update(&row_bytes.to_be_bytes());
+                root.update(&digest);
+            }
+            root.update(&count.to_be_bytes());
+            table_counts.insert((*table).to_owned(), json!(count));
+        }
+    } else {
+        for (table, _) in tables {
+            table_counts.insert((*table).to_owned(), json!(0));
+        }
+    }
+    active(d, c)?;
+    let counts = result["counts"].as_object_mut().ok_or_else(error)?;
+    for (table, _) in tables {
+        require(!counts.contains_key(*table))?;
+        counts.insert(
+            (*table).to_owned(),
+            table_counts.get(*table).cloned().ok_or_else(error)?,
+        );
+    }
+    result["rows"] = json!(total_rows);
+    result["bytes"] = json!(total_bytes);
+    result[census_key] = json!({
+        "schema":schema,
+        "state":if installed { "present" } else { "absent" },
+        "tables":table_counts,
+        "rows":census_rows,
+        "bytes":census_bytes,
+        "row_root":if installed { json!(root.finalize().to_hex()) } else { Value::Null },
+    });
+    Ok(())
+}
+
 /// Global cold backup work is explicit; it never runs on a warm successor.
 fn managed_model_cold_closure(
     db: &mut Client,
@@ -875,7 +1708,7 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     let mut db = client(s.pg_url, d, c)?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
     let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
-    let metadata = frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)?;
+    let metadata = frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)?;
     let database: String = db
         .query_one("SELECT current_database()", &[])
         .map_err(|_| error())?
@@ -909,8 +1742,8 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         tos_fd_open::open_directory_at(&backup, Path::new("store")).map_err(|_| error())?;
     copy_store(&source, &copied, &members, profile, d, c)?;
     require(cut(s.pg_url, s.domain, &store, d, c)? == original_cut)?;
-    require(frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
-    let mut receipt = json!({"schema":BACKUP_SCHEMA_V2,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
+    require(frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
+    let mut receipt = json!({"schema":BACKUP_SCHEMA_V5,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
     if metadata.get("managed_model_v2").is_some() {
         let oid = db
             .query_one(
@@ -1017,7 +1850,11 @@ pub fn restore_into_fresh_with_managed_binding(
         raw
     })
     .map_err(|_| error())?;
-    let census_v2 = census_v2_for_schema(receipt["schema"].as_str().ok_or_else(error)?)?;
+    let schema = receipt["schema"].as_str().ok_or_else(error)?;
+    let census_v2 = census_v2_for_schema(schema)?;
+    let census_v3 = census_v3_for_schema(schema)?;
+    let census_v4 = census_v4_for_schema(schema)?;
+    let census_v5 = census_v5_for_schema(schema)?;
     require(receipt["domain"] == s.domain)?;
     require(receipt.get("profile").is_some() == receipt.get("metadata").is_some())?;
     if census_v2 {
@@ -1108,6 +1945,29 @@ pub fn restore_into_fresh_with_managed_binding(
                     && rows <= profile.max_metadata_rows,
             )?;
         }
+        if census_v3 {
+            validate_navigation_census(metadata, profile)?;
+        }
+        if census_v4 {
+            validate_private_package_census(metadata, profile)?;
+        }
+        if census_v5 {
+            validate_source_navigation_policy_census(metadata, profile)?;
+            validate_relation_census_v1(
+                metadata,
+                profile,
+                "source_publication_v1",
+                SOURCE_PUBLICATION_CENSUS_V1,
+                &SOURCE_PUBLICATION_TABLES,
+            )?;
+            validate_relation_census_v1(
+                metadata,
+                profile,
+                "source_item_file_assignment_v1",
+                SOURCE_ITEM_ASSIGNMENT_CENSUS_V1,
+                &SOURCE_ITEM_ASSIGNMENT_TABLES,
+            )?;
+        }
     }
     copy_store(&source, &restored, members, profile, d, c)?;
     let dump_file = OpenOptions::new()
@@ -1133,7 +1993,28 @@ pub fn restore_into_fresh_with_managed_binding(
             && hash_bounded(&receipt_path, profile.max_receipt_bytes, d, c)?.1 == s.receipt_sha256,
     )?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
-    let (recovered_metadata, recovered) = if census_v2 {
+    let (recovered_metadata, recovered) = if census_v5 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else if census_v4 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v4(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else if census_v3 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v3(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else if census_v2 {
         let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
         let recovered_metadata = frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
@@ -1232,16 +2113,33 @@ fn backup_binding_digest(value: &Value, max_bytes: u64) -> io::Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BACKUP_SCHEMA_V1, BACKUP_SCHEMA_V2, census_v2_for_schema};
+    use super::{
+        BACKUP_SCHEMA_V1, BACKUP_SCHEMA_V2, BACKUP_SCHEMA_V3, BACKUP_SCHEMA_V4, BACKUP_SCHEMA_V5,
+        census_v2_for_schema, census_v3_for_schema, census_v4_for_schema, census_v5_for_schema,
+    };
 
     #[test]
     fn receipt_version_dispatch_is_explicit() {
         assert!(!census_v2_for_schema(BACKUP_SCHEMA_V1).unwrap());
         assert!(census_v2_for_schema(BACKUP_SCHEMA_V2).unwrap());
+        assert!(census_v2_for_schema(BACKUP_SCHEMA_V3).unwrap());
+        assert!(census_v2_for_schema(BACKUP_SCHEMA_V4).unwrap());
+        assert!(census_v2_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(!census_v3_for_schema(BACKUP_SCHEMA_V2).unwrap());
+        assert!(census_v3_for_schema(BACKUP_SCHEMA_V3).unwrap());
+        assert!(census_v3_for_schema(BACKUP_SCHEMA_V4).unwrap());
+        assert!(census_v3_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(!census_v4_for_schema(BACKUP_SCHEMA_V3).unwrap());
+        assert!(census_v4_for_schema(BACKUP_SCHEMA_V4).unwrap());
+        assert!(census_v4_for_schema(BACKUP_SCHEMA_V5).unwrap());
+        assert!(!census_v5_for_schema(BACKUP_SCHEMA_V4).unwrap());
+        assert!(census_v5_for_schema(BACKUP_SCHEMA_V5).unwrap());
         assert_eq!(
-            census_v2_for_schema("tos_cmd2_quiescent_backup_v3")
-                .unwrap_err()
-                .kind(),
+            census_v4_for_schema("unknown").unwrap_err().kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            census_v3_for_schema("unknown").unwrap_err().kind(),
             std::io::ErrorKind::InvalidData
         );
     }

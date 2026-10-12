@@ -3,6 +3,8 @@
 
 use super::work_transaction::{self, PublicationSnapshot};
 use super::{CreationFilesystem, MAX_BYTES, MAX_FILES, active, member_mode_matches, scan, walk};
+use crate::source_cohort::IndexRows;
+use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -13,7 +15,19 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::item_rules::ItemRefusal;
+use tos_validation::record_biblio_cut::{
+    SourceCutInput, SourceCutInputWithIdentity, SourceCutMemberMeta,
+};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+
+#[path = "source_work_expression_pg.rs"]
+mod pg;
+pub(crate) use pg::{
+    PG_FAMILY_TAG as WORK_EXPRESSION_PG_FAMILY_TAG, PgWorkExpressionOwnerPackage,
+    PgWorkExpressionPreview, expected_inventory_contributions_from_writes,
+    expected_revision_indexes_from_writes, prepare_pg_work_expression, preview_pg_work_expression,
+    verify_pg_work_context,
+};
 
 const CONFIG: &str = "tos_local_work_expression_owner_v1";
 const REQUEST: &str = "tos_local_work_expression_command_v1";
@@ -1170,6 +1184,51 @@ pub(super) fn checked_current_source(
     checked_current_member(fs, cut, reference, cap, deadline, cancelled)
 }
 
+fn read_selected_source_member(
+    input: &dyn SourceCutInput,
+    reference: &str,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let path = relative(reference)?;
+    let mut selected = None;
+    input
+        .with_current_member(
+            path.as_str(),
+            cap,
+            deadline,
+            cancelled,
+            &mut |meta: SourceCutMemberMeta<'_>, raw| {
+                if meta.path != path.as_str() || raw.len() as u64 != meta.size_bytes {
+                    return Err(ItemRefusal::Source(
+                        "selected Work dependency metadata differs".into(),
+                    ));
+                }
+                selected = Some(raw.to_vec());
+                Ok(())
+            },
+        )
+        .map_err(|_| SourceCommandError::Conflict("selected Work dependency read"))?;
+    selected.ok_or(SourceCommandError::Conflict(
+        "selected Work dependency absent",
+    ))
+}
+
+fn checked_current_source_from_input(
+    _fs: &CreationFilesystem,
+    input: &dyn SourceCutInput,
+    reference: &str,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    if !reference.starts_with("ToS/source-witnesses/") {
+        return Err(SourceCommandError::Denied("Work catalog source locator"));
+    }
+    read_selected_source_member(input, reference, cap, deadline, cancelled)
+}
+
 /// Only the three current source descriptors used by owner result adapters.
 pub(super) fn checked_current_descriptor(
     fs: &CreationFilesystem,
@@ -1261,21 +1320,32 @@ pub(super) fn known_catalog_kind(kind: &str, basename: &str) -> bool {
     };
     basename == expected
 }
+struct WorkRetainedVerification {
+    transport: tos_validation::native_compound::NativeTransportState,
+    transaction_id: String,
+    manifest_sha256: Digest256,
+}
+
 fn current_catalog(
-    fs: &CreationFilesystem,
+    _fs: &CreationFilesystem,
     owner: &WorkOwner,
     before: &BTreeMap<String, Vec<u8>>,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
-    limits: ItemLimits,
     publication_token: Option<&str>,
+    mut select_catalog: impl FnMut(
+        Option<&str>,
+    )
+        -> SourceCommandResult<super::catalog_selection::CatalogSelection>,
+    mut checked_current: impl FnMut(&str, usize) -> SourceCommandResult<Vec<u8>>,
+    mut verify_retained_work: impl FnMut(
+        &str,
+        &JsonValue,
+    ) -> SourceCommandResult<WorkRetainedVerification>,
     mut check_publication: impl FnMut() -> SourceCommandResult<()>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkCatalog> {
     check_publication()?;
-    let selected_catalog =
-        super::catalog_selection::select_catalog(fs, publication_token, deadline, cancelled)?;
+    let selected_catalog = select_catalog(publication_token)?;
     let mut digests = selected_catalog.digests;
     let record_ids = selected_catalog.record_ids;
     let claim_ids = selected_catalog.claim_ids;
@@ -1362,14 +1432,8 @@ fn current_catalog(
             .ok_or(SourceCommandError::Conflict(
                 "Work topology Expression missing",
             ))?;
-        let raw_expression = checked_current_source(
-            fs,
-            cut,
-            cmd::text(expression, "source_record_ref")?,
-            2_097_152,
-            deadline,
-            cancelled,
-        )?;
+        let raw_expression =
+            checked_current(cmd::text(expression, "source_record_ref")?, 2_097_152)?;
         let value = cmd::parse(&raw_expression)?;
         if cmd::text(&value, "record_id")? != expression_id
             || cmd::text(&value, "work_ref")? != owner.work_id
@@ -1385,8 +1449,7 @@ fn current_catalog(
             raw_hex(&raw_expression),
         );
         let claim_ref = cmd::text(entry, "source_claim_file_ref")?;
-        let raw_claims =
-            checked_current_source(fs, cut, claim_ref, 8_388_608, deadline, cancelled)?;
+        let raw_claims = checked_current(claim_ref, 8_388_608)?;
         let line_number = usize::try_from(cmd::integer(entry, "source_claim_line")?)
             .map_err(|_| SourceCommandError::Invalid("Work topology Claim line"))?;
         let line = catalog_lines(&raw_claims)
@@ -1413,41 +1476,16 @@ fn current_catalog(
                 .ok_or(SourceCommandError::Invalid("prior Work Claim home"))?
                 .0;
             let receipt_ref = format!("{claim_home}/work-expression-receipt.json");
-            let receipt_raw =
-                checked_current_source(fs, cut, &receipt_ref, 2_097_152, deadline, cancelled)?;
+            let receipt_raw = checked_current(&receipt_ref, 2_097_152)?;
             let receipt = cmd::parse(&receipt_raw)?;
             let transaction_id = cmd::text(&receipt, "transaction_id")?;
-            let verified = tos_validation::native_compound::verify_work_expression_from_cut(
-                cut,
-                worker,
-                claim_ref,
-                &serde_value(&claim)?,
-                limits,
-                cancelled,
-            )
-            .map_err(item_error)?;
-            let (manifest_sha256, plan, _, _) =
-                work_transaction::inspect_committed(fs, transaction_id, deadline, cancelled)?;
+            let verified = verify_retained_work(claim_ref, &claim)?;
             if verified.transport
                 != tos_validation::native_compound::NativeTransportState::Committed
                 || verified.transaction_id != transaction_id
-                || verified.manifest_sha256 != manifest_sha256
                 || cmd::text(&receipt, "schema_version")? != "tos_work_expression_receipt_v1"
                 || cmd::text(&receipt, "operation")? != OPERATION
                 || cmd::text(cmd::field(&receipt, "claim")?, "id")? != id
-                || cmd::text(&plan.authorization, "schema_version")? != AUTHORIZATION
-                || cmd::text(cmd::field(&plan.authorization, "scope")?, "work_id")? != owner.work_id
-                || cmd::text(cmd::field(&plan.authorization, "scope")?, "expression_id")?
-                    != expression_id
-                || cmd::text(cmd::field(&plan.authorization, "scope")?, "claim_id")? != id
-                || !plan.files.iter().any(|selected| {
-                    selected.path.as_str() == claim_ref
-                        && selected.after.as_deref() == Some(raw_claims.as_slice())
-                })
-                || !plan.files.iter().any(|selected| {
-                    selected.path.as_str() == receipt_ref
-                        && selected.after.as_deref() == Some(receipt_raw.as_slice())
-                })
             {
                 return Err(SourceCommandError::Conflict(
                     "prior Work Claim lacks exact committed transaction",
@@ -1472,7 +1510,10 @@ fn current_catalog(
                 ));
             }
             if retained_transactions
-                .insert(transaction_id.to_owned(), manifest_sha256)
+                .insert(
+                    transaction_id.to_owned(),
+                    verified.manifest_sha256.to_prefixed(),
+                )
                 .is_some()
             {
                 return Err(SourceCommandError::Conflict(
@@ -1490,7 +1531,7 @@ fn current_catalog(
                 ));
             }
             let legacy_ref = "ToS/source-witnesses/relations/provenance.jsonl";
-            let raw = checked_current_source(fs, cut, legacy_ref, 8_388_608, deadline, cancelled)?;
+            let raw = checked_current(legacy_ref, 8_388_608)?;
             let mut rows =
                 catalog_lines(&raw).filter(|line| line.iter().any(|b| !b.is_ascii_whitespace()));
             let only = rows
@@ -1526,6 +1567,105 @@ fn current_catalog(
         prior_claims,
         retained_transactions,
     })
+}
+
+fn current_catalog_from_cut(
+    fs: &CreationFilesystem,
+    owner: &WorkOwner,
+    before: &BTreeMap<String, Vec<u8>>,
+    cut: &CorpusCutReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    limits: ItemLimits,
+    publication_token: Option<&str>,
+    check_publication: impl FnMut() -> SourceCommandResult<()>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkCatalog> {
+    current_catalog(
+        fs,
+        owner,
+        before,
+        publication_token,
+        |token| super::catalog_selection::select_catalog(fs, token, deadline, cancelled),
+        |reference, cap| checked_current_source(fs, cut, reference, cap, deadline, cancelled),
+        |claim_ref, claim| {
+            let verified = tos_validation::native_compound::verify_work_expression_from_cut(
+                cut,
+                worker,
+                claim_ref,
+                &serde_value(claim)?,
+                limits,
+                cancelled,
+            )
+            .map_err(item_error)?;
+            Ok(WorkRetainedVerification {
+                transport: verified.transport,
+                transaction_id: verified.transaction_id,
+                manifest_sha256: verified.manifest_sha256,
+            })
+        },
+        check_publication,
+        deadline,
+        cancelled,
+    )
+}
+
+fn current_catalog_from_selected_input<I: Copy + Eq>(
+    fs: &CreationFilesystem,
+    owner: &WorkOwner,
+    before: &BTreeMap<String, Vec<u8>>,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    limits: ItemLimits,
+    publication_token: Option<&str>,
+    check_publication: impl FnMut() -> SourceCommandResult<()>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkCatalog> {
+    current_catalog(
+        fs,
+        owner,
+        before,
+        publication_token,
+        |token| {
+            super::catalog_selection::select_catalog_from_input(
+                input.source_input(),
+                token,
+                deadline,
+                cancelled,
+            )
+        },
+        |reference, cap| {
+            checked_current_source_from_input(
+                fs,
+                input.source_input(),
+                reference,
+                cap,
+                deadline,
+                cancelled,
+            )
+        },
+        |claim_ref, claim| {
+            let verified =
+                tos_validation::native_compound::verify_work_expression_from_selected_input(
+                    input,
+                    worker,
+                    claim_ref,
+                    &serde_value(claim)?,
+                    limits,
+                    cancelled,
+                )
+                .map_err(item_error)?;
+            Ok(WorkRetainedVerification {
+                transport: verified.transport,
+                transaction_id: verified.transaction_id,
+                manifest_sha256: verified.manifest_sha256,
+            })
+        },
+        check_publication,
+        deadline,
+        cancelled,
+    )
 }
 
 #[derive(Clone)]
@@ -2740,7 +2880,7 @@ pub fn prepare_isolated_work_expression_from_proposal(
     let mut owner = WorkOwner::select_proposal(fs, ctx, limits.deadline, cancelled)?;
     complete_current_cut(fs, cut, &snapshot, limits.deadline, cancelled)?;
     let before = selected_before(fs, &owner, cut, &snapshot, limits.deadline, cancelled)?;
-    let catalog = current_catalog(
+    let catalog = current_catalog_from_cut(
         fs,
         &owner,
         &before,
@@ -2967,7 +3107,7 @@ fn prepare_work_application(
         ));
     }
     let before = selected_before(fs, &owner, cut, &snapshot, limits.deadline, cancelled)?;
-    let catalog = current_catalog(
+    let catalog = current_catalog_from_cut(
         fs,
         &owner,
         &before,
@@ -3467,7 +3607,7 @@ fn recover_work_expression(
     let publication_token = cmd::field(&owner.request, "expected_publication")?.as_str();
     let prior_id =
         original_prior_publication(original_cut, publication_token, limits.deadline, cancelled)?;
-    let catalog = current_catalog(
+    let catalog = current_catalog_from_cut(
         fs,
         &owner,
         &before,

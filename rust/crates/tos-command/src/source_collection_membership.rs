@@ -14,6 +14,16 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 
+#[path = "source_collection_membership_pg.rs"]
+mod pg;
+pub(crate) use pg::{
+    PG_FAMILY_TAG as COLLECTION_MEMBERSHIP_PG_FAMILY_TAG, PgCollectionMembershipOwnerPackage,
+    current_result_fields_from_selected_pg as pg_current_result_fields,
+    expected_collection_inventory_contributions, expected_collection_membership_revision_indexes,
+    prepare_pg_collection_membership, prepare_pg_collection_membership_preview,
+    verify_pg_collection_context,
+};
+
 const CONFIG: &str = "tos_local_collection_membership_owner_v1";
 const REQUEST: &str = "tos_local_collection_membership_command_v1";
 const OPERATION: &str = "collection.work.attach";
@@ -94,6 +104,16 @@ impl CollectionGrant {
     ) -> SourceCommandResult<Self> {
         fs.current_context(ctx, deadline, cancelled)?;
         let config = cmd::parse(&ctx.configuration_raw)?;
+        Self::from_configuration(fs, config, required_operation, deadline, cancelled)
+    }
+
+    fn from_configuration(
+        fs: &CreationFilesystem,
+        config: JsonValue,
+        required_operation: Option<&str>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
         let mut keys = SCOPE_KEYS.to_vec();
         keys.extend([
             "schema_version",
@@ -206,6 +226,20 @@ impl CollectionGrant {
         })
     }
 }
+
+/// Validate the exact protected Collection grant without selecting a local
+/// source tree. PG owner adapters use the selected-input catalog for source
+/// authority and this function only for the owner configuration boundary.
+pub fn check_collection_membership_configuration(
+    fs: &CreationFilesystem,
+    configuration: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    CollectionGrant::from_configuration(fs, configuration.clone(), None, deadline, cancelled)
+        .map(|_| ())
+}
+
 impl CollectionOwner {
     fn select(
         fs: &CreationFilesystem,

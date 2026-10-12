@@ -22,6 +22,9 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::PredicateRead;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
+#[path = "source_claims_pg_inventory.rs"]
+pub(crate) mod pg_inventory;
+
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
 pub const CLAIM_HISTORY: &str = "claim-revision-history.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -595,6 +598,125 @@ fn config(
     }
     Ok((c, p, handler, create, version))
 }
+
+pub(crate) fn pg_family_tag(ctx: &CommandContext) -> SourceCommandResult<String> {
+    let (config, _, _, create, _) = config(ctx)?;
+    let request = parse(&ctx.request_raw)?;
+    let operation = text(&request, "operation")?;
+    if (create && operation != "claims.create") || (!create && operation != "claim.revise") {
+        return Err(SourceCommandError::Unsupported(
+            "PostgreSQL Global Claims mutation operation",
+        ));
+    }
+    Ok(format!(
+        "tos-pg-global-claims-v1:{}:{operation}",
+        text(&config, "schema_version")?
+    ))
+}
+
+/// Derive the new maintained identity rows from the owner-prepared five-file
+/// creation package. This is the same Claim/event/anchor/form identity layer
+/// consumed by the cold maintained index builder.
+pub(crate) fn pg_claim_creation_index_rows(
+    source_path: &RelativePath,
+    files: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<BTreeSet<(String, String, String)>> {
+    if files.len() != 5 || !source_path.as_str().ends_with(&format!("/{CLAIM_STREAM}")) {
+        return Err(SourceCommandError::Conflict(
+            "PG Claim creation index package differs",
+        ));
+    }
+    let parent = source_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("PG Claim source parent"))?
+        .0;
+    let stream = files
+        .get(CLAIM_STREAM)
+        .ok_or(SourceCommandError::Conflict("PG Claim stream absent"))?;
+    let claim_ids = rows(stream)?.into_keys().collect::<BTreeSet<_>>();
+    if claim_ids.is_empty() || claim_ids.len() > 32 {
+        return Err(SourceCommandError::Conflict(
+            "PG Claim creation identity count differs",
+        ));
+    }
+    let mut indexes = claim_ids
+        .into_iter()
+        .map(|id| ("claim".to_owned(), id, source_path.as_str().to_owned()))
+        .collect::<BTreeSet<_>>();
+    for (name, raw) in files {
+        if name.contains('/') || name.is_empty() {
+            return Err(SourceCommandError::Invalid("PG Claim package member name"));
+        }
+        let path = format!("{parent}/{name}");
+        let basename = name.as_str();
+        if basename.ends_with(".jsonl")
+            && (basename.contains("provenance") || basename.contains("anchor"))
+        {
+            let kind = if basename.contains("provenance") {
+                ("event", "event_id")
+            } else {
+                ("anchor", "anchor_id")
+            };
+            for line in raw.split(|byte| *byte == b'\n') {
+                if python_bytes_blank(line) {
+                    continue;
+                }
+                let value = parse(line)?;
+                let Some(identity) = value.object_get(kind.1) else {
+                    continue;
+                };
+                if identity == &JsonValue::Null {
+                    continue;
+                }
+                let identity = identity
+                    .as_str()
+                    .filter(|identity| !identity.is_empty())
+                    .ok_or(SourceCommandError::Invalid("PG Claim evidence identity"))?;
+                if !indexes.insert((kind.0.to_owned(), identity.to_owned(), path.clone())) {
+                    return Err(SourceCommandError::Conflict(
+                        "duplicate PG Claim evidence identity",
+                    ));
+                }
+            }
+        } else if basename.ends_with(".human-forms.json") {
+            let set = parse(raw)?;
+            apply_form_changes(
+                Some(&set),
+                field(&set, "subject")?,
+                &[],
+            )?;
+            for section in ["forms", "prior_forms"] {
+                for form in array(&set, section)? {
+                    let id = text(form, "form_id")?.to_owned();
+                    if !indexes.insert(("form".to_owned(), id, path.clone())) {
+                        return Err(SourceCommandError::Conflict(
+                            "duplicate PG Claim form identity",
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    let mut unique = BTreeSet::new();
+    for (_, id, _) in &indexes {
+        if !unique.insert(id) {
+            return Err(SourceCommandError::Conflict(
+                "duplicate PG Claim semantic index identity",
+            ));
+        }
+    }
+    Ok(indexes)
+}
+
+/// Stable claim identities read by the durable index owner. Revisions may
+/// change Claim content but never add, remove, or retarget stream identities.
+pub(crate) fn pg_claim_stream_ids(
+    raw: &[u8],
+) -> SourceCommandResult<BTreeSet<String>> {
+    Ok(rows(raw)?.into_keys().collect())
+}
+
 fn grammar(request: &JsonValue, create: bool, layer: bool) -> SourceCommandResult<()> {
     if text(request, "schema_version")? != "tos_local_source_command_v1" {
         return Err(SourceCommandError::Invalid("Claim request schema"));
@@ -697,6 +819,54 @@ pub(crate) fn work_expression_source_descriptors(
         limits.deadline,
         cancelled,
     )?;
+    let corpus = "ToS/contracts/corpus-record.schema.json";
+    let descriptors = tos_validation::record_rules::work_expression_source_descriptors(
+        selected(ctx, ENTITIES)?,
+        selected(ctx, RELATIONS)?,
+        selected(ctx, corpus)?,
+        limits,
+        cancelled,
+    )
+    .map_err(|reason| SourceCommandError::SchemaExecution {
+        path: "work.expression.describe".into(),
+        root: "existing source profile registry".into(),
+        reason,
+    })?;
+    let raw = serde_json::to_vec(&descriptors)
+        .map_err(|_| SourceCommandError::Invalid("Work descriptors JSON"))?;
+    parse(&raw)
+}
+
+/// Candidate-worker counterpart for the selected PG Work owner route. It
+/// applies the same maintained profile and registry contracts without
+/// requiring a CorpusCutReader-bound schema executor.
+pub(crate) fn work_expression_source_descriptors_candidate<I: Copy + Eq>(
+    ctx: &CommandContext,
+    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    limits: tos_validation::item_rules::ItemLimits,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    crate::source_revisions::validate_source_profile_registry_candidate(
+        worker,
+        limits.deadline,
+        cancelled,
+        ctx,
+    )?;
+    match worker.check(
+        RELATIONS,
+        &canonical(&json_file(ctx, RELATIONS)?)?,
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        limits.deadline,
+        cancelled,
+    ) {
+        Ok(true) => {}
+        Ok(false) => return Err(SourceCommandError::Invalid("source Claim schema refused")),
+        Err(_) => {
+            return Err(SourceCommandError::Unsupported(
+                "source Claim schema execution incomplete",
+            ));
+        }
+    }
     let corpus = "ToS/contracts/corpus-record.schema.json";
     let descriptors = tos_validation::record_rules::work_expression_source_descriptors(
         selected(ctx, ENTITIES)?,
@@ -992,6 +1162,80 @@ pub fn run_claim_command_from_captures(
     )
 }
 
+/// Execute a Global Claims owner command against a recursively sealed current
+/// PG cut. The transport is complete-source evidence only; all Claim meaning,
+/// grounding, history and form rules remain in this owner.
+pub(crate) fn run_claim_command_from_pg_complete_cut(
+    ctx: &CommandContext,
+    cut: &crate::source_cohort::claims::PgCompleteClaimCut,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    cut.verify_context(ctx.base_revision, &ctx.files)
+        .map_err(|_| SourceCommandError::Conflict("Global Claims complete PG cut differs"))?;
+    if let Some(catalog) = &catalog_capture {
+        catalog.borrow().bind_pg_complete_cut(cut)?;
+    }
+    let request = parse(&ctx.request_raw)?;
+    let operation = text(&request, "operation")?;
+    if ![
+        "claims.create",
+        "claim.revise",
+        "describe",
+        "inspect-version",
+    ]
+    .contains(&operation)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "Global Claims PG operation adapter",
+        ));
+    }
+    let whole_call = match whole_call {
+        Some(whole_call) => whole_call,
+        None => claim_call_for_selected_context(ctx)?,
+    };
+    whole_call.borrow_mut().read(cut.total_bytes())?;
+    run_claim_command_inner_with_members(
+        ctx,
+        Some(ctx),
+        None,
+        catalog_capture,
+        None,
+        Some(whole_call),
+        operation == "claims.create",
+        Some(cut.members()),
+        executor,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Tell the native PG adapter whether the exact owner operation needs the
+/// separately selected current generated catalog. The decision uses the same
+/// Claim profile rule as semantic grounding.
+pub(crate) fn pg_requires_catalog(ctx: &CommandContext) -> SourceCommandResult<bool> {
+    let (_, source_path, _, create, _) = config(ctx)?;
+    let request = parse(&ctx.request_raw)?;
+    match text(&request, "operation")? {
+        "claims.create" if create => array(&request, "claims")?
+            .iter()
+            .map(|claim| retained_profile_required(ctx, claim))
+            .try_fold(false, |required, next| Ok(required || next?)),
+        "claim.revise" if !create => {
+            let stream = rows(selected(ctx, source_path.as_str())?)?;
+            let id = text(&parse(&ctx.configuration_raw)?, "claim_id")?;
+            let record = stream
+                .get(id)
+                .ok_or(SourceCommandError::Conflict("delegated Claim absent"))?;
+            retained_profile_required(ctx, record)
+        }
+        _ => Ok(false),
+    }
+}
+
 /// Read-only isolated creation preview for Claims whose exact grounding needs
 /// the separately selected generated catalogue. The physical owner and
 /// selected cut are rechecked; the returned plan has no publication route.
@@ -1104,7 +1348,7 @@ fn claim_context_with_files(
     }
 }
 
-fn claim_call_for_selected_context(
+pub(crate) fn claim_call_for_selected_context(
     ctx: &CommandContext,
 ) -> SourceCommandResult<Rc<RefCell<ClaimCallBudget>>> {
     let files = ctx
@@ -1311,6 +1555,146 @@ fn claim_creation_from_captures(
         deadline,
         cancelled,
     )?;
+    serialize_claim_creation_preview(
+        complete,
+        preview,
+        software,
+        components,
+        worker,
+        retained,
+        catalog_capture,
+        whole_call,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Native five-file Claim creation package over a recursively sealed PG
+/// authored cut. Software bytes are still separately selected and checked;
+/// authored membership is never inferred from that software capture.
+pub(crate) fn claim_creation_from_pg_complete_cut(
+    ctx: &CommandContext,
+    cut: &crate::source_cohort::claims::PgCompleteClaimCut,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SerializedClaimCreation> {
+    cut.verify_context(ctx.base_revision, &ctx.files)
+        .map_err(|_| SourceCommandError::Conflict("Global Claims complete PG cut differs"))?;
+    if let Some(catalog) = &catalog_capture {
+        catalog.borrow().bind_pg_complete_cut(cut)?;
+    }
+    for input in ctx
+        .files
+        .iter()
+        .filter(|file| !file.path.as_str().starts_with("ToS/"))
+    {
+        let selected = selected_software_input(software, components, input, deadline, cancelled)?;
+        if selected != input.raw {
+            return Err(SourceCommandError::Conflict(
+                "selected Claim software component bytes differ",
+            ));
+        }
+    }
+    if let Some(budget) = &whole_call {
+        budget.borrow_mut().read(cut.total_bytes())?;
+    }
+    let preview = run_claim_command_inner_with_members(
+        ctx,
+        Some(ctx),
+        None,
+        catalog_capture.clone(),
+        None,
+        whole_call.clone(),
+        true,
+        Some(cut.members()),
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    let (config, source_path, _, create, _) = config(ctx)?;
+    if !create {
+        return Err(SourceCommandError::Denied(
+            "PostgreSQL Claim creation owner family",
+        ));
+    }
+    let request = parse(&ctx.request_raw)?;
+    let allowed = claim_creation_allowed_names(&request)?;
+    let home = source_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("Claim creation home"))?
+        .0;
+    let retained = {
+        let direct = ctx
+            .files
+            .iter()
+            .filter_map(|file| {
+                file.path
+                    .as_str()
+                    .strip_prefix(&format!("{home}/"))
+                    .filter(|name| !name.contains('/') && allowed.contains(*name))
+                    .map(|name| (name.to_owned(), file.raw.clone()))
+            })
+            .collect::<BTreeMap<_, _>>();
+        let required = [
+            CLAIM_STREAM,
+            "source-create-request.json",
+            "source-create-environment.json",
+            "source-create-provenance.jsonl",
+            "source-create-receipt.json",
+        ];
+        required
+            .iter()
+            .all(|name| direct.contains_key(*name))
+            .then(|| {
+                retained_claim_creation_files(
+                    ctx,
+                    &config,
+                    &request,
+                    &source_path,
+                    &direct,
+                    whole_call.as_ref(),
+                )
+            })
+            .transpose()?
+    };
+    serialize_claim_creation_preview(
+        ctx.clone(),
+        preview,
+        software,
+        components,
+        worker,
+        retained.as_ref(),
+        catalog_capture,
+        whole_call,
+        deadline,
+        cancelled,
+    )
+}
+
+fn serialize_claim_creation_preview(
+    complete: CommandContext,
+    preview: PreparedCommand,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    retained: Option<&BTreeMap<String, Vec<u8>>>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SerializedClaimCreation> {
+    let request = parse(&complete.request_raw)?;
+    if text(&request, "operation")? != "claims.create" {
+        return Err(SourceCommandError::Unsupported(
+            "native Claim serialization requires claims.create",
+        ));
+    }
     if preview.changes.len() != 1 || preview.changes[0].before.is_some() {
         return Err(SourceCommandError::Conflict(
             "initial Claim serialization proposal closure",
@@ -2086,7 +2470,7 @@ fn reference_replay_snapshot(
         true,
         retained
             .take()
-            .map(|read| read.into_inventory(current, Some(cut)))
+            .map(|read| read.into_inventory(current, Some(cut), None))
             .transpose()?,
         &bindings,
         worker,
@@ -2285,38 +2669,7 @@ pub(crate) fn complete_authored_inputs(
                 "software or other namespace cannot masquerade as authored Claim cut member",
             ));
         }
-        let components = descriptor.path.as_str().split('/').collect::<Vec<_>>();
-        if descriptor
-            .path
-            .as_str()
-            .starts_with("ToS/source-witnesses/owner-local/")
-        {
-            return Err(SourceCommandError::Denied(
-                "reserved owner-local namespace in complete Claim inventory",
-            ));
-        }
-        // This is the complete authenticated authored input, not the public
-        // metadata inventory. Keep eligible content bytes in the command read
-        // closure; maintained_inventory_inner excludes them from its catalog.
-        // Native content still requires its separate binding and rights checks.
-        if components
-            .iter()
-            .any(|part| ["payload", "local-content"].contains(part))
-        {
-            let basename = descriptor.path.as_str().rsplit('/').next().unwrap_or("");
-            if NATIVE_CATALOG_KINDS
-                .iter()
-                .any(|kind| basename == format!("{kind}.json"))
-                || basename == CLAIM_STREAM
-                || LEGACY_CLAIM_STREAMS.contains(&basename)
-                || ["artifact-witness.json", "composite-witness.json"].contains(&basename)
-                || basename.starts_with("semantic-annotation") && basename.ends_with(".json")
-            {
-                return Err(SourceCommandError::Unsupported(
-                    "private metadata carrier cannot enter maintained public catalog fingerprint",
-                ));
-            }
-        }
+        validate_pg_complete_member(&descriptor.path)?;
         if files
             .len()
             .checked_add(software_inputs.len())
@@ -2379,6 +2732,43 @@ pub(crate) fn complete_authored_inputs(
     Ok(files)
 }
 
+/// Apply the same source-privacy and public-catalogue boundary to a complete
+/// PG traversal as the existing owner cut. The PG transport may establish
+/// completeness, but it cannot broaden which bytes enter Claim grounding.
+pub(crate) fn validate_pg_complete_member(path: &RelativePath) -> SourceCommandResult<()> {
+    let name = path.as_str();
+    if !name.starts_with("ToS/") {
+        return Err(SourceCommandError::Unsupported(
+            "software or other namespace cannot masquerade as authored Claim cut member",
+        ));
+    }
+    if name.starts_with("ToS/source-witnesses/owner-local/") {
+        return Err(SourceCommandError::Denied(
+            "reserved owner-local namespace in complete Claim inventory",
+        ));
+    }
+    let components = name.split('/').collect::<Vec<_>>();
+    if components
+        .iter()
+        .any(|part| ["payload", "local-content"].contains(part))
+    {
+        let basename = name.rsplit('/').next().unwrap_or("");
+        if NATIVE_CATALOG_KINDS
+            .iter()
+            .any(|kind| basename == format!("{kind}.json"))
+            || basename == CLAIM_STREAM
+            || LEGACY_CLAIM_STREAMS.contains(&basename)
+            || ["artifact-witness.json", "composite-witness.json"].contains(&basename)
+            || basename.starts_with("semantic-annotation") && basename.ends_with(".json")
+        {
+            return Err(SourceCommandError::Unsupported(
+                "private metadata carrier cannot enter maintained public catalog fingerprint",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn run_claim_command_inner(
     ctx: &CommandContext,
     selected_context: Option<&CommandContext>,
@@ -2387,6 +2777,34 @@ fn run_claim_command_inner(
     selected_package: Option<&BTreeMap<String, Vec<u8>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     serialize_creation: bool,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    run_claim_command_inner_with_members(
+        ctx,
+        selected_context,
+        cut,
+        catalog_capture,
+        selected_package,
+        whole_call,
+        serialize_creation,
+        None,
+        executor,
+        deadline,
+        cancelled,
+    )
+}
+
+fn run_claim_command_inner_with_members(
+    ctx: &CommandContext,
+    selected_context: Option<&CommandContext>,
+    cut: Option<&CorpusCutReader>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    selected_package: Option<&BTreeMap<String, Vec<u8>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    serialize_creation: bool,
+    complete_members: Option<&[SourceFile]>,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2447,20 +2865,34 @@ fn run_claim_command_inner(
         )?;
     }
     let mut retained = None;
-    if !create && !["describe", "inspect-version"].contains(&operation) {
+    if complete_members.is_some() && ["claims.create", "claim.revise"].contains(&operation) {
+        // PG Global Claims must hold the same complete identity, profile,
+        // evidence, form and history inventory used by the cut-backed owner.
+        // A light addressed-only path would miss global collision/grounding.
+        retained = Some(RetainedProfileRead::new_with_complete_members(
+            ctx,
+            executor,
+            deadline,
+            cancelled,
+            catalog_capture.clone(),
+            whole_call.clone(),
+            complete_members,
+        )?);
+    } else if !create && !["describe", "inspect-version"].contains(&operation) {
         let id = text(&config, "claim_id")?;
         let current = rows(selected(ctx, p.as_str())?)?;
         let record = current
             .get(id)
             .ok_or(SourceCommandError::Conflict("delegated Claim absent"))?;
         if retained_profile_required(ctx, record)? {
-            retained = Some(RetainedProfileRead::new(
+            retained = Some(RetainedProfileRead::new_with_complete_members(
                 ctx,
                 executor,
                 deadline,
                 cancelled,
                 catalog_capture.clone(),
                 whole_call.clone(),
+                complete_members,
             )?);
         }
     }
@@ -2632,13 +3064,14 @@ fn run_claim_command_inner(
         for claim in claims {
             claim_scope(&config, claim, true, version)?;
             if retained.is_none() && retained_profile_required(ctx, claim)? {
-                retained = Some(RetainedProfileRead::new(
+                retained = Some(RetainedProfileRead::new_with_complete_members(
                     ctx,
                     executor,
                     deadline,
                     cancelled,
                     catalog_capture.clone(),
                     whole_call.clone(),
+                    complete_members,
                 )?);
             }
             if integer(claim, "claim_version")? != 1
@@ -2711,7 +3144,7 @@ fn run_claim_command_inner(
             false,
             retained
                 .take()
-                .map(|read| read.into_inventory(ctx, cut))
+                .map(|read| read.into_inventory(ctx, cut, complete_members))
                 .transpose()?,
             &retained_profile_bindings,
             executor,
@@ -2903,13 +3336,14 @@ fn run_claim_command_inner(
                 }
             }
             if retained.is_none() && retained_profile_required(ctx, record)? {
-                retained = Some(RetainedProfileRead::new(
+                retained = Some(RetainedProfileRead::new_with_complete_members(
                     ctx,
                     executor,
                     deadline,
                     cancelled,
                     catalog_capture.clone(),
                     whole_call.clone(),
+                    complete_members,
                 )?);
             }
             validate_ground(
@@ -2949,7 +3383,7 @@ fn run_claim_command_inner(
                 // A retained revision replay has no fresh grounding call to
                 // consume the read set; bind its historical observations to
                 // this same complete selected cut before returning.
-                read.into_inventory(ctx, cut)?;
+                read.into_inventory(ctx, cut, complete_members)?;
             }
             set(
                 &mut response,
@@ -2964,13 +3398,14 @@ fn run_claim_command_inner(
     let revised = advance_claim(record, fields, layer)?;
     claim_scope(&config, &revised, false, version)?;
     if retained.is_none() && retained_profile_required(ctx, &revised)? {
-        retained = Some(RetainedProfileRead::new(
+        retained = Some(RetainedProfileRead::new_with_complete_members(
             ctx,
             executor,
             deadline,
             cancelled,
             catalog_capture.clone(),
             whole_call.clone(),
+            complete_members,
         )?);
     }
     let retained_profile_binding = validate_ground(
@@ -3089,7 +3524,7 @@ fn run_claim_command_inner(
         true,
         retained
             .take()
-            .map(|read| read.into_inventory(ctx, cut))
+            .map(|read| read.into_inventory(ctx, cut, complete_members))
             .transpose()?,
         &retained_profile_bindings,
         executor,
@@ -3351,6 +3786,24 @@ pub(crate) const NATIVE_CATALOG_KINDS: &[&str] = &[
     "collection",
     "item",
     "link",
+    "sign",
+];
+/// Complete record-family set carried by one managed mixed-inventory member.
+/// Native Artifact and Composite witnesses use dedicated filenames and schema
+/// routes, but their rendered catalog entries share this projection envelope.
+pub(crate) const MIXED_INVENTORY_RECORD_KINDS: &[&str] = &[
+    "agent",
+    "place",
+    "organization",
+    "work",
+    "expression",
+    "edition",
+    "collection",
+    "item",
+    "link",
+    "sign",
+    "artifact",
+    "composite",
 ];
 const CATALOG_LINK_FIELDS: &[&str] = &[
     "work_ref",
@@ -3746,6 +4199,18 @@ fn catalogue_record<'a>(
     Ok(CatalogueEntry(fields))
 }
 
+/// Render one exact catalog row for a separately sealed PG owner projection.
+/// The owner supplies the schema reference selected from its maintained
+/// profile; keeping the row constructor here preserves the canonical catalog
+/// grammar shared with the cut and streamed inventory readers.
+pub(crate) fn pg_catalogue_record_value(
+    record: &JsonValue,
+    location: &str,
+    schema: Option<&str>,
+) -> SourceCommandResult<JsonValue> {
+    Ok(catalogue_record(record, location, schema)?.construct()?)
+}
+
 fn catalogue_claim<'a>(
     ctx: &CommandContext,
     claim: &'a JsonValue,
@@ -4003,6 +4468,80 @@ pub(crate) struct MaintainedInventory {
     pub native_text_snapshot: Option<String>,
 }
 
+/// Exact identity and dependency maps derived only from the supplied authored
+/// members and the caller's separately selected software capture. This is a
+/// point-closure result, not a claim that the selected files form a complete
+/// corpus inventory.
+pub(crate) struct SelectedIdentityClosure {
+    pub objects: BTreeMap<String, JsonValue>,
+    pub source_records: BTreeMap<String, JsonValue>,
+    pub claims: BTreeMap<String, JsonValue>,
+    pub record_inputs: JsonValue,
+    pub events: JsonValue,
+    pub anchors: JsonValue,
+}
+
+/// Run the existing maintained owner parsers over an explicit selected source
+/// closure. Global absence and collision proofs must come from the caller's
+/// owner index or authenticated predicate reads; no complete-inventory claim
+/// or native identity snapshot is produced here.
+pub(crate) fn maintained_selected_identity_closure(
+    ctx: &CommandContext,
+    selected_authored_members: &[SourceFile],
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SelectedIdentityClosure> {
+    let mut files = selected_authored_members.to_vec();
+    if files
+        .iter()
+        .any(|file| !file.path.as_str().starts_with("ToS/"))
+    {
+        return Err(SourceCommandError::Invalid(
+            "selected Claim identity closure authored namespace",
+        ));
+    }
+    files.extend(
+        ctx.files
+            .iter()
+            .filter(|file| !file.path.as_str().starts_with("ToS/"))
+            .cloned(),
+    );
+    files.sort_by(|left, right| left.path.cmp(&right.path));
+    let selected = CommandContext {
+        base_revision: ctx.base_revision,
+        configuration_raw: ctx.configuration_raw.clone(),
+        request_raw: ctx.request_raw.clone(),
+        recorded_at: ctx.recorded_at.clone(),
+        effective_uid: ctx.effective_uid,
+        files,
+    };
+    selected.check()?;
+    let inventory = maintained_inventory_inner_with_members(
+        &selected,
+        None,
+        false,
+        executor,
+        deadline,
+        cancelled,
+        None,
+        None,
+    )?;
+    if inventory.native_identity_snapshot.is_some() {
+        return Err(SourceCommandError::Conflict(
+            "selected Claim identity closure contains a global snapshot",
+        ));
+    }
+    Ok(SelectedIdentityClosure {
+        objects: inventory.objects,
+        source_records: inventory.source_records,
+        claims: inventory.claims,
+        record_inputs: inventory.record_inputs,
+        events: inventory.events,
+        anchors: inventory.anchors,
+    })
+}
+
 type MetadataBinding = (JsonValue, String, JsonValue, JsonValue, &'static str);
 
 struct RetainedCatalogRows {
@@ -4031,11 +4570,30 @@ struct RetainedProfileRead {
     read_bytes: u64,
     state_bytes: usize,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    selected_context_digest: Option<Digest256>,
 }
 
 struct RetainedGroundingInput {
     inventory: MaintainedInventory,
     budget: RetainedProfileRead,
+}
+
+fn selected_claim_context_digest(ctx: &CommandContext) -> SourceCommandResult<Digest256> {
+    let members = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .map(|file| {
+            object(vec![
+                ("path", string(file.path.as_str())),
+                ("sha256", string(&Digest256::of_bytes(&file.raw).to_prefixed())),
+            ])
+        })
+        .collect::<Vec<_>>();
+    record_digest(&object(vec![
+        ("schema_version", string("tos_claim_selected_context_v1")),
+        ("members", JsonValue::Array(members)),
+    ]))
 }
 
 fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
@@ -4059,15 +4617,36 @@ impl RetainedProfileRead {
         catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
         whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     ) -> SourceCommandResult<Self> {
+        Self::new_with_complete_members(
+            ctx,
+            executor,
+            deadline,
+            cancelled,
+            catalog_capture,
+            whole_call,
+            None,
+        )
+    }
+
+    fn new_with_complete_members(
+        ctx: &CommandContext,
+        executor: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+        whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+        complete_members: Option<&[SourceFile]>,
+    ) -> SourceCommandResult<Self> {
         ctx.check()?;
-        let mut inventory = maintained_inventory_inner(
+        let mut inventory = maintained_inventory_inner_with_members(
             ctx,
             None,
-            false,
+            true,
             executor,
             deadline,
             cancelled,
             whole_call.as_ref(),
+            complete_members,
         )?;
         let entities = if whole_call.is_some() {
             inventory
@@ -4189,7 +4768,29 @@ impl RetainedProfileRead {
             read_bytes,
             state_bytes,
             whole_call,
+            selected_context_digest: None,
         })
+    }
+
+    fn new_with_selected_members(
+        ctx: &CommandContext,
+        executor: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+        whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    ) -> SourceCommandResult<Self> {
+        let mut retained = Self::new_with_complete_members(
+            ctx,
+            executor,
+            deadline,
+            cancelled,
+            catalog_capture,
+            whole_call,
+            None,
+        )?;
+        retained.selected_context_digest = Some(selected_claim_context_digest(ctx)?);
+        Ok(retained)
     }
 
     fn debit(&mut self, bytes_read: u64, state_bytes: usize) -> SourceCommandResult<()> {
@@ -4317,14 +4918,36 @@ impl RetainedProfileRead {
         mut self,
         ctx: &CommandContext,
         cut: Option<&CorpusCutReader>,
+        complete_members: Option<&[SourceFile]>,
     ) -> SourceCommandResult<RetainedGroundingInput> {
-        let cut = cut.ok_or(SourceCommandError::Unsupported(
-            "retained Claim needs complete selected cut",
-        ))?;
-        if cut.current().revision() != ctx.base_revision {
-            return Err(SourceCommandError::Conflict(
-                "retained Claim selected cut changed",
-            ));
+        if let Some(cut) = cut {
+            if cut.current().revision() != ctx.base_revision {
+                return Err(SourceCommandError::Conflict(
+                    "retained Claim selected cut changed",
+                ));
+            }
+        } else {
+            if let Some(complete_members) = complete_members {
+                let authored = ctx
+                    .files
+                    .iter()
+                    .filter(|file| file.path.as_str().starts_with("ToS/"))
+                    .collect::<Vec<_>>();
+                if authored.len() != complete_members.len()
+                    || authored
+                        .iter()
+                        .zip(complete_members)
+                        .any(|(left, right)| *left != right)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "retained Claim PG complete cut changed",
+                    ));
+                }
+            } else if self.selected_context_digest != Some(selected_claim_context_digest(ctx)?) {
+                return Err(SourceCommandError::Conflict(
+                    "retained Claim selected dependency closure changed",
+                ));
+            }
         }
         let mut recheck_bytes = 0u64;
         for read in &self.observed_reads {
@@ -4431,6 +5054,122 @@ pub(crate) fn maintained_agent_inventory_from_managed(
     complete_agent_inventory(inventory)
 }
 
+/// Rebuild the maintained inventory from an authenticated complete authored
+/// member set supplied by a non-Corpus source owner. This is the PG analogue
+/// of `maintained_inventory_from_cut`: path membership and native identity
+/// collisions are derived from the same exact member bytes, never from the
+/// selected command's schema subset.
+pub(crate) fn maintained_inventory_from_members(
+    ctx: &CommandContext,
+    complete_authored_members: &[SourceFile],
+    capture_member_inputs: bool,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<MaintainedInventory> {
+    ctx.check()?;
+    let mut authored = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .cloned()
+        .collect::<Vec<_>>();
+    authored.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut supplied = complete_authored_members.to_vec();
+    supplied.sort_by(|left, right| left.path.cmp(&right.path));
+    if supplied != authored
+        || supplied.windows(2).any(|pair| pair[0].path == pair[1].path)
+        || supplied.iter().any(|file| {
+            !file.path.as_str().starts_with("ToS/")
+                || validate_pg_complete_member(&file.path).is_err()
+        })
+    {
+        return Err(SourceCommandError::Conflict(
+            "complete maintained member set differs from selected ToS bytes",
+        ));
+    }
+    let inventory = maintained_inventory_inner_with_members(
+        ctx,
+        None,
+        capture_member_inputs,
+        executor,
+        deadline,
+        cancelled,
+        None,
+        Some(&supplied),
+    )?;
+    if inventory.native_text_snapshot.is_some() {
+        return Err(SourceCommandError::Unsupported(
+            "maintained native text binding snapshot adapter",
+        ));
+    }
+    Ok(inventory)
+}
+
+/// Complete public mixed inventory for the Global Claims contribution route.
+/// It admits only the maintained `source-claims.jsonl` owner; legacy claim
+/// streams, historical claims, semantic annotations, private carriers and
+/// native-text bindings continue to require their own source readers.
+pub(crate) fn maintained_global_claim_inventory_from_members(
+    ctx: &CommandContext,
+    complete_authored_members: &[SourceFile],
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<MaintainedInventory> {
+    for file in complete_authored_members {
+        let location = file.path.as_str();
+        if location.starts_with("ToS/source-witnesses/") {
+            let basename = location.rsplit('/').next().unwrap_or(location);
+            if basename != CLAIM_STREAM
+                && (LEGACY_CLAIM_STREAMS.contains(&basename)
+                    || basename == "historical-claims.jsonl")
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "mixed inventory requires historical Claim owner",
+                ));
+            }
+            if basename == CLAIM_STREAM {
+                // Preserve the existing public/private namespace guard while
+                // allowing only this exact maintained Claim stream family.
+                if location
+                    .split('/')
+                    .any(|part| ["owner-local", "private", "payload", "local-content"].contains(&part))
+                {
+                    return Err(SourceCommandError::Unsupported(
+                        "mixed inventory requires private Claim owner",
+                    ));
+                }
+            } else {
+                agent_source_reject_unsupported_member(location)?;
+            }
+        } else if location.starts_with("ToS/") {
+            agent_source_reject_unsupported_member(location)?;
+        }
+    }
+    let inventory = maintained_inventory_from_members(
+        ctx,
+        complete_authored_members,
+        true,
+        executor,
+        deadline,
+        cancelled,
+    )?;
+    for (_, claim) in &inventory.claims {
+        if !text(claim, "source_claim_file_ref")?.ends_with(&format!("/{CLAIM_STREAM}")) {
+            return Err(SourceCommandError::Unsupported(
+                "mixed inventory requires historical Claim owner",
+            ));
+        }
+    }
+    if inventory.native_identity_snapshot.is_none() {
+        return Err(SourceCommandError::Conflict(
+            "mixed inventory complete native identity snapshot absent",
+        ));
+    }
+    Ok(inventory)
+}
+
 fn complete_agent_inventory(
     mut inventory: MaintainedInventory,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -4467,6 +5206,58 @@ pub(crate) fn agent_inventory_members<'a>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
+    agent_inventory_members_from_evidence(
+        ctx,
+        &inventory.events,
+        &inventory.anchors,
+        executor,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Build the same per-member evidence and schema view from an explicit
+/// selected closure. This does not require or imply a complete corpus
+/// snapshot; callers must separately bind any global identity checks.
+pub(crate) fn agent_inventory_members_from_selected_closure<'a>(
+    ctx: &'a CommandContext,
+    closure: &'a SelectedIdentityClosure,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AgentInventoryMembers<'a>> {
+    agent_inventory_members_from_evidence(
+        ctx,
+        &closure.events,
+        &closure.anchors,
+        executor,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Build the ordinary profile portion for a source member that cannot own
+/// provenance events or anchors. This is deliberately not a complete
+/// inventory constructor; the caller must have selected the exact profile
+/// and schema inputs needed by the owner.
+pub(crate) fn agent_inventory_members_without_evidence<'a>(
+    ctx: &'a CommandContext,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AgentInventoryMembers<'a>> {
+    let empty = JsonValue::Object(BTreeMap::new());
+    agent_inventory_members_from_evidence(ctx, &empty, &empty, executor, deadline, cancelled)
+}
+
+fn agent_inventory_members_from_evidence<'a>(
+    ctx: &'a CommandContext,
+    events: &JsonValue,
+    anchors: &JsonValue,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AgentInventoryMembers<'a>> {
     ctx.check()?;
     let selected_files = ctx
         .files
@@ -4494,7 +5285,7 @@ pub(crate) fn agent_inventory_members<'a>(
         members: BTreeMap::new(),
         profile,
     };
-    for (entries, anchors) in [(&inventory.events, false), (&inventory.anchors, true)] {
+    for (entries, is_anchors) in [(events, false), (anchors, true)] {
         for (key, entry) in entries
             .as_object()
             .ok_or(SourceCommandError::Invalid("Agent evidence map"))?
@@ -4503,7 +5294,7 @@ pub(crate) fn agent_inventory_members<'a>(
                 .members
                 .entry(text(entry, "source_ref")?)
                 .or_default();
-            if anchors {
+            if is_anchors {
                 member.anchors.push((key, entry));
             } else {
                 member.events.push((key, entry));
@@ -4986,7 +5777,7 @@ pub(crate) fn render_agent_inventory_member(
     agent_source_reject_unsupported_member(location)?;
     let basename = location.rsplit('/').next().unwrap_or(location);
     let mut records = object(vec![]);
-    for kind in NATIVE_CATALOG_KINDS {
+    for kind in MIXED_INVENTORY_RECORD_KINDS {
         set(&mut records, kind, JsonValue::Array(Vec::new()))?;
     }
     let mut source_profiles = profile.base_profiles.clone();
@@ -5189,7 +5980,7 @@ pub(crate) fn render_agent_inventory_member(
     let contribution = object(vec![
         (
             "schema_version",
-            string("tos_managed_mixed_source_inventory_member_v1"),
+            string("tos_managed_mixed_source_inventory_member_v2"),
         ),
         ("path", string(location)),
         (
@@ -5201,6 +5992,8 @@ pub(crate) fn render_agent_inventory_member(
         ("events", events),
         ("anchors", anchors),
         ("form", form),
+        ("claim_owner", JsonValue::Null),
+        ("public_text_owner", JsonValue::Null),
     ]);
     let raw = canonical(&contribution)?;
     if raw.len() > AGENT_MEMBER_PROJECTION_MAX_BYTES {
@@ -5235,6 +6028,28 @@ fn maintained_inventory_inner(
     cancelled: &AtomicBool,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
 ) -> SourceCommandResult<MaintainedInventory> {
+    maintained_inventory_inner_with_members(
+        ctx,
+        cut,
+        capture_member_inputs,
+        executor,
+        deadline,
+        cancelled,
+        whole_call,
+        None,
+    )
+}
+
+fn maintained_inventory_inner_with_members(
+    ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    capture_member_inputs: bool,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
+    complete_members: Option<&[SourceFile]>,
+) -> SourceCommandResult<MaintainedInventory> {
     let registry_raw = selected(ctx, ENTITIES)?;
     inventory_live_preflight(
         whole_call,
@@ -5258,6 +6073,12 @@ fn maintained_inventory_inner(
         let (identities, snapshot, schema_used) =
             crate::source_revisions::native_identity_inventory_from_cut(
                 ctx, cut, executor, deadline, cancelled,
+            )?;
+        (identities, Some(snapshot), schema_used)
+    } else if let Some(members) = complete_members {
+        let (identities, snapshot, schema_used) =
+            crate::source_revisions::native_identity_inventory_from_members(
+                ctx, members, executor, deadline, cancelled,
             )?;
         (identities, Some(snapshot), schema_used)
     } else {
@@ -5343,7 +6164,7 @@ fn maintained_inventory_inner(
         )?;
     }
     let mut prior_profile_inputs = raw_digests(ctx, &claim_registry_refs, false)?;
-    let mut records: BTreeMap<String, Vec<JsonValue>> = NATIVE_CATALOG_KINDS
+    let mut records: BTreeMap<String, Vec<JsonValue>> = MIXED_INVENTORY_RECORD_KINDS
         .iter()
         .map(|kind| ((*kind).into(), Vec::new()))
         .collect();
@@ -6130,6 +6951,29 @@ fn maintained_inventory_inner(
     })
 }
 
+fn collect_claim_dependency_ids(value: &JsonValue, output: &mut BTreeSet<String>) {
+    match value {
+        JsonValue::String(_) => {
+            if let Some(value) = value.as_str()
+                && value.starts_with("tos.claim.")
+            {
+                output.insert(value.to_owned());
+            }
+        }
+        JsonValue::Array(values) => {
+            for value in values {
+                collect_claim_dependency_ids(value, output);
+            }
+        }
+        JsonValue::Object(values) => {
+            for value in values.values() {
+                collect_claim_dependency_ids(value, output);
+            }
+        }
+        JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) => {}
+    }
+}
+
 fn maintained_grounding(
     ctx: &CommandContext,
     config: &JsonValue,
@@ -6145,17 +6989,23 @@ fn maintained_grounding(
     let (inventory, mut retained_budget) = match prepared_inventory {
         Some(prepared) => (prepared.inventory, Some(prepared.budget)),
         None => (
-            maintained_inventory(ctx, executor, deadline, cancelled)?,
+            maintained_inventory_inner(
+                ctx,
+                None,
+                true,
+                executor,
+                deadline,
+                cancelled,
+                None,
+            )?,
             None,
         ),
     };
     let MaintainedInventory {
         records: record_catalog,
-        record_inputs,
         objects,
         source_records,
         claims: prior,
-        claim_profile_inputs: prior_profile_inputs,
         events,
         anchors,
         ..
@@ -6180,7 +7030,10 @@ fn maintained_grounding(
     let mut bound_evidence = object(vec![]);
     let mut values = object(vec![]);
     let mut evidence = Vec::new();
+    let mut relevant_object_ids = BTreeSet::new();
+    let mut relevant_claim_ids = BTreeSet::new();
     for claim in claims {
+        collect_claim_dependency_ids(claim, &mut relevant_claim_ids);
         if forms.is_none()
             && !allow_existing
             && (objects.contains_key(text(claim, "claim_id")?)
@@ -6264,6 +7117,7 @@ fn maintained_grounding(
                 );
             }
         }
+        relevant_object_ids.extend(identities.iter().cloned());
         for id in identities {
             let entry = objects.get(&id).ok_or(SourceCommandError::Conflict(
                 "declared object missing from complete catalog",
@@ -6321,6 +7175,9 @@ fn maintained_grounding(
                 let reference = reference
                     .as_str()
                     .ok_or(SourceCommandError::Invalid("evidence reference"))?;
+                if !reference.starts_with("ToS/") {
+                    relevant_object_ids.insert(reference.to_owned());
+                }
                 let node = maintained_evidence(ctx, reference, &objects, &anchors, &events)?;
                 set(
                     &mut bound_evidence,
@@ -6362,7 +7219,6 @@ fn maintained_grounding(
     if !values.as_object().unwrap().is_empty() {
         set(&mut bindings, "values", values)?;
     }
-    let mut form_inputs = object(vec![]);
     if let Some(selected_forms) = forms {
         let selected_ids = selected_forms
             .iter()
@@ -6427,29 +7283,105 @@ fn maintained_grounding(
                     }
                 }
             }
-            set(
-                &mut form_inputs,
-                &locator,
-                string(&Digest256::of_bytes(raw).to_prefixed()),
-            )?;
         }
     }
-    let source_contracts = JsonValue::Object(
-        record_inputs
+    let mut relevant_record_inputs = raw_digests(
+        ctx,
+        &[
+            ENTITIES,
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+        ],
+        false,
+    )?;
+    for id in &relevant_object_ids {
+        let Some(entry) = objects.get(id) else {
+            continue;
+        };
+        let location = text(entry, "source_record_ref")?;
+        let member_inputs = inventory
+            .record_member_inputs
+            .get(location)
+            .ok_or(SourceCommandError::Conflict(
+                "grounded source record schema inputs absent from selected closure",
+            ))?;
+        for (name, digest) in member_inputs
             .as_object()
-            .unwrap()
+            .ok_or(SourceCommandError::Invalid("source record schema input map"))?
+        {
+            if relevant_record_inputs
+                .as_object()
+                .and_then(|inputs| inputs.get(name))
+                .is_some_and(|prior| prior != digest)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "selected source record schema digest differs",
+                ));
+            }
+            set(&mut relevant_record_inputs, name, digest.clone())?;
+        }
+    }
+    let mut relevant_records = object(vec![]);
+    for (kind, entries) in record_catalog
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("Claim record catalog"))?
+    {
+        let selected = entries
+            .as_array()
+            .ok_or(SourceCommandError::Invalid("Claim record catalog rows"))?
+            .iter()
+            .filter(|entry| {
+                entry
+                    .object_get("record_id")
+                    .and_then(JsonValue::as_str)
+                    .is_some_and(|id| relevant_object_ids.contains(id))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        set(&mut relevant_records, kind, JsonValue::Array(selected))?;
+    }
+    let relevant_claims = prior
+        .iter()
+        .filter(|(id, _)| relevant_claim_ids.contains(*id))
+        .map(|(_, claim)| claim.clone())
+        .collect::<Vec<_>>();
+    let mut relevant_claim_profiles = raw_digests(
+        ctx,
+        &[
+            ENTITIES,
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            RELATIONS,
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+        ],
+        false,
+    )?;
+    for (_, claim) in prior
+        .iter()
+        .filter(|(id, _)| relevant_claim_ids.contains(*id))
+    {
+        let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+        claim_profile_inputs_selected(
+            ctx,
+            claim,
+            &descriptor,
+            &mut relevant_claim_profiles,
+        )?;
+    }
+    let source_contracts = JsonValue::Object(
+        relevant_record_inputs
+            .as_object()
+            .ok_or(SourceCommandError::Invalid("source record schema inputs"))?
             .iter()
             .map(|(key, value)| {
-                (
-                    key.clone(),
-                    string(&format!("sha256:{}", value.as_str().unwrap())),
-                )
+                let digest = value
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("source schema digest"))?;
+                Ok((key.clone(), string(&format!("sha256:{digest}"))))
             })
-            .collect(),
+            .collect::<SourceCommandResult<_>>()?,
     );
     let grounding = object(vec![
-        ("records", record_catalog),
-        ("claims", JsonValue::Array(prior.into_values().collect())),
+        ("records", relevant_records),
+        ("claims", JsonValue::Array(relevant_claims)),
         (
             "source_profiles",
             object(vec![
@@ -6462,13 +7394,16 @@ fn maintained_grounding(
                 ),
             ]),
         ),
-        ("existing_claim_profiles", prior_profile_inputs),
+        ("existing_claim_profiles", relevant_claim_profiles),
         ("new_claim_profiles", new_profile_inputs),
-        ("events", events),
-        ("anchors", anchors),
+        ("events", object(vec![])),
+        ("anchors", object(vec![])),
         ("evidence", JsonValue::Array(evidence)),
         ("selected_source_bindings", bindings.clone()),
-        ("forms", form_inputs),
+        // Global form identity absence is admitted by the filesystem scan or
+        // the PG unique-index predicate set. Unrelated form bytes are not
+        // semantic dependencies of this Claim package.
+        ("forms", object(vec![])),
         (
             "provenance_contract",
             string(

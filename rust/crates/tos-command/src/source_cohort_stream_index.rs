@@ -112,6 +112,7 @@ pub(crate) enum SourceIdentityKind {
     Event,
     Anchor,
     Claim,
+    SignCandidate,
 }
 
 impl SourceIdentityKind {
@@ -122,6 +123,7 @@ impl SourceIdentityKind {
             Self::Event => "event",
             Self::Anchor => "anchor",
             Self::Claim => "claim",
+            Self::SignCandidate => "sign-candidate",
         }
     }
 }
@@ -401,12 +403,19 @@ impl SourceAssessmentIndex {
         validate_key_text(id, self.limits.max_key_bytes, "source identity malformed")?;
         validate_path(path, self.limits.max_key_bytes)?;
         self.run(true, work, |db, work| {
-            let existing_path = query_optional_text(
-                db,
-                "SELECT path FROM identity_path WHERE id=?1",
-                params![id],
-                work,
-            )?;
+            // Sign promotion candidates intentionally share their token with
+            // the existing Claim they cite. Keep this identity kind in its
+            // own namespace while retaining same-kind duplicate rejection.
+            let existing_path = if kind == SourceIdentityKind::SignCandidate {
+                None
+            } else {
+                query_optional_text(
+                    db,
+                    "SELECT path FROM identity_path WHERE id=?1",
+                    params![id],
+                    work,
+                )?
+            };
             if existing_path.as_deref().is_some_and(|prior| prior != path) {
                 return Err(DurableError::Conflict(
                     "stable identity occurs on different source members",
@@ -426,7 +435,7 @@ impl SourceAssessmentIndex {
                 }
                 return Ok(());
             }
-            if existing_path.is_none() {
+            if kind != SourceIdentityKind::SignCandidate && existing_path.is_none() {
                 let changed = db
                     .execute(
                         "INSERT INTO identity_path(id,path) VALUES(?1,?2)",
@@ -1812,7 +1821,7 @@ impl SourceAssessmentIndex {
                     "SELECT k.id FROM identity_kinds k
                      LEFT JOIN identity_path p ON p.id=k.id COLLATE BINARY
                        AND p.path=k.path COLLATE BINARY
-                     WHERE p.id IS NULL LIMIT 1",
+                     WHERE k.kind<>'sign-candidate' AND p.id IS NULL LIMIT 1",
                     "source identity path index differs",
                 ),
                 (
@@ -2237,7 +2246,7 @@ fn validate_index_row(
 ) -> DurableResult<()> {
     if !matches!(
         row.kind.as_str(),
-        "metadata" | "form" | "event" | "anchor" | "claim" | "path"
+        "metadata" | "form" | "event" | "anchor" | "claim" | "sign-candidate" | "path"
     ) {
         return Err(DurableError::Corrupt("source index kind is unknown"));
     }

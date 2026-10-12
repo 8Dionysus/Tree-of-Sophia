@@ -88,7 +88,7 @@ Normal operations:
 - rebuild: `tos technical-markup --source-root /absolute/source --build --scratch-bytes N`
 - full local parity: `tos technical-markup --source-root /absolute/source --check`
 - tracked-only validation: `tos technical-markup --source-root /absolute/source --validate-tracked`
-- focused native caller tests: `python -m unittest tests.test_antonovsky_1911_technical_markup`
+- focused native check: `tos technical-markup --source-root /absolute/source --check`
 
 Any source-locator set, source digest, Poppler version, bbox digest, warning
 surface, region boundary, or expected count drift fails closed. A real-human

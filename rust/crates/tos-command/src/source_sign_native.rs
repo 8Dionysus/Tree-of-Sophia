@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath, python_strip_unicode16_v1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 // NativeTextBindingResolver's fixed source budgets, distinct from the tighter
 // retained native derivation operation profile below.
@@ -94,6 +94,10 @@ pub(crate) struct ResolvedInitialTextSource {
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
     pub(crate) schema_digests: BTreeMap<String, Digest256>,
+    /// Exact bytes actually selected by this semantic pass. The PG owner
+    /// adapter installs these as the later Text preparation's only source
+    /// transport; it does not rerun against a local filesystem projection.
+    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 /// Exact current predecessor for the owner-local TextUnit and TextLayer
@@ -104,6 +108,7 @@ pub(crate) struct ResolvedOwnerTextLayer {
     pub(crate) raw: Vec<u8>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
+    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 pub(crate) struct ResolvedOwnerTextPacket {
@@ -112,6 +117,7 @@ pub(crate) struct ResolvedOwnerTextPacket {
     pub(crate) raw: Vec<u8>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
+    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 pub(crate) struct ResolvedOwnerAlignmentSide {
@@ -136,6 +142,7 @@ pub(crate) struct ResolvedDerivedTextSource {
     pub(crate) predecessor_raw: Option<Vec<u8>>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
+    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -159,7 +166,7 @@ enum NativeRoute {
 }
 struct Native<'a, R: SignNativeRead + ?Sized> {
     reader: &'a mut R,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &'a AtomicBool,
     cache: BTreeMap<(String, &'static str), Cached>,
@@ -203,6 +210,22 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             return Err(SourceCommandError::Unsupported("native read deadline"));
         }
         Ok(())
+    }
+
+    fn selected_members(&self) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+        let mut selected = BTreeMap::new();
+        for ((reference, _), cached) in &self.cache {
+            if let Some(previous) = selected.get(reference) {
+                if previous != &cached.raw {
+                    return Err(SourceCommandError::Conflict(
+                        "native source member bytes changed during selection",
+                    ));
+                }
+            } else {
+                selected.insert(reference.clone(), cached.raw.clone());
+            }
+        }
+        Ok(selected)
     }
     fn route(&self, name: &str, kind: NativeReadKind) -> SourceCommandResult<()> {
         path(name)?;
@@ -349,7 +372,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ] {
                 let dependency_name = format!("ToS/contracts/{dependency}");
                 let raw = self.read(&dependency_name, None, false, true)?;
-                if self.worker.contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
+                if self.worker.selected_contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
                 {
                     return Err(SourceCommandError::Conflict(
                         "native public authority dependency and schema worker differ",
@@ -370,7 +393,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ] {
                 let dependency_name = format!("ToS/contracts/{dependency}");
                 let raw = self.read(&dependency_name, None, false, true)?;
-                if self.worker.contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
+                if self.worker.selected_contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
                 {
                     return Err(SourceCommandError::Conflict(
                         "native assessment dependency and schema worker differ",
@@ -385,7 +408,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             vec![]
         };
         schema_refs(&grammar, &allowed, 0)?;
-        if self.worker.contract_digest(&name) != Some(Digest256::of_bytes(&grammar_raw)) {
+        if self.worker.selected_contract_digest(&name) != Some(Digest256::of_bytes(&grammar_raw)) {
             return Err(SourceCommandError::Conflict(
                 "native schema worker and selected grammar differ",
             ));
@@ -1803,7 +1826,7 @@ fn check_normalization(text: &str, form: &str) -> SourceCommandResult<()> {
 /// caller owns current subject scope/maker/language checks and Sign admission.
 pub fn resolve_assessment<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     origin: &str,
     scope: NativeReadScope,
@@ -1828,7 +1851,7 @@ pub fn resolve_assessment<R: SignNativeRead + ?Sized>(
 /// caller's protected `native_text_units` read scope.
 pub(crate) fn resolve_owner_assessment<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     origin: &str,
     scope: NativeReadScope,
@@ -1849,7 +1872,7 @@ pub(crate) fn resolve_owner_assessment<R: SignNativeRead + ?Sized>(
 
 fn resolve_assessment_route<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     origin: &str,
     scope: NativeReadScope,
@@ -1945,7 +1968,7 @@ fn resolve_assessment_route<R: SignNativeRead + ?Sized>(
 
 fn selected_binding<'a, R: SignNativeRead + ?Sized>(
     reader: &'a mut R,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     scope: NativeReadScope,
     deadline: Instant,
@@ -1964,7 +1987,7 @@ fn selected_binding<'a, R: SignNativeRead + ?Sized>(
 
 fn selected_binding_with_route<'a, R: SignNativeRead + ?Sized>(
     reader: &'a mut R,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     scope: NativeReadScope,
     route_profile: NativeRoute,
@@ -1981,7 +2004,7 @@ fn selected_binding_with_route<'a, R: SignNativeRead + ?Sized>(
         // preserves that exact dependency closure. Public Sign snapshots do
         // not include owner-context inputs.
         let context_schema = native.read(OWNER_CONTEXT_SCHEMA, None, false, true)?;
-        if native.worker.contract_digest(OWNER_CONTEXT_SCHEMA)
+        if native.worker.selected_contract_digest(OWNER_CONTEXT_SCHEMA)
             != Some(Digest256::of_bytes(&context_schema))
         {
             return Err(SourceCommandError::Conflict(
@@ -1994,7 +2017,7 @@ fn selected_binding_with_route<'a, R: SignNativeRead + ?Sized>(
 }
 fn selected_native<'a, R: SignNativeRead + ?Sized>(
     reader: &'a mut R,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 ) -> SourceCommandResult<Native<'a, R>> {
@@ -2016,14 +2039,14 @@ fn selected_native<'a, R: SignNativeRead + ?Sized>(
 /// protected operation configuration has passed separate read/derive grants.
 /// The shared native reader still checks exact current source, grammar,
 /// topology and rights before the caller can open the acquired EPUB payload.
-pub(crate) fn resolve_initial_owner_text_source(
-    context: &mut crate::source_text_owner::OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+pub(crate) fn resolve_initial_owner_text_source<R: SignNativeRead + ?Sized>(
+    context: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
     grant: &crate::source_text_owner::OwnerTextInitialLayerSelection,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedInitialTextSource> {
-    context.snapshot(deadline, cancelled)?;
+    context.verify_current(deadline, cancelled)?;
     let mut native = Native {
         reader: context,
         worker,
@@ -2039,11 +2062,13 @@ pub(crate) fn resolve_initial_owner_text_source(
         native.owner_text_layer_source(&grant.config, &["application/epub+zip"], true)?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
+    let selected_members = native.selected_members()?;
     Ok(ResolvedInitialTextSource {
         payload_entry,
         inputs,
         input_snapshot,
         schema_digests: native.schemas,
+        selected_members,
     })
 }
 
@@ -2149,14 +2174,14 @@ fn selected_anchor_semantics(anchor: &JsonValue) -> SourceCommandResult<()> {
     Ok(())
 }
 
-pub(crate) fn resolve_derived_owner_text_source(
-    context: &mut crate::source_text_owner::OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+pub(crate) fn resolve_derived_owner_text_source<R: SignNativeRead + ?Sized>(
+    context: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
     config: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedDerivedTextSource> {
-    context.snapshot(deadline, cancelled)?;
+    context.verify_current(deadline, cancelled)?;
     let mut native = Native {
         reader: context,
         worker,
@@ -2298,6 +2323,7 @@ pub(crate) fn resolve_derived_owner_text_source(
     };
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
+    let selected_members = native.selected_members()?;
     Ok(ResolvedDerivedTextSource {
         payload_entry,
         source_binding,
@@ -2306,17 +2332,18 @@ pub(crate) fn resolve_derived_owner_text_source(
         predecessor_raw,
         inputs,
         input_snapshot,
+        selected_members,
     })
 }
 
-pub(crate) fn resolve_owner_text_layer(
-    context: &mut crate::source_text_owner::OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+pub(crate) fn resolve_owner_text_layer<R: SignNativeRead + ?Sized>(
+    context: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedOwnerTextLayer> {
-    context.snapshot(deadline, cancelled)?;
+    context.verify_current(deadline, cancelled)?;
     let mut native = Native {
         reader: context,
         worker,
@@ -2341,25 +2368,27 @@ pub(crate) fn resolve_owner_text_layer(
     native.derived_content(&layer, text)?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
+    let selected_members = native.selected_members()?;
     Ok(ResolvedOwnerTextLayer {
         layer,
         raw,
         inputs,
         input_snapshot,
+        selected_members,
     })
 }
 
 /// Packet-mode TextUnit creation keeps the existing native packet/layer/unit
 /// resolver and its exact rights/content checks, but runs through the already
 /// protected owner-local reader selected by the Text command.
-pub(crate) fn resolve_owner_text_packet(
-    context: &mut crate::source_text_owner::OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+pub(crate) fn resolve_owner_text_packet<R: SignNativeRead + ?Sized>(
+    context: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedOwnerTextPacket> {
-    context.snapshot(deadline, cancelled)?;
+    context.verify_current(deadline, cancelled)?;
     let mut native = Native {
         reader: context,
         worker,
@@ -2380,12 +2409,14 @@ pub(crate) fn resolve_owner_text_packet(
     )?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
+    let selected_members = native.selected_members()?;
     Ok(ResolvedOwnerTextPacket {
         packet,
         layer,
         raw,
         inputs,
         input_snapshot,
+        selected_members,
     })
 }
 
@@ -2395,7 +2426,7 @@ pub(crate) fn resolve_owner_text_packet(
 /// uses the same reader, worker and bounded cache for every selected unit.
 pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
     context: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     source: &[JsonValue],
     target: &[JsonValue],
     verify_content: bool,
@@ -2471,7 +2502,7 @@ pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
 /// loaded binding. Reuse the actual resolver cache, quotas and snapshot law.
 pub(crate) fn resolve_bindings<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     bindings: &[JsonValue],
     scope: NativeReadScope,
     deadline: Instant,
@@ -2515,7 +2546,7 @@ fn selected_inputs<R: SignNativeRead + ?Sized>(native: &Native<'_, R>) -> Vec<Na
 /// adding the assessment-view grammar or changing its owner snapshot inputs.
 pub(crate) fn resolve_binding<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     scope: NativeReadScope,
     deadline: Instant,
@@ -2549,7 +2580,7 @@ pub(crate) struct ResolvedPublicTextAuthority {
 /// opens metadata only and confers no publication or semantic authority.
 pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     config: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2756,7 +2787,7 @@ pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
 /// Resolve both maintained Profile snapshots with one selected owner cache and quota.
 pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2793,7 +2824,7 @@ pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
 /// owner-local read route; it does not translate or grant Sign authority.
 pub(crate) fn resolve_owner_metadata_binding<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2823,7 +2854,7 @@ pub(crate) fn resolve_owner_metadata_binding<R: SignNativeRead + ?Sized>(
 /// A local selection reviews conditional notices; it cannot open private text.
 pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     local: Option<&crate::source_native_text_read::LocalTextReadSelection>,
     max_return_bytes: usize,
@@ -2974,7 +3005,7 @@ pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
 /// owner consumers; it does not route through Sign or infer a positive review.
 pub(crate) fn resolve_owner_binding<R: SignNativeRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     scope: NativeReadScope,
     deadline: Instant,
@@ -3041,7 +3072,7 @@ fn disclosed_spans(
 /// nor content quality, and public flags cannot substitute for this route.
 pub(crate) fn read_private_disclosed_unit(
     reader: &mut crate::source_text_owner::OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     selection: &crate::source_native_text_read::LocalTextReadSelection,
     max_return_bytes: usize,

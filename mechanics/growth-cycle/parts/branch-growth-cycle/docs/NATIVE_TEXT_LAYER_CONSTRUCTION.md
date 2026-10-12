@@ -20,9 +20,11 @@ grant.
 
 ## Separately selected extraction grant
 
-The common `source_commands.py` front door dispatches the protected mode-0600
-`tos_local_text_layer_create_owner_v1` configuration to
-`source_text_layer_commands.py`. Its exact top-level fields are:
+The native `tos-native-owner-command source-commands` front door dispatches the
+protected mode-0600 `tos_local_text_layer_create_owner_v1` configuration to
+the `owner-local-text-layer-create` handler in
+`rust/crates/tos-command/src/source_native_text_cli.rs`, backed by
+`source_text_layer_entry.rs`. Its exact top-level fields are:
 
 - `schema_version`, current local `uid`, `principal_id`, `authority_ref`,
   `expires_at`, and `allowed_operations: ["text-layer.create"]`;
@@ -164,14 +166,15 @@ compatible.
 
 ## Additive correction, normalization and supplied-result recording
 
-`owner-local-text-layer-derive` is a separate discoverable handler in the same
-`source_text_layer_commands.py` module. Its protected mode-0600 grant is
+`owner-local-text-layer-derive` is a separate discoverable native handler in
+`rust/crates/tos-command/src/source_native_text_cli.rs`, backed by
+`source_text_layer_derived_entry.rs`. Its protected mode-0600 grant is
 `tos_local_text_layer_derive_owner_v1`. It selects exactly one operation:
 
 - `text-layer.correct`: apply explicitly supplied ordered code-point edit
   proposals to one exact predecessor, preserving everything outside them;
 - `text-layer.normalize`: actually execute one declared NFC, NFD, NFKC or NFKD
-  transformation under the named Python Unicode database version;
+  transformation under the named declared Unicode database version;
 - `text-layer.record-transcription`: record supplied manual or model
   transcription bytes, without executing the reported upstream transcription;
 - `text-layer.record-ocr`: record supplied OCR bytes, without launching an OCR

@@ -25,7 +25,8 @@ use crate::executor::BatchBudget;
 use crate::item_rules::ItemRefusal;
 use crate::retirement_rules::observed_instant_order;
 use crate::source_cut::{
-    CutExecutionBinding, CutSchemaCheck, CutSchemaExecutor, CutWorkerSchemaExecutor,
+    CandidateCutWorkerSchemaExecutor, CutPreparedSchemaExecutionBinding, CutSchemaCheck,
+    CutSchemaExecutor, CutWorkerSchemaExecutor,
 };
 
 pub const MAX_ASSESSMENTS: usize = 1024;
@@ -67,9 +68,14 @@ pub struct AssessmentLayerQualityObservation {
 
 #[derive(Debug, Clone)]
 pub struct AssessmentReadInput {
-    /// Independently selected current authored source/schema cut. Protected
-    /// owner configuration and journal bytes remain outside this namespace.
-    pub source_revision: SourceRevision,
+    /// Exact immutable source cut when the legacy complete-cut adapter owns
+    /// selection. Candidate-input adapters leave this absent and bind their
+    /// opaque read epoch through `source_input_identity`.
+    pub source_revision: Option<SourceRevision>,
+    /// Digest of the exact source identity used by this calculation. Legacy
+    /// cut adapters use the revision digest; candidate adapters provide the
+    /// digest of their typed source-selection identity.
+    pub source_input_identity: Digest256,
     pub policy: AssessmentRecordInput,
     pub authorities: Vec<AssessmentRecordInput>,
     pub competencies: Vec<AssessmentRecordInput>,
@@ -129,6 +135,21 @@ pub enum AssessmentRefusal {
     Schema(ItemRefusal),
 }
 
+/// Truthful schema/source binding for one mechanics report. Candidate input
+/// evaluations retain their opaque identity digest without presenting a
+/// bootstrap revision as the current source revision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssessmentSchemaBindingV1 {
+    SourceCut {
+        source_revision: SourceRevision,
+        worker: CutPreparedSchemaExecutionBinding,
+    },
+    SelectedInput {
+        source_identity: Digest256,
+        worker: CutPreparedSchemaExecutionBinding,
+    },
+}
+
 /// Private construction ensures this result always comes from the native
 /// calculation. It is deliberately not usable as an authorization token.
 #[derive(Debug, Clone)]
@@ -140,7 +161,9 @@ pub struct AssessmentMechanicsReport {
     source_read_ready: bool,
     source_read_required: bool,
     input_sha256: Digest256,
-    schema_binding: CutExecutionBinding,
+    source_revision: Option<SourceRevision>,
+    source_input_identity: Digest256,
+    schema_binding: AssessmentSchemaBindingV1,
     observed_now: String,
     work_used: usize,
     input_bytes_used: usize,
@@ -170,8 +193,14 @@ impl AssessmentMechanicsReport {
     pub fn input_sha256(&self) -> Digest256 {
         self.input_sha256
     }
-    pub fn schema_binding(&self) -> &CutExecutionBinding {
-        &self.schema_binding
+    pub fn source_revision(&self) -> Option<SourceRevision> {
+        self.source_revision
+    }
+    pub fn source_input_identity(&self) -> Digest256 {
+        self.source_input_identity
+    }
+    pub fn schema_binding(&self) -> AssessmentSchemaBindingV1 {
+        self.schema_binding
     }
     pub fn observed_now(&self) -> &str {
         &self.observed_now
@@ -373,18 +402,75 @@ pub fn evaluate_current_assessment(
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<AssessmentMechanicsReport> {
-    if limits.max_input_bytes == 0 || limits.max_work == 0 {
-        return Err(AssessmentRefusal::Budget);
-    }
-    if schemas.execution_binding().schema_profile != FormatProfile::AssertedSourceCandidateV1 {
-        return Err(unsupported(
-            "assessment requires asserted source grammar formats",
-        ));
-    }
-    if schemas.execution_binding().source_revision != input.source_revision {
+    let Some(source_revision) = input.source_revision else {
+        return invalid("assessment complete-cut source revision is absent");
+    };
+    if schemas.selected_source_revision() != Some(source_revision)
+        || input.source_input_identity != source_revision.0
+    {
         return invalid(
             "assessment source/schema cut revision differs from selected current source",
         );
+    }
+    let worker = CutSchemaExecutor::prepared_execution_binding(schemas)
+        .ok_or_else(|| unsupported("assessment schema worker binding is unavailable"))?;
+    evaluate_current_assessment_inner(
+        input,
+        schemas,
+        AssessmentSchemaBindingV1::SourceCut {
+            source_revision,
+            worker,
+        },
+        limits,
+        cancelled,
+    )
+}
+
+/// Evaluate the maintained assessment rules against an exact selected-input
+/// identity. This uses the same asserted schema worker and mechanics as the
+/// complete-cut route while leaving the caller's identity opaque.
+pub fn evaluate_current_assessment_selected<I: Copy + Eq>(
+    input: &AssessmentReadInput,
+    input_identity: &I,
+    input_identity_digest: Digest256,
+    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    limits: AssessmentLimits,
+    cancelled: &AtomicBool,
+) -> Result<AssessmentMechanicsReport> {
+    if input.source_revision.is_some()
+        || input.source_input_identity != input_identity_digest
+        || schemas.input_identity() != input_identity
+    {
+        return invalid("assessment candidate source identity differs from selected worker");
+    }
+    let worker = CutSchemaExecutor::prepared_execution_binding(schemas)
+        .ok_or_else(|| unsupported("assessment candidate worker binding is unavailable"))?;
+    evaluate_current_assessment_inner(
+        input,
+        schemas,
+        AssessmentSchemaBindingV1::SelectedInput {
+            source_identity: input_identity_digest,
+            worker,
+        },
+        limits,
+        cancelled,
+    )
+}
+
+fn evaluate_current_assessment_inner<S: CutSchemaExecutor>(
+    input: &AssessmentReadInput,
+    schemas: &mut S,
+    schema_binding: AssessmentSchemaBindingV1,
+    limits: AssessmentLimits,
+    cancelled: &AtomicBool,
+) -> Result<AssessmentMechanicsReport> {
+    if limits.max_input_bytes == 0 || limits.max_work == 0 {
+        return Err(AssessmentRefusal::Budget);
+    }
+    if schemas.schema_profile() != Some(FormatProfile::AssertedSourceCandidateV1) {
+        return Err(unsupported(
+            "assessment requires asserted source grammar formats",
+        ));
     }
     if input.authorities.len() > MAX_ASSESSMENTS
         || input.competencies.len() > MAX_ASSESSMENTS
@@ -665,7 +751,9 @@ pub fn evaluate_current_assessment(
         source_read_ready: context.source_ready,
         source_read_required,
         input_sha256: input_binding,
-        schema_binding: schemas.execution_binding(),
+        source_revision: input.source_revision,
+        source_input_identity: input.source_input_identity,
+        schema_binding,
         observed_now: input.observed_now.clone(),
         work_used: work.work,
         input_bytes_used: work.bytes,
@@ -680,8 +768,8 @@ fn schema_check(path: &str, raw: &[u8], suffix: &str) -> CutSchemaCheck {
     }
 }
 
-fn check_all(
-    schemas: &mut CutWorkerSchemaExecutor,
+fn check_all<S: CutSchemaExecutor>(
+    schemas: &mut S,
     checks: &[CutSchemaCheck],
     work: &mut Work<'_>,
 ) -> Result<Vec<bool>> {
@@ -1116,7 +1204,7 @@ fn input_binding(input: &AssessmentReadInput) -> Digest256 {
             b"tos-current-assessment-input-v1\0"
         }
     });
-    hash.update(input.source_revision.0.as_bytes());
+    hash.update(input.source_input_identity.as_bytes());
     push(&mut hash, &input.policy.envelope);
     records(&mut hash, &input.authorities);
     records(&mut hash, &input.competencies);

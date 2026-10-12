@@ -1826,6 +1826,12 @@ fn selected_philosophy_variant_parity(
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1 => "philosophy-05",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateDanglingReferencesV1 => "philosophy-06",
     });
+    let search_schema = field_mut(field_mut(&mut oracle, "cases"), "search");
+    replace_exact_string(
+        search_schema,
+        "tos_philosophy_mcp_search_v1",
+        "tos_philosophy_mcp_search_v2",
+    );
     if matches!(
         variant,
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1
@@ -2141,6 +2147,26 @@ fn released_public_source_gap_packets_match_frozen_historical_outputs_without_so
         let body = compute_source_gap_packet(&records, &request, caps, &Probe(None)).unwrap();
         assert_eq!(body, canonical(field(case, "packet")));
     }
+    // Length is measured in Unicode scalar values, matching the Worker
+    // adapter even when astral text occupies two UTF-16 code units per char.
+    let astral_query = "💩".repeat(129);
+    let astral_body = compute_source_gap_packet(
+        &records,
+        &SourceGapRequest {
+            query: astral_query.clone(),
+            limit: 1,
+        },
+        caps,
+        &Probe(None),
+    )
+    .unwrap();
+    let astral_packet = parse_json(&astral_body, JsonMode::PublishedStrict, caps.json)
+        .unwrap()
+        .into_root();
+    assert_eq!(
+        field(&astral_packet, "query").as_str(),
+        Some(astral_query.as_str())
+    );
     let request = SourceGapRequest {
         query: String::new(),
         limit: 100,

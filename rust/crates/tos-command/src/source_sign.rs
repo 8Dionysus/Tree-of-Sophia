@@ -21,11 +21,16 @@ use tos_validation::assessment::{
     AssessmentLimits, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
     AssessmentSourceRoute, evaluate_current_assessment,
 };
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+};
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+
+#[path = "source_sign_pg.rs"]
+pub(crate) mod pg;
 
 pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Result<()> {
     if worker.execution_binding().schema_profile
@@ -38,8 +43,78 @@ pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Re
     Ok(())
 }
 
+/// Selected PG callers use an opaque candidate identity rather than a
+/// `SourceRevision`. Keep the maintained asserted profile check while leaving
+/// corpus completeness and source identity to their selected owner proofs.
+pub(crate) fn require_assessment_candidate_profile<I: Copy + Eq>(
+    worker: &CandidateCutWorkerSchemaExecutor<I>,
+) -> Result<()> {
+    if worker.profile() != tos_validation::FormatProfile::AssertedSourceCandidateV1 {
+        return Err(Error::Unsupported(
+            "Sign assessment requires asserted source grammar formats",
+        ));
+    }
+    Ok(())
+}
+
+/// Load the exact owner-selected schema closure through the active readset and
+/// bind it to the caller's opaque candidate identity. Callers must derive
+/// `schema_paths` from their validated source profile; this helper proves only
+/// the bounded schema bytes and worker binding, not source membership.
+pub(crate) fn candidate_schema_worker_from_readset<I: Copy + Eq>(
+    readset: &mut impl crate::source_revisions::ReadonlyRecordFiles,
+    input_identity: I,
+    schema_paths: &[String],
+    image: &tos_validation::executor::VerifiedWorkerImageHandle,
+    budget: tos_validation::executor::ExecutorBudget,
+    limits: tos_validation::source_cut::CutWorkerLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CandidateCutWorkerSchemaExecutor<I>> {
+    let paths = schema_paths.iter().cloned().collect::<BTreeSet<_>>();
+    if paths.len() != schema_paths.len()
+        || paths.is_empty()
+        || paths.len() > tos_validation::SchemaBackendProbe::MAX_RESOURCES
+    {
+        return Err(Error::Invalid("Sign candidate schema selection count"));
+    }
+    let mut total_bytes = 0usize;
+    let mut selected = Vec::with_capacity(paths.len());
+    for path in paths {
+        active(deadline, cancelled)?;
+        let relative =
+            RelativePath::parse(&path).map_err(|_| Error::Denied("Sign candidate schema path"))?;
+        if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
+            return Err(Error::Denied("Sign candidate schema namespace"));
+        }
+        let raw = readset.read(
+            relative.as_str(),
+            tos_validation::SchemaBackendProbe::MAX_RESOURCE_BYTES,
+            deadline,
+            cancelled,
+        )?;
+        total_bytes = total_bytes
+            .checked_add(raw.len())
+            .filter(|total| *total <= tos_validation::SchemaBackendProbe::MAX_TOTAL_BYTES)
+            .ok_or(Error::Invalid("Sign candidate schema byte budget"))?;
+        let value = cmd::parse(&raw)?;
+        let uri = cmd::text(&value, "$id")?.to_owned();
+        selected.push((path, tos_validation::SchemaResource { uri, raw }));
+    }
+    CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+        input_identity,
+        selected,
+        image,
+        budget,
+        limits,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| Error::Unsupported("Sign asserted candidate schema worker"))
+}
+
 pub(crate) fn finish_worker(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
@@ -1200,7 +1275,7 @@ fn claim_ground_refs(
     reader: &mut SignSourceReader<'_>,
     rows: &[JsonValue],
     config: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    _worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<BTreeMap<String, Vec<JsonValue>>> {
@@ -1211,6 +1286,15 @@ fn claim_ground_refs(
         .extend([ENTITIES.to_owned(), RELATIONS.to_owned()]);
     let entities = cmd::parse(reader.observed.get(ENTITIES).unwrap())?;
     let relations = cmd::parse(reader.observed.get(RELATIONS).unwrap())?;
+    claim_ground_refs_from_registries(rows, config, &entities, &relations)
+}
+
+fn claim_ground_refs_from_registries(
+    rows: &[JsonValue],
+    config: &JsonValue,
+    entities: &JsonValue,
+    relations: &JsonValue,
+) -> Result<BTreeMap<String, Vec<JsonValue>>> {
     let types = cmd::array(&entities, "types")?;
     let mut grounded: BTreeMap<String, Vec<JsonValue>> = BTreeMap::new();
     let records = rows
@@ -1416,9 +1500,9 @@ fn claim_ground_refs(
         refs.extend(dependencies.clone());
         grounded.insert(cmd::text(row, "id")?.to_owned(), refs);
     }
-    let _ = worker;
     Ok(grounded)
 }
+
 fn owner_envelope(value: &JsonValue) -> Result<AssessmentRecordInput> {
     let mut fields = vec!["id", "version", "payload"];
     if value.object_get("origin_id").is_some() {
@@ -2166,8 +2250,10 @@ fn current_promotion(
     let config = owner.configuration();
     let subject = cmd::text(promotion, "promotion_candidate_id")?;
     let candidate_ref = &assembly.candidate_ref;
+    let source_revision = reader.cut.current().revision().clone();
     let input = AssessmentReadInput {
-        source_revision: reader.cut.current().revision(),
+        source_revision: Some(source_revision),
+        source_input_identity: source_revision.0,
         policy: owner_envelope(cmd::field(config, "policy")?)?,
         authorities: owner_envelopes(config, "authorities")?,
         competencies: owner_envelopes(config, "competencies")?,

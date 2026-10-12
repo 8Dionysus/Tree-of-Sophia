@@ -15,7 +15,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const CONFIG_SCHEMA: &str = "ToS/contracts/public-native-text-create-owner.schema.json";
-const SCHEMAS: [&str; 3] = [
+pub(crate) const SCHEMAS: [&str; 3] = [
     CONFIG_SCHEMA,
     "ToS/contracts/public-native-text-authority.schema.json",
     "ToS/contracts/source-text-unit-packet-v1.schema.json",
@@ -84,6 +84,31 @@ impl PublicNativeTextSelection {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> R<Self> {
+        Self::select_with_pg_schemas(path, selected_schemas, worker, true, deadline, cancelled)
+    }
+
+    /// Select the same protected grant when authored schemas were already
+    /// selected through the bounded PostgreSQL read epoch. The PG route still
+    /// checks those exact bytes against the maintained worker; it does not
+    /// reopen authored schema members from `source_root` on the filesystem.
+    pub(crate) fn select_from_pg(
+        path: &Path,
+        selected_schemas: &BTreeMap<String, Vec<u8>>,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> R<Self> {
+        Self::select_with_pg_schemas(path, selected_schemas, worker, false, deadline, cancelled)
+    }
+
+    fn select_with_pg_schemas(
+        path: &Path,
+        selected_schemas: &BTreeMap<String, Vec<u8>>,
+        worker: &mut CutWorkerSchemaExecutor,
+        verify_schema_filesystem: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> R<Self> {
         let uid = rustix::process::geteuid().as_raw();
         if rustix::process::getuid().as_raw() != uid {
             return Err(E::Denied("public Text setuid account"));
@@ -103,15 +128,19 @@ impl PublicNativeTextSelection {
         let mut schemas = BTreeMap::new();
         let mut contracts = Vec::new();
         for reference in SCHEMAS {
-            let bytes = read_absolute(
-                &source_root.join(reference),
-                uid,
-                false,
-                1_048_576,
-                deadline,
-                cancelled,
-            )?;
-            if selected_schemas.get(reference) != Some(&bytes)
+            let bytes = selected_schemas
+                .get(reference)
+                .cloned()
+                .ok_or(E::Conflict("public Text selected schema absent"))?;
+            if (verify_schema_filesystem
+                && read_absolute(
+                    &source_root.join(reference),
+                    uid,
+                    false,
+                    1_048_576,
+                    deadline,
+                    cancelled,
+                )? != bytes)
                 || worker.contract_digest(reference) != Some(Digest256::of_bytes(&bytes))
                 || cmd::text(&cmd::parse(&bytes)?, "$id")?
                     != format!("https://tree-of-sophia.local/{reference}")
@@ -166,13 +195,15 @@ impl PublicNativeTextSelection {
             .parent()
             .ok_or(E::Invalid("public Text target parent"))?
             .to_path_buf();
-        directory(
-            package
-                .parent()
-                .ok_or(E::Invalid("public Text package parent"))?,
-            uid,
-            false,
-        )?;
+        if verify_schema_filesystem {
+            directory(
+                package
+                    .parent()
+                    .ok_or(E::Invalid("public Text package parent"))?,
+                uid,
+                false,
+            )?;
+        }
         let source = cmd::field(&config, "source")?;
         public_reference(cmd::text(source, "ref")?, true)?;
         let scope = cmd::field(&config, "source_scope")?;
@@ -352,6 +383,37 @@ impl PublicNativeTextSelection {
             {
                 return Err(E::Conflict("public Text schema changed"));
             }
+        }
+        Ok(())
+    }
+
+    /// Recheck the protected grant and root identities while PostgreSQL's
+    /// retained readset fences the selected authored schemas and metadata.
+    pub(crate) fn verify_current_from_pg(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> R<()> {
+        active(deadline, cancelled)?;
+        if read_absolute(&self.path, self.uid, true, 1_048_576, deadline, cancelled)? != self.raw {
+            return Err(E::Conflict("public Text protected grant changed"));
+        }
+        cmd::validate_expiry(
+            cmd::text(&self.config, "expires_at")?,
+            &crate::source_serialization::instant()?,
+        )?;
+        if identity(&owned(
+            &directory(&self.source_root, self.uid, false)?,
+            self.uid,
+            true,
+        )?) != self.source_identity
+            || identity(&owned(
+                &directory(&self.recovery_root, self.uid, true)?,
+                self.uid,
+                true,
+            )?) != self.recovery_identity
+        {
+            return Err(E::Conflict("public Text root changed"));
         }
         Ok(())
     }

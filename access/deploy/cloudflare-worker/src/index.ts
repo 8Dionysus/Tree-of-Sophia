@@ -27,12 +27,13 @@ import {
   knowledgeCatalogD1,
 } from "./knowledge-store";
 import { SourceNavigationError, sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
-import { metaItem } from "./store";
+import { meta, metaItem, requirePublicD1ProducerProfile } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
 import {nativePacketResponse} from './native-lens-response.ts';
-import {installNativePythonRuntime, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
+import {codePointCompare, installNativePythonRuntime, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
+import {nativeSha256} from './native-d1-read.ts';
 import { withWebAnalytics } from "./web-analytics";
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
 import {sourceTextGatewayCapability, sourceTextSearchGatewayResponse} from './source-text-gateway.ts';
@@ -99,18 +100,131 @@ async function staticItem(env: Env, request: Request, relativePath: string): Pro
   return payload as Item;
 }
 
+type SourceGapManifestRecord = { source_ref: string; sha256: string; size_bytes: number };
+type SourceGapManifest = {
+  schema: string;
+  source_owner: string;
+  selection: string;
+  max_records: number;
+  max_record_bytes: number;
+  records: SourceGapManifestRecord[];
+};
+type SourceGapChunkRow = { key: string; part: number; json_chunk: string | null };
+const SOURCE_GAP_MAX_CHUNKS = 100 * Math.ceil(256_000 / (32_000 - 3));
+
+async function selectedSourceGapRecords(db: D1Database): Promise<Array<SourceGapManifestRecord & {raw: string}>> {
+  await requirePublicD1ProducerProfile(db);
+  const manifest = await meta<SourceGapManifest>(db, "source_gap_records_v1");
+  if (!manifest || manifest.schema !== "tos_public_source_gap_records_v1"
+    || manifest.source_owner !== "Tree-of-Sophia"
+    || manifest.selection !== "captured-public-ledger-members-v1"
+    || manifest.max_records !== 100 || manifest.max_record_bytes !== 256_000
+    || !Array.isArray(manifest.records) || manifest.records.length > manifest.max_records) {
+    throw new HttpError(503, "source-gap selected source manifest is unavailable");
+  }
+  const entries = manifest.records;
+  const keys: string[] = [];
+  const keyByPath = new Map<string, string>();
+  let expectedTotal = 0;
+  let previous = "";
+  for (const entry of entries) {
+    const path = entry?.source_ref;
+    const prefix = "ToS/source-witnesses/access-requests/public-ledger/";
+    const filename = typeof path === "string" && path.startsWith(prefix) ? path.slice(prefix.length) : "";
+    if (!filename || filename.includes("/") || filename === "." || filename === ".."
+      || !filename.endsWith(".access-request.json") || path.includes("\\") || path.includes("\0")
+      || (previous && codePointCompare(previous, path) >= 0)
+      || typeof entry.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(entry.sha256)
+      || !Number.isSafeInteger(entry.size_bytes) || entry.size_bytes < 1
+      || entry.size_bytes > manifest.max_record_bytes) {
+      throw new HttpError(503, "source-gap selected source manifest is invalid");
+    }
+    previous = path;
+    expectedTotal += entry.size_bytes;
+    if (expectedTotal > 64 * 1024 * 1024) {
+      throw new HttpError(503, "source-gap selected input exceeds its source budget");
+    }
+    const key = `source_gap_record:${await nativeSha256(path)}`;
+    keys.push(key);
+    keyByPath.set(path, key);
+  }
+  if (keys.length === 0) return [];
+  if (new Set(keys).size !== keys.length) {
+    throw new HttpError(503, "source-gap selected source identities are duplicated");
+  }
+  const selected = await db.prepare(
+    `SELECT key, part,
+            CASE WHEN typeof(json_chunk)='text' THEN json_chunk ELSE NULL END AS json_chunk
+       FROM edge_meta WHERE key IN (SELECT value FROM json_each(?)) ORDER BY key, part LIMIT ?`,
+  ).bind(JSON.stringify(keys), SOURCE_GAP_MAX_CHUNKS + 1).all<SourceGapChunkRow>();
+  if (selected.results.length > SOURCE_GAP_MAX_CHUNKS) {
+    throw new HttpError(503, "source-gap selected source chunk count exceeds its profile");
+  }
+  const keySet = new Set(keys);
+  const byKey = new Map<string, SourceGapChunkRow[]>();
+  for (const row of selected.results) {
+    if (!keySet.has(row.key) || !Number.isSafeInteger(row.part) || row.part < 0
+      || typeof row.json_chunk !== "string") {
+      throw new HttpError(503, "source-gap selected source chunks are invalid");
+    }
+    const rows = byKey.get(row.key) ?? [];
+    rows.push(row);
+    byKey.set(row.key, rows);
+  }
+  const hydrated: Array<SourceGapManifestRecord & {raw: string}> = [];
+  const encoder = new TextEncoder();
+  for (const entry of entries) {
+    const key = keyByPath.get(entry.source_ref)!;
+    const chunks = byKey.get(key);
+    const maximumChunks = Math.ceil(entry.size_bytes / (32_000 - 3));
+    if (!chunks?.length || chunks.length > maximumChunks) {
+      throw new HttpError(503, "source-gap selected source member is missing or oversized");
+    }
+    let bytes = 0;
+    for (let index = 0; index < chunks.length; index += 1) {
+      const row = chunks[index]!;
+      const chunkBytes = encoder.encode(row.json_chunk!).length;
+      if (row.part !== index || chunkBytes > 32_000) {
+        throw new HttpError(503, "source-gap selected source chunk order is invalid");
+      }
+      bytes += chunkBytes;
+    }
+    const raw = chunks.map((row) => row.json_chunk!).join("");
+    if (bytes !== entry.size_bytes || await nativeSha256(raw) !== entry.sha256) {
+      throw new HttpError(503, "source-gap selected source digest differs");
+    }
+    hydrated.push({...entry, raw});
+  }
+  return hydrated;
+}
+
 async function sourceGapResponse(request: Request, env: Env, search: URLSearchParams): Promise<Response> {
-  const query = (search.get("query") ?? "").trim();
-  if (query.length > 256) throw new HttpError(400, "source-gap query exceeds 256 characters");
+  const query = search.get("query") ?? "";
   const limit = boundedInt(search.get("limit"), 20, 1, 100);
-  const assetUrl = new URL("/__edge/source-gaps/all.json", request.url);
-  const asset = await env.ASSETS.fetch(new Request(assetUrl));
-  if (!asset.ok) throw new Error("generated source-gap asset is missing");
-  const packet = await asset.json() as Record<string, unknown>;
-  const needle = query.toLocaleLowerCase();
-  const all = Array.isArray(packet.gaps) ? packet.gaps as Array<Record<string, unknown>> : [];
-  const gaps = all.filter((gap) => !needle || JSON.stringify(gap).toLocaleLowerCase().includes(needle)).slice(0, limit);
-  return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
+  let packetBytes: Uint8Array;
+  try {
+    const worker = new classicRuntime.WorkerSourceGapSearch(query, limit);
+    const records = await selectedSourceGapRecords(env.DB);
+    for (const record of records) worker.add_record(record.source_ref, record.sha256, record.raw);
+    packetBytes = worker.finish();
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    const detail = String(error);
+    if (detail.includes("InvalidRequest") || detail.includes("must be 1..100")) {
+      throw new HttpError(400, "source-gap query is invalid");
+    }
+    if (detail.includes("BudgetExceeded") || detail.includes("budget")) {
+      throw new HttpError(413, "source-gap query exceeds its bounded profile");
+    }
+    throw new HttpError(503, "source-gap selected source set is unavailable");
+  }
+  let packet: Item;
+  try {
+    packet = JSON.parse(new TextDecoder().decode(packetBytes)) as Item;
+  } catch {
+    throw new HttpError(503, "source-gap query response is invalid");
+  }
+  return jsonResponse(packet, 200, request.method);
 }
 
 async function lensCompileResponse(request: Request, env: Env,
@@ -360,7 +474,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
 
   if (path === "/api/corpus/search") {
-    return jsonResponse(await corpusSearch(env.DB, search.get("query") ?? "", boundedInt(search.get("limit"), 20, 1, 100)), 200, method);
+    return jsonResponse(await corpusSearch(env.DB, search.get("query") ?? "", boundedInt(search.get("limit"), 20, 1, 100), search.get("resource_kind")), 200, method);
   }
   if (path === "/api/philosophy/search") {
     return jsonResponse(await philosophySearch(env.DB, search.get("query") ?? "", boundedInt(search.get("limit"), 40, 1, 100)), 200, method);

@@ -57,6 +57,14 @@ mod worker_classic;
 mod worker_search_controls;
 #[cfg(feature = "wasm")]
 mod worker_search_primitives;
+#[cfg(feature = "wasm")]
+mod worker_source_gap;
+#[cfg(feature = "wasm")]
+pub use worker_source_gap::WorkerSourceGapSearch;
+#[cfg(feature = "wasm")]
+mod worker_source_value_search;
+#[cfg(feature = "wasm")]
+pub use worker_source_value_search::WorkerSourceValueSearch;
 mod workspace_copy;
 mod workspace_machine;
 mod workspace_proposal;
@@ -1009,6 +1017,7 @@ mod wasm {
     pub fn worker_knowledge_search_controls_wasm_v1(raw_request: &[u8]) -> Vec<u8> {
         super::worker_search_controls::worker_knowledge_search_controls_wasm_v1(raw_request)
     }
+
 }
 
 #[cfg(feature = "wasm")]

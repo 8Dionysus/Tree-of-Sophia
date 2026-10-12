@@ -2,8 +2,11 @@
 //! package. This module never routes private input through the public Claim
 //! command executor; storage, locks and publication remain with the private
 //! owner store.
+use super::profile::{PrivateSelectedSourceInput, current_members_under, read_current_member};
+use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
+use crate::source_revisions::RecordRead;
 use crate::source_serialization::{self, PrivateMetadataFamily};
 use crate::source_sign_native::SignNativeRead;
 use crate::source_text_owner::OwnerTextContext;
@@ -14,9 +17,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
-use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+};
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
@@ -43,6 +48,7 @@ const MAX_PACKAGE_BYTES: usize = 8_388_608;
 const MAX_REVISIONS: usize = 128;
 const MAX_SOURCE_RECORDS: usize = 16;
 const MAX_NATIVE_BINDINGS: usize = 8;
+const MAX_PG_SCHEMA_CLOSURE: usize = 128;
 const MAX_EVIDENCE_REFS: usize = 64;
 const MAX_INVENTORY_ENTRIES: usize = 32_768;
 const MAX_INVENTORY_FILES: usize = 2_048;
@@ -71,6 +77,94 @@ const REVISION_FIELDS: &[&str] = &[
     "epistemic_status",
     "confidence",
 ];
+
+/// Exact contract resources the maintained Claim kernel can consume for this
+/// grant. Relation routes are owner-wide by the Claim grammar contract;
+/// entity profile schemas are limited to profiles named by its selectors.
+pub(crate) fn pg_schema_contracts(
+    entities: &JsonValue,
+    relations: &JsonValue,
+    grant: &JsonValue,
+) -> SourceCommandResult<BTreeSet<String>> {
+    let mut paths = BTreeSet::from([
+        CLAIM_REGISTRY_SCHEMA.to_owned(),
+        ENTITY_REGISTRY_SCHEMA.to_owned(),
+        CLAIM_BASE_SCHEMA.to_owned(),
+        SOURCE_METADATA_SCHEMA.to_owned(),
+        CORPUS_SCHEMA.to_owned(),
+        CONTEXT_SCHEMA_REF.to_owned(),
+        PROVENANCE_SCHEMA.to_owned(),
+        "ToS/contracts/semantic-annotation-packet-v2.schema.json".to_owned(),
+    ]);
+    paths.extend(CLAIM_SHARED_SCHEMAS.iter().map(|path| (*path).to_owned()));
+    paths.extend(super::profile::pg_form_contracts());
+
+    for relation in cmd::array(relations, "relations")? {
+        let Some(profile) = relation.object_get("source_claim_profile") else {
+            continue;
+        };
+        for route in cmd::array(profile, "schemas")? {
+            paths.insert(cmd::text(route, "schema_ref")?.to_owned());
+            paths.extend(field_texts(route, "schema_dependencies", 128)?);
+        }
+    }
+
+    let mut has_native_binding = false;
+    let mut profile_ids = BTreeSet::new();
+    for selection in cmd::array(grant, "claim_selections")? {
+        for source in cmd::array(selection, "source_records")? {
+            profile_ids.insert(cmd::text(source, "profile_type_id")?.to_owned());
+            has_native_binding |= !cmd::field(source, "source_binding")?.is_null();
+        }
+    }
+    let entity_types = cmd::array(entities, "types")?;
+    for profile_type_id in profile_ids {
+        let Some(entry) = entity_types
+            .iter()
+            .find(|row| cmd::text(row, "type_id").ok() == Some(profile_type_id.as_str()))
+        else {
+            // Native corpus families have no source_record_profile schema
+            // route in this registry; their shared Corpus schema is fixed.
+            if !profile_type_id.starts_with("tos.entity.") {
+                return Err(SourceCommandError::Denied(
+                    "private Claim schema profile is undeclared",
+                ));
+            }
+            continue;
+        };
+        let Some(profile) = entry.object_get("source_record_profile") else {
+            continue;
+        };
+        for route in cmd::array(profile, "schemas")? {
+            paths.insert(cmd::text(route, "schema_ref")?.to_owned());
+            paths.extend(field_texts(route, "schema_dependencies", 128)?);
+        }
+    }
+    if has_native_binding {
+        paths.insert("ToS/contracts/native-text-unit-binding.schema.json".to_owned());
+        paths.insert("ToS/contracts/native-text-unit-assessment-subject.schema.json".to_owned());
+    }
+    if paths.len() > MAX_PG_SCHEMA_CLOSURE {
+        return Err(SourceCommandError::Unsupported(
+            "private Claim schema closure budget",
+        ));
+    }
+    Ok(paths)
+}
+
+/// Candidate-fenced identity inventory used by private Claim selection. Claim
+/// semantics include every declared source-record reader basename and the
+/// shared Claim stream from the Profile kernel.
+pub(crate) fn claim_identity_basenames_pg(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeSet<String>> {
+    super::profile::public_identity_basenames_pg(ctx, cut, selected, worker, deadline, cancelled)
+}
 const COMPOUND_PREDICATES: &[&str] = &[
     "has_expression",
     "embodied_by",
@@ -1182,7 +1276,7 @@ fn private_reference(reference: &str, context: &JsonValue) -> SourceCommandResul
 
 fn selected_owner_read(
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     reference: &str,
     limit: usize,
@@ -1192,20 +1286,18 @@ fn selected_owner_read(
 ) -> SourceCommandResult<Vec<u8>> {
     let path = RelativePath::parse(reference)
         .map_err(|_| SourceCommandError::Invalid("private Claim selected source path"))?;
-    let raw = owner.read(reference, limit, deadline, cancelled)?;
-    if !private_reference(reference, context)? {
-        let metadata = cut
-            .current()
-            .member(&path)
-            .ok_or(SourceCommandError::Conflict(
-                "private Claim public source is outside the current cut",
-            ))?;
-        if raw.len() as u64 != metadata.size_bytes || Digest256::of_bytes(&raw) != metadata.sha256 {
-            return Err(SourceCommandError::Conflict(
-                "private Claim public source differs from current cut",
-            ));
-        }
+    if path.as_str() != reference {
+        return Err(SourceCommandError::Invalid(
+            "private Claim selected source path",
+        ));
     }
+    let raw = if private_reference(reference, context)? {
+        owner.read(reference, limit, deadline, cancelled)?
+    } else {
+        read_current_member(cut, reference, limit, deadline, cancelled)?.ok_or(
+            SourceCommandError::Conflict("private Claim public source is outside the current cut"),
+        )?
+    };
     reads.retain(reference, raw.clone())?;
     Ok(raw)
 }
@@ -1213,7 +1305,7 @@ fn selected_owner_read(
 fn selected_authored(
     ctx: &CommandContext,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     reference: &str,
     limit: usize,
@@ -1244,7 +1336,7 @@ fn selected_authored(
 fn selected_schema(
     ctx: &CommandContext,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     reference: &str,
     reads: &mut ExactReads,
@@ -1267,7 +1359,7 @@ fn selected_schema(
 }
 
 fn check_schema(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     label: &str,
     raw: &[u8],
     contract: &str,
@@ -1286,11 +1378,11 @@ fn check_schema(
 }
 
 fn require_contract_digest(
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn super::profile::PrivateSelectedSchemaExecutor,
     reference: &str,
     raw: &[u8],
 ) -> SourceCommandResult<()> {
-    if worker.contract_digest(reference) != Some(Digest256::of_bytes(raw)) {
+    if worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(raw)) {
         return Err(SourceCommandError::Conflict(
             "private Claim selected contract and schema worker differ",
         ));
@@ -1348,23 +1440,35 @@ impl ClaimGrammar {
     fn load(
         ctx: &CommandContext,
         owner: &OwnerTextContext,
-        cut: &CorpusCutReader,
+        cut: &dyn PrivateSelectedSourceInput,
         context: &JsonValue,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
         reads: &mut ExactReads,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        if cut.current().revision() != ctx.base_revision
-            || worker.source_revision() != ctx.base_revision
-        {
+        if !super::profile::selection_binding_matches(ctx, cut, worker) {
             return Err(SourceCommandError::Conflict(
                 "private Claim grammar worker and selected source cut differ",
             ));
         }
-        let entities = crate::source_revisions::validate_source_profile_registry(
-            worker, deadline, cancelled, ctx,
-        )?;
+        let entities = worker.validate_profile_registry(ctx, deadline, cancelled)?;
+        Self::load_with_entities(
+            ctx, owner, cut, context, worker, reads, deadline, cancelled, entities,
+        )
+    }
+
+    fn load_with_entities(
+        ctx: &CommandContext,
+        owner: &OwnerTextContext,
+        cut: &dyn PrivateSelectedSourceInput,
+        context: &JsonValue,
+        worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
+        reads: &mut ExactReads,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        entities: JsonValue,
+    ) -> SourceCommandResult<Self> {
         let entity_registry_schema = selected_schema(
             ctx,
             owner,
@@ -1779,22 +1883,17 @@ fn public_native_identity_member(reference: &str) -> bool {
             .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
 }
 
-fn native_identity_inventory_context(
-    ctx: &CommandContext,
-    cut: &CorpusCutReader,
+fn selected_public_native_packet_members(
+    owner: &OwnerTextContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    context: &JsonValue,
+    reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<CommandContext> {
-    if cut.current().revision() != ctx.base_revision {
-        return Err(SourceCommandError::Conflict(
-            "private Claim native identity cut differs from command context",
-        ));
-    }
-    let mut selected = ctx.clone();
-    let mut packet_count = 0usize;
-    let mut packet_bytes = 0usize;
-    for member in cut.current().members() {
-        let reference = member.path.as_str();
+) -> SourceCommandResult<Vec<SourceFile>> {
+    let mut members = Vec::new();
+    let mut total_bytes = 0usize;
+    for reference in current_members_under(cut, "ToS/source-witnesses", deadline, cancelled)? {
         if reference == "ToS/source-witnesses/owner-local"
             || reference.starts_with("ToS/source-witnesses/owner-local/")
         {
@@ -1802,8 +1901,100 @@ fn native_identity_inventory_context(
                 "reserved owner-local namespace cannot enter public native identity inventory",
             ));
         }
-        if !public_native_identity_member(reference) {
+        if !public_native_identity_member(&reference) {
             continue;
+        }
+        if members.len() >= 1024 {
+            return Err(SourceCommandError::Invalid(
+                "native identity inventory metadata budget",
+            ));
+        }
+        let limit = (8_388_608usize.saturating_sub(total_bytes)).min(1_048_576);
+        let raw = selected_owner_read(
+            owner, cut, context, &reference, limit, reads, deadline, cancelled,
+        )?;
+        total_bytes = total_bytes
+            .checked_add(raw.len())
+            .filter(|total| *total <= 8_388_608)
+            .ok_or(SourceCommandError::Invalid(
+                "native identity inventory metadata budget",
+            ))?;
+        members.push(SourceFile {
+            path: RelativePath::parse(&reference)
+                .map_err(|_| SourceCommandError::Invalid("native identity packet path"))?,
+            raw,
+        });
+    }
+    Ok(members)
+}
+
+fn native_identity_inventory_context(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    tokens: &BTreeSet<String>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(CommandContext, BTreeSet<String>)> {
+    if !super::profile::source_bootstrap_context_matches(ctx, cut) {
+        return Err(SourceCommandError::Conflict(
+            "private Claim native identity cut differs from command context",
+        ));
+    }
+    let mut selected = ctx.clone();
+    let mut packet_count = 0usize;
+    let mut packet_bytes = 0usize;
+    let indexed_owners = cut
+        .annotation_identity_owners(tokens, deadline, cancelled)
+        .map_err(|_| SourceCommandError::Unsupported("private Claim annotation identity lookup"))?;
+    let packet_digests = if let Some(indexed_owners) = indexed_owners {
+        let mut packet_digests = BTreeMap::new();
+        for owners in indexed_owners.values() {
+            for owner in owners {
+                if !public_native_identity_member(&owner.path) {
+                    return Err(SourceCommandError::Conflict(
+                        "annotation identity index returned a non-public packet path",
+                    ));
+                }
+                if packet_digests
+                    .insert(owner.path.clone(), Some(owner.member_digest))
+                    .is_some_and(|previous| previous != Some(owner.member_digest))
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "annotation identity index returned inconsistent packet digests",
+                    ));
+                }
+            }
+        }
+        packet_digests
+    } else {
+        let members = current_members_under(cut, "ToS/source-witnesses", deadline, cancelled)?;
+        if members.iter().any(|reference| {
+            reference == "ToS/source-witnesses/owner-local"
+                || reference.starts_with("ToS/source-witnesses/owner-local/")
+        }) {
+            return Err(SourceCommandError::Denied(
+                "reserved owner-local namespace cannot enter public native identity inventory",
+            ));
+        }
+        members
+            .into_iter()
+            .filter(|reference| public_native_identity_member(reference))
+            .map(|reference| (reference, None))
+            .collect()
+    };
+    if packet_digests.len() > 1024 {
+        return Err(SourceCommandError::Invalid(
+            "private Claim native identity packet-count budget",
+        ));
+    }
+    let mut packet_paths = BTreeSet::new();
+    for (reference, expected_digest) in packet_digests {
+        if reference == "ToS/source-witnesses/owner-local"
+            || reference.starts_with("ToS/source-witnesses/owner-local/")
+        {
+            return Err(SourceCommandError::Denied(
+                "reserved owner-local namespace cannot enter public native identity inventory",
+            ));
         }
         packet_count = packet_count
             .checked_add(1)
@@ -1813,18 +2004,19 @@ fn native_identity_inventory_context(
             ))?;
         let remaining = 8_388_608usize.saturating_sub(packet_bytes);
         let max_bytes = remaining.min(1_048_576);
-        let size = usize::try_from(member.size_bytes).map_err(|_| {
-            SourceCommandError::Invalid("private Claim native identity packet byte budget")
-        })?;
-        if size > max_bytes {
-            return Err(SourceCommandError::Invalid(
-                "private Claim native identity packet byte budget",
+        let member_path = RelativePath::parse(&reference)
+            .map_err(|_| SourceCommandError::Invalid("private Claim selected source path"))?;
+        let observed = read_current_member(cut, &reference, max_bytes, deadline, cancelled)?
+            .ok_or(SourceCommandError::Conflict(
+                "private Claim native identity member disappeared",
+            ))?;
+        if expected_digest.is_some_and(|digest| Digest256::of_bytes(&observed) != digest) {
+            return Err(SourceCommandError::Conflict(
+                "private Claim annotation identity index packet digest differs",
             ));
         }
-        if let Some(existing) = selected.files.iter().find(|file| file.path == member.path) {
-            if existing.raw.len() as u64 != member.size_bytes
-                || Digest256::of_bytes(&existing.raw) != member.sha256
-            {
+        if let Some(existing) = selected.files.iter().find(|file| file.path == member_path) {
+            if existing.raw != observed {
                 return Err(SourceCommandError::Conflict(
                     "private Claim native identity context differs from selected cut",
                 ));
@@ -1835,38 +2027,20 @@ fn native_identity_inventory_context(
                     .ok_or(SourceCommandError::Invalid(
                         "private Claim native identity packet byte budget",
                     ))?;
+            packet_paths.insert(reference);
             continue;
         }
-        let observed = cut
-            .read_member(
-                ctx.base_revision,
-                &member.path,
-                max_bytes as u64,
-                deadline,
-                cancelled,
-            )
-            .map_err(|_| {
-                SourceCommandError::Unsupported(
-                    "exact private Claim native identity member read unavailable",
-                )
-            })?;
-        if observed.raw.len() as u64 != member.size_bytes
-            || Digest256::of_bytes(&observed.raw) != member.sha256
-        {
-            return Err(SourceCommandError::Conflict(
-                "private Claim native identity member differs from selected cut",
-            ));
-        }
         packet_bytes = packet_bytes
-            .checked_add(observed.raw.len())
+            .checked_add(observed.len())
             .filter(|total| *total <= 8_388_608)
             .ok_or(SourceCommandError::Invalid(
                 "private Claim native identity packet byte budget",
             ))?;
         selected.files.push(SourceFile {
-            path: member.path.clone(),
-            raw: observed.raw,
+            path: member_path,
+            raw: observed,
         });
+        packet_paths.insert(reference);
     }
     if selected.files.len() > SELECTED_SOURCE_MAX_FILES
         || selected
@@ -1879,13 +2053,13 @@ fn native_identity_inventory_context(
             "private Claim native identity helper context budget",
         ));
     }
-    Ok(selected)
+    Ok((selected, packet_paths))
 }
 
 fn identity_inventory(
     grant: &Grant,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     basenames: &BTreeSet<String>,
     private_inputs: &PrivateIdentityInputs,
@@ -1903,8 +2077,7 @@ fn identity_inventory(
         ));
     }
     let mut selected = BTreeMap::<String, Vec<u8>>::new();
-    for metadata in cut.current().members() {
-        let reference = metadata.path.as_str();
+    for reference in current_members_under(cut, "ToS/source-witnesses", deadline, cancelled)? {
         if !reference.starts_with("ToS/source-witnesses/")
             || reference.starts_with("ToS/source-witnesses/owner-local/")
         {
@@ -1932,13 +2105,13 @@ fn identity_inventory(
             owner,
             cut,
             context,
-            reference,
+            &reference,
             MAX_INVENTORY_FILE_BYTES,
             reads,
             deadline,
             cancelled,
         )?;
-        selected.insert(reference.to_owned(), raw);
+        selected.insert(reference, raw);
     }
     for (reference, raw) in &private_inputs.files {
         if selected.len() >= MAX_INVENTORY_FILES && !selected.contains_key(reference) {
@@ -2032,7 +2205,7 @@ fn fingerprints_to_map(value: &JsonValue) -> SourceCommandResult<BTreeMap<String
 
 struct OwnerNativeRead<'a> {
     owner: &'a OwnerTextContext,
-    cut: &'a CorpusCutReader,
+    cut: &'a dyn PrivateSelectedSourceInput,
     context: &'a JsonValue,
     reads: &'a mut ExactReads,
 }
@@ -2126,9 +2299,9 @@ pub(crate) fn owner_metadata_snapshot(
 
 fn public_native_snapshot(
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     reads: &mut ExactReads,
     bindings: &[JsonValue],
     deadline: Instant,
@@ -2273,11 +2446,11 @@ fn exact_profile_route(
 fn preflight_claim_source_selectors(
     ctx: &CommandContext,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     grammar: &ClaimGrammar,
     grant: &Grant,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn super::profile::PrivateSelectedSchemaExecutor,
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2402,11 +2575,11 @@ fn preflight_claim_source_selectors(
 fn preflight_assessment_claim_sources(
     ctx: &CommandContext,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     grammar: &ClaimGrammar,
     selections: &[AssessmentClaimSelection],
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn super::profile::PrivateSelectedSchemaExecutor,
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2545,7 +2718,7 @@ fn assessment_claim_route(
 
 fn assessment_reader_read(
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     reader: &mut dyn SignNativeRead,
     reference: &str,
@@ -2562,15 +2735,10 @@ fn assessment_reader_read(
         cancelled,
     )?;
     if !private_reference(reference, context)? {
-        let path = RelativePath::parse(reference)
-            .map_err(|_| SourceCommandError::Invalid("private Claim selected source path"))?;
-        let member = cut
-            .current()
-            .member(&path)
-            .ok_or(SourceCommandError::Conflict(
-                "private Claim public source is outside the current cut",
-            ))?;
-        if raw.len() as u64 != member.size_bytes || Digest256::of_bytes(&raw) != member.sha256 {
+        let selected = read_current_member(cut, reference, max_bytes, deadline, cancelled)?.ok_or(
+            SourceCommandError::Conflict("private Claim public source is outside the current cut"),
+        )?;
+        if raw != selected {
             return Err(SourceCommandError::Conflict(
                 "private Claim public source differs from current cut",
             ));
@@ -2584,13 +2752,13 @@ fn assessment_reader_read(
 
 fn validate_endpoint_record(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     owner: &OwnerTextContext,
     context: &JsonValue,
     grammar: &ClaimGrammar,
     selector: &JsonValue,
     verify_content: bool,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2620,17 +2788,11 @@ fn validate_endpoint_record(
             cancelled,
         )?;
         if !private {
-            let member_path = RelativePath::parse(path)
-                .map_err(|_| SourceCommandError::Invalid("private Claim selected source path"))?;
-            let metadata =
-                cut.current()
-                    .member(&member_path)
-                    .ok_or(SourceCommandError::Conflict(
-                        "private Claim public source is outside the current cut",
-                    ))?;
-            if raw.len() as u64 != metadata.size_bytes
-                || Digest256::of_bytes(&raw) != metadata.sha256
-            {
+            let selected = read_current_member(cut, path, raw.len().max(1), deadline, cancelled)?
+                .ok_or(SourceCommandError::Conflict(
+                "private Claim public source is outside the current cut",
+            ))?;
+            if raw != selected {
                 return Err(SourceCommandError::Conflict(
                     "private Claim public source differs from current cut",
                 ));
@@ -2987,12 +3149,12 @@ impl ConfigVersion {
 fn check_claim_schema(
     ctx: &CommandContext,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     grammar: &ClaimGrammar,
     claim: &JsonValue,
     route: &ClaimRoute,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -3476,9 +3638,9 @@ fn prepare_claim_forms(
     ctx: &CommandContext,
     grant: &Grant,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     record: &JsonValue,
     payload: Option<&JsonValue>,
     selections: &[JsonValue],
@@ -3580,9 +3742,9 @@ fn creation_files(
     ctx: &CommandContext,
     grant: &Grant,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     claims: &[JsonValue],
     selections: &[JsonValue],
     deadline: Instant,
@@ -3866,11 +4028,11 @@ fn hash_map(values: BTreeMap<String, String>) -> JsonValue {
 fn configuration_grammars(
     ctx: &CommandContext,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     grant: &Grant,
     reads: &mut ExactReads,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -3943,9 +4105,9 @@ fn source_schema_fingerprints(
 
 fn resolve_native_selection(
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     reads: &mut ExactReads,
     binding: &JsonValue,
     origin: &str,
@@ -4160,7 +4322,7 @@ struct GroundedNativeBinding {
 
 fn ground_claims(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -4168,7 +4330,7 @@ fn ground_claims(
     grant: &mut Grant,
     claims: &[JsonValue],
     private_inputs: &PrivateIdentityInputs,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
     initial: bool,
@@ -4346,9 +4508,12 @@ fn ground_claims(
     let public_native_identity = if native_identity_subjects.is_empty() {
         None
     } else {
+        let packets = selected_public_native_packet_members(
+            owner, cut, context, &mut reads, deadline, cancelled,
+        )?;
         let (identities, snapshot, schema_used) =
-            crate::source_revisions::native_identity_inventory_from_cut(
-                ctx, cut, worker, deadline, cancelled,
+            crate::source_revisions::native_identity_inventory_from_packet_members(
+                ctx, &packets, worker, deadline, cancelled, None,
             )?;
         if native_identity_subjects
             .iter()
@@ -4357,14 +4522,6 @@ fn ground_claims(
             return Err(SourceCommandError::Denied(
                 "Claim source identity is already owned by a native semantic packet; explicit owner migration required",
             ));
-        }
-        for member in cut.current().members() {
-            let reference = member.path.as_str();
-            if public_native_identity_member(reference) {
-                selected_owner_read(
-                    owner, cut, context, reference, 1_048_576, &mut reads, deadline, cancelled,
-                )?;
-            }
         }
         if schema_used {
             let raw = selected_authored(
@@ -5039,11 +5196,66 @@ pub(crate) fn resolve_assessment_claim_sources(
     context: &JsonValue,
     selections: &[AssessmentClaimSelection],
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     reader: &mut dyn SignNativeRead,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentClaimSources> {
+    let entities = if selections.is_empty() {
+        JsonValue::Null
+    } else {
+        if !super::profile::selection_binding_matches(ctx, cut, worker) {
+            return Err(SourceCommandError::Conflict(
+                "private assessment Claim worker and source cut differ",
+            ));
+        }
+        worker.validate_profile_registry(ctx, deadline, cancelled)?
+    };
+    resolve_assessment_claim_sources_with_entities(
+        owner, context, selections, ctx, cut, worker, reader, deadline, cancelled, entities,
+    )
+}
+
+/// Candidate-fenced Claim resolver for PostgreSQL source epochs. The selected
+/// RecordRead remains the typed authority for registry validation; the command
+/// context's bootstrap revision is only a correspondence fence.
+pub(crate) fn resolve_assessment_claim_sources_pg(
+    owner: &OwnerTextContext,
+    context: &JsonValue,
+    selections: &[AssessmentClaimSelection],
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    reader: &mut dyn SignNativeRead,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentClaimSources> {
+    let entities = if selections.is_empty() {
+        JsonValue::Null
+    } else {
+        super::profile::candidate_record_binding_matches(ctx, cut, selected, worker)?;
+        crate::source_revisions::validate_source_profile_registry_candidate(
+            worker, deadline, cancelled, selected,
+        )?
+    };
+    resolve_assessment_claim_sources_with_entities(
+        owner, context, selections, ctx, cut, worker, reader, deadline, cancelled, entities,
+    )
+}
+
+fn resolve_assessment_claim_sources_with_entities(
+    owner: &OwnerTextContext,
+    context: &JsonValue,
+    selections: &[AssessmentClaimSelection],
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
+    reader: &mut dyn SignNativeRead,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    entities: JsonValue,
 ) -> SourceCommandResult<AssessmentClaimSources> {
     if selections.is_empty() {
         return Ok(AssessmentClaimSources {
@@ -5063,10 +5275,7 @@ pub(crate) fn resolve_assessment_claim_sources(
             public_native_identity_paths: None,
         });
     }
-    if selections.len() > 32
-        || cut.current().revision() != ctx.base_revision
-        || worker.source_revision() != ctx.base_revision
-    {
+    if selections.len() > 32 || !super::profile::selection_binding_matches(ctx, cut, worker) {
         return Err(SourceCommandError::Conflict(
             "private assessment Claim worker and source cut differ",
         ));
@@ -5089,8 +5298,8 @@ pub(crate) fn resolve_assessment_claim_sources(
         }
     }
     let mut reads = ExactReads::default();
-    let grammar = ClaimGrammar::load(
-        ctx, owner, cut, context, worker, &mut reads, deadline, cancelled,
+    let grammar = ClaimGrammar::load_with_entities(
+        ctx, owner, cut, context, worker, &mut reads, deadline, cancelled, entities,
     )?;
     preflight_assessment_claim_sources(
         ctx, owner, cut, context, &grammar, selections, worker, &mut reads, deadline, cancelled,
@@ -5723,15 +5932,27 @@ pub(crate) fn resolve_assessment_claim_sources(
         let public_native_identity = if native_identity_subjects.is_empty() {
             JsonValue::Null
         } else {
-            let inventory_context =
-                native_identity_inventory_context(ctx, cut, deadline, cancelled)?;
+            let (inventory_context, inventory_paths) = native_identity_inventory_context(
+                ctx,
+                cut,
+                &native_identity_subjects,
+                deadline,
+                cancelled,
+            )?;
+            let packet_members = inventory_context
+                .files
+                .iter()
+                .filter(|file| public_native_identity_member(file.path.as_str()))
+                .cloned()
+                .collect::<Vec<_>>();
             let (identities, snapshot, schema_used) =
-                crate::source_revisions::native_identity_inventory_from_cut(
+                crate::source_revisions::native_identity_inventory_from_packet_members(
                     &inventory_context,
-                    cut,
+                    &packet_members,
                     worker,
                     deadline,
                     cancelled,
+                    None,
                 )?;
             if native_identity_subjects
                 .iter()
@@ -5741,15 +5962,10 @@ pub(crate) fn resolve_assessment_claim_sources(
                     "Claim source identity is already owned by a native semantic packet; explicit owner migration required",
                 ));
             }
-            let mut inventory_paths = BTreeSet::new();
-            for member in cut.current().members() {
-                let reference = member.path.as_str();
-                if public_native_identity_member(reference) {
-                    selected_owner_read(
-                        owner, cut, context, reference, 1_048_576, &mut reads, deadline, cancelled,
-                    )?;
-                    inventory_paths.insert(reference.to_owned());
-                }
+            for reference in &inventory_paths {
+                selected_owner_read(
+                    owner, cut, context, reference, 1_048_576, &mut reads, deadline, cancelled,
+                )?;
             }
             if schema_used {
                 let reference = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
@@ -6370,11 +6586,11 @@ fn verify_creation_integrity(
     ctx: &CommandContext,
     grant: &Grant,
     owner: &OwnerTextContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
     current_files: &PrivatePackage,
     state: &PackageState,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<SourceFile>> {
@@ -6567,7 +6783,7 @@ fn package_state(
     context: &JsonValue,
     files: &PrivatePackage,
     archives: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PackageState> {
@@ -7038,8 +7254,8 @@ pub(crate) fn required_archives(
 /// inventory reads. The profile reader validates the public entity registry.
 pub(crate) fn identity_basenames(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
@@ -7295,7 +7511,7 @@ fn private_input_reads(
 
 fn create_plan(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -7303,7 +7519,7 @@ fn create_plan(
     grant: &mut Grant,
     request: &JsonValue,
     inventory: &PrivateIdentityInputs,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
     commit: bool,
@@ -7507,7 +7723,7 @@ fn create_plan(
 
 fn prepare_revision(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -7517,7 +7733,7 @@ fn prepare_revision(
     state: &PackageState,
     current: &PrivatePackage,
     inventory: &PrivateIdentityInputs,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -7627,11 +7843,11 @@ fn prepare_revision(
 
 fn initialize_grant_digest(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     owner: &OwnerTextContext,
     context: &JsonValue,
     grant: &mut Grant,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<SourceFile>> {
@@ -7838,7 +8054,7 @@ fn claim_command_receipt<'a>(
 /// remains the only writer; this function returns bounded proposal bytes.
 pub(crate) fn prepare(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -7846,7 +8062,7 @@ pub(crate) fn prepare(
     current: Option<&PrivatePackage>,
     inventory: &PrivateIdentityInputs,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PrivateClaimPlan> {

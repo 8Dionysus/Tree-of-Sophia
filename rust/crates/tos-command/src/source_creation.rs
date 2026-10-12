@@ -59,6 +59,12 @@ const LINKS: &[&str] = &[
 #[path = "source_creation_pg.rs"]
 pub(crate) mod pg;
 
+#[path = "source_creation_sign_pg.rs"]
+pub(crate) mod sign_pg;
+
+#[path = "source_creation_artifact_pg.rs"]
+pub(crate) mod artifact_pg;
+
 pub(crate) fn pg_agent_creation_requirements(
     context: &CommandContext,
 ) -> SourceCommandResult<pg::PgAgentCreationRequirements> {
@@ -83,7 +89,11 @@ impl CreationFamily {
             "tos_local_profile_create_owner_v1" => Self::PublicProfile,
             "tos_local_corpus_create_owner_v1" => Self::CorpusV1,
             "tos_local_corpus_create_owner_v2" => Self::CorpusV2,
-            "tos_local_sign_promote_owner_v1" => Self::Sign,
+            // v1 is the filesystem/public Assessment bridge. v2 is a distinct
+            // protected private-Assessment grant used only by the PG owner.
+            "tos_local_sign_promote_owner_v1" | "tos_local_sign_promote_owner_v2" => {
+                Self::Sign
+            }
             "tos_local_artifact_create_owner_v1" => Self::Artifact,
             _ => return Err(SourceCommandError::Denied("source create owner schema")),
         })
@@ -1020,10 +1030,13 @@ fn configuration(
         keys.push("provenance_event_id");
     }
     if family == CreationFamily::Sign {
-        keys.extend([
-            "promotion_assessment_owner_config",
-            "promotion_candidate_id",
-        ]);
+        let sign_schema = cmd::text(&config, "schema_version")?;
+        keys.push(if sign_schema == "tos_local_sign_promote_owner_v2" {
+            "promotion_assessment_private_owner_config"
+        } else {
+            "promotion_assessment_owner_config"
+        });
+        keys.push("promotion_candidate_id");
     }
     cmd::exact_keys(&config, &keys)?;
     if cmd::integer(&config, "uid")? != ctx.effective_uid

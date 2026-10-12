@@ -60,15 +60,30 @@ mod catalog_selection;
 #[path = "source_object_link.rs"]
 mod object_link;
 pub(crate) use object_link::current_result_fields as object_link_result_fields;
+pub(crate) use object_link::{
+    OBJECT_LINK_PG_FAMILY_TAG,
+    expected_inventory_contributions_from_writes as expected_object_link_inventory_contributions,
+    expected_object_link_revision_indexes,
+};
 pub use object_link::{
     ObjectLinkPreparation, ObjectLinkPublication, ObjectLinkRecoveryDecision,
     execute_isolated_object_link_from_captures, prepare_isolated_object_link_from_proposal,
     recover_isolated_object_link_from_captures, replay_isolated_object_link_from_captures,
 };
+pub(crate) use object_link::{
+    PgObjectLinkRequirements, PreparedPgObjectLink, pg_object_link_requirements,
+    prepare_pg_object_link,
+};
 #[path = "source_work_expression.rs"]
 mod work_expression;
 #[cfg(test)]
 pub(crate) use work_expression::owner_test_support as native_owner_test_support;
+pub(crate) use work_expression::{
+    PgWorkExpressionOwnerPackage, PgWorkExpressionPreview, WORK_EXPRESSION_PG_FAMILY_TAG,
+    expected_inventory_contributions_from_writes as expected_work_expression_inventory_contributions,
+    expected_revision_indexes_from_writes as expected_work_expression_revision_indexes,
+    prepare_pg_work_expression, preview_pg_work_expression, verify_pg_work_context,
+};
 pub use work_expression::{
     WorkExpressionPreparation, WorkExpressionPublication, WorkRecoveryDecision,
     execute_isolated_work_expression_from_captures, prepare_isolated_work_expression_from_proposal,
@@ -76,15 +91,29 @@ pub use work_expression::{
 };
 #[path = "source_item_adoption.rs"]
 mod item_adoption;
+pub(crate) use item_adoption::PgItemAdoptionSelection;
 pub(crate) use item_adoption::current_result_fields as item_result_fields;
+pub(crate) use item_adoption::pg_item_adoption_transaction_id;
+pub(crate) use item_adoption::pg_item_adoption_transaction_id_from_request;
+pub(crate) use item_adoption::pg_item_adoption_response_from_attempt;
+pub(crate) use item_adoption::pg_select_owner as select_pg_item_adoption_owner;
+pub(crate) use item_adoption::verify_pg_item_adoption_owner;
 pub use item_adoption::{
     ItemAdoptionPreparation, ItemAdoptionPublication, execute_isolated_item_adoption_from_captures,
     prepare_isolated_item_adoption_from_proposal, recover_isolated_item_adoption_from_captures,
     replay_isolated_item_adoption_from_captures,
 };
+pub(crate) use item_adoption::{PgItemAdoptionOwnerPlan, prepare_pg_item_adoption};
 #[path = "source_collection_membership.rs"]
 mod collection_membership;
 pub(crate) use collection_membership::current_result_fields as collection_result_fields;
+pub(crate) use collection_membership::{
+    COLLECTION_MEMBERSHIP_PG_FAMILY_TAG, PgCollectionMembershipOwnerPackage,
+    expected_collection_inventory_contributions, expected_collection_membership_revision_indexes,
+    pg_current_result_fields as pg_collection_current_result_fields,
+    prepare_pg_collection_membership, prepare_pg_collection_membership_preview,
+    verify_pg_collection_context,
+};
 pub use collection_membership::{
     CollectionMembershipPreparation, CollectionMembershipPublication, CollectionRecoveryDecision,
     execute_isolated_collection_membership_from_captures,
@@ -92,8 +121,34 @@ pub use collection_membership::{
     recover_isolated_collection_membership_from_captures,
     replay_isolated_collection_membership_from_captures,
 };
+#[path = "source_expression_responsibility.rs"]
+mod expression_responsibility;
+pub(crate) use expression_responsibility::{
+    PG_FAMILY_TAG as EXPRESSION_RESPONSIBILITY_PG_FAMILY_TAG,
+    PgExpressionResponsibilityOwnerPackage,
+    expected_inventory_contributions_from_writes as expected_expression_responsibility_inventory_contributions,
+    expected_revision_indexes_from_writes as expected_expression_responsibility_revision_indexes,
+    pg_current_result_fields as pg_expression_responsibility_current_result_fields,
+    prepare_pg_expression_responsibility, prepare_pg_expression_responsibility_preview,
+    verify_pg_expression_responsibility_context,
+};
+#[path = "source_expression_edition.rs"]
+mod expression_edition;
+pub(crate) use expression_edition::{
+    PG_FAMILY_TAG as EXPRESSION_EDITION_PG_FAMILY_TAG, PgExpressionEditionOwnerPackage,
+    expected_expression_edition_inventory_contributions,
+    expected_expression_edition_revision_indexes, pg_current_result_fields,
+    prepare_pg_expression_edition, prepare_pg_expression_edition_preview,
+    verify_pg_expression_edition_context,
+};
+#[path = "source_native_pg_growth_inventory.rs"]
+mod pg_growth_inventory;
 #[path = "source_work_transaction.rs"]
 pub(crate) mod work_transaction;
+pub(crate) use pg_growth_inventory::{
+    GrowthRecordProjection as PgGrowthRecordProjection,
+    owner_contributions as pg_growth_owner_contributions,
+};
 pub(crate) const MAX_FILES: usize = 4096;
 pub(crate) const MAX_BYTES: usize = 33_554_432;
 
@@ -348,6 +403,38 @@ pub struct CreationFilesystem {
     uid: u32,
 }
 
+/// The exact current-source catalog closure used by Growth owner preparers.
+/// It is derived through the caller's selected input and carries only the
+/// bounded values needed for identity and topology checks.
+pub(crate) struct SelectedSourceWitnessCatalog {
+    pub(crate) digests: BTreeMap<String, String>,
+    pub(crate) record_ids: BTreeSet<String>,
+    pub(crate) claim_ids: BTreeSet<String>,
+    pub(crate) entries: Vec<(String, JsonValue)>,
+    pub(crate) bytes_read: usize,
+}
+
+pub(crate) fn select_source_witness_catalog_from_input(
+    input: &dyn tos_validation::record_biblio_cut::SourceCutInput,
+    publication_token: Option<&str>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SelectedSourceWitnessCatalog> {
+    let selected = catalog_selection::select_catalog_from_input(
+        input,
+        publication_token,
+        deadline,
+        cancelled,
+    )?;
+    Ok(SelectedSourceWitnessCatalog {
+        digests: selected.digests,
+        record_ids: selected.record_ids,
+        claim_ids: selected.claim_ids,
+        entries: selected.entries,
+        bytes_read: selected.bytes_read,
+    })
+}
+
 /// Exact generated bytes selected separately from an authored source cut.
 /// This is Claim-local evidence, never a source member or a software rule.
 pub(crate) struct ClaimCatalogCapture {
@@ -595,6 +682,30 @@ impl ClaimCatalogCapture {
         }
     }
 
+    /// Bind the selected publication-control member to a complete PG source
+    /// cut. This is the same exact-member check as `bind_cut`; the PG adapter
+    /// supplies the owner-authored member set instead of a CorpusCutReader.
+    pub(crate) fn bind_pg_complete_cut(
+        &self,
+        cut: &crate::source_cohort::claims::PgCompleteClaimCut,
+    ) -> SourceCommandResult<()> {
+        let control_path =
+            RelativePath::parse("ToS/source-witnesses/.metadata-publication.json")
+                .map_err(|_| SourceCommandError::Invalid("Claim publication control path"))?;
+        let member = cut.members().iter().find(|file| file.path == control_path);
+        match (self.control.as_deref(), member) {
+            (None, None) => Ok(()),
+            (Some(raw), Some(member))
+                if member.raw.len() == raw.len() && member.raw.as_slice() == raw =>
+            {
+                Ok(())
+            }
+            _ => Err(SourceCommandError::Conflict(
+                "Claim publication control differs from complete PG source cut",
+            )),
+        }
+    }
+
     pub(crate) fn verify_current(
         &self,
         fs: &CreationFilesystem,
@@ -677,7 +788,7 @@ impl ClaimCatalogCapture {
 /// and says nothing about the managed cohort's index completeness.
 pub(crate) struct CreationOwnerFence<'a> {
     filesystem: &'a CreationFilesystem,
-    package: CreationPackage<'a>,
+    package: Option<CreationPackage<'a>>,
     witness: File,
     lock: File,
 }
@@ -687,8 +798,14 @@ impl CreationOwnerFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        self.filesystem
-            .current_package(self.package, deadline, cancelled)?;
+        match self.package {
+            Some(package) => self
+                .filesystem
+                .current_package(package, deadline, cancelled)?,
+            None => self
+                .filesystem
+                .current_source_navigation_owner(deadline, cancelled)?,
+        }
         let current = tos_fd_open::open_regular_at(&self.witness, Path::new(CORPUS_LOCK))
             .map_err(|_| SourceCommandError::Conflict("creation corpus lock path changed"))?;
         if inode(&owned(&self.lock, self.filesystem.uid, false)?)
@@ -3014,12 +3131,47 @@ impl CreationFilesystem {
         let lock = self.lock(&witness, deadline, cancelled)?;
         let fence = CreationOwnerFence {
             filesystem: self,
-            package,
+            package: Some(package),
             witness,
             lock,
         };
         fence.verify_current(deadline, cancelled)?;
         Ok(fence)
+    }
+
+    /// Hold the selected protected source owner for a read-only native
+    /// navigation operation. This acquires the same corpus mutex as creation,
+    /// but does not manufacture a creation package or command context.
+    pub(crate) fn hold_source_navigation_owner(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationOwnerFence<'_>> {
+        self.current_source_navigation_owner(deadline, cancelled)?;
+        let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
+        let lock = self.lock(&witness, deadline, cancelled)?;
+        let fence = CreationOwnerFence {
+            filesystem: self,
+            package: None,
+            witness,
+            lock,
+        };
+        fence.verify_current(deadline, cancelled)?;
+        Ok(fence)
+    }
+
+    fn current_source_navigation_owner(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.verify_protected_configuration(deadline, cancelled)?;
+        let configuration = cmd::parse(&self.configuration_raw)?;
+        cmd::validate_expiry(
+            cmd::text(&configuration, "expires_at")?,
+            &crate::source_serialization::instant()?,
+        )?;
+        Ok(())
     }
 
     /// Real maintained corpus mutex; separate open descriptions also conflict
@@ -4928,7 +5080,7 @@ pub fn execute_isolated_creation_from_captures(
 }
 
 pub(crate) fn finish_creation_worker(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {

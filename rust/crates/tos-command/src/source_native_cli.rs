@@ -42,14 +42,40 @@ mod legacy_claim;
 mod metadata_publication;
 #[path = "source_native_object_link_cli.rs"]
 mod object_link;
+#[path = "source_native_pg_artifact_creation_cli.rs"]
+mod pg_artifact_creation;
 #[path = "source_pg_bootstrap_cli.rs"]
 mod pg_bootstrap;
 #[path = "source_pg_bootstrap_streamed_cli.rs"]
 mod pg_bootstrap_streamed;
+#[path = "source_native_pg_claim_cli.rs"]
+mod pg_claims;
 #[path = "source_native_pg_creation_cli.rs"]
 mod pg_creation;
+#[path = "source_native_pg_forms_historical_cli.rs"]
+mod pg_forms_historical;
+#[path = "source_native_pg_growth_cli.rs"]
+mod pg_growth;
+#[path = "source_native_pg_item_adoption_cli.rs"]
+mod pg_item_adoption;
+pub(crate) use pg_growth::{
+    PgGrowthCurrentInput, PgGrowthFamily, expected_growth_revision_indexes,
+};
+pub(crate) use pg_growth::context_with_pg_exact_reads;
+#[path = "source_native_pg_private_owner_cli.rs"]
+mod pg_private_owner;
+#[path = "source_native_pg_private_assessment_cli.rs"]
+pub(crate) mod pg_private_assessment;
+#[path = "source_native_pg_private_text_cli.rs"]
+mod pg_private_text;
+#[path = "source_native_pg_public_text_cli.rs"]
+mod pg_public_text;
 #[path = "source_native_pg_revision_cli.rs"]
 mod pg_revision;
+#[path = "source_native_pg_rights_revoke_cli.rs"]
+mod pg_rights_revoke;
+#[path = "source_native_pg_selected_revision.rs"]
+pub(crate) mod pg_selected_revision;
 #[path = "source_native_prepared_transport.rs"]
 mod prepared_transport;
 #[path = "source_native_private_assessment_cli.rs"]
@@ -208,13 +234,136 @@ fn run_selected(
     } else {
         read_deadline
     };
-    if private_owner_process && schema != "tos_local_native_source_invocation_v1" {
+    let private_pg_text_invocation = schema == "tos_local_pg_private_text_invocation_v1";
+    let private_pg_owner_invocation = schema == "tos_local_pg_private_owner_invocation_v1";
+    let private_pg_assessment_invocation =
+        schema == "tos_local_pg_private_assessment_invocation_v1";
+    if private_owner_process
+        && schema != "tos_local_native_source_invocation_v1"
+        && !private_pg_text_invocation
+        && !private_pg_owner_invocation
+        && !private_pg_assessment_invocation
+    {
         return Err(SourceCommandError::Denied(
             "private text invocation profile",
         ));
     }
+    if private_pg_text_invocation {
+        if !private_owner_process {
+            return Err(SourceCommandError::Denied(
+                "private PostgreSQL Text requires the local owner process",
+            ));
+        }
+        return pg_private_text::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if private_pg_owner_invocation {
+        if !private_owner_process {
+            return Err(SourceCommandError::Denied(
+                "private PostgreSQL owner commands require the local owner process",
+            ));
+        }
+        return pg_private_owner::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if private_pg_assessment_invocation {
+        if !private_owner_process {
+            return Err(SourceCommandError::Denied(
+                "private PostgreSQL Assessment requires the local owner process",
+            ));
+        }
+        return pg_private_assessment::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
     if schema == "tos_local_pg_record_revision_invocation_v1" {
         return pg_revision::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_growth_invocation_v1" {
+        return pg_growth::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_global_claims_invocation_v1" {
+        return pg_claims::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_public_text_invocation_v1" {
+        return pg_public_text::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_forms_historical_invocation_v1" {
+        return pg_forms_historical::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_item_adoption_invocation_v1" {
+        return pg_item_adoption::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_artifact_creation_invocation_v1" {
+        return pg_artifact_creation::run(
             &selected,
             &raw,
             &invocation,
@@ -248,6 +397,17 @@ fn run_selected(
     }
     if schema == "tos_local_pg_source_bootstrap_streamed_invocation_v1" {
         return pg_bootstrap_streamed::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
+    if schema == "tos_local_pg_rights_revoke_invocation_v1" {
+        return pg_rights_revoke::run(
             &selected,
             &raw,
             &invocation,

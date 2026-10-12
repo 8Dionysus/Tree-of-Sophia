@@ -383,6 +383,37 @@ fn object_link_pending_guard_refusal_resumes_or_rolls_back_natively() {
         )
         .unwrap();
         compose_worker.finish(deadline, &cancelled).unwrap();
+        let source_writes = plan
+            .files
+            .iter()
+            .map(|file| crate::source_cohort::SourceRevisionWrite {
+                subject: file.path.as_str().to_owned(),
+                expected_predecessor: None,
+                proposed_revision: 1,
+                exact_bytes: file.after.clone().expect("ObjectLink output bytes"),
+            })
+            .collect::<Vec<_>>();
+        let indexes =
+            crate::source_creation_store::expected_object_link_revision_indexes(&source_writes)
+                .expect("exact new-only ObjectLink package indexes");
+        assert_eq!(
+            indexes.iter().filter(|(kind, _, _)| kind == "path").count(),
+            source_writes.len()
+        );
+        for kind in ["metadata", "claim", "event", "form"] {
+            assert!(indexes.iter().any(|(actual, _, _)| actual == kind));
+        }
+        let mut tampered_writes = source_writes;
+        let event = tampered_writes
+            .iter_mut()
+            .find(|write| write.subject.ends_with("/source-create-provenance.jsonl"))
+            .expect("ObjectLink event member");
+        event.exact_bytes.push(b' ');
+        assert!(
+            crate::source_creation_store::expected_object_link_revision_indexes(&tampered_writes)
+                .is_err(),
+            "the sealed ObjectLink receipt must bind every exact output byte"
+        );
         let selected_witnesses = plan
             .files
             .iter()

@@ -179,11 +179,13 @@ source-owner transition, not merely a green archive command.
 
 ## Selection, rollback and withdrawal
 
-`access/packaging/release_pair.py` prepares a pair from a clean verified software
-archive and a complete data snapshot. It reads the archive reader ABI without
-executing archive code. The pair binds both artifact digests, data and corpus
-revisions, manifest digest and reader compatibility. Local absolute storage
-bindings are separate from the portable pair identity.
+The native `tos native-release-prepare` route prepares a pair from a clean
+verified software archive and a complete data snapshot; `native-release-status`
+reads it and `native-release-promote` publishes it after the same checks. The
+native owner reads the archive reader ABI without executing archive code. The
+pair binds both artifact digests, data and corpus revisions, manifest digest and
+reader compatibility. Local absolute storage bindings are separate from the
+portable pair identity.
 
 Promotion compares the exact expected current pair and publishes only after
 verification. The previous verified compatible pair is the rollback target.

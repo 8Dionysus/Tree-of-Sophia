@@ -426,6 +426,12 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         &self.selection
     }
+    /// The fixed native source-navigation profile verified during cold-open
+    /// metadata admission. It is exposed by the selected owner so downstream
+    /// readers can bind the exact supported visibility contract.
+    pub fn selection_profile(&self) -> &'static str {
+        crate::SELECTION_PROFILE
+    }
     /// Unicode and 3-gram semantics of the selected search index. The cold
     /// opener verifies the fixed model ABI, complete index root and rows;
     /// the producer seal accepts only this compiled search profile. This is
@@ -851,6 +857,7 @@ fn check_metadata(
 ) -> Result<()> {
     for (key, value) in [
         ("model_abi", expected.model_abi.as_str()),
+        ("selection_profile", crate::SELECTION_PROFILE),
         ("descriptor_sha256", expected.descriptor_sha256.as_str()),
         (
             "semantic_primitive_profile",

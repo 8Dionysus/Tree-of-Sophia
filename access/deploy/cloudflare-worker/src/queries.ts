@@ -1,4 +1,5 @@
-import {PhysicalKeys,workerClassicRules,classicDistinct,classicNeedle,classicBoundedGraph as boundedGraph,classicBoundedClusters as boundedClusters,classicSourceRefs as sourceRefs,classicUniqueValues as uniqueValues} from "./worker-classic.ts";
+import {PhysicalKeys,workerClassicRules,classicDistinct,classicBoundedGraph as boundedGraph,classicBoundedClusters as boundedClusters,classicSourceRefs as sourceRefs,classicUniqueValues as uniqueValues, type SourceValueSearchRules} from "./worker-classic.ts";
+import {codePointCompare} from '../../../shared/native-semantics.ts';
 import {
   HttpError,
   itemId,
@@ -22,6 +23,7 @@ import {
   positions,
   rowJson,
   rows,
+  requirePublicD1ProducerProfile,
   viewMask,
   type EdgeRow,
 } from "./store";
@@ -59,58 +61,173 @@ async function selectedPhilosophyItem(db: D1Database, id: string): Promise<Selec
   throw new HttpError(404, `unknown ToS philosophy projection item: ${id}`);
 }
 
-export async function corpusSearch(db: D1Database, query: string, limit: number): Promise<Item> {
-  const needle = classicNeedle(query);
-  const results = await rows<{ collection: string; json: string }>(
-    db,
-    `SELECT collection, json
-       FROM corpus_items
-      WHERE (? = '' OR instr(search_text, ?) > 0)
-      ORDER BY CASE collection
-        WHEN 'nodes' THEN 0 WHEN 'resources' THEN 1 WHEN 'manifests' THEN 2
-        WHEN 'branches' THEN 3 WHEN 'graph_views' THEN 4 ELSE 5 END, ord
-      LIMIT ?`,
-    needle,
-    needle,
-    limit,
-  );
-  return {
-    schema: "tos_corpus_mcp_search_v1",
-    query,
-    resource_kind: null,
-    result_count: results.length,
-    results: results.map((row) => ({ collection: row.collection, item: JSON.parse(row.json) })),
-    authority_note: "Tree-of-Sophia owns corpus meaning; this MCP packet is an abyss-stack access-plane view.",
-  };
+const SOURCE_VALUE_SEARCH_PAGE = 4;
+const SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES = 2_000_000;
+
+function sourceValueSearchPageLimit(worker: SourceValueSearchRules): number {
+  // Reserve at most one sentinel candidate beyond either global budget. It
+  // distinguishes an exactly exhausted scan from a truncated one while
+  // bounding each D1 prefetch to one worst-case record.
+  const candidateReadLimit = worker.scan_remaining() + 1;
+  const inputReadLimit = Math.floor(
+    worker.input_bytes_remaining() / (2 * SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES),
+  ) + 1;
+  return Math.max(1, Math.min(SOURCE_VALUE_SEARCH_PAGE, candidateReadLimit, inputReadLimit));
+}
+
+function sourceValueSearchFailure(error: unknown): never {
+  const message = String(error);
+  if (message.includes("InvalidRequest")) throw new HttpError(400, "source-value search request is invalid");
+  if (message.includes("BudgetExceeded")) throw new HttpError(413, "source-value search exceeds its bounded profile");
+  throw new HttpError(503, "selected source-value search input is unavailable");
+}
+
+function finishSourceValueSearch(worker: SourceValueSearchRules): Item {
+  try {
+    return JSON.parse(new TextDecoder().decode(worker.finish())) as Item;
+  } catch (error) {
+    return sourceValueSearchFailure(error);
+  }
+}
+
+type SearchSourceRow = {
+  ord: number | null;
+  json: string | null;
+  json_bytes: number | null;
+  search_json?: string | null;
+  search_bytes?: number | null;
+};
+
+function validateSearchSourceRow(row: SearchSourceRow, withSearchBytes: boolean): void {
+  if (row.json_bytes !== null && row.json_bytes > SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES) {
+    throw new HttpError(413, "selected source-value candidate exceeds its byte budget");
+  }
+  if (withSearchBytes && row.search_bytes !== null && row.search_bytes! > SOURCE_VALUE_SEARCH_MAX_CANDIDATE_BYTES) {
+    throw new HttpError(413, "selected source-value candidate exceeds its byte budget");
+  }
+  if (!Number.isSafeInteger(row.ord) || row.ord! < 0
+    || !Number.isSafeInteger(row.json_bytes) || row.json_bytes! < 0 || typeof row.json !== "string"
+    || (withSearchBytes && (!Number.isSafeInteger(row.search_bytes) || row.search_bytes! < 0 || typeof row.search_json !== "string"))) {
+    throw new HttpError(503, "selected source-value search row is invalid");
+  }
+}
+
+async function corpusSearchCandidates(
+  db: D1Database,
+  worker: SourceValueSearchRules,
+): Promise<void> {
+  const collections = JSON.parse(worker.collection_order()) as string[];
+  for (const collection of collections) {
+    let after = -1;
+    while (worker.remaining() > 0) {
+      let page: SearchSourceRow[];
+      const pageLimit = sourceValueSearchPageLimit(worker);
+      try {
+        page = await rows<SearchSourceRow>(
+          db,
+          `SELECT ord,
+                  CASE WHEN typeof(json)='text' AND length(CAST(json AS BLOB))<=2000000 THEN json ELSE NULL END AS json,
+                  CASE WHEN typeof(json)='text' THEN length(CAST(json AS BLOB)) ELSE -1 END AS json_bytes
+             FROM corpus_items
+            WHERE collection=? AND ord>?
+            ORDER BY ord LIMIT ?`,
+          collection,
+          after,
+          pageLimit,
+        );
+      } catch {
+        throw new HttpError(503, "selected corpus search input is unavailable");
+      }
+      if (page.length === 0) break;
+      for (const row of page) {
+        validateSearchSourceRow(row, false);
+        try {
+          worker.observe_candidate(collection, row.ord!, row.json, row.json);
+        } catch (error) {
+          return sourceValueSearchFailure(error);
+        }
+        after = row.ord!;
+        if (worker.remaining() === 0) break;
+      }
+      if (page.length < pageLimit) break;
+    }
+  }
+}
+
+export async function corpusSearch(db: D1Database, query: string, limit: number, resourceKind: string | null = null): Promise<Item> {
+  let worker: SourceValueSearchRules;
+  try {
+    worker = new (workerClassicRules().WorkerSourceValueSearch)("corpus", query, limit, resourceKind ?? undefined);
+  } catch (error) {
+    return sourceValueSearchFailure(error);
+  }
+  try {
+    await requirePublicD1ProducerProfile(db);
+    await corpusSearchCandidates(db, worker);
+    return finishSourceValueSearch(worker);
+  } finally {
+    worker.free();
+  }
 }
 
 export async function philosophySearch(db: D1Database, query: string, limit: number): Promise<Item> {
-  const needle = classicNeedle(query);
-  const result: Item[] = [];
-  const rules=new (workerClassicRules().WorkerSearch)(limit);
-  const collections: Array<{ name: string; table: string; where: string }> = JSON.parse(workerClassicRules().WorkerProfile.search_collections());
-  try { for (const collection of collections) {
-    const remaining = rules.remaining();
-    if (remaining <= 0) break;
-    const matches = await jsonRows(
-      db,
-      `SELECT json FROM ${collection.table}
-        WHERE ${collection.where} AND (? = '' OR instr(search_text, ?) > 0)
-        ORDER BY ord LIMIT ?`,
-      needle,
-      needle,
-      remaining,
-    );
-    result.push(...matches.map((item) => ({ collection: collection.name, item })));
-    rules.observed(matches.length);
-  }}finally{rules.free();}
-  return {
-    schema: "tos_philosophy_mcp_search_v1",
-    query,
-    result_count: result.length,
-    results: result,
-    authority_note: "Tree-of-Sophia owns philosophy meaning; this MCP search result is an access-plane packet.",
-  };
+  let rules: SourceValueSearchRules;
+  try {
+    rules = new (workerClassicRules().WorkerSourceValueSearch)("philosophy", query, limit);
+  } catch (error) {
+    return sourceValueSearchFailure(error);
+  }
+  try {
+    await requirePublicD1ProducerProfile(db);
+    const physical = JSON.parse(workerClassicRules().WorkerProfile.search_collections()) as Array<{
+      name: string; table: string; where: string;
+    }>;
+    const byName = new Map(physical.map((collection) => [collection.name, collection]));
+    for (const name of JSON.parse(rules.collection_order()) as string[]) {
+      const collection = byName.get(name);
+      if (!collection) throw new HttpError(503, "selected philosophy search collection is unavailable");
+      let after = -1;
+      while (rules.remaining() > 0) {
+        let page: SearchSourceRow[];
+        const pageLimit = sourceValueSearchPageLimit(rules);
+        try {
+          page = await rows<SearchSourceRow>(
+            db,
+            `SELECT ord,
+                    CASE WHEN typeof(json)='text' AND length(CAST(json AS BLOB))<=2000000 THEN json ELSE NULL END AS json,
+                    CASE WHEN typeof(json)='text' THEN length(CAST(json AS BLOB)) ELSE -1 END AS json_bytes,
+                    CASE WHEN typeof(search_text)='text' AND length(CAST(search_text AS BLOB))<=2000000 THEN search_text ELSE NULL END AS search_json,
+                    CASE WHEN typeof(search_text)='text' THEN length(CAST(search_text AS BLOB)) ELSE -1 END AS search_bytes
+               FROM ${collection.table}
+              WHERE ${collection.where} AND ord>?
+              ORDER BY ord LIMIT ?`,
+            after,
+            pageLimit,
+          );
+        } catch {
+          throw new HttpError(503, "selected philosophy search input is unavailable");
+        }
+        if (page.length === 0) break;
+        for (const row of page) {
+          validateSearchSourceRow(row, true);
+          try {
+            rules.observe_candidate(name, row.ord!, row.search_json, row.json);
+          } catch (error) {
+            return sourceValueSearchFailure(error);
+          }
+          after = row.ord!;
+          if (rules.remaining() === 0) break;
+        }
+        if (page.length < pageLimit) break;
+      }
+    }
+    return finishSourceValueSearch(rules);
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    return sourceValueSearchFailure(error);
+  } finally {
+    rules.free();
+  }
 }
 
 export async function corpusNodePacket(db: D1Database, nodeId: string): Promise<Item> {
@@ -233,7 +350,7 @@ export async function corpusGraphView(db: D1Database, viewId: string, limit: num
       else {
         const byId=new Map(indexedNodes.map(node=>[stringValue(node.node_id),node]));
         for(const edge of graphEdges){const ref=stringValue(edge.source_ref);if(!ref)continue;for(const endpoint of [stringValue(edge.from_id),stringValue(edge.to_id)])rules.reference(keys.key(endpoint),keys.key(ref),true);}
-        graphNodes=endpointIds.sort().map(id=>byId.get(id)??({node_id:id,label:id,node_type:"candidate-endpoint",authority_layer:"candidate_intake",owner_branch:"ToS/candidate-intake",source_refs:keys.strings(rules.references(keys.key(id))).sort()}));
+        graphNodes=endpointIds.sort(codePointCompare).map(id=>byId.get(id)??({node_id:id,label:id,node_type:"candidate-endpoint",authority_layer:"candidate_intake",owner_branch:"ToS/candidate-intake",source_refs:keys.strings(rules.references(keys.key(id))).sort(codePointCompare)}));
       }
     }finally{rules.free();}
   }
@@ -400,7 +517,7 @@ export async function philosophyNeighborhood(
         `SELECT id, ord FROM philosophy_nodes WHERE id IN (SELECT value FROM json_each(?))
            AND (? IS NULL OR (layer_mask & ?) != 0) ORDER BY ord`,
         JSON.stringify(keys.strings(rules.candidates())),layerMask,layerMask);
-      allowedRows.sort((left,right)=>left.ord-right.ord||left.id.localeCompare(right.id));
+      allowedRows.sort((left,right)=>left.ord-right.ord||codePointCompare(left.id,right.id));
       rules.finish_level(keys.observe(allowedRows.map(row=>row.id)));
       for(const row of rules.edges()){if(row>=base)physicalEdges.set(row,rowJson(edgeRows[row-base]!));}
     }
@@ -423,8 +540,8 @@ export async function philosophyNeighborhood(
     neighbors,
     edges: retainedEdges,
     depth,
-    layers: classicDistinct(layers).sort(),
-    predicates: classicDistinct(predicates).sort(),
+    layers: classicDistinct(layers).sort(codePointCompare),
+    predicates: classicDistinct(predicates).sort(codePointCompare),
     limit,
     source_refs: sourceRefs([node, ...neighbors, ...retainedEdges]),
     runtime_projection_boundary: runtimeBoundary(top),
@@ -533,15 +650,15 @@ export async function philosophyPath(
     max_depth: maxDepth,
     direction,
     view_id: viewId,
-    excluded_edge_ids: [...excluded].sort(),
+    excluded_edge_ids: [...excluded].sort(codePointCompare),
     alternative_limit: alternativeLimit,
     exploration_truncated: explorationTruncated,
     explored_state_count: exploredStates,
     enqueued_state_count: enqueuedStates,
     frontier_limit: PATH_FRONTIER_LIMIT,
     max_frontier_size: maxFrontierSize,
-    layers: classicDistinct(layers).sort(),
-    predicates: classicDistinct(predicates).sort(),
+    layers: classicDistinct(layers).sort(codePointCompare),
+    predicates: classicDistinct(predicates).sort(codePointCompare),
     source_refs: sourceRefs([...nodeItems, ...edgeItems]),
     runtime_projection_boundary: runtimeBoundary(top),
     authority_note: "Tree-of-Sophia owns graph meaning; MCP serves a bounded path packet.",
@@ -577,15 +694,15 @@ function emptyPathPacket(
     max_depth: options.maxDepth,
     direction: options.direction,
     view_id: options.viewId,
-    excluded_edge_ids: classicDistinct(options.excludedEdgeIds).sort(),
+    excluded_edge_ids: classicDistinct(options.excludedEdgeIds).sort(codePointCompare),
     alternative_limit: options.alternativeLimit,
     exploration_truncated: truncated,
     explored_state_count: exploredStates,
     enqueued_state_count: enqueuedStates,
     frontier_limit: PATH_FRONTIER_LIMIT,
     max_frontier_size: 1,
-    layers: classicDistinct(options.layers).sort(),
-    predicates: classicDistinct(options.predicates).sort(),
+    layers: classicDistinct(options.layers).sort(codePointCompare),
+    predicates: classicDistinct(options.predicates).sort(codePointCompare),
     source_refs: [],
     runtime_projection_boundary: runtimeBoundary(top),
     authority_note: "Tree-of-Sophia owns graph meaning; MCP serves a bounded path packet.",
@@ -666,7 +783,7 @@ export async function philosophyEpistemic(
       authority_postures: uniqueValues(fieldProperties, "authority_posture"),
       canon_statuses: uniqueValues(fieldProperties, "canon_status"),
       review_postures: uniqueValues(fieldProperties, "review_posture"),
-      confidence_values: classicDistinct(fieldProperties.map(confidence).filter(Boolean)).sort(),
+      confidence_values: classicDistinct(fieldProperties.map(confidence).filter(Boolean)).sort(codePointCompare),
     },
     coverage: {
       posture: "partial",
@@ -715,7 +832,7 @@ async function corpusEpistemic(db: D1Database, itemIdValue: string, viewId: stri
     : [stringValue(selection.from_id), stringValue(selection.to_id)].filter(Boolean);
   const keys=new PhysicalKeys(),selectionKey=keys.key(itemIdValue),nodeKeys=keys.observe(selectedNodeIds);
   const relationCandidates=edges.filter(edge=>workerClassicRules().WorkerEpistemic.corpus_candidate(keys.key(stringValue(edge.edge_id)),selectionKey,keys.key(stringValue(edge.from_id)),keys.key(stringValue(edge.to_id)),nodeKeys))
-    .sort((left,right)=>workerClassicRules().WorkerProfile.priority(itemId(left)===itemIdValue,itemId(right)===itemIdValue)||itemId(left).localeCompare(itemId(right)));
+    .sort((left,right)=>workerClassicRules().WorkerProfile.priority(itemId(left)===itemIdValue,itemId(right)===itemIdValue)||codePointCompare(itemId(left),itemId(right)));
   const rules=new (workerClassicRules().WorkerEpistemic)(limit,false);
   let contextRelations:Item[],neighborNodes:Item[];
   try {
@@ -816,7 +933,7 @@ export async function evidenceLens(
     routeCounts[kind] = typeof current==="number"?rules.count_route(current):current+1;
   }
   const projectionRefs = stringArray(context.source_refs);
-  const lensSourceRefs = classicDistinct([...projectionRefs, ...stringArray(scene?.source_refs)]).sort();
+  const lensSourceRefs = classicDistinct([...projectionRefs, ...stringArray(scene?.source_refs)]).sort(codePointCompare);
   const boundary = evidence.authority_boundary && typeof evidence.authority_boundary === "object" ? (evidence.authority_boundary as Item) : {};
   return {
     schema: "tos_evidence_lens_packet_v1",
@@ -886,7 +1003,7 @@ export async function philosophyPacket(db: D1Database, query: string, viewId: st
       }
     : null;
   return {
-    schema: "tos_philosophy_mcp_packet_v1",
+    schema: "tos_philosophy_mcp_packet_v2",
     query,
     view_id: viewId,
     result_count: search.result_count,

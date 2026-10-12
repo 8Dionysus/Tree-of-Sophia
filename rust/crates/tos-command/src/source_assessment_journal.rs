@@ -1,8 +1,14 @@
 //! Protected current assessment history and compatible sorted subject flocks.
 //! This reader never creates judgments or imports admission_at_commit as a grant.
 
+use crate::durable_private_packages::{
+    PrivateOwnerPackageCapabilityV1, PrivateOwnerPackageFamilyV1, PrivateOwnerPackageHistoryV1,
+    PrivateOwnerPackageReplayV1, PrivateOwnerPackageSnapshotV1, PrivateOwnerPackageWriteV1,
+    PrivateOwnerScopeV1, capability_seal,
+};
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{active, inode, protected_configuration_parents, raw};
+use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use rustix::fs::{FlockOperation, Mode, OFlags};
 use rustix::io::Errno;
 use std::collections::{BTreeMap, BTreeSet};
@@ -11,8 +17,11 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
-use tos_foundation::{Digest256, JsonValue};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_foundation::{Digest256, JsonValue, SourceRevision};
+use tos_validation::FormatProfile;
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+};
 
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const MAX_EVENTS: usize = 1024;
@@ -68,6 +77,330 @@ pub(crate) struct ProtectedAssessmentJournal {
     private_root: Option<PathBuf>,
     private_root_file: Option<File>,
     private_root_identity: Option<(u64, u64)>,
+}
+
+/// Protected v5/v6 Assessment configuration selected for a PostgreSQL
+/// history route. Unlike `ProtectedAssessmentJournal`, this selection does
+/// not require or inspect the legacy filesystem journal directory. The
+/// directory value is only a stable logical namespace input for PG targets;
+/// history bytes and current heads come exclusively from the package broker.
+pub(crate) struct ProtectedAssessmentPgGrant {
+    configuration_path: PathBuf,
+    configuration_raw: Vec<u8>,
+    configuration: JsonValue,
+    configuration_file: File,
+    configuration_identity: (u64, u64),
+    configuration_parent_path: PathBuf,
+    configuration_parent: File,
+    configuration_parent_identity: (u64, u64),
+    uid: u32,
+}
+
+pub(crate) struct AssessmentPgHistoryTarget {
+    pub(crate) scope: PrivateOwnerScopeV1,
+    pub(crate) target_ref: String,
+    pub(crate) owner_context_binding: Digest256,
+}
+
+impl ProtectedAssessmentPgGrant {
+    /// Read the selected context path from a protected v5/v6 grant so its
+    /// context can be constructed before the final grant selection. This is
+    /// only a locator: `select` must reread and retain the exact grant before
+    /// any operation is authorized.
+    pub(crate) fn source_context_ref(
+        configuration_path: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<PathBuf> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::getuid().as_raw();
+        if uid != rustix::process::geteuid().as_raw() {
+            return Err(SourceCommandError::Denied(
+                "assessment private PG route refuses setuid context",
+            ));
+        }
+        let configuration_path =
+            crate::source_text_owner::normalized_absolute(configuration_path.to_str().ok_or(
+                SourceCommandError::Invalid("assessment PG config path UTF-8"),
+            )?)?;
+        protected_configuration_parents(&configuration_path, uid)?;
+        let mut file = tos_fd_open::open_absolute_regular(&configuration_path, 8_388_608)
+            .map_err(|_| SourceCommandError::Denied("assessment PG config open"))?;
+        protected_private(&file, uid, false)?;
+        let raw = raw(&mut file, 8_388_608, deadline, cancelled)?;
+        let configuration = cmd::parse(&raw)?;
+        if !matches!(
+            cmd::text(&configuration, "schema_version")?,
+            "tos_local_assessment_owner_v5" | "tos_local_assessment_owner_v6"
+        ) {
+            return Err(SourceCommandError::Denied(
+                "private assessment PG owner v5/v6 required",
+            ));
+        }
+        crate::source_text_owner::normalized_absolute(cmd::text(
+            &configuration,
+            "source_context_ref",
+        )?)
+    }
+
+    pub(crate) fn select(
+        configuration_path: &Path,
+        source_context_ref: &Path,
+        context: &crate::source_text_owner::OwnerTextContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::getuid().as_raw();
+        if uid != rustix::process::geteuid().as_raw() || context.account_uid() != uid {
+            return Err(SourceCommandError::Denied(
+                "assessment private PG route refuses setuid context",
+            ));
+        }
+        let configuration_path =
+            crate::source_text_owner::normalized_absolute(configuration_path.to_str().ok_or(
+                SourceCommandError::Invalid("assessment PG config path UTF-8"),
+            )?)?;
+        protected_configuration_parents(&configuration_path, uid)?;
+        let mut configuration_file =
+            tos_fd_open::open_absolute_regular(&configuration_path, 8_388_608)
+                .map_err(|_| SourceCommandError::Denied("assessment PG config open"))?;
+        protected_private(&configuration_file, uid, false)?;
+        let configuration_raw = raw(&mut configuration_file, 8_388_608, deadline, cancelled)?;
+        let configuration = cmd::parse(&configuration_raw)?;
+        let version = cmd::text(&configuration, "schema_version")?;
+        if !matches!(
+            version,
+            "tos_local_assessment_owner_v5" | "tos_local_assessment_owner_v6"
+        ) {
+            return Err(SourceCommandError::Denied(
+                "private assessment PG owner v5/v6 required",
+            ));
+        }
+        let mut keys = vec![
+            "schema_version",
+            "uid",
+            "principal_id",
+            "execution_profile",
+            "policy",
+            "authorities",
+            "competencies",
+            "records",
+            "subjects",
+            "journal_directory",
+            "source_context_ref",
+            "source_records",
+            "owner_local_source_records",
+            "native_text_units",
+            "native_text_layers",
+            "quality_dependencies",
+        ];
+        if configuration
+            .object_get("owner_local_source_claims")
+            .is_some()
+        {
+            keys.push("owner_local_source_claims");
+        }
+        cmd::exact_keys(&configuration, &keys)?;
+        let expected_context =
+            crate::source_text_owner::normalized_absolute(source_context_ref.to_str().ok_or(
+                SourceCommandError::Invalid("assessment PG context path UTF-8"),
+            )?)?;
+        let selected_private_root =
+            crate::source_text_owner::normalized_absolute(context.private_root().to_str().ok_or(
+                SourceCommandError::Invalid("assessment PG private root UTF-8"),
+            )?)?;
+        if cmd::integer(&configuration, "uid")? != u64::from(uid)
+            || tos_foundation::python_strip_unicode16_v1(
+                cmd::text(&configuration, "principal_id")?,
+                8_388_608,
+            )
+            .map_err(|_| SourceCommandError::Invalid("assessment PG principal Unicode budget"))?
+            .is_empty()
+            || crate::source_text_owner::normalized_absolute(cmd::text(
+                &configuration,
+                "source_context_ref",
+            )?)? != expected_context
+            || crate::source_text_owner::normalized_absolute(
+                context
+                    .configuration_path()
+                    .to_str()
+                    .ok_or(SourceCommandError::Invalid(
+                        "assessment PG selected context UTF-8",
+                    ))?,
+            )? != expected_context
+            || !crate::source_text_owner::normalized_absolute(cmd::text(
+                &configuration,
+                "journal_directory",
+            )?)?
+            .starts_with(&selected_private_root)
+        {
+            return Err(SourceCommandError::Denied(
+                "assessment PG owner account, context or journal namespace differs",
+            ));
+        }
+        let configuration_parent_path = configuration_path
+            .parent()
+            .ok_or(SourceCommandError::Invalid("assessment PG config parent"))?
+            .to_path_buf();
+        let configuration_parent = tos_fd_open::open_absolute_directory(&configuration_parent_path)
+            .map_err(|_| SourceCommandError::Denied("assessment PG config parent"))?;
+        protected_private(&configuration_parent, uid, true)?;
+        let configuration_identity = inode(
+            &configuration_file
+                .metadata()
+                .map_err(|_| SourceCommandError::Invalid("assessment PG config identity"))?,
+        );
+        let configuration_parent_identity =
+            inode(&configuration_parent.metadata().map_err(|_| {
+                SourceCommandError::Invalid("assessment PG config parent identity")
+            })?);
+        let selected = Self {
+            configuration_path,
+            configuration_raw,
+            configuration,
+            configuration_file,
+            configuration_identity,
+            configuration_parent_path,
+            configuration_parent,
+            configuration_parent_identity,
+            uid,
+        };
+        selected.verify_current(deadline, cancelled)?;
+        Ok(selected)
+    }
+
+    pub(crate) fn configuration(&self) -> &JsonValue {
+        &self.configuration
+    }
+
+    pub(crate) fn configuration_raw(&self) -> &[u8] {
+        &self.configuration_raw
+    }
+
+    /// Map the protected local journal-directory selection to a stable PG
+    /// package namespace. The path is never opened here; PG history remains
+    /// authoritative after restore.
+    pub(crate) fn target_ref(
+        &self,
+        context: &crate::source_text_owner::OwnerTextContext,
+        subject: &str,
+    ) -> SourceCommandResult<String> {
+        if context.account_uid() != self.uid
+            || subject.is_empty()
+            || subject.len() > 1_048_576
+            || tos_foundation::python_strip_unicode16_v1(subject, 1_048_576)
+                .map_err(|_| SourceCommandError::Invalid("assessment PG subject Unicode budget"))?
+                .is_empty()
+            || !cmd::field(&self.configuration, "subjects")?
+                .object_get(subject)
+                .is_some()
+        {
+            return Err(SourceCommandError::Denied(
+                "assessment PG subject is outside protected owner scope",
+            ));
+        }
+        let journal = crate::source_text_owner::normalized_absolute(cmd::text(
+            &self.configuration,
+            "journal_directory",
+        )?)?;
+        let private_root =
+            crate::source_text_owner::normalized_absolute(context.private_root().to_str().ok_or(
+                SourceCommandError::Invalid("assessment PG private root UTF-8"),
+            )?)?;
+        let relative = journal
+            .strip_prefix(private_root)
+            .map_err(|_| SourceCommandError::Denied("assessment PG journal namespace"))?;
+        let relative = relative
+            .to_str()
+            .ok_or(SourceCommandError::Invalid(
+                "assessment PG journal path UTF-8",
+            ))?
+            .trim_start_matches('/');
+        let home = Digest256::of_bytes(subject.as_bytes()).to_hex();
+        let base = format!(
+            "{}assessment-journal/{}",
+            context.private_prefix(),
+            Digest256::of_bytes(relative.as_bytes()).to_hex()
+        );
+        let target_ref = format!("{base}/{home}");
+        if !target_ref.starts_with(context.private_prefix())
+            || tos_foundation::RelativePath::parse(&target_ref).is_err()
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment PG target reference",
+            ));
+        }
+        Ok(target_ref)
+    }
+
+    pub(crate) fn history_target(
+        &self,
+        context: &crate::source_text_owner::OwnerTextContext,
+        domain: &str,
+        subject: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentPgHistoryTarget> {
+        self.verify_current(deadline, cancelled)?;
+        let owner_context_binding = context.private_owner_scope_binding(deadline, cancelled)?;
+        let scope = PrivateOwnerScopeV1::for_context(domain, owner_context_binding)
+            .map_err(|_| SourceCommandError::Invalid("assessment PG private owner scope"))?;
+        let target_ref = self.target_ref(context, subject)?;
+        Ok(AssessmentPgHistoryTarget {
+            scope,
+            target_ref,
+            owner_context_binding,
+        })
+    }
+
+    pub(crate) fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        if rustix::process::getuid().as_raw() != self.uid
+            || rustix::process::geteuid().as_raw() != self.uid
+        {
+            return Err(SourceCommandError::Denied("assessment PG account changed"));
+        }
+        protected_configuration_parents(&self.configuration_path, self.uid)?;
+        let mut current =
+            tos_fd_open::open_absolute_regular(&self.configuration_path, 8_388_608)
+                .map_err(|_| SourceCommandError::Conflict("assessment PG grant unavailable"))?;
+        protected_private(&current, self.uid, false)?;
+        protected_private(&self.configuration_file, self.uid, false)?;
+        if raw(&mut current, 8_388_608, deadline, cancelled)? != self.configuration_raw
+            || inode(
+                &current.metadata().map_err(|_| {
+                    SourceCommandError::Invalid("assessment PG current grant identity")
+                })?,
+            ) != self.configuration_identity
+            || inode(&self.configuration_file.metadata().map_err(|_| {
+                SourceCommandError::Invalid("assessment PG retained grant identity")
+            })?) != self.configuration_identity
+        {
+            return Err(SourceCommandError::Conflict("assessment PG grant changed"));
+        }
+        let retained_parent = self
+            .configuration_parent
+            .metadata()
+            .map_err(|_| SourceCommandError::Invalid("assessment PG retained parent"))?;
+        let current_parent = tos_fd_open::open_absolute_directory(&self.configuration_parent_path)
+            .map_err(|_| SourceCommandError::Conflict("assessment PG grant parent changed"))?;
+        protected_private(&current_parent, self.uid, true)?;
+        if inode(&retained_parent) != self.configuration_parent_identity
+            || inode(&current_parent.metadata().map_err(|_| {
+                SourceCommandError::Invalid("assessment PG current parent identity")
+            })?) != self.configuration_parent_identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "assessment PG grant parent identity changed",
+            ));
+        }
+        Ok(())
+    }
 }
 impl ProtectedAssessmentJournal {
     pub(crate) fn select(
@@ -974,7 +1307,792 @@ pub(crate) struct AssessmentHistory {
     pub(crate) batches: Vec<JsonValue>,
     pub(crate) submissions: Vec<tos_validation::assessment::AssessmentSubmissionInput>,
     members: Vec<HeldJournalMember>,
+    input_bytes: usize,
 }
+
+/// Assessment's PG package writer. The only package members are the current
+/// head and the newest immutable batch; older batches remain in broker-owned
+/// immutable package history and are reconstructed by `from_private_package_history`.
+pub(crate) struct AssessmentPrivatePackageCapabilityV1 {
+    write: PrivateOwnerPackageWriteV1,
+    package_digest: Digest256,
+    expected_history_heads: Option<BTreeMap<String, Option<Vec<u8>>>>,
+}
+
+impl AssessmentPrivatePackageCapabilityV1 {
+    /// Bind one already-evaluated immutable assessment batch to the current
+    /// package snapshot. Semantic-history replay must be resolved by the owner
+    /// before this new-append capability is built; the broker receipt handles
+    /// only recovery of the same committed append.
+    pub(crate) fn from_batch(
+        mut write: PrivateOwnerPackageWriteV1,
+        batch: &JsonValue,
+    ) -> DurableResult<Self> {
+        let batch_bytes = cmd::canonical(batch).map_err(DurableError::Source)?;
+        let head = cmd::record_digest(batch)
+            .map_err(DurableError::Source)?
+            .to_hex();
+        write.members = BTreeMap::from([
+            ("batch.json".to_owned(), batch_bytes),
+            ("head".to_owned(), head.into_bytes()),
+        ]);
+        Self::new(write)
+    }
+
+    pub(crate) fn new(write: PrivateOwnerPackageWriteV1) -> DurableResult<Self> {
+        if write.family != PrivateOwnerPackageFamilyV1::Assessment
+            || !write.archives.is_empty()
+            || write.members.len() != 2
+            || !write.members.contains_key("head")
+            || !write.members.contains_key("batch.json")
+        {
+            return Err(DurableError::Invalid(
+                "assessment private package write shape",
+            ));
+        }
+        if let Some(current) = &write.expected_current {
+            if current.scope != write.scope
+                || current.target_ref != write.target_ref
+                || current.family != PrivateOwnerPackageFamilyV1::Assessment
+                || current.private_audit_generation
+                    != write.source_binding.private_owner_audit_generation
+            {
+                return Err(DurableError::Conflict(
+                    "assessment private package current snapshot differs",
+                ));
+            }
+        }
+        let head = write.members.get("head").unwrap();
+        let batch_bytes = write.members.get("batch.json").unwrap();
+        if head.len() > 65 || batch_bytes.len() > MAX_BATCH_BYTES {
+            return Err(DurableError::Invalid(
+                "assessment private package member budget",
+            ));
+        }
+        let batch = cmd::parse(batch_bytes).map_err(DurableError::Source)?;
+        let revision = cmd::record_digest(&batch)
+            .map_err(DurableError::Source)?
+            .to_hex();
+        if parse_head_bytes(head).map_err(DurableError::Source)? != revision {
+            return Err(DurableError::Invalid(
+                "assessment private package head differs from batch",
+            ));
+        }
+        let expected_previous = write
+            .expected_current
+            .as_ref()
+            .map(|snapshot| snapshot.members.get("head"))
+            .flatten()
+            .map(|bytes| parse_head_bytes(bytes).map_err(DurableError::Source))
+            .transpose()?
+            .map(cmd::string)
+            .unwrap_or(JsonValue::Null);
+        if !cmd::same(
+            cmd::field(&batch, "previous_revision").map_err(DurableError::Source)?,
+            &expected_previous,
+        )
+        .map_err(DurableError::Source)?
+        {
+            return Err(DurableError::Conflict(
+                "assessment private batch predecessor differs",
+            ));
+        }
+        let request = cmd::field(&batch, "request").map_err(DurableError::Source)?;
+        if cmd::text(request, "command_id").map_err(DurableError::Source)? != write.command_id
+            || cmd::record_digest(request).map_err(DurableError::Source)? != write.request_digest
+        {
+            return Err(DurableError::Conflict(
+                "assessment private package command binding differs",
+            ));
+        }
+        let package_digest = crate::durable_private_packages::package_digest(&write.members)?;
+        Ok(Self {
+            write,
+            package_digest,
+            expected_history_heads: None,
+        })
+    }
+
+    pub(crate) fn with_expected_history_heads(
+        mut self,
+        expected_heads: BTreeMap<String, Option<String>>,
+    ) -> DurableResult<Self> {
+        if expected_heads.is_empty()
+            || expected_heads.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
+            || !expected_heads.contains_key(&self.write.target_ref)
+        {
+            return Err(DurableError::Invalid(
+                "assessment private expected history head closure",
+            ));
+        }
+        let expected_heads = expected_heads
+            .into_iter()
+            .map(|(target, head)| (target, head.map(String::into_bytes)))
+            .collect::<BTreeMap<_, _>>();
+        let target_head =
+            expected_heads
+                .get(&self.write.target_ref)
+                .ok_or(DurableError::Invalid(
+                    "assessment private target head absent from closure",
+                ))?;
+        let current_head = self
+            .write
+            .expected_current
+            .as_ref()
+            .and_then(|current| current.members.get("head"));
+        if current_head != target_head.as_ref() {
+            return Err(DurableError::Conflict(
+                "assessment expected target head differs from append snapshot",
+            ));
+        }
+        self.expected_history_heads = Some(expected_heads);
+        Ok(self)
+    }
+}
+
+/// Commit one owner-evaluated assessment batch through the sealed private
+/// package writer. The broker transaction compares `expected_current`, writes
+/// the immutable batch/head package revision, and records the exact receipt.
+pub(crate) fn commit_private_assessment_batch(
+    coordinator: &mut DurablePgCoordinator,
+    write: PrivateOwnerPackageWriteV1,
+    batch: &JsonValue,
+) -> DurableResult<PrivateOwnerPackageReplayV1> {
+    let mut capability = AssessmentPrivatePackageCapabilityV1::from_batch(write, batch)?;
+    coordinator.commit_private_owner_package(&mut capability)
+}
+
+/// Commit an Assessment append only if every history used to derive its
+/// quality closure still has the exact head read during evaluation. The
+/// broker checks these heads under the exclusive private-scope lock, in the
+/// same transaction as the new immutable package revision.
+pub(crate) fn commit_private_assessment_batch_with_expected_heads(
+    coordinator: &mut DurablePgCoordinator,
+    write: PrivateOwnerPackageWriteV1,
+    batch: &JsonValue,
+    expected_heads: BTreeMap<String, Option<String>>,
+) -> DurableResult<PrivateOwnerPackageReplayV1> {
+    let capability = AssessmentPrivatePackageCapabilityV1::from_batch(write, batch)?
+        .with_expected_history_heads(expected_heads)?;
+    let mut capability = capability;
+    coordinator.commit_private_owner_package(&mut capability)
+}
+
+/// Select and authenticate one assessment history from the broker's immutable
+/// package revisions. Appenders retain the returned package snapshot as their
+/// expected-current CAS value; all records are from one broker read snapshot.
+pub(crate) fn read_private_assessment_history(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    subject: &str,
+    context: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(AssessmentHistory, PrivateOwnerPackageHistoryV1)> {
+    let history_bytes =
+        MAX_HISTORY_BYTES
+            .checked_add(MAX_EVENTS * 65)
+            .ok_or(DurableError::Invalid(
+                "assessment private history byte budget overflow",
+            ))?;
+    let package_history = coordinator.read_private_owner_package_history(
+        scope,
+        target_ref,
+        MAX_EVENTS,
+        history_bytes,
+        deadline,
+        cancelled,
+    )?;
+    let history = AssessmentHistory::from_private_package_history(
+        &package_history,
+        scope,
+        target_ref,
+        subject,
+        context,
+        worker,
+        deadline,
+        cancelled,
+    )
+    .map_err(DurableError::Source)?;
+    Ok((history, package_history))
+}
+
+/// Read selected private history with an asserted candidate worker. The
+/// source identity is checked as an opaque value and is never converted into a
+/// corpus revision.
+pub(crate) fn read_private_assessment_history_selected<I: Copy + Eq>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    subject: &str,
+    context: &CommandContext,
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(AssessmentHistory, PrivateOwnerPackageHistoryV1)> {
+    let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
+    let batch_schema = context
+        .file(&schema_path)
+        .map_err(DurableError::Source)?
+        .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+            "selected assessment batch schema absent",
+        )))?;
+    read_private_assessment_history_selected_schema(
+        coordinator,
+        scope,
+        target_ref,
+        subject,
+        batch_schema,
+        input_identity,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Selected-input counterpart that takes the exact batch schema bytes from
+/// the PG readset directly. It avoids fabricating a `CommandContext` and its
+/// legacy `SourceRevision` field for a non-cut source epoch.
+pub(crate) fn read_private_assessment_history_selected_schema<I: Copy + Eq>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    subject: &str,
+    batch_schema: &[u8],
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(AssessmentHistory, PrivateOwnerPackageHistoryV1)> {
+    let history_bytes =
+        MAX_HISTORY_BYTES
+            .checked_add(MAX_EVENTS * 65)
+            .ok_or(DurableError::Invalid(
+                "assessment private history byte budget overflow",
+            ))?;
+    let package_history = coordinator.read_private_owner_package_history(
+        scope,
+        target_ref,
+        MAX_EVENTS,
+        history_bytes,
+        deadline,
+        cancelled,
+    )?;
+    let history = AssessmentHistory::from_private_package_history_selected_schema(
+        &package_history,
+        scope,
+        target_ref,
+        subject,
+        batch_schema,
+        input_identity,
+        worker,
+        deadline,
+        cancelled,
+    )
+    .map_err(DurableError::Source)?;
+    Ok((history, package_history))
+}
+
+impl capability_seal::Sealed for AssessmentPrivatePackageCapabilityV1 {}
+
+impl PrivateOwnerPackageCapabilityV1 for AssessmentPrivatePackageCapabilityV1 {
+    fn write(&self) -> &PrivateOwnerPackageWriteV1 {
+        &self.write
+    }
+
+    fn expected_history_heads(&self) -> Option<&BTreeMap<String, Option<Vec<u8>>>> {
+        self.expected_history_heads.as_ref()
+    }
+
+    fn revalidate(
+        &mut self,
+        current: Option<&PrivateOwnerPackageSnapshotV1>,
+        replay: Option<&PrivateOwnerPackageReplayV1>,
+    ) -> DurableResult<()> {
+        if replay.is_none() && current != self.write.expected_current.as_ref() {
+            return Err(DurableError::Conflict(
+                "assessment private package current snapshot changed",
+            ));
+        }
+        if current.is_some_and(|snapshot| {
+            snapshot.scope != self.write.scope
+                || snapshot.target_ref != self.write.target_ref
+                || snapshot.family != PrivateOwnerPackageFamilyV1::Assessment
+        }) {
+            return Err(DurableError::Conflict(
+                "assessment private package identity changed",
+            ));
+        }
+        if let Some(replay) = replay {
+            if current.map(|snapshot| snapshot.package_digest) != Some(replay.package_digest)
+                || replay.package_digest != self.package_digest
+                || replay.response_bytes != self.write.response_bytes
+            {
+                return Err(DurableError::Conflict(
+                    "assessment private package replay differs",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Read the selected subject history and retain the broker's shared private
+/// scope guard until `callback` returns. This is the Sign promotion bridge:
+/// the callback must recompute the assessment basis from `history` and may
+/// perform its separate public registration, but it must not write this
+/// private scope recursively.
+pub(crate) fn with_private_assessment_history_guard<T>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    subject: &str,
+    expected_head: Option<&str>,
+    context: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &AssessmentHistory,
+        &PrivateOwnerPackageHistoryV1,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
+    let history_bytes =
+        MAX_HISTORY_BYTES
+            .checked_add(MAX_EVENTS * 65)
+            .ok_or(DurableError::Invalid(
+                "assessment private history byte budget overflow",
+            ))?;
+    coordinator.with_private_owner_package_history_guard(
+        scope,
+        target_ref,
+        MAX_EVENTS,
+        history_bytes,
+        deadline,
+        cancelled,
+        |package_history, held_deadline, held_cancelled| {
+            let history = AssessmentHistory::from_private_package_history(
+                package_history,
+                scope,
+                target_ref,
+                subject,
+                context,
+                worker,
+                held_deadline,
+                held_cancelled,
+            )
+            .map_err(DurableError::Source)?;
+            if history.head.as_deref() != expected_head {
+                return Err(DurableError::Source(SourceCommandError::Conflict(
+                    "assessment promotion basis head changed",
+                )));
+            }
+            callback(&history, package_history, held_deadline, held_cancelled)
+        },
+    )
+}
+
+/// Candidate-fenced variant used by an indexed PG source selection. The
+/// caller supplies the exact opaque input identity shared with the selected
+/// schema worker; this route deliberately does not coerce it into a
+/// `SourceRevision` or claim complete corpus membership.
+pub(crate) fn with_private_assessment_history_guard_selected<I: Copy + Eq, T>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    subject: &str,
+    expected_head: Option<&str>,
+    context: &CommandContext,
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &AssessmentHistory,
+        &PrivateOwnerPackageHistoryV1,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
+    let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
+    let batch_schema = context
+        .file(&schema_path)
+        .map_err(DurableError::Source)?
+        .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+            "selected assessment batch schema absent",
+        )))?;
+    with_private_assessment_history_guard_selected_schema(
+        coordinator,
+        scope,
+        target_ref,
+        subject,
+        expected_head,
+        batch_schema,
+        input_identity,
+        worker,
+        deadline,
+        cancelled,
+        callback,
+    )
+}
+
+/// PG-selected single-history guard using the exact batch schema bytes from
+/// its source readset, without a synthetic legacy command context.
+pub(crate) fn with_private_assessment_history_guard_selected_schema<I: Copy + Eq, T>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    subject: &str,
+    expected_head: Option<&str>,
+    batch_schema: &[u8],
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &AssessmentHistory,
+        &PrivateOwnerPackageHistoryV1,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
+    let history_bytes =
+        MAX_HISTORY_BYTES
+            .checked_add(MAX_EVENTS * 65)
+            .ok_or(DurableError::Invalid(
+                "assessment private history byte budget overflow",
+            ))?;
+    coordinator.with_private_owner_package_history_guard(
+        scope,
+        target_ref,
+        MAX_EVENTS,
+        history_bytes,
+        deadline,
+        cancelled,
+        |package_history, held_deadline, held_cancelled| {
+            let history = AssessmentHistory::from_private_package_history_selected_schema(
+                package_history,
+                scope,
+                target_ref,
+                subject,
+                batch_schema,
+                input_identity,
+                worker,
+                held_deadline,
+                held_cancelled,
+            )
+            .map_err(DurableError::Source)?;
+            if history.head.as_deref() != expected_head {
+                return Err(DurableError::Source(SourceCommandError::Conflict(
+                    "assessment promotion basis head changed",
+                )));
+            }
+            callback(&history, package_history, held_deadline, held_cancelled)
+        },
+    )
+}
+
+/// Hold one private owner-scope snapshot for the complete maintained
+/// Assessment lock closure. The target pairs are `(subject_id, target_ref)`;
+/// histories are reconstructed and keyed by subject, and every captured head
+/// is checked before the callback can evaluate or append.
+pub(crate) fn with_private_assessment_histories_guard_selected<I: Copy + Eq, T>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    subject_targets: &[(String, String)],
+    expected_heads: &BTreeMap<String, Option<String>>,
+    context: &CommandContext,
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &BTreeMap<String, AssessmentHistory>,
+        &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
+    let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
+    let batch_schema = context
+        .file(&schema_path)
+        .map_err(DurableError::Source)?
+        .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+            "selected assessment batch schema absent",
+        )))?;
+    with_private_assessment_histories_guard_selected_schema(
+        coordinator,
+        scope,
+        subject_targets,
+        expected_heads,
+        batch_schema,
+        input_identity,
+        worker,
+        deadline,
+        cancelled,
+        callback,
+    )
+}
+
+/// Selected-input multi-history guard for PG callers. The exact batch schema
+/// bytes come from the same selected read session; no legacy context or
+/// synthetic source revision is needed.
+pub(crate) fn with_private_assessment_histories_guard_selected_schema<I: Copy + Eq, T>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    subject_targets: &[(String, String)],
+    expected_heads: &BTreeMap<String, Option<String>>,
+    batch_schema: &[u8],
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &BTreeMap<String, AssessmentHistory>,
+        &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
+    if subject_targets.is_empty()
+        || subject_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
+        || expected_heads.len() != subject_targets.len()
+    {
+        return Err(DurableError::Invalid(
+            "assessment private history closure count",
+        ));
+    }
+    let mut subject_ids = BTreeSet::new();
+    let mut subject_homes = BTreeSet::new();
+    let mut target_refs = Vec::with_capacity(subject_targets.len());
+    for (subject_id, target_ref) in subject_targets {
+        if subject_id.len() > 1_048_576
+            || tos_foundation::python_strip_unicode16_v1(subject_id, 1_048_576)
+                .map_err(|_| DurableError::Invalid("assessment subject Unicode budget"))?
+                .is_empty()
+            || !subject_ids.insert(subject_id.as_str())
+            || !subject_homes.insert(Digest256::of_bytes(subject_id.as_bytes()))
+            || !expected_heads.contains_key(subject_id)
+        {
+            return Err(DurableError::Invalid(
+                "assessment distinct private history subjects",
+            ));
+        }
+        target_refs.push(target_ref.clone());
+    }
+    if expected_heads
+        .keys()
+        .any(|subject| !subject_ids.contains(subject.as_str()))
+    {
+        return Err(DurableError::Invalid(
+            "assessment private history expected-head set",
+        ));
+    }
+    coordinator.with_private_owner_package_histories_guard(
+        scope,
+        &target_refs,
+        crate::durable_private_packages::MAX_PACKAGE_HISTORY_ROWS,
+        crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES,
+        deadline,
+        cancelled,
+        |package_histories, held_deadline, held_cancelled| {
+            let mut histories = BTreeMap::new();
+            let mut packages_by_subject = BTreeMap::new();
+            for (subject_id, target_ref) in subject_targets {
+                active(held_deadline, held_cancelled).map_err(DurableError::Source)?;
+                let package = package_histories
+                    .get(target_ref)
+                    .ok_or(DurableError::Corrupt(
+                        "assessment private history target absent",
+                    ))?;
+                let history = AssessmentHistory::from_private_package_history_selected_schema(
+                    package,
+                    scope,
+                    target_ref,
+                    subject_id,
+                    batch_schema,
+                    input_identity,
+                    worker,
+                    held_deadline,
+                    held_cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                if history.head.as_deref()
+                    != expected_heads
+                        .get(subject_id)
+                        .and_then(|expected| expected.as_deref())
+                {
+                    return Err(DurableError::Source(SourceCommandError::Conflict(
+                        "assessment private history head changed",
+                    )));
+                }
+                histories.insert(subject_id.clone(), history);
+                packages_by_subject.insert(subject_id.clone(), package.clone());
+            }
+            callback(
+                &histories,
+                &packages_by_subject,
+                held_deadline,
+                held_cancelled,
+            )
+        },
+    )
+}
+
+/// Selected-input guard for an Assessment operation whose exact private
+/// Profile/Claim source packages must be read from the same held broker
+/// snapshot as its assessment histories. Source package bytes are returned
+/// only for caller-authorized target refs; this helper does not enumerate the
+/// owner namespace or widen the grant.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema<
+    I: Copy + Eq,
+    T,
+>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    subject_targets: &[(String, String)],
+    source_target_refs: &[String],
+    expected_heads: &BTreeMap<String, Option<String>>,
+    batch_schema: &[u8],
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    max_total_rows: usize,
+    max_total_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &BTreeMap<String, AssessmentHistory>,
+        &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
+    if subject_targets.is_empty()
+        || subject_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
+        || expected_heads.len() != subject_targets.len()
+        || max_total_rows == 0
+        || max_total_rows > crate::durable_private_packages::MAX_PACKAGE_HISTORY_ROWS
+        || max_total_bytes == 0
+        || max_total_bytes > crate::durable_private_packages::MAX_PACKAGE_HISTORY_BYTES
+    {
+        return Err(DurableError::Invalid(
+            "assessment private history closure count or budget",
+        ));
+    }
+    let mut subject_ids = BTreeSet::new();
+    let mut subject_homes = BTreeSet::new();
+    let mut target_refs = Vec::with_capacity(subject_targets.len() + source_target_refs.len());
+    for (subject_id, target_ref) in subject_targets {
+        if subject_id.len() > 1_048_576
+            || tos_foundation::python_strip_unicode16_v1(subject_id, 1_048_576)
+                .map_err(|_| DurableError::Invalid("assessment subject Unicode budget"))?
+                .is_empty()
+            || !subject_ids.insert(subject_id.as_str())
+            || !subject_homes.insert(Digest256::of_bytes(subject_id.as_bytes()))
+            || !expected_heads.contains_key(subject_id)
+        {
+            return Err(DurableError::Invalid(
+                "assessment distinct private history subjects",
+            ));
+        }
+        target_refs.push(target_ref.clone());
+    }
+    if expected_heads
+        .keys()
+        .any(|subject| !subject_ids.contains(subject.as_str()))
+    {
+        return Err(DurableError::Invalid(
+            "assessment private history expected-head set",
+        ));
+    }
+    let mut all_targets = target_refs
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    for target_ref in source_target_refs {
+        if !all_targets.insert(target_ref.as_str())
+            || all_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
+        {
+            return Err(DurableError::Invalid(
+                "assessment private source target closure",
+            ));
+        }
+        target_refs.push(target_ref.clone());
+    }
+    coordinator.with_private_owner_package_histories_guard(
+        scope,
+        &target_refs,
+        max_total_rows,
+        max_total_bytes,
+        deadline,
+        cancelled,
+        |package_histories, held_deadline, held_cancelled| {
+            let mut histories = BTreeMap::new();
+            let mut packages_by_subject = BTreeMap::new();
+            for (subject_id, target_ref) in subject_targets {
+                active(held_deadline, held_cancelled).map_err(DurableError::Source)?;
+                let package = package_histories
+                    .get(target_ref)
+                    .ok_or(DurableError::Corrupt(
+                        "assessment private history target absent",
+                    ))?;
+                let history = AssessmentHistory::from_private_package_history_selected_schema(
+                    package,
+                    scope,
+                    target_ref,
+                    subject_id,
+                    batch_schema,
+                    input_identity,
+                    worker,
+                    held_deadline,
+                    held_cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                if history.head.as_deref()
+                    != expected_heads
+                        .get(subject_id)
+                        .and_then(|expected| expected.as_deref())
+                {
+                    return Err(DurableError::Source(SourceCommandError::Conflict(
+                        "assessment private history head changed",
+                    )));
+                }
+                histories.insert(subject_id.clone(), history);
+                packages_by_subject.insert(subject_id.clone(), package.clone());
+            }
+            let source_packages = source_target_refs
+                .iter()
+                .map(|target_ref| {
+                    let package =
+                        package_histories
+                            .get(target_ref)
+                            .ok_or(DurableError::Corrupt(
+                                "assessment private source package absent",
+                            ))?;
+                    Ok((target_ref.clone(), package.clone()))
+                })
+                .collect::<DurableResult<BTreeMap<_, _>>>()?;
+            let value = callback(
+                &histories,
+                &packages_by_subject,
+                &source_packages,
+                held_deadline,
+                held_cancelled,
+            )?;
+            crate::source_sign::finish_worker(worker, held_deadline, held_cancelled)
+                .map_err(DurableError::Source)?;
+            Ok(value)
+        },
+    )
+}
+
 struct HeldJournalMember {
     home_name: String,
     name: String,
@@ -984,17 +2102,308 @@ struct HeldJournalMember {
     size: usize,
 }
 impl AssessmentHistory {
+    /// Check that a stored admission references only exact immutable
+    /// assessment records in this selected history. This supports idempotent
+    /// ready-result recovery where the owner must validate the persisted
+    /// decision against a guarded head without repeating semantic evaluation.
+    pub(crate) fn contains_exact_assessment_refs(
+        &self,
+        references: &[JsonValue],
+    ) -> SourceCommandResult<bool> {
+        let mut history_refs = BTreeMap::<String, JsonValue>::new();
+        for submission in &self.submissions {
+            let assessment = cmd::parse(&submission.assessment)?;
+            let id = cmd::text(&assessment, "assessment_id")?.to_owned();
+            let reference = cmd::object(vec![
+                ("id", cmd::string(&id)),
+                ("version", cmd::number(1)),
+                (
+                    "digest",
+                    cmd::string(&cmd::record_digest(&assessment)?.to_prefixed()),
+                ),
+            ]);
+            if let Some(previous) = history_refs.get(&id) {
+                if !cmd::same(previous, &reference)? {
+                    return Err(SourceCommandError::Conflict(
+                        "assessment history identity collision",
+                    ));
+                }
+            } else {
+                history_refs.insert(id, reference);
+            }
+        }
+        for reference in references {
+            cmd::exact_keys(reference, &["id", "version", "digest"])?;
+            if cmd::integer(reference, "version")? != 1
+                || Digest256::from_prefixed(cmd::text(reference, "digest")?).is_err()
+            {
+                return Err(SourceCommandError::Invalid(
+                    "assessment history reference shape",
+                ));
+            }
+            let id = cmd::text(reference, "id")?;
+            if history_refs
+                .get(id)
+                .is_none_or(|current| current != reference)
+            {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    /// Reconstruct the same immutable assessment batch chain from the private
+    /// package broker. Each package-history row contains exactly one batch and
+    /// the head that selected it; the caller retains the broker snapshot for
+    /// its currentness/CAS fence.
+    pub(crate) fn from_private_package_history(
+        package_history: &PrivateOwnerPackageHistoryV1,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        subject: &str,
+        ctx: &CommandContext,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
+        let batch_schema = ctx
+            .file(&schema_path)?
+            .ok_or(SourceCommandError::Unsupported(
+                "selected assessment batch schema absent",
+            ))?;
+        Self::from_private_package_history_with_worker(
+            package_history,
+            scope,
+            target_ref,
+            subject,
+            batch_schema,
+            worker,
+            Some(ctx.base_revision),
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Reconstruct history under the exact selected candidate worker and its
+    /// opaque input identity. The owner must select the batch schema bytes in
+    /// the same read session and pass that identity unchanged.
+    pub(crate) fn from_private_package_history_selected<I: Copy + Eq>(
+        package_history: &PrivateOwnerPackageHistoryV1,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        subject: &str,
+        ctx: &CommandContext,
+        input_identity: &I,
+        worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
+        let batch_schema = ctx
+            .file(&schema_path)?
+            .ok_or(SourceCommandError::Unsupported(
+                "selected assessment batch schema absent",
+            ))?;
+        Self::from_private_package_history_selected_schema(
+            package_history,
+            scope,
+            target_ref,
+            subject,
+            batch_schema,
+            input_identity,
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Selected-input counterpart that authenticates the exact schema bytes
+    /// without requiring the legacy `CommandContext` revision field.
+    pub(crate) fn from_private_package_history_selected_schema<I: Copy + Eq>(
+        package_history: &PrivateOwnerPackageHistoryV1,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        subject: &str,
+        batch_schema: &[u8],
+        input_identity: &I,
+        worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        if worker.input_identity() != input_identity
+            || worker.profile() != FormatProfile::AssertedSourceCandidateV1
+        {
+            return Err(SourceCommandError::Conflict(
+                "assessment selected schema worker identity or profile differs",
+            ));
+        }
+        Self::from_private_package_history_with_worker(
+            package_history,
+            scope,
+            target_ref,
+            subject,
+            batch_schema,
+            worker,
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn from_private_package_history_with_worker<W: CutSchemaExecutor>(
+        package_history: &PrivateOwnerPackageHistoryV1,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        subject: &str,
+        batch_schema: &[u8],
+        worker: &mut W,
+        expected_source_revision: Option<SourceRevision>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        active(deadline, cancelled)?;
+        if package_history.scope != *scope || package_history.target_ref != target_ref {
+            return Err(SourceCommandError::Conflict(
+                "assessment private package scope or target changed",
+            ));
+        }
+        if expected_source_revision
+            .is_some_and(|revision| worker.selected_source_revision() != Some(revision))
+        {
+            return Err(SourceCommandError::Conflict(
+                "assessment journal schema/source cut differs",
+            ));
+        }
+        if worker.selected_contract_digest(BATCH_SCHEMA) != Some(Digest256::of_bytes(batch_schema))
+        {
+            return Err(SourceCommandError::Conflict(
+                "assessment journal schema/source cut differs",
+            ));
+        }
+
+        let Some(current) = package_history.current.as_ref() else {
+            if package_history.family.is_some() || !package_history.history.is_empty() {
+                return Err(SourceCommandError::Invalid(
+                    "assessment private history has no current package",
+                ));
+            }
+            return Ok(Self {
+                subject_id: subject.to_owned(),
+                head: None,
+                batches: Vec::new(),
+                submissions: Vec::new(),
+                members: Vec::new(),
+                input_bytes: 0,
+            });
+        };
+        if package_history.family != Some(PrivateOwnerPackageFamilyV1::Assessment)
+            || current.scope != *scope
+            || current.target_ref != target_ref
+            || current.family != PrivateOwnerPackageFamilyV1::Assessment
+            || package_history.history.is_empty()
+        {
+            return Err(SourceCommandError::Conflict(
+                "assessment private package family or history changed",
+            ));
+        }
+
+        let mut batches = Vec::with_capacity(package_history.history.len());
+        let mut head = None;
+        let mut package_digest = None;
+        let mut total_bytes = 0usize;
+        for (index, entry) in package_history.history.iter().enumerate() {
+            active(deadline, cancelled)?;
+            if entry.revision != (index + 1) as u64
+                || entry.family != PrivateOwnerPackageFamilyV1::Assessment
+                || entry.previous_digest != package_digest
+                || entry.members.len() != 2
+                || !entry.members.contains_key("head")
+                || !entry.members.contains_key("batch.json")
+            {
+                return Err(SourceCommandError::Invalid(
+                    "assessment private package history shape",
+                ));
+            }
+            let head_bytes = entry.members.get("head").unwrap();
+            let batch_bytes = entry.members.get("batch.json").unwrap();
+            if head_bytes.len() > 65 || batch_bytes.len() > MAX_BATCH_BYTES {
+                return Err(SourceCommandError::Invalid(
+                    "assessment private package member budget",
+                ));
+            }
+            total_bytes = total_bytes
+                .checked_add(head_bytes.len())
+                .and_then(|total| total.checked_add(batch_bytes.len()))
+                .filter(|total| *total <= MAX_HISTORY_BYTES)
+                .ok_or(SourceCommandError::Invalid(
+                    "assessment complete history byte budget",
+                ))?;
+            let batch = cmd::parse(batch_bytes)?;
+            let revision = cmd::record_digest(&batch)?.to_hex();
+            let stored_head = parse_head_bytes(head_bytes)?;
+            if stored_head != revision {
+                return Err(SourceCommandError::Invalid(
+                    "assessment private package head differs from batch",
+                ));
+            }
+            if head.as_deref().is_some_and(|previous| previous == revision) {
+                return Err(SourceCommandError::Invalid(
+                    "assessment duplicate private batch revision",
+                ));
+            }
+            head = Some(revision);
+            package_digest = Some(entry.package_digest);
+            batches.push(batch);
+        }
+        let latest = package_history.history.last().unwrap();
+        if current.revision != latest.revision
+            || current.package_digest != latest.package_digest
+            || current.members != latest.members
+            || current.private_audit_generation != package_history.private_audit_generation
+            || package_history.history.len() > MAX_EVENTS
+        {
+            return Err(SourceCommandError::Conflict(
+                "assessment current package differs from immutable history",
+            ));
+        }
+        let current_head = current
+            .members
+            .get("head")
+            .ok_or(SourceCommandError::Invalid(
+                "assessment current package head absent",
+            ))?;
+        if Some(parse_head_bytes(current_head)?) != head {
+            return Err(SourceCommandError::Conflict(
+                "assessment current package head differs from history",
+            ));
+        }
+        let submissions = validate_assessment_history_batches(
+            subject,
+            head.as_deref(),
+            &batches,
+            total_bytes,
+            batch_schema,
+            worker,
+            expected_source_revision,
+            deadline,
+            cancelled,
+        )?;
+        Ok(Self {
+            subject_id: subject.to_owned(),
+            head,
+            batches,
+            submissions,
+            members: Vec::new(),
+            input_bytes: total_bytes,
+        })
+    }
+
     /// Raw authenticated journal bytes retained by this selected history.
     /// Callers charge this once against the operation-wide read budget before
     /// evaluating current admission or attempting a compare-and-swap write.
     pub(crate) fn input_bytes(&self) -> SourceCommandResult<usize> {
-        self.members.iter().try_fold(0usize, |total, member| {
-            total
-                .checked_add(member.size)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment history input byte total overflow",
-                ))
-        })
+        Ok(self.input_bytes)
     }
 
     /// Keep each authenticated journal member descriptor alive through the
@@ -1390,6 +2799,174 @@ fn digest(value: &str) -> bool {
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
+fn parse_head_bytes(bytes: &[u8]) -> SourceCommandResult<String> {
+    if bytes.len() > 65 || !bytes.is_ascii() {
+        return Err(SourceCommandError::Invalid("assessment head ASCII"));
+    }
+    let text = tos_foundation::python_strip_unicode16_v1(std::str::from_utf8(bytes).unwrap(), 65)
+        .map_err(|_| SourceCommandError::Invalid("assessment head whitespace"))?;
+    if !digest(text) {
+        return Err(SourceCommandError::Invalid("assessment head digest"));
+    }
+    Ok(text.to_owned())
+}
+
+fn validate_assessment_history_batches(
+    subject: &str,
+    head: Option<&str>,
+    chain: &[JsonValue],
+    total_bytes: usize,
+    batch_schema: &[u8],
+    worker: &mut impl CutSchemaExecutor,
+    expected_source_revision: Option<SourceRevision>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<tos_validation::assessment::AssessmentSubmissionInput>> {
+    if total_bytes > MAX_HISTORY_BYTES || chain.len() > MAX_EVENTS {
+        return Err(SourceCommandError::Invalid(
+            "assessment complete history budget",
+        ));
+    }
+    if expected_source_revision
+        .is_some_and(|revision| worker.selected_source_revision() != Some(revision))
+        || worker.selected_contract_digest(BATCH_SCHEMA) != Some(Digest256::of_bytes(batch_schema))
+    {
+        return Err(SourceCommandError::Conflict(
+            "assessment journal schema/source cut differs",
+        ));
+    }
+    let mut known = BTreeMap::<String, Vec<u8>>::new();
+    let mut submissions = Vec::new();
+    let mut batch_bytes_total = 0usize;
+    let mut event_count = 0usize;
+    let mut revisions = BTreeSet::new();
+    let mut previous_revision: Option<String> = None;
+    for (index, batch) in chain.iter().enumerate() {
+        active(deadline, cancelled)?;
+        let canonical = cmd::canonical(batch)?;
+        batch_bytes_total = batch_bytes_total
+            .checked_add(canonical.len())
+            .filter(|total| *total <= MAX_HISTORY_BYTES)
+            .ok_or(SourceCommandError::Invalid(
+                "assessment complete history byte budget",
+            ))?;
+        if canonical.len() > MAX_BATCH_BYTES {
+            return Err(SourceCommandError::Invalid("assessment batch byte budget"));
+        }
+        let revision = cmd::record_digest(batch)?.to_hex();
+        if !revisions.insert(revision.clone())
+            || !worker
+                .check(
+                    &format!("assessment-journal/{revision}.json"),
+                    &canonical,
+                    BATCH_SCHEMA,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| SourceCommandError::Invalid("assessment batch schema execution"))?
+        {
+            return Err(SourceCommandError::Invalid("assessment batch schema"));
+        }
+        let expected_previous = previous_revision
+            .as_deref()
+            .map_or(JsonValue::Null, cmd::string);
+        if cmd::integer(batch, "sequence")? != (index + 1) as u64
+            || !cmd::same(cmd::field(batch, "previous_revision")?, &expected_previous)?
+            || (index == 0) != previous_revision.is_none()
+            || index > 0
+                && tos_validation::retirement_rules::observed_instant_order(
+                    cmd::text(&chain[index - 1], "recorded_at")?,
+                    cmd::text(batch, "recorded_at")?,
+                )
+                .map_err(|_| SourceCommandError::Invalid("assessment recorded chronology"))?
+                    == std::cmp::Ordering::Greater
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment history sequence/chronology",
+            ));
+        }
+        let request = cmd::field(batch, "request")?;
+        if cmd::text(batch, "schema_version")? != "tos_assessment_batch_v1"
+            || cmd::text(batch, "subject_id")? != subject
+            || cmd::text(cmd::field(request, "subject")?, "id")? != subject
+            || cmd::record_digest(request)?.to_hex() != cmd::text(batch, "request_digest")?
+            || !cmd::same(
+                cmd::field(request, "expected_revision")?,
+                cmd::field(batch, "previous_revision")?,
+            )?
+            || (index + 1 == chain.len() && head != Some(revision.as_str()))
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment batch/request identity binding",
+            ));
+        }
+        let events = cmd::array(batch, "events")?;
+        if events.is_empty() {
+            return Err(SourceCommandError::Invalid("assessment empty batch"));
+        }
+        event_count = event_count
+            .checked_add(events.len())
+            .filter(|count| *count <= MAX_EVENTS)
+            .ok_or(SourceCommandError::Invalid(
+                "assessment complete history event budget",
+            ))?;
+        let mut expected = Vec::<JsonValue>::new();
+        let mut expected_bytes = BTreeSet::new();
+        for event in cmd::array(request, "events")? {
+            let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?;
+            let bytes = cmd::canonical(event)?;
+            if let Some(original) = known.get(id) {
+                if original != &bytes {
+                    return Err(SourceCommandError::Invalid("assessment identity rewritten"));
+                }
+            } else if expected_bytes.insert(bytes) {
+                expected.push(event.clone());
+            }
+        }
+        if !cmd::same(&JsonValue::Array(expected), cmd::field(batch, "events")?)? {
+            return Err(SourceCommandError::Invalid(
+                "assessment batch does not contain exact new request events",
+            ));
+        }
+        let scope = cmd::object(vec![
+            ("assertion_layer", cmd::field(request, "layer")?.clone()),
+            ("risk", cmd::field(request, "risk")?.clone()),
+            ("languages", cmd::field(request, "languages")?.clone()),
+            ("maker_id", cmd::field(request, "maker_id")?.clone()),
+            ("requested_use", cmd::field(request, "use")?.clone()),
+        ]);
+        for event in events {
+            let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?.to_owned();
+            if known.insert(id, cmd::canonical(event)?).is_some() {
+                return Err(SourceCommandError::Invalid(
+                    "assessment duplicate committed event",
+                ));
+            }
+            submissions.push(tos_validation::assessment::AssessmentSubmissionInput {
+                assessment: cmd::canonical(cmd::field(event, "assessment")?)?,
+                principal_id: cmd::text(event, "principal_id")?.to_owned(),
+                execution_profile: cmd::canonical(cmd::field(event, "execution_profile")?)?,
+                committed_scope: Some(cmd::canonical(&scope)?),
+            });
+        }
+        previous_revision = Some(revision);
+    }
+    if chain.is_empty() != head.is_none()
+        || chain
+            .last()
+            .map(cmd::record_digest)
+            .transpose()?
+            .map(|value| value.to_hex())
+            .as_deref()
+            != head
+    {
+        return Err(SourceCommandError::Invalid(
+            "assessment history final head binding",
+        ));
+    }
+    Ok(submissions)
+}
+
 fn read_head<V: AssessmentJournalReadView>(
     view: &V,
     subject: &str,
@@ -1490,22 +3067,9 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
     let home = view.home(subject)?;
     let owner = view.owner();
     let mut members = head_member.into_iter().collect::<Vec<_>>();
-    let contract = ctx
-        .file(&tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap())?
-        .ok_or(SourceCommandError::Unsupported(
-            "selected assessment batch schema absent",
-        ))?;
-    if worker.source_revision() != ctx.base_revision
-        || worker.contract_digest(BATCH_SCHEMA) != Some(Digest256::of_bytes(contract))
-    {
-        return Err(SourceCommandError::Conflict(
-            "assessment journal schema/source cut differs",
-        ));
-    }
     let mut cursor = head.clone();
     let mut seen = BTreeSet::new();
     let mut chain = Vec::new();
-    let mut count = 0usize;
     let mut byte_count = 0usize;
     while let Some(revision) = cursor {
         active(deadline, cancelled)?;
@@ -1538,42 +3102,10 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
                 "assessment complete history byte budget",
             ))?;
         let batch = cmd::parse(&bytes)?;
-        if !worker
-            .check(
-                &format!("assessment-journal/{revision}.json"),
-                &cmd::canonical(&batch)?,
-                BATCH_SCHEMA,
-                deadline,
-                cancelled,
-            )
-            .map_err(|_| SourceCommandError::Invalid("assessment batch schema execution"))?
-        {
-            return Err(SourceCommandError::Invalid("assessment batch schema"));
-        }
-        let request = cmd::field(&batch, "request")?;
-        if cmd::record_digest(&batch)?.to_hex() != revision
-            || cmd::text(&batch, "schema_version")? != "tos_assessment_batch_v1"
-            || cmd::text(&batch, "subject_id")? != subject
-            || cmd::text(cmd::field(request, "subject")?, "id")? != subject
-            || cmd::record_digest(request)?.to_hex() != cmd::text(&batch, "request_digest")?
-            || !cmd::same(
-                cmd::field(request, "expected_revision")?,
-                cmd::field(&batch, "previous_revision")?,
-            )?
-        {
+        if cmd::record_digest(&batch)?.to_hex() != revision {
             return Err(SourceCommandError::Invalid(
-                "assessment batch/request identity binding",
+                "assessment batch path digest differs",
             ));
-        }
-        let events = cmd::array(&batch, "events")?;
-        count = count
-            .checked_add(events.len())
-            .filter(|n| *n <= MAX_EVENTS)
-            .ok_or(SourceCommandError::Invalid(
-                "assessment complete history event budget",
-            ))?;
-        if events.is_empty() {
-            return Err(SourceCommandError::Invalid("assessment empty batch"));
         }
         members.push(HeldJournalMember {
             home_name: home.name.to_owned(),
@@ -1595,71 +3127,38 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
         chain.push(batch);
     }
     chain.reverse();
-    let mut known = BTreeMap::<String, Vec<u8>>::new();
-    let mut submissions = Vec::new();
-    for (index, batch) in chain.iter().enumerate() {
-        active(deadline, cancelled)?;
-        if cmd::integer(batch, "sequence")? != (index + 1) as u64
-            || index > 0
-                && tos_validation::retirement_rules::observed_instant_order(
-                    cmd::text(&chain[index - 1], "recorded_at")?,
-                    cmd::text(batch, "recorded_at")?,
-                )
-                .map_err(|_| SourceCommandError::Invalid("assessment recorded chronology"))?
-                    == std::cmp::Ordering::Greater
-        {
-            return Err(SourceCommandError::Invalid(
-                "assessment history sequence/chronology",
-            ));
-        }
-        let request = cmd::field(batch, "request")?;
-        let mut expected = Vec::<JsonValue>::new();
-        let mut expected_bytes = BTreeSet::new();
-        for event in cmd::array(request, "events")? {
-            let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?;
-            let bytes = cmd::canonical(event)?;
-            if let Some(original) = known.get(id) {
-                if original != &bytes {
-                    return Err(SourceCommandError::Invalid("assessment identity rewritten"));
-                }
-            } else if expected_bytes.insert(bytes) {
-                expected.push(event.clone());
-            }
-        }
-        if !cmd::same(&JsonValue::Array(expected), cmd::field(batch, "events")?)? {
-            return Err(SourceCommandError::Invalid(
-                "assessment batch does not contain exact new request events",
-            ));
-        }
-        let scope = cmd::object(vec![
-            ("assertion_layer", cmd::field(request, "layer")?.clone()),
-            ("risk", cmd::field(request, "risk")?.clone()),
-            ("languages", cmd::field(request, "languages")?.clone()),
-            ("maker_id", cmd::field(request, "maker_id")?.clone()),
-            ("requested_use", cmd::field(request, "use")?.clone()),
-        ]);
-        for event in cmd::array(batch, "events")? {
-            let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?.to_owned();
-            if known.insert(id, cmd::canonical(event)?).is_some() {
-                return Err(SourceCommandError::Invalid(
-                    "assessment duplicate committed event",
-                ));
-            }
-            submissions.push(tos_validation::assessment::AssessmentSubmissionInput {
-                assessment: cmd::canonical(cmd::field(event, "assessment")?)?,
-                principal_id: cmd::text(event, "principal_id")?.to_owned(),
-                execution_profile: cmd::canonical(cmd::field(event, "execution_profile")?)?,
-                committed_scope: Some(cmd::canonical(&scope)?),
-            });
-        }
-    }
+    let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
+    let batch_schema = ctx
+        .file(&schema_path)?
+        .ok_or(SourceCommandError::Unsupported(
+            "selected assessment batch schema absent",
+        ))?;
+    let submissions = validate_assessment_history_batches(
+        subject,
+        head.as_deref(),
+        &chain,
+        byte_count,
+        batch_schema,
+        worker,
+        Some(ctx.base_revision),
+        deadline,
+        cancelled,
+    )?;
     view.verify_current(deadline, cancelled)?;
+    let input_bytes = members.iter().try_fold(0usize, |total, member| {
+        total
+            .checked_add(member.size)
+            .ok_or(SourceCommandError::Invalid(
+                "assessment history input byte total overflow",
+            ))
+    })?;
     let history = AssessmentHistory {
         subject_id: subject.to_owned(),
         head,
         batches: chain,
         submissions,
         members,
+        input_bytes,
     };
     history.verify_current(view, deadline, cancelled)?;
     Ok(history)

@@ -4428,6 +4428,85 @@ fn maintained_agent_creation_operation<
             .unwrap();
         assert_eq!(exact.raw, successor_member.raw);
     }
+    let interrupted_v1_checkpoint = if addressed {
+        // Build the exact durable intermediate state left by a crash after
+        // addressed-protocol activation but before its V2 selector publication:
+        // a fresh, selected V1 descriptor plus the still-active immutable
+        // per-domain marker. Clear only the prior V2 selector; then cold-audit
+        // and select a new V1 descriptor without changing marker history.
+        ensure_source_inventory_projection_fixture(&url, &lab.domain);
+        let mut checkpoint = Client::connect(&url, NoTls).unwrap();
+        assert_eq!(
+            checkpoint
+                .execute(
+                    "UPDATE cmd2_domain
+                     SET source_projection_digest=NULL,selected_generation_digest=NULL,
+                         complete_cut_digest=NULL,complete_cut_generation=NULL
+                     WHERE domain=$1",
+                    &[&lab.domain],
+                )
+                .unwrap(),
+            1
+        );
+        drop(checkpoint);
+        let checkpoint_cut = reopened_db
+            .cold_verify_cut_streamed(
+                &reopened_store,
+                &lab.domain,
+                &generation_workspace,
+                generation_profile,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        let v1 = reopened_db
+            .build_complete_generation(&reopened_store, &checkpoint_cut, deadline, &cancelled)
+            .unwrap();
+        reopened_db.select_complete_generation(&v1).unwrap();
+        let mut checkpoint = Client::connect(&url, NoTls).unwrap();
+        let row = checkpoint
+            .query_one(
+                "SELECT (SELECT oid::bigint FROM pg_database WHERE datname=current_database()),
+                        d.selected_generation_digest,f.generation,d.complete_cut_generation,
+                        d.complete_cut_digest
+                 FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1",
+                &[&lab.domain],
+            )
+            .unwrap();
+        let database_oid = u64::try_from(row.get::<_, i64>(0)).unwrap();
+        let selected_digest: String = row.get(1);
+        let fence_generation = row.get::<_, i64>(2);
+        assert_eq!(row.get::<_, Option<i64>>(3), Some(fence_generation));
+        let descriptor = reopened_store
+            .inspect_generation_descriptor_v1(
+                Digest256::from_hex(&selected_digest).unwrap(),
+                generation_profile.generation,
+            )
+            .unwrap();
+        assert_eq!(descriptor.cut.database_oid, database_oid);
+        assert_eq!(
+            row.get::<_, Option<String>>(4).as_deref(),
+            Some(descriptor.cut.state_digest.to_hex().as_str())
+        );
+        assert_eq!(
+            descriptor.cut.audit_generation + 1,
+            u64::try_from(fence_generation).unwrap()
+        );
+        assert_eq!(
+            checkpoint
+                .query_one(
+                    "SELECT count(*) FROM cmd2_audit_delta_v1_domain WHERE domain=$1",
+                    &[&lab.domain],
+                )
+                .unwrap()
+                .get::<_, i64>(0),
+            1,
+            "the active audit profile remains present throughout V1 selection"
+        );
+        Some((database_oid, selected_digest))
+    } else {
+        None
+    };
     let expected_current_head = warm_receipt.commit_seq;
     drop(warm_package);
     drop(warm_receipt);
@@ -4553,6 +4632,37 @@ fn maintained_agent_creation_operation<
     };
     let recovered_store = SegmentStore::open_existing(&recovered_root.0, limits()).unwrap();
     let mut recovered_db = DurablePgCoordinator::connect(&url).unwrap();
+    if addressed {
+        let (source_database_oid, source_selected_digest) =
+            interrupted_v1_checkpoint.expect("addressed fixture retains a V1 checkpoint");
+        let restored_identity = Client::connect(&url, NoTls).unwrap();
+        let restored_database_oid: i64 = restored_identity
+            .query_one(
+                "SELECT oid::bigint FROM pg_database WHERE datname=current_database()",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert_ne!(
+            u64::try_from(restored_database_oid).unwrap(),
+            source_database_oid
+        );
+        let restored_selection: String = restored_identity
+            .query_one(
+                "SELECT selected_generation_digest FROM cmd2_domain WHERE domain=$1",
+                &[&recovery_domain],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(restored_selection, source_selected_digest);
+        let restored_descriptor = recovered_store
+            .inspect_generation_descriptor_v1(
+                Digest256::from_hex(&restored_selection).unwrap(),
+                generation_profile.generation,
+            )
+            .unwrap();
+        assert_eq!(restored_descriptor.cut.database_oid, source_database_oid);
+    }
     // Every recovery-tail corruption/control must target the same database
     // that the restored coordinator reads, after all original handles died.
     let mut sql = Client::connect(&url, NoTls).unwrap();

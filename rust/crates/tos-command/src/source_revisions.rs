@@ -95,6 +95,44 @@ impl RevisionFamily {
             Self::CorpusSelectedV2 | Self::CorpusSelectedV3 | Self::NativeSelected
         )
     }
+    /// Stable family identity for a PostgreSQL authored revision. The owner
+    /// schema already separates the maintained contracts; record type and
+    /// record schema complete the tag where that owner declares them.
+    pub(crate) fn pg_family_tag(self, config: &JsonValue) -> SourceCommandResult<String> {
+        let schema = cmd::text(config, "schema_version")?;
+        let (record_type, record_schema) = match self {
+            Self::CorpusFlat | Self::CorpusSelectedV2 | Self::CorpusSelectedV3 => {
+                (cmd::text(config, "record_type")?, "")
+            }
+            Self::NativeSelected => (
+                cmd::text(config, "record_type")?,
+                cmd::text(config, "record_schema_version")?,
+            ),
+            Self::Historical => {
+                let id = cmd::text(config, "record_id")?;
+                let kind = ["historical-event", "historical-process", "historical-state"]
+                    .into_iter()
+                    .find(|kind| valid_id(id, &format!("tos.{kind}."), false))
+                    .ok_or(SourceCommandError::Denied(
+                        "PostgreSQL historical record family identity",
+                    ))?;
+                (kind, "tos_historical_record_v1")
+            }
+            _ => {
+                return Err(SourceCommandError::Unsupported(
+                    "PostgreSQL authored revision family",
+                ));
+            }
+        };
+        Ok(format!("{schema}:{record_type}:{record_schema}"))
+    }
+
+    /// These two PG routes predate the family-tagged read envelope. Keep their
+    /// existing in-flight and replay records readable across the transition.
+    pub(crate) fn pg_legacy_compatible(self, config: &JsonValue) -> SourceCommandResult<bool> {
+        Ok(self == Self::CorpusFlat
+            || (self == Self::CorpusSelectedV3 && cmd::text(config, "record_type")? == "work"))
+    }
     fn profile(self) -> bool {
         matches!(self, Self::PublicProfile | Self::PublicProfileScope)
     }
@@ -2679,6 +2717,348 @@ pub(crate) fn validate_pg_work_revision_archive_changes(
         ));
     }
     Ok(())
+}
+
+/// Recheck the source-owned invariants and exact predecessor archive carried
+/// by a selected non-Work PG record revision. The semantic preparation path
+/// remains authoritative; this check gives the durable adapter a compact
+/// owner-side fence before it accepts the family-tagged proposal.
+pub(crate) fn validate_pg_selected_revision_proposal(
+    ctx: &CommandContext,
+    proposal: &PreparedCommand,
+) -> SourceCommandResult<()> {
+    let (config, family) = configuration(ctx)?;
+    let record_type = cmd::text(&config, "record_type")?;
+    let work_owner = record_type == "work";
+    if !family.selected() || work_owner || proposal.operation != "record.revise" {
+        return Err(SourceCommandError::Denied(
+            "PG selected non-Work revision owner required",
+        ));
+    }
+    if proposal.base_revision != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "PG selected revision base differs from semantic context",
+        ));
+    }
+    if proposal.replayed {
+        if !proposal.changes.is_empty() {
+            return Err(SourceCommandError::Conflict(
+                "selected replay unexpectedly proposes source writes",
+            ));
+        }
+        return Ok(());
+    }
+
+    let source_path = cmd::text(&config, "source_path")?;
+    let [basename, formname, historyname] = names(source_path)?;
+    let (parent, _) = split(source_path)?;
+    let record_path = path(source_path)?;
+    let record_raw = ctx.file(&record_path)?.ok_or(SourceCommandError::Conflict(
+        "selected revision current record absent",
+    ))?;
+    let before = cmd::parse(record_raw)?;
+    let record_change = proposal
+        .changes
+        .iter()
+        .filter(|change| change.path == record_path)
+        .collect::<Vec<_>>();
+    if record_change.len() != 1 || record_change[0].before != Some(Digest256::of_bytes(record_raw))
+    {
+        return Err(SourceCommandError::Conflict(
+            "selected revision record preimage differs from readset",
+        ));
+    }
+    let after_raw = record_change[0]
+        .after
+        .as_deref()
+        .ok_or(SourceCommandError::Conflict(
+            "selected revision cannot delete its record",
+        ))?;
+    let after = cmd::parse(after_raw)?;
+    let id_field = if family == RevisionFamily::NativeSelected {
+        match record_type {
+            "artifact" => "artifact_id",
+            "composite" => "composite_id",
+            "link" => "record_id",
+            _ => return Err(SourceCommandError::Denied("native revision record type")),
+        }
+    } else {
+        "record_id"
+    };
+    let source_declares_record_type =
+        family != RevisionFamily::NativeSelected || record_type == "link";
+    if cmd::text(&before, id_field)? != cmd::text(&config, "record_id")?
+        || cmd::text(&after, id_field)? != cmd::text(&config, "record_id")?
+        || source_declares_record_type
+            && (cmd::text(&before, "record_type")? != record_type
+                || cmd::text(&after, "record_type")? != record_type)
+        || cmd::field(&before, "schema_version")? != cmd::field(&after, "schema_version")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "selected revision changed its typed source identity",
+        ));
+    }
+    if family == RevisionFamily::NativeSelected
+        && cmd::text(&before, "schema_version")? != cmd::text(&config, "record_schema_version")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "native revision schema differs from protected owner",
+        ));
+    }
+
+    let allowed = allowed_fields(family, &config)?;
+    let before_object = before.as_object().ok_or(SourceCommandError::Invalid(
+        "selected revision record object",
+    ))?;
+    let after_object = after.as_object().ok_or(SourceCommandError::Invalid(
+        "selected revision successor object",
+    ))?;
+    if before_object.len() != after_object.len()
+        || before_object.iter().any(|(key, value)| {
+            let Some(key) = key.as_str() else {
+                return true;
+            };
+            after.object_get(key).is_none()
+                || key != "record_version"
+                    && !allowed.contains(&key)
+                    && after.object_get(key) != Some(value)
+        })
+    {
+        return Err(SourceCommandError::Conflict(
+            "selected revision changed a protected record field",
+        ));
+    }
+    let prior_version = cmd::integer(&before, "record_version")?;
+    if cmd::integer(&after, "record_version")?
+        != prior_version
+            .checked_add(1)
+            .ok_or(SourceCommandError::Invalid("record version exhausted"))?
+    {
+        return Err(SourceCommandError::Conflict(
+            "selected revision version did not advance exactly once",
+        ));
+    }
+    if family == RevisionFamily::NativeSelected && record_type == "artifact" {
+        for field in ["basis", "provider_independent"] {
+            if cmd::field(cmd::field(&before, "path_identity")?, field)?
+                != cmd::field(cmd::field(&after, "path_identity")?, field)?
+            {
+                return Err(SourceCommandError::Denied(
+                    "physical identity path basis changed",
+                ));
+            }
+        }
+    }
+    if family == RevisionFamily::NativeSelected && record_type == "link" {
+        for field in ["uri", "link_kind", "association_claim_refs"] {
+            if cmd::field(&before, field)? != cmd::field(&after, field)? {
+                return Err(SourceCommandError::Denied(
+                    "source Link endpoint changed during revision",
+                ));
+            }
+        }
+    }
+
+    let current_members = [
+        source_path.to_owned(),
+        format!("{parent}/{formname}"),
+        format!("{parent}/{historyname}"),
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    let mut seen = BTreeSet::new();
+    for change in &proposal.changes {
+        if !seen.insert(change.path.as_str()) {
+            return Err(SourceCommandError::Conflict(
+                "selected revision write path is duplicated",
+            ));
+        }
+        if current_members.contains(change.path.as_str()) {
+            let expected_before = ctx.file(&change.path)?.map(Digest256::of_bytes);
+            if change.before != expected_before || change.after.is_none() {
+                return Err(SourceCommandError::Conflict(
+                    "selected revision current package preimage differs from readset",
+                ));
+            }
+        }
+    }
+    if !seen.contains(source_path) || !seen.contains(format!("{parent}/{historyname}").as_str()) {
+        return Err(SourceCommandError::Conflict(
+            "selected revision omitted its record or history write",
+        ));
+    }
+
+    let files = package(ctx, source_path, true, None)?;
+    let predecessor = cmd::parse(files.get(&basename).ok_or(SourceCommandError::Conflict(
+        "selected revision predecessor record absent",
+    ))?)?;
+    let subject = source_forms::metadata_subject(&predecessor)?;
+    let expected = retained_archive_changes(ctx, &config, family, &files, &subject)?
+        .into_iter()
+        .map(|change| (change.path.as_str().to_owned(), change))
+        .collect::<BTreeMap<_, _>>();
+    let mut actual = BTreeMap::new();
+    for change in proposal
+        .changes
+        .iter()
+        .filter(|change| !current_members.contains(change.path.as_str()))
+    {
+        if actual
+            .insert(change.path.as_str().to_owned(), change.clone())
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected revision predecessor archive change is duplicated",
+            ));
+        }
+    }
+    if actual != expected {
+        return Err(SourceCommandError::Conflict(
+            "selected revision changes differ from exact predecessor archive",
+        ));
+    }
+    Ok(())
+}
+
+/// Build exact source-inventory inputs for every changed NativeSelected
+/// member. The durable adapter binds these values to each STO write and the
+/// mixed-inventory envelope; this owner supplies only rows it can derive from
+/// the selected record and the schema/profile bytes held by this context.
+pub(crate) fn pg_native_metadata_owner_contributions(
+    ctx: &CommandContext,
+    proposal: &PreparedCommand,
+) -> SourceCommandResult<BTreeMap<String, JsonValue>> {
+    let (config, family) = configuration(ctx)?;
+    if family != RevisionFamily::NativeSelected || proposal.operation != "record.revise" {
+        return Err(SourceCommandError::Denied(
+            "PG native metadata revision owner required",
+        ));
+    }
+    validate_pg_selected_revision_proposal(ctx, proposal)?;
+
+    let record_type = cmd::text(&config, "record_type")?;
+    let source_path = cmd::text(&config, "source_path")?;
+    let source_schema_ref = match (record_type, cmd::text(&config, "record_schema_version")?) {
+        ("artifact", "tos_artifact_source_witness_v1") => {
+            "ToS/contracts/artifact-source-witness.schema.json"
+        }
+        ("artifact", "tos_artifact_source_witness_v2") => {
+            "ToS/contracts/artifact-source-witness-v2.schema.json"
+        }
+        ("composite", "tos_scholarly_composite_witness_v1") => {
+            "ToS/contracts/scholarly-composite-witness.schema.json"
+        }
+        ("link", "tos_source_link_v1") => "ToS/contracts/source-link.schema.json",
+        _ => return Err(SourceCommandError::Denied("exact native record schema")),
+    };
+
+    let mut profile_map = BTreeMap::<String, String>::new();
+    for file in &ctx.files {
+        let name = file.path.as_str();
+        if name == REGISTRY || name.starts_with("ToS/contracts/") && name.ends_with(".schema.json")
+        {
+            profile_map.insert(name.to_owned(), Digest256::of_bytes(&file.raw).to_hex());
+        }
+    }
+    if profile_map.len() > 256
+        || !profile_map.contains_key(REGISTRY)
+        || !profile_map.contains_key("ToS/contracts/semantic-entity-type-registry.schema.json")
+        || !profile_map.contains_key(source_schema_ref)
+    {
+        return Err(SourceCommandError::Conflict(
+            "native inventory selected profile closure is incomplete",
+        ));
+    }
+    let source_profiles = JsonValue::Object(
+        profile_map
+            .into_iter()
+            .map(|(name, digest)| (JsonString::from_utf8(&name), cmd::string(&digest)))
+            .collect(),
+    );
+
+    let mut contributions = BTreeMap::new();
+    for change in &proposal.changes {
+        let path = change.path.as_str();
+        let mut records = BTreeMap::<String, JsonValue>::new();
+        for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
+            records.insert((*kind).to_owned(), JsonValue::Array(Vec::new()));
+        }
+        let mut form = JsonValue::Null;
+        if path == source_path && matches!(record_type, "artifact" | "composite" | "link") {
+            let raw = change.after.as_deref().ok_or(SourceCommandError::Conflict(
+                "native metadata revision cannot delete its record",
+            ))?;
+            let record = cmd::parse(raw)?;
+            let source: serde_json::Value = serde_json::from_slice(&cmd::canonical(&record)?)
+                .map_err(|_| SourceCommandError::Invalid("native inventory record JSON"))?;
+            let rendered = tos_compiler::source_witness_catalog::render_catalog_record(
+                &source,
+                source_path,
+                Some(source_schema_ref),
+                8_388_608,
+            )
+            .map_err(|_| SourceCommandError::Invalid("native inventory catalog record"))?;
+            let rendered = serde_json::to_vec(&rendered)
+                .map_err(|_| SourceCommandError::Invalid("native inventory catalog JSON"))?;
+            let rendered = cmd::parse(&rendered)?;
+            records.insert(record_type.to_owned(), JsonValue::Array(vec![rendered]));
+        }
+        if path.ends_with(".human-forms.json") {
+            let raw = change.after.as_deref().ok_or(SourceCommandError::Conflict(
+                "native forms revision cannot delete its set",
+            ))?;
+            let forms = cmd::parse(raw)?;
+            source_forms::apply_form_changes(Some(&forms), cmd::field(&forms, "subject")?, &[])?;
+            let mut ids = BTreeSet::new();
+            for section in ["forms", "prior_forms"] {
+                for entry in cmd::array(&forms, section)? {
+                    ids.insert(cmd::text(entry, "form_id")?.to_owned());
+                }
+            }
+            if ids.is_empty() {
+                return Err(SourceCommandError::Conflict(
+                    "native forms projection has no source identity",
+                ));
+            }
+            form = cmd::object(vec![
+                (
+                    "raw_sha256",
+                    cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+                ),
+                (
+                    "form_ids",
+                    JsonValue::Array(ids.iter().map(|id| cmd::string(id)).collect()),
+                ),
+            ]);
+        }
+        let records = JsonValue::Object(
+            records
+                .into_iter()
+                .map(|(kind, rows)| (JsonString::from_utf8(&kind), rows))
+                .collect(),
+        );
+        let contribution = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_pg_source_inventory_member_contribution_v1"),
+            ),
+            ("records", records),
+            ("source_profiles", source_profiles.clone()),
+            ("events", JsonValue::Object(Vec::new())),
+            ("anchors", JsonValue::Object(Vec::new())),
+            ("form", form),
+            ("claim_owner", JsonValue::Null),
+        ]);
+        if contributions
+            .insert(path.to_owned(), contribution)
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "native inventory contribution path is duplicated",
+            ));
+        }
+    }
+    Ok(contributions)
 }
 
 fn retained_archive_changes(
@@ -5371,6 +5751,78 @@ pub(crate) fn native_identity_inventory_from_cut(
     selected_native_identity_inventory(ctx, cut, worker, deadline, cancelled, None)
 }
 
+/// Reuse the exact native-identity packet contract when another owner has
+/// already authenticated and sealed the complete current source member set.
+/// The caller must provide every current `ToS/` member from that sealed cut;
+/// this helper checks the projection against the command context before it
+/// derives any identity reservation.
+pub(crate) fn native_identity_inventory_from_members(
+    ctx: &CommandContext,
+    complete_members: &[SourceFile],
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
+    ctx.check()?;
+    let mut selected = BTreeMap::new();
+    for member in complete_members {
+        let name = member.path.as_str();
+        if !name.starts_with("ToS/")
+            || selected
+                .insert(name.to_owned(), member.raw.as_slice())
+                .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "complete native identity member set is invalid",
+            ));
+        }
+        if name == "ToS/source-witnesses/owner-local"
+            || name.starts_with("ToS/source-witnesses/owner-local/")
+        {
+            return Err(SourceCommandError::Denied(
+                "reserved owner-local namespace cannot enter public native inventory",
+            ));
+        }
+    }
+    let selected_context = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .map(|file| (file.path.as_str(), file.raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
+    if selected_context.len() != selected.len()
+        || selected_context
+            .iter()
+            .any(|(name, raw)| selected.get(*name).copied() != Some(*raw))
+    {
+        return Err(SourceCommandError::Conflict(
+            "complete native identity members differ from command context",
+        ));
+    }
+    let packet_members = complete_members
+        .iter()
+        .filter(|member| {
+            let name = member.path.as_str();
+            let basename = name.rsplit('/').next().unwrap_or(name);
+            name.starts_with("ToS/source-witnesses/")
+                && basename.starts_with("semantic-annotation")
+                && basename.ends_with(".json")
+                && !name
+                    .split('/')
+                    .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    native_identity_inventory_from_packet_members(
+        ctx,
+        &packet_members,
+        worker,
+        deadline,
+        cancelled,
+        None,
+    )
+}
+
 fn selected_native_identity_inventory(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
@@ -5384,10 +5836,8 @@ fn selected_native_identity_inventory(
             "native inventory source cut differs",
         ));
     }
-    let mut entries = BTreeMap::new();
-    let mut identities: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut packet_members = Vec::new();
     let mut remaining = 8_388_608usize;
-    let contract = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
     for member in cut.current().members() {
         let name = member.path.as_str();
         if name == "ToS/source-witnesses/owner-local"
@@ -5432,7 +5882,46 @@ fn selected_native_identity_inventory(
         remaining = remaining
             .checked_sub(raw.len())
             .ok_or(SourceCommandError::Invalid("native inventory byte budget"))?;
-        let packet = cmd::parse(raw)?;
+        packet_members.push(SourceFile {
+            path: member.path.clone(),
+            raw: raw.to_vec(),
+        });
+    }
+    native_identity_inventory_from_packet_members(
+        ctx,
+        &packet_members,
+        worker,
+        deadline,
+        cancelled,
+        reserved_id,
+    )
+}
+
+pub(crate) fn native_identity_inventory_from_packet_members(
+    ctx: &CommandContext,
+    packet_members: &[SourceFile],
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    reserved_id: Option<&str>,
+) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
+    let mut entries = BTreeMap::new();
+    let mut identities: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut remaining = 8_388_608usize;
+    let contract = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
+    for member in packet_members {
+        let name = member.path.as_str();
+        if entries.len() >= 1024 || member.raw.len() > remaining.min(1_048_576) {
+            return Err(SourceCommandError::Invalid(
+                "native identity inventory metadata budget",
+            ));
+        }
+        remaining = remaining
+            .checked_sub(member.raw.len())
+            .ok_or(SourceCommandError::Invalid(
+                "native identity inventory byte budget",
+            ))?;
+        let packet = cmd::parse(&member.raw)?;
         if cmd::text(&packet, "schema_version")? != "tos_semantic_annotation_packet_v2" {
             return Err(SourceCommandError::Unsupported(
                 "native identity packet contract",
@@ -5463,7 +5952,7 @@ fn selected_native_identity_inventory(
         }
         entries.insert(
             name.to_string(),
-            Digest256::of_bytes(raw).to_prefixed()[7..].to_string(),
+            Digest256::of_bytes(&member.raw).to_prefixed()[7..].to_string(),
         );
     }
     let used_schema = !entries.is_empty();
@@ -7299,6 +7788,18 @@ mod readonly_descriptor_tests {
 
     fn parse(value: serde_json::Value) -> JsonValue {
         cmd::parse(&serde_json::to_vec(&value).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn pg_historical_family_tag_keeps_typed_record_schema() {
+        let config = parse(serde_json::json!({
+            "schema_version":"tos_local_source_revision_owner_v1",
+            "record_id":"tos.historical-event.fixture"
+        }));
+        assert_eq!(
+            RevisionFamily::Historical.pg_family_tag(&config).unwrap(),
+            "tos_local_source_revision_owner_v1:historical-event:tos_historical_record_v1"
+        );
     }
 
     fn resolved(

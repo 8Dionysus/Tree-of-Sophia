@@ -109,6 +109,7 @@ type SourceMembers = BTreeMap<String, (Vec<u8>, u32)>;
 
 #[derive(Clone, Copy)]
 struct RevisionTarget {
+    owner_schema: &'static str,
     source_path: &'static str,
     forms_path: &'static str,
     history_path: &'static str,
@@ -118,13 +119,17 @@ struct RevisionTarget {
     form_ids: &'static [&'static str],
     form_fields: &'static [&'static str],
     allowed_fields: &'static [&'static str],
-    preferred_label: &'static str,
+    record_id_field: &'static str,
+    record_schema_version: Option<&'static str>,
+    preferred_label: Option<&'static str>,
     notes: Option<&'static str>,
+    native_field_patch: Option<(&'static str, &'static str)>,
     resulting_version: u64,
     resulting_form_version: u64,
 }
 
 const PARMENIDES_TARGET: RevisionTarget = RevisionTarget {
+    owner_schema: "tos_local_corpus_revision_owner_v1",
     source_path: RECORD_PATH,
     forms_path: FORMS_PATH,
     history_path: HISTORY_PATH,
@@ -134,15 +139,19 @@ const PARMENIDES_TARGET: RevisionTarget = RevisionTarget {
     form_ids: FORM_IDS,
     form_fields: FORM_FIELDS,
     allowed_fields: &["preferred_label", "notes"],
-    preferred_label: "Парменид Элейский Quartz",
+    record_id_field: "record_id",
+    record_schema_version: None,
+    preferred_label: Some("Парменид Элейский Quartz"),
     notes: Some(
         "Частная интеграционная фикстура PostgreSQL; семантическое признание не выполнялось.",
     ),
+    native_field_patch: None,
     resulting_version: 2,
     resulting_form_version: 2,
 };
 
 const NIETZSCHE_TARGET: RevisionTarget = RevisionTarget {
+    owner_schema: "tos_local_corpus_revision_owner_v1",
     source_path: NIETZSCHE_RECORD_PATH,
     forms_path: NIETZSCHE_FORMS_PATH,
     history_path: NIETZSCHE_HISTORY_PATH,
@@ -152,8 +161,11 @@ const NIETZSCHE_TARGET: RevisionTarget = RevisionTarget {
     form_ids: NIETZSCHE_FORM_IDS,
     form_fields: NIETZSCHE_FORM_FIELDS,
     allowed_fields: &["preferred_label"],
-    preferred_label: "Friedrich Nietzsche Quartz",
+    record_id_field: "record_id",
+    record_schema_version: None,
+    preferred_label: Some("Friedrich Nietzsche Quartz"),
     notes: None,
+    native_field_patch: None,
     resulting_version: 4,
     resulting_form_version: 3,
 };
@@ -174,6 +186,7 @@ const WORK_FORM_FIELDS: &[&str] = &[
     "metadata.source-note",
 ];
 const WORK_TARGET: RevisionTarget = RevisionTarget {
+    owner_schema: "tos_local_corpus_revision_owner_v3",
     source_path: WORK_SOURCE_PATH,
     forms_path: WORK_FORMS_PATH,
     history_path: WORK_HISTORY_PATH,
@@ -183,10 +196,45 @@ const WORK_TARGET: RevisionTarget = RevisionTarget {
     form_ids: WORK_FORM_IDS,
     form_fields: WORK_FORM_FIELDS,
     allowed_fields: &["preferred_label"],
-    preferred_label: "О постоянстве (De constantia) Quartz",
+    record_id_field: "record_id",
+    record_schema_version: None,
+    preferred_label: Some("О постоянстве (De constantia) Quartz"),
     notes: None,
+    native_field_patch: None,
     resulting_version: 3,
     resulting_form_version: 3,
+};
+
+const ARTIFACT_SOURCE_PATH: &str =
+    "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json";
+const ARTIFACT_FORMS_PATH: &str =
+    "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.human-forms.json";
+const ARTIFACT_HISTORY_PATH: &str =
+    "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/source-revision-history.json";
+const ARTIFACT_FORM_IDS: &[&str] = &[
+    "tos.form.oim-a00645-name",
+    "tos.form.oim-a00645-source-note",
+];
+const ARTIFACT_FORM_FIELDS: &[&str] = &["metadata.preferred-name", "metadata.source-note"];
+const ARTIFACT_PHYSICAL_DESCRIPTION: &str = r#"{"height_mm":null,"material":"Reported clay-tablet component; private PG fixture correction.","source_ref":"https://cdli.earth/artifacts/222243","thickness_mm":null,"width_mm":null}"#;
+const ARTIFACT_TARGET: RevisionTarget = RevisionTarget {
+    owner_schema: "tos_local_native_metadata_revision_owner_v1",
+    source_path: ARTIFACT_SOURCE_PATH,
+    forms_path: ARTIFACT_FORMS_PATH,
+    history_path: ARTIFACT_HISTORY_PATH,
+    record_id: "tos.artifact.sumerian.adab.oim-a00645",
+    record_type: "artifact",
+    command_id: "test:pg-native-artifact-metadata-revision",
+    form_ids: ARTIFACT_FORM_IDS,
+    form_fields: ARTIFACT_FORM_FIELDS,
+    allowed_fields: &["physical_description"],
+    record_id_field: "artifact_id",
+    record_schema_version: Some("tos_artifact_source_witness_v2"),
+    preferred_label: None,
+    notes: None,
+    native_field_patch: Some(("physical_description", ARTIFACT_PHYSICAL_DESCRIPTION)),
+    resulting_version: 2,
+    resulting_form_version: 2,
 };
 
 fn software_component_paths() -> Vec<String> {
@@ -546,6 +594,41 @@ fn selected_work_source_members(repository: &Path, private_root: &Path) -> Sourc
     members
 }
 
+fn selected_native_source_members(
+    repository: &Path,
+    private_root: &Path,
+    target: RevisionTarget,
+) -> SourceMembers {
+    fs::create_dir_all(private_root).unwrap();
+    fs::set_permissions(private_root, fs::Permissions::from_mode(0o700)).unwrap();
+    let mut members = SourceMembers::new();
+    for path in [target.source_path, target.forms_path] {
+        copy_repository_member(repository, private_root, &mut members, path);
+    }
+    if repository.join(target.history_path).exists() {
+        copy_repository_member(repository, private_root, &mut members, target.history_path);
+    }
+    for path in SHARED_SOURCE {
+        copy_repository_member(repository, private_root, &mut members, path);
+    }
+    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_file()
+            && entry
+                .file_name()
+                .to_str()
+                .unwrap()
+                .ends_with(".schema.json")
+        {
+            let path = format!("ToS/contracts/{}", entry.file_name().to_str().unwrap());
+            copy_repository_member(repository, private_root, &mut members, &path);
+        }
+    }
+    assert!(members.len() <= 512);
+    assert!(members.values().map(|(raw, _)| raw.len()).sum::<usize>() <= 16 * 1024 * 1024);
+    members
+}
+
 fn source_counters(members: &SourceMembers) -> Value {
     let contract_members = members
         .iter()
@@ -609,6 +692,19 @@ fn source_cut(
     fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
     let copy_root = scratch.0.join("source-copy");
     let members = selected_members(repository, &copy_root, records);
+    source_cut_from_members(scratch, copy_root, members, deadline, cancelled)
+}
+
+fn native_source_cut(
+    repository: &Path,
+    target: RevisionTarget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCutFixture {
+    let scratch = ScratchRoot::new();
+    fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let copy_root = scratch.0.join("source-copy");
+    let members = selected_native_source_members(repository, &copy_root, target);
     source_cut_from_members(scratch, copy_root, members, deadline, cancelled)
 }
 
@@ -962,13 +1058,13 @@ fn bootstrap_case_on_lab(
     } else {
         vec!["record.revise"]
     };
-    let config = json!({
-        "schema_version":if target.record_type == "work" { "tos_local_corpus_revision_owner_v3" } else { "tos_local_corpus_revision_owner_v1" },
+    let mut config = json!({
+        "schema_version":target.owner_schema,
         "uid":uid,
         "principal_id":"test:private-pg-source-revision",
         "source_root":source_root,
         "source_path":target.source_path,
-        "record_id":record["record_id"],
+        "record_id":record[target.record_id_field],
         "authority_ref":"test:bounded-pg-source-revision",
         "allowed_form_ids":target.form_ids,
         "allowed_fields":target.allowed_fields,
@@ -976,6 +1072,9 @@ fn bootstrap_case_on_lab(
         "expires_at":"2099-01-01T00:00:00Z",
         "record_type":target.record_type
     });
+    if let Some(schema_version) = target.record_schema_version {
+        config["record_schema_version"] = json!(schema_version);
+    }
     let owner_raw = canonical(&config);
     fs::write(&owner_config, &owner_raw).unwrap();
     fs::set_permissions(&owner_config, fs::Permissions::from_mode(0o600)).unwrap();
@@ -1099,6 +1198,60 @@ fn invocation(
     assert!(invocation_path.is_absolute());
     fs::write(invocation_path, canonical(&value)).unwrap();
     fs::set_permissions(invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+}
+
+fn local_rights_invocation(
+    case: &RevisionCase,
+    binary: &Path,
+    invocation_path: &Path,
+    lock_timeout_ms: u64,
+) -> String {
+    let owner_path = case._owner_scratch.0.join("local-rights-owner.json");
+    let owner = json!({
+        "schema_version":"tos_local_pg_rights_revoke_owner_v1",
+        "uid":rustix::process::getuid().as_raw(),
+        "source_root":case.source_root,
+        "domain":case.lab.domain,
+        "principal_id":"test:private-pg-local-rights",
+        "allowed_operations":["rights.revoke"],
+        "expires_at":"2099-01-01T00:00:00Z"
+    });
+    fs::write(&owner_path, canonical(&owner)).unwrap();
+    fs::set_permissions(&owner_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let configuration_digest = owner_configuration_digest(&owner_path);
+    let invocation = json!({
+        "schema_version":"tos_local_pg_rights_revoke_invocation_v1",
+        "owner_config":owner_path,
+        "private_source_root":case.source_root,
+        "native_executable":binary,
+        "native_executable_sha256":Digest256::of_bytes(&fs::read(binary).unwrap()).to_prefixed(),
+        "budgets":{"lock_timeout_ms":lock_timeout_ms}
+    });
+    assert!(invocation_path.is_absolute());
+    fs::write(invocation_path, canonical(&invocation)).unwrap();
+    fs::set_permissions(invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    configuration_digest
+}
+
+fn invoke_local_rights_command(
+    binary: &Path,
+    invocation_path: &Path,
+    url: &str,
+    request: &Value,
+    expect_success: bool,
+    discard_reply: bool,
+) -> NativeInvocation {
+    invoke_with_expected_exit(
+        binary,
+        invocation_path,
+        url,
+        request,
+        discard_reply,
+        expect_success,
+        "tos_local_pg_rights_revoke_result_v1",
+        None,
+        false,
+    )
 }
 
 fn provision_work_revision_extension(
@@ -2505,7 +2658,11 @@ fn run_source_text_search_scenario(
     })
 }
 
-fn assert_source_text_disclosure_lease_blocks_revoke(case: &RevisionCase, consumer: &str) -> Value {
+fn assert_source_text_disclosure_lease_blocks_revoke(
+    case: &RevisionCase,
+    consumer: &str,
+    binary: &Path,
+) -> Value {
     let selection_path = source_text_selection_path(
         case,
         consumer,
@@ -2519,6 +2676,32 @@ fn assert_source_text_disclosure_lease_blocks_revoke(case: &RevisionCase, consum
         ._owner_scratch
         .0
         .join(format!("source-text-guard-{consumer}-release"));
+    let rights_invocation_path = case._owner_scratch.0.join(format!(
+        "source-text-guard-{consumer}-rights-invocation.json"
+    ));
+    let configuration_digest = local_rights_invocation(case, binary, &rights_invocation_path, 150);
+    let describe_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"describe",
+        "expected_configuration":configuration_digest
+    });
+    let before_revoke = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &describe_request,
+        true,
+        false,
+    );
+    assert!(before_revoke.result["rights"]["rights_allowed"] == true);
+    let revoke_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"rights.revoke",
+        "command_id":"test:source-text-lease-lock-timeout",
+        "expected_configuration":configuration_digest,
+        "expected_rights_version":before_revoke.result["rights"]["rights_version"],
+        "reason":"bounded disclosure-lease lock probe"
+    });
     let executable = std::env::current_exe().expect("integration test executable is available");
     let mut command = Command::new(executable);
     command.process_group(0);
@@ -2570,28 +2753,21 @@ fn assert_source_text_disclosure_lease_blocks_revoke(case: &RevisionCase, consum
         fs::read(&ready).unwrap(),
         b"current page and disclosure lease held"
     );
-    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
-    db.batch_execute("SET lock_timeout='150ms'").unwrap();
-    let revoke_attempt = db.execute(
-        "UPDATE cmd2_domain SET rights_allowed=false WHERE domain=$1",
-        &[&case.lab.domain],
+    let revoke_attempt = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &revoke_request,
+        false,
+        false,
     );
-    if revoke_attempt.is_ok() {
-        db.execute(
-            "UPDATE cmd2_domain SET rights_allowed=true WHERE domain=$1",
-            &[&case.lab.domain],
-        )
-        .expect("unexpectedly unblocked test revoke is restored");
-    }
-    let rights_allowed: bool = db
-        .query_one(
-            "SELECT rights_allowed FROM cmd2_domain WHERE domain=$1",
-            &[&case.lab.domain],
-        )
-        .unwrap()
-        .get(0);
-    assert!(rights_allowed, "the timed-out revoke made no rights change");
-    drop(db);
+    assert!(revoke_attempt.result["refused"].as_bool().unwrap());
+    assert!(
+        revoke_attempt.result["stderr"]
+            .as_str()
+            .unwrap()
+            .contains("CMD local rights state is locked")
+    );
     fs::write(&release, b"release").unwrap();
     let exit_deadline = Instant::now() + Duration::from_secs(10);
     let status = loop {
@@ -2613,16 +2789,23 @@ fn assert_source_text_disclosure_lease_blocks_revoke(case: &RevisionCase, consum
     let (stdout, stdout_bytes) = stdout_reader.join().unwrap();
     let (stderr, stderr_bytes) = stderr_reader.join().unwrap();
     assert_eq!(status.code(), Some(0));
-    let blocked_revoke = revoke_attempt
-        .expect_err("a current-page disclosure lease blocks a concurrent rights revoke");
+    let after_release = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &describe_request,
+        true,
+        false,
+    );
+    assert!(after_release.result["rights"]["rights_allowed"] == true);
     assert_eq!(
-        blocked_revoke.code(),
-        Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE)
+        after_release.result["rights"]["rights_version"],
+        before_revoke.result["rights"]["rights_version"]
     );
     json!({
         "typed_current_page_guard":"held across concurrent rights update attempt",
-        "concurrent_revoke_sqlstate":blocked_revoke.code().unwrap().code(),
-        "rights_after_timeout":rights_allowed,
+        "concurrent_revoke_refused":revoke_attempt.result["refused"],
+        "rights_after_timeout":after_release.result["rights"],
         "child_exit_status":status.code(),
         "child_stdout_bytes":stdout_bytes,
         "child_stderr_bytes":stderr_bytes,
@@ -2850,9 +3033,15 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         described["owner_configuration"],
         owner_configuration_digest(&case.owner_config)
     );
-    let mut fields = json!({"preferred_label":target.preferred_label});
+    let mut fields = json!({});
+    if let Some(preferred_label) = target.preferred_label {
+        fields["preferred_label"] = json!(preferred_label);
+    }
     if let Some(notes) = target.notes {
         fields["notes"] = json!(notes);
+    }
+    if let Some((field, raw_value)) = target.native_field_patch {
+        fields[field] = serde_json::from_str(raw_value).unwrap();
     }
     let preview_request = json!({
         "schema_version":"tos_local_source_command_v1",
@@ -2887,6 +3076,13 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     }
     if target.record_type == "work" {
         request["expected_publication"] = Value::Null;
+    } else if matches!(
+        target.owner_schema,
+        "tos_local_corpus_revision_owner_v2"
+            | "tos_local_corpus_revision_owner_v3"
+            | "tos_local_native_metadata_revision_owner_v1"
+    ) {
+        request["expected_publication"] = preview["publication_snapshot"].clone();
     }
     let before_head = case.lab.head_seq();
     let before_counts =
@@ -2926,9 +3122,14 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     assert_eq!(source_member(case, target.source_path), current_record);
     let after: Value = serde_json::from_slice(&current_record).unwrap();
     let mut expected: Value = serde_json::from_slice(&case.original_record).unwrap();
-    expected["preferred_label"] = json!(target.preferred_label);
+    if let Some(preferred_label) = target.preferred_label {
+        expected["preferred_label"] = json!(preferred_label);
+    }
     if let Some(notes) = target.notes {
         expected["notes"] = json!(notes);
+    }
+    if let Some((field, raw_value)) = target.native_field_patch {
+        expected[field] = serde_json::from_str(raw_value).unwrap();
     }
     expected["record_version"] = json!(target.resulting_version);
     assert_eq!(
@@ -2944,7 +3145,10 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         );
     }
     let forms: Value = serde_json::from_slice(&source_member(case, target.forms_path)).unwrap();
-    assert_eq!(forms["forms"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        forms["forms"].as_array().unwrap().len(),
+        target.form_ids.len()
+    );
     assert!(
         forms["forms"]
             .as_array()
@@ -3395,7 +3599,8 @@ fn project_case(
     ));
     let addition_text_search =
         run_source_text_search_scenario(case, binary, &consumer, addition_head);
-    let disclosure_lease = assert_source_text_disclosure_lease_blocks_revoke(case, &consumer);
+    let disclosure_lease =
+        assert_source_text_disclosure_lease_blocks_revoke(case, &consumer, binary);
     let receipt = record_correction(case, software, binary);
     let created_record = source_member(case, CREATED_RECORD_PATH);
     assert_eq!(
@@ -3559,13 +3764,97 @@ fn project_case(
         &consumer,
         tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
     );
-    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
-    db.execute(
-        "UPDATE cmd2_domain SET rights_allowed=false WHERE domain=$1",
-        &[&case.lab.domain],
-    )
-    .expect("the private fixture can model a rights revocation");
-    drop(db);
+    let rights_invocation_path = case
+        ._owner_scratch
+        .0
+        .join("source-text-projection-rights-invocation.json");
+    let configuration_digest =
+        local_rights_invocation(case, binary, &rights_invocation_path, 5_000);
+    let describe_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"describe",
+        "expected_configuration":configuration_digest
+    });
+    let before_revoke = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &describe_request,
+        true,
+        false,
+    );
+    assert!(before_revoke.result["rights"]["rights_allowed"] == true);
+    let revoke_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"rights.revoke",
+        "command_id":"test:source-text-projection-revoke",
+        "expected_configuration":configuration_digest,
+        "expected_rights_version":before_revoke.result["rights"]["rights_version"],
+        "reason":"withdraw current private CMD projection use"
+    });
+    let dropped_reply = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &revoke_request,
+        true,
+        true,
+    );
+    assert!(dropped_reply.result.is_null());
+    let replay = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &revoke_request,
+        true,
+        false,
+    );
+    assert!(replay.result["receipt"]["replayed"] == true);
+    assert!(
+        !replay
+            .result
+            .to_string()
+            .contains("withdraw current private CMD projection use"),
+        "the private revoke reason is not returned"
+    );
+    assert!(replay.result["current_rights"]["rights_allowed"] == false);
+    assert_eq!(
+        replay.result["current_rights"]["rights_version"],
+        replay.result["receipt"]["rights_version"]
+    );
+    let mut changed_replay = revoke_request.clone();
+    changed_replay["expected_rights_version"] =
+        replay.result["current_rights"]["rights_version"].clone();
+    let command_reuse = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &changed_replay,
+        false,
+        false,
+    );
+    assert!(command_reuse.result["refused"].as_bool().unwrap());
+    let command_reuse_response: Value =
+        serde_json::from_str(command_reuse.result["stdout"].as_str().unwrap())
+            .expect("command ID collision returns a typed owner error");
+    assert_eq!(command_reuse_response["error"], "JournalConflict");
+    let new_revoke = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"rights.revoke",
+        "command_id":"test:source-text-projection-second-revoke",
+        "expected_configuration":configuration_digest,
+        "expected_rights_version":replay.result["current_rights"]["rights_version"],
+        "reason":"a new command cannot revoke an already revoked domain"
+    });
+    let new_revoke_refusal = invoke_local_rights_command(
+        binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &new_revoke,
+        false,
+        false,
+    );
+    assert!(new_revoke_refusal.result["refused"].as_bool().unwrap());
     let revoked_search = invoke_source_text_search(
         binary,
         &selection_path,
@@ -3577,13 +3866,6 @@ fn project_case(
         String::from_utf8_lossy(&revoked_search.stderr).contains("source-text search refused"),
         "the native source-text owner refuses a rights-revoked projection"
     );
-    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
-    db.execute(
-        "UPDATE cmd2_domain SET rights_allowed=true WHERE domain=$1",
-        &[&case.lab.domain],
-    )
-    .expect("the private rights fixture is restored");
-    drop(db);
     json!({
         "consumer":consumer,
         "baseline_documents":baseline_rows.len(),
@@ -3605,6 +3887,12 @@ fn project_case(
         "addition_source_text_search":addition_text_search,
         "source_text_disclosure_lease":disclosure_lease,
         "pending_source_text_search":pending_text_search,
+        "local_cmd_rights_revoke":{
+            "lost_reply_recovered":replay.result["receipt"]["replayed"],
+            "command_id_reuse_refused":command_reuse.result["refused"],
+            "new_revoke_after_revocation_refused":new_revoke_refusal.result["refused"],
+            "current_rights":replay.result["current_rights"]
+        },
         "rights_revocation_refuses_source_text":{
             "exit_status":revoked_search.status.code(),
             "stderr":String::from_utf8_lossy(&revoked_search.stderr)
@@ -3813,7 +4101,24 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
     let mut one = bootstrap_case(&repository, &software, 1, deadline, &cancelled);
     let mut three = bootstrap_case(&repository, &software, 3, deadline, &cancelled);
     let binary = native_binary();
+    assert_eq!(
+        one.original_record, three.original_record,
+        "two private CMD domains select the same exact source bytes"
+    );
+    assert_ne!(one.lab.domain, three.lab.domain);
     let one_projection = project_case(&mut one, &software, 1, &binary);
+    let revoked_domain = one
+        .lab
+        .db
+        .local_rights_snapshot(&one.lab.domain)
+        .expect("the revoked domain retains its CMD-local rights snapshot");
+    let independent_domain = three
+        .lab
+        .db
+        .local_rights_snapshot(&three.lab.domain)
+        .expect("the same source bytes retain their independent domain rights");
+    assert!(!revoked_domain.rights_allowed);
+    assert!(independent_domain.rights_allowed);
     let three_projection = project_case(&mut three, &software, 3, &binary);
     for (records, projection) in [(1, &one_projection), (3, &three_projection)] {
         assert_bounded_committed_member_rows(
@@ -3922,6 +4227,125 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
     println!(
         "TOS_PG_REAL_REVISION {}",
         serde_json::to_string(&output).unwrap()
+    );
+}
+
+#[test]
+fn real_pg_selected_corpus_v2_and_v3_non_work_revisions_replay() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let binary = native_binary();
+    for (owner_schema, command_id) in [
+        (
+            "tos_local_corpus_revision_owner_v2",
+            "test:pg-selected-corpus-v2-agent-correction",
+        ),
+        (
+            "tos_local_corpus_revision_owner_v3",
+            "test:pg-selected-corpus-v3-agent-correction",
+        ),
+    ] {
+        let mut target = PARMENIDES_TARGET;
+        target.owner_schema = owner_schema;
+        target.command_id = command_id;
+        let source = source_cut(&repository, 1, deadline, &cancelled);
+        let mut case = bootstrap_case_from_cut(&software, source, target, deadline, &cancelled);
+        let result = record_correction(&mut case, &software, &binary);
+        assert_eq!(result["record_id"], target.record_id);
+        assert_eq!(result["source_path"], target.source_path);
+        assert_eq!(result["replayed"], true);
+        assert_eq!(case.lab.head_seq(), result["committed_head"]);
+    }
+}
+
+#[test]
+fn real_pg_native_artifact_revision_replays_and_refuses_revoked_rights() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let source = native_source_cut(&repository, ARTIFACT_TARGET, deadline, &cancelled);
+    let mut case =
+        bootstrap_case_from_cut(&software, source, ARTIFACT_TARGET, deadline, &cancelled);
+    let binary = native_binary();
+    let revision = record_correction(&mut case, &software, &binary);
+    assert_eq!(revision["record_id"], ARTIFACT_TARGET.record_id);
+    assert_eq!(revision["source_path"], ARTIFACT_TARGET.source_path);
+    assert_eq!(revision["replayed"], true);
+    assert_eq!(case.lab.head_seq(), revision["committed_head"]);
+
+    let rights_invocation_path = case
+        ._owner_scratch
+        .0
+        .join("artifact-rights-revoke-invocation.json");
+    let rights_configuration =
+        local_rights_invocation(&case, &binary, &rights_invocation_path, 5_000);
+    let rights_describe = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"describe",
+        "expected_configuration":rights_configuration
+    });
+    let before_revoke = invoke_local_rights_command(
+        &binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &rights_describe,
+        true,
+        false,
+    );
+    assert_eq!(before_revoke.result["rights"]["rights_allowed"], true);
+    let revoke = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"rights.revoke",
+        "command_id":"test:pg-native-artifact-rights-revoke",
+        "expected_configuration":rights_configuration,
+        "expected_rights_version":before_revoke.result["rights"]["rights_version"],
+        "reason":"Refuse later native Artifact use after local rights revocation."
+    });
+    let revoked = invoke_local_rights_command(
+        &binary,
+        &rights_invocation_path,
+        &case.lab.url,
+        &revoke,
+        true,
+        false,
+    );
+    assert_eq!(revoked.result["current_rights"]["rights_allowed"], false);
+
+    let counts_before_refusal =
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+    let source_before_refusal = source_member(&mut case, ARTIFACT_TARGET.source_path);
+    let pg_invocation_path = case._owner_scratch.0.join("revision-invocation.json");
+    let refused = invoke_refusal(
+        &binary,
+        &pg_invocation_path,
+        &case.lab.url,
+        &json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+    );
+    assert_eq!(refused.result["refused"], true);
+    assert_eq!(
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table)),
+        counts_before_refusal,
+        "rights-refused native describe adds no revision records"
+    );
+    assert_eq!(
+        source_member(&mut case, ARTIFACT_TARGET.source_path),
+        source_before_refusal,
+        "rights-refused native describe cannot alter the committed Artifact"
+    );
+    println!(
+        "TOS_PG_REAL_NATIVE_ARTIFACT_REVISION {}",
+        serde_json::to_string(&json!({
+            "record_id":ARTIFACT_TARGET.record_id,
+            "source_path":ARTIFACT_TARGET.source_path,
+            "owner_family":ARTIFACT_TARGET.owner_schema,
+            "revision":revision,
+            "rights_revoke":revoked.result,
+            "rights_refusal":refused.result
+        }))
+        .unwrap()
     );
 }
 
@@ -4085,7 +4509,7 @@ fn real_pg_selected_work_revision_recovers_ready_attempt_and_cold_reads_exact_hi
         false,
     )
     .result;
-    let mut fields = json!({"preferred_label":WORK_TARGET.preferred_label});
+    let mut fields = json!({"preferred_label":WORK_TARGET.preferred_label.unwrap()});
     if let Some(notes) = WORK_TARGET.notes {
         fields["notes"] = json!(notes);
     }

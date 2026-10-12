@@ -14,7 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const CONTEXT_SCHEMA_ID: &str =
@@ -379,7 +379,7 @@ pub(crate) struct OwnerTextContext {
     configuration_raw: Vec<u8>,
     configuration_held: HeldOwnerFile,
     schema_raw: Vec<u8>,
-    schema_held: HeldOwnerFile,
+    schema_held: Option<HeldOwnerFile>,
     public_root: PathBuf,
     private_root: PathBuf,
     private_prefix: String,
@@ -389,6 +389,15 @@ pub(crate) struct OwnerTextContext {
     private_identity: (u64, u64, u32, u32),
     uid: u32,
     held_reads: RefCell<BTreeMap<PathBuf, HeldOwnerFile>>,
+    /// Exact selected source bytes supplied by a fenced PG read session. When
+    /// present this map is authoritative and a missing member fails closed;
+    /// it never falls back to either filesystem root.
+    pg_selected_members: RefCell<Option<BTreeMap<String, Vec<u8>>>>,
+    /// Digest of a bounded public-source plus private-store identity inventory
+    /// read from the selected PG epoch. The PG writer rechecks its source and
+    /// private generations at commit, so later owner validation must not
+    /// replace it with a local filesystem census.
+    pg_identity_snapshot: RefCell<Option<Digest256>>,
 }
 
 /// One protected initial-layer delegation. It selects an operation and exact
@@ -1503,6 +1512,10 @@ impl OwnerTextInitialLayerSelection {
 }
 
 impl OwnerTextContext {
+    pub(crate) fn configuration_path(&self) -> &Path {
+        &self.configuration_path
+    }
+
     pub(crate) fn private_root(&self) -> &Path {
         &self.private_root
     }
@@ -1590,13 +1603,103 @@ impl OwnerTextContext {
             .ok_or(SourceCommandError::Invalid("owner-local package directory"))
     }
 
+    /// Return the stable logical package key for the PostgreSQL private
+    /// namespace. Unlike the filesystem publication target this does not
+    /// require a local package directory or consult local package bytes.
+    pub(crate) fn private_package_target_ref(
+        &self,
+        reference: &str,
+    ) -> SourceCommandResult<String> {
+        let (_, private) = self.physical(reference)?;
+        if !private {
+            return Err(SourceCommandError::Denied("owner-local private target"));
+        }
+        let target_ref = reference
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("owner-local package parent"))?
+            .0;
+        if !target_ref.starts_with(&self.private_prefix) || RelativePath::parse(target_ref).is_err()
+        {
+            return Err(SourceCommandError::Invalid("owner-local package target"));
+        }
+        Ok(target_ref.to_owned())
+    }
+
+    /// A logical marker used only by the PG identity adapter, whose installed
+    /// snapshot bypasses filesystem path enumeration. No physical path is
+    /// opened or created for the private package namespace.
+    pub(crate) fn private_package_target_marker(
+        &self,
+        reference: &str,
+    ) -> SourceCommandResult<PathBuf> {
+        Ok(PathBuf::from(self.private_package_target_ref(reference)?))
+    }
+
+    pub(crate) fn private_package_target_for_owner_route(
+        &self,
+        reference: &str,
+    ) -> SourceCommandResult<PathBuf> {
+        if self.has_pg_selected_members()? {
+            self.private_package_target_marker(reference)
+        } else {
+            self.private_new_package_target(reference)
+        }
+    }
+
+    pub(crate) fn private_prefix(&self) -> &str {
+        &self.private_prefix
+    }
+
+    pub(crate) fn is_owner_private_reference(&self, reference: &str) -> bool {
+        reference.starts_with(OWNER_HOME)
+    }
+
     /// `selected_schema` must be the actual selected public-cut member; this
     /// transport checks exact bytes, while the caller's schema worker checks
     /// the configuration against that selected contract before using it.
     pub(crate) fn select(
         configuration_path: &Path,
         selected_schema: &[u8],
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, JsonValue)> {
+        Self::select_with_schema_transport(
+            configuration_path,
+            selected_schema,
+            false,
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Select a protected local owner context while taking its contract bytes
+    /// only from the active fenced PG source session. Owner configuration and
+    /// root identities remain local protected inputs; the filesystem source
+    /// mirror is never read for this schema.
+    pub(crate) fn select_pg(
+        configuration_path: &Path,
+        selected_schema: &[u8],
+        worker: &mut dyn CutSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, JsonValue)> {
+        Self::select_with_schema_transport(
+            configuration_path,
+            selected_schema,
+            true,
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn select_with_schema_transport(
+        configuration_path: &Path,
+        selected_schema: &[u8],
+        pg_selected: bool,
+        worker: &mut dyn CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<(Self, JsonValue)> {
@@ -1660,17 +1763,23 @@ impl OwnerTextContext {
             ));
         }
         let schema_path = public_root.join(CONTEXT_SCHEMA);
-        let (schema_held, schema_raw) = select_held_file(
-            &schema_path,
-            uid,
-            false,
-            MAX_CONTEXT_BYTES,
-            deadline,
-            cancelled,
-        )?;
-        if schema_raw != selected_schema
+        let (schema_held, schema_raw) = if pg_selected {
+            (None, selected_schema.to_vec())
+        } else {
+            let (held, raw) = select_held_file(
+                &schema_path,
+                uid,
+                false,
+                MAX_CONTEXT_BYTES,
+                deadline,
+                cancelled,
+            )?;
+            (Some(held), raw)
+        };
+        if (!pg_selected && schema_raw != selected_schema)
             || cmd::text(&cmd::parse(&schema_raw)?, "$id")? != CONTEXT_SCHEMA_ID
-            || worker.contract_digest(CONTEXT_SCHEMA) != Some(Digest256::of_bytes(&schema_raw))
+            || worker.selected_contract_digest(CONTEXT_SCHEMA)
+                != Some(Digest256::of_bytes(&schema_raw))
         {
             return Err(SourceCommandError::Conflict(
                 "owner-local selected context schema",
@@ -1711,6 +1820,8 @@ impl OwnerTextContext {
                 private_identity,
                 uid,
                 held_reads: RefCell::new(BTreeMap::new()),
+                pg_selected_members: RefCell::new(None),
+                pg_identity_snapshot: RefCell::new(None),
             },
             config,
         ))
@@ -1739,6 +1850,18 @@ impl OwnerTextContext {
         reference
             .strip_prefix(&self.private_prefix)
             .ok_or(SourceCommandError::Denied("owner-local wrong store"))?;
+        // A PG-selected Text package has no filesystem package tree. Its
+        // existence and exact members are checked by the private broker; the
+        // selected overlay is authoritative and must not require or inspect a
+        // parallel owner-local directory hierarchy.
+        if self
+            .pg_selected_members
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?
+            .is_some()
+        {
+            return Ok(());
+        }
         let mut parent = tos_fd_open::open_absolute_directory(&self.private_root)
             .map_err(|_| SourceCommandError::Conflict("owner-local private root changed"))?;
         if identity(&checked_directory(&parent, self.uid, true)?) != self.private_identity {
@@ -1763,6 +1886,24 @@ impl OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<u8>> {
         let (path, confidential) = self.physical(reference)?;
+        if let Some(selected) = self
+            .pg_selected_members
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?
+            .as_ref()
+        {
+            self.verify_context_base(deadline, cancelled)?;
+            let bytes = selected.get(reference).ok_or(SourceCommandError::Conflict(
+                "PostgreSQL owner-selected member unavailable",
+            ))?;
+            if bytes.len() > max {
+                return Err(SourceCommandError::Unsupported(
+                    "PostgreSQL owner-selected member byte budget",
+                ));
+            }
+            active(deadline, cancelled)?;
+            return Ok(bytes.clone());
+        }
         if confidential {
             self.check_private_parents(reference)?;
         }
@@ -1797,6 +1938,134 @@ impl OwnerTextContext {
         Ok(bytes)
     }
 
+    /// Install the complete exact-byte selection used by one PG Text owner
+    /// preparation. Installation is one-shot: semantic readers cannot replace
+    /// a selected member with an alternate filesystem or caller-supplied copy.
+    pub(crate) fn install_pg_selected_members(
+        &self,
+        members: BTreeMap<String, Vec<u8>>,
+    ) -> SourceCommandResult<()> {
+        if members.is_empty()
+            || members.len() > 32_768
+            || members.iter().any(|(reference, bytes)| {
+                !reference.starts_with("ToS/")
+                    || RelativePath::parse(reference).is_err()
+                    || bytes.len() > 32 * 1024 * 1024
+            })
+            || members
+                .values()
+                .try_fold(0usize, |total, bytes| total.checked_add(bytes.len()))
+                .is_none_or(|total| total > 64 * 1024 * 1024)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "PostgreSQL owner-selected member inventory budget",
+            ));
+        }
+        let mut selected = self
+            .pg_selected_members
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?;
+        if selected.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL owner-selected member inventory already installed",
+            ));
+        }
+        *selected = Some(members);
+        Ok(())
+    }
+
+    /// Add exact bytes observed through a held PostgreSQL source session to
+    /// the one owner-selected transport. This lets the semantic resolver
+    /// first select its dependency closure, after which the maintained
+    /// preparation engine can reread only those same bytes.
+    pub(crate) fn extend_pg_selected_members(
+        &self,
+        additions: BTreeMap<String, Vec<u8>>,
+    ) -> SourceCommandResult<()> {
+        let mut selected = self
+            .pg_selected_members
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?;
+        let current = selected.as_mut().ok_or(SourceCommandError::Conflict(
+            "PostgreSQL owner-selected source inventory is not installed",
+        ))?;
+        for (reference, bytes) in additions {
+            if !reference.starts_with("ToS/")
+                || RelativePath::parse(&reference).is_err()
+                || bytes.len() > 32 * 1024 * 1024
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "PostgreSQL owner-selected member inventory budget",
+                ));
+            }
+            if current
+                .get(&reference)
+                .is_some_and(|previous| previous != &bytes)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PostgreSQL owner-selected member changed during preparation",
+                ));
+            }
+            current.insert(reference, bytes);
+        }
+        if current.len() > 32_768
+            || current
+                .values()
+                .try_fold(0usize, |total, bytes| total.checked_add(bytes.len()))
+                .is_none_or(|total| total > 64 * 1024 * 1024)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "PostgreSQL owner-selected member inventory budget",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn install_pg_identity_snapshot(
+        &self,
+        snapshot: Digest256,
+    ) -> SourceCommandResult<()> {
+        let mut selected = self
+            .pg_identity_snapshot
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("owner-local identity selection state"))?;
+        if selected.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL owner identity selection already installed",
+            ));
+        }
+        *selected = Some(snapshot);
+        Ok(())
+    }
+
+    pub(crate) fn pg_identity_snapshot(&self) -> SourceCommandResult<Option<Digest256>> {
+        Ok(*self
+            .pg_identity_snapshot
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("owner-local identity selection state"))?)
+    }
+
+    pub(crate) fn has_pg_selection(&self) -> SourceCommandResult<bool> {
+        Ok(self
+            .pg_selected_members
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?
+            .is_some()
+            && self
+                .pg_identity_snapshot
+                .try_borrow()
+                .map_err(|_| SourceCommandError::Invalid("owner-local identity selection state"))?
+                .is_some())
+    }
+
+    pub(crate) fn has_pg_selected_members(&self) -> SourceCommandResult<bool> {
+        Ok(self
+            .pg_selected_members
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?
+            .is_some())
+    }
+
     /// Read an exact already selected private package. The caller chooses the
     /// operation-specific file set; a directory entry cannot become authority
     /// merely by being present. This method is read-only and issues no replay
@@ -1825,6 +2094,54 @@ impl OwnerTextContext {
             return Err(SourceCommandError::Denied(
                 "owner-local private package route",
             ));
+        }
+        if let Some(selected) = self
+            .pg_selected_members
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("owner-local selected read state"))?
+            .as_ref()
+        {
+            self.verify_context_base(deadline, cancelled)?;
+            let prefix = format!("{directory_ref}/");
+            let selected_names = selected
+                .keys()
+                .filter_map(|reference| reference.strip_prefix(&prefix))
+                .filter(|name| !name.contains('/'))
+                .collect::<std::collections::BTreeSet<_>>();
+            let expected_names = expected
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>();
+            if selected_names != expected_names {
+                return Err(SourceCommandError::Conflict(
+                    "PostgreSQL private package member set differs",
+                ));
+            }
+            let mut files = BTreeMap::new();
+            let mut remaining = state_remaining.min(MAX_PRIVATE_PACKAGE_BYTES);
+            for name in expected {
+                active(deadline, cancelled)?;
+                let reference = format!("{directory_ref}/{name}");
+                let bytes = selected
+                    .get(&reference)
+                    .ok_or(SourceCommandError::Conflict(
+                        "PostgreSQL private package member unavailable",
+                    ))?;
+                if bytes.len() > remaining {
+                    return Err(SourceCommandError::Unsupported(
+                        "owner-local package state budget",
+                    ));
+                }
+                let bytes = bytes.clone();
+                remaining =
+                    remaining
+                        .checked_sub(bytes.len())
+                        .ok_or(SourceCommandError::Unsupported(
+                            "owner-local package state budget",
+                        ))?;
+                files.insert((*name).to_owned(), bytes);
+            }
+            return Ok(files);
         }
         self.check_private_parents(directory_ref)?;
         let directory = tos_fd_open::open_absolute_directory(&path)
@@ -1975,25 +2292,96 @@ impl OwnerTextContext {
         Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
     }
 
+    /// Stable private broker scope identity for this protected local owner
+    /// context. It binds the account configuration, its exact path, and both
+    /// protected roots, while deliberately excluding the selected public
+    /// Text schema digest so a source-contract revision cannot orphan the
+    /// owner's private packages.
+    pub(crate) fn private_owner_scope_binding(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Digest256> {
+        self.verify_context_base(deadline, cancelled)?;
+        let tuple = |(dev, ino, uid, mode): (u64, u64, u32, u32)| {
+            JsonValue::Array(vec![
+                cmd::number(dev),
+                cmd::number(ino),
+                cmd::number(u64::from(uid)),
+                cmd::number(u64::from(mode)),
+            ])
+        };
+        let binding = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_owner_local_private_scope_v1"),
+            ),
+            ("uid", cmd::number(u64::from(self.uid))),
+            (
+                "configuration_path",
+                cmd::string(
+                    self.configuration_path
+                        .to_str()
+                        .ok_or(SourceCommandError::Invalid("owner-local path UTF-8"))?,
+                ),
+            ),
+            (
+                "configuration_sha256",
+                cmd::string(&Digest256::of_bytes(&self.configuration_raw).to_prefixed()),
+            ),
+            (
+                "roots",
+                cmd::object(vec![
+                    ("source-contract-root", tuple(self.public_identity)),
+                    ("owner-local-root", tuple(self.private_identity)),
+                ]),
+            ),
+            (
+                "routing",
+                cmd::object(vec![
+                    ("private_prefix", cmd::string(&self.private_prefix)),
+                    (
+                        "public_root",
+                        cmd::string(
+                            self.public_root
+                                .to_str()
+                                .ok_or(SourceCommandError::Invalid("owner-local root UTF-8"))?,
+                        ),
+                    ),
+                    (
+                        "private_root",
+                        cmd::string(
+                            self.private_root
+                                .to_str()
+                                .ok_or(SourceCommandError::Invalid("owner-local root UTF-8"))?,
+                        ),
+                    ),
+                ]),
+            ),
+        ]);
+        Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
+    }
+
     fn verify_context_base(
         &self,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
         verify_held_file(&self.configuration_held, self.uid, deadline, cancelled)?;
-        verify_held_file(&self.schema_held, self.uid, deadline, cancelled)?;
+        if let Some(schema_held) = &self.schema_held {
+            verify_held_file(schema_held, self.uid, deadline, cancelled)?;
+        }
         if read_held_fd(
             &self.configuration_held.file,
             MAX_CONTEXT_BYTES,
             deadline,
             cancelled,
         )? != self.configuration_raw
-            || read_held_fd(
-                &self.schema_held.file,
-                MAX_CONTEXT_BYTES,
-                deadline,
-                cancelled,
-            )? != self.schema_raw
+            || self.schema_held.as_ref().is_some_and(|schema_held| {
+                read_held_fd(&schema_held.file, MAX_CONTEXT_BYTES, deadline, cancelled)
+                    .map(|raw| raw != self.schema_raw)
+                    .unwrap_or(true)
+            })
         {
             return Err(SourceCommandError::Conflict(
                 "owner-local configuration or contract changed",

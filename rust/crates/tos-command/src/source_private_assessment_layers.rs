@@ -24,12 +24,12 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::{Digest256, JsonValue, SourceRevision};
 use tos_source_store::CorpusCutReader;
 use tos_validation::assessment::{
     AssessmentLayerQualityObservation, AssessmentRecordInput, MAX_RECORD_BYTES,
 };
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 const LAYER_SCHEMA: &str = "ToS/contracts/source-text-layer.schema.json";
 const BINDING_SCHEMA: &str = "ToS/contracts/native-text-layer-binding.schema.json";
@@ -48,6 +48,23 @@ const MAX_ORIGINAL_V6: u64 = 128 * 1024 * 1024;
 const MAX_SOURCE_BYTES_V5: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_FILES: usize = 128;
 const MAX_PAGE_IMAGE: u64 = 10 * 1024 * 1024;
+
+/// Closed PG schema set used by the selected v5/v6 native-layer resolver.
+/// Keep these names beside the maintained layer reader so transport adapters
+/// cannot silently drift from its contract closure.
+pub(crate) fn selected_pg_contract_paths() -> &'static [&'static str] {
+    &[
+        LAYER_SCHEMA,
+        BINDING_SCHEMA,
+        TEXT_COMPARISON_SCHEMA,
+        DERIVATION_COMPARISON_SCHEMA,
+        PAGE_COMPARISON_SCHEMA,
+        ANCHOR_SCHEMA,
+        CORPUS_SCHEMA,
+        MANIFEST_SCHEMA,
+        RIGHTS_SCHEMA,
+    ]
+}
 const MAX_PAGE_PIXELS: u64 = 12_000_000;
 const MAX_OCR_TEXT_BYTES: usize = 131_072;
 const RETAINED_PAGE_PROFILE: &str = "tos_retained_page_ocr_image_comparison_v1";
@@ -487,15 +504,130 @@ pub(crate) fn select_owner_local_layers(
     config: &JsonValue,
     source_records: &[AssessmentRecordInput],
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PrivateAssessmentLayers> {
-    if cut.current().revision() != worker.source_revision() {
+    let source_revision = cut.current().revision().clone();
+    if worker.selected_source_revision() != Some(source_revision.clone()) {
         return Err(SourceCommandError::Conflict(
             "private assessment layer worker and source cut differ",
         ));
     }
+    select_owner_local_layers_with_contract_reader(
+        owner,
+        selected_context,
+        config,
+        source_records,
+        worker,
+        |name| {
+            let path = tos_foundation::RelativePath::parse(name)
+                .map_err(|_| SourceCommandError::Invalid("private assessment contract path"))?;
+            cut.read_member(
+                &source_revision,
+                &path,
+                MAX_RECORD_BYTES as u64,
+                deadline,
+                cancelled,
+            )
+            .map(|member| member.raw)
+            .map_err(|_| {
+                SourceCommandError::Conflict("private assessment selected contract changed")
+            })
+        },
+        deadline,
+        cancelled,
+    )
+}
+
+/// PG-selected variant of the maintained v5/v6 layer comparison resolver.
+/// The caller supplies the exact contract bytes retained from the selected
+/// source revision; absent members fail closed and never fall back to the
+/// checkout filesystem.
+pub(crate) fn select_owner_local_layers_pg(
+    owner: &mut OwnerTextContext,
+    selected_context: &JsonValue,
+    config: &JsonValue,
+    source_records: &[AssessmentRecordInput],
+    source_revision: &SourceRevision,
+    contract_members: &BTreeMap<String, Vec<u8>>,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PrivateAssessmentLayers> {
+    if worker.selected_source_revision() != Some(*source_revision) {
+        return Err(SourceCommandError::Conflict(
+            "private assessment layer worker and source revision differ",
+        ));
+    }
+    select_owner_local_layers_with_contract_reader(
+        owner,
+        selected_context,
+        config,
+        source_records,
+        worker,
+        |name| {
+            contract_members
+                .get(name)
+                .cloned()
+                .ok_or(SourceCommandError::Conflict(
+                    "private assessment selected PG contract absent",
+                ))
+        },
+        deadline,
+        cancelled,
+    )
+}
+
+/// Indexed selected-input variant of the maintained v5/v6 layer resolver.
+/// The opaque PG identity remains separate from any source revision claim.
+pub(crate) fn select_owner_local_layers_selected_pg<I: Copy + Eq>(
+    owner: &mut OwnerTextContext,
+    selected_context: &JsonValue,
+    config: &JsonValue,
+    source_records: &[AssessmentRecordInput],
+    input_identity: &I,
+    contract_members: &BTreeMap<String, Vec<u8>>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PrivateAssessmentLayers> {
+    if worker.input_identity() != input_identity
+        || worker.profile() != tos_validation::FormatProfile::AssertedSourceCandidateV1
+    {
+        return Err(SourceCommandError::Conflict(
+            "private assessment layer worker selected-input identity differs",
+        ));
+    }
+    select_owner_local_layers_with_contract_reader(
+        owner,
+        selected_context,
+        config,
+        source_records,
+        worker,
+        |name| {
+            contract_members
+                .get(name)
+                .cloned()
+                .ok_or(SourceCommandError::Conflict(
+                    "private assessment selected PG contract absent",
+                ))
+        },
+        deadline,
+        cancelled,
+    )
+}
+
+fn select_owner_local_layers_with_contract_reader(
+    owner: &mut OwnerTextContext,
+    selected_context: &JsonValue,
+    config: &JsonValue,
+    source_records: &[AssessmentRecordInput],
+    worker: &mut dyn CutSchemaExecutor,
+    mut read_contract: impl FnMut(&str) -> SourceCommandResult<Vec<u8>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PrivateAssessmentLayers> {
     context_selection_matches(owner, selected_context)?;
     let schema_version = cmd::text(config, "schema_version")?;
     let v6 = schema_version == "tos_local_assessment_owner_v6";
@@ -744,20 +876,7 @@ pub(crate) fn select_owner_local_layers(
         currentness_byte_cost(&currentness)?,
     )?;
     for (name, expected) in &selected_contracts {
-        let path = tos_foundation::RelativePath::parse(name)
-            .map_err(|_| SourceCommandError::Invalid("private assessment contract path"))?;
-        let raw = cut
-            .read_member(
-                cut.current().revision(),
-                &path,
-                MAX_RECORD_BYTES as u64,
-                deadline,
-                cancelled,
-            )
-            .map_err(|_| {
-                SourceCommandError::Conflict("private assessment selected contract changed")
-            })?
-            .raw;
+        let raw = read_contract(name)?;
         if Digest256::of_bytes(&raw).to_prefixed() != *expected {
             return Err(SourceCommandError::Conflict(
                 "private assessment selected contract digest differs",
@@ -1134,7 +1253,7 @@ fn validate_disclosure_for_selection(
 
 fn read_target(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     selection: &JsonValue,
     subjects: &JsonValue,
     deadline: Instant,
@@ -1308,7 +1427,7 @@ fn validate_layer_metadata(
 
 fn validate_selected_source_metadata(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1404,7 +1523,7 @@ fn validate_selected_source_metadata(
 
 fn validate_target_anchors(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1461,7 +1580,7 @@ fn validate_target_anchors(
 
 fn validate_current_layer_rights(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     manifest: &JsonValue,
     deadline: Instant,
@@ -1606,7 +1725,7 @@ fn validate_current_layer_rights(
 
 fn validate_page_layer_profile(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     selection: &JsonValue,
     deadline: Instant,
@@ -1982,12 +2101,12 @@ fn comparison_match(comparison: &AssessmentRecordInput) -> bool {
 }
 
 fn remember_contract(
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     contracts: &mut BTreeMap<String, String>,
     name: &str,
 ) -> SourceCommandResult<()> {
     let digest = worker
-        .contract_digest(name)
+        .selected_contract_digest(name)
         .ok_or(SourceCommandError::Conflict(
             "private assessment selected comparison contract absent from source cut",
         ))?
@@ -2004,7 +2123,7 @@ fn remember_contract(
 }
 
 fn validate_schema(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     reference: &str,
     record: &AssessmentRecordInput,
     schema: &str,
@@ -2017,7 +2136,7 @@ fn validate_schema(
 }
 
 fn validate_schema_payload(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     reference: &str,
     payload: &JsonValue,
     schema: &str,
@@ -2350,7 +2469,7 @@ fn source_snapshot(
 
 fn read_whole_text_layer(
     owner: &mut OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     expected_layer: &JsonValue,
     deadline: Instant,
@@ -2397,7 +2516,7 @@ fn layer_source_payload_ref(
 
 fn validate_initial_anchor(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     entry: &JsonValue,
     deadline: Instant,
@@ -2588,7 +2707,7 @@ fn validate_initial_layer_profile(target: &TargetLayer) -> SourceCommandResult<(
 
 fn compare_initial_extraction(
     owner: &mut OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     payload_access: &JsonValue,
     deadline: Instant,
@@ -2767,7 +2886,7 @@ const XHTML_DEFAULT_POLICY: &str = r#"{
 
 fn read_lineage_layer(
     owner: &OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     origin_id: &str,
     deadline: Instant,
@@ -2975,7 +3094,7 @@ fn source_view_from_anchor(
 
 fn compare_derived_layer(
     owner: &mut OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &mut TargetLayer,
     payload_access: &JsonValue,
     deadline: Instant,
@@ -3446,7 +3565,7 @@ fn read_exact_png(
 
 fn compare_page_ocr(
     owner: &mut OwnerTextContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     target: &TargetLayer,
     payload_access: &JsonValue,
     selection: &JsonValue,

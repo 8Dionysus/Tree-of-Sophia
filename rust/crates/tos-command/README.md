@@ -16,6 +16,12 @@ source-code or bundled-DDL file fingerprints remain incompatible and are
 refused rather than silently rebound. No automatic migration or installed
 production PostgreSQL compatibility is claimed.
 
+The retained CMD outbox stores a nullable PostgreSQL `enqueued_at` clock on
+each new event. The additive schema initializer leaves earlier rows NULL so
+their age stays explicitly unknown; it does not estimate a timestamp from the
+sequence or from the client. The selected projection owner can query the oldest
+event after its durable cursor through the bounded `queue-age` operation.
+
 `DurablePgCoordinator` binds registered attempts and exact STO locators to atomic current/history/receipt/log/outbox writes. Current rights, rule/schema contracts, job leases, retention pins and audit/restore fences are checked at commit and replay. Private source creation also binds owner-derived exact, absent, identity and namespace-range observations to the registered package; predicate validation and invalidation commit together. Mutable external authored trees remain `FullOnly`.
 
 The former CMD1 `PgCoordinator`, synthetic byte references, independent SQL schema and protocol-only test target are retired. Their useful conflict, ordered commit, current authority, retained history, rollback, replay and closed-cut integrity obligations execute on the durable path. Real managed creation exercises form-identity and source-home phantom generations, definition/completeness refusal and unchanged projections on refusal. The earlier synthetic prefix/reverse/interval names did not establish any maintained source reader or completeness law; their removal grants no corresponding affected admission.
@@ -102,6 +108,13 @@ Requests are strict JSON objects:
   not initialize the source schema, domain or source store.
 - `{"operation":"apply","max_events":8}` resumes up to that many events.
 - `{"operation":"status"}` reports current, pending or stale progress.
+- `{"operation":"queue-age"}` reports the selected consumer's sequence lag
+  and oldest unprocessed event. Its millisecond age and UTC Unix-microsecond
+  enqueue time are present only when that event has a persisted server clock;
+  migrated rows without one report
+  `oldest_unprocessed_age_status:"unknown_historical"` and null
+  time/age. An uninitialized consumer starts at effective cursor zero. This is
+  telemetry for that projection consumer, not a global delivery acknowledgement.
 - `{"operation":"search","query":"Socrates","limit":20}` returns at most
   50 ranked hits, each with its exact source path and source revision.
 - `{"operation":"exact-source","source_path":"ToS/path/record.json","revision":1}`
@@ -156,6 +169,22 @@ The source-text projection is not a general source-command migration, does not
 resolve every knowledge-graph join and does not replace CLI/HTTP/MCP/Worker
 knowledge readers. Full Site exports and their existing versioned readers
 retain their compatibility contract while that migration is implemented.
+
+## Native PostgreSQL CMD-local rights revocation
+
+The protected `tos_local_pg_rights_revoke_invocation_v1` owner route accepts
+`describe` and `rights.revoke` only. Its owner configuration binds the invoking
+UID, one private source root, one CMD domain, an expiry, and the sole allowed
+operation `rights.revoke`. Revocation uses a stable command ID and expected
+current rights version; an exact retry recovers a committed result, while a
+changed request under that ID conflicts. A new command after revocation is
+refused. The command has no grant operation.
+
+This route changes only CMD's current-use rights bit for the selected
+PostgreSQL domain and keeps the supplied reason private; it does not decide ToS
+rights, consent, publication, or source admission. ToS policy and disclosure
+leases remain independently enforced by their owner. Projection readers check
+the current CMD rights version and refuse revoked or stale output.
 
 ## Native PostgreSQL record revision
 
@@ -300,6 +329,31 @@ database owner remains trusted; schema setup alone does not prove those live
 role grants or runtime behavior.
 
 Provide a nonempty `TOS_CMD_POSTGRES_URL` for a dedicated isolated PostgreSQL instance and run `cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture` from the OPS-integrated workspace. Explicit PG target execution fails closed without the URL. Destructive child/restore probes remain explicitly ignored and are not part of ordinary CI execution. Tests establish bounded mechanical behavior, not source or rights admission.
+
+## Native PostgreSQL public Text creation
+
+The ordinary `source-commands --invocation ABSOLUTE_INVOCATION < REQUEST_JSON`
+entry dispatches the independently selected
+`tos_local_pg_public_text_invocation_v1` profile to the bounded public Text
+adapter. The invocation has a closed top-level shape and selects the protected
+`tos_public_native_text_create_owner_v1` grant, current executable digest, one
+existing CMD domain/STO root/job fence, an exact software capture/component
+set, schema worker and budgets. It needs `TOS_SOURCE_PG_URL` for the existing
+PostgreSQL 16 local transport; credentials stay outside the invocation and
+request.
+
+The shape fixtures are
+[`invocation.example.json`](tests/fixtures/source-public-text-pg-v1/invocation.example.json)
+and
+[`create.request.example.json`](tests/fixtures/source-public-text-pg-v1/create.request.example.json).
+Their placeholders are not runnable credentials or owner selections. The
+module's source regression test checks the closed invocation and request
+grammar. Full fields, command order, source-selection boundary and recovery
+semantics live in the
+[public construction contract](../../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md).
+Construction selects only the ten contract schemas it consumes and checks
+delegated Text identities with batched, generation-fenced point lookups; it
+does not census the full Text metadata namespace.
 
 ## Explicit native backup and restore
 

@@ -935,14 +935,24 @@ fn materializations(
     request: &JsonValue,
     plan: &work_transaction::WorkPlan,
 ) -> SourceCommandResult<JsonValue> {
+    let outputs = plan
+        .files
+        .iter()
+        .filter_map(|file| file.after.as_ref().map(|raw| (file.path.as_str().to_owned(), raw.clone())))
+        .collect::<BTreeMap<_, _>>();
+    materializations_from_outputs(request, &outputs)
+}
+fn materializations_from_outputs(
+    request: &JsonValue,
+    outputs: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<JsonValue> {
     let link = cmd::field(request, "link")?;
     let claim = cmd::field(request, "claim")?;
     let selected = |suffix: &str| -> SourceCommandResult<JsonValue> {
-        let raw = plan
-            .files
+        let raw = outputs
             .iter()
-            .find(|file| file.path.as_str().ends_with(suffix))
-            .and_then(|file| file.after.as_ref())
+            .find(|(path, _)| path.ends_with(suffix))
+            .map(|(_, raw)| raw)
             .ok_or(SourceCommandError::Conflict(
                 "ObjectLink materialization source absent",
             ))?;
@@ -1406,69 +1416,7 @@ pub(crate) fn current_result_fields(
         limits,
         cancelled,
     )?)?)?;
-    let mappings = entity["types"]
-        .as_array()
-        .ok_or(SourceCommandError::Invalid("ObjectLink entity registry"))?;
-    let type_id = mappings
-        .iter()
-        .find(|v| {
-            v["source_mappings"].as_array().is_some_and(|rows| {
-                rows.iter().any(|row| {
-                    row["source_graph"] == "source-claims" && row["source_kind_id"] == "link"
-                })
-            })
-        })
-        .and_then(|v| v["type_id"].as_str())
-        .ok_or(SourceCommandError::Invalid(
-            "ObjectLink link profile mapping",
-        ))?;
-    let predicate = cmd::text(&scope, "predicate")?;
-    let relation = relations["relations"]
-        .as_array()
-        .ok_or(SourceCommandError::Invalid("ObjectLink relation registry"))?
-        .iter()
-        .find(|v| {
-            v["source_mappings"].as_array().is_some_and(|rows| {
-                rows.iter().any(|row| {
-                    row["source_graph"] == "source-claims"
-                        && row["source_predicate_id"] == predicate
-                })
-            })
-        })
-        .and_then(|v| v["relation_type_id"].as_str())
-        .ok_or(SourceCommandError::Invalid(
-            "ObjectLink relation profile mapping",
-        ))?;
-    let profiles = cmd::object(vec![
-        (
-            "link",
-            cmd::object(vec![
-                ("record_type", cmd::string("link")),
-                ("type_id", cmd::string(type_id)),
-                ("identity_field", cmd::string("record_id")),
-                (
-                    "schema_ref",
-                    cmd::string("ToS/contracts/source-link.schema.json"),
-                ),
-                ("schema_version", cmd::string("tos_source_link_v1")),
-                ("source_basename", cmd::string("link.json")),
-            ]),
-        ),
-        (
-            "claim",
-            cmd::object(vec![
-                ("predicate", cmd::string(predicate)),
-                (
-                    "schema_ref",
-                    cmd::string("ToS/contracts/object-link-claim-v2.schema.json"),
-                ),
-                ("relation_type_id", cmd::string(relation)),
-                ("schema_version", cmd::string("tos_object_link_claim_v2")),
-                ("source_basename", cmd::string("source-claims.jsonl")),
-                ("reader", cmd::string("identity-relation-v1")),
-            ]),
-        ),
-    ]);
+    let profiles = source_profiles(&scope, &entity, &relations)?;
     snapshot.verify_current(fs, limits.deadline, cancelled)?;
     Ok(cmd::object(vec![
         ("schema_version", cmd::string("tos_object_link_result_v1")),
@@ -1505,6 +1453,87 @@ pub(crate) fn current_result_fields(
         ("grants_admission", JsonValue::Bool(false)),
     ]))
 }
+
+fn source_profiles(
+    scope: &JsonValue,
+    entity: &JsonValue,
+    relations: &JsonValue,
+) -> SourceCommandResult<JsonValue> {
+    let mappings = entity["types"]
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("ObjectLink entity registry"))?;
+    let type_id = mappings
+        .iter()
+        .find(|v| {
+            v["source_mappings"].as_array().is_some_and(|rows| {
+                rows.iter().any(|row| {
+                    row["source_graph"] == "source-claims" && row["source_kind_id"] == "link"
+                })
+            })
+        })
+        .and_then(|v| v["type_id"].as_str())
+        .ok_or(SourceCommandError::Invalid(
+            "ObjectLink link profile mapping",
+        ))?;
+    let predicate = cmd::text(scope, "predicate")?;
+    let relation = relations["relations"]
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("ObjectLink relation registry"))?
+        .iter()
+        .find(|v| {
+            v["source_mappings"].as_array().is_some_and(|rows| {
+                rows.iter().any(|row| {
+                    row["source_graph"] == "source-claims"
+                        && row["source_predicate_id"] == predicate
+                })
+            })
+        })
+        .and_then(|v| v["relation_type_id"].as_str())
+        .ok_or(SourceCommandError::Invalid(
+            "ObjectLink relation profile mapping",
+        ))?;
+    Ok(cmd::object(vec![
+        (
+            "link",
+            cmd::object(vec![
+                ("record_type", cmd::string("link")),
+                ("type_id", cmd::string(type_id)),
+                ("identity_field", cmd::string("record_id")),
+                (
+                    "schema_ref",
+                    cmd::string("ToS/contracts/source-link.schema.json"),
+                ),
+                ("schema_version", cmd::string("tos_source_link_v1")),
+                ("source_basename", cmd::string("link.json")),
+            ]),
+        ),
+        (
+            "claim",
+            cmd::object(vec![
+                ("predicate", cmd::string(predicate)),
+                (
+                    "schema_ref",
+                    cmd::string("ToS/contracts/object-link-claim-v2.schema.json"),
+                ),
+                ("relation_type_id", cmd::string(relation)),
+                ("schema_version", cmd::string("tos_object_link_claim_v2")),
+                ("source_basename", cmd::string("source-claims.jsonl")),
+                ("reader", cmd::string("identity-relation-v1")),
+            ]),
+        ),
+    ]))
+}
+
+#[path = "source_object_link/pg.rs"]
+mod pg;
+pub(crate) use pg::{
+    PG_FAMILY as OBJECT_LINK_PG_FAMILY_TAG, PgObjectLinkPreview, PgObjectLinkRequirements,
+    PreparedPgObjectLink,
+    describe_pg_object_link,
+    expected_inventory_contributions_from_writes,
+    expected_revision_indexes_from_writes as expected_object_link_revision_indexes,
+    pg_object_link_requirements, prepare_pg_object_link, prepare_pg_object_link_preview,
+};
 
 #[cfg(test)]
 #[path = "source_object_link_tests.rs"]

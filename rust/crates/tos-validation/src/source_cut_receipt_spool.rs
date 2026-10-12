@@ -1004,6 +1004,10 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutorSpooling {
         Some(self.inner.source_revision())
     }
 
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.contract_digest(contract)
+    }
+
     fn check(
         &mut self,
         path: &str,

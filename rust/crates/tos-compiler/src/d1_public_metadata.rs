@@ -17,7 +17,8 @@ use tos_foundation::{Digest256, Digest256Hasher};
 const SCHEMA: &str = "tos_cloudflare_edge_read_model_v9";
 const CONTENT: &str = "tos_cloudflare_edge_content_v5";
 const SEARCH: &str = "tos_knowledge_search_read_model_v3";
-const PRODUCER: &str = "tos-rust-public-d1-full-v1";
+pub(crate) const PRODUCER: &str = "tos-rust-public-d1-full-v2";
+const PRODUCER_PROFILE_SCHEMA: &str = "tos_public_d1_producer_profile_v1";
 
 fn encoded(value: &Value, cap: usize) -> Result<String> {
     let raw = serde_json::to_string(value).map_err(|e| Error::Source(e.to_string()))?;
@@ -324,6 +325,15 @@ pub(crate) fn values(
         }
         Ok(())
     };
+    put(
+        "public_d1_producer_profile",
+        json!({
+            "schema":PRODUCER_PROFILE_SCHEMA,
+            "producer":PRODUCER,
+            "read_model_schema":SCHEMA,
+            "data_revision":metadata.revision,
+        }),
+    )?;
     put("data_revision", json!({"sha256":metadata.revision}))?;
     put(
         "view_positions",

@@ -1029,7 +1029,8 @@ under finite budgets. It is selected separately from the request and from the
 owner's grant; Rust repeats current source, rights and publication checks.
 This opt-in covers the exact delegated `describe`, prepare, create/revise,
 inspect, inspect-version and inspect-recovery operations. The default CLI
-remains on the maintained Python route. Neither route admits a proposal or
+also uses the maintained native route; the former Python route is retained
+only as historical comparison material. Neither route admits a proposal or
 exposes confidential bytes through HTTP.
 
 ### Confidential owner-local source profiles
@@ -1271,14 +1272,15 @@ changed validator accepts the same original bytes. Existing
 v1 receipts need no rewriting or fabricated retroactive dependency manifest;
 new writes retain their full expected-snapshot gate.
 
-`OwnerLocalSourceRecordProfiles(context, source_access, source_binding)` is the
-separate read-only Python facade. `validate` and `load` always inspect metadata
-only, even after an earlier exact read. `validate_native_binding(...,
-verify_content=True)` needs distinct exact-read scope; `snapshot()` rechecks
-all previously consumed metadata and exact content. Public registry/schema
-digests are visible, private source dependencies opaque. The facade has no
-catalog or export method and does not itself grant derivation rights or reserve
-identities. Commands provide those separate checks.
+The native owner-profile reader in
+`rust/crates/tos-command/src/source_private_profile.rs`, dispatched by
+`source_native_private_cli.rs`, is the separate read-only profile facade.
+`validate` and `load` always inspect metadata only, even after an earlier exact
+read. An exact content read requires its distinct selected scope; a snapshot
+rechecks all previously consumed metadata and exact content. Public
+registry/schema digests are visible, private source dependencies opaque. The
+facade has no catalog or export method and does not itself grant derivation
+rights or reserve identities. Commands provide those separate checks.
 
 ### Confidential source assessment v4
 

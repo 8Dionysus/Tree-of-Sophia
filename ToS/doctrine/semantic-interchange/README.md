@@ -91,9 +91,8 @@ registration and the selected semantic registries, requires both collections
 even when one is empty, and verifies their complete owner roots before making
 them eligible to query. An owner with different raw material must supply a
 separate reviewed adapter rather than relabel that material as this profile.
-This profile does not make the current Python knowledge builder emit an eighth
-source; its public graph contract and readers have their own compatibility
-route.
+This profile does not add an eighth source; its public graph contract and
+readers have their own compatibility route.
 
 ## Scoped composition and research corpora
 
@@ -732,7 +731,7 @@ Community, which additionally requires a shared-practice account. Institutional
 description requires its organized-role account. These content fields are required alongside names and notes. Assessment
 evaluates descriptive quality and identity. Ordinary `source.create`, `record.revise`,
 forms, catalog, both graph carriers and semantic property filters use the
-existing `corpus-metadata-v1` profile reader, without per-kind Python dispatch.
+existing `corpus-metadata-v1` profile reader, without per-kind runtime dispatch.
 Ancestry-aware queries retain one subject ID across the subtype and its bases.
 Full scope/content is mandatory human-form context. Separate qualified Claims
 describe attributed relations and membership.
@@ -1568,8 +1567,9 @@ calendar conversion, uncertainty-aware interval algebra, the full role,
 biography, causal and reception grammar,
 source-visible historical assessment and actual UI acceptance remain open.
 
-Validation: `python -m unittest discover -s tests -p test_source_witness_bibliographic_graph.py`, then the existing knowledge
-contract test and source-witness catalog/graph `--check` commands. The temporary
+Validation uses `tos-native-owner-command foundation --repo-root ROOT --invocation INVOCATION`
+through the `source_witness_foundation` lane, followed by the existing
+catalog/graph `--check` commands. The temporary
 historical associations in these tests are synthetic, even where their
 Agent/Place/Work endpoints are unchanged real corpus records. They are never
 historical evidence. No corpus migration is implied.

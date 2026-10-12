@@ -1,7 +1,9 @@
 # Native local Item adoption
 
-`source_item_commands.py` adds `item.adopt` and `item.adoption.recover` to the
-existing `source_commands.py` front door. It adopts one **already obtained
+The native handler `native-item-adoption` uses
+`rust/crates/tos-command/src/source_item_adoption.rs` through the
+`tos-native-owner-command source-commands` front door. It adds `item.adopt` and
+`item.adoption.recover` and adopts one **already obtained
 local file**, creates one provisional acquired Item and distinct
 `exemplified_by` Claim, and appends the existing Edition's
 `exemplar_claim_refs` with one version/form successor. Acquisition, text

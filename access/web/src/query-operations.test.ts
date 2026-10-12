@@ -25,6 +25,21 @@ describe("ToS query operations", () => {
     expect(result).toMatchObject({ snapshot_review: { current_snapshot: { projection_fingerprint: "abc" } } });
   });
 
+  it("forwards the exact resource-kind filter through corpus search only", async () => {
+    let requestedUrl = "";
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requestedUrl = url;
+      return { schema: "tos_corpus_mcp_search_v2" } as T;
+    });
+
+    await operations.invoke("tos.search", { mode: "corpus", query: "Alpha", limit: 7, resource_kind: "work" });
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(url.pathname).toBe("/api/corpus/search");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ query: "Alpha", limit: "7", resource_kind: "work" });
+    await expect(operations.invoke("tos.search", { mode: "philosophy", query: "Alpha", limit: 7, resource_kind: "work" }))
+      .rejects.toThrow("resource_kind must be a non-empty string for corpus search");
+  });
+
   it("forwards cancellation and all path constraints to the HTTP seam", async () => {
     const calls: Array<{ url: string; options?: RequestInit }> = [];
     const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {

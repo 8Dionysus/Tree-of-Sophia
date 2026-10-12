@@ -26,6 +26,9 @@ Commands use `tos_local_object_link_command_v1`:
   Renewal does not rewrite the original maker or capture. Changed dependencies,
   a mismatched scope or foreign third-state bytes prevent either action.
 
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+
 New homes are exactly `ToS/source-witnesses/links/<home>/link.json` and
 `ToS/source-witnesses/relations/<home>/source-claims.jsonl`. Each has its own
 source-copy Forms. The Claim home retains immutable request, runtime,

@@ -56,6 +56,7 @@ const marker=await read(join(selected.worker_root,'runtime/manifest.json'),selec
 const paired=await read(join(selected.worker_root,'dist/__edge/build-manifest.json'),selected.maximum_marker_bytes);
 assert.deepStrictEqual(marker,paired);const publication=observe(marker);
 assert.equal(publication.schema,'tos_cloudflare_edge_build_v1');assert.equal(publication.read_model_schema,'tos_cloudflare_edge_read_model_v9');
+assert.equal(publication.producer_profile,'tos-rust-public-d1-full-v2');
 assert.ok(/^[0-9a-f]{64}$/.test(publication.data_revision));
 const request={schema:'tos_native_worker_full_verification_v1',profile:selected.profile,maximum_seconds:selected.maximum_seconds,
  maximum_response_bytes:selected.maximum_response_bytes,maximum_marker_bytes:selected.maximum_marker_bytes,maximum_source_bytes:selected.maximum_source_bytes,

@@ -6,9 +6,10 @@ It does not broaden the EPUB-only v5 profile. The native Rust owner in
 `rust/crates/tos-command/src/source_private_assessment_layers.rs` is read-only:
 it selects the fixed owner **receipt verifier**, never Tesseract, a PDF renderer,
 a model, or a remote service. Authentication still belongs to the exact clean
-`abyss-stack` adapter; runtime admission remains with `abyss-machine`. The
-Python `assessment_journal.py` path no longer accepts v6. Comparison
-availability is not a quality verdict.
+`abyss-stack` adapter; runtime admission remains with `abyss-machine`.
+The retired Python journal path is not part of the maintained route. The native
+assessment owner accepts v6 through the handler above. Comparison availability
+is not a quality verdict.
 
 ## Independently selected profiles
 

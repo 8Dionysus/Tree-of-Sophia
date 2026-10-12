@@ -89,6 +89,7 @@ ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_epoch bigint CHECK (sou
 -- process-loss replay cannot bind a new config to an old prepare ID.
 ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_configuration_raw_digest char(64);
 ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_configuration_canonical_digest char(64);
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_publication_package bytea;
 
 -- Owner-derived unique identities. Original bytes remain in current/history.
 CREATE TABLE IF NOT EXISTS cmd2_source_index (
@@ -99,10 +100,243 @@ CREATE TABLE IF NOT EXISTS cmd2_source_index (
   definition_digest char(64) NOT NULL,
   PRIMARY KEY(domain,kind,token)
 );
+-- Text identities may legitimately recur on separate exact source members or
+-- retained ancestry. Keep public Text contributions multivalued by member;
+-- token admission is fenced by the matching cmd2_predicate generation.
+CREATE TABLE IF NOT EXISTS cmd2_source_text_identity (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  token text COLLATE "C" NOT NULL CHECK (length(token) BETWEEN 1 AND 4096),
+  path text COLLATE "C" NOT NULL,
+  member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
+  definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT cmd2_source_text_identity_public_path CHECK (
+    path LIKE 'ToS/%'
+    AND path <> 'ToS/source-witnesses/owner-local'
+    AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+  ),
+  PRIMARY KEY(domain,token,path)
+);
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='cmd2_source_text_identity'::regclass
+      AND conname='cmd2_source_text_identity_public_path'
+  ) THEN
+    ALTER TABLE cmd2_source_text_identity
+      ADD CONSTRAINT cmd2_source_text_identity_public_path CHECK (
+        path LIKE 'ToS/%'
+        AND path <> 'ToS/source-witnesses/owner-local'
+        AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+      );
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cmd2_source_text_identity_token_seek
+  ON cmd2_source_text_identity(domain,token COLLATE "C",path COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_source_text_identity_path_seek
+  ON cmd2_source_text_identity(domain,path COLLATE "C",token COLLATE "C");
+-- Semantic annotation entity IDs can have multiple packet owners. Keep this
+-- separate from the one-owner source identity table and fence each token with
+-- its own unique-predicate generation.
+CREATE TABLE IF NOT EXISTS cmd2_source_annotation_identity (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  token text COLLATE "C" NOT NULL CHECK (length(token) BETWEEN 1 AND 4096),
+  path text COLLATE "C" NOT NULL,
+  member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
+  definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT cmd2_source_annotation_identity_public_path CHECK (
+    path LIKE 'ToS/source-witnesses/%'
+    AND path <> 'ToS/source-witnesses/owner-local'
+    AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+  ),
+  PRIMARY KEY(domain,token,path)
+);
+CREATE INDEX IF NOT EXISTS cmd2_source_annotation_identity_token_seek
+  ON cmd2_source_annotation_identity(domain,token COLLATE "C",path COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_source_annotation_identity_path_seek
+  ON cmd2_source_annotation_identity(domain,path COLLATE "C",token COLLATE "C");
+-- Exact reverse Claim topology contributions for Item adoption. One row owns
+-- each current embodied_by/exemplified_by Claim; source bytes remain in
+-- cmd2_current/history and every endpoint range is fenced by cmd2_predicate.
+CREATE TABLE IF NOT EXISTS cmd2_source_claim_dependency (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  predicate text COLLATE "C" NOT NULL
+    CHECK (predicate IN ('embodied_by','exemplified_by')),
+  claim_id text COLLATE "C" NOT NULL
+    CHECK (length(claim_id) BETWEEN 1 AND 4096),
+  path text COLLATE "C" NOT NULL,
+  subject_endpoint text COLLATE "C" NOT NULL
+    CHECK (length(subject_endpoint) BETWEEN 1 AND 4096 AND subject_endpoint LIKE 'tos.%'),
+  object_endpoint text COLLATE "C" NOT NULL
+    CHECK (length(object_endpoint) BETWEEN 1 AND 4096 AND object_endpoint LIKE 'tos.%'),
+  member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
+  definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT cmd2_source_claim_dependency_public_path CHECK (
+    path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl'
+    AND path <> 'ToS/source-witnesses/owner-local'
+    AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+  ),
+  PRIMARY KEY(domain,claim_id)
+);
+CREATE INDEX IF NOT EXISTS cmd2_source_claim_dependency_subject_seek
+  ON cmd2_source_claim_dependency(domain,predicate COLLATE "C",subject_endpoint COLLATE "C",claim_id COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_source_claim_dependency_object_seek
+  ON cmd2_source_claim_dependency(domain,predicate COLLATE "C",object_endpoint COLLATE "C",claim_id COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_source_claim_dependency_path_seek
+  ON cmd2_source_claim_dependency(domain,path COLLATE "C",claim_id COLLATE "C");
+-- Exact reverse references used by source-navigation Claim refresh. Each Claim
+-- owns one row per complete JSON-value ToS ID or public source path; owner
+-- stream bytes remain authoritative in cmd2_current/history.
+CREATE TABLE IF NOT EXISTS cmd2_source_claim_navigation_reference (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  claim_id text COLLATE "C" NOT NULL
+    CHECK (length(claim_id) BETWEEN 1 AND 4096 AND claim_id LIKE 'tos.claim.%'),
+  path text COLLATE "C" NOT NULL,
+  basis text COLLATE "C" NOT NULL
+    CHECK (basis IN ('claim-value','owner-input','shared-schema')),
+  endpoint_kind text COLLATE "C" NOT NULL
+    CHECK (endpoint_kind IN ('tos-id','source-path')),
+  endpoint text COLLATE "C" NOT NULL CHECK (length(endpoint) BETWEEN 1 AND 4096),
+  member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
+  definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT cmd2_source_claim_navigation_reference_public_path CHECK (
+    path LIKE 'ToS/source-witnesses/%/source-claims.jsonl'
+    AND path <> 'ToS/source-witnesses/owner-local'
+    AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+  ),
+  CONSTRAINT cmd2_source_claim_navigation_reference_endpoint_shape CHECK (
+    (endpoint_kind='tos-id' AND endpoint LIKE 'tos.%') OR
+    (endpoint_kind='source-path' AND endpoint LIKE 'ToS/%'
+      AND endpoint <> 'ToS/source-witnesses/owner-local'
+      AND endpoint NOT LIKE 'ToS/source-witnesses/owner-local/%')
+  ),
+  PRIMARY KEY(domain,path,claim_id,endpoint_kind,endpoint,basis)
+);
+ALTER TABLE cmd2_source_claim_navigation_reference
+  ADD COLUMN IF NOT EXISTS basis text COLLATE "C" NOT NULL DEFAULT 'claim-value'
+  CHECK (basis IN ('claim-value','owner-input','shared-schema'));
+ALTER TABLE cmd2_source_claim_navigation_reference
+  DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_pkey;
+ALTER TABLE cmd2_source_claim_navigation_reference
+  ADD CONSTRAINT cmd2_source_claim_navigation_reference_pkey
+  PRIMARY KEY(domain,path,claim_id,endpoint_kind,endpoint,basis);
+ALTER TABLE cmd2_source_claim_navigation_reference
+  DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_public_path;
+ALTER TABLE cmd2_source_claim_navigation_reference
+  ADD CONSTRAINT cmd2_source_claim_navigation_reference_public_path CHECK (
+    path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl'
+    AND path <> 'ToS/source-witnesses/owner-local'
+    AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+  );
+CREATE INDEX IF NOT EXISTS cmd2_source_claim_navigation_reference_endpoint_seek
+  ON cmd2_source_claim_navigation_reference(domain,endpoint_kind COLLATE "C",endpoint COLLATE "C",path COLLATE "C",claim_id COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_source_claim_navigation_reference_path_seek
+  ON cmd2_source_claim_navigation_reference(domain,path COLLATE "C",claim_id COLLATE "C");
+-- Multiplicity-preserving current Item-manifest File assignments. Payload
+-- bytes remain in the protected custody store; this index contains metadata.
+CREATE TABLE IF NOT EXISTS cmd2_source_item_file_assignment (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  item_id text COLLATE "C" NOT NULL
+    CHECK (length(item_id) BETWEEN 1 AND 4096 AND item_id LIKE 'tos.item.%'),
+  manifest_path text COLLATE "C" NOT NULL,
+  edition_id text COLLATE "C" NOT NULL DEFAULT 'tos.edition.unmigrated'
+    CHECK (length(edition_id) BETWEEN 1 AND 4096 AND edition_id LIKE 'tos.edition.%'),
+  payload_ordinal integer NOT NULL CHECK (payload_ordinal >= 0),
+  file_id text COLLATE "C" NOT NULL
+    CHECK (length(file_id) BETWEEN 1 AND 4096 AND file_id LIKE 'tos.file.%'),
+  member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
+  rights_id text COLLATE "C" NOT NULL
+    CHECK (length(rights_id) BETWEEN 1 AND 4096 AND rights_id LIKE 'tos.rights.%'),
+  rights_digest char(64) NOT NULL CHECK (rights_digest ~ '^[0-9a-f]{64}$'),
+  definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT cmd2_source_item_file_assignment_public_path CHECK (
+    manifest_path LIKE 'ToS/source-witnesses/%/items/%/item.manifest.json'
+    AND manifest_path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+    AND manifest_path NOT LIKE 'ToS/source-witnesses/.record-revisions/%'
+  ),
+  PRIMARY KEY(domain,manifest_path,payload_ordinal)
+);
+ALTER TABLE cmd2_source_item_file_assignment
+  ADD COLUMN IF NOT EXISTS edition_id text COLLATE "C" NOT NULL DEFAULT 'tos.edition.unmigrated'
+    CHECK (length(edition_id) BETWEEN 1 AND 4096 AND edition_id LIKE 'tos.edition.%');
+CREATE INDEX IF NOT EXISTS cmd2_source_item_file_assignment_file_seek
+  ON cmd2_source_item_file_assignment(domain,file_id COLLATE "C",manifest_path COLLATE "C",payload_ordinal);
+CREATE INDEX IF NOT EXISTS cmd2_source_item_file_assignment_manifest_seek
+  ON cmd2_source_item_file_assignment(domain,manifest_path COLLATE "C",payload_ordinal);
+CREATE INDEX IF NOT EXISTS cmd2_source_item_file_assignment_item_seek
+  ON cmd2_source_item_file_assignment(domain,item_id COLLATE "C",manifest_path COLLATE "C",payload_ordinal);
+CREATE INDEX IF NOT EXISTS cmd2_source_item_file_assignment_rights_seek
+  ON cmd2_source_item_file_assignment(domain,rights_id COLLATE "C",manifest_path COLLATE "C",payload_ordinal);
+CREATE INDEX IF NOT EXISTS cmd2_source_item_file_assignment_edition_seek
+  ON cmd2_source_item_file_assignment(domain,edition_id COLLATE "C",manifest_path COLLATE "C",payload_ordinal);
 -- Exact owner-derived Agent inventory contribution; original body custody
 -- stays in current/history. NULL is an unproved scope, never empty inventory.
 ALTER TABLE cmd2_source_index ADD COLUMN IF NOT EXISTS inventory_projection bytea;
 ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_projections bytea;
+
+-- The current selected publication is an independent source-owned pointer.
+-- Its explicit generation-zero row is established from the full bootstrap cut;
+-- unrelated authored-source commits leave it unchanged. Transition history
+-- retains metadata-only packages while source bodies remain in current/history.
+CREATE TABLE IF NOT EXISTS cmd2_source_publication_current (
+  domain text PRIMARY KEY REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  state text NOT NULL CHECK (state IN ('absent','present')),
+  publication_generation bigint NOT NULL CHECK (publication_generation >= 0),
+  token text CHECK (token ~ '^sha256:[0-9a-f]{64}$'),
+  base_token text CHECK (base_token IS NULL OR base_token ~ '^sha256:[0-9a-f]{64}$'),
+  base_generation bigint NOT NULL CHECK (base_generation >= 0),
+  transaction_id text CHECK (transaction_id IS NULL OR transaction_id ~ '^sha256:[0-9a-f]{64}$'),
+  package_digest char(64) CHECK (package_digest IS NULL OR package_digest ~ '^[0-9a-f]{64}$'),
+  package_bytes bytea CHECK (package_bytes IS NULL OR octet_length(package_bytes) BETWEEN 1 AND 1048576),
+  source_commit_seq bigint NOT NULL CHECK (source_commit_seq >= 0),
+  store_id bytea NOT NULL CHECK (octet_length(store_id) = 16),
+  bootstrap_source_revision char(64) NOT NULL CHECK (bootstrap_source_revision ~ '^[0-9a-f]{64}$'),
+  bootstrap_membership_digest char(64) NOT NULL CHECK (bootstrap_membership_digest ~ '^[0-9a-f]{64}$'),
+  bootstrap_membership_count bigint NOT NULL CHECK (bootstrap_membership_count >= 0),
+  CHECK (
+    (state='absent' AND publication_generation=0 AND token IS NULL
+      AND base_token IS NULL AND base_generation=0 AND transaction_id IS NULL
+      AND package_digest IS NULL AND package_bytes IS NULL AND source_commit_seq=0)
+    OR
+    (state='present' AND publication_generation > 0 AND token IS NOT NULL
+      AND transaction_id IS NOT NULL AND package_digest IS NOT NULL
+      AND package_bytes IS NOT NULL AND source_commit_seq > 0
+      AND publication_generation = base_generation + 2
+      AND ((base_generation=0 AND base_token IS NULL)
+        OR (base_generation>0 AND base_token IS NOT NULL)))
+  )
+);
+CREATE TABLE IF NOT EXISTS cmd2_source_publication_history (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  publication_generation bigint NOT NULL CHECK (publication_generation >= 0),
+  state text NOT NULL CHECK (state IN ('absent','present')),
+  token text CHECK (token ~ '^sha256:[0-9a-f]{64}$'),
+  base_token text CHECK (base_token IS NULL OR base_token ~ '^sha256:[0-9a-f]{64}$'),
+  base_generation bigint NOT NULL CHECK (base_generation >= 0),
+  transaction_id text CHECK (transaction_id IS NULL OR transaction_id ~ '^sha256:[0-9a-f]{64}$'),
+  package_digest char(64) CHECK (package_digest IS NULL OR package_digest ~ '^[0-9a-f]{64}$'),
+  package_bytes bytea CHECK (package_bytes IS NULL OR octet_length(package_bytes) BETWEEN 1 AND 1048576),
+  source_commit_seq bigint NOT NULL CHECK (source_commit_seq >= 0),
+  store_id bytea NOT NULL CHECK (octet_length(store_id) = 16),
+  bootstrap_source_revision char(64) NOT NULL CHECK (bootstrap_source_revision ~ '^[0-9a-f]{64}$'),
+  bootstrap_membership_digest char(64) NOT NULL CHECK (bootstrap_membership_digest ~ '^[0-9a-f]{64}$'),
+  bootstrap_membership_count bigint NOT NULL CHECK (bootstrap_membership_count >= 0),
+  PRIMARY KEY (domain, publication_generation),
+  UNIQUE (domain, source_commit_seq),
+  CHECK (
+    (state='absent' AND publication_generation=0 AND token IS NULL
+      AND base_token IS NULL AND base_generation=0 AND transaction_id IS NULL
+      AND package_digest IS NULL AND package_bytes IS NULL AND source_commit_seq=0)
+    OR
+    (state='present' AND publication_generation > 0 AND token IS NOT NULL
+      AND transaction_id IS NOT NULL AND package_digest IS NOT NULL
+      AND package_bytes IS NOT NULL AND source_commit_seq > 0
+      AND publication_generation = base_generation + 2
+      AND ((base_generation=0 AND base_token IS NULL)
+        OR (base_generation>0 AND base_token IS NOT NULL)))
+  )
+);
+CREATE INDEX IF NOT EXISTS cmd2_source_publication_history_transaction_seek
+  ON cmd2_source_publication_history(domain,transaction_id,publication_generation);
 
 -- A ready member has every coordinate needed for exact cold STO recovery.
 -- The pin is shared across the members of one compound seal. The adapter must
@@ -265,8 +499,65 @@ CREATE TABLE IF NOT EXISTS cmd2_outbox (
   domain text NOT NULL REFERENCES cmd2_domain(domain),
   commit_seq bigint NOT NULL CHECK (commit_seq > 0),
   event_id text NOT NULL,
+  enqueued_at timestamptz DEFAULT clock_timestamp(),
   PRIMARY KEY (domain, event_id),
   UNIQUE (domain, commit_seq)
+);
+-- Additive migration deliberately leaves pre-existing events NULL: their
+-- enqueue age is unknown, not reconstructed from sequence or client time.
+ALTER TABLE cmd2_outbox ADD COLUMN IF NOT EXISTS enqueued_at timestamptz;
+ALTER TABLE cmd2_outbox ALTER COLUMN enqueued_at SET DEFAULT clock_timestamp();
+ALTER TABLE cmd2_outbox
+  DROP CONSTRAINT IF EXISTS cmd2_outbox_enqueued_at_finite;
+ALTER TABLE cmd2_outbox
+  ADD CONSTRAINT cmd2_outbox_enqueued_at_finite
+    CHECK (enqueued_at IS NULL OR isfinite(enqueued_at));
+
+-- Source navigation disclosure is a separate current-use policy from CMD
+-- source rights. It is opt-in, versioned, and retained independently from
+-- navigation projection readiness so a withdrawal fences the next read.
+CREATE TABLE IF NOT EXISTS cmd2_source_navigation_policy_current (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  consumer_id text NOT NULL CHECK (length(consumer_id) BETWEEN 1 AND 256),
+  policy_issuer_ref text NOT NULL CHECK (length(policy_issuer_ref) BETWEEN 1 AND 4096),
+  policy_receipt_id text NOT NULL CHECK (length(policy_receipt_id) BETWEEN 1 AND 512),
+  export_receipt_id text NOT NULL CHECK (length(export_receipt_id) BETWEEN 1 AND 512),
+  model_receipt_id text NOT NULL CHECK (length(model_receipt_id) BETWEEN 1 AND 512),
+  carrier_layer text NOT NULL CHECK (carrier_layer = 'tos_source_navigation_public_metadata_v1'),
+  intended_use text NOT NULL CHECK (intended_use = 'read_only_public_metadata_navigation_v1'),
+  model_abi text NOT NULL CHECK (length(model_abi) BETWEEN 1 AND 256),
+  selection_profile text NOT NULL CHECK (length(selection_profile) BETWEEN 1 AND 256),
+  policy_epoch bigint NOT NULL CHECK (policy_epoch > 0),
+  withdrawal_generation bigint NOT NULL CHECK (withdrawal_generation >= 0),
+  policy_version bigint NOT NULL CHECK (policy_version > 0),
+  allowed boolean NOT NULL,
+  receipt_sha256 char(64) NOT NULL CHECK (receipt_sha256 ~ '^[0-9a-f]{64}$'),
+  owner_configuration_sha256 char(64) NOT NULL CHECK (owner_configuration_sha256 ~ '^[0-9a-f]{64}$'),
+  PRIMARY KEY (domain, consumer_id)
+);
+
+CREATE TABLE IF NOT EXISTS cmd2_source_navigation_policy_history (
+  domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  consumer_id text NOT NULL CHECK (length(consumer_id) BETWEEN 1 AND 256),
+  policy_version bigint NOT NULL CHECK (policy_version > 0),
+  command_id text NOT NULL CHECK (length(command_id) BETWEEN 1 AND 256),
+  operation text NOT NULL CHECK (operation IN ('install', 'revoke')),
+  request_sha256 char(64) NOT NULL CHECK (request_sha256 ~ '^[0-9a-f]{64}$'),
+  policy_issuer_ref text NOT NULL CHECK (length(policy_issuer_ref) BETWEEN 1 AND 4096),
+  policy_receipt_id text NOT NULL CHECK (length(policy_receipt_id) BETWEEN 1 AND 512),
+  export_receipt_id text NOT NULL CHECK (length(export_receipt_id) BETWEEN 1 AND 512),
+  model_receipt_id text NOT NULL CHECK (length(model_receipt_id) BETWEEN 1 AND 512),
+  carrier_layer text NOT NULL CHECK (carrier_layer = 'tos_source_navigation_public_metadata_v1'),
+  intended_use text NOT NULL CHECK (intended_use = 'read_only_public_metadata_navigation_v1'),
+  model_abi text NOT NULL CHECK (length(model_abi) BETWEEN 1 AND 256),
+  selection_profile text NOT NULL CHECK (length(selection_profile) BETWEEN 1 AND 256),
+  policy_epoch bigint NOT NULL CHECK (policy_epoch > 0),
+  withdrawal_generation bigint NOT NULL CHECK (withdrawal_generation >= 0),
+  allowed boolean NOT NULL,
+  receipt_sha256 char(64) NOT NULL CHECK (receipt_sha256 ~ '^[0-9a-f]{64}$'),
+  owner_configuration_sha256 char(64) NOT NULL CHECK (owner_configuration_sha256 ~ '^[0-9a-f]{64}$'),
+  PRIMARY KEY (domain, consumer_id, policy_version),
+  UNIQUE (domain, consumer_id, command_id)
 );
 
 -- Exact source-carrier metadata stays alongside its existing byte locator.
@@ -368,12 +659,31 @@ BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
     'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox',
-    'cmd2_source_index','cmd2_source_inventory_projection'
+    'cmd2_source_index','cmd2_source_text_identity','cmd2_source_annotation_identity','cmd2_source_claim_dependency','cmd2_source_claim_navigation_reference',
+    'cmd2_source_inventory_projection','cmd2_source_publication_current',
+    'cmd2_source_publication_history'
   ] LOOP
     EXECUTE format(
       'CREATE OR REPLACE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON %I '
       || 'FOR EACH ROW EXECUTE FUNCTION cmd2_bump_audit_fence()',
       'cmd2_audit_' || table_name, table_name);
+    EXECUTE format(
+      'CREATE OR REPLACE TRIGGER %I BEFORE TRUNCATE ON %I '
+      || 'FOR EACH STATEMENT EXECUTE FUNCTION cmd2_refuse_audited_truncate()',
+      'cmd2_refuse_' || table_name || '_truncate', table_name);
+  END LOOP;
+END $$;
+
+-- Navigation-use policy state is a separate owner fence, not source metadata:
+-- policy install/withdrawal must not invalidate the selected source-generation
+-- audit root. Keep truncation prohibited while the versioned writer serializes
+-- changes through the normal audit-fence and domain locks.
+DO $$
+DECLARE table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'cmd2_source_navigation_policy_current','cmd2_source_navigation_policy_history'
+  ] LOOP
     EXECUTE format(
       'CREATE OR REPLACE TRIGGER %I BEFORE TRUNCATE ON %I '
       || 'FOR EACH STATEMENT EXECUTE FUNCTION cmd2_refuse_audited_truncate()',

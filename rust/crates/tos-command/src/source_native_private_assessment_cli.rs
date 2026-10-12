@@ -5,7 +5,7 @@
 //! selection reuses the Sign resolver; Sign promotion keeps its separate
 //! protected v2/v3 selector and does not acquire new command authority.
 
-use super::{absolute, capped, selected_schema_with_profile, text};
+use super::{absolute, capped, digest, exact, selected_schema_with_profile, text};
 use crate::source_assessment_journal::{
     AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
 };
@@ -28,12 +28,27 @@ use tos_validation::assessment::{
     AssessmentLayerQualityObservation, AssessmentLimits, AssessmentMechanicsReport,
     AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal, AssessmentSourceRoute,
     AssessmentSubmissionInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES, evaluate_current_assessment,
+    evaluate_current_assessment_selected,
 };
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+};
 
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const QUALITY_BASIS_SCHEMA: &str = "ToS/contracts/native-text-layer-quality-basis.schema.json";
+pub(crate) const PG_ASSESSMENT_EVALUATION_SCHEMAS: &[&str] = &[
+    "ToS/contracts/knowledge-assessment-policy.schema.json",
+    "ToS/contracts/knowledge-assessment-authority.schema.json",
+    "ToS/contracts/knowledge-assessment-competence.schema.json",
+    "ToS/contracts/knowledge-assessment.schema.json",
+    BATCH_SCHEMA,
+    "ToS/contracts/human-form.schema.json",
+    "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/human-form-template.schema.json",
+    QUALITY_BASIS_SCHEMA,
+];
 const MAX_OPERATION_BYTES: usize = 234_881_024;
 const MAX_RESOLVED_BYTES: usize = 33_554_432;
 const MAX_REQUEST_BYTES: usize = 1_048_576;
@@ -41,14 +56,14 @@ const MAX_CONFIG_BYTES: usize = 8_388_608;
 const MAX_QUALITY_SUBJECTS: usize = 64;
 
 #[derive(Clone)]
-struct ParsedRequest {
-    operation: String,
-    subject_id: String,
-    expected_subject: Option<JsonValue>,
-    expected_snapshot: Option<String>,
-    command_id: Option<String>,
-    expected_revision: Option<Option<String>>,
-    assessments: Vec<JsonValue>,
+pub(crate) struct ParsedRequest {
+    pub(crate) operation: String,
+    pub(crate) subject_id: String,
+    pub(crate) expected_subject: Option<JsonValue>,
+    pub(crate) expected_snapshot: Option<String>,
+    pub(crate) command_id: Option<String>,
+    pub(crate) expected_revision: Option<Option<String>>,
+    pub(crate) assessments: Vec<JsonValue>,
 }
 
 struct SelectedOperation<'a> {
@@ -76,8 +91,74 @@ struct SelectedOperationView<'a> {
     private_sources: &'a PrivateAssessmentSources,
 }
 
+/// Source-neutral inputs after each transport has completed its own exact
+/// source selection. This is the shared semantic boundary for the maintained
+/// filesystem journal and the PG private-package adapter.
+pub(crate) struct AssessmentEvaluationInputs<'a> {
+    pub(crate) config: &'a JsonValue,
+    pub(crate) configuration_raw: &'a [u8],
+    pub(crate) request: &'a ParsedRequest,
+    pub(crate) version: OwnerVersion,
+    pub(crate) resolved: AssessmentResolvedSources,
+    pub(crate) public_fixity: &'a [JsonValue],
+    pub(crate) public_identity_snapshots: &'a BTreeMap<String, JsonValue>,
+    pub(crate) public_claim_dependencies: &'a BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) private_source_snapshot: &'a str,
+    pub(crate) private_native_snapshots: &'a [String],
+    pub(crate) private_required_source_refs: &'a BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) private_required_languages: &'a BTreeMap<String, Vec<String>>,
+    pub(crate) native_summaries: &'a [JsonValue],
+    pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
+    pub(crate) layer_preflight:
+        Option<&'a crate::source_private_assessment_layers::OwnerLocalLayerPreflight>,
+}
+
+pub(crate) struct AssessmentEvaluationPlan<'a> {
+    pub(crate) config: &'a JsonValue,
+    pub(crate) request: &'a ParsedRequest,
+    pub(crate) version: OwnerVersion,
+    pub(crate) resolved: AssessmentResolvedSources,
+    pub(crate) all_by_id: BTreeMap<String, JsonValue>,
+    pub(crate) base_snapshot: String,
+    pub(crate) current: JsonValue,
+    pub(crate) scope: JsonValue,
+    pub(crate) subject_is_native: bool,
+    pub(crate) subject_is_sourced: bool,
+    pub(crate) subject_required_source_refs: Vec<JsonValue>,
+    pub(crate) required_sources: Vec<JsonValue>,
+    pub(crate) source_route: AssessmentSourceRoute,
+    pub(crate) subject_quality_requirements: Vec<QualityRequirement>,
+    pub(crate) parent_context: Option<ParentClaimContext>,
+    pub(crate) parent_quality_requirements: Vec<QualityRequirement>,
+    pub(crate) lock_subjects: Vec<String>,
+    pub(crate) public_claim_dependencies: &'a BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) private_required_source_refs: &'a BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) private_required_languages: &'a BTreeMap<String, Vec<String>>,
+    pub(crate) native_summaries: &'a [JsonValue],
+    pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
+}
+
+pub(crate) struct AssessmentEvaluationResult {
+    pub(crate) current_snapshot: String,
+    pub(crate) quality_bases: Vec<(QualityRequirement, JsonValue)>,
+    pub(crate) admission_bases: Vec<(
+        QualityRequirement,
+        AssessmentRecordInput,
+        bool,
+        Vec<JsonValue>,
+    )>,
+    pub(crate) record_rows: Vec<JsonValue>,
+    pub(crate) trusted_history: Vec<AssessmentSubmissionInput>,
+    pub(crate) reviews: Vec<AssessmentSubmissionInput>,
+    pub(crate) current_report: AssessmentMechanicsReport,
+    pub(crate) append_report: Option<AssessmentMechanicsReport>,
+    pub(crate) parent_assessment: Option<JsonValue>,
+    pub(crate) source_read_ready: bool,
+    pub(crate) route_layer_quality: Option<AssessmentLayerQualityObservation>,
+}
+
 #[derive(Debug)]
-struct OperationBudget {
+pub(crate) struct OperationBudget {
     bytes_remaining: usize,
     work_remaining: usize,
     worker_cpu_seconds: u64,
@@ -85,8 +166,182 @@ struct OperationBudget {
     deadline: Instant,
 }
 
+/// Transport-neutral, collision-checked owner/source rows used by the
+/// maintained Assessment engine. Native filesystem and PG-selected source
+/// adapters can both feed their exact selected envelopes through this one
+/// bounded closure builder before evaluation.
+pub(crate) struct AssessmentResolvedSources {
+    pub(crate) source_records: Vec<JsonValue>,
+    pub(crate) source_index: BTreeMap<String, usize>,
+    pub(crate) native_records: Vec<JsonValue>,
+    pub(crate) native_index: BTreeMap<String, usize>,
+    pub(crate) resolved_rows: Vec<JsonValue>,
+    resolved_index: BTreeMap<String, usize>,
+}
+
+/// Exact form and source-path selections shared by filesystem and PG
+/// Assessment adapters. Bytes and currentness proofs remain with the adapter;
+/// this view carries only the already-selected semantic records.
+pub(crate) struct AssessmentFormMaps<'a> {
+    pub(crate) form_paths: &'a BTreeMap<String, String>,
+    pub(crate) form_sets: &'a BTreeMap<String, JsonValue>,
+    pub(crate) source_paths: &'a BTreeMap<String, String>,
+}
+
+impl AssessmentResolvedSources {
+    pub(crate) fn from_selected_rows(
+        public_rows: &[JsonValue],
+        private_rows: &[AssessmentRecordInput],
+        public_native_rows: &[JsonValue],
+        private_native_rows: &[AssessmentRecordInput],
+        budget: &mut OperationBudget,
+    ) -> SourceCommandResult<Self> {
+        let mut selected = Self {
+            source_records: Vec::new(),
+            source_index: BTreeMap::new(),
+            native_records: Vec::new(),
+            native_index: BTreeMap::new(),
+            resolved_rows: Vec::new(),
+            resolved_index: BTreeMap::new(),
+        };
+        for row in public_rows {
+            budget.charge_work(1)?;
+            push_resolved(
+                row.clone(),
+                &mut selected.source_records,
+                &mut selected.source_index,
+            )?;
+            push_resolved(
+                row.clone(),
+                &mut selected.resolved_rows,
+                &mut selected.resolved_index,
+            )?;
+        }
+        for input in private_rows {
+            budget.charge_work(1)?;
+            let row = parse_record_input(input)?;
+            push_resolved(
+                row.clone(),
+                &mut selected.source_records,
+                &mut selected.source_index,
+            )?;
+            push_resolved(
+                row,
+                &mut selected.resolved_rows,
+                &mut selected.resolved_index,
+            )?;
+        }
+        for row in public_native_rows {
+            budget.charge_work(1)?;
+            let id = cmd::text(row, "id")?;
+            if selected.source_index.contains_key(id) {
+                return Err(SourceCommandError::Denied(
+                    "public source selection shadows a native assessment identity",
+                ));
+            }
+            push_resolved(
+                row.clone(),
+                &mut selected.native_records,
+                &mut selected.native_index,
+            )?;
+            push_resolved(
+                row.clone(),
+                &mut selected.resolved_rows,
+                &mut selected.resolved_index,
+            )?;
+        }
+        for input in private_native_rows {
+            budget.charge_work(1)?;
+            let row = parse_record_input(input)?;
+            push_resolved(
+                row.clone(),
+                &mut selected.native_records,
+                &mut selected.native_index,
+            )?;
+            push_resolved(
+                row,
+                &mut selected.resolved_rows,
+                &mut selected.resolved_index,
+            )?;
+        }
+        Ok(selected)
+    }
+
+    pub(crate) fn add_layer_records(
+        &mut self,
+        records: &[AssessmentRecordInput],
+        budget: &mut OperationBudget,
+    ) -> SourceCommandResult<()> {
+        for input in records {
+            budget.charge_work(1)?;
+            let row = parse_record_input(input)?;
+            let id = cmd::text(&row, "id")?.to_owned();
+            if let Some(index) = self.native_index.get(&id).copied() {
+                if !cmd::same(&self.native_records[index], &row)? {
+                    return Err(SourceCommandError::Conflict(
+                        "assessment layer identity shadows different native evidence",
+                    ));
+                }
+            }
+            push_resolved(
+                row.clone(),
+                &mut self.source_records,
+                &mut self.source_index,
+            )?;
+            push_resolved(row, &mut self.resolved_rows, &mut self.resolved_index)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn check_budgets(&self, budget: &mut OperationBudget) -> SourceCommandResult<()> {
+        if self
+            .source_records
+            .len()
+            .checked_add(self.native_records.len())
+            .is_none_or(|count| count > MAX_ASSESSMENTS)
+            || self.resolved_rows.len() > MAX_ASSESSMENTS
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment combined owner/source record budget",
+            ));
+        }
+        let resolved_bytes = cmd::canonical(&JsonValue::Array(self.resolved_rows.clone()))?.len();
+        budget.charge_bytes(resolved_bytes)?;
+        if resolved_bytes > MAX_RESOLVED_BYTES {
+            return Err(SourceCommandError::Invalid(
+                "assessment resolved source byte budget",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn all_by_id(
+        &self,
+        config: &JsonValue,
+    ) -> SourceCommandResult<BTreeMap<String, JsonValue>> {
+        let mut all = BTreeMap::<String, JsonValue>::new();
+        for row in self
+            .resolved_rows
+            .iter()
+            .chain(cmd::array(config, "records")?)
+        {
+            let id = cmd::text(row, "id")?.to_owned();
+            if let Some(old) = all.get(&id) {
+                if !cmd::same(old, row)? {
+                    return Err(SourceCommandError::Conflict(
+                        "assessment owner/source identity has conflicting current bodies",
+                    ));
+                }
+            } else {
+                all.insert(id, row.clone());
+            }
+        }
+        Ok(all)
+    }
+}
+
 impl OperationBudget {
-    fn new(invocation: &Value, deadline: Instant) -> SourceCommandResult<Self> {
+    pub(crate) fn new(invocation: &Value, deadline: Instant) -> SourceCommandResult<Self> {
         let budgets = invocation
             .get("budgets")
             .ok_or(SourceCommandError::Invalid("assessment invocation budgets"))?;
@@ -103,7 +358,7 @@ impl OperationBudget {
         })
     }
 
-    fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
+    pub(crate) fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
         self.bytes_remaining =
             self.bytes_remaining
                 .checked_sub(bytes)
@@ -116,7 +371,7 @@ impl OperationBudget {
         Ok(())
     }
 
-    fn limits(&self) -> SourceCommandResult<AssessmentLimits> {
+    pub(crate) fn limits(&self) -> SourceCommandResult<AssessmentLimits> {
         let remaining = self.deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() || self.work_remaining == 0 || self.bytes_remaining == 0 {
             return Err(SourceCommandError::Denied(
@@ -138,7 +393,10 @@ impl OperationBudget {
         })
     }
 
-    fn charge_report(&mut self, report: &AssessmentMechanicsReport) -> SourceCommandResult<()> {
+    pub(crate) fn charge_report(
+        &mut self,
+        report: &AssessmentMechanicsReport,
+    ) -> SourceCommandResult<()> {
         self.bytes_remaining = self
             .bytes_remaining
             .checked_sub(report.input_bytes_used())
@@ -151,7 +409,7 @@ impl OperationBudget {
         Ok(())
     }
 
-    fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
+    pub(crate) fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
         self.work_remaining =
             self.work_remaining
                 .checked_sub(work)
@@ -163,7 +421,7 @@ impl OperationBudget {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum OwnerVersion {
+pub(crate) enum OwnerVersion {
     V1,
     V2,
     V3,
@@ -173,7 +431,7 @@ enum OwnerVersion {
 }
 
 impl OwnerVersion {
-    fn from_config(config: &JsonValue) -> SourceCommandResult<Self> {
+    pub(crate) fn from_config(config: &JsonValue) -> SourceCommandResult<Self> {
         match cmd::text(config, "schema_version")? {
             "tos_local_assessment_owner_v1" => Ok(Self::V1),
             "tos_local_assessment_owner_v2" => Ok(Self::V2),
@@ -187,19 +445,19 @@ impl OwnerVersion {
         }
     }
 
-    fn is_private(self) -> bool {
+    pub(crate) fn is_private(self) -> bool {
         matches!(self, Self::V4 | Self::V5 | Self::V6)
     }
 
-    fn has_source(self) -> bool {
+    pub(crate) fn has_source(self) -> bool {
         !matches!(self, Self::V1)
     }
 
-    fn has_native(self) -> bool {
+    pub(crate) fn has_native(self) -> bool {
         !matches!(self, Self::V1 | Self::V2)
     }
 
-    fn has_layer_quality(self) -> bool {
+    pub(crate) fn has_layer_quality(self) -> bool {
         matches!(self, Self::V5 | Self::V6)
     }
 }
@@ -1031,7 +1289,10 @@ fn materialize_public_v2_selection(
     ]))
 }
 
-fn parse_request(raw: &[u8], version: OwnerVersion) -> SourceCommandResult<ParsedRequest> {
+pub(crate) fn parse_request(
+    raw: &[u8],
+    version: OwnerVersion,
+) -> SourceCommandResult<ParsedRequest> {
     if raw.len() > MAX_REQUEST_BYTES {
         return Err(SourceCommandError::Invalid(
             "assessment request byte budget",
@@ -1143,7 +1404,10 @@ fn parse_request(raw: &[u8], version: OwnerVersion) -> SourceCommandResult<Parse
     })
 }
 
-fn preflight_configuration(config: &JsonValue, version: OwnerVersion) -> SourceCommandResult<()> {
+pub(crate) fn preflight_configuration(
+    config: &JsonValue,
+    version: OwnerVersion,
+) -> SourceCommandResult<()> {
     if cmd::array(config, "authorities")?.len() > MAX_ASSESSMENTS
         || cmd::array(config, "competencies")?.len() > MAX_ASSESSMENTS
         || cmd::array(config, "records")?.len() > MAX_ASSESSMENTS
@@ -1322,6 +1586,488 @@ fn selected_command_context(
     })
 }
 
+/// Build the maintained Assessment source closure and quality-history lock
+/// set from already-selected transport-neutral owner inputs. The caller must
+/// acquire exactly these histories under its own journal transport before
+/// asking the history evaluator to calculate any admission basis.
+pub(crate) fn plan_assessment_evaluation(
+    inputs: AssessmentEvaluationInputs<'_>,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentEvaluationPlan<'_>> {
+    let AssessmentEvaluationInputs {
+        config,
+        configuration_raw,
+        request,
+        version,
+        mut resolved,
+        public_fixity,
+        public_identity_snapshots,
+        public_claim_dependencies,
+        private_source_snapshot,
+        private_native_snapshots,
+        private_required_source_refs,
+        private_required_languages,
+        native_summaries,
+        layers,
+        layer_preflight,
+    } = inputs;
+    resolved.check_budgets(budget)?;
+    let all_by_id = resolved.all_by_id(config)?;
+    let base_snapshot = owner_snapshot(
+        config,
+        configuration_raw,
+        public_fixity,
+        &resolved.resolved_rows,
+        public_identity_snapshots,
+        public_claim_dependencies,
+        private_source_snapshot,
+        private_native_snapshots,
+        layers,
+    )?;
+    if !version.has_layer_quality()
+        && request.operation != "describe"
+        && request.expected_snapshot.as_deref() != Some(&base_snapshot)
+    {
+        return Err(SourceCommandError::Conflict(
+            "private assessment owner/source snapshot is stale",
+        ));
+    }
+    let (current, scope) = select_current_scope(config, request, &all_by_id)?;
+    if request.operation == "read-layer-comparison"
+        && layers
+            .and_then(|layers| layers.layers.get(&request.subject_id))
+            .is_none()
+    {
+        return Err(SourceCommandError::Denied(
+            "assessment comparison reading requires an exact selected layer",
+        ));
+    }
+    let selected_layer = layers.and_then(|layers| layers.layers.get(&request.subject_id));
+    let subject_is_native = resolved.native_index.contains_key(&request.subject_id);
+    let subject_is_sourced = resolved.source_index.contains_key(&request.subject_id);
+    if subject_is_native
+        && selected_layer.is_none()
+        && !cmd::array(config, "native_text_units")?
+            .iter()
+            .any(|selection| {
+                selection
+                    .object_get("binding")
+                    .and_then(|binding| binding.object_get("unit_id"))
+                    .and_then(JsonValue::as_str)
+                    == Some(request.subject_id.as_str())
+            })
+    {
+        return Err(SourceCommandError::Denied(
+            "native supporting evidence is not an assessment target",
+        ));
+    }
+    if selected_layer.is_some() && !subject_is_sourced {
+        return Err(SourceCommandError::Denied(
+            "selected native layer assessment target is absent from source closure",
+        ));
+    }
+    let subject_required_source_refs = if version == OwnerVersion::V3 {
+        crate::source_sign::required_sources(
+            &request.subject_id,
+            public_claim_dependencies,
+            &resolved.resolved_rows,
+            native_summaries,
+        )?
+    } else {
+        required_source_refs(
+            &request.subject_id,
+            public_claim_dependencies,
+            private_required_source_refs,
+            selected_layer,
+        )?
+    };
+    let required_sources = resolve_required_sources(&subject_required_source_refs, &all_by_id)?;
+    let source_route = if selected_layer.is_some() {
+        AssessmentSourceRoute::LayerQuality
+    } else if public_claim_dependencies.contains_key(&request.subject_id)
+        || private_required_source_refs.contains_key(&request.subject_id)
+    {
+        AssessmentSourceRoute::SourceBoundClaim
+    } else {
+        AssessmentSourceRoute::SelectedSource
+    };
+    let mut subject_quality_requirements = Vec::new();
+    if version.has_layer_quality() {
+        subject_quality_requirements = quality_requirements(
+            &current,
+            &required_sources,
+            &all_by_id,
+            config,
+            layers.ok_or(SourceCommandError::Invalid(
+                "selected native layer source snapshot absent",
+            ))?,
+            cmd::text(&scope, "assertion_layer")?,
+            budget,
+            cancelled,
+        )?;
+    }
+    let parent_context = if version.has_layer_quality()
+        && subject_is_sourced
+        && cmd::text(&current, "id").is_ok()
+        && cmd::text(cmd::field(&current, "payload")?, "schema_version")? == "tos_human_form_v1"
+    {
+        parent_claim_context(
+            &current,
+            &scope,
+            config,
+            &all_by_id,
+            &required_sources,
+            public_claim_dependencies,
+            private_required_source_refs,
+            private_required_languages,
+            native_summaries,
+        )?
+    } else {
+        None
+    };
+    let mut parent_quality_requirements = Vec::new();
+    if let Some(parent) = &parent_context {
+        parent_quality_requirements = quality_requirements(
+            &parent.record,
+            &parent.required_sources,
+            &all_by_id,
+            config,
+            layers.ok_or(SourceCommandError::Invalid(
+                "selected native layer source snapshot absent",
+            ))?,
+            cmd::text(&parent.scope, "assertion_layer")?,
+            budget,
+            cancelled,
+        )?;
+        if parent_quality_requirements
+            .iter()
+            .any(|entry| !subject_quality_requirements.contains(entry))
+        {
+            return Err(SourceCommandError::Denied(
+                "parent Claim quality is outside the selected form closure",
+            ));
+        }
+    }
+    let mut lock_subjects = vec![request.subject_id.clone()];
+    let roots = subject_quality_requirements
+        .iter()
+        .chain(parent_quality_requirements.iter())
+        .map(|requirement| requirement.layer_id.clone())
+        .collect::<Vec<_>>();
+    lock_subjects.extend(collect_quality_lock_closure(
+        &roots,
+        layer_preflight,
+        budget,
+        deadline,
+        cancelled,
+    )?);
+    if let Some(parent) = &parent_context {
+        lock_subjects.push(cmd::text(&parent.record, "id")?.to_owned());
+    }
+    let mut distinct_locks = BTreeSet::new();
+    lock_subjects.retain(|identity| distinct_locks.insert(identity.clone()));
+    if lock_subjects.len() > 65 {
+        return Err(SourceCommandError::Invalid(
+            "assessment quality lock subject budget",
+        ));
+    }
+    Ok(AssessmentEvaluationPlan {
+        config,
+        request,
+        version,
+        resolved,
+        all_by_id,
+        base_snapshot,
+        current,
+        scope,
+        subject_is_native,
+        subject_is_sourced,
+        subject_required_source_refs,
+        required_sources,
+        source_route,
+        subject_quality_requirements,
+        parent_context,
+        parent_quality_requirements,
+        lock_subjects,
+        public_claim_dependencies,
+        private_required_source_refs,
+        private_required_languages,
+        native_summaries,
+        layers,
+    })
+}
+
+/// Evaluate a source-neutral plan against an already-held, exact subject
+/// history closure. The transport owns locking, history selection, and final
+/// source-currentness checks; this function owns the maintained assessment,
+/// quality-basis, and parent-Claim semantics.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn evaluate_assessment_histories<W, F>(
+    plan: &AssessmentEvaluationPlan<'_>,
+    histories: &BTreeMap<String, AssessmentHistory>,
+    observed_now: &str,
+    source_revision: Option<SourceRevision>,
+    source_identity: Digest256,
+    worker: &mut W,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+    evaluate: &mut F,
+) -> SourceCommandResult<AssessmentEvaluationResult>
+where
+    W: CutSchemaExecutor,
+    F: FnMut(
+        &AssessmentReadInput,
+        &mut W,
+        AssessmentLimits,
+        &AtomicBool,
+    ) -> SourceCommandResult<AssessmentMechanicsReport>,
+{
+    let config = plan.config;
+    let request = plan.request;
+    let version = plan.version;
+    let source_records = &plan.resolved.source_records;
+    let native_records = &plan.resolved.native_records;
+    let all_by_id = &plan.all_by_id;
+    let selected_layer = plan
+        .layers
+        .and_then(|layers| layers.layers.get(&request.subject_id));
+    let mut current_snapshot = plan.base_snapshot.clone();
+    let owner_record_rows = record_rows(config, &[])?;
+    let mut quality_bases = Vec::new();
+    for requirement in &plan.subject_quality_requirements {
+        let layer = plan
+            .layers
+            .and_then(|layers| layers.layers.get(&requirement.layer_id))
+            .ok_or(SourceCommandError::Denied(
+                "assessment quality dependency has no exact selected source layer",
+            ))?;
+        let dependency_scope = configured_scope(config, &requirement.layer_id)?;
+        if cmd::text(&dependency_scope, "requested_use")? != requirement.use_name {
+            return Err(SourceCommandError::Denied(
+                "assessment quality dependency purpose differs from selected scope",
+            ));
+        }
+        let history = histories
+            .get(&requirement.layer_id)
+            .ok_or(SourceCommandError::Invalid(
+                "assessment quality history is outside held closure",
+            ))?;
+        let comparison_refs = required_source_refs(
+            &requirement.layer_id,
+            plan.public_claim_dependencies,
+            plan.private_required_source_refs,
+            Some(layer),
+        )?;
+        let report = evaluate_selected_subject_with_executor(
+            config,
+            &requirement.layer_id,
+            &dependency_scope,
+            source_records,
+            native_records,
+            &owner_record_rows,
+            &comparison_refs,
+            &[],
+            &history.submissions,
+            &[],
+            AssessmentSourceRoute::LayerQuality,
+            Some(AssessmentLayerQualityObservation {
+                source_comparison_required: true,
+                source_comparison_present: layer.comparison_record.is_some(),
+                positive_use_allowed: layer.positive_use_allowed,
+            }),
+            observed_now,
+            source_revision.clone(),
+            source_identity,
+            worker,
+            budget,
+            cancelled,
+            evaluate,
+        )?;
+        let basis = quality_basis(
+            layer,
+            &report,
+            &requirement.use_name,
+            worker,
+            budget.deadline,
+            cancelled,
+        )?;
+        if all_by_id.contains_key(cmd::text(&basis, "id")?) {
+            return Err(SourceCommandError::Denied(
+                "derived quality basis conflicts with an owner source record",
+            ));
+        }
+        quality_bases.push((requirement.clone(), basis));
+    }
+    if version.has_layer_quality() {
+        current_snapshot = quality_snapshot(&plan.base_snapshot, &quality_bases)?;
+    }
+    let subject_history = histories
+        .get(&request.subject_id)
+        .ok_or(SourceCommandError::Invalid(
+            "assessment subject history absent",
+        ))?;
+    let admission_bases = quality_bases
+        .iter()
+        .map(|(requirement, basis)| {
+            let (can_use, limits) = basis_observation(basis)?;
+            Ok((requirement.clone(), record_input(basis)?, can_use, limits))
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let record_rows = record_rows(
+        config,
+        &quality_bases
+            .iter()
+            .map(|(_, row)| row.clone())
+            .collect::<Vec<_>>(),
+    )?;
+    let route_layer_quality = selected_layer.map(|layer| AssessmentLayerQualityObservation {
+        source_comparison_required: true,
+        source_comparison_present: layer.comparison_record.is_some(),
+        positive_use_allowed: layer.positive_use_allowed,
+    });
+    if request.operation != "describe"
+        && plan.parent_context.is_none()
+        && request.expected_snapshot.as_deref() != Some(&current_snapshot)
+    {
+        return Err(SourceCommandError::Conflict(
+            "private assessment current owner/source snapshot is stale",
+        ));
+    }
+    let trusted_history = subject_history.submissions.clone();
+    let reviews = if request.operation == "append" {
+        append_submissions(config, &plan.scope, &request.assessments)?
+    } else {
+        Vec::new()
+    };
+    let admission_records = admission_bases
+        .iter()
+        .map(|(_, basis, _, _)| basis.clone())
+        .collect::<Vec<_>>();
+    let current_report = evaluate_selected_subject_with_executor(
+        config,
+        &request.subject_id,
+        &plan.scope,
+        source_records,
+        native_records,
+        &record_rows,
+        &plan.subject_required_source_refs,
+        &admission_records,
+        &trusted_history,
+        &[],
+        plan.source_route,
+        route_layer_quality,
+        observed_now,
+        source_revision.clone(),
+        source_identity,
+        worker,
+        budget,
+        cancelled,
+        evaluate,
+    )?;
+    let append_report = if request.operation == "append" {
+        Some(evaluate_selected_subject_with_executor(
+            config,
+            &request.subject_id,
+            &plan.scope,
+            source_records,
+            native_records,
+            &record_rows,
+            &plan.subject_required_source_refs,
+            &admission_records,
+            &trusted_history,
+            &reviews,
+            plan.source_route,
+            route_layer_quality,
+            observed_now,
+            source_revision.clone(),
+            source_identity,
+            worker,
+            budget,
+            cancelled,
+            evaluate,
+        )?)
+    } else {
+        None
+    };
+    if !current_report.source_read_ready() && request.operation == "append" {
+        return Err(SourceCommandError::Denied(
+            "native-bound assessment append requires exact current source read",
+        ));
+    }
+    let parent_assessment = if let Some(parent) = &plan.parent_context {
+        let id = cmd::text(&parent.record, "id")?;
+        let parent_history = histories.get(id).ok_or(SourceCommandError::Invalid(
+            "assessment parent Claim history absent",
+        ))?;
+        let parent_bases = quality_bases
+            .iter()
+            .filter(|(requirement, _)| plan.parent_quality_requirements.contains(requirement))
+            .map(|(_, basis)| record_input(basis))
+            .collect::<SourceCommandResult<Vec<_>>>()?;
+        let parent_required_refs = parent
+            .required_sources
+            .iter()
+            .map(owner_reference)
+            .collect::<SourceCommandResult<Vec<_>>>()?;
+        let parent_report = evaluate_selected_subject_with_executor(
+            config,
+            id,
+            &parent.scope,
+            source_records,
+            native_records,
+            &record_rows,
+            &parent_required_refs,
+            &parent_bases,
+            &parent_history.submissions,
+            &[],
+            AssessmentSourceRoute::SourceBoundClaim,
+            None,
+            observed_now,
+            source_revision,
+            source_identity,
+            worker,
+            budget,
+            cancelled,
+            evaluate,
+        )?;
+        let packet = parent_assessment_packet(
+            &parent.record,
+            &parent_report,
+            parent_history,
+            &parent.scope,
+        )?;
+        if version.has_layer_quality() {
+            current_snapshot = extend_subject_assessment_snapshot(&current_snapshot, &packet)?;
+        }
+        Some(packet)
+    } else {
+        None
+    };
+    if version.has_layer_quality()
+        && request.operation != "describe"
+        && request.expected_snapshot.as_deref() != Some(&current_snapshot)
+    {
+        return Err(SourceCommandError::Conflict(
+            "private assessment current quality basis snapshot is stale",
+        ));
+    }
+    Ok(AssessmentEvaluationResult {
+        current_snapshot,
+        quality_bases,
+        admission_bases,
+        record_rows,
+        trusted_history,
+        reviews,
+        source_read_ready: current_report.source_read_ready(),
+        current_report,
+        append_report,
+        parent_assessment,
+        route_layer_quality,
+    })
+}
+
 fn run_selected(
     mut selected: SelectedOperation<'_>,
     _store: &CorpusReader,
@@ -1343,12 +2089,6 @@ fn run_selected(
     )?;
     selected.owner.verify_current(deadline, cancelled)?;
     let config = selected.owner.configuration().clone();
-    let source_inputs = selected
-        .private_sources
-        .records
-        .iter()
-        .cloned()
-        .collect::<Vec<_>>();
     let mut public_sources = crate::source_sign::select_owner_assessment_public_sources(
         selected.owner_context.public_root(),
         selected.cut,
@@ -1359,42 +2099,15 @@ fn run_selected(
         cancelled,
     )?;
     budget.charge_bytes(public_sources.input_bytes()?)?;
-    let mut source_records = Vec::new();
-    let mut source_index = BTreeMap::<String, usize>::new();
-    let mut resolved_rows = Vec::new();
-    let mut resolved_index = BTreeMap::<String, usize>::new();
-    for row in &public_sources.rows {
-        budget.charge_work(1)?;
-        push_resolved(row.clone(), &mut source_records, &mut source_index)?;
-        push_resolved(row.clone(), &mut resolved_rows, &mut resolved_index)?;
-    }
-    for input in &selected.private_sources.records {
-        budget.charge_work(1)?;
-        let row = parse_record_input(input)?;
-        push_resolved(row.clone(), &mut source_records, &mut source_index)?;
-        push_resolved(row, &mut resolved_rows, &mut resolved_index)?;
-    }
-    let mut native_records = Vec::new();
-    let mut native_index = BTreeMap::<String, usize>::new();
-    for row in &public_sources.native_rows {
-        budget.charge_work(1)?;
-        let id = cmd::text(row, "id")?;
-        if source_index.contains_key(id) {
-            return Err(SourceCommandError::Denied(
-                "public source selection shadows a native assessment identity",
-            ));
-        }
-        push_resolved(row.clone(), &mut native_records, &mut native_index)?;
-        push_resolved(row.clone(), &mut resolved_rows, &mut resolved_index)?;
-    }
+    let mut resolved = AssessmentResolvedSources::from_selected_rows(
+        &public_sources.rows,
+        &selected.private_sources.records,
+        &public_sources.native_rows,
+        &selected.private_sources.native_records,
+        &mut budget,
+    )?;
     if !selected.version.is_private() {
         selected.private_sources.native_summaries = public_sources.native_summaries.clone();
-    }
-    for input in &selected.private_sources.native_records {
-        budget.charge_work(1)?;
-        let row = parse_record_input(input)?;
-        push_resolved(row.clone(), &mut native_records, &mut native_index)?;
-        push_resolved(row, &mut resolved_rows, &mut resolved_index)?;
     }
     let mut layers = if selected.version.has_layer_quality() {
         Some(
@@ -1402,7 +2115,8 @@ fn run_selected(
                 &mut selected.owner_context,
                 &selected.selected_context,
                 &config,
-                &source_records
+                &resolved
+                    .source_records
                     .iter()
                     .map(record_input)
                     .collect::<SourceCommandResult<Vec<_>>>()?,
@@ -1419,226 +2133,36 @@ fn run_selected(
         budget.charge_bytes(usize::try_from(layer_sources.input_bytes()).map_err(|_| {
             SourceCommandError::Invalid("assessment layer input byte conversion")
         })?)?;
-        for input in layer_sources.records() {
-            budget.charge_work(1)?;
-            let row = parse_record_input(&input)?;
-            let id = cmd::text(&row, "id")?.to_owned();
-            if let Some(index) = native_index.get(&id).copied() {
-                if !cmd::same(&native_records[index], &row)? {
-                    return Err(SourceCommandError::Conflict(
-                        "assessment layer identity shadows different native evidence",
-                    ));
-                }
-            }
-            push_resolved(row.clone(), &mut source_records, &mut source_index)?;
-            push_resolved(row, &mut resolved_rows, &mut resolved_index)?;
-        }
+        resolved.add_layer_records(&layer_sources.records(), &mut budget)?;
     }
-    if source_records
-        .len()
-        .checked_add(native_records.len())
-        .is_none_or(|count| count > MAX_ASSESSMENTS)
-        || resolved_rows.len() > MAX_ASSESSMENTS
-    {
-        return Err(SourceCommandError::Invalid(
-            "assessment combined owner/source record budget",
-        ));
-    }
-    let resolved_bytes = cmd::canonical(&JsonValue::Array(resolved_rows.clone()))?.len();
-    budget.charge_bytes(resolved_bytes)?;
-    if resolved_bytes > MAX_RESOLVED_BYTES {
-        return Err(SourceCommandError::Invalid(
-            "assessment resolved source byte budget",
-        ));
-    }
-    let base_snapshot = owner_snapshot(
-        &config,
-        selected.owner.configuration_raw(),
-        &public_sources.fixity,
-        &resolved_rows,
-        &public_sources.identity_snapshots,
-        &public_sources.claim_dependencies,
-        &selected.private_sources.owner_local_sources_snapshot,
-        &selected.private_sources.native_snapshots,
-        layers.as_ref(),
-    )?;
-    if !selected.version.has_layer_quality()
-        && selected.request.operation != "describe"
-        && selected.request.expected_snapshot.as_deref() != Some(&base_snapshot)
-    {
-        return Err(SourceCommandError::Conflict(
-            "private assessment owner/source snapshot is stale",
-        ));
-    }
-    let mut all_by_id = BTreeMap::<String, JsonValue>::new();
-    for row in resolved_rows.iter().chain(cmd::array(&config, "records")?) {
-        let id = cmd::text(row, "id")?.to_owned();
-        if let Some(old) = all_by_id.get(&id) {
-            if !cmd::same(old, row)? {
-                return Err(SourceCommandError::Conflict(
-                    "assessment owner/source identity has conflicting current bodies",
-                ));
-            }
-        } else {
-            all_by_id.insert(id, row.clone());
-        }
-    }
-    let (current, scope) = select_current_scope(&config, &selected.request, &all_by_id)?;
-    if selected.request.operation == "read-layer-comparison"
-        && layers
-            .as_ref()
-            .and_then(|layers| layers.layers.get(&selected.request.subject_id))
-            .is_none()
-    {
-        return Err(SourceCommandError::Denied(
-            "assessment comparison reading requires an exact selected layer",
-        ));
-    }
-    let selected_layer = layers
-        .as_ref()
-        .and_then(|layers| layers.layers.get(&selected.request.subject_id));
-    let subject_is_native = native_index.contains_key(&selected.request.subject_id);
-    let subject_is_sourced = source_index.contains_key(&selected.request.subject_id);
-    if subject_is_native
-        && selected_layer.is_none()
-        && !cmd::array(&config, "native_text_units")?
-            .iter()
-            .any(|selection| {
-                selection
-                    .object_get("binding")
-                    .and_then(|binding| binding.object_get("unit_id"))
-                    .and_then(JsonValue::as_str)
-                    == Some(selected.request.subject_id.as_str())
-            })
-    {
-        return Err(SourceCommandError::Denied(
-            "native supporting evidence is not an assessment target",
-        ));
-    }
-    if selected_layer.is_some() && !subject_is_sourced {
-        return Err(SourceCommandError::Denied(
-            "selected native layer assessment target is absent from source closure",
-        ));
-    }
-    let subject_required_source_refs = if selected.version == OwnerVersion::V3 {
-        crate::source_sign::required_sources(
-            &selected.request.subject_id,
-            &public_sources.claim_dependencies,
-            &resolved_rows,
-            &public_sources.native_summaries,
-        )?
-    } else {
-        required_source_refs(
-            &selected.request.subject_id,
-            &public_sources.claim_dependencies,
-            selected.private_sources.required_source_refs(),
-            selected_layer,
-        )?
-    };
-    let required_sources = resolve_required_sources(&subject_required_source_refs, &all_by_id)?;
-    let source_route = if selected_layer.is_some() {
-        AssessmentSourceRoute::LayerQuality
-    } else if public_sources
-        .claim_dependencies
-        .contains_key(&selected.request.subject_id)
-        || selected
-            .private_sources
-            .required_source_refs()
-            .contains_key(&selected.request.subject_id)
-    {
-        AssessmentSourceRoute::SourceBoundClaim
-    } else {
-        AssessmentSourceRoute::SelectedSource
-    };
-    let mut current_snapshot = base_snapshot.clone();
-    let mut subject_quality_requirements = Vec::new();
-    if selected.version.has_layer_quality() {
-        subject_quality_requirements = quality_requirements(
-            &current,
-            &required_sources,
-            &all_by_id,
-            &config,
-            layers.as_ref().ok_or(SourceCommandError::Invalid(
-                "selected native layer source snapshot absent",
-            ))?,
-            cmd::text(&scope, "assertion_layer")?,
-            &mut budget,
-            cancelled,
-        )?;
-    }
-    let parent_context = if selected.version.has_layer_quality()
-        && subject_is_sourced
-        && cmd::text(&current, "id").is_ok()
-        && cmd::text(cmd::field(&current, "payload")?, "schema_version")? == "tos_human_form_v1"
-    {
-        parent_claim_context(
-            &current,
-            &scope,
-            &config,
-            &all_by_id,
-            &required_sources,
-            &public_sources.claim_dependencies,
-            selected.private_sources.required_source_refs(),
-            selected.private_sources.required_languages(),
-            &selected.private_sources.native_summaries,
-        )?
-    } else {
-        None
-    };
-    let mut parent_quality_requirements = Vec::new();
-    if let Some(parent) = &parent_context {
-        parent_quality_requirements = quality_requirements(
-            &parent.record,
-            &parent.required_sources,
-            &all_by_id,
-            &config,
-            layers.as_ref().ok_or(SourceCommandError::Invalid(
-                "selected native layer source snapshot absent",
-            ))?,
-            cmd::text(&parent.scope, "assertion_layer")?,
-            &mut budget,
-            cancelled,
-        )?;
-        if parent_quality_requirements
-            .iter()
-            .any(|entry| !subject_quality_requirements.contains(entry))
-        {
-            return Err(SourceCommandError::Denied(
-                "parent Claim quality is outside the selected form closure",
-            ));
-        }
-    }
-    let mut lock_subjects = vec![selected.request.subject_id.clone()];
-    let roots = subject_quality_requirements
-        .iter()
-        .chain(parent_quality_requirements.iter())
-        .map(|requirement| requirement.layer_id.clone())
-        .collect::<Vec<_>>();
-    let quality_closure = collect_quality_lock_closure(
-        &roots,
-        selected.layer_preflight.as_ref(),
+    let plan = plan_assessment_evaluation(
+        AssessmentEvaluationInputs {
+            config: &config,
+            configuration_raw: selected.owner.configuration_raw(),
+            request: &selected.request,
+            version: selected.version,
+            resolved,
+            public_fixity: &public_sources.fixity,
+            public_identity_snapshots: &public_sources.identity_snapshots,
+            public_claim_dependencies: &public_sources.claim_dependencies,
+            private_source_snapshot: &selected.private_sources.owner_local_sources_snapshot,
+            private_native_snapshots: &selected.private_sources.native_snapshots,
+            private_required_source_refs: selected.private_sources.required_source_refs(),
+            private_required_languages: selected.private_sources.required_languages(),
+            native_summaries: &selected.private_sources.native_summaries,
+            layers: layers.as_ref(),
+            layer_preflight: selected.layer_preflight.as_ref(),
+        },
         &mut budget,
         deadline,
         cancelled,
     )?;
-    lock_subjects.extend(quality_closure);
-    if let Some(parent) = &parent_context {
-        lock_subjects.push(cmd::text(&parent.record, "id")?.to_owned());
-    }
-    let mut distinct_locks = BTreeSet::new();
-    lock_subjects.retain(|identity| distinct_locks.insert(identity.clone()));
-    if lock_subjects.len() > 65 {
-        return Err(SourceCommandError::Invalid(
-            "assessment quality lock subject budget",
-        ));
-    }
+    let now = selected.context.recorded_at.clone();
     let fence = selected
         .owner
-        .lock_subjects(&lock_subjects, deadline, cancelled)?;
-    let now = selected.context.recorded_at.clone();
-    let mut quality_bases = Vec::new();
+        .lock_subjects(&plan.lock_subjects, deadline, cancelled)?;
     let mut histories = BTreeMap::new();
-    for subject_id in &lock_subjects {
+    for subject_id in &plan.lock_subjects {
         active(deadline, cancelled)?;
         budget.charge_work(1)?;
         let history = fence.read(
@@ -1674,156 +2198,47 @@ fn run_selected(
         deadline,
         cancelled,
     )?;
-    let owner_record_rows = record_rows(&config, &[])?;
-    for requirement in &subject_quality_requirements {
-        let layer = layers
-            .as_ref()
-            .and_then(|layers| layers.layers.get(&requirement.layer_id))
-            .ok_or(SourceCommandError::Denied(
-                "assessment quality dependency has no exact selected source layer",
-            ))?;
-        let dependency_scope = configured_scope(&config, &requirement.layer_id)?;
-        if cmd::text(&dependency_scope, "requested_use")? != requirement.use_name {
-            return Err(SourceCommandError::Denied(
-                "assessment quality dependency purpose differs from selected scope",
-            ));
-        }
-        let history = histories
-            .get(&requirement.layer_id)
-            .ok_or(SourceCommandError::Invalid(
-                "assessment quality history is outside held closure",
-            ))?;
-        let comparison_refs = required_source_refs(
-            &requirement.layer_id,
-            &public_sources.claim_dependencies,
-            selected.private_sources.required_source_refs(),
-            Some(layer),
-        )?;
-        let report = evaluate_selected_subject(
-            &config,
-            &requirement.layer_id,
-            &dependency_scope,
-            &source_records,
-            &native_records,
-            &owner_record_rows,
-            &comparison_refs,
-            &[],
-            &history.submissions,
-            &[],
-            AssessmentSourceRoute::LayerQuality,
-            Some(AssessmentLayerQualityObservation {
-                source_comparison_required: true,
-                source_comparison_present: layer.comparison_record.is_some(),
-                positive_use_allowed: layer.positive_use_allowed,
-            }),
-            &now,
-            &mut selected.worker,
-            &mut budget,
-            cancelled,
-        )?;
-        let basis = quality_basis(
-            layer,
-            &report,
-            &requirement.use_name,
-            &mut selected.worker,
-            deadline,
-            cancelled,
-        )?;
-        if all_by_id.contains_key(cmd::text(&basis, "id")?) {
-            return Err(SourceCommandError::Denied(
-                "derived quality basis conflicts with an owner source record",
-            ));
-        }
-        quality_bases.push((requirement.clone(), basis));
-    }
-    if selected.version.has_layer_quality() {
-        current_snapshot = quality_snapshot(&base_snapshot, &quality_bases)?;
-    }
+    let source_revision = selected.worker.source_revision();
+    let mut evaluate = |input: &AssessmentReadInput,
+                        worker: &mut CutWorkerSchemaExecutor,
+                        limits: AssessmentLimits,
+                        cancelled: &AtomicBool| {
+        evaluate_current_assessment(input, worker, limits, cancelled)
+            .map_err(map_assessment_refusal)
+    };
+    let evaluation = evaluate_assessment_histories(
+        &plan,
+        &histories,
+        &now,
+        Some(source_revision.clone()),
+        source_revision.0,
+        &mut selected.worker,
+        &mut budget,
+        cancelled,
+        &mut evaluate,
+    )?;
+    let current_snapshot = evaluation.current_snapshot;
+    let quality_bases = evaluation.quality_bases;
+    let admission_bases = evaluation.admission_bases;
+    let record_rows = evaluation.record_rows;
+    let current_report = evaluation.current_report;
+    let append_report = evaluation.append_report;
+    let parent_assessment = evaluation.parent_assessment;
+    let route_layer_quality = evaluation.route_layer_quality;
+    let current = &plan.current;
+    let scope = &plan.scope;
+    let all_by_id = &plan.all_by_id;
+    let required_sources = &plan.required_sources;
+    let subject_quality_requirements = &plan.subject_quality_requirements;
+    let selected_layer = plan
+        .layers
+        .and_then(|layers| layers.layers.get(&selected.request.subject_id));
     let subject_history =
         histories
             .get(&selected.request.subject_id)
             .ok_or(SourceCommandError::Invalid(
                 "assessment subject history absent",
             ))?;
-    let admission_bases = quality_bases
-        .iter()
-        .map(|(requirement, basis)| {
-            let (can_use, limits) = basis_observation(basis)?;
-            Ok((requirement.clone(), record_input(basis)?, can_use, limits))
-        })
-        .collect::<SourceCommandResult<Vec<_>>>()?;
-    let record_rows = record_rows(
-        &config,
-        &quality_bases
-            .iter()
-            .map(|(_, row)| row.clone())
-            .collect::<Vec<_>>(),
-    )?;
-    let route_layer_quality = selected_layer.map(|layer| AssessmentLayerQualityObservation {
-        source_comparison_required: true,
-        source_comparison_present: layer.comparison_record.is_some(),
-        positive_use_allowed: layer.positive_use_allowed,
-    });
-    if selected.request.operation != "describe"
-        && parent_context.is_none()
-        && selected.request.expected_snapshot.as_deref() != Some(&current_snapshot)
-    {
-        return Err(SourceCommandError::Conflict(
-            "private assessment current owner/source snapshot is stale",
-        ));
-    }
-    let trusted_history = subject_history.submissions.clone();
-    let reviews = if selected.request.operation == "append" {
-        append_submissions(&config, &scope, &selected.request.assessments)?
-    } else {
-        Vec::new()
-    };
-    let current_report = evaluate_selected_subject(
-        &config,
-        &selected.request.subject_id,
-        &scope,
-        &source_records,
-        &native_records,
-        &record_rows,
-        &subject_required_source_refs,
-        &admission_bases
-            .iter()
-            .map(|(_, basis, _, _)| basis.clone())
-            .collect::<Vec<_>>(),
-        &trusted_history,
-        &[],
-        source_route,
-        route_layer_quality,
-        &now,
-        &mut selected.worker,
-        &mut budget,
-        cancelled,
-    )?;
-    let append_report = if selected.request.operation == "append" {
-        Some(evaluate_selected_subject(
-            &config,
-            &selected.request.subject_id,
-            &scope,
-            &source_records,
-            &native_records,
-            &record_rows,
-            &subject_required_source_refs,
-            &admission_bases
-                .iter()
-                .map(|(_, basis, _, _)| basis.clone())
-                .collect::<Vec<_>>(),
-            &trusted_history,
-            &reviews,
-            source_route,
-            route_layer_quality,
-            &now,
-            &mut selected.worker,
-            &mut budget,
-            cancelled,
-        )?)
-    } else {
-        None
-    };
     if !current_report.source_read_ready() && selected.request.operation == "append" {
         return Err(SourceCommandError::Denied(
             "native-bound assessment append requires exact current source read",
@@ -2006,26 +2421,26 @@ fn run_selected(
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct QualityRequirement {
-    layer_id: String,
-    use_name: String,
+pub(crate) struct QualityRequirement {
+    pub(crate) layer_id: String,
+    pub(crate) use_name: String,
 }
 
-struct ParentClaimContext {
-    record: JsonValue,
-    scope: JsonValue,
-    required_sources: Vec<JsonValue>,
+pub(crate) struct ParentClaimContext {
+    pub(crate) record: JsonValue,
+    pub(crate) scope: JsonValue,
+    pub(crate) required_sources: Vec<JsonValue>,
 }
 
 fn active(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
     crate::source_creation_store::active(deadline, cancelled)
 }
 
-fn parse_record_input(input: &AssessmentRecordInput) -> SourceCommandResult<JsonValue> {
+pub(crate) fn parse_record_input(input: &AssessmentRecordInput) -> SourceCommandResult<JsonValue> {
     cmd::parse(&input.envelope)
 }
 
-fn record_input(row: &JsonValue) -> SourceCommandResult<AssessmentRecordInput> {
+pub(crate) fn record_input(row: &JsonValue) -> SourceCommandResult<AssessmentRecordInput> {
     let fields = if row.object_get("origin_id").is_some() {
         &["id", "version", "payload", "origin_id"][..]
     } else {
@@ -2047,7 +2462,7 @@ fn record_input(row: &JsonValue) -> SourceCommandResult<AssessmentRecordInput> {
     })
 }
 
-fn append_submissions(
+pub(crate) fn append_submissions(
     config: &JsonValue,
     scope: &JsonValue,
     assessments: &[JsonValue],
@@ -2101,7 +2516,7 @@ fn push_resolved(
     Ok(())
 }
 
-fn owner_reference(row: &JsonValue) -> SourceCommandResult<JsonValue> {
+pub(crate) fn owner_reference(row: &JsonValue) -> SourceCommandResult<JsonValue> {
     cmd::exact_keys(row, &["id", "version", "payload", "origin_id"])?;
     Ok(cmd::object(vec![
         ("id", cmd::field(row, "id")?.clone()),
@@ -2153,7 +2568,7 @@ fn configured_scope(config: &JsonValue, subject_id: &str) -> SourceCommandResult
     Ok(scope)
 }
 
-fn select_current_scope(
+pub(crate) fn select_current_scope(
     config: &JsonValue,
     request: &ParsedRequest,
     all_by_id: &BTreeMap<String, JsonValue>,
@@ -2211,7 +2626,7 @@ fn select_current_scope(
     Ok((current, scope))
 }
 
-fn resolve_required_sources(
+pub(crate) fn resolve_required_sources(
     references: &[JsonValue],
     all_by_id: &BTreeMap<String, JsonValue>,
 ) -> SourceCommandResult<Vec<JsonValue>> {
@@ -2238,7 +2653,7 @@ fn resolve_required_sources(
     Ok(selected.into_values().collect())
 }
 
-fn required_source_refs(
+pub(crate) fn required_source_refs(
     subject_id: &str,
     public_claim_dependencies: &BTreeMap<String, Vec<JsonValue>>,
     private_claim_dependencies: &BTreeMap<String, Vec<JsonValue>>,
@@ -2261,7 +2676,7 @@ fn required_source_refs(
     Ok(Vec::new())
 }
 
-fn scope_context(scope: &JsonValue) -> SourceCommandResult<JsonValue> {
+pub(crate) fn scope_context(scope: &JsonValue) -> SourceCommandResult<JsonValue> {
     Ok(cmd::object(vec![
         ("layer", cmd::field(scope, "assertion_layer")?.clone()),
         ("risk", cmd::field(scope, "risk")?.clone()),
@@ -2273,6 +2688,58 @@ fn scope_context(scope: &JsonValue) -> SourceCommandResult<JsonValue> {
 
 fn evaluation_limits(budget: &OperationBudget) -> SourceCommandResult<AssessmentLimits> {
     budget.limits()
+}
+
+fn evaluate_selected_subject_with_executor<W, F>(
+    config: &JsonValue,
+    subject_id: &str,
+    scope: &JsonValue,
+    source_records: &[JsonValue],
+    native_records: &[JsonValue],
+    record_rows: &[JsonValue],
+    required_refs: &[JsonValue],
+    required_admission_bases: &[AssessmentRecordInput],
+    trusted_history: &[AssessmentSubmissionInput],
+    reviews: &[AssessmentSubmissionInput],
+    source_route: AssessmentSourceRoute,
+    layer_quality: Option<AssessmentLayerQualityObservation>,
+    observed_now: &str,
+    source_revision: Option<SourceRevision>,
+    source_identity: Digest256,
+    worker: &mut W,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+    evaluate: &mut F,
+) -> SourceCommandResult<AssessmentMechanicsReport>
+where
+    F: FnMut(
+        &AssessmentReadInput,
+        &mut W,
+        AssessmentLimits,
+        &AtomicBool,
+    ) -> SourceCommandResult<AssessmentMechanicsReport>,
+{
+    let input = selected_assessment_input(
+        config,
+        subject_id,
+        scope,
+        source_records,
+        native_records,
+        record_rows,
+        required_refs,
+        required_admission_bases,
+        trusted_history,
+        reviews,
+        source_route,
+        layer_quality,
+        observed_now,
+        source_revision,
+        source_identity,
+    )?;
+    active(budget.deadline, cancelled)?;
+    let report = evaluate(&input, worker, evaluation_limits(budget)?, cancelled)?;
+    budget.charge_report(&report)?;
+    Ok(report)
 }
 
 fn evaluate_selected_subject(
@@ -2293,8 +2760,112 @@ fn evaluate_selected_subject(
     budget: &mut OperationBudget,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AssessmentMechanicsReport> {
-    let input = AssessmentReadInput {
-        source_revision: worker.source_revision(),
+    let source_revision = worker.source_revision();
+    evaluate_selected_subject_with_executor(
+        config,
+        subject_id,
+        scope,
+        source_records,
+        native_records,
+        record_rows,
+        required_refs,
+        required_admission_bases,
+        trusted_history,
+        reviews,
+        source_route,
+        layer_quality,
+        observed_now,
+        Some(source_revision),
+        source_revision.0,
+        worker,
+        budget,
+        cancelled,
+        &mut |input, worker, limits, cancelled| {
+            evaluate_current_assessment(input, worker, limits, cancelled)
+                .map_err(map_assessment_refusal)
+        },
+    )
+}
+
+/// Reuse the maintained v5/v6 assessment input projection for a PG-selected
+/// source epoch. The opaque identity and its digest are supplied by the
+/// readset owner; this adapter does not coerce that identity into a
+/// `SourceRevision`.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn evaluate_selected_subject_pg<I: Copy + Eq>(
+    config: &JsonValue,
+    subject_id: &str,
+    scope: &JsonValue,
+    source_records: &[JsonValue],
+    native_records: &[JsonValue],
+    record_rows: &[JsonValue],
+    required_refs: &[JsonValue],
+    required_admission_bases: &[AssessmentRecordInput],
+    trusted_history: &[AssessmentSubmissionInput],
+    reviews: &[AssessmentSubmissionInput],
+    source_route: AssessmentSourceRoute,
+    layer_quality: Option<AssessmentLayerQualityObservation>,
+    observed_now: &str,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    input_identity: &I,
+    input_identity_digest: Digest256,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentMechanicsReport> {
+    evaluate_selected_subject_with_executor(
+        config,
+        subject_id,
+        scope,
+        source_records,
+        native_records,
+        record_rows,
+        required_refs,
+        required_admission_bases,
+        trusted_history,
+        reviews,
+        source_route,
+        layer_quality,
+        observed_now,
+        None,
+        input_identity_digest,
+        worker,
+        budget,
+        cancelled,
+        &mut |input, worker, limits, cancelled| {
+            evaluate_current_assessment_selected(
+                input,
+                input_identity,
+                input_identity_digest,
+                worker,
+                limits,
+                cancelled,
+            )
+            .map_err(map_assessment_refusal)
+        },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn selected_assessment_input(
+    config: &JsonValue,
+    subject_id: &str,
+    scope: &JsonValue,
+    source_records: &[JsonValue],
+    native_records: &[JsonValue],
+    record_rows: &[JsonValue],
+    required_refs: &[JsonValue],
+    required_admission_bases: &[AssessmentRecordInput],
+    trusted_history: &[AssessmentSubmissionInput],
+    reviews: &[AssessmentSubmissionInput],
+    source_route: AssessmentSourceRoute,
+    layer_quality: Option<AssessmentLayerQualityObservation>,
+    observed_now: &str,
+    source_revision: Option<tos_foundation::SourceRevision>,
+    source_input_identity: Digest256,
+) -> SourceCommandResult<AssessmentReadInput> {
+    Ok(AssessmentReadInput {
+        source_revision,
+        source_input_identity,
         policy: record_input(cmd::field(config, "policy")?)?,
         authorities: cmd::array(config, "authorities")?
             .iter()
@@ -2328,7 +2899,104 @@ fn evaluate_selected_subject(
         reviews: reviews.to_vec(),
         trusted_history: trusted_history.to_vec(),
         observed_now: observed_now.to_owned(),
+    })
+}
+
+/// Construct the exact maintained Assessment input for a selected PG epoch.
+/// The source identity is preserved as its own digest, and the legacy cut
+/// revision field remains absent.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn selected_assessment_input_pg(
+    config: &JsonValue,
+    subject_id: &str,
+    scope: &JsonValue,
+    source_records: &[JsonValue],
+    native_records: &[JsonValue],
+    record_rows: &[JsonValue],
+    required_refs: &[JsonValue],
+    required_admission_bases: &[AssessmentRecordInput],
+    trusted_history: &[AssessmentSubmissionInput],
+    reviews: &[AssessmentSubmissionInput],
+    source_route: AssessmentSourceRoute,
+    layer_quality: Option<AssessmentLayerQualityObservation>,
+    observed_now: &str,
+    input_identity_digest: Digest256,
+) -> SourceCommandResult<AssessmentReadInput> {
+    selected_assessment_input(
+        config,
+        subject_id,
+        scope,
+        source_records,
+        native_records,
+        record_rows,
+        required_refs,
+        required_admission_bases,
+        trusted_history,
+        reviews,
+        source_route,
+        layer_quality,
+        observed_now,
+        None,
+        input_identity_digest,
+    )
+}
+
+/// Prepare the asserted candidate worker for a PG-selected Assessment source
+/// identity. Schema bytes are read through the caller's bounded readset, and
+/// the worker carries that opaque identity without claiming a SourceRevision.
+pub(crate) fn selected_assessment_candidate_worker<I: Copy + Eq>(
+    invocation: &Value,
+    readset: &mut impl crate::source_revisions::ReadonlyRecordFiles,
+    input_identity: I,
+    schema_paths: &[String],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CandidateCutWorkerSchemaExecutor<I>> {
+    let selected_worker = invocation
+        .get("schema_worker")
+        .ok_or(SourceCommandError::Invalid("assessment PG schema worker"))?;
+    exact(selected_worker, &["absolute_path", "sha256"])?;
+    let budgets = invocation
+        .get("budgets")
+        .ok_or(SourceCommandError::Invalid("assessment PG budgets"))?;
+    let mut worker_budget = ExecutorBudget::laboratory();
+    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
+    worker_budget.address_space_bytes =
+        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
+    let worker_identity = ExactWorkerIdentity {
+        absolute_path: absolute(text(selected_worker, "absolute_path")?)?,
+        sha256: digest(text(selected_worker, "sha256")?)?,
     };
+    let image =
+        VerifiedWorkerImageHandle::prepare(worker_identity, worker_budget, deadline, cancelled)
+            .map_err(|_| SourceCommandError::Denied("assessment PG schema worker image"))?;
+    let limits = CutWorkerLimits {
+        max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
+            .map_err(|_| SourceCommandError::Invalid("assessment PG schema receipt budget"))?,
+        max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
+            .map_err(|_| {
+            SourceCommandError::Invalid("assessment PG schema receipt budget")
+        })?,
+    };
+    crate::source_sign::candidate_schema_worker_from_readset(
+        readset,
+        input_identity,
+        schema_paths,
+        &image,
+        worker_budget,
+        limits,
+        deadline,
+        cancelled,
+    )
+}
+
+fn evaluate_and_charge_assessment(
+    input: &AssessmentReadInput,
+    worker: &mut CutWorkerSchemaExecutor,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentMechanicsReport> {
     active(budget.deadline, cancelled)?;
     let report = evaluate_current_assessment(&input, worker, evaluation_limits(budget)?, cancelled)
         .map_err(map_assessment_refusal)?;
@@ -2371,7 +3039,7 @@ fn map_assessment_refusal(error: AssessmentRefusal) -> SourceCommandError {
     }
 }
 
-fn owner_snapshot(
+pub(crate) fn owner_snapshot(
     config: &JsonValue,
     configuration_raw: &[u8],
     public_fixity: &[JsonValue],
@@ -2451,7 +3119,7 @@ fn owner_snapshot(
     ))
 }
 
-fn quality_snapshot(
+pub(crate) fn quality_snapshot(
     source_snapshot: &str,
     bases: &[(QualityRequirement, JsonValue)],
 ) -> SourceCommandResult<String> {
@@ -2466,7 +3134,7 @@ fn quality_snapshot(
     Ok(format!("sha256:{}", cmd::record_digest(&value)?.to_hex()))
 }
 
-fn extend_subject_assessment_snapshot(
+pub(crate) fn extend_subject_assessment_snapshot(
     source_snapshot: &str,
     subject_assessment: &JsonValue,
 ) -> SourceCommandResult<String> {
@@ -2477,7 +3145,10 @@ fn extend_subject_assessment_snapshot(
     Ok(format!("sha256:{}", cmd::record_digest(&value)?.to_hex()))
 }
 
-fn record_rows(config: &JsonValue, additions: &[JsonValue]) -> SourceCommandResult<Vec<JsonValue>> {
+pub(crate) fn record_rows(
+    config: &JsonValue,
+    additions: &[JsonValue],
+) -> SourceCommandResult<Vec<JsonValue>> {
     let base = cmd::array(config, "records")?;
     if base
         .len()
@@ -2505,7 +3176,7 @@ fn record_rows(config: &JsonValue, additions: &[JsonValue]) -> SourceCommandResu
     Ok(rows)
 }
 
-fn quality_requirements(
+pub(crate) fn quality_requirements(
     current: &JsonValue,
     required_sources: &[JsonValue],
     records: &BTreeMap<String, JsonValue>,
@@ -2684,7 +3355,7 @@ fn quality_requirements(
     Ok(requirements)
 }
 
-fn collect_quality_lock_closure(
+pub(crate) fn collect_quality_lock_closure(
     roots: &[String],
     preflight: Option<&crate::source_private_assessment_layers::OwnerLocalLayerPreflight>,
     budget: &mut OperationBudget,
@@ -2743,11 +3414,11 @@ fn collect_quality_lock_closure(
     Ok(visited.into_iter().collect())
 }
 
-fn quality_basis(
+pub(crate) fn quality_basis<W: CutSchemaExecutor>(
     layer: &crate::source_private_assessment_layers::SelectedOwnerLayer,
     report: &AssessmentMechanicsReport,
     use_name: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -2845,13 +3516,15 @@ fn quality_basis(
     ]))
 }
 
-fn report_admission(report: &AssessmentMechanicsReport) -> SourceCommandResult<JsonValue> {
+pub(crate) fn report_admission(
+    report: &AssessmentMechanicsReport,
+) -> SourceCommandResult<JsonValue> {
     let raw = serde_json::to_vec(report.current_admission())
         .map_err(|_| SourceCommandError::Invalid("assessment admission serialization"))?;
     cmd::parse(&raw)
 }
 
-fn basis_observation(basis: &JsonValue) -> SourceCommandResult<(bool, Vec<JsonValue>)> {
+pub(crate) fn basis_observation(basis: &JsonValue) -> SourceCommandResult<(bool, Vec<JsonValue>)> {
     Ok((
         cmd::field(cmd::field(basis, "payload")?, "can_use")? == &JsonValue::Bool(true),
         cmd::array(cmd::field(basis, "payload")?, "limits")?.to_vec(),
@@ -2891,7 +3564,7 @@ fn verify_selected_sources(
     Ok(())
 }
 
-fn native_append_ready(
+pub(crate) fn native_append_ready(
     selected_layer: bool,
     claim_source_bound: bool,
     required_sources: &[JsonValue],
@@ -2923,7 +3596,7 @@ fn native_append_ready(
     Ok(true)
 }
 
-fn parent_claim_context(
+pub(crate) fn parent_claim_context(
     current_form: &JsonValue,
     form_scope: &JsonValue,
     config: &JsonValue,
@@ -3072,7 +3745,7 @@ fn parent_claim_context(
     }))
 }
 
-fn parent_assessment_packet(
+pub(crate) fn parent_assessment_packet(
     record: &JsonValue,
     report: &AssessmentMechanicsReport,
     history: &AssessmentHistory,
@@ -3324,7 +3997,7 @@ fn execute_journal_operation(
     Ok(envelope)
 }
 
-fn current_admission_with_limits(
+pub(crate) fn current_admission_with_limits(
     report: &AssessmentMechanicsReport,
     layers: Option<&crate::source_private_assessment_layers::PrivateAssessmentLayers>,
     subject_id: &str,
@@ -3633,33 +4306,37 @@ fn describe_context(
     Ok(context)
 }
 
+pub(crate) enum AssessmentAppendPreparation {
+    Replayed(JsonValue),
+    New {
+        batch: JsonValue,
+        request_digest: Digest256,
+        revision: String,
+        result: JsonValue,
+    },
+}
+
+/// Reuse the maintained append/replay, qualification, and immutable batch
+/// preparation rules independently of the journal transport. The filesystem
+/// journal and PG private-package broker publish this same prepared batch
+/// through their own owner-specific currentness and commit boundaries.
 #[allow(clippy::too_many_arguments)]
-fn append_assessment_batch(
-    selected: &SelectedOperationView<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+pub(crate) fn prepare_assessment_append<W: CutSchemaExecutor>(
+    request_row: &ParsedRequest,
+    recorded_at: &str,
+    worker: &mut W,
     config: &JsonValue,
     scope: &JsonValue,
     current: &JsonValue,
     history: &AssessmentHistory,
-    fence: &AssessmentJournalFence<'_>,
     current_report: &AssessmentMechanicsReport,
     append_report: &AssessmentMechanicsReport,
-    _admission_bases: &[(
-        QualityRequirement,
-        AssessmentRecordInput,
-        bool,
-        Vec<JsonValue>,
-    )],
     all_by_id: &BTreeMap<String, JsonValue>,
     layers: Option<&crate::source_private_assessment_layers::PrivateAssessmentLayers>,
-    public_sources: &mut crate::source_sign::OwnerAssessmentPublicSources<'_>,
-    software: &SoftwareCaptureReader,
-    components: &SoftwareComponentSelectionV1,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(JsonValue, bool)> {
-    let command_id = selected
-        .request
+) -> SourceCommandResult<AssessmentAppendPreparation> {
+    let command_id = request_row
         .command_id
         .as_deref()
         .ok_or(SourceCommandError::Invalid(
@@ -3684,15 +4361,14 @@ fn append_assessment_batch(
         ));
     }
     let expected_revision =
-        selected
-            .request
+        request_row
             .expected_revision
             .as_ref()
             .ok_or(SourceCommandError::Invalid(
                 "assessment expected revision absent",
             ))?;
     let submitted = append_event_rows(
-        &selected.request.assessments,
+        &request_row.assessments,
         cmd::text(config, "principal_id")?,
         execution,
     )?;
@@ -3713,38 +4389,32 @@ fn append_assessment_batch(
         ("maker_id", cmd::field(scope, "maker_id")?.clone()),
         ("use", cmd::field(scope, "requested_use")?.clone()),
     ]);
-    let request_digest = cmd::record_digest(&request)?.to_hex();
+    let request_digest = cmd::record_digest(&request)?;
+    let request_digest_hex = request_digest.to_hex();
     for batch in &history.batches {
         if cmd::text(cmd::field(batch, "request")?, "command_id")? == command_id {
-            if cmd::text(batch, "request_digest")? != request_digest {
+            if cmd::text(batch, "request_digest")? != request_digest_hex {
                 return Err(SourceCommandError::Conflict(
                     "assessment command ID is bound to another request",
                 ));
             }
             crate::source_sign::finish_worker(worker, deadline, cancelled)?;
-            return Ok((
-                cmd::object(vec![
-                    (
-                        "revision",
-                        history
-                            .head
-                            .as_deref()
-                            .map(cmd::string)
-                            .unwrap_or(JsonValue::Null),
-                    ),
-                    ("receipt", batch.clone()),
-                    ("replayed", JsonValue::Bool(true)),
-                    (
-                        "current_admission",
-                        current_admission_with_limits(
-                            current_report,
-                            layers,
-                            &selected.request.subject_id,
-                        )?,
-                    ),
-                ]),
-                false,
-            ));
+            return Ok(AssessmentAppendPreparation::Replayed(cmd::object(vec![
+                (
+                    "revision",
+                    history
+                        .head
+                        .as_deref()
+                        .map(cmd::string)
+                        .unwrap_or(JsonValue::Null),
+                ),
+                ("receipt", batch.clone()),
+                ("replayed", JsonValue::Bool(true)),
+                (
+                    "current_admission",
+                    current_admission_with_limits(current_report, layers, &request_row.subject_id)?,
+                ),
+            ])));
         }
     }
     if history.head.as_ref() != expected_revision.as_ref() {
@@ -3754,7 +4424,7 @@ fn append_assessment_batch(
     }
     if let Some(previous) = history.batches.last() {
         if tos_validation::retirement_rules::observed_instant_order(
-            &selected.context.recorded_at,
+            recorded_at,
             cmd::text(previous, "recorded_at")?,
         )
         .map_err(|_| SourceCommandError::Invalid("assessment append chronology"))?
@@ -3810,12 +4480,12 @@ fn append_assessment_batch(
         .unwrap_or(JsonValue::Null);
     let batch = cmd::object(vec![
         ("schema_version", cmd::string("tos_assessment_batch_v1")),
-        ("subject_id", cmd::string(&selected.request.subject_id)),
+        ("subject_id", cmd::string(&request_row.subject_id)),
         ("sequence", cmd::number(history.batches.len() as u64 + 1)),
         ("previous_revision", previous_revision),
-        ("recorded_at", cmd::string(&selected.context.recorded_at)),
+        ("recorded_at", cmd::string(recorded_at)),
         ("request", request),
-        ("request_digest", cmd::string(&request_digest)),
+        ("request_digest", cmd::string(&request_digest_hex)),
         ("events", JsonValue::Array(committed_events)),
         (
             "qualification",
@@ -3843,41 +4513,107 @@ fn append_assessment_batch(
         return Err(SourceCommandError::Invalid("assessment batch schema"));
     }
     crate::source_sign::finish_worker(worker, deadline, cancelled)?;
-    let mut currentness = || {
-        verify_selected_sources(
-            selected,
-            public_sources,
-            layers,
-            software,
-            components,
-            deadline,
-            cancelled,
-        )
-    };
-    let revision = fence.publish(
-        &selected.request.subject_id,
+    let revision = cmd::record_digest(&batch)?.to_hex();
+    let result = cmd::object(vec![
+        ("revision", cmd::string(&revision)),
+        ("receipt", batch.clone()),
+        ("replayed", JsonValue::Bool(false)),
+        (
+            "current_admission",
+            current_admission_with_limits(append_report, layers, &request_row.subject_id)?,
+        ),
+    ]);
+    Ok(AssessmentAppendPreparation::New {
+        batch,
+        request_digest,
+        revision,
+        result,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn append_assessment_batch(
+    selected: &SelectedOperationView<'_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    config: &JsonValue,
+    scope: &JsonValue,
+    current: &JsonValue,
+    history: &AssessmentHistory,
+    fence: &AssessmentJournalFence<'_>,
+    current_report: &AssessmentMechanicsReport,
+    append_report: &AssessmentMechanicsReport,
+    _admission_bases: &[(
+        QualityRequirement,
+        AssessmentRecordInput,
+        bool,
+        Vec<JsonValue>,
+    )],
+    all_by_id: &BTreeMap<String, JsonValue>,
+    layers: Option<&crate::source_private_assessment_layers::PrivateAssessmentLayers>,
+    public_sources: &mut crate::source_sign::OwnerAssessmentPublicSources<'_>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, bool)> {
+    let preparation = prepare_assessment_append(
+        selected.request,
+        &selected.context.recorded_at,
+        worker,
+        config,
+        scope,
+        current,
         history,
-        expected_revision.as_deref(),
-        &batch,
-        || currentness(),
+        current_report,
+        append_report,
+        all_by_id,
+        layers,
         deadline,
         cancelled,
     )?;
-    Ok((
-        cmd::object(vec![
-            ("revision", cmd::string(&revision)),
-            ("receipt", batch),
-            ("replayed", JsonValue::Bool(false)),
-            (
-                "current_admission",
-                current_admission_with_limits(append_report, layers, &selected.request.subject_id)?,
-            ),
-        ]),
-        true,
-    ))
+    match preparation {
+        AssessmentAppendPreparation::Replayed(result) => Ok((result, false)),
+        AssessmentAppendPreparation::New {
+            batch,
+            revision,
+            result,
+            ..
+        } => {
+            let mut currentness = || {
+                verify_selected_sources(
+                    selected,
+                    public_sources,
+                    layers,
+                    software,
+                    components,
+                    deadline,
+                    cancelled,
+                )
+            };
+            let committed_revision = fence.publish(
+                &selected.request.subject_id,
+                history,
+                selected
+                    .request
+                    .expected_revision
+                    .as_ref()
+                    .and_then(|revision| revision.as_deref()),
+                &batch,
+                || currentness(),
+                deadline,
+                cancelled,
+            )?;
+            if committed_revision != revision {
+                return Err(SourceCommandError::Conflict(
+                    "assessment journal published a different batch revision",
+                ));
+            }
+            Ok((result, true))
+        }
+    }
 }
 
-fn append_event_rows(
+pub(crate) fn append_event_rows(
     assessments: &[JsonValue],
     principal_id: &str,
     execution_profile: &JsonValue,
@@ -3990,6 +4726,72 @@ fn materialize_assessed_form(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
+    let private_maps = private_sources.map(|sources| AssessmentFormMaps {
+        form_paths: sources.form_paths(),
+        form_sets: sources.form_sets(),
+        source_paths: &sources.source_paths,
+    });
+    let public_maps = AssessmentFormMaps {
+        form_paths: &public_sources.form_paths,
+        form_sets: &public_sources.form_sets,
+        source_paths: &public_sources.record_paths,
+    };
+    materialize_assessed_form_from_selected_maps(
+        private_maps.as_ref(),
+        &public_maps,
+        private_sources.is_some(),
+        selected_subject_id,
+        worker,
+        current,
+        scope,
+        history,
+        current_report,
+        admission_bases,
+        parent_assessment,
+        all_by_id,
+        required_sources,
+        layers,
+        |path, worker, deadline, cancelled| {
+            public_sources.validate_form_set(path, worker, deadline, cancelled)
+        },
+        deadline,
+        cancelled,
+    )
+}
+
+/// Transport-neutral form materializer used after public/private source
+/// adapters have selected exact forms and subject paths. The supplied
+/// validator binds a public form set to the caller's selected contract bytes.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn materialize_assessed_form_from_selected_maps<W: CutSchemaExecutor>(
+    private_maps: Option<&AssessmentFormMaps<'_>>,
+    public_maps: &AssessmentFormMaps<'_>,
+    has_private_sources: bool,
+    selected_subject_id: &str,
+    worker: &mut W,
+    current: &JsonValue,
+    scope: &JsonValue,
+    history: &AssessmentHistory,
+    current_report: &AssessmentMechanicsReport,
+    admission_bases: &[(
+        QualityRequirement,
+        AssessmentRecordInput,
+        bool,
+        Vec<JsonValue>,
+    )],
+    parent_assessment: Option<&JsonValue>,
+    all_by_id: &BTreeMap<String, JsonValue>,
+    required_sources: &[JsonValue],
+    layers: Option<&crate::source_private_assessment_layers::PrivateAssessmentLayers>,
+    mut validate_public_form_set: impl FnMut(
+        &str,
+        &mut W,
+        Instant,
+        &AtomicBool,
+    ) -> SourceCommandResult<()>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
     active(deadline, cancelled)?;
     let form_id = cmd::text(current, "id")?;
     let form_ref = owner_reference(current)?;
@@ -4001,34 +4803,34 @@ fn materialize_assessed_form(
     }
     let subject_ref = cmd::field(form_body, "subject")?;
     let subject_id = cmd::text(subject_ref, "id")?;
-    let (form_set_path, form_set, _public_form) = if let Some(path) =
-        private_sources.and_then(|sources| sources.form_paths().get(form_id))
-    {
-        let form_set = private_sources
-            .and_then(|sources| sources.form_sets().get(path))
-            .ok_or(SourceCommandError::Conflict(
-                "materialization form set is absent from the current selected source closure",
-            ))?;
-        (path.clone(), form_set, false)
-    } else if let Some(path) = public_sources.form_paths.get(form_id).cloned() {
-        if public_sources.record_paths.get(form_id) != Some(&path) {
+    let (form_set_path, form_set) =
+        if let Some(path) = private_maps.and_then(|maps| maps.form_paths.get(form_id)) {
+            let form_set = private_maps
+                .and_then(|maps| maps.form_sets.get(path))
+                .ok_or(SourceCommandError::Conflict(
+                    "materialization form set is absent from the current selected source closure",
+                ))?;
+            (path.clone(), form_set.clone())
+        } else if let Some(path) = public_maps.form_paths.get(form_id).cloned() {
+            if public_maps.source_paths.get(form_id) != Some(&path) {
+                return Err(SourceCommandError::Denied(
+                    "materialization public form path is not exact-selected",
+                ));
+            }
+            validate_public_form_set(&path, worker, deadline, cancelled)?;
+            let form_set = public_maps
+                .form_sets
+                .get(&path)
+                .ok_or(SourceCommandError::Conflict(
+                    "materialization public form set is absent from current selected sources",
+                ))?
+                .clone();
+            (path, form_set)
+        } else {
             return Err(SourceCommandError::Denied(
-                "materialization public form path is not exact-selected",
+                "materialization form path is not source-selected",
             ));
-        }
-        public_sources.validate_form_set(&path, worker, deadline, cancelled)?;
-        let form_set = public_sources
-            .form_sets
-            .get(&path)
-            .ok_or(SourceCommandError::Conflict(
-                "materialization public form set is absent from current selected sources",
-            ))?;
-        (path, form_set, true)
-    } else {
-        return Err(SourceCommandError::Denied(
-            "materialization form path is not source-selected",
-        ));
-    };
+        };
     let Some(subject) = all_by_id.get(subject_id) else {
         return Ok(materialization_stop(
             &form_ref,
@@ -4039,9 +4841,9 @@ fn materialize_assessed_form(
             parent_assessment,
         ));
     };
-    let subject_path = private_sources
-        .and_then(|sources| sources.source_paths.get(subject_id))
-        .or_else(|| public_sources.record_paths.get(subject_id));
+    let subject_path = private_maps
+        .and_then(|maps| maps.source_paths.get(subject_id))
+        .or_else(|| public_maps.source_paths.get(subject_id));
     if let Some(subject_path) = subject_path {
         if expected_source_form_set_path(subject_path, subject_id)? != form_set_path {
             return Err(SourceCommandError::Denied(
@@ -4076,13 +4878,13 @@ fn materialize_assessed_form(
         ));
     }
     if !cmd::same(subject_ref, &owner_reference(subject)?)?
-        || !cmd::same(cmd::field(form_set, "subject")?, subject_ref)?
+        || !cmd::same(cmd::field(&form_set, "subject")?, subject_ref)?
     {
         return Err(SourceCommandError::Conflict(
             "materialization form binds another current source subject",
         ));
     }
-    let forms = cmd::array(form_set, "forms")?;
+    let forms = cmd::array(&form_set, "forms")?;
     let mut matches = 0usize;
     for candidate in forms {
         if cmd::same(candidate, form_body)? {
@@ -4277,12 +5079,11 @@ fn materialize_assessed_form(
         }
         let pointer = cmd::text(binding, "pointer")?;
         let subject_payload = cmd::field(subject, "payload")?;
-        let fields =
-            if private_sources.is_none() && subject_payload.object_get("claim_id").is_some() {
-                public_claim_form_fields(subject_payload, worker, deadline, cancelled)?
-            } else {
-                crate::source_forms::metadata_fields(subject_payload)?
-            };
+        let fields = if !has_private_sources && subject_payload.object_get("claim_id").is_some() {
+            public_claim_form_fields(subject_payload, worker, deadline, cancelled)?
+        } else {
+            crate::source_forms::metadata_fields(subject_payload)?
+        };
         let role = cmd::text(form_body, "role")?;
         let matches = fields
             .into_iter()

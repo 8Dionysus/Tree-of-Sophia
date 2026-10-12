@@ -86,6 +86,7 @@ async function completion(request, deadline) {
   const manifest = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(packets[0])); // transport observation only
   assert.equal(manifest.schema, 'tos_cloudflare_edge_build_v1');
   assert.equal(manifest.read_model_schema, 'tos_cloudflare_edge_read_model_v9');
+  assert.equal(manifest.producer_profile, 'tos-rust-public-d1-full-v2');
   assert.equal(manifest.data_revision, request.data_revision);
   if (request.expected_delta_from !== undefined) {
     assert.ok(request.profile === 'representative' && hex(request.expected_delta_from), 'delta selection invalid');

@@ -60,6 +60,15 @@ pub mod source_managed_selection;
 pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
 pub mod source_native_cli;
+pub mod source_navigation_bootstrap;
+mod source_navigation_claim_input;
+mod source_navigation_claim_selection;
+pub mod source_navigation_cli;
+pub mod source_navigation_policy;
+mod source_navigation_producer;
+pub mod source_navigation_query;
+mod source_navigation_record_adapter;
+mod source_navigation_record_input;
 pub mod source_projection_cli;
 pub mod source_search_projection;
 pub use durable_adapter::source_cohort;
@@ -77,6 +86,7 @@ mod source_item_deposit;
 pub(crate) mod source_item_inventory;
 pub mod source_operation;
 mod source_private_assessment_layers;
+mod source_private_assessment_pg_sources;
 mod source_private_assessment_sources;
 #[cfg(feature = "conformance-owner-local-source-resolver")]
 pub use source_private_assessment_sources::{
@@ -96,6 +106,10 @@ pub use source_sign_native::{
 };
 pub mod source_text_alignment_entry;
 mod source_text_identity;
+mod source_text_identity_index;
+mod source_annotation_identity_index;
+mod source_claim_dependency_index;
+mod source_item_file_index;
 pub mod source_text_layer_derived_entry;
 mod source_text_layer_derived_proposal;
 pub mod source_text_layer_entry;
@@ -115,8 +129,13 @@ mod source_text_unit_proposal;
 use tos_foundation::Digest256;
 
 pub use durable_adapter::durable_projection::{
-    DurableProjectionDocument, DurableProjectionExtractor, DurableProjectionHit,
-    DurableProjectionLimits, DurableProjectionProfile, DurableProjectionProgress,
+    DurableNavigationEventAdvanceV2, DurableNavigationEventApply,
+    DurableNavigationEventCohortReadV1, DurableNavigationEventCohortSetV2,
+    DurableNavigationEventContextV1, DurableNavigationEventDependencyReadV1,
+    DurableNavigationEventLimits, DurableNavigationEventPendingReasonV2,
+    DurableNavigationEventSourceV1, DurableProjectionDocument, DurableProjectionExtractor,
+    DurableProjectionHit, DurableProjectionLimits, DurableProjectionProfile,
+    DurableProjectionProgress, DurableProjectionQueueAge, DurableProjectionQueueAgeStatus,
     DurableProjectionSearch, DurableProjectionSource, DurableProjectionStatus,
     DurableProjectionWork,
 };

@@ -5,8 +5,9 @@ use tos_foundation::{
     canonical_bytes_v1, parse_json,
 };
 use tos_query::{
-    AdjacencyPage, Binding, Budget, Charged, DisclosureLease, ExactNode, QueryError,
-    QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1, SOURCE_DESCEND_SESSION_V1,
+    AdjacencyPage, Binding, Budget, Charged, CpuStepsMeter, DisclosureLease, ExactNode, QueryError,
+    QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1,
+    SOURCE_DESCEND_POSTGRES_METER_V1, SOURCE_DESCEND_SESSION_V1, SOURCE_DESCEND_SESSION_V2,
     SessionAdvance, SessionNeed, SessionNeedKind, SessionResponse, SessionResponseKind,
     SourceDescendRequest, SourceDescendSession, source_descend,
 };
@@ -305,7 +306,7 @@ impl ReadModel for SyntheticReadModel {
         &mut self,
         binding: &Binding,
         selected: &[RawRecord],
-    ) -> Result<Box<dyn DisclosureLease>, QueryError> {
+    ) -> Result<Box<dyn DisclosureLease + '_>, QueryError> {
         self.check_pin(binding)?;
         if selected.is_empty() {
             return Err(QueryError {
@@ -786,6 +787,7 @@ fn session_header_preserves_wide_integer_identity_and_refuses_one_over() {
     binding.through_commit_seq = 9_007_199_254_740_993;
     let mut limits = budget();
     limits.max_probes = 9_007_199_254_740_993;
+    limits.max_cpu_steps = 9_007_199_254_740_993;
     let (_, need) = SourceDescendSession::start(binding, request, limits).unwrap();
     let header = need.wire_header(16 * 1024).unwrap();
     let parsed = parse_json(&header, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
@@ -797,11 +799,68 @@ fn session_header_preserves_wide_integer_identity_and_refuses_one_over() {
         string(field(parsed.root(), "caps"), "probes"),
         "9007199254740993"
     );
+    assert_eq!(
+        string(field(parsed.root(), "caps"), "cpu_steps"),
+        "9007199254740993"
+    );
     assert_eq!(string(parsed.root(), "nonce"), "1");
     assert_eq!(
         need.wire_header(header.len() - 1).unwrap_err().code,
         QueryErrorCode::BudgetExceeded
     );
+}
+
+#[test]
+fn postgres_session_v2_encodes_unavailable_cpu_without_changing_v1() {
+    let (model, _, request) = SyntheticReadModel::fixture();
+    let (mut session, need) = SourceDescendSession::start_with_meter_profile(
+        model.binding.clone(),
+        request,
+        budget(),
+        SOURCE_DESCEND_SESSION_V2,
+        SOURCE_DESCEND_POSTGRES_METER_V1,
+    )
+    .unwrap();
+    let header = need.wire_header(16 * 1024).unwrap();
+    let parsed = parse_json(&header, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert_eq!(string(parsed.root(), "schema"), SOURCE_DESCEND_SESSION_V2);
+    assert_eq!(
+        string(parsed.root(), "meter_profile"),
+        SOURCE_DESCEND_POSTGRES_METER_V1
+    );
+    assert!(matches!(
+        field(field(parsed.root(), "caps"), "cpu_steps"),
+        JsonValue::Null
+    ));
+
+    let advance = session
+        .resume(SessionResponse {
+            schema: SOURCE_DESCEND_SESSION_V2,
+            meter_profile: SOURCE_DESCEND_POSTGRES_METER_V1,
+            nonce: need.nonce,
+            binding: need.binding.clone(),
+            certified_index_root: Some(need.binding.index_root),
+            charged: Charged {
+                cpu_meter: CpuStepsMeter::Unavailable,
+                ..Charged::default()
+            },
+            kind: SessionResponseKind::PinHeld,
+        })
+        .unwrap();
+    let SessionAdvance::Need(next) = advance else {
+        panic!("pin check must advance to the query");
+    };
+    let next_header = next.wire_header(16 * 1024).unwrap();
+    let parsed = parse_json(
+        &next_header,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        field(field(parsed.root(), "caps"), "cpu_steps"),
+        JsonValue::Null
+    ));
 }
 
 #[test]

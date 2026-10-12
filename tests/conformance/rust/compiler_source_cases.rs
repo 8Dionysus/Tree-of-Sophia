@@ -1693,6 +1693,27 @@ fn native_corpus_composition_case(installed: bool) {
         assert_eq!(*count, serde_json::json!(337));
         *count = serde_json::json!(338);
     }
+    for pointer in [
+        "/cases/search/schema",
+        "/cases/search-filtered/schema",
+        "/cases/packet/schema",
+        "/cases/packet-empty/schema",
+    ] {
+        let schema = query_oracle.pointer_mut(pointer).unwrap();
+        let historical =
+            if pointer.ends_with("/packet/schema") || pointer.ends_with("/packet-empty/schema") {
+                "tos_corpus_mcp_packet_v1"
+            } else {
+                "tos_corpus_mcp_search_v1"
+            };
+        assert_eq!(schema.as_str(), Some(historical));
+        *schema = match pointer {
+            "/cases/search/schema" | "/cases/search-filtered/schema" => {
+                serde_json::json!("tos_corpus_mcp_search_v2")
+            }
+            _ => serde_json::json!("tos_corpus_mcp_packet_v2"),
+        };
+    }
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), expected_raw.as_slice());
     phase(started, deadline, "maintained-oracle-matched");

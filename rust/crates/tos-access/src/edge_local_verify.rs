@@ -446,6 +446,7 @@ fn markers(o: &SupervisionOptions, revision: &str, digest: &str) -> Result<(), S
     if text(doc.root(), "data_revision")? != revision
         || text(doc.root(), "schema")? != "tos_cloudflare_edge_build_v1"
         || text(doc.root(), "read_model_schema")? != "tos_cloudflare_edge_read_model_v9"
+        || text(doc.root(), "producer_profile")? != "tos-rust-public-d1-full-v2"
     {
         return Err("completion identity differs".into());
     }

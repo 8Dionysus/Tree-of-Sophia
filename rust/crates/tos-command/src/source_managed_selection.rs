@@ -103,7 +103,10 @@ pub struct ManagedAgentSelectedParent<P: ManagedSelectedProof = ManagedSourcePro
     generation: ManagedCurrentSourceGeneration,
     proof: P,
     model: VerifiedKnowledgeModel<'static>,
-    completed: CompletedManagedAgentProducer<P>,
+    completed: Option<CompletedManagedAgentProducer<P>>,
+    expectation: tos_compiler::KnowledgeSelectedExpectation,
+    navigation_original: tos_compiler::NavigationOriginalReceipt,
+    source_catalog_root_sha256: Option<String>,
 }
 impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
     pub fn source_proof(&self) -> &P {
@@ -115,15 +118,84 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
     /// Descriptive immutable selection facts for independent read-scope
     /// construction. This receipt does not issue disclosure authorization.
     pub fn selection_expectation(&self) -> &tos_compiler::KnowledgeSelectedExpectation {
-        self.completed.expectation()
+        &self.expectation
+    }
+    /// Exact native source-navigation visibility profile checked by the
+    /// selected-model cold opener.
+    pub fn selection_profile(&self) -> &'static str {
+        self.model.selection_profile()
     }
     pub fn navigation_original_receipt(&self) -> &tos_compiler::NavigationOriginalReceipt {
-        self.completed.navigation_original()
+        &self.navigation_original
     }
     /// The genuine initial complete catalogue root retained through this
     /// producer chain. Current catalogue inputs are independently observed.
     pub fn source_catalog_root_sha256(&self) -> &str {
-        self.completed.source_catalog_root_sha256()
+        self.source_catalog_root_sha256.as_deref().unwrap_or("")
+    }
+
+    /// Whether the selected model retains the complete producer capability
+    /// required by successor and overlay construction.
+    pub(crate) fn has_completed_producer(&self) -> bool {
+        self.completed.is_some()
+    }
+
+    /// Admit a persisted native model and retained V2 proof for read-only
+    /// navigation. The immutable artifact is independently re-opened under
+    /// fs-verity; current owner and PG fences are repeated for each delivery.
+    pub(crate) fn open_persisted_navigation_selection(
+        generation: ManagedCurrentSourceGeneration,
+        proof: ManagedSourceProofV2,
+        artifact_path: &std::path::Path,
+        expectation: tos_compiler::KnowledgeSelectedExpectation,
+        process_limits: NativeProcessLimits,
+        cold_limits: ColdOpenLimits,
+    ) -> ManagedSelectionResult<ManagedAgentSelectedParent<ManagedSourceProofV2>> {
+        proof.validate().map_err(ManagedSelectionError::Compiler)?;
+        let projection = Digest256::from_hex(proof.inventory_projection()).map_err(|_| {
+            ManagedSelectionError::Source(SourceCommandError::Invalid(
+                "persisted managed source projection digest",
+            ))
+        })?;
+        if !proof
+            .matches_selected(&generation, projection)
+            .map_err(ManagedSelectionError::Durable)?
+        {
+            return Err(ManagedSelectionError::Source(SourceCommandError::Conflict(
+                "persisted managed source proof differs from current selection",
+            )));
+        }
+        let measurement = tos_compiler::prepare_native_knowledge_artifact(artifact_path, &())
+            .map_err(ManagedSelectionError::Compiler)?;
+        let custody = LinuxFsVerityCustody::new(measurement, process_limits)
+            .map_err(ManagedSelectionError::Compiler)?;
+        let model = tos_compiler::open_selected_knowledge_model_owned(
+            artifact_path,
+            expectation,
+            Arc::new(custody),
+            cold_limits,
+        )
+        .map_err(ManagedSelectionError::Compiler)?;
+        if model.source_basis() != &proof.basis() {
+            return Err(ManagedSelectionError::Source(SourceCommandError::Conflict(
+                "persisted managed model basis differs",
+            )));
+        }
+        model.check_pin().map_err(ManagedSelectionError::Compiler)?;
+        let expectation = model.selection().clone();
+        let navigation_original = model
+            .navigation_original_receipt()
+            .map_err(ManagedSelectionError::Compiler)?
+            .clone();
+        Ok(ManagedAgentSelectedParent {
+            generation,
+            proof,
+            model,
+            completed: None,
+            expectation,
+            navigation_original,
+            source_catalog_root_sha256: None,
+        })
     }
     pub fn with_current_model<T>(
         &self,
@@ -158,6 +230,93 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
             seek,
         )
     }
+    /// Execute a bounded native read and its delivery callback while the
+    /// owner, selected source generation, rights/job row and repeatable-read
+    /// transaction remain held. The transaction and packet cannot escape.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_current_model_and_tx<T>(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        filesystem: &CreationFilesystem,
+        package: &ManagedSerializedCreation,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &'seek VerifiedKnowledgeModel<'seek>,
+            &'seek ManagedCurrentModelLease<'seek, P>,
+            &mut postgres::Transaction<'seek>,
+        ) -> ManagedSelectionResult<T>,
+    ) -> ManagedSelectionResult<T> {
+        self.with_current_package_and_tx(
+            coordinator,
+            store,
+            filesystem,
+            CreationPackage::Managed(package),
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            seek,
+        )
+    }
+    /// Read under the selected, package-free source owner fence. This is
+    /// reserved for source navigation: it shares the actual corpus mutex and
+    /// holds current source, rights/job rows, and the RR transaction through
+    /// the callback, without creating a source command package.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_current_model_and_tx_source_navigation<T>(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        filesystem: &CreationFilesystem,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &'seek VerifiedKnowledgeModel<'seek>,
+            &'seek ManagedCurrentModelLease<'seek, P>,
+            &mut postgres::Transaction<'seek>,
+        ) -> ManagedSelectionResult<T>,
+    ) -> ManagedSelectionResult<T> {
+        coordinator
+            .with_current_managed_model_and_tx_source_navigation(
+                store,
+                &self.generation,
+                &self.proof,
+                filesystem,
+                contract,
+                rule_version,
+                rights_version,
+                job_id,
+                job_fence,
+                deadline,
+                cancelled,
+                |lease, tx| {
+                    self.model
+                        .check_pin()
+                        .map_err(ManagedSelectionError::Compiler)?;
+                    let result = seek(&self.model, lease, tx);
+                    self.model
+                        .check_pin()
+                        .map_err(ManagedSelectionError::Compiler)?;
+                    result
+                },
+            )
+            .map_err(ManagedSelectionError::Durable)?
+    }
     fn with_current_package<T>(
         &self,
         coordinator: &mut DurablePgCoordinator,
@@ -176,8 +335,42 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
             &'seek ManagedCurrentModelLease<'seek, P>,
         ) -> ManagedSelectionResult<T>,
     ) -> ManagedSelectionResult<T> {
+        self.with_current_package_and_tx(
+            coordinator,
+            store,
+            filesystem,
+            package,
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            |model, lease, _tx| seek(model, lease),
+        )
+    }
+    fn with_current_package_and_tx<T>(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        filesystem: &CreationFilesystem,
+        package: CreationPackage<'_>,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &'seek VerifiedKnowledgeModel<'seek>,
+            &'seek ManagedCurrentModelLease<'seek, P>,
+            &mut postgres::Transaction<'seek>,
+        ) -> ManagedSelectionResult<T>,
+    ) -> ManagedSelectionResult<T> {
         coordinator
-            .with_current_managed_model(
+            .with_current_managed_model_and_tx(
                 store,
                 &self.generation,
                 &self.proof,
@@ -190,11 +383,11 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
                 job_fence,
                 deadline,
                 cancelled,
-                |lease| {
+                |lease, tx| {
                     self.model
                         .check_pin()
                         .map_err(ManagedSelectionError::Compiler)?;
-                    let result = seek(&self.model, lease);
+                    let result = seek(&self.model, lease, tx);
                     self.model
                         .check_pin()
                         .map_err(ManagedSelectionError::Compiler)?;
@@ -280,11 +473,17 @@ fn bind_completed_managed_agent_parent<P: ManagedSelectedProof>(
         )));
     }
     let model = open_completed_model(&completed, process_limits, cold_limits)?;
+    let expectation = completed.expectation().clone();
+    let navigation_original = completed.navigation_original().clone();
+    let source_catalog_root_sha256 = Some(completed.source_catalog_root_sha256().to_owned());
     let parent = ManagedAgentSelectedParent {
         generation: export.into_generation(),
         proof: proof.clone(),
         model,
-        completed,
+        completed: Some(completed),
+        expectation,
+        navigation_original,
+        source_catalog_root_sha256,
     };
     parent.with_current_package(
         coordinator,
@@ -446,6 +645,11 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedSelectedProof>(
     use crate::source_command as cmd;
     use tos_compiler::managed_source::ManagedSourceDeltaV1;
     active(deadline, cancelled).map_err(ManagedSelectionError::Source)?;
+    let completed_parent = parent.completed.as_ref().ok_or_else(|| {
+        ManagedSelectionError::Source(SourceCommandError::Conflict(
+            "persisted navigation selection cannot build a successor",
+        ))
+    })?;
     parent
         .model
         .check_pin()
@@ -559,7 +763,7 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedSelectedProof>(
         }
     };
     let completed = build(
-        &parent.completed,
+        completed_parent,
         &parent.model,
         proof.clone(),
         &mut catalogue,
@@ -587,8 +791,8 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedSelectedProof>(
         .check_pin()
         .map_err(ManagedSelectionError::Compiler)?;
     if completed.source_proof() != &proof
-        || completed.export_source_revision() != parent.completed.export_source_revision()
-        || completed.export_membership() != parent.completed.export_membership()
+        || completed.export_source_revision() != completed_parent.export_source_revision()
+        || completed.export_membership() != completed_parent.export_membership()
         || completed.successor_catalogue_input()
             != Some((catalogue_sha256.as_str(), catalogue_records))
         || completed.created_record_input()
@@ -600,11 +804,17 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedSelectedProof>(
         )));
     }
     let model = open_completed_model(&completed, process_limits, cold_limits)?;
+    let expectation = completed.expectation().clone();
+    let navigation_original = completed.navigation_original().clone();
+    let source_catalog_root_sha256 = Some(completed.source_catalog_root_sha256().to_owned());
     let successor = ManagedAgentSelectedParent {
         generation,
         proof,
         model,
-        completed,
+        completed: Some(completed),
+        expectation,
+        navigation_original,
+        source_catalog_root_sha256,
     };
     successor.with_current_model(
         coordinator,
@@ -728,10 +938,15 @@ pub fn prepare_managed_agent_overlay_parent_v2<P: ManagedSelectedProof>(
     tos_segment_store::AuthenticatedTreeWorkV1,
 )> {
     active(deadline, cancelled).map_err(ManagedSelectionError::Source)?;
+    let completed = base.completed.as_ref().ok_or_else(|| {
+        ManagedSelectionError::Source(SourceCommandError::Conflict(
+            "persisted navigation selection cannot build an overlay",
+        ))
+    })?;
     let source = DurablePgCoordinator::managed_overlay_binding_v2(&base.generation)
         .map_err(ManagedSelectionError::Durable)?;
     let prepared = tos_compiler::prepare_managed_overlay_base_v2(
-        &base.completed,
+        completed,
         &base.model,
         catalog,
         source,

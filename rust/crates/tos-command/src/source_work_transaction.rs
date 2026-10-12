@@ -25,6 +25,7 @@ use tos_source_store::{
     SourceCutMemberTuple, SourceCutMemberWitness, SourceCutObjectRefcountWitness,
     SourceCutReadsetV1, SourcePresenceV1,
 };
+use tos_validation::record_biblio_cut::SourceCutInput;
 
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = ".metadata-publication.json";
@@ -41,7 +42,53 @@ const MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v1";
 const PROFILED_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v2";
 const CANONICAL_FORM_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v3";
 const SOURCE_READSET_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v4";
+pub(crate) const PG_SOURCE_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v5";
+const PG_SOURCE_PARENT_PROFILE: &str = "tos_source_revision_parent_bindings_v1";
+const PG_SOURCE_PARENT_SCHEMA: &str = "tos_source_revision_parent_v1";
 const COMPLETION_SCHEMA: &str = "tos_selected_metadata_completion_v1";
+const PG_PUBLICATION_PACKAGE_SCHEMA: &str = "tos_pg_selected_publication_package_v1";
+const MAX_PG_PUBLICATION_PACKAGE: usize = 1024 * 1024;
+const PG_PUBLICATION_SOURCE_ROLE: &str = "authored_source";
+const PG_PUBLICATION_BLOB_ROLE: &str = "selected_transaction_blob";
+
+/// Metadata-only transport envelope for one committed PG Work transaction.
+/// Its STO references identify authored successor bytes and retained
+/// transaction blobs; payload bytes are never copied into this package.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SelectedPublicationSourceRef {
+    pub(crate) path: String,
+    pub(crate) role: String,
+    pub(crate) before: Option<SelectedPublicationBinding>,
+    pub(crate) after: Option<SelectedPublicationBinding>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SelectedPublicationBinding {
+    pub(crate) sha256: Digest256,
+    pub(crate) byte_size: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SelectedPublicationPackage {
+    pub(crate) canonical_bytes: Vec<u8>,
+    pub(crate) sha256: Digest256,
+    pub(crate) transaction_id: String,
+    pub(crate) generation: u64,
+    pub(crate) token: String,
+    pub(crate) base_publication_token: Option<String>,
+    pub(crate) base_publication_generation: u64,
+    pub(crate) control: JsonValue,
+    pub(crate) manifest: JsonValue,
+    pub(crate) completion: JsonValue,
+    pub(crate) source_refs: Vec<SelectedPublicationSourceRef>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SelectedPublicationRetainedWrite {
+    pub(crate) path: String,
+    pub(crate) before: Option<Vec<u8>>,
+    pub(crate) after: Option<Vec<u8>>,
+}
 
 #[cfg(test)]
 thread_local! {
@@ -217,6 +264,10 @@ fn read_state(
 }
 
 impl PublicationSnapshot {
+    pub(crate) fn selected_state(&self) -> Option<&JsonValue> {
+        self.state.as_ref()
+    }
+
     pub(crate) fn member_binding(&self) -> SourceCommandResult<Option<(Digest256, u64)>> {
         self.state
             .as_ref()
@@ -234,6 +285,39 @@ impl PublicationSnapshot {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
         Self::select_at(&fs.root, fs.uid, deadline, cancelled)
+    }
+
+    /// Select publication state from the same exact source snapshot used by a
+    /// PG-native owner. Mutable publication state follows the fenced PG source;
+    /// local owner configuration remains protected by the caller's fence.
+    pub(crate) fn select_from_input(
+        input: &dyn SourceCutInput,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let state = read_selected_publication(input, deadline, cancelled)?;
+        if state
+            .as_ref()
+            .is_some_and(|value| cmd::text(value, "phase").ok() != Some("ready"))
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected metadata publication pending",
+            ));
+        }
+        let token = state
+            .as_ref()
+            .map(|value| cmd::text(value, "token").map(str::to_owned))
+            .transpose()?;
+        let generation = state
+            .as_ref()
+            .map(|value| cmd::integer(value, "generation"))
+            .transpose()?
+            .unwrap_or(0);
+        Ok(Self {
+            state,
+            token,
+            generation,
+        })
     }
 
     /// Same physical selected publication control for the actual owner-local
@@ -279,6 +363,25 @@ impl PublicationSnapshot {
         self.verify_at(&fs.root, fs.uid, deadline, cancelled)
     }
 
+    pub(crate) fn verify_from_input(
+        &self,
+        input: &dyn SourceCutInput,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let now = read_selected_publication(input, deadline, cancelled)?;
+        if now
+            .as_ref()
+            .is_some_and(|value| cmd::text(value, "phase").ok() != Some("ready"))
+            || !same_state(self.state.as_ref(), now.as_ref())?
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected metadata publication changed",
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn verify_at(
         &self,
         root: &File,
@@ -302,6 +405,44 @@ impl PublicationSnapshot {
         }
         Ok(())
     }
+}
+
+fn read_selected_publication(
+    input: &dyn SourceCutInput,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<JsonValue>> {
+    let reference = format!("{HOME}/{CONTROL}");
+    let presence = input
+        .path_presence(&reference, deadline, cancelled)
+        .map_err(|_| SourceCommandError::Conflict("selected publication presence read"))?;
+    if presence.is_none() {
+        return Ok(None);
+    }
+    let mut selected = None;
+    input
+        .with_current_member(
+            &reference,
+            MAX_STATE as u64,
+            deadline,
+            cancelled,
+            &mut |meta, raw| {
+                if meta.path != reference || raw.len() as u64 != meta.size_bytes {
+                    return Err(tos_validation::item_rules::ItemRefusal::Source(
+                        "selected publication metadata differs".into(),
+                    ));
+                }
+                selected = Some(raw.to_vec());
+                Ok(())
+            },
+        )
+        .map_err(|_| SourceCommandError::Conflict("selected publication bytes read"))?;
+    let raw = selected.ok_or(SourceCommandError::Conflict(
+        "selected publication member absent",
+    ))?;
+    let value = cmd::parse(&raw)?;
+    state(&value)?;
+    Ok(Some(value))
 }
 
 /// A Work owner assembles these complete before/after bytes only after its
@@ -1486,6 +1627,1478 @@ fn manifest(
     }
     Ok(cmd::object(fields))
 }
+
+/// Materialize the retained transaction and ready publication bytes for one
+/// atomic source-store commit. This preserves the existing native reader's
+/// transaction grammar while avoiding an intermediate filesystem write.
+pub(crate) fn pg_selected_commit_members(
+    input: &dyn SourceCutInput,
+    snapshot: &PublicationSnapshot,
+    plan: &WorkPlan,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let frozen = freeze(plan.clone())?;
+    let parents = pg_source_parent_bindings(input, &frozen, deadline, cancelled)?;
+    let mut manifest = manifest(&plan.transaction_id, snapshot, &frozen, parents)?;
+    cmd::set(
+        &mut manifest,
+        "schema_version",
+        cmd::string(PG_SOURCE_MANIFEST_SCHEMA),
+    )?;
+    cmd::set(
+        &mut manifest,
+        "parent_binding_profile",
+        cmd::string(PG_SOURCE_PARENT_PROFILE),
+    )?;
+    let manifest_raw = encoded(&manifest)?;
+    if manifest_raw.len() > MAX_MANIFEST {
+        return Err(SourceCommandError::Invalid(
+            "PG selected transaction manifest byte budget",
+        ));
+    }
+    let manifest_sha256 = Digest256::of_bytes(&manifest_raw).to_prefixed();
+    let terminal = publication_state(&manifest, &manifest_sha256, false, Some("committed"), None)?;
+    let completion = encoded(&cmd::object(vec![
+        ("schema_version", cmd::string(COMPLETION_SCHEMA)),
+        ("publication", terminal.clone()),
+    ]))?;
+    let mut members = BTreeMap::new();
+    let journal = format!("{HOME}/{TRANSACTIONS}/{}", &plan.transaction_id[7..]);
+    members.insert(format!("{journal}/manifest.json"), manifest_raw);
+    let mut blob_bytes = 0usize;
+    for (digest, raw) in &frozen.blobs {
+        active(deadline, cancelled)?;
+        blob_bytes = blob_bytes
+            .checked_add(raw.len())
+            .filter(|bytes| *bytes <= 2 * MAX_SIDE)
+            .ok_or(SourceCommandError::Invalid(
+                "PG selected transaction blob budget",
+            ))?;
+        members.insert(format!("{journal}/{}.blob", &digest[7..]), raw.clone());
+    }
+    members.insert(format!("{journal}/completion.json"), completion);
+    members.insert(format!("{HOME}/{CONTROL}"), encoded(&terminal)?);
+    Ok(members)
+}
+
+/// Build the bounded metadata-only publication envelope from the exact
+/// retained PG member set and the source-store writer's generated changes.
+/// The retained `.blob` files are checked for closure and fixity but are not
+/// copied into the envelope.
+pub(crate) fn extract_selected_publication_package(
+    changes: &[cmd::SourceChange],
+) -> SourceCommandResult<(Option<SelectedPublicationPackage>, Vec<cmd::SourceChange>)> {
+    let Some((control, manifest, completion, authored, blobs, retained)) =
+        split_publication_changes(changes)?
+    else {
+        return Ok((None, changes.to_vec()));
+    };
+    let package =
+        publication_package_from_values(control, manifest, completion, &authored, &blobs)?;
+    Ok((Some(package), retained))
+}
+
+/// Decode and validate a package against the exact generated changes. The
+/// returned vector has publication sidecars removed and is the source-write
+/// proposal that the package's sorted STO references bind.
+pub(crate) fn parse_selected_publication_package(
+    raw: &[u8],
+    changes: &[cmd::SourceChange],
+) -> SourceCommandResult<(SelectedPublicationPackage, Vec<cmd::SourceChange>)> {
+    if raw.is_empty() || raw.len() > MAX_PG_PUBLICATION_PACKAGE {
+        return Err(SourceCommandError::Invalid(
+            "PG publication package byte budget",
+        ));
+    }
+    let value = cmd::parse(raw)?;
+    let canonical = cmd::canonical(&value)?;
+    if canonical.as_slice() != raw {
+        return Err(SourceCommandError::Invalid(
+            "PG publication package encoding",
+        ));
+    }
+    cmd::exact_keys(
+        &value,
+        &[
+            "schema_version",
+            "transaction_id",
+            "control",
+            "manifest",
+            "completion",
+            "source_refs",
+        ],
+    )?;
+    if cmd::text(&value, "schema_version")? != PG_PUBLICATION_PACKAGE_SCHEMA {
+        return Err(SourceCommandError::Invalid("PG publication package schema"));
+    }
+    let (selected_control, selected_manifest, selected_completion, authored, blobs, retained) =
+        split_publication_changes(changes)?.ok_or(SourceCommandError::Invalid(
+            "PG publication sidecars absent",
+        ))?;
+    let control = cmd::field(&value, "control")?.clone();
+    let manifest = cmd::field(&value, "manifest")?.clone();
+    let completion = cmd::field(&value, "completion")?.clone();
+    if !cmd::same(&control, &selected_control)?
+        || !cmd::same(&manifest, &selected_manifest)?
+        || !cmd::same(&completion, &selected_completion)?
+    {
+        return Err(SourceCommandError::Conflict("PG retained sidecar differs"));
+    }
+    let package =
+        publication_package_from_values(control, manifest, completion, &authored, &blobs)?;
+    if cmd::text(&value, "transaction_id")? != package.transaction_id
+        || parse_publication_source_refs(cmd::field(&value, "source_refs")?)? != package.source_refs
+        || package.canonical_bytes.as_slice() != raw
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG publication package differs",
+        ));
+    }
+    Ok((package, retained))
+}
+
+/// Read a source-tree sidecar from an already captured publication package.
+/// The package is fully validated before any virtual member is returned.
+pub(crate) fn selected_publication_virtual_member(
+    raw_package: &[u8],
+    path: &str,
+) -> SourceCommandResult<Option<Vec<u8>>> {
+    if !is_selected_publication_control_path(path)
+        && !is_selected_publication_journal_metadata_path(path)
+    {
+        return Ok(None);
+    }
+    let package = publication_package_from_raw(raw_package)?;
+    if is_selected_publication_control_path(path) {
+        return Ok(Some(encoded(&package.control)?));
+    }
+    let Some(member) = path.strip_prefix(&format!("{HOME}/{TRANSACTIONS}/")) else {
+        return Ok(None);
+    };
+    let Some((id, name)) = member.split_once('/') else {
+        return Ok(None);
+    };
+    if id != &package.transaction_id[7..] {
+        return Ok(None);
+    }
+    match name {
+        "manifest.json" => Ok(Some(encoded(&package.manifest)?)),
+        "completion.json" => Ok(Some(encoded(&package.completion)?)),
+        _ => Ok(None),
+    }
+}
+
+/// Rebuild source and sidecar changes from an exact retained write set. Every
+/// authored and transaction-blob reference must be represented by its exact
+/// optional before/after bytes; no current source-tree read is used.
+pub(crate) fn recover_selected_publication_package(
+    raw_package: &[u8],
+    retained: &[SelectedPublicationRetainedWrite],
+) -> SourceCommandResult<(SelectedPublicationPackage, Vec<cmd::SourceChange>)> {
+    let package = publication_package_from_raw(raw_package)?;
+    if retained.len() != package.source_refs.len() {
+        return Err(SourceCommandError::Conflict(
+            "PG retained publication write set differs",
+        ));
+    }
+    let mut writes = BTreeMap::new();
+    for write in retained {
+        if writes.insert(write.path.as_str(), write).is_some() {
+            return Err(SourceCommandError::Invalid(
+                "duplicate PG retained publication write",
+            ));
+        }
+    }
+    let mut changes = Vec::with_capacity(package.source_refs.len() + 3);
+    for source_ref in &package.source_refs {
+        let write = writes
+            .remove(source_ref.path.as_str())
+            .ok_or(SourceCommandError::Conflict(
+                "PG retained publication reference absent",
+            ))?;
+        if publication_binding_for_bytes(write.before.as_deref())? != source_ref.before
+            || publication_binding_for_bytes(write.after.as_deref())? != source_ref.after
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG retained publication reference bytes differ",
+            ));
+        }
+        changes.push(cmd::SourceChange {
+            path: RelativePath::parse(&source_ref.path)
+                .map_err(|_| SourceCommandError::Invalid("PG retained source ref path"))?,
+            before: write.before.as_deref().map(Digest256::of_bytes),
+            after: write.after.clone(),
+        });
+    }
+    if !writes.is_empty() {
+        return Err(SourceCommandError::Conflict(
+            "PG retained publication writes have extras",
+        ));
+    }
+    let journal = format!("{HOME}/{TRANSACTIONS}/{}", &package.transaction_id[7..]);
+    for (path, value) in [
+        (format!("{HOME}/{CONTROL}"), &package.control),
+        (format!("{journal}/manifest.json"), &package.manifest),
+        (format!("{journal}/completion.json"), &package.completion),
+    ] {
+        changes.push(cmd::SourceChange {
+            path: RelativePath::parse(&path)
+                .map_err(|_| SourceCommandError::Invalid("PG publication sidecar path"))?,
+            before: None,
+            after: Some(encoded(value)?),
+        });
+    }
+    parse_selected_publication_package(raw_package, &changes)
+}
+
+/// Reconstruct the full committed PG-v5 publication chain from an exact map
+/// of STO publication sidecars and their retained transaction blobs. The
+/// result is ordered from the generation-zero predecessor to the selected
+/// head. Legacy, incomplete, forked, or unlinked histories are refused.
+pub(crate) fn selected_publication_transition_chain_from_exact_members(
+    members: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<Vec<SelectedPublicationPackage>> {
+    let control_path = format!("{HOME}/{CONTROL}");
+    let control_raw = members
+        .get(&control_path)
+        .ok_or(SourceCommandError::Invalid("PG publication control absent"))?;
+    let control = parse_canonical_member(control_raw, "PG publication control")?;
+    state(&control)?;
+    if cmd::text(&control, "phase")? != "ready" || cmd::text(&control, "outcome")? != "committed" {
+        return Err(SourceCommandError::Conflict(
+            "PG publication head is not committed",
+        ));
+    }
+    let transaction_root = format!("{HOME}/{TRANSACTIONS}/");
+    let mut transactions = BTreeMap::<String, BTreeMap<String, &[u8]>>::new();
+    for (path_name, raw) in members {
+        if path_name == &control_path {
+            continue;
+        }
+        let member =
+            path_name
+                .strip_prefix(&transaction_root)
+                .ok_or(SourceCommandError::Invalid(
+                    "unexpected PG publication chain member",
+                ))?;
+        let (id, name) = member.split_once('/').ok_or(SourceCommandError::Invalid(
+            "PG publication chain member path",
+        ))?;
+        if id.len() != 64
+            || !id
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        {
+            return Err(SourceCommandError::Invalid("PG publication chain identity"));
+        }
+        RelativePath::parse(path_name)
+            .map_err(|_| SourceCommandError::Invalid("PG publication chain path"))?;
+        if !matches!(name, "manifest.json" | "completion.json")
+            && !name.strip_suffix(".blob").is_some_and(|digest| {
+                digest.len() == 64
+                    && digest
+                        .bytes()
+                        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            })
+        {
+            return Err(SourceCommandError::Invalid(
+                "unexpected PG publication chain journal member",
+            ));
+        }
+        if transactions
+            .entry(id.to_owned())
+            .or_default()
+            .insert(name.to_owned(), raw)
+            .is_some()
+        {
+            return Err(SourceCommandError::Invalid(
+                "duplicate PG publication chain journal member",
+            ));
+        }
+    }
+    if transactions.is_empty() {
+        return Err(SourceCommandError::Invalid("PG publication chain is empty"));
+    }
+
+    let mut packages = Vec::with_capacity(transactions.len());
+    for (id, transaction) in &transactions {
+        packages.push(publication_package_from_exact_transaction_members(
+            id,
+            transaction,
+        )?);
+    }
+    let mut by_state = BTreeMap::new();
+    for (index, package) in packages.iter().enumerate() {
+        if by_state
+            .insert((package.generation, package.token.as_str()), index)
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "duplicate PG publication transition state",
+            ));
+        }
+    }
+    let head_id = cmd::text(&control, "transaction_id")?;
+    let head_generation = cmd::integer(&control, "generation")?;
+    let head_token = cmd::text(&control, "token")?;
+    let head_index = by_state
+        .get(&(head_generation, head_token))
+        .copied()
+        .ok_or(SourceCommandError::Conflict(
+            "PG publication head transaction absent",
+        ))?;
+    let head = &packages[head_index];
+    if head.transaction_id != head_id || !cmd::same(&head.control, &control)? {
+        return Err(SourceCommandError::Conflict(
+            "PG publication head control differs",
+        ));
+    }
+
+    let mut reversed = Vec::with_capacity(packages.len());
+    let mut visited = BTreeSet::new();
+    let mut cursor = head_index;
+    loop {
+        if !visited.insert(cursor) {
+            return Err(SourceCommandError::Conflict(
+                "PG publication transition cycle",
+            ));
+        }
+        let package = &packages[cursor];
+        reversed.push(package.clone());
+        match (
+            package.base_publication_generation,
+            package.base_publication_token.as_deref(),
+        ) {
+            (0, None) => break,
+            (generation, Some(token)) => {
+                cursor = by_state.get(&(generation, token)).copied().ok_or(
+                    SourceCommandError::Conflict("PG publication transition predecessor absent"),
+                )?;
+                if packages[cursor].generation >= package.generation {
+                    return Err(SourceCommandError::Conflict(
+                        "PG publication transition order differs",
+                    ));
+                }
+            }
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "PG publication transition predecessor malformed",
+                ));
+            }
+        }
+    }
+    if visited.len() != packages.len() {
+        return Err(SourceCommandError::Conflict(
+            "PG publication transition chain is incomplete",
+        ));
+    }
+    reversed.reverse();
+    Ok(reversed)
+}
+
+fn publication_package_from_exact_transaction_members(
+    id: &str,
+    transaction: &BTreeMap<String, &[u8]>,
+) -> SourceCommandResult<SelectedPublicationPackage> {
+    let manifest_raw =
+        transaction
+            .get("manifest.json")
+            .copied()
+            .ok_or(SourceCommandError::Conflict(
+                "PG publication chain manifest absent",
+            ))?;
+    let completion_raw =
+        transaction
+            .get("completion.json")
+            .copied()
+            .ok_or(SourceCommandError::Conflict(
+                "PG publication chain completion absent",
+            ))?;
+    if manifest_raw.len() > MAX_MANIFEST || completion_raw.len() > MAX_STATE {
+        return Err(SourceCommandError::Invalid(
+            "PG publication chain sidecar byte budget",
+        ));
+    }
+    let manifest = parse_canonical_member(manifest_raw, "PG publication chain manifest")?;
+    let manifest_schema = cmd::text(&manifest, "schema_version")?;
+    if manifest_schema != PG_SOURCE_MANIFEST_SCHEMA {
+        return Err(SourceCommandError::Unsupported(
+            "legacy publication chain pending PG-v5 migration",
+        ));
+    }
+    let completion = parse_canonical_member(completion_raw, "PG publication chain completion")?;
+    cmd::exact_keys(&completion, &["schema_version", "publication"])?;
+    if cmd::text(&completion, "schema_version")? != COMPLETION_SCHEMA {
+        return Err(SourceCommandError::Invalid(
+            "PG publication chain completion schema",
+        ));
+    }
+    let control = cmd::field(&completion, "publication")?.clone();
+    state(&control)?;
+    if cmd::text(&control, "phase")? != "ready"
+        || cmd::text(&control, "outcome")? != "committed"
+        || cmd::text(&manifest, "transaction_id")? != format!("sha256:{id}")
+        || cmd::text(&control, "transaction_id")? != format!("sha256:{id}")
+    {
+        return Err(SourceCommandError::Unsupported(
+            "non-committed or mismatched publication transition",
+        ));
+    }
+    let file_bindings = publication_file_bindings(cmd::field(&manifest, "plan")?)?;
+    let expected_blobs = expected_blob_bindings(&file_bindings)?;
+    let mut blob_bytes = 0usize;
+    let mut blobs = BTreeMap::new();
+    for (name, bytes) in transaction {
+        if name == "manifest.json" || name == "completion.json" {
+            continue;
+        }
+        let digest = name
+            .strip_suffix(".blob")
+            .ok_or(SourceCommandError::Invalid(
+                "PG publication chain journal member",
+            ))?;
+        let byte_size = expected_blobs
+            .get(digest)
+            .ok_or(SourceCommandError::Conflict(
+                "PG publication chain has an unreferenced blob",
+            ))?;
+        blob_bytes = blob_bytes
+            .checked_add(bytes.len())
+            .filter(|total| *total <= 2 * MAX_SIDE)
+            .ok_or(SourceCommandError::Invalid(
+                "PG publication chain blob byte budget",
+            ))?;
+        if bytes.len() > MAX_SIDE
+            || u64::try_from(bytes.len()).ok() != Some(*byte_size)
+            || Digest256::of_bytes(bytes).to_hex() != digest
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG publication chain blob binding differs",
+            ));
+        }
+        let path = format!("{HOME}/{TRANSACTIONS}/{id}/{name}");
+        if blobs
+            .insert(
+                digest.to_owned(),
+                cmd::SourceChange {
+                    path: RelativePath::parse(&path)
+                        .map_err(|_| SourceCommandError::Invalid("PG chain blob path"))?,
+                    before: None,
+                    after: Some(bytes.to_vec()),
+                },
+            )
+            .is_some()
+        {
+            return Err(SourceCommandError::Invalid("duplicate PG chain blob"));
+        }
+    }
+    if blobs.len() != expected_blobs.len() {
+        return Err(SourceCommandError::Conflict(
+            "PG publication chain referenced blob absent",
+        ));
+    }
+    let mut authored = Vec::with_capacity(file_bindings.len());
+    for (path, (before, after)) in &file_bindings {
+        let after_bytes = after
+            .map(|(digest, byte_size)| {
+                let bytes = transaction
+                    .get(&format!("{}.blob", digest.to_hex()))
+                    .copied()
+                    .ok_or(SourceCommandError::Conflict(
+                        "PG publication chain authored successor blob absent",
+                    ))?;
+                if u64::try_from(bytes.len()).ok() != Some(byte_size)
+                    || Digest256::of_bytes(bytes) != digest
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "PG publication chain authored successor binding differs",
+                    ));
+                }
+                Ok(bytes.to_vec())
+            })
+            .transpose()?;
+        authored.push(cmd::SourceChange {
+            path: RelativePath::parse(path)
+                .map_err(|_| SourceCommandError::Invalid("PG publication chain source path"))?,
+            before: before.map(|(digest, _)| digest),
+            after: after_bytes,
+        });
+    }
+    publication_package_from_values(control, manifest, completion, &authored, &blobs)
+}
+
+/// Extract and canonically encode a metadata-only publication package.
+pub(crate) fn encode_selected_publication_package(
+    changes: &[cmd::SourceChange],
+) -> SourceCommandResult<(Option<Vec<u8>>, Vec<cmd::SourceChange>)> {
+    let (package, authored) = extract_selected_publication_package(changes)?;
+    Ok((package.map(|package| package.canonical_bytes), authored))
+}
+
+/// Alias for consumers that call the package parse operation a decode.
+pub(crate) fn decode_selected_publication_package(
+    raw: &[u8],
+    changes: &[cmd::SourceChange],
+) -> SourceCommandResult<(SelectedPublicationPackage, Vec<cmd::SourceChange>)> {
+    parse_selected_publication_package(raw, changes)
+}
+
+fn split_publication_changes(
+    changes: &[cmd::SourceChange],
+) -> SourceCommandResult<
+    Option<(
+        JsonValue,
+        JsonValue,
+        JsonValue,
+        Vec<cmd::SourceChange>,
+        BTreeMap<String, cmd::SourceChange>,
+        Vec<cmd::SourceChange>,
+    )>,
+> {
+    let control_path = format!("{HOME}/{CONTROL}");
+    let transaction_root = format!("{HOME}/{TRANSACTIONS}/");
+    let mut seen = BTreeSet::new();
+    let mut control_raw = None;
+    let mut transaction_members = BTreeMap::new();
+    let mut authored = Vec::new();
+    let mut retained = Vec::new();
+    for change in changes {
+        let path = change.path.as_str();
+        if !seen.insert(path.to_owned()) {
+            return Err(SourceCommandError::Invalid("duplicate PG source change"));
+        }
+        if path == control_path {
+            control_raw = Some(
+                change
+                    .after
+                    .as_deref()
+                    .ok_or(SourceCommandError::Invalid(
+                        "PG publication control deleted",
+                    ))?
+                    .to_vec(),
+            );
+        } else if let Some(member) = path.strip_prefix(&transaction_root) {
+            let (id, name) = member
+                .split_once('/')
+                .ok_or(SourceCommandError::Invalid("PG transaction sidecar path"))?;
+            if id.len() != 64
+                || !id
+                    .bytes()
+                    .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            {
+                return Err(SourceCommandError::Invalid(
+                    "PG transaction sidecar identity",
+                ));
+            }
+            if matches!(name, "manifest.json" | "completion.json") {
+                if transaction_members
+                    .insert((id.to_owned(), name.to_owned()), change.clone())
+                    .is_some()
+                {
+                    return Err(SourceCommandError::Invalid(
+                        "duplicate PG transaction sidecar",
+                    ));
+                }
+            } else if let Some(stem) = name.strip_suffix(".blob") {
+                let bytes = change
+                    .after
+                    .as_deref()
+                    .ok_or(SourceCommandError::Invalid("PG transaction blob deleted"))?;
+                if stem.len() != 64
+                    || !stem
+                        .bytes()
+                        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+                    || Digest256::of_bytes(&bytes).to_hex() != stem
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "PG retained blob identity differs",
+                    ));
+                }
+                if transaction_members
+                    .insert((id.to_owned(), name.to_owned()), change.clone())
+                    .is_some()
+                {
+                    return Err(SourceCommandError::Invalid("duplicate PG retained blob"));
+                }
+                retained.push(change.clone());
+            } else {
+                return Err(SourceCommandError::Invalid(
+                    "unexpected PG transaction member",
+                ));
+            }
+        } else {
+            authored.push(change.clone());
+            retained.push(change.clone());
+        }
+    }
+    let Some(control_raw) = control_raw else {
+        if !transaction_members.is_empty() {
+            return Err(SourceCommandError::Invalid("PG publication control absent"));
+        }
+        return Ok(None);
+    };
+    let control = parse_canonical_member(&control_raw, "PG publication control")?;
+    state(&control)?;
+    let tx_id = cmd::text(&control, "transaction_id")?;
+    if !hash(tx_id) {
+        return Err(SourceCommandError::Invalid(
+            "PG publication transaction identity",
+        ));
+    }
+    let journal_id = &tx_id[7..];
+    let manifest_change = transaction_members
+        .remove(&(journal_id.to_owned(), "manifest.json".to_owned()))
+        .ok_or(SourceCommandError::Invalid(
+            "PG publication manifest absent",
+        ))?;
+    let completion_change = transaction_members
+        .remove(&(journal_id.to_owned(), "completion.json".to_owned()))
+        .ok_or(SourceCommandError::Invalid(
+            "PG publication completion absent",
+        ))?;
+    let mut blobs = BTreeMap::new();
+    for ((member_id, name), change) in transaction_members {
+        if member_id != journal_id {
+            return Err(SourceCommandError::Conflict(
+                "PG transaction sidecar lineage differs",
+            ));
+        }
+        let stem = name
+            .strip_suffix(".blob")
+            .ok_or(SourceCommandError::Invalid(
+                "unexpected PG transaction member",
+            ))?;
+        blobs.insert(stem.to_owned(), change);
+    }
+    let manifest_raw = manifest_change
+        .after
+        .as_deref()
+        .ok_or(SourceCommandError::Invalid(
+            "PG publication manifest deleted",
+        ))?;
+    let completion_raw = completion_change
+        .after
+        .as_deref()
+        .ok_or(SourceCommandError::Invalid(
+            "PG publication completion deleted",
+        ))?;
+    Ok(Some((
+        control,
+        parse_canonical_member(manifest_raw, "PG publication manifest")?,
+        parse_canonical_member(completion_raw, "PG publication completion")?,
+        authored,
+        blobs,
+        retained,
+    )))
+}
+
+pub(crate) fn is_selected_publication_control_path(path: &str) -> bool {
+    path == format!("{HOME}/{CONTROL}")
+}
+
+pub(crate) fn is_selected_publication_journal_metadata_path(path: &str) -> bool {
+    let Some(member) = path.strip_prefix(&format!("{HOME}/{TRANSACTIONS}/")) else {
+        return false;
+    };
+    let Some((id, name)) = member.split_once('/') else {
+        return false;
+    };
+    id.len() == 64
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        && matches!(name, "manifest.json" | "completion.json")
+}
+
+fn parse_canonical_member(raw: &[u8], context: &'static str) -> SourceCommandResult<JsonValue> {
+    let value = cmd::parse(raw)?;
+    if encoded(&value)?.as_slice() != raw {
+        return Err(SourceCommandError::Invalid(context));
+    }
+    Ok(value)
+}
+
+fn source_ref_value(source_ref: &SelectedPublicationSourceRef) -> JsonValue {
+    cmd::object(vec![
+        ("path", cmd::string(&source_ref.path)),
+        ("role", cmd::string(&source_ref.role)),
+        (
+            "before",
+            source_ref
+                .before
+                .as_ref()
+                .map_or(JsonValue::Null, publication_binding_value),
+        ),
+        (
+            "after",
+            source_ref
+                .after
+                .as_ref()
+                .map_or(JsonValue::Null, publication_binding_value),
+        ),
+    ])
+}
+
+fn publication_binding_value(binding: &SelectedPublicationBinding) -> JsonValue {
+    cmd::object(vec![
+        ("sha256", cmd::string(&binding.sha256.to_prefixed())),
+        ("byte_size", cmd::number(binding.byte_size)),
+    ])
+}
+
+fn parse_publication_source_refs(
+    value: &JsonValue,
+) -> SourceCommandResult<Vec<SelectedPublicationSourceRef>> {
+    let entries = value
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("PG publication source refs"))?;
+    let mut refs = Vec::with_capacity(entries.len());
+    for entry in entries {
+        cmd::exact_keys(entry, &["path", "role", "before", "after"])?;
+        let path = cmd::text(entry, "path")?;
+        RelativePath::parse(path)
+            .map_err(|_| SourceCommandError::Invalid("PG publication source ref path"))?;
+        let role = cmd::text(entry, "role")?;
+        if !matches!(role, PG_PUBLICATION_SOURCE_ROLE | PG_PUBLICATION_BLOB_ROLE) {
+            return Err(SourceCommandError::Invalid(
+                "PG publication source ref role",
+            ));
+        }
+        let before = parse_publication_ref_binding(cmd::field(entry, "before")?)?;
+        let after = parse_publication_ref_binding(cmd::field(entry, "after")?)?;
+        if before.is_none() && after.is_none() {
+            return Err(SourceCommandError::Invalid(
+                "empty PG publication source ref",
+            ));
+        }
+        refs.push(SelectedPublicationSourceRef {
+            path: path.to_owned(),
+            role: role.to_owned(),
+            before,
+            after,
+        });
+    }
+    if refs.windows(2).any(|pair| pair[0].path >= pair[1].path) {
+        return Err(SourceCommandError::Invalid(
+            "PG publication source ref order",
+        ));
+    }
+    Ok(refs)
+}
+
+fn parse_publication_ref_binding(
+    value: &JsonValue,
+) -> SourceCommandResult<Option<SelectedPublicationBinding>> {
+    if value == &JsonValue::Null {
+        return Ok(None);
+    }
+    cmd::exact_keys(value, &["sha256", "byte_size"])?;
+    let sha256 = parse_readset_digest(value, "sha256")?;
+    let byte_size = cmd::integer(value, "byte_size")?;
+    Ok(Some(SelectedPublicationBinding { sha256, byte_size }))
+}
+
+fn publication_package_from_raw(raw: &[u8]) -> SourceCommandResult<SelectedPublicationPackage> {
+    if raw.is_empty() || raw.len() > MAX_PG_PUBLICATION_PACKAGE {
+        return Err(SourceCommandError::Invalid(
+            "PG publication package byte budget",
+        ));
+    }
+    let value = cmd::parse(raw)?;
+    if cmd::canonical(&value)?.as_slice() != raw {
+        return Err(SourceCommandError::Invalid(
+            "PG publication package encoding",
+        ));
+    }
+    cmd::exact_keys(
+        &value,
+        &[
+            "schema_version",
+            "transaction_id",
+            "control",
+            "manifest",
+            "completion",
+            "source_refs",
+        ],
+    )?;
+    if cmd::text(&value, "schema_version")? != PG_PUBLICATION_PACKAGE_SCHEMA {
+        return Err(SourceCommandError::Invalid("PG publication package schema"));
+    }
+    let control = cmd::field(&value, "control")?.clone();
+    let manifest = cmd::field(&value, "manifest")?.clone();
+    let completion = cmd::field(&value, "completion")?.clone();
+    let lineage = validate_publication_lineage(&control, &manifest, &completion)?;
+    if cmd::text(&value, "transaction_id")? != lineage.transaction_id {
+        return Err(SourceCommandError::Conflict(
+            "PG publication package identity",
+        ));
+    }
+    let bindings = publication_file_bindings(cmd::field(&manifest, "plan")?)?;
+    let refs = parse_publication_source_refs(cmd::field(&value, "source_refs")?)?;
+    validate_publication_refs_against_plan(&refs, &bindings, &lineage.transaction_id)?;
+    Ok(SelectedPublicationPackage {
+        canonical_bytes: raw.to_vec(),
+        sha256: Digest256::of_bytes(raw),
+        transaction_id: lineage.transaction_id,
+        generation: lineage.generation,
+        token: lineage.token,
+        base_publication_token: lineage.base_publication_token,
+        base_publication_generation: lineage.base_publication_generation,
+        control,
+        manifest,
+        completion,
+        source_refs: refs,
+    })
+}
+
+fn validate_publication_refs_against_plan(
+    refs: &[SelectedPublicationSourceRef],
+    bindings: &BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>,
+    transaction_id: &str,
+) -> SourceCommandResult<()> {
+    let expected_sources = source_refs_from_plan(bindings);
+    let actual_sources: Vec<_> = refs
+        .iter()
+        .filter(|source_ref| source_ref.role == PG_PUBLICATION_SOURCE_ROLE)
+        .cloned()
+        .collect();
+    if actual_sources != expected_sources {
+        return Err(SourceCommandError::Conflict(
+            "PG publication authored references differ",
+        ));
+    }
+    let expected_blobs = expected_blob_bindings(bindings)?;
+    let actual_blobs: Vec<_> = refs
+        .iter()
+        .filter(|source_ref| source_ref.role == PG_PUBLICATION_BLOB_ROLE)
+        .collect();
+    if actual_blobs.len() != expected_blobs.len() {
+        return Err(SourceCommandError::Conflict(
+            "PG publication blob references differ",
+        ));
+    }
+    for (digest, byte_size) in expected_blobs {
+        let path = format!(
+            "{HOME}/{TRANSACTIONS}/{}/{}.blob",
+            &transaction_id[7..],
+            digest
+        );
+        let source_ref = actual_blobs
+            .iter()
+            .find(|source_ref| source_ref.path == path)
+            .ok_or(SourceCommandError::Conflict(
+                "PG publication blob reference absent",
+            ))?;
+        let sha256 = Digest256::from_hex(&digest)
+            .map_err(|_| SourceCommandError::Invalid("PG publication blob digest"))?;
+        let expected_after = Some(SelectedPublicationBinding { sha256, byte_size });
+        if source_ref.role != PG_PUBLICATION_BLOB_ROLE
+            || source_ref.after != expected_after
+            || source_ref.before.is_some() && source_ref.before != expected_after
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG publication blob reference binding differs",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn publication_binding_for_bytes(
+    bytes: Option<&[u8]>,
+) -> SourceCommandResult<Option<SelectedPublicationBinding>> {
+    bytes
+        .map(|bytes| {
+            Ok(SelectedPublicationBinding {
+                sha256: Digest256::of_bytes(bytes),
+                byte_size: u64::try_from(bytes.len())
+                    .map_err(|_| SourceCommandError::Invalid("PG publication binding size"))?,
+            })
+        })
+        .transpose()
+}
+
+fn publication_package_from_values(
+    control: JsonValue,
+    manifest: JsonValue,
+    completion: JsonValue,
+    changes: &[cmd::SourceChange],
+    blobs: &BTreeMap<String, cmd::SourceChange>,
+) -> SourceCommandResult<SelectedPublicationPackage> {
+    let lineage = validate_publication_lineage(&control, &manifest, &completion)?;
+    let file_bindings = validate_publication_plan_changes(cmd::field(&manifest, "plan")?, changes)?;
+    let mut source_refs = source_refs_from_plan(&file_bindings);
+    source_refs.extend(validate_transaction_blob_changes(
+        &file_bindings,
+        blobs,
+        &lineage.transaction_id,
+    )?);
+    source_refs.sort_by(|left, right| left.path.cmp(&right.path));
+    let value = cmd::object(vec![
+        ("schema_version", cmd::string(PG_PUBLICATION_PACKAGE_SCHEMA)),
+        ("transaction_id", cmd::string(&lineage.transaction_id)),
+        ("control", control.clone()),
+        ("manifest", manifest.clone()),
+        ("completion", completion.clone()),
+        (
+            "source_refs",
+            JsonValue::Array(source_refs.iter().map(source_ref_value).collect()),
+        ),
+    ]);
+    let canonical_bytes = cmd::canonical(&value)?;
+    if canonical_bytes.is_empty() || canonical_bytes.len() > MAX_PG_PUBLICATION_PACKAGE {
+        return Err(SourceCommandError::Invalid(
+            "PG publication package byte budget",
+        ));
+    }
+    Ok(SelectedPublicationPackage {
+        sha256: Digest256::of_bytes(&canonical_bytes),
+        canonical_bytes,
+        transaction_id: lineage.transaction_id,
+        generation: lineage.generation,
+        token: lineage.token,
+        base_publication_token: lineage.base_publication_token,
+        base_publication_generation: lineage.base_publication_generation,
+        control,
+        manifest,
+        completion,
+        source_refs,
+    })
+}
+
+struct PublicationLineage {
+    transaction_id: String,
+    generation: u64,
+    token: String,
+    base_publication_token: Option<String>,
+    base_publication_generation: u64,
+}
+
+fn validate_publication_lineage(
+    control: &JsonValue,
+    manifest: &JsonValue,
+    completion: &JsonValue,
+) -> SourceCommandResult<PublicationLineage> {
+    state(control)?;
+    cmd::exact_keys(
+        manifest,
+        &[
+            "schema_version",
+            "transaction_id",
+            "base_publication",
+            "plan",
+            "parents",
+            "source_readset",
+            "source_successor",
+            "parent_binding_profile",
+        ],
+    )?;
+    if cmd::text(manifest, "schema_version")? != PG_SOURCE_MANIFEST_SCHEMA
+        || cmd::text(manifest, "parent_binding_profile")? != PG_SOURCE_PARENT_PROFILE
+    {
+        return Err(SourceCommandError::Invalid(
+            "PG publication manifest schema",
+        ));
+    }
+    let transaction_id = cmd::text(manifest, "transaction_id")?.to_owned();
+    if !hash(&transaction_id) || cmd::text(control, "transaction_id")? != transaction_id {
+        return Err(SourceCommandError::Conflict(
+            "PG publication transaction identity",
+        ));
+    }
+    let base = cmd::field(manifest, "base_publication")?;
+    cmd::exact_keys(base, &["token", "generation"])?;
+    let base_publication_generation = cmd::integer(base, "generation")?;
+    if base_publication_generation > MAX_GENERATION {
+        return Err(SourceCommandError::Invalid(
+            "PG base publication generation",
+        ));
+    }
+    let base_publication_token = match cmd::field(base, "token")? {
+        JsonValue::Null if base_publication_generation == 0 => None,
+        JsonValue::String(_) => {
+            let token = cmd::text(base, "token")?;
+            if !hash(token) || base_publication_generation == 0 {
+                return Err(SourceCommandError::Invalid("PG base publication token"));
+            }
+            Some(token.to_owned())
+        }
+        _ => return Err(SourceCommandError::Invalid("PG base publication token")),
+    };
+    let manifest_digest = Digest256::of_bytes(&encoded(manifest)?).to_prefixed();
+    let generation = cmd::integer(control, "generation")?;
+    let token = cmd::text(control, "token")?.to_owned();
+    if cmd::text(control, "phase")? != "ready"
+        || cmd::text(control, "outcome")? != "committed"
+        || cmd::text(control, "manifest_sha256")? != manifest_digest
+        || generation
+            != base_publication_generation
+                .checked_add(2)
+                .ok_or(SourceCommandError::Invalid(
+                    "PG publication generation overflow",
+                ))?
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG publication control lineage",
+        ));
+    }
+    cmd::exact_keys(completion, &["schema_version", "publication"])?;
+    if cmd::text(completion, "schema_version")? != COMPLETION_SCHEMA
+        || !cmd::same(cmd::field(completion, "publication")?, control)?
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG publication completion lineage",
+        ));
+    }
+    let readset = parse_source_readset(cmd::field(manifest, "source_readset")?)?;
+    let successor = parse_source_successor(cmd::field(manifest, "source_successor")?)?;
+    validate_source_successor(&readset, &successor)?;
+    let file_bindings = publication_file_bindings(cmd::field(manifest, "plan")?)?;
+    validate_publication_parent_bindings(manifest, &file_bindings)?;
+    Ok(PublicationLineage {
+        transaction_id,
+        generation,
+        token,
+        base_publication_token,
+        base_publication_generation,
+    })
+}
+
+fn validate_publication_plan_changes(
+    plan: &JsonValue,
+    changes: &[cmd::SourceChange],
+) -> SourceCommandResult<BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>> {
+    let expected = publication_file_bindings(plan)?;
+    let mut actual = BTreeMap::new();
+    for change in changes {
+        let path = change.path.as_str().to_owned();
+        let after = match change.after.as_deref() {
+            Some(bytes) => Some((
+                Digest256::of_bytes(bytes),
+                u64::try_from(bytes.len())
+                    .map_err(|_| SourceCommandError::Invalid("PG source reference size"))?,
+            )),
+            None => None,
+        };
+        if actual.insert(path, (change.before, after)).is_some() {
+            return Err(SourceCommandError::Invalid("duplicate PG source change"));
+        }
+    }
+    if actual.len() != expected.len() {
+        return Err(SourceCommandError::Conflict(
+            "PG publication source write set differs",
+        ));
+    }
+    for (path, (before, after)) in &expected {
+        let (actual_before, actual_after) = actual.get(path).ok_or(
+            SourceCommandError::Conflict("PG publication source path absent"),
+        )?;
+        if before.map(|(digest, _)| digest) != *actual_before || after != actual_after {
+            return Err(SourceCommandError::Conflict(
+                "PG publication source binding differs",
+            ));
+        }
+    }
+    Ok(expected)
+}
+
+fn publication_file_bindings(
+    plan: &JsonValue,
+) -> SourceCommandResult<BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>> {
+    if plan.object_get("path_profile").is_some() {
+        cmd::exact_keys(
+            plan,
+            &["authorization", "files", "new_directories", "path_profile"],
+        )?;
+    } else {
+        cmd::exact_keys(plan, &["authorization", "files", "new_directories"])?;
+    }
+    let item = selected_profile(plan)?;
+    let canonical_form = canonical_forms_profile(plan)?;
+    if plan.object_get("path_profile").is_some() != (item.is_some() || canonical_form.is_some())
+        || item.is_some() && canonical_form.is_some()
+    {
+        return Err(SourceCommandError::Invalid("PG publication path profile"));
+    }
+    if let Some(profile) = &canonical_form {
+        if item.is_some() || !cmd::array(plan, "new_directories")?.is_empty() {
+            return Err(SourceCommandError::Invalid(
+                "PG canonical form path profile",
+            ));
+        }
+        let entries = cmd::array(plan, "files")?;
+        if entries.len() != 1 || cmd::text(&entries[0], "path")? != profile.target.as_str() {
+            return Err(SourceCommandError::Invalid(
+                "PG canonical form selected path",
+            ));
+        }
+    }
+    let companions = item_companions(cmd::field(plan, "authorization")?, item.as_ref())?;
+    let mut expected = BTreeMap::new();
+    let mut changed = false;
+    let mut side_totals = [0usize; 2];
+    let mut prior_path: Option<String> = None;
+    let entries = cmd::array(plan, "files")?;
+    if entries.is_empty() || entries.len() > MAX_FILES {
+        return Err(SourceCommandError::Invalid("PG publication file count"));
+    }
+    for entry in entries {
+        cmd::exact_keys(entry, &["path", "before", "after"])?;
+        let path_name = cmd::text(entry, "path")?;
+        profiled_path(path_name, false, &companions, canonical_form.as_ref())?;
+        if prior_path
+            .as_deref()
+            .is_some_and(|prior| prior >= path_name)
+        {
+            return Err(SourceCommandError::Invalid(
+                "PG publication plan path order",
+            ));
+        }
+        prior_path = Some(path_name.to_owned());
+        let before = parse_publication_file_binding(cmd::field(entry, "before")?)?;
+        let after = parse_publication_file_binding(cmd::field(entry, "after")?)?;
+        if before.is_none() && after.is_none() {
+            return Err(SourceCommandError::Invalid(
+                "empty PG publication plan path",
+            ));
+        }
+        for (index, binding) in [before, after].into_iter().enumerate() {
+            if let Some((_, size)) = binding {
+                let size = usize::try_from(size)
+                    .map_err(|_| SourceCommandError::Invalid("PG publication side size range"))?;
+                side_totals[index] =
+                    side_totals[index]
+                        .checked_add(size)
+                        .ok_or(SourceCommandError::Invalid(
+                            "PG publication side size overflow",
+                        ))?;
+                if size > MAX_SIDE || side_totals[index] > MAX_SIDE {
+                    return Err(SourceCommandError::Invalid(
+                        "PG publication side byte budget",
+                    ));
+                }
+            }
+        }
+        if before != after {
+            changed = true;
+        }
+        if expected
+            .insert(path_name.to_owned(), (before, after))
+            .is_some()
+        {
+            return Err(SourceCommandError::Invalid(
+                "duplicate PG publication plan path",
+            ));
+        }
+    }
+    if !changed {
+        return Err(SourceCommandError::Invalid("unchanged PG publication plan"));
+    }
+    if expected.keys().enumerate().any(|(index, left)| {
+        expected
+            .keys()
+            .skip(index + 1)
+            .any(|right| right.starts_with(&format!("{left}/")))
+    }) {
+        return Err(SourceCommandError::Invalid(
+            "PG publication file ancestor collision",
+        ));
+    }
+    let mut prior_directory: Option<(usize, String)> = None;
+    let mut directories = BTreeSet::new();
+    for entry in cmd::array(plan, "new_directories")? {
+        let name = entry
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("PG publication directory path"))?;
+        path(name, true)?;
+        let key = (name.split('/').count(), name.to_owned());
+        if prior_directory.as_ref().is_some_and(|prior| prior >= &key)
+            || !directories.insert(name.to_owned())
+            || !expected.iter().any(|(file, (before, _))| {
+                before.is_none() && file.starts_with(&format!("{name}/"))
+            })
+        {
+            return Err(SourceCommandError::Invalid(
+                "PG publication directory closure",
+            ));
+        }
+        prior_directory = Some(key);
+    }
+    if expected.keys().any(|file| {
+        directories
+            .iter()
+            .any(|directory| directory.starts_with(&format!("{file}/")))
+    }) {
+        return Err(SourceCommandError::Invalid(
+            "PG publication file/directory collision",
+        ));
+    }
+    Ok(expected)
+}
+
+fn expected_blob_bindings(
+    files: &BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>,
+) -> SourceCommandResult<BTreeMap<String, u64>> {
+    let mut expected = BTreeMap::<String, u64>::new();
+    for (before, after) in files.values() {
+        for binding in [before, after].into_iter().flatten() {
+            let digest = binding.0.to_hex();
+            if expected
+                .insert(digest, binding.1)
+                .is_some_and(|existing| existing != binding.1)
+            {
+                return Err(SourceCommandError::Invalid("PG blob digest size collision"));
+            }
+        }
+    }
+    Ok(expected)
+}
+
+fn validate_publication_parent_bindings(
+    manifest: &JsonValue,
+    files: &BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>,
+) -> SourceCommandResult<()> {
+    let summary = cmd::field(manifest, "plan")?;
+    let selected_files = files
+        .keys()
+        .map(|name| {
+            Ok(SelectedFile {
+                path: RelativePath::parse(name)
+                    .map_err(|_| SourceCommandError::Invalid("PG publication parent file path"))?,
+                before: None,
+                after: None,
+            })
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let directories = cmd::array(summary, "new_directories")?
+        .iter()
+        .map(|value| {
+            let name = value.as_str().ok_or(SourceCommandError::Invalid(
+                "PG publication parent directory",
+            ))?;
+            path(name, true)
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let plan = FrozenPlan {
+        summary: summary.clone(),
+        files: selected_files,
+        directories,
+        blobs: BTreeMap::new(),
+        source_readset: None,
+        source_successor: None,
+    };
+    let expected = parent_refs(&plan)?;
+    let declared_new: BTreeSet<_> = plan
+        .directories
+        .iter()
+        .map(|directory| directory.as_str())
+        .collect();
+    let parents = cmd::field(manifest, "parents")?;
+    let entries = parents
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("PG publication parent map"))?;
+    if entries.len() != expected.len()
+        || expected
+            .iter()
+            .any(|reference| parents.object_get(reference).is_none())
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG publication parent closure differs",
+        ));
+    }
+    for (name, value) in entries {
+        let reference = name.as_str().ok_or(SourceCommandError::Invalid(
+            "PG publication parent reference",
+        ))?;
+        if value == &JsonValue::Null {
+            if !declared_new.contains(reference) {
+                return Err(SourceCommandError::Conflict(
+                    "undeclared absent PG publication parent",
+                ));
+            }
+        } else {
+            cmd::exact_keys(value, &["schema_version"])?;
+            if declared_new.contains(reference)
+                || cmd::text(value, "schema_version")? != PG_SOURCE_PARENT_SCHEMA
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PG publication parent binding differs",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn source_refs_from_plan(
+    bindings: &BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>,
+) -> Vec<SelectedPublicationSourceRef> {
+    bindings
+        .iter()
+        .map(|(path, (before, after))| SelectedPublicationSourceRef {
+            path: path.clone(),
+            role: PG_PUBLICATION_SOURCE_ROLE.to_owned(),
+            before: before
+                .map(|(sha256, byte_size)| SelectedPublicationBinding { sha256, byte_size }),
+            after: after
+                .map(|(sha256, byte_size)| SelectedPublicationBinding { sha256, byte_size }),
+        })
+        .collect()
+}
+
+fn validate_transaction_blob_changes(
+    files: &BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>,
+    blobs: &BTreeMap<String, cmd::SourceChange>,
+    transaction_id: &str,
+) -> SourceCommandResult<Vec<SelectedPublicationSourceRef>> {
+    let expected = expected_blob_bindings(files)?;
+    if expected.len() != blobs.len() {
+        return Err(SourceCommandError::Conflict("PG retained blob set differs"));
+    }
+    let mut refs = Vec::with_capacity(expected.len());
+    for (digest, expected_size) in expected {
+        let change = blobs
+            .get(&digest)
+            .ok_or(SourceCommandError::Conflict("PG retained blob absent"))?;
+        let bytes = change
+            .after
+            .as_deref()
+            .ok_or(SourceCommandError::Invalid("PG retained blob deleted"))?;
+        if u64::try_from(bytes.len()).ok() != Some(expected_size)
+            || Digest256::of_bytes(bytes).to_hex() != digest
+            || change
+                .before
+                .is_some_and(|before| before.to_hex() != digest)
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG retained blob binding differs",
+            ));
+        }
+        let after = SelectedPublicationBinding {
+            sha256: Digest256::of_bytes(bytes),
+            byte_size: expected_size,
+        };
+        let before = change.before.map(|sha256| SelectedPublicationBinding {
+            sha256,
+            byte_size: expected_size,
+        });
+        refs.push(SelectedPublicationSourceRef {
+            path: format!(
+                "{HOME}/{TRANSACTIONS}/{}/{}.blob",
+                &transaction_id[7..],
+                digest
+            ),
+            role: PG_PUBLICATION_BLOB_ROLE.to_owned(),
+            before,
+            after: Some(after),
+        });
+    }
+    Ok(refs)
+}
+
+fn parse_publication_file_binding(
+    value: &JsonValue,
+) -> SourceCommandResult<Option<(Digest256, u64)>> {
+    if value == &JsonValue::Null {
+        return Ok(None);
+    }
+    cmd::exact_keys(value, &["sha256", "bytes"])?;
+    let digest = parse_readset_digest(value, "sha256")?;
+    let bytes = cmd::integer(value, "bytes")?;
+    Ok(Some((digest, bytes)))
+}
+
+fn pg_source_parent_bindings(
+    input: &dyn SourceCutInput,
+    plan: &FrozenPlan,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let directories = plan
+        .directories
+        .iter()
+        .map(|path| path.as_str().to_owned())
+        .collect::<BTreeSet<_>>();
+    let mut bindings = Vec::new();
+    for reference in parent_refs(plan)? {
+        if input
+            .path_presence(&reference, deadline, cancelled)
+            .map_err(|_| SourceCommandError::Conflict("PG transaction parent presence"))?
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG transaction parent path is a file",
+            ));
+        }
+        let declared_new = directories.contains(&reference);
+        let has_selected_before = plan.files.iter().any(|file| {
+            file.before.is_some() && file.path.as_str().starts_with(&format!("{reference}/"))
+        });
+        let has_members = if declared_new || !has_selected_before {
+            selected_prefix_has_member(input, &reference, deadline, cancelled)?
+        } else {
+            true
+        };
+        let value = if declared_new {
+            if has_members {
+                return Err(SourceCommandError::Conflict(
+                    "PG transaction parent declared new but occupied",
+                ));
+            }
+            JsonValue::Null
+        } else {
+            if !has_members {
+                return Err(SourceCommandError::Conflict(
+                    "PG transaction parent absent without directory plan",
+                ));
+            }
+            cmd::object(vec![(
+                "schema_version",
+                cmd::string(PG_SOURCE_PARENT_SCHEMA),
+            )])
+        };
+        bindings.push((reference, value));
+    }
+    for directory in &plan.directories {
+        let reference = directory.as_str();
+        let mut has_members = false;
+        input
+            .for_each_current_member_meta_under(reference, deadline, cancelled, &mut |_| {
+                has_members = true;
+                Ok(())
+            })
+            .map_err(|_| SourceCommandError::Conflict("PG transaction new-directory prefix"))?;
+        if has_members
+            || input
+                .path_presence(reference, deadline, cancelled)
+                .map_err(|_| SourceCommandError::Conflict("PG transaction directory presence"))?
+                .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG transaction new directory already occupied",
+            ));
+        }
+    }
+    Ok(owned_object(bindings))
+}
+
+fn selected_prefix_has_member(
+    input: &dyn SourceCutInput,
+    prefix: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<bool> {
+    let mut found = false;
+    input
+        .for_each_current_member_meta_under(prefix, deadline, cancelled, &mut |_| {
+            found = true;
+            Ok(())
+        })
+        .map_err(|_| SourceCommandError::Conflict("PG transaction parent prefix incomplete"))?;
+    Ok(found)
+}
+
 pub(crate) fn read_at(
     parent: &File,
     name: &str,
@@ -1628,6 +3241,15 @@ pub(crate) struct WorkArchive {
     pub(crate) path: String,
     members: BTreeMap<String, (Digest256, usize)>,
 }
+
+/// Exact immutable archive members prepared from one owner-validated
+/// predecessor package. PostgreSQL writers can include these bytes in the
+/// same source transaction without asking this filesystem adapter to publish
+/// them early.
+pub(crate) struct WorkArchivePackage {
+    pub(crate) path: String,
+    pub(crate) members: BTreeMap<String, Vec<u8>>,
+}
 impl WorkArchive {
     pub(crate) fn member_paths(&self) -> impl Iterator<Item = String> + '_ {
         self.members
@@ -1708,6 +3330,80 @@ pub(crate) fn work_archive(
         cancelled,
         create,
         "work.json",
+        true,
+    )
+}
+
+/// Build the maintained Work v2 predecessor archive as bytes only. This is
+/// the same content-addressed manifest/blob package used by `work_archive`,
+/// but it performs no directory creation or filesystem write.
+pub(crate) fn work_archive_package(
+    work_path: &str,
+    work: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+) -> SourceCommandResult<WorkArchivePackage> {
+    if cmd::text(work, "record_type")? != "work" || !work_path.ends_with("/work.json") {
+        return Err(SourceCommandError::Denied(
+            "Work archive selected parent profile",
+        ));
+    }
+    prepare_compound_archive_package(
+        work_path,
+        &cmd::reference(work, "record_id", "record_version")?,
+        before,
+        expected_revision,
+        "work.json",
+        true,
+    )
+}
+
+/// Expression counterpart used by PG Growth packages that revise the
+/// Expression's current membership/history bytes.
+pub(crate) fn expression_archive_package(
+    expression_path: &str,
+    expression: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+) -> SourceCommandResult<WorkArchivePackage> {
+    if cmd::text(expression, "record_type")? != "expression"
+        || !expression_path.ends_with("/expression.json")
+    {
+        return Err(SourceCommandError::Denied(
+            "Expression archive selected parent profile",
+        ));
+    }
+    prepare_compound_archive_package(
+        expression_path,
+        &cmd::reference(expression, "record_id", "record_version")?,
+        before,
+        expected_revision,
+        "expression.json",
+        true,
+    )
+}
+
+/// Collection counterpart used by PG first-membership Growth packages.
+pub(crate) fn collection_archive_package(
+    collection_path: &str,
+    collection: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+) -> SourceCommandResult<WorkArchivePackage> {
+    if cmd::text(collection, "record_type")? != "collection"
+        || !collection_path.starts_with("ToS/source-witnesses/collections/")
+        || !collection_path.ends_with("/collection.json")
+    {
+        return Err(SourceCommandError::Denied(
+            "Collection archive selected profile",
+        ));
+    }
+    prepare_compound_archive_package(
+        collection_path,
+        &cmd::reference(collection, "record_id", "record_version")?,
+        before,
+        expected_revision,
+        "collection.json",
         true,
     )
 }
@@ -1860,58 +3556,24 @@ fn compound_archive(
     basename: &str,
     selected_protocol: bool,
 ) -> SourceCommandResult<WorkArchive> {
-    let revision = crate::source_revisions::revision(before)?;
-    if revision != expected_revision
-        || before.is_empty()
-        || before.len() > if selected_protocol { 3 } else { 64 }
-        || before.get(basename).is_none()
-        || before.values().any(|raw| raw.len() > 2_097_152)
-        || before
-            .values()
-            .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
-            .is_none_or(|n| n > MAX_SIDE)
-    {
-        return Err(SourceCommandError::Conflict(
-            "selected Work archive predecessor differs or exceeds its budget",
-        ));
-    }
-    let id = cmd::text(subject, "id")?;
-    let config = cmd::object(vec![("record_id", cmd::string(id))]);
-    let location = crate::source_revisions::archive_path(&config, &revision)?;
+    let package = prepare_compound_archive_package(
+        work_path,
+        subject,
+        before,
+        expected_revision,
+        basename,
+        selected_protocol,
+    )?;
+    let location = package.path;
     let leaf = location
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("Work archive path"))?
         .1;
-    let mut expected = BTreeMap::new();
-    for raw in before.values() {
-        expected.insert(
-            format!("{}.blob", Digest256::of_bytes(raw).to_hex()),
-            raw.as_slice(),
-        );
-    }
-    let mut manifest = cmd::object(vec![
-        (
-            "schema_version",
-            cmd::string(if selected_protocol {
-                "tos_source_package_archive_v2"
-            } else {
-                "tos_source_package_archive_v1"
-            }),
-        ),
-        ("source_path", cmd::string(work_path)),
-        ("source", subject.clone()),
-        ("revision", cmd::string(&revision)),
-        ("files", crate::source_revisions::file_refs(before, true)),
-    ]);
-    if selected_protocol {
-        cmd::set(
-            &mut manifest,
-            "publication_protocol",
-            cmd::string("tos_selected_source_metadata_v1"),
-        )?;
-    }
-    let manifest_raw = cmd::published(&manifest)?;
-    expected.insert("manifest.json".to_owned(), manifest_raw.as_slice());
+    let expected = package
+        .members
+        .iter()
+        .map(|(name, raw)| (name.clone(), raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
     let mut observation = WorkArchive {
         path: location.clone(),
         members: expected
@@ -1936,7 +3598,8 @@ fn compound_archive(
             "Work archive manifest disappeared",
         ))?;
         if !matches!(mode, 0o600 | 0o644)
-            || cmd::canonical(&cmd::parse(&raw)?)? != cmd::canonical(&manifest)?
+            || cmd::canonical(&cmd::parse(&raw)?)?
+                != cmd::canonical(&cmd::parse(expected["manifest.json"])?)?
         {
             return Err(SourceCommandError::Conflict(
                 "Work archive manifest differs",
@@ -2045,6 +3708,66 @@ fn compound_archive(
     .map_err(|_| SourceCommandError::Conflict("Work archive detached after publication"))?;
     verify(&directory)?;
     Ok(observation)
+}
+
+fn prepare_compound_archive_package(
+    work_path: &str,
+    subject: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    basename: &str,
+    selected_protocol: bool,
+) -> SourceCommandResult<WorkArchivePackage> {
+    let revision = crate::source_revisions::revision(before)?;
+    if revision != expected_revision
+        || before.is_empty()
+        || before.len() > if selected_protocol { 3 } else { 64 }
+        || before.get(basename).is_none()
+        || before.values().any(|raw| raw.len() > 2_097_152)
+        || before
+            .values()
+            .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+            .is_none_or(|n| n > MAX_SIDE)
+    {
+        return Err(SourceCommandError::Conflict(
+            "selected Work archive predecessor differs or exceeds its budget",
+        ));
+    }
+    let id = cmd::text(subject, "id")?;
+    let config = cmd::object(vec![("record_id", cmd::string(id))]);
+    let location = crate::source_revisions::archive_path(&config, &revision)?;
+    let mut members = BTreeMap::new();
+    for raw in before.values() {
+        members
+            .entry(format!("{}.blob", Digest256::of_bytes(raw).to_hex()))
+            .or_insert_with(|| raw.clone());
+    }
+    let mut manifest = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string(if selected_protocol {
+                "tos_source_package_archive_v2"
+            } else {
+                "tos_source_package_archive_v1"
+            }),
+        ),
+        ("source_path", cmd::string(work_path)),
+        ("source", subject.clone()),
+        ("revision", cmd::string(&revision)),
+        ("files", crate::source_revisions::file_refs(before, true)),
+    ]);
+    if selected_protocol {
+        cmd::set(
+            &mut manifest,
+            "publication_protocol",
+            cmd::string("tos_selected_source_metadata_v1"),
+        )?;
+    }
+    members.insert("manifest.json".to_owned(), cmd::published(&manifest)?);
+    Ok(WorkArchivePackage {
+        path: location,
+        members,
+    })
 }
 
 struct Parents<'a> {

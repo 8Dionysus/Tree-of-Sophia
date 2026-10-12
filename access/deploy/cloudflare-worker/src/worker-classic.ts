@@ -24,10 +24,16 @@ interface EvidenceRules {route(scene:number,mode:string,items:Uint32Array):void;
 interface ClusterRules {node(id:number):boolean;edge(id:number):boolean;free():void;}
 interface EndpointsRules {endpoint(id:number,nonempty:boolean):void;reference(id:number,ref:number,nonempty:boolean):void;ids():Uint32Array;contains(id:number):boolean;references(id:number):Uint32Array;free():void;}
 interface SearchRules {remaining():number;observed(count:number):void;free():void;}
+export interface SourceValueSearchRules {
+  remaining():number;scan_remaining():number;input_bytes_remaining():number;collection_order():string;
+  observe_candidate(collection:string,ordinal:number,searchJson:string,resultJson:string):boolean;
+  finish():Uint8Array;free():void;
+}
 interface Runtime {
   WorkerProfile:{priority(left_selected:boolean,right_selected:boolean):number;direction(value:string):number;same(left:number,right:number):boolean;different(left:number,right:number):boolean;outside_view(row:number,view:number):boolean;endpoints_missing(count:number,same:boolean):boolean;node_fetch_limit(limit:number):number;edge_fetch_limit(limit:number):number;supported_corpus_evidence(view:string):boolean;missing(count:number):boolean;challenge_predicates():string;search_collections():string};
   WorkerEndpoints:{new():EndpointsRules;graph_mode(view:string):number};
   WorkerSearch:{new(limit:number):SearchRules;needle_order():Uint8Array};
+  WorkerSourceValueSearch:{new(mode:string,query:string,limit:number,resourceKind?:string):SourceValueSearchRules};
   WorkerHealth:{expected(is_number:boolean):boolean;schema(schema:string):boolean;coverage(expected:number,actual:number,is_number:boolean):boolean};
   WorkerSet:new()=>SetRules;
   WorkerGraph:new(limit:number)=>GraphRules;

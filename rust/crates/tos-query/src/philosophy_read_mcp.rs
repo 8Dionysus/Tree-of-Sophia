@@ -169,7 +169,7 @@ pub(super) fn packet<'a>(
         JsonValue::Null
     };
     Ok(object(vec![
-        ("schema", text("tos_philosophy_mcp_packet_v1")),
+        ("schema", text("tos_philosophy_mcp_packet_v2")),
         ("query", text(query)),
         ("view_id", view.map(text).unwrap_or(JsonValue::Null)),
         ("result_count", get(&search, "result_count").clone()),

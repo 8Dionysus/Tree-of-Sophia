@@ -6,13 +6,29 @@
 //! creates a selected full-corpus snapshot.
 
 use super::*;
-use crate::source_command::{SourceCommandError, SourceCommandResult};
+use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_revisions::ReadonlyRecordFiles;
 use postgres::IsolationLevel;
 use std::sync::atomic::AtomicBool;
 
 const MAX_CHILDREN: usize = 64;
 const MAX_RETAINED_STATE_BYTES: usize = 64 * 1024 * 1024;
+const MAX_CLAIM_DEPENDENCY_LOOKUPS: usize = 4_096;
+const MAX_CLAIM_DEPENDENCY_ROWS: usize = 65_536;
+const MAX_ITEM_FILE_LOOKUPS: usize = 4_096;
+const MAX_ITEM_FILE_ROWS: usize = 65_536;
+const MAX_SOURCE_IDENTITY_LOOKUPS: usize = 4_096;
+const MAX_SOURCE_IDENTITY_TOKEN_BYTES: usize = 4_096;
+const MAX_SIGN_CANDIDATE_TOKEN_BYTES: usize = 4_096;
+const MAX_SOURCE_PUBLICATION_PACKAGE_BYTES: usize = 1_048_576;
+const MAX_SOURCE_PUBLICATION_VIRTUAL_LOOKUPS: u64 = 4_096;
+const MAX_SOURCE_PUBLICATION_PACKAGE_BYTES_READ: u64 = 64 * 1024 * 1024;
+const SOURCE_PUBLICATION_CONTROL_PATH: &str =
+    "ToS/source-witnesses/.metadata-publication.json";
+const SOURCE_PUBLICATION_JOURNAL_ROOT: &str =
+    "ToS/source-witnesses/.metadata-transactions";
+const SOURCE_PUBLICATION_ROW_FIELDS: &str =
+    "state,publication_generation,token,base_token,base_generation,transaction_id,package_digest,package_bytes,source_commit_seq,store_id,bootstrap_source_revision,bootstrap_membership_digest,bootstrap_membership_count";
 
 /// The bounded initial Agent route treats these five identity namespaces as a
 /// single uniqueness domain.  Keep the list with the PG transport so the
@@ -31,6 +47,274 @@ pub(crate) struct SourceRevisionSelection {
     pub(crate) rule_version: u64,
     pub(crate) job_id: String,
     pub(crate) job_fence: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SelectedSourcePublicationRow {
+    state: String,
+    publication_generation: u64,
+    token: Option<String>,
+    base_token: Option<String>,
+    base_generation: u64,
+    transaction_id: Option<String>,
+    package_digest: Option<String>,
+    package_bytes: Option<Vec<u8>>,
+    source_commit_seq: u64,
+    store_id: [u8; 16],
+    bootstrap_source_revision: String,
+    bootstrap_membership_digest: String,
+    bootstrap_membership_count: u64,
+}
+
+impl SelectedSourcePublicationRow {
+    fn from_row(row: &postgres::Row) -> DurableResult<Self> {
+        let store_id = row
+            .get::<_, Vec<u8>>("store_id")
+            .try_into()
+            .map_err(|_| DurableError::Corrupt("source publication store identity"))?;
+        Ok(Self {
+            state: row.get("state"),
+            publication_generation: as_u64(row.get("publication_generation"))?,
+            token: row.get("token"),
+            base_token: row.get("base_token"),
+            base_generation: as_u64(row.get("base_generation"))?,
+            transaction_id: row.get("transaction_id"),
+            package_digest: row.get("package_digest"),
+            package_bytes: row.get("package_bytes"),
+            source_commit_seq: as_u64(row.get("source_commit_seq"))?,
+            store_id,
+            bootstrap_source_revision: row.get("bootstrap_source_revision"),
+            bootstrap_membership_digest: row.get("bootstrap_membership_digest"),
+            bootstrap_membership_count: as_u64(row.get("bootstrap_membership_count"))?,
+        })
+    }
+
+    fn verify_selection(&self, selection: &SourceRevisionSelection) -> DurableResult<()> {
+        if self.store_id != selection.cohort.store_id
+            || self.bootstrap_source_revision != selection.cohort.initial_revision.0.to_hex()
+            || self.bootstrap_membership_digest
+                != selection.cohort.initial_membership.digest.to_hex()
+            || self.bootstrap_membership_count != selection.cohort.initial_membership.count
+            || self.source_commit_seq > selection.head_seq
+        {
+            return Err(DurableError::Conflict(
+                "source publication bootstrap or commit lineage differs",
+            ));
+        }
+        match self.state.as_str() {
+            "absent" => {
+                if self.publication_generation != 0
+                    || self.token.is_some()
+                    || self.base_token.is_some()
+                    || self.base_generation != 0
+                    || self.transaction_id.is_some()
+                    || self.package_digest.is_some()
+                    || self.package_bytes.is_some()
+                    || self.source_commit_seq != 0
+                {
+                    return Err(DurableError::Corrupt(
+                        "source publication absent row is not generation zero",
+                    ));
+                }
+            }
+            "present" => {
+                let token = self
+                    .token
+                    .as_deref()
+                    .ok_or(DurableError::Corrupt("source publication token absent"))?;
+                let transaction_id = self
+                    .transaction_id
+                    .as_deref()
+                    .ok_or(DurableError::Corrupt("source publication transaction absent"))?;
+                let package_digest = self
+                    .package_digest
+                    .as_deref()
+                    .ok_or(DurableError::Corrupt("source publication package digest absent"))?;
+                let package_bytes = self
+                    .package_bytes
+                    .as_deref()
+                    .ok_or(DurableError::Corrupt("source publication package absent"))?;
+                if self.publication_generation == 0
+                    || self.publication_generation != self.base_generation.checked_add(2).ok_or(
+                        DurableError::Corrupt("source publication generation overflow"),
+                    )?
+                    || !crate::source_work_transaction::is_hash(token)
+                    || !crate::source_work_transaction::is_hash(transaction_id)
+                    || self.base_generation == 0
+                        && self
+                            .base_token
+                            .as_deref()
+                            .is_some()
+                    || self.base_generation > 0
+                        && !self
+                            .base_token
+                            .as_deref()
+                            .is_some_and(crate::source_work_transaction::is_hash)
+                    || package_bytes.is_empty()
+                    || package_bytes.len() > MAX_SOURCE_PUBLICATION_PACKAGE_BYTES
+                    || Digest256::from_hex(package_digest).is_err()
+                    || Digest256::of_bytes(package_bytes).to_hex() != package_digest
+                    || self.source_commit_seq == 0
+                {
+                    return Err(DurableError::Corrupt(
+                        "source publication row fields or package digest differ",
+                    ));
+                }
+            }
+            _ => {
+                return Err(DurableError::Corrupt(
+                    "source publication state invalid",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+fn selected_publication_transaction_id(path: &str) -> DurableResult<String> {
+    let member = path
+        .strip_prefix(&format!("{SOURCE_PUBLICATION_JOURNAL_ROOT}/"))
+        .ok_or(DurableError::Invalid("source publication journal path"))?;
+    let (id, name) = member
+        .split_once('/')
+        .ok_or(DurableError::Invalid("source publication journal path"))?;
+    if !matches!(name, "manifest.json" | "completion.json")
+        || id.len() != 64
+        || !id
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(DurableError::Invalid(
+            "source publication journal identity",
+        ));
+    }
+    Ok(format!("sha256:{id}"))
+}
+
+fn selected_publication_package_member(
+    row: &SelectedSourcePublicationRow,
+    requested_path: &str,
+) -> DurableResult<Vec<u8>> {
+    let package = row
+        .package_bytes
+        .as_deref()
+        .ok_or(DurableError::Corrupt("source publication package absent"))?;
+    let transaction_id = row
+        .transaction_id
+        .as_deref()
+        .ok_or(DurableError::Corrupt("source publication transaction absent"))?;
+    let id = transaction_id
+        .strip_prefix("sha256:")
+        .ok_or(DurableError::Corrupt("source publication transaction identity"))?;
+    let journal = format!("{SOURCE_PUBLICATION_JOURNAL_ROOT}/{id}");
+    let control_raw = crate::source_work_transaction::selected_publication_virtual_member(
+        package,
+        SOURCE_PUBLICATION_CONTROL_PATH,
+    )
+    .map_err(DurableError::Source)?
+    .ok_or(DurableError::Corrupt("source publication control absent"))?;
+    let manifest_path = format!("{journal}/manifest.json");
+    let manifest_raw = crate::source_work_transaction::selected_publication_virtual_member(
+        package,
+        &manifest_path,
+    )
+    .map_err(DurableError::Source)?
+    .ok_or(DurableError::Corrupt("source publication manifest absent"))?;
+    let completion_path = format!("{journal}/completion.json");
+    let completion_raw = crate::source_work_transaction::selected_publication_virtual_member(
+        package,
+        &completion_path,
+    )
+    .map_err(DurableError::Source)?
+    .ok_or(DurableError::Corrupt("source publication completion absent"))?;
+
+    let control = cmd::parse(&control_raw).map_err(DurableError::Source)?;
+    crate::source_work_transaction::state(&control).map_err(DurableError::Source)?;
+    let manifest = cmd::parse(&manifest_raw).map_err(DurableError::Source)?;
+    let completion = cmd::parse(&completion_raw).map_err(DurableError::Source)?;
+    let base = cmd::field(&manifest, "base_publication").map_err(DurableError::Source)?;
+    cmd::exact_keys(base, &["token", "generation"]).map_err(DurableError::Source)?;
+    let base_token = match cmd::field(base, "token").map_err(DurableError::Source)? {
+        tos_foundation::JsonValue::Null => None,
+        tos_foundation::JsonValue::String(value) => Some(value.clone()),
+        _ => {
+            return Err(DurableError::Corrupt(
+                "source publication manifest base token",
+            ));
+        }
+    };
+    if cmd::text(&control, "phase").map_err(DurableError::Source)? != "ready"
+        || cmd::text(&control, "outcome").map_err(DurableError::Source)? != "committed"
+        || cmd::text(&control, "transaction_id").map_err(DurableError::Source)? != transaction_id
+        || cmd::integer(&control, "generation").map_err(DurableError::Source)?
+            != row.publication_generation
+        || row.token.as_deref()
+            != Some(cmd::text(&control, "token").map_err(DurableError::Source)?)
+        || cmd::text(&manifest, "transaction_id").map_err(DurableError::Source)? != transaction_id
+        || cmd::integer(base, "generation").map_err(DurableError::Source)? != row.base_generation
+        || base_token != row.base_token
+        || cmd::text(&control, "manifest_sha256").map_err(DurableError::Source)?
+            != Digest256::of_bytes(&manifest_raw).to_prefixed()
+        || cmd::exact_keys(&completion, &["schema_version", "publication"])
+            .map_err(DurableError::Source)
+            .is_err()
+        || cmd::text(&completion, "schema_version").map_err(DurableError::Source)?
+            != "tos_selected_metadata_completion_v1"
+        || !cmd::same(
+            cmd::field(&completion, "publication").map_err(DurableError::Source)?,
+            &control,
+        )
+        .map_err(DurableError::Source)?
+    {
+        return Err(DurableError::Conflict(
+            "source publication package lineage differs from indexed row",
+        ));
+    }
+
+    crate::source_work_transaction::selected_publication_virtual_member(package, requested_path)
+        .map_err(DurableError::Source)?
+        .ok_or(DurableError::Conflict(
+            "source publication package member is absent",
+        ))
+}
+
+fn verify_selected_publication_parent(
+    tx: &mut postgres::Transaction<'_>,
+    selection: &SourceRevisionSelection,
+    child: &SelectedSourcePublicationRow,
+) -> DurableResult<()> {
+    if child.state == "absent" {
+        return Ok(());
+    }
+    let row = tx.query_opt(
+        &format!(
+            "SELECT {SOURCE_PUBLICATION_ROW_FIELDS} FROM cmd2_source_publication_history
+             WHERE domain=$1 AND publication_generation=$2 FOR SHARE"
+        ),
+        &[
+            &selection.cohort.domain,
+            &as_i64(child.base_generation)?,
+        ],
+    )?;
+    let parent = row
+        .as_ref()
+        .map(SelectedSourcePublicationRow::from_row)
+        .transpose()?
+        .ok_or(DurableError::Conflict(
+            "source publication predecessor history is absent",
+        ))?;
+    parent.verify_selection(selection)?;
+    if parent.publication_generation != child.base_generation
+        || parent.token != child.base_token
+        || parent.source_commit_seq >= child.source_commit_seq
+        || (child.base_generation == 0 && parent.state != "absent")
+        || (child.base_generation > 0 && parent.state != "present")
+    {
+        return Err(DurableError::Conflict(
+            "source publication predecessor history differs",
+        ));
+    }
+    Ok(())
 }
 
 /// Opaque identity of the bounded PostgreSQL read epoch.  This is deliberately
@@ -105,6 +389,33 @@ impl PgRecordRevisionIdentity {
             contract: selection.contract,
         }
     }
+
+    /// Digest the complete opaque source-selection identity for owner
+    /// mechanics that need a stable input binding but must not manufacture a
+    /// `SourceRevision` for the current PG head.
+    pub(crate) fn digest(&self) -> Digest256 {
+        let mut hasher = Digest256Hasher::new();
+        hasher.update(b"tos-pg-record-revision-identity-v1\0");
+        hasher.update(self.domain_digest.as_bytes());
+        hasher.update(&self.store_id);
+        hasher.update(self.bootstrap_revision.0.as_bytes());
+        hasher.update(&self.bootstrap_membership.count.to_be_bytes());
+        hasher.update(self.bootstrap_membership.digest.as_bytes());
+        hasher.update(self.cohort_digest.as_bytes());
+        hasher.update(&self.cohort_epoch.to_be_bytes());
+        hasher.update(self.cohort_definition.as_bytes());
+        hasher.update(&self.cohort_generation.to_be_bytes());
+        hasher.update(self.job_id_digest.as_bytes());
+        hasher.update(&self.job_fence.to_be_bytes());
+        hasher.update(&self.epoch.to_be_bytes());
+        hasher.update(&self.source_generation.to_be_bytes());
+        hasher.update(&self.head_seq.to_be_bytes());
+        hasher.update(&self.audit_generation.to_be_bytes());
+        hasher.update(&self.rights_version.to_be_bytes());
+        hasher.update(&self.rule_version.to_be_bytes());
+        hasher.update(self.contract.as_bytes());
+        hasher.finalize()
+    }
 }
 
 impl SourceRevisionSelection {
@@ -125,6 +436,234 @@ pub(crate) struct SourceRevisionReadSet {
     pub(crate) observations: BTreeMap<String, SourceRevisionObservation>,
     pub(crate) work: SourceRevisionReadWork,
     pub(crate) work_revision: Option<crate::source_pg_work_revision::Observation>,
+    claim_navigation_closure: Option<SourceRevisionClaimNavigationClosure>,
+}
+
+/// Exact point-identity closure for the caller's selected tokens. The result
+/// is tied to the PG epoch and can be checked against the eventual readset;
+/// it carries no claim that unrelated identities were enumerated.
+#[derive(Clone, Debug)]
+pub(crate) struct SourceRevisionIdentityClosure {
+    selection_identity: PgRecordRevisionIdentity,
+    owners: BTreeMap<String, Option<(String, RelativePath)>>,
+    generations: BTreeMap<(String, String), u64>,
+}
+
+impl SourceRevisionIdentityClosure {
+    pub(crate) fn selection_identity(&self) -> PgRecordRevisionIdentity {
+        self.selection_identity
+    }
+
+    pub(crate) fn owners(&self) -> &BTreeMap<String, Option<(String, RelativePath)>> {
+        &self.owners
+    }
+
+    /// Canonical commitment to the selected point lookups and every global
+    /// uniqueness generation observed for them.
+    pub(crate) fn closure_root(&self) -> Digest256 {
+        let mut hasher = Digest256Hasher::new();
+        part(&mut hasher, b"tos-pg-source-identity-closure-v1");
+        part(&mut hasher, self.selection_identity.digest().as_bytes());
+        part(&mut hasher, &(self.owners.len() as u64).to_be_bytes());
+        for (token, owner) in &self.owners {
+            part(&mut hasher, token.as_bytes());
+            if let Some((kind, path)) = owner {
+                part(&mut hasher, b"present");
+                part(&mut hasher, kind.as_bytes());
+                part(&mut hasher, path.as_str().as_bytes());
+            } else {
+                part(&mut hasher, b"absent");
+            }
+        }
+        part(&mut hasher, &(self.generations.len() as u64).to_be_bytes());
+        for ((kind, token), generation) in &self.generations {
+            part(&mut hasher, kind.as_bytes());
+            part(&mut hasher, token.as_bytes());
+            part(&mut hasher, &generation.to_be_bytes());
+        }
+        hasher.finalize()
+    }
+
+    /// Require the closure's exact selection identity, predicate generations,
+    /// and present owner members to be part of the eventual command readset.
+    pub(crate) fn verify_readset(&self, readset: &SourceRevisionReadSet) -> DurableResult<()> {
+        if readset.selection.identity() != self.selection_identity
+            || self.generations.len() != self.owners.len() * PG_AGENT_INDEX_KINDS.len()
+        {
+            return Err(DurableError::Conflict(
+                "source identity closure selection or generation count differs",
+            ));
+        }
+        for (token, owner) in &self.owners {
+            for kind in PG_AGENT_INDEX_KINDS {
+                let Some(generation) = self.generations.get(&(kind.to_owned(), token.clone()))
+                else {
+                    return Err(DurableError::Conflict(
+                        "source identity closure generation is absent",
+                    ));
+                };
+                if !readset.reads.reads.iter().any(|read| {
+                    matches!(read, PredicateRead::Generation { predicate, observed_generation }
+                        if predicate.kind == PredicateKind::Unique
+                            && predicate.owner == OWNER
+                            && predicate.scope == kind
+                            && predicate.token == *token
+                            && predicate.definition_version == readset.selection.cohort.definition.to_hex()
+                            && observed_generation == generation)
+                }) {
+                    return Err(DurableError::Conflict(
+                        "source identity closure predicate is absent from readset",
+                    ));
+                }
+            }
+            if let Some((_, path)) = owner {
+                let Some(observation) = readset.observations.get(path.as_str()) else {
+                    return Err(DurableError::Conflict(
+                        "source identity closure owner member was not read",
+                    ));
+                };
+                if observation.member.path != *path {
+                    return Err(DurableError::Conflict(
+                        "source identity closure owner member path differs",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Sealed, bounded reverse-reference evidence produced from one fresh PG
+/// read epoch. The constructor remains in `with_source_revision_session`,
+/// after its final source/audit/rights/lease fence check.
+#[derive(Clone, Debug)]
+pub(crate) struct SourceRevisionClaimNavigationClosure {
+    domain: String,
+    selection_identity: PgRecordRevisionIdentity,
+    lookups: BTreeMap<
+        (
+            crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+            String,
+        ),
+        crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
+    >,
+    member_facts: BTreeMap<String, SourceRevisionClaimMemberEvidence>,
+    members: BTreeMap<String, SourceRevisionObservation>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SourceRevisionClaimMemberEvidence {
+    pub(crate) path: String,
+    pub(crate) digest: Digest256,
+    pub(crate) size_bytes: u64,
+    pub(crate) commit_seq: u64,
+}
+
+impl SourceRevisionClaimNavigationClosure {
+    pub(crate) fn domain(&self) -> &str {
+        &self.domain
+    }
+
+    pub(crate) fn selection_identity(&self) -> PgRecordRevisionIdentity {
+        self.selection_identity
+    }
+
+    pub(crate) fn selection_digest(&self) -> Digest256 {
+        self.selection_identity.digest()
+    }
+
+    /// Canonical commitment to this bounded reverse-reference closure. The
+    /// readset remains the authority; this root is only a transport binding
+    /// for compilers that need to seal affected-owner manifests.
+    pub(crate) fn closure_root(&self) -> Digest256 {
+        let mut hasher = Digest256Hasher::new();
+        part(
+            &mut hasher,
+            b"tos-pg-claim-navigation-closure-v1",
+        );
+        part(&mut hasher, self.domain.as_bytes());
+        part(&mut hasher, self.selection_identity.digest().as_bytes());
+        part(
+            &mut hasher,
+            &(self.lookups.len() as u64).to_be_bytes(),
+        );
+        for ((kind, endpoint), observation) in &self.lookups {
+            part(&mut hasher, kind.as_str().as_bytes());
+            part(&mut hasher, endpoint.as_bytes());
+            part(&mut hasher, observation.predicate_token.as_bytes());
+            part(
+                &mut hasher,
+                &observation.generation.to_be_bytes(),
+            );
+            part(
+                &mut hasher,
+                &(observation.rows.len() as u64).to_be_bytes(),
+            );
+            for row in &observation.rows {
+                part(&mut hasher, row.claim_id.as_bytes());
+                part(&mut hasher, row.path.as_bytes());
+                part(&mut hasher, row.kind.as_str().as_bytes());
+                part(&mut hasher, row.endpoint.as_bytes());
+                part(&mut hasher, row.member_digest.as_bytes());
+                part(&mut hasher, &row.size_bytes.to_be_bytes());
+                part(&mut hasher, &row.commit_seq.to_be_bytes());
+            }
+        }
+        part(
+            &mut hasher,
+            &(self.member_facts.len() as u64).to_be_bytes(),
+        );
+        for (path, fact) in &self.member_facts {
+            part(&mut hasher, path.as_bytes());
+            part(&mut hasher, fact.digest.as_bytes());
+            part(&mut hasher, &fact.size_bytes.to_be_bytes());
+            part(&mut hasher, &fact.commit_seq.to_be_bytes());
+        }
+        part(
+            &mut hasher,
+            &(self.members.len() as u64).to_be_bytes(),
+        );
+        for (path, observation) in &self.members {
+            let member = &observation.member;
+            part(&mut hasher, path.as_bytes());
+            part(&mut hasher, Digest256::of_bytes(&member.raw).as_bytes());
+            part(&mut hasher, member.metadata.sha256.as_bytes());
+            part(&mut hasher, &(member.raw.len() as u64).to_be_bytes());
+            part(&mut hasher, &member.commit_seq.to_be_bytes());
+        }
+        hasher.finalize()
+    }
+
+    pub(crate) fn lookups(
+        &self,
+    ) -> &BTreeMap<
+        (
+            crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+            String,
+        ),
+        crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
+    > {
+        &self.lookups
+    }
+
+    pub(crate) fn members(&self) -> &BTreeMap<String, SourceRevisionObservation> {
+        &self.members
+    }
+
+    pub(crate) fn member_facts(&self) -> &BTreeMap<String, SourceRevisionClaimMemberEvidence> {
+        &self.member_facts
+    }
+
+    pub(crate) fn lookup_count(&self) -> usize {
+        self.lookups.len()
+    }
+
+    pub(crate) fn row_count(&self) -> usize {
+        self.lookups
+            .values()
+            .map(|observation| observation.rows.len())
+            .sum()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -158,6 +697,15 @@ pub(crate) struct SourceRevisionReadWork {
     pub(crate) metadata_member_lookups: u64,
     pub(crate) directory_index_rows_examined: u64,
     pub(crate) unique_index_lookups: u64,
+    pub(crate) text_identity_lookups: u64,
+    pub(crate) claim_dependency_lookups: u64,
+    pub(crate) claim_navigation_lookups: u64,
+    pub(crate) item_file_lookups: u64,
+    pub(crate) item_rights_lookups: u64,
+    pub(crate) item_edition_lookups: u64,
+    pub(crate) sign_candidate_lookups: u64,
+    pub(crate) source_publication_virtual_lookups: u64,
+    pub(crate) source_publication_package_bytes_read: u64,
 }
 
 pub(crate) struct SourceRevisionReadSession<'a> {
@@ -170,6 +718,14 @@ pub(crate) struct SourceRevisionReadSession<'a> {
     predicate_reads: BTreeSet<(String, String, String)>,
     work: SourceRevisionReadWork,
     work_revision: Option<crate::source_pg_work_revision::Observation>,
+    claim_navigation_lookups: BTreeMap<
+        (
+            crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+            String,
+        ),
+        crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
+    >,
+    claim_navigation_members: BTreeMap<String, SourceRevisionObservation>,
 }
 
 impl SourceRevisionReadSet {
@@ -187,6 +743,10 @@ impl SourceRevisionReadSet {
 
     pub(crate) fn work(&self) -> SourceRevisionReadWork {
         self.work
+    }
+
+    pub(crate) fn claim_navigation_closure(&self) -> Option<&SourceRevisionClaimNavigationClosure> {
+        self.claim_navigation_closure.as_ref()
     }
 }
 
@@ -226,12 +786,15 @@ impl DurablePgCoordinator {
                 }],
                 locators: BTreeMap::new(),
                 managed_original: None,
+                revision: None,
             },
             observations: BTreeMap::new(),
             retained_state_bytes: 0,
             predicate_reads: BTreeSet::new(),
             work: SourceRevisionReadWork::default(),
             work_revision: None,
+            claim_navigation_lookups: BTreeMap::new(),
+            claim_navigation_members: BTreeMap::new(),
         };
         let result = operation(&mut session)?;
         session.verify_fresh(deadline, cancelled)?;
@@ -241,6 +804,34 @@ impl DurablePgCoordinator {
             observations: session.observations,
             work: session.work,
             work_revision: session.work_revision,
+            claim_navigation_closure: if session.claim_navigation_lookups.is_empty() {
+                None
+            } else {
+                let selection_identity = session.selection.identity();
+                let member_facts = session
+                    .claim_navigation_members
+                    .iter()
+                    .map(|(path, observation)| {
+                        let member = &observation.member;
+                        (
+                            path.clone(),
+                            SourceRevisionClaimMemberEvidence {
+                                path: path.clone(),
+                                digest: member.metadata.sha256,
+                                size_bytes: member.raw.len() as u64,
+                                commit_seq: member.commit_seq,
+                            },
+                        )
+                    })
+                    .collect();
+                Some(SourceRevisionClaimNavigationClosure {
+                    domain: session.selection.cohort.domain.clone(),
+                    selection_identity,
+                    lookups: session.claim_navigation_lookups,
+                    member_facts,
+                    members: session.claim_navigation_members,
+                })
+            },
         };
         Ok((result, readset))
     }
@@ -364,6 +955,13 @@ impl SourceRevisionReadSession<'_> {
         &self.selection
     }
 
+    /// Snapshot the exact source/predicate reads accumulated by this held
+    /// owner session. Prepared family adapters bind this value into their
+    /// proposal so registration cannot accept a different same-selection cut.
+    pub(crate) fn reads_snapshot(&self) -> SourceReads {
+        self.reads.clone()
+    }
+
     pub(crate) fn work(&self) -> SourceRevisionReadWork {
         self.work
     }
@@ -404,6 +1002,8 @@ impl SourceRevisionReadSession<'_> {
             binding.raw_request_digest,
             binding.owner_configuration_raw_digest,
             binding.owner_configuration_canonical_digest,
+            &binding.family_tag,
+            true,
             &binding.job_id,
             binding.job_fence,
             Some(binding),
@@ -868,6 +1468,1148 @@ impl SourceRevisionReadSession<'_> {
         })
     }
 
+    /// Resolve an exact Sign promotion candidate through its per-kind index.
+    /// Unlike the five globally unique metadata identities, candidate Claims
+    /// may legitimately share an ID with `kind='claim'`; this observation is
+    /// fenced only by the Sign candidate namespace and its own generation.
+    pub(crate) fn lookup_sign_promotion_candidate(
+        &mut self,
+        token: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<RelativePath>> {
+        if token.is_empty() || token.len() > MAX_SIGN_CANDIDATE_TOKEN_BYTES {
+            return Err(DurableError::Invalid(
+                "Sign promotion candidate token bound",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let (path, generation) = {
+            let mut tx = self.coordinator.client.transaction()?;
+            tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+            let fence = tx.query_one(
+                "SELECT generation,maintenance_state FROM cmd2_audit_fence
+                 WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?;
+            if fence.get::<_, String>(1) != "normal"
+                || as_u64(fence.get(0))? != self.selection.audit_generation
+            {
+                return Err(DurableError::Conflict(
+                    "Sign promotion candidate audit fence changed",
+                ));
+            }
+            let gate = tx.query_one(
+                "SELECT rights_allowed,source_complete,source_generation,source_epoch,
+                        contract_digest,source_definition_digest
+                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?;
+            let definition = gate
+                .get::<_, Option<String>>(5)
+                .ok_or(DurableError::Corrupt("source definition absent"))?;
+            super::require_current_source_definition(parse_hex(definition)?)?;
+            if !gate.get::<_, bool>(0)
+                || !gate.get::<_, bool>(1)
+                || gate.get::<_, Option<i64>>(2) != Some(as_i64(self.selection.source_generation)?)
+                || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.epoch)?)
+                || gate.get::<_, String>(4) != self.selection.contract.to_hex()
+                || gate.get::<_, Option<String>>(5)
+                    != Some(self.selection.cohort.definition.to_hex())
+            {
+                return Err(DurableError::Conflict(
+                    "Sign promotion candidate source epoch changed",
+                ));
+            }
+            let row = tx.query_opt(
+                "SELECT path,definition_digest FROM cmd2_source_index
+                 WHERE domain=$1 AND kind='sign-candidate' AND token=$2",
+                &[&domain, &token],
+            )?;
+            let path = if let Some(row) = row {
+                if row.get::<_, String>(1) != self.selection.cohort.definition.to_hex() {
+                    return Err(DurableError::Conflict(
+                        "Sign promotion candidate index definition changed",
+                    ));
+                }
+                let path = row.get::<_, String>(0);
+                if !path.starts_with("ToS/")
+                    || path.starts_with("ToS/source-witnesses/owner-local/")
+                {
+                    return Err(DurableError::Corrupt(
+                        "Sign promotion candidate index path is outside public ToS",
+                    ));
+                }
+                let path = RelativePath::parse(&path)
+                    .map_err(|_| DurableError::Corrupt("Sign promotion candidate index path"))?;
+                if tx
+                    .query_opt(
+                        "SELECT 1 FROM cmd2_current WHERE domain=$1 AND subject=$2 LIMIT 1",
+                        &[&domain, &path.as_str()],
+                    )?
+                    .is_none()
+                {
+                    return Err(DurableError::Corrupt(
+                        "Sign promotion candidate index is not current",
+                    ));
+                }
+                Some(path)
+            } else {
+                None
+            };
+            let predicate = tx.query_opt(
+                "SELECT generation,complete,definition_version FROM cmd2_predicate
+                 WHERE domain=$1 AND kind='unique' AND owner=$2
+                   AND scope='sign-candidate' AND token=$3",
+                &[&domain, &OWNER, &token],
+            )?;
+            if predicate.as_ref().is_some_and(|row| {
+                !row.get::<_, bool>(1)
+                    || row.get::<_, String>(2) != self.selection.cohort.definition.to_hex()
+            }) {
+                return Err(DurableError::Conflict(
+                    "Sign promotion candidate predicate definition changed",
+                ));
+            }
+            let generation = predicate
+                .as_ref()
+                .map(|row| as_u64(row.get(0)))
+                .transpose()?
+                .unwrap_or(0);
+            active(deadline, cancelled)?;
+            tx.commit()?;
+            (path, generation)
+        };
+        Self::charge_work(&mut self.work.sign_candidate_lookups, 1)?;
+        self.record_predicate("unique", "sign-candidate", token, generation);
+        Ok(path)
+    }
+
+    /// Resolve one maintained identity through the current owner index and
+    /// bind every namespace generation that could introduce a collision.
+    /// Claim grounding uses this instead of scanning all authored files.
+    pub(crate) fn lookup_source_identity(
+        &mut self,
+        token: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<(String, RelativePath)>> {
+        let tokens = BTreeSet::from([token.to_owned()]);
+        let closure = self.lookup_source_identities(&tokens, deadline, cancelled)?;
+        let owner = closure
+            .owners()
+            .get(token)
+            .cloned()
+            .flatten();
+        Ok(owner)
+    }
+
+    /// Resolve only the exact identities needed by a selected owner closure.
+    /// Each requested token is checked across the complete fixed uniqueness
+    /// domain, including absent tokens, and all five generation predicates are
+    /// bound to this readset. The caller still reads and parses each returned
+    /// current member through `read_current_member`; this index is navigation
+    /// and absence evidence, never semantic authority.
+    pub(crate) fn lookup_source_identities(
+        &mut self,
+        tokens: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceRevisionIdentityClosure> {
+        if tokens.len() > MAX_SOURCE_IDENTITY_LOOKUPS {
+            return Err(DurableError::Refused(
+                "bounded source identity lookup count exceeded",
+            ));
+        }
+        if tokens
+            .iter()
+            .any(|token| token.is_empty() || token.len() > MAX_SOURCE_IDENTITY_TOKEN_BYTES)
+        {
+            return Err(DurableError::Invalid(
+                "bounded source identity token bound",
+            ));
+        }
+        if tokens.is_empty() {
+            return Ok(SourceRevisionIdentityClosure {
+                selection_identity: self.selection.identity(),
+                owners: BTreeMap::new(),
+                generations: BTreeMap::new(),
+            });
+        }
+        active(deadline, cancelled)?;
+
+        let kinds = PG_AGENT_INDEX_KINDS
+            .iter()
+            .map(|kind| (*kind).to_owned())
+            .collect::<Vec<_>>();
+        let token_values = tokens.iter().cloned().collect::<Vec<_>>();
+        let (identities, generations) = {
+            let mut tx = self.coordinator.client.transaction()?;
+            tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+            let fence = tx.query_one(
+                "SELECT generation,maintenance_state FROM cmd2_audit_fence
+                 WHERE domain=$1 FOR SHARE",
+                &[&self.selection.cohort.domain],
+            )?;
+            if fence.get::<_, String>(1) != "normal"
+                || as_u64(fence.get(0))? != self.selection.audit_generation
+            {
+                return Err(DurableError::Conflict(
+                    "bounded source identity batch audit fence changed",
+                ));
+            }
+            let gate = tx.query_one(
+                "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                        source_epoch,contract_digest,source_definition_digest
+                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                &[&self.selection.cohort.domain],
+            )?;
+            super::require_current_source_definition(parse_hex(
+                gate.get::<_, Option<String>>(6)
+                    .ok_or(DurableError::Corrupt("source definition absent"))?,
+            )?)?;
+            if !gate.get::<_, bool>(0)
+                || as_u64(gate.get(1))? != self.selection.rights_version
+                || !gate.get::<_, bool>(2)
+                || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+                || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+                || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+                || gate.get::<_, Option<String>>(6)
+                    != Some(self.selection.cohort.definition.to_hex())
+            {
+                return Err(DurableError::Conflict(
+                    "bounded source identity batch read epoch changed",
+                ));
+            }
+
+            let rows = tx.query(
+                "SELECT kind,token,path,definition_digest FROM cmd2_source_index
+                 WHERE domain=$1 AND kind=ANY($2) AND token=ANY($3)
+                 ORDER BY token COLLATE \"C\",kind COLLATE \"C\"",
+                &[&self.selection.cohort.domain, &kinds, &token_values],
+            )?;
+            let mut identities = tokens
+                .iter()
+                .map(|token| (token.clone(), None))
+                .collect::<BTreeMap<String, Option<(String, RelativePath)>>>();
+            for row in rows {
+                let kind: String = row.get("kind");
+                let token: String = row.get("token");
+                let raw_path: String = row.get("path");
+                let definition: String = row.get("definition_digest");
+                if !PG_AGENT_INDEX_KINDS.contains(&kind.as_str())
+                    || !tokens.contains(&token)
+                    || definition != self.selection.cohort.definition.to_hex()
+                {
+                    return Err(DurableError::Conflict(
+                        "bounded source identity batch index definition differs",
+                    ));
+                }
+                let path = RelativePath::parse(&raw_path)
+                    .map_err(|_| DurableError::Corrupt("bounded source identity path"))?;
+                if !path.as_str().starts_with("ToS/") {
+                    return Err(DurableError::Refused(
+                        "bounded source identity path outside authored namespace",
+                    ));
+                }
+                let slot = identities
+                    .get_mut(&token)
+                    .ok_or(DurableError::Corrupt("bounded source identity token absent"))?;
+                if slot.is_some() {
+                    return Err(DurableError::Conflict(
+                        "bounded source identity index is not globally unique",
+                    ));
+                }
+                *slot = Some((kind, path));
+            }
+
+            let predicate_rows = tx.query(
+                "SELECT scope,token,generation,complete,definition_version
+                 FROM cmd2_predicate
+                 WHERE domain=$1 AND kind='unique' AND owner=$2
+                   AND scope=ANY($3) AND token=ANY($4)
+                 ORDER BY token COLLATE \"C\",scope COLLATE \"C\"",
+                &[
+                    &self.selection.cohort.domain,
+                    &OWNER,
+                    &kinds,
+                    &token_values,
+                ],
+            )?;
+            let mut generations = BTreeMap::new();
+            for row in predicate_rows {
+                let scope: String = row.get("scope");
+                let token: String = row.get("token");
+                if !PG_AGENT_INDEX_KINDS.contains(&scope.as_str())
+                    || !tokens.contains(&token)
+                    || !row.get::<_, bool>("complete")
+                    || row.get::<_, String>("definition_version")
+                        != self.selection.cohort.definition.to_hex()
+                {
+                    return Err(DurableError::Conflict(
+                        "bounded source identity batch predicate definition differs",
+                    ));
+                }
+                generations.insert((scope, token), as_u64(row.get("generation"))?);
+            }
+            for token in tokens {
+                for kind in PG_AGENT_INDEX_KINDS {
+                    generations
+                        .entry((kind.to_owned(), token.clone()))
+                        .or_insert(0);
+                }
+            }
+            tx.commit()?;
+            (identities, generations)
+        };
+
+        Self::charge_work(
+            &mut self.work.unique_index_lookups,
+            tokens.len() as u64,
+        )?;
+        for token in tokens {
+            for kind in PG_AGENT_INDEX_KINDS {
+                let generation = generations
+                    .get(&(kind.to_owned(), token.clone()))
+                    .copied()
+                    .unwrap_or(0);
+                self.record_predicate("unique", kind, &token, generation);
+            }
+        }
+        Ok(SourceRevisionIdentityClosure {
+            selection_identity: self.selection.identity(),
+            owners: identities,
+            generations,
+        })
+    }
+
+    /// Resolve a bounded batch of public Text identity owners from the
+    /// dedicated multi-owner index. The separate token generation is bound
+    /// even for an empty result, so a later insertion invalidates this read.
+    pub(crate) fn lookup_text_identity_owners(
+        &mut self,
+        tokens: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<BTreeMap<String, crate::source_text_identity::PgSourceTextIdentityObservation>>
+    {
+        if tokens.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let (owners, generations) = {
+            let mut tx = self.coordinator.client.transaction()?;
+            tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+            let fence = tx.query_one(
+                "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?;
+            if fence.get::<_, String>(1) != "normal"
+                || as_u64(fence.get(0))? != self.selection.audit_generation
+            {
+                return Err(DurableError::Conflict("Text identity audit fence changed"));
+            }
+            let gate = tx.query_one(
+                "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                        source_epoch,contract_digest,source_definition_digest
+                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?;
+            let source_definition = gate
+                .get::<_, Option<String>>(6)
+                .ok_or(DurableError::Corrupt("source definition absent"))?;
+            super::require_current_source_definition(parse_hex(source_definition)?)?;
+            if !gate.get::<_, bool>(0)
+                || as_u64(gate.get(1))? != self.selection.rights_version
+                || !gate.get::<_, bool>(2)
+                || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+                || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+                || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+                || gate.get::<_, Option<String>>(6)
+                    != Some(self.selection.cohort.definition.to_hex())
+            {
+                return Err(DurableError::Conflict(
+                    "Text identity source read epoch changed",
+                ));
+            }
+            let owners = crate::source_text_identity_index::lookup_current_owners(
+                &mut tx,
+                domain,
+                tokens,
+                self.selection.cohort.definition,
+            )?;
+            let token_values = tokens.iter().cloned().collect::<Vec<_>>();
+            let predicate_rows = tx.query(
+                "SELECT token,generation,complete,definition_version FROM cmd2_predicate
+                 WHERE domain=$1 AND kind='unique' AND owner=$2 AND scope=$3 AND token=ANY($4)
+                 ORDER BY token COLLATE \"C\"",
+                &[
+                    &domain,
+                    &OWNER,
+                    &crate::source_text_identity_index::PREDICATE_SCOPE,
+                    &token_values,
+                ],
+            )?;
+            let mut generations = tokens
+                .iter()
+                .map(|token| (token.clone(), 0u64))
+                .collect::<BTreeMap<_, _>>();
+            let mut seen_predicates = BTreeSet::new();
+            for row in predicate_rows {
+                let token: String = row.get("token");
+                if !row.get::<_, bool>("complete")
+                    || row.get::<_, String>("definition_version")
+                        != self.selection.cohort.definition.to_hex()
+                    || generations
+                        .insert(token, as_u64(row.get("generation"))?)
+                        .is_none()
+                {
+                    return Err(DurableError::Conflict(
+                        "Text identity predicate definition differs",
+                    ));
+                }
+                let token: String = row.get("token");
+                if !seen_predicates.insert(token) {
+                    return Err(DurableError::Corrupt(
+                        "duplicate Text identity predicate row",
+                    ));
+                }
+            }
+            for token in tokens {
+                let owned = owners
+                    .get(token)
+                    .is_some_and(|token_owners| !token_owners.is_empty());
+                if owned
+                    && (!seen_predicates.contains(token)
+                        || generations.get(token).copied().unwrap_or(0) == 0)
+                {
+                    return Err(DurableError::Corrupt(
+                        "owned Text identity token lacks its complete predicate generation",
+                    ));
+                }
+            }
+            tx.commit()?;
+            (owners, generations)
+        };
+        Self::charge_work(&mut self.work.text_identity_lookups, tokens.len() as u64)?;
+        let mut result = BTreeMap::new();
+        for token in tokens {
+            let generation = generations
+                .get(token)
+                .copied()
+                .ok_or(DurableError::Corrupt(
+                    "Text identity predicate token absent",
+                ))?;
+            self.record_predicate(
+                "unique",
+                crate::source_text_identity_index::PREDICATE_SCOPE,
+                token,
+                generation,
+            );
+            let token_owners = owners
+                .get(token)
+                .cloned()
+                .ok_or(DurableError::Corrupt("Text identity lookup token absent"))?;
+            result.insert(
+                token.clone(),
+                crate::source_text_identity::PgSourceTextIdentityObservation {
+                    owners: token_owners,
+                    generation,
+                },
+            );
+        }
+        Ok(result)
+    }
+
+    /// Read a bounded batch of typed reverse Claim edges and their Range
+    /// generations in the same fenced transaction. An empty result is only
+    /// point-absence evidence for this predicate; later additions advance its
+    /// generation atomically with the source commit.
+    pub(crate) fn lookup_claim_dependencies(
+        &mut self,
+        keys: &BTreeSet<(String, String, String)>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<
+        BTreeMap<
+            (String, String, String),
+            crate::source_claim_dependency_index::ClaimDependencyObservation,
+        >,
+    > {
+        if keys.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        if keys.len() > MAX_CLAIM_DEPENDENCY_LOOKUPS {
+            return Err(DurableError::Refused(
+                "Claim dependency lookup count bound exceeded",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "Claim dependency audit fence changed",
+            ));
+        }
+        let gate = tx.query_one(
+            "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                    source_epoch,contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let source_definition = gate
+            .get::<_, Option<String>>(6)
+            .ok_or(DurableError::Corrupt("source definition absent"))?;
+        super::require_current_source_definition(parse_hex(source_definition)?)?;
+        if !gate.get::<_, bool>(0)
+            || as_u64(gate.get(1))? != self.selection.rights_version
+            || !gate.get::<_, bool>(2)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(6) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "Claim dependency source read epoch changed",
+            ));
+        }
+        let mut total_rows = 0usize;
+        let mut result = BTreeMap::new();
+        for (direction, predicate, endpoint) in keys {
+            active(deadline, cancelled)?;
+            let direction = match direction.as_str() {
+                "subject" => {
+                    crate::source_claim_dependency_index::ClaimDependencyDirection::Subject
+                }
+                "object" => crate::source_claim_dependency_index::ClaimDependencyDirection::Object,
+                _ => return Err(DurableError::Invalid("Claim dependency direction")),
+            };
+            let observation = crate::source_claim_dependency_index::lookup_current(
+                &mut tx,
+                domain,
+                direction,
+                predicate,
+                endpoint,
+                self.selection.cohort.definition,
+            )?;
+            total_rows = total_rows
+                .checked_add(observation.rows.len())
+                .filter(|count| *count <= MAX_CLAIM_DEPENDENCY_ROWS)
+                .ok_or(DurableError::Refused(
+                    "Claim dependency lookup aggregate row bound exceeded",
+                ))?;
+            result.insert(
+                (
+                    direction.as_str().to_owned(),
+                    predicate.clone(),
+                    endpoint.clone(),
+                ),
+                observation,
+            );
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Self::charge_work(&mut self.work.claim_dependency_lookups, keys.len() as u64)?;
+        for ((direction, predicate, endpoint), observation) in &result {
+            let token = &observation.predicate_token;
+            self.record_predicate(
+                "range",
+                crate::source_claim_dependency_index::PREDICATE_SCOPE,
+                token,
+                observation.generation,
+            );
+            if direction != "subject" && direction != "object" {
+                return Err(DurableError::Corrupt(
+                    "Claim dependency result direction differs",
+                ));
+            }
+            let _ = (predicate, endpoint);
+        }
+        Ok(result)
+    }
+
+    /// Read bounded reverse Claim references for ToS identities and source
+    /// paths. Every empty result carries a Range generation, and every
+    /// returned stream is reopened as an exact current source member before
+    /// the closure can leave this read epoch.
+    pub(crate) fn lookup_claim_navigation_references(
+        &mut self,
+        keys: &BTreeSet<(
+            crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+            String,
+        )>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<
+        BTreeMap<
+            (
+                crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
+                String,
+            ),
+            crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
+        >,
+    > {
+        use crate::source_claim_dependency_index::{
+            MAX_NAVIGATION_REFERENCE_LOOKUPS, MAX_NAVIGATION_REFERENCE_ROWS, MAX_STREAM_BYTES,
+            NAVIGATION_REFERENCE_SCOPE,
+        };
+
+        if keys.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        let additional = keys
+            .iter()
+            .filter(|key| !self.claim_navigation_lookups.contains_key(*key))
+            .count();
+        if self
+            .claim_navigation_lookups
+            .len()
+            .checked_add(additional)
+            .filter(|count| *count <= MAX_NAVIGATION_REFERENCE_LOOKUPS)
+            .is_none()
+        {
+            return Err(DurableError::Refused(
+                "Claim navigation lookup count bound exceeded",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "Claim navigation audit fence changed",
+            ));
+        }
+        let gate = tx.query_one(
+            "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                    source_epoch,contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let source_definition = gate
+            .get::<_, Option<String>>(6)
+            .ok_or(DurableError::Corrupt("source definition absent"))?;
+        super::require_current_source_definition(parse_hex(source_definition)?)?;
+        if !gate.get::<_, bool>(0)
+            || as_u64(gate.get(1))? != self.selection.rights_version
+            || !gate.get::<_, bool>(2)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(6) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "Claim navigation source read epoch changed",
+            ));
+        }
+
+        let mut total_rows = self
+            .claim_navigation_lookups
+            .values()
+            .map(|observation| observation.rows.len())
+            .sum::<usize>();
+        let mut fresh = BTreeMap::new();
+        for (kind, endpoint) in keys {
+            if self
+                .claim_navigation_lookups
+                .contains_key(&(*kind, endpoint.clone()))
+            {
+                continue;
+            }
+            active(deadline, cancelled)?;
+            let observation =
+                crate::source_claim_dependency_index::lookup_current_navigation_references(
+                    &mut tx,
+                    domain,
+                    *kind,
+                    endpoint,
+                    self.selection.cohort.definition,
+                )?;
+            if observation.kind != *kind || observation.endpoint != *endpoint {
+                return Err(DurableError::Corrupt(
+                    "Claim navigation lookup identity differs",
+                ));
+            }
+            total_rows = total_rows
+                .checked_add(observation.rows.len())
+                .filter(|count| *count <= MAX_NAVIGATION_REFERENCE_ROWS)
+                .ok_or(DurableError::Refused(
+                    "Claim navigation lookup aggregate row bound exceeded",
+                ))?;
+            if fresh
+                .insert((*kind, endpoint.clone()), observation)
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate Claim navigation lookup key",
+                ));
+            }
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Self::charge_work(&mut self.work.claim_navigation_lookups, fresh.len() as u64)?;
+
+        let mut member_facts = BTreeMap::<String, (Digest256, u64, u64)>::new();
+        for ((kind, endpoint), observation) in fresh {
+            let token = &observation.predicate_token;
+            self.record_predicate(
+                "range",
+                NAVIGATION_REFERENCE_SCOPE,
+                token,
+                observation.generation,
+            );
+            for row in &observation.rows {
+                if row.kind != kind || row.endpoint != endpoint {
+                    return Err(DurableError::Corrupt(
+                        "Claim navigation row belongs to another lookup",
+                    ));
+                }
+                if row.size_bytes > MAX_STREAM_BYTES as u64 {
+                    return Err(DurableError::Refused(
+                        "Claim navigation source member byte bound exceeded",
+                    ));
+                }
+                let path = row.path.as_str();
+                if !path.starts_with("ToS/source-witnesses/")
+                    || path.starts_with("ToS/source-witnesses/owner-local/")
+                    || !path.ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM))
+                {
+                    return Err(DurableError::Corrupt(
+                        "Claim navigation source path is outside public streams",
+                    ));
+                }
+                let facts = (row.member_digest, row.size_bytes, row.commit_seq);
+                if member_facts
+                    .insert(path.to_owned(), facts)
+                    .is_some_and(|existing| existing != facts)
+                {
+                    return Err(DurableError::Conflict(
+                        "Claim navigation rows disagree on current stream facts",
+                    ));
+                }
+            }
+            self.claim_navigation_lookups
+                .insert((kind, endpoint), observation);
+        }
+
+        for (path, (expected_digest, expected_size, expected_commit_seq)) in member_facts {
+            let observation = if let Some(observation) = self.observations.get(&path) {
+                observation.clone()
+            } else {
+                let relative = RelativePath::parse(&path)
+                    .map_err(|_| DurableError::Corrupt("Claim navigation source path"))?;
+                let member = self.read_current_member(
+                    &relative,
+                    MAX_STREAM_BYTES as u64,
+                    deadline,
+                    cancelled,
+                )?;
+                self.observations
+                    .get(&path)
+                    .cloned()
+                    .filter(|observation| observation.member.raw == member.raw)
+                    .ok_or(DurableError::Corrupt(
+                        "Claim navigation exact source observation absent",
+                    ))?
+            };
+            let member = &observation.member;
+            if Digest256::of_bytes(&member.raw) != expected_digest
+                || member.metadata.sha256 != expected_digest
+                || member.raw.len() as u64 != expected_size
+                || member.commit_seq != expected_commit_seq
+            {
+                return Err(DurableError::Conflict(
+                    "Claim navigation index differs from exact current stream",
+                ));
+            }
+            self.claim_navigation_members.insert(path, observation);
+        }
+
+        Ok(keys
+            .iter()
+            .filter_map(|key| {
+                self.claim_navigation_lookups
+                    .get(key)
+                    .cloned()
+                    .map(|observation| (key.clone(), observation))
+            })
+            .collect())
+    }
+
+    /// Resolve every requested File ID against the typed Item manifest index
+    /// and retain the exact Range generations under the same source/audit
+    /// fence. An empty result is an authenticated absence only for these
+    /// requested File IDs, not a whole-index inventory.
+    pub(crate) fn lookup_item_file_assignments(
+        &mut self,
+        file_ids: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<BTreeMap<String, crate::source_item_file_index::ItemFileObservation>> {
+        if file_ids.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        if file_ids.len() > MAX_ITEM_FILE_LOOKUPS
+            || file_ids
+                .iter()
+                .any(|file_id| file_id.is_empty() || file_id.len() > 4_096)
+        {
+            return Err(DurableError::Refused(
+                "Item File lookup identity or count bound exceeded",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict("Item File audit fence changed"));
+        }
+        let gate = tx.query_one(
+            "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                    source_epoch,contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let source_definition = gate
+            .get::<_, Option<String>>(6)
+            .ok_or(DurableError::Corrupt("source definition absent"))?;
+        super::require_current_source_definition(parse_hex(source_definition)?)?;
+        if !gate.get::<_, bool>(0)
+            || as_u64(gate.get(1))? != self.selection.rights_version
+            || !gate.get::<_, bool>(2)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(6) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "Item File source read epoch changed",
+            ));
+        }
+        let mut total_rows = 0usize;
+        let mut result = BTreeMap::new();
+        for file_id in file_ids {
+            active(deadline, cancelled)?;
+            let observation = crate::source_item_file_index::lookup_current(
+                &mut tx,
+                domain,
+                file_id,
+                self.selection.cohort.definition,
+            )?;
+            total_rows = total_rows
+                .checked_add(observation.rows.len())
+                .filter(|count| *count <= MAX_ITEM_FILE_ROWS)
+                .ok_or(DurableError::Refused(
+                    "Item File lookup aggregate row bound exceeded",
+                ))?;
+            result.insert(file_id.clone(), observation);
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Self::charge_work(&mut self.work.item_file_lookups, file_ids.len() as u64)?;
+        for observation in result.values() {
+            self.record_predicate(
+                "range",
+                crate::source_item_file_index::PREDICATE_SCOPE,
+                &observation.predicate_token,
+                observation.generation,
+            );
+        }
+        Ok(result)
+    }
+
+    /// Resolve every requested rights identity to its exact current Item
+    /// manifests and retain the rights-index Range generations under the
+    /// same source/audit fence. This is point closure, not a corpus scan.
+    pub(crate) fn lookup_item_rights_assignments(
+        &mut self,
+        rights_ids: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<BTreeMap<String, crate::source_item_file_index::ItemRightsObservation>> {
+        if rights_ids.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        if rights_ids.len() > MAX_ITEM_FILE_LOOKUPS
+            || rights_ids
+                .iter()
+                .any(|rights_id| rights_id.is_empty() || rights_id.len() > 4_096)
+        {
+            return Err(DurableError::Refused(
+                "Item rights lookup identity or count bound exceeded",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict("Item rights audit fence changed"));
+        }
+        let gate = tx.query_one(
+            "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                    source_epoch,contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let source_definition = gate
+            .get::<_, Option<String>>(6)
+            .ok_or(DurableError::Corrupt("source definition absent"))?;
+        super::require_current_source_definition(parse_hex(source_definition)?)?;
+        if !gate.get::<_, bool>(0)
+            || as_u64(gate.get(1))? != self.selection.rights_version
+            || !gate.get::<_, bool>(2)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(6) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "Item rights source read epoch changed",
+            ));
+        }
+        let mut total_rows = 0usize;
+        let mut result = BTreeMap::new();
+        for rights_id in rights_ids {
+            active(deadline, cancelled)?;
+            let observation = crate::source_item_file_index::lookup_rights_current(
+                &mut tx,
+                domain,
+                rights_id,
+                self.selection.cohort.definition,
+            )?;
+            total_rows = total_rows
+                .checked_add(observation.rows.len())
+                .filter(|count| *count <= MAX_ITEM_FILE_ROWS)
+                .ok_or(DurableError::Refused(
+                    "Item rights lookup aggregate row bound exceeded",
+                ))?;
+            result.insert(rights_id.clone(), observation);
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Self::charge_work(&mut self.work.item_rights_lookups, rights_ids.len() as u64)?;
+        for observation in result.values() {
+            self.record_predicate(
+                "range",
+                crate::source_item_file_index::RIGHTS_PREDICATE_SCOPE,
+                &observation.predicate_token,
+                observation.generation,
+            );
+        }
+        Ok(result)
+    }
+
+    /// Resolve every requested Edition ID to its current Item manifests and
+    /// retain the Edition-assignment Range generation under the same source
+    /// and audit fences. This is a bounded reverse lookup, not a corpus scan.
+    pub(crate) fn lookup_item_edition_assignments(
+        &mut self,
+        edition_ids: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<BTreeMap<String, crate::source_item_file_index::ItemEditionObservation>>
+    {
+        if edition_ids.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        if edition_ids.len() > MAX_ITEM_FILE_LOOKUPS
+            || edition_ids
+                .iter()
+                .any(|edition_id| edition_id.is_empty() || edition_id.len() > 4_096)
+        {
+            return Err(DurableError::Refused(
+                "Item Edition lookup identity or count bound exceeded",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict("Item Edition audit fence changed"));
+        }
+        let gate = tx.query_one(
+            "SELECT rights_allowed,rights_version,source_complete,source_generation,
+                    source_epoch,contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let source_definition = gate
+            .get::<_, Option<String>>(6)
+            .ok_or(DurableError::Corrupt("source definition absent"))?;
+        super::require_current_source_definition(parse_hex(source_definition)?)?;
+        if !gate.get::<_, bool>(0)
+            || as_u64(gate.get(1))? != self.selection.rights_version
+            || !gate.get::<_, bool>(2)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(4) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(5) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(6) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "Item Edition source read epoch changed",
+            ));
+        }
+        let mut total_rows = 0usize;
+        let mut result = BTreeMap::new();
+        for edition_id in edition_ids {
+            active(deadline, cancelled)?;
+            let observation = crate::source_item_file_index::lookup_edition_current(
+                &mut tx,
+                domain,
+                edition_id,
+                self.selection.cohort.definition,
+            )?;
+            total_rows = total_rows
+                .checked_add(observation.rows.len())
+                .filter(|count| *count <= MAX_ITEM_FILE_ROWS)
+                .ok_or(DurableError::Refused(
+                    "Item Edition lookup aggregate row bound exceeded",
+                ))?;
+            result.insert(edition_id.clone(), observation);
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Self::charge_work(
+            &mut self.work.item_edition_lookups,
+            edition_ids.len() as u64,
+        )?;
+        for observation in result.values() {
+            self.record_predicate(
+                "range",
+                crate::source_item_file_index::EDITION_PREDICATE_SCOPE,
+                &observation.predicate_token,
+                observation.generation,
+            );
+        }
+        Ok(result)
+    }
+
+    /// Resolve selected public semantic-annotation entity IDs through their
+    /// dedicated multivalued owner index. Each token binds a unique-generation
+    /// predicate even when no packet currently declares it; returned packets
+    /// still need exact member reads and owner validation by the caller.
+    pub(crate) fn lookup_annotation_identity_owners(
+        &mut self,
+        tokens: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<BTreeMap<String, BTreeSet<crate::source_annotation_identity_index::AnnotationEntityOwner>>> {
+        if tokens.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        if tokens.len() > MAX_ITEM_FILE_LOOKUPS
+            || tokens.iter().any(|token| token.is_empty() || token.len() > 4096)
+        {
+            return Err(DurableError::Refused(
+                "annotation identity point token bound",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let domain = self.selection.cohort.domain.as_str();
+        let owners = {
+            let mut tx = self.coordinator.client.transaction()?;
+            tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+            let fence = tx.query_one(
+                "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?;
+            if fence.get::<_, String>(1) != "normal"
+                || as_u64(fence.get(0))? != self.selection.audit_generation
+            {
+                return Err(DurableError::Conflict("annotation identity audit fence changed"));
+            }
+            let gate = tx.query_one(
+                "SELECT rights_allowed,source_complete,source_generation,source_epoch,
+                        contract_digest,source_definition_digest
+                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?;
+            let definition = gate
+                .get::<_, Option<String>>(5)
+                .ok_or(DurableError::Corrupt("source definition absent"))?;
+            super::require_current_source_definition(parse_hex(definition)?)?;
+            if !gate.get::<_, bool>(0)
+                || !gate.get::<_, bool>(1)
+                || gate.get::<_, Option<i64>>(2) != Some(as_i64(self.selection.source_generation)?)
+                || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.epoch)?)
+                || gate.get::<_, String>(4) != self.selection.contract.to_hex()
+                || gate.get::<_, Option<String>>(5)
+                    != Some(self.selection.cohort.definition.to_hex())
+            {
+                return Err(DurableError::Conflict("annotation identity source epoch changed"));
+            }
+            let mut owners = BTreeMap::new();
+            let mut total = 0usize;
+            for token in tokens {
+                let found = crate::source_annotation_identity_index::lookup_current_owners(
+                    &mut tx,
+                    domain,
+                    token,
+                    self.selection.cohort.definition,
+                )?;
+                total = total
+                    .checked_add(found.len())
+                    .filter(|count| *count <= MAX_ITEM_FILE_ROWS)
+                    .ok_or(DurableError::Refused("annotation identity point owner work bound"))?;
+                owners.insert(token.clone(), found);
+            }
+            tx.commit()?;
+            owners
+        };
+        Self::charge_work(
+            &mut self.work.item_file_lookups,
+            tokens.len() as u64,
+        )?;
+        for token in tokens {
+            self.observe_predicate_generation(
+                PredicateKind::Unique,
+                crate::source_annotation_identity_index::PREDICATE_SCOPE,
+                token,
+                deadline,
+                cancelled,
+            )?;
+        }
+        Ok(owners)
+    }
+
     /// Bind the semantic dependency commitment to its own invalidation
     /// predicate. This is intentionally separate from the legacy complete
     /// `source-inventory/all` range used by cold creation.
@@ -985,6 +2727,33 @@ impl SourceRevisionReadSession<'_> {
             },
             observed_generation: generation,
         });
+    }
+
+    fn require_stable_predicate_generation(
+        &self,
+        kind: &str,
+        scope: &str,
+        token: &str,
+        generation: u64,
+    ) -> DurableResult<()> {
+        if self.reads.reads.iter().any(|read| {
+            matches!(
+                read,
+                PredicateRead::Generation {
+                    predicate,
+                    observed_generation,
+                } if predicate.kind.as_str() == kind
+                    && predicate.owner == OWNER
+                    && predicate.scope == scope
+                    && predicate.token == token
+                    && *observed_generation != generation
+            )
+        }) {
+            return Err(DurableError::Conflict(
+                "bounded source predicate generation changed within read session",
+            ));
+        }
+        Ok(())
     }
 
     fn verify_fresh(&mut self, deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
@@ -1105,7 +2874,11 @@ impl SourceRevisionReadSession<'_> {
     ) -> DurableResult<Vec<(String, bool)>> {
         active(deadline, cancelled)?;
         let parent = parent.as_str();
-        if !parent.starts_with("ToS/") {
+        // Global Claims grounding can require the complete current authored
+        // inventory. Permit only this exact root spelling as the first
+        // recursive range read; descendants remain under `ToS/` and each
+        // returned directory gets its own source-home generation predicate.
+        if parent != "ToS" && !parent.starts_with("ToS/") {
             return Err(DurableError::Refused(
                 "bounded source revision directory outside authored namespace",
             ));
@@ -1228,6 +3001,226 @@ impl SourceRevisionReadSession<'_> {
     }
 }
 
+impl SourceRevisionReadSession<'_> {
+    fn read_selected_publication_virtual_member(
+        &mut self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<Vec<u8>>> {
+        let is_control =
+            crate::source_work_transaction::is_selected_publication_control_path(path);
+        let is_journal =
+            crate::source_work_transaction::is_selected_publication_journal_metadata_path(path);
+        if !is_control && !is_journal {
+            return Err(DurableError::Refused(
+                "source publication virtual path is outside the selected surface",
+            ));
+        }
+        let requested_transaction = is_journal
+            .then(|| selected_publication_transaction_id(path))
+            .transpose()?;
+        if self.work.source_publication_virtual_lookups >= MAX_SOURCE_PUBLICATION_VIRTUAL_LOOKUPS {
+            return Err(DurableError::Refused(
+                "source publication virtual lookup budget exceeded",
+            ));
+        }
+        active(deadline, cancelled)?;
+
+        let (member, generation, package_bytes_read) = {
+            let mut tx = self.coordinator.client.transaction()?;
+            tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+            let fence = tx.query_one(
+                "SELECT generation,maintenance_state FROM cmd2_audit_fence
+                 WHERE domain=$1 FOR SHARE",
+                &[&self.selection.cohort.domain],
+            )?;
+            if fence.get::<_, String>(1) != "normal"
+                || as_u64(fence.get(0))? != self.selection.audit_generation
+            {
+                return Err(DurableError::Conflict(
+                    "source publication audit fence changed",
+                ));
+            }
+            let gate = tx.query_one(
+                "SELECT rights_allowed,rights_version,rule_version,source_complete,
+                        source_generation,source_epoch,head_seq,contract_digest,
+                        source_definition_digest
+                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                &[&self.selection.cohort.domain],
+            )?;
+            super::require_current_source_definition(parse_hex(
+                gate.get::<_, Option<String>>(8)
+                    .ok_or(DurableError::Corrupt("source definition absent"))?,
+            )?)?;
+            if !gate.get::<_, bool>(0)
+                || as_u64(gate.get(1))? != self.selection.rights_version
+                || as_u64(gate.get(2))? != self.selection.rule_version
+                || !gate.get::<_, bool>(3)
+                || gate.get::<_, Option<i64>>(4)
+                    != Some(as_i64(self.selection.source_generation)?)
+                || gate.get::<_, Option<i64>>(5) != Some(as_i64(self.selection.epoch)?)
+                || as_u64(gate.get(6))? != self.selection.head_seq
+                || gate.get::<_, String>(7) != self.selection.contract.to_hex()
+                || gate.get::<_, Option<String>>(8)
+                    != Some(self.selection.cohort.definition.to_hex())
+            {
+                return Err(DurableError::Conflict(
+                    "source publication read epoch changed",
+                ));
+            }
+
+            let current = tx
+                .query_opt(
+                    &format!(
+                        "SELECT {SOURCE_PUBLICATION_ROW_FIELDS}
+                         FROM cmd2_source_publication_current WHERE domain=$1 FOR SHARE"
+                    ),
+                    &[&self.selection.cohort.domain],
+                )?
+                .as_ref()
+                .map(SelectedSourcePublicationRow::from_row)
+                .transpose()?
+                .ok_or(DurableError::Conflict(
+                    "source publication current pointer is unavailable",
+                ))?;
+            current.verify_selection(&self.selection)?;
+            let predicate = tx.query_opt(
+                "SELECT generation,complete,definition_version FROM cmd2_predicate
+                 WHERE domain=$1 AND kind='unique' AND owner=$2
+                   AND scope='source-publication' AND token='current' FOR SHARE",
+                &[&self.selection.cohort.domain, &OWNER],
+            )?;
+            let predicate = predicate.ok_or(DurableError::Conflict(
+                "source publication current predicate is absent",
+            ))?;
+            let generation = as_u64(predicate.get("generation"))?;
+            if !predicate.get::<_, bool>("complete")
+                || predicate.get::<_, String>("definition_version")
+                    != self.selection.cohort.definition.to_hex()
+                || generation != current.publication_generation
+            {
+                return Err(DurableError::Conflict(
+                    "source publication current predicate generation differs",
+                ));
+            }
+
+            let current_history = tx
+                .query_opt(
+                    &format!(
+                        "SELECT {SOURCE_PUBLICATION_ROW_FIELDS}
+                         FROM cmd2_source_publication_history
+                         WHERE domain=$1 AND publication_generation=$2 FOR SHARE"
+                    ),
+                    &[
+                        &self.selection.cohort.domain,
+                        &as_i64(current.publication_generation)?,
+                    ],
+                )?
+                .as_ref()
+                .map(SelectedSourcePublicationRow::from_row)
+                .transpose()?
+                .ok_or(DurableError::Conflict(
+                    "source publication current history row is absent",
+                ))?;
+            if current_history != current {
+                return Err(DurableError::Conflict(
+                    "source publication current and history rows differ",
+                ));
+            }
+            verify_selected_publication_parent(&mut tx, &self.selection, &current)?;
+
+            let selected = if is_control {
+                if current.state == "absent" {
+                    None
+                } else {
+                    Some(current.clone())
+                }
+            } else {
+                let transaction_id = requested_transaction
+                    .as_deref()
+                    .ok_or(DurableError::Corrupt(
+                        "source publication journal transaction absent",
+                    ))?;
+                let rows = tx.query(
+                    &format!(
+                        "SELECT {SOURCE_PUBLICATION_ROW_FIELDS}
+                         FROM cmd2_source_publication_history
+                         WHERE domain=$1 AND transaction_id=$2
+                         ORDER BY publication_generation DESC LIMIT 2 FOR SHARE"
+                    ),
+                    &[&self.selection.cohort.domain, &transaction_id],
+                )?;
+                if rows.len() > 1 {
+                    return Err(DurableError::Conflict(
+                        "source publication transaction history is ambiguous",
+                    ));
+                }
+                rows.first()
+                    .map(SelectedSourcePublicationRow::from_row)
+                    .transpose()?
+            };
+
+            let selected = match selected {
+                Some(selected) => {
+                    selected.verify_selection(&self.selection)?;
+                    if selected.state != "present"
+                        || selected.publication_generation > current.publication_generation
+                        || requested_transaction
+                            .as_deref()
+                            .is_some_and(|transaction_id| {
+                                selected.transaction_id.as_deref() != Some(transaction_id)
+                            })
+                    {
+                        return Err(DurableError::Conflict(
+                            "source publication selected history lineage differs",
+                        ));
+                    }
+                    verify_selected_publication_parent(&mut tx, &self.selection, &selected)?;
+                    Some(selected)
+                }
+                None => None,
+            };
+            let package_bytes_read = selected
+                .as_ref()
+                .and_then(|selected| selected.package_bytes.as_ref())
+                .map_or(0, |bytes| bytes.len() as u64);
+            if self
+                .work
+                .source_publication_package_bytes_read
+                .checked_add(package_bytes_read)
+                .filter(|bytes| *bytes <= MAX_SOURCE_PUBLICATION_PACKAGE_BYTES_READ)
+                .is_none()
+            {
+                return Err(DurableError::Refused(
+                    "source publication package read budget exceeded",
+                ));
+            }
+            let member = selected
+                .as_ref()
+                .map(|selected| selected_publication_package_member(selected, path))
+                .transpose()?;
+            active(deadline, cancelled)?;
+            tx.commit()?;
+            (member, generation, package_bytes_read)
+        };
+
+        self.require_stable_predicate_generation(
+            "unique",
+            "source-publication",
+            "current",
+            generation,
+        )?;
+        self.record_predicate("unique", "source-publication", "current", generation);
+        Self::charge_work(&mut self.work.source_publication_virtual_lookups, 1)?;
+        Self::charge_work(
+            &mut self.work.source_publication_package_bytes_read,
+            package_bytes_read,
+        )?;
+        Ok(member)
+    }
+}
+
 impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
     fn read(
         &mut self,
@@ -1238,6 +3231,31 @@ impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
     ) -> SourceCommandResult<Vec<u8>> {
         let path = RelativePath::parse(name)
             .map_err(|_| SourceCommandError::Invalid("bounded source member path"))?;
+        if crate::source_work_transaction::is_selected_publication_control_path(path.as_str())
+            || crate::source_work_transaction::is_selected_publication_journal_metadata_path(
+                path.as_str(),
+            )
+        {
+            let raw = self
+                .read_selected_publication_virtual_member(path.as_str(), deadline, cancelled)
+                .map_err(source_command_error)?
+                .ok_or(SourceCommandError::Conflict(
+                    "bounded source member absent",
+                ))?;
+            if raw.len() > max_bytes {
+                return Err(SourceCommandError::Unsupported(
+                    "bounded source revision member budget",
+                ));
+            }
+            self.retained_state_bytes = self
+                .retained_state_bytes
+                .checked_add(path.as_str().len().saturating_mul(4) + raw.len())
+                .filter(|bytes| *bytes <= MAX_RETAINED_STATE_BYTES)
+                .ok_or(SourceCommandError::Unsupported(
+                    "bounded source revision state budget",
+                ))?;
+            return Ok(raw);
+        }
         match self.read_current_member(&path, max_bytes as u64, deadline, cancelled) {
             Ok(member) => {
                 self.retained_state_bytes = self
@@ -1281,6 +3299,16 @@ impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
             return Err(SourceCommandError::Denied(
                 "bounded source revision path outside authored namespace",
             ));
+        }
+        if crate::source_work_transaction::is_selected_publication_control_path(path.as_str())
+            || crate::source_work_transaction::is_selected_publication_journal_metadata_path(
+                path.as_str(),
+            )
+        {
+            return self
+                .read_selected_publication_virtual_member(path.as_str(), deadline, cancelled)
+                .map(|member| member.is_some())
+                .map_err(source_command_error);
         }
         active(deadline, cancelled).map_err(source_command_error)?;
         let mut tx = self

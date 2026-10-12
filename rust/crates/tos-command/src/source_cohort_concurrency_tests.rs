@@ -9,7 +9,7 @@ use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use tos_foundation::{Digest256, RelativePath};
+use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 use tos_validation::source_cut::CutSchemaExecutor;
 
@@ -43,6 +43,26 @@ const SHARED_SOURCE: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
 ];
+
+#[test]
+fn family_tagged_source_revision_read_envelope_roundtrips_exact_event_cut() {
+    let reads = SourceReads {
+        reads: Vec::new(),
+        locators: BTreeMap::new(),
+        managed_original: None,
+        revision: Some(SourceRevisionReadBinding {
+            family_tag:
+                "tos_local_native_metadata_revision_owner_v1:artifact:tos_native_artifact_v2"
+                    .to_owned(),
+            source_head_sequence: 41,
+            predecessor_source_revision: SourceRevision(Digest256::of_bytes(b"predecessor")),
+        }),
+    };
+    let encoded = reads_bytes(&reads).expect("family-tagged read envelope encodes");
+    let recovered = decode_reads(&encoded).expect("family-tagged read envelope recovers");
+    assert_eq!(reads_bytes(&recovered).unwrap(), encoded);
+    assert_eq!(recovered.revision, reads.revision);
+}
 
 #[derive(Clone)]
 struct Target {

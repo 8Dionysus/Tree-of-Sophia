@@ -152,7 +152,7 @@ fn validate_request_rights(config: &JsonValue, request: &JsonValue) -> SourceCom
     }
     Ok(())
 }
-struct ItemOwner {
+pub(crate) struct ItemOwner {
     configuration: JsonValue,
     request: JsonValue,
     edition_path: RelativePath,
@@ -270,20 +270,7 @@ impl ItemOwner {
     }
 
     fn transaction_id(&self) -> SourceCommandResult<String> {
-        let request_digest = cmd::record_digest(&self.request)?.to_prefixed();
-        Ok(cmd::record_digest(&cmd::object(vec![
-            ("operation", cmd::string(OPERATION)),
-            (
-                "command_id",
-                cmd::field(&self.request, "command_id")?.clone(),
-            ),
-            (
-                "owner_configuration",
-                cmd::field(&self.request, "expected_configuration")?.clone(),
-            ),
-            ("request_digest", cmd::string(&request_digest)),
-        ]))?
-        .to_prefixed())
+        item_adoption_transaction_id(&self.request)
     }
 
     fn new_directories(
@@ -682,6 +669,20 @@ impl ItemOwner {
             ("dependency_bindings", dependencies),
         ]))
     }
+}
+
+fn item_adoption_transaction_id(request: &JsonValue) -> SourceCommandResult<String> {
+    let request_digest = cmd::record_digest(request)?.to_prefixed();
+    Ok(cmd::record_digest(&cmd::object(vec![
+        ("operation", cmd::string(OPERATION)),
+        ("command_id", cmd::field(request, "command_id")?.clone()),
+        (
+            "owner_configuration",
+            cmd::field(request, "expected_configuration")?.clone(),
+        ),
+        ("request_digest", cmd::string(&request_digest)),
+    ]))?
+    .to_prefixed())
 }
 
 /// Only selected Item package files are an input to the compound byte law;
@@ -3363,3 +3364,15 @@ pub(crate) fn current_result_fields(
 #[cfg(test)]
 #[path = "source_item_adoption_tests.rs"]
 mod tests;
+
+#[path = "source_item_adoption_pg.rs"]
+mod pg;
+pub(crate) use pg::{
+    PG_ITEM_ADOPTION_FAMILY_TAG, PgItemAdoptionOwnerPlan, PgItemAdoptionSelection,
+    archive_package as pg_archive_package, claim_owner_contribution as pg_claim_owner_contribution,
+    expected_item_adoption_revision_indexes as pg_expected_revision_indexes,
+    inventory_owner_contributions as pg_inventory_owner_contributions,
+    pg_item_adoption_response_from_attempt, pg_item_adoption_transaction_id,
+    pg_item_adoption_transaction_id_from_request, prepare_pg_item_adoption,
+    select_pg_item_adoption_owner as pg_select_owner, verify_pg_item_adoption_owner,
+};

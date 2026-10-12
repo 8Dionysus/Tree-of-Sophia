@@ -7,7 +7,7 @@ use crate::source_creation_store::{active, finish_creation_worker};
 use crate::source_serialization::{
     capture_initial_text_layer, executable, instant, selected_components,
 };
-use crate::source_text_identity::selected_identity_snapshot;
+use crate::source_text_identity::selected_owner_identity_snapshot;
 use crate::source_text_layer_native::recheck_selected_inputs;
 use crate::source_text_layer_native::{PreparedInitialLayerText, prepare_initial_text};
 use crate::source_text_layer_payload::{
@@ -26,7 +26,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const LAYER_SCHEMA: &str = "ToS/contracts/source-text-layer.schema.json";
@@ -83,7 +83,7 @@ pub(crate) fn line(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
 
 pub(crate) fn selected_contracts(
     context: &OwnerTextContext,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeMap<String, Digest256>> {
@@ -91,7 +91,7 @@ pub(crate) fn selected_contracts(
     for name in [LAYER_SCHEMA, ANCHOR_SCHEMA, EVENT_SCHEMA] {
         let raw = context.read(name, MAX_CONTRACT, deadline, cancelled)?;
         let digest = Digest256::of_bytes(&raw);
-        if worker.contract_digest(name) != Some(digest) {
+        if worker.selected_contract_digest(name) != Some(digest) {
             return Err(SourceCommandError::Conflict(
                 "native Text selected contract changed",
             ));
@@ -101,12 +101,18 @@ pub(crate) fn selected_contracts(
     Ok(contracts)
 }
 
-fn selected_ids(grant: &OwnerTextInitialLayerSelection) -> SourceCommandResult<Vec<String>> {
+pub(crate) fn selected_ids_for_pg(
+    grant: &OwnerTextInitialLayerSelection,
+) -> SourceCommandResult<Vec<String>> {
     let ids = cmd::field(&grant.config, "identities")?;
     ["layer_id", "anchor_id", "passage_id", "provenance_event_id"]
         .iter()
         .map(|name| cmd::text(ids, name).map(str::to_owned))
         .collect()
+}
+
+fn selected_ids(grant: &OwnerTextInitialLayerSelection) -> SourceCommandResult<Vec<String>> {
+    selected_ids_for_pg(grant)
 }
 
 pub(crate) fn selected_configuration(
@@ -212,7 +218,7 @@ fn dependency_digest(
 }
 
 pub(crate) fn checked_schema(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     reference: &str,
     raw: &[u8],
     contract: &str,
@@ -234,7 +240,7 @@ fn select_owner(
     context_path: &Path,
     grant_path: &Path,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -268,7 +274,7 @@ fn prepare_selected(
     grant: OwnerTextInitialLayerSelection,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -278,7 +284,8 @@ fn prepare_selected(
         selected_configuration(&context, &grant, &contracts, deadline, cancelled)?;
     let ids = selected_ids(&grant)?;
     let refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
-    let inventory = selected_identity_snapshot(&context, &refs, exclude, deadline, cancelled)?;
+    let inventory =
+        selected_owner_identity_snapshot(&context, &refs, exclude, deadline, cancelled)?;
     let prepared = prepare_initial_text(&mut context, worker, &grant, deadline, cancelled)?;
     let output = build_initial_layer(&grant, &prepared)?;
     let source_path = cmd::text(&grant.config, "source_path")?;
@@ -353,7 +360,7 @@ fn prepare(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -434,7 +441,7 @@ impl PreparedInitial {
         recheck_selected_inputs(&self.context, &self.source.inputs, deadline, cancelled)?;
         let ids = selected_ids(&self.grant)?;
         let refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
-        if selected_identity_snapshot(&self.context, &refs, exclude, deadline, cancelled)?
+        if selected_owner_identity_snapshot(&self.context, &refs, exclude, deadline, cancelled)?
             != self.inventory
         {
             return Err(SourceCommandError::Conflict(
@@ -477,7 +484,7 @@ pub fn prepare_initial_text_layer_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeInitialTextLayerPreview> {
@@ -563,7 +570,7 @@ fn verify_retained_initial(
     prepared: &PreparedInitial,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -859,6 +866,259 @@ fn capture_entities(prepared: &PreparedInitial) -> SourceCommandResult<Vec<Value
     ])
 }
 
+/// Owner-prepared private TextLayer package. The fields stay private so the
+/// PG transaction can accept only a package which passed this owner route's
+/// preparation and retained-package checks.
+pub(crate) struct PreparedNativeInitialTextPackage {
+    prepared: PreparedInitial,
+    source_path: String,
+    files: BTreeMap<String, Vec<u8>>,
+    receipt: JsonValue,
+    replayed: bool,
+    context_binding: Digest256,
+    request_digest: Digest256,
+    grant_digest: Digest256,
+}
+
+impl PreparedNativeInitialTextPackage {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.files
+    }
+
+    pub(crate) fn receipt(&self) -> &JsonValue {
+        &self.receipt
+    }
+
+    pub(crate) fn replayed(&self) -> bool {
+        self.replayed
+    }
+
+    pub(crate) fn owner_configuration(&self) -> &str {
+        &self.prepared.owner_configuration
+    }
+
+    pub(crate) fn expected_dependencies(&self) -> &str {
+        &self.prepared.dependencies
+    }
+
+    pub(crate) fn owner_context_binding(&self) -> Digest256 {
+        self.context_binding
+    }
+
+    pub(crate) fn request_digest(&self) -> Digest256 {
+        self.request_digest
+    }
+
+    pub(crate) fn grant_digest(&self) -> Digest256 {
+        self.grant_digest
+    }
+
+    pub(crate) fn account_uid(&self) -> u32 {
+        self.prepared.context.account_uid()
+    }
+
+    pub(crate) fn verify_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        exclude_target: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let target = self
+            .prepared
+            .context
+            .private_package_target_for_owner_route(&self.source_path)?;
+        self.prepared.verify_current(
+            software,
+            components,
+            if exclude_target { Some(&target) } else { None },
+            deadline,
+            cancelled,
+        )
+    }
+}
+
+fn assemble_initial_package(
+    request: &JsonValue,
+    prepared: &mut PreparedInitial,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let source_path = cmd::text(&prepared.grant.config, "source_path")?.to_owned();
+    let home = source_path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("native Text source home"))?
+        .0;
+    let event_id = cmd::text(
+        cmd::field(&prepared.grant.config, "identities")?,
+        "provenance_event_id",
+    )?;
+    let entities = capture_entities(prepared)?;
+    let rights = cmd::field(
+        cmd::field(&prepared.grant.config, "derivation_access")?,
+        "rights_record_refs",
+    )?;
+    capture_initial_text_layer(
+        request,
+        event_id,
+        home,
+        &source_path,
+        rights,
+        entities,
+        &mut prepared.output.files,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    checked_schema(
+        worker,
+        &format!("{home}/source-create-provenance.jsonl"),
+        prepared
+            .output
+            .files
+            .get("source-create-provenance.jsonl")
+            .ok_or(SourceCommandError::Invalid("native Text provenance output"))?,
+        EVENT_SCHEMA,
+        deadline,
+        cancelled,
+    )?;
+    let receipt = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_local_source_create_receipt_v1"),
+        ),
+        ("command_id", cmd::field(request, "command_id")?.clone()),
+        (
+            "request_digest",
+            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+        ),
+        (
+            "principal_id",
+            cmd::field(&prepared.grant.config, "principal_id")?.clone(),
+        ),
+        (
+            "authority_ref",
+            cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
+        ),
+        (
+            "owner_configuration",
+            cmd::string(&prepared.owner_configuration),
+        ),
+        ("recorded_at", cmd::string(&instant()?)),
+        ("source_path", cmd::string(&source_path)),
+        (
+            "source",
+            cmd::reference(&prepared.output.layer, "layer_id", "layer_version")?,
+        ),
+        ("dependencies", cmd::string(&prepared.dependencies)),
+        ("files", file_refs(prepared.output.files.iter())),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    let receipt_raw = line(&receipt)?;
+    let receipt = cmd::parse(&receipt_raw)?;
+    prepared
+        .output
+        .files
+        .insert("source-create-receipt.json".to_owned(), receipt_raw);
+    if prepared
+        .output
+        .files
+        .values()
+        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+        .is_none_or(|n| n > MAX_PACKAGE)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "native Text complete package byte budget",
+        ));
+    }
+    Ok(receipt)
+}
+
+/// Prepare the complete exact TextLayer package for the private PostgreSQL
+/// transaction. `retained` is read from that transaction's private namespace;
+/// it is checked by the same recovery validator used by the filesystem route.
+pub(crate) fn prepare_pg_initial_text_package(
+    context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: OwnerTextInitialLayerSelection,
+    request: &JsonValue,
+    retained: Option<&BTreeMap<String, Vec<u8>>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedNativeInitialTextPackage> {
+    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    if !context.has_pg_selection()? {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL Text preparation lacks a selected source inventory",
+        ));
+    }
+    let source_path = cmd::text(&grant.config, "source_path")?.to_owned();
+    let target = context.private_package_target_for_owner_route(&source_path)?;
+    let exclude = retained.map(|_| target.as_path());
+    let mut prepared = prepare_selected(
+        context,
+        publication,
+        grant,
+        software,
+        components,
+        worker,
+        exclude,
+        deadline,
+        cancelled,
+    )?;
+    request_create(request, &prepared, retained.is_none())?;
+    let (files, receipt, replayed) = if let Some(files) = retained {
+        let receipt =
+            verify_retained_initial(&prepared, request, files, worker, deadline, cancelled)?;
+        (files.clone(), receipt, true)
+    } else {
+        let receipt = assemble_initial_package(
+            request,
+            &mut prepared,
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        (prepared.output.files.clone(), receipt, false)
+    };
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_current(
+        software,
+        components,
+        retained.map(|_| target.as_path()),
+        deadline,
+        cancelled,
+    )?;
+    let context_binding = prepared
+        .context
+        .private_owner_scope_binding(deadline, cancelled)?;
+    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
+    Ok(PreparedNativeInitialTextPackage {
+        prepared,
+        source_path,
+        files,
+        receipt,
+        replayed,
+        context_binding,
+        request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
+        grant_digest,
+    })
+}
+
 /// Whole initial owner-local publication. The caller cannot substitute a
 /// prepared package: construction, native capture, schema FINAL, retained
 /// receipt and guarded private no-replace publication are one entry.
@@ -869,7 +1129,7 @@ pub fn execute_initial_text_layer_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeInitialTextLayerResult> {
@@ -958,94 +1218,15 @@ pub fn execute_initial_text_layer_from_captures(
         }
         PrivateTextCustody::Absent => (),
     }
-    let home = source_path
-        .rsplit_once('/')
-        .ok_or(SourceCommandError::Invalid("native Text source home"))?
-        .0;
-    let event_id = cmd::text(
-        cmd::field(&prepared.grant.config, "identities")?,
-        "provenance_event_id",
-    )?;
-    let entities = capture_entities(&prepared)?;
-    let rights = cmd::field(
-        cmd::field(&prepared.grant.config, "derivation_access")?,
-        "rights_record_refs",
-    )?;
-    capture_initial_text_layer(
+    let receipt = assemble_initial_package(
         request,
-        event_id,
-        home,
-        &source_path,
-        rights,
-        entities,
-        &mut prepared.output.files,
+        &mut prepared,
         software,
         components,
-        deadline,
-        cancelled,
-    )?;
-    checked_schema(
         worker,
-        &format!("{home}/source-create-provenance.jsonl"),
-        prepared
-            .output
-            .files
-            .get("source-create-provenance.jsonl")
-            .ok_or(SourceCommandError::Invalid("native Text provenance output"))?,
-        EVENT_SCHEMA,
         deadline,
         cancelled,
     )?;
-    let receipt = cmd::object(vec![
-        (
-            "schema_version",
-            cmd::string("tos_local_source_create_receipt_v1"),
-        ),
-        ("command_id", cmd::field(request, "command_id")?.clone()),
-        (
-            "request_digest",
-            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
-        ),
-        (
-            "principal_id",
-            cmd::field(&prepared.grant.config, "principal_id")?.clone(),
-        ),
-        (
-            "authority_ref",
-            cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
-        ),
-        (
-            "owner_configuration",
-            cmd::string(&prepared.owner_configuration),
-        ),
-        ("recorded_at", cmd::string(&instant()?)),
-        ("source_path", cmd::string(&source_path)),
-        (
-            "source",
-            cmd::reference(&prepared.output.layer, "layer_id", "layer_version")?,
-        ),
-        ("dependencies", cmd::string(&prepared.dependencies)),
-        ("files", file_refs(prepared.output.files.iter())),
-        ("grants_admission", JsonValue::Bool(false)),
-    ]);
-    let receipt_raw = line(&receipt)?;
-    drop(receipt);
-    let receipt = cmd::parse(&receipt_raw)?;
-    prepared
-        .output
-        .files
-        .insert("source-create-receipt.json".to_owned(), receipt_raw);
-    if prepared
-        .output
-        .files
-        .values()
-        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
-        .is_none_or(|n| n > MAX_PACKAGE)
-    {
-        return Err(SourceCommandError::Unsupported(
-            "native Text complete package byte budget",
-        ));
-    }
     finish_creation_worker(worker, deadline, cancelled)?;
     prepared.verify_current(software, components, None, deadline, cancelled)?;
     publish_private_text(

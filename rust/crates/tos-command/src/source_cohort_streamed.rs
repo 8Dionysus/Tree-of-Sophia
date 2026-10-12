@@ -553,7 +553,17 @@ fn index_owned_key(
 ) -> DurableResult<()> {
     use super::source_cohort_stream_index::{AssessmentIndexRow, AssessmentPredicateRow};
     active(deadline, cancelled)?;
-    if !["metadata", "claim", "event", "anchor", "form", "path"].contains(&kind) {
+    if ![
+        "metadata",
+        "claim",
+        "event",
+        "anchor",
+        "form",
+        "sign-candidate",
+        "path",
+    ]
+    .contains(&kind)
+    {
         return Err(DurableError::Refused("streamed owner index kind"));
     }
     let version = definition().to_hex();
@@ -586,6 +596,28 @@ fn index_owned_key(
 
 struct CompleteMixedIdentityPassV1 {
     members: u64,
+}
+
+fn current_claim_rows(
+    file: &SourceFile,
+) -> cmd::SourceCommandResult<BTreeMap<String, tos_foundation::JsonValue>> {
+    if file.raw.len() > 1_048_576 {
+        return Err(cmd::SourceCommandError::Invalid("Claim stream budget"));
+    }
+    let mut rows = BTreeMap::new();
+    for line in file.raw.split(|byte| *byte == b'\n') {
+        if crate::source_claims::python_bytes_blank(line) {
+            continue;
+        }
+        let record = cmd::parse(line)?;
+        let id = cmd::text(&record, "claim_id")?.to_owned();
+        if rows.insert(id, record).is_some() {
+            return Err(cmd::SourceCommandError::Conflict(
+                "duplicate Claim identity",
+            ));
+        }
+    }
+    Ok(rows)
 }
 
 fn stage_current_mixed_identities(
@@ -630,6 +662,38 @@ fn stage_current_mixed_identities(
             deadline,
             cancelled,
         )?;
+        if member.path.starts_with("ToS/source-witnesses/relations/")
+            && member
+                .path
+                .ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM))
+        {
+            if member.path.split('/').count() != 5 {
+                return Err(DurableError::Refused(
+                    "streamed Claim path is not a maintained home",
+                ));
+            }
+            for (id, _) in current_claim_rows(&file).map_err(source_error)? {
+                let mut index = index.borrow_mut();
+                let mut work = work.borrow_mut();
+                index
+                    .add_identity(SourceIdentityKind::Claim, &id, &member.path, &mut **work)
+                    .map_err(crate::source_current_cut::durable)?;
+                index_owned_key(
+                    &mut **index,
+                    "claim",
+                    &id,
+                    &member.path,
+                    &mut **work,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+            after = Some(member.path);
+            count = count
+                .checked_add(1)
+                .ok_or(DurableError::Refused("streamed first pass count overflow"))?;
+            continue;
+        }
         crate::source_claims::stage_agent_inventory_member(
             profile,
             &file,
@@ -690,6 +754,31 @@ fn stage_current_mixed_identities(
             },
         )
         .map_err(source_error)?;
+        if member.path.starts_with("ToS/source-witnesses/") && member.path.ends_with("/sign.json") {
+            let candidate =
+                crate::source_sign::pg::candidate_id_from_current_bytes(&member.path, &file.raw)
+                    .map_err(source_error)?;
+            let mut index = index.borrow_mut();
+            let mut work = work.borrow_mut();
+            index
+                .add_identity(
+                    SourceIdentityKind::SignCandidate,
+                    &candidate,
+                    &member.path,
+                    &mut **work,
+                )
+                .map_err(crate::source_current_cut::durable)?;
+            index_owned_key(
+                &mut **index,
+                "sign-candidate",
+                &candidate,
+                &member.path,
+                &mut **work,
+                deadline,
+                cancelled,
+            )
+            .map_err(crate::source_current_cut::durable)?;
+        }
         after = Some(member.path);
         count = count
             .checked_add(1)
@@ -745,10 +834,350 @@ fn evidence_for_member(
     Ok(output)
 }
 
+fn add_current_member(
+    epoch: &mut StreamedSourceReadEpoch<'_, '_>,
+    members: &mut BTreeMap<String, SourceFile>,
+    path: &str,
+    total_bytes: &mut usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    if members.contains_key(path) {
+        return Ok(());
+    }
+    if members.len() >= cmd::SELECTED_SOURCE_MAX_FILES {
+        return Err(DurableError::Refused(
+            "streamed Claim closure member count bound",
+        ));
+    }
+    let raw = epoch
+        .read(
+            path,
+            cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES,
+            deadline,
+            cancelled,
+        )
+        .map_err(source_error)?;
+    *total_bytes = total_bytes
+        .checked_add(raw.len())
+        .filter(|bytes| *bytes <= cmd::SELECTED_SOURCE_MAX_BYTES)
+        .ok_or(DurableError::Refused("streamed Claim closure byte bound"))?;
+    let path_value = RelativePath::parse(path)
+        .map_err(|_| DurableError::Corrupt("streamed Claim closure path"))?;
+    members.insert(
+        path.to_owned(),
+        SourceFile {
+            path: path_value,
+            raw,
+        },
+    );
+    Ok(())
+}
+
+fn collect_current_subtree(
+    epoch: &mut StreamedSourceReadEpoch<'_, '_>,
+    directory: &str,
+    schema_files_only: bool,
+    members: &mut BTreeMap<String, SourceFile>,
+    total_bytes: &mut usize,
+    depth: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    if depth > 32 {
+        return Err(DurableError::Refused(
+            "streamed Claim closure directory depth",
+        ));
+    }
+    let children = epoch
+        .list_directory(directory, deadline, cancelled)
+        .map_err(source_error)?;
+    for (name, is_directory) in children {
+        active(deadline, cancelled)?;
+        let child = format!("{directory}/{name}");
+        if is_directory {
+            collect_current_subtree(
+                epoch,
+                &child,
+                schema_files_only,
+                members,
+                total_bytes,
+                depth + 1,
+                deadline,
+                cancelled,
+            )?;
+        } else if !schema_files_only || child.ends_with(".schema.json") {
+            add_current_member(epoch, members, &child, total_bytes, deadline, cancelled)?;
+        }
+    }
+    Ok(())
+}
+
+/// Construct the bounded full source-witness cut needed by maintained Claim
+/// identity semantics. It is selected from current PG membership; the
+/// selected-closure parser deliberately produces no global snapshot claim.
+fn current_claim_context(
+    epoch: &mut StreamedSourceReadEpoch<'_, '_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<CommandContext> {
+    let mut selected = BTreeMap::new();
+    let mut total_bytes = 0usize;
+    collect_current_subtree(
+        epoch,
+        "ToS/source-witnesses",
+        false,
+        &mut selected,
+        &mut total_bytes,
+        0,
+        deadline,
+        cancelled,
+    )?;
+    collect_current_subtree(
+        epoch,
+        "ToS/contracts",
+        true,
+        &mut selected,
+        &mut total_bytes,
+        0,
+        deadline,
+        cancelled,
+    )?;
+    for path in [
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    ] {
+        add_current_member(
+            epoch,
+            &mut selected,
+            path,
+            &mut total_bytes,
+            deadline,
+            cancelled,
+        )?;
+    }
+    let authored = selected.into_values().collect::<Vec<_>>();
+    crate::source_claims::maintained_selected_identity_closure(
+        epoch.context,
+        &authored,
+        worker,
+        deadline,
+        cancelled,
+    )
+    .map_err(source_error)?;
+
+    let mut files = authored;
+    files.extend(
+        epoch
+            .context
+            .files
+            .iter()
+            .filter(|file| !file.path.as_str().starts_with("ToS/"))
+            .cloned(),
+    );
+    files.sort_by(|left, right| left.path.cmp(&right.path));
+    let context = CommandContext {
+        base_revision: epoch.context.base_revision,
+        configuration_raw: epoch.context.configuration_raw.clone(),
+        request_raw: epoch.context.request_raw.clone(),
+        recorded_at: epoch.context.recorded_at.clone(),
+        effective_uid: epoch.context.effective_uid,
+        files,
+    };
+    context.check().map_err(source_error)?;
+    active(deadline, cancelled)?;
+    Ok(context)
+}
+
+fn streamed_evidence_projection(
+    location: &str,
+    id_field: &str,
+    rows: Vec<cmd::SourceCommandResult<crate::source_claims::AgentInventoryEvidenceRow>>,
+) -> DurableResult<tos_foundation::JsonValue> {
+    let mut entries = BTreeMap::new();
+    let mut decoded = Vec::new();
+    for row in rows {
+        let row = row.map_err(source_error)?;
+        let payload = cmd::parse(&row.canonical_payload).map_err(source_error)?;
+        if row.physical_line == 0
+            || cmd::canonical(&payload).map_err(source_error)? != row.canonical_payload
+            || cmd::text(&payload, id_field).map_err(source_error)? != row.id
+            || cmd::record_digest(&payload).map_err(source_error)? != row.source_sha256
+        {
+            return Err(DurableError::Corrupt(
+                "streamed Claim projection evidence differs",
+            ));
+        }
+        decoded.push((row, payload));
+    }
+    decoded.sort_by(|left, right| left.0.id.as_bytes().cmp(right.0.id.as_bytes()));
+    let mut previous: Option<String> = None;
+    for (row, payload) in decoded {
+        if previous
+            .as_ref()
+            .is_some_and(|id| id.as_bytes() >= row.id.as_bytes())
+        {
+            return Err(DurableError::Corrupt(
+                "streamed Claim projection evidence identity duplicate",
+            ));
+        }
+        let value = cmd::object(vec![
+            ("payload", payload),
+            ("source_ref", cmd::string(location)),
+            ("source_line", cmd::number(row.physical_line)),
+            ("source_sha256", cmd::string(&row.source_sha256.to_hex())),
+        ]);
+        if entries.insert(row.id.clone(), value).is_some() {
+            return Err(DurableError::Corrupt(
+                "streamed Claim projection evidence identity duplicate",
+            ));
+        }
+        previous = Some(row.id);
+    }
+    Ok(tos_foundation::JsonValue::Object(
+        entries
+            .into_iter()
+            .map(|(id, value)| (tos_foundation::JsonString::from_utf8(&id), value))
+            .collect(),
+    ))
+}
+
+fn render_current_claim_projection(
+    epoch: &mut StreamedSourceReadEpoch<'_, '_>,
+    profile: &crate::source_claims::AgentInventoryAssessmentProfile,
+    context: &CommandContext,
+    source_profiles: &tos_foundation::JsonValue,
+    file: &SourceFile,
+    worker: &mut CutWorkerSchemaExecutor,
+    limits: tos_validation::item_rules::ItemLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Vec<u8>> {
+    let location = file.path.as_str();
+    let is_stream = location.ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM));
+    let owner_path = if is_stream {
+        location.to_owned()
+    } else {
+        let parent = location
+            .rsplit_once('/')
+            .map(|(parent, _)| parent)
+            .ok_or(DurableError::Corrupt("streamed Claim form parent"))?;
+        format!("{parent}/{}", crate::source_claims::CLAIM_STREAM)
+    };
+    let owner_file = context
+        .files
+        .iter()
+        .find(|selected| selected.path.as_str() == owner_path)
+        .ok_or(DurableError::Corrupt("streamed Claim owner stream absent"))?;
+    let owner = crate::source_claims::pg_inventory::claim_owner_contribution(
+        context, owner_file, worker, deadline, cancelled,
+    )
+    .map_err(source_error)?;
+
+    let mut form = tos_foundation::JsonValue::Null;
+    if !is_stream {
+        form = crate::source_claims::pg_inventory::claim_form_contribution(
+            context, file, worker, deadline, cancelled,
+        )
+        .map_err(source_error)?;
+    }
+
+    let dummy = SourceFile {
+        path: RelativePath::parse("ToS/doctrine/.streamed-claim-projection-base")
+            .map_err(|_| DurableError::Corrupt("streamed Claim projection basis path"))?,
+        raw: Vec::new(),
+    };
+    let base =
+        crate::source_claims::render_agent_inventory_member(
+            profile,
+            &dummy,
+            epoch,
+            std::iter::empty::<
+                cmd::SourceCommandResult<crate::source_claims::AgentInventoryEvidenceRow>,
+            >(),
+            std::iter::empty::<
+                cmd::SourceCommandResult<crate::source_claims::AgentInventoryEvidenceRow>,
+            >(),
+            |_| Ok(false),
+            worker,
+            limits,
+            deadline,
+            cancelled,
+        )
+        .map_err(source_error)?;
+    let mut projection = cmd::parse(&base).map_err(source_error)?;
+    cmd::set(&mut projection, "path", cmd::string(location)).map_err(source_error)?;
+    cmd::set(&mut projection, "source_profiles", source_profiles.clone()).map_err(source_error)?;
+    cmd::set(
+        &mut projection,
+        "raw_sha256",
+        cmd::string(&Digest256::of_bytes(&file.raw).to_hex()),
+    )
+    .map_err(source_error)?;
+    let events = evidence_for_member(
+        &mut **epoch.index.borrow_mut(),
+        &mut **epoch.index_work.borrow_mut(),
+        super::source_cohort_stream_index::SourceEvidenceKind::Event,
+        location,
+        1_048_576,
+        deadline,
+        cancelled,
+    )?;
+    let anchors = evidence_for_member(
+        &mut **epoch.index.borrow_mut(),
+        &mut **epoch.index_work.borrow_mut(),
+        super::source_cohort_stream_index::SourceEvidenceKind::Anchor,
+        location,
+        1_048_576,
+        deadline,
+        cancelled,
+    )?;
+    cmd::set(
+        &mut projection,
+        "events",
+        streamed_evidence_projection(location, "event_id", events)?,
+    )
+    .map_err(source_error)?;
+    cmd::set(
+        &mut projection,
+        "anchors",
+        streamed_evidence_projection(location, "anchor_id", anchors)?,
+    )
+    .map_err(source_error)?;
+    cmd::set(&mut projection, "form", form).map_err(source_error)?;
+    cmd::set(
+        &mut projection,
+        "claim_owner",
+        if is_stream {
+            owner
+        } else {
+            tos_foundation::JsonValue::Null
+        },
+    )
+    .map_err(source_error)?;
+    let raw = cmd::canonical(&projection).map_err(source_error)?;
+    if raw.len() > 1_048_576 {
+        return Err(DurableError::Refused(
+            "streamed Claim member projection bound",
+        ));
+    }
+    Ok(raw)
+}
+
 struct CompleteMixedProjectionPassV1 {
     members: u64,
     // Exact ordered mixed projection transcript, not the addressed root.
     projection_digest: Digest256,
+    // Candidate bodies are retained from the same full current-member pass so
+    // the Text point index can be rebuilt without another corpus scan.
+    text_identity_candidates: BTreeMap<String, Vec<u8>>,
+    // Exact public Claim streams from that same bounded pass support cold
+    // equality verification of the reverse Claim dependency index.
+    claim_dependency_candidates: BTreeMap<String, Vec<u8>>,
+    // Current Item records and manifests needed to verify the File assignment
+    // index without a second source read.
+    item_file_candidates: BTreeMap<String, Vec<u8>>,
 }
 
 fn render_current_mixed_projections(
@@ -769,6 +1198,19 @@ fn render_current_mixed_projections(
     }
     let mut after = None::<String>;
     let mut count = 0u64;
+    let mut claim_context = None::<CommandContext>;
+    let mut claim_source_profiles = None::<tos_foundation::JsonValue>;
+    let mut text_identity_candidates = BTreeMap::new();
+    let mut text_identity_candidate_bytes = 0usize;
+    let mut claim_dependency_candidates = BTreeMap::new();
+    let mut claim_dependency_candidate_bytes = 0usize;
+    let mut item_file_candidates = BTreeMap::new();
+    let mut item_manifest_count = 0usize;
+    let mut item_manifest_bytes = 0usize;
+    let mut item_record_count = 0usize;
+    let mut item_record_bytes = 0usize;
+    let mut item_rights_count = 0usize;
+    let mut item_rights_bytes = 0usize;
     let mut transcript = Digest256Hasher::new();
     part(
         &mut transcript,
@@ -797,46 +1239,216 @@ fn render_current_mixed_projections(
         let file = SourceFile { path, raw };
         let index = epoch.index;
         let work = epoch.index_work;
-        let events = evidence_for_member(
-            &mut **index.borrow_mut(),
-            &mut **work.borrow_mut(),
-            SourceEvidenceKind::Event,
-            &member.path,
-            1_048_576,
-            deadline,
-            cancelled,
-        )?;
-        let anchors = evidence_for_member(
-            &mut **index.borrow_mut(),
-            &mut **work.borrow_mut(),
-            SourceEvidenceKind::Anchor,
-            &member.path,
-            1_048_576,
-            deadline,
-            cancelled,
-        )?;
-        let projection = crate::source_claims::render_agent_inventory_member(
-            profile,
-            &file,
-            epoch,
-            events,
-            anchors,
-            |path| {
-                index
-                    .borrow_mut()
-                    .contains_member(path, &mut **work.borrow_mut())
-                    .map_err(crate::source_current_cut::durable)
-            },
-            worker,
-            limits,
-            deadline,
-            cancelled,
-        )
-        .map_err(source_error)?;
+        let location = member.path.as_str();
+        let parts = location.split('/').collect::<Vec<_>>();
+        let claim_stream = parts.len() == 5
+            && parts[..3] == ["ToS", "source-witnesses", "relations"]
+            && parts[4] == crate::source_claims::CLAIM_STREAM;
+        let claim_form = parts.len() == 5
+            && parts[..3] == ["ToS", "source-witnesses", "relations"]
+            && parts[4].starts_with("source-claims.")
+            && parts[4].ends_with(".human-forms.json");
+        let projection = if claim_stream || claim_form {
+            if claim_context.is_none() {
+                claim_context = Some(current_claim_context(epoch, worker, deadline, cancelled)?);
+            }
+            if claim_source_profiles.is_none() {
+                claim_source_profiles = Some(
+                    crate::source_claims::pg_inventory::claim_profile_sources(
+                        claim_context
+                            .as_ref()
+                            .ok_or(DurableError::Corrupt("streamed Claim context absent"))?,
+                        worker,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(source_error)?,
+                );
+            }
+            render_current_claim_projection(
+                epoch,
+                profile,
+                claim_context
+                    .as_ref()
+                    .ok_or(DurableError::Corrupt("streamed Claim context absent"))?,
+                claim_source_profiles
+                    .as_ref()
+                    .ok_or(DurableError::Corrupt("streamed Claim profile absent"))?,
+                &file,
+                worker,
+                limits,
+                deadline,
+                cancelled,
+            )?
+        } else {
+            let events = evidence_for_member(
+                &mut **index.borrow_mut(),
+                &mut **work.borrow_mut(),
+                SourceEvidenceKind::Event,
+                &member.path,
+                1_048_576,
+                deadline,
+                cancelled,
+            )?;
+            let anchors = evidence_for_member(
+                &mut **index.borrow_mut(),
+                &mut **work.borrow_mut(),
+                SourceEvidenceKind::Anchor,
+                &member.path,
+                1_048_576,
+                deadline,
+                cancelled,
+            )?;
+            crate::source_claims::render_agent_inventory_member(
+                profile,
+                &file,
+                epoch,
+                events,
+                anchors,
+                |path| {
+                    index
+                        .borrow_mut()
+                        .contains_member(path, &mut **work.borrow_mut())
+                        .map_err(crate::source_current_cut::durable)
+                },
+                worker,
+                limits,
+                deadline,
+                cancelled,
+            )
+            .map_err(source_error)?
+        };
         if projection.len() > 1_048_576 {
             return Err(DurableError::Refused(
                 "streamed canonical member projection bound",
             ));
+        }
+        if member.path.starts_with("ToS/source-witnesses/")
+            && !member.path.starts_with("ToS/source-witnesses/owner-local/")
+            && member.path.ends_with("/source-claims.jsonl")
+        {
+            if claim_dependency_candidates.len()
+                >= crate::source_claim_dependency_index::MAX_CLAIM_STREAMS
+            {
+                return Err(DurableError::Refused(
+                    "streamed Claim dependency stream count bound exceeded",
+                ));
+            }
+            if file.raw.len() > crate::source_claim_dependency_index::MAX_STREAM_BYTES {
+                return Err(DurableError::Refused(
+                    "streamed Claim dependency stream byte bound exceeded",
+                ));
+            }
+            claim_dependency_candidate_bytes = claim_dependency_candidate_bytes
+                .checked_add(file.raw.len())
+                .filter(|bytes| {
+                    *bytes <= crate::source_claim_dependency_index::MAX_TOTAL_CLAIM_BYTES
+                })
+                .ok_or(DurableError::Refused(
+                    "streamed Claim dependency aggregate byte bound exceeded",
+                ))?;
+            if claim_dependency_candidates
+                .insert(member.path.clone(), file.raw.clone())
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed Claim dependency path",
+                ));
+            }
+        }
+        if crate::source_item_file_index::is_candidate_manifest_path(&member.path)
+            || crate::source_item_file_index::is_candidate_item_record_path(&member.path)
+            || crate::source_item_file_index::is_candidate_item_rights_path(&member.path)
+        {
+            if crate::source_item_file_index::is_candidate_manifest_path(&member.path) {
+                item_manifest_count = item_manifest_count
+                    .checked_add(1)
+                    .filter(|count| *count <= crate::source_item_file_index::MAX_MANIFEST_COUNT)
+                    .ok_or(DurableError::Refused(
+                        "streamed Item manifest count bound exceeded",
+                    ))?;
+                if file.raw.len() > crate::source_item_file_index::MAX_MANIFEST_BYTES {
+                    return Err(DurableError::Refused(
+                        "streamed Item manifest byte bound exceeded",
+                    ));
+                }
+                item_manifest_bytes = item_manifest_bytes
+                    .checked_add(file.raw.len())
+                    .filter(|bytes| {
+                        *bytes <= crate::source_item_file_index::MAX_TOTAL_MANIFEST_BYTES
+                    })
+                    .ok_or(DurableError::Refused(
+                        "streamed Item manifest aggregate bound exceeded",
+                    ))?;
+            } else if crate::source_item_file_index::is_candidate_item_record_path(&member.path) {
+                item_record_count = item_record_count
+                    .checked_add(1)
+                    .filter(|count| *count <= crate::source_item_file_index::MAX_MANIFEST_COUNT)
+                    .ok_or(DurableError::Refused(
+                        "streamed Item record count bound exceeded",
+                    ))?;
+                item_record_bytes = item_record_bytes
+                    .checked_add(file.raw.len())
+                    .filter(|bytes| {
+                        *bytes <= crate::source_item_file_index::MAX_TOTAL_MANIFEST_BYTES
+                    })
+                    .ok_or(DurableError::Refused(
+                        "streamed Item record aggregate bound exceeded",
+                    ))?;
+            } else {
+                item_rights_count = item_rights_count
+                    .checked_add(1)
+                    .filter(|count| *count <= crate::source_item_file_index::MAX_MANIFEST_COUNT)
+                    .ok_or(DurableError::Refused(
+                        "streamed Item rights count bound exceeded",
+                    ))?;
+                if file.raw.len() > crate::source_item_file_index::MAX_MANIFEST_BYTES {
+                    return Err(DurableError::Refused(
+                        "streamed Item rights byte bound exceeded",
+                    ));
+                }
+                item_rights_bytes = item_rights_bytes
+                    .checked_add(file.raw.len())
+                    .filter(|bytes| {
+                        *bytes <= crate::source_item_file_index::MAX_TOTAL_MANIFEST_BYTES
+                    })
+                    .ok_or(DurableError::Refused(
+                        "streamed Item rights aggregate bound exceeded",
+                    ))?;
+            }
+            if item_file_candidates
+                .insert(member.path.clone(), file.raw.clone())
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed Item File candidate path",
+                ));
+            }
+        }
+        let basename = member.path.rsplit('/').next().unwrap_or(&member.path);
+        if member.path.starts_with("ToS/")
+            && !member.path.starts_with("ToS/source-witnesses/owner-local/")
+            && crate::source_text_identity::is_candidate(basename)
+        {
+            if text_identity_candidates.len() >= crate::source_text_identity::MAX_FILES {
+                return Err(DurableError::Refused(
+                    "streamed Text identity candidate file bound",
+                ));
+            }
+            text_identity_candidate_bytes = text_identity_candidate_bytes
+                .checked_add(file.raw.len())
+                .filter(|bytes| *bytes <= crate::source_text_identity::MAX_BYTES)
+                .ok_or(DurableError::Refused(
+                    "streamed Text identity candidate byte bound",
+                ))?;
+            if text_identity_candidates
+                .insert(member.path.clone(), file.raw)
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "duplicate streamed Text identity candidate path",
+                ));
+            }
         }
         if epoch.fresh_sink {
             // SQL profile_id is TEXT; retain the original byte identity elsewhere.
@@ -927,6 +1539,9 @@ fn render_current_mixed_projections(
     Ok(CompleteMixedProjectionPassV1 {
         members: count,
         projection_digest: transcript.finalize(),
+        text_identity_candidates,
+        claim_dependency_candidates,
+        item_file_candidates,
     })
 }
 
@@ -1029,8 +1644,16 @@ fn compare_current_owner_indexes(
                     && !["source-home", "source-inventory"].contains(&scope.as_str()))
                 || (scope == "source-inventory" && token != "all")
                 || (kind == "unique"
-                    && !["metadata", "claim", "event", "anchor", "form", "path"]
-                        .contains(&scope.as_str()))
+                    && ![
+                        "metadata",
+                        "claim",
+                        "event",
+                        "anchor",
+                        "form",
+                        "sign-candidate",
+                        "path",
+                    ]
+                    .contains(&scope.as_str()))
             {
                 return Err(DurableError::Corrupt(
                     "streamed stored predicate owner definition differs",
@@ -1417,6 +2040,25 @@ fn assess_held_current_source(
         deadline,
         cancelled,
     )?;
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    crate::source_text_identity_index::verify_current(
+        tx,
+        domain,
+        &projected.text_identity_candidates,
+        definition(),
+    )?;
+    crate::source_claim_dependency_index::verify_current(
+        tx,
+        domain,
+        &projected.claim_dependency_candidates,
+        definition(),
+    )?;
+    crate::source_item_file_index::verify_current(
+        tx,
+        domain,
+        &projected.item_file_candidates,
+        definition(),
+    )?;
     // A successful semantic pass cannot outlive a failed validator child.
     finish_worker(worker, deadline, cancelled)?;
     let inventory = build_assessed_inventory(
@@ -1759,6 +2401,15 @@ impl DurablePgCoordinator {
                     deadline,
                     &cancelled,
                     owner_check,
+                )?;
+                super::ensure_source_publication_bootstrap_state(
+                    &mut tx,
+                    domain,
+                    store.store_id(),
+                    initial_revision,
+                    initial_membership,
+                    before.through_commit_seq,
+                    cohort.definition,
                 )?;
                 // Locks remain held. Completion includes empty and absent predicates;
                 // only existing owned definitions are re-enabled, never invented grants.

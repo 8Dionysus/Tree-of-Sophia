@@ -64,7 +64,8 @@ pub struct RawRecord {
 /// Adapter work units: `probes` count bounded backend requests, `rows` count
 /// backend result rows (including lookahead/hidden rows), `bytes` count decoded
 /// result-column payload (i64=8, TEXT=UTF-8 length, BLOB=byte length), and
-/// `cpu_steps` count declared backend instruction/fuel units. File/page I/O,
+/// `cpu_steps` count declared backend instruction/fuel units under the selected
+/// meter profile. `Unavailable` is distinct from zero. File/page I/O,
 /// allocator footprint and wall time are separate admission dimensions, never
 /// inferred from `bytes` or `cpu_steps`. Returned rows are only a subset.
 #[derive(Clone, Copy, Debug, Default)]
@@ -72,7 +73,20 @@ pub struct Charged {
     pub probes: u64,
     pub rows: u64,
     pub bytes: u64,
+    /// Legacy V1 and measured adapter counter. Ignored when `cpu_meter` is
+    /// `Unavailable`; new hosts use the V2 schema and explicit meter value.
     pub cpu_steps: u64,
+    pub cpu_meter: CpuStepsMeter,
+}
+
+/// Availability of a backend CPU/fuel counter. V1 sources retain the original
+/// numeric field; V2 can state explicitly that the backend has no such meter.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CpuStepsMeter {
+    #[default]
+    LegacyV1,
+    Measured,
+    Unavailable,
 }
 
 #[derive(Clone, Debug)]
@@ -141,7 +155,7 @@ pub trait ReadModel {
         &mut self,
         binding: &Binding,
         selected: &[RawRecord],
-    ) -> Result<Box<dyn DisclosureLease>, QueryError>;
+    ) -> Result<Box<dyn DisclosureLease + '_>, QueryError>;
 }
 
 /// An owner hold, not merely a one-time policy observation. Native transports
@@ -158,12 +172,12 @@ pub trait DisclosureLease {
     fn recheck(&mut self) -> Result<(), QueryError>;
 }
 
-pub struct DisclosableSourceDescend {
+pub struct DisclosableSourceDescend<'hold> {
     body: Vec<u8>,
-    lease: Box<dyn DisclosureLease>,
+    lease: Box<dyn DisclosureLease + 'hold>,
 }
 
-impl std::fmt::Debug for DisclosableSourceDescend {
+impl std::fmt::Debug for DisclosableSourceDescend<'_> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("DisclosableSourceDescend")
@@ -172,7 +186,7 @@ impl std::fmt::Debug for DisclosableSourceDescend {
     }
 }
 
-impl std::ops::Deref for DisclosableSourceDescend {
+impl std::ops::Deref for DisclosableSourceDescend<'_> {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         &self.body
@@ -183,8 +197,14 @@ impl std::ops::Deref for DisclosableSourceDescend {
 /// and carry RawRecord.raw in separate UTF-8 byte attachments. Only the exact
 /// selected publication owner may issue the Binding and disclosure lease.
 pub const SOURCE_DESCEND_SESSION_V1: &str = "tos_source_descend_session_v1";
+pub const SOURCE_DESCEND_SESSION_V2: &str = "tos_source_descend_session_v2";
+/// Selected source-navigation model contract shared by owner adapters.
+pub const SOURCE_NAVIGATION_MODEL_ABI: &str = "tos_source_navigation_read_model_v1";
+pub const SOURCE_NAVIGATION_SELECTION_PROFILE: &str = "tos_source_navigation_visible_v1";
 /// D1's queries/rows_read/transfer-byte meter is not a SQLite VM-step meter.
 pub const SOURCE_DESCEND_D1_METER_V1: &str = "tos_d1_indexed_rows_v1";
+/// PostgreSQL is metered by indexed requests, rows and bytes, not VM steps.
+pub const SOURCE_DESCEND_POSTGRES_METER_V1: &str = "tos_pg_indexed_rows_v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SessionCaps {
@@ -192,6 +212,9 @@ pub struct SessionCaps {
     pub rows: u64,
     pub bytes: u64,
     pub cpu_steps: u64,
+    /// False means the host must not interpret `cpu_steps` as a backend cap.
+    /// V2 encodes the corresponding CPU cap as JSON null.
+    pub cpu_steps_available: bool,
     pub carrier_bytes: usize,
     pub page_rows: usize,
 }
@@ -301,10 +324,15 @@ impl SessionNeed {
                 quoted(&selected_digest.to_hex())
             ),
         };
+        let cpu_cap = if self.caps.cpu_steps_available {
+            format!("\"{}\"", self.caps.cpu_steps)
+        } else {
+            "null".to_owned()
+        };
         let header = format!(
-            "{{\"schema\":{},\"meter_profile\":{},\"nonce\":\"{}\",\"binding\":{},\"caps\":{{\"probes\":\"{}\",\"rows\":\"{}\",\"bytes\":\"{}\",\"cpu_steps\":\"{}\",\"carrier_bytes\":\"{}\",\"page_rows\":\"{}\"}},\"operation\":{}}}",
+            "{{\"schema\":{},\"meter_profile\":{},\"nonce\":\"{}\",\"binding\":{},\"caps\":{{\"probes\":\"{}\",\"rows\":\"{}\",\"bytes\":\"{}\",\"cpu_steps\":{},\"carrier_bytes\":\"{}\",\"page_rows\":\"{}\"}},\"operation\":{}}}",
             quoted(self.schema), quoted(self.meter_profile), self.nonce, binding,
-            self.caps.probes, self.caps.rows, self.caps.bytes, self.caps.cpu_steps,
+            self.caps.probes, self.caps.rows, self.caps.bytes, cpu_cap,
             self.caps.carrier_bytes, self.caps.page_rows, operation
         ).into_bytes();
         if header.len() > max_header_bytes {
@@ -360,7 +388,7 @@ pub struct SessionResponse {
 #[derive(Debug)]
 pub enum SessionAdvance {
     Need(SessionNeed),
-    Ready(DisclosableSourceDescend),
+    Ready(DisclosableSourceDescend<'static>),
 }
 
 struct SessionScope {
@@ -399,6 +427,8 @@ enum SessionPhase {
 /// resume consumes the session. The selected binding must have been obtained
 /// from an owner-selected immutable cut, independently of visible table rows.
 pub struct SourceDescendSession {
+    schema: &'static str,
+    meter_profile: &'static str,
     binding: Binding,
     request: SourceDescendRequest,
     budget: Budget,
@@ -425,6 +455,36 @@ impl SourceDescendSession {
         request: SourceDescendRequest,
         budget: Budget,
     ) -> Result<(Self, SessionNeed), QueryError> {
+        Self::start_with_meter_profile(
+            binding,
+            request,
+            budget,
+            SOURCE_DESCEND_SESSION_V1,
+            SOURCE_DESCEND_D1_METER_V1,
+        )
+    }
+
+    /// Start the same query state machine with an explicit host meter contract.
+    /// V1 remains byte-compatible for D1; PostgreSQL uses V2 so unavailable
+    /// backend CPU work is encoded as unavailable rather than as zero.
+    pub fn start_with_meter_profile(
+        binding: Binding,
+        request: SourceDescendRequest,
+        budget: Budget,
+        schema: &'static str,
+        meter_profile: &'static str,
+    ) -> Result<(Self, SessionNeed), QueryError> {
+        let meter_supported = matches!(
+            (schema, meter_profile),
+            (SOURCE_DESCEND_SESSION_V1, SOURCE_DESCEND_D1_METER_V1)
+                | (SOURCE_DESCEND_SESSION_V2, SOURCE_DESCEND_POSTGRES_METER_V1)
+        );
+        if !meter_supported {
+            return Err(QueryError::new(
+                QueryErrorCode::Unavailable,
+                "source descent host meter profile unsupported",
+            ));
+        }
         request.validate()?;
         if !budget.valid() || request.node_id.len() > budget.max_request_bytes {
             return Err(QueryError::new(
@@ -441,8 +501,8 @@ impl SourceDescendSession {
                 "selected read model has not published the requested commit",
             ));
         }
-        if binding.model_abi != "tos_source_navigation_read_model_v1"
-            || binding.selection_profile != "tos_source_navigation_visible_v1"
+        if binding.model_abi != SOURCE_NAVIGATION_MODEL_ABI
+            || binding.selection_profile != SOURCE_NAVIGATION_SELECTION_PROFILE
         {
             return Err(QueryError::new(
                 QueryErrorCode::Unavailable,
@@ -450,6 +510,8 @@ impl SourceDescendSession {
             ));
         }
         let mut session = Self {
+            schema,
+            meter_profile,
             binding,
             request,
             budget,
@@ -485,7 +547,8 @@ impl SourceDescendSession {
             cpu_steps: self
                 .budget
                 .max_cpu_steps
-                .saturating_sub(self.work.cpu_steps),
+                .saturating_sub(self.work.total_steps().unwrap_or(u64::MAX)),
+            cpu_steps_available: self.meter_profile == SOURCE_DESCEND_D1_METER_V1,
             carrier_bytes: self.budget.json.max_bytes,
             page_rows: self.budget.page_rows.min(
                 self.budget
@@ -494,7 +557,11 @@ impl SourceDescendSession {
                     .min(usize::MAX as u64) as usize,
             ),
         };
-        if caps.probes == 0 || caps.rows == 0 || caps.bytes == 0 || caps.cpu_steps == 0 {
+        if caps.probes == 0
+            || caps.rows == 0
+            || caps.bytes == 0
+            || (caps.cpu_steps_available && caps.cpu_steps == 0)
+        {
             return Err(QueryError::new(
                 QueryErrorCode::BudgetExceeded,
                 "source descent host admission exhausted",
@@ -546,8 +613,8 @@ impl SourceDescendSession {
             )
         })?;
         let need = SessionNeed {
-            schema: SOURCE_DESCEND_SESSION_V1,
-            meter_profile: SOURCE_DESCEND_D1_METER_V1,
+            schema: self.schema,
+            meter_profile: self.meter_profile,
             nonce: self.nonce,
             binding: self.binding.clone(),
             caps,
@@ -566,8 +633,8 @@ impl SourceDescendSession {
                 "source descent session has no outstanding need",
             )
         })?;
-        if response.schema != SOURCE_DESCEND_SESSION_V1
-            || response.meter_profile != SOURCE_DESCEND_D1_METER_V1
+        if response.schema != self.schema
+            || response.meter_profile != self.meter_profile
             || response.nonce != need.nonce
             || response.binding != self.binding
         {
@@ -577,10 +644,21 @@ impl SourceDescendSession {
                 "source descent response nonce or binding differs",
             ));
         }
+        let cpu_meter_valid = match (self.schema, self.meter_profile) {
+            (SOURCE_DESCEND_SESSION_V1, SOURCE_DESCEND_D1_METER_V1) => {
+                response.charged.cpu_meter == CpuStepsMeter::LegacyV1
+                    && response.charged.cpu_steps == 0
+            }
+            (SOURCE_DESCEND_SESSION_V2, SOURCE_DESCEND_POSTGRES_METER_V1) => {
+                response.charged.cpu_meter == CpuStepsMeter::Unavailable
+                    && response.charged.cpu_steps == 0
+            }
+            _ => false,
+        };
         if response.charged.probes > need.caps.probes
             || response.charged.rows > need.caps.rows
             || response.charged.bytes > need.caps.bytes
-            || response.charged.cpu_steps != 0
+            || !cpu_meter_valid
         {
             self.phase = SessionPhase::Finished;
             return Err(QueryError::new(
@@ -646,6 +724,7 @@ impl SourceDescendSession {
                     || got.charged.rows != charged.rows
                     || got.charged.bytes != charged.bytes
                     || got.charged.cpu_steps != charged.cpu_steps
+                    || got.charged.cpu_meter != charged.cpu_meter
                 {
                     return Err(QueryError::new(
                         QueryErrorCode::InvalidRequest,
@@ -694,11 +773,11 @@ impl SourceDescendSession {
                 self.work.charge(
                     Charged {
                         bytes: record.raw.len() as u64,
-                        cpu_steps: 1,
                         ..Charged::default()
                     },
                     self.budget,
                 )?;
+                self.work.step(self.budget)?;
                 let value = parse_record(&record, &self.binding, self.budget)?;
                 if value.object_get("node_id").and_then(JsonValue::as_str) != Some(id)
                     || value.object_get("depth").is_some()
@@ -733,6 +812,7 @@ impl SourceDescendSession {
                     || page.charged.rows != charged.rows
                     || page.charged.bytes != charged.bytes
                     || page.charged.cpu_steps != charged.cpu_steps
+                    || page.charged.cpu_meter != charged.cpu_meter
                 {
                     return Err(QueryError::new(
                         QueryErrorCode::InvalidRequest,
@@ -802,11 +882,13 @@ impl SourceDescendSession {
                 self.work.charge(
                     Charged {
                         bytes: page_bytes,
-                        cpu_steps: page.edges.len() as u64,
                         ..Charged::default()
                     },
                     self.budget,
                 )?;
+                for _ in &page.edges {
+                    self.work.step(self.budget)?;
+                }
                 scope.page = page.edges.into();
                 scope.page_exhausted = page.exhausted;
                 self.phase = SessionPhase::Advance;
@@ -881,11 +963,11 @@ impl SourceDescendSession {
                 self.work.charge(
                     Charged {
                         bytes: record.raw.len() as u64,
-                        cpu_steps: 1,
                         ..Charged::default()
                     },
                     self.budget,
                 )?;
+                self.work.step(self.budget)?;
                 let value = parse_record(&record, &self.binding, self.budget)?;
                 if value.as_str().is_none_or(str::is_empty) {
                     return Err(QueryError::new(
@@ -1100,11 +1182,11 @@ fn selected_digest(records: &[RawRecord]) -> Digest256 {
     digest.finalize()
 }
 
-impl DisclosableSourceDescend {
+impl<'hold> DisclosableSourceDescend<'hold> {
     pub fn recheck(&mut self) -> Result<(), QueryError> {
         self.lease.recheck()
     }
-    pub fn into_parts(self) -> (Vec<u8>, Box<dyn DisclosureLease>) {
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn DisclosureLease + 'hold>) {
         (self.body, self.lease)
     }
 }
@@ -1171,10 +1253,15 @@ struct Work {
     probes: u64,
     rows: u64,
     bytes: u64,
-    cpu_steps: u64,
+    backend_cpu_steps: u64,
+    logical_steps: u64,
 }
 
 impl Work {
+    fn total_steps(&self) -> Option<u64> {
+        self.backend_cpu_steps.checked_add(self.logical_steps)
+    }
+
     fn charge(&mut self, cost: Charged, budget: Budget) -> Result<(), QueryError> {
         self.probes = self.probes.checked_add(cost.probes).ok_or_else(|| {
             QueryError::new(
@@ -1194,16 +1281,35 @@ impl Work {
                 "source descent byte count overflow",
             )
         })?;
-        self.cpu_steps = self.cpu_steps.checked_add(cost.cpu_steps).ok_or_else(|| {
+        let backend_cpu_steps = match cost.cpu_meter {
+            CpuStepsMeter::LegacyV1 | CpuStepsMeter::Measured => cost.cpu_steps,
+            CpuStepsMeter::Unavailable if cost.cpu_steps == 0 => 0,
+            CpuStepsMeter::Unavailable => {
+                return Err(QueryError::new(
+                    QueryErrorCode::InvalidRequest,
+                    "unavailable backend CPU meter carries a value",
+                ));
+            }
+        };
+        self.backend_cpu_steps = self
+            .backend_cpu_steps
+            .checked_add(backend_cpu_steps)
+            .ok_or_else(|| {
+                QueryError::new(
+                    QueryErrorCode::BudgetExceeded,
+                    "source descent CPU count overflow",
+                )
+            })?;
+        let total_steps = self.total_steps().ok_or_else(|| {
             QueryError::new(
                 QueryErrorCode::BudgetExceeded,
-                "source descent CPU count overflow",
+                "source descent total work count overflow",
             )
         })?;
         if self.probes > budget.max_probes
             || self.rows > budget.max_rows
             || self.bytes > budget.max_bytes
-            || self.cpu_steps > budget.max_cpu_steps
+            || total_steps > budget.max_cpu_steps
         {
             return Err(QueryError::new(
                 QueryErrorCode::BudgetExceeded,
@@ -1214,13 +1320,22 @@ impl Work {
     }
 
     fn step(&mut self, budget: Budget) -> Result<(), QueryError> {
-        self.charge(
-            Charged {
-                cpu_steps: 1,
-                ..Charged::default()
-            },
-            budget,
-        )
+        self.logical_steps = self.logical_steps.checked_add(1).ok_or_else(|| {
+            QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent logical step count overflow",
+            )
+        })?;
+        if self
+            .total_steps()
+            .is_none_or(|total| total > budget.max_cpu_steps)
+        {
+            return Err(QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent logical work budget exceeded",
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -1272,7 +1387,9 @@ fn exact_node<M: ReadModel>(
             "source descent read budget exhausted",
         ));
     }
-    let max_vm_steps = budget.max_cpu_steps.saturating_sub(work.cpu_steps);
+    let max_vm_steps = budget
+        .max_cpu_steps
+        .saturating_sub(work.total_steps().unwrap_or(u64::MAX));
     if max_vm_steps == 0 {
         return Err(QueryError::new(
             QueryErrorCode::BudgetExceeded,
@@ -1296,10 +1413,10 @@ fn exact_node<M: ReadModel>(
                 .record
                 .as_ref()
                 .map_or(0, |record| record.raw.len() as u64),
-            cpu_steps: 1,
         },
         budget,
     )?;
+    work.step(budget)?;
     same_binding(&got.binding, binding)?;
     if !got.complete_unique_lookup {
         return Err(QueryError::new(
@@ -1410,8 +1527,8 @@ fn prepare_source_descend<M: ReadModel>(
             "selected read model has not published the requested commit",
         ));
     }
-    if binding.model_abi != "tos_source_navigation_read_model_v1"
-        || binding.selection_profile != "tos_source_navigation_visible_v1"
+    if binding.model_abi != SOURCE_NAVIGATION_MODEL_ABI
+        || binding.selection_profile != SOURCE_NAVIGATION_SELECTION_PROFILE
     {
         return Err(QueryError::new(
             QueryErrorCode::Unavailable,
@@ -1456,7 +1573,9 @@ fn prepare_source_descend<M: ReadModel>(
                     "source descent read budget exhausted",
                 ));
             }
-            let max_vm_steps = budget.max_cpu_steps.saturating_sub(work.cpu_steps);
+            let max_vm_steps = budget
+                .max_cpu_steps
+                .saturating_sub(work.total_steps().unwrap_or(u64::MAX));
             if max_vm_steps == 0 {
                 return Err(QueryError::new(
                     QueryErrorCode::BudgetExceeded,
@@ -1487,10 +1606,12 @@ fn prepare_source_descend<M: ReadModel>(
                     probes: 0,
                     rows: 0,
                     bytes: page_raw_bytes,
-                    cpu_steps: page.edges.len() as u64,
                 },
                 budget,
             )?;
+            for _ in &page.edges {
+                work.step(budget)?;
+            }
             same_binding(&page.binding, &binding)?;
             if page.from_id != current
                 || page.after_edge_id != after
@@ -1625,10 +1746,10 @@ fn prepare_source_descend<M: ReadModel>(
             probes: 1,
             rows: 1,
             bytes: authority.raw.len() as u64,
-            cpu_steps: 1,
         },
         budget,
     )?;
+    work.step(budget)?;
     let authority_value = parse_record(&authority, &binding, budget)?;
     if authority_value.as_str().is_none_or(str::is_empty) {
         return Err(QueryError::new(
@@ -1678,11 +1799,11 @@ fn prepare_source_descend<M: ReadModel>(
 /// Produce one staged packet and acquire a live owner disclosure lease before
 /// it can leave the private query core. The caller must keep the lease through
 /// the final synchronous write/flush and call `recheck` just before framing.
-pub fn source_descend<M: ReadModel>(
-    model: &mut M,
+pub fn source_descend<'hold, M: ReadModel>(
+    model: &'hold mut M,
     request: &SourceDescendRequest,
     budget: Budget,
-) -> Result<DisclosableSourceDescend, QueryError> {
+) -> Result<DisclosableSourceDescend<'hold>, QueryError> {
     let prepared = prepare_source_descend(model, request, budget)?;
     model.check_interrupt()?;
     model.check_pin(&prepared.binding)?;

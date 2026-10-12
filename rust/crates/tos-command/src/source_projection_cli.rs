@@ -21,8 +21,10 @@ pub const HELP: &str =
 Private connection: TOS_SOURCE_PG_URL, PostgreSQL 16, numeric TCP loopback.
 Selection: tos_source_projection_selection_v1; existing domain, exact source
 contract digest, consumer, private STO root and explicit store limits.
-Requests: init, apply, status, search, search-text, exact-source. Init installs derived tables only.
+Requests: init, apply, advance-navigation, status, queue-age, search, search-text, exact-source. Init installs derived tables only.
+Queue-age reports one selected consumer's oldest unprocessed sequence and persisted server-clock age; legacy timestamps remain unknown.
 Apply resumes the durable outbox cursor; search uses selected text token matching.
+Advance-navigation uses the protected source-navigation owner selection and leaves unsupported events pending.
 Profiles: tos_source_selected_text_v1 (direct fields),
 tos_source_selected_text_v2 (also bound Agent source-copy HumanForms).
 Source admission, external rights and public activation remain owner operations.
@@ -58,6 +60,10 @@ struct StoreLimits {
 enum Request {
     Init,
     Status,
+    QueueAge,
+    AdvanceNavigation {
+        max_events: usize,
+    },
     Apply {
         max_events: usize,
     },
@@ -329,13 +335,20 @@ fn read_request(input: impl Read) -> Result<Request, &'static str> {
 /// retain its disclosure transaction through the caller's final flush.
 pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static str> {
     let cancelled = AtomicBool::new(false);
-    let deadline = Instant::now() + Duration::from_secs(60);
     let selection_path = crate::source_text_owner::normalized_absolute(
         selection_path
             .to_str()
             .ok_or("selection path must be UTF-8")?,
     )
     .map_err(|_| "selection path must be absolute")?;
+    let request = read_request(input)?;
+    if let Request::AdvanceNavigation { max_events } = &request {
+        if !(1..=256).contains(max_events) {
+            return Err("max_events must be 1..256");
+        }
+        return crate::source_navigation_producer::run(&selection_path, *max_events, &cancelled);
+    }
+    let deadline = Instant::now() + Duration::from_secs(60);
     let selection_bytes = crate::source_text_owner::read_absolute(
         &selection_path,
         rustix::process::geteuid().as_raw(),
@@ -366,7 +379,6 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
         version,
         source_contract,
     };
-    let request = read_request(input)?;
     let mut client = connect_selected_source_pg16()?;
     let mut db = DurablePgCoordinator::from_configured_client(client);
     match request {
@@ -405,6 +417,24 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
             Ok(
                 json!({"schema_version":"tos_source_projection_status_v1", "profile":profile.id, "result":result}),
             )
+        }
+        Request::QueueAge => {
+            let result = db
+                .projection_queue_age(
+                    &selection.domain,
+                    consumer_id,
+                    &profile,
+                    Duration::from_secs(15),
+                )
+                .map_err(|_| "projection queue-age status refused")?;
+            Ok(json!({
+                "schema_version":"tos_source_projection_queue_age_v1",
+                "profile":profile.id,
+                "result":result
+            }))
+        }
+        Request::AdvanceNavigation { .. } => {
+            Err("advance-navigation requires its protected source-navigation route")
         }
         Request::Apply { max_events } => {
             if !(1..=256).contains(&max_events) {

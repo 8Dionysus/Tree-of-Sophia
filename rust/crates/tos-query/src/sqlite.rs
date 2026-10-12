@@ -15,7 +15,7 @@ use tos_foundation::Digest256;
 use crate::source_descend::json_string;
 use crate::{
     AdjacencyPage, Binding, Charged, DisclosureLease, ExactNode, QueryError, QueryErrorCode,
-    RawRecord, ReadModel,
+    RawRecord, ReadModel, SOURCE_NAVIGATION_MODEL_ABI, SOURCE_NAVIGATION_SELECTION_PROFILE,
 };
 use tos_compiler::{VerifiedSelectedModel, VerifiedSelection};
 
@@ -198,6 +198,16 @@ pub struct DisclosureScope {
 }
 
 impl DisclosureScope {
+    /// Verify the public metadata scope against the exact selected model
+    /// binding and its owner receipt before a native adapter can use it.
+    pub fn validate_for_selected_model(
+        &self,
+        binding: &Binding,
+        selected_model_receipt_id: &str,
+    ) -> Result<(), QueryError> {
+        self.validate(binding, selected_model_receipt_id)
+    }
+
     fn validate(
         &self,
         binding: &Binding,
@@ -581,8 +591,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
         if metadata(&values, "through_commit_seq")?.parse::<u64>().ok()
             != Some(binding.through_commit_seq)
             || metadata(&values, "complete")? != "true"
-            || binding.model_abi != "tos_source_navigation_read_model_v1"
-            || binding.selection_profile != "tos_source_navigation_visible_v1"
+            || binding.model_abi != SOURCE_NAVIGATION_MODEL_ABI
+            || binding.selection_profile != SOURCE_NAVIGATION_SELECTION_PROFILE
         {
             return Err(error(
                 QueryErrorCode::StaleSelection,
@@ -1047,7 +1057,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         &mut self,
         binding: &Binding,
         selected: &[RawRecord],
-    ) -> Result<Box<dyn DisclosureLease>, QueryError> {
+    ) -> Result<Box<dyn DisclosureLease + '_>, QueryError> {
         self.check_pin(binding)?;
         let source = self.pinned.source_disclosure()?;
         self.disclosure_scope

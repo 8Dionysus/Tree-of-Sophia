@@ -29,7 +29,7 @@ pub(crate) struct PublicTextAssembly {
 
 /// Assemble both immutable carriers only after the caller has authenticated
 /// the source, authority, identity inventory and current protected selection.
-fn assemble(
+pub(crate) fn assemble(
     config: &JsonValue,
     authority: &JsonValue,
     plan: &JsonValue,
@@ -136,7 +136,7 @@ use std::path::Path;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
-const FILES: [&str; 12] = [
+pub(crate) const FILES: [&str; 12] = [
     "source-text-layer.v1.json",
     "source-anchor.v2.json",
     "content.txt",
@@ -150,6 +150,140 @@ const FILES: [&str; 12] = [
     "source-create-provenance.jsonl",
     "source-create-receipt.json",
 ];
+
+pub(crate) fn public_text_member_role(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "source-text-layer.v1.json" => "text-layer",
+        "source-anchor.v2.json" => "text-anchor",
+        "content.txt" => "public-content",
+        "extraction-policy.json" => "extraction-policy",
+        "construction-plan.json" => "construction-plan",
+        "source-text-unit.v1.json" => "text-unit-packet",
+        "native-bindings.json" => "native-bindings",
+        "source-create-inputs.json" => "construction-inputs",
+        "source-create-request.json" => "construction-request",
+        "source-create-environment.json" => "construction-environment",
+        "source-create-provenance.jsonl" => "construction-provenance",
+        "source-create-receipt.json" => "package-receipt",
+        _ => return None,
+    })
+}
+
+pub(crate) fn public_text_package_home(source_path: &str) -> SourceCommandResult<String> {
+    let path = tos_foundation::RelativePath::parse(source_path)
+        .map_err(|_| SourceCommandError::Invalid("public Text package source path"))?;
+    let (home, member) = path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid(
+            "public Text package source path",
+        ))?;
+    if member != "source-text-unit.v1.json"
+        || !home.starts_with("ToS/source-witnesses/")
+        || home.split('/').any(|part| part == "owner-local")
+    {
+        return Err(SourceCommandError::Denied("public Text package owner path"));
+    }
+    Ok(home.to_owned())
+}
+
+/// Digest-only owner contribution for the mixed PG inventory. Each physical
+/// package member carries the same authenticated 12-member closure so the
+/// shared inventory can reject partial packages without copying public text.
+pub(crate) fn public_text_inventory_projection(
+    package_home: &str,
+    member_ref: &str,
+    files: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<JsonValue> {
+    use tos_foundation::RelativePath;
+
+    let home_path = RelativePath::parse(package_home)
+        .map_err(|_| SourceCommandError::Invalid("public Text inventory package home"))?;
+    if home_path.as_str() != package_home
+        || !package_home.starts_with("ToS/source-witnesses/")
+        || package_home.split('/').any(|part| part == "owner-local")
+    {
+        return Err(SourceCommandError::Denied(
+            "public Text inventory package home",
+        ));
+    }
+    if files.len() != FILES.len() || FILES.iter().any(|name| !files.contains_key(*name)) {
+        return Err(SourceCommandError::Conflict(
+            "public Text inventory package closure",
+        ));
+    }
+    let member_name = member_ref
+        .strip_prefix(package_home)
+        .and_then(|tail| tail.strip_prefix('/'))
+        .ok_or(SourceCommandError::Denied(
+            "public Text inventory member path",
+        ))?;
+    if RelativePath::parse(member_ref)
+        .map(|path| path.as_str() != member_ref)
+        .unwrap_or(true)
+    {
+        return Err(SourceCommandError::Denied(
+            "public Text inventory member path",
+        ));
+    }
+    let member_role = public_text_member_role(member_name).ok_or(SourceCommandError::Denied(
+        "public Text inventory member role",
+    ))?;
+    let member_raw = &files[member_name];
+    let layer_ref = format!("{package_home}/source-text-layer.v1.json");
+    let packet_ref = format!("{package_home}/source-text-unit.v1.json");
+    let bindings_ref = format!("{package_home}/native-bindings.json");
+    let manifest_ref = format!("{package_home}/source-create-receipt.json");
+    let layer = cmd::parse(&files["source-text-layer.v1.json"])?;
+    let packet = cmd::parse(&files["source-text-unit.v1.json"])?;
+    let bindings = cmd::parse(&files["native-bindings.json"])?;
+    let receipt = cmd::parse(&files["source-create-receipt.json"])?;
+    if cmd::text(&layer, "schema_version")? != "tos_source_text_layer_v1"
+        || cmd::text(&packet, "schema_version")? != "tos_source_text_unit_packet_v1"
+        || cmd::text(&bindings, "schema_version")? != "tos_native_unit_bindings_v1"
+        || cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
+        || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
+        || cmd::text(&receipt, "source_path")? != format!("{package_home}/source-text-unit.v1.json")
+    {
+        return Err(SourceCommandError::Conflict(
+            "public Text inventory owner binding",
+        ));
+    }
+    if cmd::array(&bindings, "bindings")?.is_empty() {
+        return Err(SourceCommandError::Conflict(
+            "public Text inventory bindings absent",
+        ));
+    }
+    let mut package_members = files
+        .iter()
+        .map(|(name, raw)| {
+            json!({
+                "ref":format!("{package_home}/{name}"),
+                "sha256":Digest256::of_bytes(raw).to_prefixed()
+            })
+        })
+        .collect::<Vec<_>>();
+    package_members.sort_by(|left, right| left["ref"].as_str().cmp(&right["ref"].as_str()));
+    let projection = json!({
+        "schema_version":"tos_managed_public_text_inventory_member_v1",
+        "package_home":package_home,
+        "member_ref":member_ref,
+        "member_role":member_role,
+        "member_sha256":Digest256::of_bytes(member_raw).to_prefixed(),
+        "package_manifest_ref":manifest_ref,
+        "package_manifest_sha256":Digest256::of_bytes(&files["source-create-receipt.json"]).to_prefixed(),
+        "package_members":package_members,
+        "layer_ref":layer_ref,
+        "layer_sha256":Digest256::of_bytes(&files["source-text-layer.v1.json"]).to_prefixed(),
+        "layer_id":cmd::field(&layer,"layer_id")?,
+        "packet_ref":packet_ref,
+        "packet_sha256":Digest256::of_bytes(&files["source-text-unit.v1.json"]).to_prefixed(),
+        "packet_id":cmd::field(&packet,"packet_id")?,
+        "bindings_ref":bindings_ref,
+        "bindings_sha256":Digest256::of_bytes(&files["native-bindings.json"]).to_prefixed()
+    });
+    foundation(&projection)
+}
 
 struct Reader<'a> {
     selection: &'a PublicNativeTextSelection,
@@ -197,14 +331,14 @@ impl SignNativeRead for Reader<'_> {
 }
 
 struct Prepared {
-    assembly: PublicTextAssembly,
+    assembly: &PublicTextAssembly,
     cache: PublicTextInputCache,
     dependencies: String,
     inventory: Digest256,
     software_rows: Vec<Value>,
     runtime: Digest256,
 }
-fn identities(config: &JsonValue) -> SourceCommandResult<Vec<String>> {
+pub(crate) fn identities(config: &JsonValue) -> SourceCommandResult<Vec<String>> {
     let ids = cmd::field(config, "identities")?;
     let mut result = Vec::new();
     for key in [
@@ -374,7 +508,7 @@ impl Prepared {
         Ok(())
     }
 }
-fn check_request(
+pub(crate) fn check_request(
     selection: &PublicNativeTextSelection,
     request: &JsonValue,
     dependencies: &str,
@@ -412,6 +546,249 @@ fn check_request(
     }
     Ok(())
 }
+
+/// Check exact retained request and package bytes against a freshly rebuilt
+/// authenticated semantic package. The caller owns how its source/readset was
+/// selected; this check owns the public Text replay contract.
+pub(crate) fn verify_retained_package(
+    selection: &PublicNativeTextSelection,
+    request: &JsonValue,
+    files: &BTreeMap<String, Vec<u8>>,
+    assembly: &PublicTextAssembly,
+    dependencies: &str,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, JsonValue)> {
+    if files.len() != FILES.len() || FILES.iter().any(|name| !files.contains_key(*name)) {
+        return Err(SourceCommandError::Conflict(
+            "public Text retained file closure",
+        ));
+    }
+    let receipt = cmd::parse(&files["source-create-receipt.json"])?;
+    cmd::exact_keys(
+        &receipt,
+        &[
+            "schema_version",
+            "command_id",
+            "request_digest",
+            "principal_id",
+            "authority_ref",
+            "owner_configuration",
+            "recorded_at",
+            "source_path",
+            "source",
+            "dependencies",
+            "files",
+            "grants_admission",
+        ],
+    )?;
+    check_request(selection, request, dependencies)?;
+    if cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
+        || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
+        || cmd::text(&receipt, "request_digest")?
+            != Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()
+        || cmd::field(&receipt, "principal_id")? != cmd::field(&selection.config, "principal_id")?
+        || cmd::field(&receipt, "authority_ref")? != cmd::field(&selection.config, "authority_ref")?
+        || cmd::text(&receipt, "owner_configuration")?
+            != selection.configuration_digest().to_prefixed()
+        || cmd::field(&receipt, "source_path")? != cmd::field(&selection.config, "source_path")?
+        || !cmd::same(
+            cmd::field(&receipt, "source")?,
+            &cmd::reference(&assembly.packet, "packet_id", "packet_version")?,
+        )?
+        || cmd::text(&receipt, "dependencies")? != dependencies
+        || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
+        || cmd::canonical(cmd::field(&receipt, "files")?)?
+            != cmd::canonical(&file_refs(
+                files
+                    .iter()
+                    .filter(|(name, _)| name.as_str() != "source-create-receipt.json"),
+            ))?
+        || cmd::canonical(&cmd::parse(&files["source-create-request.json"])?)?
+            != cmd::canonical(request)?
+        || assembly
+            .files
+            .iter()
+            .any(|(name, bytes)| files.get(name) != Some(bytes))
+    {
+        return Err(SourceCommandError::Conflict(
+            "public Text retained exact request or output",
+        ));
+    }
+    cmd::validate_instant(cmd::text(&receipt, "recorded_at")?)?;
+    if line(&receipt)? != files["source-create-receipt.json"] {
+        return Err(SourceCommandError::Conflict(
+            "public Text retained receipt bytes",
+        ));
+    }
+    let source_path = cmd::text(&selection.config, "source_path")?;
+    let home = source_path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("public Text retained home"))?
+        .0;
+    let mut rebuilt = assembly.files.clone();
+    crate::source_serialization::restore_public_project_text_capture(
+        request,
+        cmd::text(
+            cmd::field(&selection.config, "identities")?,
+            "provenance_event_id",
+        )?,
+        home,
+        &mut rebuilt,
+        files,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    let event = cmd::parse(&files["source-create-provenance.jsonl"])?;
+    if cmd::field(&event, "event_id")?
+        != cmd::field(
+            cmd::field(&selection.config, "identities")?,
+            "provenance_event_id",
+        )?
+        || cmd::text(
+            cmd::field(cmd::field(&event, "method")?, "procedure")?,
+            "name",
+        )? != "tos.project-authored.utf8-range.v1"
+    {
+        return Err(SourceCommandError::Conflict(
+            "public Text retained event identity or procedure",
+        ));
+    }
+    let decoded = value(&event)?;
+    if !tos_validation::provenance_rules::semantic_issues(&decoded, 128, deadline)
+        .map_err(|_| SourceCommandError::Invalid("public Text event semantics"))?
+        .is_empty()
+    {
+        return Err(SourceCommandError::Invalid("public Text event semantics"));
+    }
+    checked_schema(
+        worker,
+        "source-create-provenance.jsonl",
+        &files["source-create-provenance.jsonl"],
+        "ToS/contracts/provenance-event-v2.schema.json",
+        deadline,
+        cancelled,
+    )?;
+    Ok((receipt, assembly.bindings.clone()))
+}
+
+/// Complete the exact authenticated public Text package without publishing it.
+/// Both the filesystem owner and the PostgreSQL owner use this boundary so
+/// capture, receipt, and twelve-member closure semantics cannot drift between
+/// storage transports.
+pub(crate) struct PublicTextPackage {
+    pub(crate) files: BTreeMap<String, Vec<u8>>,
+    pub(crate) receipt: JsonValue,
+    pub(crate) bindings: JsonValue,
+    pub(crate) dependencies: String,
+}
+
+pub(crate) fn complete_package(
+    selection: &PublicNativeTextSelection,
+    request: &JsonValue,
+    assembly: &PublicTextAssembly,
+    input_files: &BTreeMap<String, Vec<u8>>,
+    dependencies: String,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    runtime_observation: &ExecutableObservation,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PublicTextPackage> {
+    let config = value(&selection.config)?;
+    let source_path = cmd::text(&selection.config, "source_path")?;
+    let home = source_path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("public Text home"))?
+        .0;
+    let started = instant()?;
+    let inputs = input_files
+        .iter()
+        .map(|(reference, raw)| {
+            json!({
+                "entity_ref":reference,
+                "role":"exact-public-construction-input",
+                "sha256":Digest256::of_bytes(raw).to_hex(),
+                "size_bytes":raw.len(),
+                "media_type":if reference==config["source"]["ref"].as_str().unwrap_or("") {
+                    config["source"]["media_type"].as_str().unwrap_or("application/octet-stream")
+                } else {
+                    "application/octet-stream"
+                },
+                "availability":"tracked",
+                "content_disclosure":"public_content",
+                "fixity_verified":true,
+                "fixity_verified_at":started
+            })
+        })
+        .collect();
+    let mut files = assembly.files.clone();
+    capture_public_project_text(
+        request,
+        cmd::text(
+            cmd::field(&selection.config, "identities")?,
+            "provenance_event_id",
+        )?,
+        home,
+        source_path,
+        cmd::field(&selection.config, "rights_record_refs")?,
+        &foundation(&config["publication_authority"])?,
+        inputs,
+        &mut files,
+        software,
+        components,
+        runtime_observation,
+        deadline,
+        cancelled,
+    )?;
+    checked_schema(
+        worker,
+        "source-create-provenance.jsonl",
+        &files["source-create-provenance.jsonl"],
+        "ToS/contracts/provenance-event-v2.schema.json",
+        deadline,
+        cancelled,
+    )?;
+    let receipt = foundation(&json!({
+        "schema_version":"tos_local_source_create_receipt_v1",
+        "command_id":cmd::field(request,"command_id")?,
+        "request_digest":Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed(),
+        "principal_id":config["principal_id"],
+        "authority_ref":config["authority_ref"],
+        "owner_configuration":selection.configuration_digest().to_prefixed(),
+        "recorded_at":instant()?,
+        "source_path":source_path,
+        "source":value(&cmd::reference(&assembly.packet,"packet_id","packet_version")?)?,
+        "dependencies":dependencies,
+        "files":value(&file_refs(files.iter()))?,
+        "grants_admission":false
+    }))?;
+    files.insert("source-create-receipt.json".into(), line(&receipt)?);
+    if files.len() != FILES.len()
+        || FILES.iter().any(|name| !files.contains_key(*name))
+        || files
+            .values()
+            .try_fold(0usize, |total, raw| total.checked_add(raw.len()))
+            .is_none_or(|total| total > 2 * 1024 * 1024)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "public Text complete package cap",
+        ));
+    }
+    Ok(PublicTextPackage {
+        files,
+        receipt,
+        bindings: assembly.bindings.clone(),
+        dependencies,
+    })
+}
+
 fn verify_retained(
     selection: &PublicNativeTextSelection,
     request: &JsonValue,
@@ -745,55 +1122,19 @@ pub(crate) fn run(
         cancelled,
     )?;
     check_request(selection, request, &p.dependencies)?;
-    let home = source_path
-        .rsplit_once('/')
-        .ok_or(SourceCommandError::Invalid("public Text home"))?
-        .0;
-    let started = instant()?;
-    let inputs=p.cache.files.iter().map(|(reference,raw)|json!({"entity_ref":reference,"role":"exact-public-construction-input","sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len(),"media_type":if reference==config["source"]["ref"].as_str().unwrap_or("") {config["source"]["media_type"].as_str().unwrap_or("application/octet-stream")} else {"application/octet-stream"},"availability":"tracked","content_disclosure":"public_content","fixity_verified":true,"fixity_verified_at":started})).collect();
-    capture_public_project_text(
+    let package = complete_package(
+        selection,
         request,
-        cmd::text(
-            cmd::field(&selection.config, "identities")?,
-            "provenance_event_id",
-        )?,
-        home,
-        source_path,
-        cmd::field(&selection.config, "rights_record_refs")?,
-        &foundation(&config["publication_authority"])?,
-        inputs,
-        &mut p.assembly.files,
+        &p.assembly,
+        &p.cache.files,
+        p.dependencies.clone(),
         software,
         components,
         runtime_observation,
-        deadline,
-        cancelled,
-    )?;
-    checked_schema(
         worker,
-        "source-create-provenance.jsonl",
-        &p.assembly.files["source-create-provenance.jsonl"],
-        "ToS/contracts/provenance-event-v2.schema.json",
         deadline,
         cancelled,
     )?;
-    let receipt = foundation(
-        &json!({"schema_version":"tos_local_source_create_receipt_v1","command_id":id,"request_digest":Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed(),"principal_id":config["principal_id"],"authority_ref":config["authority_ref"],"owner_configuration":configuration,"recorded_at":instant()?,"source_path":source_path,"source":value(&cmd::reference(&p.assembly.packet,"packet_id","packet_version")?)?,"dependencies":p.dependencies,"files":value(&file_refs(p.assembly.files.iter()))?,"grants_admission":false}),
-    )?;
-    p.assembly
-        .files
-        .insert("source-create-receipt.json".into(), line(&receipt)?);
-    if p.assembly.files.len() != FILES.len()
-        || p.assembly
-            .files
-            .values()
-            .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
-            .is_none_or(|n| n > 2 * 1024 * 1024)
-    {
-        return Err(SourceCommandError::Unsupported(
-            "public Text complete package cap",
-        ));
-    }
     p.current(
         selection,
         software,
@@ -808,7 +1149,7 @@ pub(crate) fn run(
         selection,
         source_path,
         request,
-        &p.assembly.files,
+        &package.files,
         || selection.verify_current(deadline, cancelled),
         || {
             p.current(
@@ -825,5 +1166,95 @@ pub(crate) fn run(
         deadline,
         cancelled,
     )?;
-    result(&receipt, &p.assembly.bindings, false)
+    result(&package.receipt, &package.bindings, false)
+}
+
+#[cfg(test)]
+mod pg_inventory_tests {
+    use super::*;
+
+    fn bytes(raw: &serde_json::Value) -> Vec<u8> {
+        serde_json::to_vec(raw).unwrap()
+    }
+
+    #[test]
+    fn pg_inventory_projection_binds_exact_public_text_closure() {
+        let home = "ToS/source-witnesses/works/tos.test";
+        let mut files = FILES
+            .iter()
+            .map(|name| (name.to_string(), b"{}".to_vec()))
+            .collect::<BTreeMap<_, _>>();
+        files.insert(
+            "source-text-layer.v1.json".into(),
+            bytes(&json!({
+                "schema_version":"tos_source_text_layer_v1",
+                "layer_id":"tos.textlayer.test"
+            })),
+        );
+        files.insert(
+            "source-text-unit.v1.json".into(),
+            bytes(&json!({
+                "schema_version":"tos_source_text_unit_packet_v1",
+                "packet_id":"tos.textunit.test"
+            })),
+        );
+        files.insert(
+            "native-bindings.json".into(),
+            bytes(&json!({
+                "schema_version":"tos_native_unit_bindings_v1",
+                "bindings":[{"id":"tos.binding.test"}]
+            })),
+        );
+        files.insert(
+            "source-create-receipt.json".into(),
+            bytes(&json!({
+                "schema_version":"tos_local_source_create_receipt_v1",
+                "source_path":format!("{home}/source-text-unit.v1.json"),
+                "grants_admission":false
+            })),
+        );
+
+        let projection =
+            public_text_inventory_projection(home, &format!("{home}/content.txt"), &files).unwrap();
+        cmd::exact_keys(
+            &projection,
+            &[
+                "schema_version",
+                "package_home",
+                "member_ref",
+                "member_role",
+                "member_sha256",
+                "package_manifest_ref",
+                "package_manifest_sha256",
+                "package_members",
+                "layer_ref",
+                "layer_sha256",
+                "layer_id",
+                "packet_ref",
+                "packet_sha256",
+                "packet_id",
+                "bindings_ref",
+                "bindings_sha256",
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            cmd::text(&projection, "member_role").unwrap(),
+            "public-content"
+        );
+        assert_eq!(
+            cmd::array(&projection, "package_members").unwrap().len(),
+            12
+        );
+
+        files.remove("content.txt");
+        assert!(
+            public_text_inventory_projection(
+                home,
+                &format!("{home}/source-create-inputs.json"),
+                &files,
+            )
+            .is_err()
+        );
+    }
 }

@@ -77,6 +77,21 @@ pub(crate) fn initial(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<String>> {
+    initial_with_schema(ctx, config, record, |refs, root, instance| {
+        revisions::schema(worker, deadline, cancelled, ctx, refs, root, instance)
+    })
+}
+
+/// Run the maintained Artifact identity, content-boundary, rights, discovery,
+/// and acquisition checks with the caller's selected schema authority. The
+/// PG route supplies its candidate-fenced schema executor here; the existing
+/// cut-backed route remains a thin adapter over the same owner semantics.
+pub(crate) fn initial_with_schema(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    record: &JsonValue,
+    mut validate_schema: impl FnMut(&[String], &str, &JsonValue) -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<String>> {
     let selected = cmd::field(config, "source_bindings")?;
     bindings(selected)?;
     let maker = cmd::object(vec![
@@ -128,15 +143,7 @@ pub(crate) fn initial(
             }
         }
     }
-    revisions::schema(
-        worker,
-        deadline,
-        cancelled,
-        ctx,
-        &[SCHEMA.into()],
-        SCHEMA,
-        record,
-    )?;
+    validate_schema(&[SCHEMA.into()], SCHEMA, record)?;
     let mut resources = vec![SCHEMA.into()];
     let mut inputs = Vec::new();
     for field in INPUTS {
@@ -164,15 +171,7 @@ pub(crate) fn initial(
                 "ToS/contracts/material-discovery-record.schema.json"
             };
             let value = cmd::parse(raw)?;
-            revisions::schema(
-                worker,
-                deadline,
-                cancelled,
-                ctx,
-                &[schema.into()],
-                schema,
-                &value,
-            )?;
+            validate_schema(&[schema.into()], schema, &value)?;
             resources.push(schema.into());
             inputs.push(value);
         }

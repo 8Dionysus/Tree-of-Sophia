@@ -31,6 +31,9 @@ pub mod durable_projection;
 #[path = "durable_compatibility.rs"]
 mod durable_compatibility;
 
+#[path = "durable_private_packages.rs"]
+pub(crate) mod durable_private_packages;
+
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
 const LAB_MAGIC: &[u8; 8] = b"CMD2LAB1";
@@ -433,6 +436,23 @@ pub struct DurableCommitReceipt {
     pub replayed: bool,
 }
 
+/// Current CMD-local rights snapshot. It describes this PostgreSQL domain
+/// only; it is not ToS publication, consent, or source-admission authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocalRightsSnapshot {
+    pub head_seq: u64,
+    pub rights_version: u64,
+    pub rights_allowed: bool,
+}
+
+/// Durable result of an owner-authorized CMD-local rights revocation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocalRightsRevokeReceipt {
+    pub commit_seq: u64,
+    pub rights_version: u64,
+    pub replayed: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AttemptResolution {
     Registered,
@@ -540,11 +560,11 @@ impl SelectedSourceGeneration {
             Self::Addressed(value) => value.digest,
         }
     }
-    fn log_frontier(&self) -> &Digest256Hasher {
+    fn log_frontier(&self) -> Option<&Digest256Hasher> {
         match self {
-            Self::Cold(value) => &value.cut.log_frontier.0,
-            Self::Warm(value) => &value.cut.log_frontier.0,
-            Self::Addressed(value) => &value.log_frontier.0,
+            Self::Cold(value) => Some(&value.cut.log_frontier.0),
+            Self::Warm(value) => Some(&value.cut.log_frontier.0),
+            Self::Addressed(value) => value.log_frontier.as_ref().map(|frontier| &frontier.0),
         }
     }
     pub(crate) fn through_seq(&self) -> u64 {
@@ -1091,17 +1111,17 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
 
 pub(crate) fn schema_profile_digest() -> Digest256 {
     let mut hasher = Digest256Hasher::new();
-    part(&mut hasher, b"cmd2-coordinator-schema-profile-v4");
+    part(&mut hasher, b"cmd2-coordinator-schema-profile-v6");
     part(
         &mut hasher,
-        durable_compatibility::DURABLE_SCHEMA_ABI_PROFILE_V1,
+        durable_compatibility::DURABLE_SCHEMA_ABI_PROFILE_V5,
     );
     part(&mut hasher, COLD_AUDIT_PROFILE);
     part(&mut hasher, RECEIPT_PROFILE);
     hasher.finalize()
 }
 
-const METADATA_TABLES: [(&str, &str); 11] = [
+const METADATA_TABLES: [(&str, &str); 17] = [
     ("cmd2_job", "job_id"),
     ("cmd2_predicate", "kind,owner,scope,token"),
     ("cmd2_attempt", "prepare_id"),
@@ -1113,6 +1133,21 @@ const METADATA_TABLES: [(&str, &str); 11] = [
     ("cmd2_outbox", "commit_seq"),
     ("cmd2_source_index", "kind,token,path"),
     ("cmd2_source_inventory_projection", "subject,effective_seq"),
+    ("cmd2_source_publication_current", "publication_generation"),
+    ("cmd2_source_publication_history", "publication_generation"),
+    (
+        "cmd2_source_text_identity",
+        "token COLLATE \"C\",path COLLATE \"C\"",
+    ),
+    (
+        "cmd2_source_annotation_identity",
+        "token COLLATE \"C\",path COLLATE \"C\"",
+    ),
+    ("cmd2_source_claim_dependency", "claim_id COLLATE \"C\""),
+    (
+        "cmd2_source_item_file_assignment",
+        "manifest_path COLLATE \"C\",payload_ordinal",
+    ),
 ];
 fn admit_private_metadata(
     tx: &mut Transaction<'_>,
@@ -1165,6 +1200,10 @@ fn append_private_metadata(
     requested: Option<(Instant, &AtomicBool)>,
     profile: Option<StreamedGenerationProfile>,
 ) -> DurableResult<()> {
+    // `row_to_json` renders timestamptz in the session timezone. The outbox
+    // enqueue clock is part of the cold metadata digest, so bind it in a
+    // canonical UTC representation across backup and restore sessions.
+    tx.batch_execute("SET LOCAL TIME ZONE 'UTC'")?;
     let mut audited_rows = 0usize;
     let mut audited_metadata_bytes = 0usize;
     for (table, order) in METADATA_TABLES {
@@ -1249,11 +1288,28 @@ fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool
                ('cmd2_domain'),('cmd2_audit_fence'),('cmd2_job'),('cmd2_predicate'),
                ('cmd2_attempt'),('cmd2_source_index'),('cmd2_member'),('cmd2_current'),
                ('cmd2_history'),('cmd2_receipt'),('cmd2_log'),
-               ('cmd2_source_inventory_projection'),('cmd2_outbox')),
+               ('cmd2_source_inventory_projection'),('cmd2_outbox'),
+               ('cmd2_source_text_identity'),
+               ('cmd2_source_claim_dependency'),
+               ('cmd2_source_item_file_assignment'),
+               ('cmd2_source_publication_current'),('cmd2_source_publication_history'),
+               ('cmd2_source_navigation_policy_current'),('cmd2_source_navigation_policy_history')),
              required_indexes(name) AS (VALUES
                ('cmd2_current_source_cold_seek'),('cmd2_current_source_subject_c_seek'),
                ('cmd2_source_index_cold_seek'),('cmd2_source_index_path_semantic_seek'),
-               ('cmd2_predicate_source_cold_seek')),
+               ('cmd2_predicate_source_cold_seek'),
+               ('cmd2_source_text_identity_token_seek'),
+               ('cmd2_source_text_identity_path_seek'),
+               ('cmd2_source_claim_dependency_subject_seek'),
+               ('cmd2_source_claim_dependency_object_seek'),
+               ('cmd2_source_claim_dependency_path_seek'),
+               ('cmd2_source_item_file_assignment_file_seek'),
+               ('cmd2_source_item_file_assignment_manifest_seek'),
+               ('cmd2_source_item_file_assignment_item_seek'),
+               ('cmd2_source_item_file_assignment_rights_seek'),
+               ('cmd2_source_item_file_assignment_edition_seek'),
+               ('cmd2_source_publication_history_transaction_seek'),
+               ('cmd2_outbox_domain_commit_seq_key')),
              required_functions(name) AS (VALUES
                ('cmd2_register_audit_domain'),('cmd2_bump_audit_fence'),
                ('cmd2_refuse_audited_truncate'),('cmd2_fence_maintenance_transition'),
@@ -1273,24 +1329,69 @@ fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool
                ('cmd2_audit_cmd2_outbox'),('cmd2_refuse_cmd2_outbox_truncate'),
                ('cmd2_audit_cmd2_source_index'),('cmd2_refuse_cmd2_source_index_truncate'),
                ('cmd2_audit_cmd2_source_inventory_projection'),
-               ('cmd2_refuse_cmd2_source_inventory_projection_truncate'))
+               ('cmd2_refuse_cmd2_source_inventory_projection_truncate'),
+               ('cmd2_audit_cmd2_source_text_identity'),
+               ('cmd2_refuse_cmd2_source_text_identity_truncate'),
+               ('cmd2_audit_cmd2_source_claim_dependency'),
+               ('cmd2_refuse_cmd2_source_claim_dependency_truncate'),
+               ('cmd2_audit_cmd2_source_item_file_assignment'),
+               ('cmd2_refuse_cmd2_source_item_file_assignment_truncate'),
+               ('cmd2_audit_cmd2_source_publication_current'),
+               ('cmd2_refuse_cmd2_source_publication_current_truncate'),
+               ('cmd2_audit_cmd2_source_publication_history'),
+               ('cmd2_refuse_cmd2_source_publication_history_truncate'),
+               ('cmd2_refuse_cmd2_source_navigation_policy_current_truncate'),
+               ('cmd2_refuse_cmd2_source_navigation_policy_history_truncate'))
              SELECT
-               (SELECT count(*)=13 FROM required_tables r JOIN pg_class c
+               (SELECT count(*)=20 FROM required_tables r JOIN pg_class c
                  ON c.relname=r.name AND c.relkind IN ('r','p')
                 JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname=current_schema())
-               AND (SELECT count(*)=5 FROM required_indexes r JOIN pg_class c
+               AND (SELECT count(*)=17 FROM required_indexes r JOIN pg_class c
                  ON c.relname=r.name AND c.relkind='i'
                 JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname=current_schema())
                AND (SELECT count(*)=5 FROM required_functions r JOIN pg_proc p
                  ON p.proname=r.name JOIN pg_namespace n ON n.oid=p.pronamespace
                 WHERE n.nspname=current_schema())
-               AND (SELECT count(*)=27 FROM required_triggers r JOIN pg_trigger t
+               AND (SELECT count(*)=39 FROM required_triggers r JOIN pg_trigger t
                  ON t.tgname=r.name AND NOT t.tgisinternal
                 JOIN pg_class c ON c.oid=t.tgrelid
                 JOIN pg_namespace n ON n.oid=c.relnamespace
-                WHERE n.nspname=current_schema())",
+                WHERE n.nspname=current_schema())
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_outbox'))
+                   AND a.attname='enqueued_at' AND a.atttypid='timestamptz'::regtype
+                   AND NOT a.attnotnull AND NOT a.attisdropped
+                   AND pg_get_expr(d.adbin,d.adrelid)='clock_timestamp()'
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_constraint c
+                 WHERE c.conrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_outbox'))
+                   AND c.conname='cmd2_outbox_enqueued_at_finite'
+                   AND pg_get_constraintdef(c.oid) LIKE '%isfinite(enqueued_at)%'
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_constraint c
+                 WHERE c.conrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_outbox'))
+                   AND c.conname='cmd2_outbox_domain_commit_seq_key'
+                   AND c.contype='u'
+                   AND pg_get_constraintdef(c.oid)='UNIQUE (domain, commit_seq)'
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_source_item_file_assignment'))
+                   AND a.attname='edition_id' AND a.atttypid='text'::regtype
+                   AND a.attnotnull AND NOT a.attisdropped
+               )
+               AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid=to_regclass(format('%I.%I',current_schema(),'cmd2_attempt'))
+                   AND a.attname='source_publication_package' AND a.atttypid='bytea'::regtype
+                   AND NOT a.attisdropped
+               )",
             &[],
         )?
         .get(0);
@@ -1327,6 +1428,8 @@ impl DurablePgCoordinator {
     pub fn init_lab_schema(&mut self) -> DurableResult<()> {
         self.client
             .batch_execute(include_str!("durable_schema.sql"))?;
+        self.client
+            .batch_execute(include_str!("durable_private_packages.sql"))?;
         Ok(())
     }
 
@@ -1362,6 +1465,7 @@ impl DurablePgCoordinator {
             ));
         }
         tx.batch_execute(include_str!("durable_schema.sql"))?;
+        tx.batch_execute(include_str!("durable_private_packages.sql"))?;
         tx.commit()?;
         Ok(())
     }
@@ -1379,6 +1483,12 @@ impl DurablePgCoordinator {
             ));
         }
         Ok(())
+    }
+
+    /// Require the separately versioned owner-private flat-package ABI.
+    /// Public projection compatibility remains independent of this profile.
+    pub fn require_compatible_private_package_schema(&mut self) -> DurableResult<()> {
+        durable_private_packages::require_compatible_private_package_schema(&mut self.client)
     }
 
     pub(crate) fn provision_work_revision_schema(
@@ -2002,7 +2112,8 @@ impl DurablePgCoordinator {
         )?;
         let event_id = format!("{}:{seq}", request.domain);
         tx.execute(
-            "INSERT INTO cmd2_outbox(domain,commit_seq,event_id) VALUES($1,$2,$3)",
+            "INSERT INTO cmd2_outbox(domain,commit_seq,event_id,enqueued_at)
+             VALUES($1,$2,$3,clock_timestamp())",
             &[&request.domain, &seq_db, &event_id],
         )?;
         tx.execute(
@@ -2198,6 +2309,478 @@ impl DurablePgCoordinator {
         Ok(CancelOutcome::Cancelled { pin_fenced })
     }
 
+    /// Read one stable current CMD-local rights snapshot under the same lock
+    /// order used by coordinator writers. This is scoped to `domain` and is
+    /// not a ToS rights or publication decision.
+    pub fn local_rights_snapshot(&mut self, domain: &str) -> DurableResult<LocalRightsSnapshot> {
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::ReadCommitted)
+            .start()?;
+        let audit = tx
+            .query_opt(
+                "SELECT maintenance_state FROM cmd2_audit_fence
+                 WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?
+            .ok_or(DurableError::Corrupt("domain audit fence absent"))?;
+        if audit.get::<_, String>(0) != "normal" {
+            return Err(DurableError::Refused("physical maintenance in progress"));
+        }
+        let row = tx
+            .query_opt(
+                "SELECT head_seq,rights_version,rights_allowed
+                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                &[&domain],
+            )?
+            .ok_or(DurableError::Refused("selected CMD domain absent"))?;
+        let snapshot = LocalRightsSnapshot {
+            head_seq: as_u64(row.get(0))?,
+            rights_version: as_u64(row.get(1))?,
+            rights_allowed: row.get(2),
+        };
+        tx.commit()?;
+        Ok(snapshot)
+    }
+
+    /// Install or withdraw one explicit public-metadata navigation policy
+    /// under the normal audit -> domain -> consumer lock order. This state is
+    /// independent of CMD Item/source rights and never affects their bit.
+    pub fn change_source_navigation_policy_v1(
+        &mut self,
+        mutation: &crate::source_navigation_policy::SourceNavigationPolicyMutationV1<'_>,
+        owner_check: impl FnOnce() -> DurableResult<()>,
+    ) -> DurableResult<crate::source_navigation_policy::SourceNavigationPolicyMutationReceiptV1>
+    {
+        use crate::source_navigation_policy::SourceNavigationPolicyOperationV1 as Operation;
+
+        if mutation.domain.is_empty()
+            || mutation.domain.len() > 1_024
+            || mutation.domain.contains('\0')
+        {
+            return Err(DurableError::Invalid("source navigation policy domain"));
+        }
+        if mutation.consumer_id.is_empty()
+            || mutation.consumer_id.len() > 256
+            || mutation.consumer_id.contains('\0')
+        {
+            return Err(DurableError::Invalid("source navigation policy consumer"));
+        }
+        if mutation.command_id.is_empty()
+            || mutation.command_id.len() > 256
+            || mutation.command_id.contains('\0')
+        {
+            return Err(DurableError::Invalid("source navigation policy command"));
+        }
+        mutation
+            .receipt
+            .validate()
+            .map_err(|_| DurableError::Invalid("source navigation policy receipt"))?;
+        if mutation
+            .expected_policy_version
+            .is_some_and(|version| version > i64::MAX as u64)
+        {
+            return Err(DurableError::Invalid(
+                "source navigation policy expected version",
+            ));
+        }
+
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::ReadCommitted)
+            .start()?;
+        lock_audit_fence(&mut tx, mutation.domain)?;
+        tx.query_opt(
+            "SELECT 1 FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+            &[&mutation.domain],
+        )?
+        .ok_or(DurableError::Refused("selected CMD domain absent"))?;
+        let current = tx.query_opt(
+            "SELECT policy_issuer_ref,policy_receipt_id,export_receipt_id,model_receipt_id,
+                    carrier_layer,intended_use,model_abi,selection_profile,policy_epoch,
+                    withdrawal_generation,policy_version,allowed,receipt_sha256,
+                    owner_configuration_sha256
+             FROM cmd2_source_navigation_policy_current
+             WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
+            &[&mutation.domain, &mutation.consumer_id],
+        )?;
+        if let Some(history) = tx.query_opt(
+            "SELECT operation,request_sha256,policy_version,withdrawal_generation,allowed
+             FROM cmd2_source_navigation_policy_history
+             WHERE domain=$1 AND consumer_id=$2 AND command_id=$3",
+            &[
+                &mutation.domain,
+                &mutation.consumer_id,
+                &mutation.command_id,
+            ],
+        )? {
+            if history.get::<_, String>(0) != mutation.operation.as_str()
+                || history.get::<_, String>(1).trim_end() != mutation.request_sha256.to_hex()
+            {
+                return Err(DurableError::Conflict(
+                    "source navigation policy command ID reused with different request",
+                ));
+            }
+            let current_version = current
+                .as_ref()
+                .map(|row| as_u64(row.get::<_, i64>(10)))
+                .transpose()?
+                .ok_or(DurableError::Corrupt(
+                    "source navigation policy history lacks current row",
+                ))?;
+            let policy_version = as_u64(history.get::<_, i64>(2))?;
+            if policy_version > current_version {
+                return Err(DurableError::Corrupt(
+                    "source navigation policy replay is ahead of current row",
+                ));
+            }
+            owner_check()?;
+            tx.commit()?;
+            return Ok(
+                crate::source_navigation_policy::SourceNavigationPolicyMutationReceiptV1 {
+                    policy_version,
+                    withdrawal_generation: as_u64(history.get::<_, i64>(3))?,
+                    allowed: history.get(4),
+                    replayed: true,
+                },
+            );
+        }
+
+        let receipt = mutation.receipt;
+        let expected = mutation.expected_policy_version;
+        let (policy_version, withdrawal_generation, allowed) =
+            match (mutation.operation, current.as_ref(), expected) {
+                (Operation::Install, None, None) => {
+                    if receipt.withdrawal_generation != 0 {
+                        return Err(DurableError::Conflict(
+                            "source navigation policy initial withdrawal generation differs",
+                        ));
+                    }
+                    (1, 0, true)
+                }
+                (Operation::Install, Some(row), Some(expected_version)) => {
+                    let current_version = as_u64(row.get::<_, i64>(10))?;
+                    let current_epoch = as_u64(row.get::<_, i64>(8))?;
+                    let current_withdrawal = as_u64(row.get::<_, i64>(9))?;
+                    if current_version != expected_version
+                        || receipt.withdrawal_generation != current_withdrawal
+                        || receipt.policy_epoch <= current_epoch
+                    {
+                        return Err(DurableError::Conflict(
+                            "source navigation policy changed or receipt epoch is stale",
+                        ));
+                    }
+                    (
+                        current_version
+                            .checked_add(1)
+                            .filter(|version| *version <= i64::MAX as u64)
+                            .ok_or(DurableError::Invalid(
+                                "source navigation policy version overflow",
+                            ))?,
+                        current_withdrawal,
+                        true,
+                    )
+                }
+                (Operation::Revoke, Some(row), Some(expected_version)) => {
+                    let current_version = as_u64(row.get::<_, i64>(10))?;
+                    let current_withdrawal = as_u64(row.get::<_, i64>(9))?;
+                    let row_text =
+                        |column: usize| row.get::<_, String>(column).trim_end().to_owned();
+                    let receipt_matches = row_text(0) == receipt.issuer_ref
+                        && row_text(1) == receipt.receipt_id
+                        && row_text(2) == receipt.export_receipt_id
+                        && row_text(3) == receipt.model_receipt_id
+                        && row_text(4) == receipt.carrier_layer
+                        && row_text(5) == receipt.intended_use
+                        && row_text(6) == receipt.model_abi
+                        && row_text(7) == receipt.selection_profile
+                        && as_u64(row.get::<_, i64>(8))? == receipt.policy_epoch
+                        && current_withdrawal == receipt.withdrawal_generation
+                        && row_text(12) == mutation.receipt_sha256.to_hex()
+                        && row_text(13) == mutation.owner_configuration_sha256.to_hex();
+                    if current_version != expected_version
+                        || !row.get::<_, bool>(11)
+                        || !receipt_matches
+                    {
+                        return Err(DurableError::Conflict(
+                            "source navigation policy cannot be revoked from this receipt",
+                        ));
+                    }
+                    (
+                        current_version
+                            .checked_add(1)
+                            .filter(|version| *version <= i64::MAX as u64)
+                            .ok_or(DurableError::Invalid(
+                                "source navigation policy version overflow",
+                            ))?,
+                        current_withdrawal
+                            .checked_add(1)
+                            .filter(|generation| *generation <= i64::MAX as u64)
+                            .ok_or(DurableError::Invalid(
+                                "source navigation withdrawal generation overflow",
+                            ))?,
+                        false,
+                    )
+                }
+                (Operation::Install, None, Some(_))
+                | (Operation::Install, Some(_), None)
+                | (Operation::Revoke, None, _)
+                | (Operation::Revoke, Some(_), None) => {
+                    return Err(DurableError::Conflict(
+                        "source navigation policy expected version does not match state",
+                    ));
+                }
+            };
+
+        let issuer = &receipt.issuer_ref;
+        let receipt_id = &receipt.receipt_id;
+        let export_id = &receipt.export_receipt_id;
+        let model_id = &receipt.model_receipt_id;
+        let carrier_layer = &receipt.carrier_layer;
+        let intended_use = &receipt.intended_use;
+        let model_abi = &receipt.model_abi;
+        let selection_profile = &receipt.selection_profile;
+        let policy_epoch = as_i64(receipt.policy_epoch)?;
+        let policy_version_i64 = as_i64(policy_version)?;
+        let withdrawal_i64 = as_i64(withdrawal_generation)?;
+        let receipt_sha256 = mutation.receipt_sha256.to_hex();
+        let owner_sha256 = mutation.owner_configuration_sha256.to_hex();
+        if current.is_some() {
+            tx.execute(
+                "UPDATE cmd2_source_navigation_policy_current
+                 SET policy_issuer_ref=$3,policy_receipt_id=$4,export_receipt_id=$5,
+                     model_receipt_id=$6,carrier_layer=$7,intended_use=$8,model_abi=$9,
+                     selection_profile=$10,policy_epoch=$11,withdrawal_generation=$12,
+                     policy_version=$13,allowed=$14,receipt_sha256=$15,
+                     owner_configuration_sha256=$16
+                 WHERE domain=$1 AND consumer_id=$2",
+                &[
+                    &mutation.domain,
+                    &mutation.consumer_id,
+                    issuer,
+                    receipt_id,
+                    export_id,
+                    model_id,
+                    carrier_layer,
+                    intended_use,
+                    model_abi,
+                    selection_profile,
+                    &policy_epoch,
+                    &withdrawal_i64,
+                    &policy_version_i64,
+                    &allowed,
+                    &receipt_sha256,
+                    &owner_sha256,
+                ],
+            )?;
+        } else {
+            tx.execute(
+                "INSERT INTO cmd2_source_navigation_policy_current(
+                    domain,consumer_id,policy_issuer_ref,policy_receipt_id,export_receipt_id,
+                    model_receipt_id,carrier_layer,intended_use,model_abi,selection_profile,
+                    policy_epoch,withdrawal_generation,policy_version,allowed,receipt_sha256,
+                    owner_configuration_sha256)
+                 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)",
+                &[
+                    &mutation.domain,
+                    &mutation.consumer_id,
+                    issuer,
+                    receipt_id,
+                    export_id,
+                    model_id,
+                    carrier_layer,
+                    intended_use,
+                    model_abi,
+                    selection_profile,
+                    &policy_epoch,
+                    &withdrawal_i64,
+                    &policy_version_i64,
+                    &allowed,
+                    &receipt_sha256,
+                    &owner_sha256,
+                ],
+            )?;
+        }
+        tx.execute(
+            "INSERT INTO cmd2_source_navigation_policy_history(
+                domain,consumer_id,policy_version,command_id,operation,request_sha256,
+                policy_issuer_ref,policy_receipt_id,export_receipt_id,model_receipt_id,
+                carrier_layer,intended_use,model_abi,selection_profile,policy_epoch,
+                withdrawal_generation,allowed,receipt_sha256,owner_configuration_sha256)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)",
+            &[
+                &mutation.domain,
+                &mutation.consumer_id,
+                &policy_version_i64,
+                &mutation.command_id,
+                &mutation.operation.as_str(),
+                &mutation.request_sha256.to_hex(),
+                issuer,
+                receipt_id,
+                export_id,
+                model_id,
+                carrier_layer,
+                intended_use,
+                model_abi,
+                selection_profile,
+                &policy_epoch,
+                &withdrawal_i64,
+                &allowed,
+                &receipt_sha256,
+                &owner_sha256,
+            ],
+        )?;
+        owner_check()?;
+        tx.commit()?;
+        Ok(
+            crate::source_navigation_policy::SourceNavigationPolicyMutationReceiptV1 {
+                policy_version,
+                withdrawal_generation,
+                allowed,
+                replayed: false,
+            },
+        )
+    }
+
+    /// Revoke this domain's CMD-local rights under a stable caller command ID.
+    /// An exact retry resolves from the immutable log before the current-rights
+    /// denial check, so a lost response is recoverable without a grant path.
+    pub fn revoke_local_command(
+        &mut self,
+        domain: &str,
+        command_id: &str,
+        expected_rights_version: u64,
+        request_digest: Digest256,
+        owner_check: impl FnOnce() -> DurableResult<()>,
+    ) -> DurableResult<LocalRightsRevokeReceipt> {
+        if domain.is_empty() || domain.len() > 1_024 || domain.contains('\0') {
+            return Err(DurableError::Invalid("CMD local rights domain"));
+        }
+        if command_id.is_empty() || command_id.len() > 256 || command_id.contains('\0') {
+            return Err(DurableError::Invalid("CMD local rights command identity"));
+        }
+        if expected_rights_version > i64::MAX as u64 {
+            return Err(DurableError::Invalid("CMD local rights version"));
+        }
+        let next_rights_version = expected_rights_version
+            .checked_add(1)
+            .filter(|version| *version <= i64::MAX as u64)
+            .ok_or(DurableError::Invalid("CMD local rights version overflow"))?;
+        let command_key = format!("local-rights-revoke-v1:{command_id}");
+        let empty = Digest256::of_bytes(b"").to_hex();
+        let request_hex = request_digest.to_hex();
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::ReadCommitted)
+            .start()?;
+        lock_audit_fence(&mut tx, domain)?;
+        let domain_row = tx
+            .query_opt(
+                "SELECT head_seq,rights_version,rights_allowed
+                 FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+                &[&domain],
+            )?
+            .ok_or(DurableError::Refused("selected CMD domain absent"))?;
+        let head_seq = as_u64(domain_row.get::<_, i64>(0))?;
+        let current_rights_version = as_u64(domain_row.get::<_, i64>(1))?;
+        let rights_allowed: bool = domain_row.get(2);
+
+        if let Some(log) = tx.query_opt(
+            "SELECT commit_seq,delta_digest,members_root FROM cmd2_log
+             WHERE domain=$1 AND event_kind='rights' AND command_id=$2",
+            &[&domain, &command_key],
+        )? {
+            let commit_seq = as_u64(log.get::<_, i64>(0))?;
+            let expected_event_id = format!("rights.revoke:{commit_seq}");
+            let outbox_event = tx
+                .query_opt(
+                    "SELECT event_id FROM cmd2_outbox WHERE domain=$1 AND commit_seq=$2",
+                    &[&domain, &as_i64(commit_seq)?],
+                )?
+                .map(|row| row.get::<_, String>(0));
+            if commit_seq > head_seq
+                || log.get::<_, String>(2) != empty
+                || outbox_event.as_deref() != Some(expected_event_id.as_str())
+            {
+                return Err(DurableError::Corrupt(
+                    "CMD local rights replay evidence differs",
+                ));
+            }
+            if log.get::<_, String>(1) != request_hex {
+                return Err(DurableError::Conflict(
+                    "CMD local rights command ID reused with different request",
+                ));
+            }
+            if current_rights_version < next_rights_version {
+                return Err(DurableError::Corrupt(
+                    "CMD local rights replay evidence differs",
+                ));
+            }
+            owner_check()?;
+            tx.commit()?;
+            return Ok(LocalRightsRevokeReceipt {
+                commit_seq,
+                rights_version: next_rights_version,
+                replayed: true,
+            });
+        }
+
+        if !rights_allowed {
+            return Err(DurableError::Refused("current CMD local rights revoked"));
+        }
+        if current_rights_version != expected_rights_version {
+            return Err(DurableError::Conflict("current CMD local rights changed"));
+        }
+        let commit_seq = head_seq
+            .checked_add(1)
+            .filter(|sequence| *sequence <= i64::MAX as u64)
+            .ok_or(DurableError::Invalid("CMD local rights sequence overflow"))?;
+        let changed = tx.execute(
+            "UPDATE cmd2_domain
+             SET head_seq=$2,rights_version=$3,rights_allowed=false
+             WHERE domain=$1 AND head_seq=$4 AND rights_version=$5 AND rights_allowed=true",
+            &[
+                &domain,
+                &as_i64(commit_seq)?,
+                &as_i64(next_rights_version)?,
+                &as_i64(head_seq)?,
+                &as_i64(expected_rights_version)?,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(DurableError::Conflict("current CMD local rights changed"));
+        }
+        tx.execute(
+            "INSERT INTO cmd2_log(domain,commit_seq,event_kind,command_id,delta_digest,members_root)
+             VALUES($1,$2,'rights',$3,$4,$5)",
+            &[
+                &domain,
+                &as_i64(commit_seq)?,
+                &command_key,
+                &request_hex,
+                &empty,
+            ],
+        )?;
+        let event_id = format!("rights.revoke:{commit_seq}");
+        tx.execute(
+            "INSERT INTO cmd2_outbox(domain,commit_seq,event_id,enqueued_at)
+             VALUES($1,$2,$3,clock_timestamp())",
+            &[&domain, &as_i64(commit_seq)?, &event_id],
+        )?;
+        owner_check()?;
+        tx.commit()?;
+        Ok(LocalRightsRevokeReceipt {
+            commit_seq,
+            rights_version: next_rights_version,
+            replayed: false,
+        })
+    }
+
+    /// Lower-level laboratory helper retained for mechanical adapter tests.
+    /// User-facing owners must use the protected native command route.
     pub fn revoke_local(&mut self, domain: &str) -> DurableResult<u64> {
         let mut tx = self
             .client
@@ -2235,7 +2818,8 @@ impl DurablePgCoordinator {
             &[&domain, &as_i64(seq)?, &event_id, &empty],
         )?;
         tx.execute(
-            "INSERT INTO cmd2_outbox(domain,commit_seq,event_id) VALUES($1,$2,$3)",
+            "INSERT INTO cmd2_outbox(domain,commit_seq,event_id,enqueued_at)
+             VALUES($1,$2,$3,clock_timestamp())",
             &[&domain, &as_i64(seq)?, &event_id],
         )?;
         tx.commit()?;
@@ -2612,7 +3196,7 @@ impl DurablePgCoordinator {
         domain: &str,
         requested: Option<(Instant, &AtomicBool)>,
     ) -> DurableResult<ColdCut> {
-        self.cold_verify_cut_inner(store, domain, requested, None)
+        self.cold_verify_cut_inner(store, domain, requested, None, None)
     }
 
     /// Explicit disk-backed complete-cut profile. The caller owns workspace
@@ -2633,6 +3217,7 @@ impl DurablePgCoordinator {
             domain,
             Some((deadline, cancelled)),
             Some((workspace, profile)),
+            None,
         )
     }
 
@@ -2642,6 +3227,7 @@ impl DurablePgCoordinator {
         domain: &str,
         requested: Option<(Instant, &AtomicBool)>,
         streamed: Option<(&PrivateGenerationWorkspace, StreamedGenerationProfile)>,
+        state_digest_database_oid: Option<u64>,
     ) -> DurableResult<ColdCut> {
         let profile = streamed.map(|(_, profile)| profile);
         if store.custody_domain() != domain.as_bytes() {
@@ -2715,6 +3301,12 @@ impl DurablePgCoordinator {
         let head = as_u64(domain_row.get::<_, i64>(0))?;
         let audit_generation = as_u64(domain_row.get::<_, i64>(2))?;
         let database_oid = database_oid(&mut tx)?;
+        let state_digest_database_oid = state_digest_database_oid.unwrap_or(database_oid);
+        if state_digest_database_oid == 0 {
+            return Err(DurableError::Corrupt(
+                "cold state database identity is zero",
+            ));
+        }
         if head > profile.map_or(MAX_CUT, |p| p.max_commit_seq) {
             return Err(DurableError::Refused("cold cut exceeds laboratory budget"));
         }
@@ -2734,7 +3326,7 @@ impl DurablePgCoordinator {
         part(&mut state_hasher, COLD_AUDIT_PROFILE);
         part(&mut state_hasher, domain.as_bytes());
         part(&mut state_hasher, &head.to_be_bytes());
-        part(&mut state_hasher, &database_oid.to_be_bytes());
+        part(&mut state_hasher, &state_digest_database_oid.to_be_bytes());
         part(&mut state_hasher, profile_digest.to_hex().as_bytes());
         let mut command_events = 0u64;
         let mut next_log_seq = 1u64;
@@ -3465,6 +4057,141 @@ impl DurablePgCoordinator {
             deadline,
             cancelled,
         )
+    }
+
+    /// Positively cold-open a retained V1 descriptor at the explicit
+    /// addressed-marker restore boundary. The descriptor remains non-current
+    /// evidence: recompute the exact OID-bound V1 state transcript against the
+    /// fresh database cut, compare its complete old cut and both physical
+    /// membership streams, then let the caller publish a new target-OID cut.
+    /// Ordinary V1 opens continue to require the current database identity.
+    pub(crate) fn cold_open_selected_generation_v1_addressed_transition(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        streamed: Option<(&PrivateGenerationWorkspace, StreamedGenerationProfile)>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<VerifiedSelectedGeneration> {
+        let streamed = streamed
+            .map(|(workspace, profile)| {
+                profile
+                    .validate(workspace)
+                    .map(|profile| (workspace, profile))
+            })
+            .transpose()?;
+        let selected = self.client.query_opt(
+            "SELECT selected_generation_digest FROM cmd2_domain WHERE domain=$1",
+            &[&domain],
+        )?;
+        let selected_digest = selected
+            .and_then(|row| row.get::<_, Option<String>>(0))
+            .ok_or(DurableError::Refused(
+                "addressed V1 transition has no selected generation",
+            ))?;
+        let digest = parse_hex(selected_digest)?;
+        let inspect_limits =
+            streamed.map_or_else(generation_limits, |(_, profile)| profile.generation);
+        let descriptor = store.inspect_generation_descriptor_v1(digest, inspect_limits)?;
+        let old_database_oid = descriptor.cut.database_oid;
+        if old_database_oid == 0 {
+            return Err(DurableError::Corrupt(
+                "addressed V1 transition database identity is zero",
+            ));
+        }
+        let cut = match streamed {
+            Some((workspace, profile)) => self.cold_verify_cut_inner(
+                store,
+                domain,
+                Some((deadline, cancelled)),
+                Some((workspace, profile)),
+                Some(old_database_oid),
+            )?,
+            None => self.cold_verify_cut_inner(
+                store,
+                domain,
+                Some((deadline, cancelled)),
+                None,
+                Some(old_database_oid),
+            )?,
+        };
+        check_cold_profile_deadline(
+            Instant::now(),
+            Some((deadline, cancelled)),
+            cut.streamed_profile,
+        )?;
+        let row = self.client.query_one(
+            "SELECT d.head_seq,d.published_seq,d.complete_cut_digest,
+                    d.complete_cut_generation,d.selected_generation_digest,
+                    f.generation,f.maintenance_state
+             FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain)
+             WHERE d.domain=$1",
+            &[&domain],
+        )?;
+        let sealed_generation = as_u64(row.get::<_, Option<i64>>(3).ok_or(
+            DurableError::Corrupt("addressed V1 transition fence generation absent"),
+        )?)?;
+        let expected_digest = digest.to_hex();
+        if row.get::<_, String>(6) != "normal"
+            || as_u64(row.get::<_, i64>(0))? != cut.through_commit_seq
+            || as_u64(row.get::<_, i64>(1))? != cut.through_commit_seq
+            || row.get::<_, Option<String>>(2) != Some(cut.state_digest.to_hex())
+            || as_u64(row.get::<_, i64>(5))? != cut.audit_generation
+            || sealed_generation != cut.audit_generation
+            || row.get::<_, Option<String>>(4).as_deref() != Some(expected_digest.as_str())
+        {
+            return Err(DurableError::Conflict(
+                "addressed V1 transition changed after cold audit",
+            ));
+        }
+        let mut expected_cut = generation_cut(store, &cut);
+        expected_cut.database_oid = old_database_oid;
+        expected_cut.audit_generation =
+            sealed_generation
+                .checked_sub(1)
+                .ok_or(DurableError::Corrupt(
+                    "addressed V1 transition fence is invalid",
+                ))?;
+        let limits = cut
+            .streamed_profile
+            .map_or_else(generation_limits, |profile| profile.generation);
+        let installed = store.open_generation_candidate(digest, &expected_cut, limits)?;
+        cut.audited_root.require_installed(&installed)?;
+        if installed.descriptor().history.key_codec_digest != Digest256::of_bytes(HISTORY_KEY_CODEC)
+            || installed.descriptor().current.key_codec_digest
+                != Digest256::of_bytes(CURRENT_KEY_CODEC)
+        {
+            return Err(DurableError::Conflict(
+                "addressed V1 transition key codec differs",
+            ));
+        }
+        let facts = cut.installation(store);
+        let history_coverage = compare_installed_membership(
+            &installed,
+            GenerationNamespaceV1::History,
+            facts.cursor(GenerationNamespaceV1::History)?,
+            cut.historical_members,
+            limits,
+            deadline,
+            cancelled,
+        )?;
+        let current_coverage = compare_installed_membership(
+            &installed,
+            GenerationNamespaceV1::Current,
+            facts.cursor(GenerationNamespaceV1::Current)?,
+            cut.current_members,
+            limits,
+            deadline,
+            cancelled,
+        )?;
+        let mut old_cut = cut;
+        old_cut.database_oid = old_database_oid;
+        Ok(VerifiedSelectedGeneration {
+            cut: old_cut,
+            installed,
+            history_coverage,
+            current_coverage,
+        })
     }
 
     fn cold_open_selected_generation_inner(

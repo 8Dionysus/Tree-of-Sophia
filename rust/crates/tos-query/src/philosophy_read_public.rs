@@ -8,50 +8,6 @@ const TABLES: [&str; 5] = [
     "cluster-node-memberships",
     "cluster-edge-memberships",
 ];
-fn lower(value: &str, w: &mut Work<'_>) -> Result<String, SearchV2Error> {
-    let chars = value.chars().count();
-    for _ in 0..chars {
-        w.step()?;
-    }
-    if value.is_empty() {
-        return Ok(String::new());
-    }
-    tos_foundation::python_lower_unicode16_v1(
-        value,
-        chars,
-        chars.saturating_mul(3),
-        value.len().saturating_mul(3),
-    )
-    .map_err(|_| {
-        failure(
-            SearchV2ErrorCode::BudgetExceeded,
-            "philosophy lowercase budget",
-        )
-    })
-}
-fn contains(value: &JsonValue, needle: &str, w: &mut Work<'_>) -> Result<bool, SearchV2Error> {
-    w.step()?;
-    match value {
-        JsonValue::String(_) => Ok(lower(s(value), w)?.contains(needle)),
-        JsonValue::Array(values) => {
-            for value in values {
-                if contains(value, needle, w)? {
-                    return Ok(true);
-                }
-            }
-            Ok(false)
-        }
-        JsonValue::Object(values) => {
-            for (_, value) in values {
-                if contains(value, needle, w)? {
-                    return Ok(true);
-                }
-            }
-            Ok(false)
-        }
-        _ => Ok(false),
-    }
-}
 pub(super) fn status(header: &JsonValue) -> JsonValue {
     object(vec![
         ("schema", text("tos_philosophy_mcp_status_v1")),
@@ -111,13 +67,12 @@ pub(super) fn search<'a>(
     limit: usize,
     w: &mut Work<'_>,
 ) -> Result<JsonValue, SearchV2Error> {
-    let lower = lower(query, w)?;
-    let needle = if lower.is_empty() {
-        ""
-    } else {
-        tos_foundation::python_strip_unicode16_v1(&lower, lower.chars().count())
-            .map_err(|_| invalid())?
-    };
+    let needle = crate::source_value_search::normalize_query(query, &mut |steps| {
+        for _ in 0..steps {
+            w.step()?;
+        }
+        Ok(())
+    })?;
     let collections = [
         ("views", objs(get(graph.header, "views"))),
         ("nodes", graph.nodes.clone()),
@@ -130,7 +85,14 @@ pub(super) fn search<'a>(
     'collections: for (name, rows) in collections {
         for row in rows {
             w.step()?;
-            if !needle.is_empty() && !contains(row, needle, w)? {
+            if !needle.is_empty()
+                && !crate::source_value_search::contains_values(row, &needle, &mut |steps| {
+                    for _ in 0..steps {
+                        w.step()?;
+                    }
+                    Ok(())
+                })?
+            {
                 continue;
             }
             let item = match name {
@@ -176,7 +138,7 @@ pub(super) fn search<'a>(
         }
     }
     Ok(object(vec![
-        ("schema", text("tos_philosophy_mcp_search_v1")),
+        ("schema", text("tos_philosophy_mcp_search_v2")),
         ("query", text(query)),
         ("result_count", number(results.len())),
         ("results", values(results)),

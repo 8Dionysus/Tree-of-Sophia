@@ -5,6 +5,7 @@ use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::KnowledgeStage;
 use crate::source_bibliographic::{self as graph, BibliographicForms, BibliographicLimits};
 use crate::source_bibliographic_render::{array, digest, encode, text};
+use crate::source_bibliographic_selected_files::SelectedBibliographicFilesV1;
 use crate::source_witness_catalog::{self as catalog, SourceCatalogValidator};
 use crate::{Error, Result};
 use serde_json::{Value, json};
@@ -536,6 +537,145 @@ pub(crate) struct Versions<'a, 'b> {
         tos_segment_store::AuthenticatedTreeLimitsV1,
     )>,
 }
+
+/// Shared exact archive verifier used by both full source cuts and event-local
+/// selected file sets. Only the read and schema-execution adapters differ.
+fn validate_archived_metadata_record<R, C>(
+    reference: &str,
+    receipt: &Value,
+    route: &RecordRoute,
+    schema_version: &Value,
+    l: BibliographicLimits,
+    mut read: R,
+    mut check_schema: C,
+) -> Result<(Value, Value)>
+where
+    R: FnMut(&str) -> Result<Vec<u8>>,
+    C: FnMut(&str, &str, &[u8]) -> Result<()>,
+{
+    let previous = &receipt["previous_source"];
+    exact_ref(previous, false)?;
+    let revision = text(receipt, "previous_revision")?;
+    let revision_sha = hash(revision)?;
+    let archive = format!(
+        "ToS/source-witnesses/.record-revisions/{}-{}",
+        Digest256::of_bytes(text(previous, "id")?.as_bytes()).to_hex(),
+        revision_sha
+    );
+    if receipt["archive_path"] != archive {
+        return Err(Error::Invalid(
+            "bibliographic metadata archive source-derived locator",
+        ));
+    }
+    let manifest_ref = format!("{archive}/manifest.json");
+    let manifest_raw = read(&manifest_ref)?;
+    let manifest = owned(&manifest_raw, l.catalog.max_row_bytes)?;
+    let selected = manifest["schema_version"] == "tos_source_package_archive_v2";
+    let mut keys = vec![
+        "schema_version",
+        "source_path",
+        "source",
+        "revision",
+        "files",
+    ];
+    if selected {
+        keys.push("publication_protocol");
+    }
+    exact_keys(&manifest, &keys)?;
+    if !matches!(
+        manifest["schema_version"].as_str(),
+        Some("tos_source_package_archive_v1" | "tos_source_package_archive_v2")
+    ) || selected && manifest["publication_protocol"] != "tos_selected_source_metadata_v1"
+        || manifest["source_path"] != reference
+        || manifest["source"] != *previous
+        || manifest["revision"] != revision
+    {
+        return Err(Error::Invalid(
+            "bibliographic metadata archive exact manifest binding",
+        ));
+    }
+    let bindings = manifest["files"]
+        .as_object()
+        .ok_or(Error::Invalid("bibliographic metadata archive file map"))?;
+    if bindings.is_empty() || bindings.len() > 64 {
+        return Err(Error::Budget("bibliographic metadata archive member count"));
+    }
+    let basename = reference.rsplit('/').next().unwrap();
+    let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".json"));
+    let selected_names = [
+        basename,
+        forms_name.as_str(),
+        "source-revision-history.json",
+    ];
+    let mut package = serde_json::Map::new();
+    let mut declared_bytes = 0u64;
+    for (name, binding) in bindings {
+        exact_keys(binding, &["blob", "sha256", "bytes"])?;
+        if name.is_empty()
+            || name.contains(['/', '\\', '\0'])
+            || matches!(name.as_str(), "." | "..")
+            || selected && !selected_names.contains(&name.as_str())
+        {
+            return Err(Error::Invalid(
+                "bibliographic metadata archive member locator/scope",
+            ));
+        }
+        let sha = hash(text(binding, "sha256")?)?;
+        if binding["blob"] != format!("{sha}.blob") {
+            return Err(Error::Invalid(
+                "bibliographic metadata archive blob locator",
+            ));
+        }
+        let bytes = binding["bytes"]
+            .as_u64()
+            .filter(|n| *n <= 2 * 1024 * 1024)
+            .ok_or(Error::Budget(
+                "bibliographic metadata archive declared member bytes",
+            ))?;
+        declared_bytes = declared_bytes
+            .checked_add(bytes)
+            .filter(|n| *n <= 8 * 1024 * 1024)
+            .ok_or(Error::Budget(
+                "bibliographic metadata archive declared package bytes",
+            ))?;
+        package.insert(
+            name.clone(),
+            json!({"sha256":binding["sha256"],"bytes":binding["bytes"]}),
+        );
+    }
+    if digest(&Value::Object(package), l.max_claim_cohort_bytes)? != revision_sha {
+        return Err(Error::Invalid(
+            "bibliographic metadata archive package revision",
+        ));
+    }
+    let binding = bindings.get(basename).ok_or(Error::Invalid(
+        "bibliographic archived Collection record absent",
+    ))?;
+    let blob_ref = format!("{archive}/{}", text(binding, "blob")?);
+    let raw = read(&blob_ref)?;
+    if raw.len() as u64 != binding["bytes"].as_u64().unwrap_or(u64::MAX)
+        || format!("sha256:{}", Digest256::of_bytes(&raw).to_hex()) != text(binding, "sha256")?
+    {
+        return Err(Error::Invalid(
+            "bibliographic archived Collection record raw binding",
+        ));
+    }
+    let record = owned(&raw, l.catalog.max_row_bytes)?;
+    check_schema(&blob_ref, &route.schema, &raw)?;
+    route.validate_record(&record, previous, schema_version)?;
+    if metadata_ref(&record, route, l)? != *previous {
+        return Err(Error::Invalid(
+            "bibliographic retained Collection exact record/profile",
+        ));
+    }
+    Ok((
+        record,
+        json!({"source_ref":reference,"record_bytes":raw.len(),"record_sha256":binding["sha256"],
+        "archive_blob_ref":blob_ref,"package_revision":revision,"archive_manifest_ref":manifest_ref,
+        "archive_manifest_sha256":format!("sha256:{}",Digest256::of_bytes(&manifest_raw).to_hex())}),
+    ))
+}
+
 fn path(reference: &str) -> Result<RelativePath> {
     RelativePath::parse(reference).map_err(|_| Error::Invalid("bibliographic cut source path"))
 }
@@ -1191,127 +1331,17 @@ impl<'a, 'b> Versions<'a, 'b> {
         schema_version: &Value,
         l: BibliographicLimits,
     ) -> Result<(Value, Value)> {
-        let previous = &receipt["previous_source"];
-        exact_ref(previous, false)?;
-        let revision = text(receipt, "previous_revision")?;
-        let revision_sha = hash(revision)?;
-        let archive = format!(
-            "ToS/source-witnesses/.record-revisions/{}-{}",
-            Digest256::of_bytes(text(previous, "id")?.as_bytes()).to_hex(),
-            revision_sha
-        );
-        if receipt["archive_path"] != archive {
-            return Err(Error::Invalid(
-                "bibliographic metadata archive source-derived locator",
-            ));
-        }
-        let manifest_ref = format!("{archive}/manifest.json");
-        let manifest_raw = self.required(&manifest_ref, validator, l)?;
-        let manifest = owned(&manifest_raw, l.catalog.max_row_bytes)?;
-        let selected = manifest["schema_version"] == "tos_source_package_archive_v2";
-        let mut keys = vec![
-            "schema_version",
-            "source_path",
-            "source",
-            "revision",
-            "files",
-        ];
-        if selected {
-            keys.push("publication_protocol");
-        }
-        exact_keys(&manifest, &keys)?;
-        if !matches!(
-            manifest["schema_version"].as_str(),
-            Some("tos_source_package_archive_v1" | "tos_source_package_archive_v2")
-        ) || selected && manifest["publication_protocol"] != "tos_selected_source_metadata_v1"
-            || manifest["source_path"] != reference
-            || manifest["source"] != *previous
-            || manifest["revision"] != revision
-        {
-            return Err(Error::Invalid(
-                "bibliographic metadata archive exact manifest binding",
-            ));
-        }
-        let bindings = manifest["files"]
-            .as_object()
-            .ok_or(Error::Invalid("bibliographic metadata archive file map"))?;
-        if bindings.is_empty() || bindings.len() > 64 {
-            return Err(Error::Budget("bibliographic metadata archive member count"));
-        }
-        let basename = reference.rsplit('/').next().unwrap();
-        let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".json"));
-        let selected_names = [
-            basename,
-            forms_name.as_str(),
-            "source-revision-history.json",
-        ];
-        let mut package = serde_json::Map::new();
-        let mut declared_bytes = 0u64;
-        for (name, binding) in bindings {
-            exact_keys(binding, &["blob", "sha256", "bytes"])?;
-            if name.is_empty()
-                || name.contains(['/', '\\', '\0'])
-                || matches!(name.as_str(), "." | "..")
-                || selected && !selected_names.contains(&name.as_str())
-            {
-                return Err(Error::Invalid(
-                    "bibliographic metadata archive member locator/scope",
-                ));
-            }
-            let sha = hash(text(binding, "sha256")?)?;
-            if binding["blob"] != format!("{sha}.blob") {
-                return Err(Error::Invalid(
-                    "bibliographic metadata archive blob locator",
-                ));
-            }
-            let bytes = binding["bytes"]
-                .as_u64()
-                .filter(|n| *n <= 2 * 1024 * 1024)
-                .ok_or(Error::Budget(
-                    "bibliographic metadata archive declared member bytes",
-                ))?;
-            declared_bytes = declared_bytes
-                .checked_add(bytes)
-                .filter(|n| *n <= 8 * 1024 * 1024)
-                .ok_or(Error::Budget(
-                    "bibliographic metadata archive declared package bytes",
-                ))?;
-            package.insert(
-                name.clone(),
-                json!({"sha256":binding["sha256"],"bytes":binding["bytes"]}),
-            );
-        }
-        if digest(&Value::Object(package), l.max_claim_cohort_bytes)? != revision_sha {
-            return Err(Error::Invalid(
-                "bibliographic metadata archive package revision",
-            ));
-        }
-        let binding = bindings.get(basename).ok_or(Error::Invalid(
-            "bibliographic archived Collection record absent",
-        ))?;
-        let blob_ref = format!("{archive}/{}", text(binding, "blob")?);
-        let raw = self.required(&blob_ref, validator, l)?;
-        if raw.len() as u64 != binding["bytes"].as_u64().unwrap_or(u64::MAX)
-            || format!("sha256:{}", Digest256::of_bytes(&raw).to_hex()) != text(binding, "sha256")?
-        {
-            return Err(Error::Invalid(
-                "bibliographic archived Collection record raw binding",
-            ));
-        }
-        let record = owned(&raw, l.catalog.max_row_bytes)?;
-        catalog::check_catalog_schema(stage, validator, l.catalog, &route.schema, "", &raw)?;
-        route.validate_record(&record, previous, schema_version)?;
-        if metadata_ref(&record, route, l)? != *previous {
-            return Err(Error::Invalid(
-                "bibliographic retained Collection exact record/profile",
-            ));
-        }
-        Ok((
-            record,
-            json!({"source_ref":reference,"record_bytes":raw.len(),"record_sha256":binding["sha256"],
-            "archive_blob_ref":blob_ref,"package_revision":revision,"archive_manifest_ref":manifest_ref,
-            "archive_manifest_sha256":format!("sha256:{}",Digest256::of_bytes(&manifest_raw).to_hex())}),
-        ))
+        validate_archived_metadata_record(
+            reference,
+            receipt,
+            route,
+            schema_version,
+            l,
+            |path| self.required(path, validator, l),
+            |_path, _schema, raw| {
+                catalog::check_catalog_schema(stage, validator, l.catalog, &route.schema, "", raw)
+            },
+        )
     }
     fn package_names(
         &self,
@@ -1463,11 +1493,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             .ok_or(Error::Invalid("bibliographic Claim archive file bindings"))?;
         let basename = reference.rsplit('/').next().unwrap();
         let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".jsonl"));
-        let selected_names = [
-            basename,
-            forms_name.as_str(),
-            "source-revision-history.json",
-        ];
+        let selected_names = [basename, forms_name.as_str(), "claim-revision-history.json"];
         let mut files = BTreeMap::new();
         let mut locations = BTreeMap::new();
         let mut used = BTreeSet::new();
@@ -1923,6 +1949,74 @@ pub(crate) fn supplied_metadata_descriptor(
     let route = RecordRoute::derive(entry, record, entities)?;
     Ok(route.descriptor(&record["schema_version"]))
 }
+
+/// Exact pure validation used by the event-local metadata producer. It shares
+/// the maintained route dispatch and public-profile checks with `Versions`;
+/// source membership and JSON-Schema execution remain with the selected-cut
+/// caller.
+pub(crate) fn validate_supplied_metadata_record(
+    entry: &Value,
+    record: &Value,
+    entities: &Value,
+    max_row_bytes: usize,
+) -> Result<()> {
+    let route = RecordRoute::derive(entry, record, entities)?;
+    let current = json!({
+        "id":record[route.identity],
+        "version":record["record_version"],
+        "digest":format!("sha256:{}", digest(record, max_row_bytes)?)
+    });
+    route.validate_record(record, &current, &record["schema_version"])?;
+    if entry.get("record_id") != current.get("id")
+        || entry.get("record_sha256").and_then(Value::as_str)
+            != current
+                .get("digest")
+                .and_then(Value::as_str)
+                .and_then(|digest| digest.strip_prefix("sha256:"))
+        || entry.get("source_schema_ref").and_then(Value::as_str) != Some(route.schema.as_str())
+    {
+        return Err(Error::Invalid(
+            "bibliographic supplied metadata catalog binding",
+        ));
+    }
+    Ok(())
+}
+
+/// Select the maintained schema route for one exact current metadata owner
+/// without requiring a pre-existing catalog row. The caller still verifies
+/// the row identity and executes the selected schema against the exact bytes.
+pub fn selected_metadata_record_schema_path_v1(
+    record_type: &str,
+    source_path: &str,
+    record: &Value,
+    entities: &Value,
+) -> Result<String> {
+    let entry = json!({
+        "record_type": record_type,
+        "source_record_ref": source_path,
+    });
+    Ok(RecordRoute::derive_historical(&entry, record, entities)?.schema)
+}
+
+/// Validate an available historical payload with the same maintained owner
+/// route and public-profile rule as the current metadata record. Historical
+/// refs deliberately do not compare against today's catalog digest.
+pub(crate) fn validate_supplied_metadata_version(
+    entry: &Value,
+    reference: &Value,
+    record: &Value,
+    entities: &Value,
+    max_row_bytes: usize,
+) -> Result<String> {
+    let route = RecordRoute::derive_historical(entry, record, entities)?;
+    let expected_digest = format!("sha256:{}", digest(record, max_row_bytes)?);
+    if reference.get("digest").and_then(Value::as_str) != Some(expected_digest.as_str()) {
+        return Err(Error::Invalid("bibliographic historical metadata digest"));
+    }
+    route.validate_record(record, reference, &record["schema_version"])?;
+    Ok(route.schema)
+}
+
 struct RecordRoute {
     kind: String,
     adapter: &'static str,
@@ -1934,6 +2028,17 @@ struct RecordRoute {
 }
 impl RecordRoute {
     fn derive(entry: &Value, record: &Value, entities: &Value) -> Result<Self> {
+        Self::derive_with_schema_binding(entry, record, entities, true)
+    }
+    fn derive_historical(entry: &Value, record: &Value, entities: &Value) -> Result<Self> {
+        Self::derive_with_schema_binding(entry, record, entities, false)
+    }
+    fn derive_with_schema_binding(
+        entry: &Value,
+        record: &Value,
+        entities: &Value,
+        bind_entry_schema: bool,
+    ) -> Result<Self> {
         let kind = text(entry, "record_type")?;
         let reference = text(entry, "source_record_ref")?;
         let native_witness = kind == "artifact"
@@ -1991,7 +2096,7 @@ impl RecordRoute {
                     ));
                 }
             };
-            if entry["source_schema_ref"] != schema {
+            if bind_entry_schema && entry["source_schema_ref"] != schema {
                 return Err(Error::Invalid(
                     "bibliographic native witness catalog schema binding",
                 ));
@@ -2047,7 +2152,7 @@ impl RecordRoute {
                 ));
             }
             let schema = text(schemas[0], "schema_ref")?;
-            if entry["source_schema_ref"] != schema {
+            if bind_entry_schema && entry["source_schema_ref"] != schema {
                 return Err(Error::Invalid(
                     "bibliographic metadata catalog schema binding",
                 ));
@@ -2421,6 +2526,1514 @@ pub(crate) struct Version {
     pub(crate) refs: Vec<Value>,
     pub(crate) current_ref: Value,
 }
+
+/// One exact selected source/schema pair aligned with a navigation history
+/// resolution. Historical paths point to archive blobs, not reconstructed
+/// current files.
+pub struct SelectedMetadataVersionSourceV1<'a> {
+    pub source_path: String,
+    pub source_record_bytes: &'a [u8],
+    pub schema_path: String,
+    pub schema_bytes: &'a [u8],
+}
+
+/// Maintained Record history resolution from one exact PG-selected file set.
+/// Every retained reference has a real archive record source; the current
+/// source and history absence are also witnessed by the same selected set.
+pub struct SelectedMetadataHistoryV1<'a> {
+    pub current_record: Value,
+    pub current_record_bytes: &'a [u8],
+    pub source_path: String,
+    pub schema_path: String,
+    pub schema_bytes: &'a [u8],
+    pub history_path: String,
+    pub history_bytes: Option<&'a [u8]>,
+    pub history: Value,
+    pub versions: Vec<(Value, Value)>,
+    pub version_sources: Vec<SelectedMetadataVersionSourceV1<'a>>,
+}
+
+/// Exact archive manifest reads derivable after current Record and history
+/// bytes are selected. Receipt structure and every source-derived archive
+/// locator are checked before a caller asks for these members.
+pub fn selected_metadata_archive_manifest_paths_v1(
+    entry: &Value,
+    entities: &Value,
+    files: &SelectedBibliographicFilesV1,
+    l: BibliographicLimits,
+) -> Result<Vec<String>> {
+    l.validate()?;
+    let source_path = text(entry, "source_record_ref")?;
+    let current_raw = files.required(source_path)?;
+    let current_record = owned(current_raw, l.catalog.max_row_bytes)?;
+    let route = RecordRoute::derive(entry, &current_record, entities)?;
+    let current = metadata_ref(&current_record, &route, l)?;
+    route.validate_record(&current_record, &current, &current_record["schema_version"])?;
+    let history_path = adjacent(source_path, "source-revision-history.json")?;
+    let history = match files.optional(&history_path)? {
+        Some(raw) => owned(raw, l.catalog.max_row_bytes)?,
+        None => {
+            json!({"schema_version":"tos_source_revision_history_v1","record_id":entry["record_id"],"receipts":[]})
+        }
+    };
+    exact_keys(&history, &["schema_version", "record_id", "receipts"])?;
+    let receipts = array(&history, "receipts")?;
+    if !matches!(
+        history["schema_version"].as_str(),
+        Some("tos_source_revision_history_v1" | "tos_source_revision_history_v2")
+    ) || history["record_id"] != entry["record_id"]
+        || receipts.len() > 128
+        || files.optional(&history_path)?.is_some() && receipts.is_empty()
+    {
+        return Err(Error::Invalid(
+            "selected metadata archive history identity/bounds",
+        ));
+    }
+    let mut commands = BTreeSet::new();
+    let mut head = None;
+    let mut paths = BTreeSet::new();
+    for receipt in receipts {
+        metadata_receipt(
+            receipt,
+            &history,
+            current.get("id").ok_or(Error::Invalid(
+                "selected metadata archive record identity absent",
+            ))?,
+            head.as_ref(),
+            &mut commands,
+            &route,
+            l,
+        )?;
+        let archive = text(receipt, "archive_path")?;
+        let manifest = format!("{archive}/manifest.json");
+        if !paths.insert(manifest.clone()) {
+            return Err(Error::Invalid(
+                "selected metadata archive manifest repeated",
+            ));
+        }
+        RelativePath::parse(&manifest)
+            .map_err(|_| Error::Invalid("selected metadata archive manifest path"))?;
+        head = Some(receipt["source"].clone());
+    }
+    if head.as_ref().is_some_and(|value| value != &current) {
+        return Err(Error::Invalid(
+            "selected metadata archive history head differs",
+        ));
+    }
+    if paths.len() > 128 {
+        return Err(Error::Budget("selected metadata archive manifest count"));
+    }
+    Ok(paths.into_iter().collect())
+}
+
+/// Derive the one archived Record blob path from an exact selected manifest.
+/// Full manifest/package fixity and the RecordRoute are checked again by the
+/// shared archive verifier before any history result is returned.
+pub fn selected_metadata_archive_record_blob_path_v1(
+    manifest_path: &str,
+    manifest_raw: &[u8],
+    l: BibliographicLimits,
+) -> Result<String> {
+    l.validate()?;
+    let manifest = owned(manifest_raw, l.catalog.max_row_bytes)?;
+    let schema = manifest
+        .get("schema_version")
+        .and_then(Value::as_str)
+        .ok_or(Error::Invalid("selected metadata archive schema"))?;
+    let selected = schema == "tos_source_package_archive_v2";
+    let mut keys = vec![
+        "schema_version",
+        "source_path",
+        "source",
+        "revision",
+        "files",
+    ];
+    if selected {
+        keys.push("publication_protocol");
+    }
+    exact_keys(&manifest, &keys)?;
+    if !matches!(
+        schema,
+        "tos_source_package_archive_v1" | "tos_source_package_archive_v2"
+    ) || selected && manifest["publication_protocol"] != "tos_selected_source_metadata_v1"
+    {
+        return Err(Error::Invalid("selected metadata archive manifest profile"));
+    }
+    let source_path = text(&manifest, "source_path")?;
+    RelativePath::parse(source_path)
+        .map_err(|_| Error::Invalid("selected metadata archive source path"))?;
+    let source = &manifest["source"];
+    exact_ref(source, false)?;
+    let revision = text(&manifest, "revision")?;
+    let revision_sha = hash(revision)?;
+    let expected_archive = format!(
+        "ToS/source-witnesses/.record-revisions/{}-{}",
+        Digest256::of_bytes(text(source, "id")?.as_bytes()).to_hex(),
+        revision_sha
+    );
+    if manifest_path != format!("{expected_archive}/manifest.json") {
+        return Err(Error::Invalid("selected metadata archive manifest locator"));
+    }
+    let basename = source_path
+        .rsplit('/')
+        .next()
+        .ok_or(Error::Invalid("selected metadata archive source basename"))?;
+    let binding = manifest["files"]
+        .as_object()
+        .and_then(|files| files.get(basename))
+        .ok_or(Error::Invalid(
+            "selected metadata archive Record member absent",
+        ))?;
+    exact_keys(binding, &["blob", "sha256", "bytes"])?;
+    let sha = text(binding, "sha256")?;
+    hash(&format!("sha256:{sha}"))?;
+    let blob = text(binding, "blob")?;
+    if blob != format!("{sha}.blob")
+        || binding["bytes"]
+            .as_u64()
+            .is_none_or(|bytes| bytes > 2 * 1024 * 1024)
+    {
+        return Err(Error::Invalid("selected metadata archive Record binding"));
+    }
+    let blob_path = format!("{expected_archive}/{blob}");
+    RelativePath::parse(&blob_path)
+        .map_err(|_| Error::Invalid("selected metadata archive Record blob path"))?;
+    Ok(blob_path)
+}
+
+/// Resolve the complete current Record chain from exact selected PG bytes.
+/// This keeps the maintained RecordRoute, receipt, patch reconstruction, and
+/// archive-manifest checks; it never manufactures a whole-corpus revision.
+pub fn resolve_selected_metadata_history_v1<'a>(
+    entry: &Value,
+    entities: &Value,
+    files: &'a SelectedBibliographicFilesV1,
+    validator: &SourceCatalogValidator<'_>,
+    expected_event_revision: Digest256,
+    l: BibliographicLimits,
+) -> Result<SelectedMetadataHistoryV1<'a>> {
+    l.validate()?;
+    if validator.selected_event_source_revision()? != expected_event_revision {
+        return Err(Error::Invalid(
+            "selected metadata history event revision differs",
+        ));
+    }
+    let registry_path = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
+    let registry_raw = files.required(registry_path)?;
+    let registry = owned(
+        registry_raw,
+        l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes),
+    )?;
+    if registry != *entities {
+        return Err(Error::Invalid(
+            "selected metadata history entity registry differs",
+        ));
+    }
+
+    let source_path = text(entry, "source_record_ref")?.to_owned();
+    let current_raw = files.required(&source_path)?;
+    let current_record = owned(current_raw, l.catalog.max_row_bytes)?;
+    let route = RecordRoute::derive(entry, &current_record, entities)?;
+    let current_ref = metadata_ref(&current_record, &route, l)?;
+    route.validate_record(
+        &current_record,
+        &current_ref,
+        &current_record["schema_version"],
+    )?;
+    if entry["record_sha256"] != text(&current_ref, "digest")?.trim_start_matches("sha256:")
+        || catalog::render_catalog_record(
+            &current_record,
+            &source_path,
+            Some(&route.schema),
+            l.catalog.max_output_row_bytes,
+        )? != *entry
+    {
+        return Err(Error::Invalid(
+            "selected metadata current catalog entry differs",
+        ));
+    }
+    let schema_path = route.schema.clone();
+    let schema_bytes = files.required(&schema_path)?;
+    validator.check_selected_event_document_exact(
+        expected_event_revision,
+        &source_path,
+        &schema_path,
+        schema_bytes,
+        current_raw,
+    )?;
+
+    let history_path = adjacent(&source_path, "source-revision-history.json")?;
+    let history_bytes = files.optional(&history_path)?;
+    let history = if let Some(raw) = history_bytes {
+        owned(raw, l.catalog.max_row_bytes)?
+    } else {
+        json!({"schema_version":"tos_source_revision_history_v1","record_id":entry["record_id"],"receipts":[]})
+    };
+    exact_keys(&history, &["schema_version", "record_id", "receipts"])?;
+    let receipts = array(&history, "receipts")?;
+    if !matches!(
+        history["schema_version"].as_str(),
+        Some("tos_source_revision_history_v1" | "tos_source_revision_history_v2")
+    ) || history["record_id"] != entry["record_id"]
+        || receipts.len() > 128
+        || history_bytes.is_some() && receipts.is_empty()
+    {
+        return Err(Error::Invalid(
+            "selected metadata retained history identity/bounds",
+        ));
+    }
+
+    let mut commands = BTreeSet::new();
+    let mut head = None;
+    let mut baseline = current_ref.clone();
+    let mut retained = Vec::with_capacity(receipts.len());
+    let mut refs = Vec::with_capacity(receipts.len() + 1);
+    for (index, receipt) in receipts.iter().enumerate() {
+        check(validator, l)?;
+        metadata_receipt(
+            receipt,
+            &history,
+            current_ref
+                .get("id")
+                .ok_or(Error::Invalid("selected metadata record identity absent"))?,
+            head.as_ref(),
+            &mut commands,
+            &route,
+            l,
+        )?;
+        let reference = receipt["previous_source"].clone();
+        refs.push(reference.clone());
+        let (previous, source) = validate_archived_metadata_record(
+            &source_path,
+            receipt,
+            &route,
+            &current_record["schema_version"],
+            l,
+            |path| Ok(files.required(path)?.to_vec()),
+            |path, schema, raw| {
+                let schema_raw = files.required(schema)?;
+                validator.check_selected_event_document_exact(
+                    expected_event_revision,
+                    path,
+                    schema,
+                    schema_raw,
+                    raw,
+                )
+            },
+        )?;
+        if index == 0 {
+            baseline = reference.clone();
+        }
+        let previous_record_path = source["archive_blob_ref"]
+            .as_str()
+            .ok_or(Error::Invalid("selected metadata archive blob path absent"))?
+            .to_owned();
+        let previous_raw = files.required(&previous_record_path)?;
+        let previous_schema_path = validate_supplied_metadata_version(
+            entry,
+            &reference,
+            &previous,
+            entities,
+            l.catalog.max_row_bytes,
+        )?;
+        let previous_schema_bytes = files.required(&previous_schema_path)?;
+        validator.check_selected_event_document_exact(
+            expected_event_revision,
+            &previous_record_path,
+            &previous_schema_path,
+            previous_schema_bytes,
+            previous_raw,
+        )?;
+
+        let fields = receipt["request"]["fields"]
+            .as_object()
+            .ok_or(Error::Invalid("selected metadata retained patch"))?;
+        let allowed = if let Some(compound) =
+            compound_profile(receipt["request"]["operation"].as_str().unwrap_or(""))
+        {
+            vec![compound.field]
+        } else {
+            route.revision_fields()
+        };
+        if fields.is_empty() || fields.keys().any(|key| !allowed.contains(&key.as_str())) {
+            return Err(Error::Invalid("selected metadata retained field scope"));
+        }
+        let mut revised = previous
+            .as_object()
+            .ok_or(Error::Invalid("selected metadata archived object"))?
+            .clone();
+        for (key, value) in fields {
+            revised.insert(key.clone(), value.clone());
+        }
+        revised.insert(
+            "record_version".into(),
+            receipt["source"]["version"].clone(),
+        );
+        let revised = Value::Object(revised);
+        route.validate_descriptive_delta(&previous, &revised)?;
+        route.validate_record(
+            &revised,
+            &receipt["source"],
+            &current_record["schema_version"],
+        )?;
+        if metadata_ref(&revised, &route, l)? != receipt["source"] {
+            return Err(Error::Invalid("selected metadata successor reconstruction"));
+        }
+        retained.push((
+            reference,
+            previous,
+            source,
+            previous_record_path,
+            previous_raw,
+            previous_schema_path,
+            previous_schema_bytes,
+            receipt_transition(receipt)?,
+        ));
+        head = Some(receipt["source"].clone());
+    }
+    refs.push(current_ref.clone());
+    if head.as_ref().is_some_and(|value| value != &current_ref) {
+        return Err(Error::Invalid(
+            "selected metadata current record is not history head",
+        ));
+    }
+
+    let history_provenance = json!({
+        "source_ref":history_bytes.map(|_| history_path.clone()),
+        "sha256":history_bytes.map(|raw| format!("sha256:{}", Digest256::of_bytes(raw).to_hex())),
+        "receipt_count":receipts.len(),
+        "retained_record_chain_verified":true,
+        "retained_baseline_ref":baseline,
+    });
+    let catalog_provenance = json!({
+        "selection":"event-derived-entry-v1",
+        "projection_ref":format!("ToS/source-witnesses/catalog/{}", route.catalog_filename),
+        "entry_sha256":format!("sha256:{}", digest(entry, l.catalog.max_output_row_bytes)?),
+        "event_source_revision":expected_event_revision.to_hex(),
+    });
+    let source_provenance = json!({
+        "source_ref":source_path,
+        "record_bytes":current_raw.len(),
+        "record_sha256":format!("sha256:{}",Digest256::of_bytes(current_raw).to_hex()),
+        "archive_blob_ref":null,"archive_manifest_ref":null,
+        "archive_manifest_sha256":null,"package_revision":null,
+    });
+    let current_provenance = json!({
+        "verification_scope":"selected-record-chain",
+        "all_package_bytes_verified":false,
+        "catalog":catalog_provenance,
+        "descriptor":route.descriptor(&current_record["schema_version"]),
+        "history":history_provenance,
+        "source":source_provenance,
+        "transition":null,
+    });
+
+    let mut versions = Vec::with_capacity(refs.len());
+    let mut version_sources = Vec::with_capacity(refs.len());
+    for (
+        reference,
+        record,
+        source,
+        source_path,
+        raw,
+        version_schema_path,
+        version_schema_bytes,
+        transition,
+    ) in retained
+    {
+        let provenance = json!({
+            "verification_scope":"selected-record-chain",
+            "all_package_bytes_verified":false,
+            "catalog":catalog_provenance,
+            "descriptor":route.descriptor(&current_record["schema_version"]),
+            "history":history_provenance,
+            "source":source,
+            "transition":transition,
+        });
+        versions.push((
+            reference.clone(),
+            json!({
+                "exact_ref":reference,
+                "record_digest":reference["digest"],
+                "status":"available",
+                "reason":"verified-record-references",
+                "version_status":"historical",
+                "record":record,
+                "provenance":provenance,
+                "grants_current_use":false,
+                "performs_assessment":false,
+                "writes_to_source":false,
+            }),
+        ));
+        version_sources.push(SelectedMetadataVersionSourceV1 {
+            source_path,
+            source_record_bytes: raw,
+            schema_path: version_schema_path,
+            schema_bytes: version_schema_bytes,
+        });
+    }
+    versions.push((
+        current_ref.clone(),
+        json!({
+            "exact_ref":current_ref,
+            "record_digest":current_ref["digest"],
+            "status":"available",
+            "reason":"verified-record-references",
+            "version_status":"current",
+            "record":current_record,
+            "provenance":current_provenance,
+            "grants_current_use":false,
+            "performs_assessment":false,
+            "writes_to_source":false,
+        }),
+    ));
+    version_sources.push(SelectedMetadataVersionSourceV1 {
+        source_path: source_path.clone(),
+        source_record_bytes: current_raw,
+        schema_path: schema_path.clone(),
+        schema_bytes,
+    });
+    let current_resolution = &versions
+        .last()
+        .ok_or(Error::Invalid("selected metadata current version absent"))?
+        .1;
+    let mut history_view_provenance = current_provenance;
+    history_view_provenance
+        .as_object_mut()
+        .ok_or(Error::Invalid("selected metadata history provenance"))?
+        .remove("source");
+    history_view_provenance
+        .as_object_mut()
+        .ok_or(Error::Invalid("selected metadata history provenance"))?
+        .remove("transition");
+    let history_view = json!({
+        "status":"available",
+        "reason":"verified-record-references",
+        "record_id":entry["record_id"],
+        "current_ref":current_ref,
+        "refs":refs,
+        "provenance":history_view_provenance,
+        "grants_current_use":false,
+        "performs_assessment":false,
+        "writes_to_source":false,
+    });
+    if current_resolution["record"] != current_record {
+        return Err(Error::Invalid("selected metadata current resolver binding"));
+    }
+    Ok(SelectedMetadataHistoryV1 {
+        current_record,
+        current_record_bytes: current_raw,
+        source_path,
+        schema_path,
+        schema_bytes,
+        history_path,
+        history_bytes,
+        history: history_view,
+        versions,
+        version_sources,
+    })
+}
+
+/// Exact current and selected retained Claim version resolved from one
+/// owner-bounded PG readset. The current entry is derived from the selected
+/// stream row; retained versions are reconstructed from their exact archive
+/// package bytes. Missing and stale refs are returned only after the complete
+/// selected endpoint history has been verified.
+pub struct SelectedClaimVersionV1<'a> {
+    pub status: &'static str,
+    pub reason: &'static str,
+    pub version_status: Option<&'static str>,
+    pub current_record: Value,
+    pub current_ref: Value,
+    pub refs: Vec<Value>,
+    pub record: Option<Value>,
+    pub provenance: Option<Value>,
+    pub source_path: String,
+    pub source_bytes: &'a [u8],
+    pub history_path: String,
+    pub history_bytes: Option<&'a [u8]>,
+    pub schema_path: String,
+    pub schema_bytes: &'a [u8],
+    pub record_source_path: Option<String>,
+    pub record_source_bytes: Option<Vec<u8>>,
+    pub record_schema_path: Option<String>,
+    pub record_schema_bytes: Option<&'a [u8]>,
+    pub forms_path: String,
+    pub forms_bytes: Option<&'a [u8]>,
+}
+
+const CLAIM_SCHEMA: &str = "ToS/contracts/source-claim-record.schema.json";
+const HISTORICAL_CLAIM_SCHEMA: &str = "ToS/contracts/historical-claim.schema.json";
+const HUMAN_FORMS_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
+
+fn selected_claim_schema_path(source_path: &str) -> Result<&'static str> {
+    if selected_claim_stream_path(source_path) {
+        Ok(CLAIM_SCHEMA)
+    } else if historical_path(source_path) {
+        Ok(HISTORICAL_CLAIM_SCHEMA)
+    } else {
+        Err(Error::Invalid("selected Claim endpoint source path"))
+    }
+}
+
+fn selected_claim_stream_path(source_path: &str) -> bool {
+    source_path.starts_with("ToS/source-witnesses/relations/")
+        && source_path.ends_with("/source-claims.jsonl")
+        && !source_path.contains("/owner-local/")
+        && !source_path.contains("/private/")
+        && !source_path.contains("/payload/")
+}
+
+fn selected_claim_archive_path(reference: &Value, revision: &str) -> Result<String> {
+    exact_ref(reference, true)?;
+    Ok(format!(
+        "ToS/source-witnesses/.record-revisions/{}-{}",
+        Digest256::of_bytes(text(reference, "id")?.as_bytes()).to_hex(),
+        hash(revision)?
+    ))
+}
+
+/// Select the exact manifests required by a Claim endpoint's retained history.
+/// The current stream and explicit history presence/absence must already be
+/// part of `files`; this helper never searches a corpus or interprets an
+/// unselected path as absent.
+pub fn selected_claim_archive_manifest_paths_v1(
+    entry: &Value,
+    files: &SelectedBibliographicFilesV1,
+    l: BibliographicLimits,
+) -> Result<Vec<String>> {
+    l.validate()?;
+    let source_path = text(entry, "source_claim_file_ref")?;
+    let schema_path = selected_claim_schema_path(source_path)?;
+    let schema_bytes = files.required(schema_path)?;
+    let stream = files.required(source_path)?;
+    let current_records = claim_records(stream, l)?;
+    let id = text(entry, "claim_id")?;
+    let current_record = current_records
+        .get(id)
+        .ok_or(Error::Invalid("selected Claim current row absent"))?;
+    let current_ref = record_ref(current_record, true, l)?;
+    let (line, _) = selected_claim_line_bytes(stream, id, l)?;
+    let expected_entry = catalog::render_catalog_claim(
+        current_record,
+        source_path,
+        line,
+        Some(schema_path),
+        l.catalog.max_output_row_bytes,
+    )?;
+    if entry["source_claim_line"].as_u64() != Some(line)
+        || entry["claim_sha256"]
+            != current_ref["digest"]
+                .as_str()
+                .unwrap_or("")
+                .trim_start_matches("sha256:")
+        || expected_entry != *entry
+        || schema_bytes.is_empty()
+    {
+        return Err(Error::Invalid(
+            "selected Claim catalog entry/source binding",
+        ));
+    }
+
+    let history_path = adjacent(source_path, "claim-revision-history.json")?;
+    let history_bytes = files.optional(&history_path)?;
+    let history = if let Some(raw) = history_bytes {
+        owned(raw, l.catalog.max_row_bytes)?
+    } else {
+        json!({"schema_version":"tos_claim_revision_history_v1","source_path":source_path,"receipts":[]})
+    };
+    exact_keys(&history, &["schema_version", "source_path", "receipts"])?;
+    let receipts = array(&history, "receipts")?;
+    if history["schema_version"] != "tos_claim_revision_history_v1"
+        || history["source_path"] != source_path
+        || receipts.len() > 128
+        || receipts.is_empty()
+            && current_records
+                .values()
+                .any(|record| record["claim_version"] != 1)
+    {
+        return Err(Error::Invalid("selected Claim history profile/bounds"));
+    }
+    let mut commands = BTreeSet::new();
+    let mut paths = BTreeSet::new();
+    let mut head = None;
+    for receipt in receipts {
+        claim_receipt(receipt, &mut commands, l)?;
+        let archive = selected_claim_archive_path(
+            &receipt["previous_source"],
+            text(receipt, "previous_revision")?,
+        )?;
+        if receipt["archive_path"] != archive {
+            return Err(Error::Invalid("selected Claim archive source locator"));
+        }
+        let manifest_path = format!("{archive}/manifest.json");
+        RelativePath::parse(&manifest_path)
+            .map_err(|_| Error::Invalid("selected Claim archive manifest path"))?;
+        if !paths.insert(manifest_path) {
+            return Err(Error::Invalid("selected Claim archive manifest repeated"));
+        }
+        head = Some(receipt["source"].clone());
+    }
+    if head.as_ref().is_some_and(|head| head != &current_ref) {
+        return Err(Error::Invalid("selected Claim history head differs"));
+    }
+    Ok(paths.into_iter().collect())
+}
+
+/// Select every blob named by the already selected Claim archive manifests.
+/// Manifest paths are rechecked against the source-derived archive locator;
+/// returned paths are sorted and unique for bounded PG selection.
+pub fn selected_claim_archive_blob_paths_v1(
+    manifest_paths: &[String],
+    files: &SelectedBibliographicFilesV1,
+    l: BibliographicLimits,
+) -> Result<Vec<String>> {
+    l.validate()?;
+    if manifest_paths.len() > 128 || manifest_paths.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return Err(Error::Invalid("selected Claim archive manifest path set"));
+    }
+    let mut paths = BTreeSet::new();
+    for manifest_path in manifest_paths {
+        let raw = files.required(manifest_path)?;
+        let manifest = owned(raw, l.catalog.max_row_bytes)?;
+        let schema = text(&manifest, "schema_version")?;
+        let selected = schema == "tos_source_package_archive_v2";
+        let mut keys = vec![
+            "schema_version",
+            "source_path",
+            "source",
+            "revision",
+            "files",
+        ];
+        if selected {
+            keys.push("publication_protocol");
+        }
+        exact_keys(&manifest, &keys)?;
+        if !matches!(
+            schema,
+            "tos_source_package_archive_v1" | "tos_source_package_archive_v2"
+        ) || selected && manifest["publication_protocol"] != "tos_selected_source_metadata_v1"
+        {
+            return Err(Error::Invalid("selected Claim archive manifest profile"));
+        }
+        let source_path = text(&manifest, "source_path")?;
+        selected_claim_schema_path(source_path)?;
+        let source = &manifest["source"];
+        exact_ref(source, true)?;
+        let revision = text(&manifest, "revision")?;
+        let archive = selected_claim_archive_path(source, revision)?;
+        if manifest_path != &format!("{archive}/manifest.json") {
+            return Err(Error::Invalid("selected Claim archive manifest locator"));
+        }
+        let basename = source_path
+            .rsplit('/')
+            .next()
+            .ok_or(Error::Invalid("selected Claim archive source basename"))?;
+        let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".jsonl"));
+        let selected_names = [basename, forms_name.as_str(), "claim-revision-history.json"];
+        let bindings = manifest["files"]
+            .as_object()
+            .filter(|bindings| !bindings.is_empty() && bindings.len() <= 64)
+            .ok_or(Error::Invalid("selected Claim archive file bindings"))?;
+        for (name, binding) in bindings {
+            exact_keys(binding, &["blob", "sha256", "bytes"])?;
+            if name.is_empty()
+                || name.contains(['/', '\\', '\0'])
+                || matches!(
+                    name.as_str(),
+                    "." | ".."
+                        | "payload"
+                        | "owner-local"
+                        | "private"
+                        | "local-content"
+                        | "catalog"
+                )
+                || name.starts_with('.') && !public_form_lock(name)
+                || selected && !selected_names.contains(&name.as_str())
+            {
+                return Err(Error::Invalid("selected Claim archive member scope"));
+            }
+            let sha = text(binding, "sha256")?;
+            hash(&format!("sha256:{sha}"))?;
+            let blob = format!("{sha}.blob");
+            if binding["blob"] != blob
+                || binding["bytes"]
+                    .as_u64()
+                    .is_none_or(|bytes| bytes > 2 * 1024 * 1024)
+            {
+                return Err(Error::Invalid("selected Claim archive blob binding"));
+            }
+            let path = format!("{archive}/{blob}");
+            RelativePath::parse(&path)
+                .map_err(|_| Error::Invalid("selected Claim archive blob path"))?;
+            paths.insert(path);
+        }
+    }
+    Ok(paths.into_iter().collect())
+}
+
+/// Resolve one exact Claim version from current stream, history, and archive
+/// bytes in the caller's PG-selected readset. The source path may be an
+/// ordinary current Claim stream or an exact historical Claim endpoint; the
+/// latter remains its own owner home throughout resolution.
+pub fn resolve_selected_claim_version_v1<'a>(
+    entry: &Value,
+    exact: &Value,
+    files: &'a SelectedBibliographicFilesV1,
+    validator: &SourceCatalogValidator<'_>,
+    expected_event_revision: Digest256,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+) -> Result<SelectedClaimVersionV1<'a>> {
+    l.validate()?;
+    exact_ref(exact, true)?;
+    if validator.selected_event_source_revision()? != expected_event_revision {
+        return Err(Error::Invalid("selected Claim event revision differs"));
+    }
+    let source_path = text(entry, "source_claim_file_ref")?.to_owned();
+    let schema_path = selected_claim_schema_path(&source_path)?.to_owned();
+    let schema_bytes = files.required(&schema_path)?;
+    let source_bytes = files.required(&source_path)?;
+    let current_records = selected_claim_records(
+        &source_path,
+        source_bytes,
+        &schema_path,
+        schema_bytes,
+        files,
+        validator,
+        expected_event_revision,
+        l,
+    )?;
+    let id = text(entry, "claim_id")?;
+    if text(exact, "id")? != id {
+        return Err(Error::Invalid(
+            "selected Claim ref and owner identity differ",
+        ));
+    }
+    let current_record = current_records
+        .get(id)
+        .ok_or(Error::Invalid("selected Claim current membership absent"))?
+        .clone();
+    let current_ref = record_ref(&current_record, true, l)?;
+    let (current_line, current_line_bytes) = selected_claim_line_bytes(source_bytes, id, l)?;
+    let expected_entry = catalog::render_catalog_claim(
+        &current_record,
+        &source_path,
+        current_line,
+        Some(&schema_path),
+        l.catalog.max_output_row_bytes,
+    )?;
+    if entry["source_claim_line"].as_u64() != Some(current_line)
+        || entry["claim_sha256"]
+            != current_ref["digest"]
+                .as_str()
+                .unwrap_or("")
+                .trim_start_matches("sha256:")
+        || expected_entry != *entry
+    {
+        return Err(Error::Invalid(
+            "selected Claim entry differs from current source",
+        ));
+    }
+
+    let history_path = adjacent(&source_path, "claim-revision-history.json")?;
+    let history_bytes = files.optional(&history_path)?;
+    let history = if let Some(raw) = history_bytes {
+        owned(raw, l.catalog.max_row_bytes)?
+    } else {
+        json!({"schema_version":"tos_claim_revision_history_v1","source_path":source_path,"receipts":[]})
+    };
+    exact_keys(&history, &["schema_version", "source_path", "receipts"])?;
+    let receipts = array(&history, "receipts")?;
+    if history["schema_version"] != "tos_claim_revision_history_v1"
+        || history["source_path"] != source_path
+        || receipts.len() > 128
+        || receipts.is_empty()
+            && current_records
+                .values()
+                .any(|record| record["claim_version"] != 1)
+    {
+        return Err(Error::Invalid("selected Claim history profile/bounds"));
+    }
+    let mut commands = BTreeSet::new();
+    let mut expected_stream: Option<Vec<u8>> = None;
+    let mut historical = BTreeSet::new();
+    let mut refs = Vec::new();
+    let mut initial_stream = None;
+    let mut chosen: Option<(Value, Value, Value, &'static str, String, Vec<u8>)> = if current_ref
+        == *exact
+    {
+        Some((
+            current_record.clone(),
+            json!({"source_ref":source_path,"stream_sha256":format!("sha256:{}",Digest256::of_bytes(source_bytes).to_hex()),
+                    "stream_bytes":source_bytes.len(),"package_revision":null,"archive_blob_ref":null,"line":current_line}),
+            Value::Null,
+            "current",
+            source_path.clone(),
+            current_line_bytes.to_vec(),
+        ))
+    } else {
+        None
+    };
+
+    let manifest_paths = selected_claim_archive_manifest_paths_v1(entry, files, l)?;
+    if manifest_paths.len() != receipts.len() {
+        return Err(Error::Invalid(
+            "selected Claim archive manifest set differs",
+        ));
+    }
+    let mut receipt_manifest_paths = Vec::with_capacity(receipts.len());
+    for receipt in receipts {
+        check(validator, l)?;
+        claim_receipt(receipt, &mut commands, l)?;
+        let archive = selected_claim_archive_path(
+            &receipt["previous_source"],
+            text(receipt, "previous_revision")?,
+        )?;
+        if receipt["archive_path"] != archive {
+            return Err(Error::Invalid("selected Claim archive locator differs"));
+        }
+        let manifest_path = format!("{archive}/manifest.json");
+        receipt_manifest_paths.push(manifest_path.clone());
+        let (archived, locations) =
+            selected_claim_archive_package(&source_path, receipt, files, l)?;
+        let archive_stream_location = locations
+            .get(source_path.rsplit('/').next().unwrap())
+            .ok_or(Error::Invalid(
+                "selected Claim archive stream location absent",
+            ))?;
+        let before = archived
+            .get(source_path.rsplit('/').next().unwrap())
+            .ok_or(Error::Invalid("selected Claim archived stream absent"))?;
+        let before_blob_path = text(archive_stream_location, "archive_path")?;
+        let archived_records = selected_claim_records(
+            before_blob_path,
+            before,
+            &schema_path,
+            schema_bytes,
+            files,
+            validator,
+            expected_event_revision,
+            l,
+        )?;
+        if historical_path(&source_path) {
+            if initial_stream.is_none() {
+                initial_stream = Some(before.clone());
+            }
+            for name in HISTORICAL_CAPTURE {
+                if archived.get(name).map(Vec::as_slice)
+                    != files.optional(&format!(
+                        "{}/{name}",
+                        source_path.rsplit_once('/').unwrap().0
+                    ))?
+                {
+                    return Err(Error::Invalid(
+                        "historical Claim capture changed in archive",
+                    ));
+                }
+            }
+            let fields = receipt["request"]["fields"]
+                .as_object()
+                .ok_or(Error::Invalid(
+                    "historical Claim retained correction fields",
+                ))?;
+            if fields.len() != 1
+                || !fields.contains_key("qualifiers")
+                || fields["qualifiers"].as_object().is_none_or(|values| {
+                    values.keys().any(|key| {
+                        ![
+                            "statement",
+                            "statement_language",
+                            "statement_script",
+                            "display_fields",
+                        ]
+                        .contains(&key.as_str())
+                    })
+                })
+            {
+                return Err(Error::Invalid("historical Claim correction scope"));
+            }
+        }
+        let before_records = archived_records;
+        if expected_stream
+            .as_ref()
+            .is_some_and(|expected| expected != before)
+            || expected_stream.is_none()
+                && before_records
+                    .values()
+                    .any(|record| record["claim_version"] != 1)
+        {
+            return Err(Error::Invalid(
+                "selected Claim complete correction sequence",
+            ));
+        }
+        let before_id = text(&receipt["previous_source"], "id")?;
+        if before_id == id {
+            refs.push(receipt["previous_source"].clone());
+        }
+        let previous = before_records
+            .get(before_id)
+            .ok_or(Error::Invalid("selected Claim predecessor absent"))?;
+        if record_ref(previous, true, l)? != receipt["previous_source"]
+            || !historical.insert(encode(
+                &receipt["previous_source"],
+                l.catalog.max_row_bytes,
+            )?)
+        {
+            return Err(Error::Invalid(
+                "selected Claim predecessor binding/uniqueness",
+            ));
+        }
+        let revised = advance_claim(previous, &receipt["request"], l)?;
+        if record_ref(&revised, true, l)? != receipt["source"] {
+            return Err(Error::Invalid("selected Claim successor reconstruction"));
+        }
+        let formname = claim_form_name(&source_path, before_id)?;
+        let current_form_path = adjacent(&source_path, &formname)?;
+        let current_form_raw = files.optional(&current_form_path)?.ok_or(Error::Invalid(
+            "selected corrected Claim current forms absent",
+        ))?;
+        let form_schema_bytes = files.required(HUMAN_FORMS_SCHEMA)?;
+        let current_forms = selected_claim_form(
+            &current_form_path,
+            current_form_raw,
+            form_schema_bytes,
+            validator,
+            expected_event_revision,
+            l,
+        )?;
+        let current_source = current_records.get(before_id).ok_or(Error::Invalid(
+            "selected corrected Claim sibling absent from current stream",
+        ))?;
+        let current_materializations =
+            forms.materialize(current_source, &current_forms, 262_144)?;
+        encode(&json!(current_materializations), 262_144)?;
+
+        let prior_raw = archived.get(&formname);
+        let prior_form_path = prior_raw.and_then(|_| {
+            locations
+                .get(&formname)
+                .and_then(|location| location["archive_path"].as_str())
+        });
+        let prior_forms = prior_raw
+            .map(|raw| {
+                selected_claim_form(
+                    prior_form_path.ok_or(Error::Invalid("selected prior Claim forms location"))?,
+                    raw,
+                    form_schema_bytes,
+                    validator,
+                    expected_event_revision,
+                    l,
+                )
+            })
+            .transpose()?;
+        reconstruct_forms_with(
+            &revised,
+            prior_forms.as_ref(),
+            &current_forms,
+            receipt,
+            validator,
+            forms,
+            l,
+            |raw| {
+                let instance = format!(
+                    "catalog-generated-instance/{}",
+                    Digest256::of_bytes(raw).to_hex()
+                );
+                validator.check_selected_event_document_exact(
+                    expected_event_revision,
+                    &instance,
+                    HUMAN_FORMS_SCHEMA,
+                    form_schema_bytes,
+                    raw,
+                )
+            },
+        )?;
+
+        if receipt["previous_source"] == *exact {
+            if chosen.is_some() {
+                return Err(Error::Invalid("selected Claim exact version duplicated"));
+            }
+            let (line, line_bytes) = selected_claim_line_bytes(before, before_id, l)?;
+            let source = json!({"source_ref":source_path,"stream_sha256":format!("sha256:{}",Digest256::of_bytes(before).to_hex()),
+                "stream_bytes":before.len(),"package_revision":receipt["previous_revision"],"archive_blob_ref":before_blob_path,"line":line});
+            chosen = Some((
+                previous.clone(),
+                source,
+                receipt_transition(receipt)?,
+                "historical",
+                before_blob_path.to_owned(),
+                line_bytes.to_vec(),
+            ));
+        }
+        expected_stream = Some(replace_claim(before, &revised, l)?);
+    }
+    if receipt_manifest_paths.iter().collect::<BTreeSet<_>>()
+        != manifest_paths.iter().collect::<BTreeSet<_>>()
+        || receipt_manifest_paths.len() != manifest_paths.len()
+    {
+        return Err(Error::Invalid(
+            "selected Claim archive manifest order differs",
+        ));
+    }
+    if expected_stream
+        .as_ref()
+        .is_some_and(|expected| expected.as_slice() != source_bytes)
+    {
+        return Err(Error::Invalid(
+            "selected Claim current stream is not history head",
+        ));
+    }
+    let captured = historical_path(&source_path);
+    if captured {
+        let prefix = source_path.rsplit_once('/').unwrap().0;
+        let package = files.package(
+            prefix,
+            64.min(files.observed_path_count()),
+            files.observed_bytes().max(1).min(8 * 1024 * 1024),
+        )?;
+        let package = package
+            .into_iter()
+            .map(|(name, raw)| (name, raw.to_vec()))
+            .collect::<BTreeMap<_, _>>();
+        for name in HISTORICAL_CAPTURE {
+            let path = format!("{prefix}/{name}");
+            let _ = files.optional(&path)?;
+        }
+        let capture_receipt = package.get("source-create-receipt.json");
+        if capture_receipt.is_some() {
+            let request = owned(
+                package
+                    .get("source-create-request.json")
+                    .ok_or(Error::Invalid(
+                        "selected historical Claim origin request absent",
+                    ))?,
+                l.catalog.max_row_bytes,
+            )?;
+            for original in array(&request, "claims")? {
+                let formpath = adjacent(
+                    &source_path,
+                    &claim_form_name(&source_path, text(original, "claim_id")?)?,
+                )?;
+                let _ = files.optional(&formpath)?;
+                let lockpath = adjacent(
+                    &source_path,
+                    &format!(
+                        ".{}.writer.lock",
+                        claim_form_name(&source_path, text(original, "claim_id")?)?
+                    ),
+                )?;
+                let _ = files.optional(&lockpath)?;
+            }
+        }
+        let human_schema = files.required(HUMAN_FORMS_SCHEMA)?;
+        verify_historical_capture_with(
+            &source_path,
+            &package,
+            initial_stream.as_deref().unwrap_or(source_bytes),
+            &current_records,
+            receipts,
+            validator,
+            forms,
+            l,
+            |path, raw| {
+                validator.check_selected_event_document_exact(
+                    expected_event_revision,
+                    path,
+                    HUMAN_FORMS_SCHEMA,
+                    human_schema,
+                    raw,
+                )
+            },
+        )?;
+    }
+
+    refs.push(current_ref.clone());
+    let same_version = refs
+        .iter()
+        .any(|reference| reference["version"] == exact["version"]);
+    let Some((record, source, transition, version_status, record_source_path, record_source_bytes)) =
+        chosen
+    else {
+        return Ok(SelectedClaimVersionV1 {
+            status: if same_version { "stale" } else { "missing" },
+            reason: if same_version {
+                "exact-version-digest-mismatch"
+            } else {
+                "exact-version-not-retained"
+            },
+            version_status: None,
+            current_record,
+            current_ref,
+            refs,
+            record: None,
+            provenance: None,
+            source_path,
+            source_bytes,
+            history_path,
+            history_bytes,
+            schema_path,
+            schema_bytes,
+            record_source_path: None,
+            record_source_bytes: None,
+            record_schema_path: None,
+            record_schema_bytes: None,
+            forms_path: adjacent(&source_path, &claim_form_name(&source_path, id)?)?,
+            forms_bytes: files.optional(&adjacent(
+                &source_path,
+                &claim_form_name(&source_path, id)?,
+            )?)?,
+        });
+    };
+    let mut provenance = json!({
+        "verification_scope":"selected-claim-chain",
+        "all_package_bytes_verified":false,
+        "catalog":{
+            "selection":"event-derived-entry-v1",
+            "projection_ref":"ToS/source-witnesses/catalog/claims.jsonl",
+            "entry_sha256":format!("sha256:{}",digest(entry,l.catalog.max_output_row_bytes)?),
+            "event_source_revision":expected_event_revision.to_hex(),
+        },
+        "source":source,
+        "history":{
+            "source_ref":history_bytes.map(|_|history_path.clone()),
+            "sha256":history_bytes.map(|raw|format!("sha256:{}",Digest256::of_bytes(raw).to_hex())),
+            "receipt_count":receipts.len(),
+            "correction_chain_verified":true,
+        },
+        "transition":transition,
+    });
+    if captured {
+        provenance["history"]["adapter"] = json!("captured-historical-claim-v1");
+        provenance["history"]["record_history_verified"] = json!(false);
+    }
+    let forms_path = adjacent(&source_path, &claim_form_name(&source_path, id)?)?;
+    let forms_bytes = files.optional(&forms_path)?;
+    Ok(SelectedClaimVersionV1 {
+        status: "available",
+        reason: if version_status == "current" {
+            "exact-current-version"
+        } else {
+            "exact-historical-version"
+        },
+        version_status: Some(version_status),
+        current_record,
+        current_ref,
+        refs,
+        record: Some(record),
+        provenance: Some(provenance),
+        source_path,
+        source_bytes,
+        history_path,
+        history_bytes,
+        schema_path: schema_path.clone(),
+        schema_bytes,
+        record_source_path: Some(record_source_path),
+        record_source_bytes: Some(record_source_bytes),
+        record_schema_path: Some(schema_path),
+        record_schema_bytes: Some(schema_bytes),
+        forms_path,
+        forms_bytes,
+    })
+}
+
+fn selected_claim_records(
+    source_path: &str,
+    raw: &[u8],
+    schema_path: &str,
+    schema_bytes: &[u8],
+    files: &SelectedBibliographicFilesV1,
+    validator: &SourceCatalogValidator<'_>,
+    event_revision: Digest256,
+    l: BibliographicLimits,
+) -> Result<BTreeMap<String, Value>> {
+    let records = claim_records(raw, l)?;
+    for physical in raw.split(|byte| *byte == b'\n') {
+        if physical.iter().all(u8::is_ascii_whitespace) {
+            continue;
+        }
+        let record = owned(physical, l.catalog.max_row_bytes)?;
+        validator.check_selected_event_document_exact(
+            event_revision,
+            source_path,
+            schema_path,
+            schema_bytes,
+            physical,
+        )?;
+        if historical_path(source_path) {
+            selected_historical_claim_shape(
+                source_path,
+                &record,
+                files,
+                validator,
+                event_revision,
+                l,
+            )?;
+        }
+    }
+    Ok(records)
+}
+
+fn selected_historical_claim_shape(
+    source_path: &str,
+    record: &Value,
+    files: &SelectedBibliographicFilesV1,
+    validator: &SourceCatalogValidator<'_>,
+    event_revision: Digest256,
+    l: BibliographicLimits,
+) -> Result<()> {
+    historical_claim_shape_with(record, l, |schema_path, fragment, raw| {
+        let schema_bytes = files.required(schema_path)?;
+        if fragment.is_empty() {
+            validator.check_selected_event_document_exact(
+                event_revision,
+                source_path,
+                schema_path,
+                schema_bytes,
+                raw,
+            )
+        } else {
+            validator.check_selected_event_document_fragment_exact(
+                event_revision,
+                source_path,
+                schema_path,
+                schema_bytes,
+                fragment,
+                raw,
+            )
+        }
+    })
+}
+
+fn selected_claim_line_bytes<'a>(
+    raw: &'a [u8],
+    id: &str,
+    l: BibliographicLimits,
+) -> Result<(u64, &'a [u8])> {
+    for (index, bytes) in raw.split(|byte| *byte == b'\n').enumerate() {
+        if bytes.iter().all(u8::is_ascii_whitespace) {
+            continue;
+        }
+        if SourceRow::parse(bytes, l.catalog.max_row_bytes)?.value()["claim_id"] == id {
+            return Ok((index as u64 + 1, bytes));
+        }
+    }
+    Err(Error::Invalid("selected Claim source line absent"))
+}
+
+fn selected_claim_form(
+    path: &str,
+    raw: &[u8],
+    schema_bytes: &[u8],
+    validator: &SourceCatalogValidator<'_>,
+    event_revision: Digest256,
+    l: BibliographicLimits,
+) -> Result<Value> {
+    validator.check_selected_event_document_exact(
+        event_revision,
+        path,
+        HUMAN_FORMS_SCHEMA,
+        schema_bytes,
+        raw,
+    )?;
+    owned(raw, l.catalog.max_row_bytes)
+}
+
+fn selected_claim_archive_manifest(
+    manifest_path: &str,
+    manifest_raw: &[u8],
+    l: BibliographicLimits,
+) -> Result<Value> {
+    let manifest = owned(manifest_raw, l.catalog.max_row_bytes)?;
+    let schema = text(&manifest, "schema_version")?;
+    let selected = schema == "tos_source_package_archive_v2";
+    let mut keys = vec![
+        "schema_version",
+        "source_path",
+        "source",
+        "revision",
+        "files",
+    ];
+    if selected {
+        keys.push("publication_protocol");
+    }
+    exact_keys(&manifest, &keys)?;
+    if !matches!(
+        schema,
+        "tos_source_package_archive_v1" | "tos_source_package_archive_v2"
+    ) || selected && manifest["publication_protocol"] != "tos_selected_source_metadata_v1"
+    {
+        return Err(Error::Invalid("selected Claim archive manifest profile"));
+    }
+    let source_path = text(&manifest, "source_path")?;
+    selected_claim_schema_path(source_path)?;
+    let source = &manifest["source"];
+    exact_ref(source, true)?;
+    let revision = text(&manifest, "revision")?;
+    let archive = selected_claim_archive_path(source, revision)?;
+    if manifest_path != format!("{archive}/manifest.json") {
+        return Err(Error::Invalid("selected Claim archive manifest locator"));
+    }
+    let bindings = manifest["files"]
+        .as_object()
+        .filter(|bindings| !bindings.is_empty() && bindings.len() <= 64)
+        .ok_or(Error::Invalid("selected Claim archive file bindings"))?;
+    for (name, binding) in bindings {
+        exact_keys(binding, &["blob", "sha256", "bytes"])?;
+        if name.is_empty()
+            || name.contains(['/', '\\', '\0'])
+            || matches!(
+                name.as_str(),
+                "." | ".." | "payload" | "owner-local" | "private" | "local-content" | "catalog"
+            )
+            || name.starts_with('.') && !public_form_lock(name)
+        {
+            return Err(Error::Invalid("selected Claim archive member scope"));
+        }
+        let sha = text(binding, "sha256")?;
+        hash(&format!("sha256:{sha}"))?;
+        if binding["blob"] != format!("{sha}.blob")
+            || binding["bytes"]
+                .as_u64()
+                .is_none_or(|bytes| bytes > 2 * 1024 * 1024)
+        {
+            return Err(Error::Invalid("selected Claim archive blob binding"));
+        }
+    }
+    Ok(manifest)
+}
+
+fn selected_claim_archive_package(
+    reference: &str,
+    receipt: &Value,
+    selected: &SelectedBibliographicFilesV1,
+    l: BibliographicLimits,
+) -> Result<(BTreeMap<String, Vec<u8>>, BTreeMap<String, Value>)> {
+    let archive = selected_claim_archive_path(
+        &receipt["previous_source"],
+        text(receipt, "previous_revision")?,
+    )?;
+    if text(receipt, "archive_path")? != archive {
+        return Err(Error::Invalid(
+            "selected Claim archive source-derived locator",
+        ));
+    }
+    let package = selected.package(
+        &archive,
+        65.min(selected.observed_path_count()),
+        selected.observed_bytes().max(1).min(10 * 1024 * 1024),
+    )?;
+    if package.is_empty() || package.len() > 65 {
+        return Err(Error::Budget("selected Claim archive package members"));
+    }
+    let mut blobs = BTreeMap::new();
+    let mut total = 0usize;
+    for (name, raw) in package {
+        if name != "manifest.json"
+            && (name.len() != 69
+                || !name.ends_with(".blob")
+                || !name[..64]
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)))
+        {
+            return Err(Error::Invalid("selected Claim archive non-blob member"));
+        }
+        if raw.len() > 2 * 1024 * 1024 {
+            return Err(Error::Budget("selected Claim archive member bytes"));
+        }
+        total = total
+            .checked_add(raw.len())
+            .filter(|bytes| *bytes <= 10 * 1024 * 1024)
+            .ok_or(Error::Budget("selected Claim archive bytes"))?;
+        blobs.insert(name.to_owned(), raw.to_vec());
+    }
+    let manifest_raw = blobs
+        .remove("manifest.json")
+        .ok_or(Error::Invalid("selected Claim archive manifest absent"))?;
+    let manifest_path = format!("{archive}/manifest.json");
+    let manifest = selected_claim_archive_manifest(&manifest_path, &manifest_raw, l)?;
+    let basename = reference
+        .rsplit('/')
+        .next()
+        .ok_or(Error::Invalid("selected Claim archive source basename"))?;
+    let selected_manifest = manifest["schema_version"] == "tos_source_package_archive_v2";
+    let mut keys = vec![
+        "schema_version",
+        "source_path",
+        "source",
+        "revision",
+        "files",
+    ];
+    if selected_manifest {
+        keys.push("publication_protocol");
+    }
+    exact_keys(&manifest, &keys)?;
+    if manifest["source_path"] != reference
+        || manifest["source"] != receipt["previous_source"]
+        || manifest["revision"] != receipt["previous_revision"]
+    {
+        return Err(Error::Invalid(
+            "selected Claim archive exact manifest binding",
+        ));
+    }
+    let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".jsonl"));
+    let selected_names = [basename, forms_name.as_str(), "claim-revision-history.json"];
+    let bindings = manifest["files"]
+        .as_object()
+        .filter(|bindings| !bindings.is_empty() && bindings.len() <= 64)
+        .ok_or(Error::Invalid("selected Claim archive file bindings"))?;
+    let mut restored = BTreeMap::new();
+    let mut locations = BTreeMap::new();
+    let mut used = BTreeSet::new();
+    for (name, binding) in bindings {
+        exact_keys(binding, &["blob", "sha256", "bytes"])?;
+        if name.is_empty()
+            || name.contains(['/', '\\', '\0'])
+            || matches!(
+                name.as_str(),
+                "." | ".." | "payload" | "owner-local" | "private" | "local-content" | "catalog"
+            )
+            || name.starts_with('.') && !public_form_lock(name)
+            || selected_manifest && !selected_names.contains(&name.as_str())
+        {
+            return Err(Error::Invalid("selected Claim archive public member scope"));
+        }
+        let sha = hash(text(binding, "sha256")?)?;
+        let blob = format!("{sha}.blob");
+        if binding["blob"] != blob {
+            return Err(Error::Invalid("selected Claim archive blob binding"));
+        }
+        let raw = blobs
+            .get(&blob)
+            .ok_or(Error::Invalid("selected Claim archive blob absent"))?;
+        if raw.len() as u64 != binding["bytes"].as_u64().unwrap_or(u64::MAX)
+            || format!("sha256:{}", Digest256::of_bytes(raw).to_hex()) != text(binding, "sha256")?
+        {
+            return Err(Error::Invalid("selected Claim archive raw byte binding"));
+        }
+        if public_form_lock(name) && !raw.is_empty() {
+            return Err(Error::Invalid(
+                "selected Claim archive writer lock contents",
+            ));
+        }
+        let blob_path = format!("{archive}/{blob}");
+        restored.insert(name.clone(), raw.clone());
+        used.insert(blob.clone());
+        locations.insert(
+            name.clone(),
+            json!({"archive_path":blob_path,"sha256":binding["sha256"],"bytes":binding["bytes"]}),
+        );
+    }
+    if used != blobs.keys().cloned().collect::<BTreeSet<_>>()
+        || package_revision(&restored, l)? != text(receipt, "previous_revision")?
+    {
+        return Err(Error::Invalid(
+            "selected Claim archive complete package binding",
+        ));
+    }
+    Ok((restored, locations))
+}
+
 fn verify_entities(
     stage: &KnowledgeStage<'_>,
     entities: &Value,
@@ -2935,20 +4548,24 @@ fn historical_claim_shape(
     validator: &SourceCatalogValidator<'_>,
     l: BibliographicLimits,
 ) -> Result<()> {
-    catalog::check_catalog_schema(
-        stage,
-        validator,
-        l.catalog,
+    historical_claim_shape_with(record, l, |schema, fragment, raw| {
+        catalog::check_catalog_schema(stage, validator, l.catalog, schema, fragment, raw)
+    })
+}
+
+fn historical_claim_shape_with(
+    record: &Value,
+    l: BibliographicLimits,
+    mut check_schema: impl FnMut(&str, &str, &[u8]) -> Result<()>,
+) -> Result<()> {
+    check_schema(
         "ToS/contracts/historical-claim.schema.json",
         "",
         &encode(record, l.catalog.max_row_bytes)?,
     )?;
     let qualifiers = &record["qualifiers"];
     if qualifiers["display_fields"]["schema_version"] == "tos_claim_display_fields_v1" {
-        catalog::check_catalog_schema(
-            stage,
-            validator,
-            l.catalog,
+        check_schema(
             "ToS/contracts/claim-display-fields.schema.json",
             "",
             &encode(qualifiers, l.catalog.max_row_bytes)?,
@@ -2959,10 +4576,7 @@ fn historical_claim_shape(
             .is_empty()
     }) {
         let languages = json!({"notes":{"language":qualifiers["statement_language"],"script":qualifiers["statement_script"]}});
-        catalog::check_catalog_schema(
-            stage,
-            validator,
-            l.catalog,
+        check_schema(
             "ToS/contracts/corpus-record.schema.json",
             "#/properties/field_languages",
             &encode(&languages, l.catalog.max_row_bytes)?,
@@ -2982,6 +4596,39 @@ fn verify_historical_capture(
     validator: &SourceCatalogValidator<'_>,
     forms: &mut dyn BibliographicForms,
     l: BibliographicLimits,
+) -> Result<()> {
+    verify_historical_capture_with(
+        reference,
+        files,
+        initial,
+        current,
+        receipts,
+        validator,
+        forms,
+        l,
+        |_path, raw| {
+            catalog::check_catalog_schema(
+                stage,
+                validator,
+                l.catalog,
+                "ToS/contracts/human-form-set.schema.json",
+                "",
+                raw,
+            )
+        },
+    )
+}
+
+fn verify_historical_capture_with(
+    reference: &str,
+    files: &BTreeMap<String, Vec<u8>>,
+    initial: &[u8],
+    current: &BTreeMap<String, Value>,
+    receipts: &[Value],
+    validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    mut check_form_schema: impl FnMut(&str, &[u8]) -> Result<()>,
 ) -> Result<()> {
     let present = HISTORICAL_CAPTURE
         .iter()
@@ -3070,12 +4717,8 @@ fn verify_historical_capture(
         let name = claim_form_name(reference, id)?;
         if let Some(raw) = files.get(&name) {
             let set = owned(raw, l.catalog.max_row_bytes)?;
-            catalog::check_catalog_schema(
-                stage,
-                validator,
-                l.catalog,
-                "ToS/contracts/human-form-set.schema.json",
-                "",
+            check_form_schema(
+                &format!("{}/{name}", reference.rsplit_once('/').unwrap().0),
                 raw,
             )?;
             if set["subject"]["id"] != id {
@@ -3441,15 +5084,39 @@ fn reconstruct_forms(
     forms: &mut dyn BibliographicForms,
     l: BibliographicLimits,
 ) -> Result<()> {
+    reconstruct_forms_with(
+        revised,
+        prior,
+        current,
+        receipt,
+        validator,
+        forms,
+        l,
+        |raw| {
+            catalog::check_catalog_schema(
+                stage,
+                validator,
+                l.catalog,
+                "ToS/contracts/human-form-set.schema.json",
+                "",
+                raw,
+            )
+        },
+    )
+}
+
+fn reconstruct_forms_with(
+    revised: &Value,
+    prior: Option<&Value>,
+    current: &Value,
+    receipt: &Value,
+    _validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    mut check_form_schema: impl FnMut(&[u8]) -> Result<()>,
+) -> Result<()> {
     for set in prior.into_iter().chain(std::iter::once(current)) {
-        catalog::check_catalog_schema(
-            stage,
-            validator,
-            l.catalog,
-            "ToS/contracts/human-form-set.schema.json",
-            "",
-            &encode(set, l.catalog.max_row_bytes)?,
-        )?;
+        check_form_schema(&encode(set, l.catalog.max_row_bytes)?)?;
         if set["subject"]["id"] != revised["claim_id"] {
             return Err(Error::Invalid("bibliographic retained form set subject"));
         }
@@ -3491,14 +5158,7 @@ fn reconstruct_forms(
         262_144,
     )?;
     let raw = encode(&result, 262_144)?;
-    catalog::check_catalog_schema(
-        stage,
-        validator,
-        l.catalog,
-        "ToS/contracts/human-form-set.schema.json",
-        "",
-        &raw,
-    )?;
+    check_form_schema(&raw)?;
     let subject = record_ref(revised, true, l)?;
     if result["subject"] != subject {
         return Err(Error::Invalid(

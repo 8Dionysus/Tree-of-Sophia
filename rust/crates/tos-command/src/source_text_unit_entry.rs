@@ -10,7 +10,7 @@ use crate::source_serialization::{
 use crate::source_sign_native::{
     ResolvedOwnerTextLayer, resolve_owner_text_layer, resolve_owner_text_packet,
 };
-use crate::source_text_identity::selected_identity_snapshot;
+use crate::source_text_identity::selected_owner_identity_snapshot;
 use crate::source_text_layer_entry::{checked_schema, file_refs, line};
 use crate::source_text_layer_native::recheck_selected_inputs;
 use crate::source_text_owner::{OwnerTextContext, OwnerTextUnitSelection};
@@ -26,7 +26,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const PACKET_SCHEMA: &str = "ToS/contracts/source-text-unit-packet-v1.schema.json";
@@ -85,9 +85,86 @@ struct PreparedUnit {
     dependencies: String,
 }
 
+/// Complete owner-prepared TextUnit package for a private PG commit. The
+/// database adapter can inspect immutable package bytes and bindings, but it
+/// cannot construct this capability from a caller-selected file map.
+pub(crate) struct PreparedNativeTextUnitPackage {
+    prepared: PreparedUnit,
+    source_path: String,
+    files: BTreeMap<String, Vec<u8>>,
+    receipt: JsonValue,
+    replayed: bool,
+    context_binding: Digest256,
+    request_digest: Digest256,
+    grant_digest: Digest256,
+}
+
+impl PreparedNativeTextUnitPackage {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.files
+    }
+
+    pub(crate) fn receipt(&self) -> &JsonValue {
+        &self.receipt
+    }
+
+    pub(crate) fn replayed(&self) -> bool {
+        self.replayed
+    }
+
+    pub(crate) fn owner_configuration(&self) -> &str {
+        &self.prepared.owner_configuration
+    }
+
+    pub(crate) fn expected_dependencies(&self) -> &str {
+        &self.prepared.dependencies
+    }
+
+    pub(crate) fn owner_context_binding(&self) -> Digest256 {
+        self.context_binding
+    }
+
+    pub(crate) fn request_digest(&self) -> Digest256 {
+        self.request_digest
+    }
+
+    pub(crate) fn grant_digest(&self) -> Digest256 {
+        self.grant_digest
+    }
+
+    pub(crate) fn account_uid(&self) -> u32 {
+        self.prepared.context.account_uid()
+    }
+
+    pub(crate) fn verify_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        exclude_target: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let target = self
+            .prepared
+            .context
+            .private_package_target_for_owner_route(&self.source_path)?;
+        self.prepared.verify_current(
+            software,
+            components,
+            if exclude_target { Some(&target) } else { None },
+            deadline,
+            cancelled,
+        )
+    }
+}
+
 pub(crate) fn selected_contracts(
     context: &OwnerTextContext,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     packet_mode: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -104,7 +181,7 @@ pub(crate) fn selected_contracts(
     ] {
         let raw = context.read(name, MAX_CONTRACT, deadline, cancelled)?;
         let sha = Digest256::of_bytes(&raw);
-        if worker.contract_digest(name) != Some(sha) {
+        if worker.selected_contract_digest(name) != Some(sha) {
             return Err(SourceCommandError::Conflict(
                 "native TextUnit selected contract changed",
             ));
@@ -114,7 +191,9 @@ pub(crate) fn selected_contracts(
     Ok(selected)
 }
 
-fn ids(grant: &OwnerTextUnitSelection) -> SourceCommandResult<Vec<String>> {
+pub(crate) fn identity_ids_for_pg(
+    grant: &OwnerTextUnitSelection,
+) -> SourceCommandResult<Vec<String>> {
     let mut ids = [
         "packet_id",
         "scheme_id",
@@ -137,6 +216,10 @@ fn ids(grant: &OwnerTextUnitSelection) -> SourceCommandResult<Vec<String>> {
         );
     }
     Ok(ids)
+}
+
+fn ids(grant: &OwnerTextUnitSelection) -> SourceCommandResult<Vec<String>> {
+    identity_ids_for_pg(grant)
 }
 
 pub(crate) fn configuration(
@@ -228,41 +311,27 @@ fn dependencies(
     Ok(Digest256::of_bytes(&cmd::canonical(&value)?).to_prefixed())
 }
 
-fn prepare(
-    context_path: &Path,
-    grant_path: &Path,
+fn prepare_selected(
+    mut context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: OwnerTextUnitSelection,
     request: &JsonValue,
-    cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedUnit> {
     active(deadline, cancelled)?;
-    let schema = RelativePath::parse(CONTEXT_SCHEMA)
-        .map_err(|_| SourceCommandError::Invalid("native TextUnit context schema"))?;
-    let selected = cut
-        .read_member(
-            cut.current().revision(),
-            &schema,
-            MAX_CONTRACT as u64,
-            deadline,
-            cancelled,
-        )
-        .map_err(|_| SourceCommandError::Conflict("native TextUnit context contract"))?;
-    let (mut context, _) =
-        OwnerTextContext::select(context_path, &selected.raw, worker, deadline, cancelled)?;
-    let publication = context.select_publication(deadline, cancelled)?;
-    let grant = OwnerTextUnitSelection::select(&context, grant_path, deadline, cancelled)?;
     let packet_mode =
         cmd::text(&grant.config, "schema_version")? == "tos_local_text_unit_create_owner_v1";
     let contracts = selected_contracts(&context, worker, packet_mode, deadline, cancelled)?;
     let owner_configuration = configuration(&context, &grant, &contracts, deadline, cancelled)?;
     let identities = ids(&grant)?;
     let refs = identities.iter().map(String::as_str).collect::<Vec<_>>();
-    let inventory = selected_identity_snapshot(&context, &refs, exclude, deadline, cancelled)?;
+    let inventory =
+        selected_owner_identity_snapshot(&context, &refs, exclude, deadline, cancelled)?;
     let (layer, existing_packet) = if packet_mode {
         let resolved = resolve_owner_text_packet(
             &mut context,
@@ -277,6 +346,7 @@ fn prepare(
                 raw: resolved.raw,
                 inputs: resolved.inputs,
                 input_snapshot: resolved.input_snapshot,
+                selected_members: resolved.selected_members,
             },
             Some(resolved.packet),
         )
@@ -363,6 +433,48 @@ fn prepare(
     })
 }
 
+fn prepare(
+    context_path: &Path,
+    grant_path: &Path,
+    request: &JsonValue,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    exclude: Option<&Path>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedUnit> {
+    active(deadline, cancelled)?;
+    let schema = RelativePath::parse(CONTEXT_SCHEMA)
+        .map_err(|_| SourceCommandError::Invalid("native TextUnit context schema"))?;
+    let selected = cut
+        .read_member(
+            cut.current().revision(),
+            &schema,
+            MAX_CONTRACT as u64,
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Conflict("native TextUnit context contract"))?;
+    let (context, _) =
+        OwnerTextContext::select(context_path, &selected.raw, worker, deadline, cancelled)?;
+    let publication = context.select_publication(deadline, cancelled)?;
+    let grant = OwnerTextUnitSelection::select(&context, grant_path, deadline, cancelled)?;
+    prepare_selected(
+        context,
+        publication,
+        grant,
+        request,
+        software,
+        components,
+        worker,
+        exclude,
+        deadline,
+        cancelled,
+    )
+}
+
 impl PreparedUnit {
     fn verify_stage_current(
         &self,
@@ -428,7 +540,7 @@ impl PreparedUnit {
         }
         let identities = ids(&self.grant)?;
         let refs = identities.iter().map(String::as_str).collect::<Vec<_>>();
-        if selected_identity_snapshot(&self.context, &refs, exclude, deadline, cancelled)?
+        if selected_owner_identity_snapshot(&self.context, &refs, exclude, deadline, cancelled)?
             != self.inventory
         {
             return Err(SourceCommandError::Conflict(
@@ -562,7 +674,7 @@ pub fn prepare_first_text_unit_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeFirstTextUnitPreview> {
@@ -593,7 +705,7 @@ fn verify_retained(
     prepared: &PreparedUnit,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -839,6 +951,188 @@ fn verify_retained(
     Ok(receipt)
 }
 
+fn assemble_first_text_unit_package(
+    request: &JsonValue,
+    prepared: &mut PreparedUnit,
+    flat: bool,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let source_path = cmd::text(&prepared.grant.config, "source_path")?.to_owned();
+    let home = source_path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("native TextUnit home"))?
+        .0;
+    let inputs = capture_inputs(prepared, deadline, cancelled)?;
+    let rep = cmd::field(&prepared.layer.layer, "representation")?;
+    let rights = cmd::field(rep, "rights_record_refs")?;
+    capture_first_text_unit(
+        !flat,
+        request,
+        cmd::text(&prepared.grant.config, "provenance_event_id")?,
+        home,
+        &source_path,
+        rights,
+        inputs,
+        &mut prepared.files,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    let event_raw = prepared
+        .files
+        .get("source-create-provenance.jsonl")
+        .ok_or(SourceCommandError::Invalid("native TextUnit event output"))?;
+    checked_schema(
+        worker,
+        &format!("{home}/source-create-provenance.jsonl"),
+        event_raw,
+        EVENT_SCHEMA,
+        deadline,
+        cancelled,
+    )?;
+    let receipt = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_local_source_create_receipt_v1"),
+        ),
+        ("command_id", cmd::field(request, "command_id")?.clone()),
+        (
+            "request_digest",
+            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+        ),
+        (
+            "principal_id",
+            cmd::field(&prepared.grant.config, "principal_id")?.clone(),
+        ),
+        (
+            "authority_ref",
+            cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
+        ),
+        (
+            "owner_configuration",
+            cmd::string(&prepared.owner_configuration),
+        ),
+        ("recorded_at", cmd::string(&instant()?)),
+        ("source_path", cmd::string(&source_path)),
+        (
+            "source",
+            cmd::reference(&prepared.packet, "packet_id", "packet_version")?,
+        ),
+        ("dependencies", cmd::string(&prepared.dependencies)),
+        ("files", file_refs(prepared.files.iter())),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    let receipt_raw = line(&receipt)?;
+    let receipt = cmd::parse(&receipt_raw)?;
+    prepared
+        .files
+        .insert("source-create-receipt.json".into(), receipt_raw);
+    if prepared
+        .files
+        .values()
+        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+        .is_none_or(|n| n > MAX_PACKAGE)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "native TextUnit complete package budget",
+        ));
+    }
+    Ok(receipt)
+}
+
+/// Prepare a complete TextUnit package for the private PG transaction. Exact
+/// prior package bytes are validated with this operation's retained-package
+/// recovery checks before they can be replayed.
+pub(crate) fn prepare_pg_text_unit_package(
+    context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: OwnerTextUnitSelection,
+    request: &JsonValue,
+    retained: Option<&BTreeMap<String, Vec<u8>>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedNativeTextUnitPackage> {
+    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    active(deadline, cancelled)?;
+    if !context.has_pg_selection()? {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL TextUnit preparation lacks a selected source inventory",
+        ));
+    }
+    let source_path = cmd::text(&grant.config, "source_path")?.to_owned();
+    let target = context.private_package_target_for_owner_route(&source_path)?;
+    let flat = cmd::text(&grant.config, "schema_version")? == "tos_local_text_unit_create_owner_v1";
+    let selected_files = package_files(flat);
+    let mut prepared = prepare_selected(
+        context,
+        publication,
+        grant,
+        request,
+        software,
+        components,
+        worker,
+        retained.map(|_| target.as_path()),
+        deadline,
+        cancelled,
+    )?;
+    request_create(request, &prepared, retained.is_none())?;
+    let (files, receipt, replayed) = if let Some(files) = retained {
+        let receipt = verify_retained(&prepared, request, files, worker, deadline, cancelled)?;
+        (files.clone(), receipt, true)
+    } else {
+        let receipt = assemble_first_text_unit_package(
+            request,
+            &mut prepared,
+            flat,
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        (prepared.files.clone(), receipt, false)
+    };
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_current(
+        software,
+        components,
+        retained.map(|_| target.as_path()),
+        deadline,
+        cancelled,
+    )?;
+    if files.len() != selected_files.len()
+        || files
+            .keys()
+            .any(|name| !selected_files.contains(&name.as_str()))
+    {
+        return Err(SourceCommandError::Conflict(
+            "native TextUnit private package member set differs",
+        ));
+    }
+    let context_binding = prepared
+        .context
+        .private_owner_scope_binding(deadline, cancelled)?;
+    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
+    Ok(PreparedNativeTextUnitPackage {
+        prepared,
+        source_path,
+        files,
+        receipt,
+        replayed,
+        context_binding,
+        request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
+        grant_digest,
+    })
+}
+
 /// One whole protected initial segmentation. The public request contains
 /// spans only; this entry selects the layer, builds all bytes, observes native
 /// provenance, reaches worker FINAL and uses the owner-held durable stage.
@@ -849,7 +1143,7 @@ pub fn execute_first_text_unit_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeFirstTextUnitResult> {
@@ -958,87 +1252,16 @@ pub fn execute_first_text_unit_from_captures(
         }
         PrivateTextCustody::Absent => (),
     }
-    let home = source_path
-        .rsplit_once('/')
-        .ok_or(SourceCommandError::Invalid("native TextUnit home"))?
-        .0;
-    let inputs = capture_inputs(&prepared, deadline, cancelled)?;
-    let rep = cmd::field(&prepared.layer.layer, "representation")?;
-    let rights = cmd::field(rep, "rights_record_refs")?;
-    capture_first_text_unit(
-        !flat,
+    let receipt = assemble_first_text_unit_package(
         request,
-        cmd::text(&prepared.grant.config, "provenance_event_id")?,
-        home,
-        &source_path,
-        rights,
-        inputs,
-        &mut prepared.files,
+        &mut prepared,
+        flat,
         software,
         components,
-        deadline,
-        cancelled,
-    )?;
-    let event_raw = prepared
-        .files
-        .get("source-create-provenance.jsonl")
-        .ok_or(SourceCommandError::Invalid("native TextUnit event output"))?;
-    checked_schema(
         worker,
-        &format!("{home}/source-create-provenance.jsonl"),
-        event_raw,
-        EVENT_SCHEMA,
         deadline,
         cancelled,
     )?;
-    let receipt = cmd::object(vec![
-        (
-            "schema_version",
-            cmd::string("tos_local_source_create_receipt_v1"),
-        ),
-        ("command_id", cmd::field(request, "command_id")?.clone()),
-        (
-            "request_digest",
-            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
-        ),
-        (
-            "principal_id",
-            cmd::field(&prepared.grant.config, "principal_id")?.clone(),
-        ),
-        (
-            "authority_ref",
-            cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
-        ),
-        (
-            "owner_configuration",
-            cmd::string(&prepared.owner_configuration),
-        ),
-        ("recorded_at", cmd::string(&instant()?)),
-        ("source_path", cmd::string(&source_path)),
-        (
-            "source",
-            cmd::reference(&prepared.packet, "packet_id", "packet_version")?,
-        ),
-        ("dependencies", cmd::string(&prepared.dependencies)),
-        ("files", file_refs(prepared.files.iter())),
-        ("grants_admission", JsonValue::Bool(false)),
-    ]);
-    let receipt_raw = line(&receipt)?;
-    drop(receipt);
-    let receipt = cmd::parse(&receipt_raw)?;
-    prepared
-        .files
-        .insert("source-create-receipt.json".into(), receipt_raw);
-    if prepared
-        .files
-        .values()
-        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
-        .is_none_or(|n| n > MAX_PACKAGE)
-    {
-        return Err(SourceCommandError::Unsupported(
-            "native TextUnit complete package budget",
-        ));
-    }
     finish_creation_worker(worker, deadline, cancelled)?;
     prepared.verify_current(software, components, None, deadline, cancelled)?;
     if flat {

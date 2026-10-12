@@ -1,7 +1,9 @@
 # Native Expression responsibility attachment
 
-`source_responsibility_commands.py`, dispatched through `source_commands.py`,
-owns one separately delegated `translated_by` attachment from an existing
+The native handler `native-expression-responsibility`, implemented by
+`rust/crates/tos-command/src/source_native_responsibility_cli.rs` and dispatched
+through `tos-native-owner-command source-commands`, owns one separately delegated
+`translated_by` attachment from an existing
 Expression to an existing Agent. It uses the canonical relation registry and
 `tos_source_relation_claim_v1`, with its own compound attachment grant.
 
@@ -89,6 +91,9 @@ Requests use `tos_local_expression_responsibility_command_v1`:
    exact `transaction_id`, `decision: resume|rollback`, and
    `expected_configuration`. A recovery-only renewal cannot start a new Claim.
 
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+
 The command discovers selected records and existing translator Claims through
 exact current catalog routes. Catalog generation is a separate post-publication
 step before the next growth operation. No descendant enumeration is needed.
@@ -98,8 +103,8 @@ step before the next growth operation. No descendant enumeration is needed.
 The adapter uses the same common-lock, selected-metadata publication and
 current-authority recovery as
 [native Work/Expression growth](NATIVE_WORK_EXPRESSION_GROWTH.md). Shared
-catalog, form, dependency and lifecycle mechanics live in
-`source_compound_commands.py`; each adapter owns its distinct scope, typed
+catalog, form, dependency and lifecycle mechanics live in the native selected
+publication modules under `rust/crates/tos-command/`; each adapter owns its distinct scope, typed
 delta and complete before/after reconstruction. Old Work/Expression receipt
 serialization and historical replay remain unchanged.
 

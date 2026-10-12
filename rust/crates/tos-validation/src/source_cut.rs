@@ -37,10 +37,29 @@ use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 /// Exact owner schema executor, with separately enforced process custody.
 /// An unknown profile/resource or incomplete execution must refuse.
 pub trait CutSchemaExecutor {
+    /// Exact asserted schema profile selected by this executor, when its
+    /// implementation can attest one.
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        None
+    }
+
+    /// Prepared worker identity independent of whether source selection was a
+    /// complete immutable cut or an opaque selected-input candidate.
+    fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        None
+    }
+
     /// Exact immutable source revision bound by this executor, when its
     /// implementation can attest one. Adapters that cannot expose this
     /// identity must retain the default refusal value.
     fn selected_source_revision(&self) -> Option<SourceRevision> {
+        None
+    }
+
+    /// Digest of one exact selected schema resource, when this executor can
+    /// expose the resource-level binding. This is independent of the complete
+    /// schema-set digest and is used to bind an event-local source witness.
+    fn selected_contract_digest(&self, _contract: &str) -> Option<Digest256> {
         None
     }
 
@@ -890,6 +909,58 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
     /// intentionally has no `SourceRevision` or complete-corpus scan.
     pub fn from_selected_source_resources(
         input_identity: I,
+        selected: Vec<(String, SchemaResource)>,
+        profile: FormatProfile,
+        image: &VerifiedWorkerImageHandle,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        if profile != FormatProfile::LegacyPythonObserved20260923 {
+            return Err(ItemRefusal::Source(
+                "selected candidate schema resource profile is not legacy".into(),
+            ));
+        }
+        Self::from_selected_source_resources_with_profile(
+            input_identity,
+            selected,
+            profile,
+            image,
+            budget,
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Prepare the asserted-source candidate worker used by selected source
+    /// owner operations. This remains candidate-fenced: it binds exact schema
+    /// bytes and the opaque caller identity without claiming a SourceRevision
+    /// or complete-corpus membership.
+    pub fn from_asserted_source_candidate_resources(
+        input_identity: I,
+        selected: Vec<(String, SchemaResource)>,
+        image: &VerifiedWorkerImageHandle,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        Self::from_selected_source_resources_with_profile(
+            input_identity,
+            selected,
+            FormatProfile::AssertedSourceCandidateV1,
+            image,
+            budget,
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn from_selected_source_resources_with_profile(
+        input_identity: I,
         mut selected: Vec<(String, SchemaResource)>,
         profile: FormatProfile,
         image: &VerifiedWorkerImageHandle,
@@ -899,8 +970,10 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
         cancelled: &AtomicBool,
     ) -> Result<Self, ItemRefusal> {
         check(deadline, cancelled)?;
-        if profile != FormatProfile::LegacyPythonObserved20260923
-            || selected.is_empty()
+        if !matches!(
+            profile,
+            FormatProfile::LegacyPythonObserved20260923 | FormatProfile::AssertedSourceCandidateV1
+        ) || selected.is_empty()
             || selected.len() > SchemaBackendProbe::MAX_RESOURCES
         {
             return Err(ItemRefusal::Source(
@@ -1346,6 +1419,18 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
 }
 
 impl<I: Copy + Eq> CutSchemaExecutor for CandidateCutWorkerSchemaExecutor<I> {
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        Some(self.profile)
+    }
+
+    fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        Some(CandidateCutWorkerSchemaExecutor::prepared_execution_binding(self))
+    }
+
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.contract_digest(contract)
+    }
+
     fn check(
         &mut self,
         path: &str,
@@ -3313,8 +3398,20 @@ impl CutWorkerSchemaExecutor {
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        Some(self.profile)
+    }
+
+    fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        Some(CutWorkerSchemaExecutor::prepared_execution_binding(self))
+    }
+
     fn selected_source_revision(&self) -> Option<SourceRevision> {
         self.revision
+    }
+
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.contract_digest(contract)
     }
 
     fn check_reusing_scalar(

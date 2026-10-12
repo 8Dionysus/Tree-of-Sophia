@@ -17,7 +17,9 @@ use crate::{
     d1_public_lens::LensCounts,
     d1_public_lens_specs::saved_lenses_owned,
     d1_public_metadata,
-    d1_public_rows::{SourceSqlCounts, emit_corpus, emit_navigation, emit_philosophy},
+    d1_public_rows::{
+        SourceSqlCounts, emit_corpus, emit_navigation, emit_philosophy, emit_source_gap_records,
+    },
     d1_public_schema,
     d1_public_semantics::{validate_public_current_registries_owned, validate_public_semantics},
     d1_public_sql::SqlSink,
@@ -725,6 +727,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     emit_philosophy(&capture, &mut sink, source_root, &mut source_counts)?;
     emit_corpus(&capture, &mut sink, source_root, &mut source_counts)?;
     emit_navigation(&capture, &mut sink, source_root, &mut source_counts)?;
+    emit_source_gap_records(&capture, &mut sink, &mut source_counts)?;
     let mut knowledge_counts = KnowledgeSqlCounts::default();
     let mut lens_counts = LensCounts::default();
     emit_knowledge(
@@ -812,6 +815,8 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "source_navigation_edge_payload_chunks":source_counts.navigation_edge_payload_chunks,
         "source_navigation_rights":source_counts.navigation_rights,
         "source_navigation_rights_payload_chunks":source_counts.navigation_rights_payload_chunks,
+        "source_gap_records":source_counts.source_gap_records,
+        "source_gap_record_bytes":source_counts.source_gap_record_bytes,
         "sql_statements":statements,"delta":delta.as_ref().map(|value|&value.summary)
     });
     let native_derived_rows = native
@@ -822,6 +827,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     let mut manifest = json!({
         "schema":"tos_cloudflare_edge_build_v1",
         "read_model_schema":"tos_cloudflare_edge_read_model_v9",
+        "producer_profile":crate::d1_public_metadata::PRODUCER,
         "data_revision":metadata.revision,
         "processing":{"status":"not-run","reason":"rust-offline-public-compiler-owned",
             "executed":0,"reused":0,"is_semantic_acceptance":false},
@@ -830,6 +836,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "source_paths":capture.source_labels(),
         "producer_paths":["rust/crates/tos-compiler/src/d1_public_build.rs",
             "rust/crates/tos-compiler/src/d1_public_capture.rs",
+            "rust/crates/tos-compiler/src/d1_public_metadata.rs",
             "rust/crates/tos-compiler/src/d1_public_rows.rs",
             "rust/crates/tos-compiler/src/d1_public_knowledge.rs"],
         "contract_refs":["access/contracts/knowledge-api.v1.json",
@@ -842,7 +849,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
             "ToS/contracts/semantic-relation-type-registry.schema.json",
             "ToS/doctrine/semantic-interchange/entity-types.v1.json",
             "ToS/doctrine/semantic-interchange/relation-types.v1.json"],
-        "revision_policy":{"imports_when":"source data, normalized item content, capability data, published catalog, or read-model schema changes",
+        "revision_policy":{"imports_when":"source data, normalized item content, capability data, published catalog, read-model schema, or producer profile changes",
             "does_not_import_when":"only documentation or Worker-only code changes"},
         "counts":counts,
         "normalization_cache":{"reused_steps":0,"computed_steps":0},

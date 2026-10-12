@@ -170,10 +170,13 @@ pub mod source_bibliographic;
 mod source_bibliographic_native_text;
 mod source_bibliographic_navigation;
 mod source_bibliographic_render;
+mod source_bibliographic_selected_files;
 mod source_bibliographic_source;
 mod source_bibliographic_unicode;
 mod source_bibliographic_values;
 mod source_bibliographic_versions;
+pub mod source_navigation_claim_event;
+pub mod source_navigation_event;
 pub use managed_model_manifest::{
     ManagedManifestDeltaV2, ManagedManifestLimitsV2, ManagedManifestRecoveryRebindV2,
     ManagedManifestV2, ManagedOverlaySourceBindingV2,
@@ -295,6 +298,7 @@ pub use selected::{
     ImmutableModelCustody, SelectedExpectation, VerifiedSelectedModel, VerifiedSelection,
     open_selected_model,
 };
+pub use source_bibliographic_selected_files::SelectedBibliographicFilesV1;
 pub use source_bibliographic_source::{
     CandidateSourceCatalogInputPlan, ColdSourceCatalogInputPlan, ColdSourceCatalogInputSpool,
     ColdSourceCatalogSpoolIsolation, ColdSourceCatalogSpoolLimits, ColdSourceCatalogSpoolPhase,
@@ -309,6 +313,13 @@ pub use source_bibliographic_source::{
     render_streamed_source_bibliographic_spool,
 };
 pub use source_bibliographic_versions::StreamedBibliographicReadLedger;
+pub use source_bibliographic_versions::{
+    SelectedClaimVersionV1, SelectedMetadataHistoryV1, SelectedMetadataVersionSourceV1,
+    resolve_selected_claim_version_v1, resolve_selected_metadata_history_v1,
+    selected_claim_archive_blob_paths_v1, selected_claim_archive_manifest_paths_v1,
+    selected_metadata_archive_manifest_paths_v1, selected_metadata_archive_record_blob_path_v1,
+    selected_metadata_record_schema_path_v1,
+};
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 
 use rusqlite::{Connection, params};
@@ -707,7 +718,7 @@ fn truthy(value: &JsonValue) -> bool {
         JsonValue::Bool(true) => true,
     }
 }
-fn visible_node(row: &JsonValue) -> bool {
+pub(crate) fn visible_node(row: &JsonValue) -> bool {
     !row.object_get("properties")
         .and_then(|p| p.object_get("packet_id"))
         .is_some_and(truthy)

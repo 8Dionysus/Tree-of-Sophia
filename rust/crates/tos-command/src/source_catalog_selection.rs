@@ -5,7 +5,9 @@ use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::JsonValue;
+use tos_foundation::{JsonValue, RelativePath};
+use tos_validation::item_rules::ItemRefusal;
+use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutMemberMeta};
 pub(super) struct CatalogSelection {
     pub(super) digests: BTreeMap<String, String>,
     pub(super) record_ids: BTreeSet<String>,
@@ -20,15 +22,74 @@ pub(super) fn select_catalog(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CatalogSelection> {
     let catalog = walk(&fs.root, "ToS/source-witnesses/catalog", fs.uid)?;
-    let manifest_raw = work_transaction::read_at(
-        &catalog,
-        "catalog.manifest.json",
-        fs.uid,
-        2_097_152,
+    select_catalog_with_reader(
+        publication_token,
+        |path, cap| {
+            let leaf = path
+                .rsplit_once('/')
+                .ok_or(SourceCommandError::Invalid("catalog member path"))?
+                .1;
+            work_transaction::read_at(&catalog, leaf, fs.uid, cap, deadline, cancelled)?
+                .ok_or(SourceCommandError::Conflict("Work catalog member absent"))
+        },
         deadline,
         cancelled,
-    )?
-    .ok_or(SourceCommandError::Conflict("Work catalog manifest absent"))?;
+    )
+}
+
+/// Select the same complete, publication-bound catalog through an exact
+/// current-source input. The caller's source readset owns currentness; this
+/// helper returns the exact dependency digests consumed by the owner.
+pub(super) fn select_catalog_from_input(
+    input: &dyn SourceCutInput,
+    publication_token: Option<&str>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CatalogSelection> {
+    select_catalog_with_reader(
+        publication_token,
+        |path, cap| {
+            let parsed = RelativePath::parse(path)
+                .map_err(|_| SourceCommandError::Invalid("catalog member path"))?;
+            if parsed.as_str() != path {
+                return Err(SourceCommandError::Invalid("catalog member path"));
+            }
+            let mut selected = None;
+            input
+                .with_current_member(
+                    path,
+                    cap,
+                    deadline,
+                    cancelled,
+                    &mut |meta: SourceCutMemberMeta<'_>, raw| {
+                        if meta.path != path || raw.len() as u64 != meta.size_bytes {
+                            return Err(ItemRefusal::Source(
+                                "selected catalog member metadata differs".into(),
+                            ));
+                        }
+                        selected = Some(raw.to_vec());
+                        Ok(())
+                    },
+                )
+                .map_err(|_| SourceCommandError::Conflict("selected catalog member read"))?;
+            selected.ok_or(SourceCommandError::Conflict(
+                "selected catalog member absent",
+            ))
+        },
+        deadline,
+        cancelled,
+    )
+}
+
+fn select_catalog_with_reader(
+    publication_token: Option<&str>,
+    mut read: impl FnMut(&str, usize) -> SourceCommandResult<Vec<u8>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CatalogSelection> {
+    active(deadline, cancelled)?;
+    let manifest_path = "ToS/source-witnesses/catalog/catalog.manifest.json";
+    let manifest_raw = read(manifest_path, 2_097_152)?;
     let manifest = cmd::parse(&manifest_raw)?;
     if cmd::text(&manifest, "schema_version")? != "tos_source_witness_catalog_v3"
         || cmd::text(&manifest, "claim_file")? != "ToS/source-witnesses/catalog/claims.jsonl"
@@ -72,13 +133,7 @@ pub(super) fn select_catalog(
     let mut count = 0usize;
     for (kind, reference) in routes {
         active(deadline, cancelled)?;
-        let leaf = reference
-            .rsplit_once('/')
-            .ok_or(SourceCommandError::Invalid("catalog leaf"))?
-            .1;
-        let raw =
-            work_transaction::read_at(&catalog, leaf, fs.uid, 16_777_216, deadline, cancelled)?
-                .ok_or(SourceCommandError::Conflict("Work catalog route absent"))?;
+        let raw = read(&reference, 16_777_216)?;
         total_bytes = total_bytes
             .checked_add(raw.len())
             .ok_or(SourceCommandError::Invalid(

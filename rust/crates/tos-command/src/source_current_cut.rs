@@ -317,8 +317,10 @@ pub fn select_current_source_generation(
 /// state and membership roots. This is the same operation on a cold restore;
 /// prior V1/V2 descriptor objects and exact historical references are retained.
 /// A retained V2 descriptor may be reselected after the restored database's
-/// own source, rights, index, overlay, and custody checks; a transitional V1
-/// descriptor must still cold-open against the current database identity.
+/// own source, rights, index, overlay, and custody checks. A transitional V1
+/// descriptor is accepted only after its complete OID-bound transcript and
+/// physical membership are recomputed against the restored database; the
+/// returned selection is newly published with the target database identity.
 /// The caller installs the audit protocol explicitly in its isolated private DB
 /// before this function; no installed-release writer is switched by selection.
 pub fn select_current_source_generation_addressed(

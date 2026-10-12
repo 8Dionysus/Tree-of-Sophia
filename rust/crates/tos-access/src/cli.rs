@@ -4,7 +4,7 @@ use crate::{KnowledgeOperation, KnowledgeRequest};
 use std::io::{Read, Write};
 use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, parse_json};
 
-use crate::common::{checked_execute, validate_packet};
+use crate::common::{checked_execute, checked_execute_source_descend, validate_packet};
 use crate::{AccessExecutor, AccessProfile, Params, PreparedPacket};
 
 /// Consume the complete held packet within its owner scope, through final flush.
@@ -30,9 +30,70 @@ pub fn write_packet(
         .write_all(&packet.body)
         .and_then(|_| stdout.write_all(b"\n"))
         .and_then(|_| stdout.flush());
+    // Always recheck after an attempted write: an error may be reported after
+    // bytes reached the stream, so the I/O result is ambiguous for disclosure.
+    let final_fence = packet.fence.recheck().err();
     drop(packet);
     if let Err(error) = result {
+        if let Some(fence_error) = final_fence {
+            let _ = writeln!(
+                stderr,
+                "{}: {}",
+                fence_error.code_str(),
+                fence_error.message
+            );
+            return 1;
+        }
         let _ = writeln!(stderr, "output failed: {error}");
+        return 1;
+    }
+    if let Some(error) = final_fence {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+        return 1;
+    }
+    0
+}
+
+#[cfg(unix)]
+fn write_packet_fd(
+    mut packet: PreparedPacket<'_>,
+    profile: AccessProfile,
+    fd: i32,
+    probe: &dyn tos_query::AbortProbe,
+    stderr: &mut dyn Write,
+) -> i32 {
+    if packet.body.len() > profile.max_response_bytes {
+        let _ = writeln!(stderr, "budget_exceeded: response byte budget exceeded");
+        return 1;
+    }
+    if let Err(error) = validate_packet(&packet.body, profile.max_response_bytes) {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+        return 1;
+    }
+    if let Err(error) = packet.fence.recheck() {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+        return 1;
+    }
+    let result = crate::common::write_fd_with_probe(fd, &packet.body, probe)
+        .and_then(|()| crate::common::write_fd_with_probe(fd, b"\n", probe));
+    // A failed or timed-out write may still have emitted a complete prefix.
+    let final_fence = packet.fence.recheck().err();
+    drop(packet);
+    if let Err(error) = result {
+        if let Some(fence_error) = final_fence {
+            let _ = writeln!(
+                stderr,
+                "{}: {}",
+                fence_error.code_str(),
+                fence_error.message
+            );
+            return 1;
+        }
+        let _ = writeln!(stderr, "output failed: {error}");
+        return 1;
+    }
+    if let Some(error) = final_fence {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
         return 1;
     }
     0
@@ -231,6 +292,41 @@ pub fn run_cli_with_input(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
+    run_cli_with_input_and_source_fd(args, executor, profile, stdin, stdout, stderr, None)
+}
+
+/// Native entry used by the process CLI so source-navigation output is written
+/// to stdout with the same bounded probe that guards its owner callback.
+#[cfg(unix)]
+pub fn run_cli_with_source_navigation_fd(
+    args: &[String],
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    fd: i32,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let mut stdin = std::io::stdin();
+    let mut stdout = std::io::sink();
+    run_cli_with_input_and_source_fd(
+        args,
+        executor,
+        profile,
+        &mut stdin,
+        &mut stdout,
+        stderr,
+        Some(fd),
+    )
+}
+
+fn run_cli_with_input_and_source_fd(
+    args: &[String],
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    stdin: &mut dyn Read,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    source_fd: Option<i32>,
+) -> i32 {
     if args
         .iter()
         .try_fold(0usize, |n, arg| n.checked_add(arg.len()))
@@ -306,16 +402,48 @@ pub fn run_cli_with_input(
         );
         return 3;
     }
-    let packet = match checked_execute(profile.deadline_probe(), |probe| {
-        executor.source_descend(params, probe)
-    }) {
-        Ok(packet) => packet,
+    let probe = profile.deadline_probe();
+    let mut exit_code = 0;
+    let mut delivery = |result| match result {
+        Ok(packet) => {
+            exit_code = if let Some(fd) = source_fd {
+                #[cfg(unix)]
+                {
+                    write_packet_fd(packet, profile, fd, &probe, stderr)
+                }
+                #[cfg(not(unix))]
+                {
+                    let _ = (fd, packet, profile, probe, stderr);
+                    1
+                }
+            } else {
+                write_packet(packet, profile, stdout, stderr)
+            };
+            if exit_code == 0 {
+                Ok(())
+            } else {
+                Err(crate::AccessError::new(
+                    crate::AccessErrorCode::Unavailable,
+                    "source descent delivery failed",
+                ))
+            }
+        }
         Err(error) => {
-            let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
-            return 1;
+            exit_code = 1;
+            Err(error)
         }
     };
-    write_packet(packet, profile, stdout, stderr)
+    let result = checked_execute_source_descend(
+        std::sync::Arc::clone(&probe),
+        |probe, delivery| executor.source_descend_with_delivery(params, probe, delivery),
+        &mut delivery,
+    );
+    drop(delivery);
+    if let Err(error) = result {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+        return 1;
+    }
+    exit_code
 }
 
 fn run_knowledge(

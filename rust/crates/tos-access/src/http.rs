@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, parse_json};
 use tos_query::{AbortProbe, AbortReason};
 
+use crate::common::checked_execute_source_descend;
 use crate::common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, HTTP_PREFIX,
     IndexedSearchParams, Params, SEARCH_HTTP_PATH, checked_execute, error_json, validate_packet,
@@ -151,6 +152,31 @@ fn bounded_legacy_int(raw: Option<&str>, default: i64, low: i64, high: i64) -> i
         .and_then(|value| value.parse::<i64>().ok())
         .unwrap_or(default);
     parsed.clamp(low, high)
+}
+
+fn source_descend_target(
+    method: &str,
+    target: &str,
+    profile: AccessProfile,
+) -> Option<Result<Params, AccessError>> {
+    if !matches!(method, "GET" | "HEAD") {
+        return None;
+    }
+    if target.len() > profile.max_request_bytes {
+        return Some(Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "request target too large",
+        )));
+    }
+    let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    let encoded_id = path.strip_prefix(HTTP_PREFIX)?;
+    Some(percent_decode(encoded_id, false).and_then(|node_id| {
+        let max_depth =
+            bounded_legacy_int(query_value(query, "max_depth").as_deref(), 8, 1, 8) as u8;
+        let limit =
+            bounded_legacy_int(query_value(query, "limit").as_deref(), 300, 1, 300) as usize;
+        Params::new(node_id, max_depth, limit)
+    }))
 }
 
 fn query_value<'a>(query: &'a str, name: &str) -> Option<String> {
@@ -1349,6 +1375,7 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
     source_text_search: Option<&crate::source_text_search::SelectedPgSourceTextSearch>,
 ) -> std::io::Result<()> {
     control.check()?;
+    let mut source_written = false;
     let response = match read_head_controlled(&mut stream, control) {
         Ok(head) if head.len() <= MAX_HEAD && head.ends_with(b"\r\n\r\n") => {
             match std::str::from_utf8(&head) {
@@ -1410,6 +1437,85 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                                 probe,
                                                 source_text_search,
                                             )
+                                        } else if executor.source_descend_available()
+                                            && let Some(request) =
+                                                source_descend_target(method, target, profile)
+                                        {
+                                            let request = match request {
+                                                Ok(request) => request,
+                                                Err(error) => {
+                                                    stream.set_nonblocking(false)?;
+                                                    write_response(
+                                                        &mut ControlledWriter {
+                                                            stream: &mut stream,
+                                                            control,
+                                                        },
+                                                        packet_response(
+                                                            Err(error),
+                                                            method,
+                                                            profile,
+                                                        ),
+                                                    )?;
+                                                    source_written = true;
+                                                    return control.check();
+                                                }
+                                            };
+                                            let mut emitted = false;
+                                            let mut io_failure = None;
+                                            let mut delivery = |result| {
+                                                emitted = true;
+                                                let response =
+                                                    packet_response(result, method, profile);
+                                                match write_response(
+                                                    &mut ControlledWriter {
+                                                        stream: &mut stream,
+                                                        control,
+                                                    },
+                                                    response,
+                                                ) {
+                                                    Ok(()) => Ok(()),
+                                                    Err(error) => {
+                                                        io_failure = Some(error);
+                                                        Err(AccessError::new(
+                                                            AccessErrorCode::Cancelled,
+                                                            "source descent response delivery failed",
+                                                        ))
+                                                    }
+                                                }
+                                            };
+                                            let outcome = checked_execute_source_descend(
+                                                probe,
+                                                |probe, delivery| {
+                                                    executor.source_descend_with_delivery(
+                                                        request, probe, delivery,
+                                                    )
+                                                },
+                                                &mut delivery,
+                                            );
+                                            drop(delivery);
+                                            if let Some(error) = io_failure {
+                                                return Err(error);
+                                            }
+                                            if !emitted {
+                                                let error = outcome.err().unwrap_or_else(|| {
+                                                    AccessError::new(
+                                                        AccessErrorCode::Unavailable,
+                                                        "source descent owner returned without delivery",
+                                                    )
+                                                });
+                                                write_response(
+                                                    &mut ControlledWriter {
+                                                        stream: &mut stream,
+                                                        control,
+                                                    },
+                                                    packet_response(Err(error), method, profile),
+                                                )?;
+                                            }
+                                            source_written = true;
+                                            ScopedHttpResponse::error(
+                                                200,
+                                                "source response written",
+                                            )
                                         } else {
                                             handle_get_with_probe(
                                                 executor, method, target, profile, probe, site,
@@ -1431,6 +1537,10 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
         }
         _ => ScopedHttpResponse::error(400, "HTTP header incomplete or oversized"),
     };
+    if source_written {
+        stream.set_nonblocking(false)?;
+        return control.check();
+    }
     stream.set_nonblocking(false)?;
     let rejected = response.status >= 400;
     write_response(

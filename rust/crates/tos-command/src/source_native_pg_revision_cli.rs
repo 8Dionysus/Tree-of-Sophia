@@ -1,8 +1,9 @@
 //! Native `record.revise` over a bounded PostgreSQL/STO read epoch.
 //!
 //! This route selects an existing domain, private store, owner configuration,
-//! software capture and current job lease. It neither discovers a corpus cut
-//! nor creates or advances the selected lease.
+//! software capture and current job lease. It routes each admitted maintained
+//! revision family through that family's existing source-context rules. It
+//! neither discovers a corpus cut nor creates or advances the selected lease.
 
 use super::{absolute, capped, digest, exact, number, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
@@ -424,11 +425,26 @@ pub(super) fn run(
     )?;
     let owner = cmd::parse(&owner_raw)?;
     let owner_schema = cmd::text(&owner, "schema_version")?;
-    let work_owner = owner_schema == "tos_local_corpus_revision_owner_v3"
+    let revision_family = crate::source_revisions::RevisionFamily::parse(owner_schema)?;
+    let flat_owner = revision_family == crate::source_revisions::RevisionFamily::CorpusFlat;
+    let selected_corpus_owner = matches!(
+        revision_family,
+        crate::source_revisions::RevisionFamily::CorpusSelectedV2
+            | crate::source_revisions::RevisionFamily::CorpusSelectedV3
+    );
+    let historical_owner = revision_family == crate::source_revisions::RevisionFamily::Historical;
+    let native_metadata_owner =
+        revision_family == crate::source_revisions::RevisionFamily::NativeSelected;
+    let work_owner = revision_family == crate::source_revisions::RevisionFamily::CorpusSelectedV3
         && cmd::text(&owner, "record_type")? == "work";
-    if owner_schema != "tos_local_corpus_revision_owner_v1" && !work_owner {
+    if !flat_owner
+        && !selected_corpus_owner
+        && !historical_owner
+        && !native_metadata_owner
+        && !work_owner
+    {
         return Err(SourceCommandError::Unsupported(
-            "PostgreSQL flat or selected Work revision owner",
+            "PostgreSQL maintained metadata revision owner",
         ));
     }
     let request_raw = request_bytes(input)?;
@@ -571,6 +587,9 @@ pub(super) fn run(
                             .map_err(DurableError::Source)?,
                         job_id: selection.job_id.clone(),
                         job_fence: selection.job_fence,
+                        family_tag: crate::source_revisions::RevisionFamily::CorpusSelectedV3
+                            .pg_family_tag(configuration)
+                            .map_err(DurableError::Source)?,
                     };
                     match session.ready_work_recorded_at(&binding, deadline, cancelled)? {
                         Some(recorded_at) => recorded_at,
@@ -581,8 +600,11 @@ pub(super) fn run(
                 } else {
                     crate::source_serialization::instant().map_err(DurableError::Source)?
                 };
-                let context = if work_owner {
-                    super::revisions::context_selected_record_from_transport(
+                if operation == "record.revise"
+                    && (native_metadata_owner || (selected_corpus_owner && !work_owner))
+                {
+                    super::pg_selected_revision::prepare(
+                        invocation,
                         &owner_raw,
                         &request_raw,
                         &recorded_at,
@@ -591,39 +613,66 @@ pub(super) fn run(
                         session,
                         &software,
                         &components,
-                        deadline,
-                        cancelled,
-                    )
-                    .map_err(DurableError::Source)?
-                } else {
-                    super::revisions::context_flat_record_from_transport(
-                        &owner_raw,
-                        &request_raw,
-                        &recorded_at,
-                        source_path,
-                        selected.cohort.initial_revision(),
-                        session,
-                        &software,
-                        &components,
+                        identity,
                         max_members,
                         max_total_bytes,
                         max_member_bytes,
                         deadline,
                         cancelled,
                     )
-                    .map_err(DurableError::Source)?
-                };
-                check_context_budget(&context, max_members, max_total_bytes, max_member_bytes)
-                    .map_err(DurableError::Source)?;
-                super::revisions::prepare_pg_record_revision_with_work(
-                    invocation,
-                    context,
-                    identity,
-                    work_revision,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)
+                    .map_err(DurableError::Source)
+                } else {
+                    let context = if selected_corpus_owner
+                        || historical_owner
+                        || native_metadata_owner
+                        || work_owner
+                    {
+                        super::revisions::context_selected_record_from_transport_with_limits(
+                            &owner_raw,
+                            &request_raw,
+                            &recorded_at,
+                            source_path,
+                            selected.cohort.initial_revision(),
+                            session,
+                            &software,
+                            &components,
+                            max_members,
+                            max_total_bytes,
+                            max_member_bytes,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(DurableError::Source)?
+                    } else {
+                        super::revisions::context_flat_record_from_transport(
+                            &owner_raw,
+                            &request_raw,
+                            &recorded_at,
+                            source_path,
+                            selected.cohort.initial_revision(),
+                            session,
+                            &software,
+                            &components,
+                            max_members,
+                            max_total_bytes,
+                            max_member_bytes,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(DurableError::Source)?
+                    };
+                    check_context_budget(&context, max_members, max_total_bytes, max_member_bytes)
+                        .map_err(DurableError::Source)?;
+                    super::revisions::prepare_pg_record_revision_with_work(
+                        invocation,
+                        context,
+                        identity,
+                        work_revision,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)
+                }
             },
         )
         .map_err(source_error)?;
@@ -646,6 +695,7 @@ pub(super) fn run(
         "metadata_member_lookups":source_work.metadata_member_lookups,
         "directory_index_rows_examined":source_work.directory_index_rows_examined,
         "unique_index_lookups":source_work.unique_index_lookups,
+        "text_identity_lookups":source_work.text_identity_lookups,
     });
     if operation == "record.revise" {
         let command_id = cmd::text(&request, "command_id")?;
@@ -659,6 +709,8 @@ pub(super) fn run(
                 Digest256::of_bytes(&request_raw),
                 prepared.proposal().configuration_raw_sha256,
                 prepared.proposal().configuration_canonical_sha256,
+                prepared.family_tag(),
+                prepared.legacy_family_encoding(),
                 &selection.job_id,
                 selection.job_fence,
                 None,

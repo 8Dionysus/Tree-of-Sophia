@@ -25,20 +25,38 @@ scheduled, the native source-command HTTP owner. It adds no server endpoint,
 source grant, or publication step. It requires no Python runtime.
 
 The protected schedule has the form
-`{"schema":"tos_protocol_load_schedule_v1","sessions":[{"id":"s-0","operations":[...]}]}`.
-Each session contains an ordered operation list. `--sessions 2|8|16|32|64|128|256`
-selects the stage (default 2); the harness launches each operation index as a
-concurrent wave across logical sessions. An operation declares `channel`,
+`{"schema":"tos_protocol_load_schedule_v1","setup":[...],"sessions":[{"id":"s-0","operations":[...]}]}`;
+`setup` is optional for non-mutating work. Each session contains an ordered
+operation list. `--sessions 2|8|16|64|128|256` selects the stage (default 2);
+the harness launches each operation index as a concurrent wave across logical
+sessions. `--operation-count` caps measured operations independently and selects
+them in round order across selected sessions; a truncated conflict group is
+rejected by schedule validation. An operation declares `channel`,
 `label`, `request`, and an expected status plus either an exact
 `expected_sha256` or a complete `expected_body`. A semantic body expectation
 still checks exact JSON shape and fixed values; `ignored_json_paths` admits only
 the harness's bounded typed volatile fields. MCP, signed owner HTTP, and native
-SDK channels keep separate in-flight limits. At most 32 physical MCP sessions
-serve up to 256 logical sessions, with each shared session serialized. Channels
+SDK channels keep separate in-flight limits. Native SDK concurrency is selected
+with `--sdk-in-flight 1..4` (default 4); each item is a separate native process.
+`--channel-mix mcp=P,owner_http=P,sdk=P,projection=P` selects the requested
+percentage split across measured operations; the supplied percentages must sum
+to 100. Selection preserves each session's operation order, so the runner
+rejects a mix that cannot be reached as per-session prefixes instead of
+reordering or skipping dependencies. Without this option, the schedule defines
+the mix. `--operations-per-second` paces combined dispatch across channels.
+`--load-window-seconds` closes new dispatch after the measured load window and
+lets already-started work finish. `load_window_elapsed_seconds` includes that
+drain time, and the reported load throughput uses that full phase duration.
+`--deadline-seconds` is a separate whole-run wall deadline covering setup, load
+and drain, cleanup, and report writing.
+At most 32 physical MCP sessions serve up to 256 logical sessions, with each
+shared session serialized. Channels
 are `mcp` for an ordinary 2025-11-25 Streamable HTTP JSON-RPC request,
 `owner_http` for the exact authenticated native source-command request object,
-and `sdk` for an explicit absolute native source-command process. SDK receives
-one bounded JSON line on stdin and returns response bytes on stdout; stderr is
+`sdk` for an explicit absolute native source-command process, or `projection`
+for the selected native source-projection CLI. Projection operations record the
+owner's durable `queue-age` result, including sequence lag and explicit status
+for historic rows. SDK receives one bounded JSON line on stdin and returns response bytes on stdout; stderr is
 discarded. The input writer and bounded output drain run concurrently so a
 full-duplex exchange cannot deadlock on full pipes. A deadline or output-cap
 breach terminates the owned process group and records the operation as an error.
@@ -48,14 +66,63 @@ operations in one wave and give every member the same `alternate_outcomes` set,
 containing one 2xx outcome and one signed 409 outcome. Each outcome may use an
 exact response digest or a full semantic body. The group passes only when
 exactly one member succeeds and all remaining members return the signed 409.
-Every scheduled owner command ID must still be unique.
+The SDK channel supports the same wave shape, with native exit 0 as success and
+the ordinary source-command `JournalConflict` error as conflict. Every
+scheduled owner command ID must still be unique. `retry_same_command_id` also
+works for SDK: the runner discards the first completed process response and
+replays the exact request and command ID in a new native process, so it measures
+the owner's durable replay behavior rather than an HTTP retry.
 `retry_same_command_id` deliberately closes after signed response headers and
-retries the identical command body and ID with a fresh transport nonce.
+retries the identical command body and ID with a fresh transport nonce for
+owner HTTP.
 `reconnect_before` deletes and reinitializes the MCP session before the
 operation. When a cloned fixture path changes the selected configuration
 digest, `bind_expected_configuration_from_owner` refreshes only that exact
 precondition from the selected native owner's read-only `describe` response
 before the measured waves; this creates no authority or admission.
+
+For native PostgreSQL source load stages, put ordinary `source.bootstrap`,
+`prepare-create`/`prepare-revise`, and their `source.create`/`record.revise`
+commit requests in the serial `setup` array. An ordinary CMD-local
+`rights.revoke` can also run through `source-commands`; its setup `describe`
+operation uses `bind_expected_configuration_from_owner: true`, then the revoke
+uses `bind_expected_from` to carry the exact owner digest and current rights
+version from that earlier describe. The revoke changes only CMD-local
+current-use rights and does not grant ToS rights or publication. The first
+setup operation must be
+`source.bootstrap`, with an initial job fence and absent CMD.2 schema. The
+baseline must contain a private empty owner store, and every SDK invocation in
+that run must bind to that same store through its source selection or the
+rights owner root. The runner clones the baseline to a fresh
+`owner-stage/`, requires `TOS_SOURCE_PG_URL` privately in the environment, and
+executes the existing native owner entry; it does not accept SQL or create a
+database. Bootstrap provisions only an absent CMD.2 schema and refuses if that
+namespace already exists. Give every run a dedicated disposable PostgreSQL 16
+database plus a new output directory and reservation. The runner never resets
+or drops PostgreSQL data; it retains the staged store and report under the
+private output directory, while the caller owns database cleanup.
+
+A commit may declare `bind_expected_from` with the label of an earlier
+`prepare-create` or `prepare-revise` setup operation. The commit must use that
+preview's invocation and exact proposal fields. The runner copies the preview's
+owner-configuration, source/revision predecessor and dependency digests into
+the commit request immediately before invoking the ordinary native entry. This
+keeps dynamic preconditions bound to the staged owner and source state without
+adding a second command implementation. Setup is serial and its result is
+reported separately; load waves begin only after all setup operations pass.
+
+The `projection` channel invokes the existing native `source-projection`
+process for `init`, `status`, `apply`, `search`, `search-text`, or
+`exact-source`. An `apply` entry may set `interrupt_resume_after_ms`; the runner
+then checks the durable cursor before and after terminating the process,
+requires a partially advanced cursor still below the source head, resumes the
+same apply request, and verifies that status becomes `Current`. This requires
+at least two pending events and `max_events` of at least 2 so the interrupted
+stage can prove persisted intermediate progress. The runner stops only its own
+child process groups and retains the staged files and report for inspection.
+Only one interrupting projection operation is allowed per schedule, with no
+other projection process in its wave, so another worker cannot advance the
+cursor and stand in for the interrupted process.
 
 For a small two-session smoke, use
 `access/integrations/abyssos/fixtures/load-readiness-two-session.json`. It is a
@@ -90,7 +157,7 @@ for `--source-root`, `--source-inputs`, `--model`, and `--binding`, and its `for
 paths for `--owner-config` and `--invocation`; use
 `owner-stage-baseline/synthetic-http-token` for `--token-file`. Pass the entire
 baseline with `--owner-stage-baseline`. Run the same schedule at `--sessions 2`,
-then 8, 16, 32, 64, 128, and 256, with a fresh private output directory and
+then 8, 16, 64, 128, and 256, with a fresh private output directory and
 reservation for each launch. Every invocation clones that baseline, rebases the
 prepared source-input roots and their bound SQLite row, and discards its
 mutated owner clone with the output. The schedule includes indexed search,
@@ -125,7 +192,7 @@ abyss-machine resource launch --class CLASS --kind benchmark \
   --schedule-cap-bytes 16777216 --output-cap-bytes OUTPUT_CAP
 ```
 
-Repeat with `--sessions 8`, 16, 32, 64, 128, and 256 after reviewing the
+Repeat with `--sessions 8`, 16, 64, 128, and 256 after reviewing the
 two-session report. Give each launch a new output directory, unit and matching
 host reservation; `EXPORT` remains the same pristine fixture baseline.
 
@@ -156,9 +223,44 @@ and canonical reservation before opening an exclusive mode-0600
 `measurements.jsonl`. The report keeps the existing `start`, `request`, and
 `finish` envelope and adds MCP session/catalog observations. It records exact
 status and response hashes, retries, reconnects, conflict-group pass/fail,
-latency quantiles, cgroup CPU/memory/I/O deltas, and report allocation. The
-catalog preflight records only handler count and digest, not a copied function
-catalog.
+requested channel percentages and scheduled/started/passed/failed/not-started
+counts by channel, load-phase latency and completed-operation throughput,
+projection sequence lag and owner-reported
+oldest pending age, cgroup CPU/memory/physical-I/O deltas, memory pressure
+events, actual owner-stage clone bytes, and report allocation. Historical queue
+events without an enqueue time remain `unknown_historical`; the runner does not
+estimate their age from client time. The catalog preflight records only handler
+count and digest, not a copied function catalog.
+
+Select scale dimensions independently. `--sessions` chooses the supported
+concurrency stage (2, 8, 16, 64, 128, or 256). `--operation-count N` caps the
+measured schedule operations and selects them in round order across those
+sessions. `--channel-mix` requests a channel percentage split while preserving
+each session's order; `--operations-per-second N` paces combined load dispatch
+across all channels. `--load-window-seconds N` limits the time for starting new
+operations; the runner drains work already in flight afterward, so the reported
+load phase can exceed that window. The whole-run `--deadline-seconds` includes
+setup, dispatch, drain, cleanup, and reporting. The explicit schedule controls
+the scenario mix. Vary source data volume in the separate protected
+`capacity-fixture` preparation with `--target-records N`; that input-size choice
+does not change the schedule operation count, dispatch rate, or requested
+channel mix.
+
+Before each stage, record its selected source-record target, operation count,
+duration, dispatch rate, channel mix, and host reservation. Stop the sequence on
+the first nonzero runner exit, an incomplete load window, an unexpected
+response/conflict invariant, any increase in cgroup `memory.events` pressure
+(`high`, `max`, `oom`, or `oom_kill`), or—when cgroup `memory.max` supplies a
+finite limit—peak memory reaching 90% of that limit. If the limit is absent or
+unbounded, the 90% threshold is reported as unavailable; do not infer it from
+the outer reservation (`memory_headroom_threshold_available` is false and
+`memory_peak_at_or_above_90_percent_of_limit` is null). The helper marks that
+stage failed when any listed stop condition occurs. Keep the JSONL report
+and exact invocation for diagnosis. Do not advance to a larger session stage
+after a stop. Recover a
+failed fresh-PG attempt from a new private stage copy and an empty disposable
+database selected for that attempt; retain the pristine baseline and the failed
+report, and leave database cleanup to its owner.
 
 The helper caps sessions at 256, operations at 4096 (64 per session), request
 bodies at 1 MiB, response bodies at 4 MiB, schedules at 16 MiB, and report

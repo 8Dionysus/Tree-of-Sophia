@@ -15,6 +15,34 @@ use super::{DurableError, DurablePgCoordinator, DurableResult, as_i64, as_u64};
 #[path = "durable_source_text_search.rs"]
 pub(crate) mod durable_source_text_search;
 
+#[path = "durable_navigation_event.rs"]
+mod durable_navigation_event;
+pub(crate) use durable_navigation_event::{
+    DurableNavigationAdjacencyCertificateReadV1, DurableNavigationCurrentnessGuardV1,
+    DurableNavigationCurrentnessV1, DurableNavigationHeldReadV2,
+    DurableNavigationPublishedGenerationGuardV2, DurableNavigationPublishedGenerationV2,
+    read_navigation_adjacency_certificate_v1, read_navigation_currentness_guard_with_client_v1,
+    read_navigation_currentness_guard_with_tx_v1, read_navigation_published_guard_with_tx_v2,
+    with_published_navigation_generation_v2,
+    with_published_navigation_generation_v2_selected_owner,
+};
+pub use durable_navigation_event::{
+    DurableNavigationBaseRowReadV1, DurableNavigationBootstrapApplyV1,
+    DurableNavigationBootstrapOwnerSourceV1, DurableNavigationBootstrapPackageV1,
+    DurableNavigationBootstrapRowKindV1, DurableNavigationBootstrapRowV1,
+    DurableNavigationCurrentIndexNotReadyReasonV1, DurableNavigationCurrentIndexNotReadyV1,
+    DurableNavigationCurrentIndexOwnerBindingV1, DurableNavigationCurrentIndexReadyV1,
+    DurableNavigationCurrentIndexStatusV1, DurableNavigationCurrentIndexV1,
+    DurableNavigationEventAdvanceV2, DurableNavigationEventAffectedOwnerKindV1,
+    DurableNavigationEventAffectedOwnerV1, DurableNavigationEventApply,
+    DurableNavigationEventBacklogStopV2, DurableNavigationEventBacklogV2,
+    DurableNavigationEventCohortReadV1, DurableNavigationEventCohortSetV2,
+    DurableNavigationEventContextV1, DurableNavigationEventCursorV1,
+    DurableNavigationEventDependencyReadV1, DurableNavigationEventLimits,
+    DurableNavigationEventPendingReasonV2, DurableNavigationEventSeedV1,
+    DurableNavigationEventSourceV1,
+};
+
 const MAX_PROJECTION_TIMEOUT: Duration = Duration::from_secs(300);
 const MAX_DOMAIN_BYTES: usize = 1024;
 const MAX_CONSUMER_ID_BYTES: usize = 256;
@@ -220,6 +248,38 @@ pub enum DurableProjectionStatus {
         head_seq: u64,
         reason: &'static str,
     },
+}
+
+/// Queue-age classification for the first committed event not yet applied by
+/// the selected projection consumer. A NULL persisted timestamp is explicitly
+/// unknown history; it is never estimated from the sequence or observed time.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DurableProjectionQueueAgeStatus {
+    Empty,
+    Known,
+    UnknownHistorical,
+    FutureClock,
+}
+
+/// Bounded owner telemetry for one selected projection consumer. Sequence lag
+/// is `head_seq - effective_cursor`; an uninitialized consumer has an
+/// effective cursor of zero and a `None` `through_seq`.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct DurableProjectionQueueAge {
+    pub status: DurableProjectionStatus,
+    pub through_seq: Option<u64>,
+    pub head_seq: u64,
+    pub sequence_lag: u64,
+    pub oldest_unprocessed_seq: Option<u64>,
+    /// UTC microseconds since Unix epoch from PostgreSQL's persisted
+    /// `timestamptz`; absent for empty or legacy rows without a timestamp.
+    pub oldest_unprocessed_enqueued_at_unix_micros: Option<i64>,
+    /// Whole elapsed milliseconds from the database server clock. `None`
+    /// means the queue is empty, the row is legacy/unknown, or the server clock
+    /// is behind the persisted enqueue timestamp; inspect `age_status`.
+    pub oldest_unprocessed_age_millis: Option<u64>,
+    pub oldest_unprocessed_age_status: DurableProjectionQueueAgeStatus,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -653,6 +713,127 @@ impl DurablePgCoordinator {
         let status = read_projection_gate(&mut tx, domain, consumer_id, selected_profile)?.status();
         tx.commit()?;
         Ok(status)
+    }
+
+    /// Read the oldest unprocessed outbox sequence and its server-persisted
+    /// age for one selected consumer. The same current-rights, maintenance,
+    /// schema, and profile gate as projection reads is held in this bounded
+    /// read transaction. At most one outbox row is examined.
+    pub fn projection_queue_age(
+        &mut self,
+        domain: &str,
+        consumer_id: &str,
+        selected_profile: &DurableProjectionProfile,
+        timeout: Duration,
+    ) -> DurableResult<DurableProjectionQueueAge> {
+        selected_profile.validate()?;
+        validate_identifier(domain, MAX_DOMAIN_BYTES, "projection domain")?;
+        validate_identifier(consumer_id, MAX_CONSUMER_ID_BYTES, "projection consumer ID")?;
+        validate_timeout(timeout)?;
+
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .start()?;
+        set_local_timeouts(&mut tx, timeout)?;
+        let gate = read_projection_gate(&mut tx, domain, consumer_id, selected_profile)?;
+        let (through_seq, head_seq, status) = match gate {
+            ProjectionReadGate::Current { through_seq, .. } => (
+                Some(through_seq),
+                through_seq,
+                DurableProjectionStatus::Current { through_seq },
+            ),
+            ProjectionReadGate::Pending {
+                through_seq,
+                head_seq,
+            } => (
+                Some(through_seq),
+                head_seq,
+                DurableProjectionStatus::Pending {
+                    through_seq,
+                    head_seq,
+                },
+            ),
+            ProjectionReadGate::Stale {
+                through_seq,
+                head_seq,
+                reason,
+            } => (
+                through_seq,
+                head_seq,
+                DurableProjectionStatus::Stale {
+                    through_seq,
+                    head_seq,
+                    reason,
+                },
+            ),
+        };
+        let effective_cursor = through_seq.unwrap_or(0);
+        let sequence_lag = head_seq
+            .checked_sub(effective_cursor)
+            .ok_or(DurableError::Corrupt(
+                "projection cursor exceeds source head",
+            ))?;
+        let row = tx.query_opt(
+            "WITH server_clock AS MATERIALIZED (SELECT clock_timestamp() AS now)
+             SELECT o.commit_seq,
+                    CASE WHEN o.enqueued_at IS NULL THEN NULL
+                         ELSE floor(extract(epoch FROM o.enqueued_at) * 1000000)::bigint
+                    END AS enqueued_at_unix_micros,
+                    CASE WHEN o.enqueued_at IS NULL THEN NULL
+                         ELSE floor(extract(epoch FROM (server_clock.now - o.enqueued_at)) * 1000)::bigint
+                    END AS age_millis
+             FROM cmd2_outbox o CROSS JOIN server_clock
+             WHERE o.domain=$1 AND o.commit_seq>$2 AND o.commit_seq<=$3
+             ORDER BY o.commit_seq LIMIT 1",
+            &[&domain, &as_i64(effective_cursor)?, &as_i64(head_seq)?],
+        )?;
+        let (oldest_unprocessed_seq, enqueued_at_unix_micros, age_millis, age_status) =
+            if let Some(row) = row {
+                let seq: i64 = row.get("commit_seq");
+                let seq = as_u64(seq)?;
+                let expected_seq = effective_cursor
+                    .checked_add(1)
+                    .ok_or(DurableError::Corrupt("projection event sequence overflow"))?;
+                if seq != expected_seq {
+                    return Err(DurableError::Corrupt(
+                        "projection outbox sequence has a gap",
+                    ));
+                }
+                let enqueued_at_unix_micros: Option<i64> = row.get("enqueued_at_unix_micros");
+                let age_millis: Option<i64> = row.get("age_millis");
+                let (age_millis, age_status) = match (enqueued_at_unix_micros, age_millis) {
+                    (None, None) => (None, DurableProjectionQueueAgeStatus::UnknownHistorical),
+                    (Some(_), Some(age)) if age >= 0 => (
+                        Some(u64::try_from(age).map_err(|_| {
+                            DurableError::Corrupt("projection queue age is invalid")
+                        })?),
+                        DurableProjectionQueueAgeStatus::Known,
+                    ),
+                    (Some(_), Some(_)) => (None, DurableProjectionQueueAgeStatus::FutureClock),
+                    _ => return Err(DurableError::Corrupt("projection queue timestamp differs")),
+                };
+                (Some(seq), enqueued_at_unix_micros, age_millis, age_status)
+            } else {
+                if sequence_lag != 0 {
+                    return Err(DurableError::Corrupt(
+                        "projection outbox is missing the next event",
+                    ));
+                }
+                (None, None, None, DurableProjectionQueueAgeStatus::Empty)
+            };
+        tx.commit()?;
+        Ok(DurableProjectionQueueAge {
+            status,
+            through_seq,
+            head_seq,
+            sequence_lag,
+            oldest_unprocessed_seq,
+            oldest_unprocessed_enqueued_at_unix_micros: enqueued_at_unix_micros,
+            oldest_unprocessed_age_millis: age_millis,
+            oldest_unprocessed_age_status: age_status,
+        })
     }
 
     /// Search only an explicitly selected, current projection version. Exact

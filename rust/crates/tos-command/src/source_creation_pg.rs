@@ -1,17 +1,17 @@
-//! Bounded PostgreSQL preparation for one initial native Agent.
+//! Bounded PostgreSQL preparation for one initial native Corpus record.
 //!
 //! This module reuses the maintained creation semantics and serializer while
 //! replacing only the complete-inventory absence/identity checks with typed
 //! PG observations from the exact source read session.
 
 use super::{
-    CreationFamily, PreparedCreation, configuration, initial_corpus_with_schema,
-    prepare_source_forms,
+    configuration, initial_corpus_with_schema, prepare_source_forms, CreationFamily,
+    PreparedCreation,
 };
 use crate::source_cohort::revision::{
     PgRecordRevisionIdentity, PgSourceHomeObservation, PgSourceUniqueIndexObservation,
 };
-use crate::source_cohort::{IndexRows, creation};
+use crate::source_cohort::{creation, IndexRows};
 use crate::source_command::{
     self as cmd, CommandContext, CommandPlan, SourceCommandError, SourceCommandResult,
 };
@@ -23,9 +23,13 @@ use tos_foundation::{Digest256, RelativePath};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
-const COMMITMENT_VERSION: u16 = 2;
-const DEPENDENCY_PROFILE: &str = "tos_initial_agent_dependency_commitment_v2";
-const REQUIRED_SOURCE_INPUTS: &[&str] = &[
+const CORPUS_DEPENDENCY_PROFILE: &str = "tos_initial_corpus_dependency_commitment_v2";
+const AGENT_DEPENDENCY_PROFILE_COMPAT: &str = "tos_initial_agent_dependency_commitment_v2";
+pub(crate) const PG_CORPUS_V1_FAMILY_TAG: &str =
+    "tos-pg-corpus-create-v1:tos_local_corpus_create_owner_v1:source.create";
+pub(crate) const PG_CORPUS_V2_FAMILY_TAG: &str =
+    "tos-pg-corpus-create-v2:tos_local_corpus_create_owner_v2:source.create";
+const CORPUS_REQUIRED_SOURCE_INPUTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/contracts/semantic-entity-type-registry.schema.json",
     "ToS/contracts/corpus-record.schema.json",
@@ -44,8 +48,9 @@ pub(crate) struct PgSourceUniqueIndexRequirement {
 
 /// Bounded source observations requested before semantic preparation.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct PgAgentCreationRequirements {
+pub(crate) struct PgCorpusCreationRequirements {
     pub(crate) home: RelativePath,
+    pub(crate) record_type: String,
     /// Literal ToS source references only; non-ToS bibliographic references
     /// remain authored values and are not turned into transport paths.
     pub(crate) source_refs: Vec<RelativePath>,
@@ -53,22 +58,27 @@ pub(crate) struct PgAgentCreationRequirements {
     pub(crate) unique_tokens: Vec<PgSourceUniqueIndexRequirement>,
 }
 
+// Retained for the existing parent-module wrapper while callers move to the
+// family-aware requirement type.
+pub(crate) type PgAgentCreationRequirements = PgCorpusCreationRequirements;
+
 #[derive(Clone, Debug)]
-pub(crate) struct PgAgentCreationObservations {
+pub(crate) struct PgCorpusCreationObservations {
+    pub(crate) record_type: String,
     pub(crate) home: PgSourceHomeObservation,
     pub(crate) unique: Vec<PgSourceUniqueIndexObservation>,
     pub(crate) dependency_generation: u64,
 }
 
 /// Parse the request and owner grant far enough to select the exact bounded
-/// source observations needed for initial Agent creation.
+/// source observations needed for the requested initial Corpus record.
 pub(crate) fn requirements(
     context: &CommandContext,
-) -> SourceCommandResult<PgAgentCreationRequirements> {
+) -> SourceCommandResult<PgCorpusCreationRequirements> {
     let (family, config, home) = configuration(context)?;
     if !matches!(family, CreationFamily::CorpusV1 | CreationFamily::CorpusV2) {
         return Err(SourceCommandError::Unsupported(
-            "PostgreSQL initial corpus Agent owner",
+            "PostgreSQL initial Corpus owner",
         ));
     }
     let request = cmd::parse(&context.request_raw)?;
@@ -84,7 +94,7 @@ pub(crate) fn requirements(
         ]);
     } else if operation != "prepare-create" {
         return Err(SourceCommandError::Invalid(
-            "PostgreSQL initial Agent creation operation",
+            "PostgreSQL initial Corpus creation operation",
         ));
     }
     cmd::exact_keys(&request, &keys)?;
@@ -94,35 +104,36 @@ pub(crate) fn requirements(
             .any(|value| value.as_str() == Some(family.operation()))
     {
         return Err(SourceCommandError::Denied(
-            "PostgreSQL initial Agent operation grant",
+            "PostgreSQL initial Corpus operation grant",
         ));
     }
     let record = cmd::field(&request, "record")?;
-    if cmd::text(record, "record_type")? != "agent"
-        || cmd::integer(record, "record_version")? != 1
-        || cmd::text(&config, "source_path")? != format!("{}/agent.json", home.as_str())
-    {
-        return Err(SourceCommandError::Unsupported(
-            "PostgreSQL initial native Agent only",
+    // Delegate type, path, identity, assertion and schema-profile gates to
+    // the maintained semantic Corpus owner before selecting PG observations.
+    initial_corpus_with_schema(&config, family, record, |_, _, _| Ok(()))?;
+    let record_type = cmd::text(record, "record_type")?.to_owned();
+    if cmd::text(&config, "source_path")? != format!("{}/{}.json", home.as_str(), record_type) {
+        return Err(SourceCommandError::Denied(
+            "PostgreSQL initial Corpus source home is not exact",
         ));
     }
     let mut source_refs = BTreeSet::new();
     for reference in cmd::array(record, "source_refs")? {
         let value = reference
             .as_str()
-            .ok_or(SourceCommandError::Invalid("Agent source reference"))?;
+            .ok_or(SourceCommandError::Invalid("Corpus source reference"))?;
         if value.starts_with("ToS/") {
             if value
                 .split('/')
                 .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
             {
                 return Err(SourceCommandError::Denied(
-                    "PG Agent source reference addresses private content",
+                    "PG Corpus source reference addresses private content",
                 ));
             }
             source_refs.insert(
                 RelativePath::parse(value)
-                    .map_err(|_| SourceCommandError::Invalid("Agent source reference path"))?,
+                    .map_err(|_| SourceCommandError::Invalid("Corpus source reference path"))?,
             );
         }
     }
@@ -150,17 +161,18 @@ pub(crate) fn requirements(
     }
     if unique.len() != selections.len() + 2 {
         return Err(SourceCommandError::Invalid(
-            "duplicate PostgreSQL Agent unique identity token",
+            "duplicate PostgreSQL Corpus unique identity token",
         ));
     }
-    Ok(PgAgentCreationRequirements {
+    Ok(PgCorpusCreationRequirements {
         home,
+        record_type,
         source_refs: source_refs.into_iter().collect(),
-        required_source_inputs: REQUIRED_SOURCE_INPUTS
+        required_source_inputs: CORPUS_REQUIRED_SOURCE_INPUTS
             .iter()
             .map(|path| {
                 RelativePath::parse(path)
-                    .map_err(|_| SourceCommandError::Invalid("Agent schema input path"))
+                    .map_err(|_| SourceCommandError::Invalid("Corpus schema input path"))
             })
             .collect::<SourceCommandResult<Vec<_>>>()?,
         unique_tokens: unique
@@ -171,14 +183,15 @@ pub(crate) fn requirements(
 }
 
 /// Sealed semantic preparation; it carries no durable registration authority.
-pub(crate) struct PreparedPgAgentCreation {
+pub(crate) struct PreparedPgCorpusCreation {
     prepared: PreparedCreation,
     identity: PgRecordRevisionIdentity,
-    observations: PgAgentCreationObservations,
+    observations: PgCorpusCreationObservations,
+    record_type: String,
     commitment: Digest256,
 }
 
-impl PreparedPgAgentCreation {
+impl PreparedPgCorpusCreation {
     pub(crate) fn preview(&self) -> SourceCommandResult<tos_foundation::JsonValue> {
         self.prepared.preview()
     }
@@ -189,7 +202,7 @@ impl PreparedPgAgentCreation {
         worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> SourceCommandResult<PgSerializedAgentCreation> {
+    ) -> SourceCommandResult<PgSerializedCorpusCreation> {
         if worker.input_identity() != &self.identity {
             return Err(SourceCommandError::Conflict(
                 "PG creation schema worker identity changed",
@@ -218,18 +231,35 @@ impl PreparedPgAgentCreation {
         )?;
         if plan.operation != "source.create" || plan.handler_id != "native-corpus-create" {
             return Err(SourceCommandError::Conflict(
-                "PG Agent creation serializer profile changed",
+                "PG Corpus creation serializer profile changed",
             ));
         }
         let request = cmd::parse(&prepared.context.request_raw)?;
         let record = cmd::field(&request, "record")?;
         let config = cmd::parse(&prepared.context.configuration_raw)?;
+        let family_tag = match prepared.family() {
+            CreationFamily::CorpusV1 => PG_CORPUS_V1_FAMILY_TAG,
+            CreationFamily::CorpusV2 => PG_CORPUS_V2_FAMILY_TAG,
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "PG Corpus creation serializer family changed",
+                ));
+            }
+        };
         let home = prepared.home.clone();
+        let record_type = cmd::text(record, "record_type")?;
+        if record_type != self.record_type {
+            return Err(SourceCommandError::Conflict(
+                "PG Corpus record type changed after preparation",
+            ));
+        }
+        let record_filename = format!("{record_type}.json");
+        let forms_filename = format!("{record_type}.human-forms.json");
         let mut indexes = IndexRows::new();
         indexes.insert((
             "metadata".to_owned(),
             cmd::text(record, "record_id")?.to_owned(),
-            format!("{}/agent.json", home.as_str()),
+            format!("{}/{}", home.as_str(), record_filename),
         ));
         indexes.insert((
             "event".to_owned(),
@@ -240,49 +270,54 @@ impl PreparedPgAgentCreation {
             indexes.insert((
                 "form".to_owned(),
                 cmd::text(selection, "form_id")?.to_owned(),
-                format!("{}/agent.human-forms.json", home.as_str()),
+                format!("{}/{}", home.as_str(), forms_filename),
             ));
         }
-        Ok(PgSerializedAgentCreation {
+        Ok(PgSerializedCorpusCreation {
             context: prepared.context.clone(),
             plan,
             home,
             files: prepared.files().clone(),
             indexes,
-            commitment: creation::PgDependencyCommitment::new(COMMITMENT_VERSION, self.commitment)
-                .map_err(|_| SourceCommandError::Invalid("PG Agent dependency commitment"))?,
+            commitment: creation::PgDependencyCommitment::new(
+                creation::COMMITMENT_VERSION,
+                self.commitment,
+            )
+            .map_err(|_| SourceCommandError::Invalid("PG Corpus dependency commitment"))?,
             identity: self.identity,
             observations: self.observations,
+            record_type: self.record_type,
+            family_tag,
         })
     }
 }
 
 /// Prepare the common creation semantics over exactly the caller-selected PG
-/// readset. The full Agent inventory is intentionally not materialized.
-pub(crate) fn prepare_pg_agent_creation(
+/// readset. The full source inventory is intentionally not materialized.
+pub(crate) fn prepare_pg_corpus_creation(
     context: CommandContext,
     identity: PgRecordRevisionIdentity,
-    observations: PgAgentCreationObservations,
+    observations: PgCorpusCreationObservations,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<PreparedPgAgentCreation> {
+) -> SourceCommandResult<PreparedPgCorpusCreation> {
     if context.base_revision != identity.bootstrap_revision
         || worker.input_identity() != &identity
         || components.capture() != software.selection()
     {
         return Err(SourceCommandError::Conflict(
-            "PG Agent source epoch/software selection differs",
+            "PG Corpus source epoch/software selection differs",
         ));
     }
     context.check()?;
-    for path in REQUIRED_SOURCE_INPUTS {
+    for path in CORPUS_REQUIRED_SOURCE_INPUTS {
         if context
             .file(
                 &RelativePath::parse(path)
-                    .map_err(|_| SourceCommandError::Invalid("Agent schema input path"))?,
+                    .map_err(|_| SourceCommandError::Invalid("Corpus schema input path"))?,
             )?
             .is_none()
         {
@@ -297,7 +332,7 @@ pub(crate) fn prepare_pg_agent_creation(
         || !observations.home.children.is_empty()
     {
         return Err(SourceCommandError::Conflict(
-            "PG Agent creation family or home observation differs",
+            "PG Corpus creation family or home observation differs",
         ));
     }
     let schema_context = PgRecordRevisionCommandContext::new(context.clone(), identity);
@@ -336,11 +371,12 @@ pub(crate) fn prepare_pg_agent_creation(
         ));
     }
     let record = cmd::field(&request, "record")?;
-    if cmd::text(record, "record_type")? != "agent"
+    let record_type = cmd::text(record, "record_type")?;
+    if record_type != observations.record_type
         || !observations_match(&context, &home, &config, record, &request, &observations)?
     {
         return Err(SourceCommandError::Conflict(
-            "PG Agent source home or identity observations differ",
+            "PG Corpus source home or identity observations differ",
         ));
     }
     let mut validate_record_schema =
@@ -374,9 +410,9 @@ pub(crate) fn prepare_pg_agent_creation(
     let forms = prepare_source_forms(&config, record, selections, &mut validate_form_schema)?;
     drop(validate_form_schema);
     let source_path = cmd::text(&config, "source_path")?;
-    if source_path != format!("{}/agent.json", home.as_str()) {
+    if source_path != format!("{}/{}.json", home.as_str(), record_type) {
         return Err(SourceCommandError::Denied(
-            "PG initial Agent source home is not exact",
+            "PG initial Corpus source home is not exact",
         ));
     }
     let filename = source_path
@@ -386,7 +422,7 @@ pub(crate) fn prepare_pg_agent_creation(
     let files = BTreeMap::from([
         (filename.to_owned(), cmd::published(record)?),
         (
-            "agent.human-forms.json".to_owned(),
+            format!("{record_type}.human-forms.json"),
             cmd::published(&forms.set)?,
         ),
     ]);
@@ -411,10 +447,11 @@ pub(crate) fn prepare_pg_agent_creation(
         files,
         components: components.clone(),
     };
-    Ok(PreparedPgAgentCreation {
+    Ok(PreparedPgCorpusCreation {
         prepared,
         identity,
         observations,
+        record_type: record_type.to_owned(),
         commitment,
     })
 }
@@ -425,9 +462,12 @@ fn observations_match(
     config: &tos_foundation::JsonValue,
     record: &tos_foundation::JsonValue,
     request: &tos_foundation::JsonValue,
-    observations: &PgAgentCreationObservations,
+    observations: &PgCorpusCreationObservations,
 ) -> SourceCommandResult<bool> {
-    if observations.home.parent != *home || !observations.home.children.is_empty() {
+    if observations.record_type != cmd::text(record, "record_type")?
+        || observations.home.parent != *home
+        || !observations.home.children.is_empty()
+    {
         return Ok(false);
     }
     let mut required = BTreeSet::new();
@@ -457,7 +497,7 @@ fn observations_match(
         return Ok(false);
     }
     let requirements = requirements(context)?;
-    if requirements.home != *home {
+    if requirements.home != *home || requirements.record_type != observations.record_type {
         return Ok(false);
     }
     Ok(true)
@@ -466,12 +506,13 @@ fn observations_match(
 fn dependency_commitment(
     context: &CommandContext,
     identity: PgRecordRevisionIdentity,
-    observations: &PgAgentCreationObservations,
+    observations: &PgCorpusCreationObservations,
     config: &tos_foundation::JsonValue,
     record: &tos_foundation::JsonValue,
     forms: &[tos_foundation::JsonValue],
     components: &SoftwareComponentSelectionV1,
 ) -> SourceCommandResult<Digest256> {
+    let record_type = cmd::text(record, "record_type")?;
     let mut inputs = BTreeMap::new();
     for file in &context.files {
         if inputs
@@ -482,7 +523,7 @@ fn dependency_commitment(
             .is_some()
         {
             return Err(SourceCommandError::Invalid(
-                "duplicate PG Agent selected input path",
+                "duplicate PG Corpus selected input path",
             ));
         }
     }
@@ -520,7 +561,7 @@ fn dependency_commitment(
         .collect();
     let identity = identity_value(identity);
     let binding = cmd::object(vec![
-        ("profile", cmd::string(DEPENDENCY_PROFILE)),
+        ("profile", cmd::string(dependency_profile(record_type))),
         ("identity", identity),
         (
             "configuration_sha256",
@@ -583,6 +624,14 @@ fn context_home(context: &CommandContext) -> SourceCommandResult<RelativePath> {
     Ok(configuration(context)?.2)
 }
 
+fn dependency_profile(record_type: &str) -> &'static str {
+    if record_type == "agent" {
+        AGENT_DEPENDENCY_PROFILE_COMPAT
+    } else {
+        CORPUS_DEPENDENCY_PROFILE
+    }
+}
+
 fn identity_value(identity: PgRecordRevisionIdentity) -> tos_foundation::JsonValue {
     cmd::object(vec![
         (
@@ -639,7 +688,7 @@ fn hex(bytes: &[u8]) -> String {
 
 /// Concrete output accepted by the PostgreSQL adapter. Fields are private;
 /// construction requires the shared semantic preparation and serializer.
-pub(crate) struct PgSerializedAgentCreation {
+pub(crate) struct PgSerializedCorpusCreation {
     context: CommandContext,
     plan: CommandPlan,
     home: RelativePath,
@@ -647,10 +696,12 @@ pub(crate) struct PgSerializedAgentCreation {
     indexes: IndexRows,
     commitment: creation::PgDependencyCommitment,
     identity: PgRecordRevisionIdentity,
-    observations: PgAgentCreationObservations,
+    observations: PgCorpusCreationObservations,
+    record_type: String,
+    family_tag: &'static str,
 }
 
-impl PgSerializedAgentCreation {
+impl PgSerializedCorpusCreation {
     pub(crate) fn context(&self) -> &CommandContext {
         &self.context
     }
@@ -662,12 +713,18 @@ impl PgSerializedAgentCreation {
     }
 }
 
-impl creation::PgAgentCreationInput for PgSerializedAgentCreation {
+impl creation::PgCreationInput for PgSerializedCorpusCreation {
     fn context(&self) -> &CommandContext {
         &self.context
     }
     fn plan(&self) -> &CommandPlan {
         &self.plan
+    }
+    fn family_tag(&self) -> &str {
+        self.family_tag
+    }
+    fn record_type(&self) -> &str {
+        &self.record_type
     }
     fn home(&self) -> &RelativePath {
         &self.home

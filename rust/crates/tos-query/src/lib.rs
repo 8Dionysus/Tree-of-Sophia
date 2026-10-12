@@ -80,8 +80,8 @@ mod source_descend;
 pub mod source_diagnostic;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_dossier;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod source_gap;
+pub mod source_value_search;
 mod source_read_projection;
 pub mod source_text_search;
 #[cfg(not(target_arch = "wasm32"))]
@@ -135,9 +135,11 @@ pub use search_document::{
 };
 pub use search_execute::{ObservedSearchCandidate, SearchKindBudget};
 pub use source_descend::{
-    AdjacencyPage, Binding, Budget, Charged, DisclosableSourceDescend, DisclosureLease, ExactNode,
-    QueryError, QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1,
-    SOURCE_DESCEND_SESSION_V1, SessionAdvance, SessionCaps, SessionNeed, SessionNeedKind,
+    AdjacencyPage, Binding, Budget, Charged, CpuStepsMeter, DisclosableSourceDescend,
+    DisclosureLease, ExactNode, QueryError, QueryErrorCode, RawRecord, ReadModel,
+    SOURCE_NAVIGATION_MODEL_ABI, SOURCE_NAVIGATION_SELECTION_PROFILE,
+    SOURCE_DESCEND_D1_METER_V1, SOURCE_DESCEND_POSTGRES_METER_V1, SOURCE_DESCEND_SESSION_V1,
+    SOURCE_DESCEND_SESSION_V2, SessionAdvance, SessionCaps, SessionNeed, SessionNeedKind,
     SessionResponse, SessionResponseKind, SourceDescendRequest, SourceDescendSession,
     source_descend,
 };

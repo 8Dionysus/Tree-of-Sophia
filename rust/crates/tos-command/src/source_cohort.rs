@@ -40,6 +40,8 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 /// mistaken for an initial source member or a maintained Agent creation.
 pub(super) const REVISION: &[u8] = b"tos.source-file.revision-v1";
 
+#[path = "source_cohort_claims.rs"]
+pub(crate) mod claims;
 #[cfg(all(test, feature = "postgres-lab"))]
 #[path = "source_cohort_concurrency_tests.rs"]
 mod concurrency_tests;
@@ -189,15 +191,37 @@ fn creation_metadata(package: CreationPackage<'_>) -> SourceMetadata {
 fn revision_package(
     proposal: &cmd::PreparedCommand,
     readset: &revision::SourceRevisionReadSet,
+    family_tag: &str,
 ) -> DurableResult<(
     SourceReads,
     Vec<SourceRevisionWrite>,
     SourceMetadata,
     BTreeSet<(String, String, String)>,
 )> {
-    if proposal.operation != "record.revise" || proposal.changes.is_empty() {
+    let record_revision = proposal.operation == "record.revise";
+    let claim_command = family_tag.starts_with("tos-pg-global-claims-v1:")
+        && ["claims.create", "claim.revise"].contains(&proposal.operation.as_str());
+    let growth_family = pg_growth_family(family_tag);
+    let growth_command = growth_family.is_some_and(|family| {
+        proposal.operation == family.operation() && proposal.handler_id == family.handler()
+    });
+    let object_link_creation = family_tag
+        == crate::source_creation_store::OBJECT_LINK_PG_FAMILY_TAG
+        && proposal.operation == "object.link.create"
+        && proposal.handler_id == "native-object-link-create";
+    if (!record_revision && !claim_command && !growth_command) || proposal.changes.is_empty() {
         return Err(DurableError::Refused(
-            "bounded source revision requires a non-empty record.revise delta",
+            "bounded source revision requires a non-empty supported owner delta",
+        ));
+    }
+    if object_link_creation
+        && proposal
+            .changes
+            .iter()
+            .any(|change| change.before.is_some())
+    {
+        return Err(DurableError::Refused(
+            "PG ObjectLink creation only admits new source members",
         ));
     }
     if proposal.changes.len() > MAX_MEMBERS {
@@ -209,6 +233,7 @@ fn revision_package(
         reads: readset.reads.reads.clone(),
         locators: readset.reads.locators.clone(),
         managed_original: None,
+        revision: None,
     };
     let dependencies = reads
         .reads
@@ -281,6 +306,12 @@ fn revision_package(
             },
         );
     }
+    if object_link_creation {
+        // This owner supplies a complete new-only Object/Link package. Reuse
+        // its exact sealed-package validator here so registration and recovery
+        // derive the same path and semantic-index rows from authored bytes.
+        crate::source_creation_store::expected_object_link_revision_indexes(&writes)?;
+    }
     let predicate_keys = reads
         .reads
         .iter()
@@ -301,16 +332,41 @@ fn revision_package(
     Ok((reads, writes, metadata, predicate_keys))
 }
 
+fn pg_growth_family(family_tag: &str) -> Option<crate::source_native_cli::PgGrowthFamily> {
+    use crate::source_native_cli::PgGrowthFamily;
+    [
+        PgGrowthFamily::ExpressionEdition,
+        PgGrowthFamily::ExpressionResponsibility,
+        PgGrowthFamily::CollectionMembership,
+        PgGrowthFamily::WorkExpression,
+        PgGrowthFamily::ObjectLink,
+    ]
+    .into_iter()
+    .find(|family| family.family_tag() == family_tag)
+}
+
 fn revision_delta(
     proposal: &cmd::PreparedCommand,
     selection: &revision::SourceRevisionSelection,
     reads: &SourceReads,
     writes: &[SourceRevisionWrite],
     metadata: &SourceMetadata,
+    projections: &ProjectionRows,
+    publication_package: Option<&crate::source_work_transaction::SelectedPublicationPackage>,
     work_revision: Option<&crate::source_pg_work_revision::CommitEvidence>,
 ) -> DurableResult<Digest256> {
     let mut hasher = Digest256Hasher::new();
-    part(&mut hasher, b"tos-corpus-flat-record-revision-delta-v1");
+    if let Some(revision) = &reads.revision {
+        part(
+            &mut hasher,
+            b"tos-family-tagged-source-record-revision-delta-v1",
+        );
+        part(&mut hasher, revision.family_tag.as_bytes());
+    } else {
+        // Preserve the established flat/Work delta for exact retries of
+        // attempts written before family-tagged PG admission.
+        part(&mut hasher, b"tos-corpus-flat-record-revision-delta-v1");
+    }
     part(&mut hasher, selection.cohort.domain.as_bytes());
     part(&mut hasher, selection.contract.as_bytes());
     part(&mut hasher, &selection.epoch.to_be_bytes());
@@ -334,6 +390,23 @@ fn revision_delta(
         part(
             &mut hasher,
             crate::source_pg_work_revision::commit_delta_digest(evidence).as_bytes(),
+        );
+    }
+    if let Some(package) = publication_package {
+        part(&mut hasher, b"tos-pg-selected-publication-package-v1");
+        part(&mut hasher, package.sha256.as_bytes());
+        part(
+            &mut hasher,
+            &(package.canonical_bytes.len() as u64).to_be_bytes(),
+        );
+    } else {
+        part(&mut hasher, b"no-selected-publication-package");
+    }
+    if !projections.is_empty() {
+        part(&mut hasher, b"tos-source-revision-owner-projections-v1");
+        part(
+            &mut hasher,
+            Digest256::of_bytes(&projections_bytes(projections)?).as_bytes(),
         );
     }
     for write in writes {
@@ -674,6 +747,17 @@ pub(crate) struct SourceReads {
     pub(crate) reads: Vec<PredicateRead>,
     pub(crate) locators: BTreeMap<String, Digest256>,
     pub(crate) managed_original: Option<serde_json::Value>,
+    pub(crate) revision: Option<SourceRevisionReadBinding>,
+}
+
+/// Persisted identity for a family-tagged authored PG revision. This travels
+/// inside the existing canonical source-read envelope, so replay recovers the
+/// exact event cut without a schema migration or an untyped side channel.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SourceRevisionReadBinding {
+    pub(crate) family_tag: String,
+    pub(crate) source_head_sequence: u64,
+    pub(crate) predecessor_source_revision: SourceRevision,
 }
 /// Caller-owned logical source work for the maintained Agent operation.
 /// It is descriptive accounting, never a source/custody authority. Gate and
@@ -725,14 +809,16 @@ pub struct SourceCreationAttempt {
     reads: SourceReads,
     indexes: IndexRows,
     projections: ProjectionRows,
+    writes: Vec<SourceRevisionWrite>,
     continuation: Option<WarmContinuation>,
 }
 
 /// A bounded authored revision registered against the real current PG/STO
-/// source. The read closure is retained in `cmd2_attempt.source_reads`; the
-/// in-memory copy below is only the typed view used by the current commit.
+/// source. Its exact family and read closure are retained in
+/// `cmd2_attempt.source_reads`; the in-memory copy is the typed commit view.
 pub(crate) struct SourceRevisionAttempt {
     pub(crate) domain: String,
+    pub(crate) store_id: [u8; 16],
     pub(crate) prepare_id: Vec<u8>,
     pub(crate) fence: u64,
     pub(crate) command_id: String,
@@ -749,6 +835,12 @@ pub(crate) struct SourceRevisionAttempt {
     pub(crate) contract: Digest256,
     pub(crate) definition: Digest256,
     pub(crate) delta: Digest256,
+    /// Exact maintained owner family and type/schema tag used for admission.
+    pub(crate) family_tag: String,
+    /// Source head before this command was registered. Legacy attempts may
+    /// lack the original selection sequence and expose `None` on recovery.
+    pub(crate) source_head_sequence: Option<u64>,
+    pub(crate) predecessor_source_revision: SourceRevision,
     pub(crate) reads: SourceReads,
     pub(crate) metadata: SourceMetadata,
     /// Only structural source-index rows created by this revision are bound
@@ -758,8 +850,159 @@ pub(crate) struct SourceRevisionAttempt {
     pub(crate) indexes: IndexRows,
     pub(crate) predicate_keys: BTreeSet<(String, String, String)>,
     pub(crate) writes: Vec<SourceRevisionWrite>,
+    /// Canonical owner-specific inventory projections sealed with the source
+    /// writes. These bytes are retained through attempt recovery and attached
+    /// to current/history rows in the same commit transaction.
+    pub(crate) projections: ProjectionRows,
+    /// Metadata-only sidecar package for the last selected source publication
+    /// transition. The sidecar files and transaction blobs never become
+    /// authored STO members; the typed package is persisted on the attempt.
+    pub(crate) publication_package:
+        Option<crate::source_work_transaction::SelectedPublicationPackage>,
     pub(crate) work_revision: Option<crate::source_pg_work_revision::CommitEvidence>,
     pub(crate) recovered_work_recorded_at: Option<String>,
+}
+
+/// Typed, owner-prepared package entering the common STO/PG source revision
+/// transaction. Each owner keeps its semantic preparation and index law; the
+/// shared writer owns only readset fencing, sealing, recovery and commit.
+pub(crate) trait PreparedPgSourceRevision {
+    fn context(&self) -> &CommandContext;
+    fn proposal(&self) -> &cmd::PreparedCommand;
+    fn identity(&self) -> revision::PgRecordRevisionIdentity;
+    fn family_tag(&self) -> &str;
+    fn legacy_family_encoding(&self) -> bool;
+    /// Extract the one complete publication metadata package from the owner's
+    /// generated transaction changes and return only authored source writes.
+    /// Owners keep constructing the selected transaction; the common writer
+    /// owns its PG representation and admission boundary.
+    fn publication_package_and_source_changes(
+        &self,
+    ) -> DurableResult<(
+        Option<crate::source_work_transaction::SelectedPublicationPackage>,
+        Vec<cmd::SourceChange>,
+    )> {
+        crate::source_work_transaction::extract_selected_publication_package(
+            &self.proposal().changes,
+        )
+        .map_err(DurableError::Source)
+    }
+    fn validate_readset(&self, readset: &revision::SourceRevisionReadSet) -> DurableResult<()>;
+    fn work_revision_evidence(
+        &self,
+        writes: &[SourceRevisionWrite],
+    ) -> DurableResult<Option<crate::source_pg_work_revision::CommitEvidence>>;
+    fn check_indexes(
+        &self,
+        tx: &mut Transaction<'_>,
+        domain: &str,
+        writes: &[SourceRevisionWrite],
+    ) -> DurableResult<IndexRows>;
+
+    /// Return one owner-specific mixed-inventory contribution for each
+    /// authored write that this family can project. The common writer binds
+    /// each contribution to its exact path and successor bytes, then stores
+    /// the canonical mixed-v2 envelope. Other families retain the empty
+    /// default until they own an exact contribution contract.
+    fn inventory_owner_contributions(
+        &self,
+        _writes: &[SourceRevisionWrite],
+    ) -> DurableResult<BTreeMap<String, tos_foundation::JsonValue>> {
+        Ok(BTreeMap::new())
+    }
+}
+
+impl PreparedPgSourceRevision for crate::source_native_cli::revisions::PreparedPgRecordRevision {
+    fn context(&self) -> &CommandContext {
+        crate::source_native_cli::revisions::PreparedPgRecordRevision::context(self)
+    }
+
+    fn proposal(&self) -> &cmd::PreparedCommand {
+        crate::source_native_cli::revisions::PreparedPgRecordRevision::proposal(self)
+    }
+
+    fn identity(&self) -> revision::PgRecordRevisionIdentity {
+        crate::source_native_cli::revisions::PreparedPgRecordRevision::identity(self)
+    }
+
+    fn family_tag(&self) -> &str {
+        crate::source_native_cli::revisions::PreparedPgRecordRevision::family_tag(self)
+    }
+
+    fn legacy_family_encoding(&self) -> bool {
+        crate::source_native_cli::revisions::PreparedPgRecordRevision::legacy_family_encoding(self)
+    }
+
+    fn validate_readset(&self, readset: &revision::SourceRevisionReadSet) -> DurableResult<()> {
+        let context = self.context();
+        let proposal = self.proposal();
+        let (owner_configuration, owner_family) =
+            source_revisions::configuration(context).map_err(source_error)?;
+        let selected_family_tag = owner_family
+            .pg_family_tag(&owner_configuration)
+            .map_err(source_error)?;
+        let selected_legacy_encoding = owner_family
+            .pg_legacy_compatible(&owner_configuration)
+            .map_err(source_error)?;
+        if self.identity() != revision::PgRecordRevisionIdentity::from_selection(&readset.selection)
+            || proposal.operation != "record.revise"
+            || proposal.base_revision != readset.selection.cohort.initial_revision
+            || context.base_revision != readset.selection.cohort.initial_revision
+            || self.family_tag() != selected_family_tag
+            || self.legacy_family_encoding() != selected_legacy_encoding
+        {
+            return Err(DurableError::Conflict(
+                "source revision proposal base, family or operation differs",
+            ));
+        }
+        Ok(())
+    }
+
+    fn work_revision_evidence(
+        &self,
+        writes: &[SourceRevisionWrite],
+    ) -> DurableResult<Option<crate::source_pg_work_revision::CommitEvidence>> {
+        self.work_revision()
+            .map(|observation| {
+                crate::source_pg_work_revision::make_commit_evidence(
+                    self.context(),
+                    self.proposal(),
+                    observation,
+                    self.publication_observation_digest()
+                        .ok_or(DurableError::Corrupt(
+                            "PG Work publication observation digest absent",
+                        ))?,
+                    writes,
+                )
+            })
+            .transpose()
+    }
+
+    fn check_indexes(
+        &self,
+        tx: &mut Transaction<'_>,
+        domain: &str,
+        writes: &[SourceRevisionWrite],
+    ) -> DurableResult<IndexRows> {
+        check_revision_path_indexes(tx, domain, writes)
+    }
+
+    fn inventory_owner_contributions(
+        &self,
+        _writes: &[SourceRevisionWrite],
+    ) -> DurableResult<BTreeMap<String, tos_foundation::JsonValue>> {
+        if self
+            .family_tag()
+            .starts_with("tos_local_native_metadata_revision_owner_v1:")
+        {
+            return source_revisions::pg_native_metadata_owner_contributions(
+                self.context(),
+                self.proposal(),
+            )
+            .map_err(source_error);
+        }
+        Ok(BTreeMap::new())
+    }
 }
 
 pub(crate) struct WorkRevisionRecoveryBinding {
@@ -775,6 +1018,7 @@ pub(crate) struct WorkRevisionRecoveryBinding {
     pub(crate) owner_configuration_canonical_digest: Digest256,
     pub(crate) job_id: String,
     pub(crate) job_fence: u64,
+    pub(crate) family_tag: String,
 }
 
 #[derive(Clone)]
@@ -877,7 +1121,7 @@ fn definition() -> Digest256 {
         let mut h = Digest256Hasher::new();
         part(
             &mut h,
-            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V2,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V6,
         );
         h.finalize()
     })
@@ -893,6 +1137,53 @@ fn legacy_agent_definition() -> Digest256 {
         h.finalize()
     })
 }
+fn legacy_mixed_definition() -> Digest256 {
+    static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *DEFINITION.get_or_init(|| {
+        let mut h = Digest256Hasher::new();
+        part(
+            &mut h,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V2,
+        );
+        h.finalize()
+    })
+}
+
+fn previous_mixed_definition_v3() -> Digest256 {
+    static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *DEFINITION.get_or_init(|| {
+        let mut h = Digest256Hasher::new();
+        part(
+            &mut h,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V3,
+        );
+        h.finalize()
+    })
+}
+
+fn previous_mixed_definition_v4() -> Digest256 {
+    static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *DEFINITION.get_or_init(|| {
+        let mut h = Digest256Hasher::new();
+        part(
+            &mut h,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V4,
+        );
+        h.finalize()
+    })
+}
+
+fn previous_mixed_definition_v5() -> Digest256 {
+    static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *DEFINITION.get_or_init(|| {
+        let mut h = Digest256Hasher::new();
+        part(
+            &mut h,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V5,
+        );
+        h.finalize()
+    })
+}
 
 /// Fail with an actionable rebootstrap refusal for the old Agent-only domain
 /// profile. Other unknown profile digests remain ordinary definition drift.
@@ -900,6 +1191,26 @@ pub(super) fn require_current_source_definition(actual: Digest256) -> DurableRes
     if actual == legacy_agent_definition() {
         return Err(DurableError::Refused(
             "legacy Agent-only source profile requires fresh mixed-source bootstrap",
+        ));
+    }
+    if actual == legacy_mixed_definition() {
+        return Err(DurableError::Refused(
+            "mixed v1 source projections require fresh owner-contribution bootstrap",
+        ));
+    }
+    if actual == previous_mixed_definition_v3() {
+        return Err(DurableError::Refused(
+            "mixed v3 source profile requires fresh Claim dependency bootstrap",
+        ));
+    }
+    if actual == previous_mixed_definition_v4() {
+        return Err(DurableError::Refused(
+            "mixed v4 source profile requires fresh Item File assignment bootstrap",
+        ));
+    }
+    if actual == previous_mixed_definition_v5() {
+        return Err(DurableError::Refused(
+            "mixed v5 source profile requires fresh Sign candidate index bootstrap",
         ));
     }
     if actual != definition() {
@@ -1068,6 +1379,29 @@ fn index_rows(
                 }
             }
         }
+        if file.path.as_str().starts_with("ToS/source-witnesses/")
+            && file.path.as_str().ends_with("/sign.json")
+        {
+            let candidate = crate::source_sign::pg::candidate_id_from_current_bytes(
+                file.path.as_str(),
+                &file.raw,
+            )
+            .map_err(source_error)?;
+            let key = ("sign-candidate".to_owned(), candidate);
+            if rows
+                .get(&key)
+                .is_some_and(|prior| prior != file.path.as_str())
+            {
+                return Err(DurableError::Conflict(
+                    "Sign candidate already issued in selected source cohort",
+                ));
+            }
+            // A promotion candidate Claim ID is intentionally in its own
+            // uniqueness namespace. It necessarily equals a `claim` token,
+            // so it must not participate in the generic cross-kind identity
+            // collision check above.
+            rows.insert(key, file.path.as_str().to_owned());
+        }
     }
     Ok(rows
         .into_iter()
@@ -1107,9 +1441,28 @@ fn inventory_projections_for(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<ProjectionRows> {
-    let inventory = source_claims::maintained_agent_inventory_from_managed(
-        ctx, true, worker, deadline, cancelled,
-    )
+    let authored_members = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .cloned()
+        .collect::<Vec<_>>();
+    let has_global_claims = authored_members.iter().try_fold(false, |found, file| {
+        Ok::<_, DurableError>(found || is_global_claim_stream(ctx, file.path.as_str())?)
+    })?;
+    let inventory = if has_global_claims {
+        source_claims::maintained_global_claim_inventory_from_members(
+            ctx,
+            &authored_members,
+            worker,
+            deadline,
+            cancelled,
+        )
+    } else {
+        source_claims::maintained_agent_inventory_from_managed(
+            ctx, true, worker, deadline, cancelled,
+        )
+    }
     .map_err(|error| {
         source_error_with_phase(
             error,
@@ -1119,7 +1472,7 @@ fn inventory_projections_for(
     let grouped =
         source_claims::agent_inventory_members(ctx, &inventory, worker, deadline, cancelled)
             .map_err(|error| {
-                source_error_with_phase(error, "missing object field in mixed projection grouping")
+                source_error_with_phase(error, "missing object field in Agent projection grouping")
             })?;
     let mut projections = ProjectionRows::new();
     let mut projection_bytes = 0usize;
@@ -1128,9 +1481,36 @@ fn inventory_projections_for(
             && paths.is_none_or(|paths| paths.contains(file.path.as_str()))
     }) {
         active(deadline, cancelled)?;
-        let contribution = source_claims::agent_inventory_contribution(
-            ctx, file, &inventory, &grouped, worker, deadline, cancelled,
-        )
+        let location = file.path.as_str();
+        let basename = location.rsplit('/').next().unwrap_or(location);
+        let form_owner_stream = location
+            .rsplit_once('/')
+            .map(|(parent, _)| format!("{parent}/{}", source_claims::CLAIM_STREAM));
+        let is_global_claim_form = match form_owner_stream.as_deref() {
+            Some(path) if grouped.files.contains_key(path) => is_global_claim_stream(ctx, path)?,
+            _ => false,
+        };
+        let contribution = if has_global_claims
+            && basename == source_claims::CLAIM_STREAM
+            && is_global_claim_stream(ctx, location)?
+        {
+            source_claims::pg_inventory::claim_inventory_contribution(
+                ctx, file, &grouped, worker, deadline, cancelled,
+            )
+        } else if has_global_claims
+            && basename.ends_with(".human-forms.json")
+            && is_global_claim_form
+        {
+            source_claims::pg_inventory::claim_form_inventory_contribution(
+                file, &grouped, worker, deadline, cancelled,
+            )
+        } else if is_item_claim_stream(location) {
+            item_claim_owner_contribution(ctx, location)?
+        } else {
+            source_claims::agent_inventory_contribution(
+                ctx, file, &inventory, &grouped, worker, deadline, cancelled,
+            )
+        }
         .map_err(|error| {
             source_error_with_phase(
                 error,
@@ -1154,6 +1534,150 @@ fn inventory_projections_for(
         projections.insert(file.path.as_str().to_owned(), raw);
     }
     Ok(projections)
+}
+
+fn is_item_claim_stream(path: &str) -> bool {
+    path.starts_with("ToS/source-witnesses/items/")
+        && path.ends_with(&format!("/{}", source_claims::CLAIM_STREAM))
+}
+
+fn is_global_claim_stream(ctx: &CommandContext, path: &str) -> DurableResult<bool> {
+    if !path.starts_with("ToS/source-witnesses/relations/")
+        || !path.ends_with(&format!("/{}", source_claims::CLAIM_STREAM))
+    {
+        return Ok(false);
+    }
+    let home = path
+        .strip_suffix(&format!("/{}", source_claims::CLAIM_STREAM))
+        .ok_or(DurableError::Corrupt("Global Claim stream path"))?;
+    let request_path = format!("{home}/source-create-request.json");
+    let mut matching = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str() == request_path);
+    let Some(request_file) = matching.next() else {
+        return Ok(false);
+    };
+    if matching.next().is_some() {
+        return Err(DurableError::Corrupt(
+            "duplicate Global Claim creation request path",
+        ));
+    }
+    let request = cmd::parse(&request_file.raw).map_err(source_error)?;
+    Ok(matches!(
+        cmd::text(&request, "operation").map_err(source_error)?,
+        "claims.create" | "claim.revise"
+    ))
+}
+
+fn selected_direct_member_map(
+    ctx: &CommandContext,
+    home: &str,
+) -> DurableResult<BTreeMap<String, Vec<u8>>> {
+    let prefix = format!("{home}/");
+    let mut files = BTreeMap::new();
+    for file in &ctx.files {
+        let path = file.path.as_str();
+        let Some(name) = path.strip_prefix(&prefix) else {
+            continue;
+        };
+        if name.is_empty() || name.contains('/') {
+            continue;
+        }
+        if files.insert(name.to_owned(), file.raw.clone()).is_some() {
+            return Err(DurableError::Corrupt(
+                "duplicate selected Item package member",
+            ));
+        }
+    }
+    Ok(files)
+}
+
+/// Recreate the exact Item Claim owner envelope from its current 3+15
+/// Edition/Item package and the retained predecessor archive. This uses the
+/// same owner verifier as proposal preparation; the mixed projection is not
+/// reconstructed from path naming alone.
+fn item_claim_owner_contribution(
+    ctx: &CommandContext,
+    stream_path: &str,
+) -> DurableResult<tos_foundation::JsonValue> {
+    use tos_validation::native_compound::EditionItemBytes;
+
+    if !is_item_claim_stream(stream_path) {
+        return Err(DurableError::Refused(
+            "Item Claim owner is outside the maintained Item namespace",
+        ));
+    }
+    let item_home = stream_path
+        .strip_suffix(&format!("/{}", source_claims::CLAIM_STREAM))
+        .ok_or(DurableError::Corrupt("Item Claim stream path"))?;
+    let (edition_home, _) = item_home
+        .rsplit_once("/items/")
+        .ok_or(DurableError::Corrupt("Item parent Edition home"))?;
+    if !edition_home.starts_with("ToS/source-witnesses/") {
+        return Err(DurableError::Corrupt("Item parent Edition namespace"));
+    }
+    let parent = selected_direct_member_map(ctx, edition_home)?;
+    let child = selected_direct_member_map(ctx, item_home)?;
+    let receipt_raw = child
+        .get("edition-item-receipt.json")
+        .ok_or(DurableError::Corrupt("Item compound receipt absent"))?;
+    let receipt = cmd::parse(receipt_raw).map_err(source_error)?;
+    let parent_history_raw = parent
+        .get(source_revisions::HISTORY)
+        .ok_or(DurableError::Corrupt("Item parent Edition history absent"))?;
+    let parent_history = cmd::parse(parent_history_raw).map_err(source_error)?;
+    let parent_receipt = cmd::array(&parent_history, "receipts")
+        .map_err(source_error)?
+        .last()
+        .cloned()
+        .ok_or(DurableError::Corrupt(
+            "Item parent Edition transition receipt absent",
+        ))?;
+    let edition_path = format!("{edition_home}/edition.json");
+    let edition_raw = parent
+        .get("edition.json")
+        .ok_or(DurableError::Corrupt("Item parent Edition record absent"))?;
+    let edition = cmd::parse(edition_raw).map_err(source_error)?;
+    let archive_config = cmd::object(vec![
+        (
+            "record_id",
+            cmd::field(&edition, "record_id")
+                .map_err(source_error)?
+                .clone(),
+        ),
+        ("source_path", cmd::string(&edition_path)),
+    ]);
+    if cmd::text(&receipt, "parent_archive_ref").map_err(source_error)?
+        != cmd::text(&parent_receipt, "archive_path").map_err(source_error)?
+    {
+        return Err(DurableError::Conflict(
+            "Item parent archive differs from Edition transition",
+        ));
+    }
+    let (predecessor, _) = source_revisions::read_archive(ctx, &archive_config, &parent_receipt)
+        .map_err(source_error)?;
+    let bytes = EditionItemBytes {
+        parent,
+        child,
+        parent_receipt,
+        receipt: receipt.clone(),
+        transaction_id: cmd::text(&receipt, "transaction_id")
+            .map_err(source_error)?
+            .to_owned(),
+        archive_path: cmd::text(&receipt, "parent_archive_ref")
+            .map_err(source_error)?
+            .to_owned(),
+        reads: Vec::new(),
+        bytes_read: 0,
+    };
+    crate::source_item_adoption::pg_claim_owner_contribution(
+        &bytes,
+        edition_home,
+        item_home,
+        &predecessor,
+    )
+    .map_err(source_error)
 }
 
 fn optional_agent_projections(
@@ -1183,6 +1707,423 @@ fn projection_root(projections: &ProjectionRows) -> Digest256 {
 fn projections_bytes(projections: &ProjectionRows) -> DurableResult<Vec<u8>> {
     serde_json::to_vec(projections)
         .map_err(|_| DurableError::Invalid("source projections encoding"))
+}
+
+fn revision_owner_projections(
+    family_tag: &str,
+    writes: &[SourceRevisionWrite],
+    contributions: BTreeMap<String, tos_foundation::JsonValue>,
+) -> DurableResult<ProjectionRows> {
+    if contributions.is_empty() {
+        if family_tag.starts_with("tos-pg-public-native-text-v1:") {
+            return Err(DurableError::Conflict(
+                "public Text revision owner contribution is absent",
+            ));
+        }
+        if family_tag.starts_with("tos-pg-global-claims-v1:")
+            && writes
+                .iter()
+                .any(|write| claim_projection_requires_owner(&write.subject))
+        {
+            return Err(DurableError::Conflict(
+                "Global Claims revision owner contribution is absent",
+            ));
+        }
+        return Ok(ProjectionRows::new());
+    }
+    let writes_by_path = writes
+        .iter()
+        .map(|write| (write.subject.as_str(), write))
+        .collect::<BTreeMap<_, _>>();
+    if writes_by_path.len() != writes.len()
+        || contributions
+            .keys()
+            .any(|path| !path.starts_with("ToS/") || !writes_by_path.contains_key(path.as_str()))
+    {
+        return Err(DurableError::Conflict(
+            "source revision owner contribution path differs from writes",
+        ));
+    }
+    let is_public_text = family_tag.starts_with("tos-pg-public-native-text-v1:");
+    let is_global_claim = family_tag.starts_with("tos-pg-global-claims-v1:");
+    let is_owner_inventory = pg_family_uses_mixed_inventory(family_tag);
+    if !is_public_text && !is_global_claim && !is_owner_inventory {
+        return Err(DurableError::Refused(
+            "source revision owner contribution family is unsupported",
+        ));
+    }
+    if is_public_text && contributions.len() != writes.len() {
+        return Err(DurableError::Conflict(
+            "public Text package projection coverage differs",
+        ));
+    }
+    if is_global_claim
+        && writes
+            .iter()
+            .filter(|write| claim_projection_requires_owner(&write.subject))
+            .any(|write| !contributions.contains_key(&write.subject))
+    {
+        return Err(DurableError::Conflict(
+            "Global Claims stream/form projection contribution is absent",
+        ));
+    }
+    if is_owner_inventory && contributions.len() != writes.len() {
+        return Err(DurableError::Conflict(
+            "maintained owner inventory projection coverage differs",
+        ));
+    }
+
+    let mut projections = ProjectionRows::new();
+    let mut projection_bytes = 0usize;
+    for (path, owner) in contributions {
+        let write = writes_by_path
+            .get(path.as_str())
+            .copied()
+            .ok_or(DurableError::Corrupt(
+                "source revision owner projection write absent",
+            ))?;
+        let schema = cmd::text(&owner, "schema_version").map_err(source_error)?;
+        let (claim_owner, public_text_owner, form, source_profiles, events, anchors) = match schema
+        {
+            "tos_pg_global_claim_projection_contribution_v1" if is_global_claim => {
+                cmd::exact_keys(
+                    &owner,
+                    &[
+                        "schema_version",
+                        "claim_owner",
+                        "source_profiles",
+                        "events",
+                        "anchors",
+                    ],
+                )
+                .map_err(source_error)?;
+                (
+                    cmd::field(&owner, "claim_owner")
+                        .map_err(source_error)?
+                        .clone(),
+                    tos_foundation::JsonValue::Null,
+                    tos_foundation::JsonValue::Null,
+                    cmd::field(&owner, "source_profiles")
+                        .map_err(source_error)?
+                        .clone(),
+                    cmd::field(&owner, "events").map_err(source_error)?.clone(),
+                    cmd::field(&owner, "anchors").map_err(source_error)?.clone(),
+                )
+            }
+            "tos_pg_global_claim_form_projection_contribution_v1" if is_global_claim => {
+                cmd::exact_keys(
+                    &owner,
+                    &[
+                        "schema_version",
+                        "form",
+                        "source_profiles",
+                        "events",
+                        "anchors",
+                    ],
+                )
+                .map_err(source_error)?;
+                (
+                    tos_foundation::JsonValue::Null,
+                    tos_foundation::JsonValue::Null,
+                    cmd::field(&owner, "form").map_err(source_error)?.clone(),
+                    cmd::field(&owner, "source_profiles")
+                        .map_err(source_error)?
+                        .clone(),
+                    cmd::field(&owner, "events").map_err(source_error)?.clone(),
+                    cmd::field(&owner, "anchors").map_err(source_error)?.clone(),
+                )
+            }
+            "tos_managed_public_text_inventory_member_v1" if is_public_text => (
+                tos_foundation::JsonValue::Null,
+                owner.clone(),
+                tos_foundation::JsonValue::Null,
+                cmd::object(Vec::new()),
+                cmd::object(Vec::new()),
+                cmd::object(Vec::new()),
+            ),
+            "tos_pg_source_inventory_member_contribution_v1" if is_owner_inventory => {
+                cmd::exact_keys(
+                    &owner,
+                    &[
+                        "schema_version",
+                        "records",
+                        "source_profiles",
+                        "events",
+                        "anchors",
+                        "form",
+                        "claim_owner",
+                    ],
+                )
+                .map_err(source_error)?;
+                (
+                    cmd::field(&owner, "claim_owner")
+                        .map_err(source_error)?
+                        .clone(),
+                    tos_foundation::JsonValue::Null,
+                    cmd::field(&owner, "form").map_err(source_error)?.clone(),
+                    cmd::field(&owner, "source_profiles")
+                        .map_err(source_error)?
+                        .clone(),
+                    cmd::field(&owner, "events").map_err(source_error)?.clone(),
+                    cmd::field(&owner, "anchors").map_err(source_error)?.clone(),
+                )
+            }
+            _ => {
+                return Err(DurableError::Conflict(
+                    "source revision owner projection schema differs",
+                ));
+            }
+        };
+        let records = if schema == "tos_pg_source_inventory_member_contribution_v1" {
+            let records = cmd::field(&owner, "records").map_err(source_error)?;
+            let object = records
+                .as_object()
+                .ok_or(DurableError::Conflict("source owner records map differs"))?;
+            if object.len() != source_claims::MIXED_INVENTORY_RECORD_KINDS.len()
+                || source_claims::MIXED_INVENTORY_RECORD_KINDS
+                    .iter()
+                    .any(|kind| {
+                        object
+                            .iter()
+                            .find(|(key, _)| key.as_str() == Some(*kind))
+                            .and_then(|(_, value)| value.as_array())
+                            .is_none()
+                    })
+            {
+                return Err(DurableError::Conflict(
+                    "source owner record family coverage differs",
+                ));
+            }
+            serde_json::from_slice(&cmd::canonical(records).map_err(source_error)?)
+                .map_err(|_| DurableError::Corrupt("source revision record projection JSON"))?
+        } else {
+            let mut records = serde_json::Map::new();
+            for kind in source_claims::MIXED_INVENTORY_RECORD_KINDS {
+                records.insert((*kind).to_owned(), serde_json::Value::Array(Vec::new()));
+            }
+            serde_json::Value::Object(records)
+        };
+        let records = serde_json::to_vec(&records)
+            .map_err(|_| DurableError::Invalid("source revision record projection JSON"))?;
+        let records = cmd::parse(&records).map_err(source_error)?;
+        let envelope = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_managed_mixed_source_inventory_member_v2"),
+            ),
+            ("path", cmd::string(&path)),
+            (
+                "raw_sha256",
+                cmd::string(&Digest256::of_bytes(&write.exact_bytes).to_hex()),
+            ),
+            ("records", records),
+            ("source_profiles", source_profiles),
+            ("events", events),
+            ("anchors", anchors),
+            ("form", form),
+            ("claim_owner", claim_owner),
+            ("public_text_owner", public_text_owner),
+        ]);
+        let raw = cmd::canonical(&envelope).map_err(source_error)?;
+        let digest = Digest256::of_bytes(&write.exact_bytes).to_hex();
+        addressed_inventory::AddressedMixedInventoryV1::checked_projection(path, &raw, &digest)?;
+        if raw.len() > 1_048_576 {
+            return Err(DurableError::Refused(
+                "source revision inventory projection exceeds member bound",
+            ));
+        }
+        projection_bytes = projection_bytes
+            .checked_add(raw.len())
+            .filter(|bytes| *bytes <= 64 * 1024 * 1024)
+            .ok_or(DurableError::Refused(
+                "source revision inventory projections exceed package bound",
+            ))?;
+        projections.insert(path, raw);
+    }
+    validate_revision_owner_projections(family_tag, writes, &projections)?;
+    Ok(projections)
+}
+
+fn validate_revision_owner_projections(
+    family_tag: &str,
+    writes: &[SourceRevisionWrite],
+    projections: &ProjectionRows,
+) -> DurableResult<()> {
+    let writes_by_path = writes
+        .iter()
+        .map(|write| (write.subject.as_str(), write))
+        .collect::<BTreeMap<_, _>>();
+    if writes_by_path.len() != writes.len()
+        || projections
+            .keys()
+            .any(|path| !writes_by_path.contains_key(path.as_str()))
+    {
+        return Err(DurableError::Corrupt(
+            "source revision projection path coverage differs",
+        ));
+    }
+    let is_public_text = family_tag.starts_with("tos-pg-public-native-text-v1:");
+    let is_global_claim = family_tag.starts_with("tos-pg-global-claims-v1:");
+    let is_owner_inventory = pg_family_uses_mixed_inventory(family_tag);
+    let is_item_adoption = family_tag == crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG;
+    if (is_public_text && projections.len() != writes.len())
+        || (is_owner_inventory && projections.len() != writes.len())
+        || (is_global_claim
+            && writes.iter().any(|write| {
+                claim_projection_requires_owner(&write.subject)
+                    && !projections.contains_key(&write.subject)
+            }))
+    {
+        return Err(DurableError::Corrupt(
+            "source revision required owner projection absent",
+        ));
+    }
+    if is_item_adoption {
+        let item_claim_paths = writes
+            .iter()
+            .filter(|write| is_item_claim_stream(&write.subject))
+            .map(|write| write.subject.as_str())
+            .collect::<Vec<_>>();
+        if item_claim_paths.len() != 1 {
+            return Err(DurableError::Corrupt(
+                "Item adoption Claim projection path count differs",
+            ));
+        }
+        let item_claim_path = item_claim_paths[0];
+        let item_claim_projection =
+            projections
+                .get(item_claim_path)
+                .ok_or(DurableError::Corrupt(
+                    "Item adoption Claim projection absent",
+                ))?;
+        let item_claim_write = writes_by_path
+            .get(item_claim_path)
+            .copied()
+            .ok_or(DurableError::Corrupt("Item adoption Claim write absent"))?;
+        let item_claim_digest = Digest256::of_bytes(&item_claim_write.exact_bytes).to_hex();
+        let item_claim_projection =
+            addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+                item_claim_path,
+                item_claim_projection,
+                &item_claim_digest,
+            )?;
+        let stored_claim_owner =
+            cmd::field(&item_claim_projection, "claim_owner").map_err(source_error)?;
+        let expected_claim_owner =
+            item_claim_owner_contribution_from_writes(writes, item_claim_path)?;
+        if stored_claim_owner != &expected_claim_owner {
+            return Err(DurableError::Corrupt(
+                "Item adoption Claim owner projection differs from retained package",
+            ));
+        }
+    }
+    for (path, raw) in projections {
+        let write = writes_by_path
+            .get(path.as_str())
+            .copied()
+            .ok_or(DurableError::Corrupt(
+                "source revision projection write absent",
+            ))?;
+        let digest = Digest256::of_bytes(&write.exact_bytes).to_hex();
+        let value =
+            addressed_inventory::AddressedMixedInventoryV1::checked_projection(path, raw, &digest)?;
+        let claim_owner = cmd::field(&value, "claim_owner").map_err(source_error)?;
+        let public_text_owner = cmd::field(&value, "public_text_owner").map_err(source_error)?;
+        let form = cmd::field(&value, "form").map_err(source_error)?;
+        if is_global_claim {
+            let subject = path.as_str();
+            let claim_stream = subject.starts_with("ToS/source-witnesses/relations/")
+                && subject.ends_with(&format!("/{}", source_claims::CLAIM_STREAM));
+            let claim_form = claim_form_projection_path(subject);
+            if public_text_owner != &tos_foundation::JsonValue::Null
+                || (claim_stream
+                    && (claim_owner == &tos_foundation::JsonValue::Null
+                        || form != &tos_foundation::JsonValue::Null))
+                || (claim_form
+                    && (form == &tos_foundation::JsonValue::Null
+                        || claim_owner != &tos_foundation::JsonValue::Null))
+                || (!claim_stream
+                    && !claim_form
+                    && (claim_owner != &tos_foundation::JsonValue::Null
+                        || form != &tos_foundation::JsonValue::Null))
+            {
+                return Err(DurableError::Corrupt(
+                    "source revision Claim owner/form projection differs",
+                ));
+            }
+        } else if is_public_text {
+            if public_text_owner == &tos_foundation::JsonValue::Null
+                || claim_owner != &tos_foundation::JsonValue::Null
+            {
+                return Err(DurableError::Corrupt(
+                    "source revision public Text owner projection differs",
+                ));
+            }
+        } else if is_owner_inventory {
+            if public_text_owner != &tos_foundation::JsonValue::Null
+                || (is_item_adoption
+                    && ((is_item_claim_stream(path)
+                        && claim_owner == &tos_foundation::JsonValue::Null)
+                        || (!is_item_claim_stream(path)
+                            && claim_owner != &tos_foundation::JsonValue::Null)))
+            {
+                return Err(DurableError::Corrupt(
+                    "source revision owner projection has a public Text contribution",
+                ));
+            }
+        } else {
+            return Err(DurableError::Refused(
+                "source revision projection family is unsupported",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn item_claim_owner_contribution_from_writes(
+    writes: &[SourceRevisionWrite],
+    stream_path: &str,
+) -> DurableResult<tos_foundation::JsonValue> {
+    let files = writes
+        .iter()
+        .map(|write| {
+            Ok(SourceFile {
+                path: RelativePath::parse(&write.subject)
+                    .map_err(|_| DurableError::Corrupt("Item recovery source path"))?,
+                raw: write.exact_bytes.clone(),
+            })
+        })
+        .collect::<DurableResult<Vec<_>>>()?;
+    let ctx = CommandContext {
+        base_revision: SourceRevision(Digest256::of_bytes(b"tos-item-recovery-projection-context")),
+        configuration_raw: Vec::new(),
+        request_raw: Vec::new(),
+        recorded_at: String::new(),
+        effective_uid: 0,
+        files,
+    };
+    item_claim_owner_contribution(&ctx, stream_path)
+}
+
+fn pg_family_uses_mixed_inventory(family_tag: &str) -> bool {
+    if pg_growth_family(family_tag).is_some() {
+        return true;
+    }
+    family_tag == crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG
+        || family_tag.starts_with("tos_local_native_metadata_revision_owner_v1:")
+}
+
+fn claim_projection_requires_owner(subject: &str) -> bool {
+    subject.starts_with("ToS/source-witnesses/relations/")
+        && (subject.ends_with(&format!("/{}", source_claims::CLAIM_STREAM))
+            || claim_form_projection_path(subject))
+}
+
+fn claim_form_projection_path(subject: &str) -> bool {
+    let basename = subject.rsplit('/').next().unwrap_or(subject);
+    subject.starts_with("ToS/source-witnesses/relations/")
+        && basename.starts_with("source-claims.")
+        && basename.ends_with(".human-forms.json")
 }
 
 fn creation_projections(
@@ -1328,6 +2269,242 @@ fn revision_mutation_predicates(indexes: &IndexRows) -> BTreeSet<(String, String
     }
 }
 
+/// Ensure the publication pointer exists before publishing a complete source
+/// cut. A fresh cut gets an explicit generation-zero absence only when its
+/// complete current STO membership has no publication metadata. Existing
+/// sidecars are refused until their full retained transition chain can be
+/// imported without flattening historical generations.
+pub(super) fn ensure_source_publication_bootstrap_state(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    store_id: [u8; 16],
+    initial_revision: SourceRevision,
+    initial_membership: SourceMembershipV1,
+    source_head: u64,
+    definition: Digest256,
+) -> DurableResult<()> {
+    let bootstrap_revision = initial_revision.0.to_hex();
+    let bootstrap_membership = initial_membership.digest.to_hex();
+    let bootstrap_count = as_i64(initial_membership.count)?;
+    let current = tx.query_opt(
+        "SELECT publication_generation,store_id,bootstrap_source_revision,
+                bootstrap_membership_digest,bootstrap_membership_count
+         FROM cmd2_source_publication_current WHERE domain=$1 FOR UPDATE",
+        &[&domain],
+    )?;
+    let history_count: i64 = tx
+        .query_one(
+            "SELECT count(*) FROM cmd2_source_publication_history WHERE domain=$1",
+            &[&domain],
+        )?
+        .get(0);
+    let predicate = tx.query_opt(
+        "SELECT generation,complete,definition_version FROM cmd2_predicate
+         WHERE domain=$1 AND kind='unique' AND owner=$2
+           AND scope='source-publication' AND token='current' FOR UPDATE",
+        &[&domain, &OWNER],
+    )?;
+    let Some(current) = current else {
+        if history_count != 0 {
+            return Err(DurableError::Corrupt(
+                "source publication history exists without a current pointer",
+            ));
+        }
+        // This query is over the complete bootstrapped current membership.
+        // Any member below the transaction directory, including an orphaned
+        // blob, proves that import must preserve a legacy chain explicitly.
+        let legacy_material: bool = tx
+            .query_one(
+                "SELECT EXISTS(
+                 SELECT 1 FROM (
+                   SELECT subject FROM cmd2_current WHERE domain=$1
+                   UNION ALL
+                   SELECT subject FROM cmd2_history WHERE domain=$1
+                 ) source_member
+                 WHERE subject=$2 OR subject LIKE $3
+             )",
+                &[
+                    &domain,
+                    &"ToS/source-witnesses/.metadata-publication.json",
+                    &"ToS/source-witnesses/.metadata-transactions/%",
+                ],
+            )?
+            .get(0);
+        if legacy_material {
+            return Err(DurableError::Refused(
+                "legacy publication chain requires exact ordered import",
+            ));
+        }
+        if predicate.as_ref().is_some_and(|row| {
+            row.get::<_, i64>(0) != 0 || row.get::<_, String>(2) != definition.to_hex()
+        }) {
+            return Err(DurableError::Conflict(
+                "source publication genesis predicate differs",
+            ));
+        }
+        tx.execute(
+            "INSERT INTO cmd2_source_publication_current(
+                domain,state,publication_generation,token,base_token,base_generation,
+                transaction_id,package_digest,package_bytes,source_commit_seq,store_id,
+                bootstrap_source_revision,bootstrap_membership_digest,bootstrap_membership_count)
+             VALUES($1,'absent',0,NULL,NULL,0,NULL,NULL,NULL,0,$2,$3,$4,$5)",
+            &[
+                &domain,
+                &&store_id[..],
+                &bootstrap_revision,
+                &bootstrap_membership,
+                &bootstrap_count,
+            ],
+        )?;
+        tx.execute(
+            "INSERT INTO cmd2_source_publication_history(
+                domain,publication_generation,state,token,base_token,base_generation,
+                transaction_id,package_digest,package_bytes,source_commit_seq,store_id,
+                bootstrap_source_revision,bootstrap_membership_digest,bootstrap_membership_count)
+             VALUES($1,0,'absent',NULL,NULL,0,NULL,NULL,NULL,0,$2,$3,$4,$5)",
+            &[
+                &domain,
+                &&store_id[..],
+                &bootstrap_revision,
+                &bootstrap_membership,
+                &bootstrap_count,
+            ],
+        )?;
+        tx.execute(
+            "INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete)
+             VALUES($1,'unique',$2,'source-publication','current',$3,0,true)
+             ON CONFLICT(domain,kind,owner,scope,token) DO NOTHING",
+            &[&domain, &OWNER, &definition.to_hex()],
+        )?;
+        let seeded = tx.query_one(
+            "SELECT generation,complete,definition_version FROM cmd2_predicate
+             WHERE domain=$1 AND kind='unique' AND owner=$2
+               AND scope='source-publication' AND token='current' FOR UPDATE",
+            &[&domain, &OWNER],
+        )?;
+        if seeded.get::<_, i64>(0) != 0 || seeded.get::<_, String>(2) != definition.to_hex() {
+            return Err(DurableError::Conflict(
+                "source publication genesis predicate changed",
+            ));
+        }
+        tx.execute(
+            "UPDATE cmd2_predicate SET complete=true
+             WHERE domain=$1 AND kind='unique' AND owner=$2
+               AND scope='source-publication' AND token='current'
+               AND generation=0 AND definition_version=$3",
+            &[&domain, &OWNER, &definition.to_hex()],
+        )?;
+        return Ok(());
+    };
+
+    let generation: i64 = current.get("publication_generation");
+    if generation < 0
+        || generation % 2 != 0
+        || current.get::<_, Vec<u8>>("store_id") != store_id
+        || current.get::<_, String>("bootstrap_source_revision") != bootstrap_revision
+        || current.get::<_, String>("bootstrap_membership_digest") != bootstrap_membership
+        || current.get::<_, i64>("bootstrap_membership_count") != bootstrap_count
+    {
+        return Err(DurableError::Conflict(
+            "source publication bootstrap identity differs",
+        ));
+    }
+    if history_count != generation / 2 + 1 {
+        return Err(DurableError::Corrupt(
+            "source publication transition history is incomplete",
+        ));
+    }
+    let latest_matches: bool = tx
+        .query_one(
+            "SELECT to_jsonb(c)=to_jsonb(h)
+         FROM cmd2_source_publication_current c
+         JOIN cmd2_source_publication_history h
+           ON h.domain=c.domain AND h.publication_generation=c.publication_generation
+         WHERE c.domain=$1",
+            &[&domain],
+        )?
+        .get(0);
+    if !latest_matches {
+        return Err(DurableError::Corrupt(
+            "source publication current pointer differs from latest history",
+        ));
+    }
+    let inconsistent_chain: bool = tx
+        .query_one(
+            "SELECT EXISTS(
+            SELECT 1 FROM cmd2_source_publication_history h
+            LEFT JOIN cmd2_source_publication_history p
+              ON p.domain=h.domain AND p.publication_generation=h.base_generation
+            WHERE h.domain=$1 AND
+              (h.store_id<>$2 OR h.bootstrap_source_revision<>$3
+               OR h.bootstrap_membership_digest<>$4
+               OR h.bootstrap_membership_count<>$5
+               OR (h.publication_generation=0 AND
+                   (h.state<>'absent' OR h.source_commit_seq<>0))
+               OR (h.publication_generation>0 AND
+                   (h.publication_generation<>h.base_generation+2 OR p.domain IS NULL
+                    OR h.base_token IS DISTINCT FROM p.token
+                    OR h.source_commit_seq<=p.source_commit_seq
+                    OR h.source_commit_seq>$6
+                    OR NOT EXISTS(
+                        SELECT 1 FROM cmd2_attempt a
+                        WHERE a.domain=h.domain AND a.commit_seq=h.source_commit_seq
+                          AND a.state='committed'
+                          AND a.source_publication_package=h.package_bytes
+                    ))))
+         )",
+            &[
+                &domain,
+                &&store_id[..],
+                &bootstrap_revision,
+                &bootstrap_membership,
+                &bootstrap_count,
+                &as_i64(source_head)?,
+            ],
+        )?
+        .get(0);
+    if inconsistent_chain {
+        return Err(DurableError::Corrupt(
+            "source publication transition lineage is incomplete",
+        ));
+    }
+    if predicate.as_ref().is_some_and(|predicate| {
+        predicate.get::<_, i64>(0) != generation
+            || predicate.get::<_, String>(2) != definition.to_hex()
+    }) {
+        return Err(DurableError::Conflict(
+            "source publication current predicate differs",
+        ));
+    }
+    tx.execute(
+        "INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete)
+         VALUES($1,'unique',$2,'source-publication','current',$3,$4,true)
+         ON CONFLICT(domain,kind,owner,scope,token) DO NOTHING",
+        &[&domain, &OWNER, &definition.to_hex(), &generation],
+    )?;
+    let predicate = tx.query_one(
+        "SELECT generation,definition_version FROM cmd2_predicate
+         WHERE domain=$1 AND kind='unique' AND owner=$2
+           AND scope='source-publication' AND token='current' FOR UPDATE",
+        &[&domain, &OWNER],
+    )?;
+    if predicate.get::<_, i64>(0) != generation
+        || predicate.get::<_, String>(1) != definition.to_hex()
+    {
+        return Err(DurableError::Conflict(
+            "source publication current predicate differs",
+        ));
+    }
+    tx.execute(
+        "UPDATE cmd2_predicate SET complete=true
+         WHERE domain=$1 AND kind='unique' AND owner=$2
+           AND scope='source-publication' AND token='current'
+           AND generation=$3 AND definition_version=$4",
+        &[&domain, &OWNER, &generation, &definition.to_hex()],
+    )?;
+    Ok(())
+}
+
 fn decode_indexes(raw: &[u8]) -> DurableResult<IndexRows> {
     let rows = serde_json::from_slice::<Vec<(String, String, String)>>(raw)
         .map_err(|_| DurableError::Corrupt("source indexes decode"))?;
@@ -1352,6 +2529,68 @@ fn revision_indexes(writes: &[SourceRevisionWrite]) -> IndexRows {
             )
         })
         .collect()
+}
+
+fn expected_revision_indexes_for_family(
+    family_tag: &str,
+    writes: &[SourceRevisionWrite],
+) -> DurableResult<IndexRows> {
+    if family_tag.starts_with("tos-pg-global-claims-v1:") {
+        claims::expected_revision_indexes(family_tag, writes)
+    } else if let Some(family) = pg_growth_family(family_tag) {
+        crate::source_native_cli::expected_growth_revision_indexes(family, writes)
+    } else if family_tag == crate::source_creation_store::OBJECT_LINK_PG_FAMILY_TAG {
+        crate::source_creation_store::expected_object_link_revision_indexes(writes)
+    } else if family_tag == crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG {
+        let mut indexes = revision_indexes(writes);
+        indexes.extend(crate::source_item_adoption::pg_expected_revision_indexes(
+            writes,
+        )?);
+        Ok(indexes)
+    } else if family_tag.starts_with("tos-pg-maintained-growth-v1:") {
+        Err(DurableError::Refused(
+            "PG Growth owner family is not admitted by the shared writer",
+        ))
+    } else {
+        Ok(revision_indexes(writes))
+    }
+}
+
+fn validate_revision_indexes(
+    family_tag: &str,
+    writes: &[SourceRevisionWrite],
+    indexes: &IndexRows,
+) -> DurableResult<()> {
+    let expected = expected_revision_indexes_for_family(family_tag, writes)?;
+    if *indexes != expected {
+        return Err(DurableError::Corrupt(
+            "source revision exact family index binding differs",
+        ));
+    }
+    for (kind, token, path) in indexes {
+        if kind == "path" {
+            if token != path
+                || !writes
+                    .iter()
+                    .any(|write| write.expected_predecessor.is_none() && write.subject == *path)
+            {
+                return Err(DurableError::Corrupt(
+                    "source revision structural path index binding differs",
+                ));
+            }
+        } else if !(family_tag.ends_with(":claims.create")
+            || pg_growth_family(family_tag).is_some()
+            || family_tag == crate::source_creation_store::OBJECT_LINK_PG_FAMILY_TAG
+            || family_tag == crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG)
+            || !["metadata", "claim", "event", "anchor", "form"].contains(&kind.as_str())
+            || !writes.iter().any(|write| write.subject == *path)
+        {
+            return Err(DurableError::Corrupt(
+                "source revision semantic index binding differs",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn revision_form_ids(raw: &[u8]) -> DurableResult<BTreeSet<String>> {
@@ -1380,6 +2619,7 @@ fn check_revision_semantic_indexes(
     tx: &mut Transaction<'_>,
     domain: &str,
     writes: &[SourceRevisionWrite],
+    item_adoption_indexes: Option<&IndexRows>,
 ) -> DurableResult<()> {
     // `source_copy_kernel::validate_history` admits at most 32 current and
     // 256 retained forms. A single forms member therefore has at most 288
@@ -1417,6 +2657,10 @@ fn check_revision_semantic_indexes(
             match kind.as_str() {
                 "metadata" => has_metadata = true,
                 "form" => has_forms = true,
+                "claim" | "event"
+                    if item_adoption_indexes.is_some_and(|indexes| {
+                        indexes.contains(&(kind.clone(), row.get("token"), write.subject.clone()))
+                    }) => {}
                 _ => {
                     return Err(DurableError::Refused(
                         "bounded source revision semantic index transition unsupported",
@@ -1446,6 +2690,13 @@ fn check_revision_semantic_indexes(
             let matches = match kind.as_str() {
                 "metadata" => metadata_ids.contains(&token),
                 "form" => form_ids.contains(&token),
+                "claim" | "event"
+                    if item_adoption_indexes.is_some_and(|indexes| {
+                        indexes.contains(&(kind.clone(), token.clone(), write.subject.clone()))
+                    }) =>
+                {
+                    true
+                }
                 _ => {
                     return Err(DurableError::Refused(
                         "bounded source revision semantic index transition unsupported",
@@ -1478,14 +2729,64 @@ fn check_revision_semantic_indexes(
                 "source revision form identity set changed",
             ));
         }
+        if let Some(expected) = item_adoption_indexes {
+            for kind in ["claim", "event"] {
+                let stored = rows
+                    .iter()
+                    .filter(|row| row.get::<_, String>("kind") == kind)
+                    .map(|row| row.get::<_, String>("token"))
+                    .collect::<BTreeSet<_>>();
+                if stored.is_empty() {
+                    continue;
+                }
+                let expected = expected
+                    .iter()
+                    .filter(|(expected_kind, _, path)| {
+                        expected_kind == kind && path == &write.subject
+                    })
+                    .map(|(_, token, _)| token.clone())
+                    .collect::<BTreeSet<_>>();
+                if stored != expected {
+                    return Err(DurableError::Conflict(
+                        "Item adoption semantic identity set changed",
+                    ));
+                }
+            }
+        }
     }
     Ok(())
 }
 
-fn check_revision_path_indexes(
+pub(crate) fn check_revision_path_indexes(
     tx: &mut Transaction<'_>,
     domain: &str,
     writes: &[SourceRevisionWrite],
+) -> DurableResult<IndexRows> {
+    check_revision_path_indexes_inner(tx, domain, writes, None)
+}
+
+pub(crate) fn check_revision_path_indexes_for_family(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    writes: &[SourceRevisionWrite],
+    family_tag: &str,
+) -> DurableResult<IndexRows> {
+    let item_adoption_indexes =
+        if family_tag == crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG {
+            Some(crate::source_item_adoption::pg_expected_revision_indexes(
+                writes,
+            )?)
+        } else {
+            None
+        };
+    check_revision_path_indexes_inner(tx, domain, writes, item_adoption_indexes.as_ref())
+}
+
+fn check_revision_path_indexes_inner(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    writes: &[SourceRevisionWrite],
+    item_adoption_indexes: Option<&IndexRows>,
 ) -> DurableResult<IndexRows> {
     let indexes = revision_indexes(writes);
     let history_insertions = writes
@@ -1570,7 +2871,7 @@ fn check_revision_path_indexes(
             ));
         }
     }
-    check_revision_semantic_indexes(tx, domain, writes)?;
+    check_revision_semantic_indexes(tx, domain, writes, item_adoption_indexes)?;
     Ok(indexes)
 }
 
@@ -1579,6 +2880,11 @@ fn indexes_bytes(rows: &IndexRows) -> DurableResult<Vec<u8>> {
         .map_err(|_| DurableError::Invalid("source indexes encode"))
 }
 fn reads_bytes(reads: &SourceReads) -> DurableResult<Vec<u8>> {
+    if reads.managed_original.is_some() && reads.revision.is_some() {
+        return Err(DurableError::Invalid(
+            "managed original and revision read profiles cannot be combined",
+        ));
+    }
     let values = reads
         .reads
         .iter()
@@ -1613,17 +2919,29 @@ fn reads_bytes(reads: &SourceReads) -> DurableResult<Vec<u8>> {
             ]),
         })
         .collect::<Vec<_>>();
-    let value = match &reads.managed_original {
-        None => serde_json::Value::Array(values),
-        Some(original) => {
+    let value = match (&reads.managed_original, &reads.revision) {
+        (None, None) => serde_json::Value::Array(values),
+        (Some(original), None) => {
             serde_json::json!({"profile":"tos.managed-agent-original-reads-v1","reads":values,"original":original})
+        }
+        (None, Some(revision)) => {
+            if revision.family_tag.is_empty() || revision.family_tag.len() > 512 {
+                return Err(DurableError::Invalid("source revision family tag length"));
+            }
+            serde_json::json!({
+                "profile":"tos.pg-family-tagged-source-revision-reads-v1",
+                "family":revision.family_tag,
+                "source_head_sequence":revision.source_head_sequence,
+                "predecessor_source_revision":revision.predecessor_source_revision.0.to_hex(),
+                "reads":values
+            })
         }
     };
     let encoded =
         serde_json::to_vec(&value).map_err(|_| DurableError::Invalid("source reads encode"))?;
-    if reads.managed_original.is_some() && encoded.len() > 1_048_576 {
+    if (reads.managed_original.is_some() || reads.revision.is_some()) && encoded.len() > 1_048_576 {
         return Err(DurableError::Refused(
-            "managed reads cannot fit existing cold metadata row bound",
+            "source read envelope cannot fit existing cold metadata row bound",
         ));
     }
     Ok(encoded)
@@ -2896,7 +4214,7 @@ impl DurablePgCoordinator {
         let projection = Digest256::from_hex(&source.addressed_inventory_root_sha256)
             .map_err(|_| DurableError::Invalid("overlay inventory digest"))?;
         self.with_managed_generation_fences(
-            store, generation, projection, filesystem, package, contract,
+            store, generation, projection, filesystem, Some(package), contract,
             rule_version, rights_version, job_id, job_fence, deadline, cancelled,
             |_owner, tx| {
                 require_managed_model_schema_v2(tx, deadline, cancelled)?;
@@ -3034,7 +4352,7 @@ impl DurablePgCoordinator {
             generation,
             projection,
             filesystem,
-            package,
+            Some(package),
             contract,
             rule_version,
             rights_version,
@@ -3189,6 +4507,126 @@ impl DurablePgCoordinator {
             &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
         ) -> T,
     ) -> DurableResult<T> {
+        self.with_current_managed_model_and_tx_owner(
+            store,
+            generation,
+            proof,
+            filesystem,
+            Some(package),
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            |lease, _tx| seek(lease),
+        )
+    }
+
+    /// Same managed owner/source fences, with the exact repeatable-read
+    /// transaction made available to a bounded read-model adapter. The
+    /// callback runs before the coordinator commits and releases its locks.
+    pub(crate) fn with_current_managed_model_and_tx_source_navigation<
+        T,
+        P: crate::source_managed_selection::ManagedSelectedProof,
+    >(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        proof: &P,
+        filesystem: &CreationFilesystem,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
+            &mut Transaction<'seek>,
+        ) -> T,
+    ) -> DurableResult<T> {
+        self.with_current_managed_model_and_tx_owner(
+            store,
+            generation,
+            proof,
+            filesystem,
+            None,
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            seek,
+        )
+    }
+
+    pub(crate) fn with_current_managed_model_and_tx<
+        T,
+        P: crate::source_managed_selection::ManagedSelectedProof,
+    >(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        proof: &P,
+        filesystem: &CreationFilesystem,
+        package: CreationPackage<'_>,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
+            &mut Transaction<'seek>,
+        ) -> T,
+    ) -> DurableResult<T> {
+        self.with_current_managed_model_and_tx_owner(
+            store,
+            generation,
+            proof,
+            filesystem,
+            Some(package),
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            seek,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn with_current_managed_model_and_tx_owner<
+        T,
+        P: crate::source_managed_selection::ManagedSelectedProof,
+    >(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        proof: &P,
+        filesystem: &CreationFilesystem,
+        package: Option<CreationPackage<'_>>,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
+            &mut Transaction<'seek>,
+        ) -> T,
+    ) -> DurableResult<T> {
         active(deadline, cancelled)?;
         let projection = Digest256::from_hex(proof.inventory_projection())
             .map_err(|_| DurableError::Invalid("managed model projection digest"))?;
@@ -3214,7 +4652,7 @@ impl DurablePgCoordinator {
             job_fence,
             deadline,
             cancelled,
-            |owner, _tx| {
+            |owner, tx| {
                 let installation = generation.selected().facts();
                 let lease =
                     crate::source_managed_selection::ManagedCurrentModelLease::under_held_fences(
@@ -3226,7 +4664,7 @@ impl DurablePgCoordinator {
                         cancelled,
                     );
                 lease.require_managed_basis(proof).map_err(source_error)?;
-                let result = seek(&lease);
+                let result = seek(&lease, tx);
                 lease.require_managed_basis(proof).map_err(source_error)?;
                 Ok(result)
             },
@@ -3242,7 +4680,7 @@ impl DurablePgCoordinator {
         generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
         publication_projection: Digest256,
         filesystem: &CreationFilesystem,
-        package: CreationPackage<'_>,
+        package: Option<CreationPackage<'_>>,
         contract: Digest256,
         rule_version: u64,
         rights_version: u64,
@@ -3261,9 +4699,11 @@ impl DurablePgCoordinator {
         {
             return Err(DurableError::Conflict("managed model source store differs"));
         }
-        let owner = filesystem
-            .hold_creation_owner(package, deadline, cancelled)
-            .map_err(source_error)?;
+        let owner = match package {
+            Some(package) => filesystem.hold_creation_owner(package, deadline, cancelled),
+            None => filesystem.hold_source_navigation_owner(deadline, cancelled),
+        }
+        .map_err(source_error)?;
         let mut tx = self
             .client
             .build_transaction()
@@ -4079,8 +5519,6 @@ impl DurablePgCoordinator {
                 "addressed parent requires V2 continuation",
             ))?;
         parent.audited_root.require_store(store)?;
-        require_current_source_definition(attempt.definition)?;
-        require_current_source_definition(cohort.definition)?;
         if attempt.domain != cohort.domain
             || attempt.epoch != cohort.epoch
             || attempt.definition != cohort.definition
@@ -4226,7 +5664,13 @@ impl DurablePgCoordinator {
         // verification or our immediately preceding verified transition. The
         // audit/head checks above reject every unrelated metadata mutation;
         // only this addressed new row extends the unchanged V1 transcript.
-        let mut log_hash = continuation.parent.log_frontier().clone();
+        let mut log_hash = continuation
+            .parent
+            .log_frontier()
+            .ok_or(DurableError::Refused(
+                "warm successor requires a live verified log frontier",
+            ))?
+            .clone();
         if log_hash.clone().finalize() != parent.descriptor_cut.log_digest {
             return Err(DurableError::Corrupt("warm verified log frontier differs"));
         }
@@ -4364,7 +5808,7 @@ impl DurablePgCoordinator {
                 history_membership_root: logical_membership_root(HISTORY_KEY_TAG, &history_rows),
                 current_membership_root: logical_membership_root(CURRENT_KEY_TAG, &current_rows),
             },
-            log_frontier: VerifiedLogFrontier(log_hash),
+            log_frontier: Some(VerifiedLogFrontier(log_hash)),
             history_rows,
             current_rows,
         };
@@ -4574,6 +6018,9 @@ impl DurablePgCoordinator {
                  UNION ALL SELECT 1 FROM cmd2_source_index WHERE domain=$1
                  UNION ALL SELECT 1 FROM cmd2_predicate WHERE domain=$1
                  UNION ALL SELECT 1 FROM cmd2_source_inventory_projection WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_source_text_identity WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_source_claim_dependency WHERE domain=$1
+                 UNION ALL SELECT 1 FROM cmd2_source_item_file_assignment WHERE domain=$1
                  UNION ALL SELECT 1 FROM cmd2_outbox WHERE domain=$1
              )",
                 &[&domain],
@@ -4737,6 +6184,73 @@ impl DurablePgCoordinator {
         for (kind, token, path) in &indexes {
             tx.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest) VALUES($1,$2,$3,$4,$5)", &[&domain,kind,token,path,&def.to_hex()])?;
         }
+        let text_identity_members = ctx
+            .files
+            .iter()
+            .filter(|file| {
+                file.path.as_str().starts_with("ToS/")
+                    && crate::source_text_identity::is_candidate(
+                        file.path
+                            .as_str()
+                            .rsplit('/')
+                            .next()
+                            .unwrap_or(file.path.as_str()),
+                    )
+            })
+            .map(|file| (file.path.as_str().to_owned(), file.raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        crate::source_text_identity_index::rebuild_current(
+            &mut tx,
+            domain,
+            &text_identity_members,
+            def,
+        )?;
+        let annotation_identity_members = ctx
+            .files
+            .iter()
+            .filter(|file| crate::source_annotation_identity_index::is_packet(file.path.as_str()))
+            .map(|file| (file.path.as_str().to_owned(), file.raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        crate::source_annotation_identity_index::rebuild_current(
+            &mut tx,
+            domain,
+            &annotation_identity_members,
+            def,
+        )?;
+        let claim_dependency_members = ctx
+            .files
+            .iter()
+            .filter(|file| {
+                file.path.as_str().starts_with("ToS/source-witnesses/")
+                    && file.path.as_str().ends_with("/source-claims.jsonl")
+                    && !file
+                        .path
+                        .as_str()
+                        .starts_with("ToS/source-witnesses/owner-local/")
+            })
+            .map(|file| (file.path.as_str().to_owned(), file.raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        crate::source_claim_dependency_index::rebuild_current(
+            &mut tx,
+            domain,
+            &claim_dependency_members,
+            def,
+        )?;
+        let item_file_members = ctx
+            .files
+            .iter()
+            .filter(|file| {
+                crate::source_item_file_index::is_candidate_manifest_path(file.path.as_str())
+                    || crate::source_item_file_index::is_candidate_item_record_path(
+                        file.path.as_str(),
+                    )
+                    || crate::source_item_file_index::is_candidate_item_rights_path(
+                        file.path.as_str(),
+                    )
+            })
+            .map(|file| (file.path.as_str().to_owned(), file.raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        crate::source_item_file_index::rebuild_current(&mut tx, domain, &item_file_members, def)?;
         if let Some(projections) = &projections {
             for (path, projection) in projections {
                 let current = tx.execute("UPDATE cmd2_current SET inventory_projection=$3 WHERE domain=$1 AND subject=$2", &[&domain,path,projection])?;
@@ -4896,13 +6410,13 @@ impl DurablePgCoordinator {
         )
     }
 
-    /// Register one semantically prepared flat record revision against the
-    /// exact PG read epoch. This route carries only the addressed readset and
-    /// proposed STO members; it never reopens the complete source cohort.
+    /// Register one semantically prepared maintained record revision against
+    /// the exact PG read epoch. This route carries only the addressed readset
+    /// and proposed STO members; it never reopens the complete source cohort.
     pub(crate) fn register_source_revision(
         &mut self,
         store: &SegmentStore,
-        prepared: &crate::source_native_cli::revisions::PreparedPgRecordRevision,
+        prepared: &impl PreparedPgSourceRevision,
         readset: &revision::SourceRevisionReadSet,
         prepare_id: &[u8],
         deadline: Instant,
@@ -4922,45 +6436,60 @@ impl DurablePgCoordinator {
         }
         let context = prepared.context();
         let proposal = prepared.proposal();
-        if prepared.identity() != revision::PgRecordRevisionIdentity::from_selection(selection) {
-            return Err(DurableError::Conflict(
-                "source revision semantic preparation read epoch differs",
-            ));
+        prepared.validate_readset(readset)?;
+        validate_selected_record_revision_admission(context, proposal, prepared.family_tag())?;
+        let (publication_package, authored_changes) =
+            prepared.publication_package_and_source_changes()?;
+        let mut authored_proposal = proposal.clone();
+        authored_proposal.changes = authored_changes;
+        let (mut reads, writes, metadata, _) =
+            revision_package(&authored_proposal, readset, prepared.family_tag())?;
+        if let Some(package) = publication_package.as_ref() {
+            let observed = reads.reads.iter().find_map(|read| match read {
+                PredicateRead::Generation {
+                    predicate,
+                    observed_generation,
+                } if predicate.owner == OWNER
+                    && predicate.kind.as_str() == "unique"
+                    && predicate.scope == "source-publication"
+                    && predicate.token == "current" =>
+                {
+                    Some(*observed_generation)
+                }
+                _ => None,
+            });
+            if observed != Some(package.base_publication_generation) {
+                return Err(DurableError::Conflict(
+                    "source publication package lacks its exact base generation read",
+                ));
+            }
         }
-        if proposal.operation != "record.revise"
-            || proposal.base_revision != selection.cohort.initial_revision
-            || context.base_revision != selection.cohort.initial_revision
-        {
-            return Err(DurableError::Conflict(
-                "source revision proposal base or operation differs",
-            ));
+        let projections = revision_owner_projections(
+            prepared.family_tag(),
+            &writes,
+            prepared.inventory_owner_contributions(&writes)?,
+        )?;
+        if !prepared.legacy_family_encoding() {
+            reads.revision = Some(SourceRevisionReadBinding {
+                family_tag: prepared.family_tag().to_owned(),
+                source_head_sequence: selection.head_seq,
+                predecessor_source_revision: selection.cohort.initial_revision,
+            });
         }
-        let (mut reads, writes, metadata, _) = revision_package(proposal, readset)?;
-        let work_revision = match prepared.work_revision() {
-            Some(observation) => Some(crate::source_pg_work_revision::make_commit_evidence(
-                context,
-                proposal,
-                observation,
-                prepared
-                    .publication_observation_digest()
-                    .ok_or(DurableError::Corrupt(
-                        "PG Work publication observation digest absent",
-                    ))?,
-                &writes,
-            )?),
-            None => None,
-        };
+        let work_revision = prepared.work_revision_evidence(&writes)?;
         let request = cmd::parse(&context.request_raw).map_err(source_error)?;
         let command_id = cmd::text(&request, "command_id").map_err(source_error)?;
         let raw_request_digest = Digest256::of_bytes(&context.request_raw);
         let configuration_raw_digest = proposal.configuration_raw_sha256;
         let configuration_canonical_digest = proposal.configuration_canonical_sha256;
         let delta = revision_delta(
-            proposal,
+            &authored_proposal,
             selection,
             &reads,
             &writes,
             &metadata,
+            &projections,
+            publication_package.as_ref(),
             work_revision.as_ref(),
         )?;
         let domain = selection.cohort.domain.as_str();
@@ -5024,7 +6553,8 @@ impl DurablePgCoordinator {
             &new_writes,
             selection.cohort.definition,
         )?;
-        let indexes = check_revision_path_indexes(&mut tx, domain, &writes)?;
+        let indexes = prepared.check_indexes(&mut tx, domain, &writes)?;
+        validate_revision_indexes(prepared.family_tag(), &writes, &indexes)?;
         let predicate_keys = reads
             .reads
             .iter()
@@ -5046,16 +6576,18 @@ impl DurablePgCoordinator {
         // The readset is extended with absent archive/member targets while the
         // same registration transaction owns the audit fence.
         let delta = revision_delta(
-            proposal,
+            &authored_proposal,
             selection,
             &reads,
             &writes,
             &metadata,
+            &projections,
+            publication_package.as_ref(),
             work_revision.as_ref(),
         )?;
         let reads_encoded = reads_bytes(&reads)?;
         let indexes_encoded = indexes_bytes(&indexes)?;
-        let empty_projections = projections_bytes(&ProjectionRows::new())?;
+        let projections_encoded = projections_bytes(&projections)?;
         let existing = tx.query_opt(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
             &[&domain, &prepare_id],
@@ -5072,7 +6604,11 @@ impl DurablePgCoordinator {
                 || existing.get::<_, Option<Vec<u8>>>("source_indexes")
                     != Some(indexes_encoded.clone())
                 || existing.get::<_, Option<Vec<u8>>>("source_projections")
-                    != Some(empty_projections)
+                    != Some(projections_encoded.clone())
+                || existing.get::<_, Option<Vec<u8>>>("source_publication_package")
+                    != publication_package
+                        .as_ref()
+                        .map(|package| package.canonical_bytes.clone())
                 || existing.get::<_, String>("state") == "aborted"
             {
                 return Err(DurableError::Conflict(
@@ -5084,6 +6620,7 @@ impl DurablePgCoordinator {
             tx.commit()?;
             return Ok(SourceRevisionAttempt {
                 domain: domain.to_owned(),
+                store_id: selection.cohort.store_id,
                 prepare_id: prepare_id.to_vec(),
                 fence,
                 command_id: command_id.to_owned(),
@@ -5100,11 +6637,16 @@ impl DurablePgCoordinator {
                 contract: selection.contract,
                 definition: selection.cohort.definition,
                 delta,
+                family_tag: prepared.family_tag().to_owned(),
+                source_head_sequence: Some(selection.head_seq),
+                predecessor_source_revision: selection.cohort.initial_revision,
                 reads,
                 metadata,
                 indexes,
                 predicate_keys,
                 writes,
+                projections,
+                publication_package,
                 work_revision,
                 recovered_work_recorded_at: None,
             });
@@ -5154,9 +6696,9 @@ impl DurablePgCoordinator {
         }
         tx.execute(
             "INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,
-             state,attempt_fence,source_reads,source_indexes,source_epoch,source_projections,
+             state,attempt_fence,source_reads,source_indexes,source_epoch,source_projections,source_publication_package,
              source_configuration_raw_digest,source_configuration_canonical_digest)
-             VALUES($1,$2,$3,$4,$5,'registered',1,$6,$7,$8,$9,$10,$11)",
+             VALUES($1,$2,$3,$4,$5,'registered',1,$6,$7,$8,$9,$10,$11,$12)",
             &[
                 &domain,
                 &prepare_id,
@@ -5166,7 +6708,8 @@ impl DurablePgCoordinator {
                 &reads_encoded,
                 &indexes_encoded,
                 &as_i64(selection.epoch)?,
-                &empty_projections,
+                &projections_encoded,
+                &publication_package.as_ref().map(|package| package.canonical_bytes.clone()),
                 &configuration_raw_digest.to_hex(),
                 &configuration_canonical_digest.to_hex(),
             ],
@@ -5178,6 +6721,7 @@ impl DurablePgCoordinator {
         tx.commit()?;
         Ok(SourceRevisionAttempt {
             domain: domain.to_owned(),
+            store_id: selection.cohort.store_id,
             prepare_id: prepare_id.to_vec(),
             fence: 1,
             command_id: command_id.to_owned(),
@@ -5194,11 +6738,16 @@ impl DurablePgCoordinator {
             contract: selection.contract,
             definition: selection.cohort.definition,
             delta,
+            family_tag: prepared.family_tag().to_owned(),
+            source_head_sequence: Some(selection.head_seq),
+            predecessor_source_revision: selection.cohort.initial_revision,
             reads,
             metadata,
             indexes,
             predicate_keys,
             writes,
+            projections,
+            publication_package,
             work_revision,
             recovered_work_recorded_at: None,
         })
@@ -5216,6 +6765,8 @@ impl DurablePgCoordinator {
         expected_raw_request_digest: Digest256,
         expected_configuration_raw_digest: Digest256,
         expected_configuration_canonical_digest: Digest256,
+        expected_family_tag: &str,
+        legacy_family_encoding: bool,
         job_id: &str,
         job_fence: u64,
         work_recovery: Option<&WorkRevisionRecoveryBinding>,
@@ -5270,6 +6821,8 @@ impl DurablePgCoordinator {
                 &[&domain, &prepare_id],
             )?
             .ok_or(DurableError::Refused("source revision attempt absent"))?;
+        let publication_package_raw =
+            attempt.get::<_, Option<Vec<u8>>>("source_publication_package");
         let state: String = attempt.get("state");
         if state == "registered" {
             return Err(DurableError::Indeterminate(
@@ -5311,6 +6864,29 @@ impl DurablePgCoordinator {
                 .get::<_, Option<Vec<u8>>>("source_reads")
                 .ok_or(DurableError::Corrupt("source revision reads absent"))?,
         )?;
+        let revision_binding = reads.revision.as_ref();
+        if revision_binding.is_some_and(|binding| binding.family_tag != expected_family_tag)
+            || (revision_binding.is_none() && !legacy_family_encoding)
+        {
+            return Err(DurableError::Conflict(
+                "source revision recovery family binding differs",
+            ));
+        }
+        let family_tag = revision_binding
+            .map(|binding| binding.family_tag.clone())
+            .unwrap_or_else(|| expected_family_tag.to_owned());
+        let source_head_sequence = revision_binding.map(|binding| binding.source_head_sequence);
+        let predecessor_source_revision = if let Some(binding) = revision_binding {
+            binding.predecessor_source_revision
+        } else {
+            SourceRevision(parse_hex(
+                domain_row
+                    .get::<_, Option<String>>("source_revision")
+                    .ok_or(DurableError::Corrupt(
+                        "source revision recovery predecessor absent",
+                    ))?,
+            )?)
+        };
         let has_work_revision = reads.reads.iter().any(|read| {
             matches!(read, PredicateRead::Generation { predicate, .. }
                 if predicate.scope == crate::source_pg_work_revision::PREDICATE_SCOPE)
@@ -5421,6 +6997,17 @@ impl DurablePgCoordinator {
                 exact_bytes,
             });
         }
+        let projections_raw = attempt
+            .get::<_, Option<Vec<u8>>>("source_projections")
+            .ok_or(DurableError::Corrupt("source revision projections absent"))?;
+        let projections = serde_json::from_slice::<ProjectionRows>(&projections_raw)
+            .map_err(|_| DurableError::Corrupt("source revision projections encoding"))?;
+        if projections_bytes(&projections)? != projections_raw {
+            return Err(DurableError::Corrupt(
+                "source revision projections are noncanonical",
+            ));
+        }
+        validate_revision_owner_projections(&family_tag, &writes, &projections)?;
         if let Some(evidence) = work_revision.as_ref() {
             let observed_generation = reads
                 .reads
@@ -5462,19 +7049,19 @@ impl DurablePgCoordinator {
                 .get::<_, Option<Vec<u8>>>("source_indexes")
                 .ok_or(DurableError::Corrupt("source revision indexes absent"))?,
         )?;
-        let expected_indexes = revision_indexes(&writes);
+        let expected_indexes = expected_revision_indexes_for_family(&family_tag, &writes)?;
         // Pre-existing committed attempts may carry the legacy empty binding;
         // replay never reapplies their source mutation. A ready attempt must
         // carry the complete derived path set before a new commit is allowed.
-        if (state != "committed" && indexes != expected_indexes)
-            || (!indexes.is_empty() && indexes != expected_indexes)
-            || indexes.iter().any(|(kind, token, path)| {
-                kind != "path"
-                    || token != path
-                    || !writes
-                        .iter()
-                        .any(|write| write.expected_predecessor.is_none() && write.subject == *path)
-            })
+        let legacy_empty_indexes = state == "committed"
+            && indexes.is_empty()
+            && !family_tag.starts_with("tos-pg-global-claims-v1:")
+            && pg_growth_family(&family_tag).is_none()
+            && family_tag != crate::source_creation_store::OBJECT_LINK_PG_FAMILY_TAG
+            && family_tag != crate::source_item_adoption::PG_ITEM_ADOPTION_FAMILY_TAG;
+        if (!legacy_empty_indexes && indexes != expected_indexes)
+            || (state != "committed"
+                && validate_revision_indexes(&family_tag, &writes, &indexes).is_err())
         {
             return Err(DurableError::Corrupt(
                 "source revision structural index binding differs",
@@ -5530,9 +7117,51 @@ impl DurablePgCoordinator {
         )?;
         let delta = parse_hex(attempt.get::<_, String>("delta_digest"))?;
         let fence = as_u64(attempt.get("attempt_fence"))?;
+        let cohort_initial_revision = SourceRevision(parse_hex(
+            domain_row
+                .get::<_, Option<String>>("source_revision")
+                .ok_or(DurableError::Corrupt(
+                    "source revision recovery bootstrap absent",
+                ))?,
+        )?);
+        let cohort_initial_membership = SourceMembershipV1 {
+            count: as_u64(
+                domain_row
+                    .get::<_, Option<i64>>("source_membership_count")
+                    .ok_or(DurableError::Corrupt(
+                        "source revision recovery bootstrap count absent",
+                    ))?,
+            )?,
+            digest: parse_hex(
+                domain_row
+                    .get::<_, Option<String>>("source_membership_digest")
+                    .ok_or(DurableError::Corrupt(
+                        "source revision recovery bootstrap digest absent",
+                    ))?,
+            )?,
+        };
+        let cohort = ManagedSourceCohort {
+            domain: domain.to_owned(),
+            store_id: store.store_id(),
+            initial_revision: cohort_initial_revision,
+            initial_membership: cohort_initial_membership,
+            epoch,
+            definition: definition_digest,
+            generation: source_generation,
+        };
+        drop(_guard);
         tx.commit()?;
+        let publication_package = self.recover_source_publication_package(
+            store,
+            &cohort,
+            publication_package_raw.as_deref(),
+            &writes,
+            deadline,
+            cancelled,
+        )?;
         Ok(SourceRevisionAttempt {
             domain: domain.to_owned(),
+            store_id: store.store_id(),
             prepare_id: prepare_id.to_vec(),
             fence,
             command_id: expected_command_id.to_owned(),
@@ -5549,14 +7178,157 @@ impl DurablePgCoordinator {
             contract,
             definition: definition_digest,
             delta,
+            family_tag,
+            source_head_sequence,
+            predecessor_source_revision,
             reads,
             metadata,
             indexes,
             predicate_keys,
             writes,
+            projections,
+            publication_package,
             work_revision,
             recovered_work_recorded_at,
         })
+    }
+
+    fn recover_source_publication_package(
+        &mut self,
+        store: &SegmentStore,
+        cohort: &ManagedSourceCohort,
+        raw_package: Option<&[u8]>,
+        writes: &[SourceRevisionWrite],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<crate::source_work_transaction::SelectedPublicationPackage>> {
+        let Some(raw_package) = raw_package else {
+            return Ok(None);
+        };
+        let envelope = cmd::parse(raw_package).map_err(source_error)?;
+        let refs = cmd::array(&envelope, "source_refs").map_err(source_error)?;
+        if refs.len() > MAX_MEMBERS || refs.len() != writes.len() {
+            return Err(DurableError::Corrupt(
+                "source publication recovery write count differs",
+            ));
+        }
+        let mut writes_by_path = BTreeMap::new();
+        for write in writes {
+            if writes_by_path
+                .insert(write.subject.as_str(), write)
+                .is_some()
+            {
+                return Err(DurableError::Corrupt(
+                    "source publication recovery writes contain a duplicate",
+                ));
+            }
+        }
+        let mut seen = BTreeSet::new();
+        let mut predecessor_keys = BTreeSet::new();
+        for source_ref in refs {
+            let path = cmd::text(source_ref, "path").map_err(source_error)?;
+            if !seen.insert(path.to_owned()) {
+                return Err(DurableError::Corrupt(
+                    "source publication recovery refs contain a duplicate",
+                ));
+            }
+            let write = writes_by_path.get(path).ok_or(DurableError::Corrupt(
+                "source publication recovery reference write absent",
+            ))?;
+            let before = cmd::field(source_ref, "before").map_err(source_error)?;
+            let after = cmd::field(source_ref, "after").map_err(source_error)?;
+            let before_present = before != &tos_foundation::JsonValue::Null;
+            let after_present = after != &tos_foundation::JsonValue::Null;
+            if before_present != write.expected_predecessor.is_some() || !after_present {
+                return Err(DurableError::Corrupt(
+                    "source publication recovery reference shape differs",
+                ));
+            }
+            if let Some((revision, _)) = write.expected_predecessor {
+                predecessor_keys.insert((path.to_owned(), revision));
+            }
+        }
+        if !writes_by_path.is_empty() && seen.len() != writes_by_path.len() {
+            return Err(DurableError::Corrupt(
+                "source publication recovery omitted an attempt write",
+            ));
+        }
+
+        let history_paths: Vec<String> = predecessor_keys
+            .iter()
+            .map(|(path, _)| path.clone())
+            .collect();
+        let history_revisions: Vec<i64> = predecessor_keys
+            .iter()
+            .map(|(_, revision)| as_i64(*revision))
+            .collect::<DurableResult<_>>()?;
+        let history_rows = if predecessor_keys.is_empty() {
+            Vec::new()
+        } else {
+            self.client.query(
+                "SELECT h.* FROM cmd2_history h
+                 JOIN unnest($2::text[],$3::bigint[]) AS wanted(subject,revision)
+                   ON h.subject=wanted.subject AND h.revision=wanted.revision
+                 WHERE h.domain=$1 ORDER BY h.subject,h.revision",
+                &[&cohort.domain, &history_paths, &history_revisions],
+            )?
+        };
+        if history_rows.len() != predecessor_keys.len() {
+            return Err(DurableError::Conflict(
+                "source publication predecessor history is incomplete",
+            ));
+        }
+        let expected_rows = history_rows.iter().collect::<Vec<_>>();
+        let before_bodies = if expected_rows.is_empty() {
+            Vec::new()
+        } else {
+            self.read_retained_source_rows(store, cohort, &expected_rows, deadline, cancelled)?
+        };
+        let mut before_by_key = BTreeMap::new();
+        for (row, body) in history_rows.iter().zip(before_bodies) {
+            let path: String = row.get("subject");
+            let revision = as_u64(row.get("revision"))?;
+            if Digest256::of_bytes(&body) != parse_hex(row.get::<_, String>("content_digest"))? {
+                return Err(DurableError::Corrupt(
+                    "source publication predecessor body differs",
+                ));
+            }
+            before_by_key.insert((path, revision), body);
+        }
+        let mut retained = Vec::with_capacity(refs.len());
+        for source_ref in refs {
+            let path = cmd::text(source_ref, "path").map_err(source_error)?;
+            let write = writes_by_path.remove(path).ok_or(DurableError::Corrupt(
+                "source publication recovery reference write absent",
+            ))?;
+            let before =
+                write
+                    .expected_predecessor
+                    .map(|(revision, _)| {
+                        before_by_key.remove(&(path.to_owned(), revision)).ok_or(
+                            DurableError::Corrupt("source publication predecessor body absent"),
+                        )
+                    })
+                    .transpose()?;
+            retained.push(
+                crate::source_work_transaction::SelectedPublicationRetainedWrite {
+                    path: path.to_owned(),
+                    before,
+                    after: Some(write.exact_bytes.clone()),
+                },
+            );
+        }
+        if !writes_by_path.is_empty() || !before_by_key.is_empty() {
+            return Err(DurableError::Corrupt(
+                "source publication recovery left unbound bytes",
+            ));
+        }
+        let (package, _) = crate::source_work_transaction::recover_selected_publication_package(
+            raw_package,
+            &retained,
+        )
+        .map_err(DurableError::Source)?;
+        Ok(Some(package))
     }
 
     /// Seal/attach the exact successor STO members, then run the ordinary
@@ -5875,9 +7647,14 @@ impl DurablePgCoordinator {
                     )?
                     .0
                 }
-                _ => {
+                1 | 2 => {
                     return Err(DurableError::Refused(
                         "legacy Agent-only inventory requires fresh mixed-source bootstrap",
+                    ));
+                }
+                _ => {
+                    return Err(DurableError::Refused(
+                        "unsupported original inventory commitment",
                     ));
                 }
             };
@@ -6183,6 +7960,25 @@ impl DurablePgCoordinator {
         }
         let indexes = creation_indexes(package, worker, deadline, cancelled)?;
         let projections = creation_projections(package, worker, deadline, cancelled)?;
+        let writes = package
+            .changes()
+            .iter()
+            .map(|change| {
+                if change.before.is_some() {
+                    return Err(DurableError::Refused(
+                        "source creation does not admit predecessor members",
+                    ));
+                }
+                Ok(SourceRevisionWrite {
+                    subject: change.path.as_str().to_owned(),
+                    expected_predecessor: None,
+                    proposed_revision: 1,
+                    exact_bytes: change.after.clone().ok_or(DurableError::Refused(
+                        "source creation does not admit member deletion",
+                    ))?,
+                })
+            })
+            .collect::<DurableResult<Vec<_>>>()?;
         let registered_original = managed_original(package);
         let request =
             cmd::parse(&package.prepared().context().request_raw).map_err(source_error)?;
@@ -6273,6 +8069,7 @@ impl DurablePgCoordinator {
                 reads,
                 indexes,
                 projections,
+                writes: writes.clone(),
                 continuation: None,
             });
         }
@@ -6292,6 +8089,7 @@ impl DurablePgCoordinator {
             reads: Vec::new(),
             locators: BTreeMap::new(),
             managed_original: registered_original,
+            revision: None,
         };
         let dependency_paths = package
             .reads()
@@ -6483,6 +8281,7 @@ impl DurablePgCoordinator {
             reads,
             indexes,
             projections,
+            writes,
             continuation,
         })
     }
@@ -6791,12 +8590,11 @@ impl DurablePgCoordinator {
     }
 
     /// Explicit source-verified re-selection for an addressed restore or
-    /// cold open. This authenticates a retained V2 descriptor, then performs
-    /// the complete source/index/custody audit and publishes a fresh selection
-    /// bound to this database identity before returning. A transitional V1
-    /// selection is accepted only when its exact V1 cold-open still matches
-    /// this database; re-binding an interrupted V1 checkpoint across a restored
-    /// database identity remains unsupported and fails closed.
+    /// cold open. This authenticates a retained V2 descriptor or, for the
+    /// activation-before-publication checkpoint, recomputes and verifies the
+    /// complete OID-bound V1 descriptor against the fresh database cut. It
+    /// then performs the complete source/index/custody audit and publishes a
+    /// fresh selection bound to this database identity before returning.
     pub fn cold_reopen_source_cohort_addressed_reselect(
         &mut self,
         store: &SegmentStore,
@@ -7063,8 +8861,19 @@ impl DurablePgCoordinator {
                             && token == creation::COMMITMENT_VERSION.to_string()))
                     || (scope == "source-inventory" && token != "all")
                     || (kind == "unique"
-                        && !["metadata", "claim", "event", "anchor", "form", "path"]
-                            .contains(&scope.as_str()))
+                        && ![
+                            "metadata",
+                            "claim",
+                            "event",
+                            "anchor",
+                            "form",
+                            "sign-candidate",
+                            "path",
+                            "text-identity",
+                            "source-publication",
+                        ]
+                        .contains(&scope.as_str()))
+                    || (kind == "unique" && scope == "source-publication" && token != "current")
                     || !predicate_keys.insert((kind, scope, token))
                 {
                     return Err(DurableError::Corrupt(
@@ -7258,18 +9067,14 @@ impl DurablePgCoordinator {
                 && !addressed_selection_matches
                 && selected_generation_digest.is_some()
             {
-                // Activation can precede V2 publication. Treat that reachable
-                // state as legacy only after a complete cold V1 selected-open.
-                match streamed {
-                    Some((workspace, profile)) => {
-                        self.cold_open_selected_generation_streamed(
-                            store, domain, workspace, profile, deadline, cancelled,
-                        )?;
-                    }
-                    None => {
-                        self.cold_open_selected_generation(store, domain, deadline, cancelled)?;
-                    }
-                }
+                // Activation can precede V2 publication. Positively open the
+                // selected V1 descriptor against the fresh audit, recomputing
+                // its OID-bound state digest with the source database identity.
+                // This old descriptor is evidence only; the cold route below
+                // reselects and publishes a new target-database generation.
+                self.cold_open_selected_generation_v1_addressed_transition(
+                    store, domain, streamed, deadline, cancelled,
+                )?;
             }
             if rows.len() != projections.len()
                 || rows
@@ -7338,6 +9143,39 @@ impl DurablePgCoordinator {
         if as_u64(row.get("head_seq"))? != before.through_commit_seq {
             return Err(DurableError::Conflict("source cold head changed"));
         }
+        crate::source_text_identity_index::verify_current(
+            &mut tx,
+            domain,
+            &files,
+            cohort.definition,
+        )?;
+        let annotation_identity_members = files
+            .iter()
+            .filter(|(path, _)| crate::source_annotation_identity_index::is_packet(path))
+            .map(|(path, raw)| (path.clone(), raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        crate::source_annotation_identity_index::verify_current(
+            &mut tx,
+            domain,
+            &annotation_identity_members,
+            cohort.definition,
+        )?;
+        let claim_dependency_members = files
+            .iter()
+            .filter(|(path, _)| {
+                path.starts_with("ToS/source-witnesses/")
+                    && path.ends_with("/source-claims.jsonl")
+                    && !path.starts_with("ToS/source-witnesses/owner-local/")
+            })
+            .map(|(path, raw)| (path.clone(), raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        crate::source_claim_dependency_index::verify_current(
+            &mut tx,
+            domain,
+            &claim_dependency_members,
+            cohort.definition,
+        )?;
+        crate::source_item_file_index::verify_current(&mut tx, domain, &files, cohort.definition)?;
         if rebuild_projections {
             if let Some(projections) = &projections {
                 for current in &rows {
@@ -7424,6 +9262,15 @@ impl DurablePgCoordinator {
         let projection_digest = projections
             .as_ref()
             .map(|rows| projection_root(rows).to_hex());
+        ensure_source_publication_bootstrap_state(
+            &mut tx,
+            domain,
+            store.store_id(),
+            initial_revision,
+            initial_membership,
+            before.through_commit_seq,
+            cohort.definition,
+        )?;
         tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1", &[&domain,&projection_digest])?;
         if let Some(owner_check) = owner_check {
             owner_check()?;
@@ -7467,6 +9314,35 @@ impl DurablePgCoordinator {
             dependency_claims,
         })
     }
+}
+
+fn validate_selected_record_revision_admission(
+    context: &cmd::CommandContext,
+    proposal: &cmd::PreparedCommand,
+    family_tag: &str,
+) -> DurableResult<()> {
+    let configuration = cmd::parse(&context.configuration_raw).map_err(source_error)?;
+    let family = source_revisions::RevisionFamily::parse(
+        cmd::text(&configuration, "schema_version").map_err(source_error)?,
+    )
+    .map_err(source_error)?;
+    if !matches!(
+        family,
+        source_revisions::RevisionFamily::CorpusSelectedV2
+            | source_revisions::RevisionFamily::CorpusSelectedV3
+            | source_revisions::RevisionFamily::NativeSelected
+    ) || (family != source_revisions::RevisionFamily::NativeSelected
+        && cmd::text(&configuration, "record_type").map_err(source_error)? == "work")
+    {
+        return Ok(());
+    }
+    if family.pg_family_tag(&configuration).map_err(source_error)? != family_tag {
+        return Err(DurableError::Conflict(
+            "selected revision owner family differs at shared admission",
+        ));
+    }
+    source_revisions::validate_pg_selected_revision_proposal(context, proposal)
+        .map_err(source_error)
 }
 
 // Small PG pages are separate from the finite complete maps returned to the
@@ -7955,7 +9831,7 @@ pub(super) fn check_commit_owner(
             )?;
             let expected_reads = reads_bytes(&attempt.reads)?;
             let expected_indexes = indexes_bytes(&attempt.indexes)?;
-            let empty_projections = projections_bytes(&ProjectionRows::new())?;
+            let expected_projections = projections_bytes(&attempt.projections)?;
             require_current_source_definition(attempt.definition)?;
             let domain_definition = domain
                 .get::<_, Option<String>>("source_definition_digest")
@@ -7990,7 +9866,7 @@ pub(super) fn check_commit_owner(
                 || registered.get::<_, Option<Vec<u8>>>("source_reads") != Some(expected_reads)
                 || registered.get::<_, Option<Vec<u8>>>("source_indexes") != Some(expected_indexes)
                 || registered.get::<_, Option<Vec<u8>>>("source_projections")
-                    != Some(empty_projections)
+                    != Some(expected_projections)
                 || members
                     .iter()
                     .any(|m| m.get::<_, String>("profile_id").as_bytes() != REVISION)
@@ -7999,6 +9875,12 @@ pub(super) fn check_commit_owner(
                     "source revision attempt/cohort exact registered binding changed",
                 ));
             }
+            validate_revision_indexes(&attempt.family_tag, &attempt.writes, &attempt.indexes)?;
+            validate_revision_owner_projections(
+                &attempt.family_tag,
+                &attempt.writes,
+                &attempt.projections,
+            )?;
             let requires_work_revision = attempt.reads.reads.iter().any(|read| {
                 matches!(read, PredicateRead::Generation { predicate, .. }
                     if predicate.scope == crate::source_pg_work_revision::PREDICATE_SCOPE)
@@ -8052,24 +9934,37 @@ pub(super) fn check_commit_owner(
             if replayed {
                 return Ok(());
             }
+            validate_revision_indexes(&attempt.family_tag, &attempt.writes, &attempt.indexes)?;
             for (kind, token, path) in &attempt.indexes {
-                if kind != "path" || token != path || !path.starts_with("ToS/") {
-                    return Err(DurableError::Corrupt(
-                        "source revision structural index binding differs",
-                    ));
-                }
-                if tx
-                    .query_opt(
-                        "SELECT 1 FROM cmd2_source_index
-                         WHERE domain=$1 AND kind='path' AND token=$2
-                         LIMIT 1",
-                        &[&request.domain, token],
-                    )?
-                    .is_some()
-                {
-                    return Err(DurableError::Conflict(
-                        "source revision structural path index changed",
-                    ));
+                if kind == "path" {
+                    if !path.starts_with("ToS/")
+                        || tx
+                            .query_opt(
+                                "SELECT 1 FROM cmd2_source_index
+                                 WHERE domain=$1 AND kind='path' AND token=$2
+                                 LIMIT 1",
+                                &[&request.domain, token],
+                            )?
+                            .is_some()
+                    {
+                        return Err(DurableError::Conflict(
+                            "source revision structural path index changed",
+                        ));
+                    }
+                } else {
+                    let kinds = vec!["metadata", "claim", "event", "anchor", "form"];
+                    if tx
+                        .query_opt(
+                            "SELECT 1 FROM cmd2_source_index
+                             WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
+                            &[&request.domain, &kinds, token],
+                        )?
+                        .is_some()
+                    {
+                        return Err(DurableError::Conflict(
+                            "source revision semantic identity changed",
+                        ));
+                    }
                 }
             }
             let dependencies = attempt
@@ -8274,6 +10169,200 @@ pub(super) fn record_warm_commit(
     }
 }
 
+fn apply_source_publication_change(
+    tx: &mut postgres::Transaction<'_>,
+    request: &CommitShadowAttempt<'_>,
+    attempt: &SourceRevisionAttempt,
+    seq: u64,
+) -> DurableResult<()> {
+    let Some(package) = attempt.publication_package.as_ref() else {
+        return Ok(());
+    };
+    if package.canonical_bytes.is_empty()
+        || package.canonical_bytes.len() > 1_048_576
+        || Digest256::of_bytes(&package.canonical_bytes) != package.sha256
+        || package.generation != package.base_publication_generation.saturating_add(2)
+        || !package.token.starts_with("sha256:")
+    {
+        return Err(DurableError::Corrupt(
+            "source publication package identity is invalid",
+        ));
+    }
+    let mut writes = BTreeMap::new();
+    for write in &attempt.writes {
+        if writes.insert(write.subject.as_str(), write).is_some() {
+            return Err(DurableError::Corrupt(
+                "source publication attempt contains duplicate writes",
+            ));
+        }
+    }
+    if writes.len() != package.source_refs.len() {
+        return Err(DurableError::Corrupt(
+            "source publication package/write closure differs",
+        ));
+    }
+    for source_ref in &package.source_refs {
+        let write = writes
+            .remove(source_ref.path.as_str())
+            .ok_or(DurableError::Corrupt(
+                "source publication reference write absent",
+            ))?;
+        let after_digest = Digest256::of_bytes(&write.exact_bytes);
+        if source_ref.after.as_ref().is_none_or(|after| {
+            after.sha256 != after_digest || after.byte_size != write.exact_bytes.len() as u64
+        }) || source_ref.before.as_ref().map(|before| before.sha256)
+            != write.expected_predecessor.map(|(_, digest)| digest)
+        {
+            return Err(DurableError::Conflict(
+                "source publication package no longer binds the exact write set",
+            ));
+        }
+    }
+    if !writes.is_empty() {
+        return Err(DurableError::Corrupt(
+            "source publication package leaves unbound writes",
+        ));
+    }
+    let key = (
+        "unique".to_owned(),
+        "source-publication".to_owned(),
+        "current".to_owned(),
+    );
+    if !attempt.predicate_keys.contains(&key) {
+        return Err(DurableError::Corrupt(
+            "source publication current fence absent from readset",
+        ));
+    }
+    let observed_generation = attempt.reads.reads.iter().find_map(|read| match read {
+        PredicateRead::Generation {
+            predicate,
+            observed_generation,
+        } if predicate.kind.as_str() == "unique"
+            && predicate.owner == OWNER
+            && predicate.scope == "source-publication"
+            && predicate.token == "current" =>
+        {
+            Some(*observed_generation)
+        }
+        _ => None,
+    });
+    if observed_generation != Some(package.base_publication_generation) {
+        return Err(DurableError::Conflict(
+            "source publication base generation differs from its read fence",
+        ));
+    }
+    let current = tx
+        .query_opt(
+            "SELECT state,publication_generation,token,store_id,
+                bootstrap_source_revision,bootstrap_membership_digest,
+                bootstrap_membership_count
+         FROM cmd2_source_publication_current WHERE domain=$1 FOR UPDATE",
+            &[&request.domain],
+        )?
+        .ok_or(DurableError::Corrupt(
+            "source publication current pointer is absent",
+        ))?;
+    let current_generation: i64 = current.get("publication_generation");
+    let current_token: Option<String> = current.get("token");
+    let expected_base_token = package.base_publication_token.as_deref();
+    if current_generation != as_i64(package.base_publication_generation)?
+        || current_token.as_deref() != expected_base_token
+        || current.get::<_, Vec<u8>>("store_id") != attempt.store_id
+        || (package.base_publication_generation == 0
+            && current.get::<_, String>("state") != "absent")
+        || (package.base_publication_generation > 0
+            && current.get::<_, String>("state") != "present")
+    {
+        return Err(DurableError::Conflict(
+            "source publication current pointer changed before commit",
+        ));
+    }
+    let generation = as_i64(package.generation)?;
+    let commit_seq = as_i64(seq)?;
+    let package_digest = package.sha256.to_hex();
+    let token = package.token.clone();
+    let transaction_id = package.transaction_id.clone();
+    let base_token = package.base_publication_token.clone();
+    let base_generation = as_i64(package.base_publication_generation)?;
+    let store_id = attempt.store_id;
+    let bootstrap_revision: String = current.get("bootstrap_source_revision");
+    let bootstrap_membership: String = current.get("bootstrap_membership_digest");
+    let bootstrap_count: i64 = current.get("bootstrap_membership_count");
+    let inserted = tx.execute(
+        "INSERT INTO cmd2_source_publication_history(
+            domain,publication_generation,state,token,base_token,base_generation,
+            transaction_id,package_digest,package_bytes,source_commit_seq,store_id,
+            bootstrap_source_revision,bootstrap_membership_digest,bootstrap_membership_count)
+         VALUES($1,$2,'present',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+        &[
+            &request.domain,
+            &generation,
+            &token,
+            &base_token,
+            &base_generation,
+            &transaction_id,
+            &package_digest,
+            &package.canonical_bytes,
+            &commit_seq,
+            &&store_id[..],
+            &bootstrap_revision,
+            &bootstrap_membership,
+            &bootstrap_count,
+        ],
+    )?;
+    if inserted != 1 {
+        return Err(DurableError::Conflict(
+            "source publication history insertion changed",
+        ));
+    }
+    let changed = tx.execute(
+        "UPDATE cmd2_source_publication_current SET state='present',
+            publication_generation=$2,token=$3,base_token=$4,base_generation=$5,
+            transaction_id=$6,package_digest=$7,package_bytes=$8,source_commit_seq=$9
+         WHERE domain=$1 AND publication_generation=$10
+           AND token IS NOT DISTINCT FROM $11 AND store_id=$12",
+        &[
+            &request.domain,
+            &generation,
+            &token,
+            &base_token,
+            &base_generation,
+            &transaction_id,
+            &package_digest,
+            &package.canonical_bytes,
+            &commit_seq,
+            &current_generation,
+            &current_token,
+            &&store_id[..],
+        ],
+    )?;
+    if changed != 1 {
+        return Err(DurableError::Conflict(
+            "source publication current pointer compare-and-swap failed",
+        ));
+    }
+    let predicate_changed = tx.execute(
+        "UPDATE cmd2_predicate SET generation=$5
+         WHERE domain=$1 AND kind='unique' AND owner=$2
+           AND scope='source-publication' AND token='current'
+           AND generation=$3 AND complete AND definition_version=$4
+           AND $5>$3",
+        &[
+            &request.domain,
+            &OWNER,
+            &as_i64(package.base_publication_generation)?,
+            &attempt.definition.to_hex(),
+            &generation,
+        ],
+    )?;
+    if predicate_changed != 1 {
+        return Err(DurableError::Conflict(
+            "source publication current predicate compare-and-swap failed",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn apply_source_change(
     tx: &mut Transaction<'_>,
     request: &CommitShadowAttempt<'_>,
@@ -8303,6 +10392,42 @@ pub(super) fn apply_source_change(
                     ));
                 }
             }
+            crate::source_text_identity_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_annotation_identity_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_claim_dependency_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_item_file_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
             for (kind, scope, token) in predicates(&attempt.indexes) {
                 let changed=tx.execute("UPDATE cmd2_predicate SET generation=generation+1 WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5 AND complete AND definition_version=$6 AND generation<9223372036854775807", &[&request.domain,&kind,&OWNER,&scope,&token,&attempt.definition.to_hex()])?;
                 if changed != 1 {
@@ -8352,11 +10477,33 @@ pub(super) fn apply_source_change(
             cancelled,
             ..
         } => {
+            validate_revision_indexes(&attempt.family_tag, &attempt.writes, &attempt.indexes)?;
+            validate_revision_owner_projections(
+                &attempt.family_tag,
+                &attempt.writes,
+                &attempt.projections,
+            )?;
             for (kind, token, path) in &attempt.indexes {
-                if kind != "path" || token != path || !path.starts_with("ToS/") {
-                    return Err(DurableError::Corrupt(
-                        "source revision structural index binding differs",
-                    ));
+                if kind == "path" {
+                    if !path.starts_with("ToS/") {
+                        return Err(DurableError::Corrupt(
+                            "source revision structural index binding differs",
+                        ));
+                    }
+                } else {
+                    let kinds = vec!["metadata", "claim", "event", "anchor", "form"];
+                    if tx
+                        .query_opt(
+                            "SELECT 1 FROM cmd2_source_index
+                             WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
+                            &[&request.domain, &kinds, token],
+                        )?
+                        .is_some()
+                    {
+                        return Err(DurableError::Conflict(
+                            "source revision semantic identity changed before commit",
+                        ));
+                    }
                 }
                 let inserted = tx.execute(
                     "INSERT INTO cmd2_source_index(
@@ -8376,6 +10523,82 @@ pub(super) fn apply_source_change(
                     ));
                 }
             }
+            for write in &attempt.writes {
+                let projection = attempt.projections.get(&write.subject).map(Vec::as_slice);
+                let current = tx.execute(
+                    "UPDATE cmd2_current SET inventory_projection=$3
+                     WHERE domain=$1 AND subject=$2 AND prepare_id=$4",
+                    &[
+                        &request.domain,
+                        &write.subject,
+                        &projection,
+                        &request.prepare_id,
+                    ],
+                )?;
+                let history = tx.execute(
+                    "UPDATE cmd2_history SET inventory_projection=$3
+                     WHERE domain=$1 AND subject=$2 AND prepare_id=$4 AND commit_seq=$5",
+                    &[
+                        &request.domain,
+                        &write.subject,
+                        &projection,
+                        &request.prepare_id,
+                        &as_i64(seq)?,
+                    ],
+                )?;
+                let indexed = tx.execute(
+                    "UPDATE cmd2_source_index SET inventory_projection=$3
+                     WHERE domain=$1 AND kind='path' AND path=$2
+                       AND definition_digest=$4",
+                    &[
+                        &request.domain,
+                        &write.subject,
+                        &projection,
+                        &attempt.definition.to_hex(),
+                    ],
+                )?;
+                if current != 1 || history != 1 || indexed != 1 {
+                    return Err(DurableError::Corrupt(
+                        "source revision projection membership differs",
+                    ));
+                }
+            }
+            crate::source_text_identity_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_annotation_identity_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_claim_dependency_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_item_file_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
             let mutation_predicates = revision_mutation_predicates(&attempt.indexes);
             for (kind, scope, token) in &mutation_predicates {
                 let changed = tx.execute(
@@ -8413,6 +10636,7 @@ pub(super) fn apply_source_change(
                     cancelled,
                 )?;
             }
+            apply_source_publication_change(tx, request, attempt, seq)?;
             // A bounded revision advances source generation while retaining no
             // stale selected/current projection identity. The next addressed
             // reader must consume the new outbox generation and re-establish
@@ -8427,7 +10651,44 @@ pub(super) fn apply_source_change(
             Ok(())
         }
         CommitMode::PgCreation { attempt, .. } => {
-            creation::apply_source_change(tx, request, attempt, seq)
+            creation::apply_source_change(tx, request, attempt, seq)?;
+            crate::source_text_identity_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_annotation_identity_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_claim_dependency_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            crate::source_item_file_index::replace_current_members(
+                tx,
+                &request.domain,
+                attempt
+                    .writes
+                    .iter()
+                    .map(|write| (write.subject.as_str(), Some(write.exact_bytes.as_slice()))),
+                attempt.definition,
+            )?;
+            Ok(())
         }
     }
 }
@@ -8777,27 +11038,74 @@ fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
         reads: Vec::new(),
         locators: BTreeMap::new(),
         managed_original: None,
+        revision: None,
     };
     let tuples = if value.is_array() {
         &value
     } else {
-        if value.get("profile").and_then(serde_json::Value::as_str)
-            != Some("tos.managed-agent-original-reads-v1")
-        {
-            return Err(DurableError::Corrupt("persisted managed reads profile"));
+        match value.get("profile").and_then(serde_json::Value::as_str) {
+            Some("tos.managed-agent-original-reads-v1") => {
+                reads.managed_original = Some(
+                    value
+                        .get("original")
+                        .filter(|v| v.is_object())
+                        .ok_or(DurableError::Corrupt(
+                            "persisted managed original companion",
+                        ))?
+                        .clone(),
+                );
+            }
+            Some("tos.pg-family-tagged-source-revision-reads-v1") => {
+                let object = value
+                    .as_object()
+                    .filter(|object| {
+                        object.len() == 5
+                            && [
+                                "profile",
+                                "family",
+                                "source_head_sequence",
+                                "predecessor_source_revision",
+                                "reads",
+                            ]
+                            .iter()
+                            .all(|key| object.contains_key(*key))
+                    })
+                    .ok_or(DurableError::Corrupt(
+                        "persisted family-tagged source revision fields",
+                    ))?;
+                let family_tag = object
+                    .get("family")
+                    .and_then(serde_json::Value::as_str)
+                    .filter(|tag| !tag.is_empty() && tag.len() <= 512)
+                    .ok_or(DurableError::Corrupt(
+                        "persisted source revision family tag",
+                    ))?
+                    .to_owned();
+                let source_head_sequence = object
+                    .get("source_head_sequence")
+                    .and_then(serde_json::Value::as_u64)
+                    .ok_or(DurableError::Corrupt(
+                        "persisted source revision head sequence",
+                    ))?;
+                let predecessor_source_revision = SourceRevision(parse_hex(
+                    object
+                        .get("predecessor_source_revision")
+                        .and_then(serde_json::Value::as_str)
+                        .ok_or(DurableError::Corrupt(
+                            "persisted source revision predecessor",
+                        ))?,
+                )?);
+                reads.revision = Some(SourceRevisionReadBinding {
+                    family_tag,
+                    source_head_sequence,
+                    predecessor_source_revision,
+                });
+            }
+            _ => return Err(DurableError::Corrupt("persisted source reads profile")),
         }
-        reads.managed_original = Some(
-            value
-                .get("original")
-                .filter(|v| v.is_object())
-                .ok_or(DurableError::Corrupt(
-                    "persisted managed original companion",
-                ))?
-                .clone(),
-        );
         value
             .get("reads")
-            .ok_or(DurableError::Corrupt("persisted managed read tuples"))?
+            .ok_or(DurableError::Corrupt("persisted source read tuples"))?
     };
     for row in tuples
         .as_array()

@@ -8,7 +8,7 @@ use crate::source_serialization::{
     capture_derived_text_layer, executable, instant, selected_components,
 };
 use crate::source_sign_native::{ResolvedDerivedTextSource, resolve_derived_owner_text_source};
-use crate::source_text_identity::selected_identity_snapshot;
+use crate::source_text_identity::selected_owner_identity_snapshot;
 use crate::source_text_layer_derived_proposal::{DerivedLayerOutput, build_derived_layer};
 use crate::source_text_layer_entry::{checked_schema, file_refs, line};
 use crate::source_text_layer_native::recheck_selected_inputs;
@@ -25,7 +25,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const LAYER_SCHEMA: &str = "ToS/contracts/source-text-layer.schema.json";
@@ -98,7 +98,7 @@ fn select_owner(
     context_path: &Path,
     grant_path: &Path,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -127,7 +127,7 @@ fn select_owner(
 
 pub(crate) fn contracts(
     context: &OwnerTextContext,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeMap<String, Digest256>> {
@@ -135,7 +135,7 @@ pub(crate) fn contracts(
     for name in [LAYER_SCHEMA, ANCHOR_SCHEMA, EVENT_SCHEMA] {
         let raw = context.read(name, MAX_CONTRACT, deadline, cancelled)?;
         let sha = Digest256::of_bytes(&raw);
-        if worker.contract_digest(name) != Some(sha) {
+        if worker.selected_contract_digest(name) != Some(sha) {
             return Err(SourceCommandError::Conflict(
                 "native derived selected contract changed",
             ));
@@ -182,12 +182,18 @@ pub(crate) fn selected_configuration(
     Ok(Digest256::of_bytes(&cmd::canonical(&binding)?).to_prefixed())
 }
 
-fn selected_ids(grant: &OwnerTextDerivedSelection) -> SourceCommandResult<Vec<String>> {
+pub(crate) fn selected_ids_for_pg(
+    grant: &OwnerTextDerivedSelection,
+) -> SourceCommandResult<Vec<String>> {
     let ids = cmd::field(&grant.config, "identities")?;
     Ok(vec![
         cmd::text(ids, "layer_id")?.to_owned(),
         cmd::text(ids, "provenance_event_id")?.to_owned(),
     ])
+}
+
+fn selected_ids(grant: &OwnerTextDerivedSelection) -> SourceCommandResult<Vec<String>> {
+    selected_ids_for_pg(grant)
 }
 
 fn input_bytes(
@@ -266,7 +272,7 @@ fn prepare_selected(
     grant: OwnerTextDerivedSelection,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     retained: Option<&BTreeMap<String, Vec<u8>>>,
     exclude: Option<&Path>,
     owner_verification_deadline: Instant,
@@ -277,7 +283,7 @@ fn prepare_selected(
     let owner_configuration =
         selected_configuration(&context, &grant, &contracts, deadline, cancelled)?;
     let refs = selected_ids(&grant)?;
-    let inventory = selected_identity_snapshot(
+    let inventory = selected_owner_identity_snapshot(
         &context,
         &refs.iter().map(String::as_str).collect::<Vec<_>>(),
         exclude,
@@ -490,7 +496,7 @@ fn prepare(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     owner_verification_deadline: Instant,
     deadline: Instant,
@@ -569,7 +575,7 @@ impl PreparedDerived {
         }
         recheck_selected_inputs(&self.context, &self.source.inputs, deadline, cancelled)?;
         let refs = selected_ids(&self.grant)?;
-        if selected_identity_snapshot(
+        if selected_owner_identity_snapshot(
             &self.context,
             &refs.iter().map(String::as_str).collect::<Vec<_>>(),
             exclude,
@@ -637,7 +643,7 @@ pub fn prepare_derived_text_layer_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeDerivedTextLayerPreview> {
@@ -702,7 +708,7 @@ fn verify_retained(
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
     evidence_path: Option<&Path>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -1118,6 +1124,330 @@ fn capture_entities(
     Ok(rows)
 }
 
+/// Exact derived TextLayer package after the source owner has checked the
+/// selected contract, source rights, grant, predecessor bytes and recovery
+/// receipt. The private fields make this a typed adapter capability rather
+/// than an arbitrary package map supplied by the command caller.
+pub(crate) struct PreparedNativeDerivedTextPackage {
+    prepared: PreparedDerived,
+    source_path: String,
+    files: BTreeMap<String, Vec<u8>>,
+    receipt: JsonValue,
+    replayed: bool,
+    context_binding: Digest256,
+    request_digest: Digest256,
+    grant_digest: Digest256,
+}
+
+impl PreparedNativeDerivedTextPackage {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    pub(crate) fn operation(&self) -> &str {
+        &self.prepared.grant.operation
+    }
+
+    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.files
+    }
+
+    pub(crate) fn receipt(&self) -> &JsonValue {
+        &self.receipt
+    }
+
+    pub(crate) fn replayed(&self) -> bool {
+        self.replayed
+    }
+
+    pub(crate) fn owner_configuration(&self) -> &str {
+        &self.prepared.owner_configuration
+    }
+
+    pub(crate) fn expected_dependencies(&self) -> &str {
+        &self.prepared.dependencies
+    }
+
+    pub(crate) fn owner_context_binding(&self) -> Digest256 {
+        self.context_binding
+    }
+
+    pub(crate) fn request_digest(&self) -> Digest256 {
+        self.request_digest
+    }
+
+    pub(crate) fn grant_digest(&self) -> Digest256 {
+        self.grant_digest
+    }
+
+    pub(crate) fn account_uid(&self) -> u32 {
+        self.prepared.context.account_uid()
+    }
+
+    pub(crate) fn verify_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        exclude_target: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let target = self
+            .prepared
+            .context
+            .private_package_target_for_owner_route(&self.source_path)?;
+        self.prepared.verify_current(
+            software,
+            components,
+            if exclude_target { Some(&target) } else { None },
+            deadline,
+            cancelled,
+        )
+    }
+}
+
+fn verify_pg_retained_ocr(
+    prepared: &PreparedDerived,
+    files: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if !prepared
+        .grant
+        .operation
+        .starts_with("text-layer.record-owner-")
+    {
+        return Ok(());
+    }
+    let material = cmd::field(&prepared.grant.config, "material")?;
+    let expected = source_text_owner_ocr::verify_initial(
+        material,
+        cmd::field(&prepared.grant.config, "source_scope")?,
+        cmd::text(&prepared.grant.config, "language")?,
+        prepared.grant.operation == "text-layer.record-owner-page-ocr",
+        prepared.context.account_uid(),
+        prepared.owner_verification_deadline.min(deadline),
+        cancelled,
+    )?;
+    if files.get("content.txt") != Some(&expected.content) {
+        return Err(SourceCommandError::Conflict(
+            "native owner OCR PostgreSQL retained package differs",
+        ));
+    }
+    for (name, key) in [
+        ("owner-ocr-receipt.json", "receipt_sha256"),
+        ("owner-ocr-signature.sigstore.json", "signature_sha256"),
+        ("owner-ocr-signer.pub", "public_key_sha256"),
+    ] {
+        let raw = files.get(name).ok_or(SourceCommandError::Conflict(
+            "native owner OCR evidence absent",
+        ))?;
+        if expected.evidence.get(name) != Some(raw)
+            || Digest256::of_bytes(raw).to_hex() != cmd::text(material, key)?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native owner OCR PostgreSQL evidence differs",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn assemble_derived_package(
+    request: &JsonValue,
+    prepared: &mut PreparedDerived,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let path = cmd::text(&prepared.grant.config, "source_path")?.to_owned();
+    let home = path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("native derived home"))?
+        .0;
+    let event_id = cmd::text(
+        cmd::field(&prepared.grant.config, "identities")?,
+        "provenance_event_id",
+    )?;
+    let rights = cmd::field(
+        cmd::field(&prepared.grant.config, "derivation_access")?,
+        "rights_record_refs",
+    )?;
+    let observed_at = instant()?;
+    let entities = capture_entities(prepared)?
+        .into_iter()
+        .map(|(reference, sha, size, role, media)| {
+            json!({"entity_ref":reference,"role":role,"sha256":sha,"size_bytes":size,
+                "media_type":media,"availability":"owner_local","content_disclosure":"private_content",
+                "fixity_verified":true,"fixity_verified_at":observed_at})
+        })
+        .collect();
+    capture_derived_text_layer(
+        &prepared.grant.operation,
+        request,
+        event_id,
+        home,
+        &path,
+        rights,
+        entities,
+        &mut prepared.output.files,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    checked_schema(
+        worker,
+        &format!("{home}/source-create-provenance.jsonl"),
+        prepared
+            .output
+            .files
+            .get("source-create-provenance.jsonl")
+            .ok_or(SourceCommandError::Invalid("native derived event output"))?,
+        EVENT_SCHEMA,
+        deadline,
+        cancelled,
+    )?;
+    let receipt = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_local_source_create_receipt_v1"),
+        ),
+        ("command_id", cmd::field(request, "command_id")?.clone()),
+        (
+            "request_digest",
+            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+        ),
+        (
+            "principal_id",
+            cmd::field(&prepared.grant.config, "principal_id")?.clone(),
+        ),
+        (
+            "authority_ref",
+            cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
+        ),
+        (
+            "owner_configuration",
+            cmd::string(&prepared.owner_configuration),
+        ),
+        ("recorded_at", cmd::string(&instant()?)),
+        ("source_path", cmd::string(&path)),
+        (
+            "source",
+            cmd::reference(&prepared.output.layer, "layer_id", "layer_version")?,
+        ),
+        ("dependencies", cmd::string(&prepared.dependencies)),
+        ("files", file_refs(prepared.output.files.iter())),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    let receipt_raw = line(&receipt)?;
+    let receipt = cmd::parse(&receipt_raw)?;
+    prepared
+        .output
+        .files
+        .insert("source-create-receipt.json".into(), receipt_raw);
+    if prepared
+        .output
+        .files
+        .values()
+        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+        .is_none_or(|n| n > MAX_PACKAGE)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "native derived complete package budget",
+        ));
+    }
+    Ok(receipt)
+}
+
+/// Prepare one exact private derived TextLayer package for PostgreSQL. The
+/// previous PG package, if present, is input only to this owner's recovery
+/// validator and can never replace the newly selected source binding.
+pub(crate) fn prepare_pg_derived_text_package(
+    context: OwnerTextContext,
+    publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
+    grant: crate::source_text_owner::OwnerTextDerivedSelection,
+    request: &JsonValue,
+    retained: Option<&BTreeMap<String, Vec<u8>>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut dyn CutSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedNativeDerivedTextPackage> {
+    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    let owner_verification_deadline = deadline.min(Instant::now() + Duration::from_secs(30));
+    if !context.has_pg_selection()? {
+        return Err(SourceCommandError::Conflict(
+            "PostgreSQL derived Text preparation lacks a selected source inventory",
+        ));
+    }
+    let source_path = cmd::text(&grant.config, "source_path")?.to_owned();
+    let target = context.private_package_target_for_owner_route(&source_path)?;
+    let expected = expected_files(&grant.operation);
+    let mut prepared = prepare_selected(
+        context,
+        publication,
+        grant,
+        software,
+        components,
+        worker,
+        retained,
+        retained.map(|_| target.as_path()),
+        owner_verification_deadline,
+        deadline,
+        cancelled,
+    )?;
+    request_create(request, &prepared, retained.is_none())?;
+    let (files, receipt, replayed) = if let Some(files) = retained {
+        let receipt =
+            verify_retained(&prepared, request, files, None, worker, deadline, cancelled)?;
+        verify_pg_retained_ocr(&prepared, files, deadline, cancelled)?;
+        (files.clone(), receipt, true)
+    } else {
+        let receipt = assemble_derived_package(
+            request,
+            &mut prepared,
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        (prepared.output.files.clone(), receipt, false)
+    };
+    finish_creation_worker(worker, deadline, cancelled)?;
+    prepared.verify_current(
+        software,
+        components,
+        retained.map(|_| target.as_path()),
+        deadline,
+        cancelled,
+    )?;
+    if files.len() != expected.len() || files.keys().any(|name| !expected.contains(&name.as_str()))
+    {
+        return Err(SourceCommandError::Conflict(
+            "native derived private package member set differs",
+        ));
+    }
+    let context_binding = prepared
+        .context
+        .private_owner_scope_binding(deadline, cancelled)?;
+    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
+    Ok(PreparedNativeDerivedTextPackage {
+        prepared,
+        source_path,
+        files,
+        receipt,
+        replayed,
+        context_binding,
+        request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
+        grant_digest,
+    })
+}
+
 pub fn execute_derived_text_layer_from_captures(
     context_path: &Path,
     grant_path: &Path,
@@ -1125,7 +1455,7 @@ pub fn execute_derived_text_layer_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeDerivedTextLayerResult> {
@@ -1234,99 +1564,15 @@ pub fn execute_derived_text_layer_from_captures(
             })
         }
         PrivateTextCustody::Absent => {
-            let home = path
-                .rsplit_once('/')
-                .ok_or(SourceCommandError::Invalid("native derived home"))?
-                .0;
-            let event_id = cmd::text(
-                cmd::field(&prepared.grant.config, "identities")?,
-                "provenance_event_id",
-            )?;
-            let rights = cmd::field(
-                cmd::field(&prepared.grant.config, "derivation_access")?,
-                "rights_record_refs",
-            )?;
-            let observed_at = instant()?;
-            let entities = capture_entities(&prepared)?.into_iter().map(|(reference,sha,size,role,media)|json!({
-                "entity_ref":reference,"role":role,"sha256":sha,"size_bytes":size,
-                "media_type":media,"availability":"owner_local","content_disclosure":"private_content",
-                "fixity_verified":true,"fixity_verified_at":observed_at})).collect();
-            capture_derived_text_layer(
-                &prepared.grant.operation,
+            let receipt = assemble_derived_package(
                 request,
-                event_id,
-                home,
-                &path,
-                rights,
-                entities,
-                &mut prepared.output.files,
+                &mut prepared,
                 software,
                 components,
-                deadline,
-                cancelled,
-            )?;
-            checked_schema(
                 worker,
-                &format!("{home}/source-create-provenance.jsonl"),
-                prepared
-                    .output
-                    .files
-                    .get("source-create-provenance.jsonl")
-                    .ok_or(SourceCommandError::Invalid("native derived event output"))?,
-                EVENT_SCHEMA,
                 deadline,
                 cancelled,
             )?;
-            let receipt = cmd::object(vec![
-                (
-                    "schema_version",
-                    cmd::string("tos_local_source_create_receipt_v1"),
-                ),
-                ("command_id", cmd::field(request, "command_id")?.clone()),
-                (
-                    "request_digest",
-                    cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
-                ),
-                (
-                    "principal_id",
-                    cmd::field(&prepared.grant.config, "principal_id")?.clone(),
-                ),
-                (
-                    "authority_ref",
-                    cmd::field(&prepared.grant.config, "authority_ref")?.clone(),
-                ),
-                (
-                    "owner_configuration",
-                    cmd::string(&prepared.owner_configuration),
-                ),
-                ("recorded_at", cmd::string(&instant()?)),
-                ("source_path", cmd::string(&path)),
-                (
-                    "source",
-                    cmd::reference(&prepared.output.layer, "layer_id", "layer_version")?,
-                ),
-                ("dependencies", cmd::string(&prepared.dependencies)),
-                ("files", file_refs(prepared.output.files.iter())),
-                ("grants_admission", JsonValue::Bool(false)),
-            ]);
-            let receipt_raw = line(&receipt)?;
-            drop(receipt);
-            let receipt = cmd::parse(&receipt_raw)?;
-            prepared
-                .output
-                .files
-                .insert("source-create-receipt.json".into(), receipt_raw);
-            if prepared
-                .output
-                .files
-                .values()
-                .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
-                .is_none_or(|n| n > MAX_PACKAGE)
-            {
-                return Err(SourceCommandError::Unsupported(
-                    "native derived complete package budget",
-                ));
-            }
             finish_creation_worker(worker, deadline, cancelled)?;
             prepared.verify_current(software, components, None, deadline, cancelled)?;
             let owner_ocr = prepared

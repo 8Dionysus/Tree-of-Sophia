@@ -18,14 +18,36 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
 };
 
-const MAX_FILES: usize = 2048;
-const MAX_ENTRIES: usize = 32768;
-const MAX_BYTES: usize = 64 * 1024 * 1024;
-const MAX_FILE: usize = 32 * 1024 * 1024;
-const MAX_RECORDS: usize = 65536;
-const MAX_JSONL_LINE: usize = 1_048_576;
+pub(crate) const MAX_FILES: usize = 2048;
+pub(crate) const MAX_ENTRIES: usize = 32768;
+pub(crate) const MAX_BYTES: usize = 64 * 1024 * 1024;
+pub(crate) const MAX_FILE: usize = 32 * 1024 * 1024;
+pub(crate) const MAX_RECORDS: usize = 65536;
+pub(crate) const MAX_JSONL_LINE: usize = 1_048_576;
+pub(crate) const MAX_POINT_OWNERS: usize = MAX_RECORDS;
 
-fn is_candidate(name: &str) -> bool {
+/// One exact current public Text identity owner returned by the point index.
+/// The member digest is required to distinguish a verified retained ancestor
+/// from a later replacement at the same path.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct TextIdentityOwner {
+    pub path: String,
+    pub member_digest: Digest256,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct TextIdentityContribution {
+    pub path: String,
+    pub token: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PgSourceTextIdentityObservation {
+    pub owners: BTreeSet<TextIdentityOwner>,
+    pub generation: u64,
+}
+
+pub(crate) fn is_candidate(name: &str) -> bool {
     (name.contains("source-text-unit")
         || name.contains("source-text-layer")
         || name.contains("source-anchor")
@@ -178,9 +200,13 @@ fn record_ids(
 ) -> SourceCommandResult<()> {
     let schema = cmd::text(record, "schema_version")?;
     let mut add = |value: &JsonValue| -> SourceCommandResult<()> {
-        if let Some(text) = value.as_str() {
-            owned.insert(text.to_owned());
-        }
+        let text = value
+            .as_str()
+            .filter(|text| !text.is_empty() && text.len() <= 4096)
+            .ok_or(SourceCommandError::Invalid(
+                "native Text identity identifier shape",
+            ))?;
+        owned.insert(text.to_owned());
         Ok(())
     };
     match schema {
@@ -231,6 +257,238 @@ fn record_ids(
     Ok(())
 }
 
+/// Extract the existing Text identity namespace from one exact member. This
+/// is shared by PG point-index maintenance and private owner packages so the
+/// schema-to-ID mapping stays owned here.
+pub(crate) fn text_identity_ids_for_member(
+    name: &str,
+    raw: &[u8],
+) -> SourceCommandResult<BTreeSet<String>> {
+    if !is_candidate(name) {
+        return Err(SourceCommandError::Invalid(
+            "native Text identity candidate route",
+        ));
+    }
+    if raw.len() > MAX_FILE {
+        return Err(SourceCommandError::Unsupported(
+            "native Text identity file byte budget",
+        ));
+    }
+    let mut ids = BTreeSet::new();
+    let mut records = 0usize;
+    if name.ends_with(".jsonl") {
+        for line in raw.split_inclusive(|byte| *byte == b'\n') {
+            let line = line.strip_suffix(b"\n").unwrap_or(line);
+            if line.iter().all(u8::is_ascii_whitespace) {
+                continue;
+            }
+            records += 1;
+            if records > MAX_RECORDS || line.len() > MAX_JSONL_LINE {
+                return Err(SourceCommandError::Unsupported(
+                    "native Text identity record budget",
+                ));
+            }
+            record_ids(&parsed_record(line)?, name, &mut ids)?;
+        }
+    } else {
+        record_ids(&parsed_record(raw)?, name, &mut ids)?;
+    }
+    Ok(ids)
+}
+
+/// Build exact per-member contribution rows for the public point index.
+pub(crate) fn text_identity_contributions(
+    path: &str,
+    raw: &[u8],
+) -> SourceCommandResult<Vec<TextIdentityContribution>> {
+    if path.is_empty()
+        || path.len() > 4096
+        || tos_foundation::RelativePath::parse(path).is_err()
+        || !path.starts_with("ToS/")
+    {
+        return Err(SourceCommandError::Invalid("native Text identity route"));
+    }
+    let name = path.rsplit('/').next().unwrap_or(path);
+    let ids = text_identity_ids_for_member(name, raw)?;
+    if ids.len() > MAX_POINT_OWNERS {
+        return Err(SourceCommandError::Unsupported(
+            "native Text identity contribution bound exceeded",
+        ));
+    }
+    Ok(ids
+        .into_iter()
+        .map(|token| TextIdentityContribution {
+            path: path.to_owned(),
+            token,
+        })
+        .collect())
+}
+
+/// Canonically commit one bounded set of public point observations. Callers
+/// must separately refuse owners outside the exact ancestry allowlist before
+/// admitting a new identity; this digest records both the observations and
+/// the allowlist under the selected source fence.
+pub(crate) fn point_identity_snapshot_digest(
+    selection: &crate::source_cohort::revision::SourceRevisionSelection,
+    requested: &BTreeSet<String>,
+    owners_by_token: &BTreeMap<String, BTreeSet<TextIdentityOwner>>,
+    generations_by_token: &BTreeMap<String, u64>,
+    ancestry: &BTreeMap<String, Digest256>,
+) -> SourceCommandResult<Digest256> {
+    if requested.len() > MAX_RECORDS
+        || owners_by_token.len() != requested.len()
+        || generations_by_token.len() != requested.len()
+        || owners_by_token.keys().ne(requested.iter())
+        || generations_by_token.keys().ne(requested.iter())
+        || ancestry.len() > MAX_FILES
+    {
+        return Err(SourceCommandError::Invalid(
+            "native Text identity point snapshot shape",
+        ));
+    }
+    let mut owner_count = 0usize;
+    let mut token_rows = Vec::with_capacity(requested.len());
+    for token in requested {
+        if token.is_empty() || token.len() > 4096 {
+            return Err(SourceCommandError::Invalid(
+                "native Text identity point token",
+            ));
+        }
+        let owners = owners_by_token
+            .get(token)
+            .ok_or(SourceCommandError::Invalid(
+                "native Text identity point owners absent",
+            ))?;
+        owner_count = owner_count
+            .checked_add(owners.len())
+            .filter(|count| *count <= MAX_POINT_OWNERS)
+            .ok_or(SourceCommandError::Unsupported(
+                "native Text identity point owner budget",
+            ))?;
+        let mut owner_rows = Vec::with_capacity(owners.len());
+        let mut previous_owner_path = None;
+        for owner in owners {
+            if owner.path.is_empty()
+                || owner.path.len() > 4096
+                || tos_foundation::RelativePath::parse(&owner.path).is_err()
+                || !owner.path.starts_with("ToS/")
+                || owner.path == "ToS/source-witnesses/owner-local"
+                || owner.path.starts_with("ToS/source-witnesses/owner-local/")
+            {
+                return Err(SourceCommandError::Invalid(
+                    "native Text identity point owner path",
+                ));
+            }
+            if previous_owner_path == Some(owner.path.as_str()) {
+                return Err(SourceCommandError::Invalid(
+                    "native Text identity duplicate point owner path",
+                ));
+            }
+            previous_owner_path = Some(owner.path.as_str());
+            owner_rows.push(cmd::object(vec![
+                ("path", cmd::string(&owner.path)),
+                ("member_digest", cmd::string(&owner.member_digest.to_hex())),
+                (
+                    "ancestry_match",
+                    JsonValue::Bool(ancestry.get(&owner.path) == Some(&owner.member_digest)),
+                ),
+            ]));
+        }
+        token_rows.push(cmd::object(vec![
+            ("token", cmd::string(token)),
+            (
+                "generation",
+                cmd::number(*generations_by_token.get(token).ok_or(
+                    SourceCommandError::Invalid("native Text identity point generation absent"),
+                )?),
+            ),
+            ("owners", JsonValue::Array(owner_rows)),
+        ]));
+    }
+    let mut ancestry_rows = Vec::with_capacity(ancestry.len());
+    for (path, digest) in ancestry {
+        if path.is_empty()
+            || path.len() > 4096
+            || tos_foundation::RelativePath::parse(path).is_err()
+            || !path.starts_with("ToS/")
+            || path == "ToS/source-witnesses/owner-local"
+            || path.starts_with("ToS/source-witnesses/owner-local/")
+        {
+            return Err(SourceCommandError::Invalid(
+                "native Text identity ancestry path",
+            ));
+        }
+        ancestry_rows.push(cmd::object(vec![
+            ("path", cmd::string(path)),
+            ("member_digest", cmd::string(&digest.to_hex())),
+        ]));
+    }
+    let identity = selection.identity();
+    let value = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_text_identity_point_snapshot_v1"),
+        ),
+        ("domain", cmd::string(selection.cohort.domain())),
+        (
+            "domain_digest",
+            cmd::string(&identity.domain_digest.to_hex()),
+        ),
+        (
+            "store_id_digest",
+            cmd::string(&Digest256::of_bytes(&identity.store_id).to_hex()),
+        ),
+        (
+            "bootstrap_revision",
+            cmd::string(&identity.bootstrap_revision.0.to_hex()),
+        ),
+        (
+            "bootstrap_membership_count",
+            cmd::number(identity.bootstrap_membership.count),
+        ),
+        (
+            "bootstrap_membership_digest",
+            cmd::string(&identity.bootstrap_membership.digest.to_hex()),
+        ),
+        (
+            "cohort_digest",
+            cmd::string(&identity.cohort_digest.to_hex()),
+        ),
+        ("cohort_epoch", cmd::number(identity.cohort_epoch)),
+        (
+            "cohort_definition",
+            cmd::string(&identity.cohort_definition.to_hex()),
+        ),
+        ("cohort_generation", cmd::number(identity.cohort_generation)),
+        (
+            "job_id_digest",
+            cmd::string(&identity.job_id_digest.to_hex()),
+        ),
+        ("job_fence", cmd::number(identity.job_fence)),
+        ("epoch", cmd::number(identity.epoch)),
+        ("source_generation", cmd::number(identity.source_generation)),
+        ("head_seq", cmd::number(identity.head_seq)),
+        ("audit_generation", cmd::number(identity.audit_generation)),
+        ("rights_version", cmd::number(identity.rights_version)),
+        ("rule_version", cmd::number(identity.rule_version)),
+        ("contract", cmd::string(&identity.contract.to_hex())),
+        ("tokens", JsonValue::Array(token_rows)),
+        ("ancestry", JsonValue::Array(ancestry_rows)),
+    ]);
+    let raw = canonical_bytes_v1(
+        &value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits {
+            max_bytes: MAX_BYTES,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| {
+        SourceCommandError::Unsupported("native Text identity point snapshot byte budget")
+    })?;
+    Ok(Digest256::of_bytes(&raw))
+}
+
 /// One complete bounded metadata pass plus a path-membership rewalk. The
 /// returned digest is a current inventory fact, not a grant. The owning entry
 /// repeats this complete pass at its final selected publication check; the
@@ -243,6 +501,26 @@ pub(crate) fn selected_identity_snapshot(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Digest256> {
     selected_identity_snapshot_with_ancestry(context, delegated, exclude, None, deadline, cancelled)
+}
+
+/// Use a PG-selected identity inventory when the private owner adapter has
+/// installed one; its source and private-generation fences are rechecked by
+/// the transactional writer. Filesystem-backed callers retain the established
+/// bounded dual-root census.
+pub(crate) fn selected_owner_identity_snapshot(
+    context: &OwnerTextContext,
+    delegated: &[&str],
+    exclude: Option<&Path>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Digest256> {
+    if let Some(snapshot) = context.pg_identity_snapshot()? {
+        active(deadline, cancelled)?;
+        let _ = (delegated, exclude);
+        Ok(snapshot)
+    } else {
+        selected_identity_snapshot(context, delegated, exclude, deadline, cancelled)
+    }
 }
 
 /// A native descriptive successor may retain only IDs belonging to its exact
@@ -344,6 +622,93 @@ fn selected_identity_snapshot_with_ancestry(
     if selected != paths(context, exclude, deadline, cancelled)? {
         return Err(SourceCommandError::Conflict(
             "native Text identity membership changed",
+        ));
+    }
+    let value = cmd::object(inputs.into_iter().collect());
+    let raw = canonical_bytes_v1(
+        &value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits {
+            max_bytes: MAX_BYTES,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| SourceCommandError::Unsupported("native Text identity snapshot byte budget"))?;
+    Ok(Digest256::of_bytes(&raw))
+}
+
+/// Validate and digest an already selected metadata inventory. The PG and
+/// public-owner adapters use this after their own bounded exact-read walk so
+/// identity parsing, delegated-ID collision checks, and the canonical digest
+/// remain owned by this module rather than drifting between transports.
+pub(crate) fn selected_identity_snapshot_from_files(
+    files: &BTreeMap<String, Vec<u8>>,
+    delegated: &[&str],
+) -> SourceCommandResult<Digest256> {
+    if files.len() > MAX_FILES {
+        return Err(SourceCommandError::Unsupported(
+            "native Text identity file budget",
+        ));
+    }
+    let mut remaining = MAX_BYTES;
+    let mut inputs = BTreeMap::new();
+    let mut owned = BTreeSet::new();
+    let mut records = 0usize;
+    for (reference, bytes) in files {
+        if reference.is_empty()
+            || reference.len() > 4096
+            || tos_foundation::RelativePath::parse(reference).is_err()
+            || !reference.starts_with("ToS/")
+        {
+            return Err(SourceCommandError::Invalid("native Text identity route"));
+        }
+        let name = reference.rsplit('/').next().unwrap_or(reference);
+        if !is_candidate(name) {
+            return Err(SourceCommandError::Invalid(
+                "native Text identity candidate route",
+            ));
+        }
+        if bytes.len() > MAX_FILE {
+            return Err(SourceCommandError::Unsupported(
+                "native Text identity file byte budget",
+            ));
+        }
+        remaining = remaining
+            .checked_sub(bytes.len())
+            .ok_or(SourceCommandError::Unsupported(
+                "native Text identity total byte budget",
+            ))?;
+        inputs.insert(
+            reference.as_str(),
+            cmd::string(&Digest256::of_bytes(bytes).to_prefixed()),
+        );
+        if reference.ends_with(".jsonl") {
+            for line in bytes.split_inclusive(|byte| *byte == b'\n') {
+                let line = line.strip_suffix(b"\n").unwrap_or(line);
+                if line.iter().all(u8::is_ascii_whitespace) {
+                    continue;
+                }
+                records += 1;
+                if records > MAX_RECORDS || line.len() > MAX_JSONL_LINE {
+                    return Err(SourceCommandError::Unsupported(
+                        "native Text identity record budget",
+                    ));
+                }
+                record_ids(&parsed_record(line)?, reference, &mut owned)?;
+            }
+        } else {
+            records += 1;
+            if records > MAX_RECORDS {
+                return Err(SourceCommandError::Unsupported(
+                    "native Text identity record budget",
+                ));
+            }
+            record_ids(&parsed_record(bytes)?, reference, &mut owned)?;
+        }
+    }
+    if delegated.iter().any(|id| owned.contains(*id)) {
+        return Err(SourceCommandError::Conflict(
+            "native Text delegated identity already owned",
         ));
     }
     let value = cmd::object(inputs.into_iter().collect());

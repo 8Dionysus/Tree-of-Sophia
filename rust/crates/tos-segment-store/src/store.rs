@@ -1383,6 +1383,44 @@ impl SegmentStore {
         })
     }
 
+    /// Inspect one bounded, digest-addressed V1 generation descriptor without
+    /// treating it as the selected or current generation. Callers that need
+    /// authority must still obtain the selected digest from their owner and
+    /// reopen the candidate against an exact owner-derived cut.
+    pub fn inspect_generation_descriptor_v1(
+        &self,
+        digest: Digest256,
+        limits: GenerationReadLimits,
+    ) -> Result<GenerationDescriptorV1> {
+        let limits = limits.validate()?;
+        let _pin_lock = self.hold_generation_pin()?;
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let mut raw = Vec::new();
+        open_regular(generations, &digest.to_hex())?
+            .take(limits.max_descriptor_bytes as u64 + 1)
+            .read_to_end(&mut raw)
+            .map_err(|error| SegmentError::io("cannot read generation descriptor", error))?;
+        if raw.len() > limits.max_descriptor_bytes || Digest256::of_bytes(&raw) != digest {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "generation descriptor identity differs",
+            ));
+        }
+        let descriptor = GenerationDescriptorV1::decode(&raw, &self.inner.domain, limits)?;
+        if descriptor.cut.store_id != self.inner.store_id {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "generation descriptor store differs",
+            ));
+        }
+        Ok(descriptor)
+    }
+
     /// Install one bounded immutable content-addressed object in the existing
     /// generation directory. The caller supplies a format that binds its
     /// domain and kind. A prior object at the same address is reopened and
@@ -4467,6 +4505,13 @@ mod tests {
             }
         }
         let cold = SegmentStore::open_existing(&backup.0, limits()).unwrap();
+        assert_eq!(
+            cold.inspect_generation_descriptor_v1(descriptor_digest, read_limits)
+                .unwrap()
+                .cut,
+            cut,
+            "descriptor inspection authenticates bytes but does not select them"
+        );
         let selected = cold
             .open_generation_candidate(descriptor_digest, &cut, read_limits)
             .unwrap();

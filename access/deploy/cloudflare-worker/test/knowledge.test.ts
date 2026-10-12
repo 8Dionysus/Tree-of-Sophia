@@ -23,6 +23,10 @@ const knowledgeExplorationMigration = readFileSync(
   new URL('../migrations/0001-exploration.sql', import.meta.url),
   'utf8',
 ).replace(/^--.*$/gm, '').trim();
+const sourceValueSearchParityFixture = JSON.parse(readFileSync(
+  new URL('../../../../rust/crates/tos-query/tests/fixtures/source-value-search-parity.json', import.meta.url),
+  'utf8',
+)) as {query:string;candidate_json:string;key_query:string;expected_query:string};
 
 // These retained ordinary-number fixtures inspect the public packet shape;
 // native-search.test.mjs compares raw numeric kinds and ordered source keys.
@@ -1882,7 +1886,7 @@ test("classic Worker tiny D1 routes retain Rust profile contracts", async () => 
     const db=await mf.getD1Database("DB");
     await db.exec(`
 CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
-CREATE TABLE corpus_items(collection TEXT,id TEXT,ord INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE corpus_items(collection TEXT,id TEXT,ord INTEGER,json TEXT,search_text TEXT,resource_kind TEXT);
 CREATE TABLE corpus_edges(id TEXT,ord INTEGER,from_id TEXT,to_id TEXT,pack_id TEXT,owner_branch TEXT,json TEXT);
 CREATE TABLE corpus_packs(id TEXT,ord INTEGER,json TEXT);
 CREATE TABLE philosophy_nodes(id TEXT PRIMARY KEY,ord INTEGER,view_mask INTEGER,layer_mask INTEGER,json TEXT,search_text TEXT);
@@ -1903,7 +1907,7 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
     ];
     const view={view_id:"tiny",title:"Alpha view",node_count:3,edge_count:2,source_refs:["fixture/view"]};
     const cluster={cluster_id:"group",cluster_kind:"group",label:"Tiny",member_node_ids:["a","b","c"],member_edge_ids:["eAC","eAB"],properties:{member_count:3,edge_count:2}};
-    const corpusNodes=[{node_id:"ca",label:"Alpha corpus",authority_layer:"canon",source_ref:"fixture/ca"},{node_id:"cb",label:"Beta corpus",source_ref:"fixture/cb"}];
+    const corpusNodes=[{node_id:"ca",label:"Alpha corpus",resource_kind:"work",authority_layer:"canon",source_ref:"fixture/ca"},{node_id:"cb",label:"Beta corpus",resource_kind:"agent",source_ref:"fixture/cb"}];
     const corpusEdges=[
       {edge_id:"ce",from_id:"ca",to_id:"cb",owner_branch:"ToS/canon",source_ref:"fixture/ce"},
       {edge_id:"pe",from_id:"cb",to_id:"cx",owner_branch:"ToS/candidate-intake",source_ref:"fixture/pe"},
@@ -1911,6 +1915,8 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
     const coverage={node_titles:3,node_summaries:3,relation_labels:2,relation_statements:2,relation_explanations:2};
     const metadata:Record<string,unknown>={
       data_revision:{sha256:"a".repeat(64)},
+      public_d1_producer_profile:{schema:"tos_public_d1_producer_profile_v1",producer:"tos-rust-public-d1-full-v2",
+        read_model_schema:"tos_cloudflare_edge_read_model_v9",data_revision:"a".repeat(64)},
       knowledge_top:{schema:"tos_knowledge_graph_v1",counts:{nodes:3,relations:2,display_coverage:coverage}},
       corpus_top:{counts:{nodes:2,edges:2},runtime_projection_boundary:boundary},
       philosophy_top:{counts:{nodes:3,edges:2},runtime_projection_boundary:boundary},
@@ -1922,19 +1928,34 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
       }]},
     };
     const statements=Object.entries(metadata).map(([key,value])=>db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind(key,JSON.stringify(value)));
-    for(let index=0;index<phiNodes.length;index+=1){const node=phiNodes[index]!;statements.push(db.prepare("INSERT INTO philosophy_nodes VALUES (?,?,1,1,?,?)").bind(node.node_id,index===0?2:index-1,JSON.stringify(node),node.node_id==="a"?"alpha":"other"));}
-    for(let index=0;index<phiEdges.length;index+=1){const edge=phiEdges[index]!;statements.push(db.prepare("INSERT INTO philosophy_edges VALUES (?,?,?,?,?,1,1,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,edge.predicate_id,JSON.stringify(edge),"other"));}
-    statements.push(db.prepare("INSERT INTO philosophy_aux VALUES ('views','tiny',0,?,'alpha')").bind(JSON.stringify(view)),
+    const sourceGapPath="ToS/source-witnesses/access-requests/public-ledger/fixture.access-request.json";
+    const sourceGapRaw=JSON.stringify({schema_version:"tos_access_request_v1",request_id:"fixture-request",
+      request_status:"open",access_status:"not-held",material:{title:"Alpha source access",edition_or_resource:"Fixture edition",
+        tos_refs:["tos.subject.friedrich-nietzsche"]}});
+    const sourceGapSha=createHash("sha256").update(sourceGapRaw).digest("hex");
+    const sourceGapKey=`source_gap_record:${createHash("sha256").update(sourceGapPath).digest("hex")}`;
+    statements.push(
+      db.prepare("INSERT INTO edge_meta VALUES ('source_gap_records_v1',0,?)").bind(JSON.stringify({
+        schema:"tos_public_source_gap_records_v1",source_owner:"Tree-of-Sophia",selection:"captured-public-ledger-members-v1",
+        max_records:100,max_record_bytes:256000,records:[{source_ref:sourceGapPath,sha256:sourceGapSha,size_bytes:Buffer.byteLength(sourceGapRaw)}],
+      })),
+      db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind(sourceGapKey,sourceGapRaw),
+    );
+    for(let index=0;index<phiNodes.length;index+=1){const node=phiNodes[index]!;const raw=JSON.stringify(node);statements.push(db.prepare("INSERT INTO philosophy_nodes VALUES (?,?,1,1,?,?)").bind(node.node_id,index===0?2:index-1,raw,raw));}
+    const parityCandidate=JSON.parse(sourceValueSearchParityFixture.candidate_json) as Record<string,any>;
+    statements.push(db.prepare("INSERT INTO philosophy_nodes VALUES (?,3,0,0,?,?)").bind(parityCandidate.node_id,sourceValueSearchParityFixture.candidate_json,sourceValueSearchParityFixture.candidate_json));
+    for(let index=0;index<phiEdges.length;index+=1){const edge=phiEdges[index]!;statements.push(db.prepare("INSERT INTO philosophy_edges VALUES (?,?,?,?,?,1,1,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,edge.predicate_id,JSON.stringify(edge),JSON.stringify(edge)));}
+    statements.push(db.prepare("INSERT INTO philosophy_aux VALUES ('views','tiny',0,?,?)").bind(JSON.stringify(view),JSON.stringify(view)),
       db.prepare("INSERT INTO philosophy_clusters VALUES ('group',0,1,?,?)").bind("group␟Tiny",JSON.stringify(cluster)),
       db.prepare("INSERT INTO philosophy_review_packets VALUES ('tiny',?)").bind(JSON.stringify({view_id:"tiny",review_status:"fixture-only"})));
-    for(let index=0;index<corpusNodes.length;index+=1){const node=corpusNodes[index]!;statements.push(db.prepare("INSERT INTO corpus_items VALUES ('nodes',?,?,?,?)").bind(node.node_id,index,JSON.stringify(node),index===0?"alpha":"other"));}
-    statements.push(db.prepare("INSERT INTO corpus_items VALUES ('branches','ToS/canon',0,?,'other')").bind(JSON.stringify({id:"ToS/canon",owner_surface:"fixture/canon"})));
-    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:id==="corpus-topology"?undefined:"fixture/corpus"})));
+    for(let index=0;index<corpusNodes.length;index+=1){const node=corpusNodes[index]!;statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text,resource_kind) VALUES ('nodes',?,?,?,?,?)").bind(node.node_id,index,JSON.stringify(node),index===0?"alpha":"other",node.resource_kind));}
+    statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text) VALUES ('branches','ToS/canon',0,?,'other')").bind(JSON.stringify({id:"ToS/canon",owner_surface:"fixture/canon"})));
+    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items(collection,id,ord,json,search_text) VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:id==="corpus-topology"?undefined:"fixture/corpus"})));
     for(let index=0;index<corpusEdges.length;index+=1){const edge=corpusEdges[index]!,pack=index===0?"canon-pack":"candidate-pack";statements.push(
       db.prepare("INSERT INTO corpus_packs VALUES (?,?,?)").bind(pack,index,JSON.stringify({pack_id:pack,owner_branch:edge.owner_branch})),
       db.prepare("INSERT INTO corpus_edges VALUES (?,?,?,?,?,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,pack,edge.owner_branch,JSON.stringify(edge)));
     }
-    assert.equal(statements.length,25);
+    assert.equal(statements.length,29);
     await db.batch(statements);
     const get=async(path:string,status=200):Promise<Record<string,any>>=>{
       const response=await mf.dispatchFetch("https://tos.test"+path);
@@ -1945,9 +1966,30 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
     const health=await get("/health");assert.equal(health.ok,true);assert.equal(health.data_revision,"a".repeat(64));
     assert.equal(health.write_enabled,false);
     const corpusSearch=await get("/api/corpus/search?query=%EF%BB%BFAlpha%EF%BB%BF&limit=2");
-    assert.equal(corpusSearch.schema,"tos_corpus_mcp_search_v1");assert.equal(corpusSearch.result_count,1);assert.equal(corpusSearch.results[0].item.node_id,"ca");
+    assert.equal(corpusSearch.schema,"tos_corpus_mcp_search_v2");assert.equal(corpusSearch.result_count,0);
+    const corpusValueSearch=await get("/api/corpus/search?query=Alpha&limit=2");
+    assert.equal(corpusValueSearch.result_count,1);assert.equal(corpusValueSearch.results[0].item.node_id,"ca");
+    const corpusKeySearch=await get("/api/corpus/search?query=resource_kind&limit=2");
+    assert.equal(corpusKeySearch.result_count,0);
+    const resourceKindSearch=await get("/api/corpus/search?query=Alpha&resource_kind=work&limit=2");
+    assert.equal(resourceKindSearch.schema,"tos_corpus_mcp_search_v2");assert.equal(resourceKindSearch.resource_kind,"work");assert.deepEqual(resourceKindSearch.results.map((row:Record<string,any>)=>row.item.node_id),["ca"]);
+    const sourceGapSearch=await get("/api/source-gaps?query=Alpha&limit=2");
+    assert.equal(sourceGapSearch.schema,"tos_source_gap_search_v1");assert.equal(sourceGapSearch.query,"Alpha");
+    assert.equal(sourceGapSearch.result_count,1);assert.equal(sourceGapSearch.gaps[0].to_id,"fixture-request");
+    const astralSourceGapQuery="💩".repeat(129);
+    const astralSourceGapSearch=await get(`/api/source-gaps?query=${encodeURIComponent(astralSourceGapQuery)}&limit=1`);
+    assert.equal(astralSourceGapSearch.query,astralSourceGapQuery);assert.equal(astralSourceGapSearch.result_count,0);
     const phiSearch=await get("/api/philosophy/search?query=Alpha&limit=2");
-    assert.deepEqual(phiSearch.results.map((row:Record<string,any>)=>row.collection),["views","nodes"]);assert.equal(phiSearch.results[1].item.node_id,"a");
+    assert.equal(phiSearch.schema,"tos_philosophy_mcp_search_v2");assert.deepEqual(phiSearch.results.map((row:Record<string,any>)=>row.collection),["views","nodes"]);assert.equal(phiSearch.results[1].item.node_id,"a");
+    const unicodeSearch=await get(`/api/philosophy/search?query=${encodeURIComponent(sourceValueSearchParityFixture.query)}&limit=2`);
+    assert.equal(unicodeSearch.schema,"tos_philosophy_mcp_search_v2");assert.equal(unicodeSearch.query,sourceValueSearchParityFixture.query);
+    assert.deepEqual(unicodeSearch.results.map((row:Record<string,any>)=>row.item.node_id),["unicode-fixture"]);
+    const keyOnlySearch=await get(`/api/philosophy/search?query=${encodeURIComponent(sourceValueSearchParityFixture.key_query)}&limit=2`);
+    assert.equal(keyOnlySearch.result_count,0);
+    const limitedPhiSearch=await get("/api/philosophy/search?query=Alpha&limit=1");
+    assert.equal(limitedPhiSearch.result_count,1);assert.deepEqual(limitedPhiSearch.results.map((row:Record<string,any>)=>row.collection),["views"]);
+    const phiPacket=await get("/api/philosophy/packet?query=Alpha&view_id=tiny&limit=2");
+    assert.equal(phiPacket.schema,"tos_philosophy_mcp_packet_v2");assert.equal(phiPacket.result_count,2);
     assert.equal((await get("/api/corpus/nodes/ca")).matches[0].node_id,"ca");
     assert.deepEqual(ids((await get("/api/corpus/relation-packs/canon-pack")).edges,"edge_id"),["ce"]);
     const topology=await get("/api/corpus/graph-views/corpus-topology?limit=2");
@@ -1973,9 +2015,23 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
     const fallback=await get("/api/corpus/query/epistemic/ca?limit=2");
     assert.equal(fallback.scene,null);assert.equal(fallback.posture,"projection-only");assert.equal(fallback.conclusion.canon_membership,true);assert.equal(fallback.conclusion.can_conclude,false);assert.deepEqual(ids(fallback.context_relations,"edge_id"),["ce"]);
     const packet=await get("/api/philosophy/packet?query=Alpha&view_id=tiny&limit=2");assert.equal(packet.result_count,2);assert.deepEqual(ids(packet.view.nodes,"node_id"),["c","a"]);
+    const currentProfile={schema:"tos_public_d1_producer_profile_v1",producer:"tos-rust-public-d1-full-v2",
+      read_model_schema:"tos_cloudflare_edge_read_model_v9",data_revision:"a".repeat(64)};
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='public_d1_producer_profile'")
+      .bind(JSON.stringify({...currentProfile,producer:"tos-rust-public-d1-full-v1"})).run();
+    assert.match((await get("/api/corpus/search?query=Alpha",503)).error,/producer profile tos-rust-public-d1-full-v2/);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='public_d1_producer_profile'")
+      .bind(JSON.stringify({...currentProfile,data_revision:"b".repeat(64)})).run();
+    assert.match((await get("/api/philosophy/search?query=Alpha",503)).error,/producer profile tos-rust-public-d1-full-v2/);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='public_d1_producer_profile'")
+      .bind(JSON.stringify(currentProfile)).run();
     assert.match((await get("/api/philosophy/query/paths?from=a&to=b&direction=unknown",400)).error,/direction/);
     assert.match((await get("/api/philosophy/nodes/missing",404)).error,/unknown/);
     await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({schema:"tos_knowledge_graph_v1",counts:{nodes:3,relations:2,display_coverage:{...coverage,node_titles:2}}})).run();
     const unhealthy=await get("/health",503);assert.equal(unhealthy.ok,false);assert.equal(unhealthy.write_enabled,false);
+    await db.prepare("DELETE FROM edge_meta WHERE key='public_d1_producer_profile'").run();
+    assert.match((await get("/api/corpus/search?query=Alpha",503)).error,/producer profile tos-rust-public-d1-full-v2/);
+    assert.match((await get("/api/philosophy/search?query=Alpha",503)).error,/producer profile tos-rust-public-d1-full-v2/);
+    assert.match((await get("/api/source-gaps?query=Alpha",503)).error,/producer profile tos-rust-public-d1-full-v2/);
   } finally {await mf.dispose();}
 });

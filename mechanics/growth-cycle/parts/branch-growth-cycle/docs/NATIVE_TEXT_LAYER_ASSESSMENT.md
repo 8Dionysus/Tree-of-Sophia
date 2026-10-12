@@ -1,9 +1,10 @@
 # Exact text-layer comparison and current quality use
 
-This confidential source-owner extension uses the existing assessment journal
-through `assessment_journal.py --owner-config /absolute/protected-owner.json`
-and the `tos_local_assessment_command_v1` request envelope. Source creation
-belongs to [native layer construction](NATIVE_TEXT_LAYER_CONSTRUCTION.md).
+This confidential source-owner extension uses the native assessment journal
+`rust/crates/tos-command/src/source_assessment_journal.rs` through the owner
+route `rust/crates/tos-command/src/source_native_private_assessment_cli.rs` and
+the `tos_local_assessment_command_v1` request envelope. Source creation belongs
+to [native layer construction](NATIVE_TEXT_LAYER_CONSTRUCTION.md).
 
 ## Protected configuration v5
 

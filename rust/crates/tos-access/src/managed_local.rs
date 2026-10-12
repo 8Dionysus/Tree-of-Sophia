@@ -48,6 +48,8 @@ pub struct ManagedLocalExecutor {
     cold: ColdOpenLimits,
     profile: AccessProfile,
     checkpoints: Checkpoints,
+    #[cfg(not(target_arch = "wasm32"))]
+    source_navigation: Option<crate::source_navigation::SelectedPgSourceNavigation>,
 }
 fn unavailable(message: &'static str) -> AccessError {
     AccessError::new(AccessErrorCode::Unavailable, message)
@@ -249,7 +251,19 @@ impl ManagedLocalExecutor {
             cold,
             profile,
             checkpoints: Checkpoints::Process(checkpoints),
+            #[cfg(not(target_arch = "wasm32"))]
+            source_navigation: None,
         })
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    /// Add an explicit PG source-navigation selection while preserving this
+    /// executor's independent managed-release capabilities.
+    pub fn with_source_navigation(
+        mut self,
+        selected: crate::source_navigation::SelectedPgSourceNavigation,
+    ) -> Self {
+        self.source_navigation = Some(selected);
+        self
     }
     fn budgets(&self) -> crate::knowledge::SelectedKnowledgeBudgets {
         let rows = usize::try_from(self.cold.max_rows).unwrap_or(usize::MAX);
@@ -395,6 +409,11 @@ fn intended(operation: O) -> &'static str {
     }
 }
 impl AccessExecutor for ManagedLocalExecutor {
+    #[cfg(not(target_arch = "wasm32"))]
+    fn source_descend_available(&self) -> bool {
+        self.source_navigation.is_some()
+    }
+    #[cfg(target_arch = "wasm32")]
     fn source_descend_available(&self) -> bool {
         false
     }
@@ -403,9 +422,19 @@ impl AccessExecutor for ManagedLocalExecutor {
         _: Params,
         _: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
-        Err(unavailable(
-            "exact source owner is not selected by the release holder",
-        ))
+        Err(unavailable("source navigation requires scoped delivery"))
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn source_descend_with_delivery(
+        &self,
+        request: Params,
+        probe: Arc<dyn AbortProbe>,
+        delivery: &mut crate::common::SourceDescendDelivery<'_>,
+    ) -> Result<(), AccessError> {
+        self.source_navigation
+            .as_ref()
+            .ok_or_else(|| unavailable("exact source owner is not selected by the release holder"))?
+            .deliver(request, probe, delivery)
     }
     fn access_health_available(&self) -> bool {
         self.model.lock().is_ok() && self.release.acquire().is_ok()

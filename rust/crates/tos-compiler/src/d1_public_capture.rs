@@ -6572,8 +6572,9 @@ impl PublicCapture {
             .ok_or(Error::Invalid("public D1 completion revision"))?;
         if manifest["schema"] != "tos_cloudflare_edge_build_v1"
             || manifest["read_model_schema"] != "tos_cloudflare_edge_read_model_v9"
+            || manifest["producer_profile"] != crate::d1_public_metadata::PRODUCER
         {
-            return Err(Error::Invalid("public D1 completion schema"));
+            return Err(Error::Invalid("public D1 completion producer profile"));
         }
         for (name, field) in [
             ("read-model.sql", "sql_bytes"),

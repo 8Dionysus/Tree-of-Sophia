@@ -13,6 +13,16 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 
+#[path = "source_expression_edition_pg.rs"]
+mod pg;
+pub(crate) use pg::{
+    PG_FAMILY_TAG, PgExpressionEditionOwnerPackage,
+    current_result_fields_from_selected_pg as pg_current_result_fields,
+    expected_expression_edition_inventory_contributions,
+    expected_expression_edition_revision_indexes, prepare_pg_expression_edition,
+    prepare_pg_expression_edition_preview, verify_pg_expression_edition_context,
+};
+
 const CONFIG: &str = "tos_local_expression_edition_owner_v1";
 const REQUEST: &str = "tos_local_expression_edition_command_v1";
 const OPERATION: &str = "expression.edition.create";

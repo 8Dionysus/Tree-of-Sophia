@@ -3,6 +3,7 @@ import {NativeD1Read, nativeD1Limits, nativeSha256} from './native-d1-read.ts';
 import {consistentRead} from './knowledge-store.ts';
 import {sourceNavigationRules,observeRights,observeMemberships,type SourceRights} from "./source-navigation-rules.ts";
 import {PhysicalKeys} from "./worker-classic.ts";
+import {codePointCompare} from '../../../shared/native-semantics.ts';
 
 export class SourceNavigationError extends Error {
   readonly status:number;
@@ -104,7 +105,7 @@ async function requireSourceDigest(db:D1Database,key:string,raw:string):Promise<
 }
 
 function sortedById(items: Item[], key: string): Item[] {
-  return [...items].sort((left, right) => stringValue(left[key]).localeCompare(stringValue(right[key])));
+  return [...items].sort((left, right) => codePointCompare(stringValue(left[key]), stringValue(right[key])));
 }
 
 function pageSize(limit: number): number {
@@ -240,9 +241,8 @@ async function sourceEdges(
     if (!next || next === cursor) throw new Error("source-navigation edge has no stable edge_id");
     cursor = next;
   }
-  // D1's binary text collation and JS localeCompare are not interchangeable
-  // for arbitrary Unicode IDs.  Pages are bounded, while this final ordering
-  // preserves the source-navigation engine's established deterministic order.
+  // Pages are bounded, while this final ordering uses the same Unicode
+  // code-point order as Rust String ordering for arbitrary IDs.
   return sortedById(result, "edge_id");
 }
 
@@ -301,7 +301,7 @@ async function readSourceDescendD1(db: D1Database, nodeId: string, maxDepth: num
   const walked=await walkSource(db,nodeId,root,false,maxDepth,limit);
   try{
     const nodes=walked.keys.strings(walked.rules.node_ids()).sort((left,right)=>
-      walked.rules.node_depth(walked.keys.key(left))-walked.rules.node_depth(walked.keys.key(right))||left.localeCompare(right))
+      walked.rules.node_depth(walked.keys.key(left))-walked.rules.node_depth(walked.keys.key(right))||codePointCompare(left,right))
       .map(id=>({...walked.nodes.get(id),depth:walked.rules.node_depth(walked.keys.key(id))}));
     const edges=Array.from(walked.rules.edge_rows(),row=>walked.edges[row]!);
     return {schema:'tos_source_descent_v1',root_id:nodeId,max_depth:maxDepth,limit,truncated:walked.rules.truncated(),
@@ -319,7 +319,7 @@ async function walkSource(db:D1Database,id:string,root:Item,dossier:boolean,dept
   const outgoing=async(id:string,semantic:boolean)=>{if(!dossier)return sourceEdges(db,'outgoing',id,semantic,limit);const prior=outgoingCache.get(id);if(prior)return prior;
     const rows=await sourceEdges(db,'outgoing',id,semantic,limit);outgoingCache.set(id,rows);return rows;};
   while(rules.need()!=='done'){
-    if(rules.need()==='sort'){rules.sorted(keys.observe(keys.strings(rules.sorting_ids()).sort()));continue;}
+    if(rules.need()==='sort'){rules.sorted(keys.observe(keys.strings(rules.sorting_ids()).sort(codePointCompare)));continue;}
     const current=keys.strings(Uint32Array.of(rules.current()))[0]!;
     for(const edge of await (rules.incoming()?incoming(current):outgoing(current,rules.semantic()))){
       const known=handles.get(edge),row=known??edges.length,edgeId=keys.key(stringValue(edge.edge_id));
@@ -352,11 +352,11 @@ async function readSourceDossierD1(db: D1Database, objectId: string, limit: numb
   let rightsRules:SourceRights|undefined;
   try{
     rightsRules=new runtime.WorkerSourceRights();
-    const componentIds=keys.strings(rules.node_ids()).sort(),componentNodes=componentIds.map(id=>nodes.get(id)!);
+    const componentIds=keys.strings(rules.node_ids()).sort(codePointCompare),componentNodes=componentIds.map(id=>nodes.get(id)!);
     const chain:Record<string,Item[]>={};for(const kind of JSON.parse(runtime.WorkerSourceWalk.chain_kinds()) as string[])
       chain[kind]=componentIds.filter(id=>rules.kind_matches(keys.key(id),kind)).map(id=>nodes.get(id)!);
     const edgeRows=Array.from(rules.edge_rows()),componentEdges=edgeRows.map(row=>walked.edges[row]!);
-    const orderedRows=Uint32Array.from(edgeRows.sort((left,right)=>stringValue(walked.edges[left]!.edge_id).localeCompare(stringValue(walked.edges[right]!.edge_id))));
+    const orderedRows=Uint32Array.from(edgeRows.sort((left,right)=>codePointCompare(stringValue(walked.edges[left]!.edge_id),stringValue(walked.edges[right]!.edge_id))));
     const treePaths:Item[]=[];
     rules.prepare_paths(keys.observe((chain.era??[]).map(era=>stringValue(era.node_id))),orderedRows);
     for(let index=0;index<rules.path_count();index++)treePaths.push({node_ids:keys.strings(rules.path_nodes(index)),
@@ -369,17 +369,17 @@ async function readSourceDossierD1(db: D1Database, objectId: string, limit: numb
         if(runtime.WorkerSourceRights.context_ref(record,Boolean(stringValue(record?(value as Item).rights_ref:undefined))))valid++;}
       rightsRules.observe_legacy_file(keys.key(stringValue(edge.to_id)),stringValue(edge.edge_kind),stringValue(edge.predicate_id),Array.isArray(contexts),Array.isArray(contexts)?contexts.length:0,valid);
     }
-    for(const file of keys.strings(rightsRules.legacy_file_ids()).filter(Boolean).sort())for(const edge of await walked.incoming(file))
+    for(const file of keys.strings(rightsRules.legacy_file_ids()).filter(Boolean).sort(codePointCompare))for(const edge of await walked.incoming(file))
       rightsRules.incoming_owner(keys.key(file),keys.key(stringValue(edge.from_id)),stringValue(edge.edge_kind),stringValue(edge.predicate_id));
     const filtered=Array.from(rightsRules.filtered_rows(),row=>rights[row]!);
     for(const link of selectedKind==='work'?(chain.link??[]):[selected])rightsRules.status(stringValue((link.properties as Item|undefined)?.access_status)||'unknown');
     const decision=rules.decision_ids(),summary=JSON.parse(rightsRules.summary(decision,(chain.link??[]).length)) as Item;
-    summary.rights_scope_refs=keys.strings(decision).sort();
+    summary.rights_scope_refs=keys.strings(decision).sort(codePointCompare);
     for(const node of componentNodes){const ref=stringValue(node.source_ref);rules.reference(keys.key(ref),Boolean(ref));}
     for(const edge of componentEdges)for(const ref of stringArray(edge.source_refs))rules.reference(keys.key(ref),true);
     for(const record of filtered){const ref=stringValue(record.source_ref);rules.reference(keys.key(ref),Boolean(ref));}
     return {schema:'tos_source_dossier_v1',object_id:objectId,object:selected,agent_summary:summary,chain,tree_paths:treePaths,
-      relations:Array.from(orderedRows,row=>walked.edges[row]!),rights:sortedById(filtered,'rights_id'),source_refs:keys.strings(rules.references()).sort(),
+      relations:Array.from(orderedRows,row=>walked.edges[row]!),rights:sortedById(filtered,'rights_id'),source_refs:keys.strings(rules.references()).sort(codePointCompare),
       truncated:rules.truncated(),authority_note:navigation.authority_boundary};
   }finally{rightsRules?.free();rules.free();}
 }

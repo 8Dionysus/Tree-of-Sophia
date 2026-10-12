@@ -3,6 +3,7 @@
 use std::{
     io::{self, BufRead, Write},
     sync::Arc,
+    time::Duration,
 };
 use tos_query::AbortProbe;
 
@@ -10,8 +11,8 @@ use tos_foundation::{JsonMode, JsonNumberKind, JsonValue, parse_json};
 
 use crate::common::{
     AccessExecutor, AccessProfile, DisclosureFence, MCP_TOOL, Params, SEARCH_MCP_TOOL,
-    checked_execute, json_string, json_string_len, mcp_tool_list, registered_operations,
-    validate_packet,
+    SourceDescendDelivery, checked_execute, checked_execute_source_descend, json_string,
+    json_string_len, mcp_tool_list, registered_operations, validate_packet,
 };
 
 const RPC_PREFIX: &[u8] = b"{\"jsonrpc\":\"2.0\",\"id\":";
@@ -540,6 +541,80 @@ impl McpSession {
             _ => Some(rpc_error(&id, -32601, "Method not found")),
         }
     }
+
+    /// Source navigation has a callback-local owner fence. When selected, frame
+    /// construction and the complete transport write happen before that owner
+    /// callback can release its PostgreSQL/policy transaction.
+    pub(crate) fn handle_line_with_probe_and_delivery(
+        &mut self,
+        executor: &dyn AccessExecutor,
+        line: &[u8],
+        probe: Arc<dyn AbortProbe>,
+        suffix: &[u8],
+        write: &mut dyn FnMut(&[u8]) -> io::Result<()>,
+    ) -> io::Result<(Option<Vec<u8>>, bool)> {
+        let Some((id, request)) = source_descend_call(line, self.profile) else {
+            return Ok((self.handle_line_with_probe(executor, line, probe), false));
+        };
+        if !self.initialized || !executor.source_descend_available() {
+            return Ok((self.handle_line_with_probe(executor, line, probe), false));
+        }
+        self.pending_initialize = false;
+        self.pending_fence = None;
+        self.pending_id = None;
+        self.pending_tool_result = false;
+        let request = match request {
+            Ok(request) => request,
+            Err(error) => {
+                source_descend_reply(&id, Err(error), suffix, self.profile, write)
+                    .map_err(|_| io::Error::other("MCP source navigation refusal write failed"))?;
+                return Ok((None, true));
+            }
+        };
+        let mut emitted = false;
+        let mut io_failure = None;
+        let mut checked_write = |frame: &[u8]| match write(frame) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                io_failure = Some(error);
+                Err(io::Error::other(
+                    "MCP source navigation transport write failed",
+                ))
+            }
+        };
+        let mut delivery = |result| {
+            emitted = true;
+            source_descend_reply(&id, result, suffix, self.profile, &mut checked_write)
+        };
+        let outcome = checked_execute_source_descend(
+            probe,
+            |probe, delivery| executor.source_descend_with_delivery(request, probe, delivery),
+            &mut delivery,
+        );
+        drop(delivery);
+        drop(checked_write);
+        if let Some(error) = io_failure {
+            return Err(error);
+        }
+        let outcome_error = outcome.err();
+        if !emitted {
+            let error = outcome_error.unwrap_or_else(|| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::Unavailable,
+                    "source descent owner returned without delivery",
+                )
+            });
+            source_descend_reply(&id, Err(error), suffix, self.profile, write)
+                .map_err(|_| io::Error::other("MCP source navigation refusal write failed"))?;
+        } else if let Some(error) = outcome_error {
+            return Err(io::Error::other(format!(
+                "MCP source navigation delivery failed: {}",
+                error.message
+            )));
+        }
+        Ok((None, true))
+    }
+
     /// Retain the same disclosure fence through transport output and final flush.
     /// Initialize is committed only after the complete response was delivered.
     pub(crate) fn write_reply(
@@ -624,6 +699,134 @@ fn tool_error(id: &[u8], message: &str) -> Vec<u8> {
     rpc_result(id, &body)
 }
 
+fn tool_result(id: &[u8], text: &str, packet: &[u8]) -> Vec<u8> {
+    let mut body = Vec::with_capacity(packet.len().saturating_add(128));
+    body.extend_from_slice(TEXT_PREFIX);
+    body.extend(json_string(text));
+    body.extend_from_slice(STRUCTURED_PREFIX);
+    body.extend_from_slice(packet);
+    body.push(b'}');
+    rpc_result(id, &body)
+}
+
+fn source_descend_call(
+    line: &[u8],
+    profile: AccessProfile,
+) -> Option<(Vec<u8>, Result<Params, crate::AccessError>)> {
+    if line.len() > profile.max_line_bytes {
+        return None;
+    }
+    let document = parse_json(line, JsonMode::RequestLastWins, profile.json_limits()).ok()?;
+    let value = document.root();
+    if value.object_get("jsonrpc").and_then(JsonValue::as_str) != Some("2.0")
+        || value.object_get("method").and_then(JsonValue::as_str) != Some("tools/call")
+    {
+        return None;
+    }
+    let id = match value.object_get("id")? {
+        JsonValue::String(value) => json_string(value.as_str()?),
+        JsonValue::Number(value) if value.kind == JsonNumberKind::Int => {
+            value.lexeme.as_bytes().to_vec()
+        }
+        _ => return None,
+    };
+    let params = value.object_get("params")?;
+    if params.object_get("name").and_then(JsonValue::as_str) != Some(MCP_TOOL) {
+        return None;
+    }
+    let arguments = params.object_get("arguments")?;
+    Some((id, Params::from_json(arguments)))
+}
+
+fn source_descend_reply<'packet>(
+    id: &[u8],
+    mut result: Result<crate::PreparedPacket<'packet>, crate::AccessError>,
+    suffix: &[u8],
+    profile: AccessProfile,
+    write: &mut dyn FnMut(&[u8]) -> io::Result<()>,
+) -> Result<(), crate::AccessError> {
+    let mut packet = match result {
+        Ok(packet) => {
+            if packet.body.len() > profile.max_response_bytes {
+                result = Err(crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "source descent response budget exceeded",
+                ));
+                None
+            } else if let Err(error) = validate_packet(&packet.body, profile.max_response_bytes) {
+                result = Err(error);
+                None
+            } else if std::str::from_utf8(&packet.body).is_err() {
+                result = Err(crate::AccessError::new(
+                    crate::AccessErrorCode::CorruptSelectedCarrier,
+                    "source descent packet is not UTF-8",
+                ));
+                None
+            } else if let Err(error) = packet.fence.recheck() {
+                result = Err(error);
+                None
+            } else {
+                Some(packet)
+            }
+        }
+        Err(error) => {
+            result = Err(error);
+            None
+        }
+    };
+    let mut frame = match packet.as_ref() {
+        Some(packet) => match std::str::from_utf8(&packet.body) {
+            Ok(text) => tool_result(id, text, &packet.body),
+            Err(_) => tool_error(id, "source descent packet is not UTF-8"),
+        },
+        None => tool_error(
+            id,
+            result
+                .as_ref()
+                .err()
+                .map_or("source descent refused", |error| error.message),
+        ),
+    };
+    if !frame
+        .len()
+        .checked_add(suffix.len())
+        .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
+    {
+        frame = rpc_error(id, -32603, "MCP response frame exceeds byte budget");
+        packet = None;
+        if !frame
+            .len()
+            .checked_add(suffix.len())
+            .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
+        {
+            return Err(crate::AccessError::new(
+                crate::AccessErrorCode::BudgetExceeded,
+                "MCP refusal frame exceeds byte budget",
+            ));
+        }
+    }
+    frame.extend_from_slice(suffix);
+    let write_result = write(&frame);
+    // An I/O error can arrive after some or all bytes were emitted. Keep the
+    // disclosure fence through that ambiguous outcome as well, and prefer a
+    // failed final fence when both checks fail.
+    let final_fence = packet
+        .as_mut()
+        .and_then(|packet| packet.fence.recheck().err());
+    if let Err(_error) = write_result {
+        return Err(final_fence.unwrap_or_else(|| {
+            crate::AccessError::new(
+                crate::AccessErrorCode::Cancelled,
+                "MCP source descent response write failed",
+            )
+        }));
+    }
+    if let Some(error) = final_fence {
+        return Err(error);
+    }
+    Ok(())
+}
+
 /// Each stdio line is one UTF-8 JSON-RPC message. Process diagnostics belong
 /// on stderr; stdout carries protocol frames only.
 pub fn run_stdio(executor: &dyn AccessExecutor, profile: AccessProfile) -> io::Result<()> {
@@ -654,16 +857,36 @@ pub fn run_stdio_with_source_text_search(
     software: Option<Arc<crate::site::SoftwareSite>>,
     source_text_search: Option<Arc<crate::source_text_search::SelectedPgSourceTextSearch>>,
 ) -> io::Result<()> {
-    let stdin = io::stdin();
-    let stdout = io::stdout();
-    run_io_with_source_text_search(
-        stdin.lock(),
-        stdout.lock(),
-        executor,
-        profile,
-        software,
-        source_text_search,
-    )
+    #[cfg(unix)]
+    {
+        let stdin = io::stdin();
+        let stdout = io::stdout();
+        let mut input = stdin.lock();
+        let mut output = stdout.lock();
+        let mut session =
+            McpSession::with_selected_source_text_search(profile, software, source_text_search);
+        run_io_loop(
+            &mut input,
+            &mut output,
+            &mut session,
+            executor,
+            profile,
+            Some(libc::STDOUT_FILENO),
+        )
+    }
+    #[cfg(not(unix))]
+    {
+        let stdin = io::stdin();
+        let stdout = io::stdout();
+        run_io_with_source_text_search(
+            stdin.lock(),
+            stdout.lock(),
+            executor,
+            profile,
+            software,
+            source_text_search,
+        )
+    }
 }
 #[cfg(target_arch = "wasm32")]
 pub fn run_stdio_with_source_text_search(
@@ -709,7 +932,14 @@ fn run_io_without_source_text_search<R: BufRead, W: Write>(
     software: Option<Arc<crate::site::SoftwareSite>>,
 ) -> io::Result<()> {
     let mut session = McpSession::with_software(profile, software);
-    run_io_loop(&mut input, &mut output, &mut session, executor, profile)
+    run_io_loop(
+        &mut input,
+        &mut output,
+        &mut session,
+        executor,
+        profile,
+        None,
+    )
 }
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run_io_with_source_text_search<R: BufRead, W: Write>(
@@ -722,7 +952,14 @@ pub fn run_io_with_source_text_search<R: BufRead, W: Write>(
 ) -> io::Result<()> {
     let mut session =
         McpSession::with_selected_source_text_search(profile, software, source_text_search);
-    run_io_loop(&mut input, &mut output, &mut session, executor, profile)
+    run_io_loop(
+        &mut input,
+        &mut output,
+        &mut session,
+        executor,
+        profile,
+        None,
+    )
 }
 #[cfg(target_arch = "wasm32")]
 pub fn run_io_with_source_text_search<R: BufRead, W: Write>(
@@ -742,6 +979,7 @@ fn run_io_loop<R: BufRead, W: Write>(
     session: &mut McpSession,
     executor: &dyn AccessExecutor,
     profile: AccessProfile,
+    source_fd: Option<i32>,
 ) -> io::Result<()> {
     loop {
         let mut line = Vec::new();
@@ -765,7 +1003,30 @@ fn run_io_loop<R: BufRead, W: Write>(
         let response = if overflow {
             Some(rpc_error(b"null", -32700, "MCP frame exceeds byte budget"))
         } else {
-            session.handle_line(executor, &line)
+            let operation_profile =
+                if source_fd.is_some() && source_descend_call(&line, profile).is_some() {
+                    profile.with_query_timeout(Duration::from_secs(30))
+                } else {
+                    profile
+                };
+            let probe = operation_profile.deadline_probe();
+            let mut write = |frame: &[u8]| {
+                if let Some(fd) = source_fd {
+                    crate::common::write_fd_with_probe(fd, frame, probe.as_ref())
+                } else {
+                    output.write_all(frame)?;
+                    output.flush()
+                }
+            };
+            let (response, _) = session.handle_line_with_probe_and_delivery(
+                executor,
+                &line,
+                Arc::clone(&probe),
+                b"\n",
+                &mut write,
+            )?;
+            drop(write);
+            response
         };
         if let Some(frame) = response {
             session.write_reply(frame, b"\n", |frame| {

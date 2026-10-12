@@ -119,7 +119,12 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
       case "tos.search": {
         const query = String(input.query || "").trim();
         const limit = boundedInt(input.limit, "search-limit");
-        return fetchJson<ToSQueryResult>(`/api/${mode}/search${params({ query, limit })}`, request);
+        if (input.resource_kind !== undefined && input.resource_kind !== null
+          && (mode !== "corpus" || typeof input.resource_kind !== "string" || input.resource_kind.length === 0)) {
+          throw new Error("resource_kind must be a non-empty string for corpus search");
+        }
+        const resourceKind = typeof input.resource_kind === "string" ? input.resource_kind : undefined;
+        return fetchJson<ToSQueryResult>(`/api/${mode}/search${params({ query, limit, resource_kind: resourceKind })}`, request);
       }
       case "tos.knowledge.search": {
         const query = String(input.query || "").trim();

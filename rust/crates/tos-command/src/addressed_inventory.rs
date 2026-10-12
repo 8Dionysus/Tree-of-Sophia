@@ -15,11 +15,11 @@ use tos_segment_store::{
 const PROJECTION_KIND: &[u8] = b"tos.cmd.managed-agent-inventory-projection-v2";
 const PROFILE_KIND: &[u8] = b"tos.cmd.managed-agent-source-profile-v2";
 const INVENTORY_MAGIC: &[u8] = b"TOS-AI-V2\0";
-const MIXED_PROJECTION_KIND: &[u8] = b"tos.cmd.managed-mixed-source-inventory-projection-v1";
-const MIXED_PROFILE_KIND: &[u8] = b"tos.cmd.managed-mixed-source-profile-v1";
+const MIXED_PROJECTION_KIND: &[u8] = b"tos.cmd.managed-mixed-source-inventory-projection-v2";
+const MIXED_PROFILE_KIND: &[u8] = b"tos.cmd.managed-mixed-source-profile-v2";
 const MIXED_AGENT_PROFILE_KIND: &[u8] = b"tos.cmd.managed-mixed-agent-source-profile-v1";
-const MIXED_INVENTORY_MAGIC: &[u8] = b"TOS-MI-V1\0";
-const MIXED_SCHEMA_VERSION: &str = "tos_managed_mixed_source_inventory_member_v1";
+const MIXED_INVENTORY_MAGIC: &[u8] = b"TOS-MI-V2\0";
+const MIXED_SCHEMA_VERSION: &str = "tos_managed_mixed_source_inventory_member_v2";
 const MIXED_AGENT_BASELINE: [&str; 2] = [
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/contracts/semantic-entity-type-registry.schema.json",
@@ -406,112 +406,35 @@ impl AddressedInventoryV2 {
         work: &mut AuthenticatedTreeWorkV1,
     ) -> DurableResult<Self> {
         self.require_store(store)?;
-        if changed.len() > MAX_MEMBERS {
-            return Err(DurableError::Refused(
-                "Agent projection delta exceeds member bound",
-            ));
-        }
         if changed.is_empty() {
             return Ok(self.clone());
         }
-        let next_count = self
-            .projections
-            .entries
-            .checked_add(changed.len() as u64)
-            .ok_or(DurableError::Refused(
-                "Agent projection tree entry count overflow",
-            ))?;
-        let mut projection_delta = Vec::with_capacity(changed.len());
-        let mut profile_delta = BTreeMap::<String, Digest256>::new();
-        let mut total_key_bytes = 0usize;
-        let mut total_projection_bytes = 0usize;
+        let (projection_delta, profile_delta, _, next_count) = prepare_inventory_projection_delta(
+            store,
+            &self.projections,
+            changed,
+            limits,
+            deadline,
+            cancelled,
+            work,
+            |subject, raw| {
+                let value = parse_projection(subject, raw, None)?;
+                let mut profiles = BTreeMap::new();
+                collect_profiles(&value, &mut profiles)?;
+                Ok((profiles, BTreeMap::new()))
+            },
+        )?;
 
-        for (subject, raw) in changed {
-            active(deadline, cancelled)?;
-            let path = RelativePath::parse(subject)
-                .map_err(|_| DurableError::Corrupt("Agent delta projection path"))?;
-            if !path.as_str().starts_with("ToS/") || raw.len() > 1_048_576 {
-                return Err(DurableError::Refused(
-                    "Agent delta projection exceeds its member envelope",
-                ));
-            }
-            total_key_bytes = total_key_bytes
-                .checked_add(path.as_str().len())
-                .filter(|n| *n <= MAX_TOTAL_MEMBERSHIP_KEY_BYTES)
-                .ok_or(DurableError::Refused(
-                    "Agent delta keys exceed authenticated tree envelope",
-                ))?;
-            total_projection_bytes = total_projection_bytes
-                .checked_add(raw.len())
-                .filter(|n| *n <= MAX_PROJECTION_BYTES as usize)
-                .ok_or(DurableError::Refused(
-                    "Agent delta projections exceed cold metadata envelope",
-                ))?;
-            if path.as_str().as_bytes().len() > limits.max_key_bytes {
-                return Err(DurableError::Refused(
-                    "Agent delta key exceeds authenticated tree bound",
-                ));
-            }
-            let (existing, lookup_work) = store
-                .lookup_authenticated_tree_v2_with_work(
-                    &self.projections,
-                    path.as_str().as_bytes(),
-                    limits,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(tree_error)?;
-            add_tree_work(work, lookup_work)?;
-            if existing.is_some() {
-                return Err(DurableError::Conflict(
-                    "Agent delta rewrites an addressed projection",
-                ));
-            }
-            let value = parse_projection(subject, raw, None)?;
-            collect_profiles(&value, &mut profile_delta)?;
-            projection_delta.push(AuthenticatedTreeDeltaV1 {
-                key: path.as_str().as_bytes().to_vec(),
-                value: Some(Digest256::of_bytes(raw).as_bytes().to_vec()),
-            });
-        }
-
-        let mut profile_changes = Vec::new();
-        for (path, digest) in profile_delta {
-            let (existing, lookup_work) = store
-                .lookup_authenticated_tree_v2_with_work(
-                    &self.profiles,
-                    path.as_bytes(),
-                    limits,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(tree_error)?;
-            add_tree_work(work, lookup_work)?;
-            if let Some(existing) = existing {
-                if existing.as_slice() != digest.as_bytes() {
-                    return Err(DurableError::Corrupt(
-                        "Agent source profile contributions disagree",
-                    ));
-                }
-            } else {
-                profile_changes.push(AuthenticatedTreeDeltaV1 {
-                    key: path.into_bytes(),
-                    value: Some(digest.as_bytes().to_vec()),
-                });
-            }
-        }
-        let next_profile_count = self
-            .profiles
-            .entries
-            .checked_add(profile_changes.len() as u64)
-            .ok_or(DurableError::Refused(
-                "Agent source profile tree entry count overflow",
-            ))?;
-        if next_profile_count > MAX_PROFILE_COUNT {
-            return Err(DurableError::Refused(
-                "Agent source profile union exceeds selected file bound",
-            ));
-        }
+        let profile_changes = checked_profile_changes(
+            store,
+            &self.profiles,
+            profile_delta,
+            limits,
+            deadline,
+            cancelled,
+            work,
+            "Agent source profile contributions disagree",
+        )?;
         let (projection_tree, projection_work) = store
             .apply_authenticated_tree_delta_v2_with_work(
                 &self.projections,
@@ -522,21 +445,15 @@ impl AddressedInventoryV2 {
             )
             .map_err(tree_error)?;
         add_tree_work(work, projection_work)?;
-        let profile_tree = if profile_changes.is_empty() {
-            self.profiles.clone()
-        } else {
-            let (profile_tree, profile_work) = store
-                .apply_authenticated_tree_delta_v2_with_work(
-                    &self.profiles,
-                    profile_changes.into_iter().map(Ok),
-                    limits,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(tree_error)?;
-            add_tree_work(work, profile_work)?;
-            profile_tree
-        };
+        let profile_tree = apply_inventory_profile_changes(
+            store,
+            &self.profiles,
+            profile_changes,
+            limits,
+            deadline,
+            cancelled,
+            work,
+        )?;
         if projection_tree.entries != next_count || profile_tree.entries > MAX_PROFILE_COUNT {
             return Err(DurableError::Corrupt(
                 "Agent authenticated inventory delta coverage differs",
@@ -638,34 +555,15 @@ impl AddressedInventoryV2 {
                 "Agent source profile union exceeds selected file bound",
             ));
         }
-        let mut stream = store
-            .stream_authenticated_tree_v2(&self.profiles, limits)
-            .map_err(tree_error)?;
-        let mut profiles = BTreeMap::<String, Digest256>::new();
-        let mut previous = String::new();
-        while let Some(entry) = stream.next_row(deadline, cancelled).map_err(tree_error)? {
-            active(deadline, cancelled)?;
-            let path = String::from_utf8(entry.key)
-                .map_err(|_| DurableError::Corrupt("Agent source profile tree key"))?;
-            if path <= previous {
-                return Err(DurableError::Corrupt(
-                    "Agent source profile tree ordering differs",
-                ));
-            }
-            RelativePath::parse(&path)
-                .map_err(|_| DurableError::Corrupt("Agent source profile tree path"))?;
-            let bytes: [u8; 32] = entry
-                .value
-                .try_into()
-                .map_err(|_| DurableError::Corrupt("Agent source profile tree digest"))?;
-            profiles.insert(path.clone(), Digest256::from_bytes(bytes));
-            previous = path;
-        }
-        if profiles.len() as u64 != self.profiles.entries {
-            return Err(DurableError::Corrupt(
-                "Agent source profile tree coverage differs",
-            ));
-        }
+        let profiles = read_inventory_profile_tree(
+            store,
+            &self.profiles,
+            MAX_PROFILE_COUNT,
+            limits,
+            deadline,
+            cancelled,
+            "Agent source profile",
+        )?;
 
         let mut profile_values = Vec::with_capacity(profiles.len());
         for (path, digest) in &profiles {
@@ -742,84 +640,24 @@ impl AddressedInventoryV2 {
             collect_profiles(&value, &mut expected_profiles)?;
         }
 
-        let mut projection_rows = store
-            .stream_authenticated_tree_v2(&self.projections, limits)
-            .map_err(tree_error)?;
-        let mut expected = projections.iter();
-        let mut previous = String::new();
-        let mut count = 0u64;
-        while let Some(entry) = projection_rows
-            .next_row(deadline, cancelled)
-            .map_err(tree_error)?
-        {
-            active(deadline, cancelled)?;
-            let path = String::from_utf8(entry.key)
-                .map_err(|_| DurableError::Corrupt("addressed source projection key"))?;
-            if path <= previous {
-                return Err(DurableError::Corrupt(
-                    "addressed source projection ordering differs",
-                ));
-            }
-            let (expected_path, raw) = expected.next().ok_or(DurableError::Corrupt(
-                "addressed source projection has extra member",
-            ))?;
-            let digest = Digest256::of_bytes(raw);
-            if path.as_str() != expected_path.as_str()
-                || entry.value.as_slice() != &digest.as_bytes()[..]
-            {
-                return Err(DurableError::Conflict(
-                    "addressed source projection differs from verified source",
-                ));
-            }
-            previous = path;
-            count = count.checked_add(1).ok_or(DurableError::Corrupt(
-                "addressed source projection count overflow",
-            ))?;
-        }
-        if count != self.projections.entries || expected.next().is_some() {
-            return Err(DurableError::Corrupt(
-                "addressed source projection EOF differs",
-            ));
-        }
-
-        let mut profile_rows = store
-            .stream_authenticated_tree_v2(&self.profiles, limits)
-            .map_err(tree_error)?;
-        let mut expected = expected_profiles.iter();
-        let mut previous = String::new();
-        let mut count = 0u64;
-        while let Some(entry) = profile_rows
-            .next_row(deadline, cancelled)
-            .map_err(tree_error)?
-        {
-            active(deadline, cancelled)?;
-            let path = String::from_utf8(entry.key)
-                .map_err(|_| DurableError::Corrupt("addressed source profile key"))?;
-            if path <= previous {
-                return Err(DurableError::Corrupt(
-                    "addressed source profile ordering differs",
-                ));
-            }
-            let (expected_path, expected_digest) = expected.next().ok_or(DurableError::Corrupt(
-                "addressed source profile has extra member",
-            ))?;
-            if path.as_str() != expected_path.as_str()
-                || entry.value.as_slice() != &expected_digest.as_bytes()[..]
-            {
-                return Err(DurableError::Conflict(
-                    "addressed source profile differs from verified projections",
-                ));
-            }
-            previous = path;
-            count = count.checked_add(1).ok_or(DurableError::Corrupt(
-                "addressed source profile count overflow",
-            ))?;
-        }
-        if count != self.profiles.entries || expected.next().is_some() {
-            return Err(DurableError::Corrupt(
-                "addressed source profile EOF differs",
-            ));
-        }
+        verify_inventory_tree(
+            store,
+            &self.projections,
+            projections,
+            limits,
+            deadline,
+            cancelled,
+            "Agent source projection",
+        )?;
+        verify_inventory_profile_tree(
+            store,
+            &self.profiles,
+            &expected_profiles,
+            limits,
+            deadline,
+            cancelled,
+            "Agent source profile",
+        )?;
 
         // The source bytes must also still provide the exact selected profile
         // files and dependency template bound by this authenticated inventory.
@@ -829,56 +667,18 @@ impl AddressedInventoryV2 {
 
     pub(super) fn encode(&self) -> DurableResult<Vec<u8>> {
         self.check_descriptor_pair()?;
-        let projections = self
-            .projections
-            .encode(MAX_INVENTORY_DESCRIPTOR_BYTES)
-            .map_err(tree_error)?;
-        let profiles = self
-            .profiles
-            .encode(MAX_INVENTORY_DESCRIPTOR_BYTES)
-            .map_err(tree_error)?;
-        let total = INVENTORY_MAGIC
-            .len()
-            .checked_add(4)
-            .and_then(|n| n.checked_add(projections.len()))
-            .and_then(|n| n.checked_add(4))
-            .and_then(|n| n.checked_add(profiles.len()))
-            .filter(|n| *n <= MAX_INVENTORY_DESCRIPTOR_BYTES)
-            .ok_or(DurableError::Refused(
-                "Agent inventory descriptor exceeds byte bound",
-            ))?;
-        let mut output = Vec::with_capacity(total);
-        output.extend_from_slice(INVENTORY_MAGIC);
-        append_bytes(&mut output, &projections)?;
-        append_bytes(&mut output, &profiles)?;
-        Ok(output)
+        encode_inventory_descriptors(INVENTORY_MAGIC, &[&self.projections, &self.profiles])
     }
 
     pub(super) fn decode(raw: &[u8]) -> DurableResult<Self> {
-        if raw.len() > MAX_INVENTORY_DESCRIPTOR_BYTES || !raw.starts_with(INVENTORY_MAGIC) {
-            return Err(DurableError::Corrupt(
-                "Agent inventory descriptor version/size",
-            ));
-        }
-        let mut offset = INVENTORY_MAGIC.len();
-        let projection_bytes = take_bytes(raw, &mut offset)?;
-        let profile_bytes = take_bytes(raw, &mut offset)?;
-        if offset != raw.len() {
-            return Err(DurableError::Corrupt(
-                "Agent inventory descriptor trailing bytes",
-            ));
-        }
+        let mut descriptors = decode_inventory_descriptors(raw, INVENTORY_MAGIC, 2)?;
         let result = Self {
-            projections: AuthenticatedTreeDescriptorV2::decode(
-                projection_bytes,
-                MAX_INVENTORY_DESCRIPTOR_BYTES,
-            )
-            .map_err(tree_error)?,
-            profiles: AuthenticatedTreeDescriptorV2::decode(
-                profile_bytes,
-                MAX_INVENTORY_DESCRIPTOR_BYTES,
-            )
-            .map_err(tree_error)?,
+            profiles: descriptors
+                .pop()
+                .ok_or(DurableError::Corrupt("Agent inventory descriptor fields"))?,
+            projections: descriptors
+                .pop()
+                .ok_or(DurableError::Corrupt("Agent inventory descriptor fields"))?,
         };
         result.check_descriptor_pair()?;
         if result.encode()? != raw {
@@ -1975,6 +1775,8 @@ fn parse_mixed_projection(
             "events",
             "anchors",
             "form",
+            "claim_owner",
+            "public_text_owner",
         ],
     )
     .map_err(source_error)?;
@@ -1985,23 +1787,66 @@ fn parse_mixed_projection(
         .map_err(source_error)?
         .as_object()
         .ok_or(DurableError::Corrupt("mixed projection records map"))?;
-    for kind in crate::source_claims::NATIVE_CATALOG_KINDS {
+    if records.len() != crate::source_claims::MIXED_INVENTORY_RECORD_KINDS.len()
+        || records.iter().any(|(key, _)| {
+            key.as_str().is_none_or(|key| {
+                !crate::source_claims::MIXED_INVENTORY_RECORD_KINDS.contains(&key)
+            })
+        })
+    {
+        return Err(DurableError::Corrupt(
+            "mixed projection record family is not exact",
+        ));
+    }
+    for kind in crate::source_claims::MIXED_INVENTORY_RECORD_KINDS {
         if !records.iter().any(|(key, _)| key.as_str() == Some(*kind)) {
             return Err(DurableError::Corrupt(
-                "mixed projection native kind coverage",
+                "mixed projection record kind coverage",
             ));
         }
     }
     if records.iter().any(|(_, rows)| rows.as_array().is_none()) {
         return Err(DurableError::Corrupt("mixed projection record rows"));
     }
+    let form_required = subject.starts_with("ToS/source-witnesses/")
+        && subject
+            .rsplit('/')
+            .next()
+            .is_some_and(|basename| basename.ends_with(".human-forms.json"));
+    if form_required
+        && value
+            .object_get("form")
+            .is_none_or(|form| form.as_object().is_none())
+    {
+        return Err(DurableError::Corrupt(
+            "mixed projection HumanForm contribution is absent",
+        ));
+    }
     if let Some(form) = value.object_get("form") {
         if form.as_object().is_some() {
             cmd::exact_keys(form, &["raw_sha256", "form_ids"]).map_err(source_error)?;
+            if is_claim_form_path(subject) {
+                validate_claim_form_projection(form, subject, &parsed_digest.to_hex())?;
+            } else {
+                validate_record_form_projection(form, subject, &parsed_digest.to_hex())?;
+            }
         } else if form != &tos_foundation::JsonValue::Null {
             return Err(DurableError::Corrupt("mixed projection form shape"));
         }
     }
+    let claim_owner = cmd::field(&value, "claim_owner").map_err(source_error)?;
+    if is_claim_stream_path(subject) {
+        validate_claim_owner(claim_owner, subject, raw_digest)?;
+    } else if claim_owner != &tos_foundation::JsonValue::Null {
+        return Err(DurableError::Corrupt(
+            "Claim owner contribution occurs on a non-Claim member",
+        ));
+    }
+    validate_public_text_owner(
+        cmd::field(&value, "public_text_owner").map_err(source_error)?,
+        subject,
+        raw_digest,
+    )?;
     if cmd::text(&value, "schema_version").map_err(source_error)? != MIXED_SCHEMA_VERSION
         || cmd::text(&value, "path").map_err(source_error)? != subject
         || expected_content_digest.is_some_and(|expected| expected != parsed_digest.to_hex())
@@ -2015,6 +1860,1329 @@ fn parse_mixed_projection(
         .map_err(|_| DurableError::Corrupt("mixed projection path invalid"))?;
     collect_profile_map(&value)?;
     Ok(value)
+}
+
+fn validate_claim_form_projection(
+    form: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    let basename = subject.rsplit('/').next().unwrap_or(subject);
+    let stem = basename
+        .strip_prefix("source-claims.")
+        .and_then(|name| name.strip_suffix(".human-forms.json"))
+        .ok_or(DurableError::Corrupt("Claim form projection path"))?;
+    let _ = Digest256::from_hex(stem)
+        .map_err(|_| DurableError::Corrupt("Claim form projection identity path"))?;
+    if !subject.starts_with("ToS/source-witnesses/")
+        || owner_digest(form, "raw_sha256")?
+            != Digest256::from_hex(raw_sha256)
+                .map_err(|_| DurableError::Corrupt("Claim form source digest"))?
+    {
+        return Err(DurableError::Corrupt(
+            "Claim form projection source binding",
+        ));
+    }
+    let ids = cmd::field(form, "form_ids")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Claim form projection identity list"))?;
+    let mut seen = BTreeSet::new();
+    for id in ids {
+        let id = id
+            .as_str()
+            .filter(|id| !id.is_empty())
+            .ok_or(DurableError::Corrupt("Claim form projection identity"))?;
+        if !seen.insert(id.to_owned()) {
+            return Err(DurableError::Corrupt(
+                "Claim form projection duplicate identity",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn is_claim_form_path(subject: &str) -> bool {
+    let basename = subject.rsplit('/').next().unwrap_or(subject);
+    subject.starts_with("ToS/source-witnesses/")
+        && basename.starts_with("source-claims.")
+        && basename.ends_with(".human-forms.json")
+}
+
+fn is_claim_stream_path(subject: &str) -> bool {
+    let basename = subject.rsplit('/').next().unwrap_or(subject);
+    subject.starts_with("ToS/source-witnesses/")
+        && (basename == crate::source_claims::CLAIM_STREAM || basename.ends_with("-claims.jsonl"))
+}
+
+fn validate_record_form_projection(
+    form: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    let basename = subject.rsplit('/').next().unwrap_or(subject);
+    let stem = basename
+        .strip_suffix(".human-forms.json")
+        .filter(|stem| !stem.is_empty())
+        .ok_or(DurableError::Corrupt("record form projection path"))?;
+    let record_path = format!(
+        "{}/{}.json",
+        subject.rsplit_once('/').map_or("", |(parent, _)| parent),
+        stem
+    );
+    if !subject.starts_with("ToS/source-witnesses/")
+        || RelativePath::parse(&record_path).is_err()
+        || owner_digest(form, "raw_sha256")?
+            != Digest256::from_hex(raw_sha256)
+                .map_err(|_| DurableError::Corrupt("record form source digest"))?
+    {
+        return Err(DurableError::Corrupt("record form projection binding"));
+    }
+    let ids = cmd::field(form, "form_ids")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("record form projection identities"))?;
+    if ids.is_empty() {
+        return Err(DurableError::Corrupt("record form projection is empty"));
+    }
+    let mut seen = BTreeSet::new();
+    for id in ids {
+        let id = id
+            .as_str()
+            .filter(|id| !id.is_empty())
+            .ok_or(DurableError::Corrupt("record form projection identity"))?;
+        if !seen.insert(id.to_owned()) {
+            return Err(DurableError::Corrupt(
+                "record form projection duplicate identity",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn owner_digest(owner: &tos_foundation::JsonValue, key: &str) -> DurableResult<Digest256> {
+    Digest256::from_prefixed(cmd::text(owner, key).map_err(source_error)?)
+        .map_err(|_| DurableError::Corrupt("mixed owner contribution digest"))
+}
+
+fn validate_owner_member_rows(
+    members: &tos_foundation::JsonValue,
+    expected_prefix: &str,
+    allowed_roles: &[&str],
+) -> DurableResult<BTreeMap<String, (String, u64, Digest256)>> {
+    let rows = members
+        .as_array()
+        .ok_or(DurableError::Corrupt("mixed owner member rows"))?;
+    let mut result = BTreeMap::new();
+    let mut previous: Option<&str> = None;
+    for member in rows {
+        cmd::exact_keys(member, &["ref", "role", "sha256", "bytes"]).map_err(source_error)?;
+        let path = cmd::text(member, "ref").map_err(source_error)?;
+        let role = cmd::text(member, "role").map_err(source_error)?;
+        let digest = Digest256::from_prefixed(cmd::text(member, "sha256").map_err(source_error)?)
+            .map_err(|_| DurableError::Corrupt("mixed owner member digest"))?;
+        let bytes = cmd::integer(member, "bytes").map_err(source_error)?;
+        let tail = path
+            .strip_prefix(expected_prefix)
+            .ok_or(DurableError::Corrupt("mixed owner member prefix"))?;
+        if tail.is_empty()
+            || tail.contains('/')
+            || RelativePath::parse(path).is_err()
+            || previous.is_some_and(|prior| prior.as_bytes() >= path.as_bytes())
+            || !allowed_roles.contains(&role)
+            || bytes > 8_388_608
+        {
+            return Err(DurableError::Corrupt("mixed owner member row binding"));
+        }
+        previous = Some(path);
+        if result
+            .insert(path.to_owned(), (role.to_owned(), bytes, digest))
+            .is_some()
+        {
+            return Err(DurableError::Corrupt("mixed owner member duplicate"));
+        }
+    }
+    Ok(result)
+}
+
+fn validate_owner_closure(owner: &tos_foundation::JsonValue) -> DurableResult<()> {
+    let object = owner
+        .as_object()
+        .ok_or(DurableError::Corrupt("mixed owner closure object"))?;
+    let mut core = object
+        .iter()
+        .filter(|(key, _)| key.as_str() != Some("closure_sha256"))
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect::<Vec<_>>();
+    core.sort_by(|left, right| left.0.cmp(&right.0));
+    if cmd::record_digest(&tos_foundation::JsonValue::Object(core)).map_err(source_error)?
+        != owner_digest(owner, "closure_sha256")?
+    {
+        return Err(DurableError::Corrupt("mixed owner closure root differs"));
+    }
+    Ok(())
+}
+
+fn growth_receipt_name(schema: &str) -> Option<&'static str> {
+    Some(match schema {
+        "tos_managed_collection_membership_claim_owner_inventory_v1" => {
+            "membership-attachment-receipt.json"
+        }
+        "tos_managed_expression_edition_claim_owner_inventory_v1" => {
+            "expression-edition-receipt.json"
+        }
+        "tos_managed_expression_responsibility_claim_owner_inventory_v1" => {
+            "responsibility-attachment-receipt.json"
+        }
+        "tos_managed_work_expression_claim_owner_inventory_v1" => "work-expression-receipt.json",
+        "tos_managed_object_link_claim_owner_inventory_v1" => "object-link-creation-receipt.json",
+        _ => return None,
+    })
+}
+
+fn validate_growth_claim_owner(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+    schema: &str,
+    allowed_roles: &[&str],
+    expected_claim_count: usize,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "package_home",
+            "source_path",
+            "stream_sha256",
+            "direct_members",
+            "claims",
+            "closure_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let home = subject
+        .strip_suffix("/source-claims.jsonl")
+        .ok_or(DurableError::Corrupt("Growth Claim owner source path"))?;
+    let stream_digest = Digest256::from_hex(raw_sha256)
+        .map_err(|_| DurableError::Corrupt("Growth Claim stream digest"))?;
+    if cmd::text(owner, "schema_version").map_err(source_error)? != schema
+        || cmd::text(owner, "package_home").map_err(source_error)? != home
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || owner_digest(owner, "stream_sha256")? != stream_digest
+        || !home.starts_with("ToS/source-witnesses/")
+    {
+        return Err(DurableError::Corrupt("Growth Claim owner source binding"));
+    }
+    let direct = validate_owner_member_rows(
+        cmd::field(owner, "direct_members").map_err(source_error)?,
+        &format!("{home}/"),
+        allowed_roles,
+    )?;
+    let receipt_name =
+        growth_receipt_name(schema).ok_or(DurableError::Corrupt("Growth Claim owner schema"))?;
+    for (name, role) in [
+        ("source-claims.jsonl", "claim-stream"),
+        ("source-create-request.json", "creation-request"),
+        ("source-create-environment.json", "creation-environment"),
+        ("source-create-provenance.jsonl", "creation-event"),
+        (receipt_name, "creation-receipt"),
+    ] {
+        if direct
+            .get(&format!("{home}/{name}"))
+            .is_none_or(|(actual, _, digest)| {
+                actual != role || name == "source-claims.jsonl" && *digest != stream_digest
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "Growth Claim owner required member absent",
+            ));
+        }
+    }
+    for (path, (role, _, _)) in &direct {
+        let basename = path.rsplit('/').next().unwrap_or(path);
+        let expected_role = match basename {
+            "source-claims.jsonl" => Some("claim-stream"),
+            "source-create-request.json" => Some("creation-request"),
+            "source-create-environment.json" => Some("creation-environment"),
+            "source-create-provenance.jsonl" => Some("creation-event"),
+            "claim-revision-history.json" => Some("revision-history"),
+            name if name == receipt_name => Some("creation-receipt"),
+            name if name.starts_with("source-claims.") && name.ends_with(".human-forms.json") => {
+                Some("human-form-set")
+            }
+            _ => None,
+        };
+        if expected_role != Some(role.as_str()) {
+            return Err(DurableError::Corrupt(
+                "Growth Claim owner member role differs",
+            ));
+        }
+    }
+    let mut required_paths = BTreeSet::from([
+        subject.to_owned(),
+        format!("{home}/source-create-request.json"),
+        format!("{home}/source-create-environment.json"),
+        format!("{home}/source-create-provenance.jsonl"),
+        format!("{home}/{receipt_name}"),
+    ]);
+    let history_path = format!("{home}/claim-revision-history.json");
+    if direct.contains_key(&history_path) {
+        required_paths.insert(history_path);
+    }
+    let claims = cmd::field(owner, "claims")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Growth Claim owner claims"))?;
+    if claims.len() != expected_claim_count || claims.is_empty() {
+        return Err(DurableError::Corrupt(
+            "Growth Claim owner claim count differs",
+        ));
+    }
+    let expected_predicate = match schema {
+        "tos_managed_collection_membership_claim_owner_inventory_v1" => Some("contains_work"),
+        "tos_managed_expression_edition_claim_owner_inventory_v1" => Some("embodied_by"),
+        "tos_managed_expression_responsibility_claim_owner_inventory_v1" => Some("translated_by"),
+        "tos_managed_work_expression_claim_owner_inventory_v1" => Some("has_expression"),
+        _ => None,
+    };
+    let object_link = schema == "tos_managed_object_link_claim_owner_inventory_v1";
+    let mut claim_ids = BTreeSet::new();
+    let mut expected_forms = BTreeSet::new();
+    for claim in claims {
+        let expected_claim_schema = if object_link {
+            "tos_object_link_claim_v2"
+        } else {
+            "tos_source_relation_claim_v1"
+        };
+        if cmd::text(claim, "schema_version").map_err(source_error)? != expected_claim_schema {
+            return Err(DurableError::Corrupt("Growth Claim source schema differs"));
+        }
+        let claim_id = cmd::text(claim, "claim_id").map_err(source_error)?;
+        let claim_version = cmd::integer(claim, "claim_version").map_err(source_error)?;
+        let predicate = cmd::text(claim, "predicate").map_err(source_error)?;
+        if !claim_id.starts_with("tos.claim.")
+            || claim_id.len() > 4_096
+            || claim_version == 0
+            || predicate.is_empty()
+            || !cmd::text(claim, "subject_ref")
+                .map_err(source_error)?
+                .starts_with("tos.")
+            || !cmd::text(claim, "object")
+                .map_err(source_error)?
+                .starts_with("tos.")
+            || !cmd::text(claim, "provenance_event_ref")
+                .map_err(source_error)?
+                .starts_with("tos.")
+            || cmd::text(claim, "claim_type").map_err(source_error)? != "relation"
+            || expected_predicate.is_some_and(|expected| predicate != expected)
+            || (object_link
+                && (cmd::text(claim, "claim_type").map_err(source_error)? != "relation"
+                    || cmd::text(claim, "assertion_layer").map_err(source_error)?
+                        != "forensic_observation"
+                    || ![
+                        "described_by",
+                        "metadata_at",
+                        "downloadable_at",
+                        "rights_statement_at",
+                    ]
+                    .contains(&predicate)
+                    || !cmd::text(claim, "subject_ref")
+                        .map_err(source_error)?
+                        .starts_with("tos.")
+                    || !cmd::text(claim, "object")
+                        .map_err(source_error)?
+                        .starts_with("tos.link.")
+                    || cmd::text(claim, "review_status").map_err(source_error)? != "unreviewed"))
+            || !claim_ids.insert(claim_id.to_owned())
+        {
+            return Err(DurableError::Corrupt(
+                "Growth Claim identity or relation differs",
+            ));
+        }
+        let form_path = format!(
+            "{home}/source-claims.{}.human-forms.json",
+            Digest256::of_bytes(claim_id.as_bytes()).to_hex()
+        );
+        if direct
+            .get(&form_path)
+            .is_none_or(|(role, _, _)| role != "human-form-set")
+        {
+            return Err(DurableError::Corrupt("Growth Claim form member absent"));
+        }
+        expected_forms.insert(form_path);
+    }
+    let direct_forms = direct
+        .iter()
+        .filter(|(_, (role, _, _))| role == "human-form-set")
+        .map(|(path, _)| path.clone())
+        .collect::<BTreeSet<_>>();
+    if direct_forms != expected_forms {
+        return Err(DurableError::Corrupt(
+            "Growth Claim form membership differs",
+        ));
+    }
+    required_paths.extend(expected_forms);
+    if direct.keys().cloned().collect::<BTreeSet<_>>() != required_paths {
+        return Err(DurableError::Corrupt(
+            "Growth Claim direct package closure differs",
+        ));
+    }
+    validate_owner_closure(owner)
+}
+
+fn validate_item_claim_owner(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "package_home",
+            "source_path",
+            "stream_sha256",
+            "direct_members",
+            "claims",
+            "lineage",
+            "closure_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let home = subject
+        .strip_suffix("/source-claims.jsonl")
+        .ok_or(DurableError::Corrupt("Item Claim owner source path"))?;
+    let stream_digest = Digest256::from_hex(raw_sha256)
+        .map_err(|_| DurableError::Corrupt("Item Claim stream digest"))?;
+    if cmd::text(owner, "schema_version").map_err(source_error)?
+        != "tos_managed_item_adoption_claim_owner_inventory_v1"
+        || cmd::text(owner, "package_home").map_err(source_error)? != home
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || owner_digest(owner, "stream_sha256")? != stream_digest
+        || !home.starts_with("ToS/source-witnesses/items/")
+    {
+        return Err(DurableError::Corrupt("Item Claim owner source binding"));
+    }
+    let direct = validate_owner_member_rows(
+        cmd::field(owner, "direct_members").map_err(source_error)?,
+        &format!("{home}/"),
+        &[
+            "item-record",
+            "item-form-set",
+            "claim-stream",
+            "creation-request",
+            "creation-environment",
+            "creation-event",
+            "compound-receipt",
+            "file-manifest",
+            "rights-record",
+            "resource-inventory",
+            "fixity",
+            "forensic-report",
+            "provenance",
+            "deposit-receipt",
+            "claim-form-set",
+        ],
+    )?;
+    let expected_names = [
+        ("item.json", "item-record"),
+        ("item.human-forms.json", "item-form-set"),
+        ("source-claims.jsonl", "claim-stream"),
+        ("source-create-request.json", "creation-request"),
+        ("source-create-environment.json", "creation-environment"),
+        ("source-create-provenance.jsonl", "creation-event"),
+        ("edition-item-receipt.json", "compound-receipt"),
+        ("item.manifest.json", "file-manifest"),
+        ("rights.json", "rights-record"),
+        ("resource-inventory.json", "resource-inventory"),
+        ("fixity.sha256", "fixity"),
+        ("forensic-report.md", "forensic-report"),
+        ("provenance.jsonl", "provenance"),
+        ("item-deposit-receipt.json", "deposit-receipt"),
+    ];
+    if direct.len() != 15 {
+        return Err(DurableError::Corrupt(
+            "Item Claim owner member count differs",
+        ));
+    }
+    for (name, role) in expected_names {
+        if direct
+            .get(&format!("{home}/{name}"))
+            .is_none_or(|(actual, _, digest)| {
+                actual != role || name == "source-claims.jsonl" && *digest != stream_digest
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "Item Claim owner required member absent",
+            ));
+        }
+    }
+    for (path, (role, _, _)) in &direct {
+        let basename = path.rsplit('/').next().unwrap_or(path);
+        let expected_role = expected_names
+            .iter()
+            .find(|(name, _)| *name == basename)
+            .map(|(_, role)| *role)
+            .or_else(|| {
+                (basename.starts_with("source-claims.") && basename.ends_with(".human-forms.json"))
+                    .then_some("claim-form-set")
+            });
+        if expected_role != Some(role.as_str()) {
+            return Err(DurableError::Corrupt(
+                "Item Claim owner member role differs",
+            ));
+        }
+    }
+    let claims = cmd::field(owner, "claims")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Item Claim owner claims"))?;
+    if claims.len() != 1 {
+        return Err(DurableError::Corrupt(
+            "Item Claim owner claim count differs",
+        ));
+    }
+    let claim_row = &claims[0];
+    cmd::exact_keys(
+        claim_row,
+        &[
+            "source_ref",
+            "source_line",
+            "claim_id",
+            "claim_version",
+            "claim_sha256",
+            "claim",
+            "form",
+        ],
+    )
+    .map_err(source_error)?;
+    let claim = cmd::field(claim_row, "claim").map_err(source_error)?;
+    let claim_id = cmd::text(claim_row, "claim_id").map_err(source_error)?;
+    let claim_version = cmd::integer(claim_row, "claim_version").map_err(source_error)?;
+    let claim_digest = owner_digest(claim_row, "claim_sha256")?;
+    let claim_form = cmd::field(claim_row, "form").map_err(source_error)?;
+    cmd::exact_keys(claim_form, &["ref", "sha256", "form_ids", "subject"]).map_err(source_error)?;
+    let form_path = format!(
+        "{home}/source-claims.{}.human-forms.json",
+        Digest256::of_bytes(claim_id.as_bytes()).to_hex()
+    );
+    let form_digest = owner_digest(claim_form, "sha256")?;
+    let form_ids = cmd::field(claim_form, "form_ids")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Item Claim form identities"))?;
+    let expected_form_subject =
+        cmd::reference(claim, "claim_id", "claim_version").map_err(source_error)?;
+    let mut form_id_set = BTreeSet::new();
+    if cmd::text(claim_row, "source_ref").map_err(source_error)? != subject
+        || cmd::integer(claim_row, "source_line").map_err(source_error)? == 0
+        || claim_id.is_empty()
+        || claim_version != 1
+        || cmd::text(claim, "schema_version").map_err(source_error)?
+            != "tos_source_relation_claim_v1"
+        || cmd::text(claim, "claim_id").map_err(source_error)? != claim_id
+        || cmd::integer(claim, "claim_version").map_err(source_error)? != claim_version
+        || cmd::text(claim, "predicate").map_err(source_error)? != "exemplified_by"
+        || cmd::record_digest(claim).map_err(source_error)? != claim_digest
+        || cmd::text(claim_form, "ref").map_err(source_error)? != form_path
+        || direct
+            .get(&form_path)
+            .is_none_or(|(role, _, digest)| role != "claim-form-set" || *digest != form_digest)
+        || !cmd::same(
+            cmd::field(claim_form, "subject").map_err(source_error)?,
+            &expected_form_subject,
+        )
+        .map_err(source_error)?
+        || form_ids.is_empty()
+        || form_ids.iter().any(|id| {
+            id.as_str().is_none_or(str::is_empty)
+                || !form_id_set.insert(id.as_str().unwrap_or_default().to_owned())
+        })
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim/form projection binding differs",
+        ));
+    }
+    let mut expected_direct = expected_names
+        .iter()
+        .map(|(name, _)| format!("{home}/{name}"))
+        .collect::<BTreeSet<_>>();
+    expected_direct.insert(form_path);
+    if direct.keys().cloned().collect::<BTreeSet<_>>() != expected_direct {
+        return Err(DurableError::Corrupt(
+            "Item Claim direct package closure differs",
+        ));
+    }
+    let lineage = cmd::field(owner, "lineage").map_err(source_error)?;
+    validate_item_lineage(lineage, &direct, home)?;
+    let scope = cmd::field(lineage, "scope").map_err(source_error)?;
+    if cmd::text(claim, "subject_ref").map_err(source_error)?
+        != cmd::text(scope, "edition_id").map_err(source_error)?
+        || cmd::text(claim, "object").map_err(source_error)?
+            != cmd::text(scope, "item_id").map_err(source_error)?
+        || cmd::text(claim, "provenance_event_ref").map_err(source_error)?
+            != cmd::text(scope, "provenance_event_id").map_err(source_error)?
+    {
+        return Err(DurableError::Corrupt("Item Claim scope projection differs"));
+    }
+    validate_owner_closure(owner)
+}
+
+fn validate_owner_member_refs(
+    members: &tos_foundation::JsonValue,
+    expected_prefix: &str,
+) -> DurableResult<BTreeMap<String, (u64, Digest256)>> {
+    let rows = members
+        .as_array()
+        .ok_or(DurableError::Corrupt("Item lineage member rows"))?;
+    let mut result = BTreeMap::new();
+    let mut previous: Option<&str> = None;
+    for member in rows {
+        cmd::exact_keys(member, &["ref", "bytes", "sha256"]).map_err(source_error)?;
+        let path = cmd::text(member, "ref").map_err(source_error)?;
+        let tail = path
+            .strip_prefix(expected_prefix)
+            .ok_or(DurableError::Corrupt("Item lineage member prefix"))?;
+        let bytes = cmd::integer(member, "bytes").map_err(source_error)?;
+        let digest = owner_digest(member, "sha256")?;
+        if tail.is_empty()
+            || tail.contains('/')
+            || RelativePath::parse(path).is_err()
+            || previous.is_some_and(|prior| prior.as_bytes() >= path.as_bytes())
+            || bytes > 8_388_608
+            || result.insert(path.to_owned(), (bytes, digest)).is_some()
+        {
+            return Err(DurableError::Corrupt("Item lineage member binding differs"));
+        }
+        previous = Some(path);
+    }
+    if result.is_empty() {
+        return Err(DurableError::Corrupt("Item lineage member set is empty"));
+    }
+    Ok(result)
+}
+
+fn validate_item_record_ref(value: &tos_foundation::JsonValue) -> DurableResult<()> {
+    cmd::exact_keys(value, &["id", "version", "digest"]).map_err(source_error)?;
+    if cmd::text(value, "id").map_err(source_error)?.is_empty()
+        || cmd::integer(value, "version").map_err(source_error)? == 0
+    {
+        return Err(DurableError::Corrupt("Item lineage record reference"));
+    }
+    let _ = owner_digest(value, "digest")?;
+    Ok(())
+}
+
+fn validate_item_lineage(
+    lineage: &tos_foundation::JsonValue,
+    direct: &BTreeMap<String, (String, u64, Digest256)>,
+    item_home: &str,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        lineage,
+        &[
+            "transaction_id",
+            "operation",
+            "command_id",
+            "request_digest",
+            "owner_configuration",
+            "recorded_at",
+            "scope",
+            "dependencies",
+            "parent_before",
+            "parent_after",
+            "parent_archive_ref",
+            "parent_transition_sha256",
+            "parent_transition",
+            "predecessor_members",
+            "successor_members",
+            "native_receipt_sha256",
+            "native_receipt",
+        ],
+    )
+    .map_err(source_error)?;
+    let transaction_id = cmd::text(lineage, "transaction_id").map_err(source_error)?;
+    let command_id = cmd::text(lineage, "command_id").map_err(source_error)?;
+    let parent_before = cmd::field(lineage, "parent_before").map_err(source_error)?;
+    let parent_after = cmd::field(lineage, "parent_after").map_err(source_error)?;
+    validate_item_record_ref(parent_before)?;
+    validate_item_record_ref(parent_after)?;
+    if transaction_id.is_empty()
+        || cmd::text(lineage, "operation").map_err(source_error)? != "item.adopt"
+        || command_id.is_empty()
+        || cmd::text(lineage, "recorded_at")
+            .map_err(source_error)?
+            .is_empty()
+        || cmd::field(lineage, "scope")
+            .map_err(source_error)?
+            .as_object()
+            .is_none()
+        || cmd::field(lineage, "dependencies")
+            .map_err(source_error)?
+            .as_object()
+            .is_none()
+        || cmd::text(parent_before, "id").map_err(source_error)?
+            != cmd::text(parent_after, "id").map_err(source_error)?
+    {
+        return Err(DurableError::Corrupt("Item lineage identity differs"));
+    }
+    for key in [
+        "request_digest",
+        "owner_configuration",
+        "parent_transition_sha256",
+    ] {
+        let _ = owner_digest(lineage, key)?;
+    }
+    let parent_archive_ref = cmd::text(lineage, "parent_archive_ref").map_err(source_error)?;
+    let archive_path = RelativePath::parse(parent_archive_ref)
+        .map_err(|_| DurableError::Corrupt("Item lineage archive path"))?;
+    if !archive_path
+        .as_str()
+        .starts_with("ToS/source-witnesses/.record-revisions/")
+    {
+        return Err(DurableError::Corrupt("Item lineage archive namespace"));
+    }
+    let parent_home = cmd::field(lineage, "scope")
+        .map_err(source_error)?
+        .object_get("edition_source_path")
+        .and_then(tos_foundation::JsonValue::as_str)
+        .and_then(|path| path.rsplit_once('/').map(|(parent, _)| parent))
+        .ok_or(DurableError::Corrupt("Item lineage Edition source path"))?;
+    if parent_home == item_home {
+        return Err(DurableError::Corrupt(
+            "Item lineage parent/child homes collide",
+        ));
+    }
+    let scope = cmd::field(lineage, "scope").map_err(source_error)?;
+    if cmd::text(scope, "edition_source_path").map_err(source_error)?
+        != format!("{parent_home}/edition.json")
+        || cmd::text(scope, "item_source_path").map_err(source_error)?
+            != format!("{item_home}/item.json")
+        || cmd::text(scope, "edition_id").map_err(source_error)?
+            != cmd::text(parent_after, "id").map_err(source_error)?
+        || cmd::text(scope, "edition_id").map_err(source_error)?
+            != cmd::text(parent_before, "id").map_err(source_error)?
+        || cmd::text(scope, "item_id")
+            .map_err(source_error)?
+            .is_empty()
+        || cmd::text(scope, "provenance_event_id")
+            .map_err(source_error)?
+            .is_empty()
+    {
+        return Err(DurableError::Corrupt("Item lineage source scope differs"));
+    }
+    let predecessor = validate_owner_member_refs(
+        cmd::field(lineage, "predecessor_members").map_err(source_error)?,
+        &format!("{parent_home}/"),
+    )?;
+    let successor = validate_owner_member_refs(
+        cmd::field(lineage, "successor_members").map_err(source_error)?,
+        &format!("{parent_home}/"),
+    )?;
+    if !predecessor.contains_key(&format!("{parent_home}/edition.json"))
+        || !successor.contains_key(&format!("{parent_home}/edition.json"))
+        || !successor.contains_key(&format!("{parent_home}/source-revision-history.json"))
+    {
+        return Err(DurableError::Corrupt(
+            "Item lineage parent package incomplete",
+        ));
+    }
+    let parent_transition = cmd::field(lineage, "parent_transition").map_err(source_error)?;
+    if cmd::record_digest(parent_transition).map_err(source_error)?
+        != owner_digest(lineage, "parent_transition_sha256")?
+        || cmd::text(parent_transition, "command_id").map_err(source_error)? != command_id
+        || cmd::text(parent_transition, "request_digest").map_err(source_error)?
+            != cmd::text(lineage, "request_digest").map_err(source_error)?
+        || cmd::text(parent_transition, "owner_configuration").map_err(source_error)?
+            != cmd::text(lineage, "owner_configuration").map_err(source_error)?
+        || !cmd::same(
+            cmd::field(parent_transition, "source").map_err(source_error)?,
+            parent_after,
+        )
+        .map_err(source_error)?
+        || !cmd::same(
+            cmd::field(parent_transition, "previous_source").map_err(source_error)?,
+            parent_before,
+        )
+        .map_err(source_error)?
+    {
+        return Err(DurableError::Corrupt(
+            "Item lineage parent transition differs",
+        ));
+    }
+    let receipt = cmd::field(lineage, "native_receipt").map_err(source_error)?;
+    if cmd::text(receipt, "schema_version").map_err(source_error)? != "tos_edition_item_receipt_v1"
+        || cmd::text(receipt, "operation").map_err(source_error)? != "item.adopt"
+        || cmd::text(receipt, "transaction_id").map_err(source_error)? != transaction_id
+        || cmd::text(receipt, "command_id").map_err(source_error)? != command_id
+        || cmd::record_digest(receipt).map_err(source_error)?
+            != owner_digest(lineage, "native_receipt_sha256")?
+        || cmd::text(receipt, "parent_archive_ref").map_err(source_error)? != parent_archive_ref
+        || cmd::text(receipt, "parent_transition_sha256").map_err(source_error)?
+            != cmd::text(lineage, "parent_transition_sha256").map_err(source_error)?
+    {
+        return Err(DurableError::Corrupt("Item native receipt binding differs"));
+    }
+    for (left, right) in [
+        ("request_digest", "request_digest"),
+        ("owner_configuration", "owner_configuration"),
+        ("recorded_at", "recorded_at"),
+        ("scope", "scope"),
+        ("dependencies", "dependencies"),
+        ("parent_before", "parent_before"),
+        ("parent_after", "parent_after"),
+    ] {
+        if !cmd::same(
+            cmd::field(lineage, left).map_err(source_error)?,
+            cmd::field(receipt, right).map_err(source_error)?,
+        )
+        .map_err(source_error)?
+        {
+            return Err(DurableError::Corrupt("Item receipt lineage fields differ"));
+        }
+    }
+    let files = cmd::field(receipt, "files")
+        .map_err(source_error)?
+        .as_object()
+        .ok_or(DurableError::Corrupt("Item native receipt member map"))?;
+    let mut expected_files = BTreeMap::<String, (u64, Digest256)>::new();
+    for (path, (_, bytes, digest)) in direct {
+        expected_files.insert(path.clone(), (*bytes, *digest));
+    }
+    expected_files.extend(successor);
+    if files.len() != expected_files.len()
+        || expected_files.iter().any(|(path, (bytes, digest))| {
+            let Some(entry) = receipt
+                .object_get("files")
+                .and_then(|map| map.object_get(path))
+            else {
+                return true;
+            };
+            cmd::exact_keys(entry, &["sha256", "bytes"]).is_err()
+                || cmd::integer(entry, "bytes").ok() != Some(*bytes)
+                || owner_digest(entry, "sha256").ok() != Some(*digest)
+        })
+    {
+        return Err(DurableError::Corrupt(
+            "Item native receipt member closure differs",
+        ));
+    }
+    let receipt_before = cmd::field(receipt, "parent_before_files")
+        .map_err(source_error)?
+        .as_object()
+        .ok_or(DurableError::Corrupt("Item receipt predecessor file map"))?;
+    if receipt_before.len() != predecessor.len()
+        || predecessor.iter().any(|(path, (bytes, digest))| {
+            let basename = path.rsplit('/').next().unwrap_or(path);
+            let Some(entry) = receipt_before
+                .iter()
+                .find(|(name, _)| name.as_str() == Some(basename))
+                .map(|(_, entry)| entry)
+            else {
+                return true;
+            };
+            cmd::exact_keys(entry, &["sha256", "bytes"]).is_err()
+                || cmd::integer(entry, "bytes").ok() != Some(*bytes)
+                || owner_digest(entry, "sha256").ok() != Some(*digest)
+        })
+    {
+        return Err(DurableError::Corrupt(
+            "Item receipt predecessor member closure differs",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_claim_owner(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    let schema = cmd::text(owner, "schema_version").map_err(source_error)?;
+    match schema {
+        "tos_managed_item_adoption_claim_owner_inventory_v1" => {
+            return validate_item_claim_owner(owner, subject, raw_sha256);
+        }
+        "tos_managed_collection_membership_claim_owner_inventory_v1" => {
+            return validate_growth_claim_owner(
+                owner,
+                subject,
+                raw_sha256,
+                schema,
+                &[
+                    "claim-stream",
+                    "creation-request",
+                    "creation-environment",
+                    "creation-event",
+                    "creation-receipt",
+                    "human-form-set",
+                ],
+                1,
+            );
+        }
+        "tos_managed_object_link_claim_owner_inventory_v1"
+        | "tos_managed_work_expression_claim_owner_inventory_v1"
+        | "tos_managed_expression_edition_claim_owner_inventory_v1"
+        | "tos_managed_expression_responsibility_claim_owner_inventory_v1" => {
+            return validate_growth_claim_owner(
+                owner,
+                subject,
+                raw_sha256,
+                schema,
+                &[
+                    "claim-stream",
+                    "creation-request",
+                    "creation-environment",
+                    "creation-event",
+                    "creation-receipt",
+                    "revision-history",
+                    "human-form-set",
+                ],
+                1,
+            );
+        }
+        _ => {}
+    }
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "package_home",
+            "source_path",
+            "stream_sha256",
+            "direct_members",
+            "history",
+            "archives",
+            "claims",
+            "creation_receipt_sha256",
+            "creation_receipt_command_id",
+            "closure_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let home = subject
+        .strip_suffix(&format!("/{}", crate::source_claims::CLAIM_STREAM))
+        .ok_or(DurableError::Corrupt("Claim owner source path"))?;
+    let expected_stream_digest = Digest256::from_hex(raw_sha256)
+        .map_err(|_| DurableError::Corrupt("Claim stream projection digest"))?;
+    if cmd::text(owner, "schema_version").map_err(source_error)?
+        != "tos_managed_global_claim_owner_inventory_v1"
+        || cmd::text(owner, "package_home").map_err(source_error)? != home
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || owner_digest(owner, "stream_sha256")? != expected_stream_digest
+    {
+        return Err(DurableError::Corrupt("Claim owner source binding"));
+    }
+    let direct = validate_owner_member_rows(
+        cmd::field(owner, "direct_members").map_err(source_error)?,
+        &format!("{home}/"),
+        &[
+            "claim-stream",
+            "creation-request",
+            "creation-environment",
+            "creation-event",
+                    "creation-receipt",
+                    "revision-history",
+                    "human-form-set",
+                ],
+    )?;
+    if direct
+        .get(subject)
+        .is_none_or(|(role, _, digest)| role != "claim-stream" || *digest != expected_stream_digest)
+    {
+        return Err(DurableError::Corrupt("Claim owner stream member absent"));
+    }
+    for (name, role) in [
+        ("source-create-request.json", "creation-request"),
+        ("source-create-environment.json", "creation-environment"),
+        ("source-create-provenance.jsonl", "creation-event"),
+        ("source-create-receipt.json", "creation-receipt"),
+    ] {
+        if direct
+            .get(&format!("{home}/{name}"))
+            .map(|(actual, _, _)| actual.as_str())
+            != Some(role)
+        {
+            return Err(DurableError::Corrupt("Claim owner creation member absent"));
+        }
+    }
+    let receipt_path = format!("{home}/source-create-receipt.json");
+    let expected_receipt_digest = owner_digest(owner, "creation_receipt_sha256")?;
+    if cmd::text(owner, "creation_receipt_command_id")
+        .map_err(source_error)?
+        .is_empty()
+        || direct
+            .get(&receipt_path)
+            .is_none_or(|(_, _, digest)| *digest != expected_receipt_digest)
+    {
+        return Err(DurableError::Corrupt("Claim owner receipt binding"));
+    }
+    let history = cmd::field(owner, "history").map_err(source_error)?;
+    cmd::exact_keys(history, &["ref", "present", "sha256", "receipts"]).map_err(source_error)?;
+    let history_path = format!("{home}/{}", crate::source_claims::CLAIM_HISTORY);
+    let history_present = cmd::field(history, "present")
+        .map_err(source_error)?
+        .as_bool()
+        .ok_or(DurableError::Corrupt("Claim history presence flag"))?;
+    let history_digest = cmd::field(history, "sha256").map_err(source_error)?;
+    if cmd::text(history, "ref").map_err(source_error)? != history_path
+        || history_present != direct.contains_key(&history_path)
+        || (history_present
+            && (history_digest == &tos_foundation::JsonValue::Null
+                || Digest256::from_prefixed(cmd::text(history, "sha256").map_err(source_error)?)
+                    .is_err()))
+        || (!history_present && history_digest != &tos_foundation::JsonValue::Null)
+        || (history_present
+            && direct.get(&history_path).is_none_or(|(role, _, digest)| {
+                role != "revision-history"
+                    || history_digest
+                        .as_str()
+                        .and_then(|value| Digest256::from_prefixed(value).ok())
+                        != Some(*digest)
+            }))
+    {
+        return Err(DurableError::Corrupt("Claim history membership binding"));
+    }
+    let archives = cmd::field(owner, "archives")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Claim archive rows"))?;
+    let mut archive_by_path = BTreeMap::new();
+    let mut previous_archive: Option<&str> = None;
+    for archive in archives {
+        cmd::exact_keys(archive, &["archive_path", "manifest_sha256", "members"])
+            .map_err(source_error)?;
+        let path = cmd::text(archive, "archive_path").map_err(source_error)?;
+        if !path.starts_with("ToS/source-witnesses/.record-revisions/")
+            || previous_archive.is_some_and(|prior| prior.as_bytes() >= path.as_bytes())
+        {
+            return Err(DurableError::Corrupt("Claim archive path ordering"));
+        }
+        previous_archive = Some(path);
+        let members = validate_owner_member_rows(
+            cmd::field(archive, "members").map_err(source_error)?,
+            &format!("{path}/"),
+            &["archive-manifest", "archive-blob"],
+        )?;
+        if members
+            .get(&format!("{path}/manifest.json"))
+            .map(|(role, _, _)| role.as_str())
+            != Some("archive-manifest")
+        {
+            return Err(DurableError::Corrupt("Claim archive manifest row absent"));
+        }
+        let manifest_digest = owner_digest(archive, "manifest_sha256")?;
+        if members
+            .get(&format!("{path}/manifest.json"))
+            .is_none_or(|(_, _, digest)| *digest != manifest_digest)
+        {
+            return Err(DurableError::Corrupt(
+                "Claim archive manifest digest differs",
+            ));
+        }
+        archive_by_path.insert(path.to_owned(), manifest_digest);
+    }
+    let receipts = cmd::field(history, "receipts")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Claim history receipt rows"))?;
+    let mut used_archives = BTreeSet::new();
+    for receipt in receipts {
+        cmd::exact_keys(
+            receipt,
+            &[
+                "command_id",
+                "claim_id",
+                "previous_revision",
+                "archive_path",
+                "archive_manifest_sha256",
+                "forms",
+            ],
+        )
+        .map_err(source_error)?;
+        let archive_path = cmd::text(receipt, "archive_path").map_err(source_error)?;
+        let digest = archive_by_path
+            .get(archive_path)
+            .ok_or(DurableError::Corrupt("Claim history archive row absent"))?;
+        if cmd::text(receipt, "command_id")
+            .map_err(source_error)?
+            .is_empty()
+            || cmd::text(receipt, "claim_id")
+                .map_err(source_error)?
+                .is_empty()
+            || digest != &owner_digest(receipt, "archive_manifest_sha256")?
+            || !used_archives.insert(archive_path.to_owned())
+        {
+            return Err(DurableError::Corrupt("Claim history archive binding"));
+        }
+    }
+    if used_archives != archive_by_path.keys().cloned().collect() {
+        return Err(DurableError::Corrupt(
+            "Claim history archive closure differs",
+        ));
+    }
+    let claims = cmd::field(owner, "claims")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Claim owner identity rows"))?;
+    let mut previous_claim: Option<&str> = None;
+    let mut claim_ids = BTreeSet::new();
+    for claim in claims {
+        cmd::exact_keys(
+            claim,
+            &[
+                "claim_id",
+                "claim_version",
+                "claim_sha256",
+                "form_ref",
+                "form_present",
+                "form_sha256",
+                "form_ids",
+            ],
+        )
+        .map_err(source_error)?;
+        let claim_id = cmd::text(claim, "claim_id").map_err(source_error)?;
+        let hash = tos_foundation::Digest256::of_bytes(claim_id.as_bytes())
+            .to_prefixed()
+            .trim_start_matches("sha256:")
+            .to_owned();
+        let form_path = format!("{home}/source-claims.{hash}.human-forms.json");
+        let form_present = cmd::field(claim, "form_present")
+            .map_err(source_error)?
+            .as_bool()
+            .ok_or(DurableError::Corrupt("Claim form presence flag"))?;
+        let form_sha = cmd::field(claim, "form_sha256").map_err(source_error)?;
+        let expected_form_digest = if form_present {
+            Some(owner_digest(claim, "form_sha256")?)
+        } else {
+            None
+        };
+        let ids = cmd::field(claim, "form_ids")
+            .map_err(source_error)?
+            .as_array()
+            .ok_or(DurableError::Corrupt("Claim owner form ID rows"))?;
+        if claim_id.is_empty()
+            || previous_claim.is_some_and(|previous| previous.as_bytes() >= claim_id.as_bytes())
+            || !claim_ids.insert(claim_id.to_owned())
+            || cmd::integer(claim, "claim_version").map_err(source_error)? == 0
+            || Digest256::from_prefixed(cmd::text(claim, "claim_sha256").map_err(source_error)?)
+                .is_err()
+            || cmd::text(claim, "form_ref").map_err(source_error)? != form_path
+            || form_present != direct.contains_key(&form_path)
+            || (form_present
+                && (form_sha == &tos_foundation::JsonValue::Null
+                    || direct.get(&form_path).is_none_or(|(role, _, digest)| {
+                        role != "human-form-set" || expected_form_digest != Some(*digest)
+                    })))
+            || (!form_present && (form_sha != &tos_foundation::JsonValue::Null || !ids.is_empty()))
+            || ids.iter().any(|id| id.as_str().is_none_or(str::is_empty))
+        {
+            return Err(DurableError::Corrupt("Claim owner identity/form binding"));
+        }
+        previous_claim = Some(claim_id);
+    }
+    let direct_forms = direct
+        .iter()
+        .filter(|(_, (role, _, _))| role == "human-form-set")
+        .map(|(path, _)| path.clone())
+        .collect::<BTreeSet<_>>();
+    let claim_forms = claims
+        .iter()
+        .filter_map(|claim| {
+            (cmd::field(claim, "form_present").ok()?.as_bool() == Some(true))
+                .then(|| cmd::text(claim, "form_ref").ok().map(str::to_owned))
+                .flatten()
+        })
+        .collect::<BTreeSet<_>>();
+    if direct_forms != claim_forms {
+        return Err(DurableError::Corrupt("Claim owner form membership differs"));
+    }
+    let mut expected_direct = BTreeSet::from([
+        subject.to_owned(),
+        format!("{home}/source-create-request.json"),
+        format!("{home}/source-create-environment.json"),
+        format!("{home}/source-create-provenance.jsonl"),
+        format!("{home}/source-create-receipt.json"),
+    ]);
+    if history_present {
+        expected_direct.insert(history_path);
+    }
+    expected_direct.extend(claim_forms);
+    expected_direct.extend(
+        direct
+            .iter()
+            .filter(|(_, (role, _, _))| role == "operational-lock")
+            .map(|(path, _)| path.clone()),
+    );
+    if direct.keys().cloned().collect::<BTreeSet<_>>() != expected_direct {
+        return Err(DurableError::Corrupt(
+            "Claim owner direct package closure differs",
+        ));
+    }
+    let mut core = owner
+        .as_object()
+        .ok_or(DurableError::Corrupt("Claim owner object"))?
+        .iter()
+        .filter(|(key, _)| key.as_str() != Some("closure_sha256"))
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect::<Vec<_>>();
+    // Canonical JSON sorts keys, so preserve a stable object regardless of
+    // insertion order when verifying the owner closure root.
+    core.sort_by(|left, right| left.0.cmp(&right.0));
+    let core = tos_foundation::JsonValue::Object(core);
+    if cmd::record_digest(&core)
+        .map_err(source_error)?
+        .to_prefixed()
+        != cmd::text(owner, "closure_sha256").map_err(source_error)?
+    {
+        return Err(DurableError::Corrupt("Claim owner closure root differs"));
+    }
+    let _ = raw_sha256;
+    Ok(())
+}
+
+fn validate_public_text_owner(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    if owner == &tos_foundation::JsonValue::Null {
+        if subject.ends_with("/source-text-layer.v1.json")
+            || subject.ends_with("/source-anchor.v2.json")
+            || subject.ends_with("/public-content.json")
+            || subject.ends_with("/extraction-policy.json")
+            || subject.ends_with("/construction-plan.json")
+            || subject.ends_with("/content.txt")
+            || subject.ends_with("/source-text-unit.v1.json")
+            || subject.ends_with("/native-bindings.json")
+            || subject.ends_with("/source-create-inputs.json")
+            || subject.ends_with("/source-create-request.json")
+            || subject.ends_with("/source-create-environment.json")
+            || subject.ends_with("/source-create-provenance.jsonl")
+            || subject.ends_with("/source-create-receipt.json")
+        {
+            return Err(DurableError::Corrupt(
+                "public Text owner contribution absent",
+            ));
+        }
+        return Ok(());
+    }
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "package_home",
+            "member_ref",
+            "member_role",
+            "member_sha256",
+            "package_manifest_ref",
+            "package_manifest_sha256",
+            "package_members",
+            "layer_ref",
+            "layer_sha256",
+            "layer_id",
+            "packet_ref",
+            "packet_sha256",
+            "packet_id",
+            "bindings_ref",
+            "bindings_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let home = cmd::text(owner, "package_home").map_err(source_error)?;
+    let member_ref = cmd::text(owner, "member_ref").map_err(source_error)?;
+    let role = cmd::text(owner, "member_role").map_err(source_error)?;
+    let expected_role = subject
+        .strip_prefix(&format!("{home}/"))
+        .and_then(crate::source_public_text_entry::public_text_member_role);
+    if cmd::text(owner, "schema_version").map_err(source_error)?
+        != "tos_managed_public_text_inventory_member_v1"
+        || RelativePath::parse(home)
+            .map(|path| path.as_str() != home)
+            .unwrap_or(true)
+        || !home.starts_with("ToS/source-witnesses/")
+        || home.split('/').any(|part| part == "owner-local")
+        || !member_ref.starts_with(&format!("{home}/"))
+        || member_ref != subject
+        || expected_role != Some(role)
+        || owner_digest(owner, "member_sha256")?
+            != Digest256::from_hex(raw_sha256)
+                .map_err(|_| DurableError::Corrupt("public Text member projection digest"))?
+        || cmd::text(owner, "package_manifest_ref").map_err(source_error)?
+            != format!("{home}/source-create-receipt.json")
+    {
+        return Err(DurableError::Corrupt("public Text member owner binding"));
+    }
+    let members = cmd::field(owner, "package_members")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("public Text package member rows"))?;
+    if members.len() != 12 {
+        return Err(DurableError::Corrupt("public Text package closure count"));
+    }
+    let mut expected_refs = crate::source_public_text_entry::FILES
+        .iter()
+        .map(|name| format!("{home}/{name}"))
+        .collect::<BTreeSet<_>>();
+    if expected_refs.len() != 12 {
+        return Err(DurableError::Corrupt("public Text package file set"));
+    }
+    let mut previous: Option<&str> = None;
+    let mut refs = BTreeMap::new();
+    for member in members {
+        cmd::exact_keys(member, &["ref", "sha256"]).map_err(source_error)?;
+        let path = cmd::text(member, "ref").map_err(source_error)?;
+        let digest = Digest256::from_prefixed(cmd::text(member, "sha256").map_err(source_error)?)
+            .map_err(|_| DurableError::Corrupt("public Text package member digest"))?;
+        if !path.starts_with(&format!("{home}/"))
+            || RelativePath::parse(path)
+                .map(|parsed| parsed.as_str() != path)
+                .unwrap_or(true)
+            || previous.is_some_and(|prior| prior.as_bytes() >= path.as_bytes())
+            || !expected_refs.remove(path)
+            || refs.insert(path.to_owned(), digest).is_some()
+        {
+            return Err(DurableError::Corrupt("public Text package member binding"));
+        }
+        previous = Some(path);
+    }
+    let manifest_ref = cmd::text(owner, "package_manifest_ref").map_err(source_error)?;
+    let layer_ref = cmd::text(owner, "layer_ref").map_err(source_error)?;
+    let packet_ref = cmd::text(owner, "packet_ref").map_err(source_error)?;
+    let bindings_ref = cmd::text(owner, "bindings_ref").map_err(source_error)?;
+    let member_digest = |name: &str| -> DurableResult<Digest256> {
+        refs.get(&format!("{home}/{name}"))
+            .copied()
+            .ok_or(DurableError::Corrupt(
+                "public Text package dependency absent",
+            ))
+    };
+    if !expected_refs.is_empty()
+        || refs.get(subject)
+            != Some(
+                &Digest256::from_hex(raw_sha256)
+                    .map_err(|_| DurableError::Corrupt("public Text member projection digest"))?,
+            )
+        || manifest_ref != format!("{home}/source-create-receipt.json")
+        || layer_ref != format!("{home}/source-text-layer.v1.json")
+        || packet_ref != format!("{home}/source-text-unit.v1.json")
+        || bindings_ref != format!("{home}/native-bindings.json")
+        || owner_digest(owner, "package_manifest_sha256")?
+            != member_digest("source-create-receipt.json")?
+        || owner_digest(owner, "layer_sha256")? != member_digest("source-text-layer.v1.json")?
+        || owner_digest(owner, "packet_sha256")? != member_digest("source-text-unit.v1.json")?
+        || owner_digest(owner, "bindings_sha256")? != member_digest("native-bindings.json")?
+        || cmd::text(owner, "layer_id")
+            .map_err(source_error)?
+            .is_empty()
+        || cmd::text(owner, "packet_id")
+            .map_err(source_error)?
+            .is_empty()
+    {
+        return Err(DurableError::Corrupt("public Text package closure binding"));
+    }
+    Ok(())
 }
 
 fn parse_projection(

@@ -177,7 +177,7 @@ use crate::{Error, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 const SCHEMA: &str = "ToS/contracts/source-witness-bibliographic-graph.schema.json";
 const ENTITY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATION: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -288,7 +288,10 @@ pub(crate) fn forms(
 }
 /// The same form binding/materialization law after the owner schema check.
 /// Managed addressed input uses this exact core, never a second renderer.
-pub(crate) fn materialize_checked_form_set(
+/// Materialize an exact selected form set using the same subject binding and
+/// output checks as the full bibliographic producer. The caller remains
+/// responsible for authenticating the selected schema/source bytes.
+pub fn materialize_checked_form_set(
     raw: &[u8],
     reference: &str,
     source: &Value,
@@ -867,8 +870,35 @@ pub fn supplied_bibliographic_maker(
     claim_catalog_sha256: &str,
     max_row_bytes: usize,
 ) -> Result<(Value, Option<Value>)> {
+    supplied_bibliographic_maker_with_fallback(
+        claim,
+        identity,
+        CLAIM_CATALOG,
+        claim_catalog_sha256,
+        max_row_bytes,
+    )
+}
+
+/// Pure maker carrier using an exact owner-selected fallback source when the
+/// metadata identity is absent. Event-local projection can bind this to the
+/// exact Claim row instead of reading the generated whole Claim catalog.
+pub fn supplied_bibliographic_maker_with_fallback(
+    claim: &Value,
+    identity: Option<Value>,
+    fallback_source_ref: &str,
+    fallback_sha256: &str,
+    max_row_bytes: usize,
+) -> Result<(Value, Option<Value>)> {
     if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
         return Err(Error::Budget("bibliographic maker row cap"));
+    }
+    if fallback_source_ref.is_empty()
+        || !fallback_source_ref.starts_with("ToS/")
+        || !RelativePath::parse(fallback_source_ref)
+            .is_ok_and(|path| path.as_str() == fallback_source_ref)
+        || Digest256::from_hex(fallback_sha256).is_err()
+    {
+        return Err(Error::Invalid("bibliographic maker fallback address"));
     }
     encode(claim, max_row_bytes)?;
     if let Some(value) = &identity {
@@ -879,7 +909,7 @@ pub fn supplied_bibliographic_maker(
     let (source_ref, sha) = if let Some(node) = &identity {
         (node["source_ref"].clone(), node["source_sha256"].clone())
     } else {
-        (json!(CLAIM_CATALOG), json!(claim_catalog_sha256))
+        (json!(fallback_source_ref), json!(fallback_sha256))
     };
     Ok((
         json!({"node_id":node_id("maker",reference),"node_kind":"maker","source_ref":source_ref,"source_sha256":sha,
@@ -1020,6 +1050,29 @@ fn retained_object_link_context(
         "source_schema_ref": "ToS/contracts/object-link-claim.schema.json",
         "source_adapter": "retained-object-link-v1",
     }))
+}
+
+/// Rebuild the legacy retained object-Link context from an exact selected
+/// source Claim and its catalog row. This keeps the compatibility boundary
+/// tied to the same owner-specific checks used by the maintained producer.
+pub fn supplied_retained_object_link_context(
+    claim: &Value,
+    source_ref: &str,
+    predicate: &str,
+    subject: &Value,
+    object: &Value,
+    source_line: &Value,
+    source_sha256: &Value,
+) -> Result<Value> {
+    retained_object_link_context(
+        claim,
+        source_ref,
+        predicate,
+        subject,
+        object,
+        source_line,
+        source_sha256,
+    )
 }
 
 fn claim_cohort<B: catalog::CatalogInputBinding>(

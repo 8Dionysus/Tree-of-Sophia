@@ -1,3 +1,4 @@
+use std::io;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -632,6 +633,193 @@ impl AccessProfile {
     }
 }
 
+/// Write one held source-navigation response to an owned Unix descriptor while
+/// retaining the operation's original cancellation/deadline probe. Linux
+/// pipes and character devices are reopened through procfs so the nonblocking
+/// status belongs to a separate open-file description; changing stdout's
+/// status flags would also affect inherited aliases.
+#[cfg(target_os = "linux")]
+pub(crate) fn write_fd_with_probe(fd: i32, bytes: &[u8], probe: &dyn AbortProbe) -> io::Result<()> {
+    fn check(probe: &dyn AbortProbe) -> io::Result<()> {
+        match probe.reason() {
+            None => Ok(()),
+            Some(AbortReason::DeadlineExceeded) => Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "source navigation output deadline exceeded",
+            )),
+            Some(AbortReason::Cancelled) => Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "source navigation output cancelled",
+            )),
+        }
+    }
+    check(probe)?;
+    let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+    if unsafe { libc::fstat(fd, metadata.as_mut_ptr()) } < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let metadata = unsafe { metadata.assume_init() };
+    let socket = (metadata.st_mode & libc::S_IFMT) == libc::S_IFSOCK;
+    let output_fd = if socket {
+        fd
+    } else if (metadata.st_mode & libc::S_IFMT) == libc::S_IFIFO
+        || (metadata.st_mode & libc::S_IFMT) == libc::S_IFCHR
+    {
+        let path = std::ffi::CString::new(format!("/proc/self/fd/{fd}")).map_err(|_| {
+            io::Error::new(io::ErrorKind::InvalidInput, "invalid output descriptor")
+        })?;
+        let opened = unsafe {
+            libc::open(
+                path.as_ptr(),
+                libc::O_WRONLY | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY,
+            )
+        };
+        if opened < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        opened
+    } else if (metadata.st_mode & libc::S_IFMT) == libc::S_IFREG {
+        // Redirected stdout to a regular file is a supported stream. Keep its
+        // open-file description and existing append/offset behavior.
+        fd
+    } else {
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "source navigation output requires a byte-stream descriptor",
+        ));
+    };
+    struct CloseOutput(i32);
+    impl Drop for CloseOutput {
+        fn drop(&mut self) {
+            if self.0 >= 0 {
+                unsafe { libc::close(self.0) };
+            }
+        }
+    }
+    let _close = if output_fd != fd {
+        Some(CloseOutput(output_fd))
+    } else {
+        None
+    };
+    let mut offset = 0;
+    while offset < bytes.len() {
+        check(probe)?;
+        let mut ready = libc::pollfd {
+            fd: output_fd,
+            events: libc::POLLOUT,
+            revents: 0,
+        };
+        let result = unsafe { libc::poll(&mut ready, 1, 50) };
+        if result < 0 {
+            let error = io::Error::last_os_error();
+            if error.kind() == io::ErrorKind::Interrupted {
+                continue;
+            }
+            return Err(error);
+        }
+        check(probe)?;
+        if result == 0 {
+            continue;
+        }
+        if ready.revents & (libc::POLLERR | libc::POLLHUP | libc::POLLNVAL) != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "source navigation output closed",
+            ));
+        }
+        if ready.revents & libc::POLLOUT == 0 {
+            continue;
+        }
+        let written = if socket {
+            unsafe {
+                libc::send(
+                    output_fd,
+                    bytes.as_ptr().add(offset).cast(),
+                    bytes.len() - offset,
+                    libc::MSG_DONTWAIT | libc::MSG_NOSIGNAL,
+                )
+            }
+        } else {
+            unsafe {
+                libc::write(
+                    output_fd,
+                    bytes.as_ptr().add(offset).cast(),
+                    bytes.len() - offset,
+                )
+            }
+        };
+        if written < 0 {
+            let error = io::Error::last_os_error();
+            if matches!(
+                error.kind(),
+                io::ErrorKind::Interrupted | io::ErrorKind::WouldBlock
+            ) {
+                continue;
+            }
+            return Err(error);
+        }
+        if written == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "source navigation output made no progress",
+            ));
+        }
+        offset += written as usize;
+    }
+    check(probe)
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+pub(crate) fn write_fd_with_probe(fd: i32, bytes: &[u8], probe: &dyn AbortProbe) -> io::Result<()> {
+    use std::io::Write as _;
+    use std::os::fd::FromRawFd;
+    match probe.reason() {
+        None => {}
+        Some(AbortReason::DeadlineExceeded) => {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "source navigation output deadline exceeded",
+            ));
+        }
+        Some(AbortReason::Cancelled) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "source navigation output cancelled",
+            ));
+        }
+    }
+    let duplicate = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
+    if duplicate < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let mut output = unsafe { std::fs::File::from_raw_fd(duplicate) };
+    output.write_all(bytes)?;
+    output.flush()?;
+    match probe.reason() {
+        None => Ok(()),
+        Some(AbortReason::DeadlineExceeded) => Err(io::Error::new(
+            io::ErrorKind::TimedOut,
+            "source navigation output deadline exceeded",
+        )),
+        Some(AbortReason::Cancelled) => Err(io::Error::new(
+            io::ErrorKind::Interrupted,
+            "source navigation output cancelled",
+        )),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn write_fd_with_probe(
+    _fd: i32,
+    _bytes: &[u8],
+    _probe: &dyn AbortProbe,
+) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "Unix descriptor output unavailable",
+    ))
+}
+
 /// Default executor when no owner is explicitly selected.
 pub struct NoOwner;
 impl AccessExecutor for NoOwner {
@@ -649,6 +837,12 @@ impl AccessExecutor for NoOwner {
         ))
     }
 }
+
+/// Sink for source-descend packets whose disclosure fence is scoped to the
+/// owner callback. The higher-ranked packet lifetime prevents an owner-backed
+/// packet from escaping through the transport adapter.
+pub type SourceDescendDelivery<'call> = dyn for<'packet> FnMut(Result<PreparedPacket<'packet>, AccessError>) -> Result<(), AccessError>
+    + 'call;
 
 // One method/default contract serves both installed owned executors and
 // callback-scoped selected owners. A lifetime never grants source authority.
@@ -677,6 +871,17 @@ macro_rules! access_executor_contract {
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<$packet_lifetime>, AccessError>;
+    /// Deliver source navigation while the selected owner still holds its
+    /// source, policy and publication fences. Owner-backed implementations
+    /// override this to invoke `delivery` before releasing those fences.
+    fn source_descend_with_delivery(
+        &self,
+        request: Params,
+        abort_probe: Arc<dyn AbortProbe>,
+        delivery: &mut SourceDescendDelivery<'_>,
+    ) -> Result<(), AccessError> {
+        delivery(self.source_descend(request, abort_probe))
+    }
     /// Software-only discovery; schema availability never implies a read grant.
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         crate::exploration_contracts::runtime_capabilities(None)
@@ -858,6 +1063,14 @@ impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {
     ) -> Result<PreparedPacket<'hold>, AccessError> {
         AccessExecutor::source_descend(self, arg0, arg1)
     }
+    fn source_descend_with_delivery(
+        &self,
+        arg0: Params,
+        arg1: Arc<dyn AbortProbe>,
+        arg2: &mut SourceDescendDelivery<'_>,
+    ) -> Result<(), AccessError> {
+        AccessExecutor::source_descend_with_delivery(self, arg0, arg1, arg2)
+    }
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         AccessExecutor::exploration_runtime_capabilities(self)
     }
@@ -1016,6 +1229,72 @@ pub fn checked_execute<'hold>(
     }
     Ok(packet)
 }
+
+/// Scope the QRY packet's abort fence around its final transport callback.
+/// Owner implementations keep their stronger source/policy transaction alive
+/// while invoking `delivery`; this helper adds cancellation and deadline checks
+/// on both sides of that write without letting the borrowed packet escape.
+pub fn checked_execute_source_descend(
+    probe: Arc<dyn AbortProbe>,
+    execute: impl FnOnce(Arc<dyn AbortProbe>, &mut SourceDescendDelivery<'_>) -> Result<(), AccessError>,
+    delivery: &mut SourceDescendDelivery<'_>,
+) -> Result<(), AccessError> {
+    #[cfg(not(target_arch = "wasm32"))]
+    let mut observation = crate::http_observation::KernelOperation::enter();
+    crate::knowledge::check_abort(&probe)?;
+    let mut delivered = false;
+    let mut delivery_error = None;
+    let mut guarded_delivery = |result: Result<PreparedPacket<'_>, AccessError>| {
+        if delivered {
+            let error = AccessError::new(
+                AccessErrorCode::Unavailable,
+                "source descent owner delivered more than one packet",
+            );
+            delivery_error = Some(error.clone());
+            return Err(error);
+        }
+        delivered = true;
+        if let Err(error) = crate::knowledge::check_abort(&probe) {
+            delivery_error = Some(error.clone());
+            return Err(error);
+        }
+        let result = result.map(|mut packet| {
+            packet.fence = Box::new(AbortFence {
+                inner: packet.fence,
+                probe: Arc::clone(&probe),
+            });
+            packet
+        });
+        if let Err(error) = delivery(result) {
+            delivery_error = Some(error.clone());
+            return Err(error);
+        }
+        if let Err(error) = crate::knowledge::check_abort(&probe) {
+            delivery_error = Some(error.clone());
+            return Err(error);
+        }
+        Ok(())
+    };
+    let owner_result = execute(Arc::clone(&probe), &mut guarded_delivery);
+    drop(guarded_delivery);
+    if let Some(error) = delivery_error {
+        return Err(error);
+    }
+    owner_result?;
+    if !delivered {
+        return Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "source descent owner returned without delivery",
+        ));
+    }
+    crate::knowledge::check_abort(&probe)?;
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(operation) = observation.as_mut() {
+        operation.success();
+    }
+    Ok(())
+}
+
 struct AbortFence<'hold> {
     inner: Box<dyn DisclosureFence + 'hold>,
     probe: Arc<dyn AbortProbe>,
@@ -1036,7 +1315,7 @@ pub struct QuerySession<M: ReadModel> {
 }
 
 impl<M: ReadModel> QuerySession<M> {
-    pub fn execute(&mut self, params: Params) -> Result<PreparedPacket<'static>, AccessError> {
+    pub fn execute(&mut self, params: Params) -> Result<PreparedPacket<'_>, AccessError> {
         let request = SourceDescendRequest {
             node_id: params.node_id,
             max_depth: params.max_depth,
@@ -1052,8 +1331,8 @@ impl<M: ReadModel> QuerySession<M> {
     }
 }
 
-struct QueryDisclosureFence(Box<dyn DisclosureLease>);
-impl DisclosureFence for QueryDisclosureFence {
+struct QueryDisclosureFence<'hold>(Box<dyn DisclosureLease + 'hold>);
+impl DisclosureFence for QueryDisclosureFence<'_> {
     fn recheck(&mut self) -> Result<(), AccessError> {
         self.0.recheck().map_err(Into::into)
     }

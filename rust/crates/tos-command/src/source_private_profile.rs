@@ -5,8 +5,10 @@
 //! profile registry as a source-read grant.  Transport and publication remain
 //! with `PrivateOwnerStore` and the native entry.
 
+use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
+use crate::source_revisions::RecordRead;
 use crate::source_serialization::{self, PrivateMetadataFamily};
 use crate::source_sign_native::{self, SignNativeRead};
 use crate::source_text_owner::OwnerTextContext;
@@ -15,12 +17,610 @@ use crate::source_text_private_store::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::time::Instant;
 use tos_foundation::{
-    Digest256, JsonLimits, JsonString, JsonValue, RelativePath, emit_python_compact_json,
+    Digest256, JsonLimits, JsonString, JsonValue, RelativePath, SourceRevision,
+    emit_python_compact_json,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::{
+    item_rules::ItemRefusal,
+    record_biblio_cut::SourceCutPrefixCoverage,
+    source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor},
+};
+
+/// Typed identity for one selected private-owner source adapter. PostgreSQL
+/// epochs remain distinct from the bootstrap `SourceRevision` carried by the
+/// legacy command context.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PrivateSelectedSourceIdentity {
+    BootstrapRevision(SourceRevision),
+    PgRecord(PgRecordRevisionIdentity),
+}
+
+/// Shared selected schema worker identity for the maintained Profile/Claim
+/// kernels. Candidate PG workers retain their opaque epoch identity.
+pub(crate) trait PrivateSelectedSchemaExecutor: CutSchemaExecutor {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity;
+
+    fn validate_profile_registry(
+        &mut self,
+        ctx: &CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue>;
+}
+
+impl PrivateSelectedSchemaExecutor for CutWorkerSchemaExecutor {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        PrivateSelectedSourceIdentity::BootstrapRevision(self.source_revision())
+    }
+
+    fn validate_profile_registry(
+        &mut self,
+        ctx: &CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue> {
+        crate::source_revisions::validate_source_profile_registry(self, deadline, cancelled, ctx)
+    }
+}
+
+impl PrivateSelectedSchemaExecutor for CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity> {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        PrivateSelectedSourceIdentity::PgRecord(*self.input_identity())
+    }
+
+    fn validate_profile_registry(
+        &mut self,
+        _ctx: &CommandContext,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue> {
+        Err(SourceCommandError::Conflict(
+            "candidate profile registry requires its exact RecordRead",
+        ))
+    }
+}
+
+/// Binds the asserted-source worker to the exact PG `RecordRead` supplied by
+/// its held selection session. Profile and Claim kernels use this adapter so
+/// every registry read in their existing semantic path remains candidate
+/// fenced instead of being coerced to a bootstrap `SourceRevision`.
+pub(crate) struct CandidatePrivateSchemaExecutor<'a> {
+    worker: &'a mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    selected: &'a dyn RecordRead<Identity = PgRecordRevisionIdentity>,
+}
+
+struct RecordReadBorrow<'a, I: Copy + Eq> {
+    selected: &'a dyn RecordRead<Identity = I>,
+}
+
+impl<I: Copy + Eq> RecordRead for RecordReadBorrow<'_, I> {
+    type Identity = I;
+
+    fn files(&self) -> &[crate::source_command::SourceFile] {
+        self.selected.files()
+    }
+
+    fn input_identity(&self) -> Self::Identity {
+        self.selected.input_identity()
+    }
+
+    fn effective_uid(&self) -> u64 {
+        self.selected.effective_uid()
+    }
+
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        self.selected.schema_source_path()
+    }
+
+    fn writer(&self) -> Option<&CommandContext> {
+        self.selected.writer()
+    }
+
+    fn check(&self) -> SourceCommandResult<()> {
+        self.selected.check()
+    }
+}
+
+impl<'a> CandidatePrivateSchemaExecutor<'a> {
+    pub(crate) fn new(
+        ctx: &CommandContext,
+        cut: &dyn PrivateSelectedSourceInput,
+        selected: &'a dyn RecordRead<Identity = PgRecordRevisionIdentity>,
+        worker: &'a mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    ) -> SourceCommandResult<Self> {
+        let selected_ref = RecordReadBorrow { selected };
+        candidate_record_binding_matches(ctx, cut, &selected_ref, worker)?;
+        Ok(Self { worker, selected })
+    }
+}
+
+impl CutSchemaExecutor for CandidatePrivateSchemaExecutor<'_> {
+    fn schema_profile(&self) -> Option<tos_validation::FormatProfile> {
+        CutSchemaExecutor::schema_profile(self.worker)
+    }
+
+    fn prepared_execution_binding(
+        &self,
+    ) -> Option<tos_validation::source_cut::CutPreparedSchemaExecutionBinding> {
+        CutSchemaExecutor::prepared_execution_binding(self.worker)
+    }
+
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        CutSchemaExecutor::selected_contract_digest(self.worker, contract)
+    }
+
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.worker.check(path, raw, contract, deadline, cancelled)
+    }
+
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        CutSchemaExecutor::check_reusing_scalar(
+            self.worker,
+            path,
+            raw,
+            contract,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn schema_input_cost(
+        &self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        ordinal: u64,
+    ) -> Result<tos_validation::source_cut::CutSchemaInputCost, ItemRefusal> {
+        CutSchemaExecutor::schema_input_cost(self.worker, path, raw, contract, ordinal)
+    }
+
+    fn set_operation_budget(
+        &mut self,
+        budget: tos_validation::executor::BatchStreamBudget,
+    ) -> Result<(), ItemRefusal> {
+        CutSchemaExecutor::set_operation_budget(self.worker, budget)
+    }
+
+    fn set_shared_schema_worker_quota(
+        &mut self,
+        quota: tos_validation::executor::SharedSchemaWorkerQuota,
+    ) -> Result<(), ItemRefusal> {
+        CutSchemaExecutor::set_shared_schema_worker_quota(self.worker, quota)
+    }
+
+    fn check_batch(
+        &mut self,
+        checks: &[tos_validation::source_cut::CutSchemaCheck],
+        budget: tos_validation::executor::BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        CutSchemaExecutor::check_batch(self.worker, checks, budget, deadline, cancelled)
+    }
+}
+
+impl PrivateSelectedSchemaExecutor for CandidatePrivateSchemaExecutor<'_> {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        PrivateSelectedSourceIdentity::PgRecord(*self.worker.input_identity())
+    }
+
+    fn validate_profile_registry(
+        &mut self,
+        _ctx: &CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue> {
+        let selected = RecordReadBorrow {
+            selected: self.selected,
+        };
+        crate::source_revisions::validate_source_profile_registry_candidate(
+            self.worker,
+            deadline,
+            cancelled,
+            &selected,
+        )
+    }
+}
+
+/// Selected current-source reads used by the private Profile and Claim
+/// semantics. A PostgreSQL implementation binds these calls to the active
+/// `SourceRevisionReadSession`; the filesystem adapter preserves the existing
+/// local invocation. This surface intentionally has no whole-corpus method.
+pub(crate) trait PrivateSelectedSourceInput {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity;
+
+    /// Exact-token lookup for the source-maintained semantic annotation
+    /// identity index. Filesystem routes return `None` and retain their
+    /// established bounded owner-prefix proof.
+    fn annotation_identity_owners(
+        &self,
+        _tokens: &BTreeSet<String>,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> Result<
+        Option<
+            BTreeMap<
+                String,
+                BTreeSet<crate::source_annotation_identity_index::AnnotationEntityOwner>,
+            >,
+        >,
+        ItemRefusal,
+    > {
+        Ok(None)
+    }
+
+    fn for_each_current_member_path_under(
+        &self,
+        directory: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<SourceCutPrefixCoverage, ItemRefusal>;
+
+    fn with_current_member(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str, &[u8]) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal>;
+}
+
+impl PrivateSelectedSourceInput for CorpusCutReader {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        PrivateSelectedSourceIdentity::BootstrapRevision(self.current().revision())
+    }
+
+    fn for_each_current_member_path_under(
+        &self,
+        directory: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<SourceCutPrefixCoverage, ItemRefusal> {
+        let parsed = RelativePath::parse(directory)
+            .map_err(|_| ItemRefusal::Source("private source prefix path".into()))?;
+        if parsed.as_str() != directory {
+            return Err(ItemRefusal::Source(
+                "private source prefix path is not canonical".into(),
+            ));
+        }
+        let prefix = format!("{directory}/");
+        let mut count = 0u64;
+        for member in self.current().members() {
+            if cancelled.load(Ordering::Relaxed) {
+                return Err(ItemRefusal::Source("private source read cancelled".into()));
+            }
+            if Instant::now() >= deadline {
+                return Err(ItemRefusal::Deadline);
+            }
+            let path = member.path.as_str();
+            if !path.starts_with(&prefix) {
+                continue;
+            }
+            count = count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            visit(path)?;
+        }
+        SourceCutPrefixCoverage::after_verified_prefix_eof(directory, count)
+    }
+
+    fn with_current_member(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str, &[u8]) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(ItemRefusal::Source("private source read cancelled".into()));
+        }
+        if Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Source("private source member path".into()))?;
+        if relative.as_str() != path {
+            return Err(ItemRefusal::Source(
+                "private source member path is not canonical".into(),
+            ));
+        }
+        let Some(metadata) = self.current().member(&relative) else {
+            return Ok(());
+        };
+        let member = self
+            .read_member(
+                self.current().revision(),
+                &relative,
+                max_bytes as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| ItemRefusal::Source("private selected source read failed".into()))?;
+        if member.raw.len() as u64 != metadata.size_bytes
+            || Digest256::of_bytes(&member.raw) != metadata.sha256
+        {
+            return Err(ItemRefusal::Source(
+                "private selected source member changed".into(),
+            ));
+        }
+        visit(relative.as_str(), &member.raw)
+    }
+}
+
+impl PrivateSelectedSourceInput
+    for crate::source_native_pg_growth_input::PgGrowthCurrentInput<'_, '_>
+{
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        PrivateSelectedSourceIdentity::PgRecord(
+            *tos_validation::record_biblio_cut::SourceCutInputWithIdentity::input_identity(self),
+        )
+    }
+
+    fn annotation_identity_owners(
+        &self,
+        tokens: &BTreeSet<String>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<
+        Option<
+            BTreeMap<
+                String,
+                BTreeSet<crate::source_annotation_identity_index::AnnotationEntityOwner>,
+            >,
+        >,
+        ItemRefusal,
+    > {
+        self.lookup_annotation_identity_owners(tokens, deadline, cancelled)
+            .map(Some)
+            .map_err(|_| {
+                ItemRefusal::Source("private Claim annotation identity lookup failed".into())
+            })
+    }
+
+    fn for_each_current_member_path_under(
+        &self,
+        directory: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<SourceCutPrefixCoverage, ItemRefusal> {
+        tos_validation::record_biblio_cut::SourceCutInput::for_each_current_member_meta_under(
+            self,
+            directory,
+            deadline,
+            cancelled,
+            &mut |meta| visit(meta.path),
+        )
+    }
+
+    fn with_current_member(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str, &[u8]) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        let mut found = false;
+        tos_validation::record_biblio_cut::SourceCutInput::with_current_member(
+            self,
+            path,
+            max_bytes,
+            deadline,
+            cancelled,
+            &mut |meta, raw| {
+                if meta.path != path || found {
+                    return Err(ItemRefusal::Source(
+                        "PG private selected member identity differs".into(),
+                    ));
+                }
+                found = true;
+                visit(path, raw)
+            },
+        )?;
+        Ok(())
+    }
+}
+
+pub(crate) fn selection_binding_matches(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &dyn PrivateSelectedSchemaExecutor,
+) -> bool {
+    match (
+        cut.private_selection_identity(),
+        worker.private_selection_identity(),
+    ) {
+        (
+            PrivateSelectedSourceIdentity::BootstrapRevision(input),
+            PrivateSelectedSourceIdentity::BootstrapRevision(schema),
+        ) => input == ctx.base_revision && schema == ctx.base_revision,
+        (
+            PrivateSelectedSourceIdentity::PgRecord(input),
+            PrivateSelectedSourceIdentity::PgRecord(schema),
+        ) => input == schema && input.bootstrap_revision == ctx.base_revision,
+        _ => false,
+    }
+}
+
+pub(crate) fn source_bootstrap_context_matches(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+) -> bool {
+    match cut.private_selection_identity() {
+        PrivateSelectedSourceIdentity::BootstrapRevision(revision) => revision == ctx.base_revision,
+        PrivateSelectedSourceIdentity::PgRecord(identity) => {
+            identity.bootstrap_revision == ctx.base_revision
+        }
+    }
+}
+
+fn worker_bootstrap_context_matches(
+    ctx: &CommandContext,
+    worker: &dyn PrivateSelectedSchemaExecutor,
+) -> bool {
+    match worker.private_selection_identity() {
+        PrivateSelectedSourceIdentity::BootstrapRevision(revision) => revision == ctx.base_revision,
+        PrivateSelectedSourceIdentity::PgRecord(identity) => {
+            identity.bootstrap_revision == ctx.base_revision
+        }
+    }
+}
+
+pub(crate) fn candidate_record_binding_matches(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &dyn PrivateSelectedSchemaExecutor,
+) -> SourceCommandResult<()> {
+    selected.check()?;
+    let identity = selected.input_identity();
+    if cut.private_selection_identity() != PrivateSelectedSourceIdentity::PgRecord(identity)
+        || worker.private_selection_identity() != PrivateSelectedSourceIdentity::PgRecord(identity)
+        || identity.bootstrap_revision != ctx.base_revision
+    {
+        return Err(SourceCommandError::Conflict(
+            "candidate private source, RecordRead, and schema worker identities differ",
+        ));
+    }
+    for file in ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+    {
+        if selected.file(&file.path)? != Some(file.raw.as_slice()) {
+            return Err(SourceCommandError::Conflict(
+                "candidate private command bytes differ from selected RecordRead",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn candidate_record_worker_binding_matches(
+    ctx: &CommandContext,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &dyn PrivateSelectedSchemaExecutor,
+) -> SourceCommandResult<()> {
+    selected.check()?;
+    let identity = selected.input_identity();
+    if worker.private_selection_identity() != PrivateSelectedSourceIdentity::PgRecord(identity)
+        || identity.bootstrap_revision != ctx.base_revision
+    {
+        return Err(SourceCommandError::Conflict(
+            "candidate private RecordRead and schema worker identities differ",
+        ));
+    }
+    for file in ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+    {
+        if selected.file(&file.path)? != Some(file.raw.as_slice()) {
+            return Err(SourceCommandError::Conflict(
+                "candidate private command bytes differ from selected RecordRead",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn current_members_under(
+    cut: &dyn PrivateSelectedSourceInput,
+    directory: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<String>> {
+    let mut members = Vec::new();
+    let coverage = cut
+        .for_each_current_member_path_under(directory, deadline, cancelled, &mut |path| {
+            if members.len() >= 32_768 {
+                return Err(ItemRefusal::Budget);
+            }
+            members.push(path.to_owned());
+            Ok(())
+        })
+        .map_err(|_| SourceCommandError::Unsupported("bounded private source inventory"))?;
+    if coverage.directory() != directory || coverage.member_count() as usize != members.len() {
+        return Err(SourceCommandError::Conflict(
+            "private source prefix coverage differs",
+        ));
+    }
+    Ok(members)
+}
+
+pub(crate) fn read_current_member(
+    cut: &dyn PrivateSelectedSourceInput,
+    path: &str,
+    max_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<Vec<u8>>> {
+    let mut raw = None;
+    cut.with_current_member(path, max_bytes, deadline, cancelled, &mut |_, bytes| {
+        if raw.is_some() {
+            return Err(ItemRefusal::Source(
+                "private selected source member metadata differs".into(),
+            ));
+        }
+        raw = Some(bytes.to_vec());
+        Ok(())
+    })
+    .map_err(|_| SourceCommandError::Unsupported("exact private source member read"))?;
+    Ok(raw)
+}
+
+fn check_selected_inputs(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    ctx.check_selected_software_inputs(software, components, deadline, cancelled)?;
+    for input in &ctx.files {
+        if !input.path.as_str().starts_with("ToS/") {
+            continue;
+        }
+        let selected = read_current_member(
+            cut,
+            input.path.as_str(),
+            input.raw.len().max(1),
+            deadline,
+            cancelled,
+        )?
+        .ok_or(SourceCommandError::Conflict(
+            "private selected authored input is absent",
+        ))?;
+        if selected != input.raw {
+            return Err(SourceCommandError::Conflict(
+                "private selected authored input changed",
+            ));
+        }
+    }
+    Ok(())
+}
 
 pub(crate) const CONFIG: &str = "tos_local_owner_profile_command_v1";
 pub(crate) const HISTORY: &str = "source-revision-history.json";
@@ -40,6 +640,40 @@ const FORM_CONTRACTS: &[&str] = &[
     "ToS/contracts/human-form-set.schema.json",
     "ToS/contracts/human-form-template.schema.json",
 ];
+
+/// Exact schema closure needed by the selected private Profile type. The PG
+/// entry uses these paths to fetch only schemas declared by that selected
+/// profile plus the fixed Profile/form contracts.
+pub(crate) fn pg_schema_contracts(
+    registry: &JsonValue,
+    profile_type_id: &str,
+) -> SourceCommandResult<BTreeSet<String>> {
+    let profile = selected_profile_from_registry(registry, profile_type_id)?;
+    let mut paths = BTreeSet::from([
+        PROFILE_CONTRACT.to_owned(),
+        CONTEXT_CONTRACT.to_owned(),
+        CORPUS_CONTRACT.to_owned(),
+        METADATA_CONTRACT.to_owned(),
+    ]);
+    paths.extend(FORM_CONTRACTS.iter().map(|path| (*path).to_owned()));
+    for route in cmd::array(&profile, "schemas")? {
+        paths.insert(cmd::text(route, "schema_ref")?.to_owned());
+        paths.extend(text_array(route, "schema_dependencies", 128)?);
+    }
+    if paths.is_empty() || paths.len() > MAX_INPUTS {
+        return Err(SourceCommandError::Invalid(
+            "private profile schema reference budget",
+        ));
+    }
+    Ok(paths)
+}
+
+pub(crate) fn pg_form_contracts() -> BTreeSet<String> {
+    FORM_CONTRACTS
+        .iter()
+        .map(|path| (*path).to_owned())
+        .collect()
+}
 const OPERATIONS: &[&str] = &[
     "source.create",
     "record.revise",
@@ -221,21 +855,23 @@ impl LowerOrDigit for u8 {
 /// Corpus-only adapters and the public catalog are deliberately excluded.
 pub(crate) fn profile_identity_basenames(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
-    if cut.current().revision() != ctx.base_revision
-        || worker.source_revision() != ctx.base_revision
-    {
+    if !selection_binding_matches(ctx, cut, worker) {
         return Err(SourceCommandError::Conflict(
             "profile registry worker and selected source cut differ",
         ));
     }
-    let registry = crate::source_revisions::validate_source_profile_registry(
-        worker, deadline, cancelled, ctx,
-    )?;
+    let registry = worker.validate_profile_registry(ctx, deadline, cancelled)?;
+    profile_identity_basenames_from_registry(&registry)
+}
+
+fn profile_identity_basenames_from_registry(
+    registry: &JsonValue,
+) -> SourceCommandResult<BTreeSet<String>> {
     let mut result = BTreeSet::new();
     for entry in cmd::array(&registry, "types")? {
         let Some(profile) = entry.object_get("source_record_profile") else {
@@ -248,12 +884,30 @@ pub(crate) fn profile_identity_basenames(
     Ok(result)
 }
 
+/// Candidate-fenced counterpart to the maintained Profile identity-basename
+/// selection. The selected record bytes, source prefix adapter, and schema
+/// worker must carry the same opaque PG epoch identity.
+pub(crate) fn profile_identity_basenames_pg(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeSet<String>> {
+    candidate_record_binding_matches(ctx, cut, selected, worker)?;
+    let registry = crate::source_revisions::validate_source_profile_registry_candidate(
+        worker, deadline, cancelled, selected,
+    )?;
+    profile_identity_basenames_from_registry(&registry)
+}
+
 /// Exact Python profile `_inventory` basename selection, including its shared
 /// claim stream. Claim-specific metadata readers can add only their own names.
 pub(crate) fn identity_basenames(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
@@ -262,24 +916,40 @@ pub(crate) fn identity_basenames(
     Ok(result)
 }
 
-/// Claim's SourceRecordProfiles inventory includes both declared reader kinds.
-pub(crate) fn public_identity_basenames(
+pub(crate) fn identity_basenames_pg(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
-    if cut.current().revision() != ctx.base_revision
-        || worker.source_revision() != ctx.base_revision
-    {
+    let mut result =
+        profile_identity_basenames_pg(ctx, cut, selected, worker, deadline, cancelled)?;
+    result.insert("source-claims.jsonl".into());
+    Ok(result)
+}
+
+/// Claim's SourceRecordProfiles inventory includes both declared reader kinds.
+pub(crate) fn public_identity_basenames(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeSet<String>> {
+    if !selection_binding_matches(ctx, cut, worker) {
         return Err(SourceCommandError::Conflict(
             "profile registry worker and selected source cut differ",
         ));
     }
-    let registry = crate::source_revisions::validate_source_profile_registry(
-        worker, deadline, cancelled, ctx,
-    )?;
+    let registry = worker.validate_profile_registry(ctx, deadline, cancelled)?;
+    public_identity_basenames_from_registry(&registry)
+}
+
+fn public_identity_basenames_from_registry(
+    registry: &JsonValue,
+) -> SourceCommandResult<BTreeSet<String>> {
     let mut result = BTreeSet::new();
     for entry in cmd::array(&registry, "types")? {
         if let Some(profile) = entry.object_get("source_record_profile") {
@@ -290,23 +960,43 @@ pub(crate) fn public_identity_basenames(
     Ok(result)
 }
 
+pub(crate) fn public_identity_basenames_pg(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeSet<String>> {
+    candidate_record_binding_matches(ctx, cut, selected, worker)?;
+    let registry = crate::source_revisions::validate_source_profile_registry_candidate(
+        worker, deadline, cancelled, selected,
+    )?;
+    public_identity_basenames_from_registry(&registry)
+}
+
 fn selected_profile(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     profile_type_id: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
-    if cut.current().revision() != ctx.base_revision {
+    if !selection_binding_matches(ctx, cut, worker) {
         return Err(SourceCommandError::Conflict(
             "private profile selected cut differs",
         ));
     }
-    let registry = crate::source_revisions::validate_source_profile_registry(
-        worker, deadline, cancelled, ctx,
-    )?;
-    let entry = cmd::array(&registry, "types")?
+    let registry = worker.validate_profile_registry(ctx, deadline, cancelled)?;
+    selected_profile_from_registry(&registry, profile_type_id)
+}
+
+fn selected_profile_from_registry(
+    registry: &JsonValue,
+    profile_type_id: &str,
+) -> SourceCommandResult<JsonValue> {
+    let entry = cmd::array(registry, "types")?
         .iter()
         .find(|entry| cmd::text(entry, "type_id").ok() == Some(profile_type_id))
         .ok_or(SourceCommandError::Denied("private profile type is absent"))?;
@@ -354,7 +1044,7 @@ fn profile_schema_refs(
 
 fn schema_instance(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     source_path: &str,
     refs: &[String],
     root: &str,
@@ -362,7 +1052,7 @@ fn schema_instance(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
-    if worker.source_revision() != ctx.base_revision {
+    if !worker_bootstrap_context_matches(ctx, worker) {
         return Err(SourceCommandError::Conflict(
             "profile schema worker cut differs",
         ));
@@ -377,7 +1067,7 @@ fn schema_instance(
         let expected_a = format!("https://tree-of-sophia.local/{name}");
         let expected_b = format!("https://treeofsophia.local/{name}");
         if !matches!(cmd::text(&schema, "$id")?, value if value == expected_a || value == expected_b)
-            || worker.contract_digest(name) != Some(Digest256::of_bytes(raw))
+            || worker.selected_contract_digest(name) != Some(Digest256::of_bytes(raw))
         {
             return Err(SourceCommandError::Conflict(
                 "profile schema identity or worker digest differs",
@@ -400,16 +1090,38 @@ fn schema_instance(
 
 fn validate_profile_record(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     profile_type_id: &str,
     expected_path: &str,
     selected_id: &str,
     raw: &[u8],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedProfileRecord> {
     let profile = selected_profile(ctx, cut, profile_type_id, worker, deadline, cancelled)?;
+    validate_profile_record_from_profile(
+        ctx,
+        profile,
+        expected_path,
+        selected_id,
+        raw,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+fn validate_profile_record_from_profile(
+    ctx: &CommandContext,
+    profile: JsonValue,
+    expected_path: &str,
+    selected_id: &str,
+    raw: &[u8],
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SelectedProfileRecord> {
     let record = cmd::parse(raw)?;
     let kind = cmd::text(&profile, "record_type")?;
     let base = expected_path
@@ -476,8 +1188,8 @@ pub(crate) fn validate_identity_record(
     selected_id: &str,
     raw: &[u8],
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedProfileRecord> {
@@ -486,6 +1198,68 @@ pub(crate) fn validate_identity_record(
         cut,
         profile_type_id,
         expected_path,
+        selected_id,
+        raw,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn validate_identity_record_pg(
+    profile_type_id: &str,
+    expected_path: &str,
+    selected_id: &str,
+    raw: &[u8],
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SelectedProfileRecord> {
+    candidate_record_binding_matches(ctx, cut, selected, worker)?;
+    let expected_path_text = expected_path;
+    let expected_path = RelativePath::parse(expected_path_text)
+        .map_err(|_| SourceCommandError::Invalid("private profile candidate path"))?;
+    if expected_path.as_str() != expected_path_text {
+        return Err(SourceCommandError::Invalid(
+            "private profile candidate path",
+        ));
+    }
+    let selected_raw = selected
+        .file(&expected_path)?
+        .ok_or(SourceCommandError::Unsupported(
+            "selected private profile record absent from candidate RecordRead",
+        ))?;
+    if selected_raw != raw {
+        return Err(SourceCommandError::Conflict(
+            "private profile record bytes differ from candidate RecordRead",
+        ));
+    }
+    let current_raw = read_current_member(
+        cut,
+        expected_path.as_str(),
+        MAX_RECORD_BYTES,
+        deadline,
+        cancelled,
+    )?
+    .ok_or(SourceCommandError::Unsupported(
+        "selected private profile record absent from candidate source",
+    ))?;
+    if current_raw.as_slice() != raw {
+        return Err(SourceCommandError::Conflict(
+            "private profile record bytes differ from selected candidate source",
+        ));
+    }
+    let registry = crate::source_revisions::validate_source_profile_registry_candidate(
+        worker, deadline, cancelled, selected,
+    )?;
+    let profile = selected_profile_from_registry(&registry, profile_type_id)?;
+    validate_profile_record_from_profile(
+        ctx,
+        profile,
+        expected_path.as_str(),
         selected_id,
         raw,
         worker,
@@ -543,12 +1317,12 @@ fn validate_context_selection(
 
 fn parse_grant(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
     context_config: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Grant> {
@@ -710,7 +1484,7 @@ fn parse_grant(
         ("profile_inputs", hash_map(profile_inputs)),
     ]);
     let digest = cmd::record_digest(&digest_basis)?.to_prefixed();
-    ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    check_selected_inputs(ctx, cut, software, components, deadline, cancelled)?;
     let source_access = access.clone();
     let home = format!(
         "{}{}/",
@@ -785,7 +1559,7 @@ fn implementation_digests(
 
 pub(crate) fn form_grammar_digests(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -803,7 +1577,7 @@ pub(crate) fn form_grammar_digests(
         {
             return Err(SourceCommandError::Invalid("private form schema identity"));
         }
-        if worker.contract_digest(reference) != Some(Digest256::of_bytes(raw)) {
+        if worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(raw)) {
             return Err(SourceCommandError::Conflict(
                 "private form schema worker differs",
             ));
@@ -817,9 +1591,73 @@ pub(crate) fn form_grammar_digests(
     Ok(hash_map(digests))
 }
 
+pub(crate) fn form_grammar_digests_pg(
+    ctx: &CommandContext,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    candidate_record_worker_binding_matches(ctx, selected, worker)?;
+    form_grammar_digests(ctx, worker, deadline, cancelled)
+}
+
 pub(crate) fn validate_form_set(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
+    source_path: &str,
+    set: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    validate_form_set_with_worker(ctx, worker, source_path, set, deadline, cancelled)
+}
+
+pub(crate) fn validate_form_set_pg(
+    ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
+    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    source_path: &str,
+    set: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    candidate_record_binding_matches(ctx, cut, selected, worker)?;
+    let source_path_text = source_path;
+    let source_path = RelativePath::parse(source_path_text)
+        .map_err(|_| SourceCommandError::Invalid("private form candidate path"))?;
+    if source_path.as_str() != source_path_text {
+        return Err(SourceCommandError::Invalid("private form candidate path"));
+    }
+    let selected_raw = selected
+        .file(&source_path)?
+        .ok_or(SourceCommandError::Unsupported(
+            "selected private form set absent from candidate RecordRead",
+        ))?;
+    let selected_set = cmd::parse(selected_raw)?;
+    if !cmd::same(&selected_set, set)? {
+        return Err(SourceCommandError::Conflict(
+            "private form set differs from candidate RecordRead",
+        ));
+    }
+    let current_raw =
+        read_current_member(cut, source_path.as_str(), 8_388_608, deadline, cancelled)?.ok_or(
+            SourceCommandError::Unsupported(
+                "selected private form set absent from candidate source",
+            ),
+        )?;
+    if current_raw.as_slice() != selected_raw {
+        return Err(SourceCommandError::Conflict(
+            "private form set differs from candidate source bytes",
+        ));
+    }
+    validate_form_set_with_worker(ctx, worker, source_path.as_str(), set, deadline, cancelled)
+}
+
+fn validate_form_set_with_worker(
+    ctx: &CommandContext,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     source_path: &str,
     set: &JsonValue,
     deadline: Instant,
@@ -1384,7 +2222,7 @@ fn parse_form_payload(
     files: &PrivatePackage,
     grant: &Grant,
     record: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -1565,10 +2403,10 @@ fn validate_creation_receipt(receipt: &JsonValue, record: &JsonValue) -> SourceC
 
 fn inspect_state(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     grant: &Grant,
     files: &PrivatePackage,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<State> {
@@ -1845,10 +2683,11 @@ fn identity_snapshot(
 
 fn validate_native_profile(
     ctx: &CommandContext,
+    cut: &dyn PrivateSelectedSourceInput,
     owner: &OwnerTextContext,
     grant: &Grant,
     record: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     context_config: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1891,7 +2730,7 @@ fn validate_native_profile(
             "private occurrence binding differs from its exact delegated selection",
         ));
     }
-    let mut native_reader = ProfileNativeReader(owner);
+    let mut native_reader = ProfileNativeReader { owner, cut };
     let (mut resolved, metadata_inputs) = source_sign_native::resolve_owner_profile_binding(
         &mut native_reader,
         worker,
@@ -1908,12 +2747,17 @@ fn validate_native_profile(
         let private = native_reader.owner_local(&input.reference)?;
         owner_local_transport |= private;
         if !private {
-            let path = RelativePath::parse(&input.reference)
-                .map_err(|_| SourceCommandError::Invalid("public native input path"))?;
-            let raw = ctx.file(&path)?.ok_or(SourceCommandError::Conflict(
+            let raw = read_current_member(
+                cut,
+                &input.reference,
+                input.raw_size.max(1),
+                deadline,
+                cancelled,
+            )?
+            .ok_or(SourceCommandError::Conflict(
                 "native public binding input is absent from the selected corpus cut",
             ))?;
-            if raw.len() != input.raw_size || Digest256::of_bytes(raw) != input.raw_sha256 {
+            if raw.len() != input.raw_size || Digest256::of_bytes(&raw) != input.raw_sha256 {
                 return Err(SourceCommandError::Conflict(
                     "native public binding input differs from the selected corpus cut",
                 ));
@@ -2058,7 +2902,10 @@ fn owner_metadata_summary(
 /// Borrow the selected owner transport immutably for the fixed OwnerText
 /// metadata route. The mutable trait surface is historical; this adapter
 /// issues no writes and every read remains selected and bounded.
-struct ProfileNativeReader<'a>(&'a OwnerTextContext);
+struct ProfileNativeReader<'a> {
+    owner: &'a OwnerTextContext,
+    cut: &'a dyn PrivateSelectedSourceInput,
+}
 
 impl SignNativeRead for ProfileNativeReader<'_> {
     fn read(
@@ -2069,7 +2916,13 @@ impl SignNativeRead for ProfileNativeReader<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<u8>> {
-        self.0.read(reference, max_bytes, deadline, cancelled)
+        if self.owner.is_owner_private_reference(reference) {
+            self.owner.read(reference, max_bytes, deadline, cancelled)
+        } else {
+            read_current_member(self.cut, reference, max_bytes, deadline, cancelled)?.ok_or(
+                SourceCommandError::Conflict("selected public native input is absent"),
+            )
+        }
     }
 
     fn verify_current(
@@ -2077,11 +2930,11 @@ impl SignNativeRead for ProfileNativeReader<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        self.0.snapshot(deadline, cancelled).map(|_| ())
+        self.owner.snapshot(deadline, cancelled).map(|_| ())
     }
 
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
-        SignNativeRead::owner_local(self.0, reference)
+        SignNativeRead::owner_local(self.owner, reference)
     }
 
     fn owner_context_snapshot(
@@ -2089,7 +2942,9 @@ impl SignNativeRead for ProfileNativeReader<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<String>> {
-        Ok(Some(self.0.snapshot(deadline, cancelled)?.to_prefixed()))
+        Ok(Some(
+            self.owner.snapshot(deadline, cancelled)?.to_prefixed(),
+        ))
     }
 }
 
@@ -2101,7 +2956,7 @@ fn profile_snapshot(
     native_snapshot: Option<&str>,
     native_metadata_snapshot: Option<&str>,
     native_contracts: &BTreeMap<String, String>,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn PrivateSelectedSchemaExecutor,
     ctx: &CommandContext,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2122,7 +2977,7 @@ fn profile_snapshot(
         ))?;
         // The selected registry is authored data; only schemas belong to the worker.
         if reference != PROFILE_REGISTRY
-            && worker.contract_digest(reference) != Some(Digest256::of_bytes(raw))
+            && worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(raw))
         {
             return Err(SourceCommandError::Conflict(
                 "profile snapshot contract changed",
@@ -2137,7 +2992,7 @@ fn profile_snapshot(
             "selected private native contract absent",
         ))?;
         if Digest256::of_bytes(raw).to_hex() != *expected
-            || worker.contract_digest(reference) != Some(Digest256::of_bytes(raw))
+            || worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(raw))
         {
             return Err(SourceCommandError::Conflict(
                 "private native schema changed",
@@ -2341,7 +3196,7 @@ fn reservation_ids(grant: &Grant, creating: bool) -> SourceCommandResult<BTreeSe
 
 fn make_snapshot(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -2350,7 +3205,7 @@ fn make_snapshot(
     record: &JsonValue,
     inventory: &PrivateIdentityInputs,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     creating: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2370,6 +3225,7 @@ fn make_snapshot(
     let (rights, native_metadata, native_summary, native_reads, native_contracts) =
         validate_native_profile(
             ctx,
+            cut,
             owner,
             grant,
             &selected.record,
@@ -2515,7 +3371,7 @@ fn validate_form_path_set(
     ctx: &CommandContext,
     grant: &Grant,
     forms: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -2531,7 +3387,7 @@ fn validate_form_path_set(
 
 fn prepared_create(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     grant: &Grant,
     request: &JsonValue,
     inventory: &PrivateIdentityInputs,
@@ -2540,7 +3396,7 @@ fn prepared_create(
     owner: &OwnerTextContext,
     context_config: &JsonValue,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -2897,8 +3753,8 @@ fn validate_revision_request_receipt(
     old_state: &State,
     current_state: &State,
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    cut: &dyn PrivateSelectedSourceInput,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -2970,13 +3826,13 @@ fn validate_revision_request_receipt(
 
 fn verify_cold_history(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     context_config: &JsonValue,
     grant: &Grant,
     current: &PrivatePackage,
     state: &State,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -3041,11 +3897,11 @@ fn verify_cold_history(
 
 fn revision_proposal(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     grant: &Grant,
     state: &State,
     request: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, PrivatePackage, Vec<JsonValue>, Vec<JsonValue>)> {
@@ -3117,7 +3973,7 @@ fn merge_reads(
 
 fn create_replay(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -3128,7 +3984,7 @@ fn create_replay(
     current_state: &State,
     inventory: &PrivateIdentityInputs,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, Vec<SourceFile>)> {
@@ -3309,7 +4165,7 @@ fn create_replay(
 
 fn create_package(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -3318,7 +4174,7 @@ fn create_package(
     request: &JsonValue,
     inventory: &PrivateIdentityInputs,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(PrivatePackage, JsonValue, Vec<SourceFile>)> {
@@ -3394,7 +4250,7 @@ fn create_package(
 
 fn current_snapshot(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -3403,7 +4259,7 @@ fn current_snapshot(
     state: &State,
     inventory: &PrivateIdentityInputs,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Snapshot> {
@@ -3521,7 +4377,7 @@ fn apply_form_successor(
     state: &State,
     request: &JsonValue,
     snapshot: &Snapshot,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(PrivatePackage, JsonValue, Vec<JsonValue>)> {
@@ -3592,7 +4448,7 @@ fn apply_form_successor(
 
 pub(crate) fn prepare(
     ctx: &CommandContext,
-    cut: &CorpusCutReader,
+    cut: &dyn PrivateSelectedSourceInput,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     owner: &OwnerTextContext,
@@ -3600,7 +4456,7 @@ pub(crate) fn prepare(
     current: Option<&PrivatePackage>,
     inventory: &PrivateIdentityInputs,
     archive_reader: &mut dyn PrivateArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PrivateProfilePlan> {

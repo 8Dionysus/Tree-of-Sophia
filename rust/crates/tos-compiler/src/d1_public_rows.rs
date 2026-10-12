@@ -294,6 +294,8 @@ pub(crate) struct SourceSqlCounts {
     pub navigation_node_payload_chunks: u64,
     pub navigation_edge_payload_chunks: u64,
     pub navigation_rights_payload_chunks: u64,
+    pub source_gap_records: u64,
+    pub source_gap_record_bytes: u64,
 }
 
 /// The caller passes its resolved repository root and owns the single SQL
@@ -313,7 +315,9 @@ pub(crate) fn emit_philosophy(
         let item = source_value(capture, raw, root)?;
         let item_json = encoded(capture, &item)?;
         let item_id = default_text(&item, "node_id");
-        let search = lower_search(capture, &item_json)?;
+        // Keep the v9 column layout while carrying exact values for the Rust
+        // QRY matcher instead of a lowercased serialized-JSON search string.
+        let search = item_json.clone();
         preflight_large_fields(capture, &[&item_json, &search])?;
         let values = vec![
             quoted(capture, item_id)?,
@@ -345,7 +349,7 @@ pub(crate) fn emit_philosophy(
         let item = source_value(capture, raw, root)?;
         let item_json = encoded(capture, &item)?;
         let item_id = default_text(&item, "edge_id");
-        let search = lower_search(capture, &item_json)?;
+        let search = item_json.clone();
         preflight_large_fields(capture, &[&item_json, &search])?;
         let values = vec![
             quoted(capture, item_id)?,
@@ -410,7 +414,10 @@ pub(crate) fn emit_philosophy(
                 }
             }
             let compact_item = encoded(capture, &auxiliary)?;
-            let search = lower_search(capture, &compact_item)?;
+            // Views, clusters and review packets omit source values from the
+            // public result row. Retain their exact original value object in
+            // the existing internal candidate cell for the shared QRY kernel.
+            let search = encoded(capture, &item)?;
             preflight_large_fields(capture, &[&compact_item, &search])?;
             let item_id = identity(&item, &format!("{collection}:{order}"));
             let values = vec![
@@ -698,6 +705,115 @@ pub(crate) fn emit_corpus(
             .ok_or(Error::Budget("public D1 corpus edges"))?;
         Ok(())
     })?;
+    Ok(())
+}
+
+/// Retain the exact, owner-selected public-ledger bytes for the Worker query
+/// kernel. The raw records live only behind the private D1 binding; the public
+/// static projection remains the bounded derived packet. Per-record digests
+/// in the companion manifest bind each D1 member to this captured source cut.
+pub(crate) fn emit_source_gap_records(
+    capture: &PublicCapture,
+    sink: &mut SqlSink,
+    counts: &mut SourceSqlCounts,
+) -> Result<()> {
+    use tos_foundation::RelativePath;
+
+    const PREFIX: &str = "ToS/source-witnesses/access-requests/public-ledger/";
+    const SUFFIX: &str = ".access-request.json";
+    const MAX_RECORDS: usize = 100;
+    const MAX_RECORD_BYTES: usize = 256_000;
+    let paths = capture
+        .public_ledger_labels()
+        .into_iter()
+        .take(MAX_RECORDS)
+        .collect::<Vec<_>>();
+    if paths.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return Err(Error::Invalid("public D1 source-gap member order"));
+    }
+    let mut manifest_records = Vec::with_capacity(paths.len());
+    for path in paths {
+        let filename = path
+            .strip_prefix(PREFIX)
+            .ok_or(Error::Invalid("public D1 source-gap member path"))?;
+        if RelativePath::parse(path).is_err()
+            || filename.is_empty()
+            || filename.contains('/')
+            || !filename.ends_with(SUFFIX)
+        {
+            return Err(Error::Invalid("public D1 source-gap member path"));
+        }
+        let raw = capture
+            .read_input(path, MAX_RECORD_BYTES)?
+            .ok_or(Error::Invalid("public D1 source gap absent"))?;
+        let digest = Digest256::of_bytes(&raw);
+        if digest != capture.source_digest(path)? {
+            return Err(Error::Invalid("public D1 source-gap source digest"));
+        }
+        let record = json(&raw, MAX_RECORD_BYTES)?;
+        if record.as_object().is_none()
+            || record
+                .object_get("schema_version")
+                .and_then(JsonValue::as_str)
+                != Some("tos_access_request_v1")
+            || record.object_get("personal_or_confidential_data_committed")
+                == Some(&JsonValue::Bool(true))
+        {
+            return Err(Error::Invalid("public D1 unsafe source gap"));
+        }
+        let raw =
+            std::str::from_utf8(&raw).map_err(|_| Error::Invalid("public D1 source-gap UTF-8"))?;
+        let member_key = format!(
+            "source_gap_record:{}",
+            Digest256::of_bytes(path.as_bytes()).to_hex()
+        );
+        for (part, chunk) in chunks(raw).enumerate() {
+            capture.charge_work(chunk.len() as u64)?;
+            sink.insert(
+                "edge_meta_next",
+                &["key", "part", "json_chunk"],
+                &[quote(&member_key)?, part.to_string(), quote(chunk)?],
+            )?;
+        }
+        manifest_records.push(serde_json::json!({
+            "source_ref": path,
+            "sha256": digest.to_hex(),
+            "size_bytes": raw.len(),
+        }));
+        counts.source_gap_records = counts
+            .source_gap_records
+            .checked_add(1)
+            .ok_or(Error::Budget("public D1 source-gap records"))?;
+        counts.source_gap_record_bytes = counts
+            .source_gap_record_bytes
+            .checked_add(raw.len() as u64)
+            .ok_or(Error::Budget("public D1 source-gap record bytes"))?;
+    }
+    let manifest = serde_json::json!({
+        "schema": "tos_public_source_gap_records_v1",
+        "source_owner": "Tree-of-Sophia",
+        "selection": "captured-public-ledger-members-v1",
+        "max_records": MAX_RECORDS,
+        "max_record_bytes": MAX_RECORD_BYTES,
+        "records": manifest_records,
+    });
+    let manifest =
+        serde_json::to_string(&manifest).map_err(|error| Error::Source(error.to_string()))?;
+    if manifest.len() > MAX_ROW_VALUE_BYTES {
+        return Err(Error::Budget("public D1 source-gap manifest bytes"));
+    }
+    capture.charge_work(manifest.len() as u64)?;
+    for (part, chunk) in chunks(&manifest).enumerate() {
+        sink.insert(
+            "edge_meta_next",
+            &["key", "part", "json_chunk"],
+            &[
+                quote("source_gap_records_v1")?,
+                part.to_string(),
+                quote(chunk)?,
+            ],
+        )?;
+    }
     Ok(())
 }
 
@@ -1329,7 +1445,7 @@ mod tests {
         );
         let db = rusqlite::Connection::open_in_memory().unwrap();
         db.execute_batch(&sql).unwrap();
-        let expected_search = lower_search(&capture, &expected_json).unwrap();
+        let expected_search = expected_json.clone();
         let (stored_json, stored_search): (String, String) = db
             .query_row(
                 "SELECT json, search_text FROM philosophy_nodes_next WHERE id='n:large'",

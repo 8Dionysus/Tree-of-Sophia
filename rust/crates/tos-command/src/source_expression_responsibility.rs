@@ -14,6 +14,16 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 
+#[path = "source_expression_responsibility_pg.rs"]
+mod pg;
+pub(crate) use pg::{
+    PG_FAMILY_TAG, PgExpressionResponsibilityOwnerPackage,
+    current_result_fields_from_selected_pg as pg_current_result_fields,
+    expected_inventory_contributions_from_writes, expected_revision_indexes_from_writes,
+    prepare_pg_expression_responsibility, prepare_pg_expression_responsibility_preview,
+    verify_pg_expression_responsibility_context,
+};
+
 // Reuse the existing compound byte carrier iterator: CR, LF and CRLF each
 // count one physical line, including genuine blank lines.
 pub(super) fn catalog_lines(raw: &[u8]) -> impl Iterator<Item = &[u8]> {

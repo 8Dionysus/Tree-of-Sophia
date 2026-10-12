@@ -13,7 +13,7 @@ use tos_source_store::{
 use tos_validation::source_cut::CutSchemaExecutor;
 
 #[path = "source_legacy_historical_claim.rs"]
-mod engine;
+pub(super) mod engine;
 
 pub(super) fn run(
     invocation: &Value,

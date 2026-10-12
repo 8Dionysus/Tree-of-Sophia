@@ -14,10 +14,7 @@ use tos_compiler::{
     CorpusOriginalCollection as Collection, CorpusOriginalReceipt,
     CorpusOriginalSelector as Selector, VerifiedKnowledgeModel,
 };
-use tos_foundation::{
-    JsonNumber, JsonNumberKind, JsonString, JsonValue, python_lower_unicode16_v1,
-    python_strip_unicode16_v1,
-};
+use tos_foundation::{JsonNumber, JsonNumberKind, JsonString, JsonValue};
 
 pub const CORPUS_INTENDED_USE: &str = "read_only_public_corpus_projection_v1";
 pub const CORPUS_CARRIER_LAYER: &str = crate::knowledge_packet::INDEXED_SEARCH_CARRIER_LAYER;
@@ -340,46 +337,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         Ok(rows)
     }
     fn contains(&mut self, value: &JsonValue, needle: &str) -> Result<bool, SearchV2Error> {
-        self.work(1)?;
-        match value {
-            JsonValue::String(s) => {
-                let s = s.as_str().ok_or_else(|| {
-                    fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
-                        "corpus string is not UTF-8",
-                    )
-                })?;
-                if s.is_empty() {
-                    return Ok(needle.is_empty());
-                }
-                self.work(s.chars().count())?;
-                let lower = python_lower_unicode16_v1(
-                    s,
-                    s.chars().count(),
-                    s.chars().count().saturating_mul(3),
-                    s.len().saturating_mul(3),
-                )
-                .map_err(|_| budget_error())?;
-                Ok(lower.contains(needle))
-            }
-            JsonValue::Array(values) => {
-                for v in values {
-                    if self.contains(v, needle)? {
-                        return Ok(true);
-                    }
-                }
-                Ok(false)
-            }
-            JsonValue::Object(values) => {
-                for (_, v) in values {
-                    if self.contains(v, needle)? {
-                        return Ok(true);
-                    }
-                }
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
+        crate::source_value_search::contains_values(value, needle, &mut |steps| self.work(steps))
     }
     fn views(&mut self) -> Result<Vec<JsonValue>, SearchV2Error> {
         Ok(self
@@ -397,25 +355,8 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         resource_kind: &Option<String>,
         limit: usize,
     ) -> Result<JsonValue, SearchV2Error> {
-        self.work(query.chars().count())?;
-        let lower = if query.is_empty() {
-            String::new()
-        } else {
-            python_lower_unicode16_v1(
-                query,
-                query.chars().count(),
-                query.chars().count().saturating_mul(3),
-                query.len().saturating_mul(3),
-            )
-            .map_err(|_| budget_error())?
-        };
-        let needle = if lower.is_empty() {
-            String::new()
-        } else {
-            python_strip_unicode16_v1(&lower, lower.chars().count())
-                .map_err(|_| budget_error())?
-                .to_owned()
-        };
+        let needle =
+            crate::source_value_search::normalize_query(query, &mut |steps| self.work(steps))?;
         let mut results = Vec::new();
         for (collection, name) in [
             (Collection::Nodes, "nodes"),
@@ -457,7 +398,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             }
         }
         Ok(object(vec![
-            ("schema", text("tos_corpus_mcp_search_v1")),
+            ("schema", text("tos_corpus_mcp_search_v2")),
             ("query", text(query)),
             ("resource_kind", optional(resource_kind)),
             ("result_count", count(results.len())),
@@ -800,7 +741,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
                     None => JsonValue::Null,
                 };
                 Ok(object(vec![
-                    ("schema", text("tos_corpus_mcp_packet_v1")),
+                    ("schema", text("tos_corpus_mcp_packet_v2")),
                     ("query", text(query)),
                     ("view_id", optional(view_id)),
                     ("result_count", field(&search, "result_count").clone()),

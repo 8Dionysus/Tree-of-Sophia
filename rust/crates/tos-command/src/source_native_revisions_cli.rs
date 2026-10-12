@@ -702,10 +702,52 @@ pub(crate) fn context_selected_record_from_transport(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<cmd::CommandContext> {
-    let max_files = cmd::SELECTED_SOURCE_MAX_FILES;
-    let max_bytes = u64::try_from(cmd::SELECTED_SOURCE_MAX_BYTES)
-        .map_err(|_| SourceCommandError::Invalid("record revision context byte budget"))?;
-    let mut budgeted = SelectedContextTransport::new(transport, max_files, max_bytes, 8_388_608)?;
+    context_selected_record_from_transport_with_limits(
+        configuration_raw,
+        request_raw,
+        recorded_at,
+        source_path,
+        base_revision,
+        transport,
+        software,
+        components,
+        cmd::SELECTED_SOURCE_MAX_FILES,
+        u64::try_from(cmd::SELECTED_SOURCE_MAX_BYTES)
+            .map_err(|_| SourceCommandError::Invalid("record revision context byte budget"))?,
+        8_388_608,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Bounded PG owners pass their invocation caps here so an oversized selected
+/// package is refused before transport reads or software-capture materialize
+/// it. The local owner caps remain the outer ceiling.
+pub(crate) fn context_selected_record_from_transport_with_limits(
+    configuration_raw: &[u8],
+    request_raw: &[u8],
+    recorded_at: &str,
+    source_path: &str,
+    base_revision: SourceRevision,
+    transport: &mut impl ReadonlyRecordFiles,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    max_members: usize,
+    max_total_bytes: u64,
+    max_member_bytes: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<cmd::CommandContext> {
+    let max_files = max_members.min(cmd::SELECTED_SOURCE_MAX_FILES);
+    let max_bytes = max_total_bytes
+        .min(
+            u64::try_from(cmd::SELECTED_SOURCE_MAX_BYTES)
+                .map_err(|_| SourceCommandError::Invalid("record revision context byte budget"))?,
+        )
+        .min(33_554_432);
+    let max_member_bytes = max_member_bytes.min(8_388_608);
+    let mut budgeted =
+        SelectedContextTransport::new(transport, max_files, max_bytes, max_member_bytes)?;
     context_selected_record_from_budgeted_transport(
         configuration_raw,
         request_raw,
@@ -893,6 +935,8 @@ pub(crate) struct PreparedPgRecordRevision {
     context: cmd::CommandContext,
     proposal: cmd::PreparedCommand,
     identity: crate::source_revisions::PgRecordRevisionIdentity,
+    family_tag: String,
+    legacy_family_encoding: bool,
     work_revision: Option<crate::source_pg_work_revision::Observation>,
     publication_observation_digest: Option<Digest256>,
 }
@@ -907,6 +951,12 @@ impl PreparedPgRecordRevision {
 
     pub(crate) fn identity(&self) -> crate::source_revisions::PgRecordRevisionIdentity {
         self.identity
+    }
+    pub(crate) fn family_tag(&self) -> &str {
+        &self.family_tag
+    }
+    pub(crate) fn legacy_family_encoding(&self) -> bool {
+        self.legacy_family_encoding
     }
     pub(crate) fn work_revision(&self) -> Option<&crate::source_pg_work_revision::Observation> {
         self.work_revision.as_ref()
@@ -934,18 +984,24 @@ pub(crate) fn prepare_pg_record_revision_with_work(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgRecordRevision> {
-    let (_, family) = crate::source_revisions::configuration(&context)?;
+    let (config, family) = crate::source_revisions::configuration(&context)?;
     let work_owner = family == crate::source_revisions::RevisionFamily::CorpusSelectedV3
-        && crate::source_command::text(
-            &crate::source_command::parse(&context.configuration_raw)?,
-            "record_type",
-        )? == "work";
-    if family != crate::source_revisions::RevisionFamily::CorpusFlat && !work_owner {
+        && crate::source_command::text(&config, "record_type")? == "work";
+    if !matches!(
+        family,
+        crate::source_revisions::RevisionFamily::Historical
+            | crate::source_revisions::RevisionFamily::CorpusFlat
+            | crate::source_revisions::RevisionFamily::CorpusSelectedV2
+            | crate::source_revisions::RevisionFamily::CorpusSelectedV3
+            | crate::source_revisions::RevisionFamily::NativeSelected
+    ) {
         return Err(SourceCommandError::Unsupported(
-            "PostgreSQL flat or selected Work revision owner",
+            "PostgreSQL maintained authored revision owner",
         ));
     }
-    if work_owner != work_revision.is_some() {
+    let family_tag = family.pg_family_tag(&config)?;
+    let legacy_family_encoding = family.pg_legacy_compatible(&config)?;
+    if work_revision.is_some() != work_owner {
         return Err(SourceCommandError::Conflict(
             "PG Work read observation differs from owner",
         ));
@@ -976,10 +1032,17 @@ pub(crate) fn prepare_pg_record_revision_with_work(
                 .map_err(|_| SourceCommandError::Denied("revision worker FINAL"))?;
             let (context, work_revision, publication_observation_digest) =
                 read_context.into_parts();
+            if family.selected() && !work_owner && proposal.operation == "record.revise" {
+                crate::source_revisions::validate_pg_selected_revision_proposal(
+                    &context, &proposal,
+                )?;
+            }
             Ok(PreparedPgRecordRevision {
                 context,
                 proposal,
                 identity,
+                family_tag,
+                legacy_family_encoding,
                 work_revision,
                 publication_observation_digest,
             })

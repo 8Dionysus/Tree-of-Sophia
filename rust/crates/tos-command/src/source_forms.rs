@@ -5,7 +5,7 @@ use crate::source_command::{self, SourceCommandError as Error, SourceCommandResu
 use std::collections::HashSet;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
@@ -30,6 +30,41 @@ fn schema_check(
     Ok(())
 }
 
+pub(crate) fn selected_source_contract(
+    owner_schema: &str,
+    source_version: &str,
+) -> Result<Option<&'static str>> {
+    let canonical = owner_schema == "tos_local_canonical_form_owner_v1";
+    let claim = matches!(
+        owner_schema,
+        "tos_local_claim_form_owner_v1" | "tos_local_claim_form_owner_v2"
+    );
+    if claim {
+        return Ok(None);
+    }
+    let path = match source_version {
+        "tos_canonical_node_v1" if canonical => "ToS/contracts/tos-node-contract.schema.json",
+        "tos_artifact_source_witness_v1" if !canonical => {
+            "ToS/contracts/artifact-source-witness.schema.json"
+        }
+        "tos_artifact_source_witness_v2" if !canonical => {
+            "ToS/contracts/artifact-source-witness-v2.schema.json"
+        }
+        "tos_scholarly_composite_witness_v1" if !canonical => {
+            "ToS/contracts/scholarly-composite-witness.schema.json"
+        }
+        "tos_source_link_v1" if !canonical => "ToS/contracts/source-link.schema.json",
+        "tos_corpus_record_v1" if !canonical => "ToS/contracts/corpus-record.schema.json",
+        "tos_historical_record_v1" if !canonical => "ToS/contracts/historical-record.schema.json",
+        _ => {
+            return Err(Error::Unsupported(
+                "source profile needs complete registry/native binding adapter",
+            ));
+        }
+    };
+    Ok(Some(path))
+}
+
 /// Authenticate all selected reads before executing the existing form proposal
 /// engine. Source and software remain separate; configuration is an independent
 /// protected observation, and current owner semantics are checked by the engine.
@@ -46,6 +81,52 @@ pub fn run_form_command_from_captures(
     run_form_command(ctx, source, worker, deadline, cancelled)
 }
 
+/// Authenticate the exact caller-provided current member selection plus the
+/// separately selected software capture, then run the same maintained form
+/// proposal engine used by the corpus-cut route. The caller owns readset
+/// completeness for the selected source and schema dependencies.
+pub fn run_form_command_from_pg_members(
+    ctx: &CommandContext,
+    source_revision: SourceRevision,
+    authored_members: &[SourceFile],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<PreparedCommand> {
+    ctx.check()?;
+    if source_revision != ctx.base_revision || components.capture() != software.selection() {
+        return Err(Error::Conflict("selected form source carriers differ"));
+    }
+    let selected_authored = ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+        .collect::<Vec<_>>();
+    if selected_authored.len() != authored_members.len()
+        || authored_members
+            .iter()
+            .zip(&selected_authored)
+            .any(|(member, selected)| member.path != selected.path || member.raw != selected.raw)
+    {
+        return Err(Error::Conflict(
+            "HumanForms context differs from selected authored members",
+        ));
+    }
+    ctx.check_selected_software_inputs(software, components, deadline, cancelled)?;
+    run_form_command_with_source(
+        ctx,
+        FormCurrentSource::Members {
+            revision: source_revision,
+            members: authored_members,
+        },
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
 /// Execute maintained owner/request/form proposal semantics over caller bytes.
 /// Selected-read custody requires `run_form_command_from_captures` or the
 /// independent carrier checks at candidate binding.
@@ -58,10 +139,60 @@ pub fn run_form_command(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<PreparedCommand> {
+    run_form_command_with_source(
+        ctx,
+        FormCurrentSource::Cut(cut),
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+enum FormCurrentSource<'a> {
+    Cut(&'a CorpusCutReader),
+    Members {
+        revision: SourceRevision,
+        members: &'a [SourceFile],
+    },
+}
+
+impl FormCurrentSource<'_> {
+    fn revision(&self) -> SourceRevision {
+        match self {
+            Self::Cut(cut) => cut.current().revision(),
+            Self::Members { revision, .. } => *revision,
+        }
+    }
+
+    fn member_digest(&self, path: &RelativePath) -> Result<Option<Digest256>> {
+        match self {
+            Self::Cut(cut) => Ok(cut.current().member(path).map(|member| member.sha256)),
+            Self::Members { members, .. } => {
+                let mut found = None;
+                for member in *members {
+                    if member.path != *path {
+                        continue;
+                    }
+                    if found.is_some() {
+                        return Err(Error::Invalid("duplicate HumanForms source member"));
+                    }
+                    found = Some(Digest256::of_bytes(&member.raw));
+                }
+                Ok(found)
+            }
+        }
+    }
+}
+
+fn run_form_command_with_source(
+    ctx: &CommandContext,
+    cut: FormCurrentSource<'_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<PreparedCommand> {
     ctx.check()?;
-    if worker.source_revision() != ctx.base_revision
-        || cut.current().revision() != ctx.base_revision
-    {
+    if worker.source_revision() != ctx.base_revision || cut.revision() != ctx.base_revision {
         return Err(Error::Conflict(
             "schema worker and command source cut differ",
         ));
@@ -173,33 +304,8 @@ pub fn run_form_command(
         parse(source_raw)?
     };
     let version = text(&source, "schema_version")?;
-    let schema = if claim_owner {
-        ""
-    } else {
-        match version {
-            "tos_canonical_node_v1" if canonical => "ToS/contracts/tos-node-contract.schema.json",
-            "tos_artifact_source_witness_v1" if !canonical => {
-                "ToS/contracts/artifact-source-witness.schema.json"
-            }
-            "tos_artifact_source_witness_v2" if !canonical => {
-                "ToS/contracts/artifact-source-witness-v2.schema.json"
-            }
-            "tos_scholarly_composite_witness_v1" if !canonical => {
-                "ToS/contracts/scholarly-composite-witness.schema.json"
-            }
-            "tos_source_link_v1" if !canonical => "ToS/contracts/source-link.schema.json",
-            "tos_corpus_record_v1" if !canonical => "ToS/contracts/corpus-record.schema.json",
-            "tos_historical_record_v1" if !canonical => {
-                "ToS/contracts/historical-record.schema.json"
-            }
-            _ => {
-                return Err(Error::Unsupported(
-                    "source profile needs complete registry/native binding adapter",
-                ));
-            }
-        }
-    };
-    if !claim_owner {
+    let schema = selected_source_contract(owner, version)?;
+    if let Some(schema) = schema {
         schema_check(worker, path, source_raw, schema, deadline, cancelled)?;
     }
     let subject = metadata_subject(&source)?;
@@ -278,21 +384,31 @@ pub fn run_form_command(
     );
     let contracts = if claim_owner {
         let raw = canonical_bytes(&source)?;
-        let report = tos_validation::record_rules::validate_source_claim_from_cut(
-            cut,
-            &raw,
-            worker,
-            tos_validation::item_rules::ItemLimits {
-                max_member_bytes: 1_048_576,
-                // VAL accounts its selected decoded Claim input; the owner
-                // snapshot counts the original complete stream exactly once.
-                max_total_bytes: 8_388_608 - source_raw.len() as u64 + raw.len() as u64,
-                max_state_bytes: 8_388_608,
-                max_issues: 128,
-                deadline,
-            },
-            cancelled,
-        )
+        let limits = tos_validation::item_rules::ItemLimits {
+            max_member_bytes: 1_048_576,
+            // VAL accounts its selected decoded Claim input; the owner
+            // snapshot counts the original complete stream exactly once.
+            max_total_bytes: 8_388_608 - source_raw.len() as u64 + raw.len() as u64,
+            max_state_bytes: 8_388_608,
+            max_issues: 128,
+            deadline,
+        };
+        let report = match &cut {
+            FormCurrentSource::Cut(cut) => {
+                tos_validation::record_rules::validate_source_claim_from_cut(
+                    cut, &raw, worker, limits, cancelled,
+                )
+            }
+            FormCurrentSource::Members { revision, members } => {
+                let members = members
+                    .iter()
+                    .map(|member| (member.path.as_str(), member.raw.as_slice()))
+                    .collect::<Vec<_>>();
+                tos_validation::record_rules::validate_source_claim_from_members(
+                    *revision, &raw, &members, worker, limits, cancelled,
+                )
+            }
+        }
         .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
         if report.source_revision != ctx.base_revision
             || report.source_input_sha256 != Digest256::of_bytes(&raw)
@@ -351,10 +467,10 @@ pub fn run_form_command(
             let raw = ctx.file(&contract)?.ok_or(Error::Invalid(
                 "Claim field language schema absent from command reads",
             ))?;
-            let metadata = cut.current().member(&contract).ok_or(Error::Invalid(
+            let metadata_digest = cut.member_digest(&contract)?.ok_or(Error::Invalid(
                 "Claim field language schema absent from cut",
             ))?;
-            if Digest256::of_bytes(raw) != metadata.sha256 {
+            if Digest256::of_bytes(raw) != metadata_digest {
                 return Err(Error::Conflict(
                     "Claim field language schema differs from cut",
                 ));
@@ -390,6 +506,7 @@ pub fn run_form_command(
         }
         Some(contracts)
     } else if bound_contracts {
+        let schema = schema.ok_or(Error::Invalid("selected source schema absent"))?;
         let schema_path = tos_foundation::RelativePath::parse(schema)
             .map_err(|_| Error::Invalid("schema path"))?;
         let raw = ctx
@@ -716,7 +833,7 @@ fn claim_id(value: &str) -> bool {
     })
 }
 
-fn select_form_claim(raw: &[u8], id: &str) -> Result<JsonValue> {
+pub(crate) fn select_form_claim(raw: &[u8], id: &str) -> Result<JsonValue> {
     if raw.len() > 1_048_576 {
         return Err(Error::Invalid("Claim form source stream byte budget"));
     }
@@ -1016,4 +1133,39 @@ pub fn apply_form_changes(
 }
 pub fn materialize_source_forms(source: &JsonValue, set: &JsonValue) -> Result<Vec<JsonValue>> {
     forms_kernel::materialize_source_forms(source, set).map_err(form_error)
+}
+
+/// Build the digest-only HumanForm owner projection from the exact source and
+/// form-set bytes selected by a native owner route. The owner route remains
+/// responsible for schema and authorization checks; this helper repeats the
+/// source/subject/lineage binding needed by a derived inventory consumer.
+pub(crate) fn pg_form_projection_contribution(
+    source: &JsonValue,
+    source_raw: &[u8],
+    form_set_raw: &[u8],
+) -> Result<JsonValue> {
+    let set = parse(form_set_raw)?;
+    let subject = metadata_subject(source)?;
+    if !same(field(&set, "subject")?, &subject)? {
+        return Err(Error::Conflict(
+            "HumanForm owner projection subject differs",
+        ));
+    }
+    validate_history(&set, &subject)?;
+    let _ = materialize_source_forms(source, &set)?;
+    let form_ids = ["forms", "prior_forms"]
+        .into_iter()
+        .map(|section| array(&set, section))
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .map(|form| field(form, "form_id").cloned())
+        .collect::<Result<Vec<_>>>()?;
+    Ok(object(vec![
+        (
+            "raw_sha256",
+            string(&Digest256::of_bytes(source_raw).to_prefixed()),
+        ),
+        ("form_ids", JsonValue::Array(form_ids)),
+    ]))
 }
