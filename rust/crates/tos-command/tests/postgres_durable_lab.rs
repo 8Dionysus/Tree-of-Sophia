@@ -1159,7 +1159,8 @@ fn project_current_backup_as_v1_wire_for_test(
                     visit(base, &entry.path(), files);
                 } else {
                     assert!(kind.is_file(), "fixture store contains only regular files");
-                    let relative = entry.path().strip_prefix(base).unwrap();
+                    let path = entry.path();
+                    let relative = path.strip_prefix(base).unwrap();
                     files.insert(relative.to_str().unwrap().replace('\\', "/"));
                 }
             }
@@ -4987,9 +4988,10 @@ fn maintained_agent_creation_operation<
     let recovered_store = SegmentStore::open_existing(&recovered_root.0, limits()).unwrap();
     let mut recovered_db = DurablePgCoordinator::connect(&url).unwrap();
     if addressed {
-        let (source_database_oid, source_selected_digest) =
-            interrupted_v1_checkpoint.expect("addressed fixture retains a V1 checkpoint");
-        let restored_identity = Client::connect(&url, NoTls).unwrap();
+        let (source_database_oid, source_selected_digest) = interrupted_v1_checkpoint
+            .clone()
+            .expect("addressed fixture retains a V1 checkpoint");
+        let mut restored_identity = Client::connect(&url, NoTls).unwrap();
         let restored_database_oid: i64 = restored_identity
             .query_one(
                 "SELECT oid::bigint FROM pg_database WHERE datname=current_database()",

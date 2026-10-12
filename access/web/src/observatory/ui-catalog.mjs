@@ -761,6 +761,10 @@ export const UI_CATALOG={
     "en": "The Evidence Lens route is currently unavailable for this object.",
     "es": "La ruta de Evidence Lens no está disponible para este objeto."
   },
+  "Правила интерфейса недоступны.": {
+    "en": "Interface rules are unavailable.",
+    "es": "Las reglas de interfaz no están disponibles."
+  },
   "Связь": {
     "en": "Relationship",
     "es": "Relación"
