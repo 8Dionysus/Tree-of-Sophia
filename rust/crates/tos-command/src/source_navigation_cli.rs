@@ -299,7 +299,7 @@ pub(crate) fn with_selected_navigation_anchor_current<T>(
         selection.process_limits,
         selection.cold_limits,
     )
-    ?;
+    .map_err(SourceNavigationSelectionError::Managed)?;
     parent
         .with_navigation_anchor_current_and_tx(
             &mut coordinator,

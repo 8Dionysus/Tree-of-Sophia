@@ -998,7 +998,7 @@ pub(crate) fn compile(
     let mut catalog_stage = KnowledgeStage::create_until_with_input_cap(
         &catalog_candidate,
         snapshot.stage,
-        &catalog_input_receipt,
+        catalog_input_receipt.clone(),
         &catalog_owner,
         &isolation,
         deadline,
