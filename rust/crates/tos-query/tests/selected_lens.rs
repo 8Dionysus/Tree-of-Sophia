@@ -316,16 +316,85 @@ fn field_mut<'a>(v: &'a mut JsonValue, k: &str) -> &'a mut JsonValue {
 }
 fn replace_exact_string(value: &mut JsonValue, historical: &str, native: &str) {
     let JsonValue::String(actual) = value else {
-        panic!("expected string availability metadata");
+        panic!("expected string while adapting the historical oracle");
     };
     assert_eq!(actual.as_str(), Some(historical));
     *value = JsonValue::String(tos_foundation::JsonString::from_utf8(native));
 }
+
+fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
+    // The transport contract now names the v2 projection search and packet
+    // schemas. Preserve every other field in each frozen Python response.
+    let cases = field_mut(oracle, "cases");
+    let mut adapted = 0;
+    for (case, historical, native) in [
+        (
+            "search",
+            "tos_corpus_mcp_search_v1",
+            "tos_corpus_mcp_search_v2",
+        ),
+        (
+            "packet",
+            "tos_corpus_mcp_packet_v1",
+            "tos_corpus_mcp_packet_v2",
+        ),
+        (
+            "packet-empty",
+            "tos_corpus_mcp_packet_v1",
+            "tos_corpus_mcp_packet_v2",
+        ),
+    ] {
+        let response = field_mut(cases, case);
+        replace_exact_string(field_mut(response, "schema"), historical, native);
+        adapted += 1;
+    }
+    assert_eq!(adapted, 3, "only the three versioned search packets adapt");
+}
+
 fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
-    // The pinned Python oracle predates the native route wording. Keep the
-    // source bundle exact and adapt only these eight availability statements;
-    // schemas, registry data and all other contract fields still compare byte
-    // for byte with the native response.
+    // The pinned Python oracle predates native route and source-text gateway
+    // wording. Apply only those pinned contract deltas and the separate
+    // registry-v46 adjustment below; all other fields remain compared.
+    let api_source_bytes = tos_query::knowledge_contracts::KNOWLEDGE_PROGRAM_CONTRACTS
+        .iter()
+        .find(|(_, path, _)| *path == "access/contracts/knowledge-api.v1.json")
+        .map(|(_, _, bytes)| *bytes)
+        .expect("maintained knowledge API source contract");
+    let api_source = parse_json(
+        api_source_bytes,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let gateway_schema_ref = field(
+        field(&api_source, "data_contracts"),
+        "source_text_gateway_capability",
+    )
+    .as_str()
+    .unwrap();
+    let source_capability = field(&api_source, "operations")
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| {
+            field(operation, "operation_id").as_str() == Some("tos.source.read.capabilities")
+        })
+        .expect("maintained source capability operation");
+    let gateway_result = field(source_capability, "result").as_str().unwrap();
+    let gateway_availability = field(source_capability, "available_on").as_str().unwrap();
+    assert_eq!(
+        gateway_schema_ref,
+        "source-text-gateway-capability.v1.schema.json"
+    );
+    assert_eq!(
+        gateway_result,
+        "selected exact-source owner epoch, supported metadata families and limits, explicit D1 unavailability, and the separately selected native source-text gateway capability"
+    );
+    assert_eq!(
+        gateway_availability,
+        "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 remains unavailable as a source reader; its capability packet may report a source-text gateway only when the native HTTPS origin, outbound Access service token, inbound Access issuer and application audience are configured, without probing runtime readiness"
+    );
     let contracts = field_mut(oracle, "contracts");
     let api = field_mut(contracts, "api");
     let operations = field_mut(api, "operations");
@@ -343,9 +412,14 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
                 replace_exact_string(
                     field_mut(operation, "available_on"),
                     "Python local HTTP, CLI and native MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability",
-                    "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability",
+                    gateway_availability,
                 );
-                adapted += 1;
+                replace_exact_string(
+                    field_mut(operation, "result"),
+                    "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
+                    gateway_result,
+                );
+                adapted += 2;
             }
             "tos.source.read.contracts" => {
                 replace_exact_string(
@@ -393,9 +467,23 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
             _ => {}
         }
     }
+    let data_contracts = field_mut(api, "data_contracts");
+    let JsonValue::Object(data_contracts) = data_contracts else {
+        panic!("knowledge API data contracts must be an object");
+    };
+    assert!(
+        data_contracts
+            .iter()
+            .all(|(name, _)| name.as_str() != Some("source_text_gateway_capability"))
+    );
+    data_contracts.push((
+        tos_foundation::JsonString::from_utf8("source_text_gateway_capability"),
+        JsonValue::String(tos_foundation::JsonString::from_utf8(gateway_schema_ref)),
+    ));
+    adapted += 1;
     assert_eq!(
-        adapted, 8,
-        "only the known historical route statements may adapt"
+        adapted, 10,
+        "only the known route statements and source-text gateway contract may adapt"
     );
     // Registry v46 retires Python owner handles; the historical output remains
     // independently authenticated before applying these authored route changes.
@@ -1826,9 +1914,9 @@ fn selected_philosophy_variant_parity(
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1 => "philosophy-05",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateDanglingReferencesV1 => "philosophy-06",
     });
-    let search_schema = field_mut(field_mut(&mut oracle, "cases"), "search");
+    let search = field_mut(field_mut(&mut oracle, "cases"), "search");
     replace_exact_string(
-        search_schema,
+        field_mut(search, "schema"),
         "tos_philosophy_mcp_search_v1",
         "tos_philosophy_mcp_search_v2",
     );
@@ -2267,6 +2355,7 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
             "{transport} corpus fixture bytes"
         );
         let mut oracle = archived_oracle.clone();
+        adapt_historical_corpus_search_packet_schemas(&mut oracle);
         let value = |text: &str| JsonValue::String(tos_foundation::JsonString::from_utf8(text));
         *field_mut(&mut oracle, "base") = value(temporary.path().to_string_lossy().as_ref());
         *field_mut(&mut oracle, "capture") = value(capture.to_string_lossy().as_ref());

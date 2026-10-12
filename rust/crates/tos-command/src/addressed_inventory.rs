@@ -3408,24 +3408,11 @@ fn validate_public_text_owner(
     raw_sha256: &str,
 ) -> DurableResult<()> {
     if owner == &tos_foundation::JsonValue::Null {
-        if subject.ends_with("/source-text-layer.v1.json")
-            || subject.ends_with("/source-anchor.v2.json")
-            || subject.ends_with("/public-content.json")
-            || subject.ends_with("/extraction-policy.json")
-            || subject.ends_with("/construction-plan.json")
-            || subject.ends_with("/content.txt")
-            || subject.ends_with("/source-text-unit.v1.json")
-            || subject.ends_with("/native-bindings.json")
-            || subject.ends_with("/source-create-inputs.json")
-            || subject.ends_with("/source-create-request.json")
-            || subject.ends_with("/source-create-environment.json")
-            || subject.ends_with("/source-create-provenance.jsonl")
-            || subject.ends_with("/source-create-receipt.json")
-        {
-            return Err(DurableError::Corrupt(
-                "public Text owner contribution absent",
-            ));
-        }
+        // Shared package names (including source-create-*.json) do not select
+        // the public Text family. Original and other owned source packages
+        // legitimately have no public Text contribution. The typed revision
+        // boundary requires this contribution for every public Text write;
+        // any contribution present here still has its full closure checked.
         return Ok(());
     }
     cmd::exact_keys(
@@ -3762,5 +3749,70 @@ fn tree_input_error(error: DurableError) -> SegmentError {
             SegmentErrorCode::CorruptBytes,
             "Agent inventory projection input failed validation",
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shared_creation_metadata_keeps_its_family_and_public_text_stays_required() {
+        let home = "ToS/source-witnesses/relations/formation-research";
+        for basename in [
+            "source-create-request.json",
+            "source-create-environment.json",
+            "source-create-provenance.jsonl",
+            "source-create-receipt.json",
+        ] {
+            let path = format!("{home}/{basename}");
+            let source = b"{}\n".to_vec();
+            let digest = Digest256::of_bytes(&source).to_hex();
+            let projection = cmd::object(vec![
+                ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+                ("path", cmd::string(&path)),
+                ("raw_sha256", cmd::string(&digest)),
+                (
+                    "records",
+                    cmd::object(
+                        crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+                            .iter()
+                            .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                            .collect(),
+                    ),
+                ),
+                ("source_profiles", cmd::object(Vec::new())),
+                ("events", tos_foundation::JsonValue::Array(Vec::new())),
+                ("anchors", tos_foundation::JsonValue::Array(Vec::new())),
+                ("form", tos_foundation::JsonValue::Null),
+                ("claim_owner", tos_foundation::JsonValue::Null),
+                ("public_text_owner", tos_foundation::JsonValue::Null),
+            ]);
+            let raw = cmd::canonical(&projection).unwrap();
+            AddressedMixedInventoryV1::checked_projection(&path, &raw, &digest).unwrap();
+            let writes = [SourceRevisionWrite {
+                subject: path.clone(),
+                expected_predecessor: None,
+                proposed_revision: 1,
+                exact_bytes: source,
+            }];
+            let projections = BTreeMap::from([(path, raw)]);
+            super::super::validate_revision_owner_projections(
+                "tos-pg-global-claims-v1:regression",
+                &writes,
+                &projections,
+            )
+            .unwrap();
+            assert!(matches!(
+                super::super::validate_revision_owner_projections(
+                    "tos-pg-public-native-text-v1:regression",
+                    &writes,
+                    &projections,
+                ),
+                Err(DurableError::Corrupt(
+                    "source revision public Text owner projection differs"
+                ))
+            ));
+        }
     }
 }
