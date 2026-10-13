@@ -70,6 +70,13 @@ owner surfaces.
    Conformance and Growth consume the pinned workspace images before package
    tests can relink the shared Cargo binary paths with different feature sets.
    The image digest checks remain active throughout those consumer steps.
+   Work37 retains an exact process-cold command in both the Rust workspace and
+   release-check lanes. The release-check command runs immediately before the
+   broad source and command package suite, which skips only Work37. CI supplies
+   the owner CLI and schema worker built earlier in that job; the fixture
+   records their digests and file identities across execution. This preserves
+   isolated coverage without changing the fixture's four-minute source
+   deadline or either lane's deadline.
    Selecting and hashing prepared Cargo images gets a separate bounded phase
    after successful compilation, using the same per-command allowance and
    retaining the enclosing lane deadline and cancellation state.

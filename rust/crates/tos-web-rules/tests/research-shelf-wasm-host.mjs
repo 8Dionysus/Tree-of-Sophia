@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Exact generated-WASM browser consumer against the retained local JS oracle.
+// Exact generated-WASM browser consumer against retained behavior fixtures.
 import assert from 'node:assert/strict';
 import {readFile,stat} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -20,13 +20,20 @@ const require=createRequire(pathToFileURL(join(root,'access/web/package.json')).
 const {build}=require('esbuild');
 const bundled=await build({stdin:{contents:`
   export {installResearchShelfRules} from './access/web/src/research-shelf/rules.mjs';
+  export {installReadingRules} from './access/web/src/observatory/reading-resume-rust.mjs';
+  export {installClaimReferenceRules} from './access/web/src/observatory/claim-reference-rust.mjs';
   export {createMemoryResearchShelfStore} from './access/web/src/research-shelf/storage.mjs';
   export {importSuppliedResearchPacket,validateShelfExport,validateShelfRecord} from './access/web/src/research-shelf/model.mjs';
   export {readingKey} from './access/web/src/observatory/reader-model.mjs';
 `,resolveDir:root,sourcefile:'research-shelf-consumer.mjs'},bundle:true,platform:'node',format:'esm',write:false});
 const consumer=await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`);
-const {installResearchShelfRules,createMemoryResearchShelfStore,importSuppliedResearchPacket,
+const {installResearchShelfRules,installReadingRules,installClaimReferenceRules,
+  createMemoryResearchShelfStore,importSuppliedResearchPacket,
   validateShelfExport,validateShelfRecord,readingKey}=consumer;
+installResearchShelfRules(binding);
+installReadingRules(binding);
+installClaimReferenceRules(binding);
+const encode=new TextEncoder();
 const revision='a'.repeat(64),content='b'.repeat(64),at='2026-09-28T12:00:00.000Z';
 const target={kind:'node',id:'tos.node.shelf-wasm',sourceRevision:revision,contentRevision:content};
 const input=id=>({id,title:`  Shelf ${id} `,type:'material',target,collectionIds:[]});
@@ -59,7 +66,6 @@ async function exercise(){
   const withoutExportTime=({exportedAt,...body})=>body;
   return {packet:withoutExportTime(packet),after:withoutExportTime(after),detached,page,identical};
 }
-const oracle=await exercise();
 const reading={v:1,activeKey:readingKey('node',target.id),entries:[{...target,preferred:'default',positions:[[JSON.stringify([readingKey('node',target.id),revision,content,'default']),{top:0,details:[],anchor:null}]]}]};
 const migrationOptions={source:'reading-resume',now:()=>at};
 const reportCases=[
@@ -67,10 +73,23 @@ const reportCases=[
   {source:'workspace-copy',section:'history',count:3,single:false},
   {source:'workspace-copy',section:'resume',count:1,single:true},
 ];
-const oracleMigration=importSuppliedResearchPacket(reading,migrationOptions);
-installResearchShelfRules(binding);
 const actual=await exercise();
-assert.deepEqual(actual,oracle,'shelf records, CAS, collection detach, export and cursor');
+// Captured from the 787cbff24ba2 shelf consumer and its matched WASM owner.
+// Keep concrete outputs after retiring the duplicate JS semantic engine.
+const expectedRecord=(id,revision,collectionIds=[])=>({id,title:`Shelf ${id}`,type:'material',target,
+  collectionIds,createdAt:at,updatedAt:at,revision});
+const expectedPacket={schema:'tos.research_shelf.export.v1',version:1,generation:5,
+  records:[expectedRecord('one',2,['group']),expectedRecord('two',1)],
+  collections:[{id:'group',title:'Renamed',createdAt:at,updatedAt:at,revision:2}]};
+assert.deepEqual(actual.packet,expectedPacket,'shelf records, CAS and export');
+assert.deepEqual(actual.after,{...expectedPacket,generation:6,
+  records:[expectedRecord('one',3),expectedRecord('two',1)],collections:[]},'collection detach');
+assert.deepEqual(actual.detached,expectedRecord('one',3));
+assert.deepEqual(actual.page.items,[expectedRecord('two',1)],'descending tie-break order');
+assert.equal(actual.page.generation,5);
+assert.deepEqual(JSON.parse(Buffer.from(actual.page.nextCursor,'base64url').toString('utf8')),
+  {v:1,generation:5,filter:{type:null,collectionId:null},updatedAt:at,id:'two'},'bound cursor');
+assert.deepEqual(actual.identical,{generation:5,counts:{records:0,collections:0},changed:false});
 const targetClaim={claimId:target.id,pathId:'tos.path.shelf-wasm',relationType:'tos.relation.supports',
   nodeIds:['tos.node.subject',target.id,'tos.node.object'],relationIds:['tos.relation.subject','tos.relation.object'],
   detailRelationIds:[],closureNodeIds:['tos.node.subject',target.id,'tos.node.object']};
@@ -101,11 +120,13 @@ const collision={...actual.packet,records:[actual.packet.records[0],actual.packe
 assert.throws(()=>validateShelfExport(collision),error=>error.code==='invalid-packet','duplicate exact ID');
 // Migration in the active path must retain the old FNV identity and skip rules.
 const actualMigration=importSuppliedResearchPacket(reading,migrationOptions);
-assert.deepEqual(actualMigration.packet.records,oracleMigration.packet.records);
-assert.deepEqual(actualMigration.retained,oracleMigration.retained);
-assert.deepEqual(actualMigration.skipped,oracleMigration.skipped);
-assert.match(actualMigration.packet.records[0].id,/^import:material:[a-f0-9]{16}$/u);
-const encode=new TextEncoder();
+const importedId='import:material:c3fea27d2ba567ba';
+assert.deepEqual(actualMigration.packet,{schema:'tos.research_shelf.export.v1',version:1,generation:0,
+  records:[{...expectedRecord(importedId,1),title:'Материал'}],collections:[],exportedAt:at});
+assert.deepEqual(actualMigration.retained,[{source:'reading-resume',section:'entries',index:0,
+  type:'material',recordId:importedId}]);
+assert.deepEqual(actualMigration.skipped,[{source:'reading-resume',section:'entries',index:0,
+  reason:'non-portable-reading-position'}]);
 const header=count=>encode.encode(JSON.stringify({keys:['schema','version','generation','records','collections'],
   schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:count,collectionCount:0}));
 assert.throws(()=>new binding.ResearchShelfPacketIndex(encode.encode(JSON.stringify({

@@ -192,7 +192,22 @@ fn release_software_native_test_packages_are_selected_once() {
             vec!["cargo", "test", "--locked", "-p", "tos-query"],
         ),
         (
-            "run tests: native source and command packages".to_owned(),
+            "run tests: isolated process-cold Work37 fixture".to_owned(),
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-command",
+                "--lib",
+                "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+                "--",
+                "--exact",
+            ],
+        ),
+        (
+            "run tests: native source and command packages excluding isolated Work37 fixture"
+                .to_owned(),
             vec![
                 "cargo",
                 "test",
@@ -201,6 +216,9 @@ fn release_software_native_test_packages_are_selected_once() {
                 "tos-command",
                 "-p",
                 "tos-source-store",
+                "--",
+                "--skip",
+                "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
             ],
         ),
     ];

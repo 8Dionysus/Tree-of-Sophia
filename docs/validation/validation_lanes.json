@@ -1454,7 +1454,21 @@
         ]
       },
       {
-        "label": "run tests: native source and command packages",
+        "label": "run tests: isolated process-cold Work37 fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "label": "run tests: native source and command packages excluding isolated Work37 fixture",
         "command": [
           "cargo",
           "test",
@@ -1462,7 +1476,10 @@
           "-p",
           "tos-command",
           "-p",
-          "tos-source-store"
+          "tos-source-store",
+          "--",
+          "--skip",
+          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending"
         ]
       }
     ],
