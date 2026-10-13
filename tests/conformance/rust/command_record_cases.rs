@@ -1230,11 +1230,18 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                 Ok(_) => "Ok(_)".to_owned(),
                 Err(error) => format!("Err({error:?})"),
             };
-            assert!(
-                matches!(&result, Err(SourceCommandError::Conflict(_))),
-                "{kind} unchanged dependency {path}: got {actual}"
-            );
+            let expected = if path.starts_with("ToS/") {
+                matches!(&result, Err(SourceCommandError::Conflict(_)))
+            } else {
+                matches!(
+                    &result,
+                    Err(SourceCommandError::Unsupported(
+                        "software command input custody read incomplete"
+                    ))
+                )
+            };
             fs::write(&target, original).unwrap();
+            assert!(expected, "{kind} unchanged dependency {path}: got {actual}");
         }
         let incomplete_components = software
             .select_components(&[RelativePath::parse(
