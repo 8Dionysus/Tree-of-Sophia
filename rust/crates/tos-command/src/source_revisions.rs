@@ -8563,7 +8563,8 @@ mod retained_typed_history_prefix_tests {
         let config = cmd::parse(
             &serde_json::to_vec(&serde_json::json!({
                 "source_path": source_path,
-                "record_type": "edition"
+                "record_type": "edition",
+                "record_id": cmd::text(&record, "record_id").unwrap()
             }))
             .unwrap(),
         )
