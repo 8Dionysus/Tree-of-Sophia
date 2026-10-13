@@ -48,6 +48,56 @@ const RELATION_REGISTRY_PATH: &str = "ToS/doctrine/semantic-interchange/relation
 const QUERY_VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
 const MAX_SOURCE_BYTES: u64 = 33_554_432;
 const MAX_SOURCE_MEMBERS: u64 = 2_048;
+// The process parent accepts only these fixed, non-sensitive child phase names.
+pub(super) const SOURCE_NAVIGATION_PHASE_STAGES: &[&str] = &[
+    "input_cut_verification",
+    "catalog_planning",
+    "schema_validation",
+    "catalog_render",
+    "navigation_projection",
+    "managed_model_compile",
+    "artifact_publication",
+    "candidate_finalization",
+];
+
+struct CompilePhaseTrace {
+    started: Instant,
+}
+
+impl CompilePhaseTrace {
+    fn new() -> Self {
+        Self {
+            started: Instant::now(),
+        }
+    }
+
+    fn phase(&self, stage: &'static str) -> CompilePhaseGuard<'_> {
+        self.write_marker(stage, "begin");
+        CompilePhaseGuard { trace: self, stage }
+    }
+
+    fn write_marker(&self, stage: &'static str, edge: &'static str) {
+        let elapsed_ms = u64::try_from(self.started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        let stderr = std::io::stderr();
+        let mut output = stderr.lock();
+        let _ = writeln!(
+            output,
+            "tos_source_navigation_phase_v1 stage={stage} edge={edge} elapsed_ms={elapsed_ms}"
+        );
+        let _ = output.flush();
+    }
+}
+
+struct CompilePhaseGuard<'a> {
+    trace: &'a CompilePhaseTrace,
+    stage: &'static str,
+}
+
+impl Drop for CompilePhaseGuard<'_> {
+    fn drop(&mut self) {
+        self.trace.write_marker(self.stage, "end");
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -608,6 +658,7 @@ pub(crate) fn compile(
     request: &SourceNavigationModelCompileRequestV2,
     raw_request_sha256: &str,
 ) -> SourceCommandResult<SourceNavigationModelCompileResultV1> {
+    let phase_trace = CompilePhaseTrace::new();
     if request.schema_version != REQUEST_SCHEMA {
         return Err(SourceCommandError::Invalid(
             "source-navigation compile request schema",
@@ -672,6 +723,7 @@ pub(crate) fn compile(
         ));
     }
 
+    let input_cut_phase = phase_trace.phase("input_cut_verification");
     if !request.read_only_input_root.is_absolute()
         || !request.source_cut_root.is_absolute()
         || request.source_cut_root != request.read_only_input_root.join(".managed-source-cut")
@@ -823,6 +875,8 @@ pub(crate) fn compile(
             "selected source export exceeds bounded envelope",
         ));
     }
+
+    drop(input_cut_phase);
 
     let worker_path = &request.schema_worker.absolute_path;
     if !worker_path.is_absolute()
@@ -989,18 +1043,22 @@ pub(crate) fn compile(
         .map_err(|_| SourceCommandError::Invalid("selected source catalog plan limits"))?;
 
     let plan_start = Instant::now();
-    let catalog_plan = plan_source_catalog_inputs(
-        &cut,
-        export_revision,
-        export_membership,
-        &request.source_binding,
-        catalog_input_limits,
-        bibliography,
-        &cancelled,
-    )
-    .map_err(|error| compiler_failure("catalog-planning", error))?;
+    let catalog_plan = {
+        let _phase = phase_trace.phase("catalog_planning");
+        plan_source_catalog_inputs(
+            &cut,
+            export_revision,
+            export_membership,
+            &request.source_binding,
+            catalog_input_limits,
+            bibliography,
+            &cancelled,
+        )
+        .map_err(|error| compiler_failure("catalog-planning", error))?
+    };
     let catalog_input_receipt = catalog_plan.input_receipt();
     let planning_elapsed_ms = elapsed_ms(plan_start);
+    let schema_phase = phase_trace.phase("schema_validation");
     let schema_operation_wall = deadline.saturating_duration_since(Instant::now());
     let schema_duration = schema_operation_wall.min(Duration::from_millis(schema_wall_ms));
     if schema_duration.is_zero() {
@@ -1078,6 +1136,9 @@ pub(crate) fn compile(
     )
     .map_err(|error| compiler_failure("schema-preparation", error))?;
 
+    drop(schema_phase);
+
+    let catalog_render_phase = phase_trace.phase("catalog_render");
     let isolated = crate::source_creation_store::IsolatedCreationRoot::create(
         isolation.root(),
         deadline,
@@ -1123,6 +1184,9 @@ pub(crate) fn compile(
     )
     .map_err(|error| compiler_failure("catalog-rendering", error))?;
     let rendering_elapsed_ms = elapsed_ms(render_start);
+    drop(catalog_render_phase);
+
+    let navigation_phase = phase_trace.phase("navigation_projection");
     let entities_raw = read_source_member(
         &cut,
         export_revision,
@@ -1209,6 +1273,7 @@ pub(crate) fn compile(
     )
     .map_err(|error| compiler_failure("navigation-projection", error))?;
     drop(catalog_stage);
+    drop(navigation_phase);
 
     let original_max = tos_compiler::NavigationOriginalLimits::maximum();
     let original_limits = tos_compiler::NavigationOriginalLimits {
@@ -1241,6 +1306,7 @@ pub(crate) fn compile(
         cancelled: &cancelled,
     };
     let model_start = Instant::now();
+    let managed_model_phase = phase_trace.phase("managed_model_compile");
     let proof_for_header = proof.clone();
     let completed = tos_compiler::managed_source::prepare_managed_agent_selected_model(
         &catalog_plan,
@@ -1274,6 +1340,9 @@ pub(crate) fn compile(
     )
     .map_err(|error| compiler_failure("managed-model-compilation", error))?;
     let model_elapsed_ms = elapsed_ms(model_start);
+    drop(managed_model_phase);
+
+    let artifact_phase = phase_trace.phase("artifact_publication");
     let model_candidate_identity = stage_file_identity(&isolated_dir, model_leaf)?;
     let stage = completed.stage().clone();
     let expectation = completed.expectation().clone();
@@ -1317,6 +1386,9 @@ pub(crate) fn compile(
                 error,
             ) => compiler_failure("staged-artifact-publication", error),
         })?;
+    drop(artifact_phase);
+
+    let candidate_finalization_phase = phase_trace.phase("candidate_finalization");
     let navigation_original = completed.navigation_original().clone();
     drop(completed);
     remove_stage_file(
@@ -1344,7 +1416,7 @@ pub(crate) fn compile(
         rendering_elapsed_ms,
         model_elapsed_ms,
     };
-    Ok(SourceNavigationModelCompileResultV1 {
+    let result = SourceNavigationModelCompileResultV1 {
         schema_version: RESULT_SCHEMA.into(),
         raw_request_sha256: request_digest.to_hex(),
         candidate_leaf: MODEL_CANDIDATE_LEAF.into(),
@@ -1353,7 +1425,9 @@ pub(crate) fn compile(
         navigation_original,
         artifact_fs_verity,
         catalog_work,
-    })
+    };
+    drop(candidate_finalization_phase);
+    Ok(result)
 }
 
 fn compiler_failure(stage: &'static str, error: tos_compiler::Error) -> SourceCommandError {

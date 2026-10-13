@@ -1822,13 +1822,14 @@ fn connected_browser_publish_initial_metadata(
 
     let owner = PathBuf::from(create_invocation["owner_config"].as_str().unwrap());
     let invocation_path = workspace.join("occurrence-metadata-invocation.json");
+    let binding_companion_path = source_root.join("agent-selected-binding.json");
     let catalog_path = source_root.join("agent-selected-catalog.json");
     let descriptor_path = source_root.join("agent-selected-descriptor.json");
     let mut invocation = create_invocation.clone();
     invocation["schema_version"] = json!("tos_local_native_metadata_publication_invocation_v1");
     invocation["source_revision"] = json!(source_revision.0.to_prefixed());
     invocation["prepared_database"] = json!(db_path);
-    invocation["expected_binding_path"] = json!(binding_path);
+    invocation["expected_binding_path"] = json!(binding_companion_path);
     invocation["source_inputs_path"] = json!(source_inputs_path);
     invocation["source_inputs_sha256"] =
         json!(Digest256::of_bytes(&fs::read(source_inputs_path).unwrap()).to_prefixed());
@@ -1907,6 +1908,7 @@ fn connected_browser_publish_initial_metadata(
     assert_eq!(published["prepared_committed"], true);
     assert_eq!(published["grants_admission"], false);
     private_json(binding_path, &published["binding"]);
+    private_json(&binding_companion_path, &published["binding"]);
 
     let connection = rusqlite::Connection::open(db_path).unwrap();
     let selected_raw: String = connection

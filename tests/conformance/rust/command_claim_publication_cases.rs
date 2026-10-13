@@ -1953,7 +1953,7 @@ pub(super) fn publish_agent_load_fixture(
         expected["counts"]["semantic_validation"]
     );
     let binding_path = workspace.join("Agent-binding.json");
-    write_protected(&binding_path, &result["binding"]);
+    write_protected(&binding_path, &recovered["binding"]);
     let source_raw: String = connection
         .query_row(
             "SELECT inputs FROM prepared_source_state WHERE singleton=1",
@@ -1968,6 +1968,24 @@ pub(super) fn publish_agent_load_fixture(
         "real native Record transaction published a selected source token"
     );
     write_protected(&source_companion, &source_inputs);
+    // Keep the protected selection companions paired with the committed Agent
+    // state. The external binding remains a query input; owner mutations must
+    // consume the in-root binding/catalog companions.
+    write_protected(&binding_companion, &recovered["binding"]);
+    let prepared_descriptor_raw: String = connection
+        .query_row(
+            "SELECT descriptor FROM prepared_state WHERE singleton=1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(prepared_descriptor_raw.len() <= 1_048_576);
+    let prepared_descriptor: Value = serde_json::from_str(&prepared_descriptor_raw).unwrap();
+    assert!(prepared_descriptor["header"].is_object());
+    write_protected(
+        &catalog_companion,
+        &selected_catalog_value(&prepared_descriptor["header"]),
+    );
     connection
         .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
         .unwrap();

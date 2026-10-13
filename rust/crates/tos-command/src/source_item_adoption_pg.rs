@@ -78,7 +78,7 @@ fn select_pg_item_adoption(
     } else {
         super::ItemOwner::select(fs, context, deadline, cancelled)?
     };
-    let closure = current_closure(session, &owner, deadline, cancelled)?;
+    let closure = current_closure(session, &owner, proposal, deadline, cancelled)?;
     Ok(PgItemAdoptionSelection {
         owner,
         closure,
@@ -816,6 +816,7 @@ fn closure_claims(
 pub(crate) fn current_closure(
     session: &mut SourceRevisionReadSession<'_>,
     owner: &super::ItemOwner,
+    proposal: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PgItemCurrentClosure> {
@@ -976,15 +977,28 @@ pub(crate) fn current_closure(
             .map_err(|_| SourceCommandError::Invalid("PG Item archive path"))?,
     );
 
-    let transaction_id = owner.transaction_id()?;
-    let transaction_leaf = transaction_id
-        .strip_prefix("sha256:")
-        .ok_or(SourceCommandError::Invalid("PG Item transaction identity"))?;
-    match witness_children
+    // A prepare-create proposal has no caller-selected command_id yet, so it
+    // cannot identify the durable transaction journal. Preserve the root's
+    // shape check for proposals; only transaction identity and leaf collision
+    // checks require the committed request's stable command_id.
+    let transaction_root_exists = match witness_children
         .iter()
         .find(|(name, _)| name == ".metadata-transactions")
     {
-        Some((_, true)) => {
+        Some((_, true)) => true,
+        Some((_, false)) => {
+            return Err(SourceCommandError::Conflict(
+                "PG Item transaction root is not a directory",
+            ));
+        }
+        None => false,
+    };
+    if !proposal {
+        let transaction_id = owner.transaction_id()?;
+        let transaction_leaf = transaction_id
+            .strip_prefix("sha256:")
+            .ok_or(SourceCommandError::Invalid("PG Item transaction identity"))?;
+        if transaction_root_exists {
             if current_children(
                 session,
                 "ToS/source-witnesses/.metadata-transactions",
@@ -998,23 +1012,19 @@ pub(crate) fn current_closure(
                     "PG Item transaction journal already exists",
                 ));
             }
+        } else {
+            new_directories.push(
+                RelativePath::parse("ToS/source-witnesses/.metadata-transactions")
+                    .map_err(|_| SourceCommandError::Invalid("PG Item transaction root"))?,
+            );
         }
-        Some((_, false)) => {
-            return Err(SourceCommandError::Conflict(
-                "PG Item transaction root is not a directory",
-            ));
-        }
-        None => new_directories.push(
-            RelativePath::parse("ToS/source-witnesses/.metadata-transactions")
-                .map_err(|_| SourceCommandError::Invalid("PG Item transaction root"))?,
-        ),
+        new_directories.push(
+            RelativePath::parse(&format!(
+                "ToS/source-witnesses/.metadata-transactions/{transaction_leaf}"
+            ))
+            .map_err(|_| SourceCommandError::Invalid("PG Item transaction directory"))?,
+        );
     }
-    new_directories.push(
-        RelativePath::parse(&format!(
-            "ToS/source-witnesses/.metadata-transactions/{transaction_leaf}"
-        ))
-        .map_err(|_| SourceCommandError::Invalid("PG Item transaction directory"))?,
-    );
     let (claims, claim_paths) = closure_claims(
         session,
         owner,

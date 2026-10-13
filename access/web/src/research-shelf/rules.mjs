@@ -19,6 +19,8 @@ function ruleError(error){
 // string/key units are a lower bound on their JSON byte representation. Visits
 // include queued values so a huge invalid container is refused before enqueue.
 const INPUT_BYTES=1_048_576,INPUT_VISITS=300_000,INPUT_DEPTH=64;
+const UNDEFINED_KEY='__tos_research_shelf_undefined_v1__';
+const UNDEFINED_VALUE=Object.freeze({[UNDEFINED_KEY]:true});
 function encodeRuleRequest(value){
   const pending=[[value,0]];let visits=0,units=0;
   const text=value=>{units+=value.length;if(units>INPUT_BYTES)throw new Error('limit');};
@@ -31,6 +33,8 @@ function encodeRuleRequest(value){
       if(item.length>INPUT_VISITS-visits-pending.length)throw new Error('limit');
       for(const child of item)pending.push([child,depth+1]);
     }else{
+      if(Object.keys(item).length===1&&Object.hasOwn(item,UNDEFINED_KEY)&&item[UNDEFINED_KEY]===true)
+        throw new Error('invalid-input');
       for(const key in item)if(Object.hasOwn(item,key)){
         text(key);
         if(visits+pending.length>=INPUT_VISITS)throw new Error('limit');
@@ -38,7 +42,15 @@ function encodeRuleRequest(value){
       }
     }
   }
-  const bytes=encoder.encode(JSON.stringify(value));
+  // JSON.stringify normally drops own undefined-valued object keys before the
+  // Rust exact-key checks can see them. Carry that key with a private marker;
+  // Rust treats its value as undefined while retaining the key for shape
+  // validation. Array entries keep JSON's usual undefined-to-null behavior.
+  const bytes=encoder.encode(JSON.stringify(value,function(key,item){
+    if(item&&typeof item==='object'&&!Array.isArray(item)&&Object.keys(item).length===1
+      &&Object.hasOwn(item,UNDEFINED_KEY)&&item[UNDEFINED_KEY]===true)throw new Error('invalid-input');
+    return item===undefined&&!Array.isArray(this)?UNDEFINED_VALUE:item;
+  }));
   if(bytes.byteLength>INPUT_BYTES)throw new Error('limit');
   return bytes;
 }
@@ -55,15 +67,17 @@ export function validateResearchShelfPacketIndex(packet){
   if(!runtime)throw new Error('The research shelf packet-index WASM rule is unavailable.');
   let index;
   try{
+    const isObject=packet!==null&&typeof packet==='object'&&!Array.isArray(packet);
+    const records=Array.isArray(packet?.records)?packet.records:null,collections=Array.isArray(packet?.collections)?packet.collections:null;
     index=new runtime.ResearchShelfPacketIndex(encoder.encode(JSON.stringify({
-      schema:packet.schema,version:packet.version,generation:packet.generation,
-      recordCount:packet.records.length,collectionCount:packet.collections.length,
-      ...(packet.exportedAt===undefined?{}:{exportedAt:packet.exportedAt}),
+      keys:isObject?Object.keys(packet):[],schema:packet?.schema,version:packet?.version,generation:packet?.generation,
+      recordCount:records?.length??null,collectionCount:collections?.length??null,
+      ...(isObject&&Object.hasOwn(packet,'exportedAt')?{exportedAt:packet.exportedAt}:{}),
     })));
-    for(const [values,method] of [[packet.records,'accept_records'],[packet.collections,'accept_collections']]){
+    for(const [values,method] of [[records,'accept_records'],[collections,'accept_collections']]){
       // Sort references to existing IDs. Rust checks strict UTF-16 order and
       // adjacency across chunks, retaining only the final ID of each stream.
-      const ids=values.map(value=>value.id).sort();
+      const ids=values.map(value=>value?.id).sort();
       for(let start=0;start<ids.length;start+=256)
         index[method](encoder.encode(JSON.stringify(ids.slice(start,start+256))));
     }

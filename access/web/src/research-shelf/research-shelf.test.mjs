@@ -150,6 +150,8 @@ test('research-workspace import retains only separately supplied exact lenses an
     expect.objectContaining({section:'selected_lens',reason:'non-portable-lens-selection'}),
   ]));
   expect(()=>importSuppliedResearchPacket(packet,{source:'research-workspace',lenses:[{...lens,unexpected:'must reject'}]})).toThrow(/unknown|invalid/i);
+  expect(()=>importSuppliedResearchPacket(packet,{source:'research-workspace',lenses:[lens,{...lens,name:' Shelf lens '}]})).toThrow(/duplicate|invalid/i);
+  expect(()=>importSuppliedResearchPacket(packet,{source:'research-workspace',lenses:new Array(13).fill(lens)})).toThrow(/bounds|invalid/i);
   expect(()=>importSuppliedResearchPacket({schema:'tos.research_shelf.export.v0',version:0,records:[]},{source:'research-workspace'})).toThrow(/unsupported|invalid/i);
 });
 
@@ -160,6 +162,7 @@ test('workspace-copy import uses the real copy decoder for saved lenses and skip
   const before=structuredClone(packet),migrated=importSuppliedResearchPacket(packet,{source:'workspace-copy',now:()=> '2026-09-15T12:00:00.000Z'});
   expect(packet).toEqual(before);expect(migrated.packet.records).toHaveLength(1);expect(migrated.packet.records[0]).toMatchObject({type:'lens',title:'Shelf lens'});
   expect(migrated.skipped).toEqual(expect.arrayContaining([expect.objectContaining({section:'notes',reason:'non-portable-note'})]));
+  expect(()=>importSuppliedResearchPacket({...packet,lenses:[lens,{...lens,name:'Shelf lens'}]},{source:'workspace-copy'})).toThrow(/invalid|duplicate/i);
   expect(JSON.stringify(migrated)).not.toContain('private session note');
 });
 

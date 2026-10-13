@@ -8,6 +8,26 @@ use tos_foundation::{
 };
 
 const MAX_SAFE: u64 = 9_007_199_254_740_991;
+const MAX_TARGET_BYTES: usize = 200_000;
+const UNDEFINED_KEY: &str = "__tos_research_shelf_undefined_v1__";
+const DRAFT_FIELDS: &[&str] = &[
+    "v",
+    "name",
+    "scope",
+    "sources",
+    "nodeIds",
+    "focusId",
+    "query",
+    "kinds",
+    "predicates",
+    "depth",
+    "direction",
+    "profile",
+    "limit",
+    "relations",
+    "conditions",
+    "paths",
+];
 // At most two bounded shelf records plus framing enter one rule call. Whole
 // exports remain in the host; this rule does not duplicate their contents.
 const INPUT_BYTES: usize = 1_048_576;
@@ -15,8 +35,18 @@ const INPUT_BYTES: usize = 1_048_576;
 fn invalid(code: &'static str) -> Result<JsonValue, &'static str> {
     Err(code)
 }
-fn get<'a>(value: &'a JsonValue, key: &str) -> Option<&'a JsonValue> {
+fn raw_get<'a>(value: &'a JsonValue, key: &str) -> Option<&'a JsonValue> {
     value.object_get(key)
+}
+fn is_undefined(value: &JsonValue) -> bool {
+    value.as_object().is_some_and(|entries| {
+        entries.len() == 1
+            && entries[0].0.as_str() == Some(UNDEFINED_KEY)
+            && entries[0].1.as_bool() == Some(true)
+    })
+}
+fn get<'a>(value: &'a JsonValue, key: &str) -> Option<&'a JsonValue> {
+    raw_get(value, key).filter(|item| !is_undefined(item))
 }
 fn string<'a>(value: &'a JsonValue, key: &str) -> Option<&'a str> {
     get(value, key)?.as_str()
@@ -42,7 +72,9 @@ fn num(n: u64) -> JsonValue {
 }
 fn exact(value: &JsonValue, required: &[&str], optional: &[&str]) -> bool {
     value.as_object().is_some_and(|entries| {
-        required.iter().all(|key| get(value, key).is_some())
+        // Presence is distinct from value: an own property whose JS value was
+        // undefined still satisfies the old exact-key shape check.
+        required.iter().all(|key| raw_get(value, key).is_some())
             && entries.iter().all(|(key, _)| {
                 key.as_str()
                     .is_some_and(|name| required.contains(&name) || optional.contains(&name))
@@ -70,9 +102,100 @@ fn ids(value: &JsonValue, max_count: usize, max_len: usize) -> bool {
     })
 }
 fn timestamp(value: &str) -> bool {
-    // The host canonicalizes Date values before calling this rule. No local
-    // source chronology can be inferred from this stored timestamp.
-    value.len() <= 64 && value.ends_with('Z') && value.contains('T') && value.contains('.')
+    let bytes = value.as_bytes();
+    let (year, shift) = match bytes.len() {
+        24 if bytes[4] == b'-' => {
+            if !bytes[..4].iter().all(u8::is_ascii_digit) {
+                return false;
+            }
+            (value[..4].parse::<i32>().ok(), 0usize)
+        }
+        27 if matches!(bytes[0], b'+' | b'-') && bytes[7] == b'-' => {
+            if !bytes[1..7].iter().all(u8::is_ascii_digit) {
+                return false;
+            }
+            let Some(parsed) = value[1..7].parse::<i32>().ok() else {
+                return false;
+            };
+            let year = if bytes[0] == b'-' { -parsed } else { parsed };
+            if (bytes[0] == b'+' && year < 10_000) || (bytes[0] == b'-' && year == 0) {
+                return false;
+            }
+            (Some(year), 3usize)
+        }
+        _ => return false,
+    };
+    let Some(year) = year else {
+        return false;
+    };
+    let month_at = 5 + shift;
+    let day_at = 8 + shift;
+    let hour_at = 11 + shift;
+    let minute_at = 14 + shift;
+    let second_at = 17 + shift;
+    let millis_at = 20 + shift;
+    if bytes[7 + shift] != b'-'
+        || bytes[10 + shift] != b'T'
+        || bytes[13 + shift] != b':'
+        || bytes[16 + shift] != b':'
+        || bytes[19 + shift] != b'.'
+        || bytes[23 + shift] != b'Z'
+        || !bytes[month_at..month_at + 2].iter().all(u8::is_ascii_digit)
+        || !bytes[day_at..day_at + 2].iter().all(u8::is_ascii_digit)
+        || !bytes[hour_at..hour_at + 2].iter().all(u8::is_ascii_digit)
+        || !bytes[minute_at..minute_at + 2]
+            .iter()
+            .all(u8::is_ascii_digit)
+        || !bytes[second_at..second_at + 2]
+            .iter()
+            .all(u8::is_ascii_digit)
+        || !bytes[millis_at..millis_at + 3]
+            .iter()
+            .all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    let part = |at: usize, width: usize| value[at..at + width].parse::<u32>().ok();
+    let (Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
+        part(month_at, 2),
+        part(day_at, 2),
+        part(hour_at, 2),
+        part(minute_at, 2),
+        part(second_at, 2),
+    ) else {
+        return false;
+    };
+    let leap = year.rem_euclid(4) == 0 && (year.rem_euclid(100) != 0 || year.rem_euclid(400) == 0);
+    let days = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return false,
+    };
+    if day == 0 || day > days || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    // JS Date's canonical ISO form is bounded by TimeClip's exact endpoints.
+    if year > 275_760 || year < -271_821 {
+        return false;
+    }
+    if year == 275_760
+        && (month > 9
+            || (month == 9
+                && (day > 13
+                    || (day == 13
+                        && (hour > 0
+                            || minute > 0
+                            || second > 0
+                            || part(millis_at, 3).unwrap_or(0) > 0)))))
+    {
+        return false;
+    }
+    if year == -271_821 && (month < 4 || (month == 4 && day < 20)) {
+        return false;
+    }
+    true
 }
 fn timestamp_parts(value: &str) -> Option<(i32, &str)> {
     let width = if value.starts_with('+') || value.starts_with('-') {
@@ -103,8 +226,9 @@ fn material(value: &JsonValue) -> bool {
         && string(value, "id").is_some_and(|s| bounded(s, 1024))
         && string(value, "sourceRevision").is_some_and(digest)
         && string(value, "contentRevision").is_some_and(digest)
-        && get(value, "claimReference").is_none_or(|claim| {
-            string(value, "kind") == Some("node")
+        && raw_get(value, "claimReference").is_none_or(|claim| {
+            !is_undefined(claim)
+                && string(value, "kind") == Some("node")
                 && exact(
                     claim,
                     &[
@@ -122,13 +246,18 @@ fn material(value: &JsonValue) -> bool {
                     .iter()
                     .all(|key| string(claim, key).is_some_and(|s| bounded(s, 1024)))
                 && [
-                    ("nodeIds", 3),
-                    ("relationIds", 2),
-                    ("detailRelationIds", 78),
-                    ("closureNodeIds", 40),
+                    ("nodeIds", 3, false),
+                    ("relationIds", 2, false),
+                    ("detailRelationIds", 78, true),
+                    ("closureNodeIds", 40, false),
                 ]
                 .iter()
-                .all(|(key, max)| get(claim, key).is_some_and(|v| ids(v, *max, 1024)))
+                .all(|(key, max, allow_empty)| {
+                    get(claim, key).is_some_and(|v| {
+                        ids(v, *max, 1024)
+                            && (*allow_empty || v.as_array().is_some_and(|items| !items.is_empty()))
+                    })
+                })
         })
 }
 fn target(kind: &str, value: &JsonValue) -> bool {
@@ -163,7 +292,14 @@ fn target(kind: &str, value: &JsonValue) -> bool {
         }
         "lens" => {
             exact(value, &["draft"], &[])
-                && get(value, "draft").is_some_and(|v| v.as_object().is_some())
+                && get(value, "draft").is_some_and(|draft| {
+                    draft.as_object().is_some_and(|fields| {
+                        fields.iter().all(|(key, _)| {
+                            key.as_str()
+                                .is_some_and(|name| DRAFT_FIELDS.contains(&name))
+                        })
+                    })
+                })
         }
         "route" => {
             exact(value, &["origin", "options"], &[])
@@ -191,6 +327,109 @@ fn target(kind: &str, value: &JsonValue) -> bool {
                 })
         }
         _ => false,
+    }
+}
+fn checked_target(kind: &str, value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !target(kind, value) {
+        return invalid("invalid-target");
+    }
+    let target = canonical_target(kind, value)?;
+    emit_value_preserved_json(
+        &target,
+        JsonLimits {
+            max_bytes: MAX_TARGET_BYTES,
+            ..Default::default()
+        },
+    )
+    .map_err(|_| "limit")?;
+    Ok(target)
+}
+
+fn copy_field(value: &JsonValue, key: &str) -> Result<JsonValue, &'static str> {
+    get(value, key).cloned().ok_or("invalid-target")
+}
+fn canonical_material(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    let mut fields = vec![
+        ("kind", copy_field(value, "kind")?),
+        ("id", copy_field(value, "id")?),
+        ("sourceRevision", copy_field(value, "sourceRevision")?),
+        ("contentRevision", copy_field(value, "contentRevision")?),
+    ];
+    if let Some(claim) = raw_get(value, "claimReference") {
+        fields.push((
+            "claimReference",
+            obj(vec![
+                ("claimId", copy_field(claim, "claimId")?),
+                ("pathId", copy_field(claim, "pathId")?),
+                ("relationType", copy_field(claim, "relationType")?),
+                ("nodeIds", copy_field(claim, "nodeIds")?),
+                ("relationIds", copy_field(claim, "relationIds")?),
+                ("detailRelationIds", copy_field(claim, "detailRelationIds")?),
+                ("closureNodeIds", copy_field(claim, "closureNodeIds")?),
+            ]),
+        ));
+    }
+    Ok(obj(fields))
+}
+fn canonical_target(kind: &str, value: &JsonValue) -> Result<JsonValue, &'static str> {
+    match kind {
+        "material" => canonical_material(value),
+        "form" => {
+            let form = get(value, "form").ok_or("invalid-target")?;
+            Ok(obj(vec![
+                (
+                    "material",
+                    canonical_material(get(value, "material").ok_or("invalid-target")?)?,
+                ),
+                ("role", copy_field(value, "role")?),
+                (
+                    "form",
+                    obj(vec![
+                        ("id", copy_field(form, "id")?),
+                        ("version", copy_field(form, "version")?),
+                        ("digest", copy_field(form, "digest")?),
+                    ]),
+                ),
+            ]))
+        }
+        // The text and lens owners return their own canonical nested values;
+        // the shelf fixes only the outer target field order here.
+        "text" => Ok(obj(vec![("reference", copy_field(value, "reference")?)])),
+        "lens" => Ok(obj(vec![("draft", copy_field(value, "draft")?)])),
+        "route" => {
+            let options = get(value, "options").ok_or("invalid-target")?;
+            Ok(obj(vec![
+                (
+                    "origin",
+                    canonical_material(get(value, "origin").ok_or("invalid-target")?)?,
+                ),
+                (
+                    "options",
+                    obj(vec![
+                        ("profile", copy_field(options, "profile")?),
+                        ("direction", copy_field(options, "direction")?),
+                        ("max_depth", copy_field(options, "max_depth")?),
+                        ("sources", copy_field(options, "sources")?),
+                        ("predicate_ids", copy_field(options, "predicate_ids")?),
+                    ]),
+                ),
+            ]))
+        }
+        _ => invalid("invalid-target"),
+    }
+}
+
+fn strip_undefined(value: &JsonValue) -> JsonValue {
+    match value {
+        JsonValue::Array(items) => JsonValue::Array(items.iter().map(strip_undefined).collect()),
+        JsonValue::Object(items) => JsonValue::Object(
+            items
+                .iter()
+                .filter(|(_, child)| !is_undefined(child))
+                .map(|(key, child)| (key.clone(), strip_undefined(child)))
+                .collect(),
+        ),
+        _ => value.clone(),
     }
 }
 fn validate_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
@@ -222,11 +461,12 @@ fn validate_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
     if title.trim_matches(js_trim).is_empty() {
         return invalid("invalid-record");
     }
-    if !get(value, "target").is_some_and(|v| target(kind, v))
-        || !get(value, "collectionIds").is_some_and(|v| ids(v, 32, 256))
-    {
-        return invalid("invalid-target");
-    }
+    let target = checked_target(kind, get(value, "target").ok_or("invalid-target")?)?;
+    let collection_ids = match raw_get(value, "collectionIds") {
+        Some(value) if is_undefined(value) => JsonValue::Array(Vec::new()),
+        Some(value) if ids(value, 32, 256) => value.clone(),
+        _ => return invalid("invalid-target"),
+    };
     let created = string(value, "createdAt")
         .filter(|s| timestamp(s))
         .ok_or("invalid-record")?;
@@ -244,11 +484,8 @@ fn validate_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
             JsonValue::String(JsonString::from_utf8(title.trim_matches(js_trim))),
         ),
         ("type", JsonValue::String(JsonString::from_utf8(kind))),
-        ("target", get(value, "target").unwrap().clone()),
-        (
-            "collectionIds",
-            get(value, "collectionIds").unwrap().clone(),
-        ),
+        ("target", target),
+        ("collectionIds", collection_ids),
         (
             "createdAt",
             JsonValue::String(JsonString::from_utf8(created)),
@@ -403,7 +640,11 @@ fn update_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
     let kind = string(old, "type").ok_or("invalid-record")?;
     if get(input, "id").is_some_and(|v| v.as_str() != Some(id))
         || get(input, "type").is_some_and(|v| v.as_str() != Some(kind))
-        || get(input, "target").is_some_and(|v| Some(v) != get(old, "target"))
+        // Target identity is semantic JSON equality: key insertion order at
+        // any depth (including an owner reference) cannot make it mutable.
+        || get(input, "target").is_some_and(|v| {
+            get(old, "target").is_none_or(|old| sorted(v) != sorted(old))
+        })
         || get(input, "createdAt").is_some_and(|v| Some(v) != get(old, "createdAt"))
     {
         return invalid("invalid-input");
@@ -609,21 +850,44 @@ fn detach(value: &JsonValue) -> Result<JsonValue, &'static str> {
     validate_record(&JsonValue::Object(changed))
 }
 fn list_options(value: &JsonValue) -> Result<JsonValue, &'static str> {
-    if !exact(value, &["limit", "type", "collectionId", "cursor"], &[])
-        || !number(value, "limit", 1).is_some_and(|n| n <= 100)
-        || !get(value, "type").is_some_and(|v| {
-            v.is_null()
-                || v.as_str()
-                    .is_some_and(|s| ["material", "form", "text", "lens", "route"].contains(&s))
-        })
-        || !get(value, "collectionId")
-            .is_some_and(|v| v.is_null() || v.as_str().is_some_and(|s| bounded(s, 256)))
-        || !get(value, "cursor")
-            .is_some_and(|v| v.is_null() || v.as_str().is_some_and(|s| bounded(s, 16_384)))
-    {
+    if !exact(value, &[], &["limit", "type", "collectionId", "cursor"]) {
         return invalid("invalid-input");
     }
-    Ok(value.clone())
+    let limit = match get(value, "limit") {
+        None => 24,
+        Some(_) => number(value, "limit", 1)
+            .filter(|n| *n <= 100)
+            .ok_or("invalid-input")?,
+    };
+    let filter =
+        |key: &str, max: usize, allowed: Option<&[&str]>| -> Result<JsonValue, &'static str> {
+            match get(value, key) {
+                None | Some(JsonValue::Null) => Ok(JsonValue::Null),
+                Some(item) => {
+                    let Some(text) = item.as_str() else {
+                        return invalid("invalid-input");
+                    };
+                    if !bounded(text, max) || allowed.is_some_and(|values| !values.contains(&text))
+                    {
+                        return invalid("invalid-input");
+                    }
+                    Ok(JsonValue::String(JsonString::from_utf8(text)))
+                }
+            }
+        };
+    Ok(obj(vec![
+        ("limit", num(limit)),
+        (
+            "type",
+            filter(
+                "type",
+                16,
+                Some(&["material", "form", "text", "lens", "route"]),
+            )?,
+        ),
+        ("collectionId", filter("collectionId", 256, None)?),
+        ("cursor", filter("cursor", 16_384, None)?),
+    ]))
 }
 fn cursor(value: &JsonValue) -> Result<JsonValue, &'static str> {
     if !exact(
@@ -639,17 +903,51 @@ fn cursor(value: &JsonValue) -> Result<JsonValue, &'static str> {
         decoded,
         &["v", "generation", "filter", "updatedAt", "id"],
         &[],
-    ) || !exact(filter, &["type", "collectionId"], &[])
+    ) || !exact(filter, &[], &["type", "collectionId"])
         || number(decoded, "v", 1) != Some(1)
         || number(decoded, "generation", 0) != number(value, "generation", 0)
-        || get(filter, "type") != get(value, "type")
-        || get(filter, "collectionId") != get(value, "collectionId")
         || !string(decoded, "updatedAt").is_some_and(timestamp)
         || !string(decoded, "id").is_some_and(|s| bounded(s, 1024))
     {
         return invalid("invalid-cursor");
     }
-    Ok(decoded.clone())
+    let filter_type = match get(filter, "type") {
+        None | Some(JsonValue::Null) => JsonValue::Null,
+        Some(item)
+            if item
+                .as_str()
+                .is_some_and(|s| ["material", "form", "text", "lens", "route"].contains(&s)) =>
+        {
+            item.clone()
+        }
+        _ => return invalid("invalid-cursor"),
+    };
+    let collection_id = match get(filter, "collectionId") {
+        None | Some(JsonValue::Null) => JsonValue::Null,
+        Some(item) if item.as_str().is_some_and(|s| bounded(s, 256)) => item.clone(),
+        _ => return invalid("invalid-cursor"),
+    };
+    if Some(&filter_type) != get(value, "type")
+        || Some(&collection_id) != get(value, "collectionId")
+    {
+        return invalid("invalid-cursor");
+    }
+    Ok(obj(vec![
+        ("v", num(1)),
+        (
+            "generation",
+            num(number(decoded, "generation", 0).ok_or("invalid-cursor")?),
+        ),
+        (
+            "filter",
+            obj(vec![("type", filter_type), ("collectionId", collection_id)]),
+        ),
+        (
+            "updatedAt",
+            get(decoded, "updatedAt").ok_or("invalid-cursor")?.clone(),
+        ),
+        ("id", get(decoded, "id").ok_or("invalid-cursor")?.clone()),
+    ]))
 }
 fn sorted(value: &JsonValue) -> JsonValue {
     match value {
@@ -694,6 +992,7 @@ impl ShelfPacketIndex {
         if !exact(
             value,
             &[
+                "keys",
                 "schema",
                 "version",
                 "generation",
@@ -705,6 +1004,29 @@ impl ShelfPacketIndex {
             || number(value, "version", 1) != Some(1)
             || number(value, "generation", 0).is_none()
             || get(value, "exportedAt").is_some_and(|v| v.as_str().is_none_or(|s| !timestamp(s)))
+        {
+            return Err("invalid-packet");
+        }
+        let fields = get(value, "keys")
+            .and_then(JsonValue::as_array)
+            .ok_or("invalid-packet")?;
+        let allowed = [
+            "schema",
+            "version",
+            "generation",
+            "records",
+            "collections",
+            "exportedAt",
+        ];
+        let mut seen = HashSet::new();
+        if fields.iter().any(|field| {
+            field
+                .as_str()
+                .is_none_or(|name| !allowed.contains(&name) || !seen.insert(name))
+        }) || ["schema", "version", "generation", "records", "collections"]
+            .iter()
+            .any(|name| !seen.contains(name))
+            || seen.contains("exportedAt") != get(value, "exportedAt").is_some()
         {
             return Err("invalid-packet");
         }
@@ -1025,10 +1347,16 @@ pub fn research_shelf_rule_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
         "validate_target" => {
             let kind = string(value, "type").ok_or("invalid-target")?;
             let body = get(value, "target").ok_or("invalid-target")?;
-            if !target(kind, body) {
-                return Err("invalid-target");
-            };
-            body.clone()
+            checked_target(kind, body)?
+        }
+        "timestamp" => {
+            if !exact(value, &["value"], &[]) {
+                return Err("invalid-record");
+            }
+            let at = string(value, "value")
+                .filter(|value| timestamp(value))
+                .ok_or("invalid-record")?;
+            JsonValue::String(JsonString::from_utf8(at))
         }
         "validate_record" => validate_record(value)?,
         "validate_collection" => validate_collection(value)?,
@@ -1044,9 +1372,13 @@ pub fn research_shelf_rule_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
             if !exact(value, &["left", "right"], &[]) {
                 return Err("invalid-input");
             }
-            JsonValue::Bool(
-                sorted(get(value, "left").unwrap()) == sorted(get(value, "right").unwrap()),
-            )
+            let left = raw_get(value, "left").ok_or("invalid-input")?;
+            let right = raw_get(value, "right").ok_or("invalid-input")?;
+            JsonValue::Bool(match (is_undefined(left), is_undefined(right)) {
+                (true, true) => true,
+                (true, false) | (false, true) => false,
+                (false, false) => sorted(left) == sorted(right),
+            })
         }
         "import_plan" => import_plan(value)?,
         "migration_id" => migration_id(value)?,
@@ -1055,6 +1387,7 @@ pub fn research_shelf_rule_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
         "migration_skips" => migration_skips(value)?,
         _ => return Err("invalid-input"),
     };
+    let response = strip_undefined(&response);
     emit_value_preserved_json(
         &response,
         JsonLimits {

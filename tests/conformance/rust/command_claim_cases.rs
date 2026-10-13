@@ -1910,21 +1910,32 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         .join("ToS/source-witnesses/catalog/collections.jsonl");
     let catalog_raw = fs::read(&catalog_path).unwrap();
     fs::write(&catalog_path, b"{}\n").unwrap();
-    assert!(matches!(
-        execute_isolated_claim_creation_from_captures(
-            &filesystem,
-            &context,
-            &cut,
-            &cut,
-            &software,
-            &components,
-            &mut worker,
-            None,
-            deadline,
-            &cancellation
+    let corrupted_catalog_result = execute_isolated_claim_creation_from_captures(
+        &filesystem,
+        &context,
+        &cut,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        None,
+        deadline,
+        &cancellation,
+    );
+    assert!(
+        matches!(
+            &corrupted_catalog_result,
+            Err(SourceCommandError::Conflict(_)
+                | SourceCommandError::Invalid(_)
+                | SourceCommandError::InvalidAt {
+                    reason: "missing object field",
+                    file: "source_claims.rs",
+                    ..
+                })
         ),
-        Err(SourceCommandError::Conflict(_) | SourceCommandError::Invalid(_))
-    ));
+        "corrupt Collection catalog should fail closed; got error {:?}",
+        corrupted_catalog_result.as_ref().err()
+    );
     assert!(!isolated.path().join(source_path).parent().unwrap().exists());
     fs::write(&catalog_path, catalog_raw).unwrap();
     drop(worker);

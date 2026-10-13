@@ -5,7 +5,8 @@
 //! cleanup; owner selection and final publication remain in the caller.
 
 use super::source_navigation_model_compile::{
-    SourceNavigationModelCompileRequestV2, SourceNavigationModelCompileResultV1,
+    SOURCE_NAVIGATION_PHASE_STAGES, SourceNavigationModelCompileRequestV2,
+    SourceNavigationModelCompileResultV1,
 };
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use std::{
@@ -38,6 +39,10 @@ const PIPE_READ_SLICE_BYTES: usize = 64 * 1024;
 const MASKED_FALLBACK_ROOTS: [&str; 3] = ["/var/tmp", "/usr/tmp", "/tmp"];
 const CHILD_REFUSAL_PREFIX: &str = "source-navigation model compile refused: ";
 const CHILD_REFUSAL_MAX_BYTES: usize = 4 * 1024;
+const PHASE_TRACE_TAG: &str = "tos_source_navigation_phase_v1";
+const PHASE_TRACE_PREFIX: &str = "tos_source_navigation_phase_v1 ";
+const PHASE_TRACE_MAX_LINE_BYTES: usize = 160;
+const PHASE_TRACE_MAX_LINES: usize = 16;
 
 /// Exact private-stage issuer and delegated resource envelope selected by the
 /// owner. `persistent_staging_root` is the stable parent of the fresh
@@ -445,11 +450,13 @@ pub(crate) fn launch_source_navigation_model_compile(
         || cancelled.load(Ordering::Acquire)
         || monotonic_ns()? >= whole_deadline_ns
     {
+        forward_validated_phase_trace(&pipes.stderr_output, pipes.stderr_oversized);
         return Err(SourceCommandError::Conflict(
             failure.unwrap_or("source-navigation compile child refused"),
         ));
     }
     if !status.success() {
+        forward_validated_phase_trace(&pipes.stderr_output, pipes.stderr_oversized);
         if let Some(reason) = sanitized_child_refusal(&pipes.stderr_output) {
             return Err(SourceCommandError::DeniedWithReason(reason));
         }
@@ -1218,6 +1225,82 @@ fn pump_pipes(pipes: &mut PipeState) -> SourceCommandResult<()> {
     Ok(())
 }
 
+fn forward_validated_phase_trace(stderr: &[u8], oversized: bool) {
+    let Some(markers) = validated_phase_trace(stderr, oversized) else {
+        return;
+    };
+    let stderr = io::stderr();
+    let mut output = stderr.lock();
+    for marker in markers {
+        let _ = writeln!(output, "{marker}");
+    }
+    let _ = output.flush();
+}
+
+fn validated_phase_trace(stderr: &[u8], oversized: bool) -> Option<Vec<String>> {
+    if oversized || stderr.len() > STDERR_RETAIN_BYTES {
+        return None;
+    }
+    let stderr = std::str::from_utf8(stderr).ok()?;
+    let mut markers = Vec::new();
+    let mut active_stage: Option<usize> = None;
+    let mut last_stage: Option<usize> = None;
+    let mut last_elapsed_ms: Option<u64> = None;
+
+    for line in stderr.lines() {
+        if !line.starts_with(PHASE_TRACE_TAG) {
+            continue;
+        }
+        if line.len() > PHASE_TRACE_MAX_LINE_BYTES || markers.len() == PHASE_TRACE_MAX_LINES {
+            return None;
+        }
+        let fields: Vec<&str> = line.strip_prefix(PHASE_TRACE_PREFIX)?.split(' ').collect();
+        if fields.len() != 3 {
+            return None;
+        }
+        let stage = fields[0].strip_prefix("stage=")?;
+        let stage_index = SOURCE_NAVIGATION_PHASE_STAGES
+            .iter()
+            .position(|candidate| *candidate == stage)?;
+        let edge = fields[1].strip_prefix("edge=")?;
+        let elapsed_text = fields[2].strip_prefix("elapsed_ms=")?;
+        if elapsed_text.is_empty() || !elapsed_text.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        let elapsed_ms = elapsed_text.parse::<u64>().ok()?;
+        if elapsed_ms > CHILD_MAX_TOTAL_MS || last_elapsed_ms.is_some_and(|last| elapsed_ms < last)
+        {
+            return None;
+        }
+
+        match edge {
+            "begin" => {
+                if active_stage.is_some() || last_stage.is_some_and(|last| stage_index <= last) {
+                    return None;
+                }
+                active_stage = Some(stage_index);
+                last_stage = Some(stage_index);
+            }
+            "end" => {
+                if active_stage != Some(stage_index) {
+                    return None;
+                }
+                active_stage = None;
+            }
+            _ => return None,
+        }
+        last_elapsed_ms = Some(elapsed_ms);
+        markers.push(format!(
+            "{PHASE_TRACE_PREFIX}stage={stage} edge={edge} elapsed_ms={elapsed_ms}"
+        ));
+    }
+    if markers.is_empty() {
+        None
+    } else {
+        Some(markers)
+    }
+}
+
 fn sanitized_child_refusal(stderr: &[u8]) -> Option<String> {
     let stderr = std::str::from_utf8(stderr).ok()?;
     let mut matched = None;
@@ -1284,4 +1367,56 @@ fn read_pipe<T: AsRawFd>(
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod phase_trace_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_only_ordered_allowlisted_markers_and_reconstructs_them() {
+        let stderr = concat!(
+            "private child text is ignored\n",
+            "tos_source_navigation_phase_v1 stage=input_cut_verification edge=begin elapsed_ms=1\n",
+            "tos_source_navigation_phase_v1 stage=input_cut_verification edge=end elapsed_ms=4\n",
+            "tos_source_navigation_phase_v1 stage=catalog_planning edge=begin elapsed_ms=4\n",
+        );
+        let markers = validated_phase_trace(stderr.as_bytes(), false).expect("valid trace");
+        assert_eq!(markers.len(), 3);
+        assert_eq!(
+            markers[2],
+            "tos_source_navigation_phase_v1 stage=catalog_planning edge=begin elapsed_ms=4"
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_malformed_or_out_of_order_markers() {
+        let invalid = [
+            "tos_source_navigation_phase_v1 stage=unlisted edge=begin elapsed_ms=1\n",
+            "tos_source_navigation_phase_v1 stage=input_cut_verification edge=begin elapsed_ms=1 extra=x\n",
+            "tos_source_navigation_phase_v1 stage=input_cut_verification edge=end elapsed_ms=1\n",
+            concat!(
+                "tos_source_navigation_phase_v1 stage=input_cut_verification edge=begin elapsed_ms=2\n",
+                "tos_source_navigation_phase_v1 stage=input_cut_verification edge=end elapsed_ms=1\n",
+            ),
+        ];
+        for stderr in invalid {
+            assert!(validated_phase_trace(stderr.as_bytes(), false).is_none());
+        }
+    }
+
+    #[test]
+    fn rejects_oversized_or_truncated_trace_input_and_lines() {
+        let valid = concat!(
+            "tos_source_navigation_phase_v1 stage=input_cut_verification ",
+            "edge=begin elapsed_ms=1\n",
+        );
+        assert!(validated_phase_trace(valid.as_bytes(), true).is_none());
+        let long_line = format!(
+            "{}stage=input_cut_verification edge=begin elapsed_ms=1 {}\n",
+            PHASE_TRACE_PREFIX,
+            "x".repeat(PHASE_TRACE_MAX_LINE_BYTES)
+        );
+        assert!(validated_phase_trace(long_line.as_bytes(), false).is_none());
+    }
 }

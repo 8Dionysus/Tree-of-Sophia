@@ -21,12 +21,12 @@ const {build}=require('esbuild');
 const bundled=await build({stdin:{contents:`
   export {installResearchShelfRules} from './access/web/src/research-shelf/rules.mjs';
   export {createMemoryResearchShelfStore} from './access/web/src/research-shelf/storage.mjs';
-  export {importSuppliedResearchPacket,validateShelfExport} from './access/web/src/research-shelf/model.mjs';
+  export {importSuppliedResearchPacket,validateShelfExport,validateShelfRecord} from './access/web/src/research-shelf/model.mjs';
   export {readingKey} from './access/web/src/observatory/reader-model.mjs';
 `,resolveDir:root,sourcefile:'research-shelf-consumer.mjs'},bundle:true,platform:'node',format:'esm',write:false});
 const consumer=await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`);
 const {installResearchShelfRules,createMemoryResearchShelfStore,importSuppliedResearchPacket,
-  validateShelfExport,readingKey}=consumer;
+  validateShelfExport,validateShelfRecord,readingKey}=consumer;
 const revision='a'.repeat(64),content='b'.repeat(64),at='2026-09-28T12:00:00.000Z';
 const target={kind:'node',id:'tos.node.shelf-wasm',sourceRevision:revision,contentRevision:content};
 const input=id=>({id,title:`  Shelf ${id} `,type:'material',target,collectionIds:[]});
@@ -71,6 +71,32 @@ const oracleMigration=importSuppliedResearchPacket(reading,migrationOptions);
 installResearchShelfRules(binding);
 const actual=await exercise();
 assert.deepEqual(actual,oracle,'shelf records, CAS, collection detach, export and cursor');
+const targetClaim={claimId:target.id,pathId:'tos.path.shelf-wasm',relationType:'tos.relation.supports',
+  nodeIds:['tos.node.subject',target.id,'tos.node.object'],relationIds:['tos.relation.subject','tos.relation.object'],
+  detailRelationIds:[],closureNodeIds:['tos.node.subject',target.id,'tos.node.object']};
+const immutable=createMemoryResearchShelfStore({now:()=>at});
+const claimed=await immutable.save({...input('reordered-target'),target:{...target,claimReference:targetClaim}},
+  {expectedRevision:null});
+const reorderedTarget={claimReference:Object.fromEntries(Object.entries(targetClaim).reverse()),
+  contentRevision:content,sourceRevision:revision,id:target.id,kind:target.kind};
+const directUpdate=JSON.parse(new TextDecoder().decode(binding.research_shelf_rule_wasm_v1(encode.encode(JSON.stringify({
+  operation:'update_record',value:{old:claimed.item,input:{...claimed.item,title:'Direct reordered target',target:reorderedTarget},now:at},
+})))));
+assert.equal(directUpdate.revision,2,'Rust compares reordered target fields semantically');
+assert.deepEqual(directUpdate.target,claimed.item.target,'Rust preserves nested target identity');
+const reordered=await immutable.save({...claimed.item,title:'Reordered target',target:reorderedTarget},
+  {expectedRevision:claimed.item.revision});
+assert.equal(reordered.item.revision,2,'reordered target fields preserve immutable semantic identity');
+assert.deepEqual(reordered.item.target,claimed.item.target,'nested Claim keys are canonicalized');
+assert.deepEqual(validateShelfRecord({...actual.packet.records[0],collectionIds:undefined}).collectionIds,[],
+  'the historical undefined collectionIds default remains empty');
+await assert.rejects(immutable.save({...input('undefined-claim'),target:{...target,claimReference:undefined}},
+  {expectedRevision:null}),error=>error.code==='invalid-target','an own undefined Claim binding remains invalid');
+await assert.rejects(immutable.save({...input('unknown-undefined'),foo:undefined},{expectedRevision:null}),
+  error=>error.code==='invalid-input','own undefined unknown fields remain visible to Rust exact-key checks');
+await assert.rejects(immutable.save({...input('unknown-empty-key'),'':undefined},{expectedRevision:null}),
+  error=>error.code==='invalid-input','an empty-string own undefined key remains visible to Rust exact-key checks');
+await immutable.close();
 const collision={...actual.packet,records:[actual.packet.records[0],actual.packet.records[0]]};
 assert.throws(()=>validateShelfExport(collision),error=>error.code==='invalid-packet','duplicate exact ID');
 // Migration in the active path must retain the old FNV identity and skip rules.
@@ -80,8 +106,11 @@ assert.deepEqual(actualMigration.retained,oracleMigration.retained);
 assert.deepEqual(actualMigration.skipped,oracleMigration.skipped);
 assert.match(actualMigration.packet.records[0].id,/^import:material:[a-f0-9]{16}$/u);
 const encode=new TextEncoder();
-const header=count=>encode.encode(JSON.stringify({schema:'tos.research_shelf.export.v1',version:1,
-  generation:0,recordCount:count,collectionCount:0}));
+const header=count=>encode.encode(JSON.stringify({keys:['schema','version','generation','records','collections'],
+  schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:count,collectionCount:0}));
+assert.throws(()=>new binding.ResearchShelfPacketIndex(encode.encode(JSON.stringify({
+  schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:0,collectionCount:0,
+}))),/invalid-packet/u,'the index requires the source packet key list');
 const ordered=new binding.ResearchShelfPacketIndex(header(2));
 try{ordered.accept_records(encode.encode(JSON.stringify(['\uE000','😀'].sort())));ordered.finish();}
 finally{ordered.free();}
@@ -90,9 +119,23 @@ try{duplicate.accept_records(encode.encode(JSON.stringify(['same'])));
   assert.throws(()=>duplicate.accept_records(encode.encode(JSON.stringify(['same']))),/invalid-packet/u,'cross-chunk duplicate');}
 finally{duplicate.free();}
 assert.throws(()=>new binding.ResearchShelfPacketIndex(encode.encode(JSON.stringify({
+  keys:['schema','version','generation','records','collections'],
   schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:200_001,collectionCount:0,
 }))),/limit/u,'record bound without whole-record allocation');
 const decode=new TextDecoder();
+const shelfRule=(operation,value)=>JSON.parse(decode.decode(binding.research_shelf_rule_wasm_v1(
+  encode.encode(JSON.stringify({operation,value})))));
+for(const value of ['0000-01-01T00:00:00.000Z','2024-02-29T23:59:59.999Z',
+  '-000001-01-01T00:00:00.000Z','+010000-01-01T00:00:00.000Z',
+  '-271821-04-20T00:00:00.000Z','+275760-09-13T00:00:00.000Z'])
+  assert.equal(shelfRule('timestamp',{value}),value,`canonical Date ISO ${value}`);
+for(const value of ['-000000-01-01T00:00:00.000Z','+009999-01-01T00:00:00.000Z',
+  '2023-02-29T00:00:00.000Z','-271821-04-19T23:59:59.999Z',
+  '+275760-09-13T00:00:00.001Z','2026-01-01T00:00:00.00Z'])
+  assert.throws(()=>shelfRule('timestamp',{value}),/invalid-record/u,`reject noncanonical Date ISO ${value}`);
+const reverseTime={id:'time',title:'Time',type:'material',target,collectionIds:[],
+  createdAt:'2026-09-28T12:00:00.001Z',updatedAt:'2026-09-28T12:00:00.000Z',revision:1};
+assert.throws(()=>shelfRule('validate_record',reverseTime),/invalid-record/u,'same-year chronology');
 for(const value of reportCases){
   const actual=JSON.parse(decode.decode(binding.research_shelf_rule_wasm_v1(encode.encode(JSON.stringify({operation:'migration_skips',value})))));
   const reason=value.section==='notes'?'non-portable-note':'legacy-graph-pose';
