@@ -571,7 +571,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             ));
         }
     }
-    let _ = exact_parent_before(&receipt, &predecessor)?;
+    let _ = exact_parent_before(&receipt, &predecessor, edition_home)?;
     let predecessor_edition = cmd::parse(predecessor.get("edition.json").ok_or(
         SourceCommandError::Conflict("PG Item recovery predecessor Edition absent"),
     )?)?;
