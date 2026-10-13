@@ -3954,14 +3954,13 @@ mod tests {
     }
 
     fn seal_historical_owner(mut owner: tos_foundation::JsonValue) -> tos_foundation::JsonValue {
-        let mut core = owner
+        let core = owner
             .as_object()
             .unwrap()
             .iter()
             .filter(|(key, _)| key.as_str() != Some("closure_sha256"))
             .map(|(key, value)| (key.clone(), value.clone()))
             .collect::<Vec<_>>();
-        core.sort_by(|left, right| left.0.as_str().cmp(right.0.as_str()));
         let digest = cmd::record_digest(&tos_foundation::JsonValue::Object(core))
             .unwrap()
             .to_prefixed();
