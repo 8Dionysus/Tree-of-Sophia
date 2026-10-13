@@ -3104,12 +3104,6 @@ const PG_REVISION_SOURCE_READ_WORK_KEYS: &[&str] = &[
     "text_identity_lookups",
 ];
 
-fn object_has_exact_keys(value: &Value, keys: &[&str]) -> bool {
-    value.as_object().is_some_and(|object| {
-        object.len() == keys.len() && keys.iter().all(|key| object.contains_key(*key))
-    })
-}
-
 fn exact_source_read_work_matches(expected: &Value, actual: &Value) -> bool {
     object_has_exact_keys(expected, EXACT_SOURCE_READ_WORK_KEYS)
         && object_has_exact_keys(actual, EXACT_SOURCE_READ_WORK_KEYS)
@@ -3823,7 +3817,9 @@ fn rights_describe_binding_operation(op: &Operation) -> bool {
 }
 
 fn bind_expected_fields(op: &mut Operation, response: &Value) -> Result<(), String> {
-    let operation = operation_name(op).ok_or("bound command operation absent")?;
+    let operation = operation_name(op)
+        .ok_or("bound command operation absent")?
+        .to_owned();
     if operation == "rights.revoke" {
         let result = response.get("result").unwrap_or(response);
         if result["schema_version"] != "tos_local_pg_rights_revoke_result_v1"
@@ -3862,7 +3858,7 @@ fn bind_expected_fields(op: &mut Operation, response: &Value) -> Result<(), Stri
         .and_then(Value::as_str)
         .filter(|value| value.strip_prefix("sha256:").is_some_and(valid_sha))
         .ok_or("bound preview lacks its dependency digest")?;
-    let (expected_source, expected_revision) = match operation {
+    let (expected_source, expected_revision) = match operation.as_str() {
         "source.create" => (
             result
                 .get("expected_source")
