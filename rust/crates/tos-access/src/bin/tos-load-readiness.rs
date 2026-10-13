@@ -34,7 +34,8 @@ const DEFAULT_OWNER_STAGE_CLONE_CAP_BYTES: u64 = 268_435_456;
 const MAX_OWNER_STAGE_CLONE_CAP_BYTES: u64 = 1_073_741_824;
 const NATIVE_STDERR_CAP: usize = 4096;
 const USAGE: &str = concat!(
-    "usage: tos-load-readiness --query-binary ABS --model ABS --binding ABS --schedule ABS --output DIR --unit UNIT ",
+    "usage: tos-load-readiness --query-binary ABS [--model ABS --binding ABS] --schedule ABS --output DIR --unit UNIT ",
+    "[--pg-stage-mode fresh|existing] [--source-text-search-selection ABS] ",
     "[--source-root ABS --source-inputs ABS] [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS] ",
     "[--owner-stage-baseline ABS] [--owner-stage-clone-cap-bytes N] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|64|128|256] ",
     "[--sdk-in-flight 1..4] [--operation-count N] [--channel-mix mcp=60,owner_http=20,sdk=20,projection=0] ",
@@ -52,8 +53,10 @@ struct Args {
     owner_binary: Option<PathBuf>,
     source_root: Option<PathBuf>,
     source_inputs: Option<PathBuf>,
-    model: PathBuf,
-    binding: PathBuf,
+    model: Option<PathBuf>,
+    binding: Option<PathBuf>,
+    pg_stage_mode: PgStageMode,
+    source_text_search_selection: Option<PathBuf>,
     owner_config: Option<PathBuf>,
     invocation: Option<PathBuf>,
     token_file: Option<PathBuf>,
@@ -75,6 +78,12 @@ struct Args {
     response_cap: usize,
     schedule_cap: usize,
     output_cap: usize,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PgStageMode {
+    Fresh,
+    Existing,
 }
 
 #[derive(Clone, Deserialize)]
@@ -583,8 +592,21 @@ fn parse_args() -> Result<Option<Args>, String> {
     if source_root.is_some() != source_inputs.is_some() {
         return Err("--source-root and --source-inputs must be supplied together".into());
     }
-    let model = path(&mut values, "--model")?;
-    let binding = path(&mut values, "--binding")?;
+    let model = optional_path(&mut values, "--model")?;
+    let binding = optional_path(&mut values, "--binding")?;
+    if model.is_some() != binding.is_some() {
+        return Err("--model and --binding must be supplied together".into());
+    }
+    if source_inputs.is_some() && model.is_none() {
+        return Err("--source-root and --source-inputs require --model and --binding".into());
+    }
+    let pg_stage_mode = match take(&mut values, "--pg-stage-mode", Some("fresh"))?.as_str() {
+        "fresh" => PgStageMode::Fresh,
+        "existing" => PgStageMode::Existing,
+        _ => return Err("--pg-stage-mode must be fresh or existing".into()),
+    };
+    let source_text_search_selection =
+        optional_path(&mut values, "--source-text-search-selection")?;
     let owner_config = optional_path(&mut values, "--owner-config")?;
     let invocation = optional_path(&mut values, "--invocation")?;
     let token_file = optional_path(&mut values, "--token-file")?;
@@ -720,6 +742,8 @@ fn parse_args() -> Result<Option<Args>, String> {
         source_inputs,
         model,
         binding,
+        pg_stage_mode,
+        source_text_search_selection,
         owner_config,
         invocation,
         token_file,
@@ -1452,7 +1476,6 @@ fn staged_owner_configuration_digest(
 fn prepare_owner_stage(
     args: &mut Args,
     plan: &mut Plan,
-    needs_mcp: bool,
     needs_owner: bool,
     deadline: Instant,
 ) -> Result<Option<(PathBuf, PathBuf, usize, usize, u64)>, String> {
@@ -1476,15 +1499,49 @@ fn prepare_owner_stage(
     let sdk_owner_inputs = selected_sdk_owner_inputs(plan, args.sessions)?;
     let sdk_store_roots = selected_sdk_store_roots(plan, args.sessions)?;
     let projection_inputs = selected_projection_inputs(plan, args.sessions)?;
-    if needs_mcp && (args.source_root.is_none() || args.source_inputs.is_none()) {
-        return Err("MCP workload staging requires --source-root and --source-inputs".into());
+    let selected_operations = plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .chain(plan.postload.iter())
+        .collect::<Vec<_>>();
+    let mcp_requires_prepared_owner = selected_operations.iter().any(|operation| {
+        operation.channel == "mcp" && !mcp_source_text_search_operation(operation)
+    });
+    let mcp_requires_source_reader = selected_operations.iter().any(|operation| {
+        operation.channel == "mcp"
+            && source_read_operation(operation)
+            && !mcp_source_text_search_operation(operation)
+    });
+    if mcp_requires_prepared_owner && (args.model.is_none() || args.binding.is_none()) {
+        return Err(
+            "MCP operations beyond selected PG source-text search require --model and --binding"
+                .into(),
+        );
     }
-    let mut staged_inputs = vec![args.model.as_path(), args.binding.as_path()];
+    if mcp_requires_source_reader && (args.source_root.is_none() || args.source_inputs.is_none()) {
+        return Err("MCP source-reader staging requires --source-root and --source-inputs".into());
+    }
+    let mut staged_inputs = Vec::new();
+    if let Some(model) = args.model.as_deref() {
+        staged_inputs.push(model);
+    }
+    if let Some(binding) = args.binding.as_deref() {
+        staged_inputs.push(binding);
+    }
     if let Some(source_root) = args.source_root.as_deref() {
         staged_inputs.push(source_root);
     }
     if let Some(source_inputs) = args.source_inputs.as_deref() {
         staged_inputs.push(source_inputs);
+    }
+    if let Some(selection) = args.source_text_search_selection.as_deref() {
+        staged_inputs.push(selection);
     }
     if needs_owner {
         for (label, path) in [
@@ -1511,7 +1568,7 @@ fn prepare_owner_stage(
             .map_err(|e| format!("owner stage input: {e}"))?
             .starts_with(&baseline)
         {
-            return Err("model, binding and all owner inputs must be inside the selected owner stage baseline".into());
+            return Err("all supplied model, binding, reader and owner inputs must be inside the selected owner stage baseline".into());
         }
     }
     for (invocation, owner) in &sdk_owner_inputs {
@@ -1520,8 +1577,16 @@ fn prepare_owner_stage(
         }
     }
     for store_root in &sdk_store_roots {
-        if !store_root.starts_with(&baseline) {
-            return Err("SDK PostgreSQL store must be inside the selected stage baseline".into());
+        let invalid = match args.pg_stage_mode {
+            PgStageMode::Fresh => !store_root.starts_with(&baseline),
+            PgStageMode::Existing => store_root.starts_with(&baseline),
+        };
+        if invalid {
+            return Err(match args.pg_stage_mode {
+                PgStageMode::Fresh => "fresh SDK PostgreSQL store must be inside the selected stage baseline",
+                PgStageMode::Existing => "existing SDK PostgreSQL store must remain outside the cloned owner-input baseline",
+            }
+            .into());
         }
     }
     for selection in &projection_inputs {
@@ -1536,9 +1601,13 @@ fn prepare_owner_stage(
             .store_root
             .canonicalize()
             .map_err(|e| format!("projection store root: {e}"))?;
-        if !selection.starts_with(&baseline) || !store_root.starts_with(&baseline) {
+        let store_mismatch = match args.pg_stage_mode {
+            PgStageMode::Fresh => !store_root.starts_with(&baseline),
+            PgStageMode::Existing => store_root.starts_with(&baseline),
+        };
+        if !selection.starts_with(&baseline) || store_mismatch {
             return Err(
-                "projection selection and source store must be inside the selected stage baseline"
+                "projection selection must be staged and its PostgreSQL store must match the selected fresh/existing stage mode"
                     .into(),
             );
         }
@@ -1566,8 +1635,16 @@ fn prepare_owner_stage(
         .canonicalize()
         .map_err(|e| format!("owner stage destination: {e}"))?;
     rebase_plan_paths(plan, &baseline, &destination)?;
-    args.model = rebase_path(&args.model, &baseline, &destination)?;
-    args.binding = rebase_path(&args.binding, &baseline, &destination)?;
+    args.model = args
+        .model
+        .as_deref()
+        .map(|path| rebase_path(path, &baseline, &destination))
+        .transpose()?;
+    args.binding = args
+        .binding
+        .as_deref()
+        .map(|path| rebase_path(path, &baseline, &destination))
+        .transpose()?;
     args.source_root = args
         .source_root
         .as_deref()
@@ -1575,6 +1652,11 @@ fn prepare_owner_stage(
         .transpose()?;
     args.source_inputs = args
         .source_inputs
+        .as_deref()
+        .map(|path| rebase_path(path, &baseline, &destination))
+        .transpose()?;
+    args.source_text_search_selection = args
+        .source_text_search_selection
         .as_deref()
         .map(|path| rebase_path(path, &baseline, &destination))
         .transpose()?;
@@ -1668,7 +1750,11 @@ fn prepare_owner_stage(
         let source_inputs_digest = sha(&source_inputs_raw);
         let source_inputs_text =
             std::str::from_utf8(&source_inputs_raw).map_err(|_| "source inputs UTF-8 required")?;
-        let database = rusqlite::Connection::open(&args.model)
+        let model = args
+            .model
+            .as_deref()
+            .ok_or("prepared model absent for staged source inputs")?;
+        let database = rusqlite::Connection::open(model)
             .map_err(|_| "owner stage prepared database open failed")?;
         let changed = database
             .execute(
@@ -1687,6 +1773,25 @@ fn prepare_owner_stage(
             fs::Permissions::from_mode(source_inputs_mode),
         )
         .map_err(|e| format!("owner stage canonical source inputs mode: {e}"))?;
+    }
+    if let Some(source_text_selection_path) = args.source_text_search_selection.as_ref() {
+        let selection_mode = fs::metadata(source_text_selection_path)
+            .map_err(|e| format!("owner stage PG source-text selection metadata: {e}"))?
+            .mode()
+            & 0o777;
+        let mut selection = read_stage_json(source_text_selection_path)?;
+        rebase_json_paths(&mut selection, &baseline, &destination)?;
+        fs::write(
+            source_text_selection_path,
+            serde_json::to_vec(&selection)
+                .map_err(|_| "owner stage PG source-text selection encode failed")?,
+        )
+        .map_err(|e| format!("owner stage PG source-text selection write: {e}"))?;
+        fs::set_permissions(
+            source_text_selection_path,
+            fs::Permissions::from_mode(selection_mode),
+        )
+        .map_err(|e| format!("owner stage PG source-text selection mode: {e}"))?;
     }
     for (source_invocation, source_owner) in sdk_owner_inputs {
         let invocation_path = rebase_path(&source_invocation, &baseline, &destination)?;
@@ -1940,6 +2045,10 @@ fn valid_sha(value: &str) -> bool {
         && value
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+fn normalized_sha256(value: &str) -> Option<&str> {
+    let value = value.strip_prefix("sha256:").unwrap_or(value);
+    valid_sha(value).then_some(value)
 }
 fn hex(raw: &[u8]) -> String {
     raw.iter().map(|b| format!("{b:02x}")).collect()
@@ -2206,6 +2315,72 @@ fn outcomes(op: &Operation) -> Vec<ExpectedOutcome> {
     values
 }
 
+fn mcp_source_text_search_operation(op: &Operation) -> bool {
+    op.channel == "mcp"
+        && op.request["method"] == "tools/call"
+        && op.request["params"]["name"] == "tos_source_text_search"
+}
+
+fn valid_mcp_source_text_search_request(op: &Operation) -> bool {
+    let Some(arguments) = op.request.pointer("/params/arguments") else {
+        return false;
+    };
+    let Some(fields) = arguments.as_object() else {
+        return false;
+    };
+    let allowed = ["query", "limit", "document_types", "source_paths", "cursor"];
+    if fields.keys().any(|key| !allowed.contains(&key.as_str()))
+        || arguments["query"]
+            .as_str()
+            .is_none_or(|query| query.is_empty() || query.len() > 4096)
+        || arguments["limit"]
+            .as_u64()
+            .is_none_or(|limit| !(1..=100).contains(&limit))
+    {
+        return false;
+    }
+    for key in ["document_types", "source_paths"] {
+        if arguments.get(key).is_some_and(|value| {
+            value.as_array().is_none_or(|items| {
+                items.len() > 64
+                    || items.iter().any(|item| {
+                        item.as_str()
+                            .is_none_or(|text| text.is_empty() || text.len() > 1024)
+                    })
+            })
+        }) {
+            return false;
+        }
+    }
+    arguments.get("cursor").is_none_or(|value| {
+        value
+            .as_str()
+            .is_some_and(|cursor| !cursor.is_empty() && cursor.len() <= 4096)
+    })
+}
+
+fn mcp_source_text_search_response_succeeded(op: &Operation, attempt: &Attempt) -> bool {
+    if attempt.status != 200 {
+        return false;
+    }
+    let Some(raw) = attempt.body.as_deref() else {
+        return false;
+    };
+    let Ok(response) = serde_json::from_slice::<Value>(raw) else {
+        return false;
+    };
+    let Some(result) = response.get("result").and_then(Value::as_object) else {
+        return false;
+    };
+    response["jsonrpc"] == "2.0"
+        && response.get("id") == op.request.get("id")
+        && response.get("error").is_none()
+        && result.get("content").is_some_and(Value::is_array)
+        && result
+            .get("isError")
+            .is_none_or(|value| value.as_bool() == Some(false))
+}
+
 fn source_read_operation(op: &Operation) -> bool {
     match op.channel.as_str() {
         "mcp" => {
@@ -2215,6 +2390,7 @@ fn source_read_operation(op: &Operation) -> bool {
                     Some("tos_source_read_capabilities")
                         | Some("tos_source_handle_discover")
                         | Some("tos_source_read")
+                        | Some("tos_source_text_search")
                 )
         }
         "sdk" => op
@@ -2253,10 +2429,10 @@ fn selected_query_source_read(op: &Operation, args: &Args) -> bool {
     let Some(source_inputs) = source_inputs.to_str() else {
         return false;
     };
-    let Some(model) = args.model.to_str() else {
+    let Some(model) = args.model.as_deref().and_then(Path::to_str) else {
         return false;
     };
-    let Some(binding) = args.binding.to_str() else {
+    let Some(binding) = args.binding.as_deref().and_then(Path::to_str) else {
         return false;
     };
     let expected = [
@@ -2707,6 +2883,8 @@ fn outcome_matches(
     attempt: &Attempt,
 ) -> bool {
     if expected.status != attempt.status
+        || (mcp_source_text_search_operation(op)
+            && !mcp_source_text_search_response_succeeded(op, attempt))
         || expected
             .sha256
             .as_ref()
@@ -3334,9 +3512,14 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
             )
             .canonicalize()
             .map_err(|e| format!("rights.revoke native executable: {e}"))?;
-            let selected_binary = PathBuf::from(&operation.sdk_argv[0])
-                .canonicalize()
-                .map_err(|e| format!("selected SDK executable: {e}"))?;
+            let selected_binary = PathBuf::from(
+                operation
+                    .sdk_argv
+                    .first()
+                    .ok_or("rights.revoke SDK binary absent")?,
+            )
+            .canonicalize()
+            .map_err(|e| format!("selected SDK executable: {e}"))?;
             if private_root != store_root
                 || !owner_path.starts_with(&baseline)
                 || owner["schema_version"] != "tos_local_pg_rights_revoke_owner_v1"
@@ -3352,6 +3535,372 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
         }
     }
     Ok(true)
+}
+
+fn validate_existing_pg_stage(plan: &Plan, args: &Args) -> Result<(), String> {
+    if std::env::var_os("TOS_SOURCE_PG_URL").is_none_or(|value| value.is_empty()) {
+        return Err(
+            "existing native PG stage requires TOS_SOURCE_PG_URL; its value is never reported"
+                .into(),
+        );
+    }
+    let baseline = args
+        .owner_stage_baseline
+        .as_ref()
+        .ok_or("existing native PG stage requires a private --owner-stage-baseline")?
+        .canonicalize()
+        .map_err(|e| format!("existing native PG stage baseline: {e}"))?;
+    let baseline_metadata = fs::symlink_metadata(&baseline)
+        .map_err(|e| format!("existing native PG baseline stat: {e}"))?;
+    if baseline_metadata.file_type().is_symlink()
+        || !baseline_metadata.is_dir()
+        || baseline_metadata.uid() != unsafe { libc::geteuid() }
+        || baseline_metadata.mode() & 0o077 != 0
+        || args.output.starts_with(&baseline)
+        || baseline.starts_with(&args.output)
+    {
+        return Err(
+            "existing native PG baseline must be a separate private owned directory".into(),
+        );
+    }
+    let selected_operations = plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .chain(plan.postload.iter())
+        .collect::<Vec<_>>();
+    if selected_operations.iter().any(|operation| {
+        operation.channel == "sdk" && operation_name(operation) == Some("source.bootstrap")
+    }) {
+        return Err(
+            "existing native PG attach mode refuses source.bootstrap in every schedule phase"
+                .into(),
+        );
+    }
+    let first = plan
+        .setup
+        .first()
+        .ok_or("existing native PG attach mode requires a serial setup describe before load")?;
+    if first.channel != "sdk"
+        || operation_name(first) != Some("describe")
+        || first.request
+            != json!({"schema_version":"tos_local_source_command_v1","operation":"describe"})
+        || first.expected_status != 0
+        || (first.expected_sha256.is_none() && first.expected_body.is_none())
+    {
+        return Err("existing native PG attach mode must begin with an exact successful owner-native describe oracle".into());
+    }
+    let roots = selected_sdk_store_roots(plan, args.sessions)?;
+    if roots.len() != 1 {
+        return Err(
+            "existing native PG attach mode requires exactly one selected SDK PostgreSQL store"
+                .into(),
+        );
+    }
+    let store_root = roots[0]
+        .canonicalize()
+        .map_err(|e| format!("existing PostgreSQL store root: {e}"))?;
+    let store_metadata = fs::symlink_metadata(&store_root)
+        .map_err(|e| format!("existing PostgreSQL store stat: {e}"))?;
+    if store_root.starts_with(&baseline)
+        || store_root.starts_with(&args.output)
+        || store_metadata.file_type().is_symlink()
+        || !store_metadata.is_dir()
+        || store_metadata.uid() != unsafe { libc::geteuid() }
+        || store_metadata.mode() & 0o077 != 0
+    {
+        return Err("existing PG store must be a private owned directory outside the cloned owner-input baseline".into());
+    }
+    let owner_inputs = selected_sdk_owner_inputs(plan, args.sessions)?;
+    if owner_inputs.is_empty()
+        || owner_inputs.iter().any(|(invocation, owner)| {
+            !invocation.starts_with(&baseline) || !owner.starts_with(&baseline)
+        })
+    {
+        return Err("existing PG attach needs SDK invocation and owner inputs inside the private stage baseline".into());
+    }
+
+    let first_invocation_path = PathBuf::from(
+        invocation_argument(first).ok_or("initial existing-PG describe invocation absent")?,
+    )
+    .canonicalize()
+    .map_err(|e| format!("initial existing-PG describe invocation: {e}"))?;
+    let first_invocation = read_stage_json(&first_invocation_path)?;
+    if !first_invocation_path.starts_with(&baseline) {
+        return Err(
+            "initial existing-PG describe invocation must be inside the stage baseline".into(),
+        );
+    }
+    let first_selection = first_invocation
+        .get("source_selection")
+        .ok_or("initial existing-PG describe must carry its acquired source selection")?;
+    let domain = first_selection["domain"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or("initial existing-PG describe domain absent")?;
+    let contract = first_selection["source_contract_sha256"]
+        .as_str()
+        .and_then(normalized_sha256)
+        .ok_or("initial existing-PG describe source contract digest absent")?
+        .to_owned();
+    let selected_store = PathBuf::from(
+        first_selection["store_root"]
+            .as_str()
+            .ok_or("initial existing-PG describe store root absent")?,
+    )
+    .canonicalize()
+    .map_err(|e| format!("initial existing-PG selected store root: {e}"))?;
+    if selected_store != store_root
+        || first_selection["job_id"].as_str().is_none_or(str::is_empty)
+        || first_selection["job_fence"]
+            .as_u64()
+            .is_none_or(|fence| fence == 0)
+        || first_selection["initialization_mode"] == "initialize"
+        || first_selection["initialize_schema"] == true
+    {
+        return Err("initial existing-PG describe must select the already-owned store and its own non-initializing lease selector".into());
+    }
+    if selected_operations
+        .iter()
+        .any(|operation| operation.channel == "owner_http")
+    {
+        let http_invocation_path = args
+            .invocation
+            .as_ref()
+            .ok_or("owner_http requires its selected native invocation")?
+            .canonicalize()
+            .map_err(|e| format!("owner_http invocation path: {e}"))?;
+        let http_owner_path = args
+            .owner_config
+            .as_ref()
+            .ok_or("owner_http requires its selected owner configuration")?
+            .canonicalize()
+            .map_err(|e| format!("owner_http owner configuration path: {e}"))?;
+        if !http_invocation_path.starts_with(&baseline) || !http_owner_path.starts_with(&baseline) {
+            return Err("owner_http invocation and owner configuration must remain inside the private owner-input baseline".into());
+        }
+        let http_invocation = read_stage_json(&http_invocation_path)?;
+        let selected_http_owner = http_invocation
+            .get("owner_config")
+            .and_then(Value::as_str)
+            .ok_or("owner_http native invocation owner_config absent")?;
+        if PathBuf::from(selected_http_owner)
+            .canonicalize()
+            .map_err(|e| format!("owner_http invocation owner configuration: {e}"))?
+            != http_owner_path
+        {
+            return Err(
+                "owner_http native invocation must select the supplied owner configuration".into(),
+            );
+        }
+        let http_selection = http_invocation
+            .get("source_selection")
+            .ok_or("owner_http invocation source selection absent")?;
+        let http_store = PathBuf::from(
+            http_selection["store_root"]
+                .as_str()
+                .ok_or("owner_http invocation store root absent")?,
+        )
+        .canonicalize()
+        .map_err(|e| format!("owner_http selected store root: {e}"))?;
+        if http_store != store_root
+            || http_selection["domain"].as_str() != Some(domain)
+            || http_selection["source_contract_sha256"]
+                .as_str()
+                .and_then(normalized_sha256)
+                != Some(contract.as_str())
+            || http_selection["job_id"].as_str().is_none_or(str::is_empty)
+            || http_selection["job_fence"]
+                .as_u64()
+                .is_none_or(|fence| fence == 0)
+            || http_selection["initialization_mode"] == "initialize"
+            || http_selection["initialize_schema"] == true
+        {
+            return Err("owner_http invocation must select the attached store, shared domain and contract, with its own non-initializing lease selector".into());
+        }
+        let http_owner = read_stage_json(&http_owner_path)?;
+        let owner_store = PathBuf::from(
+            http_owner["source_root"]
+                .as_str()
+                .ok_or("owner_http owner configuration source_root absent")?,
+        )
+        .canonicalize()
+        .map_err(|e| format!("owner_http owner source root: {e}"))?;
+        let allowed_operations = http_owner["allowed_operations"]
+            .as_array()
+            .ok_or("owner_http allowed_operations absent")?;
+        if owner_store != store_root
+            || http_owner.get("domain").is_some_and(|value| {
+                value
+                    .as_str()
+                    .is_none_or(|selected_domain| selected_domain != domain)
+            })
+            || http_owner
+                .get("source_contract_sha256")
+                .is_some_and(|value| {
+                    value
+                        .as_str()
+                        .and_then(normalized_sha256)
+                        .is_none_or(|selected_contract| selected_contract != contract)
+                })
+            || selected_operations
+                .iter()
+                .filter(|operation| operation.channel == "owner_http")
+                .any(|operation| {
+                    operation_name(operation).is_none_or(|name| {
+                        !allowed_operations
+                            .iter()
+                            .any(|allowed| allowed.as_str() == Some(name))
+                    })
+                })
+        {
+            return Err("owner_http configuration must target the attached store and permit every scheduled operation".into());
+        }
+    }
+    if let Some(selection_path) = args.source_text_search_selection.as_ref() {
+        let selection_path = selection_path
+            .canonicalize()
+            .map_err(|e| format!("PG source-text selection path: {e}"))?;
+        if !selection_path.starts_with(&baseline) {
+            return Err(
+                "PG source-text search selection must be inside the private owner-input baseline"
+                    .into(),
+            );
+        }
+        let selection = read_stage_json(&selection_path)?;
+        let binding = projection_selection_binding(&selection, "status")?;
+        let selected_text_store = binding
+            .store_root
+            .canonicalize()
+            .map_err(|e| format!("PG source-text selection store root: {e}"))?;
+        if binding.navigation
+            || selected_text_store != store_root
+            || binding.domain != domain
+            || normalized_sha256(&binding.source_contract_sha256) != Some(contract.as_str())
+            || !matches!(
+                selection["profile"].as_str(),
+                Some("tos_source_selected_text_v1" | "tos_source_selected_text_v2")
+            )
+        {
+            return Err("PG source-text selection must use its declared source-search profile and share the attached domain, source contract and store".into());
+        }
+    }
+    for operation in selected_operations
+        .iter()
+        .filter(|operation| operation.channel == "sdk" && !native_query_source_read(operation))
+    {
+        let path =
+            PathBuf::from(invocation_argument(operation).ok_or("SDK PG invocation path absent")?)
+                .canonicalize()
+                .map_err(|e| format!("SDK PG invocation path: {e}"))?;
+        if !path.starts_with(&baseline) {
+            return Err("every attached SDK PG invocation must remain inside the private owner-input baseline".into());
+        }
+        let invocation = read_stage_json(&path)?;
+        if let Some(selected) = invocation.get("source_selection") {
+            let selected_store = PathBuf::from(
+                selected["store_root"]
+                    .as_str()
+                    .ok_or("SDK PG invocation store root absent")?,
+            )
+            .canonicalize()
+            .map_err(|e| format!("SDK PG invocation store root: {e}"))?;
+            if selected_store != store_root
+                || selected["domain"].as_str() != Some(domain)
+                || selected["source_contract_sha256"]
+                    .as_str()
+                    .and_then(normalized_sha256)
+                    != Some(contract.as_str())
+                || selected["job_id"].as_str().is_none_or(str::is_empty)
+                || selected["job_fence"]
+                    .as_u64()
+                    .is_none_or(|fence| fence == 0)
+                || selected["initialization_mode"] == "initialize"
+                || selected["initialize_schema"] == true
+            {
+                return Err("attached SDK PG invocation changed the shared domain, contract or store, or lacks its own non-initializing lease selector".into());
+            }
+        } else if invocation["schema_version"] == "tos_local_pg_rights_revoke_invocation_v1" {
+            let private_root = PathBuf::from(
+                invocation["private_source_root"]
+                    .as_str()
+                    .ok_or("rights.revoke private source root absent")?,
+            )
+            .canonicalize()
+            .map_err(|e| format!("rights.revoke private source root: {e}"))?;
+            let owner_path = PathBuf::from(
+                invocation["owner_config"]
+                    .as_str()
+                    .ok_or("rights.revoke owner configuration absent")?,
+            )
+            .canonicalize()
+            .map_err(|e| format!("rights.revoke owner configuration: {e}"))?;
+            let owner = read_stage_json(&owner_path)?;
+            let executable = PathBuf::from(
+                invocation["native_executable"]
+                    .as_str()
+                    .ok_or("rights.revoke native executable absent")?,
+            )
+            .canonicalize()
+            .map_err(|e| format!("rights.revoke native executable: {e}"))?;
+            let selected_binary = PathBuf::from(
+                operation
+                    .sdk_argv
+                    .first()
+                    .ok_or("rights.revoke SDK binary absent")?,
+            )
+            .canonicalize()
+            .map_err(|e| format!("selected SDK executable: {e}"))?;
+            if private_root != store_root
+                || !owner_path.starts_with(&baseline)
+                || owner["schema_version"] != "tos_local_pg_rights_revoke_owner_v1"
+                || owner["source_root"] != store_root.to_str().ok_or("store root UTF-8 required")?
+                || owner["domain"] != domain
+                || owner["allowed_operations"] != json!(["rights.revoke"])
+                || executable != selected_binary
+            {
+                return Err("rights.revoke changed the attached store, selected owner grant or SDK executable".into());
+            }
+        } else {
+            return Err("attached SDK PG commands must carry their own source selection or the ordinary rights.revoke owner".into());
+        }
+    }
+    for selection_path in selected_projection_inputs(plan, args.sessions)? {
+        let selection = read_stage_json(&selection_path)?;
+        let request_operation = if selection["schema_version"] == NAVIGATION_OWNER_SCHEMA {
+            "advance-navigation"
+        } else {
+            "status"
+        };
+        let binding = projection_selection_binding(&selection, request_operation)?;
+        let projected_store = binding
+            .store_root
+            .canonicalize()
+            .map_err(|e| format!("attached projection store root: {e}"))?;
+        if !selection_path.starts_with(&baseline)
+            || projected_store != store_root
+            || binding.domain != domain
+            || normalized_sha256(&binding.source_contract_sha256) != Some(contract.as_str())
+        {
+            return Err("attached projection selection must share the selected domain, source contract and existing PG store".into());
+        }
+    }
+    Ok(())
+}
+
+fn validate_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
+    match args.pg_stage_mode {
+        PgStageMode::Fresh => validate_fresh_pg_stage(plan, args),
+        PgStageMode::Existing => {
+            validate_existing_pg_stage(plan, args)?;
+            Ok(true)
+        }
+    }
 }
 
 fn validate_projection_operation(
@@ -3480,7 +4029,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
     {
         return Err("schedule schema/session count mismatch".into());
     }
-    let fresh_pg_stage = validate_fresh_pg_stage(plan, args)?;
+    let native_pg_stage = validate_pg_stage(plan, args)?;
+    let fresh_pg_stage = native_pg_stage && args.pg_stage_mode == PgStageMode::Fresh;
     let mut ids = BTreeSet::new();
     let mut total = plan.setup.len() + plan.postload.len();
     let mut owner_requests = 0usize;
@@ -3670,12 +4220,22 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     .into(),
             );
         }
-        if setup_index == 0 && name != "source.bootstrap" {
+        if fresh_pg_stage && setup_index == 0 && name != "source.bootstrap" {
             return Err("serial native PG setup must start with source.bootstrap".into());
         }
-        if name == "source.bootstrap" && setup_index != 0 {
+        if native_pg_stage
+            && args.pg_stage_mode == PgStageMode::Existing
+            && setup_index == 0
+            && name != "describe"
+        {
             return Err(
-                "source.bootstrap may appear only as the first serial setup operation".into(),
+                "existing native PG setup must start with the selected current-state describe"
+                    .into(),
+            );
+        }
+        if name == "source.bootstrap" && (!fresh_pg_stage || setup_index != 0) {
+            return Err(
+                "source.bootstrap is permitted only as the first serial setup operation in fresh PG mode".into(),
             );
         }
         if let Some(label) = op.bind_expected_from.as_deref() {
@@ -3794,6 +4354,11 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     {
                         return Err("MCP schedule entry must be a bounded JSON-RPC request".into());
                     }
+                    if mcp_source_text_search_operation(op)
+                        && (!valid_mcp_source_text_search_request(op) || op.expected_status != 200)
+                    {
+                        return Err("selected PG source-text MCP requests require bounded query arguments and an HTTP 200 JSON-RPC success oracle".into());
+                    }
                 }
                 "owner_http" => {
                     needs_owner = true;
@@ -3907,7 +4472,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         || op.bind_expected_configuration_from_owner
                         || (op.bind_expected_from.is_some()
                             && !(bound_commit || bound_rights_revoke))
-                        || (fresh_pg_stage
+                        || (native_pg_stage
                             && (expected_binding_operation(op) || rights_revoke_operation(op))
                             && !(bound_commit || bound_rights_revoke))
                         || !op.request.is_object()
@@ -4026,8 +4591,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 .flat_map(|session| &session.operations),
         )
         .any(|operation| rights_revoke_operation(operation));
-    if fresh_pg_stage && preload_rights_revoke_scheduled {
-        return Err("fresh PostgreSQL rights revocation is a postload operation after integrity and replay checks".into());
+    if native_pg_stage && preload_rights_revoke_scheduled {
+        return Err("native PostgreSQL rights revocation is a postload operation after integrity and replay checks".into());
     }
     for (postload_index, op) in plan.postload.iter().enumerate() {
         let bound_postload_revoke = postload_rights_revoke_operation(op)
@@ -4150,7 +4715,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
         match op.channel.as_str() {
             "mcp" => {
                 needs_mcp = true;
-                if !(200..300).contains(&op.expected_status)
+                if (mcp_source_text_search_operation(op) && op.expected_status != 200)
+                    || !(200..300).contains(&op.expected_status)
                     || op.request["jsonrpc"] != "2.0"
                     || op.request.get("method").and_then(Value::as_str).is_none()
                     || op.request.get("id").is_none_or(Value::is_null)
@@ -4158,6 +4724,12 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     || !op.projection_argv.is_empty()
                 {
                     return Err("postload MCP check must be one bounded JSON-RPC request".into());
+                }
+                if mcp_source_text_search_operation(op) && !valid_mcp_source_text_search_request(op)
+                {
+                    return Err(
+                        "postload PG source-text MCP request has invalid query arguments".into(),
+                    );
                 }
             }
             "sdk" => {
@@ -4288,7 +4860,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             postload_rights_checks += 1;
         }
     }
-    if fresh_pg_stage {
+    if native_pg_stage {
         let first_rights_describe = postload_rights_check_positions
             .first()
             .map(|(index, _)| *index)
@@ -4321,7 +4893,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             || !rights_order_valid
             || !integrity_before_rights
         {
-            return Err("a fresh native PostgreSQL load stage requires measured-mutation replay and exact-source integrity before a postload rights describe -> revoke -> describe -> denied-projection sequence".into());
+            return Err("native PostgreSQL load stages require measured-mutation replay and exact-source integrity before a postload rights describe -> revoke -> describe -> denied-projection sequence".into());
         }
     }
     let navigation_bootstrap_operations = plan
@@ -4360,8 +4932,57 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
     if total == 0 || total > MAX_OPS || owner_requests + usize::from(needs_owner) > MAX_NONCES {
         return Err("bounded operation or source HTTP nonce budget exceeded".into());
     }
-    if needs_mcp && (args.source_root.is_none() || args.source_inputs.is_none()) {
-        return Err("MCP schedule requires --source-root and --source-inputs".into());
+    let selected_operations = plan
+        .setup
+        .iter()
+        .chain(
+            plan.sessions
+                .iter()
+                .take(args.sessions)
+                .flat_map(|session| &session.operations),
+        )
+        .chain(plan.postload.iter())
+        .collect::<Vec<_>>();
+    let needs_mcp_pg_source_text = selected_operations
+        .iter()
+        .any(|operation| mcp_source_text_search_operation(operation));
+    let needs_mcp_prepared_owner = selected_operations.iter().any(|operation| {
+        operation.channel == "mcp" && !mcp_source_text_search_operation(operation)
+    });
+    let needs_mcp_source_reader = selected_operations.iter().any(|operation| {
+        operation.channel == "mcp"
+            && source_read_operation(operation)
+            && !mcp_source_text_search_operation(operation)
+    });
+    if needs_mcp_pg_source_text {
+        if args.pg_stage_mode != PgStageMode::Existing
+            || args.source_text_search_selection.is_none()
+            || std::env::var_os("TOS_SOURCE_PG_URL").is_none_or(|value| value.is_empty())
+        {
+            return Err("tos_source_text_search requires --pg-stage-mode existing, an explicit --source-text-search-selection and TOS_SOURCE_PG_URL".into());
+        }
+    } else if args.source_text_search_selection.is_some() {
+        return Err("--source-text-search-selection is unused by the selected schedule".into());
+    }
+    if let Some(selection_path) = args.source_text_search_selection.as_ref() {
+        let metadata = fs::symlink_metadata(selection_path)
+            .map_err(|e| format!("PG source-text selection metadata: {e}"))?;
+        if metadata.file_type().is_symlink()
+            || !metadata.is_file()
+            || metadata.uid() != unsafe { libc::geteuid() }
+            || metadata.mode() & 0o077 != 0
+        {
+            return Err("PG source-text selection must be a private owned regular file".into());
+        }
+        if read_stage_json(selection_path)?.as_object().is_none() {
+            return Err("PG source-text selection must be a JSON object".into());
+        }
+    }
+    if needs_mcp_prepared_owner && (args.model.is_none() || args.binding.is_none()) {
+        return Err("non-search MCP operations require --model and --binding".into());
+    }
+    if needs_mcp_source_reader && (args.source_root.is_none() || args.source_inputs.is_none()) {
+        return Err("MCP source-reader schedule requires --source-root and --source-inputs".into());
     }
     if needs_owner
         && (args.owner_binary.is_none()
@@ -6402,7 +7023,8 @@ fn main_result() -> Result<i32, String> {
     let schedule_sha256 = sha(&schedule_bytes);
     let mut plan: Plan =
         serde_json::from_slice(&schedule_bytes).map_err(|_| "invalid bounded workload schedule")?;
-    let fresh_pg_stage = validate_fresh_pg_stage(&plan, &args)?;
+    let native_pg_stage = validate_pg_stage(&plan, &args)?;
+    let fresh_pg_stage = native_pg_stage && args.pg_stage_mode == PgStageMode::Fresh;
     validate_plan(&plan, &args)?;
     limit_plan_operations(
         &mut plan,
@@ -6413,14 +7035,20 @@ fn main_result() -> Result<i32, String> {
     let (_, needs_mcp, needs_owner) = validate_plan(&plan, &args)?;
     let cgroup = cgroup_path(&args.unit)?;
     let lease_execution = write_lease(&args.output, &args.unit, args.output_cap)?;
-    let owner_stage = prepare_owner_stage(&mut args, &mut plan, needs_mcp, needs_owner, deadline)?;
-    let mut paths = vec![
-        args.query_binary.clone(),
-        args.model.clone(),
-        args.binding.clone(),
-        args.schedule.clone(),
-    ];
-    let schedule_index = 3;
+    let owner_stage = prepare_owner_stage(&mut args, &mut plan, needs_owner, deadline)?;
+    let mut paths = vec![args.query_binary.clone()];
+    let prepared_model_index = args.model.as_ref().map(|path| {
+        let index = paths.len();
+        paths.push(path.clone());
+        index
+    });
+    let prepared_binding_index = args.binding.as_ref().map(|path| {
+        let index = paths.len();
+        paths.push(path.clone());
+        index
+    });
+    let schedule_index = paths.len();
+    paths.push(args.schedule.clone());
     let mut owner_indexes = BTreeMap::new();
     for (name, path) in [
         ("owner_binary", &args.owner_binary),
@@ -6428,6 +7056,10 @@ fn main_result() -> Result<i32, String> {
         ("invocation", &args.invocation),
         ("token_file", &args.token_file),
         ("source_inputs", &args.source_inputs),
+        (
+            "source_text_search_selection",
+            &args.source_text_search_selection,
+        ),
     ] {
         if let Some(path) = path {
             let index = paths.len();
@@ -6705,8 +7337,8 @@ fn main_result() -> Result<i32, String> {
                 "owner_inputs": owner_input_identities,
                 "sdk_owner_inputs": sdk_owner_input_identities,
                 "projection_selections": projection_input_identities,
-                "prepared_model": identity_json(&input_stamps[1], None),
-                "prepared_binding": identity_json(&input_stamps[2], None),
+                "prepared_model": prepared_model_index.map(|index| identity_json(&input_stamps[index], None)),
+                "prepared_binding": prepared_binding_index.map(|index| identity_json(&input_stamps[index], None)),
                 "external_sdk_binaries": sdk_identities,
                 "external_projection_binaries": projection_identities,
                 "schedule_sha256": schedule_sha256
@@ -6747,6 +7379,11 @@ fn main_result() -> Result<i32, String> {
                 "operations_per_second_limit": args.operations_per_second,
                 "load_window_seconds_limit": args.load_window_seconds,
                 "fresh_pg_stage": fresh_pg_stage,
+                "native_pg_stage": native_pg_stage,
+                "pg_stage_mode": match args.pg_stage_mode {
+                    PgStageMode::Fresh => "fresh",
+                    PgStageMode::Existing => "existing",
+                },
                 "deadline_seconds": args.deadline_seconds,
                 "request_cap_bytes": args.request_cap,
                 "response_cap_bytes": args.response_cap,
@@ -6793,17 +7430,30 @@ fn main_result() -> Result<i32, String> {
                     .to_owned(),
             ]);
         }
+        if let (Some(model), Some(binding)) = (&args.model, &args.binding) {
+            query_args.extend([
+                "--prepared-read-model".to_owned(),
+                model
+                    .to_str()
+                    .ok_or("model path UTF-8 required")?
+                    .to_owned(),
+                "--prepared-binding".to_owned(),
+                binding
+                    .to_str()
+                    .ok_or("binding path UTF-8 required")?
+                    .to_owned(),
+            ]);
+        }
+        if let Some(selection) = &args.source_text_search_selection {
+            query_args.extend([
+                "--source-text-search-selection".to_owned(),
+                selection
+                    .to_str()
+                    .ok_or("PG source-text selection path UTF-8 required")?
+                    .to_owned(),
+            ]);
+        }
         query_args.extend([
-            "--prepared-read-model".to_owned(),
-            args.model
-                .to_str()
-                .ok_or("model path UTF-8 required")?
-                .to_owned(),
-            "--prepared-binding".to_owned(),
-            args.binding
-                .to_str()
-                .ok_or("binding path UTF-8 required")?
-                .to_owned(),
             "mcp".to_owned(),
             "--transport".to_owned(),
             "streamable-http".to_owned(),
@@ -7403,7 +8053,7 @@ fn main_result() -> Result<i32, String> {
                 "idempotency replay target did not complete successfully during measured load",
             )
         } else if postload_rights_revoke_operation(&op)
-            && fresh_pg_stage
+            && native_pg_stage
             && (postload_checks_failed != 0
                 || postload_selected_integrity_passed == 0
                 || postload_pg_integrity_passed == 0
@@ -7663,6 +8313,11 @@ fn main_result() -> Result<i32, String> {
             "serial_setup_failures": setup_failures,
             "serial_setup_elapsed_seconds": setup_elapsed_seconds,
             "fresh_pg_stage": fresh_pg_stage,
+            "native_pg_stage": native_pg_stage,
+            "pg_stage_mode": match args.pg_stage_mode {
+                PgStageMode::Fresh => "fresh",
+                PgStageMode::Existing => "existing",
+            },
             "postgresql_url_reported": false,
             "database_reset_or_drop_performed": false,
             "cleanup_policy": "runner stops only its child process groups and retains the private staged files and report; caller owns disposable PostgreSQL database cleanup",

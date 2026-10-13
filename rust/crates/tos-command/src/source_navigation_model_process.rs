@@ -5,7 +5,7 @@
 //! cleanup; owner selection and final publication remain in the caller.
 
 use super::source_navigation_model_compile::{
-    SourceNavigationModelCompileRequestV1, SourceNavigationModelCompileResultV1,
+    SourceNavigationModelCompileRequestV2, SourceNavigationModelCompileResultV1,
 };
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use std::{
@@ -23,7 +23,7 @@ use std::{
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
-const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v1";
+const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v2";
 const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v1";
 const CANDIDATE_LEAF: &str = "source-navigation-model.sqlite";
 const REQUEST_MAX_BYTES: usize = 8 * 1024 * 1024;
@@ -109,7 +109,7 @@ pub(crate) fn launch_source_navigation_model_compile(
     launcher: &SourceNavigationModelLauncherV1,
     limits: SourceNavigationModelProcessLimits,
     remaining_budget_ms: u64,
-    request: &mut SourceNavigationModelCompileRequestV1,
+    request: &mut SourceNavigationModelCompileRequestV2,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SourceNavigationModelCompileResultV1> {
     // Establish the outer deadline before path checks or executable hashing.
@@ -488,7 +488,7 @@ fn check_cancelled(cancelled: &AtomicBool) -> SourceCommandResult<()> {
 }
 
 fn verify_limit_binding(
-    request: &SourceNavigationModelCompileRequestV1,
+    request: &SourceNavigationModelCompileRequestV2,
     limits: SourceNavigationModelProcessLimits,
 ) -> SourceCommandResult<()> {
     let selected = request.model_limits;
@@ -510,7 +510,7 @@ fn verify_limit_binding(
     Ok(())
 }
 
-fn verify_inputs(request: &SourceNavigationModelCompileRequestV1) -> SourceCommandResult<File> {
+fn verify_inputs(request: &SourceNavigationModelCompileRequestV2) -> SourceCommandResult<File> {
     let root = normalized_absolute(&request.read_only_input_root)?;
     let cut = normalized_absolute(&request.source_cut_root)?;
     if cut == root || !cut.starts_with(&root) {
@@ -560,7 +560,7 @@ fn verify_inputs(request: &SourceNavigationModelCompileRequestV1) -> SourceComma
 
 fn verify_paths_and_staging(
     launcher: &SourceNavigationModelLauncherV1,
-    request: &SourceNavigationModelCompileRequestV1,
+    request: &SourceNavigationModelCompileRequestV2,
     input_root: &File,
 ) -> SourceCommandResult<()> {
     let input_path = normalized_absolute(&request.read_only_input_root)?;
@@ -846,7 +846,7 @@ fn hash_file(mut file: File, max_bytes: u64) -> SourceCommandResult<Digest256> {
 fn validate_result(
     result: &SourceNavigationModelCompileResultV1,
     request_digest: &str,
-    request: &SourceNavigationModelCompileRequestV1,
+    request: &SourceNavigationModelCompileRequestV2,
     limits: SourceNavigationModelProcessLimits,
 ) -> SourceCommandResult<()> {
     let stage = &result.stage;
@@ -883,7 +883,7 @@ fn validate_result(
 }
 
 fn verify_candidate_readback(
-    request: &SourceNavigationModelCompileRequestV1,
+    request: &SourceNavigationModelCompileRequestV2,
     result: &SourceNavigationModelCompileResultV1,
     limits: SourceNavigationModelProcessLimits,
 ) -> SourceCommandResult<()> {

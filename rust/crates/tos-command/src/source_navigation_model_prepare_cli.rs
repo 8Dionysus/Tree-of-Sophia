@@ -1210,7 +1210,8 @@ fn prepare_initial(
                     json: tos_foundation::JsonLimits::default(),
                 },
                 CutReadLimits {
-                    max_revisions: 4,
+                    max_revisions:
+                        super::source_navigation_model_compile::MAX_SOURCE_HISTORY_REVISIONS,
                     max_members: owner.model_limits.max_source_members,
                     max_total_bytes: owner.model_limits.max_source_total_bytes,
                     max_member_bytes: owner.model_limits.max_source_member_bytes,
@@ -1303,6 +1304,14 @@ fn prepare_initial(
             ));
         }
     };
+    let source_read_limits =
+        super::source_navigation_model_compile::SourceNavigationCompileReadLimitsV1::from(
+            export.read_limits(),
+        );
+    let source_cut_limits =
+        super::source_navigation_model_compile::SourceNavigationCompileCutLimitsV1::from(
+            export.cut().limits(),
+        );
     let source_binding = SourceBinding {
         owner_profile: "tos-managed-source-navigation-v2".into(),
         source_cut: revision.0.to_hex(),
@@ -1315,6 +1324,12 @@ fn prepare_initial(
         complete: true,
     };
 
+    let source_read_limits_raw = serde_json::to_vec(&source_read_limits).map_err(|_| {
+        SourceCommandError::Invalid("source-navigation retained read limits encoding")
+    })?;
+    let source_cut_limits_raw = serde_json::to_vec(&source_cut_limits).map_err(|_| {
+        SourceCommandError::Invalid("source-navigation retained cut limits encoding")
+    })?;
     let configuration_digest = hash_configuration(&[
         owner_raw.as_slice(),
         invocation_raw,
@@ -1322,6 +1337,8 @@ fn prepare_initial(
         &normalization_raw,
         proof.generation.installed_generation_sha256.as_bytes(),
         proof.generation.inventory_projection_sha256.as_bytes(),
+        &source_read_limits_raw,
+        &source_cut_limits_raw,
         revision.0.as_bytes(),
         membership.digest.as_bytes(),
     ]);
@@ -1340,14 +1357,16 @@ fn prepare_initial(
             ));
         }
     };
-    let mut compile_request = super::source_navigation_model_compile::SourceNavigationModelCompileRequestV1 {
-        schema_version: "tos_source_navigation_model_compile_request_v1".into(),
+    let mut compile_request = super::source_navigation_model_compile::SourceNavigationModelCompileRequestV2 {
+        schema_version: "tos_source_navigation_model_compile_request_v2".into(),
         read_only_input_root: isolated.path().to_path_buf(),
         source_cut_root: isolated.path().join(".managed-source-cut"),
         bootstrap_source_revision: bootstrap_source_revision.0.to_hex(),
         bootstrap_membership_count: source_membership.count,
         bootstrap_membership_sha256: source_membership.digest.to_hex(),
         export_revision: revision.0.to_hex(),
+        source_read_limits,
+        source_cut_limits,
         membership_count: membership.count,
         membership_sha256: membership.digest.to_hex(),
         source_binding: source_binding.clone(),

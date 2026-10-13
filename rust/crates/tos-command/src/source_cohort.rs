@@ -2396,6 +2396,38 @@ fn projections_bytes(projections: &ProjectionRows) -> DurableResult<Vec<u8>> {
         .map_err(|_| DurableError::Invalid("source projections encoding"))
 }
 
+fn mixed_projection_envelope(
+    path: &str,
+    source_raw: &[u8],
+    records: tos_foundation::JsonValue,
+    source_profiles: tos_foundation::JsonValue,
+    events: tos_foundation::JsonValue,
+    anchors: tos_foundation::JsonValue,
+    form: tos_foundation::JsonValue,
+    claim_owner: tos_foundation::JsonValue,
+    public_text_owner: tos_foundation::JsonValue,
+) -> DurableResult<Vec<u8>> {
+    let source_digest = Digest256::of_bytes(source_raw).to_hex();
+    let envelope = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_managed_mixed_source_inventory_member_v2"),
+        ),
+        ("path", cmd::string(path)),
+        ("raw_sha256", cmd::string(&source_digest)),
+        ("records", records),
+        ("source_profiles", source_profiles),
+        ("events", events),
+        ("anchors", anchors),
+        ("form", form),
+        ("claim_owner", claim_owner),
+        ("public_text_owner", public_text_owner),
+    ]);
+    let raw = cmd::canonical(&envelope).map_err(source_error)?;
+    addressed_inventory::AddressedMixedInventoryV1::checked_projection(path, &raw, &source_digest)?;
+    Ok(raw)
+}
+
 fn revision_owner_projections(
     family_tag: &str,
     writes: &[SourceRevisionWrite],
@@ -2652,27 +2684,17 @@ fn revision_owner_projections(
                     .collect(),
             )
         };
-        let envelope = cmd::object(vec![
-            (
-                "schema_version",
-                cmd::string("tos_managed_mixed_source_inventory_member_v2"),
-            ),
-            ("path", cmd::string(&path)),
-            (
-                "raw_sha256",
-                cmd::string(&Digest256::of_bytes(&write.exact_bytes).to_hex()),
-            ),
-            ("records", records),
-            ("source_profiles", source_profiles),
-            ("events", events),
-            ("anchors", anchors),
-            ("form", form),
-            ("claim_owner", claim_owner),
-            ("public_text_owner", public_text_owner),
-        ]);
-        let raw = cmd::canonical(&envelope).map_err(source_error)?;
-        let digest = Digest256::of_bytes(&write.exact_bytes).to_hex();
-        addressed_inventory::AddressedMixedInventoryV1::checked_projection(&path, &raw, &digest)?;
+        let raw = mixed_projection_envelope(
+            &path,
+            &write.exact_bytes,
+            records,
+            source_profiles,
+            events,
+            anchors,
+            form,
+            claim_owner,
+            public_text_owner,
+        )?;
         if raw.len() > 1_048_576 {
             return Err(DurableError::Refused(
                 "source revision inventory projection exceeds member bound",

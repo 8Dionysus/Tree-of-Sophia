@@ -219,6 +219,7 @@ impl ManagedCurrentSourceGeneration {
 /// Its manifest retains genuine v1 parent/history and complete fixity law.
 pub struct ManagedCurrentSourceCut {
     generation: ManagedCurrentSourceGeneration,
+    read_limits: ReadLimits,
     cut: CorpusCutReader,
     membership: SourceMembershipV1,
     files: BTreeMap<String, Vec<u8>>,
@@ -229,6 +230,9 @@ impl ManagedCurrentSourceCut {
     }
     pub fn cut(&self) -> &CorpusCutReader {
         &self.cut
+    }
+    pub(crate) fn read_limits(&self) -> ReadLimits {
+        self.read_limits
     }
     pub(crate) fn cohort(&self) -> &ManagedSourceCohort {
         self.generation.cohort()
@@ -1458,6 +1462,7 @@ fn select_current_source_cut_inner(
             cohort: reopened.cohort,
             selected: SelectedSourceGeneration::Cold(reopened.selected),
         },
+        read_limits: history_read_limits,
         cut,
         membership: reopened.current_membership,
         files: reopened.files,

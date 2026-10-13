@@ -27,7 +27,7 @@ source grant, or publication step. It requires no Python runtime.
 The protected schedule has the form
 `{"schema":"tos_protocol_load_schedule_v1","setup":[...],"sessions":[{"id":"s-0","operations":[...]}],"postload":[...]}`;
 `setup` is optional for non-mutating work, and `postload` is optional outside a
-fresh PostgreSQL stage. Each session contains an ordered operation list.
+native PostgreSQL stage. Each session contains an ordered operation list.
 `--sessions 2|8|16|64|128|256` selects the stage (default 2);
 the harness launches each operation index as a concurrent wave across logical
 sessions. `--operation-count` caps measured operations independently and selects
@@ -119,6 +119,27 @@ database plus a new output directory and reservation. The runner never resets
 or drops PostgreSQL data; it retains the staged store and report under the
 private output directory, while the caller owns database cleanup.
 
+`--pg-stage-mode existing` attaches to an already bootstrapped source store in
+the caller's disposable PostgreSQL database. Begin serial setup with an exact
+successful native `describe` oracle; `source.bootstrap` is refused in every
+phase. Put the private invocation, owner, token and projection selection files
+inside `--owner-stage-baseline`, with the existing source store outside both
+that baseline and the fresh output directory. Only the owner inputs are
+cloned. HTTP, SDK and projection inputs must select the same canonical store,
+domain and source contract; each role may carry its own acquired lease. Native
+execution checks lease liveness. The caller must keep its database and host
+admission alive through the complete load run and subsequent dump/cleanup.
+Omitting `--pg-stage-mode` retains fresh-stage behavior.
+
+For live PostgreSQL text search over MCP, select
+`--source-text-search-selection ABS` and schedule `tos_source_text_search` in
+existing-stage mode. A search-only MCP workload needs no `--model` or
+`--binding`; supply that pair for other MCP operations and also
+`--source-root`/`--source-inputs` for prepared source reads. Search responses
+must be HTTP 200 with the matching JSON-RPC ID, a result containing a content
+array, no RPC error and no `isError: true`, in addition to the declared exact
+response oracle. The PostgreSQL URL stays in the private environment.
+
 A commit may declare `bind_expected_from` with the label of an earlier
 `prepare-create` or `prepare-revise` setup operation. The commit must use that
 preview's invocation and exact proposal fields. The runner copies the preview's
@@ -170,7 +191,7 @@ cursor and stand in for the interrupted process.
 The optional serial `postload` list runs after measured session workers and the
 quiescent navigation drain. Its checks do not enter load throughput, latency
 percentiles, operation-count limits or channel-mix percentages; they do count
-against the whole-run deadline and must pass for a zero exit. A fresh PostgreSQL
+against the whole-run deadline and must pass for a zero exit. A native PostgreSQL
 stage requires an exact SDK `source read`, one exact replay of a successful
 measured SDK mutation, and this rights sequence, in order:
 

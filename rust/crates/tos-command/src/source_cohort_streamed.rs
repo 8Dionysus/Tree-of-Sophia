@@ -1362,6 +1362,58 @@ struct CompleteMixedProjectionPassV1 {
     legacy_publication_members: BTreeMap<String, Vec<u8>>,
 }
 
+fn source_inventory_contribution_projection(
+    path: &str,
+    source_raw: &[u8],
+    contribution: &tos_foundation::JsonValue,
+) -> DurableResult<Vec<u8>> {
+    // Growth and Item owner adapters return this exact seven-field semantic
+    // contribution. It is not yet the ten-field persisted mixed projection.
+    cmd::exact_keys(
+        contribution,
+        &[
+            "schema_version",
+            "records",
+            "source_profiles",
+            "events",
+            "anchors",
+            "form",
+            "claim_owner",
+        ],
+    )
+    .map_err(source_error)?;
+    if cmd::text(contribution, "schema_version").map_err(source_error)?
+        != "tos_pg_source_inventory_member_contribution_v1"
+    {
+        return Err(DurableError::Corrupt(
+            "streamed owner source contribution schema differs",
+        ));
+    }
+    super::mixed_projection_envelope(
+        path,
+        source_raw,
+        cmd::field(contribution, "records")
+            .map_err(source_error)?
+            .clone(),
+        cmd::field(contribution, "source_profiles")
+            .map_err(source_error)?
+            .clone(),
+        cmd::field(contribution, "events")
+            .map_err(source_error)?
+            .clone(),
+        cmd::field(contribution, "anchors")
+            .map_err(source_error)?
+            .clone(),
+        cmd::field(contribution, "form")
+            .map_err(source_error)?
+            .clone(),
+        cmd::field(contribution, "claim_owner")
+            .map_err(source_error)?
+            .clone(),
+        tos_foundation::JsonValue::Null,
+    )
+}
+
 fn render_current_mixed_projections(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
     profile: &crate::source_claims::AgentInventoryAssessmentProfile,
@@ -1569,13 +1621,13 @@ fn render_current_mixed_projections(
             .as_ref()
             .and_then(|contributions| contributions.get(location));
         let mut projection = if let Some(contribution) = growth_member {
-            cmd::canonical(contribution).map_err(source_error)?
+            source_inventory_contribution_projection(location, &file.raw, contribution)?
         } else if is_item_claim_owner {
             let context = claim_context
                 .as_ref()
                 .ok_or(DurableError::Corrupt("streamed Item Claim context absent"))?;
-            cmd::canonical(&super::item_claim_owner_contribution(context, location)?)
-                .map_err(source_error)?
+            let contribution = super::item_claim_owner_contribution(context, location)?;
+            source_inventory_contribution_projection(location, &file.raw, &contribution)?
         } else if is_global_claim_owner {
             if claim_source_profiles.is_none() {
                 claim_source_profiles = Some(
@@ -3533,5 +3585,50 @@ mod bounded_claim_context_tests {
         let selected = selected_claim_archive_paths(&[history_file]).expect("selected archives");
         assert_eq!(selected, BTreeSet::from([retained.to_owned()]));
         assert!(!selected.contains(unrelated));
+    }
+}
+
+#[cfg(test)]
+mod owner_contribution_projection_tests {
+    use super::*;
+
+    fn contribution() -> tos_foundation::JsonValue {
+        cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_pg_source_inventory_member_contribution_v1"),
+            ),
+            (
+                "records",
+                cmd::object(
+                    crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+                        .iter()
+                        .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                        .collect(),
+                ),
+            ),
+            ("source_profiles", cmd::object(Vec::new())),
+            ("events", cmd::object(Vec::new())),
+            ("anchors", cmd::object(Vec::new())),
+            ("form", tos_foundation::JsonValue::Null),
+            ("claim_owner", tos_foundation::JsonValue::Null),
+        ])
+    }
+
+    #[test]
+    fn supported_owner_contribution_is_wrapped_and_unknown_fields_stay_refused() {
+        let path = "ToS/source-witnesses/works/example/source-create-request.json";
+        let source = b"{}";
+        source_inventory_contribution_projection(path, source, &contribution())
+            .expect("supported exact owner contribution");
+
+        let mut extended = contribution();
+        cmd::set(
+            &mut extended,
+            "unrecognized_owner_field",
+            tos_foundation::JsonValue::Null,
+        )
+        .expect("add unknown field");
+        assert!(source_inventory_contribution_projection(path, source, &extended).is_err());
     }
 }

@@ -35,7 +35,8 @@ use tos_validation::{
 
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 
-const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v1";
+const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v2";
+pub(crate) const MAX_SOURCE_HISTORY_REVISIONS: usize = 4;
 const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v1";
 const REQUEST_MAX_BYTES: usize = 8 * 1024 * 1024;
 const RESPONSE_MAX_BYTES: usize = 8 * 1024 * 1024;
@@ -50,7 +51,7 @@ const MAX_SOURCE_MEMBERS: u64 = 2_048;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct SourceNavigationModelCompileRequestV1 {
+pub(crate) struct SourceNavigationModelCompileRequestV2 {
     pub schema_version: String,
     pub read_only_input_root: PathBuf,
     pub source_cut_root: PathBuf,
@@ -60,6 +61,10 @@ pub(crate) struct SourceNavigationModelCompileRequestV1 {
     pub bootstrap_membership_sha256: String,
     /// Exact immutable managed export selected by the host parent.
     pub export_revision: String,
+    /// Exact retained parser limits derived by the source-current-cut owner.
+    pub source_read_limits: SourceNavigationCompileReadLimitsV1,
+    /// Exact finite retained-cut bounds derived by the source-current-cut owner.
+    pub source_cut_limits: SourceNavigationCompileCutLimitsV1,
     pub membership_count: u64,
     pub membership_sha256: String,
     pub source_binding: SourceBinding,
@@ -78,6 +83,115 @@ pub(crate) struct SourceNavigationModelCompileRequestV1 {
     pub producer_limits: SourceNavigationCompileProducerLimitsV1,
     pub cold_limits: ColdOpenLimits,
     pub process_limits: NativeProcessLimits,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SourceNavigationCompileReadLimitsV1 {
+    pub max_manifest_bytes: usize,
+    pub max_manifest_entries: usize,
+    pub max_selected_object_bytes: u64,
+    pub json_max_bytes: usize,
+    pub json_max_depth: usize,
+    pub json_max_visits: usize,
+    pub json_max_integer_digits: usize,
+}
+
+impl From<ReadLimits> for SourceNavigationCompileReadLimitsV1 {
+    fn from(limits: ReadLimits) -> Self {
+        Self {
+            max_manifest_bytes: limits.max_manifest_bytes,
+            max_manifest_entries: limits.max_manifest_entries,
+            max_selected_object_bytes: limits.max_selected_object_bytes,
+            json_max_bytes: limits.json.max_bytes,
+            json_max_depth: limits.json.max_depth,
+            json_max_visits: limits.json.max_visits,
+            json_max_integer_digits: limits.json.max_integer_digits,
+        }
+    }
+}
+
+impl SourceNavigationCompileReadLimitsV1 {
+    fn checked(self) -> SourceCommandResult<ReadLimits> {
+        let default_json = tos_foundation::JsonLimits::default();
+        if self.max_manifest_bytes == 0
+            || self.max_manifest_bytes > 1_048_576
+            || self.max_manifest_entries == 0
+            || self.max_manifest_entries > crate::source_creation_store::MAX_FILES
+            || self.max_selected_object_bytes == 0
+            || self.max_selected_object_bytes > crate::source_creation_store::MAX_BYTES as u64
+            || self.json_max_bytes == 0
+            || self.json_max_bytes > default_json.max_bytes
+            || self.json_max_depth == 0
+            || self.json_max_depth > default_json.max_depth
+            || self.json_max_visits == 0
+            || self.json_max_visits > default_json.max_visits
+            || self.json_max_integer_digits == 0
+            || self.json_max_integer_digits > default_json.max_integer_digits
+        {
+            return Err(SourceCommandError::Invalid(
+                "source-navigation retained read limits outside bounded history envelope",
+            ));
+        }
+        let limits = ReadLimits {
+            max_manifest_bytes: self.max_manifest_bytes,
+            max_manifest_entries: self.max_manifest_entries,
+            max_selected_object_bytes: self.max_selected_object_bytes,
+            json: tos_foundation::JsonLimits {
+                max_bytes: self.json_max_bytes,
+                max_depth: self.json_max_depth,
+                max_visits: self.json_max_visits,
+                max_integer_digits: self.json_max_integer_digits,
+            },
+        };
+        limits.validate().map_err(|_| {
+            SourceCommandError::Invalid("source-navigation retained read limits are invalid")
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SourceNavigationCompileCutLimitsV1 {
+    pub max_revisions: usize,
+    pub max_members: u64,
+    pub max_total_bytes: u64,
+    pub max_member_bytes: u64,
+}
+
+impl From<CutReadLimits> for SourceNavigationCompileCutLimitsV1 {
+    fn from(limits: CutReadLimits) -> Self {
+        Self {
+            max_revisions: limits.max_revisions,
+            max_members: limits.max_members,
+            max_total_bytes: limits.max_total_bytes,
+            max_member_bytes: limits.max_member_bytes,
+        }
+    }
+}
+
+impl SourceNavigationCompileCutLimitsV1 {
+    fn checked(self) -> SourceCommandResult<CutReadLimits> {
+        if self.max_revisions == 0
+            || self.max_revisions > MAX_SOURCE_HISTORY_REVISIONS
+            || self.max_members == 0
+            || self.max_members > crate::source_creation_store::MAX_FILES as u64
+            || self.max_total_bytes == 0
+            || self.max_total_bytes > crate::source_creation_store::MAX_BYTES as u64
+            || self.max_member_bytes == 0
+            || self.max_member_bytes > crate::source_creation_store::MAX_BYTES as u64
+        {
+            return Err(SourceCommandError::Invalid(
+                "source-navigation retained cut limits outside bounded history envelope",
+            ));
+        }
+        Ok(CutReadLimits {
+            max_revisions: self.max_revisions,
+            max_members: self.max_members,
+            max_total_bytes: self.max_total_bytes,
+            max_member_bytes: self.max_member_bytes,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -465,7 +579,7 @@ pub(crate) fn run_stdin() -> SourceCommandResult<()> {
     }
     let document = crate::source_command::parse(&raw)?;
     let canonical = crate::source_command::canonical(&document)?;
-    let request: SourceNavigationModelCompileRequestV1 = serde_json::from_slice(&canonical)
+    let request: SourceNavigationModelCompileRequestV2 = serde_json::from_slice(&canonical)
         .map_err(|_| SourceCommandError::Invalid("source-navigation compile request schema"))?;
     if request.schema_version != REQUEST_SCHEMA {
         return Err(SourceCommandError::Invalid(
@@ -491,7 +605,7 @@ pub(crate) fn run_stdin() -> SourceCommandResult<()> {
 /// Compile from the immutable, selected export and return a candidate plus
 /// producer-issued receipts. Final-owner publication belongs to the parent.
 pub(crate) fn compile(
-    request: &SourceNavigationModelCompileRequestV1,
+    request: &SourceNavigationModelCompileRequestV2,
     raw_request_sha256: &str,
 ) -> SourceCommandResult<SourceNavigationModelCompileResultV1> {
     if request.schema_version != REQUEST_SCHEMA {
@@ -646,18 +760,8 @@ pub(crate) fn compile(
         ));
     }
 
-    let max_manifest_entries = usize::try_from(model.max_source_members)
-        .map_err(|_| SourceCommandError::Invalid("source-navigation manifest member limit"))?;
     let max_source_member_bytes = model.max_source_member_bytes;
-    let read_limits = ReadLimits {
-        max_manifest_bytes: 1_048_576,
-        max_manifest_entries,
-        max_selected_object_bytes: model.max_source_total_bytes,
-        json: tos_foundation::JsonLimits {
-            max_bytes: 1_048_576,
-            ..tos_foundation::JsonLimits::default()
-        },
-    };
+    let read_limits = request.source_read_limits.checked()?;
     let corpus =
         CorpusReader::open_existing(&request.source_cut_root, read_limits).map_err(|_| {
             SourceCommandError::Conflict("selected immutable source export unavailable")
@@ -665,12 +769,7 @@ pub(crate) fn compile(
     let cut = corpus
         .open_source_cut(
             export_revision,
-            CutReadLimits {
-                max_revisions: 4,
-                max_members: model.max_source_members,
-                max_total_bytes: model.max_source_total_bytes,
-                max_member_bytes: max_source_member_bytes,
-            },
+            request.source_cut_limits.checked()?,
             deadline,
             &cancelled,
         )
@@ -1298,4 +1397,65 @@ fn validate_model_limits(limits: SourceNavigationCompileModelLimitsV1) -> Source
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod history_limit_tests {
+    use super::*;
+
+    #[test]
+    fn retained_history_limits_are_separate_from_current_source_limits_and_bounded() {
+        let retained = SourceNavigationCompileCutLimitsV1 {
+            max_revisions: 2,
+            max_members: 516,
+            max_total_bytes: 5_063_774,
+            max_member_bytes: 344_358,
+        };
+        let cut = retained.checked().expect("bounded retained history");
+        let read_limits = SourceNavigationCompileReadLimitsV1 {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 516,
+            max_selected_object_bytes: 2_531_887,
+            json_max_bytes: 1_048_576,
+            json_max_depth: 64,
+            json_max_visits: 300_000,
+            json_max_integer_digits: 4_300,
+        }
+        .checked()
+        .expect("bounded retained manifest limits");
+        let current_max_members = 258;
+        let current_max_bytes = 2_531_887;
+        assert_eq!(cut.max_members, 516);
+        assert_eq!(cut.max_total_bytes, 5_063_774);
+        assert_eq!(read_limits.max_manifest_entries, 516);
+        assert_eq!(read_limits.max_selected_object_bytes, 2_531_887);
+        assert!(cut.max_members > current_max_members);
+        assert!(cut.max_total_bytes > current_max_bytes);
+
+        let over_history_members = SourceNavigationCompileCutLimitsV1 {
+            max_members: crate::source_creation_store::MAX_FILES as u64 + 1,
+            ..retained
+        };
+        assert!(over_history_members.checked().is_err());
+        let over_history_bytes = SourceNavigationCompileCutLimitsV1 {
+            max_total_bytes: crate::source_creation_store::MAX_BYTES as u64 + 1,
+            ..retained
+        };
+        assert!(over_history_bytes.checked().is_err());
+        let over_history_revisions = SourceNavigationCompileCutLimitsV1 {
+            max_revisions: MAX_SOURCE_HISTORY_REVISIONS + 1,
+            ..retained
+        };
+        assert!(over_history_revisions.checked().is_err());
+        let over_history_manifest_entries = SourceNavigationCompileReadLimitsV1 {
+            max_manifest_entries: crate::source_creation_store::MAX_FILES + 1,
+            max_manifest_bytes: 1_048_576,
+            max_selected_object_bytes: 2_531_887,
+            json_max_bytes: 1_048_576,
+            json_max_depth: 64,
+            json_max_visits: 300_000,
+            json_max_integer_digits: 4_300,
+        };
+        assert!(over_history_manifest_entries.checked().is_err());
+    }
 }
