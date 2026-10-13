@@ -160,7 +160,14 @@ receipts detect mismatches, not malicious self-forgery by that account. The comm
 assessment, payload resolution, legacy migration, publication and source
 review follow their respective owner routes.
 Catalog/derived regeneration, wider validation, checkpoint review and landing
-remain separate owner steps. Before source-foundation closure, create the
+remain separate owner steps. A first Item adoption may target an Edition whose
+predecessor has no `source-revision-history.json`; the first `item.adopt`
+transition creates that history. Any history already present is checked before
+the adoption proceeds. PG recovery accepts exactly the two-member record/forms
+predecessor or the three-member record/forms/history predecessor; fixity and
+receipt checks remain exact, and committed successors still require history.
+
+Before source-foundation closure, create the
 new Item's exact future-server plan under
 `ToS/source-witnesses/server-import/plans/` and its provenance in the existing
 `server-import/provenance.jsonl`, following `SERVER_IMPORT_PROTOCOL.md`.

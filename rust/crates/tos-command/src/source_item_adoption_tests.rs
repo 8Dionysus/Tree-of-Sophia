@@ -37,6 +37,52 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
             );
         let owner_path = Path::new(fixture["owner"].as_str().unwrap());
         let owner_raw = fs::read(owner_path).unwrap();
+        let owner_config = cmd::parse(&owner_raw).unwrap();
+        let edition_source_path = cmd::text(&owner_config, "edition_source_path")
+            .unwrap()
+            .to_owned();
+        let edition_home = edition_source_path.rsplit_once('/').unwrap().0.to_owned();
+        if decision == "resume" {
+            // The retained item-base capture is a first adoption: its exact
+            // predecessor has the record and forms, but no revision history.
+            let predecessor = std::collections::BTreeMap::from([
+                (
+                    "edition.json".to_owned(),
+                    fs::read(root.join(&edition_source_path)).unwrap(),
+                ),
+                (
+                    "edition.human-forms.json".to_owned(),
+                    fs::read(root.join(&edition_home).join("edition.human-forms.json")).unwrap(),
+                ),
+            ]);
+            assert!(
+                !root
+                    .join(&edition_home)
+                    .join("source-revision-history.json")
+                    .exists()
+            );
+            let edition = cmd::parse(predecessor.get("edition.json").unwrap()).unwrap();
+            let revision = crate::source_revisions::revision(&predecessor).unwrap();
+            let archive =
+                super::pg_archive_package(&edition_source_path, &edition, &predecessor, &revision)
+                    .unwrap();
+            let manifest: serde_json::Value =
+                serde_json::from_slice(archive.members.get("manifest.json").unwrap()).unwrap();
+            let file_rows = manifest["files"].as_object().unwrap();
+            assert_eq!(file_rows.len(), 2);
+            assert!(file_rows.contains_key("edition.json"));
+            assert!(file_rows.contains_key("edition.human-forms.json"));
+            assert!(!file_rows.contains_key("source-revision-history.json"));
+            for (name, raw) in &predecessor {
+                let digest = tos_foundation::Digest256::of_bytes(raw);
+                let row = &manifest["files"][name];
+                assert_eq!(row["sha256"], digest.to_prefixed());
+                assert_eq!(row["bytes"].as_u64(), Some(raw.len() as u64));
+                let blob = format!("{}.blob", digest.to_hex());
+                assert_eq!(row["blob"], blob);
+                assert_eq!(archive.members.get(&blob), Some(raw));
+            }
+        }
         let authored = support::authored(root);
         let mut files = authored.clone();
         for name in IMPLEMENTATIONS {
@@ -199,6 +245,42 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
             );
         }
         if expect_commit {
+            let successor = [
+                "edition.json",
+                "edition.human-forms.json",
+                "source-revision-history.json",
+            ]
+            .into_iter()
+            .map(|name| {
+                (
+                    name.to_owned(),
+                    fs::read(root.join(&edition_home).join(name)).unwrap(),
+                )
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+            let edition = cmd::parse(successor.get("edition.json").unwrap()).unwrap();
+            let revision = crate::source_revisions::revision(&successor).unwrap();
+            let archive =
+                super::pg_archive_package(&edition_source_path, &edition, &successor, &revision)
+                    .unwrap();
+            let manifest: serde_json::Value =
+                serde_json::from_slice(archive.members.get("manifest.json").unwrap()).unwrap();
+            assert_eq!(manifest["files"].as_object().unwrap().len(), 3);
+            assert!(
+                manifest["files"]
+                    .get("source-revision-history.json")
+                    .is_some()
+            );
+            for (name, raw) in &successor {
+                let digest = tos_foundation::Digest256::of_bytes(raw);
+                let row = &manifest["files"][name];
+                assert_eq!(row["sha256"], digest.to_prefixed());
+                assert_eq!(row["bytes"].as_u64(), Some(raw.len() as u64));
+                let blob = format!("{}.blob", digest.to_hex());
+                assert_eq!(row["blob"], blob);
+                assert_eq!(archive.members.get(&blob), Some(raw));
+            }
+
             let terminal: serde_json::Value =
                 serde_json::from_slice(&fs::read(&publication_path).unwrap()).unwrap();
             assert_eq!(terminal["phase"], "ready");

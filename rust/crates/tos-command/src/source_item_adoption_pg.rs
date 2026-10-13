@@ -522,7 +522,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             .ok_or(SourceCommandError::Conflict(
                 "PG Item recovery archive file table shape differs",
             ))?;
-    if file_rows.len() != 3 {
+    if !matches!(file_rows.len(), 2 | 3) {
         return Err(SourceCommandError::Conflict(
             "PG Item recovery archive file table count differs",
         ));
@@ -897,6 +897,17 @@ pub(crate) fn current_closure(
         "edition.human-forms.json",
         "source-revision-history.json",
     ] {
+        if name == "source-revision-history.json" {
+            match edition_children.iter().find(|(child, _)| child == name) {
+                Some((_, false)) => {}
+                Some((_, true)) => {
+                    return Err(SourceCommandError::Conflict(
+                        "PG Item Edition history is not a file",
+                    ));
+                }
+                None => continue,
+            }
+        }
         before.insert(
             name.to_owned(),
             read_current(
@@ -1472,6 +1483,7 @@ fn read_optional_selected_input<I: Copy + Eq>(
 /// journals are never consulted here.
 pub(crate) fn verify_current_topology<I: Copy + Eq>(
     closure: &mut PgItemCurrentClosure,
+    history: &serde_json::Value,
     input: &dyn SourceCutInputWithIdentity<I>,
     worker: &mut CandidateCutWorkerSchemaExecutor<I>,
     limits: ItemLimits,
@@ -1493,11 +1505,6 @@ pub(crate) fn verify_current_topology<I: Copy + Eq>(
             .get("edition.json")
             .ok_or(SourceCommandError::Conflict("PG Item Edition absent"))?,
     )?;
-    let history = cmd::parse(closure.before.get("source-revision-history.json").ok_or(
-        SourceCommandError::Conflict("PG Item Edition history absent"),
-    )?)?;
-    let history_json = super::serde_value(&history)?;
-
     for (claim_id, claim) in &closure.claims {
         let path = closure
             .claim_paths
@@ -1566,8 +1573,8 @@ pub(crate) fn verify_current_topology<I: Copy + Eq>(
                     limits.deadline,
                     cancelled,
                 )?)?;
-                super::initial_child(&receipt, "edition", &edition, &history_json)?;
-            } else if !history_json["receipts"].as_array().is_some_and(|rows| {
+                super::initial_child(&receipt, "edition", &edition, history)?;
+            } else if !history["receipts"].as_array().is_some_and(|rows| {
                 rows.iter().any(|row| {
                     row["publication"]["transaction_id"].as_str()
                         == Some(observation.transaction_id.as_str())
@@ -1900,6 +1907,13 @@ pub(crate) fn prepare_pg_item_adoption(
         .get("edition.json")
         .ok_or(SourceCommandError::Conflict("PG Item Edition absent"))?;
     let edition = cmd::parse(edition_raw)?;
+    let edition_history = tos_validation::native_compound::inspect_record_history(
+        &closure.before,
+        edition_raw,
+        limits.deadline,
+        cancelled,
+    )
+    .map_err(super::item_error)?;
     let revision = crate::source_revisions::revision(&closure.before)?;
     if context.base_revision != input.input_identity().bootstrap_revision {
         return Err(SourceCommandError::Conflict(
@@ -1942,7 +1956,14 @@ pub(crate) fn prepare_pg_item_adoption(
             "PG Item expected source or publication changed",
         ));
     }
-    verify_current_topology(&mut closure, input, worker, limits, cancelled)?;
+    verify_current_topology(
+        &mut closure,
+        &edition_history,
+        input,
+        worker,
+        limits,
+        cancelled,
+    )?;
     let catalog = closure.catalog;
     let grammar = unavailable_grammar(
         &owner,
@@ -2463,16 +2484,20 @@ pub(crate) fn archive_package(
     before: &BTreeMap<String, Vec<u8>>,
     expected_revision: &str,
 ) -> SourceCommandResult<WorkArchivePackage> {
+    let allowed_names = [
+        "edition.json",
+        "edition.human-forms.json",
+        "source-revision-history.json",
+    ];
     if cmd::text(edition, "record_type")? != "edition"
         || !edition_path.ends_with("/edition.json")
-        || before.len() != 3
-        || ![
-            "edition.json",
-            "edition.human-forms.json",
-            "source-revision-history.json",
-        ]
-        .iter()
-        .all(|name| before.contains_key(*name))
+        || !(2..=3).contains(&before.len())
+        || !["edition.json", "edition.human-forms.json"]
+            .iter()
+            .all(|name| before.contains_key(*name))
+        || before
+            .keys()
+            .any(|name| !allowed_names.contains(&name.as_str()))
         || before.values().any(|raw| raw.len() > 2_097_152)
         || before
             .values()

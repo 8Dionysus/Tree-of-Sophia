@@ -2110,6 +2110,25 @@ fn item_claim_owner_contribution(
             .ok_or(DurableError::Corrupt("Item compound receipt absent"))?,
     )
     .map_err(source_error)?;
+    let request_raw = current_child
+        .get("source-create-request.json")
+        .ok_or(DurableError::Corrupt("Item creation request absent"))?;
+    let request = cmd::parse(request_raw).map_err(source_error)?;
+    let mut canonical_request = cmd::canonical(&request).map_err(source_error)?;
+    canonical_request.push(b'\n');
+    if canonical_request.as_slice() != request_raw.as_slice()
+        || cmd::record_digest(&request)
+            .map_err(source_error)?
+            .to_prefixed()
+            != cmd::text(&receipt, "request_digest").map_err(source_error)?
+    {
+        return Err(DurableError::Conflict(
+            "retained Item creation request differs from its native receipt",
+        ));
+    }
+    let principal_id = cmd::text(&receipt, "principal_id")
+        .map_err(source_error)?
+        .to_owned();
     let transition_sha = cmd::text(&receipt, "parent_transition_sha256").map_err(source_error)?;
     let transition_archive = cmd::text(&receipt, "parent_archive_ref").map_err(source_error)?;
     let parent_before_ref = cmd::field(&receipt, "parent_before").map_err(source_error)?;
@@ -2174,7 +2193,7 @@ fn item_claim_owner_contribution(
             current_parent.clone()
         };
     let predecessor = history_core_package(&predecessor_archive, "edition.json", false)?;
-    let adopted_parent = history_core_package(&adopted_parent_archive, "edition.json", true)?;
+    let mut adopted_parent = history_core_package(&adopted_parent_archive, "edition.json", true)?;
     let adopted_parent_record = cmd::parse(
         adopted_parent
             .get("edition.json")
@@ -2192,9 +2211,20 @@ fn item_claim_owner_contribution(
             "retained adopted Edition package differs from transition",
         ));
     }
+    let parent_form_set = reconstruct_item_adoption_source_form_set(
+        &adopted_parent_record,
+        predecessor
+            .get("edition.human-forms.json")
+            .map(Vec::as_slice),
+        &request,
+        "forms",
+        &principal_id,
+        "name",
+    )?;
+    adopted_parent.insert("edition.human-forms.json".to_owned(), parent_form_set);
 
     let item_history_present = current_child.contains_key(source_revisions::HISTORY);
-    let adopted_child = if let Some(first_transition) = item_receipts.first() {
+    let mut adopted_child = if let Some(first_transition) = item_receipts.first() {
         let item_id = cmd::text(&item_record, "record_id").map_err(source_error)?;
         if item_receipts.iter().any(|transition| {
             transition
@@ -2228,20 +2258,15 @@ fn item_claim_owner_contribution(
                 "Item history does not begin at adopted Item v1",
             ));
         }
+        let initial_record_raw = initial
+            .get("item.json")
+            .ok_or(DurableError::Corrupt("Item v1 record absent from archive"))?;
         let mut package = current_child
             .iter()
             .filter(|(name, _)| name.as_str() != source_revisions::HISTORY)
             .map(|(name, raw)| (name.clone(), raw.clone()))
             .collect::<std::collections::BTreeMap<_, _>>();
-        for name in ["item.json", "item.human-forms.json"] {
-            package.insert(
-                name.to_owned(),
-                initial
-                    .get(name)
-                    .ok_or(DurableError::Corrupt("Item v1 archive core member absent"))?
-                    .clone(),
-            );
-        }
+        package.insert("item.json".to_owned(), initial_record_raw.clone());
         package
     } else {
         if item_history_present
@@ -2253,6 +2278,68 @@ fn item_claim_owner_contribution(
         }
         current_child.clone()
     };
+    let adopted_child_record = cmd::parse(
+        adopted_child
+            .get("item.json")
+            .ok_or(DurableError::Corrupt("adopted Item record absent"))?,
+    )
+    .map_err(source_error)?;
+    let request_record = cmd::field(&request, "record").map_err(source_error)?;
+    let adopted_child_record_raw = adopted_child
+        .get("item.json")
+        .ok_or(DurableError::Corrupt("adopted Item record absent"))?;
+    if !cmd::same(request_record, &adopted_child_record).map_err(source_error)?
+        || cmd::published(request_record)
+            .map_err(source_error)?
+            .as_slice()
+            != adopted_child_record_raw.as_slice()
+    {
+        return Err(DurableError::Conflict(
+            "retained Item creation request differs from adopted Item v1",
+        ));
+    }
+    adopted_child.insert(
+        "item.human-forms.json".to_owned(),
+        reconstruct_item_adoption_source_form_set(
+            request_record,
+            None,
+            &request,
+            "item_forms",
+            &principal_id,
+            "name",
+        )?,
+    );
+    let claim = cmd::field(&request, "claim").map_err(source_error)?;
+    let claim_id = cmd::text(claim, "claim_id").map_err(source_error)?;
+    let claim_stream = adopted_child
+        .get("source-claims.jsonl")
+        .ok_or(DurableError::Corrupt("Item Claim stream absent"))?;
+    let claim_lines = claim_stream
+        .split(|byte| *byte == b'\n' || *byte == b'\r')
+        .filter(|line| !line.iter().all(u8::is_ascii_whitespace))
+        .collect::<Vec<_>>();
+    let mut expected_claim_stream = cmd::canonical(claim).map_err(source_error)?;
+    expected_claim_stream.push(b'\n');
+    if claim_lines.len() != 1 || claim_stream.as_slice() != expected_claim_stream.as_slice() {
+        return Err(DurableError::Conflict(
+            "retained Item Claim stream differs from its creation request",
+        ));
+    }
+    let claim_forms_name = format!(
+        "source-claims.{}.human-forms.json",
+        Digest256::of_bytes(claim_id.as_bytes()).to_hex()
+    );
+    adopted_child.insert(
+        claim_forms_name,
+        reconstruct_item_adoption_source_form_set(
+            claim,
+            None,
+            &request,
+            "claim_forms",
+            &principal_id,
+            "statement",
+        )?,
+    );
     if adopted_child.len() != 15
         || adopted_child
             .keys()
@@ -2556,6 +2643,82 @@ fn history_core_package(
                 .ok_or(DurableError::Corrupt("record history core member absent"))
         })
         .collect()
+}
+
+/// Rebuild the exact initial form-set bytes through the shared maintained
+/// source-copy kernel. The receipt-bound creation request and predecessor
+/// forms are the original inputs; later form-set growth can make a subsequent
+/// record-revision archive a different historical state.
+fn reconstruct_item_adoption_source_form_set(
+    source: &tos_foundation::JsonValue,
+    previous_forms_raw: Option<&[u8]>,
+    request: &tos_foundation::JsonValue,
+    selection_key: &str,
+    principal: &str,
+    required_role: &str,
+) -> DurableResult<Vec<u8>> {
+    let previous = previous_forms_raw
+        .map(|raw| cmd::parse(raw).map_err(source_error))
+        .transpose()?;
+    let selections = cmd::array(request, selection_key).map_err(source_error)?;
+    if let Some(previous) = previous.as_ref() {
+        for form in cmd::array(previous, "forms").map_err(source_error)? {
+            let form_id = form
+                .object_get("form_id")
+                .and_then(tos_foundation::JsonValue::as_str)
+                .ok_or(DurableError::Corrupt("prior Item source-copy form id"))?;
+            let source_copy = form
+                .object_get("content")
+                .and_then(|content| content.object_get("kind"))
+                .and_then(tos_foundation::JsonValue::as_str)
+                == Some("source-copy");
+            if !source_copy
+                || !selections.iter().any(|selection| {
+                    selection
+                        .object_get("form_id")
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        == Some(form_id)
+                })
+            {
+                return Err(DurableError::Conflict(
+                    "Item adoption does not explicitly preserve prior source-copy forms",
+                ));
+            }
+        }
+    }
+    let subject = source_forms::metadata_subject(source).map_err(source_error)?;
+    let mut changes = Vec::with_capacity(selections.len());
+    for selection in selections {
+        let form_id = cmd::text(selection, "form_id").map_err(source_error)?;
+        let field_id = cmd::text(selection, "field_id").map_err(source_error)?;
+        changes.push(
+            source_forms::prepare_form_change(
+                source,
+                previous.as_ref(),
+                principal,
+                form_id,
+                field_id,
+            )
+            .map_err(source_error)?,
+        );
+    }
+    let set = source_forms::apply_form_changes(previous.as_ref(), &subject, &changes)
+        .map_err(source_error)?;
+    let views = source_forms::materialize_source_forms(source, &set).map_err(source_error)?;
+    if !views.iter().all(|view| {
+        view.object_get("state")
+            .and_then(tos_foundation::JsonValue::as_str)
+            == Some("ready")
+    }) || !views.iter().any(|view| {
+        view.object_get("role")
+            .and_then(tos_foundation::JsonValue::as_str)
+            == Some(required_role)
+    }) {
+        return Err(DurableError::Conflict(
+            "Item adoption source-copy form reconstruction is not ready",
+        ));
+    }
+    cmd::published(&set).map_err(source_error)
 }
 
 fn source_item_adoption_role(name: &str) -> Option<&'static str> {
@@ -14213,6 +14376,21 @@ mod item_claim_owner_current_history_tests {
         }
     }
 
+    fn assert_member(rows: &tos_foundation::JsonValue, path: &str, sha256: &str, bytes: u64) {
+        let row = rows
+            .as_array()
+            .expect("member rows")
+            .iter()
+            .find(|row| {
+                row.object_get("ref")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some(path)
+            })
+            .unwrap_or_else(|| panic!("member {path} is retained"));
+        assert_eq!(cmd::text(row, "sha256").unwrap(), sha256);
+        assert_eq!(cmd::integer(row, "bytes").unwrap(), bytes);
+    }
+
     #[test]
     fn current_item_owner_reconstructs_adoption_and_later_record_revisions() {
         let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
@@ -14253,13 +14431,40 @@ mod item_claim_owner_current_history_tests {
             15,
             "the original V1 adoption package remains unchanged"
         );
+        let adoption_lineage = cmd::field(adoption, "lineage").unwrap();
+        assert_member(
+            cmd::field(adoption_lineage, "predecessor_members").unwrap(),
+            &format!("{EDITION_HOME}/edition.human-forms.json"),
+            "sha256:9ffcd7d4faa984f379fbb336c688b9aa96c5efb271d4fdff775154c78efb816e",
+            2118,
+        );
+        assert_member(
+            cmd::field(adoption_lineage, "successor_members").unwrap(),
+            &format!("{EDITION_HOME}/edition.human-forms.json"),
+            "sha256:b9ab36492d91c45ad228010fca51a24361a08dbee9903aaff29af7209f377005",
+            4146,
+        );
+        let direct_members = cmd::field(adoption, "direct_members").unwrap();
+        assert_member(
+            direct_members,
+            &format!("{ITEM_HOME}/item.human-forms.json"),
+            "sha256:336c8f9994175e57528ec4dd8adbbb4d21c73f7418d49b29b55dc4d8c5b9b757",
+            2100,
+        );
+        assert_member(
+            direct_members,
+            &format!(
+                "{ITEM_HOME}/source-claims.67a935708838478f096052106d632fb13c186708024d21794349744041d3f9ad.human-forms.json"
+            ),
+            "sha256:6169f0e3f9b7234f830ee46ea8a57935f085cbea76c057b193cec4a30e0a0d6a",
+            1486,
+        );
 
         let current = cmd::field(&owner, "current").unwrap();
         let edition = cmd::field(current, "edition").unwrap();
         let item = cmd::field(current, "item").unwrap();
         let edition_chain = cmd::array(edition, "history_chain").unwrap();
         let item_chain = cmd::array(item, "history_chain").unwrap();
-        let adoption_lineage = cmd::field(adoption, "lineage").unwrap();
         let adoption_archive = cmd::text(adoption_lineage, "parent_archive_ref").unwrap();
         let adoption_receipt_sha = cmd::text(adoption_lineage, "parent_transition_sha256").unwrap();
         let adoption_rows = edition_chain
