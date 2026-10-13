@@ -2325,7 +2325,7 @@ fn validate_item_claim_owner(
         || cmd::text(owner, "package_home").map_err(source_error)? != home
         || cmd::text(owner, "source_path").map_err(source_error)? != subject
         || owner_digest(owner, "stream_sha256")? != stream_digest
-        || !home.starts_with("ToS/source-witnesses/items/")
+        || !is_managed_item_home(home)
     {
         return Err(DurableError::Corrupt("Item Claim owner source binding"));
     }
@@ -2494,6 +2494,440 @@ fn validate_item_claim_owner(
     validate_owner_closure(owner)
 }
 
+fn is_managed_item_home(home: &str) -> bool {
+    if RelativePath::parse(home).is_err() {
+        return false;
+    }
+    let parts = home.split('/').collect::<Vec<_>>();
+    if parts.len() == 4
+        && parts[0] == "ToS"
+        && parts[1] == "source-witnesses"
+        && parts[2] == "items"
+        && !parts[3].is_empty()
+    {
+        return true;
+    }
+    parts.len() >= 8
+        && parts[0] == "ToS"
+        && parts[1] == "source-witnesses"
+        && (2..parts.len().saturating_sub(3)).any(|index| {
+            parts[index] == "editions"
+                && !parts[index + 1].is_empty()
+                && parts[index + 2] == "items"
+                && index + 3 == parts.len() - 1
+                && !parts[index + 3].is_empty()
+        })
+}
+
+fn validate_item_claim_owner_v2(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "package_home",
+            "source_path",
+            "adoption_v1",
+            "adoption_item_source",
+            "current",
+            "closure_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let home = subject
+        .strip_suffix("/source-claims.jsonl")
+        .ok_or(DurableError::Corrupt("Item Claim current source path"))?;
+    let current_stream_digest = Digest256::from_hex(raw_sha256)
+        .map_err(|_| DurableError::Corrupt("Item Claim current stream digest"))?;
+    if cmd::text(owner, "schema_version").map_err(source_error)?
+        != "tos_managed_item_adoption_claim_owner_inventory_v2"
+        || cmd::text(owner, "package_home").map_err(source_error)? != home
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || !is_managed_item_home(home)
+    {
+        return Err(DurableError::Corrupt("Item Claim v2 source binding"));
+    }
+    let adoption = cmd::field(owner, "adoption_v1").map_err(source_error)?;
+    let adoption_stream_digest = owner_digest(adoption, "stream_sha256")?.to_hex();
+    validate_item_claim_owner(adoption, subject, &adoption_stream_digest)?;
+    let current = cmd::field(owner, "current").map_err(source_error)?;
+    let adoption_item_source = cmd::field(owner, "adoption_item_source").map_err(source_error)?;
+    validate_item_record_ref(adoption_item_source)?;
+    cmd::exact_keys(current, &["edition", "item"]).map_err(source_error)?;
+    let edition = cmd::field(current, "edition").map_err(source_error)?;
+    let item = cmd::field(current, "item").map_err(source_error)?;
+    cmd::exact_keys(
+        edition,
+        &[
+            "source_path",
+            "source",
+            "history_ref",
+            "history_sha256",
+            "history_head_source",
+            "history_head_sha256",
+            "history_chain",
+            "direct_members",
+        ],
+    )
+    .map_err(source_error)?;
+    cmd::exact_keys(
+        item,
+        &[
+            "source_path",
+            "source",
+            "claim_id",
+            "stream_sha256",
+            "history_ref",
+            "history_sha256",
+            "history_head_source",
+            "history_head_sha256",
+            "history_chain",
+            "direct_members",
+        ],
+    )
+    .map_err(source_error)?;
+
+    let adoption_claims = cmd::field(adoption, "claims")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Item Claim adoption rows"))?;
+    let adoption_claim = adoption_claims
+        .first()
+        .and_then(|row| row.object_get("claim"))
+        .ok_or(DurableError::Corrupt("Item Claim adoption claim"))?;
+    let item_id = cmd::text(adoption_claim, "object").map_err(source_error)?;
+    let edition_id = cmd::text(adoption_claim, "subject_ref").map_err(source_error)?;
+    if cmd::text(adoption_item_source, "id").map_err(source_error)? != item_id
+        || cmd::integer(adoption_item_source, "version").map_err(source_error)? != 1
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim adoption Item v1 reference",
+        ));
+    }
+    let adoption_lineage = cmd::field(adoption, "lineage").map_err(source_error)?;
+    let parent_after = cmd::field(adoption_lineage, "parent_after").map_err(source_error)?;
+    let expected_edition_home = cmd::text(
+        cmd::field(adoption_lineage, "scope").map_err(source_error)?,
+        "edition_source_path",
+    )
+    .map_err(source_error)?
+    .strip_suffix("/edition.json")
+    .ok_or(DurableError::Corrupt("Item Claim adoption Edition path"))?;
+    let edition_path = format!("{expected_edition_home}/edition.json");
+    let item_path = format!("{home}/item.json");
+    let item_home_prefix = format!("{expected_edition_home}/items/");
+    if home
+        .strip_prefix(&item_home_prefix)
+        .is_none_or(|slug| slug.is_empty() || slug.contains('/'))
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim current Edition/Item path relation",
+        ));
+    }
+    let edition_source = cmd::field(edition, "source").map_err(source_error)?;
+    let item_source = cmd::field(item, "source").map_err(source_error)?;
+    let edition_history_head = cmd::field(edition, "history_head_source").map_err(source_error)?;
+    let item_history_head = cmd::field(item, "history_head_source").map_err(source_error)?;
+    validate_item_record_ref(edition_source)?;
+    validate_item_record_ref(item_source)?;
+    validate_item_record_ref(edition_history_head)?;
+    if cmd::text(edition, "source_path").map_err(source_error)? != edition_path
+        || cmd::text(item, "source_path").map_err(source_error)? != item_path
+        || cmd::text(edition_source, "id").map_err(source_error)? != edition_id
+        || cmd::text(item_source, "id").map_err(source_error)? != item_id
+        || cmd::integer(item_source, "version").map_err(source_error)? == 0
+        || !cmd::same(edition_source, edition_history_head).map_err(source_error)?
+        || cmd::integer(edition_source, "version").map_err(source_error)?
+            < cmd::integer(parent_after, "version").map_err(source_error)?
+        || cmd::text(edition, "history_ref").map_err(source_error)?
+            != format!("{expected_edition_home}/source-revision-history.json")
+        || owner_digest(item, "stream_sha256")? != current_stream_digest
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim current record/history binding",
+        ));
+    }
+    let edition_history_digest = owner_digest(edition, "history_sha256")?;
+    let edition_head_digest = owner_digest(edition, "history_head_sha256")?;
+    validate_owner_revision_chain(
+        cmd::field(edition, "history_chain").map_err(source_error)?,
+        cmd::text(edition_source, "id").map_err(source_error)?,
+        edition_source,
+        edition_head_digest,
+        true,
+    )?;
+    let item_chain = cmd::field(item, "history_chain").map_err(source_error)?;
+    let item_chain_rows = item_chain
+        .as_array()
+        .ok_or(DurableError::Corrupt("Item Claim Item revision chain"))?;
+    let item_history_ref = cmd::field(item, "history_ref").map_err(source_error)?;
+    let item_history_sha = cmd::field(item, "history_sha256").map_err(source_error)?;
+    let item_head_source = cmd::field(item, "history_head_source").map_err(source_error)?;
+    let item_head_sha = cmd::field(item, "history_head_sha256").map_err(source_error)?;
+    if item_chain_rows.is_empty() {
+        if item_history_ref != &tos_foundation::JsonValue::Null
+            || item_history_sha != &tos_foundation::JsonValue::Null
+            || item_head_source != &tos_foundation::JsonValue::Null
+            || item_head_sha != &tos_foundation::JsonValue::Null
+            || cmd::integer(item_source, "version").map_err(source_error)? != 1
+            || !cmd::same(item_source, adoption_item_source).map_err(source_error)?
+        {
+            return Err(DurableError::Corrupt(
+                "unrevised Item history binding differs",
+            ));
+        }
+    } else {
+        if cmd::text(item, "history_ref").map_err(source_error)?
+            != format!("{home}/source-revision-history.json")
+            || !cmd::same(item_source, item_history_head).map_err(source_error)?
+            || !item_chain_rows.first().is_some_and(|row| {
+                row.object_get("previous_source")
+                    .is_some_and(|source| cmd::same(source, adoption_item_source).unwrap_or(false))
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "Item revision history digest differs",
+            ));
+        }
+        validate_item_record_ref(item_head_source)?;
+        validate_owner_revision_chain(
+            item_chain,
+            cmd::text(item_source, "id").map_err(source_error)?,
+            item_source,
+            owner_digest(item, "history_head_sha256")?,
+            false,
+        )?;
+    }
+    let adoption_lineage = cmd::field(adoption, "lineage").map_err(source_error)?;
+    let adoption_parent_before =
+        cmd::field(adoption_lineage, "parent_before").map_err(source_error)?;
+    let adoption_parent_after =
+        cmd::field(adoption_lineage, "parent_after").map_err(source_error)?;
+    let adoption_transition_sha = owner_digest(adoption_lineage, "parent_transition_sha256")?;
+    let adoption_transition_text = adoption_transition_sha.to_prefixed();
+    let adoption_archive =
+        cmd::text(adoption_lineage, "parent_archive_ref").map_err(source_error)?;
+    let matching_adoptions = cmd::field(edition, "history_chain")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("Edition Claim revision chain"))?
+        .iter()
+        .filter(|row| {
+            row.object_get("operation")
+                .and_then(tos_foundation::JsonValue::as_str)
+                == Some("item.adopt")
+                && row
+                    .object_get("archive_path")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some(adoption_archive)
+                && row
+                    .object_get("receipt_sha256")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some(adoption_transition_text.as_str())
+                && row.object_get("previous_source").is_some_and(|source| {
+                    cmd::same(source, adoption_parent_before).unwrap_or(false)
+                })
+                && row
+                    .object_get("source")
+                    .is_some_and(|source| cmd::same(source, adoption_parent_after).unwrap_or(false))
+        })
+        .count();
+    if matching_adoptions != 1 {
+        return Err(DurableError::Corrupt(
+            "current Edition history does not retain exact Item adoption",
+        ));
+    }
+    let edition_members = validate_owner_member_rows(
+        cmd::field(edition, "direct_members").map_err(source_error)?,
+        &format!("{expected_edition_home}/"),
+        &[
+            "edition-record",
+            "edition-form-set",
+            "revision-history",
+            "compound-receipt",
+            "claim-stream",
+            "claim-form-set",
+            "creation-request",
+            "creation-environment",
+            "creation-event",
+        ],
+    )?;
+    let item_members = validate_owner_member_rows(
+        cmd::field(item, "direct_members").map_err(source_error)?,
+        &format!("{home}/"),
+        &[
+            "item-record",
+            "item-form-set",
+            "claim-stream",
+            "creation-request",
+            "creation-environment",
+            "creation-event",
+            "compound-receipt",
+            "file-manifest",
+            "rights-record",
+            "resource-inventory",
+            "fixity",
+            "forensic-report",
+            "provenance",
+            "deposit-receipt",
+            "claim-form-set",
+            "revision-history",
+        ],
+    )?;
+    let claim_id = cmd::text(item, "claim_id").map_err(source_error)?;
+    let form_path = format!(
+        "{home}/source-claims.{}.human-forms.json",
+        Digest256::of_bytes(claim_id.as_bytes()).to_hex()
+    );
+    let mut expected_item_names = [
+        "item.json",
+        "item.human-forms.json",
+        "source-claims.jsonl",
+        "source-create-request.json",
+        "source-create-environment.json",
+        "source-create-provenance.jsonl",
+        "edition-item-receipt.json",
+        "item.manifest.json",
+        "rights.json",
+        "resource-inventory.json",
+        "fixity.sha256",
+        "forensic-report.md",
+        "provenance.jsonl",
+        "item-deposit-receipt.json",
+    ]
+    .into_iter()
+    .map(|name| format!("{home}/{name}"))
+    .chain(std::iter::once(form_path.clone()))
+    .collect::<BTreeSet<_>>();
+    if !item_chain_rows.is_empty() {
+        expected_item_names.insert(format!("{home}/source-revision-history.json"));
+    }
+    let edition_form_paths = edition_members
+        .keys()
+        .filter(|path| {
+            path.rsplit('/').next().is_some_and(|name| {
+                name.starts_with("source-claims.") && name.ends_with(".human-forms.json")
+            })
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    if edition_form_paths.len() != 1 {
+        return Err(DurableError::Corrupt(
+            "current Edition Claim form-set count differs",
+        ));
+    }
+    let expected_edition_names = [
+        "edition.json",
+        "edition.human-forms.json",
+        "source-revision-history.json",
+        "expression-edition-receipt.json",
+        "source-claims.jsonl",
+        "source-create-environment.json",
+        "source-create-provenance.jsonl",
+        "source-create-request.json",
+    ]
+    .into_iter()
+    .map(|name| format!("{expected_edition_home}/{name}"))
+    .chain(edition_form_paths.iter().cloned())
+    .collect::<BTreeSet<_>>();
+    let expected_roles = [
+        ("item.json", "item-record"),
+        ("item.human-forms.json", "item-form-set"),
+        ("source-claims.jsonl", "claim-stream"),
+        ("source-create-request.json", "creation-request"),
+        ("source-create-environment.json", "creation-environment"),
+        ("source-create-provenance.jsonl", "creation-event"),
+        ("edition-item-receipt.json", "compound-receipt"),
+        ("item.manifest.json", "file-manifest"),
+        ("rights.json", "rights-record"),
+        ("resource-inventory.json", "resource-inventory"),
+        ("fixity.sha256", "fixity"),
+        ("forensic-report.md", "forensic-report"),
+        ("provenance.jsonl", "provenance"),
+        ("item-deposit-receipt.json", "deposit-receipt"),
+    ];
+    if edition_members.len() != 9
+        || edition_members.keys().cloned().collect::<BTreeSet<_>>() != expected_edition_names
+        || item_members.keys().cloned().collect::<BTreeSet<_>>() != expected_item_names
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim current package membership differs",
+        ));
+    }
+    for (name, role) in expected_roles {
+        if item_members
+            .get(&format!("{home}/{name}"))
+            .is_none_or(|(actual, _, _)| actual != role)
+        {
+            return Err(DurableError::Corrupt(
+                "Item Claim current member role differs",
+            ));
+        }
+    }
+    if item_members
+        .get(&form_path)
+        .is_none_or(|(actual, _, _)| actual != "claim-form-set")
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim current form role differs",
+        ));
+    }
+    let edition_member_roles = [
+        ("edition.json", "edition-record"),
+        ("edition.human-forms.json", "edition-form-set"),
+        ("source-revision-history.json", "revision-history"),
+        ("expression-edition-receipt.json", "compound-receipt"),
+        ("source-claims.jsonl", "claim-stream"),
+        ("source-create-environment.json", "creation-environment"),
+        ("source-create-provenance.jsonl", "creation-event"),
+        ("source-create-request.json", "creation-request"),
+    ];
+    for (name, role) in edition_member_roles {
+        if edition_members
+            .get(&format!("{expected_edition_home}/{name}"))
+            .is_none_or(|(actual, _, _)| actual != role)
+        {
+            return Err(DurableError::Corrupt(
+                "Item Claim current Edition role differs",
+            ));
+        }
+    }
+    if edition_members
+        .get(&edition_form_paths[0])
+        .is_none_or(|(actual, _, _)| actual != "claim-form-set")
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim current Edition form role differs",
+        ));
+    }
+    let item_history_member = item_members.get(&format!("{home}/source-revision-history.json"));
+    let item_history_matches = if item_chain_rows.is_empty() {
+        item_history_member.is_none()
+    } else {
+        item_history_member.is_some_and(|(_, _, digest)| {
+            owner_digest(item, "history_sha256").is_ok_and(|expected| *digest == expected)
+        })
+    };
+    if item_members
+        .get(subject)
+        .is_none_or(|(role, _, digest)| role != "claim-stream" || *digest != current_stream_digest)
+        || !item_history_matches
+        || edition_members
+            .get(&format!(
+                "{expected_edition_home}/source-revision-history.json"
+            ))
+            .is_none_or(|(_, _, digest)| *digest != edition_history_digest)
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim current fixity binding differs",
+        ));
+    }
+    validate_owner_closure(owner)
+}
+
 fn validate_owner_member_refs(
     members: &tos_foundation::JsonValue,
     expected_prefix: &str,
@@ -2536,6 +2970,82 @@ fn validate_item_record_ref(value: &tos_foundation::JsonValue) -> DurableResult<
         return Err(DurableError::Corrupt("Item lineage record reference"));
     }
     let _ = owner_digest(value, "digest")?;
+    Ok(())
+}
+
+fn validate_owner_revision_chain(
+    value: &tos_foundation::JsonValue,
+    record_id: &str,
+    current_source: &tos_foundation::JsonValue,
+    head_digest: Digest256,
+    edition_history: bool,
+) -> DurableResult<()> {
+    let rows = value
+        .as_array()
+        .ok_or(DurableError::Corrupt("Item Claim revision chain rows"))?;
+    if rows.is_empty() {
+        return Err(DurableError::Corrupt(
+            "Item Claim required revision chain is empty",
+        ));
+    }
+    let mut previous_source: Option<&tos_foundation::JsonValue> = None;
+    let mut last_source: Option<&tos_foundation::JsonValue> = None;
+    let mut last_digest = None;
+    for row in rows {
+        cmd::exact_keys(
+            row,
+            &[
+                "operation",
+                "archive_path",
+                "receipt_sha256",
+                "previous_source",
+                "source",
+            ],
+        )
+        .map_err(source_error)?;
+        let operation = cmd::text(row, "operation").map_err(source_error)?;
+        if operation != "record.revise" && !(edition_history && operation == "item.adopt") {
+            return Err(DurableError::Corrupt("Item Claim revision chain operation"));
+        }
+        let archive_ref = cmd::text(row, "archive_path").map_err(source_error)?;
+        let archive_path = RelativePath::parse(archive_ref)
+            .map_err(|_| DurableError::Corrupt("Item Claim revision archive path"))?;
+        if !archive_path
+            .as_str()
+            .starts_with("ToS/source-witnesses/.record-revisions/")
+        {
+            return Err(DurableError::Corrupt(
+                "Item Claim revision archive namespace",
+            ));
+        }
+        let digest = owner_digest(row, "receipt_sha256")?;
+        let before = cmd::field(row, "previous_source").map_err(source_error)?;
+        let after = cmd::field(row, "source").map_err(source_error)?;
+        validate_item_record_ref(before)?;
+        validate_item_record_ref(after)?;
+        let before_version = cmd::integer(before, "version").map_err(source_error)?;
+        let after_version = cmd::integer(after, "version").map_err(source_error)?;
+        let expected_after_version = before_version.checked_add(1);
+        if cmd::text(before, "id").map_err(source_error)? != record_id
+            || cmd::text(after, "id").map_err(source_error)? != record_id
+            || expected_after_version != Some(after_version)
+            || previous_source.is_some_and(|previous| !cmd::same(previous, before).unwrap_or(false))
+        {
+            return Err(DurableError::Corrupt(
+                "Item Claim revision chain continuity",
+            ));
+        }
+        previous_source = Some(after);
+        last_source = Some(after);
+        last_digest = Some(digest);
+    }
+    if !last_source.is_some_and(|source| cmd::same(source, current_source).unwrap_or(false))
+        || last_digest != Some(head_digest)
+    {
+        return Err(DurableError::Corrupt(
+            "Item Claim revision chain tip differs",
+        ));
+    }
     Ok(())
 }
 
@@ -3139,6 +3649,9 @@ fn validate_claim_owner(
         }
         "tos_managed_item_adoption_claim_owner_inventory_v1" => {
             return validate_item_claim_owner(owner, subject, raw_sha256);
+        }
+        "tos_managed_item_adoption_claim_owner_inventory_v2" => {
+            return validate_item_claim_owner_v2(owner, subject, raw_sha256);
         }
         "tos_managed_collection_membership_claim_owner_inventory_v1" => {
             return validate_growth_claim_owner(
@@ -4423,5 +4936,21 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn managed_item_home_paths_are_direct_and_relative() {
+        assert!(is_managed_item_home("ToS/source-witnesses/items/example"));
+        assert!(is_managed_item_home(
+            "ToS/source-witnesses/works/tree-of-sophia/expressions/example/editions/edition-1/items/item-1"
+        ));
+        for path in [
+            "ToS/source-witnesses/items/example/extra",
+            "ToS/source-witnesses/works/example/items/item-1",
+            "ToS/source-witnesses/works/example/editions/edition-1/items/item-1/extra",
+            "ToS/source-witnesses/works/example/editions/../items/item-1",
+        ] {
+            assert!(!is_managed_item_home(path), "accepted {path}");
+        }
     }
 }

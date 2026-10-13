@@ -1626,7 +1626,9 @@ fn render_current_mixed_projections(
             let context = claim_context
                 .as_ref()
                 .ok_or(DurableError::Corrupt("streamed Item Claim context absent"))?;
-            let contribution = super::item_claim_owner_contribution(context, location)?;
+            let owner =
+                super::item_claim_owner_contribution(context, location, deadline, cancelled)?;
+            let contribution = super::item_claim_current_inventory_contribution(owner, profile)?;
             source_inventory_contribution_projection(location, &file.raw, &contribution)?
         } else if is_global_claim_owner {
             if claim_source_profiles.is_none() {

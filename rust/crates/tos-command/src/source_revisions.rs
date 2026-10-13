@@ -1982,6 +1982,51 @@ fn verify_history(
     Ok(verify_history_accounted(ctx, config, files, record, None, None, None)?.0)
 }
 
+/// Verify the complete retained archive chain for a current owner projection.
+/// Typed compound history is validated by the existing native history owner;
+/// this route then checks every predecessor archive through the same bounded
+/// archive reader used by ordinary record history.
+pub(crate) fn verify_owner_history_archives(
+    ctx: &impl RecordRead,
+    config: &JsonValue,
+    files: &Package,
+    record: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    const OWNER_HISTORY_LIMIT_BYTES: u64 = 33_554_432;
+    let selected_bytes = files
+        .values()
+        .try_fold(0u64, |total, raw| total.checked_add(raw.len() as u64))
+        .ok_or(SourceCommandError::Unsupported(
+            "owner history selected byte count overflow",
+        ))?;
+    let remaining_read_bytes = OWNER_HISTORY_LIMIT_BYTES
+        .checked_sub(selected_bytes)
+        .ok_or(SourceCommandError::Unsupported(
+            "owner history selected package budget",
+        ))?;
+    let selected_state_bytes = usize::try_from(selected_bytes).map_err(|_| {
+        SourceCommandError::Unsupported("owner history selected state byte count overflow")
+    })?;
+    let remaining_state_bytes = usize::try_from(OWNER_HISTORY_LIMIT_BYTES)
+        .map_err(|_| SourceCommandError::Unsupported("owner history state budget"))?
+        .checked_sub(selected_state_bytes)
+        .ok_or(SourceCommandError::Unsupported(
+            "owner history selected state budget",
+        ))?;
+    Ok(verify_history_accounted(
+        ctx,
+        config,
+        files,
+        record,
+        Some(remaining_read_bytes),
+        Some(remaining_state_bytes),
+        Some((deadline, cancelled)),
+    )?
+    .0)
+}
+
 fn verify_history_accounted(
     ctx: &impl RecordRead,
     config: &JsonValue,
@@ -1991,9 +2036,9 @@ fn verify_history_accounted(
     max_state_bytes: Option<usize>,
     operation: Option<(Instant, &AtomicBool)>,
 ) -> SourceCommandResult<(JsonValue, u64)> {
-    let value = if ctx.writer().is_none()
-        && cmd::text(record, "schema_version")? == "tos_corpus_record_v1"
-    {
+    let typed_owner_history =
+        operation.is_some() && cmd::text(record, "schema_version")? == "tos_corpus_record_v1";
+    let value = if typed_owner_history {
         let (deadline, cancelled) = operation.ok_or(SourceCommandError::Invalid(
             "readonly history operation missing",
         ))?;
@@ -2146,10 +2191,33 @@ fn verify_history_accounted(
                 .get(base)
                 .ok_or(SourceCommandError::Conflict("archived source missing"))?,
         )?;
-        if ctx.writer().is_none() {
+        if ctx.writer().is_none() && !typed_owner_history {
             continue;
         }
-        let retained = history(&archived, &previous)?;
+        let retained = if typed_owner_history {
+            let (deadline, cancelled) = operation.ok_or(SourceCommandError::Invalid(
+                "typed owner history operation missing",
+            ))?;
+            let previous_raw = serde_json::to_vec(&previous)
+                .map_err(|_| SourceCommandError::Invalid("history record conversion"))?;
+            let observed = tos_validation::native_compound::inspect_record_history(
+                &archived,
+                &previous_raw,
+                deadline,
+                cancelled,
+            )
+            .map_err(|reason| SourceCommandError::SchemaExecution {
+                path: ctx.schema_source_path().unwrap_or_default(),
+                root: "retained predecessor source history".into(),
+                reason,
+            })?;
+            cmd::parse(
+                &serde_json::to_vec(&observed)
+                    .map_err(|_| SourceCommandError::Invalid("history conversion"))?,
+            )?
+        } else {
+            history(&archived, &previous)?
+        };
         let prefix = cmd::array(&retained, "receipts")?;
         let mut same_prefix = prefix.len() == index;
         if same_prefix {

@@ -1809,7 +1809,13 @@ fn inventory_projections_for(
                 )
             })?
         } else if is_item_claim_stream(location) {
-            item_claim_owner_contribution(ctx, location)?
+            let owner = item_claim_owner_contribution(ctx, location, deadline, cancelled)?;
+            let mut contribution = source_claims::agent_inventory_contribution(
+                ctx, file, &inventory, &grouped, worker, deadline, cancelled,
+            )
+            .map_err(source_error)?;
+            cmd::set(&mut contribution, "claim_owner", owner).map_err(source_error)?;
+            contribution
         } else {
             source_claims::agent_inventory_contribution(
                 ctx, file, &inventory, &grouped, worker, deadline, cancelled,
@@ -1842,21 +1848,22 @@ fn inventory_projections_for(
 
 fn is_item_claim_stream(path: &str) -> bool {
     let stream_suffix = format!("/{}", source_claims::CLAIM_STREAM);
-    if !path.ends_with(&stream_suffix) {
+    if !path.ends_with(&stream_suffix) || RelativePath::parse(path).is_err() {
         return false;
-    }
-    // Keep the established source-witness Item route, and recognize Item
-    // Claims stored directly under a selected Edition's `items/<slug>` home.
-    if path.starts_with("ToS/source-witnesses/items/") {
-        return true;
     }
     let Some(relative) = path.strip_prefix("ToS/source-witnesses/") else {
         return false;
     };
-    if RelativePath::parse(path).is_err() {
-        return false;
-    }
     let components = relative.split('/').collect::<Vec<_>>();
+    // Keep the established direct Item route, whose contract is exactly one
+    // Item home under `items/<slug>`.
+    if components.len() == 3
+        && components[0] == "items"
+        && !components[1].is_empty()
+        && components[2] == source_claims::CLAIM_STREAM
+    {
+        return true;
+    }
     if components.len() < 6 || components.last().copied() != Some(source_claims::CLAIM_STREAM) {
         return false;
     }
@@ -1927,7 +1934,7 @@ fn selected_direct_member_map(
 /// Edition/Item package and the retained predecessor archive. This uses the
 /// same owner verifier as proposal preparation; the mixed projection is not
 /// reconstructed from path naming alone.
-fn item_claim_owner_contribution(
+fn item_claim_transaction_owner_contribution(
     ctx: &CommandContext,
     stream_path: &str,
 ) -> DurableResult<tos_foundation::JsonValue> {
@@ -2012,6 +2019,621 @@ fn item_claim_owner_contribution(
         &predecessor,
     )
     .map_err(source_error)
+}
+
+/// Reconstruct the immutable adoption transaction from the retained record
+/// archives, then bind it separately from the current Edition and Item tips.
+/// The historical V1 owner remains strict about its original 3+15 package.
+fn item_claim_owner_contribution(
+    ctx: &CommandContext,
+    stream_path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<tos_foundation::JsonValue> {
+    use tos_validation::native_compound::EditionItemBytes;
+
+    if !is_item_claim_stream(stream_path) {
+        return Err(DurableError::Refused(
+            "Item Claim owner is outside the maintained Item namespace",
+        ));
+    }
+    let item_home = stream_path
+        .strip_suffix(&format!("/{}", source_claims::CLAIM_STREAM))
+        .ok_or(DurableError::Corrupt("Item Claim stream path"))?;
+    let (edition_home, _) = item_home
+        .rsplit_once("/items/")
+        .ok_or(DurableError::Corrupt("Item parent Edition home"))?;
+    if !edition_home.starts_with("ToS/source-witnesses/") {
+        return Err(DurableError::Corrupt("Item parent Edition namespace"));
+    }
+
+    let current_parent = selected_direct_member_map(ctx, edition_home)?;
+    let current_child = selected_direct_member_map(ctx, item_home)?;
+    let edition_path = format!("{edition_home}/edition.json");
+    let item_path = format!("{item_home}/item.json");
+    let edition_record = cmd::parse(
+        current_parent
+            .get("edition.json")
+            .ok_or(DurableError::Corrupt("current Edition record absent"))?,
+    )
+    .map_err(source_error)?;
+    let item_record = cmd::parse(
+        current_child
+            .get("item.json")
+            .ok_or(DurableError::Corrupt("current Item record absent"))?,
+    )
+    .map_err(source_error)?;
+    let edition_archive_config = cmd::object(vec![
+        (
+            "record_id",
+            cmd::field(&edition_record, "record_id")
+                .map_err(source_error)?
+                .clone(),
+        ),
+        ("source_path", cmd::string(&edition_path)),
+    ]);
+    let item_archive_config = cmd::object(vec![
+        (
+            "record_id",
+            cmd::field(&item_record, "record_id")
+                .map_err(source_error)?
+                .clone(),
+        ),
+        ("source_path", cmd::string(&item_path)),
+    ]);
+
+    // This checks current history semantics, every archive's bytes and
+    // manifest, and each archived predecessor's exact history prefix.
+    let edition_history = source_revisions::verify_owner_history_archives(
+        ctx,
+        &edition_archive_config,
+        &current_parent,
+        &edition_record,
+        deadline,
+        cancelled,
+    )
+    .map_err(source_error)?;
+    let item_history = source_revisions::verify_owner_history_archives(
+        ctx,
+        &item_archive_config,
+        &current_child,
+        &item_record,
+        deadline,
+        cancelled,
+    )
+    .map_err(source_error)?;
+    let edition_receipts = cmd::array(&edition_history, "receipts").map_err(source_error)?;
+    let item_receipts = cmd::array(&item_history, "receipts").map_err(source_error)?;
+    let receipt = cmd::parse(
+        current_child
+            .get("edition-item-receipt.json")
+            .ok_or(DurableError::Corrupt("Item compound receipt absent"))?,
+    )
+    .map_err(source_error)?;
+    let transition_sha = cmd::text(&receipt, "parent_transition_sha256").map_err(source_error)?;
+    let transition_archive = cmd::text(&receipt, "parent_archive_ref").map_err(source_error)?;
+    let parent_before_ref = cmd::field(&receipt, "parent_before").map_err(source_error)?;
+    let parent_after_ref = cmd::field(&receipt, "parent_after").map_err(source_error)?;
+
+    let mut adoption_indexes = Vec::new();
+    for (index, transition) in edition_receipts.iter().enumerate() {
+        let request = cmd::field(transition, "request").map_err(source_error)?;
+        if cmd::text(request, "operation").map_err(source_error)? == "item.adopt"
+            && cmd::record_digest(transition)
+                .map_err(source_error)?
+                .to_prefixed()
+                == transition_sha
+            && cmd::text(transition, "archive_path").map_err(source_error)? == transition_archive
+            && cmd::same(
+                cmd::field(transition, "previous_source").map_err(source_error)?,
+                parent_before_ref,
+            )
+            .map_err(source_error)?
+            && cmd::same(
+                cmd::field(transition, "source").map_err(source_error)?,
+                parent_after_ref,
+            )
+            .map_err(source_error)?
+        {
+            adoption_indexes.push(index);
+        }
+    }
+    if adoption_indexes.len() != 1 {
+        return Err(DurableError::Conflict(
+            "Item adoption transition is not uniquely retained",
+        ));
+    }
+    let adoption_index = adoption_indexes[0];
+    let parent_transition = &edition_receipts[adoption_index];
+    let (predecessor_archive, _) =
+        source_revisions::read_archive(ctx, &edition_archive_config, parent_transition)
+            .map_err(source_error)?;
+    let adopted_parent_archive =
+        if let Some(next_transition) = edition_receipts.get(adoption_index + 1) {
+            if !cmd::same(
+                cmd::field(next_transition, "previous_source").map_err(source_error)?,
+                parent_after_ref,
+            )
+            .map_err(source_error)?
+            {
+                return Err(DurableError::Conflict(
+                    "next Edition archive does not begin at Item adoption output",
+                ));
+            }
+            source_revisions::read_archive(ctx, &edition_archive_config, next_transition)
+                .map_err(source_error)?
+                .0
+        } else {
+            let current_ref = cmd::reference(&edition_record, "record_id", "record_version")
+                .map_err(source_error)?;
+            if !cmd::same(&current_ref, parent_after_ref).map_err(source_error)? {
+                return Err(DurableError::Conflict(
+                    "current Edition tip differs from Item adoption",
+                ));
+            }
+            current_parent.clone()
+        };
+    let predecessor = history_core_package(&predecessor_archive, "edition.json", false)?;
+    let adopted_parent = history_core_package(&adopted_parent_archive, "edition.json", true)?;
+    let adopted_parent_record = cmd::parse(
+        adopted_parent
+            .get("edition.json")
+            .ok_or(DurableError::Corrupt("retained adopted Edition absent"))?,
+    )
+    .map_err(source_error)?;
+    if !cmd::same(
+        &cmd::reference(&adopted_parent_record, "record_id", "record_version")
+            .map_err(source_error)?,
+        parent_after_ref,
+    )
+    .map_err(source_error)?
+    {
+        return Err(DurableError::Conflict(
+            "retained adopted Edition package differs from transition",
+        ));
+    }
+
+    let item_history_present = current_child.contains_key(source_revisions::HISTORY);
+    let adopted_child = if let Some(first_transition) = item_receipts.first() {
+        let item_id = cmd::text(&item_record, "record_id").map_err(source_error)?;
+        if item_receipts.iter().any(|transition| {
+            transition
+                .object_get("request")
+                .and_then(|request| request.object_get("operation"))
+                .and_then(tos_foundation::JsonValue::as_str)
+                != Some("record.revise")
+        }) {
+            return Err(DurableError::Unsupported(
+                "Item history contains a non-record revision",
+            ));
+        }
+        let initial = source_revisions::read_archive(ctx, &item_archive_config, first_transition)
+            .map_err(source_error)?
+            .0;
+        let initial_record = cmd::parse(initial.get("item.json").ok_or(DurableError::Corrupt(
+            "Item adoption record absent from archive",
+        ))?)
+        .map_err(source_error)?;
+        let initial_ref =
+            cmd::reference(&initial_record, "record_id", "record_version").map_err(source_error)?;
+        if cmd::text(&initial_record, "record_id").map_err(source_error)? != item_id
+            || cmd::integer(&initial_record, "record_version").map_err(source_error)? != 1
+            || !cmd::same(
+                cmd::field(first_transition, "previous_source").map_err(source_error)?,
+                &initial_ref,
+            )
+            .map_err(source_error)?
+        {
+            return Err(DurableError::Conflict(
+                "Item history does not begin at adopted Item v1",
+            ));
+        }
+        let mut package = current_child
+            .iter()
+            .filter(|(name, _)| name.as_str() != source_revisions::HISTORY)
+            .map(|(name, raw)| (name.clone(), raw.clone()))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for name in ["item.json", "item.human-forms.json"] {
+            package.insert(
+                name.to_owned(),
+                initial
+                    .get(name)
+                    .ok_or(DurableError::Corrupt("Item v1 archive core member absent"))?
+                    .clone(),
+            );
+        }
+        package
+    } else {
+        if item_history_present
+            || cmd::integer(&item_record, "record_version").map_err(source_error)? != 1
+        {
+            return Err(DurableError::Conflict(
+                "current Item lacks its required revision history",
+            ));
+        }
+        current_child.clone()
+    };
+    if adopted_child.len() != 15
+        || adopted_child
+            .keys()
+            .any(|name| source_item_adoption_role(name).is_none())
+    {
+        return Err(DurableError::Conflict(
+            "adopted Item package membership differs from original v1",
+        ));
+    }
+    let item_id = cmd::text(&item_record, "record_id").map_err(source_error)?;
+    let adopted_child_record = cmd::parse(
+        adopted_child
+            .get("item.json")
+            .ok_or(DurableError::Corrupt("adopted Item record absent"))?,
+    )
+    .map_err(source_error)?;
+    if cmd::text(&adopted_child_record, "record_id").map_err(source_error)? != item_id
+        || cmd::integer(&adopted_child_record, "record_version").map_err(source_error)? != 1
+    {
+        return Err(DurableError::Conflict(
+            "retained adopted Item package is not Item v1",
+        ));
+    }
+    let adoption_item_source = cmd::reference(&adopted_child_record, "record_id", "record_version")
+        .map_err(source_error)?;
+
+    let historical_parent = EditionItemBytes {
+        parent: adopted_parent,
+        child: adopted_child,
+        parent_receipt: serde_json::from_slice(
+            &cmd::canonical(parent_transition).map_err(source_error)?,
+        )
+        .map_err(|_| DurableError::Corrupt("Item parent receipt conversion"))?,
+        receipt: serde_json::from_slice(&cmd::canonical(&receipt).map_err(source_error)?)
+            .map_err(|_| DurableError::Corrupt("Item receipt conversion"))?,
+        transaction_id: cmd::text(&receipt, "transaction_id")
+            .map_err(source_error)?
+            .to_owned(),
+        archive_path: transition_archive.to_owned(),
+        reads: Vec::new(),
+        bytes_read: 0,
+    };
+    let adoption_v1 = crate::source_creation_store::pg_claim_owner_contribution(
+        &historical_parent,
+        edition_home,
+        item_home,
+        &predecessor,
+    )
+    .map_err(source_error)?;
+    if cmd::text(
+        cmd::field(&adoption_v1, "lineage").map_err(source_error)?,
+        "child_source_path",
+    )
+    .map_err(source_error)?
+        != item_path
+    {
+        return Err(DurableError::Conflict(
+            "historical adoption contribution points at another Item",
+        ));
+    }
+
+    let current_stream_raw = current_child
+        .get("source-claims.jsonl")
+        .ok_or(DurableError::Corrupt("current Item Claim stream absent"))?;
+    let current_claim_lines = current_stream_raw
+        .split(|byte| *byte == b'\n' || *byte == b'\r')
+        .filter(|line| !line.iter().all(u8::is_ascii_whitespace))
+        .collect::<Vec<_>>();
+    if current_claim_lines.len() != 1 {
+        return Err(DurableError::Conflict(
+            "current Item Claim stream is not singular",
+        ));
+    }
+    let current_claim = cmd::parse(current_claim_lines[0]).map_err(source_error)?;
+    let current_claim_id = cmd::text(&current_claim, "claim_id").map_err(source_error)?;
+    let current_stream_sha256 = Digest256::of_bytes(current_stream_raw).to_prefixed();
+
+    let mut edition_members = Vec::with_capacity(current_parent.len());
+    for (name, raw) in &current_parent {
+        let role = current_edition_role(name)
+            .ok_or(DurableError::Corrupt("current Edition member role"))?;
+        edition_members.push(current_member_row(
+            &format!("{edition_home}/{name}"),
+            role,
+            raw,
+        ));
+    }
+    edition_members.sort_by(|a, b| {
+        a.object_get("ref")
+            .and_then(tos_foundation::JsonValue::as_str)
+            .cmp(
+                &b.object_get("ref")
+                    .and_then(tos_foundation::JsonValue::as_str),
+            )
+    });
+    let mut item_members = Vec::with_capacity(current_child.len());
+    for (name, raw) in &current_child {
+        let role = if name == source_revisions::HISTORY {
+            Some("revision-history")
+        } else {
+            source_item_adoption_role(name)
+        }
+        .ok_or(DurableError::Corrupt("current Item member role"))?;
+        item_members.push(current_member_row(
+            &format!("{item_home}/{name}"),
+            role,
+            raw,
+        ));
+    }
+    item_members.sort_by(|a, b| {
+        a.object_get("ref")
+            .and_then(tos_foundation::JsonValue::as_str)
+            .cmp(
+                &b.object_get("ref")
+                    .and_then(tos_foundation::JsonValue::as_str),
+            )
+    });
+
+    let edition_ref =
+        cmd::reference(&edition_record, "record_id", "record_version").map_err(source_error)?;
+    let item_ref =
+        cmd::reference(&item_record, "record_id", "record_version").map_err(source_error)?;
+    let edition_chain = owner_history_chain(edition_receipts)?;
+    let item_chain = owner_history_chain(item_receipts)?;
+    let edition_tip = edition_receipts
+        .last()
+        .ok_or(DurableError::Corrupt("current Edition history is empty"))?;
+    let edition_value = cmd::object(vec![
+        ("source_path", cmd::string(&edition_path)),
+        ("source", edition_ref),
+        (
+            "history_ref",
+            cmd::string(&format!("{edition_home}/{}", source_revisions::HISTORY)),
+        ),
+        (
+            "history_sha256",
+            cmd::string(
+                &Digest256::of_bytes(current_parent[source_revisions::HISTORY].as_slice())
+                    .to_prefixed(),
+            ),
+        ),
+        (
+            "history_head_source",
+            cmd::field(edition_tip, "source")
+                .map_err(source_error)?
+                .clone(),
+        ),
+        (
+            "history_head_sha256",
+            cmd::string(
+                &cmd::record_digest(edition_tip)
+                    .map_err(source_error)?
+                    .to_prefixed(),
+            ),
+        ),
+        (
+            "history_chain",
+            tos_foundation::JsonValue::Array(edition_chain),
+        ),
+        (
+            "direct_members",
+            tos_foundation::JsonValue::Array(edition_members),
+        ),
+    ]);
+    let mut item_fields = vec![
+        ("source_path", cmd::string(&item_path)),
+        ("source", item_ref),
+        ("claim_id", cmd::string(current_claim_id)),
+        ("stream_sha256", cmd::string(&current_stream_sha256)),
+        (
+            "direct_members",
+            tos_foundation::JsonValue::Array(item_members),
+        ),
+    ];
+    if let Some(history_raw) = current_child.get(source_revisions::HISTORY) {
+        let item_tip = item_receipts
+            .last()
+            .ok_or(DurableError::Corrupt("current Item history is empty"))?;
+        item_fields.extend([
+            (
+                "history_ref",
+                cmd::string(&format!("{item_home}/{}", source_revisions::HISTORY)),
+            ),
+            (
+                "history_sha256",
+                cmd::string(&Digest256::of_bytes(history_raw).to_prefixed()),
+            ),
+            (
+                "history_head_source",
+                cmd::field(item_tip, "source")
+                    .map_err(source_error)?
+                    .clone(),
+            ),
+            (
+                "history_head_sha256",
+                cmd::string(
+                    &cmd::record_digest(item_tip)
+                        .map_err(source_error)?
+                        .to_prefixed(),
+                ),
+            ),
+        ]);
+    } else {
+        item_fields.extend([
+            ("history_ref", tos_foundation::JsonValue::Null),
+            ("history_sha256", tos_foundation::JsonValue::Null),
+            ("history_head_source", tos_foundation::JsonValue::Null),
+            ("history_head_sha256", tos_foundation::JsonValue::Null),
+        ]);
+    }
+    item_fields.push((
+        "history_chain",
+        tos_foundation::JsonValue::Array(item_chain),
+    ));
+    let current = cmd::object(vec![
+        ("edition", edition_value),
+        ("item", cmd::object(item_fields)),
+    ]);
+    let mut owner = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_managed_item_adoption_claim_owner_inventory_v2"),
+        ),
+        ("package_home", cmd::string(item_home)),
+        ("source_path", cmd::string(stream_path)),
+        ("adoption_v1", adoption_v1),
+        ("adoption_item_source", adoption_item_source),
+        ("current", current),
+    ]);
+    let closure = cmd::record_digest(&owner)
+        .map_err(source_error)?
+        .to_prefixed();
+    cmd::set(&mut owner, "closure_sha256", cmd::string(&closure)).map_err(source_error)?;
+    Ok(owner)
+}
+
+fn owner_history_chain(
+    receipts: &[tos_foundation::JsonValue],
+) -> DurableResult<Vec<tos_foundation::JsonValue>> {
+    receipts
+        .iter()
+        .map(|receipt| {
+            let request = cmd::field(receipt, "request").map_err(source_error)?;
+            Ok(cmd::object(vec![
+                (
+                    "operation",
+                    cmd::field(request, "operation")
+                        .map_err(source_error)?
+                        .clone(),
+                ),
+                (
+                    "archive_path",
+                    cmd::field(receipt, "archive_path")
+                        .map_err(source_error)?
+                        .clone(),
+                ),
+                (
+                    "receipt_sha256",
+                    cmd::string(
+                        &cmd::record_digest(receipt)
+                            .map_err(source_error)?
+                            .to_prefixed(),
+                    ),
+                ),
+                (
+                    "previous_source",
+                    cmd::field(receipt, "previous_source")
+                        .map_err(source_error)?
+                        .clone(),
+                ),
+                (
+                    "source",
+                    cmd::field(receipt, "source").map_err(source_error)?.clone(),
+                ),
+            ]))
+        })
+        .collect()
+}
+
+fn history_core_package(
+    package: &std::collections::BTreeMap<String, Vec<u8>>,
+    record_name: &str,
+    require_history: bool,
+) -> DurableResult<std::collections::BTreeMap<String, Vec<u8>>> {
+    let forms_name = record_name
+        .strip_suffix(".json")
+        .map(|stem| format!("{stem}.human-forms.json"))
+        .ok_or(DurableError::Corrupt("record history core basename"))?;
+    let mut names = vec![record_name, forms_name.as_str()];
+    if require_history || package.contains_key(source_revisions::HISTORY) {
+        names.push(source_revisions::HISTORY);
+    }
+    names
+        .into_iter()
+        .map(|name| {
+            package
+                .get(name)
+                .cloned()
+                .map(|raw| (name.to_owned(), raw))
+                .ok_or(DurableError::Corrupt("record history core member absent"))
+        })
+        .collect()
+}
+
+fn source_item_adoption_role(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "item.json" => "item-record",
+        "item.human-forms.json" => "item-form-set",
+        "source-claims.jsonl" => "claim-stream",
+        "source-create-request.json" => "creation-request",
+        "source-create-environment.json" => "creation-environment",
+        "source-create-provenance.jsonl" => "creation-event",
+        "edition-item-receipt.json" => "compound-receipt",
+        "item.manifest.json" => "file-manifest",
+        "rights.json" => "rights-record",
+        "resource-inventory.json" => "resource-inventory",
+        "fixity.sha256" => "fixity",
+        "forensic-report.md" => "forensic-report",
+        "provenance.jsonl" => "provenance",
+        "item-deposit-receipt.json" => "deposit-receipt",
+        name if name.starts_with("source-claims.") && name.ends_with(".human-forms.json") => {
+            "claim-form-set"
+        }
+        _ => return None,
+    })
+}
+
+fn current_edition_role(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "edition.json" => "edition-record",
+        "edition.human-forms.json" => "edition-form-set",
+        "source-revision-history.json" => "revision-history",
+        "expression-edition-receipt.json" => "compound-receipt",
+        "source-claims.jsonl" => "claim-stream",
+        "source-create-request.json" => "creation-request",
+        "source-create-environment.json" => "creation-environment",
+        "source-create-provenance.jsonl" => "creation-event",
+        name if name.starts_with("source-claims.") && name.ends_with(".human-forms.json") => {
+            "claim-form-set"
+        }
+        _ => return None,
+    })
+}
+
+fn current_member_row(path: &str, role: &str, raw: &[u8]) -> tos_foundation::JsonValue {
+    cmd::object(vec![
+        ("ref", cmd::string(path)),
+        ("role", cmd::string(role)),
+        ("bytes", cmd::number(raw.len() as u64)),
+        (
+            "sha256",
+            cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+        ),
+    ])
+}
+
+pub(super) fn item_claim_current_inventory_contribution(
+    owner: tos_foundation::JsonValue,
+    profile: &source_claims::AgentInventoryAssessmentProfile,
+) -> DurableResult<tos_foundation::JsonValue> {
+    let records = cmd::object(
+        source_claims::MIXED_INVENTORY_RECORD_KINDS
+            .iter()
+            .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+            .collect(),
+    );
+    let source_profiles =
+        source_claims::pg_inventory::claim_profile_sources_from_validated_profile(profile)
+            .map_err(source_error)?;
+    Ok(cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_pg_source_inventory_member_contribution_v1"),
+        ),
+        ("records", records),
+        ("source_profiles", source_profiles),
+        ("events", cmd::object(Vec::new())),
+        ("anchors", cmd::object(Vec::new())),
+        ("form", tos_foundation::JsonValue::Null),
+        ("claim_owner", owner),
+    ]))
 }
 
 fn optional_agent_projections(
@@ -2917,7 +3539,7 @@ fn item_claim_owner_contribution_from_writes(
         effective_uid: 0,
         files,
     };
-    item_claim_owner_contribution(&ctx, stream_path)
+    item_claim_transaction_owner_contribution(&ctx, stream_path)
 }
 
 fn pg_family_uses_mixed_inventory(family_tag: &str) -> bool {
@@ -13524,6 +14146,244 @@ mod owned_predicate_shape_tests {
 }
 
 #[cfg(test)]
+mod item_claim_owner_current_history_tests {
+    use super::*;
+    use std::path::Path;
+
+    const EDITION_HOME: &str = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281";
+    const ITEM_HOME: &str = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910";
+
+    fn retain_file(root: &Path, relative: &str, files: &mut BTreeMap<String, Vec<u8>>) {
+        let raw = std::fs::read(root.join(relative))
+            .unwrap_or_else(|error| panic!("retained fixture file {relative}: {error}"));
+        if let Some(existing) = files.insert(relative.to_owned(), raw.clone()) {
+            assert_eq!(existing, raw, "duplicate fixture path has identical bytes");
+        }
+    }
+
+    fn retain_package(root: &Path, home: &str, files: &mut BTreeMap<String, Vec<u8>>) {
+        for entry in std::fs::read_dir(root.join(home)).expect("selected package directory") {
+            let entry = entry.expect("selected package entry");
+            if !entry
+                .file_type()
+                .expect("selected package file type")
+                .is_file()
+            {
+                continue;
+            }
+            let name = entry
+                .file_name()
+                .into_string()
+                .expect("selected package filename is UTF-8");
+            retain_file(root, &format!("{home}/{name}"), files);
+        }
+    }
+
+    fn retain_history_archives(root: &Path, home: &str, files: &mut BTreeMap<String, Vec<u8>>) {
+        let history_path = format!("{home}/{}", source_revisions::HISTORY);
+        let history_raw = std::fs::read(root.join(&history_path)).expect("selected history");
+        let history: serde_json::Value =
+            serde_json::from_slice(&history_raw).expect("selected history JSON");
+        let receipts = history
+            .get("receipts")
+            .and_then(serde_json::Value::as_array)
+            .expect("history receipts");
+        for receipt in receipts {
+            let archive = receipt
+                .get("archive_path")
+                .and_then(serde_json::Value::as_str)
+                .expect("history archive path");
+            let manifest_path = format!("{archive}/manifest.json");
+            retain_file(root, &manifest_path, files);
+            let manifest_raw = std::fs::read(root.join(&manifest_path)).expect("archive manifest");
+            let manifest: serde_json::Value =
+                serde_json::from_slice(&manifest_raw).expect("archive manifest JSON");
+            let members = manifest
+                .get("files")
+                .and_then(serde_json::Value::as_object)
+                .expect("archive file map");
+            for binding in members.values() {
+                let blob = binding
+                    .get("blob")
+                    .and_then(serde_json::Value::as_str)
+                    .expect("archive blob name");
+                retain_file(root, &format!("{archive}/{blob}"), files);
+            }
+        }
+    }
+
+    #[test]
+    fn current_item_owner_reconstructs_adoption_and_later_record_revisions() {
+        let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let repository = repository.canonicalize().expect("repository root");
+        let mut retained = BTreeMap::new();
+        retain_package(&repository, EDITION_HOME, &mut retained);
+        retain_package(&repository, ITEM_HOME, &mut retained);
+        retain_history_archives(&repository, EDITION_HOME, &mut retained);
+        retain_history_archives(&repository, ITEM_HOME, &mut retained);
+
+        let ctx = CommandContext {
+            base_revision: SourceRevision(Digest256::of_bytes(b"fixture source revision")),
+            configuration_raw: b"{}\n".to_vec(),
+            request_raw: b"{}\n".to_vec(),
+            recorded_at: "2026-10-13T00:00:00Z".to_owned(),
+            effective_uid: 0,
+            files: retained
+                .iter()
+                .map(|(path, raw)| SourceFile {
+                    path: RelativePath::parse(path).expect("fixture member path"),
+                    raw: raw.clone(),
+                })
+                .collect(),
+        };
+        let item_claim_path = format!("{ITEM_HOME}/{}", source_claims::CLAIM_STREAM);
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = item_claim_owner_contribution(&ctx, &item_claim_path, deadline, &cancelled)
+            .expect("current Item owner contribution");
+
+        let adoption = cmd::field(&owner, "adoption_v1").expect("strict historical V1 owner");
+        assert_eq!(
+            cmd::text(adoption, "schema_version").unwrap(),
+            "tos_managed_item_adoption_claim_owner_inventory_v1"
+        );
+        assert_eq!(
+            cmd::array(adoption, "direct_members").unwrap().len(),
+            15,
+            "the original V1 adoption package remains unchanged"
+        );
+
+        let current = cmd::field(&owner, "current").unwrap();
+        let edition = cmd::field(current, "edition").unwrap();
+        let item = cmd::field(current, "item").unwrap();
+        let edition_chain = cmd::array(edition, "history_chain").unwrap();
+        let item_chain = cmd::array(item, "history_chain").unwrap();
+        let adoption_lineage = cmd::field(adoption, "lineage").unwrap();
+        let adoption_archive = cmd::text(adoption_lineage, "parent_archive_ref").unwrap();
+        let adoption_receipt_sha = cmd::text(adoption_lineage, "parent_transition_sha256").unwrap();
+        let adoption_rows = edition_chain
+            .iter()
+            .enumerate()
+            .filter(|(_, row)| {
+                row.object_get("operation")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some("item.adopt")
+                    && row
+                        .object_get("archive_path")
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        == Some(adoption_archive)
+                    && row
+                        .object_get("receipt_sha256")
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        == Some(adoption_receipt_sha)
+            })
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        assert_eq!(adoption_rows.len(), 1, "exact adoption is retained");
+        let later_edition_revisions = edition_chain[adoption_rows[0] + 1..]
+            .iter()
+            .filter(|row| {
+                row.object_get("operation")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some("record.revise")
+            })
+            .count();
+        assert!(
+            later_edition_revisions >= 1,
+            "the Edition has a record revision after adoption"
+        );
+        assert!(
+            item_chain.iter().any(|row| {
+                row.object_get("operation")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some("record.revise")
+            }),
+            "the Item has a later record revision"
+        );
+        let current_edition_record = cmd::parse(
+            retained
+                .get(&format!("{EDITION_HOME}/edition.json"))
+                .expect("current Edition record bytes"),
+        )
+        .unwrap();
+        let current_item_record = cmd::parse(
+            retained
+                .get(&format!("{ITEM_HOME}/item.json"))
+                .expect("current Item record bytes"),
+        )
+        .unwrap();
+        assert!(
+            cmd::same(
+                cmd::field(edition, "source").unwrap(),
+                &cmd::reference(&current_edition_record, "record_id", "record_version").unwrap()
+            )
+            .unwrap()
+        );
+        assert!(
+            cmd::same(
+                cmd::field(item, "source").unwrap(),
+                &cmd::reference(&current_item_record, "record_id", "record_version").unwrap()
+            )
+            .unwrap()
+        );
+        let direct_count = |home: &str| {
+            let prefix = format!("{home}/");
+            retained
+                .keys()
+                .filter(|path| {
+                    path.strip_prefix(&prefix)
+                        .is_some_and(|tail| !tail.is_empty() && !tail.contains('/'))
+                })
+                .count()
+        };
+        assert_eq!(
+            cmd::array(edition, "direct_members").unwrap().len(),
+            direct_count(EDITION_HOME)
+        );
+        assert_eq!(
+            cmd::array(item, "direct_members").unwrap().len(),
+            direct_count(ITEM_HOME)
+        );
+
+        let stream_raw = retained
+            .get(&item_claim_path)
+            .expect("current Item Claim stream");
+        let records = cmd::object(
+            source_claims::MIXED_INVENTORY_RECORD_KINDS
+                .iter()
+                .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                .collect(),
+        );
+        let projection = mixed_projection_envelope(
+            &item_claim_path,
+            stream_raw,
+            records,
+            cmd::object(Vec::new()),
+            tos_foundation::JsonValue::Array(Vec::new()),
+            tos_foundation::JsonValue::Array(Vec::new()),
+            tos_foundation::JsonValue::Null,
+            owner,
+            tos_foundation::JsonValue::Null,
+        )
+        .expect("current mixed inventory owner projection");
+        let checked = addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+            &item_claim_path,
+            &projection,
+            &Digest256::of_bytes(stream_raw).to_hex(),
+        )
+        .expect("current Item owner remains accepted by the strict projection reader");
+        assert_eq!(
+            cmd::text(
+                cmd::field(&checked, "claim_owner").unwrap(),
+                "schema_version"
+            )
+            .unwrap(),
+            "tos_managed_item_adoption_claim_owner_inventory_v2"
+        );
+    }
+}
+
+#[cfg(test)]
 mod item_claim_stream_route_tests {
     use super::is_item_claim_stream;
 
@@ -13534,6 +14394,9 @@ mod item_claim_stream_route_tests {
         ));
         assert!(is_item_claim_stream(
             "ToS/source-witnesses/items/example/source-claims.jsonl"
+        ));
+        assert!(!is_item_claim_stream(
+            "ToS/source-witnesses/items/example/extra/source-claims.jsonl"
         ));
         assert!(!is_item_claim_stream(
             "ToS/source-witnesses/works/example/items/example/source-claims.jsonl"

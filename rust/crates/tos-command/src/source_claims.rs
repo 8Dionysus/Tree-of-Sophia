@@ -4031,6 +4031,35 @@ pub(crate) fn is_imported_legacy_claim_path(location: &str) -> bool {
         && LEGACY_CLAIM_STREAMS.contains(&basename)
 }
 
+/// Maintained Item Claim streams may be nested directly under an Edition's
+/// `items/<slug>` home. Their semantic owner is supplied by the Item adoption
+/// verifier; generic Agent projection contributes only the mixed-member base.
+pub(crate) fn is_managed_item_claim_stream_path(location: &str) -> bool {
+    if !location.ends_with(&format!("/{CLAIM_STREAM}"))
+        || !location.starts_with("ToS/source-witnesses/")
+        || RelativePath::parse(location).is_err()
+    {
+        return false;
+    }
+    let home = location.trim_end_matches(&format!("/{CLAIM_STREAM}"));
+    let parts = home.split('/').collect::<Vec<_>>();
+    if parts.len() >= 4
+        && parts[0] == "ToS"
+        && parts[1] == "source-witnesses"
+        && parts[2] == "items"
+    {
+        return parts.len() == 4 && !parts[3].is_empty();
+    }
+    parts.len() >= 6
+        && (2..parts.len().saturating_sub(3)).any(|index| {
+            parts[index] == "editions"
+                && !parts[index + 1].is_empty()
+                && parts[index + 2] == "items"
+                && index + 3 == parts.len() - 1
+                && !parts[index + 3].is_empty()
+        })
+}
+
 /// Exact source-owned historical Claim stream route. This is used only by the
 /// dedicated read-only historical owner; it does not relax Agent creation or
 /// publication guards.
@@ -6328,6 +6357,7 @@ fn agent_source_reject_unsupported_member(location: &str) -> SourceCommandResult
     let basename = location.rsplit('/').next().unwrap_or(location);
     if location.starts_with("ToS/source-witnesses/")
         && !agent_source_internal_path(location)
+        && !is_managed_item_claim_stream_path(location)
         && (basename.starts_with("semantic-annotation") && basename.ends_with(".json")
             || basename == CLAIM_STREAM
             || LEGACY_CLAIM_STREAMS.contains(&basename)
@@ -6521,7 +6551,10 @@ pub(crate) fn render_agent_inventory_member(
 ) -> SourceCommandResult<Vec<u8>> {
     let location = file.path.as_str();
     let custody_kind = nonprojecting_custody_kind(location);
-    if custody_kind.is_none() && !is_imported_legacy_claim_path(location) {
+    if custody_kind.is_none()
+        && !is_imported_legacy_claim_path(location)
+        && !is_managed_item_claim_stream_path(location)
+    {
         agent_source_reject_unsupported_member(location)?;
     }
     let basename = location.rsplit('/').next().unwrap_or(location);

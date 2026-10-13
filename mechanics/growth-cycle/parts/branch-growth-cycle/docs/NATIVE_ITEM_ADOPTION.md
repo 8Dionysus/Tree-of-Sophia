@@ -168,3 +168,27 @@ The plan covers the committed manifest and rights digests; current local
 Items remain metadata-only with payload transfer and content-bearing server
 derivatives prohibited. This owner companion is not part of the adoption
 transaction and must not alter its committed bytes or imply server upload.
+
+## Current Claim projection after revisions
+
+The retained `edition-item-receipt.json` and the original adoption transaction
+remain immutable evidence for the Item's first Edition backlink. A current
+read-only Claim projection must not reinterpret that historical 3-member
+Edition and 15-member Item package as the current package after later record
+revisions.
+
+The V2 current projection verifies the complete retained Edition and Item
+history with the record-revision owner, including each predecessor archive,
+its exact prefix and selected bytes. It locates the one Edition `item.adopt`
+transition bound by the compound receipt, then reconstructs the adopted
+Edition output from the next transition's predecessor archive (or the current
+tip when adoption is still the tip) and the adopted Item v1 from its first
+ordinary-revision archive (or the current Item when it remains v1). The strict
+V1 adoption contribution is derived from those original packages without
+rewriting the receipt.
+
+Current Edition and Item tips are carried separately, with exact member
+digests and their full revision chains. The current Item history member is
+optional only for an unrevised Item v1. This keeps the historical transaction
+closure and present-day source binding independently reviewable in both full
+and streamed inventory routes.
