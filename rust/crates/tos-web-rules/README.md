@@ -4,6 +4,16 @@
 DOM, Fetch, storage, platform I/O and WebMCP registration remain host duties.
 These private bindings are not source selection, rights, review or canon.
 
+## Corpus text references
+
+`corpus_reference_rule_v1` owns canonical validation, stable keys, document
+and version IDs, native-reference construction and staleness comparison, and
+Unicode code-point slicing for durable corpus text references. The WASM entry
+uses the same rule; the browser adapter only frames JSON. Native references
+retain the historical JavaScript key field order and the distinction between
+the UTF-16-unit string bound and code-point selectors. The host still performs
+source discovery, exact reads, cancellation, deadlines, and presentation.
+
 ## Selected source-text search
 
 `source_text_search_wasm_v1` is a thin parity adapter over the shared

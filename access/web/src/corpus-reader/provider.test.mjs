@@ -1,3 +1,4 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {expect, test} from 'vitest';
 import {
   CorpusProviderCursorError,

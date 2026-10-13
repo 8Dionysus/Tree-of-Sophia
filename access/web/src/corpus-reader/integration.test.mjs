@@ -1,3 +1,4 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {expect, test} from 'vitest';
 import {createReference, referenceKey} from './model.mjs';
 import {createFixtureProvider} from './fixture-provider.mjs';

@@ -8,8 +8,10 @@ import {installConditionRules} from '../src/observatory/lens-conditions-rust.mjs
 import {installClientInspectionRules} from '../src/observatory/client-inspection-rules.mjs';
 import {installPoseRules} from '../src/observatory/view-state-rust.mjs';
 import {installReaderOccurrenceRules} from '../src/reader/occurrences-rust.mjs';
+import {installCorpusReferenceRules} from '../src/corpus-reader/corpus-reference-rules.mjs';
 
 await initRules(rulesWasmUrl);
+installCorpusReferenceRules(rules);
 installClientPacketRules(rules);
 installDraftRules(rules);
 installConditionRules(rules);

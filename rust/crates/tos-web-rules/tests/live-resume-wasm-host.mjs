@@ -11,7 +11,8 @@ if(!bindingPath||!wasmPath)
 register(new URL('./live-resume-ts-loader.mjs',import.meta.url));
 const [{installLiveResumeRules,makeLiveResume,validateLiveResume,resolveLiveResumeSelection,createLiveResumeStore},
   {StableExplorationLayout},{compactFormLens},{pageFixture},
-  {installReadingRules},{installClaimReferenceRules},{installHumanFormRules},{installResearchShelfRules}]=await Promise.all([
+  {installReadingRules},{installClaimReferenceRules},{installHumanFormRules},
+  {installCorpusReferenceRules},{installResearchShelfRules}]=await Promise.all([
   import('../../../../access/web/constructor/live-resume.mjs'),
   import('../../../../access/web/constructor/live-model.mjs'),
   import('../../../../access/web/fixtures/human-form-data.mjs'),
@@ -19,6 +20,7 @@ const [{installLiveResumeRules,makeLiveResume,validateLiveResume,resolveLiveResu
   import('../../../../access/web/src/observatory/reading-resume-rust.mjs'),
   import('../../../../access/web/src/observatory/claim-reference-rust.mjs'),
   import('../../../../access/web/src/observatory/human-form-rules.mjs'),
+  import('../../../../access/web/src/corpus-reader/corpus-reference-rules.mjs'),
   import('../../../../access/web/src/research-shelf/rules.mjs'),
 ]);
 const view=compactFormLens();
@@ -37,6 +39,7 @@ await binding.default({module_or_path:await readFile(wasmPath)});
 installHumanFormRules(binding);
 installReadingRules(binding);
 installClaimReferenceRules(binding);
+installCorpusReferenceRules(binding);
 installResearchShelfRules(binding);
 installLiveResumeRules(binding);
 const saved=makeLiveResume(state,presentation);

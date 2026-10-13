@@ -9,6 +9,7 @@
 mod browser_lens_spec;
 mod claim_reading;
 mod claim_reference;
+mod corpus_reference;
 #[cfg(feature = "wasm")]
 mod client_inspection;
 #[cfg(feature = "wasm")]
@@ -102,6 +103,7 @@ pub use worker_classic::{
 
 pub use claim_reading::validate_claim_reading_v1;
 pub use claim_reference::validate_claim_reference_v1;
+pub use corpus_reference::corpus_reference_rule_v1;
 pub use interface_preferences::normalize_interface_preferences_v1;
 pub use knowledge_envelope::{
     KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
@@ -126,7 +128,8 @@ pub use workspace_proposal::{
 #[cfg(feature = "wasm")]
 mod wasm {
     use super::{
-        ShelfPacketIndex, compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
+        ShelfPacketIndex, compact_knowledge_search_page_v1, corpus_reference_rule_v1,
+        normalize_interface_preferences_v1,
         normalize_observatory_conditions_v1, normalize_observatory_draft_v1,
         normalize_observatory_pose_v1, normalize_reading_resume_v1, rebind_live_resume_v1,
         research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reading_v1,
@@ -143,6 +146,11 @@ mod wasm {
     #[wasm_bindgen]
     pub fn validate_claim_reference_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
         validate_claim_reference_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn corpus_reference_rule_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        corpus_reference_rule_v1(request_json).map_err(JsValue::from_str)
     }
 
     #[wasm_bindgen]

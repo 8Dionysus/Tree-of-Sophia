@@ -19,6 +19,7 @@ const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const require=createRequire(pathToFileURL(join(root,'access/web/package.json')).href);
 const {build}=require('esbuild');
 const bundled=await build({stdin:{contents:`
+  export {installCorpusReferenceRules} from './access/web/src/corpus-reader/corpus-reference-rules.mjs';
   export {installResearchShelfRules} from './access/web/src/research-shelf/rules.mjs';
   export {installReadingRules} from './access/web/src/observatory/reading-resume-rust.mjs';
   export {installClaimReferenceRules} from './access/web/src/observatory/claim-reference-rust.mjs';
@@ -27,9 +28,10 @@ const bundled=await build({stdin:{contents:`
   export {readingKey} from './access/web/src/observatory/reader-model.mjs';
 `,resolveDir:root,sourcefile:'research-shelf-consumer.mjs'},bundle:true,platform:'node',format:'esm',write:false});
 const consumer=await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`);
-const {installResearchShelfRules,installReadingRules,installClaimReferenceRules,
+const {installCorpusReferenceRules,installResearchShelfRules,installReadingRules,installClaimReferenceRules,
   createMemoryResearchShelfStore,importSuppliedResearchPacket,
   validateShelfExport,validateShelfRecord,readingKey}=consumer;
+installCorpusReferenceRules(binding);
 installResearchShelfRules(binding);
 installReadingRules(binding);
 installClaimReferenceRules(binding);

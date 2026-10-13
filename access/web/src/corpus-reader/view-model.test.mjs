@@ -1,3 +1,4 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {describe, expect, it, vi} from 'vitest';
 import {
   READER_LIMITS,

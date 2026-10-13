@@ -17,6 +17,7 @@ import {installClaimReferenceRules} from './observatory/claim-reference-rust.mjs
 import {installHumanFormRules} from './observatory/human-form-rules.mjs';
 import {installReadingRules} from './observatory/reading-resume-rust.mjs';
 import {installResearchShelfRules} from './research-shelf/rules.mjs';
+import {installCorpusReferenceRules} from './corpus-reader/corpus-reference-rules.mjs';
 import {installConditionRules} from './observatory/lens-conditions-rust.mjs';
 import {installDraftRules} from './observatory/lens-draft-rust.mjs';
 import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
@@ -40,6 +41,7 @@ installConditionRules(rules);
 installDraftRules(rules);
 installReadingRules(rules);
 installResearchShelfRules(rules);
+installCorpusReferenceRules(rules);
 
 // Existing published research links remain reloadable during the UI migration.
 const params = new URLSearchParams(location.search);

@@ -11,6 +11,7 @@ import '../constructor/style.css';
 import {mountLiveResearch} from '../constructor/live-controller.mjs';
 import {installBrowserWorkspaceMachine} from './research-workspace-rust.ts';
 import {installResearchShelfRules} from './research-shelf/rules.mjs';
+import {installCorpusReferenceRules} from './corpus-reader/corpus-reference-rules.mjs';
 import {installWorkspaceCopyRules} from './observatory/workspace-copy-rust.mjs';
 import {installInterfaceRules} from './observatory/interface-model-rust.mjs';
 import {installPoseRules} from './observatory/view-state-rust.mjs';
@@ -26,6 +27,7 @@ import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_w
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
 installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
 installResearchShelfRules(rules);
+installCorpusReferenceRules(rules);
 installWorkspaceCopyRules(rules);
 installInterfaceRules(rules);
 installPoseRules(rules);
