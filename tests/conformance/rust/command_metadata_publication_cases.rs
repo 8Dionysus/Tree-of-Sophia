@@ -1715,7 +1715,6 @@ fn connected_browser_create_occurrence(
     let mut invocation: Value =
         serde_json::from_slice(&fs::read(workspace.join("agent-native-invocation.json")).unwrap())
             .unwrap();
-    let original_revision = invocation["original_source_revision"].clone();
     let worker_sha = super::command_text_cases::alignment_image_digest(&worker);
     let owner_sha = super::command_text_cases::alignment_image_digest(&owner_command);
     invocation["schema_version"] = json!("tos_local_native_source_invocation_v1");
@@ -1723,7 +1722,9 @@ fn connected_browser_create_occurrence(
     invocation["native_executable"] = json!(owner_command);
     invocation["native_executable_sha256"] = json!(owner_sha.to_prefixed());
     invocation["source_revision"] = json!(cut_revision.0.to_prefixed());
-    invocation["original_source_revision"] = original_revision;
+    // The occurrence binding and its native source closure are added to this
+    // exact cut; initial creation must read and preview from that same cut.
+    invocation["original_source_revision"] = json!(cut_revision.0.to_prefixed());
     invocation["software_capture"] = json!(capture_path);
     invocation["software_restored_root"] = json!(restored_path);
     invocation["software_selection"] = json!({
