@@ -556,7 +556,7 @@ fn version_id_value(reference: &JsonValue, native: bool) -> Result<JsonValue, &'
     let packet = field(target, "packet").ok_or("invalid_native_reference")?;
     let segmentation = field(target, "segmentation").ok_or("invalid_native_reference")?;
     let layer = field(target, "textLayer").ok_or("invalid_native_reference")?;
-    Ok(JsonValue::Array(vec![
+    array_key(JsonValue::Array(vec![
         field(packet, "id").unwrap().clone(),
         field(packet, "version").unwrap().clone(),
         field(packet, "sha256").unwrap().clone(),
@@ -564,6 +564,7 @@ fn version_id_value(reference: &JsonValue, native: bool) -> Result<JsonValue, &'
         field(segmentation, "version").unwrap().clone(),
         field(layer, "version").unwrap().clone(),
     ]))
+    .map(|value| string(&value))
 }
 
 fn reference_version_id_value(reference: &JsonValue) -> Result<JsonValue, &'static str> {
@@ -1040,9 +1041,7 @@ fn dispatch(operation: &str, value: &JsonValue) -> Result<JsonValue, &'static st
         "reference_document_id" => reference_document_id_value(value),
         "native_reference_document_id" => document_id_value(value, true),
         "reference_version_id" => reference_version_id_value(value),
-        "native_reference_version_id" => {
-            array_key(version_id_value(value, true)?).map(|value| string(&value))
-        }
+        "native_reference_version_id" => version_id_value(value, true),
         "create_reference" => create_corpus_reference(value),
         "create_native_reference" => create_native_reference(value),
         "match_native_reference" => native_match(value),
@@ -1132,6 +1131,10 @@ mod tests {
             r#""tos.text-layer.fixture""#
         );
         let version_id = call("reference_version_id", &reference).unwrap();
+        assert_eq!(
+            call("native_reference_version_id", &reference).unwrap(),
+            version_id
+        );
         let version_id = parse_json(
             &version_id,
             JsonMode::PublishedStrict,
