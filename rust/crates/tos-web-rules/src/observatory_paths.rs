@@ -465,6 +465,14 @@ fn normalize_import_query(value: &JsonValue, kind: &str) -> Result<JsonValue, &'
             ("enabled", bool(true)),
             ("match", text("all")),
             ("conditions", JsonValue::Array(Vec::new())),
+            (
+                if kind == "nodes" {
+                    "kinds_index"
+                } else {
+                    "predicates_index"
+                },
+                JsonValue::Null,
+            ),
         ]));
     }
     if descriptor_kind(value, "kind") != Some("object")
@@ -1275,6 +1283,7 @@ pub fn compile_observatory_paths_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str>
             return Err("path_server_step_count");
         }
         let source_steps = get(source, "steps")
+            .and_then(|steps| get(steps, "items"))
             .and_then(JsonValue::as_array)
             .ok_or("invalid_path_steps")?;
         for (step_index, step) in steps.iter().enumerate() {
