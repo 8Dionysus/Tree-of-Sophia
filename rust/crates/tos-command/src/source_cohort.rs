@@ -1841,8 +1841,33 @@ fn inventory_projections_for(
 }
 
 fn is_item_claim_stream(path: &str) -> bool {
-    path.starts_with("ToS/source-witnesses/items/")
-        && path.ends_with(&format!("/{}", source_claims::CLAIM_STREAM))
+    let stream_suffix = format!("/{}", source_claims::CLAIM_STREAM);
+    if !path.ends_with(&stream_suffix) {
+        return false;
+    }
+    // Keep the established source-witness Item route, and recognize Item
+    // Claims stored directly under a selected Edition's `items/<slug>` home.
+    if path.starts_with("ToS/source-witnesses/items/") {
+        return true;
+    }
+    let Some(relative) = path.strip_prefix("ToS/source-witnesses/") else {
+        return false;
+    };
+    if RelativePath::parse(path).is_err() {
+        return false;
+    }
+    let components = relative.split('/').collect::<Vec<_>>();
+    if components.len() < 6 || components.last().copied() != Some(source_claims::CLAIM_STREAM) {
+        return false;
+    }
+    let item_home_index = components.len() - 3;
+    if components[item_home_index] != "items" || components[item_home_index + 1].is_empty() {
+        return false;
+    }
+    components[..item_home_index]
+        .iter()
+        .enumerate()
+        .any(|(index, component)| *component == "editions" && index + 1 < item_home_index)
 }
 
 fn is_global_claim_stream(ctx: &CommandContext, path: &str) -> DurableResult<bool> {
@@ -13494,6 +13519,33 @@ mod owned_predicate_shape_tests {
             "other-kind",
             "claim-navigation-reference-v2",
             &prefixed,
+        ));
+    }
+}
+
+#[cfg(test)]
+mod item_claim_stream_route_tests {
+    use super::is_item_claim_stream;
+
+    #[test]
+    fn recognizes_edition_nested_item_claims_and_rejects_unowned_shapes() {
+        assert!(is_item_claim_stream(
+            "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/source-claims.jsonl"
+        ));
+        assert!(is_item_claim_stream(
+            "ToS/source-witnesses/items/example/source-claims.jsonl"
+        ));
+        assert!(!is_item_claim_stream(
+            "ToS/source-witnesses/works/example/items/example/source-claims.jsonl"
+        ));
+        assert!(!is_item_claim_stream(
+            "ToS/source-witnesses/works/example/editions/items/example/source-claims.jsonl"
+        ));
+        assert!(!is_item_claim_stream(
+            "ToS/source-witnesses/works/example/editions/example/items/example/revisions/source-claims.jsonl"
+        ));
+        assert!(!is_item_claim_stream(
+            "ToS/contracts/example/editions/example/items/example/source-claims.jsonl"
         ));
     }
 }

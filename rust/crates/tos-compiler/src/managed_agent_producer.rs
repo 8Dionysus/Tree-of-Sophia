@@ -18,6 +18,27 @@ use std::path::{Path, PathBuf};
 use tos_foundation::{Digest256, Digest256Hasher, SourceRevision};
 use tos_source_store::SourceMembershipV1;
 
+/// Derive the exact managed-model stage receipt binding shared by the producer
+/// and its source owner. This is a descriptive input binding, not admission
+/// authority.
+pub fn managed_model_receipt_binding<P: ManagedProducerProof>(
+    export_binding: &SourceBinding,
+    proof: &P,
+    collections: &[InputCollectionReceipt],
+    max_header_bytes: usize,
+) -> Result<SourceBinding> {
+    let collection_value =
+        serde_json::to_value(collections).map_err(|error| Error::Source(error.to_string()))?;
+    let receipt_bytes =
+        crate::source_bibliographic_render::encode(&collection_value, max_header_bytes)?;
+    let mut binding = export_binding.clone();
+    binding.source_cut = proof.stage_source_cut()?;
+    binding.membership_root = proof.current_root().to_owned();
+    binding.through_commit_seq = proof.through_commit_seq();
+    binding.projection_root_sha256 = Digest256::of_bytes(&receipt_bytes).to_hex();
+    Ok(binding)
+}
+
 /// Only the actual full invocation below can construct this outcome. Public
 /// descriptive receipts and arbitrary cold models cannot be converted into it.
 pub struct CompletedManagedAgentProducer<P: ManagedProducerProof = ManagedSourceProofV1> {
@@ -201,7 +222,7 @@ fn build_selected<P: ManagedProducerProof>(
     schema_set_sha256: String,
     proof: P,
     candidate: &Path,
-    mut binding: SourceBinding,
+    binding: SourceBinding,
     stage_limits: StageLimits,
     owner: &dyn StageOwner,
     isolation: &dyn StageIsolation,
@@ -309,14 +330,12 @@ fn build_selected<P: ManagedProducerProof>(
     if original_bytes > original_limits.max_total_bytes {
         return Err(Error::Budget("managed original header bytes"));
     }
-    binding.source_cut = proof.stage_source_cut()?;
-    binding.membership_root = proof.current_root().to_owned();
-    binding.through_commit_seq = proof.through_commit_seq();
-    let receipt_bytes = crate::source_bibliographic_render::encode(
-        &serde_json::to_value(&collections).map_err(|e| Error::Source(e.to_string()))?,
+    let binding = managed_model_receipt_binding(
+        &binding,
+        &proof,
+        &collections,
         full_limits.seal.max_header_bytes,
     )?;
-    binding.projection_root_sha256 = Digest256::of_bytes(&receipt_bytes).to_hex();
     let mut stage = KnowledgeStage::create(
         candidate,
         stage_limits,

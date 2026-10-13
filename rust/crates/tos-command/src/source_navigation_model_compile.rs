@@ -346,10 +346,20 @@ struct CompileStageOwner<'a> {
     bootstrap_revision: SourceRevision,
     export_membership: SourceMembershipV1,
     bootstrap_membership: SourceMembershipV1,
-    binding: &'a SourceBinding,
+    binding: CompileStageBinding<'a>,
     expected_collections: Option<&'a [InputCollectionReceipt]>,
     deadline: Instant,
     cancelled: &'a AtomicBool,
+}
+
+#[derive(Clone, Copy)]
+enum CompileStageBinding<'a> {
+    ExactExport(&'a SourceBinding),
+    ManagedModel {
+        export_binding: &'a SourceBinding,
+        proof: &'a ManagedSourceProofV2,
+        max_header_bytes: usize,
+    },
 }
 
 fn binding_matches(left: &SourceBinding, right: &SourceBinding) -> bool {
@@ -378,8 +388,34 @@ fn collections_match(left: &[InputCollectionReceipt], right: &[InputCollectionRe
 
 impl CompileStageOwner<'_> {
     fn check(&self, receipt: &ExactInputReceipt) -> tos_compiler::Result<()> {
+        let changed =
+            || tos_compiler::Error::Invalid("source-navigation selected cut or receipt changed");
+        if crate::source_creation_store::active(self.deadline, self.cancelled).is_err() {
+            return Err(changed());
+        }
+        let receipt_binding_matches = match self.binding {
+            CompileStageBinding::ExactExport(expected) => {
+                binding_matches(&receipt.binding, expected)
+            }
+            CompileStageBinding::ManagedModel {
+                export_binding,
+                proof,
+                max_header_bytes,
+            } => {
+                let expected = tos_compiler::managed_agent_producer::managed_model_receipt_binding(
+                    export_binding,
+                    proof,
+                    &receipt.collections,
+                    max_header_bytes,
+                )
+                .map_err(|_| {
+                    tos_compiler::Error::Invalid("source-navigation managed model receipt binding")
+                })?;
+                binding_matches(&receipt.binding, &expected)
+            }
+        };
         if crate::source_creation_store::active(self.deadline, self.cancelled).is_err()
-            || !binding_matches(&receipt.binding, self.binding)
+            || !receipt_binding_matches
             || self
                 .expected_collections
                 .is_some_and(|expected| !collections_match(&receipt.collections, expected))
@@ -397,9 +433,7 @@ impl CompileStageOwner<'_> {
                 .expectation()
                 != self.bootstrap_membership
         {
-            return Err(tos_compiler::Error::Invalid(
-                "source-navigation selected cut or receipt changed",
-            ));
+            return Err(changed());
         }
         Ok(())
     }
@@ -1152,7 +1186,7 @@ pub(crate) fn compile(
         bootstrap_revision,
         export_membership,
         bootstrap_membership,
-        binding: &request.source_binding,
+        binding: CompileStageBinding::ExactExport(&request.source_binding),
         expected_collections: Some(&catalog_input_receipt.collections),
         deadline,
         cancelled: &cancelled,
@@ -1300,7 +1334,11 @@ pub(crate) fn compile(
         bootstrap_revision,
         export_membership,
         bootstrap_membership,
-        binding: &request.source_binding,
+        binding: CompileStageBinding::ManagedModel {
+            export_binding: &request.source_binding,
+            proof,
+            max_header_bytes: snapshot.full.seal.max_header_bytes,
+        },
         expected_collections: None,
         deadline,
         cancelled: &cancelled,
