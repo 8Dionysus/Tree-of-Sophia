@@ -694,15 +694,20 @@ export function createWebMCPAdapter(
   let dynamicController: AbortController | null = null;
   let unsubscribe: (() => void) | null = null;
   let refreshGeneration = 0;
+  let lifecycleGeneration = 0;
+  let stopped = false;
   let refreshQueue = Promise.resolve();
   let registrationError: string | null = null;
   let probeTimer: ReturnType<typeof setTimeout> | null = null;
   let probeAttempts = 0;
   let stableToolCount = 0;
   let selectionToolCount = 0;
+  let contextRevision = 0;
   const statusListeners = new Set<(status: WebMCPStatus) => void>();
 
   const status = (): WebMCPStatus => {
+    const currentContextRevision = stopped ? contextRevision : registry.context().revision;
+    if (!stopped) contextRevision = currentContextRevision;
     const registered = Boolean(stableController && !stableController.signal.aborted);
     const currentStableToolCount = registered ? stableToolCount : 0;
     const currentSelectionToolCount = registered ? selectionToolCount : 0;
@@ -712,7 +717,7 @@ export function createWebMCPAdapter(
       stable_tool_count: currentStableToolCount,
       selection_tool_count: currentSelectionToolCount,
       tool_count: currentStableToolCount + currentSelectionToolCount,
-      context_revision: registry.context().revision,
+      context_revision: currentContextRevision,
       registration_error: registrationError,
     };
   };
@@ -726,35 +731,44 @@ export function createWebMCPAdapter(
     const modelContext = targetDocument.modelContext;
     if (!modelContext) return;
     for (const tool of tools) {
+      if (controller.signal.aborted) return;
       await modelContext.registerTool(tool, { signal: controller.signal });
     }
   };
 
-  const refresh = (context: PageContext = registry.context()): Promise<void> => {
+  const refresh = (context?: PageContext): Promise<void> => {
+    const stable = stableController;
+    if (!targetDocument.modelContext || !stable || stable.signal.aborted) return Promise.resolve();
+    const currentContext = context ?? registry.context();
+    contextRevision = currentContext.revision;
     const generation = ++refreshGeneration;
     refreshQueue = refreshQueue.then(async () => {
-      if (!targetDocument.modelContext || generation !== refreshGeneration) return;
+      if (stableController !== stable || stable.signal.aborted || generation !== refreshGeneration) return;
       dynamicController?.abort();
       const controller = new AbortController();
       dynamicController = controller;
       try {
-        const tools = dynamicTools(registry, context).filter(available);
+        const tools = dynamicTools(registry, currentContext).filter(available);
         await registerAll(tools, controller);
+        if (stableController !== stable || stable.signal.aborted || generation !== refreshGeneration || dynamicController !== controller || controller.signal.aborted) return;
         selectionToolCount = tools.length;
         registrationError = null;
       } catch (error) {
+        if (stableController !== stable || stable.signal.aborted || generation !== refreshGeneration || dynamicController !== controller || controller.signal.aborted) return;
         controller.abort();
         selectionToolCount = 0;
         registrationError = String(error);
       } finally {
-        publishStatus();
+        if (stableController === stable && !stable.signal.aborted && generation === refreshGeneration && dynamicController === controller) publishStatus();
       }
     });
     return refreshQueue;
   };
 
   const start = async (): Promise<void> => {
-    if (stableController) return;
+    if (stableController && !stableController.signal.aborted) return;
+    stopped = false;
+    const generation = lifecycleGeneration;
     if (!targetDocument.modelContext) {
       stableToolCount = 0;
       selectionToolCount = 0;
@@ -763,21 +777,24 @@ export function createWebMCPAdapter(
         probeAttempts += 1;
         probeTimer = setTimeout(() => {
           probeTimer = null;
-          void start();
+          if (!stopped && generation === lifecycleGeneration) void start();
         }, 250);
       }
       return;
     }
-    stableController = new AbortController();
+    const controller = new AbortController();
+    stableController = controller;
     try {
       const tools = stableTools(registry).filter(available);
-      await registerAll(tools, stableController);
+      await registerAll(tools, controller);
+      if (stopped || generation !== lifecycleGeneration || stableController !== controller || controller.signal.aborted) return;
       stableToolCount = tools.length;
       unsubscribe = registry.subscribe((context) => void refresh(context));
       await refresh();
     } catch (error) {
+      if (stopped || generation !== lifecycleGeneration || stableController !== controller || controller.signal.aborted) return;
       registrationError = String(error);
-      stableController.abort();
+      controller.abort();
       stableController = null;
       stableToolCount = 0;
       selectionToolCount = 0;
@@ -786,6 +803,9 @@ export function createWebMCPAdapter(
   };
 
   const stop = (): void => {
+    if (!stopped) contextRevision = registry.context().revision;
+    stopped = true;
+    lifecycleGeneration += 1;
     refreshGeneration += 1;
     unsubscribe?.();
     unsubscribe = null;
@@ -795,6 +815,7 @@ export function createWebMCPAdapter(
     probeTimer = null;
     dynamicController = null;
     stableController = null;
+    refreshQueue = Promise.resolve();
     stableToolCount = 0;
     selectionToolCount = 0;
     publishStatus();

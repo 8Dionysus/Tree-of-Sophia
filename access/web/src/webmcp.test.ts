@@ -25,6 +25,16 @@ const workspaceNoopHandlers = {
   "tos.page.workspace-import": () => ({}),
 };
 
+function deferred() {
+  let resolve!: () => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 function workspaceSummary() {
   return {
     schema: "tos_research_workspace_summary_v1" as const,
@@ -477,6 +487,95 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
     expect(adapter.status()).toMatchObject({ registered: false, tool_count: 0 });
   });
+
+  it.each(["resolve", "reject"] as const)(
+    "cancels pending stable and selection registration after stop (%s), then restarts",
+    async (lateResult) => {
+      const current: PageContextSnapshot = {
+        mode: "philosophy", view_id: "observatory", graph_mode: "nodes",
+        selected: { id: "node:test", kind: "node", evidence_available: false, path_available: false },
+        path_start_node_id: null, active_layers: ["knowledge"], active_predicates: ["overview"],
+        deep_link: "http://tos.local/", research_workspace: workspaceSummary(),
+      };
+      let contextDisposed = false;
+      const readContext = vi.fn(() => {
+        if (contextDisposed) throw new Error("read page context after stop");
+        return current;
+      });
+      const registry = createPageCommandRegistry(readContext, {});
+      const tools = new Map<string, RegisteredTool>();
+      const calls: string[] = [];
+      let heldTool: string | null = null;
+      let gate = deferred();
+      let pendingStarted = Promise.resolve();
+      let notifyPending = () => {};
+      const holdNext = (name: string) => {
+        heldTool = name;
+        gate = deferred();
+        pendingStarted = new Promise<void>((resolve) => { notifyPending = resolve; });
+      };
+      const modelContext = {
+        registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+          calls.push(tool.name);
+          if (tool.name === heldTool) {
+            heldTool = null;
+            notifyPending();
+            await gate.promise;
+            if (lateResult === "reject") throw new Error("late registerTool rejection");
+          }
+          if (!options?.signal?.aborted) {
+            tools.set(tool.name, tool);
+            options?.signal?.addEventListener("abort", () => {
+              if (tools.get(tool.name) === tool) tools.delete(tool.name);
+            }, { once: true });
+          }
+        }),
+      };
+      const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+
+      holdNext("tos.page.context");
+      const firstStart = adapter.start();
+      await pendingStarted;
+      registry.notifyStateChange();
+      expect(adapter.status().context_revision).toBe(1);
+      adapter.stop();
+      const contextReadsAfterStop = readContext.mock.calls.length;
+      contextDisposed = true;
+      adapter.stop();
+      expect(readContext).toHaveBeenCalledTimes(contextReadsAfterStop);
+      if (lateResult === "resolve") gate.resolve();
+      else gate.reject(new Error("late registerTool rejection"));
+      await expect(firstStart).resolves.toBeUndefined();
+      expect(calls).toEqual(["tos.page.context"]);
+      expect(readContext).toHaveBeenCalledTimes(contextReadsAfterStop);
+      await expect(adapter.refresh()).resolves.toBeUndefined();
+      expect(() => adapter.status()).not.toThrow();
+      expect(adapter.status()).toMatchObject({ registered: false, tool_count: 0, context_revision: 1 });
+
+      contextDisposed = false;
+      await adapter.start();
+      expect(adapter.status()).toMatchObject({ registered: true, context_revision: 1 });
+
+      const callsBeforeSelectionRefresh = calls.length;
+      holdNext("tos.page.inspect-selection");
+      const selectionRefresh = adapter.refresh();
+      await pendingStarted;
+      adapter.stop();
+      const contextReadsAfterSelectionStop = readContext.mock.calls.length;
+      contextDisposed = true;
+      if (lateResult === "resolve") gate.resolve();
+      else gate.reject(new Error("late registerTool rejection"));
+      await expect(selectionRefresh).resolves.toBeUndefined();
+      expect(calls.slice(callsBeforeSelectionRefresh)).toEqual(["tos.page.inspect-selection"]);
+      expect(readContext).toHaveBeenCalledTimes(contextReadsAfterSelectionStop);
+      expect(() => adapter.status()).not.toThrow();
+
+      contextDisposed = false;
+      await adapter.start();
+      expect(adapter.status()).toMatchObject({ registered: true, context_revision: 1 });
+      adapter.stop();
+    },
+  );
 
   it("reports an immediately usable no-WebMCP fallback state", async () => {
     const current: PageContextSnapshot = {

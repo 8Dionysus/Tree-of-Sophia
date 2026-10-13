@@ -1873,10 +1873,34 @@ fn connected_browser_create_occurrence(
     let current_source_commit =
         connected_browser_git_revision(repository, "HEAD^{commit}", deadline);
     let current_source_tree = connected_browser_git_revision(repository, "HEAD^{tree}", deadline);
+    // The native rule constant contains authored ToS contract files. Keep
+    // those bytes in the selected source-item lane, not in the synthetic
+    // software capture. The full input set is still verified against HEAD.
     let current_names = files.keys().cloned().collect::<BTreeSet<_>>();
     connected_browser_source_members_match_head(repository, &current_names, deadline);
+    let current_source_item_files: BTreeMap<String, Vec<u8>> = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/"))
+        .map(|(path, raw)| (path.clone(), raw.clone()))
+        .collect();
+    let current_source_item_members = current_source_item_files
+        .iter()
+        .map(|(path, raw)| json!({
+            "path":path,
+            "bytes":raw.len(),
+            "sha256":Digest256::of_bytes(raw).to_hex()
+        }))
+        .collect::<Vec<_>>();
+    for (path, current_input) in &current_source_item_files {
+        let selected_source_item = fs::read(source_root.join(path)).unwrap();
+        assert_eq!(
+            &selected_source_item, current_input,
+            "current authored ToS rule input is present in the selected source cut"
+        );
+    }
     let current_source_members = files
         .iter()
+        .filter(|(path, _)| !path.starts_with("ToS/"))
         .map(|(path, raw)| {
             json!({
                 "path":path,
@@ -1885,6 +1909,18 @@ fn connected_browser_create_occurrence(
             })
         })
         .collect::<Vec<_>>();
+    let current_source_item_bytes = current_source_item_files
+        .values()
+        .map(Vec::len)
+        .sum::<usize>();
+    assert!(current_source_item_files.len() <= 512);
+    assert!(current_source_item_bytes <= 33_554_432);
+    for path in current_source_item_files.keys() {
+        assert!(
+            files.remove(path).is_some(),
+            "split authored ToS source item from software members"
+        );
+    }
     // Metadata assembly re-reads both source and execution profiles bound by
     // the predecessor catalog. Preserve source-item bindings in the selected
     // source cut and add only missing non-ToS historical bytes to the
@@ -2077,6 +2113,14 @@ fn connected_browser_create_occurrence(
                 "git_commit":current_source_commit,
                 "git_tree":current_source_tree,
                 "members":current_source_members
+            },
+            "current_authored_source_items":{
+                "git_commit":current_source_commit,
+                "git_tree":current_source_tree,
+                "members":current_source_item_members,
+                "origin":"selected_current_source_root",
+                "selected_cut_bytes_verified":true,
+                "software_members":false
             },
             "historical_profile_source":{
                 "content_role":"read_only_bound_evidence",
