@@ -2347,6 +2347,7 @@ mod executor_refusal_tests {
                 exchange: Some(ExchangeFailureContext {
                     boundary: "private-owner-path",
                     failure: reason,
+                    spawn_failure: None,
                     natural_termination: Some(ChildTermination::Exited(7)),
                     child_cpu_micros: Some(10),
                     child_pid: 42,

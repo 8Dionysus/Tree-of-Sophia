@@ -2196,6 +2196,32 @@ struct PathRule {
     allowed: u64,
     parent: i32,
 }
+fn null_sink_device() -> Result<File, String> {
+    let dev = stage_result(
+        "confinement.open-dev-directory",
+        directory(Path::new("/dev")),
+    )?;
+    let fd = unsafe {
+        libc::openat(
+            dev.as_raw_fd(),
+            c"null".as_ptr(),
+            libc::O_PATH | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+        )
+    };
+    if fd < 0 {
+        return Err(syscall_failure("confinement.open-null-sink"));
+    }
+    let sink = unsafe { File::from_raw_fd(fd) };
+    let metadata = sink
+        .metadata()
+        .map_err(|error| io_failure("confinement.stat-null-sink", error))?;
+    // Linux dev_t encoding for character device major 1, minor 3 (/dev/null).
+    const DEV_NULL_RDEV: u64 = (1 << 8) | 3;
+    if metadata.mode() & libc::S_IFMT != libc::S_IFCHR || metadata.rdev() != DEV_NULL_RDEV {
+        return Err("namespace-inner site=confinement.validate-null-sink refusal".into());
+    }
+    Ok(sink)
+}
 fn confine(
     root: &Path,
     fallbacks: &[String],
@@ -2239,6 +2265,14 @@ fn confine(
         if unsafe { libc::syscall(445, rules.as_raw_fd(), 1, &rule, 0) } < 0 {
             return Err(syscall_failure("landlock.add-held-store-rule"));
         }
+    }
+    let null_sink = null_sink_device()?;
+    let null_rule = PathRule {
+        allowed: 1 << 1, // LANDLOCK_ACCESS_FS_WRITE_FILE on this exact held device only.
+        parent: null_sink.as_raw_fd(),
+    };
+    if unsafe { libc::syscall(445, rules.as_raw_fd(), 1, &null_rule, 0) } < 0 {
+        return Err(syscall_failure("landlock.add-null-sink-rule"));
     }
     if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
         return Err(syscall_failure("landlock.set-no-new-privileges"));

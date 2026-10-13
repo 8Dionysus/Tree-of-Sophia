@@ -30,6 +30,11 @@ const MAX_OPS: usize = 4096;
 const MAX_NONCES: usize = 1024;
 const MAX_OPERATIONS_PER_SECOND: f64 = 10_000.0;
 const MAX_RUN_SECONDS: u64 = 3600;
+const MAX_POSTLOAD_EXACT_SOURCE_BYTES: u64 = 1_048_576;
+const MAX_POSTLOAD_SOURCE_READ_WORK_VALUE: u64 = 16_777_216;
+const RECORD_REVISE_SEMANTIC_ORACLE_SCHEMA: &str =
+    "tos_load_native_pg_record_revise_semantic_oracle_v1";
+const RECORD_REVISE_RESULT_SCHEMA: &str = "tos_local_source_revision_result_v2";
 const DEFAULT_OWNER_STAGE_CLONE_CAP_BYTES: u64 = 268_435_456;
 const MAX_OWNER_STAGE_CLONE_CAP_BYTES: u64 = 1_073_741_824;
 const NATIVE_STDERR_CAP: usize = 4096;
@@ -143,6 +148,14 @@ struct Operation {
     /// postload SDK request replays. A replay must match that request exactly.
     #[serde(default)]
     idempotency_replay_of: Option<String>,
+    /// Runtime-only snapshot from the exact serial prepare-revise response
+    /// used to bind this mutation's preconditions.
+    #[serde(skip)]
+    bound_revision_preview: Option<Value>,
+    /// Runtime-only successful source mutation response used for exact replay
+    /// comparison after normalizing the two replay flags.
+    #[serde(skip)]
+    bound_replay_response: Option<Value>,
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -978,6 +991,16 @@ fn rebase_plan_paths(plan: &mut Plan, from: &Path, to: &Path) -> Result<(), Stri
                 let argument = operation.sdk_argv[index + 1].clone();
                 operation.sdk_argv[index + 1] =
                     rebase_existing_argv_path(&argument, from, to, "SDK invocation")?;
+            } else if operation.sdk_argv[index] == "--selection"
+                && native_pg_source_projection_read(operation)
+            {
+                let argument = operation.sdk_argv[index + 1].clone();
+                operation.sdk_argv[index + 1] = rebase_existing_argv_path(
+                    &argument,
+                    from,
+                    to,
+                    "SDK source projection selection",
+                )?;
             } else if operation.sdk_argv[index] == "--root"
                 || operation.sdk_argv[index] == "--source-inputs"
                 || operation.sdk_argv[index] == "--prepared-read-model"
@@ -1030,7 +1053,7 @@ fn selected_sdk_owner_inputs(
         .chain(plan.postload.iter())
         .filter(|operation| operation.channel == "sdk")
     {
-        if native_query_source_read(operation) {
+        if native_query_source_read(operation) || native_pg_source_projection_read(operation) {
             continue;
         }
         let paths = operation
@@ -1078,6 +1101,18 @@ fn selected_sdk_store_roots(plan: &Plan, session_limit: usize) -> Result<Vec<Pat
         if native_query_source_read(operation) {
             continue;
         }
+        if native_pg_source_projection_read(operation) {
+            let selection_path = projection_selection_path(operation)?;
+            let selection = read_stage_json(&selection_path)?;
+            let binding = projection_selection_binding(&selection, "exact-source")?;
+            selected.insert(
+                binding
+                    .store_root
+                    .canonicalize()
+                    .map_err(|e| format!("SDK projection selected store root: {e}"))?,
+            );
+            continue;
+        }
         let invocation_path = operation
             .sdk_argv
             .windows(2)
@@ -1108,16 +1143,17 @@ struct ProjectionSelectionBinding {
 }
 
 fn projection_selection_path(operation: &Operation) -> Result<PathBuf, String> {
-    let paths = operation
-        .projection_argv
+    let argv = projection_selection_argv(operation).ok_or(
+        "source projection selection requires a projection or selected SDK exact-source route",
+    )?;
+    let paths = argv
         .windows(2)
         .filter(|pair| pair[0] == "--selection")
         .map(|pair| PathBuf::from(&pair[1]))
         .collect::<Vec<_>>();
     if paths.len() != 1
         || !paths[0].is_absolute()
-        || operation
-            .projection_argv
+        || argv
             .first()
             .is_none_or(|path| !Path::new(path).is_absolute())
     {
@@ -1126,6 +1162,16 @@ fn projection_selection_path(operation: &Operation) -> Result<PathBuf, String> {
     paths[0]
         .canonicalize()
         .map_err(|e| format!("projection selection identity: {e}"))
+}
+
+fn projection_selection_argv(operation: &Operation) -> Option<&[String]> {
+    if operation.channel == "projection" {
+        Some(&operation.projection_argv)
+    } else if native_pg_source_projection_read(operation) {
+        Some(&operation.sdk_argv)
+    } else {
+        None
+    }
 }
 
 fn projection_selection_binding(
@@ -1231,7 +1277,9 @@ fn selected_projection_inputs(plan: &Plan, session_limit: usize) -> Result<Vec<P
                 .flat_map(|session| &session.operations),
         )
         .chain(plan.postload.iter())
-        .filter(|operation| operation.channel == "projection")
+        .filter(|operation| {
+            operation.channel == "projection" || native_pg_source_projection_read(operation)
+        })
     {
         let selection = projection_selection_path(operation)?;
         let value = read_stage_json(&selection)?;
@@ -1912,6 +1960,8 @@ fn prepare_owner_stage(
             alternate_outcomes: Vec::new(),
             retry_same_command_id: false,
             idempotency_replay_of: None,
+            bound_revision_preview: None,
+            bound_replay_response: None,
             reconnect_before: false,
             conflict_group: None,
             bind_expected_configuration_from_owner: false,
@@ -2507,6 +2557,40 @@ fn interrupted_projection_apply_response_matches(
             .all(|key| result["work"][*key].as_u64().is_some())
 }
 
+fn exact_source_projection_request(request: &Value) -> bool {
+    request.as_object().is_some_and(|fields| {
+        fields.len() == 3
+            && fields.contains_key("operation")
+            && fields.contains_key("source_path")
+            && fields.contains_key("revision")
+            && request["operation"] == "exact-source"
+            && request["source_path"]
+                .as_str()
+                .is_some_and(|path| tos_foundation::RelativePath::parse(path).is_ok())
+            && request["revision"]
+                .as_u64()
+                .is_some_and(|revision| revision > 0)
+    })
+}
+
+fn native_pg_source_projection_read(op: &Operation) -> bool {
+    op.channel == "sdk"
+        && op.sdk_argv.len() == 4
+        && Path::new(&op.sdk_argv[0]).is_absolute()
+        && op.sdk_argv[1] == "source-projection"
+        && op.sdk_argv[2] == "--selection"
+        && Path::new(&op.sdk_argv[3]).is_absolute()
+        && op.projection_argv.is_empty()
+        && exact_source_projection_request(&op.request)
+}
+
+fn selected_native_pg_source_projection_read(op: &Operation, args: &Args) -> bool {
+    let Some(owner_binary) = args.owner_binary.as_deref().and_then(Path::to_str) else {
+        return false;
+    };
+    native_pg_source_projection_read(op) && op.sdk_argv[0] == owner_binary
+}
+
 fn source_read_operation(op: &Operation) -> bool {
     match op.channel.as_str() {
         "mcp" => {
@@ -2519,10 +2603,12 @@ fn source_read_operation(op: &Operation) -> bool {
                         | Some("tos_source_text_search")
                 )
         }
-        "sdk" => op
-            .sdk_argv
-            .windows(2)
-            .any(|pair| pair[0] == "source" && matches!(pair[1].as_str(), "discover" | "read")),
+        "sdk" => {
+            op.sdk_argv
+                .windows(2)
+                .any(|pair| pair[0] == "source" && matches!(pair[1].as_str(), "discover" | "read"))
+                || native_pg_source_projection_read(op)
+        }
         "projection" => matches!(
             op.request["operation"].as_str(),
             Some("search" | "search-text" | "exact-source")
@@ -2798,10 +2884,12 @@ fn postload_exact_source_integrity(op: &Operation) -> bool {
             op.request["method"] == "tools/call"
                 && op.request["params"]["name"] == "tos_source_read"
         }
-        "sdk" => op
-            .sdk_argv
-            .windows(2)
-            .any(|pair| pair[0] == "source" && pair[1] == "read"),
+        "sdk" => {
+            op.sdk_argv
+                .windows(2)
+                .any(|pair| pair[0] == "source" && pair[1] == "read")
+                || native_pg_source_projection_read(op)
+        }
         "projection" => op.request["operation"] == "exact-source",
         _ => false,
     }
@@ -2809,16 +2897,33 @@ fn postload_exact_source_integrity(op: &Operation) -> bool {
 
 fn postload_selected_source_integrity(op: &Operation) -> bool {
     op.channel == "sdk"
+        && (op
+            .sdk_argv
+            .windows(2)
+            .any(|pair| pair[0] == "source" && pair[1] == "read")
+            || native_pg_source_projection_read(op))
+}
+
+fn postload_selected_vector_integrity(op: &Operation) -> bool {
+    op.channel == "sdk"
         && op
             .sdk_argv
             .windows(2)
             .any(|pair| pair[0] == "source" && pair[1] == "read")
 }
 
+fn postload_sdk_pg_source_integrity(op: &Operation) -> bool {
+    native_pg_source_projection_read(op) && op.expected_status == 0
+}
+
 fn postload_pg_source_integrity(op: &Operation) -> bool {
     op.channel == "projection"
         && op.request["operation"] == "exact-source"
         && op.expected_status == 0
+}
+
+fn exact_source_projection_operation(op: &Operation) -> bool {
+    postload_sdk_pg_source_integrity(op) || postload_pg_source_integrity(op)
 }
 
 fn postload_check_kind(op: &Operation) -> &'static str {
@@ -2830,6 +2935,8 @@ fn postload_check_kind(op: &Operation) -> &'static str {
         "rights_denial"
     } else if postload_rights_check(op) {
         "rights_state"
+    } else if postload_sdk_pg_source_integrity(op) {
+        "sdk_postgresql_source_integrity"
     } else if postload_pg_source_integrity(op) {
         "postgresql_source_integrity"
     } else if postload_exact_source_integrity(op) {
@@ -2959,6 +3066,506 @@ fn body_matches(
     }
 }
 
+const EXACT_SOURCE_PROJECTION_BODY_KEYS: &[&str] = &[
+    "schema_version",
+    "domain",
+    "source_path",
+    "revision",
+    "bytes",
+    "sha256",
+    "source_read_work",
+    "content_base64",
+];
+const EXACT_SOURCE_READ_WORK_KEYS: &[&str] = &[
+    "custody_metadata_bytes_read",
+    "segment_bytes_read",
+    "committed_member_rows_examined",
+];
+const RECORD_REVISE_SEMANTIC_ORACLE_KEYS: &[&str] = &[
+    "schema_version",
+    "result_schema_version",
+    "domain",
+    "source_path",
+    "command_id",
+    "previous_revision",
+];
+const PG_REVISION_SOURCE_READ_WORK_KEYS: &[&str] = &[
+    "scope",
+    "exact_source_members_read",
+    "exact_source_bytes_read",
+    "historical_source_members_read",
+    "historical_source_bytes_read",
+    "custody_metadata_bytes_read",
+    "segment_bytes_read",
+    "committed_member_rows_examined",
+    "metadata_member_lookups",
+    "directory_index_rows_examined",
+    "unique_index_lookups",
+    "text_identity_lookups",
+];
+
+fn object_has_exact_keys(value: &Value, keys: &[&str]) -> bool {
+    value.as_object().is_some_and(|object| {
+        object.len() == keys.len() && keys.iter().all(|key| object.contains_key(*key))
+    })
+}
+
+fn exact_source_read_work_matches(expected: &Value, actual: &Value) -> bool {
+    object_has_exact_keys(expected, EXACT_SOURCE_READ_WORK_KEYS)
+        && object_has_exact_keys(actual, EXACT_SOURCE_READ_WORK_KEYS)
+        && EXACT_SOURCE_READ_WORK_KEYS.iter().all(|key| {
+            expected[*key].as_u64() == Some(0)
+                && actual[*key]
+                    .as_u64()
+                    .is_some_and(|value| value <= MAX_POSTLOAD_SOURCE_READ_WORK_VALUE)
+        })
+}
+
+fn exact_source_projection_template_valid(op: &Operation, expected: &Value) -> bool {
+    let Some(encoded) = expected.get("content_base64").and_then(Value::as_str) else {
+        return false;
+    };
+    let Some(bytes) = expected.get("bytes").and_then(Value::as_u64) else {
+        return false;
+    };
+    let encoded_len = bytes
+        .saturating_add(2)
+        .checked_div(3)
+        .and_then(|groups| groups.checked_mul(4));
+    object_has_exact_keys(expected, EXACT_SOURCE_PROJECTION_BODY_KEYS)
+        && expected["schema_version"] == "tos_source_projection_exact_v1"
+        && expected["domain"]
+            .as_str()
+            .is_some_and(|domain| !domain.is_empty() && domain.len() <= 1_024)
+        && expected["source_path"] == op.request["source_path"]
+        && expected["revision"] == op.request["revision"]
+        && op.request["revision"]
+            .as_u64()
+            .is_some_and(|revision| revision > 0)
+        && (1..=MAX_POSTLOAD_EXACT_SOURCE_BYTES).contains(&bytes)
+        && expected["sha256"].as_str().is_some_and(valid_sha)
+        && encoded.is_ascii()
+        && encoded_len == Some(encoded.len() as u64)
+        && exact_source_read_work_matches(
+            &expected["source_read_work"],
+            &expected["source_read_work"],
+        )
+}
+
+fn exact_source_projection_response_matches(
+    op: &Operation,
+    expected: &Value,
+    actual: &Value,
+) -> bool {
+    if !exact_source_projection_operation(op)
+        || !exact_source_projection_template_valid(op, expected)
+        || !object_has_exact_keys(actual, EXACT_SOURCE_PROJECTION_BODY_KEYS)
+        || actual["schema_version"] != "tos_source_projection_exact_v1"
+        || !exact_source_read_work_matches(
+            &expected["source_read_work"],
+            &actual["source_read_work"],
+        )
+    {
+        return false;
+    }
+    [
+        "schema_version",
+        "domain",
+        "source_path",
+        "revision",
+        "bytes",
+        "sha256",
+        "content_base64",
+    ]
+    .iter()
+    .all(|key| expected[*key] == actual[*key])
+}
+
+fn record_revise_semantic_oracle_present(value: &Value) -> bool {
+    value.get("schema_version").and_then(Value::as_str)
+        == Some(RECORD_REVISE_SEMANTIC_ORACLE_SCHEMA)
+}
+
+fn record_revise_owner_context(op: &Operation) -> Option<(Value, Value, String, String)> {
+    let invocation = read_stage_json(Path::new(invocation_argument(op)?)).ok()?;
+    if invocation["schema_version"] != "tos_local_pg_record_revision_invocation_v1" {
+        return None;
+    }
+    let domain = invocation
+        .pointer("/source_selection/domain")
+        .and_then(Value::as_str)?
+        .to_owned();
+    let owner_path = PathBuf::from(invocation["owner_config"].as_str()?);
+    let owner = read_stage_json(&owner_path).ok()?;
+    let source_path = owner["source_path"].as_str()?.to_owned();
+    tos_foundation::RelativePath::parse(&source_path).ok()?;
+    Some((invocation, owner, domain, source_path))
+}
+
+fn record_revise_semantic_oracle_valid(op: &Operation, expected: &Value) -> bool {
+    if op.channel != "sdk"
+        || operation_name(op) != Some("record.revise")
+        || op.expected_status != 0
+        || op.expected_sha256.is_some()
+        || op.expected_stderr_prefix.is_some()
+        || !op.ignored_json_paths.is_empty()
+        || op.retry_same_command_id
+        || op.reconnect_before
+        || op.bind_expected_configuration_from_owner
+        || op.bind_expected_from.is_none()
+        || !record_revise_semantic_oracle_present(expected)
+        || !object_has_exact_keys(expected, RECORD_REVISE_SEMANTIC_ORACLE_KEYS)
+        || expected["result_schema_version"] != RECORD_REVISE_RESULT_SCHEMA
+    {
+        return false;
+    }
+    let Some(command_id) = op.request.get("command_id").and_then(Value::as_str) else {
+        return false;
+    };
+    if command_id.is_empty() || command_id.len() > 128 {
+        return false;
+    }
+    let Some((_, _, domain, source_path)) = record_revise_owner_context(op) else {
+        return false;
+    };
+    expected["domain"].as_str() == Some(domain.as_str())
+        && expected["source_path"].as_str() == Some(source_path.as_str())
+        && expected["command_id"].as_str() == Some(command_id)
+        && expected["previous_revision"]
+            .as_str()
+            .and_then(|value| value.strip_prefix("sha256:"))
+            .is_some_and(valid_sha)
+}
+
+fn record_revise_preview_response_valid(
+    op: &Operation,
+    expected: &Value,
+    response: &Value,
+) -> bool {
+    if !record_revise_semantic_oracle_valid(op, expected)
+        || !object_has_exact_keys(response, &["schema_version", "result", "grants_admission"])
+        || response["schema_version"] != "tos_local_pg_record_revision_result_v1"
+        || response["grants_admission"] != false
+    {
+        return false;
+    }
+    let result = &response["result"];
+    result["schema_version"] == RECORD_REVISE_RESULT_SCHEMA
+        && result["source_path"] == expected["source_path"]
+        && result["revision"] == expected["previous_revision"]
+        && result["owner_configuration"]
+            .as_str()
+            .is_some_and(|digest| digest.strip_prefix("sha256:").is_some_and(valid_sha))
+        && result["source"].as_object().is_some()
+        && result["receipt"] == Value::Null
+        && result["replayed"] == false
+        && result["grants_admission"] == false
+        && result["expected_dependencies"]
+            .as_str()
+            .is_some_and(|digest| digest.strip_prefix("sha256:").is_some_and(valid_sha))
+        && result["prepared_source"].as_object().is_some()
+        && result["prepared_forms"].as_array().is_some()
+        && result["prepared_materializations"].as_array().is_some()
+        && result
+            .get("command_operations")
+            .and_then(Value::as_array)
+            .is_some_and(|operations| {
+                operations
+                    .iter()
+                    .any(|operation| operation.as_str() == Some("prepare-revise"))
+            })
+}
+
+fn pg_revision_source_read_work_valid(value: &Value) -> bool {
+    object_has_exact_keys(value, PG_REVISION_SOURCE_READ_WORK_KEYS)
+        && value["scope"]
+            == "bounded PG/STO source selection; software capture and physical I/O excluded"
+        && PG_REVISION_SOURCE_READ_WORK_KEYS
+            .iter()
+            .filter(|key| **key != "scope")
+            .all(|key| {
+                value[*key]
+                    .as_u64()
+                    .is_some_and(|count| count <= MAX_POSTLOAD_SOURCE_READ_WORK_VALUE)
+            })
+}
+
+fn record_revise_result_keyset_matches(preview: &Value, actual: &Value) -> bool {
+    const PREVIEW_ONLY: &[&str] = &[
+        "prepared_source",
+        "prepared_forms",
+        "prepared_materializations",
+        "expected_dependencies",
+        "expected_publication",
+    ];
+    let Some(preview) = preview.as_object() else {
+        return false;
+    };
+    let Some(actual) = actual.as_object() else {
+        return false;
+    };
+    let mut expected_keys = preview
+        .keys()
+        .filter(|key| !PREVIEW_ONLY.contains(&key.as_str()))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    expected_keys.insert("durable_commit".to_owned());
+    expected_keys.len() == actual.len() && expected_keys.iter().all(|key| actual.contains_key(key))
+}
+
+fn record_revise_semantic_response_matches(
+    op: &Operation,
+    expected: &Value,
+    actual: &Value,
+) -> bool {
+    if op.idempotency_replay_of.is_some() || !record_revise_semantic_oracle_valid(op, expected) {
+        return false;
+    }
+    let Some(preview) = op.bound_revision_preview.as_ref() else {
+        return false;
+    };
+    if !object_has_exact_keys(preview, &["schema_version", "result", "grants_admission"])
+        || preview["schema_version"] != "tos_local_pg_record_revision_result_v1"
+        || preview["grants_admission"] != false
+    {
+        return false;
+    }
+    let preview_result = &preview["result"];
+    let result = &actual["result"];
+    let Some((_, owner, domain, source_path)) = record_revise_owner_context(op) else {
+        return false;
+    };
+    if !object_has_exact_keys(actual, &["schema_version", "result", "grants_admission"])
+        || actual["schema_version"] != "tos_local_pg_record_revision_result_v1"
+        || actual["grants_admission"] != false
+        || preview_result["schema_version"] != RECORD_REVISE_RESULT_SCHEMA
+        || result["schema_version"] != RECORD_REVISE_RESULT_SCHEMA
+        || !record_revise_result_keyset_matches(preview_result, result)
+        || expected["domain"].as_str() != Some(domain.as_str())
+        || expected["source_path"].as_str() != Some(source_path.as_str())
+        || result["source_path"].as_str() != Some(source_path.as_str())
+        || preview_result["source_path"].as_str() != Some(source_path.as_str())
+        || result["owner_configuration"] != preview_result["owner_configuration"]
+        || !digest_value(&result["owner_configuration"])
+        || result["source"] != preview_result["prepared_source"]
+        || result["materializations"] != preview_result["prepared_materializations"]
+        || result["replayed"] != false
+        || result["grants_admission"] != false
+        || result["revision"].as_str().is_none_or(|revision| {
+            !revision.strip_prefix("sha256:").is_some_and(valid_sha)
+                || revision == expected["previous_revision"].as_str().unwrap_or_default()
+        })
+        || preview_result["revision"] != expected["previous_revision"]
+        || op.request["expected_revision"] != expected["previous_revision"]
+        || op.request["expected_source"] != preview_result["source"]
+        || op.request["expected_configuration"] != preview_result["owner_configuration"]
+        || op.request["expected_dependencies"] != preview_result["expected_dependencies"]
+        || op.request["expected_publication"] != preview_result["expected_publication"]
+        || preview_result["receipt"] != Value::Null
+        || preview_result["source"].as_object().is_none()
+        || preview_result["prepared_source"].as_object().is_none()
+        || preview_result["prepared_forms"].as_array().is_none()
+        || preview_result["prepared_materializations"]
+            .as_array()
+            .is_none()
+        || !digest_value(&preview_result["expected_dependencies"])
+        || [
+            preview_result.get("publication_snapshot"),
+            result.get("publication_snapshot"),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|snapshot| {
+            !snapshot.is_null()
+                && snapshot
+                    .as_str()
+                    .is_none_or(|value| value.is_empty() || value.len() > 1_024)
+        })
+        || !pg_revision_source_read_work_valid(&result["source_read_work"])
+    {
+        return false;
+    }
+
+    // All owner/profile/capability fields retain their preview shape and value.
+    // Only the revision's documented commit outputs may change.
+    const COMMIT_FIELDS: &[&str] = &[
+        "source",
+        "revision",
+        "receipt",
+        "replayed",
+        "materializations",
+        "publication_snapshot",
+        "source_read_work",
+        "durable_commit",
+        "source_profile",
+        "source_record_profile",
+    ];
+    if preview_result.as_object().is_none_or(|fields| {
+        fields.iter().any(|(key, value)| {
+            ![
+                "prepared_source",
+                "prepared_forms",
+                "prepared_materializations",
+                "expected_dependencies",
+                "expected_publication",
+            ]
+            .contains(&key.as_str())
+                && !COMMIT_FIELDS.contains(&key.as_str())
+                && result.get(key) != Some(value)
+        })
+    }) {
+        return false;
+    }
+    for key in ["source_profile", "source_record_profile"] {
+        if preview_result
+            .get(key)
+            .is_some_and(|value| !value.is_object() || !result[key].is_object())
+        {
+            return false;
+        }
+    }
+    let Some(commit_seq) = result["durable_commit"]["commit_seq"].as_u64() else {
+        return false;
+    };
+    let durable_commit = &result["durable_commit"];
+    if !object_has_exact_keys(
+        durable_commit,
+        &[
+            "domain",
+            "command_id",
+            "prepare_id_sha256",
+            "commit_seq",
+            "request_sha256",
+            "delta_sha256",
+            "member_root_sha256",
+            "replayed",
+        ],
+    ) || durable_commit["domain"].as_str() != Some(domain.as_str())
+        || durable_commit["command_id"] != op.request["command_id"]
+        || commit_seq == 0
+        || commit_seq > i64::MAX as u64
+        || durable_commit["replayed"] != false
+        || ![
+            "prepare_id_sha256",
+            "request_sha256",
+            "delta_sha256",
+            "member_root_sha256",
+        ]
+        .iter()
+        .all(|key| digest_value(&durable_commit[*key]))
+    {
+        return false;
+    }
+
+    let receipt = &result["receipt"];
+    let record_id = owner["record_id"].as_str().unwrap_or_default();
+    let previous_revision = expected["previous_revision"].as_str().unwrap_or_default();
+    let expected_archive_path = previous_revision.strip_prefix("sha256:").map(|revision| {
+        format!(
+            "ToS/source-witnesses/.record-revisions/{}-{revision}",
+            sha(record_id.as_bytes())
+        )
+    });
+    let Some(mut changed_fields) = op.request["fields"]
+        .as_object()
+        .map(|fields| fields.keys().cloned().collect::<Vec<_>>())
+    else {
+        return false;
+    };
+    changed_fields.sort();
+    let expected_changed_fields =
+        Value::Array(changed_fields.into_iter().map(Value::String).collect());
+    if !object_has_exact_keys(
+        receipt,
+        &[
+            "command_id",
+            "request_digest",
+            "principal_id",
+            "authority_ref",
+            "owner_configuration",
+            "recorded_at",
+            "reason",
+            "previous_source",
+            "source",
+            "previous_revision",
+            "archive_path",
+            "dependencies",
+            "changed_fields",
+            "forms",
+            "grants_admission",
+            "request",
+            "publication",
+        ],
+    ) || receipt["command_id"] != op.request["command_id"]
+        || !digest_value(&receipt["request_digest"])
+        || receipt["principal_id"] != owner["principal_id"]
+        || receipt["authority_ref"] != owner["authority_ref"]
+        || receipt["owner_configuration"] != result["owner_configuration"]
+        || !valid_utc_timestamp(&receipt["recorded_at"])
+        || receipt["reason"] != op.request["reason"]
+        || receipt["previous_source"] != preview_result["source"]
+        || receipt["source"] != result["source"]
+        || receipt["previous_revision"] != expected["previous_revision"]
+        || Some(
+            receipt["archive_path"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned(),
+        ) != expected_archive_path
+        || receipt["dependencies"] != op.request["expected_dependencies"]
+        || receipt["changed_fields"] != expected_changed_fields
+        || receipt["forms"] != preview_result["prepared_forms"]
+        || receipt["grants_admission"] != false
+        || receipt["request"] != op.request
+        || !object_has_exact_keys(
+            &receipt["publication"],
+            &["protocol", "transaction_id", "selected_files"],
+        )
+        || receipt["publication"]["protocol"] != result["publication_protocol"]
+        || receipt["publication"]["transaction_id"]
+            .as_str()
+            .is_none_or(|value| !value.strip_prefix("sha256:").is_some_and(valid_sha))
+        || receipt["publication"]["selected_files"] != result["selected_files"]
+    {
+        return false;
+    }
+    true
+}
+
+fn record_revise_semantic_replay_response_matches(
+    op: &Operation,
+    expected: &Value,
+    actual: &Value,
+) -> bool {
+    if op.idempotency_replay_of.is_none()
+        || !record_revise_semantic_oracle_valid(op, expected)
+        || !idempotency_replay_flags_are_true(op, actual)
+    {
+        return false;
+    }
+    let Some(original) = op.bound_replay_response.as_ref() else {
+        return false;
+    };
+    if !object_has_exact_keys(original, &["schema_version", "result", "grants_admission"])
+        || original["schema_version"] != "tos_local_pg_record_revision_result_v1"
+        || original["grants_admission"] != false
+        || original.pointer("/result/replayed") != Some(&Value::Bool(false))
+        || original.pointer("/result/durable_commit/replayed") != Some(&Value::Bool(false))
+        || !pg_revision_source_read_work_valid(&original["result"]["source_read_work"])
+        || !pg_revision_source_read_work_valid(&actual["result"]["source_read_work"])
+    {
+        return false;
+    }
+    // Source-read counters are per invocation; replay traverses the owner
+    // route again. Keep their exact typed shape and cap, while matching every
+    // semantic response field and changing only the two replay flags.
+    let mut expected_replay = original.clone();
+    expected_replay["result"]["replayed"] = Value::Bool(true);
+    expected_replay["result"]["durable_commit"]["replayed"] = Value::Bool(true);
+    expected_replay["result"]["source_read_work"] = actual["result"]["source_read_work"].clone();
+    expected_replay == *actual
+}
+
 // Form-set bytes contain the command receipt, including its runtime timestamp.
 // Check that revision against the exact published stage instead of the separate
 // preflight's receipt; the rest of the response still matches the semantic oracle.
@@ -3055,7 +3662,18 @@ fn outcome_matches(
                     .map(|path| (*path).to_owned()),
             );
         }
-        body_matches(body, &actual, &ignored_paths, "")
+        let matches_body = if record_revise_semantic_oracle_present(body) {
+            if op.idempotency_replay_of.is_some() {
+                record_revise_semantic_replay_response_matches(op, body, &actual)
+            } else {
+                record_revise_semantic_response_matches(op, body, &actual)
+            }
+        } else if exact_source_projection_operation(op) {
+            exact_source_projection_response_matches(op, body, &actual)
+        } else {
+            body_matches(body, &actual, &ignored_paths, "")
+        };
+        matches_body
             && (op.idempotency_replay_of.is_none()
                 || idempotency_replay_flags_are_true(op, &actual))
             && (!ignored_paths.contains("/result/revision")
@@ -3075,6 +3693,15 @@ fn outcome_matches(
 }
 
 fn valid_expected(value: &ExpectedOutcome, sdk: bool, response_cap: usize) -> bool {
+    if value
+        .body
+        .as_ref()
+        .is_some_and(record_revise_semantic_oracle_present)
+    {
+        // This descriptor is accepted only by the bound native-PG record.revise
+        // route below; it is never a generic static body or status-only oracle.
+        return false;
+    }
     let status_valid = if sdk {
         matches!(value.status, 0 | 2)
     } else {
@@ -3281,6 +3908,27 @@ fn bind_expected_fields(op: &mut Operation, response: &Value) -> Result<(), Stri
             .cloned()
             .ok_or("selected revision preview lacks expected_publication")?;
     }
+    if let Some(expected) = op
+        .expected_body
+        .as_ref()
+        .filter(|body| record_revise_semantic_oracle_present(body))
+    {
+        if operation != "record.revise"
+            || !record_revise_preview_response_valid(op, expected, response)
+            || op.request["expected_revision"] != expected["previous_revision"]
+            || op.request["expected_source"] != result["source"]
+            || op.request["expected_configuration"] != result["owner_configuration"]
+            || op.request["expected_dependencies"] != result["expected_dependencies"]
+            || op.request["expected_publication"] != result["expected_publication"]
+        {
+            return Err(
+                "semantic record.revise oracle does not bind to its exact serial owner preview"
+                    .into(),
+            );
+        }
+        op.bound_revision_preview = Some(response.clone());
+        return Ok(());
+    }
     let bound_configuration = op.request["expected_configuration"].clone();
     if let Some(expected_body) = op.expected_body.as_mut() {
         if bound_configuration
@@ -3334,6 +3982,33 @@ fn bind_operation_from_setup(
     let response = receipt
         .get("response")
         .ok_or("setup preview response absent")?;
+    if op
+        .expected_body
+        .as_ref()
+        .is_some_and(record_revise_semantic_oracle_present)
+    {
+        let setup_sdk_argv = receipt
+            .get("sdk_argv")
+            .and_then(Value::as_array)
+            .ok_or("semantic revision preview argv absent")?;
+        let setup_sdk_argv_matches = setup_sdk_argv.len() == op.sdk_argv.len()
+            && setup_sdk_argv
+                .iter()
+                .zip(&op.sdk_argv)
+                .all(|(setup_argument, command_argument)| {
+                    setup_argument.as_str() == Some(command_argument.as_str())
+                });
+        if preview_request["schema_version"] != "tos_local_source_command_v1"
+            || preview_request["operation"] != "prepare-revise"
+            || !setup_sdk_argv_matches
+            || invocation_argument(op).is_none()
+        {
+            return Err(
+                "semantic record.revise must use the same native invocation as prepare-revise"
+                    .into(),
+            );
+        }
+    }
     bind_expected_fields(op, response)
 }
 
@@ -3594,7 +4269,11 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
                 .flat_map(|session| &session.operations),
         )
         .chain(plan.postload.iter())
-        .filter(|operation| operation.channel == "sdk" && !native_query_source_read(operation))
+        .filter(|operation| {
+            operation.channel == "sdk"
+                && !native_query_source_read(operation)
+                && !native_pg_source_projection_read(operation)
+        })
     {
         let path =
             PathBuf::from(invocation_argument(operation).ok_or("SDK PG invocation path absent")?)
@@ -3924,10 +4603,11 @@ fn validate_existing_pg_stage(plan: &Plan, args: &Args) -> Result<(), String> {
             return Err("PG source-text selection must use its declared source-search profile and share the attached domain, source contract and store".into());
         }
     }
-    for operation in selected_operations
-        .iter()
-        .filter(|operation| operation.channel == "sdk" && !native_query_source_read(operation))
-    {
+    for operation in selected_operations.iter().filter(|operation| {
+        operation.channel == "sdk"
+            && !native_query_source_read(operation)
+            && !native_pg_source_projection_read(operation)
+    }) {
         let path =
             PathBuf::from(invocation_argument(operation).ok_or("SDK PG invocation path absent")?)
                 .canonicalize()
@@ -4042,26 +4722,28 @@ fn validate_projection_operation(
     args: &Args,
     allowed_operations: &[&str],
 ) -> Result<(), String> {
+    let argv = projection_selection_argv(operation).ok_or(
+        "projection operation requires its channel-specific native source-projection argv",
+    )?;
     let operation_name = operation.request["operation"]
         .as_str()
         .ok_or("projection request operation absent")?;
-    if operation.projection_argv.is_empty()
-        || operation.projection_argv.len() > 32
-        || operation.projection_argv[0].is_empty()
-        || !Path::new(&operation.projection_argv[0]).is_absolute()
-        || !operation
-            .projection_argv
-            .iter()
-            .any(|argument| argument == "source-projection")
+    let selected_sdk_projection = operation.channel == "sdk";
+    if argv.is_empty()
+        || argv.len() > 32
+        || argv[0].is_empty()
+        || !Path::new(&argv[0]).is_absolute()
+        || !argv.iter().any(|argument| argument == "source-projection")
         || !allowed_operations.contains(&operation_name)
-        || operation
-            .projection_argv
+        || argv
             .windows(2)
             .filter(|pair| pair[0] == "--selection")
             .count()
             != 1
         || !operation.request.is_object()
-        || !operation.sdk_argv.is_empty()
+        || (selected_sdk_projection && !native_pg_source_projection_read(operation))
+        || (selected_sdk_projection && !operation.projection_argv.is_empty())
+        || (!selected_sdk_projection && !operation.sdk_argv.is_empty())
         || operation.retry_same_command_id
         || operation.reconnect_before
         || operation.conflict_group.is_some()
@@ -4116,6 +4798,13 @@ fn validate_projection_operation(
                 return Err("navigation load advancement requires one bounded event and a successful exact response".into());
             }
         }
+        "exact-source" => {
+            if !exact_source_projection_request(&operation.request) {
+                return Err(
+                    "exact-source requires one selected relative path and positive revision".into(),
+                );
+            }
+        }
         "apply" if operation.interrupt_resume_after_ms.is_some() => {
             if operation.request.as_object().is_none_or(|fields| {
                 fields.len() != 2
@@ -4144,7 +4833,7 @@ fn validate_projection_operation(
     {
         return Err("projection interruption requires bounded multi-event apply progress".into());
     }
-    for argument in &operation.projection_argv {
+    for argument in argv {
         if argument.len() > 4096 {
             return Err("projection argv element exceeds 4096 bytes".into());
         }
@@ -4153,6 +4842,16 @@ fn validate_projection_operation(
 }
 
 fn outcome_report(op: &Operation) -> Value {
+    if op
+        .expected_body
+        .as_ref()
+        .is_some_and(record_revise_semantic_oracle_present)
+    {
+        return json!([{"status":0,"oracle":"prepare-bound-native-pg-record-revise-with-exact-postload-replay"}]);
+    }
+    if exact_source_projection_operation(op) {
+        return json!([{"status":0,"oracle":"exact-source-bytes-revision-and-bounded-read-work"}]);
+    }
     if op.channel == "projection" && op.request["operation"] == "advance-navigation" {
         return json!([{"status":0,"oracle":"bounded-navigation-range"}]);
     }
@@ -4468,12 +5167,27 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     && op.expected_sha256.is_none()
                     && op.expected_body.is_none()
                     && op.ignored_json_paths.is_empty()
+            } else if op
+                .expected_body
+                .as_ref()
+                .is_some_and(record_revise_semantic_oracle_present)
+            {
+                native_pg_stage
+                    && record_revise_semantic_oracle_valid(op, op.expected_body.as_ref().unwrap())
             } else if interrupted_projection_apply {
                 op.expected_status == 0
                     && op.expected_sha256.is_none()
                     && op.expected_body.is_none()
                     && op.ignored_json_paths.is_empty()
                     && op.alternate_outcomes.is_empty()
+            } else if exact_source_projection_operation(op) {
+                op.expected_status == 0
+                    && op.expected_sha256.is_none()
+                    && op
+                        .expected_body
+                        .as_ref()
+                        .is_some_and(|body| exact_source_projection_template_valid(op, body))
+                    && op.ignored_json_paths.is_empty()
             } else {
                 valid_expected(&primary, native_process, args.response_cap)
             };
@@ -4556,6 +5270,8 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         .filter(|pair| pair[0] == "--invocation")
                         .collect::<Vec<_>>();
                     let query_source_read = selected_query_source_read(op, args);
+                    let pg_projection_source_read =
+                        selected_native_pg_source_projection_read(op, args);
                     let owner_source_command =
                         op.sdk_argv.iter().any(|arg| arg == "source-commands");
                     let command_id = op
@@ -4609,8 +5325,11 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         || op.sdk_argv.len() > 32
                         || op.sdk_argv[0].is_empty()
                         || !Path::new(&op.sdk_argv[0]).is_absolute()
-                        || (!query_source_read && !owner_source_command)
-                        || (source_read_operation(op) && !query_source_read)
+                        || (!query_source_read
+                            && !pg_projection_source_read
+                            && !owner_source_command)
+                        || (source_read_operation(op)
+                            && !(query_source_read || pg_projection_source_read))
                         || (query_source_read
                             && (!exact_source_read_request(&op.request)
                                 || !invocation_args.is_empty()
@@ -4619,9 +5338,24 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                                 || op.conflict_group.is_some()
                                 || op.bind_expected_from.is_some()
                                 || op.bind_expected_configuration_from_owner))
+                        || (pg_projection_source_read
+                            && (op.expected_status != 0
+                                || op.expected_stderr_prefix.is_some()
+                                || !op.alternate_outcomes.is_empty()
+                                || !invocation_args.is_empty()
+                                || command_id.is_some()
+                                || op.retry_same_command_id
+                                || op.conflict_group.is_some()
+                                || op.bind_expected_from.is_some()
+                                || op.bind_expected_configuration_from_owner
+                                || op.reconnect_before
+                                || op.interrupt_resume_after_ms.is_some()))
                         || !op.projection_argv.is_empty()
-                        || (!query_source_read && invocation_args.len() != 1)
                         || (!query_source_read
+                            && !pg_projection_source_read
+                            && invocation_args.len() != 1)
+                        || (!query_source_read
+                            && !pg_projection_source_read
                             && command_id.is_none()
                             && !read_only_describe
                             && !read_only_rights_describe)
@@ -4636,7 +5370,13 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         || !op.request.is_object()
                         || json_bytes(&op.request)?.len() > args.request_cap
                     {
-                        return Err("SDK entries require the exact selected source-reader argv or one explicit native owner invocation".into());
+                        return Err("SDK entries require an exact selected source-reader/projection argv or one explicit native owner invocation".into());
+                    }
+                    if pg_projection_source_read {
+                        if !native_pg_stage {
+                            return Err("SDK source projection exact-source is permitted only in a selected native PostgreSQL stage".into());
+                        }
+                        validate_projection_operation(op, args, &["exact-source"])?;
                     }
                     if let Some(command_id) = command_id {
                         if !command_ids.insert(command_id.to_owned()) {
@@ -4821,9 +5561,17 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 || op.expected_body.is_none()
                 || target.expected_body.is_none()
                 || !target.expected_body.as_ref().is_some_and(|body| {
-                    IDEMPOTENCY_REPLAY_JSON_PATHS
-                        .iter()
-                        .all(|path| body.pointer(path) == Some(&Value::Bool(false)))
+                    if record_revise_semantic_oracle_present(body) {
+                        record_revise_semantic_oracle_valid(target, body)
+                            && op.expected_body.as_ref().is_some_and(|replay_body| {
+                                replay_body == body
+                                    && record_revise_semantic_oracle_valid(op, replay_body)
+                            })
+                    } else {
+                        IDEMPOTENCY_REPLAY_JSON_PATHS
+                            .iter()
+                            .all(|path| body.pointer(path) == Some(&Value::Bool(false)))
+                    }
                 })
                 || target.expected_status != 0
                 || target.conflict_group.is_some()
@@ -4858,6 +5606,14 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                 op.expected_status == 2
                     && op.expected_sha256.is_none()
                     && op.expected_body.is_none()
+                    && op.ignored_json_paths.is_empty()
+            } else if exact_source_projection_operation(op) {
+                op.expected_status == 0
+                    && op.expected_sha256.is_none()
+                    && op
+                        .expected_body
+                        .as_ref()
+                        .is_some_and(|body| exact_source_projection_template_valid(op, body))
                     && op.ignored_json_paths.is_empty()
             } else {
                 valid_expected(&primary, native_process, args.response_cap)
@@ -4897,6 +5653,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     .filter(|pair| pair[0] == "--invocation")
                     .collect::<Vec<_>>();
                 let query_source_read = selected_query_source_read(op, args);
+                let pg_projection_source_read = selected_native_pg_source_projection_read(op, args);
                 let command_id = op
                     .request
                     .get("command_id")
@@ -4908,13 +5665,22 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     || (op.expected_status != 0 && !postload_projection_rights_denial(op))
                     || !Path::new(&op.sdk_argv[0]).is_absolute()
                     || (!query_source_read
+                        && !pg_projection_source_read
                         && !op.sdk_argv.iter().any(|arg| arg == "source-commands"))
-                    || (source_read_operation(op) && !query_source_read)
+                    || (source_read_operation(op)
+                        && !(query_source_read || pg_projection_source_read))
                     || (query_source_read && !exact_source_read_request(&op.request))
+                    || (pg_projection_source_read
+                        && (op.expected_status != 0
+                            || op.expected_stderr_prefix.is_some()
+                            || !op.alternate_outcomes.is_empty()))
                     || !op.projection_argv.is_empty()
-                    || (!query_source_read && invocation_args.len() != 1)
-                    || (query_source_read && !invocation_args.is_empty())
+                    || ((!query_source_read && !pg_projection_source_read)
+                        && invocation_args.len() != 1)
+                    || ((query_source_read || pg_projection_source_read)
+                        && !invocation_args.is_empty())
                     || (!query_source_read
+                        && !pg_projection_source_read
                         && !read_only_describe_operation(op)
                         && (command_id.is_none()
                             || !(source_read_operation(op)
@@ -4944,6 +5710,12 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                         || op.request["expected_rights_version"] != Value::Null
                     {
                         return Err("postload rights.revoke requires the ordinary PostgreSQL rights invocation with dynamic describe binding".into());
+                    }
+                    if pg_projection_source_read {
+                        if !native_pg_stage {
+                            return Err("postload SDK source projection exact-source is permitted only in a selected native PostgreSQL stage".into());
+                        }
+                        validate_projection_operation(op, args, &["exact-source"])?;
                     }
                 }
                 if postload_rights_check(op) {
@@ -7291,6 +8063,16 @@ fn main_result() -> Result<i32, String> {
         .iter()
         .filter(|operation| postload_selected_source_integrity(operation))
         .count();
+    let postload_selected_vector_read_operations = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_selected_vector_integrity(operation))
+        .count();
+    let postload_sdk_pg_source_read_operations = plan
+        .postload
+        .iter()
+        .filter(|operation| postload_sdk_pg_source_integrity(operation))
+        .count();
     let postload_pg_source_read_operations = plan
         .postload
         .iter()
@@ -7529,6 +8311,9 @@ fn main_result() -> Result<i32, String> {
                 "scheduled_sdk_source_commands": sdk_source_command_operations,
                 "scheduled_projection_operations": projection_operations,
                 "postload_source_integrity_checks": postload_source_read_operations,
+                "postload_selected_source_integrity_checks": postload_source_read_operations,
+                "postload_selected_vector_integrity_checks": postload_selected_vector_read_operations,
+                "postload_sdk_pg_source_integrity_checks": postload_sdk_pg_source_read_operations,
                 "postload_native_pg_integrity_checks": postload_pg_source_read_operations,
                 "postload_rights_state_checks": postload_rights_checks,
                 "postload_rights_revocations": postload_rights_revocations,
@@ -7808,6 +8593,7 @@ fn main_result() -> Result<i32, String> {
     let mut setup_successes = 0usize;
     let mut setup_failures = 0usize;
     let mut successful_load_mutations = BTreeSet::new();
+    let mut successful_load_mutation_responses = BTreeMap::<String, Value>::new();
     let setup_started_at = Instant::now();
     for setup_index in 0..plan.setup.len() {
         if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
@@ -7852,7 +8638,7 @@ fn main_result() -> Result<i32, String> {
             if let Some(body) = result.response_body.clone() {
                 setup_results.insert(
                     op.label.clone(),
-                    json!({"request":op.request.clone(),"response":body}),
+                    json!({"request":op.request.clone(),"sdk_argv":op.sdk_argv.clone(),"response":body}),
                 );
             }
         } else {
@@ -8019,6 +8805,9 @@ fn main_result() -> Result<i32, String> {
             if passed && result.successful && native_mutation_operation(&op) {
                 if let Some(command_id) = op.request["command_id"].as_str() {
                     successful_load_mutations.insert(command_id.to_owned());
+                    if let Some(response) = result.response_body.clone() {
+                        successful_load_mutation_responses.insert(command_id.to_owned(), response);
+                    }
                 }
             }
             if result.not_started {
@@ -8191,6 +8980,8 @@ fn main_result() -> Result<i32, String> {
     let mut postload_checks_failed = 0usize;
     let mut postload_integrity_passed = 0usize;
     let mut postload_selected_integrity_passed = 0usize;
+    let mut postload_selected_vector_integrity_passed = 0usize;
+    let mut postload_sdk_pg_source_integrity_passed = 0usize;
     let mut postload_pg_integrity_passed = 0usize;
     let mut postload_rights_passed = 0usize;
     let mut postload_rights_revocation_passed = 0usize;
@@ -8204,6 +8995,11 @@ fn main_result() -> Result<i32, String> {
     for (index, template) in plan.postload.iter().enumerate() {
         let kind = postload_check_kind(template);
         let mut op = template.clone();
+        if let Some(target) = op.idempotency_replay_of.as_deref()
+            && let Some(response) = successful_load_mutation_responses.get(target)
+        {
+            op.bound_replay_response = Some(response.clone());
+        }
         let mut result = if setup_failures != 0 {
             operation_error("serial setup did not complete")
         } else if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
@@ -8284,6 +9080,7 @@ fn main_result() -> Result<i32, String> {
             match kind {
                 "source_integrity" => postload_integrity_passed += 1,
                 "postgresql_source_integrity" => postload_integrity_passed += 1,
+                "sdk_postgresql_source_integrity" => postload_integrity_passed += 1,
                 "rights_state" => postload_rights_passed += 1,
                 "rights_revocation" => postload_rights_revocation_passed += 1,
                 "rights_denial" => postload_rights_denial_passed += 1,
@@ -8296,6 +9093,12 @@ fn main_result() -> Result<i32, String> {
             }
             if postload_selected_source_integrity(&op) {
                 postload_selected_integrity_passed += 1;
+            }
+            if postload_selected_vector_integrity(&op) {
+                postload_selected_vector_integrity_passed += 1;
+            }
+            if postload_sdk_pg_source_integrity(&op) {
+                postload_sdk_pg_source_integrity_passed += 1;
             }
             if let Some(response) = result.response_body.clone() {
                 postload_results.insert(
@@ -8458,7 +9261,9 @@ fn main_result() -> Result<i32, String> {
         "postload_checks_passed": postload_checks_passed,
         "postload_checks_failed": postload_checks_failed,
         "postload_source_integrity_passed": postload_integrity_passed,
-        "postload_selected_vector_integrity_passed": postload_selected_integrity_passed,
+        "postload_selected_source_integrity_passed": postload_selected_integrity_passed,
+        "postload_selected_vector_integrity_passed": postload_selected_vector_integrity_passed,
+        "postload_sdk_pg_source_integrity_passed": postload_sdk_pg_source_integrity_passed,
         "postload_native_pg_integrity_passed": postload_pg_integrity_passed,
         "postload_rights_state_passed": postload_rights_passed,
         "postload_rights_revocations_passed": postload_rights_revocation_passed,
@@ -8618,8 +9423,16 @@ fn main_result() -> Result<i32, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::copy_stage_tree;
+    use super::{
+        MAX_POSTLOAD_SOURCE_READ_WORK_VALUE, Operation, RECORD_REVISE_RESULT_SCHEMA,
+        RECORD_REVISE_SEMANTIC_ORACLE_SCHEMA, copy_stage_tree, exact_source_projection_operation,
+        exact_source_projection_response_matches, record_revise_semantic_oracle_valid,
+        record_revise_semantic_replay_response_matches, record_revise_semantic_response_matches,
+        sha,
+    };
+    use serde_json::{Value, json};
     use std::fs;
+    use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -8641,6 +9454,197 @@ mod tests {
         fs::write(source.join("root.bin"), b"root").expect("write root fixture");
         fs::write(source.join("nested/inner.bin"), b"nest").expect("write nested fixture");
         (root, source)
+    }
+
+    fn revision_oracle_fixture() -> (PathBuf, Operation, Value, Value) {
+        let (root, _) = source_tree();
+        let owner_path = root.join("owner.json");
+        let invocation_path = root.join("invocation.json");
+        let source_path = "ToS/source-witnesses/item.json";
+        let domain = "tos-test-record-revision";
+        let command_id = "record-revise-1";
+        let previous_revision = format!("sha256:{}", "a".repeat(64));
+        let configuration = format!("sha256:{}", "b".repeat(64));
+        let dependencies = format!("sha256:{}", "c".repeat(64));
+        let owner = json!({
+            "schema_version":"tos_local_pg_record_revision_owner_v1",
+            "record_id":"record-test",
+            "source_path":source_path,
+            "principal_id":"principal-test",
+            "authority_ref":"authority-test"
+        });
+        fs::write(&owner_path, serde_json::to_vec(&owner).unwrap()).unwrap();
+        fs::set_permissions(&owner_path, fs::Permissions::from_mode(0o600)).unwrap();
+        let invocation = json!({
+            "schema_version":"tos_local_pg_record_revision_invocation_v1",
+            "owner_config":owner_path,
+            "source_selection":{"domain":domain}
+        });
+        fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+        let old_source = json!({"record_id":"record-test","title":"before"});
+        let new_source = json!({"record_id":"record-test","title":"after"});
+        let selected_files = json!([
+            "item.human-forms.json",
+            "item.json",
+            "revision-history.json"
+        ]);
+        let work = json!({
+            "scope":"bounded PG/STO source selection; software capture and physical I/O excluded",
+            "exact_source_members_read":1,
+            "exact_source_bytes_read":512,
+            "historical_source_members_read":1,
+            "historical_source_bytes_read":512,
+            "custody_metadata_bytes_read":128,
+            "segment_bytes_read":512,
+            "committed_member_rows_examined":2,
+            "metadata_member_lookups":1,
+            "directory_index_rows_examined":2,
+            "unique_index_lookups":1,
+            "text_identity_lookups":1
+        });
+        let preview_result = json!({
+            "schema_version":RECORD_REVISE_RESULT_SCHEMA,
+            "authentication":"local-unix-account",
+            "owner_configuration":configuration,
+            "source_path":source_path,
+            "source":old_source,
+            "revision":previous_revision,
+            "command_operations":["describe","prepare-revise","record.revise"],
+            "supported_operations":["record.revise"],
+            "allowed_operations":["record.revise"],
+            "allowed_fields":["title"],
+            "allowed_form_ids":[],
+            "receipt":null,
+            "replayed":false,
+            "grants_admission":false,
+            "materializations":[],
+            "publication_snapshot":null,
+            "publication_protocol":"tos-selected-source-publication-v1",
+            "selected_files":selected_files,
+            "recovery":null,
+            "record_type":"work",
+            "source_profile":{"record_type":"work"},
+            "source_read_work":work,
+            "prepared_source":new_source,
+            "prepared_forms":[],
+            "prepared_materializations":[],
+            "expected_dependencies":dependencies,
+            "expected_publication":null
+        });
+        let preview = json!({
+            "schema_version":"tos_local_pg_record_revision_result_v1",
+            "result":preview_result,
+            "grants_admission":false
+        });
+        let request = json!({
+            "schema_version":"tos_local_source_command_v1",
+            "operation":"record.revise",
+            "command_id":command_id,
+            "reason":"bounded oracle test",
+            "fields":{"title":"after"},
+            "forms":[],
+            "expected_configuration":configuration,
+            "expected_source":old_source,
+            "expected_revision":previous_revision,
+            "expected_dependencies":dependencies,
+            "expected_publication":null
+        });
+        let expected = json!({
+            "schema_version":RECORD_REVISE_SEMANTIC_ORACLE_SCHEMA,
+            "result_schema_version":RECORD_REVISE_RESULT_SCHEMA,
+            "domain":domain,
+            "source_path":source_path,
+            "command_id":command_id,
+            "previous_revision":previous_revision
+        });
+        let op = Operation {
+            channel: "sdk".into(),
+            label: "revision".into(),
+            request,
+            expected_status: 0,
+            expected_sha256: None,
+            expected_body: Some(expected.clone()),
+            expected_stderr_prefix: None,
+            expected_rights_allowed: None,
+            ignored_json_paths: Vec::new(),
+            alternate_outcomes: Vec::new(),
+            retry_same_command_id: false,
+            reconnect_before: false,
+            conflict_group: None,
+            bind_expected_configuration_from_owner: false,
+            sdk_argv: vec![
+                "/bin/fixture".into(),
+                "source-commands".into(),
+                "--invocation".into(),
+                invocation_path.to_string_lossy().into_owned(),
+            ],
+            projection_argv: Vec::new(),
+            interrupt_resume_after_ms: None,
+            bind_expected_from: Some("prepare-revise".into()),
+            idempotency_replay_of: None,
+            bound_revision_preview: Some(preview),
+            bound_replay_response: None,
+        };
+        let mut result = preview_result;
+        let result_object = result.as_object_mut().unwrap();
+        for key in [
+            "prepared_source",
+            "prepared_forms",
+            "prepared_materializations",
+            "expected_dependencies",
+            "expected_publication",
+        ] {
+            result_object.remove(key);
+        }
+        result["source"] = new_source.clone();
+        result["revision"] = json!(format!("sha256:{}", "d".repeat(64)));
+        result["materializations"] = json!([]);
+        result["source_read_work"] = work;
+        result["receipt"] = json!({
+            "command_id":command_id,
+            "request_digest":format!("sha256:{}", "e".repeat(64)),
+            "principal_id":"principal-test",
+            "authority_ref":"authority-test",
+            "owner_configuration":configuration,
+            "recorded_at":"2026-10-13T00:00:00Z",
+            "reason":"bounded oracle test",
+            "previous_source":old_source,
+            "source":new_source,
+            "previous_revision":previous_revision,
+            "archive_path":format!(
+                "ToS/source-witnesses/.record-revisions/{}-{}",
+                sha(b"record-test"),
+                previous_revision.trim_start_matches("sha256:")
+            ),
+            "dependencies":dependencies,
+            "changed_fields":["title"],
+            "forms":[],
+            "grants_admission":false,
+            "request":op.request,
+            "publication":{
+                "protocol":"tos-selected-source-publication-v1",
+                "transaction_id":format!("sha256:{}", "f".repeat(64)),
+                "selected_files":selected_files
+            }
+        });
+        result["durable_commit"] = json!({
+            "domain":domain,
+            "command_id":command_id,
+            "prepare_id_sha256":format!("sha256:{}", "1".repeat(64)),
+            "commit_seq":9,
+            "request_sha256":format!("sha256:{}", "2".repeat(64)),
+            "delta_sha256":format!("sha256:{}", "3".repeat(64)),
+            "member_root_sha256":format!("sha256:{}", "4".repeat(64)),
+            "replayed":false
+        });
+        let actual = json!({
+            "schema_version":"tos_local_pg_record_revision_result_v1",
+            "result":result,
+            "grants_admission":false
+        });
+        (root, op, expected, actual)
     }
 
     #[test]
@@ -8670,6 +9674,171 @@ mod tests {
             b"nest"
         );
         fs::remove_dir_all(root).expect("remove accepted fixture");
+    }
+
+    #[test]
+    fn native_pg_record_revise_semantic_oracle_accepts_preview_bound_commit() {
+        let (root, op, expected, actual) = revision_oracle_fixture();
+        assert!(record_revise_semantic_oracle_valid(&op, &expected));
+        assert!(record_revise_semantic_response_matches(
+            &op, &expected, &actual
+        ));
+        fs::remove_dir_all(root).expect("remove oracle fixture");
+    }
+
+    fn exact_source_projection_fixture(channel: &str) -> (Operation, Value, Value) {
+        let expected = json!({
+            "schema_version":"tos_source_projection_exact_v1",
+            "domain":"tos-test-source",
+            "source_path":"ToS/source-witnesses/item.json",
+            "revision":7,
+            "bytes":3,
+            "sha256":"a".repeat(64),
+            "source_read_work":{
+                "custody_metadata_bytes_read":0,
+                "segment_bytes_read":0,
+                "committed_member_rows_examined":0
+            },
+            "content_base64":"YWJj"
+        });
+        let mut actual = expected.clone();
+        actual["source_read_work"]["custody_metadata_bytes_read"] = json!(2);
+        actual["source_read_work"]["segment_bytes_read"] = json!(3);
+        actual["source_read_work"]["committed_member_rows_examined"] = json!(1);
+        let operation = Operation {
+            channel: channel.into(),
+            label: "exact-source".into(),
+            request: json!({
+                "operation":"exact-source",
+                "source_path":"ToS/source-witnesses/item.json",
+                "revision":7
+            }),
+            expected_status: 0,
+            expected_sha256: None,
+            expected_body: Some(expected.clone()),
+            expected_stderr_prefix: None,
+            expected_rights_allowed: None,
+            ignored_json_paths: Vec::new(),
+            alternate_outcomes: Vec::new(),
+            retry_same_command_id: false,
+            reconnect_before: false,
+            conflict_group: None,
+            bind_expected_configuration_from_owner: false,
+            sdk_argv: if channel == "sdk" {
+                vec![
+                    "/bin/tos-native-owner-command".into(),
+                    "source-projection".into(),
+                    "--selection".into(),
+                    "/tmp/source-selection.json".into(),
+                ]
+            } else {
+                Vec::new()
+            },
+            projection_argv: if channel == "projection" {
+                vec![
+                    "/bin/tos-native-owner-command".into(),
+                    "source-projection".into(),
+                    "--selection".into(),
+                    "/tmp/source-selection.json".into(),
+                ]
+            } else {
+                Vec::new()
+            },
+            interrupt_resume_after_ms: None,
+            bind_expected_from: None,
+            idempotency_replay_of: None,
+            bound_revision_preview: None,
+            bound_replay_response: None,
+        };
+        (operation, expected, actual)
+    }
+
+    #[test]
+    fn selected_source_projection_accepts_dynamic_bounded_work_on_both_routes() {
+        for channel in ["sdk", "projection"] {
+            let (operation, expected, actual) = exact_source_projection_fixture(channel);
+            assert!(exact_source_projection_operation(&operation));
+            assert!(exact_source_projection_response_matches(
+                &operation, &expected, &actual
+            ));
+
+            let mut over_budget = actual.clone();
+            over_budget["source_read_work"]["segment_bytes_read"] =
+                json!(MAX_POSTLOAD_SOURCE_READ_WORK_VALUE + 1);
+            assert!(!exact_source_projection_response_matches(
+                &operation,
+                &expected,
+                &over_budget
+            ));
+        }
+    }
+
+    #[test]
+    fn native_pg_record_revise_semantic_oracle_rejects_wrong_source_command_and_receipt() {
+        let (root, op, expected, actual) = revision_oracle_fixture();
+        let mut wrong_source = actual.clone();
+        wrong_source["result"]["source_path"] = json!("ToS/source-witnesses/other.json");
+        assert!(!record_revise_semantic_response_matches(
+            &op,
+            &expected,
+            &wrong_source
+        ));
+
+        let mut wrong_command = actual.clone();
+        wrong_command["result"]["receipt"]["command_id"] = json!("other-command");
+        assert!(!record_revise_semantic_response_matches(
+            &op,
+            &expected,
+            &wrong_command
+        ));
+
+        let mut malformed_receipt = actual;
+        malformed_receipt["result"]["receipt"]
+            .as_object_mut()
+            .unwrap()
+            .remove("authority_ref");
+        assert!(!record_revise_semantic_response_matches(
+            &op,
+            &expected,
+            &malformed_receipt
+        ));
+        fs::remove_dir_all(root).expect("remove oracle fixture");
+    }
+
+    #[test]
+    fn native_pg_record_revise_semantic_replay_allows_only_replay_flag_changes() {
+        let (root, mut op, expected, original) = revision_oracle_fixture();
+        op.idempotency_replay_of = Some("record-revise-1".into());
+        op.bound_replay_response = Some(original.clone());
+        let mut replay = original.clone();
+        replay["result"]["replayed"] = json!(true);
+        replay["result"]["durable_commit"]["replayed"] = json!(true);
+        replay["result"]["source_read_work"]["custody_metadata_bytes_read"] = json!(130);
+        replay["result"]["source_read_work"]["segment_bytes_read"] = json!(520);
+        replay["result"]["source_read_work"]["committed_member_rows_examined"] = json!(3);
+        assert!(record_revise_semantic_replay_response_matches(
+            &op, &expected, &replay
+        ));
+        let mut over_budget = replay.clone();
+        over_budget["result"]["source_read_work"]["segment_bytes_read"] =
+            json!(MAX_POSTLOAD_SOURCE_READ_WORK_VALUE + 1);
+        assert!(!record_revise_semantic_replay_response_matches(
+            &op,
+            &expected,
+            &over_budget
+        ));
+        let mut wrong_scope = replay.clone();
+        wrong_scope["result"]["source_read_work"]["scope"] = json!("unbounded");
+        assert!(!record_revise_semantic_replay_response_matches(
+            &op,
+            &expected,
+            &wrong_scope
+        ));
+        replay["result"]["receipt"]["source_path"] = json!("unexpected");
+        assert!(!record_revise_semantic_replay_response_matches(
+            &op, &expected, &replay
+        ));
+        fs::remove_dir_all(root).expect("remove replay fixture");
     }
 }
 

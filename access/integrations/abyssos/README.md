@@ -149,6 +149,23 @@ keeps dynamic preconditions bound to the staged owner and source state without
 adding a second command implementation. Setup is serial and its result is
 reported separately; load waves begin only after all setup operations pass.
 
+For native PG `record.revise`, a typed
+`tos_load_native_pg_record_revise_semantic_oracle_v1` body binds the result
+schema, domain, source path, command ID and previous revision to that exact
+preview. The runner verifies the actual request, materializations, receipt,
+durable commit and authority fields; postload exact reads verify the new
+source bytes. Replay must preserve the original successful response apart
+from its two replay flags and bounded per-invocation source-work counters.
+This oracle does not use `retry_same_command_id`;
+use the separate postload replay check.
+
+SDK `source-projection` reads must use the selected owner binary and the same
+PG store, domain and source contract as the other clients. Exact-read oracles
+keep schema, source identity, revision, byte length, SHA-256 and base64 content
+exact while validating the three source-work counters as bounded integers.
+The report counts native PG SDK integrity separately from prepared-source
+vector checks, and also reports the total selected-source integrity checks.
+
 The `projection` channel invokes the existing native `source-projection`
 process for `init`, `status`, `apply`, `search`, `search-text`,
 `exact-source`, or bounded `advance-navigation`. Text operations use the
@@ -198,8 +215,10 @@ The optional serial `postload` list runs after measured session workers and the
 quiescent navigation drain. Its checks do not enter load throughput, latency
 percentiles, operation-count limits or channel-mix percentages; they do count
 against the whole-run deadline and must pass for a zero exit. A native PostgreSQL
-stage requires an exact SDK `source read`, one exact replay of a successful
-measured SDK mutation, and this rights sequence, in order:
+stage requires an exact SDK source read through either the prepared `source read`
+entry or the selected native owner `source-projection --selection ABS` entry,
+one exact replay of a successful measured SDK mutation, and this rights
+sequence, in order:
 
 1. A native rights `describe` with `bind_expected_configuration_from_owner:
    true` and `expected_rights_allowed: true`; the runner binds the selected

@@ -293,6 +293,10 @@ fn form_projection(raw: &[u8]) -> DurableResult<JsonValue> {
     ]))
 }
 
+fn is_claim_form_member_name(basename: &str) -> bool {
+    basename.starts_with("source-claims.") && basename.ends_with(".human-forms.json")
+}
+
 fn claim_owner_projection(
     writes: &[GrowthSourceWrite<'_>],
     stream_raw: &[u8],
@@ -328,7 +332,7 @@ fn claim_owner_projection(
             | "responsibility-attachment-receipt.json"
             | "membership-attachment-receipt.json" => Some("creation-receipt"),
             "claim-revision-history.json" => Some("revision-history"),
-            _ if basename.ends_with(".human-forms.json") => Some("human-form-set"),
+            _ if is_claim_form_member_name(basename) => Some("human-form-set"),
             _ => None,
         };
         let Some(role) = role else {
@@ -717,6 +721,68 @@ mod current_claim_route_tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn growth_claim_owner_direct_members_exclude_entity_form_sets() {
+        let home = "ToS/source-witnesses/works/tree-of-sophia/expression/en";
+        let stream_path = format!("{home}/source-claims.jsonl");
+        let claim_form_path = format!("{home}/source-claims.{}.human-forms.json", "0".repeat(64));
+        let entity_form_path = format!("{home}/expression.human-forms.json");
+        let request_path = format!("{home}/source-create-request.json");
+        let environment_path = format!("{home}/source-create-environment.json");
+        let provenance_path = format!("{home}/source-create-provenance.jsonl");
+        let receipt_path = format!("{home}/work-expression-receipt.json");
+        let stream = br#"{"claim_id":"tos.claim.example"}"#;
+        let empty = b"{}";
+        let writes = [
+            super::GrowthSourceWrite {
+                subject: &stream_path,
+                exact_bytes: stream,
+            },
+            super::GrowthSourceWrite {
+                subject: &request_path,
+                exact_bytes: empty,
+            },
+            super::GrowthSourceWrite {
+                subject: &environment_path,
+                exact_bytes: empty,
+            },
+            super::GrowthSourceWrite {
+                subject: &provenance_path,
+                exact_bytes: empty,
+            },
+            super::GrowthSourceWrite {
+                subject: &receipt_path,
+                exact_bytes: empty,
+            },
+            super::GrowthSourceWrite {
+                subject: &claim_form_path,
+                exact_bytes: empty,
+            },
+            super::GrowthSourceWrite {
+                subject: &entity_form_path,
+                exact_bytes: empty,
+            },
+        ];
+        let owner = super::claim_owner_projection(
+            &writes,
+            stream,
+            &stream_path,
+            "tos_managed_work_expression_claim_owner_inventory_v1",
+        )
+        .unwrap();
+        let members = cmd::field(&owner, "direct_members")
+            .unwrap()
+            .as_array()
+            .unwrap();
+        let refs = members
+            .iter()
+            .map(|row| cmd::text(row, "ref").unwrap())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(members.len(), 6);
+        assert!(refs.contains(claim_form_path.as_str()));
+        assert!(!refs.contains(entity_form_path.as_str()));
     }
 
     #[test]

@@ -4600,20 +4600,11 @@ impl CreationFilesystem {
                 .map_err(|_| {
                     SourceCommandError::Conflict("creation selected software custody changed")
                 })?;
-            let (parent_path, leaf) = member
-                .path
-                .as_str()
-                .rsplit_once('/')
-                .ok_or(SourceCommandError::Invalid("creation component parent"))?;
-            let parent = walk(&self.root, parent_path, self.uid)?;
-            let mut file =
-                tos_fd_open::open_regular_at(&parent, Path::new(leaf)).map_err(|_| {
-                    SourceCommandError::Conflict("creation current component unavailable")
-                })?;
-            owned(&file, self.uid, false)?;
-            if raw(&mut file, 8_388_608, deadline, cancelled)? != captured {
+            if captured.len() as u64 != member.size_bytes
+                || Digest256::of_bytes(&captured) != member.sha256
+            {
                 return Err(SourceCommandError::Conflict(
-                    "creation current producer component differs from selected capture",
+                    "creation selected producer component differs from capture",
                 ));
             }
         }
@@ -4757,29 +4748,8 @@ impl CreationFilesystem {
                 "creation current authored membership/bytes/modes differ from selected base",
             ));
         }
-        // Software inputs are selected separately and also reselected from the
-        // actual owner tree. A restored capture alone cannot substitute them.
-        for input in &context.files {
-            active(deadline, cancelled)?;
-            if input.path.as_str().starts_with("ToS/") {
-                continue;
-            }
-            let (parent_path, name) = input
-                .path
-                .as_str()
-                .rsplit_once('/')
-                .ok_or(SourceCommandError::Invalid("creation software parent"))?;
-            let parent = walk(&self.root, parent_path, self.uid)?;
-            let mut fd = tos_fd_open::open_regular_at(&parent, Path::new(name)).map_err(|_| {
-                SourceCommandError::Conflict("creation current software input unavailable")
-            })?;
-            owned(&fd, self.uid, false)?;
-            if raw(&mut fd, 8_388_608, deadline, cancelled)? != input.raw {
-                return Err(SourceCommandError::Conflict(
-                    "creation current software input changed",
-                ));
-            }
-        }
+        // Software inputs are separately selected and revalidated from their
+        // captured root by reselect_components; this source root owns ToS.
         Ok(())
     }
 }

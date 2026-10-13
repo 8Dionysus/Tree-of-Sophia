@@ -1167,11 +1167,22 @@ pub enum ChildTermination {
     Signalled(i32),
 }
 
+/// Safe bounded evidence captured only when a worker spawn syscall fails.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SpawnFailureEvidence {
+    /// Executor-authored static site name; never a path or payload.
+    pub site: &'static str,
+    /// Raw OS errno captured immediately from the failed syscall.
+    pub errno: Option<i32>,
+}
+
 /// Context for the actual failed exchange guard; no acceptance is carried.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExchangeFailureContext {
     pub boundary: &'static str,
     pub failure: ExecutorFailure,
+    /// Present only for a captured pre-exchange worker spawn failure.
+    pub spawn_failure: Option<SpawnFailureEvidence>,
     pub natural_termination: Option<ChildTermination>,
     /// Actual wait4 CPU for a naturally reaped child; never elapsed-wall inference.
     pub child_cpu_micros: Option<u64>,
@@ -1549,6 +1560,7 @@ impl SharedSchemaWorkerQuota {
             state.refusal = Some(ExchangeFailureContext {
                 boundary,
                 failure: reason,
+                spawn_failure: None,
                 natural_termination: None,
                 child_cpu_micros: None,
                 child_pid: 0,
@@ -3082,6 +3094,26 @@ mod native {
     const MFD_EXEC_FLAG: u32 = 0x0010;
     const MAX_WORKER_BYTES: u64 = super::MAX_WORKER_IMAGE_BYTES;
 
+    fn spawn_failure_evidence(site: &'static str, error: &io::Error) -> SpawnFailureEvidence {
+        SpawnFailureEvidence {
+            site,
+            errno: error.raw_os_error(),
+        }
+    }
+
+    fn spawn_failure_context(evidence: SpawnFailureEvidence) -> ExchangeFailureContext {
+        ExchangeFailureContext {
+            boundary: "schema-worker-spawn",
+            failure: ExecutorFailure::Spawn,
+            spawn_failure: Some(evidence),
+            natural_termination: None,
+            child_cpu_micros: None,
+            child_pid: 0,
+            child_exchange_ordinal: 0,
+            retained_session: false,
+        }
+    }
+
     #[cfg(test)]
     thread_local! {
         static TEST_CHILD_STDOUT_INODE: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
@@ -3165,6 +3197,30 @@ mod native {
         unit_sha256: Digest256,
     }
 
+    #[derive(Clone, Copy, Debug)]
+    struct BatchPreparationFailure {
+        reason: ExecutorFailure,
+        spawn_failure: Option<SpawnFailureEvidence>,
+    }
+
+    impl From<ExecutorFailure> for BatchPreparationFailure {
+        fn from(reason: ExecutorFailure) -> Self {
+            Self {
+                reason,
+                spawn_failure: None,
+            }
+        }
+    }
+
+    impl BatchPreparationFailure {
+        fn spawn(site: &'static str, error: &io::Error) -> Self {
+            Self {
+                reason: ExecutorFailure::Spawn,
+                spawn_failure: Some(spawn_failure_evidence(site, error)),
+            }
+        }
+    }
+
     #[derive(Clone)]
     struct BatchPrepared {
         frame: Vec<u8>,
@@ -3221,6 +3277,21 @@ mod native {
                 result_stream_sha256: results.finalize(),
             },
         }
+    }
+
+    fn empty_batch_outcome_for_prepare_failure(
+        worker: Digest256,
+        profile: FormatProfile,
+        schema: Digest256,
+        failure: BatchPreparationFailure,
+    ) -> BatchOutcome {
+        let mut outcome = empty_batch_outcome(worker, profile, schema, failure.reason);
+        if let Some(evidence) = failure.spawn_failure {
+            if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
+                *exchange = Some(spawn_failure_context(evidence));
+            }
+        }
+        outcome
     }
 
     fn encode_resources(
@@ -3471,6 +3542,7 @@ mod native {
                 self.poison_exchange = Some(ExchangeFailureContext {
                     boundary,
                     failure: reason,
+                    spawn_failure: None,
                     natural_termination: None,
                     child_cpu_micros: self
                         .session
@@ -3485,6 +3557,23 @@ mod native {
                 });
             }
             self.poison(reason)
+        }
+        fn poison_spawn(&mut self, evidence: SpawnFailureEvidence) -> ExecutorFailure {
+            if self.poison_exchange.is_none() {
+                let mut context = spawn_failure_context(evidence);
+                context.child_cpu_micros = self
+                    .session
+                    .as_ref()
+                    .and_then(|session| session.child.natural_cpu_micros);
+                context.child_pid = self.session.as_ref().map_or(0, |session| session.child.pid);
+                context.child_exchange_ordinal = self
+                    .session
+                    .as_ref()
+                    .map_or(0, |session| session.child.exchanges_started);
+                context.retained_session = self.session.is_some();
+                self.poison_exchange = Some(context);
+            }
+            self.poison(ExecutorFailure::Spawn)
         }
         fn finish_session_inner(
             &mut self,
@@ -3708,8 +3797,13 @@ mod native {
                 budget,
             ) {
                 Ok(x) => x,
-                Err(reason) => {
-                    return empty_batch_outcome(self.identity.sha256, profile, schema_set, reason);
+                Err(failure) => {
+                    return empty_batch_outcome_for_prepare_failure(
+                        self.identity.sha256,
+                        profile,
+                        schema_set,
+                        failure,
+                    );
                 }
             };
             let mut outcome = self.exchange_prepared(
@@ -3857,11 +3951,17 @@ mod native {
             };
             if first {
                 let mut nonce = [0u8; 16];
-                if File::open("/dev/urandom")
-                    .and_then(|mut f| f.read_exact(&mut nonce))
-                    .is_err()
-                {
-                    return refusal(prepared, results, self.poison(ExecutorFailure::Spawn));
+                let mut random = match File::open("/dev/urandom") {
+                    Ok(random) => random,
+                    Err(error) => {
+                        let evidence =
+                            spawn_failure_evidence("operation-header-nonce-open", &error);
+                        return refusal(prepared, results, self.poison_spawn(evidence));
+                    }
+                };
+                if let Err(error) = random.read_exact(&mut nonce) {
+                    let evidence = spawn_failure_evidence("operation-header-nonce-read", &error);
+                    return refusal(prepared, results, self.poison_spawn(evidence));
                 }
                 let remaining_cpu = self
                     .operation_budget
@@ -3905,7 +4005,9 @@ mod native {
                     &argv,
                 ) {
                     Ok(x) => x,
-                    Err(reason) => return refusal(prepared, results, self.poison(reason)),
+                    Err(evidence) => {
+                        return refusal(prepared, results, self.poison_spawn(evidence));
+                    }
                 };
                 self.session = Some(OwnedSchemaSession {
                     child,
@@ -5502,6 +5604,7 @@ mod native {
             units,
             budget,
         )
+        .map_err(|failure| failure.reason)
     }
 
     fn make_batch_request_encoded<U: std::borrow::Borrow<BatchUnit>>(
@@ -5511,14 +5614,16 @@ mod native {
         profile: FormatProfile,
         units: impl IntoIterator<Item = U>,
         budget: BatchBudget,
-    ) -> Result<BatchPrepared, ExecutorFailure> {
+    ) -> Result<BatchPrepared, BatchPreparationFailure> {
         budget.validate()?;
         let mut frame = Vec::new();
         frame.extend_from_slice(BATCH_REQUEST_MAGIC);
         let mut nonce = [0u8; 16];
-        File::open("/dev/urandom")
-            .and_then(|mut random| random.read_exact(&mut nonce))
-            .map_err(|_| ExecutorFailure::Spawn)?;
+        let mut random = File::open("/dev/urandom")
+            .map_err(|error| BatchPreparationFailure::spawn("batch-request-nonce-open", &error))?;
+        random
+            .read_exact(&mut nonce)
+            .map_err(|error| BatchPreparationFailure::spawn("batch-request-nonce-read", &error))?;
         frame.extend_from_slice(&nonce);
         frame.push(profile_byte(profile));
         frame.extend_from_slice(encoded_resources);
@@ -5531,14 +5636,14 @@ mod native {
         for unit in units {
             let unit = unit.borrow();
             if metas.len() >= budget.max_units || unit.ordinal != metas.len() as u64 {
-                return Err(ExecutorFailure::InputBudget);
+                return Err(ExecutorFailure::InputBudget.into());
             }
             validate_batch_unit(unit)?;
             raw_total = raw_total
                 .checked_add(unit.raw_instance.len())
                 .ok_or(ExecutorFailure::InputBudget)?;
             if raw_total > budget.max_total_raw_bytes {
-                return Err(ExecutorFailure::InputBudget);
+                return Err(ExecutorFailure::InputBudget.into());
             }
             let start = frame.len();
             frame.extend_from_slice(&unit.ordinal.to_be_bytes());
@@ -5561,7 +5666,7 @@ mod native {
             });
         }
         if metas.is_empty() {
-            return Err(ExecutorFailure::InputBudget);
+            return Err(ExecutorFailure::InputBudget.into());
         }
         frame[count_offset..count_offset + 4].copy_from_slice(&(metas.len() as u32).to_be_bytes());
         let request_sha256 = Digest256::of_bytes(&frame);
@@ -5854,7 +5959,14 @@ mod native {
             match make_batch_request_encoded(worker.sha256, &encoded, set, profile, &units, budget)
             {
                 Ok(x) => x,
-                Err(reason) => return empty_batch_outcome(worker.sha256, profile, set, reason),
+                Err(failure) => {
+                    return empty_batch_outcome_for_prepare_failure(
+                        worker.sha256,
+                        profile,
+                        set,
+                        failure,
+                    );
+                }
             };
         let mut results = Digest256Hasher::new();
         results.update(b"tos-val2-batch-results-v1\0");
@@ -6630,7 +6742,11 @@ mod native {
                 response_cap,
                 &mut cost,
             ),
-            Err(reason) => diagnostics_incomplete(prepared, reason, None),
+            Err(evidence) => diagnostics_incomplete(
+                prepared,
+                ExecutorFailure::Spawn,
+                Some(spawn_failure_context(evidence)),
+            ),
         };
         (diagnostics_with_wire_cost(outcome, &cost), cost)
     }
@@ -6914,6 +7030,7 @@ mod native {
                 Some(ExchangeFailureContext {
                     boundary,
                     failure: reason,
+                    spawn_failure: None,
                     natural_termination,
                     child_cpu_micros: child.natural_cpu_micros.or(cost.worker_cpu_micros),
                     child_pid: child.pid,
@@ -7418,31 +7535,24 @@ mod native {
         image: &File,
         budget: ExecutorBudget,
         argv: &[*mut libc::c_char],
-    ) -> Result<OperationChild, ExecutorFailure> {
-        let (input_parent, input_child) = match socket_pair() {
-            Ok(pair) => pair,
-            Err(_) => {
-                return Err(ExecutorFailure::Spawn);
-            }
-        };
-        let (output_parent, output_child) = match socket_pair() {
-            Ok(pair) => pair,
-            Err(_) => {
-                return Err(ExecutorFailure::Spawn);
-            }
-        };
+    ) -> Result<OperationChild, SpawnFailureEvidence> {
+        let (input_parent, input_child) = socket_pair()
+            .map_err(|error| spawn_failure_evidence("child-input-socketpair", &error))?;
+        let (output_parent, output_child) = socket_pair()
+            .map_err(|error| spawn_failure_evidence("child-output-socketpair", &error))?;
         #[cfg(test)]
         TEST_CHILD_STDOUT_INODE.with(|cell| cell.set(output_child.metadata().unwrap().ino()));
-        let null = match OpenOptions::new().write(true).open("/dev/null") {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(ExecutorFailure::Spawn);
-            }
-        };
+        let null = OpenOptions::new()
+            .write(true)
+            .open("/dev/null")
+            .map_err(|error| spawn_failure_evidence("child-stderr-null-open", &error))?;
         let parent_pid = unsafe { libc::getpid() };
         let pid = unsafe { libc::fork() };
         if pid < 0 {
-            return Err(ExecutorFailure::Spawn);
+            return Err(spawn_failure_evidence(
+                "child-fork",
+                &io::Error::last_os_error(),
+            ));
         }
         if pid == 0 {
             unsafe {
@@ -7495,7 +7605,14 @@ mod native {
             argv,
         ) {
             Ok(child) => child,
-            Err(reason) => return batch_incomplete(prepared, Vec::new(), results, reason),
+            Err(evidence) => {
+                let mut outcome =
+                    batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Spawn);
+                if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
+                    *exchange = Some(spawn_failure_context(evidence));
+                }
+                return outcome;
+            }
         };
         run_batch_exchange(
             &mut child, prepared, results, budget, start, cancelled, false,
@@ -7810,6 +7927,7 @@ mod native {
                 *exchange = Some(ExchangeFailureContext {
                     boundary,
                     failure: reason,
+                    spawn_failure: None,
                     natural_termination,
                     child_cpu_micros: child.natural_cpu_micros,
                     child_pid: child.pid,

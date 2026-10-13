@@ -84,7 +84,7 @@ impl ItemExecutorRefusal {
         let boundary = self
             .exchange
             .map(|context| Digest256::of_bytes(context.boundary.as_bytes()).to_hex());
-        format!(
+        let mut summary = format!(
             "executor stage={stage} reason={:?} boundary={boundary:?} exchange_reason={:?} natural_termination={:?} committed_quota_prefix={:?} batch_completed_count={:?}",
             self.reason,
             self.exchange.map(|context| context.failure),
@@ -92,7 +92,14 @@ impl ItemExecutorRefusal {
                 .and_then(|context| context.natural_termination),
             self.quota,
             self.batch_completed_count
-        )
+        );
+        if let Some(spawn) = self.exchange.and_then(|context| context.spawn_failure) {
+            summary.push_str(&format!(
+                " spawn_site={} spawn_errno={:?}",
+                spawn.site, spawn.errno
+            ));
+        }
+        summary
     }
 }
 
