@@ -49,8 +49,61 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 const META: usize = 1_048_576;
 const PROFILE: &str = "metadata-addition-publication-profile";
+
+/// Bounded owner-conversion detail for diagnosis; never emit Debug, paths, or
+/// dynamic refusal text into the operator log.
+pub(crate) fn diagnose_source_command_refusal(
+    stage: &'static str,
+    callsite_line: u32,
+    error: &crate::source_command::SourceCommandError,
+) {
+    use crate::source_command::SourceCommandError as E;
+
+    fn safe_static_reason(reason: &'static str) -> Option<String> {
+        if reason.len() > 96
+            || !reason
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b' ' || b == b'_' || b == b'-')
+        {
+            return None;
+        }
+        Some(reason.replace(' ', "_"))
+    }
+
+    let (class, reason) = match error {
+        E::Invalid(reason) | E::Conflict(reason) | E::Denied(reason) | E::Unsupported(reason) => {
+            let class = match error {
+                E::Invalid(_) => "invalid",
+                E::Conflict(_) => "conflict",
+                E::Denied(_) => "denied",
+                E::Unsupported(_) => "unsupported",
+                _ => unreachable!(),
+            };
+            (class, safe_static_reason(reason))
+        }
+        E::InvalidAt { reason, .. } => ("invalid-at", safe_static_reason(reason)),
+        E::DeniedWithReason(_) => ("denied-with-reason", None),
+        E::SchemaExecution { .. } => ("schema-execution", None),
+        E::MissingProductionAdmission => ("missing-production-admission", None),
+    };
+    if let Some(reason) = reason {
+        eprintln!(
+            "tos-metadata-publication-diagnostic-v1 stage={stage} callsite_line={callsite_line} class={class} reason={reason}"
+        );
+    } else {
+        eprintln!(
+            "tos-metadata-publication-diagnostic-v1 stage={stage} callsite_line={callsite_line} class={class}"
+        );
+    }
+}
+
+#[track_caller]
 fn owner<T>(r: crate::source_command::SourceCommandResult<T>) -> Result<T> {
-    r.map_err(|e| Error::Source(format!("Metadata owner: {e:?}")))
+    let callsite_line = std::panic::Location::caller().line();
+    r.map_err(|e| {
+        diagnose_source_command_refusal("metadata-owner", callsite_line, &e);
+        Error::Source(format!("Metadata owner: {e:?}"))
+    })
 }
 fn view(v: &JsonValue) -> Result<Value> {
     bytes::parse(&encoded(v)?, META)

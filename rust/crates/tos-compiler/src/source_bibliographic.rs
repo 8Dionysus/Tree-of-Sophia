@@ -270,20 +270,62 @@ pub(crate) fn forms(
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
 ) -> Result<Option<(String, Value)>> {
+    forms_inner(stage, reference, source, None, validator, materializer, l)
+}
+
+fn forms_with_contracts(
+    stage: &KnowledgeStage<'_>,
+    reference: &str,
+    source: &Value,
+    contracts: &catalog::Contracts,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+) -> Result<Option<(String, Value)>> {
+    forms_inner(
+        stage,
+        reference,
+        source,
+        Some(contracts),
+        validator,
+        materializer,
+        l,
+    )
+}
+
+fn forms_inner(
+    stage: &KnowledgeStage<'_>,
+    reference: &str,
+    source: &Value,
+    contracts: Option<&catalog::Contracts>,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+) -> Result<Option<(String, Value)>> {
     let Some(raw) = raw_file(stage, reference, l)? else {
         return Ok(None);
     };
     if raw.len() > 2_097_152 {
         return Err(Error::Budget("bibliographic HumanForm set bytes"));
     }
-    catalog::check_catalog_schema(
-        stage,
-        validator,
-        l.catalog,
-        "ToS/contracts/human-form-set.schema.json",
-        "",
-        &raw,
-    )?;
+    if let Some(contracts) = contracts {
+        catalog::check_catalog_schema_with_contracts(
+            contracts,
+            validator,
+            "ToS/contracts/human-form-set.schema.json",
+            "",
+            &raw,
+        )?;
+    } else {
+        catalog::check_catalog_schema(
+            stage,
+            validator,
+            l.catalog,
+            "ToS/contracts/human-form-set.schema.json",
+            "",
+            &raw,
+        )?;
+    }
     materialize_checked_form_set(&raw, reference, source, materializer, l)
 }
 /// The same form binding/materialization law after the owner schema check.
@@ -460,6 +502,7 @@ pub(crate) fn validate_claim_slot_binding(
 }
 fn identity(
     stage: &mut KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     id: &str,
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
@@ -487,7 +530,15 @@ fn identity(
             .strip_suffix(".json")
             .ok_or(Error::Invalid("bibliographic identity extension"))?
     );
-    let bound_forms = forms(stage, &sibling, &source, validator, materializer, l)?;
+    let bound_forms = forms_with_contracts(
+        stage,
+        &sibling,
+        &source,
+        contracts,
+        validator,
+        materializer,
+        l,
+    )?;
     Ok(Some(render::identity(
         entry,
         &source,
@@ -496,6 +547,7 @@ fn identity(
 }
 fn event(
     stage: &mut KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     id: &str,
     validator: &SourceCatalogValidator<'_>,
     l: BibliographicLimits,
@@ -508,10 +560,9 @@ fn event(
         "tos_provenance_event_v2" => "ToS/contracts/provenance-event-v2.schema.json",
         _ => return Err(Error::Invalid("bibliographic provenance schema")),
     };
-    catalog::check_catalog_schema(
-        stage,
+    catalog::check_catalog_schema_with_contracts(
+        contracts,
         validator,
-        l.catalog,
         route,
         "",
         &encode(&source, l.catalog.max_row_bytes)?,
@@ -784,6 +835,7 @@ fn render_bibliographic_evidence(
 
 fn evidence(
     stage: &mut KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     reference: &str,
     claim: &Value,
     entry: &Value,
@@ -812,7 +864,7 @@ fn evidence(
             l.catalog.max_output_row_bytes,
         );
     }
-    if let Some(identity) = identity(stage, reference, validator, materializer, l)? {
+    if let Some(identity) = identity(stage, contracts, reference, validator, materializer, l)? {
         return render_bibliographic_evidence(
             reference,
             claim,
@@ -841,6 +893,7 @@ fn evidence(
 
 fn maker<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     claim: &Value,
     receipt: &SourceCatalogReceipt<B>,
     validator: &SourceCatalogValidator<'_>,
@@ -849,7 +902,7 @@ fn maker<B: catalog::CatalogInputBinding>(
 ) -> Result<(Value, Option<Value>)> {
     let maker = &claim["maker"];
     let reference = text(maker, "agent_ref")?;
-    let identity = identity(stage, reference, validator, materializer, l)?;
+    let identity = identity(stage, contracts, reference, validator, materializer, l)?;
     let digest = if identity.is_none() {
         receipt
             .file_sha256
@@ -1077,6 +1130,7 @@ pub fn supplied_retained_object_link_context(
 
 fn claim_cohort<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     id: &str,
     receipt: &SourceCatalogReceipt<B>,
     validator: &SourceCatalogValidator<'_>,
@@ -1149,12 +1203,21 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
                 .ok_or(Error::Invalid("bibliographic Claim stream extension"))?,
             Digest256::of_bytes(id.as_bytes()).to_hex()
         );
-        forms(stage, &forms_ref, &claim, validator, materializer, l)?
+        forms_with_contracts(
+            stage,
+            &forms_ref,
+            &claim,
+            contracts,
+            validator,
+            materializer,
+            l,
+        )?
     } else {
         None
     };
     let subject = identity(
         stage,
+        contracts,
         text(&claim, "subject_ref")?,
         validator,
         materializer,
@@ -1162,7 +1225,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
     )?
     .ok_or(Error::Invalid("bibliographic subject identity missing"))?;
     let object = if let Some(reference) = claim["object"].as_str() {
-        if let Some(node) = identity(stage, reference, validator, materializer, l)? {
+        if let Some(node) = identity(stage, contracts, reference, validator, materializer, l)? {
             node
         } else if reference.starts_with("tos.") {
             return Err(Error::Invalid(
@@ -1199,10 +1262,9 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
         .and_then(Value::as_str)
         == Some("tos_claim_display_fields_v1")
     {
-        catalog::check_catalog_schema(
-            stage,
+        catalog::check_catalog_schema_with_contracts(
+            contracts,
             validator,
-            l.catalog,
             "ToS/contracts/claim-display-fields.schema.json",
             "",
             &encode(&claim["qualifiers"], l.catalog.max_row_bytes)?,
@@ -1234,7 +1296,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
             ))?.ground(stage, &claim, validator, entities, materializer, l)?);
         }
         for reference in crate::source_bibliographic_values::members(&claim, profile)? {
-            let node = identity(stage, reference, validator, materializer, l)?
+            let node = identity(stage, contracts, reference, validator, materializer, l)?
                 .ok_or(Error::Invalid("bibliographic value member identity absent"))?;
             if !transition
                 && !typed_endpoint(
@@ -1281,8 +1343,22 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
         }
     }
     validate_supplied_catalogue_attribution(&claim)?;
-    let event = event(stage, text(&claim, "provenance_event_ref")?, validator, l)?;
-    let (maker, maker_identity) = maker(stage, &claim, receipt, validator, materializer, l)?;
+    let event = event(
+        stage,
+        contracts,
+        text(&claim, "provenance_event_ref")?,
+        validator,
+        l,
+    )?;
+    let (maker, maker_identity) = maker(
+        stage,
+        contracts,
+        &claim,
+        receipt,
+        validator,
+        materializer,
+        l,
+    )?;
     let mut evidence_nodes = Vec::new();
     let mut counter_nodes = Vec::new();
     for (field, resolved) in [
@@ -1300,6 +1376,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
             }
             resolved.push(evidence(
                 stage,
+                contracts,
                 reference
                     .as_str()
                     .ok_or(Error::Invalid("bibliographic evidence string"))?,
@@ -1333,7 +1410,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
                     let reference = reference.as_str().ok_or(Error::Invalid(
                         "bibliographic normalized provision reference",
                     ))?;
-                    let node = identity(stage, reference, validator, materializer, l)?
+                    let node = identity(stage, contracts, reference, validator, materializer, l)?
                         .ok_or(Error::Invalid("bibliographic provision identity absent"))?;
                     if !allowed.contains(
                         &node
@@ -1350,7 +1427,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
         for (edge, reference) in refs {
             normalized.push((
                 edge,
-                identity(stage, &reference, validator, materializer, l)?
+                identity(stage, contracts, &reference, validator, materializer, l)?
                     .ok_or(Error::Invalid("bibliographic provision identity absent"))?,
             ));
         }
@@ -1374,7 +1451,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
             .pointer("/object/relative/anchor_ref")
             .and_then(Value::as_str)
             .ok_or(Error::Invalid("bibliographic relative date anchor"))?;
-        let node = identity(stage, reference, validator, materializer, l)?.ok_or(
+        let node = identity(stage, contracts, reference, validator, materializer, l)?.ok_or(
             Error::Invalid("bibliographic relative date identity missing"),
         )?;
         if !typed_endpoint(&node, &json!(["tos.entity.historical-situation"]), entities)? {
@@ -1615,6 +1692,10 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
                 )
             })
             .transpose()?;
+        // The selected catalog closure is immutable for this sealed render.
+        // Load, digest-verify, bind and validate it once, then reuse this exact
+        // context for every emitted node/edge/trace schema check below.
+        let contracts = catalog::prepare_catalog_contracts(stage, validator, l.catalog)?;
         let entities = json_file(stage, ENTITY, l)?;
         let registry = json_file(stage, RELATION, l)?;
         // The selected corpus retains its exact projection contract. Older
@@ -1634,12 +1715,11 @@ CREATE TABLE source_bibliographic_totals(singleton INTEGER PRIMARY KEY CHECK(sin
 INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
         let mut after = None;
         while let Some(id) = catalog::catalog_next(stage, "records", after.as_deref())? {
-            let node = identity(stage, &id, validator, materializer, l)?
+            let node = identity(stage, &contracts, &id, validator, materializer, l)?
                 .ok_or(Error::Invalid("bibliographic catalog identity disappeared"))?;
-            catalog::check_catalog_schema(
-                stage,
+            catalog::check_catalog_schema_with_contracts(
+                &contracts,
                 validator,
-                l.catalog,
                 SCHEMA,
                 "#/$defs/node",
                 &encode(&node, l.catalog.max_output_row_bytes)?,
@@ -1651,6 +1731,7 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
         while let Some(id) = catalog::catalog_next(stage, "claims", after.as_deref())? {
             let cohort = claim_cohort(
                 stage,
+                &contracts,
                 &id,
                 catalog_receipt,
                 validator,
@@ -1679,10 +1760,9 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
                             ))?
                             .remove("display");
                     }
-                    catalog::check_catalog_schema(
-                        stage,
+                    catalog::check_catalog_schema_with_contracts(
+                        &contracts,
                         validator,
-                        l.catalog,
                         SCHEMA,
                         &format!("#/$defs/{definition}"),
                         &encode(&value, l.catalog.max_output_row_bytes)?,

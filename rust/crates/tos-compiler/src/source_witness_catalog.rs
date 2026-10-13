@@ -497,7 +497,7 @@ struct Profile {
     descriptor: Value,
     routes: BTreeMap<String, String>,
 }
-struct Contracts {
+pub(crate) struct Contracts {
     values: BTreeMap<String, Value>,
     source_bytes: BTreeMap<String, Vec<u8>>,
     resources: Vec<SchemaResource>,
@@ -3383,6 +3383,14 @@ pub(crate) fn catalog_next(
     })
 }
 
+pub(crate) fn prepare_catalog_contracts(
+    stage: &KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+) -> Result<Contracts> {
+    contracts(stage, validator, l, &mut IgnoreCatalogProfiles)
+}
+
 pub(crate) fn check_catalog_schema(
     stage: &KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
@@ -3391,8 +3399,18 @@ pub(crate) fn check_catalog_schema(
     fragment: &str,
     raw: &[u8],
 ) -> Result<()> {
-    let c = contracts(stage, validator, l, &mut IgnoreCatalogProfiles)?;
-    validator.check(&c, schema, fragment, raw)
+    let contracts = prepare_catalog_contracts(stage, validator, l)?;
+    check_catalog_schema_with_contracts(&contracts, validator, schema, fragment, raw)
+}
+
+pub(crate) fn check_catalog_schema_with_contracts(
+    contracts: &Contracts,
+    validator: &SourceCatalogValidator<'_>,
+    schema: &str,
+    fragment: &str,
+    raw: &[u8],
+) -> Result<()> {
+    validator.check(contracts, schema, fragment, raw)
 }
 
 /// Verify several exact schema/instance pairs against one selected source
@@ -3408,7 +3426,7 @@ pub(crate) fn check_catalog_schema_instances(
     if instances.is_empty() {
         return Ok(());
     }
-    let contracts = contracts(stage, validator, l, &mut IgnoreCatalogProfiles)?;
+    let contracts = prepare_catalog_contracts(stage, validator, l)?;
     for instance in instances {
         if contracts
             .source_bytes

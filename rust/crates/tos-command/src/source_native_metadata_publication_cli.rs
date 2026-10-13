@@ -47,6 +47,39 @@ fn failure(e: impl std::fmt::Debug + 'static) -> SourceCommandError {
     }
     SourceCommandError::Conflict("Metadata prepared publication transport")
 }
+
+fn failure_with_stage(
+    stage: &'static str,
+    e: impl std::fmt::Debug + 'static,
+) -> SourceCommandError {
+    use tos_compiler::Error;
+
+    // Emit fixed phase/class labels only. Never print Debug output: source, IO,
+    // SQLite, and worker diagnostics may include private paths or content.
+    let class = match (&e as &dyn std::any::Any).downcast_ref::<Error>() {
+        Some(Error::Io(_)) => "io",
+        Some(Error::Sql(_)) => "sqlite",
+        Some(Error::SqlitePhase { .. }) => "sqlite-phase",
+        Some(Error::Invalid(_)) => "invalid",
+        Some(Error::PreparedUnsupported(_)) => "prepared-unsupported",
+        Some(Error::ManagedSourceUnsupported(_)) => "managed-source-unsupported",
+        Some(Error::Budget(_)) => "budget",
+        Some(Error::Source(message)) if message.starts_with("Metadata schema worker:") => {
+            "schema-worker"
+        }
+        Some(Error::Source(message)) if message.starts_with("Metadata owner:") => "owner-source",
+        Some(Error::Source(message)) if message.starts_with("Metadata source:") => {
+            "selected-source"
+        }
+        Some(Error::Source(_)) => "source",
+        Some(Error::FoundationJson { .. }) => "foundation-json",
+        Some(Error::SqliteVmBudget { .. }) => "sqlite-vm-budget",
+        Some(Error::ControlledColdClose { .. }) => "controlled-cold-close",
+        None => "unclassified",
+    };
+    eprintln!("tos-metadata-publication-diagnostic-v1 stage={stage} class={class}");
+    failure(e)
+}
 pub(super) fn run(
     invocation: &Value,
     request_raw: &[u8],
@@ -64,7 +97,7 @@ pub(super) fn run(
         return Err(SourceCommandError::Denied("Metadata unused selectors"));
     }
     let request = serde_json::from_slice::<Value>(&cmd::canonical(&cmd::parse(request_raw)?)?)
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("request-decode", e))?;
     let action = text(&request, "action")?;
     if action != "publish-initial-metadata"
         && [
@@ -86,9 +119,13 @@ pub(super) fn run(
                 "Metadata describe carries no reviewed transition",
             ));
         }
-        let execution = NativeMetadataExecution::observe(deadline, cancelled).map_err(failure)?;
+        let execution = NativeMetadataExecution::observe(deadline, cancelled)
+            .map_err(|e| failure_with_stage("describe-execution-observe", e))?;
         let result = json!({"processor":execution.processor(),"declaration":execution.common_execution().declaration(),"dependency_implementation":execution.common_execution().dependency_implementation(),"agent_publication":execution.common_execution().agent_publication(),"metadata_publication":execution.profile()});
-        execution.common_execution().verify().map_err(failure)?;
+        execution
+            .common_execution()
+            .verify()
+            .map_err(|e| failure_with_stage("describe-execution-verify", e))?;
         active(deadline, cancelled)?;
         return Ok(
             json!({"schema_version":"tos_local_native_metadata_execution_v1","result":result,"grants_admission":false}),
@@ -103,7 +140,8 @@ pub(super) fn run(
     if !bootstrap && text(&request, "action")? != "publish-initial-metadata" {
         return Err(SourceCommandError::Invalid("Metadata fixed action"));
     }
-    let execution = NativeMetadataExecution::observe(deadline, cancelled).map_err(failure)?;
+    let execution = NativeMetadataExecution::observe(deadline, cancelled)
+        .map_err(|e| failure_with_stage("execution-observe", e))?;
     let owner_path = absolute(text(invocation, "owner_config")?)?;
     let (_filesystem, configuration_raw) =
         CreationFilesystem::select_protected_native_owner(&owner_path, deadline, cancelled)?;
@@ -135,7 +173,7 @@ pub(super) fn run(
             deadline,
             cancelled,
         )
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("original-cut-open", e))?;
     let limits = &invocation["publication_limits"];
     exact(
         limits,
@@ -218,7 +256,8 @@ pub(super) fn run(
         deadline,
         cancelled,
     )?;
-    let source = PreparedSourceInputs::parse(&source_raw, publication).map_err(failure)?;
+    let source = PreparedSourceInputs::parse(&source_raw, publication)
+        .map_err(|e| failure_with_stage("prepared-source-parse", e))?;
     let catalog_raw = companion(
         invocation,
         "catalog_path",
@@ -229,7 +268,7 @@ pub(super) fn run(
         cancelled,
     )?;
     let cv = serde_json::from_slice::<Value>(&cmd::canonical(&cmd::parse(&catalog_raw)?)?)
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("catalog-decode", e))?;
     exact(
         &cv,
         &[
@@ -253,7 +292,7 @@ pub(super) fn run(
         source_order_profile: serde_json::from_value::<SourceOrderProfile>(
             cv["source_order_profile"].clone(),
         )
-        .map_err(failure)?,
+        .map_err(|e| failure_with_stage("catalog-profile-decode", e))?,
     };
     let descriptor = companion(
         invocation,
@@ -268,7 +307,7 @@ pub(super) fn run(
         &descriptor,
         tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
     )
-    .map_err(failure)?;
+    .map_err(|e| failure_with_stage("query-vocabulary-parse", e))?;
     let (fence, db) = DatabaseFence::open(
         absolute(text(invocation, "prepared_database")?)?,
         &root,
@@ -279,10 +318,10 @@ pub(super) fn run(
     // Family-selected limits also bound SQLite scratch before either owned
     // write transaction starts. No on-disk temp store or dirty-cache spilling.
     db.execute_batch("PRAGMA temp_store=MEMORY; PRAGMA cache_size=-8192; PRAGMA cache_spill=OFF")
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("prepared-db-policy", e))?;
     let page_size: u64 = db
         .query_row("PRAGMA page_size", [], |r| r.get(0))
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("prepared-db-page-size", e))?;
     if !(512..=65536).contains(&page_size) || !page_size.is_power_of_two() {
         return Err(SourceCommandError::Invalid("Metadata SQLite page size"));
     }
@@ -294,7 +333,7 @@ pub(super) fn run(
         .query_row(&format!("PRAGMA max_page_count={max_pages}"), [], |r| {
             r.get(0)
         })
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("prepared-db-page-limit", e))?;
     if selected_pages > max_pages {
         return Err(SourceCommandError::Denied(
             "Metadata existing database exceeds selected page ceiling",
@@ -345,8 +384,10 @@ pub(super) fn run(
             deadline,
             operation.max_vm_steps,
         )
-        .map_err(failure)?;
-        let tx = db.unchecked_transaction().map_err(failure)?;
+        .map_err(|e| failure_with_stage("bootstrap-progress-install", e))?;
+        let tx = db
+            .unchecked_transaction()
+            .map_err(|e| failure_with_stage("bootstrap-transaction-begin", e))?;
         let result = bootstrap_reviewed_agent_execution_profile_transaction(
             &tx,
             &binding,
@@ -361,7 +402,7 @@ pub(super) fn run(
             catalog_limits,
             semantic_limits,
         )
-        .map_err(failure)?;
+        .map_err(|e| failure_with_stage("bootstrap-profile-transition", e))?;
         let (_, configuration_now) =
             CreationFilesystem::select_protected_native_owner(&owner_path, deadline, cancelled)?;
         if configuration_now != configuration_raw {
@@ -369,11 +410,17 @@ pub(super) fn run(
                 "Metadata bootstrap owner configuration changed",
             ));
         }
-        execution.common_execution().verify().map_err(failure)?;
-        progress.verify(&tx).map_err(failure)?;
+        execution
+            .common_execution()
+            .verify()
+            .map_err(|e| failure_with_stage("bootstrap-execution-verify", e))?;
+        progress
+            .verify(&tx)
+            .map_err(|e| failure_with_stage("bootstrap-progress-verify", e))?;
         active(deadline, cancelled)?;
         fence.verify()?;
-        tx.commit().map_err(failure)?;
+        tx.commit()
+            .map_err(|e| failure_with_stage("bootstrap-transaction-commit", e))?;
         return Ok(
             json!({"schema_version":"tos_local_native_metadata_publication_result_v1", "result":result,"grants_admission":false}),
         );
@@ -482,7 +529,7 @@ pub(super) fn run(
                 .map_err(|e| tos_compiler::Error::Source(format!("{e:?}")))
         },
     )
-    .map_err(failure)?;
+    .map_err(|e| failure_with_stage("committed-initial-publication", e))?;
     Ok(
         json!({"schema_version":"tos_local_native_metadata_publication_result_v1",
               "result":receipt,"grants_admission":false}),

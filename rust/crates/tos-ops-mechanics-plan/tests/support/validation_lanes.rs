@@ -136,7 +136,7 @@ fn maintained_manifest_check_and_selection_reject_python_commands() {
         let issues = lanes::validate_manifest(&root.0).unwrap();
         assert!(
             issues.iter().any(|(_, detail)| {
-                detail.contains("Python commands") && detail.contains("unsupported")
+                detail.contains(".command uses Python, which is unsupported in maintained validation lanes")
             }),
             "manifest validator accepted argv0 {:?}",
             command[0]
@@ -481,6 +481,7 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
                 .map(|b| (s["label"].as_str().unwrap(), b.as_u64().unwrap())))
             .collect::<Vec<_>>(),
         [
+            ("compile exact Rust conformance test image", 900000),
             (source, 900000),
             (classes, 900000),
             (cases[7].0, 900000),

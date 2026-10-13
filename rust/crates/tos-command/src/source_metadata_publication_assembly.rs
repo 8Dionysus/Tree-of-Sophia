@@ -4,6 +4,7 @@ use crate::{
     source_claim_publication_roots::{Change, Roots},
     source_command as cmd,
     source_creation_store::CommittedMetadataCreationObservation,
+    source_metadata_publication::diagnose_source_command_refusal,
 };
 use serde_json::{Value, json};
 use std::{
@@ -27,8 +28,13 @@ pub(super) struct Assembled {
     pub nodes: BTreeMap<(String, String), Vec<u8>>,
     pub edges: BTreeMap<(String, String), Vec<u8>>,
 }
+#[track_caller]
 fn owner<T>(r: cmd::SourceCommandResult<T>) -> Result<T> {
-    r.map_err(|e| Error::Source(format!("Metadata source: {e:?}")))
+    let callsite_line = std::panic::Location::caller().line();
+    r.map_err(|e| {
+        diagnose_source_command_refusal("metadata-assembly-owner", callsite_line, &e);
+        Error::Source(format!("Metadata source: {e:?}"))
+    })
 }
 fn view(v: &JsonValue, cap: usize) -> Result<Value> {
     let limits = JsonLimits::new(cap, 128, 1_000_000, 4300)
@@ -61,6 +67,7 @@ fn read(
         c,
     ))
 }
+#[track_caller]
 fn check(
     w: &mut CutWorkerSchemaExecutor,
     reference: &str,
@@ -69,10 +76,61 @@ fn check(
     l: BibliographicLimits,
     c: &AtomicBool,
 ) -> Result<()> {
+    let callsite_line = std::panic::Location::caller().line();
     match w.check(reference, raw, contract, l.deadline, c) {
         Ok(true) => Ok(()),
         Ok(false) => Err(Error::Invalid("Metadata addressed schema refused")),
-        Err(e) => Err(Error::Source(format!("Metadata schema worker: {e:?}"))),
+        Err(e) => {
+            let (class, executor_failure) = match &e {
+                tos_validation::item_rules::ItemRefusal::Budget => ("budget", None),
+                tos_validation::item_rules::ItemRefusal::BudgetCheck { .. } => {
+                    ("budget-check", None)
+                }
+                tos_validation::item_rules::ItemRefusal::Deadline => ("deadline", None),
+                tos_validation::item_rules::ItemRefusal::Source(_) => ("source", None),
+                tos_validation::item_rules::ItemRefusal::Unsupported(_) => ("unsupported", None),
+                tos_validation::item_rules::ItemRefusal::Executor(evidence) => {
+                    let failure = match evidence.reason {
+                        tos_validation::executor::ExecutorFailure::Timeout => "timeout",
+                        tos_validation::executor::ExecutorFailure::Cancelled => "cancelled",
+                        tos_validation::executor::ExecutorFailure::InputBudget => "input-budget",
+                        tos_validation::executor::ExecutorFailure::CpuLimit => "cpu-limit",
+                        tos_validation::executor::ExecutorFailure::UnsupportedHost => {
+                            "unsupported-host"
+                        }
+                        tos_validation::executor::ExecutorFailure::WorkerIdentity => {
+                            "worker-identity"
+                        }
+                        tos_validation::executor::ExecutorFailure::ResourceLimitUnknown => {
+                            "resource-limit-unknown"
+                        }
+                        tos_validation::executor::ExecutorFailure::Spawn => "spawn",
+                        tos_validation::executor::ExecutorFailure::CrashSignal(_) => "crash-signal",
+                        tos_validation::executor::ExecutorFailure::CrashExit(_) => "crash-exit",
+                        tos_validation::executor::ExecutorFailure::ReapPending(_) => "reap-pending",
+                        tos_validation::executor::ExecutorFailure::Protocol => "protocol",
+                        tos_validation::executor::ExecutorFailure::Backend => "backend",
+                        tos_validation::executor::ExecutorFailure::ParseRejected => {
+                            "parse-rejected"
+                        }
+                        tos_validation::executor::ExecutorFailure::CoverageMismatch => {
+                            "coverage-mismatch"
+                        }
+                    };
+                    ("executor", Some(failure))
+                }
+            };
+            if let Some(failure) = executor_failure {
+                eprintln!(
+                    "tos-metadata-publication-diagnostic-v1 stage=metadata-schema-check callsite_line={callsite_line} refusal_class={class} executor_failure={failure}"
+                );
+            } else {
+                eprintln!(
+                    "tos-metadata-publication-diagnostic-v1 stage=metadata-schema-check callsite_line={callsite_line} refusal_class={class}"
+                );
+            }
+            Err(Error::Source(format!("Metadata schema worker: {e:?}")))
+        }
     }
 }
 fn source_canonical(value: &Value) -> Result<Vec<u8>> {

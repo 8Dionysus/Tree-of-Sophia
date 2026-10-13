@@ -341,8 +341,10 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let postgres_run = run(postgres);
     for line in [
         "postgresql-client-16",
-        "pg_dump --version",
-        "pg_restore --version",
+        "export TOS_CMD2_PG_DUMP_PATH=/usr/lib/postgresql/16/bin/pg_dump",
+        "export TOS_CMD2_PG_RESTORE_PATH=/usr/lib/postgresql/16/bin/pg_restore",
+        "\"$TOS_CMD2_PG_DUMP_PATH\" --version | grep -Eq ' \\(PostgreSQL\\) 16\\.'",
+        "\"$TOS_CMD2_PG_RESTORE_PATH\" --version | grep -Eq ' \\(PostgreSQL\\) 16\\.'",
         "CREATE DATABASE",
     ] {
         assert!(
@@ -645,8 +647,22 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
                 "--locked",
                 "-p",
                 "tos-command",
+                "--lib",
+                "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+                "--",
+                "--exact"
+            ],
+            vec![
+                "cargo",
+                "test",
+                "--locked",
                 "-p",
-                "tos-source-store"
+                "tos-command",
+                "-p",
+                "tos-source-store",
+                "--",
+                "--skip",
+                "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending"
             ],
         ]
     );
