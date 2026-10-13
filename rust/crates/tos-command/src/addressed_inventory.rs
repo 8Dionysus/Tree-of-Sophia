@@ -3222,8 +3222,11 @@ fn validate_item_lineage(
         .as_object()
         .ok_or(DurableError::Corrupt("Item native receipt member map"))?;
     let mut expected_files = BTreeMap::<String, (u64, Digest256)>::new();
+    let compound_receipt_path = format!("{item_home}/edition-item-receipt.json");
     for (path, (_, bytes, digest)) in direct {
-        expected_files.insert(path.clone(), (*bytes, *digest));
+        if path != &compound_receipt_path {
+            expected_files.insert(path.clone(), (*bytes, *digest));
+        }
     }
     expected_files.extend(successor);
     if files.len() != expected_files.len()

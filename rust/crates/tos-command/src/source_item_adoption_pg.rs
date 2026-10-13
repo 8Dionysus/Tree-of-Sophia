@@ -2415,6 +2415,7 @@ fn exact_map(actual: &JsonValue, expected: &BTreeMap<String, Vec<u8>>) -> Source
 fn exact_parent_before(
     receipt: &JsonValue,
     predecessor: &BTreeMap<String, Vec<u8>>,
+    edition_home: &str,
 ) -> SourceCommandResult<Vec<JsonValue>> {
     let rows = cmd::field(receipt, "parent_before_files")?
         .as_object()
@@ -2431,7 +2432,7 @@ fn exact_parent_before(
         {
             return Err(conflict("Item predecessor receipt digest differs"));
         }
-        refs.push(member_ref(name, raw));
+        refs.push(member_ref(&format!("{edition_home}/{name}"), raw));
     }
     Ok(refs)
 }
@@ -2719,7 +2720,7 @@ pub(crate) fn claim_owner_contribution(
         return Err(conflict("Item compound receipt package member absent"));
     }
     exact_map(cmd::field(&receipt, "files")?, &output_package)?;
-    let predecessor_refs = exact_parent_before(&receipt, predecessor)?;
+    let predecessor_refs = exact_parent_before(&receipt, predecessor, edition_home)?;
 
     let mut direct_members = Vec::with_capacity(bytes.child.len());
     for (name, raw) in &bytes.child {

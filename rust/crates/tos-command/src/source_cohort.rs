@@ -2302,12 +2302,13 @@ fn item_claim_owner_contribution(
         &predecessor,
     )
     .map_err(source_error)?;
-    if cmd::text(
-        cmd::field(&adoption_v1, "lineage").map_err(source_error)?,
-        "child_source_path",
-    )
-    .map_err(source_error)?
-        != item_path
+    let adoption_lineage = cmd::field(&adoption_v1, "lineage").map_err(source_error)?;
+    let adoption_native_receipt =
+        cmd::field(adoption_lineage, "native_receipt").map_err(source_error)?;
+    let adoption_scope = cmd::field(adoption_native_receipt, "scope").map_err(source_error)?;
+    if cmd::text(&adoption_v1, "package_home").map_err(source_error)? != item_home
+        || cmd::text(&adoption_v1, "source_path").map_err(source_error)? != stream_path
+        || cmd::text(adoption_scope, "item_source_path").map_err(source_error)? != item_path
     {
         return Err(DurableError::Conflict(
             "historical adoption contribution points at another Item",
