@@ -6725,14 +6725,7 @@ pub(crate) fn render_agent_inventory_member(
                 (
                     "form_ids",
                     JsonValue::Array(
-                        ["forms", "prior_forms"]
-                            .into_iter()
-                            .map(|section| array(&prior, section))
-                            .collect::<SourceCommandResult<Vec<_>>>()?
-                            .into_iter()
-                            .flatten()
-                            .map(|form| field(form, "form_id").cloned())
-                            .collect::<SourceCommandResult<Vec<_>>>()?,
+                        crate::source_forms::stable_form_ids_after_history_validation(&prior)?,
                     ),
                 ),
             ])

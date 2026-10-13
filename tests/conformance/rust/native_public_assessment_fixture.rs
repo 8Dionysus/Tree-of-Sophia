@@ -339,6 +339,7 @@ pub fn native_public_sign_fixture(
     let mut worker = super::command_form_cases::schemas(&cut, deadline, &cancelled);
     let mut reader = FrozenPublicRead(files);
     let mut unit_refs = Vec::new();
+    let mut unit_quality_refs = Vec::new();
     for index in 0..2 {
         let binding = native_binding(index)?;
         let exact = tos_command::resolve_public_native_assessment_for_conformance(
@@ -360,6 +361,10 @@ pub fn native_public_sign_fixture(
             &records,
             packet["units"][index]["unit_id"].as_str().unwrap(),
         )?);
+        let layer_id = binding["text_layer"]["layer_id"]
+            .as_str()
+            .ok_or_else(|| invalid_data("native quality layer identity absent"))?;
+        unit_quality_refs.push(native_record_ref(&records, layer_id)?);
     }
     use tos_validation::source_cut::CutSchemaExecutor;
     worker
@@ -473,8 +478,12 @@ pub fn native_public_sign_fixture(
         "decision":"admit-with-limits",
         "rationale":"The repeated flame supports a bounded continuity-under-change interpretation across dawn and dusk. The phrase 'carries a remembered promise into an open question' is interpretive, not a factual event stated by the text.",
         "language":"en","evidence":[
-            {"record":occurrence_refs[0],"stance":"supports","locator":"Exact native text unit for the dawn occurrence."},
-            {"record":occurrence_refs[1],"stance":"supports","locator":"Exact native text unit for the dusk occurrence."}],
+            {"record":occurrence_refs[0],"stance":"supports","locator":"Exact dawn occurrence record bound to the selected native text unit."},
+            {"record":unit_refs[0],"stance":"supports","locator":"Exact native TextUnit assessment record for the dawn occurrence."},
+            {"record":unit_quality_refs[0],"stance":"supports","locator":"Exact TextLayer quality record for the dawn native unit."},
+            {"record":occurrence_refs[1],"stance":"supports","locator":"Exact dusk occurrence record bound to the selected native text unit."},
+            {"record":unit_refs[1],"stance":"supports","locator":"Exact native TextUnit assessment record for the dusk occurrence."},
+            {"record":unit_quality_refs[1],"stance":"supports","locator":"Exact TextLayer quality record for the dusk native unit."}],
         "counterevidence_search":{"status":"searched","note":"Fixture-local source-visible review retained the counterreading of two separate literal flame images with no stable symbolism."},
         "limits":["Only these two public-synthetic occurrences.","The carries-into wording is interpretive, not a factual text event.",
             "No historical, Nietzsche, tradition, translation, truth, canon, or publication claim."],

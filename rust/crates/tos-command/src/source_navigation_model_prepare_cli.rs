@@ -999,6 +999,8 @@ fn prepare_initial(
     let outer_owner_context = super::absolute(super::text(invocation, "owner_context")?)?;
     let bootstrap_owner_path =
         super::absolute(super::text(&bootstrap_invocation, "owner_config")?)?;
+    // These operations have separate job leases: the bootstrap owner is checked
+    // below and the navigation lease at publication. Compare their source binding only.
     if bootstrap.selection.source_revision != bootstrap_source_revision
         || Digest256::from_prefixed(super::text(&bootstrap_invocation, "source_revision")?)
             .map_err(|_| SourceCommandError::Invalid("retained bootstrap source revision"))?
@@ -1007,8 +1009,6 @@ fn prepare_initial(
         || bootstrap.selection.domain != selection.domain
         || bootstrap.selection.contract.to_hex() != selection.source_contract_sha256
         || bootstrap.selection.store_root != selection.store_root
-        || bootstrap.selection.job_id != selection.job_id
-        || bootstrap.selection.job_fence != selection.job_fence
         || outer_owner_context != bootstrap_owner_path
         || bootstrap.software.selection() != original_software.selection()
         || bootstrap
