@@ -708,19 +708,11 @@ fn collect_record_files(
                     "exact metadata schema has no unique declared profile",
                 ));
             }
-            let routes = cmd::array(profiles[0], "schemas")?
-                .iter()
-                .filter(|route| cmd::text(route, "schema_version").ok() == Some(schema_version))
-                .collect::<Vec<_>>();
-            if routes.len() != 1 {
-                return Err(SourceCommandError::Unsupported(
-                    "metadata source schema not supported",
-                ));
-            }
+            let route = selected_profile_schema_route(profiles[0], &record)?;
             schemas.insert(CORPUS_SCHEMA.to_owned());
             schemas.insert("ToS/contracts/source-metadata-record.schema.json".to_owned());
-            schemas.insert(cmd::text(routes[0], "schema_ref")?.to_owned());
-            schemas.extend(texts(routes[0], "schema_dependencies", 128)?);
+            schemas.insert(cmd::text(route, "schema_ref")?.to_owned());
+            schemas.extend(texts(route, "schema_dependencies", 128)?);
         }
     }
     let mut checked = BTreeSet::new();
@@ -1751,7 +1743,7 @@ pub(crate) fn read_archive(
     config: &JsonValue,
     receipt: &JsonValue,
 ) -> SourceCommandResult<(Package, JsonValue)> {
-    read_archive_bounded(ctx, config, receipt, None, None)
+    read_archive_bounded(ctx, config, receipt, None, None, false)
 }
 
 fn read_archive_bounded(
@@ -1760,6 +1752,7 @@ fn read_archive_bounded(
     receipt: &JsonValue,
     remaining_read_bytes: Option<u64>,
     remaining_state_bytes: Option<usize>,
+    retain_history: bool,
 ) -> SourceCommandResult<(Package, JsonValue)> {
     let location = archive_path(config, cmd::text(receipt, "previous_revision")?)?;
     if cmd::text(receipt, "archive_path")? != location {
@@ -1877,7 +1870,10 @@ fn read_archive_bounded(
         if readonly && (name.contains('\\') || name.contains('\0')) {
             return Err(SourceCommandError::Invalid("archive basename"));
         }
-        if readonly && name != selected_base {
+        // Typed owner history must inspect the retained predecessor prefix. Keep
+        // only its exact history member in addition to the selected record, with
+        // the same manifest, scope, read-byte, and state-byte checks below.
+        if readonly && name != selected_base && !(retain_history && name == HISTORY) {
             continue;
         }
         let blob_path = format!("{location}/{blob}");
@@ -2168,8 +2164,14 @@ fn verify_history_accounted(
             }
         }
         let remaining_read = max_read_bytes.map(|limit| limit.saturating_sub(bytes_read));
-        let (archived, _) =
-            read_archive_bounded(ctx, config, receipt, remaining_read, archive_state)?;
+        let (archived, _) = read_archive_bounded(
+            ctx,
+            config,
+            receipt,
+            remaining_read,
+            archive_state,
+            typed_owner_history,
+        )?;
         let manifest = format!("{}/manifest.json", cmd::text(receipt, "archive_path")?);
         bytes_read = bytes_read
             .checked_add(required(ctx, &manifest)?.len() as u64)
@@ -6985,6 +6987,60 @@ where
     Ok(registry)
 }
 
+/// Select the one schema route declared for this exact public-profile record.
+/// Callers still own schema worker execution and source admission.
+fn selected_profile_schema_route<'a>(
+    profile: &'a JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<&'a JsonValue> {
+    if cmd::text(profile, "record_type")? != cmd::text(record, "record_type")? {
+        return Err(SourceCommandError::Unsupported(
+            "profile exact schema record type differs",
+        ));
+    }
+    let schema_version = cmd::text(record, "schema_version")?;
+    let routes = cmd::array(profile, "schemas")?
+        .iter()
+        .filter(|route| cmd::text(route, "schema_version").ok() == Some(schema_version))
+        .collect::<Vec<_>>();
+    if routes.len() != 1 {
+        return Err(SourceCommandError::Unsupported(
+            "profile exact schema version unavailable",
+        ));
+    }
+    Ok(routes[0])
+}
+
+/// Resolve the schema reference embedded in a creation preview.
+/// Artifact and corpus profiles publish one flat reference; public ToS profiles
+/// select the nested route by the created record's exact schema version.
+pub(crate) fn selected_source_profile_schema_ref(
+    profile: &JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<String> {
+    let record_type = cmd::text(record, "record_type")?;
+    let schema_version = cmd::text(record, "schema_version")?;
+    let schema = if profile.object_get("schemas").is_some() {
+        let route = selected_profile_schema_route(profile, record)?;
+        cmd::text(route, "schema_ref")?
+    } else {
+        if cmd::text(profile, "record_type")? != record_type
+            || cmd::text(profile, "schema_version")? != schema_version
+        {
+            return Err(SourceCommandError::Unsupported(
+                "profile exact schema version unavailable",
+            ));
+        }
+        cmd::text(profile, "schema_ref")?
+    };
+    if schema.is_empty() || schema.len() > 4096 {
+        return Err(SourceCommandError::Invalid(
+            "metadata source schema reference bound",
+        ));
+    }
+    Ok(schema.to_owned())
+}
+
 pub(crate) fn public_profile(
     cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
@@ -7074,20 +7130,10 @@ pub(crate) fn public_profile(
             "native text binding has no explicit profile adapter",
         ));
     }
-    let routes = cmd::array(profile, "schemas")?
-        .iter()
-        .filter(|route| {
-            cmd::text(route, "schema_version").ok() == cmd::text(record, "schema_version").ok()
-        })
-        .collect::<Vec<_>>();
-    if routes.len() != 1 {
-        return Err(SourceCommandError::Unsupported(
-            "profile exact schema version unavailable",
-        ));
-    }
-    let root = cmd::text(routes[0], "schema_ref")?;
+    let route = selected_profile_schema_route(profile, record)?;
+    let root = cmd::text(route, "schema_ref")?;
     let mut resources = vec![CORPUS_SCHEMA.to_string()];
-    resources.extend(texts(routes[0], "schema_dependencies", 128)?);
+    resources.extend(texts(route, "schema_dependencies", 128)?);
     resources.push(root.into());
     let mut seen = BTreeSet::new();
     resources.retain(|r| seen.insert(r.clone()));
@@ -7250,20 +7296,10 @@ fn public_profile_candidate_with_native_content<I: Copy + Eq>(
             "candidate public profile native text binding adapter",
         ));
     }
-    let routes = cmd::array(profile, "schemas")?
-        .iter()
-        .filter(|route| {
-            cmd::text(route, "schema_version").ok() == cmd::text(record, "schema_version").ok()
-        })
-        .collect::<Vec<_>>();
-    if routes.len() != 1 {
-        return Err(SourceCommandError::Unsupported(
-            "profile exact schema version unavailable",
-        ));
-    }
-    let root = cmd::text(routes[0], "schema_ref")?;
+    let route = selected_profile_schema_route(profile, record)?;
+    let root = cmd::text(route, "schema_ref")?;
     let mut resources = vec![CORPUS_SCHEMA.to_string()];
-    resources.extend(texts(routes[0], "schema_dependencies", 128)?);
+    resources.extend(texts(route, "schema_dependencies", 128)?);
     resources.push(root.into());
     let mut seen = BTreeSet::new();
     resources.retain(|resource| seen.insert(resource.clone()));
@@ -8135,6 +8171,7 @@ where
                         .max_state_bytes
                         .saturating_sub(selected_bytes_read as usize)
                 }),
+                false,
             )?;
             let raw = archived.get(base).ok_or(SourceCommandError::Conflict(
                 "retained metadata record absent",
@@ -8268,6 +8305,110 @@ mod readonly_descriptor_tests {
     }
 
     #[test]
+    fn source_profile_schema_selector_matches_the_exact_nested_record_version() {
+        let profile = parse(serde_json::json!({
+            "record_type":"occurrence",
+            "schemas":[
+                {"schema_version":"tos_occurrence_description_record_v0","schema_ref":"ToS/contracts/old.schema.json"},
+                {"schema_version":"tos_occurrence_description_record_v1","schema_ref":"ToS/contracts/occurrence-description-record.schema.json"}
+            ]
+        }));
+        let record = parse(serde_json::json!({
+            "record_type":"occurrence",
+            "schema_version":"tos_occurrence_description_record_v1"
+        }));
+        assert_eq!(
+            cmd::text(
+                selected_profile_schema_route(&profile, &record).unwrap(),
+                "schema_ref"
+            )
+            .unwrap(),
+            "ToS/contracts/occurrence-description-record.schema.json"
+        );
+        assert_eq!(
+            selected_source_profile_schema_ref(&profile, &record).unwrap(),
+            "ToS/contracts/occurrence-description-record.schema.json"
+        );
+    }
+
+    #[test]
+    fn source_profile_schema_selector_rejects_missing_and_ambiguous_versions() {
+        let record = parse(serde_json::json!({
+            "record_type":"occurrence",
+            "schema_version":"tos_occurrence_description_record_v1"
+        }));
+        let missing = parse(serde_json::json!({
+            "record_type":"occurrence",
+            "schemas":[{"schema_version":"tos_occurrence_description_record_v0","schema_ref":"ToS/contracts/old.schema.json"}]
+        }));
+        assert!(matches!(
+            selected_source_profile_schema_ref(&missing, &record),
+            Err(SourceCommandError::Unsupported(
+                "profile exact schema version unavailable"
+            ))
+        ));
+        let ambiguous = parse(serde_json::json!({
+            "record_type":"occurrence",
+            "schema_ref":"ToS/contracts/unsafe-fallback.schema.json",
+            "schemas":[
+                {"schema_version":"tos_occurrence_description_record_v1","schema_ref":"ToS/contracts/a.schema.json"},
+                {"schema_version":"tos_occurrence_description_record_v1","schema_ref":"ToS/contracts/b.schema.json"}
+            ]
+        }));
+        assert!(matches!(
+            selected_profile_schema_route(&ambiguous, &record),
+            Err(SourceCommandError::Unsupported(
+                "profile exact schema version unavailable"
+            ))
+        ));
+    }
+
+    #[test]
+    fn source_profile_schema_selector_keeps_flat_artifact_and_corpus_profiles() {
+        for (record_type, schema_version, schema_ref) in [
+            (
+                "artifact",
+                "tos_artifact_source_witness_v2",
+                "ToS/contracts/artifact-source-witness-v2.schema.json",
+            ),
+            (
+                "corpus",
+                "tos_corpus_record_v1",
+                "ToS/contracts/corpus-record.schema.json",
+            ),
+        ] {
+            let flat = parse(serde_json::json!({
+                "record_type":record_type,
+                "schema_version":schema_version,
+                "schema_ref":schema_ref
+            }));
+            let record = parse(serde_json::json!({
+                "record_type":record_type,
+                "schema_version":schema_version
+            }));
+            assert_eq!(
+                selected_source_profile_schema_ref(&flat, &record).unwrap(),
+                schema_ref
+            );
+        }
+        let flat = parse(serde_json::json!({
+            "record_type":"artifact",
+            "schema_version":"tos_artifact_source_witness_v2",
+            "schema_ref":"ToS/contracts/artifact-source-witness-v2.schema.json"
+        }));
+        let record = parse(serde_json::json!({
+            "record_type":"artifact",
+            "schema_version":"tos_artifact_source_witness_v1"
+        }));
+        assert!(matches!(
+            selected_source_profile_schema_ref(&flat, &record),
+            Err(SourceCommandError::Unsupported(
+                "profile exact schema version unavailable"
+            ))
+        ));
+    }
+
+    #[test]
     fn native_witness_schemas_require_the_exact_owner_kind_and_identity_descriptor() {
         for (schema, kind, field) in [
             ("tos_artifact_source_witness_v1", "artifact", "artifact_id"),
@@ -8338,5 +8479,115 @@ mod readonly_descriptor_tests {
             malformed.readonly_descriptor(&registry_for("artifact")),
             Err(SourceCommandError::Invalid("expected text field"))
         ));
+    }
+}
+
+#[cfg(test)]
+mod retained_typed_history_prefix_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn fixture_root() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../")
+    }
+
+    fn read_fixture(root: &Path, relative: &str) -> Vec<u8> {
+        std::fs::read(root.join(relative))
+            .unwrap_or_else(|error| panic!("failed to read retained fixture {relative}: {error}"))
+    }
+
+    fn push_fixture_file(files: &mut Vec<SourceFile>, path: &str, raw: Vec<u8>) {
+        files.push(SourceFile {
+            path: RelativePath::parse(path).unwrap(),
+            raw,
+        });
+    }
+
+    #[test]
+    fn readonly_typed_history_verifies_real_two_receipt_archive_prefix() {
+        let root = fixture_root();
+        let source_path = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json";
+        let parent = source_path.rsplit_once('/').unwrap().0;
+        let mut package = Package::new();
+        let mut files = Vec::new();
+        for name in names(source_path).unwrap() {
+            let path = format!("{parent}/{name}");
+            let raw = read_fixture(&root, &path);
+            package.insert(name, raw.clone());
+            push_fixture_file(&mut files, &path, raw);
+        }
+
+        let history: serde_json::Value =
+            serde_json::from_slice(package.get(HISTORY).unwrap()).unwrap();
+        let receipts = history["receipts"].as_array().unwrap();
+        assert_eq!(
+            receipts.len(),
+            2,
+            "fixture must retain two Edition receipts"
+        );
+        assert_eq!(receipts[0]["request"]["operation"], "item.adopt");
+        assert_eq!(receipts[1]["request"]["operation"], "record.revise");
+
+        for receipt in receipts {
+            let archive = receipt["archive_path"].as_str().unwrap();
+            let manifest_path = format!("{archive}/manifest.json");
+            let manifest_raw = read_fixture(&root, &manifest_path);
+            let manifest: serde_json::Value = serde_json::from_slice(&manifest_raw).unwrap();
+            push_fixture_file(&mut files, &manifest_path, manifest_raw);
+            for binding in manifest["files"].as_object().unwrap().values() {
+                let blob = binding["blob"].as_str().unwrap();
+                let blob_path = format!("{archive}/{blob}");
+                push_fixture_file(&mut files, &blob_path, read_fixture(&root, &blob_path));
+            }
+        }
+
+        let second_archive = receipts[1]["archive_path"].as_str().unwrap();
+        let second_manifest: serde_json::Value = serde_json::from_slice(&read_fixture(
+            &root,
+            &format!("{second_archive}/manifest.json"),
+        ))
+        .unwrap();
+        let history_blob = second_manifest["files"][HISTORY]["blob"].as_str().unwrap();
+        let archived_history: serde_json::Value = serde_json::from_slice(&read_fixture(
+            &root,
+            &format!("{second_archive}/{history_blob}"),
+        ))
+        .unwrap();
+        assert_eq!(
+            archived_history["receipts"],
+            serde_json::Value::Array(receipts[..1].to_vec()),
+            "second predecessor archive must carry the exact one-receipt prefix"
+        );
+
+        let record: JsonValue = cmd::parse(package.get("edition.json").unwrap()).unwrap();
+        let config = cmd::parse(
+            &serde_json::to_vec(&serde_json::json!({
+                "source_path": source_path,
+                "record_type": "edition"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let input = RecordVersionReadInput {
+            files: &files,
+            source_revision: tos_foundation::SourceRevision(Digest256::of_bytes(b"fixture")),
+            effective_uid: 0,
+            schema_source_path: "ToS/contracts/corpus-record.schema.json",
+        };
+        let cancelled = AtomicBool::new(false);
+        let (observed, _) = verify_history_accounted(
+            &input,
+            &config,
+            &package,
+            &record,
+            None,
+            None,
+            Some((
+                Instant::now() + std::time::Duration::from_secs(10),
+                &cancelled,
+            )),
+        )
+        .unwrap();
+        assert_eq!(cmd::array(&observed, "receipts").unwrap().len(), 2);
     }
 }

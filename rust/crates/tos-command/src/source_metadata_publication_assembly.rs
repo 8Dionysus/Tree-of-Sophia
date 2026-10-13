@@ -238,8 +238,12 @@ pub(super) fn assemble(
         }
     }
     let preview = view(&owner(package.preview())?, 1_048_576)?;
-    let schema = bytes::text(&preview["source_profile"], "schema_ref")?;
-    check(w, &reference, &raw, schema, l, c)?;
+    let source_profile = typed(&preview["source_profile"], l.catalog.max_row_bytes)?;
+    let schema = owner(crate::source_revisions::selected_source_profile_schema_ref(
+        &source_profile,
+        &source,
+    ))?;
+    check(w, &reference, &raw, &schema, l, c)?;
     if package.family() == crate::source_creation::CreationFamily::PublicProfile {
         let (_, resources, _, _) = owner(crate::source_revisions::public_profile(
             Some(o.cut()),
@@ -260,7 +264,7 @@ pub(super) fn assemble(
         &record,
         &reference,
         (package.family() == crate::source_creation::CreationFamily::PublicProfile)
-            .then_some(schema),
+            .then_some(schema.as_str()),
         l.catalog.max_output_row_bytes,
     )?;
     let entities = bytes::parse(
