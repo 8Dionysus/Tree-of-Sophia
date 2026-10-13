@@ -485,7 +485,7 @@ fn rule_typed_value(
         if length == 0 || length > 100 || items.len() as u64 != length {
             return Err("condition_value_type");
         }
-        items.as_slice()
+        items
     } else {
         std::slice::from_ref(shape)
     };
