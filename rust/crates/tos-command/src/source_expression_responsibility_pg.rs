@@ -2405,19 +2405,7 @@ fn event_projection(path: &str, raw: &[u8], expected_id: &str) -> SourceCommandR
 
 fn form_projection(raw: &[u8]) -> SourceCommandResult<JsonValue> {
     let set = cmd::parse(raw)?;
-    let mut ids = Vec::new();
-    let mut seen = BTreeSet::new();
-    for section in ["forms", "prior_forms"] {
-        for form in cmd::array(&set, section)? {
-            let id = cmd::text(form, "form_id")?.to_owned();
-            if id.is_empty() || !seen.insert(id.clone()) {
-                return Err(SourceCommandError::Conflict(
-                    "ExpressionResponsibility form identity repeats",
-                ));
-            }
-            ids.push(cmd::string(&id));
-        }
-    }
+    let ids = crate::source_forms::projection_form_ids(&set)?;
     Ok(cmd::object(vec![
         (
             "raw_sha256",

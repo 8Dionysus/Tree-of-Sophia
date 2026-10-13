@@ -282,22 +282,8 @@ fn evidence_projection(path: &str, raw: &[u8], id_field: &str) -> DurableResult<
 
 fn form_projection(raw: &[u8]) -> DurableResult<JsonValue> {
     let value = cmd::parse(raw).map_err(DurableError::Source)?;
-    let mut form_ids = Vec::new();
-    let mut seen = BTreeSet::new();
-    for section in ["forms", "prior_forms"] {
-        let rows = cmd::array(&value, section).map_err(DurableError::Source)?;
-        for form in rows {
-            let id = cmd::text(form, "form_id")
-                .map_err(DurableError::Source)?
-                .to_owned();
-            if id.is_empty() {
-                return Err(DurableError::Corrupt("PG Growth form identity repeats"));
-            }
-            if seen.insert(id.clone()) {
-                form_ids.push(cmd::string(&id));
-            }
-        }
-    }
+    let form_ids =
+        crate::source_forms::projection_form_ids(&value).map_err(DurableError::Source)?;
     Ok(cmd::object(vec![
         (
             "raw_sha256",

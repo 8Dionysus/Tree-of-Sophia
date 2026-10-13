@@ -173,6 +173,8 @@ where
 #[derive(Clone, Copy, Debug)]
 pub struct DurableProjectionLimits {
     pub max_events: usize,
+    /// Independent ceiling for committed event members, additional affected
+    /// roots, and unique requested dependency addresses in one event.
     pub max_event_members: usize,
     pub max_event_documents: usize,
     pub max_event_bytes: u64,
@@ -987,8 +989,12 @@ impl DurablePgCoordinator {
         }
 
         let mut event_bytes = 0u64;
+        // Cardinality ceilings are applied to each selected category below;
+        // this union only ensures each unique address is byte-charged once.
         let mut path_budget = BTreeSet::new();
         let mut payload_budget = BTreeSet::new();
+        let mut additional_root_budget = BTreeSet::new();
+        let mut dependency_path_budget = BTreeSet::new();
         let mut changed_by_path = BTreeMap::new();
         let mut source_versions = BTreeMap::new();
         let mut replaced_paths = BTreeSet::new();
@@ -1037,6 +1043,16 @@ impl DurablePgCoordinator {
                     validate_relative_path(&path)?;
                     if path != member.source_path {
                         related_roots.insert(path.clone());
+                        if !changed_by_path.contains_key(&path) {
+                            add_projection_budget_path(
+                                &mut additional_root_budget,
+                                &mut path_budget,
+                                &path,
+                                &mut event_bytes,
+                                limits,
+                                "projection event exceeds related path budget",
+                            )?;
+                        }
                         root_paths.insert(path);
                     }
                 }
@@ -1049,15 +1065,20 @@ impl DurablePgCoordinator {
                 )? {
                     if path != member.source_path {
                         related_roots.insert(path.clone());
+                        if !changed_by_path.contains_key(&path) {
+                            add_projection_budget_path(
+                                &mut additional_root_budget,
+                                &mut path_budget,
+                                &path,
+                                &mut event_bytes,
+                                limits,
+                                "projection event exceeds related path budget",
+                            )?;
+                        }
                         root_paths.insert(path);
                     }
                 }
             }
-        }
-        if root_paths.len() > limits.max_event_members {
-            return Err(DurableError::Refused(
-                "projection event has too many affected roots",
-            ));
         }
         staged.work.examined_related_roots = u64::try_from(related_roots.len())
             .map_err(|_| DurableError::Refused("projection related-root count overflow"))?;
@@ -1065,11 +1086,6 @@ impl DurablePgCoordinator {
             replaced_paths.insert(path.clone());
             if path_budget.insert(path.clone()) {
                 add_projection_bytes(&mut event_bytes, path.len() as u64, limits)?;
-            }
-            if path_budget.len() > limits.max_event_members {
-                return Err(DurableError::Refused(
-                    "projection event exceeds related path budget",
-                ));
             }
         }
         staged.replaced_source_paths = replaced_paths.into_iter().collect();
@@ -1180,14 +1196,14 @@ impl DurablePgCoordinator {
                 if path == root_path || !unique_required.insert(path.clone()) {
                     continue;
                 }
-                if path_budget.insert(path.clone()) {
-                    add_projection_bytes(&mut event_bytes, path.len() as u64, limits)?;
-                }
-                if path_budget.len() > limits.max_event_members {
-                    return Err(DurableError::Refused(
-                        "projection event exceeds dependency path budget",
-                    ));
-                }
+                add_projection_budget_path(
+                    &mut dependency_path_budget,
+                    &mut path_budget,
+                    &path,
+                    &mut event_bytes,
+                    limits,
+                    "projection event exceeds dependency path budget",
+                )?;
                 required_paths.push(path);
             }
             staged.work.examined_dependency_paths = staged
@@ -1490,6 +1506,27 @@ fn add_projection_bytes(
         return Err(DurableError::Refused(
             "projection event exceeds byte budget",
         ));
+    }
+    Ok(())
+}
+
+fn add_projection_budget_path(
+    category_paths: &mut BTreeSet<String>,
+    event_paths: &mut BTreeSet<String>,
+    path: &str,
+    event_bytes: &mut u64,
+    limits: DurableProjectionLimits,
+    exceeded_error: &'static str,
+) -> DurableResult<()> {
+    if category_paths.contains(path) {
+        return Ok(());
+    }
+    if category_paths.len() >= limits.max_event_members {
+        return Err(DurableError::Refused(exceeded_error));
+    }
+    category_paths.insert(path.to_owned());
+    if event_paths.insert(path.to_owned()) {
+        add_projection_bytes(event_bytes, path.len() as u64, limits)?;
     }
     Ok(())
 }
@@ -2349,5 +2386,146 @@ fn validate_relative_path(path: &str) -> DurableResult<()> {
         Err(DurableError::Invalid("projection source path"))
     } else {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod projection_path_budget_tests {
+    use super::*;
+    use crate::source_projection_cli::SourceTextExtractorV2;
+
+    fn event_member_paths(last_path: &str) -> BTreeSet<String> {
+        (0..63)
+            .map(|index| {
+                format!("ToS/source-witnesses/agents/projection-budget/member-{index}.json")
+            })
+            .chain(std::iter::once(last_path.to_owned()))
+            .collect()
+    }
+
+    fn member_path_bytes(paths: &BTreeSet<String>) -> u64 {
+        paths.iter().map(|path| path.len() as u64).sum()
+    }
+
+    #[test]
+    fn v2_64_member_events_allow_one_future_companion_and_prior_related_root() {
+        let limits = DurableProjectionLimits::default();
+        let extractor = SourceTextExtractorV2;
+        let human_forms_path = "ToS/source-witnesses/agents/justus-lipsius/agent.human-forms.json";
+        let metadata_paths = extractor
+            .required_source_paths(human_forms_path, 1, b"{}")
+            .unwrap();
+        assert_eq!(metadata_paths.len(), 1);
+        let metadata_path = metadata_paths[0].as_str();
+        validate_relative_path(metadata_path).unwrap();
+
+        // Sequence 3 changes 64 members; the sibling metadata is absent at
+        // this event cut and therefore adds one bounded dependency address.
+        let seq3_members = event_member_paths(human_forms_path);
+        assert_eq!(seq3_members.len(), 64);
+        assert!(!seq3_members.contains(metadata_path));
+        let mut seq3_event_paths = seq3_members.clone();
+        let mut seq3_dependency_paths = BTreeSet::new();
+        let mut seq3_event_bytes = member_path_bytes(&seq3_members);
+        add_projection_budget_path(
+            &mut seq3_dependency_paths,
+            &mut seq3_event_paths,
+            metadata_path,
+            &mut seq3_event_bytes,
+            limits,
+            "projection event exceeds dependency path budget",
+        )
+        .unwrap();
+        assert_eq!(seq3_event_paths.len(), 65);
+        assert_eq!(seq3_dependency_paths.len(), 1);
+
+        // Sequence 4 changes 64 members including the metadata; its
+        // previously-derived HumanForms root is one bounded additional root.
+        let seq4_related_roots = extractor.affected_source_paths(metadata_path).unwrap();
+        assert_eq!(seq4_related_roots, vec![human_forms_path.to_owned()]);
+        let seq4_members = event_member_paths(metadata_path);
+        assert_eq!(seq4_members.len(), 64);
+        assert!(!seq4_members.contains(human_forms_path));
+        let mut seq4_event_paths = seq4_members.clone();
+        let mut seq4_root_paths = BTreeSet::new();
+        let mut seq4_event_bytes = member_path_bytes(&seq4_members);
+        add_projection_budget_path(
+            &mut seq4_root_paths,
+            &mut seq4_event_paths,
+            human_forms_path,
+            &mut seq4_event_bytes,
+            limits,
+            "projection event exceeds related path budget",
+        )
+        .unwrap();
+        assert_eq!(seq4_event_paths.len(), 65);
+        assert_eq!(seq4_root_paths.len(), 1);
+
+        // The per-category ceiling remains real: the 65th unique address
+        // still refuses for both related roots and dependency paths.
+        let mut root_budget = BTreeSet::new();
+        let mut root_event_paths = BTreeSet::new();
+        let mut root_event_bytes = 0;
+        for index in 0..limits.max_event_members {
+            let path =
+                format!("ToS/source-witnesses/agents/projection-budget/related-{index}.json");
+            validate_relative_path(&path).unwrap();
+            add_projection_budget_path(
+                &mut root_budget,
+                &mut root_event_paths,
+                &path,
+                &mut root_event_bytes,
+                limits,
+                "projection event exceeds related path budget",
+            )
+            .unwrap();
+        }
+        let over_budget_root = "ToS/source-witnesses/agents/projection-budget/related-64.json";
+        assert!(matches!(
+            add_projection_budget_path(
+                &mut root_budget,
+                &mut root_event_paths,
+                over_budget_root,
+                &mut root_event_bytes,
+                limits,
+                "projection event exceeds related path budget",
+            ),
+            Err(DurableError::Refused(
+                "projection event exceeds related path budget"
+            ))
+        ));
+
+        let mut dependency_budget = BTreeSet::new();
+        let mut dependency_event_paths = BTreeSet::new();
+        let mut dependency_event_bytes = 0;
+        for index in 0..limits.max_event_members {
+            let path =
+                format!("ToS/source-witnesses/agents/projection-budget/dependency-{index}.json");
+            validate_relative_path(&path).unwrap();
+            add_projection_budget_path(
+                &mut dependency_budget,
+                &mut dependency_event_paths,
+                &path,
+                &mut dependency_event_bytes,
+                limits,
+                "projection event exceeds dependency path budget",
+            )
+            .unwrap();
+        }
+        let over_budget_dependency =
+            "ToS/source-witnesses/agents/projection-budget/dependency-64.json";
+        assert!(matches!(
+            add_projection_budget_path(
+                &mut dependency_budget,
+                &mut dependency_event_paths,
+                over_budget_dependency,
+                &mut dependency_event_bytes,
+                limits,
+                "projection event exceeds dependency path budget",
+            ),
+            Err(DurableError::Refused(
+                "projection event exceeds dependency path budget"
+            ))
+        ));
     }
 }

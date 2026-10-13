@@ -4614,14 +4614,7 @@ pub(crate) fn pg_revision_owner_contribution_for_attempt(
             let ids = match form {
                 Some(raw) => {
                     let set = cmd::parse(raw)?;
-                    ["forms", "prior_forms"]
-                        .into_iter()
-                        .map(|section| cmd::array(&set, section))
-                        .collect::<SourceCommandResult<Vec<_>>>()?
-                        .into_iter()
-                        .flatten()
-                        .map(|form| cmd::field(form, "form_id").cloned())
-                        .collect::<SourceCommandResult<Vec<_>>>()?
+                    source_forms::projection_form_ids(&set)?
                 }
                 None => Vec::new(),
             };
@@ -5032,14 +5025,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
                 ));
             }
             let _ = source_forms::materialize_source_forms(claim, &set)?;
-            ["forms", "prior_forms"]
-                .into_iter()
-                .map(|section| cmd::array(&set, section))
-                .collect::<SourceCommandResult<Vec<_>>>()?
-                .into_iter()
-                .flatten()
-                .map(|form| cmd::field(form, "form_id").cloned())
-                .collect::<SourceCommandResult<Vec<_>>>()?
+            source_forms::stable_form_ids_after_history_validation(&set)?
         } else {
             Vec::new()
         };

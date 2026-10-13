@@ -2873,20 +2873,26 @@ pub(crate) fn expected_item_adoption_revision_indexes(
             }
             name if name.ends_with(".human-forms.json") => {
                 let set = cmd::parse(&write.exact_bytes).map_err(crate::DurableError::Source)?;
-                for section in ["forms", "prior_forms"] {
-                    for form in cmd::array(&set, section).map_err(crate::DurableError::Source)? {
-                        if !rows.insert((
-                            "form".to_owned(),
-                            cmd::text(form, "form_id")
-                                .map_err(crate::DurableError::Source)?
-                                .to_owned(),
-                            path.to_owned(),
-                        )) {
-                            return Err(crate::DurableError::Corrupt(
-                                "Item adoption form identity repeats",
-                            ));
-                        }
-                        form_count += 1;
+                let versions = cmd::array(&set, "forms")
+                    .map_err(crate::DurableError::Source)?
+                    .len()
+                    + cmd::array(&set, "prior_forms")
+                        .map_err(crate::DurableError::Source)?
+                        .len();
+                form_count += versions;
+                for form_id in crate::source_forms::projection_form_ids(&set)
+                    .map_err(crate::DurableError::Source)?
+                {
+                    let id = form_id
+                        .as_str()
+                        .ok_or(crate::DurableError::Corrupt(
+                            "Item adoption form identity is malformed",
+                        ))?
+                        .to_owned();
+                    if !rows.insert(("form".to_owned(), id, path.to_owned())) {
+                        return Err(crate::DurableError::Corrupt(
+                            "Item adoption form identity repeats across package members",
+                        ));
                     }
                 }
                 None
@@ -3032,21 +3038,16 @@ pub(crate) fn inventory_owner_contributions(
         };
         let form = if path.ends_with(".human-forms.json") {
             let set = cmd::parse(&write.exact_bytes).map_err(crate::DurableError::Source)?;
-            let mut ids = Vec::new();
-            let mut seen = std::collections::BTreeSet::new();
-            for section in ["forms", "prior_forms"] {
-                for row in cmd::array(&set, section).map_err(crate::DurableError::Source)? {
-                    let id = cmd::text(row, "form_id")
-                        .map_err(crate::DurableError::Source)?
-                        .to_owned();
-                    if !package_form_ids.insert(id.clone()) {
-                        return Err(crate::DurableError::Corrupt(
-                            "Item adoption form identity repeats across package members",
-                        ));
-                    }
-                    if seen.insert(id.clone()) {
-                        ids.push(cmd::string(&id));
-                    }
+            let ids = crate::source_forms::projection_form_ids(&set)
+                .map_err(crate::DurableError::Source)?;
+            for id in &ids {
+                let id = id.as_str().ok_or(crate::DurableError::Corrupt(
+                    "Item adoption form identity is malformed",
+                ))?;
+                if !package_form_ids.insert(id.to_owned()) {
+                    return Err(crate::DurableError::Corrupt(
+                        "Item adoption form identity repeats across package members",
+                    ));
                 }
             }
             projected_profile_paths.insert(path.to_owned());

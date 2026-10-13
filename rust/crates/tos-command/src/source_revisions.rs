@@ -6482,6 +6482,7 @@ fn native_text_binding(
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &CommandContext,
+    binding_locator: &str,
     binding: &JsonValue,
 ) -> SourceCommandResult<(String, Vec<String>)> {
     let cut = cut.ok_or(SourceCommandError::Unsupported(
@@ -6500,12 +6501,10 @@ fn native_text_binding(
         contracts: BTreeSet::new(),
         remaining: 8_388_608,
     };
-    let binding_locator =
-        cmd::text(&cmd::parse(&ctx.configuration_raw)?, "source_path")?.to_owned();
     reader.validate(
         binding,
         "native-text-unit-binding.schema.json",
-        &binding_locator,
+        binding_locator,
     )?;
     let packet_path = cmd::text(binding, "packet_ref")?;
     let (packet, packet_raw) =
@@ -6991,6 +6990,7 @@ pub(crate) fn public_profile(
                     deadline,
                     cancelled,
                     writer,
+                    source_path,
                     cmd::field(record, "native_text_binding")?,
                 )?)
             } else {

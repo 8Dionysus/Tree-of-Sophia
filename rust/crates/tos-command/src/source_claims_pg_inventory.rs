@@ -631,18 +631,10 @@ fn claim_owner_projection(
         let current_form = direct.get(&name).map(|raw| parse(raw)).transpose()?;
         let form_ids = if let Some(form) = &current_form {
             let subject = metadata_subject(record)?;
-            apply_form_changes(Some(form), &subject, &[])?;
             if text(field(form, "subject")?, "id")? != text(&subject, "id")? {
                 return Err(SourceCommandError::Conflict("Claim form subject differs"));
             }
-            ["forms", "prior_forms"]
-                .into_iter()
-                .map(|section| array(form, section))
-                .collect::<SourceCommandResult<Vec<_>>>()?
-                .into_iter()
-                .flatten()
-                .map(|form| field(form, "form_id").cloned())
-                .collect::<SourceCommandResult<Vec<_>>>()?
+            crate::source_forms::projection_form_ids(form)?
         } else {
             Vec::new()
         };
@@ -797,7 +789,7 @@ pub(crate) fn claim_form_inventory_contribution(
     if !same(field(&form, "subject")?, &subject)? {
         return Err(SourceCommandError::Conflict("Claim form subject differs"));
     }
-    apply_form_changes(Some(&form), &subject, &[])?;
+    let form_ids = crate::source_forms::projection_form_ids(&form)?;
     let mut schema_files = grouped.profile.profile_files.clone();
     schema_files.push(file.clone());
     let input = crate::source_revisions::RecordVersionReadInput {
@@ -816,14 +808,6 @@ pub(crate) fn claim_form_inventory_contribution(
         deadline,
         cancelled,
     )?;
-    let form_ids = ["forms", "prior_forms"]
-        .into_iter()
-        .map(|section| array(&form, section))
-        .collect::<SourceCommandResult<Vec<_>>>()?
-        .into_iter()
-        .flatten()
-        .map(|form| field(form, "form_id").cloned())
-        .collect::<SourceCommandResult<Vec<_>>>()?;
     let form_contribution = object(vec![
         (
             "raw_sha256",
@@ -977,14 +961,7 @@ pub(crate) fn claim_form_contribution_with_validated_profile(
         deadline,
         cancelled,
     )?;
-    let form_ids = ["forms", "prior_forms"]
-        .into_iter()
-        .map(|section| array(&form, section))
-        .collect::<SourceCommandResult<Vec<_>>>()?
-        .into_iter()
-        .flatten()
-        .map(|form| field(form, "form_id").cloned())
-        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let form_ids = crate::source_forms::projection_form_ids(&form)?;
     Ok(object(vec![
         (
             "raw_sha256",

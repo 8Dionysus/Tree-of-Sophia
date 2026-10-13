@@ -545,18 +545,15 @@ fn package_changes(
 
 fn form_ids(raw: &[u8]) -> DurableResult<BTreeSet<String>> {
     let value = cmd::parse(raw).map_err(DurableError::Source)?;
-    let subject = cmd::field(&value, "subject").map_err(DurableError::Source)?;
-    source_forms::apply_form_changes(Some(&value), subject, &[]).map_err(DurableError::Source)?;
-    let mut ids = BTreeSet::new();
-    for section in ["forms", "prior_forms"] {
-        for form in cmd::array(&value, section).map_err(DurableError::Source)? {
-            let id = cmd::text(form, "form_id")
-                .map_err(DurableError::Source)?
-                .to_owned();
-            ids.insert(id);
-        }
-    }
-    Ok(ids)
+    source_forms::projection_form_ids(&value)
+        .map_err(DurableError::Source)?
+        .into_iter()
+        .map(|id| {
+            id.as_str()
+                .map(str::to_owned)
+                .ok_or(DurableError::Corrupt("PG Forms form identity is malformed"))
+        })
+        .collect()
 }
 
 pub(crate) fn pg_rederive_revision_indexes(

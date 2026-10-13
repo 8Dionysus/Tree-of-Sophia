@@ -2,7 +2,7 @@
 //! Schemas and full source admission are supplied by the existing VAL owner;
 //! these functions neither consult fixtures nor mutate canonical source files.
 use crate::source_command::{self, SourceCommandError as Error, SourceCommandResult as Result, *};
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
@@ -1106,6 +1106,31 @@ pub(crate) fn form_error(error: forms_kernel::FormMechanicsError) -> Error {
 fn validate_history(set: &JsonValue, subject: &JsonValue) -> Result<()> {
     forms_kernel::validate_history(set, subject).map_err(form_error)
 }
+
+/// Stable HumanForm identity projection for owner inventories. A form may
+/// appear in both current and prior history at distinct versions; the source
+/// kernel validates those version edges before this set-valued projection.
+pub(crate) fn projection_form_ids(set: &JsonValue) -> Result<Vec<JsonValue>> {
+    let subject = field(set, "subject")?;
+    validate_history(set, subject)?;
+    stable_form_ids_after_history_validation(set)
+}
+
+/// Extract stable IDs from a set whose history was already checked by the
+/// exact-source materialization path. This avoids repeating lineage checks.
+pub(crate) fn stable_form_ids_after_history_validation(set: &JsonValue) -> Result<Vec<JsonValue>> {
+    let mut ids = BTreeSet::new();
+    for section in ["forms", "prior_forms"] {
+        for form in array(set, section)? {
+            let id = text(form, "form_id")?;
+            if id.is_empty() {
+                return Err(Error::Invalid("empty HumanForm projection identity"));
+            }
+            ids.insert(id.to_owned());
+        }
+    }
+    Ok(ids.into_iter().map(|id| string(&id)).collect())
+}
 pub fn form_reference(form: &JsonValue) -> Result<JsonValue> {
     forms_kernel::form_reference(form).map_err(form_error)
 }
@@ -1151,16 +1176,8 @@ pub(crate) fn pg_form_projection_contribution(
             "HumanForm owner projection subject differs",
         ));
     }
-    validate_history(&set, &subject)?;
     let _ = materialize_source_forms(source, &set)?;
-    let form_ids = ["forms", "prior_forms"]
-        .into_iter()
-        .map(|section| array(&set, section))
-        .collect::<Result<Vec<_>>>()?
-        .into_iter()
-        .flatten()
-        .map(|form| field(form, "form_id").cloned())
-        .collect::<Result<Vec<_>>>()?;
+    let form_ids = stable_form_ids_after_history_validation(&set)?;
     Ok(object(vec![
         (
             "raw_sha256",
@@ -1168,4 +1185,47 @@ pub(crate) fn pg_form_projection_contribution(
         ),
         ("form_ids", JsonValue::Array(form_ids)),
     ]))
+}
+
+#[cfg(test)]
+mod projection_form_ids_tests {
+    use super::*;
+
+    #[test]
+    fn stable_projection_collapses_versions_but_keeps_history_uniqueness() {
+        let subject = object(vec![("id", string("tos.work.fixture"))]);
+        let prior = object(vec![
+            ("form_id", string("tos.form.fixture.title")),
+            ("form_version", number(1)),
+            ("subject", subject.clone()),
+            ("revises", JsonValue::Null),
+        ]);
+        let current = object(vec![
+            ("form_id", string("tos.form.fixture.title")),
+            ("form_version", number(2)),
+            ("subject", subject.clone()),
+            ("revises", forms_kernel::form_reference(&prior).unwrap()),
+        ]);
+        let valid = object(vec![
+            ("schema_version", string("tos_human_form_set_v1")),
+            ("subject", subject),
+            ("forms", JsonValue::Array(vec![current.clone()])),
+            ("prior_forms", JsonValue::Array(vec![prior.clone()])),
+        ]);
+        assert_eq!(
+            projection_form_ids(&valid).unwrap(),
+            vec![string("tos.form.fixture.title")]
+        );
+
+        let invalid = object(vec![
+            ("schema_version", string("tos_human_form_set_v1")),
+            ("subject", field(&valid, "subject").unwrap().clone()),
+            (
+                "forms",
+                JsonValue::Array(vec![prior.clone(), current.clone()]),
+            ),
+            ("prior_forms", JsonValue::Array(vec![])),
+        ]);
+        assert!(projection_form_ids(&invalid).is_err());
+    }
 }

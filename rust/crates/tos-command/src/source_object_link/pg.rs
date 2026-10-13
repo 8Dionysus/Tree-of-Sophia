@@ -580,21 +580,16 @@ fn generated_form_indexes(
     let mut actual = BTreeSet::new();
     if let Some(raw) = raw {
         let value = cmd::parse(raw)?;
-        tos_validation::source_forms::source_copy_kernel::validate_history(
-            &value,
-            cmd::field(&value, "subject")?,
-        )
-        .map_err(crate::source_forms::form_error)?;
-        for section in ["forms", "prior_forms"] {
-            for form in cmd::array(&value, section)? {
-                let id = cmd::text(form, "form_id")?.to_owned();
-                if !actual.insert(id.clone()) {
-                    return Err(SourceCommandError::Conflict(
-                        "ObjectLink generated form identity is duplicated",
-                    ));
-                }
-            }
-        }
+        actual = crate::source_forms::projection_form_ids(&value)?
+            .into_iter()
+            .map(|id| {
+                id.as_str()
+                    .map(str::to_owned)
+                    .ok_or(SourceCommandError::Invalid(
+                        "ObjectLink generated form identity is malformed",
+                    ))
+            })
+            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
     }
     if actual != selected {
         return Err(SourceCommandError::Conflict(
@@ -744,13 +739,13 @@ fn verify_form_references(
 ) -> DurableResult<()> {
     let raw = files.get(path).ok_or_else(sealed_package_corrupt)?;
     let form_set = package_parse(raw)?;
+    let _ = crate::source_forms::projection_form_ids(&form_set)
+        .map_err(|_| sealed_package_corrupt())?;
     let mut actual = BTreeMap::new();
-    for section in ["forms", "prior_forms"] {
-        for form in cmd::array(&form_set, section).map_err(|_| sealed_package_corrupt())? {
-            let id = package_text(form, "form_id")?.to_owned();
-            if actual.insert(id, form).is_some() {
-                return Err(sealed_package_corrupt());
-            }
+    for form in cmd::array(&form_set, "forms").map_err(|_| sealed_package_corrupt())? {
+        let id = package_text(form, "form_id")?.to_owned();
+        if actual.insert(id, form).is_some() {
+            return Err(sealed_package_corrupt());
         }
     }
     let requested = cmd::array(request, request_key).map_err(|_| sealed_package_corrupt())?;
