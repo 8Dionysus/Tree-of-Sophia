@@ -187,6 +187,16 @@ properties. The published software-v7 vocabulary and native descriptor law
 remain explicit separate profiles. The compiler retains one continuation and
 one outstanding concrete storage need; no replay or generic provider is added.
 
+Browser lens authoring uses the same Rust/WASM owner for condition and path
+draft normalization, schema/catalog intersection, effective limits, condition
+and path compilation, and importing saved path specifications. The browser
+sends bounded presence/key/value descriptors so the bridge preserves own-key
+presence, `undefined`, and sparse-array holes. Original condition values are
+reattached for editor state after Rust returns normalized metadata; labels,
+DOM behavior, and presentation stay in the browser. This draft-authoring API is
+separate from `LensSession` request execution and does not change its publication
+or D1 admission boundary.
+
 Needs preserve existing indexed source/identity keysets, dimensional and
 membership counts, covered compact reads, ordered incidence, alias/source and
 exact payload closure. Rust owns selectors, recursive bounded path witnesses,

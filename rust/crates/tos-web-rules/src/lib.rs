@@ -9,13 +9,13 @@
 mod browser_lens_spec;
 mod claim_reading;
 mod claim_reference;
-mod corpus_reference;
 #[cfg(feature = "wasm")]
 mod client_inspection;
 #[cfg(feature = "wasm")]
 mod client_packet;
 mod constructor_machine;
 mod constructor_reading;
+mod corpus_reference;
 pub use constructor_reading::constructor_reading_v1;
 #[cfg(feature = "wasm")]
 pub use constructor_reading::constructor_reading_wasm_v1;
@@ -35,6 +35,7 @@ mod lens_session;
 mod live_resume;
 mod observatory_conditions;
 mod observatory_draft;
+mod observatory_paths;
 mod observatory_pose;
 #[cfg(feature = "wasm")]
 mod reader_occurrences;
@@ -109,8 +110,15 @@ pub use knowledge_envelope::{
     KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
 };
 pub use live_resume::{rebind_live_resume_v1, validate_live_resume_v1};
-pub use observatory_conditions::normalize_observatory_conditions_v1;
+pub use observatory_conditions::{
+    compile_observatory_conditions_v1, normalize_observatory_conditions_v1,
+    observatory_condition_catalog_v1,
+};
 pub use observatory_draft::normalize_observatory_draft_v1;
+pub use observatory_paths::{
+    compile_observatory_paths_v1, draft_observatory_paths_from_spec_v1,
+    normalize_observatory_paths_v1, observatory_path_limits_v1,
+};
 pub use observatory_pose::normalize_observatory_pose_v1;
 pub use reading_resume::normalize_reading_resume_v1;
 pub use research_shelf::{ShelfPacketIndex, research_shelf_rule_v1};
@@ -128,10 +136,12 @@ pub use workspace_proposal::{
 #[cfg(feature = "wasm")]
 mod wasm {
     use super::{
-        ShelfPacketIndex, compact_knowledge_search_page_v1, corpus_reference_rule_v1,
-        normalize_interface_preferences_v1,
+        ShelfPacketIndex, compact_knowledge_search_page_v1, compile_observatory_conditions_v1,
+        compile_observatory_paths_v1, corpus_reference_rule_v1,
+        draft_observatory_paths_from_spec_v1, normalize_interface_preferences_v1,
         normalize_observatory_conditions_v1, normalize_observatory_draft_v1,
-        normalize_observatory_pose_v1, normalize_reading_resume_v1, rebind_live_resume_v1,
+        normalize_observatory_paths_v1, normalize_observatory_pose_v1, normalize_reading_resume_v1,
+        observatory_condition_catalog_v1, observatory_path_limits_v1, rebind_live_resume_v1,
         research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reading_v1,
         validate_claim_reference_v1, validate_live_resume_v1, validate_workspace_copy_v1,
         workspace_proposal_digest_v1, workspace_transition_v1,
@@ -1005,6 +1015,36 @@ mod wasm {
     #[wasm_bindgen]
     pub fn normalize_observatory_draft_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
         normalize_observatory_draft_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn normalize_observatory_paths_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        normalize_observatory_paths_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn draft_observatory_paths_from_spec_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        draft_observatory_paths_from_spec_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn observatory_condition_catalog_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        observatory_condition_catalog_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn compile_observatory_conditions_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        compile_observatory_conditions_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn observatory_path_limits_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        observatory_path_limits_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn compile_observatory_paths_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        compile_observatory_paths_v1(raw).map_err(JsValue::from_str)
     }
 
     #[wasm_bindgen]

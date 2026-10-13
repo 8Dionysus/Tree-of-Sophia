@@ -254,6 +254,13 @@ The maintained lens compile, focus and stored-open routes use the mandatory
 build-owned WASM `LensSession`, which drives the same `tos_query::LensPlan` as
 the native consumer. Shared Rust validation runs on original bounded request
 bytes before any D1 read; verified `knowledge_lens_top` properties bind afterward.
+Browser lens draft authoring has a separate boundary: shared Rust/WASM owns
+condition/path normalization, schema/catalog intersections and limits, compilation,
+and saved-path import. The browser transports bounded descriptors that retain
+own-key presence, `undefined`, and sparse-array holes, then keeps original values
+for editor state and owns presentation. The rule/API details belong to the
+[`tos-web-rules` owner](../../rust/crates/tos-web-rules/README.md); this authoring
+route does not alter the published `LensSession` request or D1 boundary.
 The published-v7 software vocabulary is explicit; the native consumer retains
 its stronger selected descriptor law. Exact integer equality, eager filter/set
 refusals, grouping, float64 fingerprints and request/cursor last-member-wins

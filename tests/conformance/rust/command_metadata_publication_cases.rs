@@ -1648,6 +1648,164 @@ fn connected_browser_graph_node(model: &Path, record_id: &str, version: u64) -> 
     found.pop().unwrap()
 }
 
+fn connected_browser_git_revision(repository: &Path, revision: &str, deadline: Instant) -> String {
+    let mut command = Command::new("git");
+    command
+        .arg("-C")
+        .arg(repository)
+        .args(["rev-parse", revision]);
+    for (name, _) in std::env::vars_os() {
+        if name.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(name);
+        }
+    }
+    command
+        .env("GIT_NO_REPLACE_OBJECTS", "1")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_OPTIONAL_LOCKS", "0");
+    let output = native_child::bounded_output_before(&mut command, 1024, deadline);
+    assert!(
+        output.status.success(),
+        "resolve bounded source Git identity"
+    );
+    let value = String::from_utf8(output.stdout).unwrap().trim().to_owned();
+    assert!(value.len() == 40 && value.bytes().all(|b| b.is_ascii_hexdigit()));
+    value
+}
+
+fn connected_browser_source_members_match_head(
+    repository: &Path,
+    paths: &BTreeSet<String>,
+    deadline: Instant,
+) {
+    assert!(!paths.is_empty());
+    let mut command = Command::new("git");
+    command.arg("-C").arg(repository).args([
+        "diff",
+        "--quiet",
+        "--no-ext-diff",
+        "--no-textconv",
+        "HEAD",
+        "--",
+    ]);
+    for path in paths {
+        safe_metadata_fixture_relative(path);
+        command.arg(path);
+    }
+    for (name, _) in std::env::vars_os() {
+        if name.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(name);
+        }
+    }
+    command
+        .env("GIT_NO_REPLACE_OBJECTS", "1")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_OPTIONAL_LOCKS", "0");
+    let output = native_child::bounded_output_before(&mut command, 4096, deadline);
+    assert!(
+        output.status.success(),
+        "current selected Rust source inputs match repository HEAD"
+    );
+}
+
+fn connected_browser_capture_synthetic_software(
+    workspace: &Path,
+    files: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> (
+    super::source_cut_cases::SoftwareCaptureFixture,
+    SoftwareCaptureReader,
+    tos_source_store::SoftwareComponentSelectionV1,
+) {
+    use tos_source_store::ReadLimits;
+
+    let repository = workspace.join("occurrence-software-evidence-repository");
+    assert!(fs::symlink_metadata(&repository).is_err());
+    fs::create_dir(&repository).unwrap();
+    let mut total_bytes = 0usize;
+    for (name, raw) in files {
+        safe_metadata_fixture_relative(name);
+        assert!(!name.starts_with("ToS/"));
+        assert!(raw.len() <= 2_097_152);
+        total_bytes = total_bytes.checked_add(raw.len()).unwrap();
+        assert!(total_bytes <= 33_554_432);
+        let target = repository.join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+
+    let git = |arguments: &[&str]| {
+        let mut command = Command::new("git");
+        command
+            .arg("-C")
+            .arg(&repository)
+            .args([
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "user.name=ToS synthetic fixture",
+                "-c",
+                "user.email=fixture@invalid",
+            ])
+            .args(arguments);
+        for (name, _) in std::env::vars_os() {
+            if name.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(name);
+            }
+        }
+        command
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null");
+        let output = native_child::bounded_output_before(&mut command, 4096, deadline);
+        assert!(
+            output.status.success(),
+            "synthetic occurrence software Git operation"
+        );
+        output.stdout
+    };
+    git(&["init", "--quiet"]);
+    git(&["add", "--all"]);
+    git(&[
+        "commit",
+        "--quiet",
+        "-m",
+        "synthetic mixed-origin current Rust and historical profile evidence",
+    ]);
+    let commit = String::from_utf8(git(&["rev-parse", "HEAD^{commit}"]))
+        .unwrap()
+        .trim()
+        .to_owned();
+    assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
+    let prefixes = files.keys().map(String::as_str).collect::<Vec<_>>();
+    let capture =
+        super::source_cut_cases::captured_software_fixture(&repository, &commit, &prefixes);
+    let software = SoftwareCaptureReader::open(
+        &capture.capture,
+        &capture.restored,
+        capture.selection.clone(),
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 512,
+            max_selected_object_bytes: 33_554_432,
+            json: tos_foundation::JsonLimits::default(),
+        },
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let paths = prefixes
+        .iter()
+        .map(|name| tos_foundation::RelativePath::parse(name).unwrap())
+        .collect::<Vec<_>>();
+    let components = software.select_components(&paths).unwrap();
+    (capture, software, components)
+}
+
 fn connected_browser_create_occurrence(
     repository: &Path,
     workspace: &Path,
@@ -1712,11 +1870,225 @@ fn connected_browser_create_occurrence(
             "rust/crates/tos-command/src/source_forms_publication.rs",
         ],
     );
+    let current_source_commit =
+        connected_browser_git_revision(repository, "HEAD^{commit}", deadline);
+    let current_source_tree = connected_browser_git_revision(repository, "HEAD^{tree}", deadline);
+    let current_names = files.keys().cloned().collect::<BTreeSet<_>>();
+    connected_browser_source_members_match_head(repository, &current_names, deadline);
+    let current_source_members = files
+        .iter()
+        .map(|(path, raw)| {
+            json!({
+                "path":path,
+                "bytes":raw.len(),
+                "sha256":Digest256::of_bytes(raw).to_hex()
+            })
+        })
+        .collect::<Vec<_>>();
+    // Metadata assembly re-reads both source and execution profiles bound by
+    // the predecessor catalog. Preserve source-item bindings in the selected
+    // source cut and add only missing non-ToS historical bytes to the
+    // synthetic capture. Historical evidence is never attributed to, or
+    // executed as, current Rust source.
+    let selected_source = read_packet(&source_root.join("agent-selected-source.json"));
+    let source_catalog: Value = serde_json::from_str(required(
+        &selected_source["roots"]["source-catalog"],
+        "root_json",
+    ))
+    .unwrap();
+    let fixture_dir = repository.join("tests/conformance/rust/legacy-python-oracles-v1/metadata");
+    let provenance = read_packet(&fixture_dir.join("PROVENANCE.json"));
+    let historical_commit = required(&provenance["capture"], "source_commit");
+    assert!(
+        historical_commit.len() == 40 && historical_commit.bytes().all(|b| b.is_ascii_hexdigit())
+    );
+    let historical_tree = connected_browser_git_revision(
+        repository,
+        &format!("{historical_commit}^{{tree}}"),
+        deadline,
+    );
+    assert_ne!(current_source_commit, historical_commit);
+    assert_ne!(current_source_tree, historical_tree);
+    let mut historical_profile_members = Vec::new();
+    let mut source_item_bindings = Vec::new();
+    let current_member_paths = files.keys().cloned().collect::<BTreeSet<_>>();
+    let mut historical_profile_requirements = BTreeMap::<String, (u64, String)>::new();
+    let mut historical_profile_paths = BTreeSet::new();
+    let mut namespace_bindings = BTreeMap::<String, Vec<Value>>::new();
+    for namespace in ["source", "execution"] {
+        let bindings = source_catalog["header"]["profile_bindings"][namespace]
+            .as_object()
+            .unwrap();
+        let mut admitted_bindings = Vec::new();
+        for (reference, expected) in bindings {
+            let relative = safe_metadata_fixture_relative(reference);
+            let expected_bytes = expected["bytes"].as_u64().unwrap();
+            let expected_sha256 = expected["sha256"].as_str().unwrap();
+            assert_eq!(expected_sha256.len(), 64);
+            assert!(expected_sha256.bytes().all(|b| b.is_ascii_hexdigit()));
+            if reference.starts_with("ToS/") {
+                // Source profiles remain source-item bindings in the selected
+                // source cut; they are not copied into software_capture.
+                assert!(
+                    !files.contains_key(reference),
+                    "ToS source-item profile does not become a software member"
+                );
+                let source_item_path = source_root.join(relative);
+                let source_item = fs::read(&source_item_path).unwrap();
+                assert_eq!(source_item.len() as u64, expected_bytes);
+                let source_item_sha256 = Digest256::of_bytes(&source_item).to_hex();
+                assert_eq!(source_item_sha256, expected_sha256);
+                let binding = json!({
+                    "namespace":namespace,
+                    "path":reference,
+                    "bytes":expected_bytes,
+                    "sha256":expected_sha256,
+                    "software_member":false,
+                    "origin":"selected_source_item"
+                });
+                source_item_bindings.push(binding.clone());
+                admitted_bindings.push(binding);
+                continue;
+            }
+            safe_metadata_fixture_relative(reference);
+            if current_member_paths.contains(reference) {
+                let current = files.get(reference).unwrap();
+                assert_eq!(current.len() as u64, expected_bytes);
+                let current_sha256 = Digest256::of_bytes(current).to_hex();
+                assert_eq!(
+                    current_sha256, expected_sha256,
+                    "profile requirement cannot collide with a different current owner member"
+                );
+                admitted_bindings.push(json!({
+                    "namespace":namespace,
+                    "path":reference,
+                    "bytes":expected_bytes,
+                    "sha256":expected_sha256,
+                    "software_member":true,
+                    "origin":"current_rust_source"
+                }));
+                continue;
+            }
+            if let Some((prior_bytes, prior_sha256)) =
+                historical_profile_requirements.get(reference)
+            {
+                assert_eq!(*prior_bytes, expected_bytes);
+                assert_eq!(prior_sha256, expected_sha256);
+            } else {
+                historical_profile_requirements.insert(
+                    reference.clone(),
+                    (expected_bytes, expected_sha256.to_owned()),
+                );
+            }
+            if !historical_profile_paths.contains(reference) {
+                let mut show = Command::new("git");
+                show.arg("-C")
+                    .arg(repository)
+                    .arg("show")
+                    .arg(format!("{historical_commit}:{reference}"));
+                for (name, _) in std::env::vars_os() {
+                    if name.to_string_lossy().starts_with("GIT_") {
+                        show.env_remove(name);
+                    }
+                }
+                show.env("GIT_NO_REPLACE_OBJECTS", "1")
+                    .env("GIT_CONFIG_NOSYSTEM", "1")
+                    .env("GIT_CONFIG_GLOBAL", "/dev/null");
+                let output = native_child::bounded_output_before(&mut show, 2_097_152, deadline);
+                assert!(output.status.success());
+                assert_eq!(output.stdout.len() as u64, expected_bytes);
+                let historical_sha256 = Digest256::of_bytes(&output.stdout).to_hex();
+                assert_eq!(historical_sha256, expected_sha256);
+                historical_profile_members.push(json!({
+                    "path":reference,
+                    "bytes":output.stdout.len(),
+                    "sha256":historical_sha256
+                }));
+                assert!(historical_profile_paths.insert(reference.clone()));
+                assert!(files.insert(reference.clone(), output.stdout).is_none());
+            } else {
+                let historical = files.get(reference).unwrap();
+                assert_eq!(historical.len() as u64, expected_bytes);
+                let historical_sha256 = Digest256::of_bytes(historical).to_hex();
+                assert_eq!(historical_sha256, expected_sha256);
+            }
+            admitted_bindings.push(json!({
+                "namespace":namespace,
+                "path":reference,
+                "bytes":expected_bytes,
+                "sha256":expected_sha256,
+                "software_member":true,
+                "origin":"historical_profile_source"
+            }));
+        }
+        namespace_bindings.insert(namespace.to_owned(), admitted_bindings);
+    }
+    assert_eq!(
+        namespace_bindings.get("source").unwrap().len(),
+        10,
+        "frozen predecessor source bindings"
+    );
+    assert_eq!(
+        namespace_bindings.get("execution").unwrap().len(),
+        14,
+        "frozen predecessor execution bindings"
+    );
+    assert_eq!(
+        source_item_bindings.len(),
+        11,
+        "predecessor ToS source-item bindings"
+    );
+    assert_eq!(
+        historical_profile_members.len(),
+        13,
+        "unique historical non-ToS profile members"
+    );
+    assert_eq!(
+        historical_profile_paths.len(),
+        historical_profile_members.len()
+    );
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 33_554_432);
     super::command_record_cases::materialize_native_fixture_software(source_root, &files);
     let (capture, _software, components) =
-        super::command_record_cases::captured_components(&files, deadline, &cancel);
+        connected_browser_capture_synthetic_software(workspace, &files, deadline, &cancel);
+    assert_ne!(capture.selection.source_git_commit, current_source_commit);
+    assert_ne!(capture.selection.source_git_commit, historical_commit);
+    assert_ne!(capture.selection.source_git_tree, current_source_tree);
+    assert_ne!(capture.selection.source_git_tree, historical_tree);
+    assert_eq!(
+        current_source_members.len() + historical_profile_members.len(),
+        files.len(),
+        "synthetic capture keeps its two source origins disjoint"
+    );
+    private_json(
+        &workspace.join("occurrence-software-capture-origin-map.json"),
+        &json!({
+            "schema_version":"tos_connected_browser_mixed_software_capture_origin_map_v1",
+            "synthetic_capture":{
+                "identity_kind":"synthetic_mixed_origin_composition",
+                "source_git_commit":capture.selection.source_git_commit.clone(),
+                "source_git_tree":capture.selection.source_git_tree.clone(),
+                "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed(),
+                "member_count":files.len()
+            },
+            "current_rust_source":{
+                "working_tree_members_match_git_head":true,
+                "git_commit":current_source_commit,
+                "git_tree":current_source_tree,
+                "members":current_source_members
+            },
+            "historical_profile_source":{
+                "content_role":"read_only_bound_evidence",
+                "git_commit":historical_commit,
+                "git_tree":historical_tree,
+                "members":historical_profile_members
+            },
+            "profile_bindings_by_namespace":namespace_bindings,
+            "source_item_bindings":source_item_bindings,
+            "historical_profile_files_executed":false
+        }),
+    );
     let capture_path = workspace.join("occurrence-software-capture");
     let restored_path = workspace.join("occurrence-software-restored");
     copy_load_fixture_tree(&capture.capture, &capture_path);

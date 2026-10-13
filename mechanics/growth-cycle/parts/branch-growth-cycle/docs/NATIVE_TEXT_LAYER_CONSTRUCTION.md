@@ -315,6 +315,18 @@ runs a renderer or OCR provider through this recording operation. This profile
 is served only by the native Rust command; Python layer construction and
 metadata readers do not accept owner-OCR configurations.
 
+These selected owner-OCR handlers have an optional external-verifier runtime
+prerequisite. Their protected grant selects an `abyss-stack` source root and
+commit, exact adapter digest, and receipt/signature/public-key digests. The
+native command invokes only the selected adapter's `verify` or `verify-record`
+mode via `/usr/bin/python3`; it never invokes OCR execution. The adapter imports
+Pillow and checks the signed receipt with machine-managed Cosign and its trusted
+root. These requirements apply only when one of the owner-OCR handlers is
+selected; ordinary ToS native use and the installed default client do not gain
+a Python dependency. Discovery remains static and does not probe verifier
+availability; missing dependencies and verification failures refuse the
+selected operation.
+
 The immutable 12-file package includes copied signed receipt, signature and
 public key. Metadata-only source resolution authenticates these three files
 without opening the original PDF, PNG or OCR text. Exact content reads bind
