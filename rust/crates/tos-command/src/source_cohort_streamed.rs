@@ -959,11 +959,27 @@ fn selected_claim_archive_paths(history_files: &[SourceFile]) -> DurableResult<B
     Ok(archives)
 }
 
+/// Keep the additional contracts read by each maintained Claim owner in the
+/// same bounded selected context as that owner. Current Global Claim capture
+/// validation and historical Claim validation have different, explicit
+/// closures; Item and growth Claim routes keep their own schemas.
+fn claim_context_required_contract_paths(stream_path: &str) -> Vec<String> {
+    if crate::source_claims::is_historical_claim_stream_path(stream_path) {
+        crate::source_native_cli::pg_historical_claim_required_contract_paths()
+    } else if stream_path.starts_with("ToS/source-witnesses/relations/")
+        && is_current_mixed_claim_stream_path(stream_path)
+    {
+        crate::source_claims::pg_claim_capture_required_contract_paths()
+    } else {
+        Vec::new()
+    }
+}
+
 /// Construct one bounded current owner package for a selected Claim stream.
 /// It reads only direct members of that owner home, exact retained archive
-/// references, the already-validated profile, and the historical owner's
-/// narrow contract set. Sibling historical records and recursive payloads
-/// never enter this context.
+/// references, the already-validated profile, and the selected owner
+/// contract closure. Sibling historical records and recursive payloads never
+/// enter this context.
 fn current_claim_context(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
     stream_path: &str,
@@ -1047,19 +1063,18 @@ fn current_claim_context(
         return Err(DurableError::Corrupt("streamed Claim owner stream absent"));
     }
 
-    // Historical schemas, registries, form templates and the small shared
-    // profile closure are selected by the maintained owner route.
-    if historical {
-        for path in crate::source_native_cli::pg_historical_claim_required_contract_paths() {
-            add_current_member(
-                epoch,
-                &mut selected,
-                &path,
-                &mut total_bytes,
-                deadline,
-                cancelled,
-            )?;
-        }
+    // Add only contracts declared by the selected current or historical
+    // Claim owner. The ordinary capture schema is needed by check_claim_capture
+    // even though it is outside the generic Agent profile closure.
+    for path in claim_context_required_contract_paths(stream_path) {
+        add_current_member(
+            epoch,
+            &mut selected,
+            &path,
+            &mut total_bytes,
+            deadline,
+            cancelled,
+        )?;
     }
 
     // Retained archive reads are driven only by manifests named in the exact
@@ -3451,6 +3466,32 @@ mod predicate_expectation_tests {
 #[cfg(test)]
 mod bounded_claim_context_tests {
     use super::*;
+
+    #[test]
+    fn ordinary_global_claim_context_includes_its_capture_schema_closure() {
+        let ordinary = claim_context_required_contract_paths(
+            "ToS/source-witnesses/relations/formation-research/source-claims.jsonl",
+        );
+        let capture = crate::source_claims::pg_claim_capture_required_contract_paths();
+        assert_eq!(ordinary, capture);
+        assert_eq!(
+            ordinary,
+            vec!["ToS/contracts/provenance-event-v2.schema.json".to_owned()]
+        );
+
+        let historical = claim_context_required_contract_paths(
+            "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+        );
+        assert!(historical.contains(&ordinary[0]));
+        assert!(historical.len() > ordinary.len());
+
+        assert!(
+            claim_context_required_contract_paths(
+                "ToS/source-witnesses/items/example/source-claims.jsonl",
+            )
+            .is_empty()
+        );
+    }
 
     #[test]
     fn bounded_historical_claim_context_selects_only_exact_package_and_referenced_archive() {

@@ -690,6 +690,31 @@ fn contract_name(path: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
 }
 
+/// Historical schema bytes must retain the exact active schema URI for their
+/// owner path. Both spellings are accepted by the source-revision schema
+/// reader, but an archive must match the active schema's chosen spelling.
+fn historical_schema_id_matches_current(path: &str, current: &[u8], historical: &[u8]) -> bool {
+    let Ok(current) = serde_json::from_slice::<serde_json::Value>(current) else {
+        return false;
+    };
+    let Ok(historical) = serde_json::from_slice::<serde_json::Value>(historical) else {
+        return false;
+    };
+    if !current.is_object() || !historical.is_object() {
+        return false;
+    }
+    let Some(current_id) = current.get("$id").and_then(serde_json::Value::as_str) else {
+        return false;
+    };
+    let Some(historical_id) = historical.get("$id").and_then(serde_json::Value::as_str) else {
+        return false;
+    };
+    let legacy_uri = format!("https://tree-of-sophia.local/{path}");
+    let current_uri = format!("https://treeofsophia.local/{path}");
+    (current_id == legacy_uri.as_str() || current_id == current_uri.as_str())
+        && historical_id == current_id
+}
+
 impl LayerFamilySource for FoundationRuleSource<'_, '_> {
     fn record_selection(
         &self,
@@ -874,13 +899,10 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
             return Ok(None);
         }
         if schema {
-            let Ok(value) = serde_json::from_slice::<serde_json::Value>(&raw) else {
+            let Some(current) = current.as_deref() else {
                 return Ok(None);
             };
-            if !value.is_object()
-                || value["$id"].as_str()
-                    != Some(format!("https://tree-of-sophia.local/{path}").as_str())
-            {
+            if !historical_schema_id_matches_current(path, current, &raw) {
                 return Ok(None);
             }
         }
@@ -1042,6 +1064,55 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
             Err(ItemRefusal::Deadline)
         } else {
             Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::historical_schema_id_matches_current;
+
+    fn schema_with_id(id: &str) -> Vec<u8> {
+        serde_json::json!({"$id": id, "type": "object"})
+            .to_string()
+            .into_bytes()
+    }
+
+    #[test]
+    fn retained_schema_id_matches_the_exact_active_uri_and_path() {
+        for path in [
+            "ToS/contracts/knowledge-assessment.schema.json",
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+        ] {
+            let current_id = format!("https://treeofsophia.local/{path}");
+            let current = schema_with_id(&current_id);
+            let retained = schema_with_id(&current_id);
+            assert!(historical_schema_id_matches_current(
+                path, &current, &retained
+            ));
+
+            let legacy_id = format!("https://tree-of-sophia.local/{path}");
+            let retained_with_other_accepted_spelling = schema_with_id(&legacy_id);
+            assert!(!historical_schema_id_matches_current(
+                path,
+                &current,
+                &retained_with_other_accepted_spelling,
+            ));
+            let current_with_legacy_id = schema_with_id(&legacy_id);
+            assert!(historical_schema_id_matches_current(
+                path,
+                &current_with_legacy_id,
+                &retained_with_other_accepted_spelling,
+            ));
+
+            let wrong_path_id = "https://treeofsophia.local/ToS/contracts/another.schema.json";
+            let retained_with_wrong_path = schema_with_id(wrong_path_id);
+            assert!(!historical_schema_id_matches_current(
+                path,
+                &current,
+                &retained_with_wrong_path,
+            ));
         }
     }
 }

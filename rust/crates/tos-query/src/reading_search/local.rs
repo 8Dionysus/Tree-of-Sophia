@@ -329,6 +329,7 @@ impl<'a> Reader<'a> {
             if private && metadata.mode() & 0o7777 != 0o600 {
                 return Err(corrupt("private reading artifact must be mode 0600"));
             }
+            let mut hash_trace = ReadingPhaseTrace::new("file_fixity_hash");
             let mut hasher = Digest256Hasher::new();
             let mut chunk = [0; 65536];
             loop {
@@ -347,6 +348,7 @@ impl<'a> Reader<'a> {
                     .ok_or_else(budget_error)?;
                 self.work(n)?;
                 hasher.update(&chunk[..n]);
+                hash_trace.bytes += n as u64;
             }
             if !same(
                 &metadata,
@@ -356,6 +358,7 @@ impl<'a> Reader<'a> {
             ) {
                 return Err(corrupt("reading artifact changed during digest"));
             }
+            hash_trace.complete();
             self.charge.opened_files += 1;
             self.pins.insert(
                 key.clone(),

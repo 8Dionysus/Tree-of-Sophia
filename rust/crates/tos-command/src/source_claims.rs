@@ -2021,6 +2021,15 @@ fn claim_creation_receipt(
     ]))
 }
 
+const CLAIM_CAPTURE_PROVENANCE_SCHEMA: &str = "ToS/contracts/provenance-event-v2.schema.json";
+
+/// Exact additional schema input read by the retained Global Claim capture
+/// validator. The streamed owner uses this same declaration to build its
+/// bounded context, so the validator and selected context cannot drift apart.
+pub(crate) fn pg_claim_capture_required_contract_paths() -> Vec<String> {
+    vec![CLAIM_CAPTURE_PROVENANCE_SCHEMA.to_owned()]
+}
+
 fn check_claim_capture(
     ctx: &CommandContext,
     home: &RelativePath,
@@ -2048,8 +2057,8 @@ fn check_claim_capture(
         deadline,
         cancelled,
         ctx,
-        &["ToS/contracts/provenance-event-v2.schema.json".into()],
-        "ToS/contracts/provenance-event-v2.schema.json",
+        &[CLAIM_CAPTURE_PROVENANCE_SCHEMA.to_owned()],
+        CLAIM_CAPTURE_PROVENANCE_SCHEMA,
         &provenance_path,
         &event,
     )?;

@@ -559,7 +559,11 @@ fn local_claim(
         },
         cancelled,
     )
-    .map_err(|_| Error::Unsupported("Sign source Claim local profile execution"))?;
+    .map_err(|reason| Error::SchemaExecution {
+        path: "Sign selected Claim".to_owned(),
+        root: "local Claim profile".to_owned(),
+        reason,
+    })?;
     if report.source_revision != reader.cut.current().revision()
         || report.source_input_sha256 != Digest256::of_bytes(&raw)
         || report.dependency_digests.len() > 128

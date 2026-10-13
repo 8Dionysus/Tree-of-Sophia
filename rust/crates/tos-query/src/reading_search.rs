@@ -124,6 +124,49 @@ type Result<T> = std::result::Result<T, ReadingSearchError>;
 fn error(code: ReadingSearchErrorCode, message: &'static str) -> ReadingSearchError {
     ReadingSearchError { code, message }
 }
+// Explicit local diagnosis only: fixed phase labels and counters, never source
+// paths, request text, or packet bodies. The caller's deadline is unchanged.
+struct ReadingPhaseTrace {
+    phase: &'static str,
+    started: Option<std::time::Instant>,
+    bytes: u64,
+    completed: bool,
+}
+impl ReadingPhaseTrace {
+    fn new(phase: &'static str) -> Self {
+        Self {
+            phase,
+            started: (std::env::var_os("TOS_READING_PHASE_TRACE").as_deref()
+                == Some(std::ffi::OsStr::new("1")))
+            .then(std::time::Instant::now),
+            bytes: 0,
+            completed: false,
+        }
+    }
+    fn complete(mut self) {
+        self.completed = true;
+    }
+}
+impl Drop for ReadingPhaseTrace {
+    fn drop(&mut self) {
+        if let Some(started) = self.started {
+            use std::io::Write;
+            let _ = writeln!(
+                std::io::stderr().lock(),
+                "tos_reading_phase_v1 phase={} status={} elapsed_us={} bytes={}",
+                self.phase,
+                if self.completed {
+                    "complete"
+                } else {
+                    "interrupted"
+                },
+                started.elapsed().as_micros(),
+                self.bytes,
+            );
+        }
+    }
+}
+
 fn check(probe: &dyn AbortProbe) -> Result<()> {
     match probe.reason() {
         None => Ok(()),
@@ -197,6 +240,8 @@ pub fn execute_reading_search(
     budget: ReadingSearchBudget,
     probe: Arc<dyn AbortProbe>,
 ) -> Result<ReadingSearchResult> {
+    let total_trace = ReadingPhaseTrace::new("query_total");
+    let hashing_trace = ReadingPhaseTrace::new("reading_manifest_and_fixity");
     check(probe.as_ref())?;
     let mut read = Reader::new(roots, software, budget, &probe)?;
     read.work(
@@ -273,6 +318,8 @@ pub fn execute_reading_search(
             read.verified_file(local::Root::Source, reference, expected, false)?;
         }
     }
+    hashing_trace.complete();
+    let metadata_trace = ReadingPhaseTrace::new("reading_sql_metadata");
     let db = read.database(&db_file)?;
     let metadata_rows = read.sql(&db, "SELECT key,value FROM metadata", &[])?;
     let metadata = metadata_rows
@@ -284,7 +331,11 @@ pub fn execute_reading_search(
             ))
         })
         .collect::<Result<std::collections::BTreeMap<_, _>>>()?;
+    metadata_trace.complete();
+    let baseline_trace = ReadingPhaseTrace::new("concept_baseline");
     let (mut baseline, concept_db_hashes) = concept::baseline(&mut read, &query, request)?;
+    baseline_trace.complete();
+    let grouping_trace = ReadingPhaseTrace::new("enrichment_and_grouping");
     if !concept_db_hashes
         .iter()
         .any(|sha| Some(sha) == metadata.get("concept_workbench_sha256"))
@@ -312,6 +363,8 @@ pub fn execute_reading_search(
         returned.push(read.clone_value(card)?);
     }
     let groups = enrich::groups(&mut read, &cards, &returned, &request.group_by)?;
+    grouping_trace.complete();
+    let render_trace = ReadingPhaseTrace::new("result_render");
     let source_provenance = baseline["provenance"].clone();
     let reading_provenance = json!({
         "manifest_ref": READING_MANIFEST_REF, "manifest_sha256": read.file_hash(local::Root::Analysis, READING_MANIFEST_REF)?,
@@ -374,8 +427,15 @@ pub fn execute_reading_search(
         "English translation and etymological research are on-demand agent work and have not been executed by this query."
     ]);
     let body = read.emit(&baseline)?;
+    render_trace.complete();
+    let schema_trace = ReadingPhaseTrace::new("schema_validation");
     read.validate(READING_SCHEMA_REF, &body)?;
-    read.finish(body)
+    schema_trace.complete();
+    let result = read.finish(body);
+    if result.is_ok() {
+        total_trace.complete();
+    }
+    result
 }
 
 #[cfg(test)]
