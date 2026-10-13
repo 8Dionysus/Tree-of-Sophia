@@ -760,6 +760,8 @@ pub(crate) fn compile(
         ));
     }
 
+    let max_manifest_entries = usize::try_from(model.max_source_members)
+        .map_err(|_| SourceCommandError::Invalid("source-navigation manifest member limit"))?;
     let max_source_member_bytes = model.max_source_member_bytes;
     let read_limits = request.source_read_limits.checked()?;
     let corpus =
