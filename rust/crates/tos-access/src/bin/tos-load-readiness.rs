@@ -2381,6 +2381,132 @@ fn mcp_source_text_search_response_succeeded(op: &Operation, attempt: &Attempt) 
             .is_none_or(|value| value.as_bool() == Some(false))
 }
 
+fn interrupted_projection_apply(op: &Operation) -> bool {
+    op.channel == "projection"
+        && op.request["operation"] == "apply"
+        && op.interrupt_resume_after_ms.is_some()
+}
+
+fn object_has_exact_keys(value: &Value, keys: &[&str]) -> bool {
+    value.as_object().is_some_and(|object| {
+        object.len() == keys.len() && keys.iter().all(|key| object.contains_key(*key))
+    })
+}
+
+fn interrupted_projection_apply_response_matches(
+    op: &Operation,
+    attempt: &Attempt,
+    cursor_observation: &Value,
+) -> bool {
+    if attempt.status != 0 || attempt.interrupted {
+        return false;
+    }
+    let Some(max_events) = op.request["max_events"].as_u64() else {
+        return false;
+    };
+    let Some(raw) = attempt.body.as_deref() else {
+        return false;
+    };
+    let Ok(response) = serde_json::from_slice::<Value>(raw) else {
+        return false;
+    };
+    if !object_has_exact_keys(&response, &["schema_version", "profile", "result"])
+        || response["schema_version"] != "tos_source_projection_progress_v1"
+        || response["profile"] != "tos_source_selected_text_v2"
+        || response.get("error").is_some()
+    {
+        return false;
+    }
+    let Some(result) = response.get("result") else {
+        return false;
+    };
+    if !object_has_exact_keys(
+        result,
+        &[
+            "applied_events",
+            "through_seq",
+            "head_seq",
+            "status",
+            "work",
+        ],
+    ) {
+        return false;
+    }
+    let Some(applied_events) = result["applied_events"].as_u64() else {
+        return false;
+    };
+    let Some(through_seq) = result["through_seq"].as_u64() else {
+        return false;
+    };
+    let Some(head_seq) = result["head_seq"].as_u64() else {
+        return false;
+    };
+    let Some(current) = result["status"].get("Current") else {
+        return false;
+    };
+    let Some(current_through_seq) = current["through_seq"].as_u64() else {
+        return false;
+    };
+    let Some(before_interrupt) = cursor_observation.get("before_interrupt") else {
+        return false;
+    };
+    let Some(before_through_seq) = before_interrupt["through_seq"].as_u64() else {
+        return false;
+    };
+    let Some(before_head_seq) = before_interrupt["head_seq"].as_u64() else {
+        return false;
+    };
+    let Some(after_interrupt) = cursor_observation.get("after_interrupt") else {
+        return false;
+    };
+    let Some(partial_through_seq) = after_interrupt["through_seq"].as_u64() else {
+        return false;
+    };
+    let Some(partial_head_seq) = after_interrupt["head_seq"].as_u64() else {
+        return false;
+    };
+    let Some(final_cursor) = cursor_observation.get("after_resume") else {
+        return false;
+    };
+    if applied_events == 0
+        || applied_events > max_events
+        || before_interrupt["status"] != "Pending"
+        || before_head_seq.saturating_sub(before_through_seq) < 2
+        || cursor_observation["partial_cursor_persisted"] != true
+        || after_interrupt["status"] != "Pending"
+        || partial_through_seq <= before_through_seq
+        || partial_through_seq >= partial_head_seq
+        || partial_head_seq < before_head_seq
+        || through_seq != head_seq
+        || current_through_seq != through_seq
+        || through_seq.checked_sub(partial_through_seq) != Some(applied_events)
+        || final_cursor["status"] != "Current"
+        || final_cursor["through_seq"].as_u64() != Some(through_seq)
+        || final_cursor["head_seq"].as_u64() != Some(head_seq)
+        || !object_has_exact_keys(&result["status"], &["Current"])
+        || !object_has_exact_keys(current, &["through_seq"])
+    {
+        return false;
+    }
+    let work_keys = [
+        "examined_event_members",
+        "exact_source_members_read",
+        "exact_source_bytes_read",
+        "custody_metadata_bytes_read",
+        "segment_bytes_read",
+        "committed_member_rows_examined",
+        "examined_related_roots",
+        "examined_dependency_paths",
+        "extracted_documents",
+        "published_source_paths",
+        "published_documents",
+    ];
+    object_has_exact_keys(&result["work"], &work_keys)
+        && work_keys
+            .iter()
+            .all(|key| result["work"][*key].as_u64().is_some())
+}
+
 fn source_read_operation(op: &Operation) -> bool {
     match op.channel.as_str() {
         "mcp" => {
@@ -2881,10 +3007,17 @@ fn outcome_matches(
     op: &Operation,
     expected: &ExpectedOutcome,
     attempt: &Attempt,
+    projection_cursor_observation: &Value,
 ) -> bool {
     if expected.status != attempt.status
         || (mcp_source_text_search_operation(op)
             && !mcp_source_text_search_response_succeeded(op, attempt))
+        || (interrupted_projection_apply(op)
+            && !interrupted_projection_apply_response_matches(
+                op,
+                attempt,
+                projection_cursor_observation,
+            ))
         || expected
             .sha256
             .as_ref()
@@ -2933,6 +3066,7 @@ fn outcome_matches(
     body_matches_expected
         && (expected.sha256.is_some()
             || expected.body.is_some()
+            || interrupted_projection_apply(op)
             || op.expected_stderr_prefix.is_some()
             || (postload_rights_revoke_operation(op)
                 && postload_rights_revoke_response_matches(op, attempt))
@@ -3982,6 +4116,20 @@ fn validate_projection_operation(
                 return Err("navigation load advancement requires one bounded event and a successful exact response".into());
             }
         }
+        "apply" if operation.interrupt_resume_after_ms.is_some() => {
+            if operation.request.as_object().is_none_or(|fields| {
+                fields.len() != 2
+                    || !fields.contains_key("operation")
+                    || !fields.contains_key("max_events")
+            }) || operation.expected_status != 0
+                || operation.expected_sha256.is_some()
+                || operation.expected_body.is_some()
+                || !operation.ignored_json_paths.is_empty()
+                || !operation.alternate_outcomes.is_empty()
+            {
+                return Err("interrupted projection apply requires a bounded progress-response oracle, not a static body or digest".into());
+            }
+        }
         _ => {}
     }
     if operation.interrupt_resume_after_ms.is_some()
@@ -4007,6 +4155,9 @@ fn validate_projection_operation(
 fn outcome_report(op: &Operation) -> Value {
     if op.channel == "projection" && op.request["operation"] == "advance-navigation" {
         return json!([{"status":0,"oracle":"bounded-navigation-range"}]);
+    }
+    if interrupted_projection_apply(op) {
+        return json!([{"status":0,"oracle":"bounded-interrupted-projection-progress-and-resumed-cursor"}]);
     }
     Value::Array(outcomes(op).iter().map(outcome_summary).collect())
 }
@@ -4311,11 +4462,18 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             };
             let navigation_advance =
                 op.channel == "projection" && op.request["operation"] == "advance-navigation";
+            let interrupted_projection_apply = interrupted_projection_apply(op);
             let primary_valid = if navigation_advance {
                 op.expected_status == 0
                     && op.expected_sha256.is_none()
                     && op.expected_body.is_none()
                     && op.ignored_json_paths.is_empty()
+            } else if interrupted_projection_apply {
+                op.expected_status == 0
+                    && op.expected_sha256.is_none()
+                    && op.expected_body.is_none()
+                    && op.ignored_json_paths.is_empty()
+                    && op.alternate_outcomes.is_empty()
             } else {
                 valid_expected(&primary, native_process, args.response_cap)
             };
@@ -6776,9 +6934,9 @@ fn run_operation(
         None
     } else {
         final_attempt.as_ref().and_then(|attempt| {
-            expected
-                .iter()
-                .find(|value| outcome_matches(args, op, value, attempt))
+            expected.iter().find(|value| {
+                outcome_matches(args, op, value, attempt, &projection_cursor_observation)
+            })
         })
     };
     let response_oracle_matches = if navigation_advance {
@@ -6818,6 +6976,10 @@ fn run_operation(
     let expected_report = outcome_report(op);
     let matched_report = if navigation_advance && passed {
         Some(json!({"status":0,"oracle":"bounded-navigation-range"}))
+    } else if interrupted_projection_apply(op) && passed {
+        Some(
+            json!({"status":0,"oracle":"bounded-interrupted-projection-progress-and-resumed-cursor"}),
+        )
     } else {
         matched_outcome.map(outcome_summary)
     };

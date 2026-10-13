@@ -187,6 +187,12 @@ child process groups and retains the staged files and report for inspection.
 Only one interrupting projection operation is allowed per schedule, with no
 other projection process in its wave, so another worker cannot advance the
 cursor and stand in for the interrupted process.
+The final response uses a semantic progress check because the interruption
+position varies: the exact progress schema and work-counter fields must match,
+the applied event count must equal the resumed cursor advance and remain within
+`max_events`, and the response must agree with the final durable cursor.
+This entry omits a static expected body or digest and does not accept alternate
+outcomes or ignored JSON fields.
 
 The optional serial `postload` list runs after measured session workers and the
 quiescent navigation drain. Its checks do not enter load throughput, latency
