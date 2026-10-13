@@ -445,7 +445,9 @@ impl SoftwareSite {
         let proof = manifest
             .object_get("native_access")
             .ok_or_else(|| unavailable("installed native build proof absent"))?;
-        let keys = [
+        let schema = field(proof, "schema_version")?;
+        let access_v2 = schema == "tos_native_access_build_v2";
+        let legacy_keys: &[&str] = &[
             "schema_version",
             "sha256",
             "size_bytes",
@@ -456,18 +458,37 @@ impl SoftwareSite {
             "toolchain",
             "profile",
         ];
+        let v2_keys: &[&str] = &[
+            "schema_version",
+            "sha256",
+            "size_bytes",
+            "target",
+            "source_commit",
+            "source_tree",
+            "lock_sha256",
+            "toolchain",
+            "profile",
+            "opt_level",
+        ];
+        let keys = if access_v2 { v2_keys } else { legacy_keys };
         let fields = proof
             .as_object()
             .ok_or_else(|| unavailable("installed native proof invalid"))?;
+        let profile = field(proof, "profile")?;
+        let profile_valid = if access_v2 {
+            profile == "debug" && matches!(field(proof, "opt_level")?, "0" | "1")
+        } else {
+            matches!(profile, "debug" | "release")
+        };
         if fields.len() != keys.len()
             || fields
                 .iter()
                 .any(|(key, _)| !key.as_str().is_some_and(|key| keys.contains(&key)))
-            || !matches!(field(proof, "profile")?, "debug" | "release")
+            || !profile_valid
         {
             return Err(unavailable("installed native proof fields differ"));
         }
-        if field(proof, "schema_version")? != "tos_native_access_build_v1"
+        if (!access_v2 && schema != "tos_native_access_build_v1")
             || field(proof, "target")? != "x86_64-unknown-linux-gnu"
             || field(proof, "source_commit")? != field(&manifest, "software_ref")?
         {

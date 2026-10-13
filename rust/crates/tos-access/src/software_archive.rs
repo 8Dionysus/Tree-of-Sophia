@@ -35,6 +35,7 @@ const MANIFEST_BYTES: usize = 1_048_576;
 const STATIC: &str = "access/src/tos_access/web_dist/";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 const NATIVE_SCHEMA: &str = "tos_native_access_build_v1";
+const NATIVE_SCHEMA_V2: &str = "tos_native_access_build_v2";
 const SCHEMA: &str = "tos_software_bundle_manifest_v1";
 const SOURCE_FILES: [&str; 1] = ["access/README.md"];
 const TOS_SCHEMAS: [&str; 3] = [
@@ -414,6 +415,8 @@ fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()>
     if role.is_some_and(|name| !COMMANDS.contains(&name)) {
         return Err("unsupported native command proof role".into());
     }
+    let schema = string(p, "schema_version")?;
+    let access_v2 = !command && schema == NATIVE_SCHEMA_V2;
     let mut keys = vec![
         "schema_version",
         "sha256",
@@ -427,6 +430,8 @@ fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()>
     ];
     if command {
         keys.push("features");
+    } else if access_v2 {
+        keys.push("opt_level");
     }
     let fields = p.as_object().ok_or("native proof must be object")?;
     if fields.len() != keys.len()
@@ -436,16 +441,20 @@ fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()>
     {
         return Err("native proof fields differ".into());
     }
-    if string(p, "schema_version")?
+    if schema
         != if command {
             COMMAND_SCHEMA
+        } else if access_v2 {
+            NATIVE_SCHEMA_V2
         } else {
             NATIVE_SCHEMA
         }
         || string(p, "target")? != TARGET
         || string(p, "source_commit")? != source_ref
-        || !["debug", "release"].contains(&string(p, "profile")?)
         || uint(p, "size_bytes")? < 64
+        || (access_v2
+            && (string(p, "profile")? != "debug" || !["0", "1"].contains(&string(p, "opt_level")?)))
+        || (!access_v2 && !["debug", "release"].contains(&string(p, "profile")?))
     {
         return Err("native proof profile/source differs".into());
     }
@@ -1817,5 +1826,30 @@ mod role_feature_tests {
             assert!(command_proof(role, &worker, &empty).is_err());
         }
         assert!(command_proof("unknown-role", &empty, &empty).is_err());
+    }
+
+    fn access_proof(schema: &str, opt_level: Option<&str>) -> JsonValue {
+        let opt_level = opt_level
+            .map(|level| format!(r#","opt_level":"{level}""#))
+            .unwrap_or_default();
+        let raw = format!(
+            r#"{{"schema_version":"{schema}","sha256":"{digest}","size_bytes":64,"target":"{target}","source_commit":"{commit}","source_tree":"{tree}","lock_sha256":"{digest}","toolchain":"1.98.1","profile":"debug"{opt_level}}}"#,
+            digest = "a".repeat(64),
+            target = TARGET,
+            commit = "b".repeat(40),
+            tree = "c".repeat(40),
+        );
+        json(raw.as_bytes(), 4096).unwrap()
+    }
+
+    #[test]
+    fn native_access_profile_v2_records_supported_cargo_opt_levels() {
+        let source = "b".repeat(40);
+        assert!(proof(&access_proof(NATIVE_SCHEMA, None), &source).is_ok());
+        for opt_level in ["0", "1"] {
+            assert!(proof(&access_proof(NATIVE_SCHEMA_V2, Some(opt_level)), &source).is_ok());
+        }
+        assert!(proof(&access_proof(NATIVE_SCHEMA_V2, Some("2")), &source).is_err());
+        assert!(proof(&access_proof(NATIVE_SCHEMA_V2, None), &source).is_err());
     }
 }

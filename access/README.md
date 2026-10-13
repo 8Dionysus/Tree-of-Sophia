@@ -1598,10 +1598,14 @@ Delivery supplies executables, not invocation files, owner grants or corpus
 data. Owner commands still require an explicit protected invocation and worker
 binding; installing these roles adds no HTTP write capability.
 The software builder accepts `--native-access-binary` and
-`--native-access-receipt` only together. The build-owned receipt
-`tos_native_access_build_v1` binds the exact ELF SHA-256/size, Linux x86_64
-target, clean source commit/tree, Cargo.lock SHA-256, pinned toolchain and
-build profile. These are integrity/provenance fields, not release admission.
+`--native-access-receipt` only together. The legacy nine-field
+`tos_native_access_build_v1` receipt remains accepted. The current producer
+can emit `tos_native_access_build_v2`, which adds the exact Cargo
+`profile.opt_level` for the Access executable (`0` or `1`) while binding its ELF
+SHA-256/size, Linux x86_64 target, clean source commit/tree, Cargo.lock
+SHA-256, pinned toolchain and debug profile. The receipt producer admits only
+Access O0/O1 and keeps native command images at O0. These fields are
+integrity/provenance evidence, not release admission.
 Rust owner sources participate in dirty-source detection for this profile;
 `--allow-dirty` cannot relabel a native product. Archive integrity validation
 checks the executable's exact 0755 mode without executing it. An extractor
@@ -1637,7 +1641,7 @@ separate acceptance steps.
 The native software tooling entrypoint is `tos-access software build`,
 `software verify`, and `software extract`. It runs before data-owner selection.
 Build requires the clean source root/ref, the admitted native ELF and its exact
-nine-field receipt, and an explicit `--web-dist` directory containing the real
+versioned build receipt, and an explicit `--web-dist` directory containing the real
 frontend build handoff. It does not write or discover a frontend under the
 source checkout. Each action requires positive `--max-total-bytes`,
 `--max-archive-bytes`, `--max-members`, and `--max-metadata-bytes` operation
@@ -1760,8 +1764,8 @@ installation does not touch them. No systemwide install, shell edit, service
 restart, publication or activation occurs. Use `--release-root` only when
 explicitly selecting an admitted managed data release. Help/version do not
 open a data owner, and NoOwner HTTP/MCP remain truthfully unavailable for data.
-The version string identifies the package version; the manifest's unchanged
-nine-field native receipt owns exact build identity.
+The version string identifies the package version; the manifest's
+versioned native receipt owns exact build identity.
 
 The new install composition adds one final retained-archive hash to extraction:
 its reads are approximately `5Z + 2S` (including verification), with `S` written

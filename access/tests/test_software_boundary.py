@@ -27,6 +27,22 @@ from tos_access.locations import data_root
 
 
 class SoftwareBoundaryTests(unittest.TestCase):
+    def test_native_dispatch_accepts_profiled_access_receipt_and_keeps_legacy_shape(self):
+        from tos_access.native_dispatch import _proof
+        source = 'b' * 40
+        legacy = {
+            'schema_version': 'tos_native_access_build_v1', 'sha256': 'a' * 64,
+            'size_bytes': 64, 'target': 'x86_64-unknown-linux-gnu',
+            'source_commit': source, 'source_tree': 'c' * 40,
+            'lock_sha256': 'd' * 64, 'toolchain': '1.98.1', 'profile': 'debug',
+        }
+        _proof(legacy, source)
+        profiled = {**legacy, 'schema_version': 'tos_native_access_build_v2',
+                    'opt_level': '1'}
+        _proof(profiled, source)
+        with self.assertRaisesRegex(ValueError, 'receipt differs'):
+            _proof({**profiled, 'opt_level': '2'}, source)
+
     def test_native_core_exploration_contracts_preserves_zero_argument_packet_contract(self):
         from tos_access.native_core import NativeCore
         core = object.__new__(NativeCore)

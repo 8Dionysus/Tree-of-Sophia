@@ -542,23 +542,35 @@ fn local_claim(
     reader: &mut SignSourceReader<'_>,
     worker: &mut CutWorkerSchemaExecutor,
     claim: &JsonValue,
+    expected_profile: tos_validation::FormatProfile,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
+    if worker.execution_binding().schema_profile != expected_profile {
+        return Err(Error::Unsupported(
+            "Sign selected Claim worker profile differs",
+        ));
+    }
     let raw = cmd::canonical(claim)?;
-    let report = tos_validation::record_rules::validate_source_claim_from_cut(
-        reader.cut,
-        &raw,
-        worker,
-        tos_validation::item_rules::ItemLimits {
-            max_member_bytes: 1_048_576,
-            max_total_bytes: 8 * 1_048_576,
-            max_state_bytes: 8 * 1_048_576,
-            max_issues: 128,
-            deadline,
-        },
-        cancelled,
-    )
+    let limits = tos_validation::item_rules::ItemLimits {
+        max_member_bytes: 1_048_576,
+        max_total_bytes: 8 * 1_048_576,
+        max_state_bytes: 8 * 1_048_576,
+        max_issues: 128,
+        deadline,
+    };
+    let report = match expected_profile {
+        tos_validation::FormatProfile::LegacyPythonObserved20260923 => {
+            tos_validation::record_rules::validate_source_claim_from_cut(
+                reader.cut, &raw, worker, limits, cancelled,
+            )
+        }
+        tos_validation::FormatProfile::AssertedSourceCandidateV1 => {
+            tos_validation::record_rules::validate_source_claim_from_asserted_cut(
+                reader.cut, &raw, worker, limits, cancelled,
+            )
+        }
+    }
     .map_err(|reason| Error::SchemaExecution {
         path: "Sign selected Claim".to_owned(),
         root: "local Claim profile".to_owned(),
@@ -600,6 +612,27 @@ fn generic_family_schema(
     result
 }
 
+#[derive(Clone, Copy)]
+enum SourceEnvelopeRoute {
+    /// SignPromotionRead preserves the observed legacy FormatChecker behavior.
+    SignPromotionRead,
+    /// Assessment history and evaluation share the asserted source-candidate worker.
+    OwnerAssessment,
+}
+
+impl SourceEnvelopeRoute {
+    fn claim_profile(self) -> tos_validation::FormatProfile {
+        match self {
+            Self::SignPromotionRead => tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            Self::OwnerAssessment => tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        }
+    }
+
+    fn generic_schema_dependencies(self) -> bool {
+        matches!(self, Self::SignPromotionRead)
+    }
+}
+
 fn source_envelopes(
     reader: &mut SignSourceReader<'_>,
     base: &CommandContext,
@@ -607,8 +640,15 @@ fn source_envelopes(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    generic_schema_dependencies: bool,
+    route: SourceEnvelopeRoute,
 ) -> Result<Vec<JsonValue>> {
+    let claim_profile = route.claim_profile();
+    let generic_schema_dependencies = route.generic_schema_dependencies();
+    if route.claim_profile() != worker.execution_binding().schema_profile {
+        return Err(Error::Unsupported(
+            "Sign selected source worker profile differs",
+        ));
+    }
     let bindings = cmd::array(config, "source_records")?;
     if bindings.len() > 1024 {
         return Err(Error::Invalid("Sign configured source selection count"));
@@ -756,7 +796,7 @@ fn source_envelopes(
                         if !known {
                             continue;
                         }
-                        local_claim(reader, worker, &value, deadline, cancelled)?;
+                        local_claim(reader, worker, &value, claim_profile, deadline, cancelled)?;
                     } else if cmd::text(&value, "schema_version")? == "tos_historical_claim_v1" {
                         schema(
                             reader,
@@ -957,7 +997,7 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
             worker,
             deadline,
             cancelled,
-            false,
+            SourceEnvelopeRoute::OwnerAssessment,
         )?
     };
     // Direct v3 Journal reads reuse the Sign source-owned native resolver.
@@ -2068,7 +2108,7 @@ fn assemble_sign_sources(
         local_worker,
         limits.deadline,
         cancelled,
-        true,
+        SourceEnvelopeRoute::SignPromotionRead,
     )?;
     let dependencies = claim_ground_refs(
         reader,

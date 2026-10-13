@@ -15,6 +15,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use postgres::error::SqlState;
 use postgres::{Client, NoTls};
 use tos_access::managed_source_query::ManagedKnowledgeWriter;
 use tos_command::{
@@ -5986,6 +5987,71 @@ fn different_prepare_cannot_reuse_command_identity() {
     assert!(matches!(collision, Err(DurableError::Conflict(_))));
     assert_eq!(lab.count("attempt"), 1);
     assert_eq!(lab.count("receipt"), 1);
+}
+
+#[test]
+fn source_claim_path_checks_match_supported_stream_homes() {
+    let url = database_url();
+    let lab = Lab::new(&url);
+    let mut client = Client::connect(&url, NoTls).expect("lab PostgreSQL connects");
+    let digest = "a".repeat(64);
+    let accepted_paths = [
+        "ToS/source-witnesses/relations/relation/source-claims.jsonl",
+        "ToS/source-witnesses/relations/relation\u{7f}/source-claims.jsonl",
+        "ToS/source-witnesses/works/collection/work/expressions/expression/source-claims.jsonl",
+        "ToS/source-witnesses/works/collection/work/expressions/expression/editions/edition/source-claims.jsonl",
+    ];
+    for (index, path) in accepted_paths.iter().enumerate() {
+        let claim_id = format!("tos.claim.pg-path-check-{index}");
+        client
+            .execute(
+                "INSERT INTO cmd2_source_claim_dependency(
+                     domain,predicate,claim_id,path,subject_endpoint,object_endpoint,
+                     member_digest,definition_digest
+                 ) VALUES ($1,'embodied_by',$2,$3,'tos.item.path-check','tos.object.path-check',$4,$4)",
+                &[&lab.domain, &claim_id, path, &digest],
+            )
+            .expect("supported Claim homes admit embodied_by dependency rows");
+        client
+            .execute(
+                "INSERT INTO cmd2_source_claim_navigation_reference(
+                     domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,
+                     definition_digest,valid_from_seq
+                 ) VALUES ($1,$2,$3,'claim-value','tos-id','tos.item.path-check',$4,$4,0)",
+                &[&lab.domain, &claim_id, path, &digest],
+            )
+            .expect("supported Claim homes admit navigation-reference rows");
+    }
+
+    let rejected_paths = [
+        "ToS/source-witnesses/owner-local/private/source-claims.jsonl",
+        "ToS/source-witnesses/relations/relation\u{1f}/source-claims.jsonl",
+        "ToS/source-witnesses/items/item/source-claims.jsonl",
+        "ToS/source-witnesses/relations/relation/nested/source-claims.jsonl",
+    ];
+    for (index, path) in rejected_paths.iter().enumerate() {
+        let claim_id = format!("tos.claim.pg-path-rejection-{index}");
+        let dependency_error = client
+            .execute(
+                "INSERT INTO cmd2_source_claim_dependency(
+                     domain,predicate,claim_id,path,subject_endpoint,object_endpoint,
+                     member_digest,definition_digest
+                 ) VALUES ($1,'embodied_by',$2,$3,'tos.item.path-check','tos.object.path-check',$4,$4)",
+                &[&lab.domain, &claim_id, path, &digest],
+            )
+            .expect_err("unsupported or private Claim stream paths are rejected");
+        assert_eq!(dependency_error.code(), Some(&SqlState::CHECK_VIOLATION));
+        let navigation_error = client
+            .execute(
+                "INSERT INTO cmd2_source_claim_navigation_reference(
+                     domain,claim_id,path,basis,endpoint_kind,endpoint,member_digest,
+                     definition_digest,valid_from_seq
+                 ) VALUES ($1,$2,$3,'claim-value','tos-id','tos.item.path-check',$4,$4,0)",
+                &[&lab.domain, &claim_id, path, &digest],
+            )
+            .expect_err("unsupported or private Claim stream paths are rejected");
+        assert_eq!(navigation_error.code(), Some(&SqlState::CHECK_VIOLATION));
+    }
 }
 
 #[test]

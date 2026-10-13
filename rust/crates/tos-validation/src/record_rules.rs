@@ -3640,6 +3640,28 @@ pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRan
         worker,
         limits,
         cancelled,
+        FormatProfile::LegacyPythonObserved20260923,
+        &CutLocalClaimSource(cut),
+    )
+}
+
+/// Validate a selected source Claim on the exact current cut using the asserted
+/// source-candidate format profile. The legacy API above remains pinned to the
+/// observed Python FormatChecker profile; callers cannot silently cross profiles.
+pub fn validate_source_claim_from_asserted_cut<S: CutSchemaExecutor + CutSchemaReceiptRange>(
+    cut: &tos_source_store::CorpusCutReader,
+    selected_claim_raw: &[u8],
+    worker: &mut S,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<SourceClaimLocalReport, crate::item_rules::ItemRefusal> {
+    validate_source_claim_from_current_source(
+        cut.current().revision(),
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        FormatProfile::AssertedSourceCandidateV1,
         &CutLocalClaimSource(cut),
     )
 }
@@ -3662,6 +3684,7 @@ pub fn validate_source_claim_from_members<S: CutSchemaExecutor + CutSchemaReceip
         worker,
         limits,
         cancelled,
+        FormatProfile::LegacyPythonObserved20260923,
         &SelectedMembersLocalClaimSource(members),
     )
 }
@@ -3672,6 +3695,7 @@ fn validate_source_claim_from_current_source<S: CutSchemaExecutor + CutSchemaRec
     worker: &mut S,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
+    expected_profile: FormatProfile,
     source: &dyn LocalClaimCurrentSource,
 ) -> Result<SourceClaimLocalReport, crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
@@ -3682,10 +3706,16 @@ fn validate_source_claim_from_current_source<S: CutSchemaExecutor + CutSchemaRec
             "local Claim worker/cut revision differs".into(),
         ));
     }
-    if binding.schema_profile != FormatProfile::LegacyPythonObserved20260923 {
-        return Err(ItemRefusal::Unsupported(
-            "local Claim requires the observed Python FormatChecker profile".into(),
-        ));
+    if binding.schema_profile != expected_profile {
+        let reason = match expected_profile {
+            FormatProfile::LegacyPythonObserved20260923 => {
+                "local Claim requires the observed Python FormatChecker profile"
+            }
+            FormatProfile::AssertedSourceCandidateV1 => {
+                "local Claim requires the asserted source-candidate profile"
+            }
+        };
+        return Err(ItemRefusal::Unsupported(reason.into()));
     }
     if selected_claim_raw.len() > limits.max_member_bytes.min(MAX_RECORD_BYTES) {
         return Err(ItemRefusal::BudgetCheck {

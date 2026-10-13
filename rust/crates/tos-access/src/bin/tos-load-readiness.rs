@@ -30,11 +30,13 @@ const MAX_OPS: usize = 4096;
 const MAX_NONCES: usize = 1024;
 const MAX_OPERATIONS_PER_SECOND: f64 = 10_000.0;
 const MAX_RUN_SECONDS: u64 = 3600;
+const DEFAULT_OWNER_STAGE_CLONE_CAP_BYTES: u64 = 268_435_456;
+const MAX_OWNER_STAGE_CLONE_CAP_BYTES: u64 = 1_073_741_824;
 const NATIVE_STDERR_CAP: usize = 4096;
 const USAGE: &str = concat!(
     "usage: tos-load-readiness --query-binary ABS --model ABS --binding ABS --schedule ABS --output DIR --unit UNIT ",
-    "[--source-root ABS --source-inputs ABS] [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS ",
-    "[--owner-stage-baseline ABS]] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|64|128|256] ",
+    "[--source-root ABS --source-inputs ABS] [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS] ",
+    "[--owner-stage-baseline ABS] [--owner-stage-clone-cap-bytes N] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|64|128|256] ",
     "[--sdk-in-flight 1..4] [--operation-count N] [--channel-mix mcp=60,owner_http=20,sdk=20,projection=0] ",
     "[--operations-per-second N] [--load-window-seconds N] [--deadline-seconds N] [--request-cap-bytes N] ",
     "[--response-cap-bytes N] [--schedule-cap-bytes N] [--output-cap-bytes N]"
@@ -56,6 +58,7 @@ struct Args {
     invocation: Option<PathBuf>,
     token_file: Option<PathBuf>,
     owner_stage_baseline: Option<PathBuf>,
+    owner_stage_clone_cap_bytes: u64,
     schedule: PathBuf,
     output: PathBuf,
     unit: String,
@@ -586,6 +589,19 @@ fn parse_args() -> Result<Option<Args>, String> {
     let invocation = optional_path(&mut values, "--invocation")?;
     let token_file = optional_path(&mut values, "--token-file")?;
     let owner_stage_baseline = optional_path(&mut values, "--owner-stage-baseline")?;
+    let clone_cap_was_explicit = values.contains_key("--owner-stage-clone-cap-bytes");
+    let owner_stage_clone_cap_default = DEFAULT_OWNER_STAGE_CLONE_CAP_BYTES.to_string();
+    let owner_stage_clone_cap_bytes = number(
+        &mut values,
+        "--owner-stage-clone-cap-bytes",
+        &owner_stage_clone_cap_default,
+    )?;
+    if owner_stage_clone_cap_bytes > MAX_OWNER_STAGE_CLONE_CAP_BYTES {
+        return Err("--owner-stage-clone-cap-bytes must be in 1..1073741824".into());
+    }
+    if clone_cap_was_explicit && owner_stage_baseline.is_none() {
+        return Err("--owner-stage-clone-cap-bytes requires --owner-stage-baseline".into());
+    }
     let owner_count = [
         owner_binary.is_some(),
         owner_config.is_some(),
@@ -708,6 +724,7 @@ fn parse_args() -> Result<Option<Args>, String> {
         invocation,
         token_file,
         owner_stage_baseline,
+        owner_stage_clone_cap_bytes,
         schedule,
         output,
         unit,
@@ -736,13 +753,12 @@ fn sha(raw: &[u8]) -> String {
 
 const MAX_STAGE_FILES: usize = 16_384;
 const MAX_STAGE_FILE_BYTES: u64 = 33_554_432;
-const MAX_STAGE_TOTAL_BYTES: u64 = 268_435_456;
-
 fn copy_stage_tree(
     source: &Path,
     destination: &Path,
     files: &mut usize,
     bytes: &mut u64,
+    clone_cap_bytes: u64,
 ) -> Result<(), String> {
     let metadata =
         fs::symlink_metadata(source).map_err(|e| format!("stage source metadata: {e}"))?;
@@ -761,7 +777,13 @@ fn copy_stage_tree(
             if name.is_empty() || name == "." || name == ".." {
                 return Err("owner stage contains an invalid entry name".into());
             }
-            copy_stage_tree(&entry.path(), &destination.join(name), files, bytes)?;
+            copy_stage_tree(
+                &entry.path(),
+                &destination.join(name),
+                files,
+                bytes,
+                clone_cap_bytes,
+            )?;
         }
         fs::set_permissions(destination, fs::Permissions::from_mode(mode))
             .map_err(|e| format!("stage directory permissions: {e}"))?;
@@ -775,10 +797,12 @@ fn copy_stage_tree(
         .ok_or("owner stage file count overflow")?;
     *bytes = bytes
         .checked_add(metadata.len())
-        .filter(|total| *total <= MAX_STAGE_TOTAL_BYTES)
-        .ok_or("owner stage exceeds 256 MiB / 16384-file bound")?;
+        .filter(|total| *total <= clone_cap_bytes)
+        .ok_or_else(|| {
+            format!("owner stage exceeds selected clone byte cap ({clone_cap_bytes} bytes)")
+        })?;
     if *files > MAX_STAGE_FILES {
-        return Err("owner stage exceeds 256 MiB / 16384-file bound".into());
+        return Err("owner stage exceeds 16384-file bound".into());
     }
     let mut input = OpenOptions::new()
         .read(true)
@@ -1528,7 +1552,13 @@ fn prepare_owner_stage(
     }
     let mut files = 0usize;
     let mut bytes = 0u64;
-    if let Err(error) = copy_stage_tree(&baseline, &destination, &mut files, &mut bytes) {
+    if let Err(error) = copy_stage_tree(
+        &baseline,
+        &destination,
+        &mut files,
+        &mut bytes,
+        args.owner_stage_clone_cap_bytes,
+    ) {
         let _ = fs::remove_dir_all(&destination);
         return Err(error);
     }
@@ -6688,7 +6718,7 @@ fn main_result() -> Result<i32, String> {
                 "projection_selection_count": projection_inputs.len(),
                 "copied_files": copied_files,
                 "copied_bytes": copied_bytes,
-                "bounded_copy_bytes": MAX_STAGE_TOTAL_BYTES,
+                "bounded_copy_bytes": args.owner_stage_clone_cap_bytes,
                 "bounded_copy_files": MAX_STAGE_FILES
             })),
             "limits": {
@@ -7767,6 +7797,63 @@ fn main_result() -> Result<i32, String> {
             1
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::copy_stage_tree;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static NEXT_TEMP_ID: AtomicUsize = AtomicUsize::new(0);
+
+    fn source_tree() -> (PathBuf, PathBuf) {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock after epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "tos-load-readiness-stage-budget-{}-{nonce}-{}",
+            std::process::id(),
+            NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        let source = root.join("source");
+        fs::create_dir_all(source.join("nested")).expect("create source tree");
+        fs::write(source.join("root.bin"), b"root").expect("write root fixture");
+        fs::write(source.join("nested/inner.bin"), b"nest").expect("write nested fixture");
+        (root, source)
+    }
+
+    #[test]
+    fn owner_stage_clone_refuses_tree_above_selected_cap() {
+        let (root, source) = source_tree();
+        let mut files = 0;
+        let mut bytes = 0;
+        let error = copy_stage_tree(&source, &root.join("clone"), &mut files, &mut bytes, 7)
+            .expect_err("8-byte recursive tree must exceed a 7-byte cap");
+        assert!(error.contains("selected clone byte cap (7 bytes)"));
+        fs::remove_dir_all(root).expect("remove rejected fixture");
+    }
+
+    #[test]
+    fn owner_stage_clone_copies_recursive_tree_at_selected_cap() {
+        let (root, source) = source_tree();
+        let destination = root.join("clone");
+        let mut files = 0;
+        let mut bytes = 0;
+        copy_stage_tree(&source, &destination, &mut files, &mut bytes, 8)
+            .expect("8-byte recursive tree fits an 8-byte cap");
+        assert_eq!(files, 2);
+        assert_eq!(bytes, 8);
+        assert_eq!(fs::read(destination.join("root.bin")).unwrap(), b"root");
+        assert_eq!(
+            fs::read(destination.join("nested/inner.bin")).unwrap(),
+            b"nest"
+        );
+        fs::remove_dir_all(root).expect("remove accepted fixture");
+    }
 }
 
 fn main() {

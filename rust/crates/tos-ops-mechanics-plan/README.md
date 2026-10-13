@@ -335,13 +335,15 @@ performance or whole-validator acceptance claim.
 
 The same `tos-software-ci` executable owns the CI artifact operations
 `executor-manifest`, `executor-bind`, `software-receipts`, and `software-limits`.
-They retain the existing three-executor manifest and access/command build receipt
-shapes consumed by native software packaging. Producer operations require the
-successful same-run Cargo JSON artifact stream, exact executable package/path,
-empty feature selection, native debug profile, and the selected Rust version
-output. They hash held regular files with a fixed 64 KiB buffer and verify file
-identity before returning. Receipt generation describes those completed products;
-it does not establish independent trust in the producer.
+They retain the existing three-executor manifest and command receipt shape,
+while Access build receipts now distinguish explicit dev O0/O1 profiles. The
+producer requires the successful same-run Cargo JSON artifact stream, exact
+executable package/path, role feature selection, native debug profile, and the
+selected Rust version output. It permits O0/O1 only for Access and keeps all
+native command roles at O0. It hashes held regular files with a fixed 64 KiB
+buffer and verifies file identity before returning. Receipt generation describes
+those completed products; it does not establish independent trust in the
+producer.
 `software-receipts` also binds the verified owner-command image through
 `TOS_NATIVE_OWNER_COMMAND_BIN` before software fixtures run, alongside the
 existing Access preparation bindings. External payload validation consumes

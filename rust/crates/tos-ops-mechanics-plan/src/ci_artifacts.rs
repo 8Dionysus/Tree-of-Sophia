@@ -321,6 +321,20 @@ fn append(path: &Path, raw: &[u8], b: &Budget<'_>) -> io::Result<()> {
     f.flush()?;
     b.check()
 }
+#[derive(Clone, Debug)]
+struct CargoProduct {
+    features: Vec<String>,
+    opt_level: String,
+}
+
+fn accepted_opt_level(name: &str, allow_access_opt1: bool, opt_level: &str) -> bool {
+    if name == "tos-access" && allow_access_opt1 {
+        matches!(opt_level, "0" | "1")
+    } else {
+        opt_level == "0"
+    }
+}
+
 /// Require successful, same-run Cargo messages for the requested executable set.
 /// Messages are caller-held producer evidence, never a substitute for bootstrap trust.
 fn cargo_products(
@@ -331,8 +345,9 @@ fn cargo_products(
     no_default_features: &[&str],
     version: &Path,
     expected_debug_info: u8,
+    allow_access_opt1: bool,
     b: &Budget<'_>,
-) -> io::Result<BTreeMap<String, Vec<String>>> {
+) -> io::Result<BTreeMap<String, CargoProduct>> {
     absolute(images)?;
     if !images.ends_with(Path::new(TARGET).join("debug")) {
         return Err(bad("Cargo native target/profile directory mismatch"));
@@ -352,7 +367,7 @@ fn cargo_products(
     let mut reader = BufReader::new(f);
     let mut total = 0usize;
     let mut seen = BTreeSet::new();
-    let mut product_features = BTreeMap::new();
+    let mut product_metadata = BTreeMap::new();
     let mut success = 0;
     loop {
         b.check()?;
@@ -402,6 +417,10 @@ fn cargo_products(
             })
             .collect::<io::Result<Vec<_>>>()?;
         let actual_set = actual_features.iter().cloned().collect::<BTreeSet<_>>();
+        let opt_level = value["profile"]["opt_level"]
+            .as_str()
+            .ok_or_else(|| bad("Cargo executable optimization level missing"))?;
+        let allowed_opt_level = accepted_opt_level(name, allow_access_opt1, opt_level);
         let required_features = value["target"]["required-features"]
             .as_array()
             .map(|features| {
@@ -435,7 +454,7 @@ fn cargo_products(
                 ))
             })
             || value["target"]["kind"] != json!(["bin"])
-            || value["profile"]["opt_level"] != "0"
+            || !allowed_opt_level
             || value["profile"]["debug_assertions"] != true
             || value["profile"]["debuginfo"] != expected_debug_info
             || value["profile"]["test"] != false
@@ -446,23 +465,33 @@ fn cargo_products(
         if !seen.insert(name.to_owned()) {
             return Err(bad("duplicate Cargo executable"));
         }
-        product_features.insert(name.to_owned(), actual_features);
+        product_metadata.insert(
+            name.to_owned(),
+            CargoProduct {
+                features: actual_features,
+                opt_level: opt_level.to_owned(),
+            },
+        );
     }
     unchanged(reader.get_ref(), messages, &before)?;
     b.check()?;
     let groups = names
         .iter()
         .map(|name| {
-            (
+            let product = product_metadata
+                .get(*name)
+                .ok_or_else(|| bad("Cargo stream lacks requested executable metadata"))?;
+            Ok((
                 native_software_roles::package(name),
                 !no_default_features.contains(name),
-            )
+                product.opt_level.as_str(),
+            ))
         })
-        .collect::<BTreeSet<_>>();
+        .collect::<io::Result<BTreeSet<_>>>()?;
     if success != groups.len() || seen.len() != names.len() {
         return Err(bad("Cargo stream lacks successful requested products"));
     }
-    Ok(product_features)
+    Ok(product_metadata)
 }
 fn artifact_set(root: &Path, with_manifest: bool, b: &Budget<'_>) -> io::Result<()> {
     let mut names = EXECUTORS
@@ -670,6 +699,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 &EXECUTORS,
                 get("--rustc-version"),
                 0,
+                false,
                 &b,
             )?;
             let v = manifest(root, artifacts, &b)?;
@@ -718,7 +748,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             absolute(receipt_root)?;
             let mut names = vec!["tos-access"];
             names.extend(COMMANDS);
-            let product_features = cargo_products(
+            let product_metadata = cargo_products(
                 root,
                 get("--cargo-messages"),
                 images,
@@ -726,6 +756,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 &SOFTWARE_NO_DEFAULT_FEATURES,
                 get("--rustc-version"),
                 0,
+                true,
                 &b,
             )?;
             let id = identity(root, &b)?;
@@ -733,20 +764,19 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             for n in names {
                 let mut proof = id.clone();
                 let obj = proof.as_object_mut().unwrap();
+                let product = product_metadata
+                    .get(n)
+                    .ok_or_else(|| bad("Cargo receipt lacks requested product metadata"))?;
                 if n == "tos-access" {
                     obj.remove("features");
+                    obj.insert("opt_level".into(), json!(product.opt_level));
                 } else {
-                    obj.insert(
-                        "features".into(),
-                        json!(product_features.get(n).ok_or_else(|| {
-                            bad("Cargo feature receipt lacks requested product")
-                        })?),
-                    );
+                    obj.insert("features".into(), json!(product.features));
                 }
                 obj.insert(
                     "schema_version".into(),
                     json!(if n == "tos-access" {
-                        "tos_native_access_build_v1"
+                        "tos_native_access_build_v2"
                     } else {
                         "tos_native_software_command_build_v1"
                     }),
@@ -916,7 +946,7 @@ mod tests {
         fs::write(&messages, &stream).unwrap();
         assert!(
             cargo_products(
-                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 0, &b
+                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 0, false, &b
             )
             .is_err()
         );
@@ -924,13 +954,13 @@ mod tests {
         fs::write(&messages, &stream).unwrap();
         assert!(
             cargo_products(
-                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 0, &b
+                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 0, false, &b
             )
             .is_ok()
         );
         assert!(
             cargo_products(
-                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 1, &b
+                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 1, false, &b
             )
             .is_err()
         );
@@ -938,7 +968,7 @@ mod tests {
         fs::create_dir(&wrong).unwrap();
         assert!(
             cargo_products(
-                &root, &messages, &wrong, &EXECUTORS, &EXECUTORS, &version, 0, &b
+                &root, &messages, &wrong, &EXECUTORS, &EXECUTORS, &version, 0, false, &b
             )
             .is_err()
         );
@@ -981,7 +1011,8 @@ mod tests {
             } else {
                 json!([])
             };
-            let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/{package}#0.1.0",root.display()),"manifest_path":root.join(format!("rust/crates/{package}/Cargo.toml")),"target":{"name":n,"kind":["bin"],"required-features":required_features},"features":features,"profile":{"opt_level":"0","debuginfo":0,"debug_assertions":true,"test":false},"executable":images.join(n)});
+            let opt_level = if *n == "tos-access" { "1" } else { "0" };
+            let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/{package}#0.1.0",root.display()),"manifest_path":root.join(format!("rust/crates/{package}/Cargo.toml")),"target":{"name":n,"kind":["bin"],"required-features":required_features},"features":features,"profile":{"opt_level":opt_level,"debuginfo":0,"debug_assertions":true,"test":false},"executable":images.join(n)});
             serde_json::to_writer(&mut software_stream, &event).unwrap();
             software_stream.push(b'\n');
         }
@@ -990,7 +1021,7 @@ mod tests {
                 .extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         }
         fs::write(&messages, &software_stream).unwrap();
-        let features = cargo_products(
+        let products = cargo_products(
             &root,
             &messages,
             &images,
@@ -998,11 +1029,16 @@ mod tests {
             &SOFTWARE_NO_DEFAULT_FEATURES,
             &version,
             0,
+            true,
             &b,
         )
         .unwrap();
-        assert_eq!(features["tos-schema-worker"], ["default", "native"]);
-        assert!(features["tos-validation-lanes"].is_empty());
+        assert_eq!(
+            products["tos-schema-worker"].features,
+            ["default", "native"]
+        );
+        assert_eq!(products["tos-access"].opt_level, "1");
+        assert!(products["tos-validation-lanes"].features.is_empty());
         assert!(
             cargo_products(
                 &root,
@@ -1012,10 +1048,41 @@ mod tests {
                 &SOFTWARE_NO_DEFAULT_FEATURES,
                 &version,
                 1,
+                false,
                 &b,
             )
             .is_err()
         );
+        let mut wrong_command_opt = Vec::new();
+        for line in software_stream
+            .split(|byte| *byte == b'\n')
+            .filter(|line| !line.is_empty())
+        {
+            let mut event: Value = serde_json::from_slice(line).unwrap();
+            if event["reason"] == "compiler-artifact"
+                && event["target"]["name"] == "tos-native-owner-command"
+            {
+                event["profile"]["opt_level"] = json!("1");
+            }
+            serde_json::to_writer(&mut wrong_command_opt, &event).unwrap();
+            wrong_command_opt.push(b'\n');
+        }
+        fs::write(&messages, &wrong_command_opt).unwrap();
+        assert!(
+            cargo_products(
+                &root,
+                &messages,
+                &images,
+                &names,
+                &SOFTWARE_NO_DEFAULT_FEATURES,
+                &version,
+                0,
+                true,
+                &b,
+            )
+            .is_err()
+        );
+        fs::write(&messages, &software_stream).unwrap();
         let dishonest = String::from_utf8(software_stream)
             .unwrap()
             .replace("\"features\":[\"default\",\"native\"]", "\"features\":[]");
@@ -1029,6 +1096,7 @@ mod tests {
                 &SOFTWARE_NO_DEFAULT_FEATURES,
                 &version,
                 0,
+                true,
                 &b,
             )
             .is_err()

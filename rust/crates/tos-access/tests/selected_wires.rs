@@ -4783,11 +4783,12 @@ mod selected_knowledge {
             (
                 "native_access",
                 object(vec![
-                    ("schema_version", text("tos_native_access_build_v1")),
+                    ("schema_version", text("tos_native_access_build_v2")),
                     ("target", text("x86_64-unknown-linux-gnu")),
                     ("source_commit", text(&source_ref)),
                     ("source_tree", text(&source_ref)),
                     ("profile", text("debug")),
+                    ("opt_level", text("1")),
                     ("lock_sha256", text(&Digest256::of_bytes(lock).to_hex())),
                     (
                         "toolchain",

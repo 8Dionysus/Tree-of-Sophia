@@ -108,8 +108,11 @@ owner surfaces.
    the Worker CI job prepares its own rules independently of the software job.
 5. Build and verify the native installable candidate from a clean reviewed
    commit. Prepare the locked `tos-access` binary with the pinned toolchain and
-   its exact nine-field `tos_native_access_build_v1` build receipt. Prepare the
-   genuine frontend through locked Vite and the matching verified
+   its Cargo-derived `tos_native_access_build_v2` receipt from the same JSON
+   artifact stream: the ten-field receipt carries the executable's observed
+   dev `opt_level` (`0` or `1`) and exact SHA/size. Legacy nine-field v1
+   receipts remain readable. Native command receipts continue to require O0.
+   Prepare the genuine frontend through locked Vite and the matching verified
    `wasm-bindgen`/`tos-web-rules` product, then use that explicit dist handoff:
 
    ```sh
@@ -126,8 +129,8 @@ owner surfaces.
 
    Replace `HEAD_SHA` with the exact clean commit and caps with explicitly
    admitted finite package budgets. The native receipt binds source commit/tree,
-   lock, target, toolchain, profile and actual image size/hash; dirty source is
-   refused. Archive validation and fresh-prefix install check the exact native,
+   lock, target, toolchain, profile/Access opt level and actual image
+   size/hash; dirty source is refused. Archive validation and fresh-prefix install check the exact native,
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.

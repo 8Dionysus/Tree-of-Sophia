@@ -103,7 +103,17 @@ that run must bind to that same store through its source selection or the
 rights owner root. The runner clones the baseline to a fresh
 `owner-stage/`, requires `TOS_SOURCE_PG_URL` privately in the environment, and
 executes the existing native owner entry; it does not accept SQL or create a
-database. Bootstrap provisions only an absent CMD.2 schema and refuses if that
+database. The total copied file bytes default to 268,435,456; when a measured
+baseline needs more space, pass `--owner-stage-clone-cap-bytes N` with a positive
+value up to 1,073,741,824. The option applies only to this invocation's private
+owner-stage copy, requires `--owner-stage-baseline`, and its selected cap is
+reported in `owner_stage_clone.bounded_copy_bytes`. For example,
+`--owner-stage-clone-cap-bytes 536870912` selects a 512 MiB cap. The 1 GiB
+ceiling bounds this load profile's temporary clone; it is not a corpus-size or
+admission limit. The existing 32 MiB per-file, 16,384-file, and finite-host
+resource limits still apply. Select a larger value only after measuring the
+entire baseline and confirming the finite-host reservation can accommodate it.
+Bootstrap provisions only an absent CMD.2 schema and refuses if that
 namespace already exists. Give every run a dedicated disposable PostgreSQL 16
 database plus a new output directory and reservation. The runner never resets
 or drops PostgreSQL data; it retains the staged store and report under the

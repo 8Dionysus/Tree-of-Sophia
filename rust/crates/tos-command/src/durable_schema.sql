@@ -178,7 +178,14 @@ CREATE TABLE IF NOT EXISTS cmd2_source_claim_dependency (
   member_digest char(64) NOT NULL CHECK (member_digest ~ '^[0-9a-f]{64}$'),
   definition_digest char(64) NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$'),
   CONSTRAINT cmd2_source_claim_dependency_public_path CHECK (
-    path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl'
+    (
+      path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+    )
+    AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
+    AND path !~ E'[\\001-\\037]'
+    AND position(chr(92) in path) = 0
     AND path <> 'ToS/source-witnesses/owner-local'
     AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
   ),
@@ -190,6 +197,21 @@ CREATE INDEX IF NOT EXISTS cmd2_source_claim_dependency_object_seek
   ON cmd2_source_claim_dependency(domain,predicate COLLATE "C",object_endpoint COLLATE "C",claim_id COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_source_claim_dependency_path_seek
   ON cmd2_source_claim_dependency(domain,path COLLATE "C",claim_id COLLATE "C");
+ALTER TABLE cmd2_source_claim_dependency
+  DROP CONSTRAINT IF EXISTS cmd2_source_claim_dependency_public_path;
+ALTER TABLE cmd2_source_claim_dependency
+  ADD CONSTRAINT cmd2_source_claim_dependency_public_path CHECK (
+    (
+      path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+    )
+    AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
+    AND path !~ E'[\\001-\\037]'
+    AND position(chr(92) in path) = 0
+    AND path <> 'ToS/source-witnesses/owner-local'
+    AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
+  );
 -- Exact reverse references used by source-navigation Claim refresh. Each Claim
 -- owns one row per complete JSON-value ToS ID or public source path; owner
 -- stream bytes remain authoritative in cmd2_current/history.
@@ -208,7 +230,14 @@ CREATE TABLE IF NOT EXISTS cmd2_source_claim_navigation_reference (
   valid_from_seq bigint NOT NULL CHECK (valid_from_seq >= 0),
   valid_to_seq bigint CHECK (valid_to_seq IS NULL OR valid_to_seq > valid_from_seq),
   CONSTRAINT cmd2_source_claim_navigation_reference_public_path CHECK (
-    path LIKE 'ToS/source-witnesses/%/source-claims.jsonl'
+    (
+      path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+    )
+    AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
+    AND path !~ E'[\\001-\\037]'
+    AND position(chr(92) in path) = 0
     AND path <> 'ToS/source-witnesses/owner-local'
     AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
   ),
@@ -260,7 +289,14 @@ ALTER TABLE cmd2_source_claim_navigation_reference
   DROP CONSTRAINT IF EXISTS cmd2_source_claim_navigation_reference_public_path;
 ALTER TABLE cmd2_source_claim_navigation_reference
   ADD CONSTRAINT cmd2_source_claim_navigation_reference_public_path CHECK (
-    path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl'
+    (
+      path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+    )
+    AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
+    AND path !~ E'[\\001-\\037]'
+    AND position(chr(92) in path) = 0
     AND path <> 'ToS/source-witnesses/owner-local'
     AND path NOT LIKE 'ToS/source-witnesses/owner-local/%'
   );

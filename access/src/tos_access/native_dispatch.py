@@ -21,8 +21,9 @@ import math
 from contextlib import contextmanager
 
 _PROGRAM = 'access/src/tos_access/tos-access'
-_PROOF_KEYS = {'schema_version', 'sha256', 'size_bytes', 'target', 'source_commit',
-               'source_tree', 'lock_sha256', 'toolchain', 'profile'}
+_PROOF_KEYS_V1 = {'schema_version', 'sha256', 'size_bytes', 'target', 'source_commit',
+                  'source_tree', 'lock_sha256', 'toolchain', 'profile'}
+_PROOF_KEYS_V2 = _PROOF_KEYS_V1 | {'opt_level'}
 
 
 def selected_native_prefix(prefix=None) -> Path:
@@ -147,10 +148,17 @@ def _unique(pairs):
 
 
 def _proof(proof, source, receiving_state=None):
-    if (type(proof) is not dict or len(proof) != len(_PROOF_KEYS) or any(k not in _PROOF_KEYS for k in proof)
-            or proof['schema_version'] != 'tos_native_access_build_v1'
+    if type(proof) is not dict:
+        raise ValueError('native installed build receipt differs')
+    schema = proof.get('schema_version')
+    keys = (_PROOF_KEYS_V2 if schema == 'tos_native_access_build_v2'
+            else _PROOF_KEYS_V1 if schema == 'tos_native_access_build_v1' else None)
+    if (keys is None or len(proof) != len(keys) or any(k not in keys for k in proof)
             or proof['target'] != 'x86_64-unknown-linux-gnu'
-            or proof['source_commit'] != source or proof['profile'] not in ('debug', 'release')
+            or proof['source_commit'] != source
+            or (proof['profile'] != 'debug' or proof['opt_level'] not in ('0', '1')
+                if schema == 'tos_native_access_build_v2'
+                else proof['profile'] not in ('debug', 'release'))
             or type(proof['size_bytes']) is not int or not 64 <= proof['size_bytes'] <= 512 * 1024 * 1024):
         raise ValueError('native installed build receipt differs')
     for key, pattern in (('sha256', r'[0-9a-f]{64}'), ('lock_sha256', r'[0-9a-f]{64}'),
