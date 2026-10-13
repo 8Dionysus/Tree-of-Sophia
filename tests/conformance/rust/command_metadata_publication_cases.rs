@@ -1667,7 +1667,17 @@ fn connected_browser_create_occurrence(
     let create_invocation_path = workspace.join("occurrence-create-invocation.json");
     let record_id = occurrence["record_id"].as_str().unwrap();
     let source_path = "ToS/source-witnesses/occurrences/connected-reader/occurrence.json";
-    fs::create_dir_all(source_root.join(source_path).parent().unwrap()).unwrap();
+    let source_home = source_root
+        .join(source_path)
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let source_parent = source_home.parent().unwrap();
+    fs::create_dir_all(source_parent).unwrap();
+    assert!(
+        !source_home.exists(),
+        "fresh source.create target home must be absent before owner preview"
+    );
     let uid = fs::metadata(source_root).unwrap().uid();
     let owner = json!({
         "schema_version":"tos_local_profile_create_owner_v1",
@@ -1766,6 +1776,10 @@ fn connected_browser_create_occurrence(
         deadline,
     )["result"]
         .clone();
+    assert!(
+        !source_home.exists(),
+        "prepare-create must not publish an initial source package"
+    );
     request["operation"] = json!("source.create");
     request["command_id"] = json!("fixture:connected-reader-occurrence");
     request["expected_configuration"] = preview["owner_configuration"].clone();

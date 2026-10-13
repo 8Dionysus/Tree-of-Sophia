@@ -825,7 +825,9 @@ pub(crate) fn current_closure(
         .ok_or(SourceCommandError::Conflict(
             "PG Item Edition identity absent",
         ))?;
-    if kind != "edition" || edition_path.as_str() != owner.edition_path.as_str() {
+    // Source identity indexing classifies catalogue records as metadata;
+    // the selected record bytes below establish the Edition type and identity.
+    if kind != "metadata" || edition_path.as_str() != owner.edition_path.as_str() {
         return Err(SourceCommandError::Conflict(
             "PG Item Edition source identity differs from protected owner",
         ));
@@ -913,6 +915,13 @@ pub(crate) fn current_closure(
                 "PG Item Edition package absent",
             ))?,
     )?;
+    if cmd::text(&edition, "record_type")? != "edition"
+        || cmd::text(&edition, "record_id")? != owner.edition_id
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG Item Edition record differs from protected owner",
+        ));
+    }
     let record_history = tos_validation::native_compound::inspect_record_history(
         &before,
         before.get("edition.json").unwrap(),
@@ -1095,9 +1104,9 @@ pub(crate) fn current_closure(
             .ok_or(SourceCommandError::Conflict(
                 "PG Item target identity absent",
             ))?;
-        if kind != "item" {
+        if kind != "metadata" {
             return Err(SourceCommandError::Conflict(
-                "PG Item exemplar target is not Item",
+                "PG Item exemplar target is not metadata",
             ));
         }
         let home = path

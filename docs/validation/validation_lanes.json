@@ -451,6 +451,7 @@
       },
       {
         "label": "compile exact Rust conformance test image",
+        "command_timeout_ms": 900000,
         "command": [
           "cargo",
           "test",
