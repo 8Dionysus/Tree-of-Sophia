@@ -6,6 +6,132 @@
 use super::*;
 
 const CLAIM_OWNER_SCHEMA: &str = "tos_managed_global_claim_owner_inventory_v1";
+const IMPORTED_LEGACY_CLAIM_OWNER_SCHEMA: &str =
+    "tos_managed_imported_legacy_claim_owner_inventory_v1";
+
+/// Read-only owner marker for one public legacy Claim stream that has no
+/// maintained typed Claim projector. It preserves the source catalog rows and
+/// refuses sidecar packages that require a stronger owner route.
+pub(crate) fn imported_legacy_claim_owner_contribution(
+    ctx: &CommandContext,
+    file: &SourceFile,
+) -> SourceCommandResult<JsonValue> {
+    ctx.check()?;
+    let location = file.path.as_str();
+    if !super::is_imported_legacy_claim_path(location)
+        || ctx
+            .files
+            .iter()
+            .filter(|member| member.path == file.path && member.raw == file.raw)
+            .count()
+            != 1
+    {
+        return Err(SourceCommandError::Conflict(
+            "imported legacy Claim source binding differs",
+        ));
+    }
+    let home = location
+        .rsplit_once('/')
+        .map(|(parent, _)| parent)
+        .ok_or(SourceCommandError::Invalid("imported legacy Claim home"))?;
+    let stream = location.rsplit('/').next().unwrap_or(location);
+    let stem = stream
+        .strip_suffix(".jsonl")
+        .ok_or(SourceCommandError::Invalid(
+            "imported legacy Claim stream suffix",
+        ))?;
+    let rows = super::imported_legacy_claim_rows(file)?;
+    let claim_form_paths = rows
+        .iter()
+        .map(|row| {
+            format!(
+                "{home}/{stem}.{}.human-forms.json",
+                Digest256::of_bytes(row.claim_id.as_bytes()).to_hex()
+            )
+        })
+        .collect::<BTreeSet<_>>();
+    let current_claim_path = format!("{home}/{}", super::CLAIM_STREAM);
+    let claim_history_path = format!("{home}/{}", super::CLAIM_HISTORY);
+    if ctx
+        .files
+        .iter()
+        .any(|member| claim_form_paths.contains(member.path.as_str()))
+        || (ctx
+            .files
+            .iter()
+            .any(|member| member.path.as_str() == claim_history_path)
+            && !ctx
+                .files
+                .iter()
+                .any(|member| member.path.as_str() == current_claim_path))
+    {
+        return Err(SourceCommandError::Unsupported(
+            "imported legacy Claim sidecar requires its source owner",
+        ));
+    }
+
+    let mut claims_by_id = BTreeMap::new();
+    for row in rows {
+        let catalog = super::catalogue_claim(
+            ctx,
+            &row.record,
+            location,
+            usize::try_from(row.physical_line)
+                .map_err(|_| SourceCommandError::Invalid("imported Claim line overflow"))?,
+            false,
+            None,
+        )?
+        .construct()?;
+        let claim_sha256 = super::record_digest(&row.record)?.to_prefixed();
+        let contribution = object(vec![
+            ("claim_id", string(&row.claim_id)),
+            ("source_claim_line", number(row.physical_line)),
+            ("claim_sha256", string(&claim_sha256)),
+            ("catalogue_entry", catalog),
+        ]);
+        if claims_by_id.insert(row.claim_id, contribution).is_some() {
+            return Err(SourceCommandError::Conflict("duplicate Claim identity"));
+        }
+    }
+    let owner_core = object(vec![
+        ("schema_version", string(IMPORTED_LEGACY_CLAIM_OWNER_SCHEMA)),
+        ("source_path", string(location)),
+        ("owner_mode", string("imported_read_only")),
+        (
+            "stream_sha256",
+            string(&Digest256::of_bytes(&file.raw).to_prefixed()),
+        ),
+        ("form_refs", JsonValue::Array(Vec::new())),
+        ("claim_history_ref", JsonValue::Null),
+        (
+            "claims",
+            JsonValue::Array(claims_by_id.into_values().collect()),
+        ),
+    ]);
+    let closure_sha256 = super::record_digest(&owner_core)?.to_prefixed();
+    let mut owner = owner_core;
+    set(&mut owner, "closure_sha256", string(&closure_sha256))?;
+    Ok(owner)
+}
+
+/// Retain only the path-based private/local custody classification. No source
+/// body, bytes, or digest is copied into this owner marker.
+pub(crate) fn nonprojecting_custody_owner_contribution(
+    location: &str,
+) -> SourceCommandResult<JsonValue> {
+    let custody_kind = super::nonprojecting_custody_kind(location).ok_or(
+        SourceCommandError::Unsupported("nonprojecting source custody path"),
+    )?;
+    Ok(object(vec![
+        (
+            "schema_version",
+            string("tos_managed_nonprojecting_source_custody_v1"),
+        ),
+        ("source_path", string(location)),
+        ("custody_kind", string(custody_kind)),
+        ("content_projected", JsonValue::Bool(false)),
+    ]))
+}
 
 /// Return the exact base-profile and recursively selected schema digests used
 /// by the mixed cold Claim projection. Streamed callers use this on their
@@ -20,6 +146,77 @@ pub(crate) fn claim_profile_sources(
         ctx, worker, deadline, cancelled,
     )?;
     profile_sources(&grouped.profile)
+}
+
+/// Reuse the exact profile files already validated for the mixed inventory
+/// epoch when a streamed owner assembles a bounded per-package context.
+pub(crate) fn claim_profile_source_files(
+    profile: &AgentInventoryAssessmentProfile,
+) -> Vec<SourceFile> {
+    profile.profile_files.clone()
+}
+
+pub(crate) fn claim_profile_sources_from_validated_profile(
+    profile: &AgentInventoryAssessmentProfile,
+) -> SourceCommandResult<JsonValue> {
+    profile_sources(profile)
+}
+
+pub(crate) fn historical_claim_owner_contribution(
+    ctx: &CommandContext,
+    file: &SourceFile,
+    grouped: &AgentInventoryMembers<'_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    historical_claim_owner_contribution_from_profile(
+        ctx,
+        file,
+        &grouped.profile,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn historical_claim_owner_contribution_from_profile(
+    ctx: &CommandContext,
+    file: &SourceFile,
+    profile: &AgentInventoryAssessmentProfile,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let mut source_profiles = profile_sources(profile)?;
+    for path in crate::source_native_cli::pg_historical_claim_required_contract_paths() {
+        let contract = ctx
+            .files
+            .iter()
+            .find(|member| member.path.as_str() == path)
+            .ok_or(SourceCommandError::Conflict(
+                "historical Claim profile contract absent",
+            ))?;
+        let digest = Digest256::of_bytes(&contract.raw).to_hex();
+        if source_profiles
+            .object_get(&path)
+            .and_then(JsonValue::as_str)
+            .is_some_and(|profiled| profiled != digest.as_str())
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim validated profile bytes changed",
+            ));
+        }
+        set(&mut source_profiles, &path, string(&digest))?;
+    }
+    crate::source_native_cli::pg_current_historical_claim_owner_contribution(
+        ctx,
+        file,
+        source_profiles,
+        worker,
+        deadline,
+        cancelled,
+    )
 }
 
 fn role(name: &str) -> SourceCommandResult<&'static str> {
@@ -548,7 +745,13 @@ pub(crate) fn claim_form_inventory_contribution(
 ) -> SourceCommandResult<JsonValue> {
     let location = file.path.as_str();
     let suffix = ".human-forms.json";
-    if !location.starts_with("ToS/source-witnesses/relations/") || !location.ends_with(suffix) {
+    let historical_stream = crate::source_claims::historical_claim_form_stream_path(location);
+    if !location.starts_with("ToS/source-witnesses/relations/") && historical_stream.is_none() {
+        return Err(SourceCommandError::Unsupported(
+            "maintained Claim form path",
+        ));
+    }
+    if !location.ends_with(suffix) {
         return Err(SourceCommandError::Unsupported(
             "maintained Claim form path",
         ));
@@ -557,7 +760,7 @@ pub(crate) fn claim_form_inventory_contribution(
         .rsplit_once('/')
         .map(|(parent, _)| parent)
         .ok_or(SourceCommandError::Invalid("Claim form parent"))?;
-    let stream_path = format!("{parent}/{CLAIM_STREAM}");
+    let stream_path = historical_stream.unwrap_or_else(|| format!("{parent}/{CLAIM_STREAM}"));
     let stream = grouped
         .files
         .get(stream_path.as_str())
@@ -566,8 +769,13 @@ pub(crate) fn claim_form_inventory_contribution(
     let stem = basename
         .strip_suffix(suffix)
         .ok_or(SourceCommandError::Invalid("Claim form basename"))?;
+    let stream_stem = stream_path
+        .rsplit('/')
+        .next()
+        .and_then(|name| name.strip_suffix(".jsonl"))
+        .ok_or(SourceCommandError::Invalid("Claim form stream basename"))?;
     let hash = stem
-        .strip_prefix("source-claims.")
+        .strip_prefix(&format!("{stream_stem}."))
         .ok_or(SourceCommandError::Invalid("Claim form filename"))?;
     let candidates = rows(&stream.raw)?
         .into_iter()
@@ -632,6 +840,45 @@ pub(crate) fn claim_form_inventory_contribution(
     )
 }
 
+/// Build the mixed-inventory member projection for a selected historical
+/// Claim stream or one of its exact per-Claim HumanForm sets. The owner marker
+/// belongs only to the stream; forms carry the shared form block.
+pub(crate) fn historical_claim_inventory_contribution(
+    file: &SourceFile,
+    grouped: &AgentInventoryMembers<'_>,
+    owner: Option<&JsonValue>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let location = file.path.as_str();
+    if crate::source_claims::is_historical_claim_stream_path(location) {
+        let owner = owner.ok_or(SourceCommandError::Conflict(
+            "historical Claim owner contribution absent",
+        ))?;
+        return base_projection(
+            file,
+            &grouped.profile,
+            grouped,
+            JsonValue::Null,
+            owner.clone(),
+        );
+    }
+    if crate::source_claims::historical_claim_form_stream_path(location).is_none() {
+        return Err(SourceCommandError::Unsupported(
+            "historical Claim projection path",
+        ));
+    }
+    let member = claim_form_inventory_contribution(file, grouped, worker, deadline, cancelled)?;
+    base_projection(
+        file,
+        &grouped.profile,
+        grouped,
+        field(&member, "form")?.clone(),
+        JsonValue::Null,
+    )
+}
+
 /// Validate one selected Claim form with the same mixed-inventory schema
 /// profile used by the full and streamed owner readers, returning its
 /// digest-only form block.
@@ -645,8 +892,106 @@ pub(crate) fn claim_form_contribution(
     let grouped = crate::source_claims::agent_inventory_members_without_evidence(
         ctx, worker, deadline, cancelled,
     )?;
-    let member = claim_form_inventory_contribution(file, &grouped, worker, deadline, cancelled)?;
-    Ok(field(&member, "form")?.clone())
+    claim_form_contribution_with_validated_profile(
+        ctx,
+        file,
+        &grouped.profile,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn claim_form_contribution_with_validated_profile(
+    ctx: &CommandContext,
+    file: &SourceFile,
+    profile: &AgentInventoryAssessmentProfile,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let location = file.path.as_str();
+    let stream_path = crate::source_claims::historical_claim_form_stream_path(location)
+        .or_else(|| {
+            location
+                .starts_with("ToS/source-witnesses/relations/")
+                .then(|| {
+                    location
+                        .rsplit_once('/')
+                        .map(|(parent, _)| format!("{parent}/{CLAIM_STREAM}"))
+                })
+                .flatten()
+        })
+        .ok_or(SourceCommandError::Unsupported("Claim form path"))?;
+    let stream = ctx
+        .files
+        .iter()
+        .find(|member| member.path.as_str() == stream_path)
+        .ok_or(SourceCommandError::Conflict("Claim form stream absent"))?;
+    let stream_stem = stream_path
+        .rsplit('/')
+        .next()
+        .and_then(|name| name.strip_suffix(".jsonl"))
+        .ok_or(SourceCommandError::Invalid("Claim form stream basename"))?;
+    let basename = location.rsplit('/').next().unwrap_or(location);
+    let hash = basename
+        .strip_suffix(".human-forms.json")
+        .and_then(|stem| stem.strip_prefix(&format!("{stream_stem}.")))
+        .ok_or(SourceCommandError::Invalid("Claim form filename"))?;
+    let candidates = rows(&stream.raw)?
+        .into_iter()
+        .filter(|(id, _)| {
+            Digest256::of_bytes(id.as_bytes())
+                .to_prefixed()
+                .trim_start_matches("sha256:")
+                == hash
+        })
+        .collect::<Vec<_>>();
+    if candidates.len() != 1 {
+        return Err(SourceCommandError::Conflict(
+            "Claim form owner identity differs",
+        ));
+    }
+    let (_, record) = &candidates[0];
+    let form = parse(&file.raw)?;
+    let subject = metadata_subject(record)?;
+    if !same(field(&form, "subject")?, &subject)? {
+        return Err(SourceCommandError::Conflict("Claim form subject differs"));
+    }
+    apply_form_changes(Some(&form), &subject, &[])?;
+    let mut schema_files = profile.profile_files.clone();
+    schema_files.push(file.clone());
+    let input = crate::source_revisions::RecordVersionReadInput {
+        files: &schema_files,
+        source_revision: profile.source_revision,
+        effective_uid: profile.effective_uid,
+        schema_source_path: location,
+    };
+    crate::source_revisions::validate_readonly_schema(
+        &input,
+        location,
+        &[AGENT_FORM_SET_SCHEMA.to_owned()],
+        AGENT_FORM_SET_SCHEMA,
+        &form,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    let form_ids = ["forms", "prior_forms"]
+        .into_iter()
+        .map(|section| array(&form, section))
+        .collect::<SourceCommandResult<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .map(|form| field(form, "form_id").cloned())
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    Ok(object(vec![
+        (
+            "raw_sha256",
+            string(&Digest256::of_bytes(&file.raw).to_prefixed()),
+        ),
+        ("form_ids", JsonValue::Array(form_ids)),
+    ]))
 }
 
 /// Prepare only the Claim-owned fields for each changed Claim stream or form.
@@ -785,4 +1130,95 @@ fn claim_successor_context(
     };
     successor.check()?;
     Ok(successor)
+}
+
+#[cfg(test)]
+mod imported_legacy_owner_tests {
+    use super::*;
+
+    #[test]
+    fn imported_legacy_owner_preserves_public_assertion_without_admission() {
+        let location = "ToS/source-witnesses/works/example/publication-claims.jsonl";
+        let record = object(vec![
+            ("schema_version", string("tos_claim_packet_v1")),
+            ("claim_id", string("tos.claim.example.rights")),
+            ("claim_type", string("bibliographic")),
+            ("assertion_layer", string("bibliographic_assertion")),
+            (
+                "subject_ref",
+                object(vec![("id", string("tos.work.example"))]),
+            ),
+            ("predicate", string("rights_statement_at")),
+            (
+                "object",
+                object(vec![
+                    (
+                        "statement_ref",
+                        object(vec![("id", string("tos.rights.example"))]),
+                    ),
+                    ("statement_at", string("2026-10-12T00:00:00Z")),
+                ]),
+            ),
+            ("evidence_refs", JsonValue::Array(Vec::new())),
+            ("maker", JsonValue::Null),
+            ("provenance_event_ref", JsonValue::Null),
+            ("epistemic_status", string("asserted")),
+            ("review_status", string("unreviewed")),
+            ("visibility", string("public")),
+            ("claim_version", number(1)),
+        ]);
+        let mut raw = canonical(&record).unwrap();
+        raw.push(b'\n');
+        let file = SourceFile {
+            path: path(location).unwrap(),
+            raw,
+        };
+        let ctx = CommandContext {
+            base_revision: tos_foundation::SourceRevision(Digest256::of_bytes(b"test cut")),
+            configuration_raw: b"{}".to_vec(),
+            request_raw: b"{}".to_vec(),
+            recorded_at: "2026-10-12T00:00:00Z".into(),
+            effective_uid: 0,
+            files: vec![
+                file.clone(),
+                SourceFile {
+                    path: path("ToS/source-witnesses/works/example/work.human-forms.json").unwrap(),
+                    raw: b"{}".to_vec(),
+                },
+            ],
+        };
+
+        let owner = imported_legacy_claim_owner_contribution(&ctx, &file).unwrap();
+        assert_eq!(
+            text(&owner, "schema_version").unwrap(),
+            IMPORTED_LEGACY_CLAIM_OWNER_SCHEMA
+        );
+        assert_eq!(text(&owner, "owner_mode").unwrap(), "imported_read_only");
+        assert!(array(&owner, "form_refs").unwrap().is_empty());
+        assert_eq!(
+            field(&owner, "claim_history_ref").unwrap(),
+            &JsonValue::Null
+        );
+        let row = &array(&owner, "claims").unwrap()[0];
+        let catalogue = field(row, "catalogue_entry").unwrap();
+        assert_eq!(text(catalogue, "predicate").unwrap(), "rights_statement_at");
+        assert_eq!(
+            field(catalogue, "object").unwrap(),
+            field(&record, "object").unwrap()
+        );
+
+        let claim_form_path = format!(
+            "ToS/source-witnesses/works/example/publication-claims.{}.human-forms.json",
+            Digest256::of_bytes(b"tos.claim.example.rights").to_hex()
+        );
+        let mut sidecar_ctx = ctx.clone();
+        sidecar_ctx.files.push(SourceFile {
+            path: path(&claim_form_path).unwrap(),
+            raw: b"{}".to_vec(),
+        });
+        assert!(matches!(
+            imported_legacy_claim_owner_contribution(&sidecar_ctx, &file),
+            Err(SourceCommandError::Unsupported(_))
+        ));
+    }
 }

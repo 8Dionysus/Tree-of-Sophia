@@ -62,6 +62,30 @@ pub(crate) use pg_growth::context_with_pg_exact_reads;
 pub(crate) use pg_growth::{
     PgGrowthCurrentInput, PgGrowthFamily, expected_growth_revision_indexes,
 };
+
+/// Bounded mixed-inventory adapter for the current captured Historical Claim
+/// owner. The engine remains under the maintained historical Claim CLI owner.
+pub(crate) fn pg_current_historical_claim_owner_contribution(
+    ctx: &crate::source_command::CommandContext,
+    file: &crate::source_command::SourceFile,
+    source_profiles: tos_foundation::JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<tos_foundation::JsonValue> {
+    legacy_claim::engine::pg_current_owner_inventory_contribution(
+        ctx,
+        file,
+        source_profiles,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn pg_historical_claim_required_contract_paths() -> Vec<String> {
+    legacy_claim::engine::pg_required_contract_paths()
+}
 #[path = "source_native_pg_navigation_policy_cli.rs"]
 mod pg_navigation_policy;
 #[path = "source_native_pg_private_alignment_cli.rs"]

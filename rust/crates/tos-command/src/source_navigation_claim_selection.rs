@@ -1918,9 +1918,7 @@ fn selected_optional_bytes<'a>(
 }
 
 fn is_claim_stream_path(path: &str) -> bool {
-    path.starts_with("ToS/source-witnesses/relations/")
-        && path.ends_with("/source-claims.jsonl")
-        && safe_path(path)
+    crate::source_claim_dependency_index::is_claim_stream_path(path) && safe_path(path)
 }
 
 fn is_historical_claim_stream_path(path: &str) -> bool {

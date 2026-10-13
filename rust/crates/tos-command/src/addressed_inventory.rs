@@ -1853,7 +1853,8 @@ fn parse_mixed_projection(
             ));
         }
     }
-    let form_required = subject.starts_with("ToS/source-witnesses/")
+    let form_required = crate::source_claims::nonprojecting_custody_kind(subject).is_none()
+        && subject.starts_with("ToS/source-witnesses/")
         && subject
             .rsplit('/')
             .next()
@@ -1880,7 +1881,25 @@ fn parse_mixed_projection(
         }
     }
     let claim_owner = cmd::field(&value, "claim_owner").map_err(source_error)?;
-    if is_claim_stream_path(subject) {
+    if crate::source_claims::nonprojecting_custody_kind(subject).is_some() {
+        validate_nonprojecting_source_custody(claim_owner, subject)?;
+        let events = cmd::field(&value, "events").map_err(source_error)?;
+        let anchors = cmd::field(&value, "anchors").map_err(source_error)?;
+        let form = cmd::field(&value, "form").map_err(source_error)?;
+        let public_text_owner = cmd::field(&value, "public_text_owner").map_err(source_error)?;
+        if records
+            .iter()
+            .any(|(_, rows)| rows.as_array().is_none_or(|rows| !rows.is_empty()))
+            || events.as_object().is_none_or(|rows| !rows.is_empty())
+            || anchors.as_object().is_none_or(|rows| !rows.is_empty())
+            || form != &tos_foundation::JsonValue::Null
+            || public_text_owner != &tos_foundation::JsonValue::Null
+        {
+            return Err(DurableError::Corrupt(
+                "nonprojecting source custody carries projected content",
+            ));
+        }
+    } else if is_claim_stream_path(subject) {
         validate_claim_owner(claim_owner, subject, raw_digest)?;
     } else if claim_owner != &tos_foundation::JsonValue::Null {
         return Err(DurableError::Corrupt(
@@ -2839,14 +2858,16 @@ fn validate_historical_claim_owner(
         .ok_or(DurableError::Corrupt("Historical Claim history presence"))?;
     let history_digest = cmd::field(history, "sha256").map_err(source_error)?;
     if cmd::text(history, "ref").map_err(source_error)? != history_path
-        || !history_present
-        || direct.get(&history_path).is_none_or(|(role, _, digest)| {
-            role != "revision-history"
-                || history_digest
-                    .as_str()
-                    .and_then(|value| Digest256::from_prefixed(value).ok())
-                    != Some(*digest)
-        })
+        || history_present != direct.contains_key(&history_path)
+        || (!history_present && history_digest != &tos_foundation::JsonValue::Null)
+        || (history_present
+            && direct.get(&history_path).is_none_or(|(role, _, digest)| {
+                role != "revision-history"
+                    || history_digest
+                        .as_str()
+                        .and_then(|value| Digest256::from_prefixed(value).ok())
+                        != Some(*digest)
+            }))
     {
         return Err(DurableError::Corrupt(
             "Historical Claim history member binding",
@@ -2902,7 +2923,7 @@ fn validate_historical_claim_owner(
             }
             previous_name = Some(name);
         }
-        if !names.contains("source-claims.jsonl") {
+        if !names.contains("historical-claims.jsonl") {
             return Err(DurableError::Corrupt(
                 "Historical Claim archive omits its stream",
             ));
@@ -2922,7 +2943,10 @@ fn validate_historical_claim_owner(
         .map_err(source_error)?
         .as_array()
         .ok_or(DurableError::Corrupt("Historical Claim history receipts"))?;
-    if receipts.len() != archive_by_path.len() || receipts.len() > 128 {
+    if receipts.len() != archive_by_path.len()
+        || receipts.len() > 128
+        || (!history_present && !receipts.is_empty())
+    {
         return Err(DurableError::Corrupt(
             "Historical Claim receipt/archive count differs",
         ));
@@ -3017,6 +3041,8 @@ fn validate_historical_claim_owner(
             || previous_claim.is_some_and(|previous| previous.as_bytes() >= claim_id.as_bytes())
             || !claim_ids.insert(claim_id.to_owned())
             || cmd::integer(claim, "claim_version").map_err(source_error)? == 0
+            || (!history_present
+                && cmd::integer(claim, "claim_version").map_err(source_error)? != 1)
             || Digest256::from_prefixed(cmd::text(claim, "claim_sha256").map_err(source_error)?)
                 .is_err()
             || cmd::text(claim, "form_ref").map_err(source_error)? != form_path
@@ -3062,8 +3088,10 @@ fn validate_historical_claim_owner(
         format!("{home}/source-create-environment.json"),
         format!("{home}/source-create-provenance.jsonl"),
         receipt_path,
-        history_path,
     ]);
+    if history_present {
+        expected_direct.insert(history_path);
+    }
     expected_direct.extend(expected_forms);
     for (path, (role, _, _)) in &direct {
         if role == "operational-lock" {
@@ -3103,6 +3131,9 @@ fn validate_claim_owner(
 ) -> DurableResult<()> {
     let schema = cmd::text(owner, "schema_version").map_err(source_error)?;
     match schema {
+        "tos_managed_imported_legacy_claim_owner_inventory_v1" => {
+            return validate_imported_legacy_claim_owner(owner, subject, raw_sha256);
+        }
         "tos_managed_historical_claim_owner_inventory_v1" => {
             return validate_historical_claim_owner(owner, subject, raw_sha256);
         }
@@ -3444,6 +3475,117 @@ fn validate_claim_owner(
         return Err(DurableError::Corrupt("Claim owner closure root differs"));
     }
     let _ = raw_sha256;
+    Ok(())
+}
+
+fn validate_imported_legacy_claim_owner(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+    raw_sha256: &str,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "source_path",
+            "owner_mode",
+            "stream_sha256",
+            "form_refs",
+            "claim_history_ref",
+            "claims",
+            "closure_sha256",
+        ],
+    )
+    .map_err(source_error)?;
+    let stream_digest = Digest256::from_hex(raw_sha256)
+        .map_err(|_| DurableError::Corrupt("imported legacy Claim stream digest"))?;
+    if !crate::source_claims::is_imported_legacy_claim_path(subject)
+        || cmd::text(owner, "schema_version").map_err(source_error)?
+            != "tos_managed_imported_legacy_claim_owner_inventory_v1"
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || cmd::text(owner, "owner_mode").map_err(source_error)? != "imported_read_only"
+        || owner_digest(owner, "stream_sha256")? != stream_digest
+        || cmd::field(owner, "form_refs")
+            .map_err(source_error)?
+            .as_array()
+            .is_none_or(|forms| !forms.is_empty())
+        || cmd::field(owner, "claim_history_ref").map_err(source_error)?
+            != &tos_foundation::JsonValue::Null
+    {
+        return Err(DurableError::Corrupt(
+            "imported legacy Claim owner source or sidecar binding",
+        ));
+    }
+    let claims = cmd::field(owner, "claims")
+        .map_err(source_error)?
+        .as_array()
+        .ok_or(DurableError::Corrupt("imported legacy Claim rows"))?;
+    let mut previous: Option<&str> = None;
+    for row in claims {
+        cmd::exact_keys(
+            row,
+            &[
+                "claim_id",
+                "source_claim_line",
+                "claim_sha256",
+                "catalogue_entry",
+            ],
+        )
+        .map_err(source_error)?;
+        let claim_id = cmd::text(row, "claim_id").map_err(source_error)?;
+        let line = cmd::integer(row, "source_claim_line").map_err(source_error)?;
+        let digest = owner_digest(row, "claim_sha256")?;
+        let entry = cmd::field(row, "catalogue_entry").map_err(source_error)?;
+        if claim_id.is_empty()
+            || line == 0
+            || previous.is_some_and(|prior| prior.as_bytes() >= claim_id.as_bytes())
+            || cmd::text(entry, "schema_version").map_err(source_error)?
+                != "tos_source_witness_claim_catalog_entry_v1"
+            || cmd::text(entry, "source_claim_file_ref").map_err(source_error)? != subject
+            || cmd::integer(entry, "source_claim_line").map_err(source_error)? != line
+            || cmd::text(entry, "claim_id").map_err(source_error)? != claim_id
+            || cmd::text(entry, "claim_sha256").map_err(source_error)? != digest.to_hex()
+            || !matches!(
+                cmd::text(entry, "visibility").map_err(source_error)?,
+                "public" | "public_metadata_only"
+            )
+        {
+            return Err(DurableError::Corrupt(
+                "imported legacy Claim row binding differs",
+            ));
+        }
+        previous = Some(claim_id);
+    }
+    validate_owner_closure(owner)
+}
+
+fn validate_nonprojecting_source_custody(
+    owner: &tos_foundation::JsonValue,
+    subject: &str,
+) -> DurableResult<()> {
+    cmd::exact_keys(
+        owner,
+        &[
+            "schema_version",
+            "source_path",
+            "custody_kind",
+            "content_projected",
+        ],
+    )
+    .map_err(source_error)?;
+    let expected_kind = crate::source_claims::nonprojecting_custody_kind(subject)
+        .ok_or(DurableError::Corrupt("source custody path classification"))?;
+    if cmd::text(owner, "schema_version").map_err(source_error)?
+        != "tos_managed_nonprojecting_source_custody_v1"
+        || cmd::text(owner, "source_path").map_err(source_error)? != subject
+        || cmd::text(owner, "custody_kind").map_err(source_error)? != expected_kind
+        || cmd::field(owner, "content_projected").map_err(source_error)?
+            != &tos_foundation::JsonValue::Bool(false)
+    {
+        return Err(DurableError::Corrupt(
+            "nonprojecting source custody marker differs",
+        ));
+    }
     Ok(())
 }
 
@@ -3801,6 +3943,180 @@ fn tree_input_error(error: DurableError) -> SegmentError {
 mod tests {
     use super::*;
 
+    fn historical_member(path: &str, role: &str, raw: &[u8]) -> tos_foundation::JsonValue {
+        let digest = Digest256::of_bytes(raw).to_prefixed();
+        cmd::object(vec![
+            ("ref", cmd::string(path)),
+            ("role", cmd::string(role)),
+            ("sha256", cmd::string(&digest)),
+            ("bytes", cmd::number(raw.len() as u64)),
+        ])
+    }
+
+    fn seal_historical_owner(mut owner: tos_foundation::JsonValue) -> tos_foundation::JsonValue {
+        let mut core = owner
+            .as_object()
+            .unwrap()
+            .iter()
+            .filter(|(key, _)| key.as_str() != Some("closure_sha256"))
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect::<Vec<_>>();
+        core.sort_by(|left, right| left.0.as_str().cmp(right.0.as_str()));
+        let digest = cmd::record_digest(&tos_foundation::JsonValue::Object(core))
+            .unwrap()
+            .to_prefixed();
+        cmd::set(&mut owner, "closure_sha256", cmd::string(&digest)).unwrap();
+        owner
+    }
+
+    fn historical_owner_fixture(
+        claim_version: u64,
+        history_raw: Option<&[u8]>,
+        archived_stream_name: &str,
+    ) -> (String, String, tos_foundation::JsonValue) {
+        let home = "ToS/source-witnesses/history/synthetic/episode";
+        let source_path = format!("{home}/historical-claims.jsonl");
+        let stream = if claim_version == 1 {
+            b"{\"record_version\":1}\n".as_slice()
+        } else {
+            b"{\"record_version\":2}\n".as_slice()
+        };
+        let request = b"{}\n";
+        let environment = b"{}\n";
+        let event = b"{}\n";
+        let creation_receipt = b"{}\n";
+        let history_path = format!("{home}/claim-revision-history.json");
+        let archive_path = "ToS/source-witnesses/.record-revisions/synthetic-historical-claim-r1";
+        let claim_id = "tos.claim.synthetic.historical-example";
+        let claim_hash =
+            Digest256::of_bytes(format!("claim-version-{claim_version}").as_bytes()).to_prefixed();
+        let form_hash = Digest256::of_bytes(claim_id.as_bytes()).to_hex();
+        let form_path = format!("{home}/historical-claims.{form_hash}.human-forms.json");
+        let mut direct_members = vec![
+            historical_member(&source_path, "claim-stream", stream),
+            historical_member(
+                &format!("{home}/source-create-request.json"),
+                "creation-request",
+                request,
+            ),
+            historical_member(
+                &format!("{home}/source-create-environment.json"),
+                "creation-environment",
+                environment,
+            ),
+            historical_member(
+                &format!("{home}/source-create-provenance.jsonl"),
+                "creation-event",
+                event,
+            ),
+            historical_member(
+                &format!("{home}/source-create-receipt.json"),
+                "creation-receipt",
+                creation_receipt,
+            ),
+        ];
+        if let Some(history_raw) = history_raw {
+            direct_members.push(historical_member(
+                &history_path,
+                "revision-history",
+                history_raw,
+            ));
+        }
+        direct_members.sort_by(|left, right| {
+            cmd::text(left, "ref")
+                .unwrap()
+                .as_bytes()
+                .cmp(cmd::text(right, "ref").unwrap().as_bytes())
+        });
+
+        let archives = if history_raw.is_some() {
+            let archived_stream = b"{\"record_version\":1}\n";
+            let archived_digest = Digest256::of_bytes(archived_stream).to_prefixed();
+            let manifest_digest = Digest256::of_bytes(b"archive manifest").to_prefixed();
+            tos_foundation::JsonValue::Array(vec![cmd::object(vec![
+                ("path", cmd::string(archive_path)),
+                ("manifest_sha256", cmd::string(&manifest_digest)),
+                ("revision", cmd::string("1")),
+                (
+                    "members",
+                    tos_foundation::JsonValue::Array(vec![cmd::object(vec![
+                        ("name", cmd::string(archived_stream_name)),
+                        ("sha256", cmd::string(&archived_digest)),
+                        ("bytes", cmd::number(archived_stream.len() as u64)),
+                    ])]),
+                ),
+            ])])
+        } else {
+            tos_foundation::JsonValue::Array(Vec::new())
+        };
+        let receipts = history_raw.map_or_else(Vec::new, |_| {
+            let request_digest = Digest256::of_bytes(b"revision request").to_prefixed();
+            let receipt_digest = Digest256::of_bytes(b"revision receipt").to_prefixed();
+            vec![cmd::object(vec![
+                ("command_id", cmd::string("synthetic-historical-revision")),
+                ("request_digest", cmd::string(&request_digest)),
+                (
+                    "previous_source",
+                    cmd::object(vec![("id", cmd::string(claim_id))]),
+                ),
+                ("source", cmd::object(vec![("id", cmd::string(claim_id))])),
+                ("previous_revision", cmd::string("1")),
+                ("archive_path", cmd::string(archive_path)),
+                ("receipt_sha256", cmd::string(&receipt_digest)),
+            ])]
+        });
+        let history_present = history_raw.is_some();
+        let history_digest = history_raw
+            .map(|raw| cmd::string(&Digest256::of_bytes(raw).to_prefixed()))
+            .unwrap_or(tos_foundation::JsonValue::Null);
+        let history = cmd::object(vec![
+            ("ref", cmd::string(&history_path)),
+            ("present", tos_foundation::JsonValue::Bool(history_present)),
+            ("sha256", history_digest),
+            ("receipts", tos_foundation::JsonValue::Array(receipts)),
+        ]);
+        let claim = cmd::object(vec![
+            ("claim_id", cmd::string(claim_id)),
+            ("claim_version", cmd::number(claim_version)),
+            ("claim_sha256", cmd::string(&claim_hash)),
+            ("form_ref", cmd::string(&form_path)),
+            ("form_present", tos_foundation::JsonValue::Bool(false)),
+            ("form_sha256", tos_foundation::JsonValue::Null),
+            ("form_ids", tos_foundation::JsonValue::Array(Vec::new())),
+        ]);
+        let stream_digest = Digest256::of_bytes(stream).to_hex();
+        let creation_receipt_digest = Digest256::of_bytes(creation_receipt).to_prefixed();
+        let owner = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_managed_historical_claim_owner_inventory_v1"),
+            ),
+            ("package_home", cmd::string(home)),
+            ("source_path", cmd::string(&source_path)),
+            ("source_profiles", cmd::object(Vec::new())),
+            (
+                "stream_sha256",
+                cmd::string(&Digest256::of_bytes(stream).to_prefixed()),
+            ),
+            (
+                "direct_members",
+                tos_foundation::JsonValue::Array(direct_members),
+            ),
+            ("history", history),
+            ("archives", archives),
+            ("claims", tos_foundation::JsonValue::Array(vec![claim])),
+            (
+                "creation_receipt_sha256",
+                cmd::string(&creation_receipt_digest),
+            ),
+            (
+                "creation_receipt_command_id",
+                cmd::string("synthetic-historical-create"),
+            ),
+        ]);
+        (source_path, stream_digest, seal_historical_owner(owner))
+    }
+
     fn profiled_projection(kind: &str) -> (String, Vec<u8>, tos_foundation::JsonValue) {
         let path = format!("ToS/source-witnesses/profiles/example/{kind}.json");
         let schema = "ToS/contracts/fixture-profile.schema.json";
@@ -4021,5 +4337,92 @@ mod tests {
                 ))
             ));
         }
+    }
+
+    #[test]
+    fn private_source_custody_rejects_semantic_record_rows() {
+        let path = "ToS/source-witnesses/works/example/private/item.json";
+        let empty_records = || {
+            cmd::object(
+                crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+                    .iter()
+                    .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                    .collect(),
+            )
+        };
+        let envelope = |records| {
+            cmd::object(vec![
+                ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+                ("path", cmd::string(path)),
+                (
+                    "raw_sha256",
+                    cmd::string(&Digest256::of_bytes(b"private source").to_hex()),
+                ),
+                ("records", records),
+                ("source_profiles", cmd::object(Vec::new())),
+                ("events", cmd::object(Vec::new())),
+                ("anchors", cmd::object(Vec::new())),
+                ("form", tos_foundation::JsonValue::Null),
+                (
+                    "claim_owner",
+                    crate::source_claims::pg_inventory::nonprojecting_custody_owner_contribution(
+                        path,
+                    )
+                    .unwrap(),
+                ),
+                ("public_text_owner", tos_foundation::JsonValue::Null),
+            ])
+        };
+        let empty = cmd::canonical(&envelope(empty_records())).unwrap();
+        parse_mixed_projection(path, &empty, None).unwrap();
+
+        let mut projected_records = empty_records();
+        cmd::set(
+            &mut projected_records,
+            crate::source_claims::MIXED_INVENTORY_RECORD_KINDS[0],
+            tos_foundation::JsonValue::Array(vec![cmd::object(Vec::new())]),
+        )
+        .unwrap();
+        let projected = cmd::canonical(&envelope(projected_records)).unwrap();
+        assert!(parse_mixed_projection(path, &projected, None).is_err());
+    }
+
+    #[test]
+    fn historical_claim_owner_initial_and_revised_closure_is_stream_specific() {
+        let (initial_path, initial_digest, initial) =
+            historical_owner_fixture(1, None, "historical-claims.jsonl");
+        assert!(validate_historical_claim_owner(&initial, &initial_path, &initial_digest).is_ok());
+
+        let (revised_path, revised_digest, revised) = historical_owner_fixture(
+            2,
+            Some(b"{\"schema_version\":\"tos_claim_revision_history_v1\"}\n"),
+            "historical-claims.jsonl",
+        );
+        assert!(validate_historical_claim_owner(&revised, &revised_path, &revised_digest).is_ok());
+
+        let (v2_without_history_path, v2_without_history_digest, v2_without_history) =
+            historical_owner_fixture(2, None, "historical-claims.jsonl");
+        assert!(
+            validate_historical_claim_owner(
+                &v2_without_history,
+                &v2_without_history_path,
+                &v2_without_history_digest
+            )
+            .is_err()
+        );
+
+        let (wrong_archive_path, wrong_archive_digest, wrong_archive) = historical_owner_fixture(
+            2,
+            Some(b"{\"schema_version\":\"tos_claim_revision_history_v1\"}\n"),
+            "source-claims.jsonl",
+        );
+        assert!(
+            validate_historical_claim_owner(
+                &wrong_archive,
+                &wrong_archive_path,
+                &wrong_archive_digest
+            )
+            .is_err()
+        );
     }
 }

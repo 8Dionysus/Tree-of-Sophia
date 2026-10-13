@@ -3993,6 +3993,222 @@ const LEGACY_CLAIM_STREAMS: &[&str] = &[
     "object-link-claims.jsonl",
     "historical-claims.jsonl",
 ];
+// The retained Collection membership reader accepts this exact legacy packet
+// only through its current-only `contains_work` basis adapter.
+const LEGACY_COLLECTION_MEMBERSHIP_SCHEMA_VERSION: &str = "tos_claim_packet_v1";
+const LEGACY_COLLECTION_MEMBERSHIP_PROFILE_SCHEMA_VERSION: &str = "tos_source_relation_claim_v1";
+const LEGACY_COLLECTION_MEMBERSHIP_PROFILE_SCHEMA_REF: &str =
+    "ToS/contracts/source-relation-claim.schema.json";
+
+/// Exact path family whose nonhistorical legacy Claim rows can be carried by
+/// the bounded read-only import. Historical Claims retain their dedicated
+/// capture/archive owner.
+pub(crate) fn is_imported_legacy_claim_path(location: &str) -> bool {
+    let basename = location.rsplit('/').next().unwrap_or(location);
+    location.starts_with("ToS/source-witnesses/")
+        && RelativePath::parse(location).is_ok()
+        && !location.split('/').any(|part| {
+            [
+                "catalog",
+                "payload",
+                "local-content",
+                "private",
+                "owner-local",
+                ".record-revisions",
+            ]
+            .contains(&part)
+        })
+        && basename != "historical-claims.jsonl"
+        && LEGACY_CLAIM_STREAMS.contains(&basename)
+}
+
+/// Exact source-owned historical Claim stream route. This is used only by the
+/// dedicated read-only historical owner; it does not relax Agent creation or
+/// publication guards.
+pub(crate) fn is_historical_claim_stream_path(location: &str) -> bool {
+    if !location.starts_with("ToS/source-witnesses/history/")
+        || !location.ends_with("/historical-claims.jsonl")
+        || RelativePath::parse(location).is_err()
+    {
+        return false;
+    }
+    let parts = location.split('/').collect::<Vec<_>>();
+    parts.len() >= 5
+        && parts[..3] == ["ToS", "source-witnesses", "history"]
+        && parts.last() == Some(&"historical-claims.jsonl")
+        && parts[3..parts.len() - 1].iter().all(|part| {
+            !part.is_empty()
+                && part.split(['.', '-']).all(|token| {
+                    !token.is_empty()
+                        && token
+                            .bytes()
+                            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+                })
+        })
+}
+
+/// Return the exact owning historical Claim stream for one per-Claim HumanForm
+/// set. Other historical-record forms stay with the metadata owner.
+pub(crate) fn historical_claim_form_stream_path(location: &str) -> Option<String> {
+    if !location.starts_with("ToS/source-witnesses/history/")
+        || !location.ends_with(".human-forms.json")
+        || RelativePath::parse(location).is_err()
+    {
+        return None;
+    }
+    let (home, basename) = location.rsplit_once('/')?;
+    let hash = basename
+        .strip_prefix("historical-claims.")?
+        .strip_suffix(".human-forms.json")?;
+    if hash.len() != 64
+        || !hash
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return None;
+    }
+    let stream = format!("{home}/historical-claims.jsonl");
+    is_historical_claim_stream_path(&stream).then_some(stream)
+}
+
+/// Parse exact stable identities from one current historical Claim stream.
+/// The dedicated historical owner validates its retained creation/archive
+/// package before projection; this first-pass helper only indexes identities.
+pub(crate) fn historical_claim_identity_rows(
+    file: &SourceFile,
+) -> SourceCommandResult<Vec<String>> {
+    if !is_historical_claim_stream_path(file.path.as_str()) {
+        return Err(SourceCommandError::Unsupported("historical Claim path"));
+    }
+    if file.raw.len() > 1_048_576 {
+        return Err(SourceCommandError::Invalid(
+            "historical Claim stream budget",
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    let mut rows = Vec::new();
+    for raw in file.raw.split(|byte| *byte == b'\n') {
+        if python_bytes_blank(raw) {
+            continue;
+        }
+        let claim = parse(raw)?;
+        if text(&claim, "schema_version")? != "tos_historical_claim_v1"
+            || !["public", "public_metadata_only"].contains(&text(&claim, "visibility")?)
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim identity row family differs",
+            ));
+        }
+        let id = text(&claim, "claim_id")?.to_owned();
+        if id.is_empty() || !seen.insert(id.clone()) {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim identity repeats",
+            ));
+        }
+        rows.push(id);
+    }
+    if rows.is_empty() {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim stream is empty",
+        ));
+    }
+    Ok(rows)
+}
+
+pub(crate) struct ImportedLegacyClaimRow {
+    pub claim_id: String,
+    pub physical_line: u64,
+    pub record: JsonValue,
+}
+
+/// Parse one bounded imported legacy stream using the same whitespace,
+/// visibility, duplicate-ID, and line-separator rules as the maintained
+/// Claim inventory reader.
+pub(crate) fn imported_legacy_claim_rows(
+    file: &SourceFile,
+) -> SourceCommandResult<Vec<ImportedLegacyClaimRow>> {
+    if !is_imported_legacy_claim_path(file.path.as_str()) {
+        return Err(SourceCommandError::Unsupported(
+            "imported legacy Claim path",
+        ));
+    }
+    if file.raw.len() > 1_048_576 {
+        return Err(SourceCommandError::Invalid(
+            "imported legacy Claim stream budget",
+        ));
+    }
+    let raw_text = std::str::from_utf8(&file.raw)
+        .map_err(|_| SourceCommandError::Invalid("legacy Claim carrier UTF-8"))?;
+    if raw_text.chars().any(|character| {
+        matches!(
+            character,
+            '\u{b}' | '\u{c}' | '\u{1c}'..='\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}'
+        )
+    }) {
+        return Err(SourceCommandError::Unsupported(
+            "legacy Claim Unicode splitlines carrier adapter",
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    let mut rows = Vec::new();
+    for (index, raw) in file.raw.split(|byte| *byte == b'\n').enumerate() {
+        let line = std::str::from_utf8(raw)
+            .map_err(|_| SourceCommandError::Invalid("legacy Claim carrier UTF-8"))?;
+        if stripped(line)?.is_empty() {
+            continue;
+        }
+        let claim = parse(raw)?;
+        let id = text(&claim, "claim_id")?.to_owned();
+        if id.is_empty() {
+            return Err(SourceCommandError::Invalid("legacy Claim identity"));
+        }
+        if !["public", "public_metadata_only"].contains(&text(&claim, "visibility")?) {
+            return Err(SourceCommandError::Denied("catalog Claim visibility"));
+        }
+        if !seen.insert(id.clone()) {
+            return Err(SourceCommandError::Conflict("duplicate Claim identity"));
+        }
+        let physical_line = u64::try_from(index)
+            .ok()
+            .and_then(|line| line.checked_add(1))
+            .ok_or(SourceCommandError::Invalid(
+                "legacy Claim source line overflow",
+            ))?;
+        rows.push(ImportedLegacyClaimRow {
+            claim_id: id,
+            physical_line,
+            record: claim,
+        });
+    }
+    Ok(rows)
+}
+
+/// Per-member identity pass shared by full and streamed imported-legacy
+/// projections. It retains only Claim IDs and never builds a corpus-wide map.
+pub(crate) fn imported_legacy_claim_identity_rows(
+    file: &SourceFile,
+) -> SourceCommandResult<Vec<String>> {
+    Ok(imported_legacy_claim_rows(file)?
+        .into_iter()
+        .map(|row| row.claim_id)
+        .collect())
+}
+
+/// A path-only custody class for source members whose content must not enter
+/// public semantic projection. Callers use this before parsing member bytes.
+pub(crate) fn nonprojecting_custody_kind(location: &str) -> Option<&'static str> {
+    if !location.starts_with("ToS/") || RelativePath::parse(location).is_err() {
+        return None;
+    }
+    if location.split('/').any(|part| part == "private") {
+        Some("private")
+    } else if location.split('/').any(|part| part == "local-content") {
+        Some("local-content")
+    } else {
+        None
+    }
+}
+
 struct ClaimGrounding {
     dependencies: JsonValue,
     bindings: JsonValue,
@@ -4076,32 +4292,94 @@ fn claim_profile_inputs_selected(
     claim_profile_inputs_for_route(ctx, claim, descriptor, route, inputs)
 }
 
-/// Existing catalog rows carry the selected source contract reference but
-/// their own `schema_version` belongs to the catalog-entry envelope. Resolve
-/// the original profile route by its exact retained source schema reference.
+/// A legacy membership row is profile-bound only after the exact Collection
+/// basis reference has passed the current-only membership reader.
+fn verified_collection_membership_basis_contains(
+    retained_profile_bindings: &BTreeMap<String, (&'static str, JsonValue)>,
+    claim_id: &str,
+) -> bool {
+    retained_profile_bindings.values().any(|(kind, binding)| {
+        *kind == "collection_orders"
+            && binding
+                .object_get("memberships")
+                .and_then(JsonValue::as_array)
+                .is_some_and(|memberships| {
+                    memberships.iter().any(|membership| {
+                        membership
+                            .object_get("ref")
+                            .and_then(|reference| reference.object_get("id"))
+                            .and_then(JsonValue::as_str)
+                            == Some(claim_id)
+                    })
+                })
+    })
+}
+
+/// Existing catalog rows carry an exact profile route when they use a native
+/// source-claims schema. Legacy Collection membership rows deliberately have
+/// no source_schema_ref; their packet schema is accepted only after the exact
+/// current Collection basis reader validates the source row and reference.
 fn claim_profile_inputs_for_catalog_entry(
     ctx: &CommandContext,
     entry: &JsonValue,
     descriptor: &JsonValue,
+    verified_collection_membership_basis: bool,
     inputs: &mut JsonValue,
 ) -> SourceCommandResult<&'static str> {
-    let source_schema_ref = entry
-        .object_get("source_schema_ref")
-        .and_then(JsonValue::as_str)
-        .ok_or(SourceCommandError::Unsupported(
-            "Claim catalog source schema route absent",
+    let route = if let Some(source_schema_ref) = entry.object_get("source_schema_ref") {
+        let source_schema_ref = source_schema_ref
+            .as_str()
+            .ok_or(SourceCommandError::Invalid(
+                "Claim catalog source schema reference",
+            ))?;
+        let mut routes = array(descriptor, "schemas")?.iter().filter(|route| {
+            route.object_get("schema_ref").and_then(JsonValue::as_str) == Some(source_schema_ref)
+        });
+        let route = routes.next().ok_or(SourceCommandError::Unsupported(
+            "Claim catalog source schema fingerprint route",
         ))?;
-    let mut routes = array(descriptor, "schemas")?.iter().filter(|route| {
-        route.object_get("schema_ref").and_then(JsonValue::as_str) == Some(source_schema_ref)
-    });
-    let route = routes.next().ok_or(SourceCommandError::Unsupported(
-        "Claim catalog source schema fingerprint route",
-    ))?;
-    if routes.next().is_some() {
-        return Err(SourceCommandError::Conflict(
-            "ambiguous Claim catalog source schema fingerprint route",
-        ));
-    }
+        if routes.next().is_some() {
+            return Err(SourceCommandError::Conflict(
+                "ambiguous Claim catalog source schema fingerprint route",
+            ));
+        }
+        route
+    } else {
+        let source_claim_file_ref = text(entry, "source_claim_file_ref")?;
+        if !verified_collection_membership_basis
+            || !collection_membership_stream_path(source_claim_file_ref)
+            || text(entry, "predicate")? != "contains_work"
+            || text(entry, "claim_type")? != "bibliographic"
+            || text(entry, "assertion_layer")? != "bibliographic_assertion"
+            || text(descriptor, "reader")? != "identity-relation-v1"
+        {
+            return Err(SourceCommandError::Unsupported(
+                "Claim catalog source schema route absent",
+            ));
+        }
+        // `resolve_claim_reference_evidence` has already validated the exact
+        // selected row as tos_claim_packet_v1 and the basis adapter has bound
+        // its current positive membership to this Collection version. Bind
+        // the legacy packet to the one declared native contains_work profile
+        // route so profile/schema changes still invalidate this preparation.
+        let mut routes = array(descriptor, "schemas")?.iter().filter(|route| {
+            route
+                .object_get("schema_version")
+                .and_then(JsonValue::as_str)
+                == Some(LEGACY_COLLECTION_MEMBERSHIP_PROFILE_SCHEMA_VERSION)
+                && route.object_get("schema_ref").and_then(JsonValue::as_str)
+                    == Some(LEGACY_COLLECTION_MEMBERSHIP_PROFILE_SCHEMA_REF)
+        });
+        let route = routes.next().ok_or(SourceCommandError::Unsupported(
+            "Claim legacy Collection membership profile route",
+        ))?;
+        if routes.next().is_some() {
+            return Err(SourceCommandError::Conflict(
+                "ambiguous legacy Collection membership profile route",
+            ));
+        }
+        route
+    };
     claim_profile_inputs_for_route(ctx, entry, descriptor, route, inputs)
 }
 
@@ -5813,7 +6091,15 @@ pub(crate) fn agent_inventory_contribution(
         deadline,
         cancelled,
     )?;
-    parse(&raw)
+    let mut projection = parse(&raw)?;
+    if is_imported_legacy_claim_path(location) {
+        set(
+            &mut projection,
+            "claim_owner",
+            pg_inventory::imported_legacy_claim_owner_contribution(ctx, file)?,
+        )?;
+    }
+    Ok(projection)
 }
 
 /// Borrowed complete selected membership for the full compatibility route.
@@ -5875,6 +6161,7 @@ const AGENT_FORM_SET_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum AgentInventoryIdentityKind {
+    Claim,
     Metadata,
     Form,
 }
@@ -6072,6 +6359,17 @@ pub(crate) fn stage_agent_inventory_member(
     if !location.starts_with("ToS/") {
         return Ok(());
     }
+    if nonprojecting_custody_kind(location).is_some() {
+        // Custody is path-only; do not parse the source body for identities or
+        // evidence rows.
+        return Ok(());
+    }
+    if is_imported_legacy_claim_path(location) {
+        for id in imported_legacy_claim_identity_rows(file)? {
+            add_identity(AgentInventoryIdentityKind::Claim, &id, location)?;
+        }
+        return Ok(());
+    }
     agent_source_reject_unsupported_member(location)?;
     let basename = location.rsplit('/').next().unwrap_or(location);
     if location.starts_with("ToS/source-witnesses/") && !agent_source_internal_path(location) {
@@ -6131,7 +6429,10 @@ pub(crate) fn stage_agent_inventory_member(
             }
         }
     }
-    if location.starts_with("ToS/source-witnesses/") && basename.ends_with(".human-forms.json") {
+    if nonprojecting_custody_kind(location).is_none()
+        && location.starts_with("ToS/source-witnesses/")
+        && basename.ends_with(".human-forms.json")
+    {
         let prior = parse(&file.raw)?;
         apply_form_changes(Some(&prior), field(&prior, "subject")?, &[])?;
         for section in ["forms", "prior_forms"] {
@@ -6210,14 +6511,20 @@ pub(crate) fn render_agent_inventory_member(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<u8>> {
     let location = file.path.as_str();
-    agent_source_reject_unsupported_member(location)?;
+    let custody_kind = nonprojecting_custody_kind(location);
+    if custody_kind.is_none() && !is_imported_legacy_claim_path(location) {
+        agent_source_reject_unsupported_member(location)?;
+    }
     let basename = location.rsplit('/').next().unwrap_or(location);
     let mut records = object(vec![]);
     for kind in MIXED_INVENTORY_RECORD_KINDS {
         set(&mut records, kind, JsonValue::Array(Vec::new()))?;
     }
     let mut source_profiles = profile.base_profiles.clone();
-    if location.starts_with("ToS/source-witnesses/") && !agent_source_internal_path(location) {
+    if custody_kind.is_none()
+        && location.starts_with("ToS/source-witnesses/")
+        && !agent_source_internal_path(location)
+    {
         if let Some(kind) = profile.metadata_kinds.get(basename) {
             let record = parse(&file.raw)?;
             if mixed_record_kind(&record)? != kind {
@@ -6321,20 +6628,30 @@ pub(crate) fn render_agent_inventory_member(
             set(&mut records, kind, JsonValue::Array(vec![entry]))?;
         }
     }
-    let events = agent_evidence_map(
-        location,
-        AgentInventoryEvidenceKind::Event,
-        "event_id",
-        events,
-    )?;
-    let anchors = agent_evidence_map(
-        location,
-        AgentInventoryEvidenceKind::Anchor,
-        "anchor_id",
-        anchors,
-    )?;
+    let (events, anchors) = if custody_kind.is_some() {
+        // Private/local content receives only the explicit custody marker;
+        // even evidence payloads are not copied into its projection.
+        (object(vec![]), object(vec![]))
+    } else {
+        (
+            agent_evidence_map(
+                location,
+                AgentInventoryEvidenceKind::Event,
+                "event_id",
+                events,
+            )?,
+            agent_evidence_map(
+                location,
+                AgentInventoryEvidenceKind::Anchor,
+                "anchor_id",
+                anchors,
+            )?,
+        )
+    };
     let form =
-        if location.starts_with("ToS/source-witnesses/") && basename.ends_with(".human-forms.json")
+        if custody_kind.is_none()
+            && location.starts_with("ToS/source-witnesses/")
+            && basename.ends_with(".human-forms.json")
         {
             let prior = parse(&file.raw)?;
             apply_form_changes(Some(&prior), field(&prior, "subject")?, &[])?;
@@ -6413,6 +6730,11 @@ pub(crate) fn render_agent_inventory_member(
         } else {
             JsonValue::Null
         };
+    let claim_owner = if custody_kind.is_some() {
+        pg_inventory::nonprojecting_custody_owner_contribution(location)?
+    } else {
+        JsonValue::Null
+    };
     let contribution = object(vec![
         (
             "schema_version",
@@ -6428,7 +6750,7 @@ pub(crate) fn render_agent_inventory_member(
         ("events", events),
         ("anchors", anchors),
         ("form", form),
-        ("claim_owner", JsonValue::Null),
+        ("claim_owner", claim_owner),
         ("public_text_owner", JsonValue::Null),
     ]);
     let raw = canonical(&contribution)?;
@@ -7742,15 +8064,18 @@ fn maintained_grounding(
         ],
         false,
     )?;
-    for (_, claim) in prior
+    for (claim_id, claim) in prior
         .iter()
         .filter(|(id, _)| relevant_claim_ids.contains(*id))
     {
         let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+        let verified_collection_membership_basis =
+            verified_collection_membership_basis_contains(retained_profile_bindings, claim_id);
         claim_profile_inputs_for_catalog_entry(
             ctx,
             claim,
             &descriptor,
+            verified_collection_membership_basis,
             &mut relevant_claim_profiles,
         )?;
     }
@@ -10020,7 +10345,7 @@ fn resolve_claim_reference_evidence(
     };
     let legacy = collection_membership_stream_path(p.as_str());
     if legacy
-        && (text(&current, "schema_version")? != "tos_claim_packet_v1"
+        && (text(&current, "schema_version")? != LEGACY_COLLECTION_MEMBERSHIP_SCHEMA_VERSION
             || text(&current, "claim_type")? != "bibliographic"
             || text(&current, "predicate")? != "contains_work"
             || text(&current, "assertion_layer")? != "bibliographic_assertion"
@@ -10565,6 +10890,62 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
 #[cfg(test)]
 mod mixed_inventory_boundary_tests {
     use super::*;
+
+    #[test]
+    fn imported_legacy_claim_reader_is_path_bounded_and_public_only() {
+        assert!(is_imported_legacy_claim_path(
+            "ToS/source-witnesses/works/example/provision-activity-claims.jsonl"
+        ));
+        assert!(is_imported_legacy_claim_path(
+            "ToS/source-witnesses/collections/example/north/membership-claims.jsonl"
+        ));
+        assert!(is_imported_legacy_claim_path(
+            "ToS/source-witnesses/relations/example/responsibility-claims.jsonl"
+        ));
+        assert!(is_imported_legacy_claim_path(
+            "ToS/source-witnesses/relations/example/work-expression-claims.jsonl"
+        ));
+        assert!(!is_imported_legacy_claim_path(
+            "ToS/source-witnesses/history/example/historical-claims.jsonl"
+        ));
+        assert!(!is_imported_legacy_claim_path(
+            "ToS/source-witnesses/private/example/object-link-claims.jsonl"
+        ));
+        assert_eq!(
+            nonprojecting_custody_kind("ToS/source-witnesses/access-requests/private/README.md"),
+            Some("private")
+        );
+        assert_eq!(
+            nonprojecting_custody_kind("ToS/source-witnesses/local-content/README.md"),
+            Some("local-content")
+        );
+
+        let mut raw = canonical(&object(vec![
+            ("schema_version", string("tos_claim_packet_v1")),
+            ("claim_id", string("tos.claim.example")),
+            ("visibility", string("public")),
+        ]))
+        .unwrap();
+        raw.push(b'\n');
+        let file = SourceFile {
+            path: path("ToS/source-witnesses/works/example/provision-activity-claims.jsonl")
+                .unwrap(),
+            raw,
+        };
+        assert_eq!(
+            imported_legacy_claim_identity_rows(&file).unwrap(),
+            vec!["tos.claim.example"]
+        );
+
+        let private_file = SourceFile {
+            path: path("ToS/source-witnesses/private/example/object-link-claims.jsonl").unwrap(),
+            raw: file.raw,
+        };
+        assert!(matches!(
+            imported_legacy_claim_identity_rows(&private_file),
+            Err(SourceCommandError::Unsupported(_))
+        ));
+    }
 
     #[test]
     fn private_non_metadata_member_cannot_enter_public_projection() {

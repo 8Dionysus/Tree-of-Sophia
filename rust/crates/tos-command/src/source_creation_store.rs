@@ -170,7 +170,9 @@ mod pg_growth_inventory;
 pub(crate) mod work_transaction;
 pub(crate) use pg_growth_inventory::{
     GrowthRecordProjection as PgGrowthRecordProjection,
-    owner_contributions as pg_growth_owner_contributions,
+    current_growth_claim_receipt_name as pg_growth_claim_receipt_name,
+    current_owner_contributions as current_pg_growth_owner_contributions,
+    is_growth_claim_stream_path, owner_contributions as pg_growth_owner_contributions,
 };
 pub(crate) const MAX_FILES: usize = 4096;
 pub(crate) const MAX_BYTES: usize = 33_554_432;

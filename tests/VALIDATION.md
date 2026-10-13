@@ -112,6 +112,15 @@ Select browser behavior through `software_browser` in root `VALIDATION.md`.
 Test success establishes its declared mechanics, not source meaning, rights,
 review, canon, deployment or ecosystem admission.
 
+The ignored `native_retained_page_ocr_assessment_comparison_preserves_original_and_signed_capture`
+case requires an existing genuine signed PageOCR producer result. Set
+`TOS_PRIVATE_JOURNAL_PAGE_INPUTS_JSON` to its exact input descriptor and
+`TOS_PRIVATE_JOURNAL_PAGE_OWNER_SOURCE_ROOT` to the clean producer-owner checkout
+named by that descriptor, together with the admitted `TOS_NATIVE_OWNER_COMMAND_PATH`
+and `TOS_SCHEMA_WORKER_PATH` products. The case checks the producer commit,
+adapter digest and retained output bytes before granting access to its isolated
+synthetic fixture. It does not run the producer or grant publication rights.
+
 For the full retained relation cut, the existing inherited-view module also
 has an ignored diagnostic test:
 `retained_complete_relation_seek_matches_full_order_without_resorts`.

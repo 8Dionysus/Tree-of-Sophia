@@ -54,6 +54,27 @@ pub struct NativePublicAssessmentFixture {
     pub preserved: Vec<Value>,
 }
 
+/// Reusable native source and scoped review inputs for the positive two-flame
+/// Sign promotion process scenario. The fixture grants no production authority.
+#[derive(Clone, Debug)]
+pub struct NativePublicSignFixture {
+    pub public_root: PathBuf,
+    pub assessment_owner_config_path: PathBuf,
+    pub assessment_owner_context_path: PathBuf,
+    pub sign_owner_config_path: PathBuf,
+    pub candidate_id: String,
+    pub occurrence_ids: [String; 2],
+    pub source_text: Vec<u8>,
+    /// One append-ready `tos_knowledge_assessment_v1` row.
+    pub assessment: Value,
+    /// Sign source record before the CLI-provided promotion basis is inserted.
+    pub sign_record: Value,
+    /// Prepare/create form selectors, not authored form records.
+    pub forms: Vec<Value>,
+    /// Relative path of the source Claim stream, used for exact source revision replay.
+    pub source_path: String,
+}
+
 /// Construct one public v1 inline, v2 source-backed, or v3 native TextUnit subject.
 pub fn native_public_assessment_fixture(
     repository: &Path,
@@ -66,6 +87,481 @@ pub fn native_public_assessment_fixture(
         3 => build_public_v3(repository, root),
         _ => Err(invalid_input("public assessment fixture supports v1/v2/v3")),
     }
+}
+
+/// Construct a source-closed, public-synthetic two-flame motif fixture for the
+/// process-level Sign promotion route. The retained source file is hash-pinned;
+/// its exact two native text anchors, Occurrence descriptions, Claim, and
+/// assessment references are written into an isolated public fixture root.
+pub fn native_public_sign_fixture(
+    repository: &Path,
+    root: &Path,
+) -> io::Result<NativePublicSignFixture> {
+    const SOURCE_REF: &str = "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt";
+    const SOURCE_SHA256: &str = "7057e4420a5bf7779f384ec722015e4c2cdb2eaad8fea809d3e536b9d6c7acc3";
+    const CANDIDATE: &str = "tos.claim.fixture.flame-continuity-under-change";
+    const OCCURRENCES: [&str; 2] = [
+        "tos.occurrence.semantic-v2.synthetic-flame-1",
+        "tos.occurrence.semantic-v2.synthetic-flame-2",
+    ];
+    const PACKET_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/source-text-unit.synthetic.v1.json";
+    const LAYER_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/source-text-layer.synthetic.v1.json";
+    const CONTENT_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/public-synthetic-content.txt";
+    const ITEM_REF_PATH: &str = "ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/items/synthetic-item/item.json";
+    const ITEM_MANIFEST_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/items/synthetic-item/item.manifest.json";
+    const ITEM_PAYLOAD_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/items/synthetic-item/payload/public-synthetic-source.txt";
+    const RIGHTS_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/items/synthetic-item/rights.json";
+    const SOURCE_ANCHOR_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/source-anchor-v2.synthetic.v1.json";
+    const PUBLIC_AUTHORITY_REF: &str = "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/synthetic-flame-publication-authority.json";
+    const ITEM_ID: &str = "tos.item.synthetic.flame-source";
+    const ORIGIN_ANCHOR_ID: &str = "tos.anchor.synthetic.flame-source-origin";
+    const LAYER_ID: &str = "tos.text-layer.synthetic.flame-source";
+    const PACKET_ID: &str = "tos.source-text-unit-packet.sid-33333333333333333333333333333333";
+    const SEGMENTATION_ID: &str = "tos.text-segmentation.sid-44444444444444444444444444444444";
+    const UNIT_IDS: [&str; 2] = [
+        "tos.text-unit.sid-11111111111111111111111111111111",
+        "tos.text-unit.sid-22222222222222222222222222222222",
+    ];
+    const CLAIM_PATH: &str = "ToS/source-witnesses/relations/flame-continuity/source-claims.jsonl";
+
+    let base = native_public_assessment_fixture(repository, &root.join("base"), 3)?;
+    let public_root = base.public_root;
+    let source_text = fs::read(repository.join(SOURCE_REF))?;
+    let source_text_utf8 = std::str::from_utf8(&source_text).map_err(invalid_data)?;
+    if source_text.len() != 109
+        || source_text_utf8.chars().count() != 109
+        || !source_text.is_ascii()
+        || source_text.last() != Some(&b'\n')
+        || Digest256::of_bytes(&source_text).to_hex() != SOURCE_SHA256
+    {
+        return Err(invalid_data(
+            "two-flame fixture source pin or shape differs",
+        ));
+    }
+    let source_sha = Digest256::of_bytes(&source_text).to_hex();
+    let source_file_id = format!("tos.file.sha256.{source_sha}");
+    let content_file_id = source_file_id.clone();
+    write_public_bytes(&public_root.join(SOURCE_REF), &source_text)?;
+    write_public_bytes(&public_root.join(ITEM_PAYLOAD_REF), &source_text)?;
+    write_public_bytes(&public_root.join(CONTENT_REF), &source_text)?;
+
+    // The public native layer and its Item now bind the same exact retained
+    // bytes. The input remains a public-synthetic fixture declaration only.
+    let mut item: Value = serde_json::from_slice(&fs::read(public_root.join(ITEM_REF_PATH))?)
+        .map_err(invalid_data)?;
+    item["record_id"] = json!(ITEM_ID);
+    item["preferred_label"] = json!("Public-synthetic two-flame source fixture");
+    item["source_refs"] = json!([SOURCE_REF, ITEM_MANIFEST_REF]);
+    let item_bytes = serde_json::to_vec(&item).map_err(invalid_data)?;
+    write_public_bytes(&public_root.join(ITEM_REF_PATH), &item_bytes)?;
+    let mut item_manifest: Value =
+        serde_json::from_slice(&fs::read(public_root.join(ITEM_MANIFEST_REF))?)
+            .map_err(invalid_data)?;
+    item_manifest["item_id"] = json!(ITEM_ID);
+    item_manifest["visibility"] = json!("public_payload");
+    item_manifest["payload_files"] = json!([{
+        "file_id":source_file_id,"relative_path":"payload/public-synthetic-source.txt",
+        "original_basename":"public-synthetic-source.txt","media_type":"text/plain",
+        "byte_size":source_text.len(),"sha256":source_sha,"fixity_verified_at":NOW
+    }]);
+    let manifest_bytes = serde_json::to_vec(&item_manifest).map_err(invalid_data)?;
+    write_public_bytes(&public_root.join(ITEM_MANIFEST_REF), &manifest_bytes)?;
+    let rights = json!({"schema_version":"tos_rights_record_v1","rights_id":"tos.rights.fixture.flame-source",
+        "scope_refs":[ITEM_ID,format!("tos.file.sha256.{source_sha}"),LAYER_ID],
+        "assessment_status":"permission_granted","jurisdictions_reviewed":[],
+        "source_refs":[SOURCE_REF],"permissions":["Public-synthetic test fixture use only."],
+        "restrictions":["Fixture-local declaration; no external publication permission is asserted."],
+        "visibility":"public_payload","redistribution_posture":"authorized_with_conditions",
+        "derivative_posture":"allowed_with_conditions",
+        "assessed_by":{"maker_type":"imported_source","agent_ref":"source:public-synthetic-fixture"},
+        "assessed_at":NOW,"rationale":"Fixture-local public-synthetic source input; this record is not a general rights determination.",
+        "review_status":"unreviewed","record_version":1,"supersedes_rights_ref":null});
+    let rights_bytes = serde_json::to_vec(&rights).map_err(invalid_data)?;
+    let rights_sha = Digest256::of_bytes(&rights_bytes).to_hex();
+    write_public_bytes(&public_root.join(RIGHTS_REF), &rights_bytes)?;
+    let publication_authority = json!({"schema_version":"tos_fixture_public_synthetic_publication_authority_v1",
+        "authority_id":"fixture:public-synthetic-flame-source","source_ref":SOURCE_REF,
+        "source_sha256":source_sha,"scope":"isolated conformance fixture only",
+        "publication_authorized":true,"private_source_used":false,
+        "notice":"This fixture-local flag confers no external publication permission."});
+    let publication_authority_bytes =
+        serde_json::to_vec(&publication_authority).map_err(invalid_data)?;
+    let publication_authority_sha = Digest256::of_bytes(&publication_authority_bytes).to_hex();
+    write_public_bytes(
+        &public_root.join(PUBLIC_AUTHORITY_REF),
+        &publication_authority_bytes,
+    )?;
+    let mut source_anchor: Value =
+        serde_json::from_slice(&fs::read(public_root.join(SOURCE_ANCHOR_REF))?)
+            .map_err(invalid_data)?;
+    source_anchor["anchor_id"] = json!(ORIGIN_ANCHOR_ID);
+    source_anchor["passage_id"] = json!("tos.passage.synthetic.flame-source");
+    source_anchor["target"]["item_id"] = json!(ITEM_ID);
+    source_anchor["target"]["file_id"] = json!(source_file_id);
+    source_anchor["target"]["file_sha256"] = json!(source_sha);
+    source_anchor["target"]["media_type"] = json!("text/plain");
+    source_anchor["publication_boundary"]["source_content_visibility"] = json!("public");
+    source_anchor["publication_boundary"]["public_payload_expected"] = json!(true);
+    source_anchor["selector_payload"]["expression"]["selector"]["selector"]["start"] = json!(0);
+    source_anchor["selector_payload"]["expression"]["selector"]["selector"]["end"] = json!(109);
+    source_anchor["selector_payload"]["expression"]["selector"]["state"]["representation_ref"] =
+        json!(ITEM_PAYLOAD_REF);
+    source_anchor["selector_payload"]["expression"]["selector"]["state"]["representation_sha256"] =
+        json!(source_sha);
+    source_anchor["selector_payload"]["expression"]["selector"]["state"]["media_type"] =
+        json!("text/plain");
+    source_anchor["provenance_event_ref"] = json!("tos.event.fixture.flame-source-binding");
+    let source_anchor_bytes = serde_json::to_vec(&source_anchor).map_err(invalid_data)?;
+    let source_anchor_sha = Digest256::of_bytes(&source_anchor_bytes).to_hex();
+    write_public_bytes(&public_root.join(SOURCE_ANCHOR_REF), &source_anchor_bytes)?;
+
+    let mut layer: Value =
+        serde_json::from_slice(&fs::read(public_root.join(LAYER_REF))?).map_err(invalid_data)?;
+    layer["layer_id"] = json!(LAYER_ID);
+    layer["provenance_event_ref"] = json!("tos.event.fixture.flame-source-binding");
+    layer["derivation"]["maker"]["agent_ref"] = json!("software:two-flame-sign-fixture-builder");
+    layer["derivation"]["maker"]["method"] = json!(
+        "Byte-exact fixture binding of the retained public-synthetic source; no OCR or normalization."
+    );
+    layer["source_binding"]["item_ref"] = json!(ITEM_ID);
+    layer["source_binding"]["source_file_ref"] = json!(source_file_id);
+    layer["source_binding"]["source_file_sha256"] = json!(source_sha);
+    layer["source_binding"]["anchors"] = json!([{"anchor_id":ORIGIN_ANCHOR_ID,
+        "anchor_record_ref":SOURCE_ANCHOR_REF,"anchor_record_sha256":source_anchor_sha}]);
+    layer["representation"]["content_visibility"] = json!("public");
+    layer["representation"]["publication_authorized"] = json!(true);
+    layer["representation"]["storage"] = json!("tracked");
+    layer["representation"]["tracked_content"] = json!(true);
+    layer["representation"]["publication_authority_refs"] = json!([{"ref":PUBLIC_AUTHORITY_REF,
+        "sha256":publication_authority_sha}]);
+    layer["representation"]["rights_record_refs"] = json!([{"ref":RIGHTS_REF,"sha256":rights_sha}]);
+    let content_sha = source_sha.clone();
+    layer["representation"]["content_ref"] = json!(CONTENT_REF);
+    layer["representation"]["content_file_id"] = json!(content_file_id);
+    layer["representation"]["content_sha256"] = json!(content_sha);
+    layer["representation"]["language"] = json!("en");
+    layer["representation"]["text_scope"] = json!({
+        "start":0,"end":109,"interval":"half_open","position_unit":"unicode_code_point"
+    });
+    let layer_bytes = serde_json::to_vec(&layer).map_err(invalid_data)?;
+    let layer_sha = Digest256::of_bytes(&layer_bytes).to_hex();
+    write_public_bytes(&public_root.join(LAYER_REF), &layer_bytes)?;
+
+    let mut packet: Value =
+        serde_json::from_slice(&fs::read(public_root.join(PACKET_REF))?).map_err(invalid_data)?;
+    // In this packet field the digest names the text bytes, while the native
+    // binding below separately names the layer record digest.
+    packet["source_layer"]["text_layer_sha256"] = json!(source_sha);
+    packet["source_layer"]["language"] = json!("en");
+    packet["source_layer"]["visibility"] = json!("public");
+    packet["source_layer"]["publication_authorized"] = json!(true);
+    packet["packet_id"] = json!(PACKET_ID);
+    packet["source_scope"]["item_ref"] = json!(ITEM_ID);
+    packet["source_scope"]["file_ref"] = json!(source_file_id);
+    packet["source_scope"]["file_sha256"] = json!(source_sha);
+    packet["rights_and_visibility"]["effective_visibility"] = json!("public");
+    packet["rights_and_visibility"]["packet_visibility"] = json!("public");
+    packet["rights_and_visibility"]["private_source_used"] = json!(false);
+    packet["rights_and_visibility"]["publication_authorized"] = json!(true);
+    packet["rights_and_visibility"]["rights_record_refs"] = json!([RIGHTS_REF]);
+    packet["rights_and_visibility"]["source_visibility"] = json!("public");
+    let make_anchor = |id: &str, role: &str, ordinal: usize, start: usize, end: usize| {
+        json!({"anchor_ref":id,"anchor_role":role,"ordinal":ordinal,
+            "exact_sha256":Digest256::of_bytes(&source_text[start..end]).to_hex(),
+            "selector":{"type":"text_position","start":start,"end":end,
+                "interval":"half_open","position_unit":"unicode_code_point"},
+            "source_return":{"locator_ref":CONTENT_REF,"required":true},
+            "text_layer_ref":LAYER_REF,"text_layer_sha256":source_sha})
+    };
+    let scope_anchor = "tos.anchor.synthetic.flame-scope";
+    let flame_anchors = [
+        "tos.anchor.semantic-v2.synthetic-flame-1",
+        "tos.anchor.semantic-v2.synthetic-flame-2",
+    ];
+    let gap_anchors = [
+        "tos.anchor.synthetic.flame-gap-1",
+        "tos.anchor.synthetic.flame-gap-2",
+        "tos.anchor.synthetic.flame-gap-3",
+    ];
+    packet["anchors"] = json!([
+        make_anchor(scope_anchor, "scope", 1, 0, 109),
+        make_anchor(flame_anchors[0], "content", 2, 13, 18),
+        make_anchor(flame_anchors[1], "content", 3, 62, 67),
+        make_anchor(gap_anchors[0], "gap", 4, 0, 13),
+        make_anchor(gap_anchors[1], "gap", 5, 18, 62),
+        make_anchor(gap_anchors[2], "gap", 6, 67, 109)
+    ]);
+    packet["segmentations"][0]["segmentation_id"] = json!(SEGMENTATION_ID);
+    packet["segmentations"][0]["coverage"]["scope_anchor_ref"] = json!(scope_anchor);
+    packet["segmentations"][0]["coverage"]["excluded_anchor_refs"] = json!(gap_anchors);
+    let mut first_unit = packet["units"][0].clone();
+    first_unit["unit_id"] = json!(UNIT_IDS[0]);
+    first_unit["ordered_anchor_refs"] = json!([flame_anchors[0]]);
+    first_unit["status_reason"] =
+        json!("Exact first flame span in the public-synthetic fixture; no semantic authority.");
+    let mut second_unit = packet["units"][0].clone();
+    second_unit["unit_id"] = json!(UNIT_IDS[1]);
+    second_unit["ordered_anchor_refs"] = json!([flame_anchors[1]]);
+    second_unit["status_reason"] =
+        json!("Exact second flame span in the public-synthetic fixture; no semantic authority.");
+    packet["units"] = json!([first_unit, second_unit]);
+    packet["segmentations"][0]["ordered_unit_refs"] = json!(UNIT_IDS);
+    let packet_bytes = serde_json::to_vec(&packet).map_err(invalid_data)?;
+    let packet_sha = Digest256::of_bytes(&packet_bytes).to_hex();
+    write_public_bytes(&public_root.join(PACKET_REF), &packet_bytes)?;
+
+    let native_binding = |index: usize| -> io::Result<Value> {
+        let unit = &packet["units"][index];
+        Ok(json!({"schema_version":"tos_native_text_unit_binding_v1",
+            "packet_ref":PACKET_REF,"packet_sha256":packet_sha,"packet_id":packet["packet_id"],
+            "packet_version":packet["packet_version"],"unit_id":unit["unit_id"],"unit_version":unit["unit_version"],
+            "ordered_anchor_refs":unit["ordered_anchor_refs"],
+            "segmentation_id":packet["segmentations"][0]["segmentation_id"],
+            "segmentation_version":packet["segmentations"][0]["segmentation_version"],
+            "text_layer":{"record_ref":LAYER_REF,"record_sha256":layer_sha,
+                "layer_id":layer["layer_id"],"layer_version":layer["layer_version"]},
+            "source_record_refs":{"work":"ToS/source-witnesses/works/synthetic-native-binding/work.json",
+                "expression":"ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/expression.json",
+                "edition":"ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/edition.json",
+                "item":"ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/items/synthetic-item/item.json"}}))
+    };
+    let origin = "synthetic-two-flame-sign-source-origin";
+    let native_selection = json!([
+        {"binding":native_binding(0)?,"origin_id":origin,"read_scope":"exact_public"},
+        {"binding":native_binding(1)?,"origin_id":origin,"read_scope":"exact_public"}
+    ]);
+    let files = super::command_text_cases::authored_text_files(&public_root);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    let store = root.join("sign-fixture-cut");
+    let revision = super::validation_cut_cases::write_cut_store(&files, &store);
+    let cut = super::command_form_cases::open_cut(&store, revision, deadline, &cancelled);
+    let mut worker = super::command_form_cases::schemas(&cut, deadline, &cancelled);
+    let mut reader = FrozenPublicRead(files);
+    let mut unit_refs = Vec::new();
+    for index in 0..2 {
+        let binding = native_binding(index)?;
+        let exact = tos_command::resolve_public_native_assessment_for_conformance(
+            &mut reader,
+            &mut worker,
+            &foundation_value(&binding)?,
+            origin,
+            tos_command::PublicNativeReadScopeForConformance::PublicContent,
+            deadline,
+            &cancelled,
+        )
+        .map_err(invalid_data)?;
+        let records = exact
+            .records
+            .iter()
+            .map(serde_value)
+            .collect::<io::Result<Vec<_>>>()?;
+        unit_refs.push(native_record_ref(
+            &records,
+            packet["units"][index]["unit_id"].as_str().unwrap(),
+        )?);
+    }
+    use tos_validation::source_cut::CutSchemaExecutor;
+    worker
+        .finish(deadline, &cancelled)
+        .map_err(|e| invalid_data(format!("{e:?}")))?;
+
+    let occurrence_records = OCCURRENCES.iter().enumerate().map(|(index,id)| -> io::Result<Value> {
+        let offset = if index == 0 { 13 } else { 62 };
+        Ok(json!({"schema_version":"tos_occurrence_description_record_v1","record_type":"occurrence",
+            "record_id":id,"record_version":1,"preferred_label":"flame",
+            "field_languages":{"preferred_label":{"language":"en","script":"Latn"},
+                "notes":{"language":"en","script":"Latn"}},
+            "identity_status":"provisional","source_refs":[PACKET_REF],"external_identifiers":[],
+            "same_as_posture":"no_equivalence_claim","visibility":"public_metadata_only",
+            "notes":"Two-flame source fixture occurrence; no historical or general semantic claim.",
+            "semantic_scope":{"scope_note":"One exact synthetic occurrence only.",
+                "identity_criterion":"This identity is bound to the exact native unit, not to shared spelling.",
+                "language":"en","script":"Latn"},
+            "semantic_content":{"language":"en","script":"Latn",
+                "occurrence_account":format!("Literal word flame at source offset {offset}."),
+                "context_account":if index==0 {"Dawn line, paired only with the named dusk occurrence."} else {"Dusk line, paired only with the named dawn occurrence."}},
+            "native_text_binding":native_binding(index)?,"supersedes_ref":null}))
+    }).collect::<io::Result<Vec<Value>>>()?;
+    let candidate = json!({"schema_version":"tos_source_occurrence_motif_claim_v1",
+        "claim_id":CANDIDATE,"claim_type":"relation","assertion_layer":"semantic_interpretation",
+        "subject_ref":OCCURRENCES[0],"predicate":"occurrence_motif_proposal",
+        "object":{"kind":"motif-proposal","members":OCCURRENCES,
+            "proposed_signification":"Across this pair, the repeated flame carries a remembered promise into an open question. The candidate is a motif of continuity under change, bounded to these two synthetic occurrences.",
+            "grouping_basis":"The exact repeated word flame, its dawn/dusk pairing, and the promise/question contrast.",
+            "source_scope":"Only the two named public-synthetic occurrences in this exact source packet.",
+            "contrast":"They may be two separate literal flame images with no stable symbolism; the second line questions an answer without establishing a general signification.",
+            "limitations":"No historical, Nietzsche, tradition, translation, truth, canon, or publication generalization.",
+            "source_wording":{"wording_kind":"research_paraphrase",
+                "text":"A bounded proposal of flame continuity under change.","language":"en","script":"Latn"}},
+        "evidence_refs":[PACKET_REF],"maker":{"agent_ref":"software:two-flame-sign-fixture-builder","maker_type":"software"},
+        "provenance_event_ref":"tos.event.fixture.flame-sign-claim","epistemic_status":"inferred",
+        "review_status":"unreviewed","claim_version":1,"visibility":"public_metadata_only",
+        "qualifiers":{"statement":"A bounded proposal that the repeated flame carries a remembered promise into an open question.",
+            "statement_language":"en","statement_script":"Latn"}});
+    let source_path = CLAIM_PATH.to_owned();
+    let occurrence_paths = [
+        "ToS/source-witnesses/occurrences/synthetic-flame-1/occurrence.json",
+        "ToS/source-witnesses/occurrences/synthetic-flame-2/occurrence.json",
+    ];
+    for (path, row) in occurrence_paths.iter().zip(&occurrence_records) {
+        write_public_bytes(
+            &public_root.join(path),
+            &serde_json::to_vec(row).map_err(invalid_data)?,
+        )?;
+    }
+    let candidate_raw = serde_json::to_vec(&candidate).map_err(invalid_data)?;
+    write_public_bytes(
+        &public_root.join(&source_path),
+        &[candidate_raw, vec![b'\n']].concat(),
+    )?;
+
+    let candidate_ref = record_ref(CANDIDATE, 1, &candidate)?;
+    let occurrence_refs = occurrence_records
+        .iter()
+        .zip(OCCURRENCES)
+        .map(|(row, id)| record_ref(id, 1, row))
+        .collect::<io::Result<Vec<_>>>()?;
+    let policy_raw =
+        fs::read(repository.join("ToS/doctrine/semantic-interchange/assessment-policy.v3.json"))?;
+    let policy_payload: Value = serde_json::from_slice(&policy_raw).map_err(invalid_data)?;
+    let policy_ref = record_ref("tos.policy.knowledge-assessment", 3, &policy_payload)?;
+    let policy = envelope(
+        "tos.policy.knowledge-assessment",
+        3,
+        policy_payload,
+        Value::Null,
+    );
+    let executor_payload =
+        json!({"procedure_ref":"fixture:source-check","model_ref":"fixture:not-a-real-model"});
+    let executor_ref = record_ref("tos.method.fixture-review", 1, &executor_payload)?;
+    let executor = envelope(
+        "tos.method.fixture-review",
+        1,
+        executor_payload,
+        Value::Null,
+    );
+    let calibration_payload = json!({"synthetic":true,"fixture_only":true});
+    let calibration_ref = record_ref("tos.review.fixture-calibration", 1, &calibration_payload)?;
+    let calibration = envelope(
+        "tos.review.fixture-calibration",
+        1,
+        calibration_payload,
+        Value::Null,
+    );
+    let competence_id = "tos.competence.agent-codex-tos-foundation";
+    let competence_payload = json!({"schema_version":"tos_knowledge_assessment_competence_v1",
+        "competence_id":competence_id,"competence_version":1,"actor_id":"agent:codex-tos-foundation",
+        "assertion_layers":["semantic_interpretation"],"languages":["en"],"profile_ids":["sign-promotion"],
+        "execution_profiles":[executor_ref],"state":"verified","valid_from":START,"valid_until":END,
+        "evidence_refs":[calibration_ref],"issuer_ref":"fixture:simulated-competence-grant"});
+    let competence_ref = record_ref(competence_id, 1, &competence_payload)?;
+    let competence = envelope(competence_id, 1, competence_payload, Value::Null);
+    let authority_id = "tos.authority.agent-codex-tos-foundation";
+    let authority_payload = json!({"schema_version":"tos_knowledge_assessment_authority_v1",
+        "authority_id":authority_id,"authority_version":1,"actor_id":"agent:codex-tos-foundation","actor_kind":"agent",
+        "policy":policy_ref,"profile_ids":["sign-promotion"],"assertion_layers":["semantic_interpretation"],
+        "languages":["en"],"uses":["sign-promotion"],"subject_prefixes":["tos.claim.fixture.flame-continuity-under-change"],
+        "decisions":["admit","admit-with-limits","reject","dispute","defer","withdraw"],
+        "competence_refs":[competence_ref],"independence_group":"agent:codex-tos-foundation","can_supersede_others":false,
+        "state":"active","valid_from":START,"valid_until":END,"issuer_ref":"fixture:simulated-operator-grant"});
+    let authority_ref = record_ref(authority_id, 1, &authority_payload)?;
+    let authority = envelope(authority_id, 1, authority_payload, Value::Null);
+    let assessment = json!({"schema_version":"tos_knowledge_assessment_v1","assessment_id":"tos.review.fixture.flame-continuity-under-change",
+        "subject":candidate_ref,"policy":policy_ref,"profile_id":"sign-promotion","authority":authority_ref,
+        "competence":competence_ref,"reviewer":{"actor_id":"agent:codex-tos-foundation","kind":"agent"},
+        "decision":"admit-with-limits",
+        "rationale":"The repeated flame supports a bounded continuity-under-change interpretation across dawn and dusk. The phrase 'carries a remembered promise into an open question' is interpretive, not a factual event stated by the text.",
+        "language":"en","evidence":[
+            {"record":occurrence_refs[0],"stance":"supports","locator":"Exact native text unit for the dawn occurrence."},
+            {"record":occurrence_refs[1],"stance":"supports","locator":"Exact native text unit for the dusk occurrence."}],
+        "counterevidence_search":{"status":"searched","note":"Fixture-local source-visible review retained the counterreading of two separate literal flame images with no stable symbolism."},
+        "limits":["Only these two public-synthetic occurrences.","The carries-into wording is interpretive, not a factual text event.",
+            "No historical, Nietzsche, tradition, translation, truth, canon, or publication claim."],
+        "method":{"procedure_ref":"fixture:source-check","invocation_ref":"fixture:no-real-invocation","model_ref":"fixture:not-a-real-model","execution_profile":executor_ref},
+        "issued_at":NOW,"supersedes":[]});
+    let mut subjects = serde_json::Map::new();
+    subjects.insert(
+        CANDIDATE.to_owned(),
+        json!({"record":candidate_ref,"assertion_layer":"semantic_interpretation",
+        "risk":"moderate","languages":["en"],"maker_id":"software:two-flame-sign-fixture-builder",
+        "requested_use":"sign-promotion","access_allowed":true}),
+    );
+    let unit_maker = packet["segmentations"][0]["maker"]["agent_ref"].clone();
+    for (index, binding) in [native_binding(0)?, native_binding(1)?].iter().enumerate() {
+        let unit_id = binding["unit_id"]
+            .as_str()
+            .ok_or_else(|| invalid_data("native unit identity absent"))?;
+        let unit_ref = unit_refs
+            .get(index)
+            .ok_or_else(|| invalid_data("native unit reference absent"))?
+            .clone();
+        subjects.insert(
+            unit_id.to_owned(),
+            json!({"record":unit_ref,"assertion_layer":"textual_observation",
+            "risk":"low","languages":["en"],"maker_id":unit_maker.clone(),
+            "requested_use":"research","access_allowed":true}),
+        );
+    }
+    let source_records = std::iter::once(
+        json!({"path":source_path.clone(),"record_id":CANDIDATE,"origin_id":origin}),
+    )
+    .chain(
+        OCCURRENCES
+            .into_iter()
+            .zip(occurrence_paths)
+            .map(|(id, path)| json!({"path":path,"record_id":id,"origin_id":origin})),
+    )
+    .collect::<Vec<_>>();
+    let assessment_owner_config = json!({"schema_version":"tos_local_assessment_owner_v3","uid":fs::metadata(root)?.uid(),
+        "principal_id":"agent:codex-tos-foundation","execution_profile":executor_ref,"policy":policy,
+        "authorities":[authority],"competencies":[competence],"records":[calibration,executor],
+        "journal_directory":root.join("sign-assessment-journal"),"source_root":public_root,
+        "source_records":source_records,"native_text_units":native_selection,"subjects":subjects});
+    let assessment_journal = root.join("sign-assessment-journal");
+    secure_dir(&assessment_journal)?;
+    let assessment_owner_config_path = root.join("sign-assessment-owner.json");
+    write_private_json(&assessment_owner_config_path, &assessment_owner_config)?;
+    let private_root = root.join("unused-private-boundary");
+    secure_dir(&private_root)?;
+    let context = owner_context(&public_root, &private_root);
+    let assessment_owner_context_path = root.join("sign-assessment-context.json");
+    write_private_json(&assessment_owner_context_path, &context)?;
+    let sign_record = json!({"schema_version":"tos_sign_description_record_v1","record_type":"sign",
+        "record_id":"tos.sign.fixture.flame-continuity-under-change","record_version":1,
+        "preferred_label":"Flame continuity under change","identity_status":"provisional",
+        "source_refs":[source_path],"external_identifiers":[],"same_as_posture":"no_equivalence_claim",
+        "notes":"Bounded candidate for the two named synthetic flame occurrences: a remembered promise carried into an open question. This remains an interpretation of this pair only; it makes no historical, Nietzsche, tradition, translation, truth, canon, or publication claim.",
+        "field_languages":{"preferred_label":{"language":"en","script":"Latn"},"notes":{"language":"en","script":"Latn"}},
+        "visibility":"public_metadata_only","promotion_basis":null});
+    let forms = vec![
+        json!({"form_id":"tos.form.synthetic-sign.flame-continuity.name","field_id":"metadata.preferred-name"}),
+        json!({"form_id":"tos.form.synthetic-sign.flame-continuity.note","field_id":"metadata.source-note"}),
+    ];
+    let sign_owner_config = json!({"schema_version":"tos_local_sign_promote_owner_v1","uid":fs::metadata(root)?.uid(),
+        "principal_id":"software:synthetic-sign-writer","maker_type":"software",
+        "source_root":public_root,"source_path":"ToS/source-witnesses/signs/flame-continuity/sign.json",
+        "record_id":"tos.sign.fixture.flame-continuity-under-change","provenance_event_id":"tos.event.fixture.flame-sign-issuance",
+        "authority_ref":"fixture:separate-synthetic-sign-issuance-grant","expires_at":END,
+        "allowed_operations":["sign.promote"],"allowed_form_ids":[forms[0]["form_id"],forms[1]["form_id"]],
+        "promotion_assessment_owner_config":assessment_owner_config_path,
+        "promotion_candidate_id":CANDIDATE,"profile_type_id":"tos.entity.sign"});
+    let sign_owner_config_path = root.join("sign-owner.json");
+    write_private_json(&sign_owner_config_path, &sign_owner_config)?;
+    let occurrence_ids = [OCCURRENCES[0].to_owned(), OCCURRENCES[1].to_owned()];
+    Ok(NativePublicSignFixture {
+        public_root,
+        assessment_owner_config_path,
+        assessment_owner_context_path,
+        sign_owner_config_path,
+        candidate_id: CANDIDATE.to_owned(),
+        occurrence_ids,
+        source_text,
+        assessment,
+        sign_record,
+        forms,
+        source_path,
+    })
 }
 
 /// Construct the read-batch fixture: one pending freeform form and six ready-

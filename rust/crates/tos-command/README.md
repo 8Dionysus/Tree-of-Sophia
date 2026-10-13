@@ -297,6 +297,15 @@ reopens it and returns the selected complete generation. It does not grant
 source admission, publication or canon authority. Bootstrap resumption after a
 partial import is unsupported; the selected store and domain must be unused.
 
+Mixed source bootstrap selects the existing owner for Global, Growth, Item and
+historical Claims, including their retained forms and history. The ten older
+nonhistorical `*-claims.jsonl` families use an explicit `imported_read_only`
+contribution that preserves source locators, line numbers, claim digests and
+catalog fields. Import does not invent a creation receipt or turn a recorded
+rights assertion into an access grant. Private and `local-content` members keep
+their exact custody while contributing no public records, events, anchors or
+forms.
+
 For a larger exact cut, the separate
 `tos_local_pg_source_bootstrap_streamed_invocation_v1` profile streams the
 selected revision without requiring a current pointer and retains only one
@@ -307,6 +316,10 @@ refused, and the result reports `bootstrap_resume_supported: false`.
 Its validated `generation.max_elapsed_seconds` also bounds the streamed
 command's cooperative whole-invocation deadline; an enclosing supervisor may
 apply a stricter wall-clock limit.
+Claim projection reads each owner's bounded current package, referenced
+archives and schema inputs. The completed disk identity pass supplies the
+corpus-wide identity checks; reading one Claim does not collect the whole
+source-witness subtree into memory.
 The result also exposes a finite `logical_source_work` object: returned original,
 current and software body counts/bytes, fresh-bootstrap PG field/row counters,
 authenticated-tree logical read/write/allocated bytes, and private derived-index

@@ -621,6 +621,13 @@ fn current_claim_rows(
     Ok(rows)
 }
 
+fn is_current_mixed_claim_stream_path(path: &str) -> bool {
+    crate::source_creation_store::is_growth_claim_stream_path(path)
+        || (path.starts_with("ToS/source-witnesses/relations/")
+            && path.ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM))
+            && path.split('/').count() == 5)
+}
+
 fn stage_current_mixed_identities(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
     profile: &crate::source_claims::AgentInventoryAssessmentProfile,
@@ -663,16 +670,55 @@ fn stage_current_mixed_identities(
             deadline,
             cancelled,
         )?;
-        if member.path.starts_with("ToS/source-witnesses/relations/")
-            && member
-                .path
-                .ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM))
-        {
-            if member.path.split('/').count() != 5 {
-                return Err(DurableError::Refused(
-                    "streamed Claim path is not a maintained home",
-                ));
+        if crate::source_claims::is_imported_legacy_claim_path(&member.path) {
+            for id in crate::source_claims::imported_legacy_claim_identity_rows(&file)
+                .map_err(source_error)?
+            {
+                let mut index = index.borrow_mut();
+                let mut work = work.borrow_mut();
+                index.add_identity(SourceIdentityKind::Claim, &id, &member.path, &mut **work)?;
+                index_owned_key(
+                    &mut **index,
+                    "claim",
+                    &id,
+                    &member.path,
+                    &mut **work,
+                    deadline,
+                    cancelled,
+                )?;
             }
+            after = Some(member.path);
+            count = count
+                .checked_add(1)
+                .ok_or(DurableError::Refused("streamed first pass count overflow"))?;
+            continue;
+        }
+        if crate::source_claims::is_historical_claim_stream_path(&member.path) {
+            for id in
+                crate::source_claims::historical_claim_identity_rows(&file).map_err(source_error)?
+            {
+                let mut index = index.borrow_mut();
+                let mut work = work.borrow_mut();
+                index.add_identity(SourceIdentityKind::Claim, &id, &member.path, &mut **work)?;
+                index_owned_key(
+                    &mut **index,
+                    "claim",
+                    &id,
+                    &member.path,
+                    &mut **work,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+            after = Some(member.path);
+            count = count
+                .checked_add(1)
+                .ok_or(DurableError::Refused("streamed first pass count overflow"))?;
+            continue;
+        }
+        if is_current_mixed_claim_stream_path(&member.path)
+            || super::is_item_claim_stream(&member.path)
+        {
             for (id, _) in current_claim_rows(&file).map_err(source_error)? {
                 let mut index = index.borrow_mut();
                 let mut work = work.borrow_mut();
@@ -702,6 +748,7 @@ fn stage_current_mixed_identities(
                         (SourceIdentityKind::Metadata, "metadata")
                     }
                     AgentInventoryIdentityKind::Form => (SourceIdentityKind::Form, "form"),
+                    AgentInventoryIdentityKind::Claim => (SourceIdentityKind::Claim, "claim"),
                 };
                 let mut index = index.borrow_mut();
                 let mut work = work.borrow_mut();
@@ -870,98 +917,202 @@ fn add_current_member(
     Ok(())
 }
 
-fn collect_current_subtree(
-    epoch: &mut StreamedSourceReadEpoch<'_, '_>,
-    directory: &str,
-    schema_files_only: bool,
-    members: &mut BTreeMap<String, SourceFile>,
-    total_bytes: &mut usize,
-    depth: usize,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> DurableResult<()> {
-    if depth > 32 {
-        return Err(DurableError::Refused(
-            "streamed Claim closure directory depth",
-        ));
+fn historical_owner_direct_names(claim_ids: impl IntoIterator<Item = String>) -> BTreeSet<String> {
+    let mut names = BTreeSet::from([
+        "historical-claims.jsonl".to_owned(),
+        "claim-revision-history.json".to_owned(),
+        "source-create-request.json".to_owned(),
+        "source-create-receipt.json".to_owned(),
+        "source-create-environment.json".to_owned(),
+        "source-create-provenance.jsonl".to_owned(),
+    ]);
+    for id in claim_ids {
+        let hash = Digest256::of_bytes(id.as_bytes()).to_hex();
+        let form = format!("historical-claims.{hash}.human-forms.json");
+        names.insert(form.clone());
+        names.insert(format!(".{form}.writer.lock"));
     }
-    let children = epoch
-        .list_directory(directory, deadline, cancelled)
-        .map_err(source_error)?;
-    for (name, is_directory) in children {
-        active(deadline, cancelled)?;
-        let child = format!("{directory}/{name}");
-        if is_directory {
-            collect_current_subtree(
-                epoch,
-                &child,
-                schema_files_only,
-                members,
-                total_bytes,
-                depth + 1,
-                deadline,
-                cancelled,
-            )?;
-        } else if !schema_files_only || child.ends_with(".schema.json") {
-            add_current_member(epoch, members, &child, total_bytes, deadline, cancelled)?;
-        }
-    }
-    Ok(())
+    names
 }
 
-/// Construct the bounded full source-witness cut needed by maintained Claim
-/// identity semantics. It is selected from current PG membership; the
-/// selected-closure parser deliberately produces no global snapshot claim.
+fn selected_claim_archive_paths(history_files: &[SourceFile]) -> DurableResult<BTreeSet<String>> {
+    let mut archives = BTreeSet::new();
+    for history_file in history_files {
+        let history = cmd::parse(&history_file.raw).map_err(source_error)?;
+        let receipts = cmd::array(&history, "receipts").map_err(source_error)?;
+        for receipt in receipts {
+            if let Some(archive) = receipt.object_get("archive_path").and_then(|v| v.as_str()) {
+                RelativePath::parse(archive)
+                    .map_err(|_| DurableError::Corrupt("streamed Claim archive path"))?;
+                if !archive.starts_with("ToS/source-witnesses/.record-revisions/") {
+                    return Err(DurableError::Corrupt(
+                        "streamed Claim archive is outside retained owner storage",
+                    ));
+                }
+                archives.insert(archive.to_owned());
+            }
+        }
+    }
+    if archives.len() > 128 {
+        return Err(DurableError::Refused("streamed Claim archive count bound"));
+    }
+    Ok(archives)
+}
+
+/// Construct one bounded current owner package for a selected Claim stream.
+/// It reads only direct members of that owner home, exact retained archive
+/// references, the already-validated profile, and the historical owner's
+/// narrow contract set. Sibling historical records and recursive payloads
+/// never enter this context.
 fn current_claim_context(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    stream_path: &str,
+    profile: &crate::source_claims::AgentInventoryAssessmentProfile,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<CommandContext> {
     let mut selected = BTreeMap::new();
     let mut total_bytes = 0usize;
-    collect_current_subtree(
-        epoch,
-        "ToS/source-witnesses",
-        false,
-        &mut selected,
-        &mut total_bytes,
-        0,
-        deadline,
-        cancelled,
-    )?;
-    collect_current_subtree(
-        epoch,
-        "ToS/contracts",
-        true,
-        &mut selected,
-        &mut total_bytes,
-        0,
-        deadline,
-        cancelled,
-    )?;
-    for path in [
-        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-    ] {
+    let mut homes = BTreeSet::new();
+    let home = stream_path
+        .rsplit_once('/')
+        .map(|(home, _)| home)
+        .ok_or(DurableError::Corrupt("streamed Claim owner home"))?;
+    homes.insert(home.to_owned());
+    if super::is_item_claim_stream(stream_path) {
+        let (edition_home, _) = home
+            .rsplit_once("/items/")
+            .ok_or(DurableError::Corrupt("streamed Item parent Edition home"))?;
+        homes.insert(edition_home.to_owned());
+    }
+
+    for file in crate::source_claims::pg_inventory::claim_profile_source_files(profile) {
+        total_bytes = total_bytes
+            .checked_add(file.raw.len())
+            .filter(|bytes| *bytes <= cmd::SELECTED_SOURCE_MAX_BYTES)
+            .ok_or(DurableError::Refused("streamed Claim profile byte bound"))?;
+        selected.insert(file.path.as_str().to_owned(), file);
+    }
+
+    let historical = crate::source_claims::is_historical_claim_stream_path(stream_path);
+    let historical_direct_names = if historical {
+        let raw = epoch
+            .read(stream_path, 1_048_576, deadline, cancelled)
+            .map_err(source_error)?;
+        let path = RelativePath::parse(stream_path)
+            .map_err(|_| DurableError::Corrupt("streamed historical Claim path"))?;
+        let stream = SourceFile { path, raw };
+        historical_owner_direct_names(
+            crate::source_claims::historical_claim_identity_rows(&stream).map_err(source_error)?,
+        )
+    } else {
+        BTreeSet::new()
+    };
+
+    let mut selected_stream = false;
+    for directory in homes {
+        let children = epoch
+            .list_directory(&directory, deadline, cancelled)
+            .map_err(source_error)?;
+        if children.len() > 1024 {
+            return Err(DurableError::Refused(
+                "streamed Claim owner direct-member count bound",
+            ));
+        }
+        for (name, is_directory) in children {
+            active(deadline, cancelled)?;
+            if is_directory {
+                continue;
+            }
+            let path = format!("{directory}/{name}");
+            if path == stream_path {
+                selected_stream = true;
+            }
+            if historical && directory == home {
+                if !historical_direct_names.contains(&name) {
+                    continue;
+                }
+            }
+            add_current_member(
+                epoch,
+                &mut selected,
+                &path,
+                &mut total_bytes,
+                deadline,
+                cancelled,
+            )?;
+        }
+    }
+    if !selected_stream {
+        return Err(DurableError::Corrupt("streamed Claim owner stream absent"));
+    }
+
+    // Historical schemas, registries, form templates and the small shared
+    // profile closure are selected by the maintained owner route.
+    if historical {
+        for path in crate::source_native_cli::pg_historical_claim_required_contract_paths() {
+            add_current_member(
+                epoch,
+                &mut selected,
+                &path,
+                &mut total_bytes,
+                deadline,
+                cancelled,
+            )?;
+        }
+    }
+
+    // Retained archive reads are driven only by manifests named in the exact
+    // selected package histories. No archive directory is traversed.
+    let history_files = selected
+        .values()
+        .filter(|file| {
+            matches!(
+                file.path.as_str().rsplit('/').next(),
+                Some("claim-revision-history.json" | "source-revision-history.json")
+            )
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let archives = selected_claim_archive_paths(&history_files)?;
+    for archive in archives {
+        let manifest_path = format!("{archive}/manifest.json");
         add_current_member(
             epoch,
             &mut selected,
-            path,
+            &manifest_path,
             &mut total_bytes,
             deadline,
             cancelled,
         )?;
+        let manifest_file = selected.get(&manifest_path).ok_or(DurableError::Corrupt(
+            "streamed Claim archive manifest absent",
+        ))?;
+        let manifest = cmd::parse(&manifest_file.raw).map_err(source_error)?;
+        let files = cmd::field(&manifest, "files")
+            .map_err(source_error)?
+            .as_object()
+            .ok_or(DurableError::Corrupt(
+                "streamed Claim archive manifest files",
+            ))?;
+        for (_, binding) in files {
+            let blob = cmd::text(binding, "blob").map_err(source_error)?;
+            if blob.is_empty() || blob.contains('/') || RelativePath::parse(blob).is_err() {
+                return Err(DurableError::Corrupt("streamed Claim archive blob path"));
+            }
+            let blob_path = format!("{archive}/{blob}");
+            add_current_member(
+                epoch,
+                &mut selected,
+                &blob_path,
+                &mut total_bytes,
+                deadline,
+                cancelled,
+            )?;
+        }
     }
+
     let authored = selected.into_values().collect::<Vec<_>>();
-    crate::source_claims::maintained_selected_identity_closure(
-        epoch.context,
-        &authored,
-        worker,
-        deadline,
-        cancelled,
-    )
-    .map_err(source_error)?;
 
     let mut files = authored;
     files.extend(
@@ -1051,8 +1202,15 @@ fn render_current_claim_projection(
     cancelled: &AtomicBool,
 ) -> DurableResult<Vec<u8>> {
     let location = file.path.as_str();
-    let is_stream = location.ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM));
-    let owner_path = if is_stream {
+    let historical_stream = crate::source_claims::is_historical_claim_stream_path(location);
+    let historical_form_stream = crate::source_claims::historical_claim_form_stream_path(location);
+    let is_stream = location.ends_with(&format!("/{}", crate::source_claims::CLAIM_STREAM))
+        || historical_stream;
+    let owner_path = if historical_stream {
+        location.to_owned()
+    } else if let Some(stream) = historical_form_stream {
+        stream
+    } else if is_stream {
         location.to_owned()
     } else {
         let parent = location
@@ -1066,15 +1224,22 @@ fn render_current_claim_projection(
         .iter()
         .find(|selected| selected.path.as_str() == owner_path)
         .ok_or(DurableError::Corrupt("streamed Claim owner stream absent"))?;
-    let owner = crate::source_claims::pg_inventory::claim_owner_contribution(
-        context, owner_file, worker, deadline, cancelled,
-    )
-    .map_err(source_error)?;
+    let owner = if crate::source_claims::is_historical_claim_stream_path(&owner_path) {
+        crate::source_claims::pg_inventory::historical_claim_owner_contribution_from_profile(
+            context, owner_file, profile, worker, deadline, cancelled,
+        )
+        .map_err(source_error)?
+    } else {
+        crate::source_claims::pg_inventory::claim_owner_contribution(
+            context, owner_file, worker, deadline, cancelled,
+        )
+        .map_err(source_error)?
+    };
 
     let mut form = tos_foundation::JsonValue::Null;
     if !is_stream {
-        form = crate::source_claims::pg_inventory::claim_form_contribution(
-            context, file, worker, deadline, cancelled,
+        form = crate::source_claims::pg_inventory::claim_form_contribution_with_validated_profile(
+            context, file, profile, worker, deadline, cancelled,
         )
         .map_err(source_error)?;
     }
@@ -1201,6 +1366,7 @@ fn render_current_mixed_projections(
     let mut after = None::<String>;
     let mut count = 0u64;
     let mut claim_context = None::<CommandContext>;
+    let mut claim_context_path = None::<String>;
     let mut claim_source_profiles = None::<tos_foundation::JsonValue>;
     let mut text_identity_candidates = BTreeMap::new();
     let mut text_identity_candidate_bytes = 0usize;
@@ -1329,28 +1495,100 @@ fn render_current_mixed_projections(
         let index = epoch.index;
         let work = epoch.index_work;
         let location = member.path.as_str();
-        let parts = location.split('/').collect::<Vec<_>>();
-        let claim_stream = parts.len() == 5
-            && parts[..3] == ["ToS", "source-witnesses", "relations"]
-            && parts[4] == crate::source_claims::CLAIM_STREAM;
-        let claim_form = parts.len() == 5
-            && parts[..3] == ["ToS", "source-witnesses", "relations"]
-            && parts[4].starts_with("source-claims.")
-            && parts[4].ends_with(".human-forms.json");
-        let mut projection = if claim_stream || claim_form {
-            if claim_context.is_none() {
-                claim_context = Some(current_claim_context(epoch, worker, deadline, cancelled)?);
+        let basename = location.rsplit('/').next().unwrap_or(location);
+        let historical_claim_stream =
+            crate::source_claims::is_historical_claim_stream_path(location);
+        let historical_claim_form_stream =
+            crate::source_claims::historical_claim_form_stream_path(location);
+        let claim_stream = is_current_mixed_claim_stream_path(location)
+            || super::is_item_claim_stream(location)
+            || historical_claim_stream;
+        let imported_legacy_claim_stream =
+            crate::source_claims::is_imported_legacy_claim_path(location);
+        let claim_form =
+            basename.starts_with("source-claims.") && basename.ends_with(".human-forms.json");
+        let claim_owner_stream = if claim_stream || imported_legacy_claim_stream {
+            Some(location.to_owned())
+        } else if let Some(stream) = historical_claim_form_stream {
+            Some(stream)
+        } else if claim_form {
+            location
+                .rsplit_once('/')
+                .map(|(parent, _)| format!("{parent}/{}", crate::source_claims::CLAIM_STREAM))
+                .filter(|path| {
+                    is_current_mixed_claim_stream_path(path) || super::is_item_claim_stream(path)
+                })
+        } else {
+            None
+        };
+        let mut growth_contributions = None;
+        let mut is_global_claim_owner = false;
+        if let Some(stream_path) = claim_owner_stream.as_deref() {
+            if claim_context_path.as_deref() != Some(stream_path) {
+                claim_context = Some(current_claim_context(
+                    epoch,
+                    stream_path,
+                    profile,
+                    deadline,
+                    cancelled,
+                )?);
+                claim_context_path = Some(stream_path.to_owned());
             }
+            let context = claim_context
+                .as_ref()
+                .ok_or(DurableError::Corrupt("streamed Claim context absent"))?;
+            growth_contributions =
+                crate::source_creation_store::current_pg_growth_owner_contributions(
+                    context,
+                    stream_path,
+                )?;
+            is_global_claim_owner =
+                !crate::source_claims::is_historical_claim_stream_path(stream_path)
+                    && super::is_global_claim_stream(context, stream_path)?;
+        }
+        let is_item_claim_owner = claim_stream && super::is_item_claim_stream(location);
+        let is_historical_claim_owner = claim_owner_stream
+            .as_deref()
+            .is_some_and(crate::source_claims::is_historical_claim_stream_path);
+        let growth_member = growth_contributions
+            .as_ref()
+            .and_then(|contributions| contributions.get(location));
+        let mut projection = if let Some(contribution) = growth_member {
+            cmd::canonical(contribution).map_err(source_error)?
+        } else if is_item_claim_owner {
+            let context = claim_context
+                .as_ref()
+                .ok_or(DurableError::Corrupt("streamed Item Claim context absent"))?;
+            cmd::canonical(&super::item_claim_owner_contribution(context, location)?)
+                .map_err(source_error)?
+        } else if is_global_claim_owner {
             if claim_source_profiles.is_none() {
                 claim_source_profiles = Some(
-                    crate::source_claims::pg_inventory::claim_profile_sources(
-                        claim_context
-                            .as_ref()
-                            .ok_or(DurableError::Corrupt("streamed Claim context absent"))?,
-                        worker,
-                        deadline,
-                        cancelled,
-                    )
+                    crate::source_claims::pg_inventory::
+                        claim_profile_sources_from_validated_profile(profile)
+                    .map_err(source_error)?,
+                );
+            }
+            render_current_claim_projection(
+                epoch,
+                profile,
+                claim_context
+                    .as_ref()
+                    .ok_or(DurableError::Corrupt("streamed Claim context absent"))?,
+                claim_source_profiles
+                    .as_ref()
+                    .ok_or(DurableError::Corrupt("streamed Claim profile absent"))?,
+                &file,
+                worker,
+                limits,
+                deadline,
+                cancelled,
+            )?
+        } else if is_historical_claim_owner {
+            if claim_source_profiles.is_none() {
+                claim_source_profiles = Some(
+                    crate::source_claims::pg_inventory::
+                        claim_profile_sources_from_validated_profile(profile)
                     .map_err(source_error)?,
                 );
             }
@@ -1407,6 +1645,22 @@ fn render_current_mixed_projections(
             )
             .map_err(source_error)?
         };
+        if imported_legacy_claim_stream {
+            let context = claim_context.as_ref().ok_or(DurableError::Corrupt(
+                "streamed imported Claim context absent",
+            ))?;
+            let mut value = cmd::parse(&projection).map_err(source_error)?;
+            cmd::set(
+                &mut value,
+                "claim_owner",
+                crate::source_claims::pg_inventory::imported_legacy_claim_owner_contribution(
+                    context, &file,
+                )
+                .map_err(source_error)?,
+            )
+            .map_err(source_error)?;
+            projection = cmd::canonical(&value).map_err(source_error)?;
+        }
         if let Some(owner) = public_text_contributions.get(&member.path) {
             let fingerprint = (Digest256::of_bytes(&file.raw), file.raw.len() as u64);
             if public_text_fingerprints.get(&member.path) != Some(&fingerprint) {
@@ -1495,6 +1749,66 @@ fn render_current_mixed_projections(
                 return Err(DurableError::Corrupt(
                     "duplicate streamed Claim navigation source path",
                 ));
+            }
+            if claim_stream && growth_contributions.is_some() {
+                let context = claim_context.as_ref().ok_or(DurableError::Corrupt(
+                    "streamed Growth Claim context absent",
+                ))?;
+                let owner = growth_contributions
+                    .as_ref()
+                    .and_then(|contributions| contributions.get(location))
+                    .and_then(|contribution| contribution.object_get("claim_owner"))
+                    .ok_or(DurableError::Corrupt("streamed Growth Claim owner absent"))?;
+                let direct_members = owner
+                    .object_get("direct_members")
+                    .and_then(tos_foundation::JsonValue::as_array)
+                    .ok_or(DurableError::Corrupt(
+                        "streamed Growth Claim owner members absent",
+                    ))?;
+                for row in direct_members {
+                    let role = row
+                        .object_get("role")
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        .ok_or(DurableError::Corrupt(
+                            "streamed Growth Claim owner role absent",
+                        ))?;
+                    if !matches!(
+                        role,
+                        "creation-request"
+                            | "creation-environment"
+                            | "creation-event"
+                            | "creation-receipt"
+                            | "revision-history"
+                    ) {
+                        continue;
+                    }
+                    let owner_path = row
+                        .object_get("ref")
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        .ok_or(DurableError::Corrupt(
+                            "streamed Growth Claim owner ref absent",
+                        ))?;
+                    let raw = context
+                        .files
+                        .iter()
+                        .find(|source| source.path.as_str() == owner_path)
+                        .map(|source| source.raw.clone())
+                        .ok_or(DurableError::Corrupt(
+                            "streamed Growth Claim owner input absent",
+                        ))?;
+                    if claim_dependency_candidates.contains_key(owner_path) {
+                        continue;
+                    }
+                    claim_dependency_candidate_bytes = claim_dependency_candidate_bytes
+                        .checked_add(raw.len())
+                        .filter(|bytes| {
+                            *bytes <= crate::source_claim_dependency_index::MAX_TOTAL_CLAIM_BYTES
+                        })
+                        .ok_or(DurableError::Refused(
+                            "streamed Claim owner input aggregate byte bound exceeded",
+                        ))?;
+                    claim_dependency_candidates.insert(owner_path.to_owned(), raw);
+                }
             }
         }
         if crate::source_item_file_index::is_candidate_manifest_path(&member.path)
@@ -3131,5 +3445,52 @@ mod predicate_expectation_tests {
         index
             .finish_predicate_comparison(&mut work)
             .expect("require all current source predicates");
+    }
+}
+
+#[cfg(test)]
+mod bounded_claim_context_tests {
+    use super::*;
+
+    #[test]
+    fn bounded_historical_claim_context_selects_only_exact_package_and_referenced_archive() {
+        let claim_id = "tos.claim.synthetic".to_owned();
+        let direct = historical_owner_direct_names([claim_id.clone()]);
+        let form_hash = Digest256::of_bytes(claim_id.as_bytes()).to_hex();
+        assert!(direct.contains("historical-claims.jsonl"));
+        assert!(direct.contains(&format!("historical-claims.{form_hash}.human-forms.json")));
+        assert!(!direct.contains("historical-event.json"));
+        assert!(!direct.contains("historical-event.human-forms.json"));
+        assert!(!direct.contains("source-revision-history.json"));
+
+        let retained = "ToS/source-witnesses/.record-revisions/selected-history";
+        let unrelated = "ToS/source-witnesses/.record-revisions/unrelated-history";
+        let history = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_claim_revision_history_v1"),
+            ),
+            (
+                "source_path",
+                cmd::string("ToS/source-witnesses/history/example/historical-claims.jsonl"),
+            ),
+            (
+                "receipts",
+                tos_foundation::JsonValue::Array(vec![cmd::object(vec![(
+                    "archive_path",
+                    cmd::string(retained),
+                )])]),
+            ),
+        ]);
+        let history_file = SourceFile {
+            path: RelativePath::parse(
+                "ToS/source-witnesses/history/example/claim-revision-history.json",
+            )
+            .expect("history path"),
+            raw: cmd::canonical(&history).expect("canonical history"),
+        };
+        let selected = selected_claim_archive_paths(&[history_file]).expect("selected archives");
+        assert_eq!(selected, BTreeSet::from([retained.to_owned()]));
+        assert!(!selected.contains(unrelated));
     }
 }

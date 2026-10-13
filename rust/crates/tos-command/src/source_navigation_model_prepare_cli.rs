@@ -1000,7 +1000,7 @@ fn prepare_initial(
     let bootstrap_owner_path =
         super::absolute(super::text(&bootstrap_invocation, "owner_config")?)?;
     if bootstrap.selection.source_revision != bootstrap_source_revision
-        || Digest256::from_hex(super::text(&bootstrap_invocation, "source_revision")?)
+        || Digest256::from_prefixed(super::text(&bootstrap_invocation, "source_revision")?)
             .map_err(|_| SourceCommandError::Invalid("retained bootstrap source revision"))?
             != bootstrap_source_revision.0
         || bootstrap.selection.membership != source_membership

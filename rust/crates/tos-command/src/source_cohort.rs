@@ -1654,7 +1654,52 @@ fn inventory_projections_for(
     let has_global_claims = authored_members.iter().try_fold(false, |found, file| {
         Ok::<_, DurableError>(found || is_global_claim_stream(ctx, file.path.as_str())?)
     })?;
-    let inventory = if has_global_claims {
+    let mut growth_claim_contributions = BTreeMap::new();
+    for file in &authored_members {
+        let location = file.path.as_str();
+        if location.rsplit('/').next() != Some(source_claims::CLAIM_STREAM) {
+            continue;
+        }
+        if let Some(contributions) =
+            crate::source_creation_store::current_pg_growth_owner_contributions(ctx, location)?
+        {
+            for (path, contribution) in contributions {
+                if path == location
+                    || path.rsplit('/').next().is_some_and(|name| {
+                        name.starts_with("source-claims.") && name.ends_with(".human-forms.json")
+                    })
+                {
+                    if growth_claim_contributions
+                        .insert(path, contribution)
+                        .is_some()
+                    {
+                        return Err(DurableError::Corrupt(
+                            "PG Growth current Claim contribution repeats",
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    let has_imported_legacy_claims = authored_members.iter().any(|file| {
+        source_claims::is_imported_legacy_claim_path(file.path.as_str())
+            || source_claims::nonprojecting_custody_kind(file.path.as_str()).is_some()
+    });
+    let has_historical_claims = authored_members
+        .iter()
+        .any(|file| source_claims::is_historical_claim_stream_path(file.path.as_str()));
+    let has_managed_claim_owners =
+        has_global_claims || has_historical_claims || !growth_claim_contributions.is_empty();
+    let inventory = if has_imported_legacy_claims || has_historical_claims {
+        source_claims::maintained_inventory_from_members(
+            ctx,
+            &authored_members,
+            true,
+            worker,
+            deadline,
+            cancelled,
+        )
+    } else if has_managed_claim_owners {
         source_claims::maintained_global_claim_inventory_from_members(
             ctx,
             &authored_members,
@@ -1678,6 +1723,29 @@ fn inventory_projections_for(
             .map_err(|error| {
                 source_error_with_phase(error, "missing object field in Agent projection grouping")
             })?;
+    let mut historical_claim_owners = BTreeMap::new();
+    for file in authored_members
+        .iter()
+        .filter(|file| source_claims::is_historical_claim_stream_path(file.path.as_str()))
+    {
+        let owner = source_claims::pg_inventory::historical_claim_owner_contribution(
+            ctx, file, &grouped, worker, deadline, cancelled,
+        )
+        .map_err(|error| {
+            source_error_with_phase(
+                error,
+                "historical Claim owner projection differs from exact source package",
+            )
+        })?;
+        if historical_claim_owners
+            .insert(file.path.as_str().to_owned(), owner)
+            .is_some()
+        {
+            return Err(DurableError::Corrupt(
+                "historical Claim owner projection path repeats",
+            ));
+        }
+    }
     let mut projections = ProjectionRows::new();
     let mut projection_bytes = 0usize;
     for file in ctx.files.iter().filter(|file| {
@@ -1690,13 +1758,31 @@ fn inventory_projections_for(
         let form_owner_stream = location
             .rsplit_once('/')
             .map(|(parent, _)| format!("{parent}/{}", source_claims::CLAIM_STREAM));
+        let historical_owner_stream = if source_claims::is_historical_claim_stream_path(location) {
+            Some(location.to_owned())
+        } else {
+            source_claims::historical_claim_form_stream_path(location)
+        };
         let is_global_claim_form = match form_owner_stream.as_deref() {
             Some(path) if ctx.files.iter().any(|member| member.path.as_str() == path) => {
                 is_global_claim_stream(ctx, path)?
             }
             _ => false,
         };
-        let contribution = if has_global_claims
+        let contribution = if let Some(contribution) = growth_claim_contributions.get(location) {
+            contribution.clone()
+        } else if let Some(owner_stream) = historical_owner_stream.as_deref() {
+            let owner = historical_claim_owners.get(owner_stream);
+            source_claims::pg_inventory::historical_claim_inventory_contribution(
+                file, &grouped, owner, worker, deadline, cancelled,
+            )
+            .map_err(|error| {
+                source_error_with_phase(
+                    error,
+                    "historical Claim member projection differs from exact source package",
+                )
+            })?
+        } else if has_global_claims
             && basename == source_claims::CLAIM_STREAM
             && is_global_claim_stream(ctx, location)?
         {
@@ -1762,6 +1848,7 @@ fn is_item_claim_stream(path: &str) -> bool {
 fn is_global_claim_stream(ctx: &CommandContext, path: &str) -> DurableResult<bool> {
     if !path.starts_with("ToS/source-witnesses/relations/")
         || !path.ends_with(&format!("/{}", source_claims::CLAIM_STREAM))
+        || path.split('/').count() != 5
     {
         return Ok(false);
     }

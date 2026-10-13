@@ -244,7 +244,10 @@ fn validate_public_path(path: &str) -> DurableResult<()> {
 }
 
 pub(crate) fn is_claim_stream_path(path: &str) -> bool {
-    path.starts_with("ToS/source-witnesses/relations/") && path.ends_with("/source-claims.jsonl")
+    (path.starts_with("ToS/source-witnesses/relations/")
+        && path.ends_with("/source-claims.jsonl")
+        && path.split('/').count() == 5)
+        || crate::source_creation_store::is_growth_claim_stream_path(path)
 }
 
 pub(crate) fn is_shared_schema_source_path(path: &str) -> bool {
@@ -458,6 +461,8 @@ fn navigation_reference_rows(
     bytes: &[u8],
     definition: Digest256,
     shared_schema_paths: &BTreeSet<String>,
+    owner_files: &BTreeMap<String, Vec<u8>>,
+    prior_owner_refs: &BTreeSet<String>,
 ) -> DurableResult<BTreeSet<NavigationReferenceIndexRow>> {
     validate_claim_stream_path(path)?;
     if bytes.len() > MAX_STREAM_BYTES {
@@ -509,10 +514,61 @@ fn navigation_reference_rows(
         for owned_path in [
             format!("{stream_prefix}{claim_hash}.human-forms.json"),
             format!("{stream_prefix}source-create-provenance.jsonl"),
-            format!("{stream_prefix}source-create-receipt.json"),
-            format!("{stream_prefix}claim-revision-history.json"),
         ] {
             owner_references.insert((ClaimNavigationReferenceKind::SourcePath, owned_path));
+        }
+        let home = path
+            .strip_suffix("/source-claims.jsonl")
+            .ok_or(DurableError::Corrupt("Claim stream home invalid"))?;
+        let request_path = format!("{home}/source-create-request.json");
+        let typed_receipt = owner_files
+            .get(&request_path)
+            .map(|raw| crate::source_creation_store::pg_growth_claim_receipt_name(path, raw))
+            .transpose()?
+            .flatten();
+        if let Some(receipt_name) = typed_receipt {
+            for name in [
+                "source-create-request.json",
+                "source-create-environment.json",
+                receipt_name,
+            ] {
+                owner_references.insert((
+                    ClaimNavigationReferenceKind::SourcePath,
+                    format!("{home}/{name}"),
+                ));
+            }
+            let history = format!("{home}/claim-revision-history.json");
+            if owner_files.contains_key(&history) || prior_owner_refs.contains(&history) {
+                owner_references.insert((ClaimNavigationReferenceKind::SourcePath, history));
+            }
+        } else if owner_files.contains_key(&request_path) {
+            for name in ["source-create-receipt.json", "claim-revision-history.json"] {
+                let path = format!("{home}/{name}");
+                if owner_files.contains_key(&path) || prior_owner_refs.contains(&path) {
+                    owner_references.insert((ClaimNavigationReferenceKind::SourcePath, path));
+                }
+            }
+        } else if path.starts_with("ToS/source-witnesses/works/")
+            || prior_owner_refs.iter().any(|reference| {
+                reference.starts_with(&format!("{home}/"))
+                    && (reference.ends_with("-receipt.json")
+                        || reference.ends_with("/source-create-request.json"))
+            })
+        {
+            for reference in prior_owner_refs {
+                if reference.starts_with(&format!("{home}/")) {
+                    owner_references
+                        .insert((ClaimNavigationReferenceKind::SourcePath, reference.clone()));
+                }
+            }
+        } else {
+            // Global Claims preserve their existing request-independent route.
+            for name in ["source-create-receipt.json", "claim-revision-history.json"] {
+                owner_references.insert((
+                    ClaimNavigationReferenceKind::SourcePath,
+                    format!("{home}/{name}"),
+                ));
+            }
         }
         for (basis, references) in [
             (NavigationReferenceBasis::ClaimValue, claim_references),
@@ -866,6 +922,8 @@ fn full_navigation_source_rows(
             bytes,
             definition,
             &shared_schema_paths,
+            files,
+            &BTreeSet::new(),
         )?);
     }
     Ok(rows)
@@ -947,9 +1005,13 @@ fn current_claim_owner_facts(
          FROM cmd2_source_index i
          JOIN cmd2_current c ON c.domain=i.domain AND c.subject=i.path
          WHERE i.domain=$1 AND i.kind='claim'
-           AND i.path COLLATE \"C\" >= 'ToS/source-witnesses/relations/' COLLATE \"C\"
-           AND i.path COLLATE \"C\" < 'ToS/source-witnesses/relations0' COLLATE \"C\"
-           AND i.path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl'
+           AND (
+             (i.path COLLATE \"C\" >= 'ToS/source-witnesses/relations/' COLLATE \"C\"
+              AND i.path COLLATE \"C\" < 'ToS/source-witnesses/relations0' COLLATE \"C\"
+              AND i.path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl')
+             OR i.path LIKE 'ToS/source-witnesses/works/%/expressions/%/source-claims.jsonl'
+             OR i.path LIKE 'ToS/source-witnesses/works/%/expressions/%/editions/%/source-claims.jsonl'
+           )
          ORDER BY i.path COLLATE \"C\",i.token COLLATE \"C\" LIMIT $2",
         &[&domain, &limit],
     )?;
@@ -1212,10 +1274,29 @@ where
         } else {
             &shared_schema_paths
         };
+        let owner_files = members
+            .iter()
+            .filter_map(|(member_path, member_bytes)| {
+                member_bytes.map(|raw| ((*member_path).to_owned(), raw.to_vec()))
+            })
+            .collect::<BTreeMap<_, _>>();
+        let prior_owner_refs = old_navigation
+            .iter()
+            .filter(|row| {
+                row.basis == NavigationReferenceBasis::OwnerInput
+                    && row.kind == ClaimNavigationReferenceKind::SourcePath
+            })
+            .map(|row| row.endpoint.clone())
+            .collect::<BTreeSet<_>>();
         let new_navigation = match bytes {
-            Some(bytes) if is_claim_stream_path(path) => {
-                navigation_reference_rows(path, bytes, definition, member_schema_paths)?
-            }
+            Some(bytes) if is_claim_stream_path(path) => navigation_reference_rows(
+                path,
+                bytes,
+                definition,
+                member_schema_paths,
+                &owner_files,
+                &prior_owner_refs,
+            )?,
             Some(_) | None => BTreeSet::new(),
         };
         for row in old_navigation.symmetric_difference(&new_navigation) {
@@ -2279,6 +2360,55 @@ mod tests {
             navigation_tokens,
             BTreeSet::from([navigation_reference_complete_token().expect("completion token")]),
         );
+    }
+
+    #[test]
+    fn navigation_source_selector_admits_exact_growth_claim_homes_and_typed_receipt_refs() {
+        let work_path = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl";
+        let work_request = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-request.json";
+        let work_environment = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-environment.json";
+        let work_event = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-provenance.jsonl";
+        let work_receipt = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/work-expression-receipt.json";
+        let edition_path = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-claims.jsonl";
+        let extra_nested_relation =
+            "ToS/source-witnesses/relations/fixture/nested/source-claims.jsonl";
+        let item_path = "ToS/source-witnesses/items/fixture/source-claims.jsonl";
+
+        assert!(is_claim_navigation_source_member(work_path));
+        assert!(is_claim_navigation_source_member(edition_path));
+        assert!(!is_claim_navigation_source_member(extra_nested_relation));
+        assert!(!is_claim_navigation_source_member(item_path));
+
+        let files = BTreeMap::from([
+            (
+                work_path.to_owned(),
+                br#"{"claim_id":"tos.claim.fixture"}"#.to_vec(),
+            ),
+            (
+                work_request.to_owned(),
+                br#"{"schema_version":"tos_local_work_expression_command_v1","operation":"work.expression.create"}"#.to_vec(),
+            ),
+            (work_environment.to_owned(), Vec::new()),
+            (work_event.to_owned(), Vec::new()),
+            (work_receipt.to_owned(), Vec::new()),
+        ]);
+        let rows = full_navigation_source_rows(&files, Digest256::of_bytes(b"definition"))
+            .expect("valid typed Growth Claim route");
+        assert!(rows.iter().any(|row| {
+            row.path == work_path
+                && row.basis == NavigationReferenceBasis::OwnerInput
+                && row.endpoint == work_request
+        }));
+        assert!(rows.iter().any(|row| {
+            row.path == work_path
+                && row.basis == NavigationReferenceBasis::OwnerInput
+                && row.endpoint == work_receipt
+        }));
+        assert!(!rows.iter().any(|row| {
+            row.path == work_path
+                && row.basis == NavigationReferenceBasis::OwnerInput
+                && row.endpoint.ends_with("/source-create-receipt.json")
+        }));
     }
 
     #[test]

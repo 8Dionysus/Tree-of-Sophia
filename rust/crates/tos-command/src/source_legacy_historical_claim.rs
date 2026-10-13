@@ -1631,6 +1631,183 @@ fn validate_config_claim(
     Ok(())
 }
 
+/// Validate the original historical.create event and its Claim-owned output
+/// bindings. The neighboring Historical Record and its forms keep their own
+/// current and retained-byte validation.
+fn validate_historical_creation_outputs(
+    ctx: &CommandContext,
+    current: &LegacyPackage,
+    source_path: &str,
+    record_path: &str,
+    request: &JsonValue,
+    receipt: &JsonValue,
+    original_claims: &[JsonValue],
+    initial_stream: &[u8],
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let record = cmd::field(request, "record")?;
+    let record_type = cmd::text(record, "record_type")?;
+    if !matches!(
+        record_type,
+        "historical-event" | "historical-process" | "historical-state"
+    ) {
+        return Err(SourceCommandError::Conflict(
+            "captured Historical Record type differs",
+        ));
+    }
+    let record_name = format!("{record_type}.json");
+    let forms_name = format!("{record_type}.human-forms.json");
+    let base = source_path.rsplit_once('/').ok_or(invalid())?.0;
+    if record_path.rsplit_once('/').map(|parts| parts.0) != Some(base)
+        || record_path.rsplit('/').next() != Some(record_name.as_str())
+    {
+        return Err(SourceCommandError::Conflict(
+            "captured Historical Record output path differs",
+        ));
+    }
+
+    let event_raw = current
+        .get("source-create-provenance.jsonl")
+        .ok_or(invalid())?;
+    let mut event_lines = event_raw.split(|byte| *byte == b'\n').collect::<Vec<_>>();
+    if event_lines.last().is_some_and(|line| line.is_empty()) {
+        event_lines.pop();
+    }
+    if event_lines.len() != 1 || event_lines[0].iter().all(u8::is_ascii_whitespace) {
+        return Err(SourceCommandError::Conflict(
+            "captured historical creation requires one provenance event",
+        ));
+    }
+    let event_bytes = event_lines[0].strip_suffix(b"\r").unwrap_or(event_lines[0]);
+    let event = cmd::parse(event_bytes)?;
+    schema(
+        ctx,
+        worker,
+        &event,
+        "ToS/contracts/provenance-event-v2.schema.json",
+        &["ToS/contracts/provenance-event-v2.schema.json"],
+        deadline,
+        cancelled,
+    )?;
+    let event_json: serde_json::Value = serde_json::from_slice(event_bytes)
+        .map_err(|_| SourceCommandError::Invalid("captured historical provenance JSON"))?;
+    if !tos_validation::provenance_rules::semantic_issues(&event_json, 128, deadline)
+        .map_err(|_| SourceCommandError::Invalid("captured historical provenance semantics"))?
+        .is_empty()
+    {
+        return Err(SourceCommandError::Invalid(
+            "captured historical provenance semantics",
+        ));
+    }
+    let event_id = cmd::text(&event, "event_id")?;
+    for claim in original_claims {
+        if cmd::text(claim, "provenance_event_ref")? != event_id {
+            return Err(SourceCommandError::Conflict(
+                "captured historical Claim event identity differs",
+            ));
+        }
+    }
+
+    let expected_outputs = BTreeSet::from([
+        record_path.to_owned(),
+        source_path.to_owned(),
+        format!("{base}/{forms_name}"),
+    ]);
+    let output_entities = cmd::array(cmd::field(&event, "entities")?, "outputs")?;
+    let observed_outputs = output_entities
+        .iter()
+        .map(|entity| cmd::text(entity, "entity_ref").map(str::to_owned))
+        .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+    if observed_outputs != expected_outputs
+        || output_entities.len() != expected_outputs.len()
+        || cmd::text(
+            cmd::field(cmd::field(&event, "method")?, "procedure")?,
+            "name",
+        )? != "historical-source-metadata-serialization"
+        || cmd::text(cmd::field(&event, "record_binding")?, "manifest_ref")?
+            != format!("{base}/source-create-receipt.json")
+        || cmd::field(
+            cmd::field(&event, "rights_and_visibility")?,
+            "publication_authorized",
+        )? != &JsonValue::Bool(false)
+        || !cmd::array(cmd::field(&event, "review_and_authority")?, "accepted_uses")?.is_empty()
+        || cmd::field(
+            cmd::field(&event, "review_and_authority")?,
+            "promotion_authorized",
+        )? != &JsonValue::Bool(false)
+        || cmd::field(receipt, "grants_admission")? != &JsonValue::Bool(false)
+    {
+        return Err(SourceCommandError::Conflict(
+            "captured historical event is not the exact non-admitting serializer",
+        ));
+    }
+
+    let files = object_map(cmd::field(receipt, "files")?)?;
+    let expected_names = BTreeSet::from([
+        record_name.as_str(),
+        forms_name.as_str(),
+        STREAM,
+        "source-create-request.json",
+        "source-create-environment.json",
+        "source-create-provenance.jsonl",
+    ]);
+    if files
+        .iter()
+        .filter_map(|(name, _)| name.as_str())
+        .collect::<BTreeSet<_>>()
+        != expected_names
+    {
+        return Err(SourceCommandError::Conflict(
+            "captured historical receipt file closure differs",
+        ));
+    }
+    for (_, binding) in files {
+        cmd::exact_keys(binding, &["sha256", "bytes"])?;
+    }
+    for entity in output_entities {
+        let entity_ref = cmd::text(entity, "entity_ref")?;
+        let name = entity_ref.rsplit('/').next().ok_or(invalid())?;
+        let binding = cmd::field(cmd::field(receipt, "files")?, name)?;
+        if cmd::text(binding, "sha256")? != format!("sha256:{}", cmd::text(entity, "sha256")?)
+            || cmd::integer(binding, "bytes")? != cmd::integer(entity, "size_bytes")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical provenance output fixity differs",
+            ));
+        }
+    }
+    for (name, raw) in [
+        (STREAM, initial_stream),
+        (
+            "source-create-request.json",
+            current
+                .get("source-create-request.json")
+                .ok_or(invalid())?
+                .as_slice(),
+        ),
+        (
+            "source-create-environment.json",
+            current
+                .get("source-create-environment.json")
+                .ok_or(invalid())?
+                .as_slice(),
+        ),
+        ("source-create-provenance.jsonl", event_raw.as_slice()),
+    ] {
+        let binding = cmd::field(cmd::field(receipt, "files")?, name)?;
+        if cmd::text(binding, "sha256")? != Digest256::of_bytes(raw).to_prefixed()
+            || cmd::integer(binding, "bytes")? != raw.len() as u64
+        {
+            return Err(SourceCommandError::Conflict(
+                "captured historical Claim origin output bytes differ",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Replay the captured historical.create origin and its independent record
 /// revision chain. Claim history and HistoricalRecord history are separate
 /// ledgers even though the creation receipt originally covered both outputs.
@@ -2026,134 +2203,25 @@ fn verify_record_origin(
         ));
     }
 
-    let event_raw = current
-        .get("source-create-provenance.jsonl")
-        .ok_or(invalid())?;
-    let mut event_lines = event_raw.split(|byte| *byte == b'\n').collect::<Vec<_>>();
-    if event_lines.last().is_some_and(|line| line.is_empty()) {
-        event_lines.pop();
+    for claim in original_claims {
+        validate_config_claim(ctx, owner, claim, worker, deadline, cancelled)?;
     }
-    if event_lines.len() != 1 || event_lines[0].iter().all(u8::is_ascii_whitespace) {
-        return Err(SourceCommandError::Conflict(
-            "captured historical creation requires one provenance event",
-        ));
-    }
-    let event_bytes = event_lines[0].strip_suffix(b"\r").unwrap_or(event_lines[0]);
-    let event = cmd::parse(event_bytes)?;
-    schema(
+    validate_historical_creation_outputs(
         ctx,
+        current,
+        cmd::text(&owner.config, "source_path")?,
+        record_path,
+        &request,
+        &receipt,
+        original_claims,
+        &history.initial_stream,
         worker,
-        &event,
-        "ToS/contracts/provenance-event-v2.schema.json",
-        &["ToS/contracts/provenance-event-v2.schema.json"],
         deadline,
         cancelled,
     )?;
-    let event_json: serde_json::Value = serde_json::from_slice(event_bytes)
-        .map_err(|_| SourceCommandError::Invalid("captured historical provenance JSON"))?;
-    if !tos_validation::provenance_rules::semantic_issues(&event_json, 128, deadline)
-        .map_err(|_| SourceCommandError::Invalid("captured historical provenance semantics"))?
-        .is_empty()
-    {
-        return Err(SourceCommandError::Invalid(
-            "captured historical provenance semantics",
-        ));
-    }
-    let event_id = cmd::text(&event, "event_id")?;
-    for claim in original_claims {
-        validate_config_claim(ctx, owner, claim, worker, deadline, cancelled)?;
-        if cmd::text(claim, "provenance_event_ref")? != event_id {
-            return Err(SourceCommandError::Conflict(
-                "captured historical Claim event identity differs",
-            ));
-        }
-    }
-    let base = record_path.rsplit_once('/').ok_or(invalid())?.0;
-    let expected_outputs = BTreeSet::from([
-        record_path.to_owned(),
-        format!("{base}/{STREAM}"),
-        format!("{base}/{forms_name}"),
-    ]);
-    let output_entities = cmd::array(cmd::field(&event, "entities")?, "outputs")?;
-    let observed_outputs = output_entities
-        .iter()
-        .map(|entity| cmd::text(entity, "entity_ref").map(str::to_owned))
-        .collect::<SourceCommandResult<BTreeSet<_>>>()?;
-    if observed_outputs != expected_outputs
-        || output_entities.len() != expected_outputs.len()
-        || cmd::text(
-            cmd::field(cmd::field(&event, "method")?, "procedure")?,
-            "name",
-        )? != "historical-source-metadata-serialization"
-        || cmd::text(cmd::field(&event, "record_binding")?, "manifest_ref")?
-            != format!("{base}/source-create-receipt.json")
-        || cmd::field(
-            cmd::field(&event, "rights_and_visibility")?,
-            "publication_authorized",
-        )? != &JsonValue::Bool(false)
-        || !cmd::array(cmd::field(&event, "review_and_authority")?, "accepted_uses")?.is_empty()
-        || cmd::field(
-            cmd::field(&event, "review_and_authority")?,
-            "promotion_authorized",
-        )? != &JsonValue::Bool(false)
-    {
-        return Err(SourceCommandError::Conflict(
-            "captured historical event is not the exact non-admitting serializer",
-        ));
-    }
-    let files = object_map(cmd::field(&receipt, "files")?)?;
-    let expected_names = BTreeSet::from([
-        record_name.as_str(),
-        forms_name.as_str(),
-        STREAM,
-        "source-create-request.json",
-        "source-create-environment.json",
-        "source-create-provenance.jsonl",
-    ]);
-    if files
-        .iter()
-        .filter_map(|(name, _)| name.as_str())
-        .collect::<BTreeSet<_>>()
-        != expected_names
-    {
-        return Err(SourceCommandError::Conflict(
-            "captured historical receipt file closure differs",
-        ));
-    }
-    for (_, binding) in files {
-        cmd::exact_keys(binding, &["sha256", "bytes"])?;
-    }
-    for entity in output_entities {
-        let entity_ref = cmd::text(entity, "entity_ref")?;
-        let name = entity_ref.rsplit('/').next().ok_or(invalid())?;
-        let binding = cmd::field(cmd::field(&receipt, "files")?, name)?;
-        if cmd::text(binding, "sha256")? != format!("sha256:{}", cmd::text(entity, "sha256")?)
-            || cmd::integer(binding, "bytes")? != cmd::integer(entity, "size_bytes")?
-        {
-            return Err(SourceCommandError::Conflict(
-                "historical provenance output fixity differs",
-            ));
-        }
-    }
     for (name, raw) in [
         (record_name.as_str(), initial_record_raw.as_slice()),
         (forms_name.as_str(), original_form_bytes.as_slice()),
-        (STREAM, history.initial_stream.as_slice()),
-        (
-            "source-create-request.json",
-            current
-                .get("source-create-request.json")
-                .ok_or(invalid())?
-                .as_slice(),
-        ),
-        (
-            "source-create-environment.json",
-            current
-                .get("source-create-environment.json")
-                .ok_or(invalid())?
-                .as_slice(),
-        ),
-        ("source-create-provenance.jsonl", event_raw.as_slice()),
     ] {
         let binding = cmd::field(cmd::field(&receipt, "files")?, name)?;
         if cmd::text(binding, "sha256")? != Digest256::of_bytes(raw).to_prefixed()
@@ -2164,7 +2232,6 @@ fn verify_record_origin(
             ));
         }
     }
-    let _ = ctx;
     Ok(())
 }
 
@@ -4657,6 +4724,484 @@ pub(crate) fn pg_revision_owner_contribution_for_attempt(
     let mut owner = owner_core;
     cmd::set(&mut owner, "closure_sha256", cmd::string(&closure))?;
     Ok(owner)
+}
+
+/// Rebuild the current read-only Historical Claim owner from its exact
+/// historical package, retained Claim archives and already-validated profile.
+/// It does not create or infer an owner grant and does not require a revision
+/// proposal.
+pub(crate) fn pg_current_owner_inventory_contribution(
+    ctx: &CommandContext,
+    file: &SourceFile,
+    source_profiles: JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let source_path = file.path.as_str();
+    if !historical_path(source_path) {
+        return Err(SourceCommandError::Unsupported(
+            "historical Claim source path",
+        ));
+    }
+    let home = source_path
+        .strip_suffix(&format!("/{STREAM}"))
+        .ok_or(invalid())?;
+    let current = pg_selected_historical_package(ctx, home, source_path)?;
+    let stream = current.get(STREAM).ok_or(invalid())?;
+    let current_claims = claim_rows(stream)?;
+    if current_claims.is_empty() || current_claims.len() > 128 {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim current batch differs",
+        ));
+    }
+
+    let request_raw = current.get("source-create-request.json").ok_or(invalid())?;
+    let request = cmd::parse(request_raw)?;
+    let receipt_raw = current.get("source-create-receipt.json").ok_or(invalid())?;
+    let receipt = cmd::parse(receipt_raw)?;
+    cmd::exact_keys(
+        &request,
+        &[
+            "schema_version",
+            "operation",
+            "record",
+            "claims",
+            "forms",
+            "command_id",
+            "expected_configuration",
+            "expected_dependencies",
+            "expected_source",
+            "expected_revision",
+        ],
+    )?;
+    cmd::exact_keys(
+        &receipt,
+        &[
+            "schema_version",
+            "command_id",
+            "request_digest",
+            "principal_id",
+            "authority_ref",
+            "owner_configuration",
+            "recorded_at",
+            "source_path",
+            "source",
+            "dependencies",
+            "files",
+            "grants_admission",
+        ],
+    )?;
+    let record = cmd::field(&request, "record")?;
+    let record_type = cmd::text(record, "record_type")?;
+    let record_id = cmd::text(record, "record_id")?;
+    let record_path = cmd::text(&receipt, "source_path")?;
+    let record_form = format!("{record_type}.human-forms.json");
+    let expected_original_files = BTreeSet::from([
+        STREAM.to_owned(),
+        format!("{record_type}.json"),
+        record_form,
+        "source-create-request.json".to_owned(),
+        "source-create-environment.json".to_owned(),
+        "source-create-provenance.jsonl".to_owned(),
+    ]);
+    let receipt_files = cmd::field(&receipt, "files")?
+        .as_object()
+        .ok_or(invalid())?;
+    if cmd::text(&request, "schema_version")? != "tos_local_source_command_v1"
+        || cmd::text(&request, "operation")? != "historical.create"
+        || !matches!(
+            record_type,
+            "historical-event" | "historical-process" | "historical-state"
+        )
+        || !historical_record_id(record_id)
+        || cmd::text(&receipt, "schema_version")? != "tos_local_historical_create_receipt_v1"
+        || cmd::text(&receipt, "command_id")? != cmd::text(&request, "command_id")?
+        || cmd::text(&receipt, "request_digest")? != cmd::record_digest(&request)?.to_prefixed()
+        || cmd::field(&receipt, "owner_configuration")?
+            != cmd::field(&request, "expected_configuration")?
+        || cmd::field(&receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
+        || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
+        || record_path.rsplit_once('/').map(|pair| pair.0) != Some(home)
+        || record_path.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
+        || receipt_files.len() != expected_original_files.len()
+        || receipt_files
+            .iter()
+            .filter_map(|(name, _)| name.as_str())
+            .collect::<BTreeSet<_>>()
+            != expected_original_files
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>()
+        || request_raw.as_slice() != cmd::published(&request)?.as_slice()
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim retained creation receipt differs",
+        ));
+    }
+    let request_claims = cmd::array(&request, "claims")?;
+    let request_ids = request_claims
+        .iter()
+        .map(|claim| cmd::text(claim, "claim_id").map(str::to_owned))
+        .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+    if request_ids != current_claims.keys().cloned().collect::<BTreeSet<_>>() {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim current identities differ from creation",
+        ));
+    }
+
+    let history_raw = current.get(HISTORY);
+    let history = if let Some(raw) = history_raw {
+        cmd::parse(raw)?
+    } else {
+        cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_claim_revision_history_v1"),
+            ),
+            ("source_path", cmd::string(source_path)),
+            ("receipts", JsonValue::Array(Vec::new())),
+        ])
+    };
+    cmd::exact_keys(&history, &["schema_version", "source_path", "receipts"])?;
+    let history_receipts = cmd::array(&history, "receipts")?;
+    if cmd::text(&history, "schema_version")? != "tos_claim_revision_history_v1"
+        || cmd::text(&history, "source_path")? != source_path
+        || history_receipts.len() > 128
+    {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim history identity differs",
+        ));
+    }
+    let history_config = cmd::object(vec![("source_path", cmd::string(source_path))]);
+    let mut archive_reader = PgSelectedHistoricalArchiveReader { ctx };
+    let validated_history = validate_history(
+        ctx,
+        &current,
+        &history_config,
+        request_claims,
+        &mut archive_reader,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    let expected_initial_stream =
+        request_claims
+            .iter()
+            .try_fold(Vec::new(), |mut bytes, claim| {
+                bytes.extend(cmd::canonical(claim)?);
+                bytes.push(b'\n');
+                Ok::<_, SourceCommandError>(bytes)
+            })?;
+    if validated_history.initial_stream != expected_initial_stream {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim revision chain does not reach its creation stream",
+        ));
+    }
+    validate_historical_creation_outputs(
+        ctx,
+        &current,
+        source_path,
+        record_path,
+        &request,
+        &receipt,
+        request_claims,
+        &validated_history.initial_stream,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    let archive_config = cmd::object(vec![("source_path", cmd::string(source_path))]);
+    let mut archives = Vec::with_capacity(history_receipts.len());
+    let mut history_rows = Vec::with_capacity(history_receipts.len());
+    let mut seen_archives = BTreeSet::new();
+    for retained in history_receipts {
+        let archive_path = cmd::text(retained, "archive_path")?;
+        let id = cmd::text(cmd::field(retained, "previous_source")?, "id")?;
+        let revision = cmd::text(retained, "previous_revision")?;
+        if archive_path != archive_reference(id, revision)?
+            || !seen_archives.insert(archive_path.to_owned())
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim archive locator differs",
+            ));
+        }
+        let archived = pg_selected_archive_from_context(ctx, archive_path)?;
+        let (decoded, _) = decode_archive(archived.clone(), &archive_config, retained)?;
+        let members = decoded
+            .iter()
+            .map(|(name, raw)| {
+                cmd::object(vec![
+                    ("name", cmd::string(name)),
+                    (
+                        "sha256",
+                        cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+                    ),
+                    ("bytes", cmd::number(raw.len() as u64)),
+                ])
+            })
+            .collect::<Vec<_>>();
+        let manifest = archived.get("manifest.json").ok_or(invalid())?;
+        archives.push(cmd::object(vec![
+            ("path", cmd::string(archive_path)),
+            (
+                "manifest_sha256",
+                cmd::string(&Digest256::of_bytes(manifest).to_prefixed()),
+            ),
+            (
+                "revision",
+                cmd::field(retained, "previous_revision")?.clone(),
+            ),
+            ("members", JsonValue::Array(members)),
+        ]));
+        history_rows.push(cmd::object(vec![
+            ("command_id", cmd::field(retained, "command_id")?.clone()),
+            (
+                "request_digest",
+                cmd::field(retained, "request_digest")?.clone(),
+            ),
+            (
+                "previous_source",
+                cmd::field(retained, "previous_source")?.clone(),
+            ),
+            ("source", cmd::field(retained, "source")?.clone()),
+            (
+                "previous_revision",
+                cmd::field(retained, "previous_revision")?.clone(),
+            ),
+            (
+                "archive_path",
+                cmd::field(retained, "archive_path")?.clone(),
+            ),
+            (
+                "receipt_sha256",
+                cmd::string(&cmd::record_digest(retained)?.to_prefixed()),
+            ),
+        ]));
+    }
+
+    let mut claims = Vec::with_capacity(current_claims.len());
+    for (id, claim) in &current_claims {
+        schema(
+            ctx,
+            worker,
+            claim,
+            CLAIM_SCHEMA,
+            CLAIM_SCHEMA_CONTRACTS,
+            deadline,
+            cancelled,
+        )?;
+        if cmd::text(claim, "schema_version")? != "tos_historical_claim_v1"
+            || cmd::text(claim, "subject_ref")? != record_id
+            || ![
+                "historical_participant",
+                "historical_place",
+                "historical_work",
+                "historical_dating",
+            ]
+            .contains(&cmd::text(claim, "predicate")?)
+            || !["public", "public_metadata_only"].contains(&cmd::text(claim, "visibility")?)
+            || cmd::integer(claim, "claim_version")? == 0
+        {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim source schema or family differs",
+            ));
+        }
+        let form_name = package_form_name(source_path, id)?;
+        let form = current.get(&form_name);
+        let form_ids = if let Some(raw) = form {
+            let set = cmd::parse(raw)?;
+            schema(
+                ctx,
+                worker,
+                &set,
+                "ToS/contracts/human-form-set.schema.json",
+                &["ToS/contracts/human-form-set.schema.json"],
+                deadline,
+                cancelled,
+            )?;
+            let subject = source_forms::metadata_subject(claim)?;
+            if !cmd::same(cmd::field(&set, "subject")?, &subject)?
+                || tos_validation::source_forms::inspect_lineage_raw(raw)
+                    .map_err(|_| SourceCommandError::Invalid("historical Claim form lineage"))?
+                    .subject_id
+                    != *id
+            {
+                return Err(SourceCommandError::Conflict(
+                    "historical Claim form source binding differs",
+                ));
+            }
+            let _ = source_forms::materialize_source_forms(claim, &set)?;
+            ["forms", "prior_forms"]
+                .into_iter()
+                .map(|section| cmd::array(&set, section))
+                .collect::<SourceCommandResult<Vec<_>>>()?
+                .into_iter()
+                .flatten()
+                .map(|form| cmd::field(form, "form_id").cloned())
+                .collect::<SourceCommandResult<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+        claims.push(cmd::object(vec![
+            ("claim_id", cmd::string(id)),
+            (
+                "claim_version",
+                cmd::number(cmd::integer(claim, "claim_version")?),
+            ),
+            (
+                "claim_sha256",
+                cmd::string(&cmd::record_digest(claim)?.to_prefixed()),
+            ),
+            ("form_ref", cmd::string(&format!("{home}/{form_name}"))),
+            ("form_present", JsonValue::Bool(form.is_some())),
+            (
+                "form_sha256",
+                form.map(|raw| cmd::string(&Digest256::of_bytes(raw).to_prefixed()))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            ("form_ids", JsonValue::Array(form_ids)),
+        ]));
+    }
+    let direct_members = current
+        .iter()
+        .map(|(name, raw)| {
+            Ok(cmd::object(vec![
+                ("ref", cmd::string(&format!("{home}/{name}"))),
+                ("role", cmd::string(historical_package_role(name)?)),
+                (
+                    "sha256",
+                    cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+                ),
+                ("bytes", cmd::number(raw.len() as u64)),
+            ]))
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let owner_core = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_managed_historical_claim_owner_inventory_v1"),
+        ),
+        ("package_home", cmd::string(home)),
+        ("source_path", cmd::string(source_path)),
+        ("source_profiles", source_profiles),
+        (
+            "stream_sha256",
+            cmd::string(&Digest256::of_bytes(stream).to_prefixed()),
+        ),
+        ("direct_members", JsonValue::Array(direct_members)),
+        (
+            "history",
+            cmd::object(vec![
+                ("ref", cmd::string(&format!("{home}/{HISTORY}"))),
+                ("present", JsonValue::Bool(history_raw.is_some())),
+                (
+                    "sha256",
+                    history_raw
+                        .map(|raw| cmd::string(&Digest256::of_bytes(raw).to_prefixed()))
+                        .unwrap_or(JsonValue::Null),
+                ),
+                ("receipts", JsonValue::Array(history_rows)),
+            ]),
+        ),
+        ("archives", JsonValue::Array(archives)),
+        ("claims", JsonValue::Array(claims)),
+        (
+            "creation_receipt_sha256",
+            cmd::string(&Digest256::of_bytes(receipt_raw).to_prefixed()),
+        ),
+        (
+            "creation_receipt_command_id",
+            cmd::field(&receipt, "command_id")?.clone(),
+        ),
+    ]);
+    let closure_sha256 = cmd::record_digest(&owner_core)?.to_prefixed();
+    let mut owner = owner_core;
+    cmd::set(&mut owner, "closure_sha256", cmd::string(&closure_sha256))?;
+    Ok(owner)
+}
+
+struct PgSelectedHistoricalArchiveReader<'a> {
+    ctx: &'a CommandContext,
+}
+
+impl LegacyArchiveReader for PgSelectedHistoricalArchiveReader<'_> {
+    fn read_archive(
+        &mut self,
+        reference: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<LegacyPackage> {
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(SourceCommandError::Denied(
+                "historical Claim archive read cancelled or expired",
+            ));
+        }
+        pg_selected_archive_from_context(self.ctx, reference)
+    }
+}
+
+fn pg_selected_historical_package(
+    ctx: &CommandContext,
+    home: &str,
+    source_path: &str,
+) -> SourceCommandResult<LegacyPackage> {
+    let mut package = LegacyPackage::new();
+    let stream = ctx.file(&rel(source_path)?)?.ok_or(invalid())?;
+    let ids = claim_rows(stream)?.into_keys().collect::<Vec<_>>();
+    let mut names = CAPTURE
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect::<BTreeSet<_>>();
+    names.insert(STREAM.to_owned());
+    names.insert(HISTORY.to_owned());
+    for id in ids {
+        let name = package_form_name(source_path, &id)?;
+        names.insert(name.clone());
+        names.insert(format!(".{name}.writer.lock"));
+    }
+    for name in names {
+        let path = format!("{home}/{name}");
+        if let Some(raw) = ctx.file(&rel(&path)?)? {
+            package.insert(name, raw.to_vec());
+        } else if matches!(
+            name.as_str(),
+            STREAM
+                | "source-create-request.json"
+                | "source-create-environment.json"
+                | "source-create-provenance.jsonl"
+                | "source-create-receipt.json"
+        ) {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim current package member absent",
+            ));
+        }
+    }
+    Ok(package)
+}
+
+fn pg_selected_archive_from_context(
+    ctx: &CommandContext,
+    archive_path: &str,
+) -> SourceCommandResult<LegacyPackage> {
+    let manifest_path = rel(&format!("{archive_path}/manifest.json"))?;
+    let manifest_raw = ctx.file(&manifest_path)?.ok_or(invalid())?;
+    let manifest = cmd::parse(manifest_raw)?;
+    let files = object_map(cmd::field(&manifest, "files")?)?;
+    let mut package = LegacyPackage::new();
+    package.insert("manifest.json".to_owned(), manifest_raw.to_vec());
+    for (_, binding) in files {
+        let blob = cmd::text(binding, "blob")?;
+        let raw = ctx
+            .file(&rel(&format!("{archive_path}/{blob}"))?)?
+            .ok_or(invalid())?;
+        if package.insert(blob.to_owned(), raw.to_vec()).is_some() {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim archive blob repeats",
+            ));
+        }
+    }
+    Ok(package)
 }
 
 fn pg_source_profiles(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {

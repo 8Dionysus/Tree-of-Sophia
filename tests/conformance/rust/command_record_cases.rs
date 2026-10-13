@@ -2847,3 +2847,344 @@ fn native_initial_creation_cli_preserves_native_contract_and_cold_retained_recei
     drop(components);
     temporary.close().unwrap();
 }
+
+#[test]
+fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let fixture = super::native_public_assessment_fixture::native_public_sign_fixture(
+        &repository,
+        temporary.path(),
+    )
+    .unwrap();
+    let public_root = fixture.public_root.clone();
+    let content_path = public_root.join(
+        "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/public-synthetic-content.txt",
+    );
+    assert_eq!(fs::read(content_path).unwrap(), fixture.source_text);
+    let claim_path = public_root.join(&fixture.source_path);
+    let claim: Value = serde_json::from_slice(&fs::read(claim_path).unwrap()).unwrap();
+    assert_eq!(claim["claim_id"], fixture.candidate_id);
+    assert_eq!(
+        claim["object"]["members"],
+        serde_json::json!(fixture.occurrence_ids)
+    );
+    let authored = super::command_text_cases::authored_text_files(&public_root);
+    let mut captured = authored.clone();
+    let software_sources = [
+        "rust/crates/tos-command/src/lib.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_native_private_cli.rs",
+        "rust/crates/tos-command/src/source_native_private_assessment_cli.rs",
+        "rust/crates/tos-command/src/source_assessment_journal.rs",
+        "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+        "rust/crates/tos-command/src/source_private_assessment_layers.rs",
+        "rust/crates/tos-command/src/source_private_claim.rs",
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_creation.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+        "rust/crates/tos-command/src/source_native_creation_cli.rs",
+        "rust/crates/tos-command/src/source_creation_cli_selection.rs",
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_revisions.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_forms_publication.rs",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
+        "rust/crates/tos-command/src/source_corpus_index_projection.rs",
+        "rust/crates/tos-compiler/src/source_witness_catalog.rs",
+        "rust/crates/tos-compiler/src/source_bibliographic.rs",
+        "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
+        "rust/crates/tos-validation/src/assessment.rs",
+    ];
+    for reference in software_sources
+        .into_iter()
+        .chain(
+            tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS
+                .iter()
+                .copied(),
+        )
+        .chain(
+            tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS
+                .iter()
+                .copied(),
+        )
+    {
+        let path = repository.join(reference);
+        assert!(
+            path.is_file() && fs::metadata(&path).unwrap().len() <= 2_097_152,
+            "selected Sign/assessment source is a bounded regular file: {reference}"
+        );
+        captured
+            .entry(reference.to_owned())
+            .or_insert_with(|| fs::read(path).unwrap());
+    }
+    assert!(
+        !authored.is_empty()
+            && captured.len() <= 2048
+            && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432
+    );
+    let (capture, _software, components) =
+        super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+    let store = temporary.path().join("sign-native-entry-cut");
+    let initial_revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let images = [
+        std::env::current_exe().unwrap(),
+        PathBuf::from(
+            std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+        ),
+        PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("native worker required")),
+    ];
+    let image_digests: Vec<_> = images
+        .iter()
+        .map(|path| super::command_text_cases::alignment_image_digest(path))
+        .collect();
+    let sign_owner = fixture.sign_owner_config_path.clone();
+    let assessment_owner = fixture.assessment_owner_config_path.clone();
+    let assessment_context = fixture.assessment_owner_context_path.clone();
+    let invocation_path = temporary.path().join("sign-native-entry-invocation.json");
+    let mut invocation = serde_json::json!({
+        "schema_version":"tos_local_native_source_invocation_v1",
+        "owner_config":sign_owner,
+        "owner_context":null,
+        "native_executable":images[1],
+        "native_executable_sha256":image_digests[1].to_prefixed(),
+        "corpus_store":store,
+        "source_revision":initial_revision.0.to_prefixed(),
+        "original_source_revision":initial_revision.0.to_prefixed(),
+        "software_capture":capture.capture,
+        "software_restored_root":capture.restored,
+        "software_selection":{
+            "source_git_commit":capture.selection.source_git_commit,
+            "source_git_tree":capture.selection.source_git_tree,
+            "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()
+        },
+        "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":images[2],"sha256":image_digests[2].to_prefixed()},
+        "assessment_schema_worker":{"absolute_path":images[2],"sha256":image_digests[2].to_prefixed()},
+        "budgets":{
+            "max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+            "max_member_bytes":8388608,"max_schema_receipts":128,
+            "max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,
+            "worker_address_space_bytes":1073741824
+        }
+    });
+    let invoke =
+        |invocation: &mut Value, owner: &Path, context: Option<&Path>, request: &Value| -> Value {
+            invocation["owner_config"] = Value::from(owner.to_str().unwrap());
+            invocation["owner_context"] =
+                context.map_or(Value::Null, |path| Value::from(path.to_str().unwrap()));
+            fs::write(&invocation_path, canonical_json(invocation)).unwrap();
+            fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+            let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
+                &repository,
+                owner,
+                &invocation_path,
+                request,
+                deadline,
+            );
+            assert!(
+                status.success(),
+                "native Sign entry operation {}: {}",
+                request["operation"],
+                String::from_utf8_lossy(&errors)
+            );
+            serde_json::from_slice(&raw).unwrap()
+        };
+
+    let sign_describe = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1","operation":"describe"
+    });
+    let refused = invoke(&mut invocation, &sign_owner, None, &sign_describe);
+    assert_eq!(
+        refused["schema_version"],
+        "tos_local_native_source_result_v1"
+    );
+    assert_eq!(refused["grants_admission"], false);
+    assert_eq!(refused["result"]["promotion"]["eligible"], false);
+    assert_eq!(
+        refused["result"]["promotion"]["grants_issuance_authority"],
+        false
+    );
+
+    let assessment_describe = serde_json::json!({
+        "schema_version":"tos_local_assessment_command_v1",
+        "operation":"describe","subject_id":fixture.candidate_id
+    });
+    let assessment_before = invoke(
+        &mut invocation,
+        &assessment_owner,
+        Some(&assessment_context),
+        &assessment_describe,
+    );
+    assert_eq!(
+        assessment_before["schema_version"],
+        "tos_local_assessment_result_v1"
+    );
+    let assessment_subject = assessment_before["result"]["command_context"]["subject"].clone();
+    assert_eq!(assessment_subject["id"], fixture.candidate_id);
+    assert_eq!(
+        assessment_before["result"]["command_context"]["grants_authority"],
+        false
+    );
+    let assessment_append = serde_json::json!({
+        "schema_version":"tos_local_assessment_command_v1",
+        "operation":"append",
+        "subject_id":fixture.candidate_id,
+        "expected_subject":assessment_subject,
+        "expected_snapshot":assessment_before["owner_snapshot"],
+        "expected_revision":assessment_before["result"]["revision"],
+        "command_id":"fixture-sign-flame-assessment-append",
+        "assessments":[fixture.assessment.clone()]
+    });
+    let assessed = invoke(
+        &mut invocation,
+        &assessment_owner,
+        Some(&assessment_context),
+        &assessment_append,
+    );
+    assert_eq!(assessed["result"]["current_admission"]["can_use"], true);
+    let assessment_read = serde_json::json!({
+        "schema_version":"tos_local_assessment_command_v1",
+        "operation":"inspect",
+        "subject_id":fixture.candidate_id,
+        "expected_subject":assessment_subject,
+        "expected_snapshot":assessed["owner_snapshot"]
+    });
+    let admission = invoke(
+        &mut invocation,
+        &assessment_owner,
+        Some(&assessment_context),
+        &assessment_read,
+    );
+    assert_eq!(admission["result"]["current_admission"]["can_use"], true);
+    assert_eq!(
+        admission["result"]["current_admission"]["use"],
+        "sign-promotion"
+    );
+
+    let ready = invoke(&mut invocation, &sign_owner, None, &sign_describe);
+    let promotion = &ready["result"]["promotion"];
+    assert_eq!(promotion["eligible"], true);
+    assert_eq!(promotion["grants_issuance_authority"], false);
+    let basis = promotion["basis"].clone();
+    assert_eq!(basis["candidate"]["id"], fixture.candidate_id);
+    assert_eq!(basis["use"], "sign-promotion");
+    assert_eq!(basis["grants_current_use"], false);
+    assert!(!basis["assessment_refs"].as_array().unwrap().is_empty());
+    let mut record = fixture.sign_record.clone();
+    record["promotion_basis"] = basis;
+    let prepared_source = invoke(
+        &mut invocation,
+        &sign_owner,
+        None,
+        &serde_json::json!({
+            "schema_version":"tos_local_source_command_v1",
+            "operation":"prepare","record":record
+        }),
+    );
+    assert_eq!(prepared_source["grants_admission"], false);
+    assert!(prepared_source["result"]["prepared_source"].is_object());
+
+    let prepared = invoke(
+        &mut invocation,
+        &sign_owner,
+        None,
+        &serde_json::json!({
+            "schema_version":"tos_local_source_command_v1",
+            "operation":"prepare-create","record":record,
+            "forms":fixture.forms.clone()
+        }),
+    );
+    assert_eq!(prepared["grants_admission"], false);
+    assert!(prepared["result"]["prepared_files"].is_object());
+    assert_eq!(
+        prepared["result"]["prepared_source"]["promotion_basis"],
+        ready["result"]["promotion"]["basis"]
+    );
+    let command = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"sign.promote",
+        "command_id":"fixture-sign-flame-promote-once",
+        "record":record,
+        "forms":fixture.forms,
+        "expected_configuration":prepared["result"]["owner_configuration"],
+        "expected_dependencies":prepared["result"]["expected_dependencies"],
+        "expected_source":null,
+        "expected_revision":null
+    });
+    assert_eq!(command.as_object().unwrap().len(), 9);
+    let created = invoke(&mut invocation, &sign_owner, None, &command);
+    assert_eq!(created["result"]["replayed"], false);
+    assert_eq!(created["grants_admission"], false);
+
+    let config: Value = serde_json::from_slice(&fs::read(&sign_owner).unwrap()).unwrap();
+    let source_path = public_root.join(config["source_path"].as_str().unwrap());
+    assert!(source_path.is_file());
+    let home = source_path.parent().unwrap();
+    let sign_bytes = fs::read(&source_path).unwrap();
+    let sign_read: Value = serde_json::from_slice(&sign_bytes).unwrap();
+    assert_eq!(sign_read, record);
+    assert_eq!(sign_read["identity_status"], "provisional");
+    assert_eq!(sign_read["same_as_posture"], "no_equivalence_claim");
+    assert_eq!(sign_read["visibility"], "public_metadata_only");
+    let forms_path = home.join("sign.human-forms.json");
+    let forms_bytes = fs::read(&forms_path).unwrap();
+    let receipt_path = home.join("source-create-receipt.json");
+    let receipt_bytes = fs::read(&receipt_path).unwrap();
+    let receipt: Value = serde_json::from_slice(&receipt_bytes).unwrap();
+    assert_eq!(receipt, created["result"]["receipt"]);
+    let history_path = home.join("source-create-provenance.jsonl");
+    let history_before = fs::read(&history_path).unwrap();
+    assert_eq!(
+        std::str::from_utf8(&history_before)
+            .unwrap()
+            .lines()
+            .count(),
+        1
+    );
+    let provenance: Value = serde_json::from_slice(&history_before).unwrap();
+    assert_eq!(provenance["event_id"], config["provenance_event_id"]);
+    assert_eq!(
+        provenance["method"]["procedure"]["name"],
+        "native-source-metadata-serialization"
+    );
+    assert_eq!(
+        provenance["review_and_authority"]["human_review_status"],
+        "not_performed"
+    );
+    assert_eq!(
+        provenance["review_and_authority"]["promotion_authorized"],
+        false
+    );
+    assert_eq!(
+        provenance["rights_and_visibility"]["publication_authorized"],
+        false
+    );
+
+    let mut current_files = super::command_text_cases::authored_text_files(&public_root);
+    current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+    let successor = super::validation_cut_cases::write_cut_store_on_base(
+        &current_files,
+        &store,
+        Some(initial_revision),
+    );
+    invocation["source_revision"] = Value::from(successor.0.to_prefixed());
+    let replayed = invoke(&mut invocation, &sign_owner, None, &command);
+    assert_eq!(replayed["result"]["replayed"], true);
+    assert_eq!(replayed["result"]["receipt"], created["result"]["receipt"]);
+    assert_eq!(fs::read(&source_path).unwrap(), sign_bytes);
+    assert_eq!(fs::read(&forms_path).unwrap(), forms_bytes);
+    assert_eq!(fs::read(&receipt_path).unwrap(), receipt_bytes);
+    assert_eq!(fs::read(&history_path).unwrap(), history_before);
+}
