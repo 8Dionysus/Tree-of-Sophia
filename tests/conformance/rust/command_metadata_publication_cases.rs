@@ -2122,11 +2122,10 @@ fn connected_browser_produce_pair(
     let source_inputs_a_sha = Digest256::of_bytes(&fs::read(&epoch_a_inputs).unwrap()).to_hex();
     let binding_a_sha = Digest256::of_bytes(&fs::read(&epoch_a_binding).unwrap()).to_hex();
     let model_a_sha =
-        super::native_child::bounded_sha_before(&epoch_a_model, 512 * 1024 * 1024, deadline)
-            .to_hex();
+        native_child::bounded_sha_before(&epoch_a_model, 512 * 1024 * 1024, deadline).to_hex();
     assert_eq!(
         model_a_sha,
-        super::native_child::bounded_sha_before(&db_path, 512 * 1024 * 1024, deadline).to_hex(),
+        native_child::bounded_sha_before(&db_path, 512 * 1024 * 1024, deadline).to_hex(),
         "epoch-A prepared model snapshot is byte-exact"
     );
     let source_inventory_a_sha = {
