@@ -137,7 +137,7 @@ fn cargo_target(raw: &str, route: &TestRoute) -> io::Result<(String, String, Str
     Ok((package, name, path))
 }
 
-fn declarations(path: &Path, raw: &str) -> io::Result<Vec<(String, PathBuf)>> {
+fn declarations(root: &Path, path: &Path, raw: &str) -> io::Result<Vec<(String, PathBuf)>> {
     let declarations = Regex::new(r"(?m)^((?:[ \t]*#\[[^\n]*\][ \t]*\n)*)(?:pub(?:\([^)]*\))?[ \t]+)?mod[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]*;").map_err(io::Error::other)?;
     let explicit_path = Regex::new(r#"#\[path\s*=\s*("[^"\n]*")\]"#).map_err(io::Error::other)?;
     let parent = path
@@ -148,8 +148,31 @@ fn declarations(path: &Path, raw: &str) -> io::Result<Vec<(String, PathBuf)>> {
         let name = declaration[2].to_owned();
         let file = if let Some(explicit) = explicit_path.captures(&declaration[1]) {
             let path: String = serde_json::from_str(&explicit[1]).map_err(io::Error::other)?;
-            RelativePath::parse(&path).map_err(io::Error::other)?;
-            parent.join(path)
+            let relative = Path::new(&path);
+            if relative.is_absolute() || path.contains('\\') || path.chars().any(|c| c.is_control())
+            {
+                return Err(invalid("native module path must be source-relative"));
+            }
+            let mut resolved = parent.to_path_buf();
+            for component in relative.components() {
+                match component {
+                    std::path::Component::Normal(name) if name != ".git" => resolved.push(name),
+                    std::path::Component::ParentDir => {
+                        if resolved == root || !resolved.pop() {
+                            return Err(invalid("native module path escapes source root"));
+                        }
+                    }
+                    _ => return Err(invalid("unsupported native module path component")),
+                }
+                if !resolved.starts_with(root)
+                    || fs::symlink_metadata(&resolved)?.file_type().is_symlink()
+                {
+                    return Err(invalid(
+                        "native module path escapes source root or uses symlinks",
+                    ));
+                }
+            }
+            resolved
         } else {
             parent.join(format!("{name}.rs"))
         };
@@ -171,6 +194,35 @@ fn assertions(raw: &str) -> io::Result<Vec<Assertion>> {
             ignored: test[1].contains("#[ignore"),
         })
         .collect())
+}
+
+// A Rust class filter includes tests in external child modules as well as
+// inline modules. Keep the source-derived count aligned with that filter.
+fn class_assertions(
+    root: &Path,
+    path: &Path,
+    raw: &str,
+    stack: &mut BTreeSet<PathBuf>,
+    visited: &mut usize,
+) -> io::Result<Vec<Assertion>> {
+    *visited += 1;
+    if *visited > MAX_CLASSES || stack.len() >= 16 || !stack.insert(path.to_path_buf()) {
+        return Err(invalid(
+            "native assertion module traversal is cyclic or exceeds its bound",
+        ));
+    }
+    let mut result = assertions(raw)?;
+    for (_, child) in declarations(root, path, raw)? {
+        result.extend(class_assertions(
+            root,
+            &child,
+            &read(root, &child)?,
+            stack,
+            visited,
+        )?);
+    }
+    stack.remove(path);
+    Ok(result)
 }
 
 pub fn discover(root: &Path) -> io::Result<NativePlan> {
@@ -196,7 +248,7 @@ pub fn discover(root: &Path) -> io::Result<NativePlan> {
                 return Err(invalid("native class prefix must be nonempty"));
             }
             selected.extend(
-                declarations(&entry, &read(root, &entry)?)?
+                declarations(root, &entry, &read(root, &entry)?)?
                     .into_iter()
                     .filter(|(name, _)| name.starts_with(prefix))
                     .map(|(name, path)| (vec![name], path)),
@@ -208,7 +260,7 @@ pub fn discover(root: &Path) -> io::Result<NativePlan> {
             }
             let mut path = entry.clone();
             for module in modules {
-                let matches: Vec<_> = declarations(&path, &read(root, &path)?)?
+                let matches: Vec<_> = declarations(root, &path, &read(root, &path)?)?
                     .into_iter()
                     .filter(|(name, _)| name == module)
                     .collect();
@@ -226,7 +278,7 @@ pub fn discover(root: &Path) -> io::Result<NativePlan> {
         }
         for (modules, path) in selected {
             let raw = read(root, &path)?;
-            let assertions = assertions(&raw)?;
+            let assertions = class_assertions(root, &path, &raw, &mut BTreeSet::new(), &mut 0)?;
             if assertions.is_empty() {
                 return Err(invalid("native class contains no declared assertions"));
             }

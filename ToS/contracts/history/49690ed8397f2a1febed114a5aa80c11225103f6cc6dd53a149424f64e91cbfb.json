@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "title": "Tree of Sophia physical artifact source witness",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "artifact_id",
+    "artifact_kind",
+    "path_identity",
+    "identifiers",
+    "physical_description",
+    "dating",
+    "find_context",
+    "custody",
+    "digital_catalog_record",
+    "inscription_layer",
+    "composite_layer",
+    "visual_layers",
+    "scholarly_classification",
+    "bibliography",
+    "layer_separation",
+    "rights_ref",
+    "discovery_ref",
+    "provenance_event_ref",
+    "research_ref",
+    "philosophy_planting_refs",
+    "authority",
+    "maker",
+    "created_at",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json"},
+    "schema_version": {"const": "tos_artifact_source_witness_v2"},
+    "artifact_id": {"type": "string", "pattern": "^tos\\.artifact\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "artifact_kind": {"enum": ["clay_tablet", "inscription", "manuscript_object", "archaeological_object", "other"]},
+    "path_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "provider_independent", "note"],
+      "properties": {
+        "basis": {"enum": ["excavation_identity", "repository_identity", "physical_identity"]},
+        "provider_independent": {"const": true},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
+    "identifiers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+    "physical_description": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["material", "height_mm", "width_mm", "thickness_mm", "source_ref"],
+      "properties": {
+        "material": {"type": "string", "minLength": 1},
+        "height_mm": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "width_mm": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "thickness_mm": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "dating": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["period_label", "display_date", "certainty", "period_stage_separation_required", "source_ref"],
+      "properties": {
+        "period_label": {"type": "string", "minLength": 1},
+        "display_date": {"type": "string", "minLength": 1},
+        "certainty": {"enum": ["exact", "approximate", "reported", "disputed", "unknown"]},
+        "period_stage_separation_required": {"const": true},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "find_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site", "findspot", "excavation_numbers", "source_note", "documentation_limit", "source_ref"],
+      "properties": {
+        "site": {"type": ["string", "null"]},
+        "findspot": {"type": ["string", "null"]},
+        "excavation_numbers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "source_note": {"type": ["string", "null"]},
+        "documentation_limit": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "custody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_repository", "inventory_numbers", "source_ref"],
+      "properties": {
+        "current_repository": {"type": "string", "minLength": 1},
+        "inventory_numbers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "digital_catalog_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "record_id", "record_url", "api_url", "checked_at", "mutable", "response_fingerprints"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "record_id": {"type": "string", "minLength": 1},
+        "record_url": {"type": "string", "format": "uri"},
+        "api_url": {"type": ["string", "null"], "format": "uri"},
+        "checked_at": {"type": "string", "format": "date-time"},
+        "mutable": {"const": true},
+        "response_fingerprints": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/fingerprint"}}
+      }
+    },
+    "inscription_layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["availability", "language_status", "provider_language_code", "normalized_language_code", "script", "transliteration_stored", "translation_stored", "source_refs"],
+      "properties": {
+        "availability": {"enum": ["catalog_linked", "available_not_acquired", "acquired_local", "unavailable", "unknown"]},
+        "language_status": {"enum": ["identified", "reported", "undetermined", "disputed", "unknown"]},
+        "provider_language_code": {"type": ["string", "null"]},
+        "normalized_language_code": {"type": ["string", "null"]},
+        "script": {"type": ["string", "null"]},
+        "transliteration_stored": {"const": false},
+        "translation_stored": {"const": false},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "format": "uri"}}
+      }
+    },
+    "composite_layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "external_refs", "relationship", "is_physical_artifact_identity"],
+      "properties": {
+        "status": {"enum": ["linked", "absent", "unknown"]},
+        "external_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+        "relationship": {"type": "string", "minLength": 1},
+        "is_physical_artifact_identity": {"const": false}
+      }
+    },
+    "visual_layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["layer_kind", "availability", "content_stored", "source_ref", "rights_note"],
+        "properties": {
+          "layer_kind": {"enum": ["photograph", "line_art", "three_dimensional_model", "other"]},
+          "availability": {"enum": ["linked", "visible", "not_acquired", "unavailable", "unknown"]},
+          "content_stored": {"const": false},
+          "source_ref": {"type": "string", "format": "uri"},
+          "rights_note": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "scholarly_classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["genre", "corpus_labels", "classification_is_interpretive", "source_refs"],
+      "properties": {
+        "genre": {"type": "string", "minLength": 1},
+        "corpus_labels": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "classification_is_interpretive": {"const": true},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "format": "uri"}}
+      }
+    },
+    "bibliography": {"type": "array", "items": {"$ref": "#/$defs/bibliographicReference"}},
+    "layer_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["physical_artifact_is_catalog_record", "catalog_record_is_inscription", "inscription_is_composite", "visual_is_artifact", "sign_has_fixed_translation", "artifact_is_philosophy"],
+      "properties": {
+        "physical_artifact_is_catalog_record": {"const": false},
+        "catalog_record_is_inscription": {"const": false},
+        "inscription_is_composite": {"const": false},
+        "visual_is_artifact": {"const": false},
+        "sign_has_fixed_translation": {"const": false},
+        "artifact_is_philosophy": {"const": false}
+      }
+    },
+    "rights_ref": {"$ref": "#/$defs/repoPath"},
+    "discovery_ref": {"$ref": "#/$defs/repoPath"},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "research_ref": {"$ref": "#/$defs/repoPath"},
+    "philosophy_planting_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/repoPath"}},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_status", "review_status", "visibility", "source_text_admitted", "semantic_authority", "graph_authority", "canon_authority", "publication_authority"],
+      "properties": {
+        "evidence_status": {"const": "metadata_witness"},
+        "review_status": {"enum": ["unreviewed", "human_reviewed", "superseded"]},
+        "visibility": {"const": "public_metadata_only"},
+        "source_text_admitted": {"const": false},
+        "semantic_authority": {"const": false},
+        "graph_authority": {"const": false},
+        "canon_authority": {"const": false},
+        "publication_authority": {"const": false}
+      }
+    },
+    "maker": {"$ref": "#/$defs/maker"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "identifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheme", "value", "source_ref"],
+      "properties": {
+        "scheme": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "byte_size", "sha256", "captured"],
+      "properties": {
+        "surface": {"type": "string", "format": "uri"},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "captured": {"const": false}
+      }
+    },
+    "bibliographicReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["citation", "role", "source_ref"],
+      "properties": {
+        "citation": {"type": "string", "minLength": 1},
+        "role": {"enum": ["primary_publication", "catalog_publication", "established_control", "current_control"]},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "human_review_performed"],
+      "properties": {
+        "maker_type": {"enum": ["human", "model", "mixed", "software"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "human_review_performed": {"type": "boolean"}
+      }
+    }
+  }
+}

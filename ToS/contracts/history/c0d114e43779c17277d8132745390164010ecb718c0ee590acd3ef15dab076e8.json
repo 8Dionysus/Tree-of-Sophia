@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-lexical-translatability-claim.schema.json",
+  "title": "Source-attributed lexical translatability in a declared scope",
+  "description": "A Claim-scoped judgment about rendering a Lexeme, Sense or exact Occurrence. Adequacy, aspect transfer, considered renderings and reported search outcome are independent. No value asserts universal linguistic impossibility, accepted translation, executable search or admission.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_source_lexical_translatability_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "object": {
+        "allOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json"}],
+        "required": ["source_language", "target_language", "source_scope", "target_scope", "aspects_in_scope", "rendering_judgment", "aspect_transfer", "renderings_considered", "preserved_aspects", "limitations", "search_report"],
+        "properties": {
+          "kind": {"const": "lexical-translatability"},
+          "source_language": {"$ref": "#/$defs/language"},
+          "target_language": {"$ref": "#/$defs/language"},
+          "source_scope": {"$ref": "#/$defs/nonBlank"},
+          "target_scope": {"$ref": "#/$defs/nonBlank"},
+          "aspects_in_scope": {"$ref": "#/$defs/nonBlank"},
+          "rendering_judgment": {"enum": ["adequate_in_scope", "inadequate_in_scope", "undetermined"], "description": "Attributed adequacy for the declared task and aspects, not all possible renderings or ToS admission."},
+          "aspect_transfer": {"enum": ["full_for_stated_aspects", "partial_for_stated_aspects", "none_for_stated_aspects", "undetermined"], "description": "Reported transfer of the stated aspects, independent of overall task adequacy and of search coverage."},
+          "renderings_considered": {"type": "array", "uniqueItems": true, "items": {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json#/properties/source_wording"}, "description": "Explicitly considered wording with its own language and script. Presence is not a performed search; an empty list means no renderings recorded here, not that none exist."},
+          "preserved_aspects": {"$ref": "#/$defs/nonBlank"},
+          "limitations": {"$ref": "#/$defs/nonBlank"},
+          "search_report": {
+            "description": "Null means no search report is supplied. An object preserves attributed search information, not proof that this process executed it. None found applies only to its sought criterion and reported coverage, and may coexist with partial renderings considered under a different criterion.",
+            "anyOf": [{"type": "null"}, {
+              "type": "object", "required": ["outcome", "sought_criterion", "coverage_note", "method_note"],
+              "properties": {
+                "outcome": {"enum": ["candidates_found", "none_found", "undetermined"]},
+                "sought_criterion": {"$ref": "#/$defs/nonBlank"},
+                "coverage_note": {"$ref": "#/$defs/nonBlank"},
+                "method_note": {"anyOf": [{"$ref": "#/$defs/nonBlank"}, {"type": "null"}]},
+                "extensions": {"type": "object"}
+              }, "additionalProperties": false
+            }]
+          },
+          "extensions": {"type": "object"}
+        },
+        "unevaluatedProperties": false
+      },
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"],
+        "properties": {
+          "statement": {"$ref": "#/$defs/nonBlank"},
+          "statement_language": {"$ref": "#/$defs/language"},
+          "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+        }}
+    }}
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "nonBlank": {"type": "string", "pattern": "\\S"},
+    "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]}
+  }
+}

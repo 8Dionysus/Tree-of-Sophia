@@ -538,6 +538,9 @@ pub fn native_public_sign_fixture(
         json!({"form_id":"tos.form.synthetic-sign.flame-continuity.name","field_id":"metadata.preferred-name"}),
         json!({"form_id":"tos.form.synthetic-sign.flame-continuity.note","field_id":"metadata.source-note"}),
     ];
+    // Native creation checks the target's parent before prepare/promote; the
+    // captured public-profile seed has no Sign destination directory.
+    secure_dir(&public_root.join("ToS/source-witnesses/signs"))?;
     let sign_owner_config = json!({"schema_version":"tos_local_sign_promote_owner_v1","uid":fs::metadata(root)?.uid(),
         "principal_id":"software:synthetic-sign-writer","maker_type":"software",
         "source_root":public_root,"source_path":"ToS/source-witnesses/signs/flame-continuity/sign.json",

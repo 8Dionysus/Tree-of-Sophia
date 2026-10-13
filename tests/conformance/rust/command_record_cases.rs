@@ -2895,6 +2895,7 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
         "rust/crates/tos-command/src/source_serialization.rs",
         "rust/crates/tos-command/src/source_native_creation_cli.rs",
         "rust/crates/tos-command/src/source_creation_cli_selection.rs",
+        "rust/crates/tos-command/src/source_sign.rs",
         "rust/crates/tos-command/src/source_claims.rs",
         "rust/crates/tos-command/src/source_revisions.rs",
         "rust/crates/tos-command/src/source_forms.rs",

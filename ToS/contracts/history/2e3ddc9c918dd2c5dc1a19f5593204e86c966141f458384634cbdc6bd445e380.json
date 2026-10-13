@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/historical-context-claim.schema.json",
+  "title": "Scoped biographical and historical context association",
+  "description": "A source-attributed relationship, not inference from dates, names, proximity or environment. Time notes may explicitly state unknown bounds and do not manufacture normalized temporal values.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
+    },
+    {
+      "required": [
+        "qualifiers"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_historical_context_claim_v1"
+        },
+        "claim_type": {
+          "const": "relation"
+        },
+        "object": {
+          "type": "string",
+          "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "qualifiers": {
+          "type": "object",
+          "required": [
+            "statement",
+            "statement_language",
+            "statement_script",
+            "relation_basis",
+            "context_scope",
+            "time_scope_note"
+          ],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "statement_language": {
+              "anyOf": [
+                {
+                  "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "statement_script": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"
+            },
+            "relation_basis": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "time_scope_note": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The historical span or explicit absence of known bounds. Data capture time is not relationship time; prose does not create sortable date keys."
+            },
+            "context_scope": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The precise contextual or biographical dimension asserted, not causal influence or a complete life."
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "historical_participant"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "qualifiers": {
+            "required": [
+              "participation_role"
+            ],
+            "properties": {
+              "participation_role": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The contextual role actually attested; presence is not responsibility or causation."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

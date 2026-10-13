@@ -537,7 +537,9 @@ fn page_owner_ocr_fixture(repository: &Path, root: &Path) -> OwnerOCRFixture {
     page_fixture_write_json(&context_path, &context, 0o600);
     let package_reference =
         format!("{store_prefix}layers/journal-page-current/source-text-layer.v1.json");
-    page_fixture_private_dir(&private, Path::new(&package_reference).parent().unwrap());
+    let package_home = Path::new(&package_reference).parent().unwrap();
+    page_fixture_private_dir(&private, package_home.parent().unwrap());
+    assert!(!private.join(package_home).exists() && !private.join(package_home).is_symlink());
     let rights_reference = format!("{store_prefix}rights/journal-page-current-layer.json");
     let rights_target = private.join(&rights_reference);
     page_fixture_private_dir(&private, Path::new(&rights_reference).parent().unwrap());

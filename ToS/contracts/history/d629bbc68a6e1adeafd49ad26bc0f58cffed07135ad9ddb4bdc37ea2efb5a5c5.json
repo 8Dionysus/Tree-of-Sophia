@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-classification-claim.schema.json",
+  "title": "Source-attributed classification with a distinct genre, form, communication or carrier facet",
+  "description": "A scoped classification, not subject identity or type, an atlas category or a technical file format. Each predicate fixes one facet and a specific subject family. Rival classifications remain separate Claims.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_source_classification_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "object": {
+        "allOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json"}],
+        "required": ["term", "term_language", "term_script", "classification_basis", "scope_note"],
+        "properties": {
+          "kind": {"enum": ["genre-classification", "communication-medium-classification", "content-form-classification", "carrier-medium-classification"]},
+          "term": {"type": "string", "pattern": "\\S"},
+          "term_language": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"},
+          "term_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"},
+          "classification_basis": {"type": "string", "pattern": "\\S"},
+          "scope_note": {"type": "string", "pattern": "\\S"},
+          "extensions": {"type": "object"}
+        },
+        "unevaluatedProperties": false
+      },
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"],
+        "properties": {
+          "statement": {"type": "string", "pattern": "\\S"},
+          "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+          "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+        }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

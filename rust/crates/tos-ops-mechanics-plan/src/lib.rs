@@ -435,7 +435,12 @@ mod tests {
         fs::write(root.join("native/src/lib.rs"), "mod owner;\n").unwrap();
         fs::write(
             root.join("native/src/owner.rs"),
-            "#[test]\nfn retained() {}\n#[test]\nfn current() {}\n",
+            "#[test]\nfn retained() {}\n#[test]\nfn current() {}\n#[path = \"child.rs\"]\nmod child;\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("native/src/child.rs"),
+            "#[test]\nfn external() {}\n#[test]\n#[ignore]\nfn external_ignored() {}\n",
         )
         .unwrap();
         let steps = vec![
@@ -488,7 +493,7 @@ mod tests {
         assert!(
             growth_native_plan::verify_result(
                 native,
-                b"test result: ok. 1 passed; 0 failed; 0 ignored;"
+                b"test result: ok. 2 passed; 0 failed; 1 ignored;"
             )
             .is_ok()
         );
@@ -502,7 +507,7 @@ mod tests {
         assert!(
             growth_native_plan::verify_result(
                 native,
-                b"test result: ok. 2 passed; 0 failed; 0 ignored;"
+                b"test result: ok. 3 passed; 0 failed; 1 ignored;"
             )
             .is_err()
         );
