@@ -1203,8 +1203,8 @@ mod imported_legacy_owner_tests {
         let catalogue = field(row, "catalogue_entry").unwrap();
         assert_eq!(text(catalogue, "predicate").unwrap(), "rights_statement_at");
         assert_eq!(
-            field(catalogue, "object").unwrap(),
-            field(&record, "object").unwrap()
+            canonical(field(catalogue, "object").unwrap()).unwrap(),
+            canonical(field(&record, "object").unwrap()).unwrap()
         );
 
         let claim_form_path = format!(
