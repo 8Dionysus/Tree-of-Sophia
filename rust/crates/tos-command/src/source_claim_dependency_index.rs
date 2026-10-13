@@ -1256,6 +1256,12 @@ where
     let mut seen_paths = BTreeSet::new();
     let mut changed_tokens = BTreeSet::new();
     let mut changed_navigation_tokens = BTreeSet::new();
+    let owner_files = members
+        .iter()
+        .filter_map(|(member_path, member_bytes)| {
+            member_bytes.map(|raw| ((*member_path).to_owned(), raw.to_vec()))
+        })
+        .collect::<BTreeMap<_, _>>();
     for (path, bytes) in members {
         validate_public_path(path)?;
         if !seen_paths.insert(path.to_owned()) {
@@ -1274,12 +1280,6 @@ where
         } else {
             &shared_schema_paths
         };
-        let owner_files = members
-            .iter()
-            .filter_map(|(member_path, member_bytes)| {
-                member_bytes.map(|raw| ((*member_path).to_owned(), raw.to_vec()))
-            })
-            .collect::<BTreeMap<_, _>>();
         let prior_owner_refs = old_navigation
             .iter()
             .filter(|row| {
