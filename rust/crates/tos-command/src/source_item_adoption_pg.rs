@@ -2623,6 +2623,14 @@ pub(crate) fn claim_owner_contribution(
     }
 
     let receipt = super::foundation_value(&bytes.receipt)?;
+    let selected_receipt_raw = bytes
+        .child
+        .get("edition-item-receipt.json")
+        .ok_or(conflict("Item compound receipt absent"))?;
+    let selected_receipt = cmd::parse(selected_receipt_raw)?;
+    if !cmd::same(&selected_receipt, &receipt)? {
+        return Err(conflict("Item compound receipt binding differs"));
+    }
     let parent_transition = super::foundation_value(&bytes.parent_receipt)?;
     let history = cmd::parse(
         bytes
@@ -2704,6 +2712,12 @@ pub(crate) fn claim_owner_contribution(
             .iter()
             .map(|(name, raw)| (format!("{item_home}/{name}"), raw.clone())),
     );
+    // The writer binds outputs before serializing the compound receipt, which
+    // cannot contain its own digest. Its separate binding was checked above.
+    let receipt_path = format!("{item_home}/edition-item-receipt.json");
+    if output_package.remove(&receipt_path).is_none() {
+        return Err(conflict("Item compound receipt package member absent"));
+    }
     exact_map(cmd::field(&receipt, "files")?, &output_package)?;
     let predecessor_refs = exact_parent_before(&receipt, predecessor)?;
 
