@@ -661,6 +661,7 @@ fn invalid_at(
         line: location.line(),
     }
 }
+#[track_caller]
 pub(crate) fn exact_keys(v: &JsonValue, keys: &[&str]) -> SourceCommandResult<()> {
     let members = v
         .as_object()
@@ -670,7 +671,10 @@ pub(crate) fn exact_keys(v: &JsonValue, keys: &[&str]) -> SourceCommandResult<()
             .iter()
             .any(|(k, _)| !keys.contains(&k.as_str().unwrap_or("")))
     {
-        return Err(SourceCommandError::Invalid("unexpected object fields"));
+        return Err(invalid_at(
+            "unexpected object fields",
+            std::panic::Location::caller(),
+        ));
     }
     Ok(())
 }

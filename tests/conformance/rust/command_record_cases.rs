@@ -3110,8 +3110,8 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
     assert_eq!(prepared["grants_admission"], false);
     assert!(prepared["result"]["prepared_files"].is_object());
     assert_eq!(
-        prepared["result"]["prepared_source"]["promotion_basis"],
-        ready["result"]["promotion"]["basis"]
+        prepared["result"]["prepared_source"],
+        prepared_source["result"]["prepared_source"]
     );
     let command = serde_json::json!({
         "schema_version":"tos_local_source_command_v1",

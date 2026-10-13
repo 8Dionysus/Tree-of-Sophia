@@ -1188,37 +1188,45 @@ fn prepare_initial(
             sha256: normalization_member.sha256,
         };
     let staged_source = (|| {
-        let export = crate::source_current_cut::select_current_source_cut_addressed(
-            &mut coordinator,
-            &store,
-            &selection.domain,
-            original_cut,
-            bootstrap_source_revision,
-            source_membership,
-            &bootstrap.context,
-            &bootstrap.software,
-            &bootstrap.components,
-            &mut worker,
-            None,
-            &isolated,
-            None,
-            tos_source_store::ReadLimits {
-                max_manifest_bytes: 1_048_576,
-                max_manifest_entries: owner.model_limits.max_source_members as usize,
-                max_selected_object_bytes: owner.model_limits.max_source_total_bytes,
-                json: tos_foundation::JsonLimits::default(),
-            },
-            CutReadLimits {
-                max_revisions: 4,
-                max_members: owner.model_limits.max_source_members,
-                max_total_bytes: owner.model_limits.max_source_total_bytes,
-                max_member_bytes: owner.model_limits.max_source_member_bytes,
-            },
-            selection.tree_limits.into_limits(),
-            deadline,
-            cancelled,
-        )
-        .map_err(|_| SourceCommandError::Conflict("addressed source-navigation cut"))?;
+        let export =
+            crate::source_current_cut::select_current_source_cut_addressed_current_limited(
+                &mut coordinator,
+                &store,
+                &selection.domain,
+                original_cut,
+                bootstrap_source_revision,
+                source_membership,
+                &bootstrap.context,
+                &bootstrap.software,
+                &bootstrap.components,
+                &mut worker,
+                None,
+                &isolated,
+                None,
+                tos_source_store::ReadLimits {
+                    max_manifest_bytes: 1_048_576,
+                    max_manifest_entries: owner.model_limits.max_source_members as usize,
+                    max_selected_object_bytes: owner.model_limits.max_source_total_bytes,
+                    json: tos_foundation::JsonLimits::default(),
+                },
+                CutReadLimits {
+                    max_revisions: 4,
+                    max_members: owner.model_limits.max_source_members,
+                    max_total_bytes: owner.model_limits.max_source_total_bytes,
+                    max_member_bytes: owner.model_limits.max_source_member_bytes,
+                },
+                selection.tree_limits.into_limits(),
+                deadline,
+                cancelled,
+            )
+            .map_err(|error| match error {
+                error @ SourceCommandError::Invalid(_)
+                | error @ SourceCommandError::InvalidAt { .. }
+                | error @ SourceCommandError::Conflict(_)
+                | error @ SourceCommandError::Denied(_)
+                | error @ SourceCommandError::Unsupported(_) => error,
+                _ => SourceCommandError::Conflict("addressed source-navigation cut refused"),
+            })?;
         bootstrap
             .owner_check(
                 &bootstrap_invocation_path,

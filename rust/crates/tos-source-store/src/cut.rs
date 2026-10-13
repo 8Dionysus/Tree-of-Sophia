@@ -590,6 +590,10 @@ impl CorpusReader {
 }
 
 impl CorpusCutReader {
+    /// Exact finite limits under which this complete retained chain was opened.
+    pub fn limits(&self) -> CutReadLimits {
+        self.limits
+    }
     pub fn current(&self) -> &Snapshot {
         &self.snapshots[0]
     }

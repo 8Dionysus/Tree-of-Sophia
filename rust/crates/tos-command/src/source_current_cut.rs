@@ -11,7 +11,7 @@ use crate::source_creation_store::{
 };
 use rustix::fs::{AtFlags, Mode, RenameFlags};
 use rustix::io::Errno;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, Permissions};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -26,6 +26,10 @@ use tos_source_store::{
     Snapshot, SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceMembershipV1,
 };
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
+
+const CURRENT_SOURCE_EXPORT_LIMIT_REASON: &str = "current source exceeds configured export limits";
+const RETAINED_SOURCE_HISTORY_LIMIT_REASON: &str =
+    "retained source history exceeds bounded carrier";
 
 #[path = "source_foundation_artifact_replay.rs"]
 pub(crate) mod foundation_artifact_replay;
@@ -863,6 +867,183 @@ fn verify_named_export_chain(
     Ok(())
 }
 
+fn snapshot_manifest_entry_count(snapshot: &Snapshot) -> Result<usize> {
+    let dependency_entries = snapshot
+        .members()
+        .try_fold(0usize, |total, member| {
+            match snapshot.indexed_dependencies(&member.path) {
+                Some(refs) => total.checked_add(1)?.checked_add(refs.len()),
+                None => Some(total),
+            }
+        })
+        .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+    snapshot
+        .member_count()
+        .checked_add(snapshot.identity_count())
+        .and_then(|count| count.checked_add(dependency_entries))
+        .and_then(|count| count.checked_add(snapshot.retirement_count()))
+        .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))
+}
+
+fn current_and_history_cut_limits(
+    parent: &CorpusCutReader,
+    current: &BTreeMap<String, MemberMetadata>,
+    indexes: &[(String, String, String)],
+    dependency_claims: &BTreeMap<String, Option<Vec<RelativePath>>>,
+    current_read_limits: ReadLimits,
+    current_cut_limits: CutReadLimits,
+) -> Result<(ReadLimits, CutReadLimits)> {
+    if current_cut_limits.max_revisions == 0
+        || current_cut_limits.max_revisions == usize::MAX
+        || current_cut_limits.max_members == 0
+        || current_cut_limits.max_members == u64::MAX
+        || current_cut_limits.max_total_bytes == 0
+        || current_cut_limits.max_total_bytes == u64::MAX
+        || current_cut_limits.max_member_bytes == 0
+        || current_cut_limits.max_member_bytes == u64::MAX
+    {
+        return Err(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON));
+    }
+    let current_count = u64::try_from(current.len())
+        .map_err(|_| Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON))?;
+    let current_bytes = current
+        .values()
+        .try_fold(0u64, |total, member| total.checked_add(member.size_bytes));
+    let current_bytes = current_bytes.ok_or(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON))?;
+    let current_max_member = current
+        .values()
+        .map(|member| member.size_bytes)
+        .max()
+        .unwrap_or(0);
+    if current_count > current_cut_limits.max_members
+        || current_bytes > current_cut_limits.max_total_bytes
+        || current_max_member > current_cut_limits.max_member_bytes
+        || current_max_member > current_read_limits.max_selected_object_bytes
+    {
+        return Err(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON));
+    }
+
+    // The source-owner member and byte caps above stay authoritative. Reader
+    // entry caps count files, IDs, dependency edges and retirements too, so
+    // derive that parser budget from the exact current and retained metadata.
+    let current_identity_count = indexes
+        .iter()
+        .filter(|(kind, _, _)| kind != "path")
+        .map(|(_, id, _)| id)
+        .collect::<BTreeSet<_>>()
+        .len();
+    let current_dependency_entries = dependency_claims
+        .values()
+        .try_fold(0usize, |total, claims| match claims {
+            Some(refs) => total.checked_add(1)?.checked_add(refs.len()),
+            None => Some(total),
+        })
+        .ok_or(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON))?;
+    let current_manifest_entries = current
+        .len()
+        .checked_add(current_identity_count)
+        .and_then(|count| count.checked_add(current_dependency_entries))
+        .and_then(|count| count.checked_add(parent.current().retirement_count()))
+        .ok_or(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON))?;
+    if current_manifest_entries > MAX_FILES {
+        return Err(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON));
+    }
+
+    let parent_cut_limits = parent.limits();
+    // Preserve the parent cut's admitted ceiling for retired raw objects whose
+    // byte length is intentionally absent from retirement metadata.
+    let mut history_max_member = parent_cut_limits.max_member_bytes.max(current_max_member);
+    let mut history_manifest_entries = current_manifest_entries;
+    for snapshot in parent.revisions() {
+        history_manifest_entries =
+            history_manifest_entries.max(snapshot_manifest_entry_count(snapshot)?);
+        for member in snapshot.members() {
+            history_max_member = history_max_member.max(member.size_bytes);
+        }
+        for retirement in snapshot.retirements() {
+            history_max_member = history_max_member.max(retirement.event_size_bytes);
+        }
+    }
+    for retirement in parent.current().retirements() {
+        history_max_member = history_max_member.max(retirement.event_size_bytes);
+    }
+    if history_max_member == 0 || history_max_member > MAX_BYTES as u64 {
+        return Err(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON));
+    }
+
+    let history_revisions = parent
+        .revisions()
+        .count()
+        .checked_add(1)
+        .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+    let mut history_members = current_count;
+    let mut history_bytes = current_bytes;
+    for snapshot in parent.revisions() {
+        let snapshot_members = u64::try_from(snapshot.member_count())
+            .map_err(|_| Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+        history_members = history_members
+            .checked_add(snapshot_members)
+            .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+        for member in snapshot.members() {
+            history_bytes = history_bytes
+                .checked_add(member.size_bytes)
+                .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+        }
+        for retirement in snapshot.retirements() {
+            history_members = history_members
+                .checked_add(2)
+                .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+            history_bytes = history_bytes
+                .checked_add(history_max_member)
+                .and_then(|total| total.checked_add(retirement.event_size_bytes))
+                .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+        }
+    }
+    // The new successor carries the prior current revision's retirement ledger.
+    for retirement in parent.current().retirements() {
+        history_members = history_members
+            .checked_add(2)
+            .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+        history_bytes = history_bytes
+            .checked_add(history_max_member)
+            .and_then(|total| total.checked_add(retirement.event_size_bytes))
+            .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
+    }
+    if history_members == 0
+        || history_members > MAX_FILES as u64
+        || history_bytes == 0
+        || history_bytes > MAX_BYTES as u64
+        || history_manifest_entries == 0
+        || history_manifest_entries > MAX_FILES
+        || history_revisions == 0
+        || history_revisions > current_cut_limits.max_revisions
+    {
+        return Err(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON));
+    }
+
+    let history_read_limits = ReadLimits {
+        max_manifest_bytes: current_read_limits.max_manifest_bytes,
+        max_manifest_entries: current_read_limits
+            .max_manifest_entries
+            .min(MAX_FILES)
+            .max(history_manifest_entries),
+        max_selected_object_bytes: current_read_limits
+            .max_selected_object_bytes
+            .max(history_max_member),
+        json: current_read_limits.json,
+    };
+    if history_read_limits.max_selected_object_bytes > MAX_BYTES as u64 {
+        return Err(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON));
+    }
+    let history_cut_limits = CutReadLimits {
+        max_revisions: history_revisions,
+        max_members: history_members,
+        max_total_bytes: history_bytes,
+        max_member_bytes: history_max_member,
+    };
+    Ok((history_read_limits, history_cut_limits))
+}
+
 /// Explicit selection after a commit or cold restore. It never runs beneath
 /// the short commit fence. V1 needs O(N) metadata/hash and byte verification,
 /// plus opening the retained base chain; only absent SHA objects are written.
@@ -905,6 +1086,7 @@ pub fn select_current_source_cut(
         parent,
         read_limits,
         cut_limits,
+        None,
         None,
         deadline,
         cancel,
@@ -958,6 +1140,56 @@ pub fn select_current_source_cut_addressed(
         read_limits,
         cut_limits,
         Some(tree_limits),
+        None,
+        deadline,
+        cancel,
+    )
+}
+
+/// Addressed export with distinct current-source and retained-history budgets.
+/// The supplied member/byte limits remain current-generation ceilings; the
+/// complete carried history receives a separate exact bounded budget.
+pub fn select_current_source_cut_addressed_current_limited(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    domain: &str,
+    original: &CorpusCutReader,
+    initial_revision: SourceRevision,
+    initial_membership: SourceMembershipV1,
+    bootstrap_context: &CommandContext,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    streamed: Option<(
+        &crate::durable_adapter::PrivateGenerationWorkspace,
+        crate::durable_adapter::StreamedGenerationProfile,
+    )>,
+    isolated: &IsolatedCreationRoot,
+    parent: Option<&ManagedCurrentSourceCut>,
+    current_read_limits: ReadLimits,
+    current_cut_limits: CutReadLimits,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<ManagedCurrentSourceCut> {
+    select_current_source_cut_inner(
+        coordinator,
+        store,
+        domain,
+        original,
+        initial_revision,
+        initial_membership,
+        bootstrap_context,
+        software,
+        components,
+        worker,
+        streamed,
+        isolated,
+        parent,
+        current_read_limits,
+        current_cut_limits,
+        Some(tree_limits),
+        Some((current_read_limits, current_cut_limits)),
         deadline,
         cancel,
     )
@@ -983,6 +1215,7 @@ fn select_current_source_cut_inner(
     read_limits: ReadLimits,
     cut_limits: CutReadLimits,
     addressed_tree_limits: Option<tos_segment_store::AuthenticatedTreeLimitsV1>,
+    current_export_limits: Option<(ReadLimits, CutReadLimits)>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<ManagedCurrentSourceCut> {
@@ -1077,6 +1310,17 @@ fn select_current_source_cut_inner(
     } else {
         original
     };
+    let (history_read_limits, history_cut_limits) = match current_export_limits {
+        Some((current_read_limits, current_cut_limits)) => current_and_history_cut_limits(
+            parent_cut,
+            &reopened.metadata,
+            &reopened.indexes,
+            &reopened.dependency_claims,
+            current_read_limits,
+            current_cut_limits,
+        )?,
+        None => (read_limits, cut_limits),
+    };
     let uid = rustix::process::geteuid().as_raw();
     let root = isolated.verify_current(deadline, cancel)?;
     let export = directory(&root, ".managed-source-cut", uid)?;
@@ -1087,7 +1331,7 @@ fn select_current_source_cut_inner(
         &objects,
         &revisions,
         uid,
-        read_limits,
+        history_read_limits,
         deadline,
         cancel,
     )?;
@@ -1166,12 +1410,26 @@ fn select_current_source_cut_inner(
     verify_export_chain(
         isolated, &export, &objects, &revisions, uid, deadline, cancel,
     )?;
-    let reader =
-        CorpusReader::open_existing(&isolated.path().join(".managed-source-cut"), read_limits)
-            .map_err(|_| Error::Invalid("current source exact store open"))?;
+    let reader = CorpusReader::open_existing(
+        &isolated.path().join(".managed-source-cut"),
+        history_read_limits,
+    )
+    .map_err(|error| {
+        if current_export_limits.is_some() {
+            Error::Invalid(error.detail)
+        } else {
+            Error::Invalid("current source exact store open")
+        }
+    })?;
     let cut = reader
-        .open_source_cut(encoded.0, cut_limits, deadline, cancel)
-        .map_err(|_| Error::Invalid("current source successor/history carrier"))?;
+        .open_source_cut(encoded.0, history_cut_limits, deadline, cancel)
+        .map_err(|error| {
+            if current_export_limits.is_some() {
+                Error::Invalid(error.detail)
+            } else {
+                Error::Invalid("current source successor/history carrier")
+            }
+        })?;
     let mut stream = cut
         .stream(encoded.0)
         .map_err(|_| Error::Invalid("current source stream"))?;
