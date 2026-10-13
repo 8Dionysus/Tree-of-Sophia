@@ -2198,8 +2198,7 @@ fn verify_history_accounted(
             let (deadline, cancelled) = operation.ok_or(SourceCommandError::Invalid(
                 "typed owner history operation missing",
             ))?;
-            let previous_raw = serde_json::to_vec(&previous)
-                .map_err(|_| SourceCommandError::Invalid("history record conversion"))?;
+            let previous_raw = cmd::canonical(&previous)?;
             let observed = tos_validation::native_compound::inspect_record_history(
                 &archived,
                 &previous_raw,

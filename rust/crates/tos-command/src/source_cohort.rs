@@ -2203,9 +2203,9 @@ fn item_claim_owner_contribution(
                 .and_then(tos_foundation::JsonValue::as_str)
                 != Some("record.revise")
         }) {
-            return Err(DurableError::Unsupported(
+            return Err(source_error(cmd::SourceCommandError::Unsupported(
                 "Item history contains a non-record revision",
-            ));
+            )));
         }
         let initial = source_revisions::read_archive(ctx, &item_archive_config, first_transition)
             .map_err(source_error)?
