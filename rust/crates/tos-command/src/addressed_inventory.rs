@@ -3093,10 +3093,6 @@ fn validate_item_lineage(
             .map_err(source_error)?
             .as_object()
             .is_none()
-        || cmd::field(lineage, "dependencies")
-            .map_err(source_error)?
-            .as_object()
-            .is_none()
         || cmd::text(parent_before, "id").map_err(source_error)?
             != cmd::text(parent_after, "id").map_err(source_error)?
     {
@@ -3106,6 +3102,7 @@ fn validate_item_lineage(
         "request_digest",
         "owner_configuration",
         "parent_transition_sha256",
+        "dependencies",
     ] {
         let _ = owner_digest(lineage, key)?;
     }
