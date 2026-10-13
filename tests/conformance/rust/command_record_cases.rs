@@ -1050,7 +1050,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         .map(|name| (name.to_string(), fs::read(repository.join(name)).unwrap()))
         .collect();
     native_metadata_rule_files(&repository, &mut files, &[]);
-    let (_captured, software, components) = captured_components(&files, deadline, &cancellation);
+    let (captured, software, components) = captured_components(&files, deadline, &cancellation);
     let temporary = tempfile::tempdir().unwrap();
     let authored: BTreeMap<_, _> = files
         .iter()
@@ -1203,30 +1203,36 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             serialized.command().commit(),
             Err(SourceCommandError::MissingProductionAdmission)
         ));
-        // Unchanged source and separately captured software are reselected
-        // from the actual owner filesystem, rather than from public context.
+        // Authored source is reselected from the isolated owner root; software
+        // components are reselected from the exact restored capture bound above.
         for path in [
             "ToS/contracts/human-form.schema.json",
             "rust/crates/tos-command/src/source_serialization.rs",
         ] {
-            let target = isolated.path().join(path);
+            let target = if path.starts_with("ToS/") {
+                isolated.path().join(path)
+            } else {
+                captured.restored.join(path)
+            };
             let original = fs::read(&target).unwrap();
             let mut substituted = original.clone();
             substituted.push(b'\n');
             fs::write(&target, substituted).unwrap();
+            let result = filesystem.publish_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancellation,
+            );
+            let actual = match &result {
+                Ok(_) => "Ok(_)".to_owned(),
+                Err(error) => format!("Err({error:?})"),
+            };
             assert!(
-                matches!(
-                    filesystem.publish_isolated(
-                        &serialized,
-                        &cut,
-                        &software,
-                        &components,
-                        deadline,
-                        &cancellation
-                    ),
-                    Err(SourceCommandError::Conflict(_))
-                ),
-                "{kind} unchanged dependency {path}"
+                matches!(&result, Err(SourceCommandError::Conflict(_))),
+                "{kind} unchanged dependency {path}: got {actual}"
             );
             fs::write(&target, original).unwrap();
         }

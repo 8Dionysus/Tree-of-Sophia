@@ -2071,7 +2071,10 @@ fn connected_browser_produce_pair(
     let source_inputs_path = source_inputs_path.canonicalize().unwrap();
     assert!(source_root.starts_with(&stage));
     assert!(db_path.starts_with(&source_root));
-    assert!(binding_path.starts_with(&source_root));
+    assert!(
+        binding_path.starts_with(&baseline) && !binding_path.starts_with(&source_root),
+        "prepared binding is a private owner-stage input outside the authored source root"
+    );
     assert!(source_inputs_path.starts_with(&source_root));
 
     let stale_id = stale_record_id.as_str().unwrap();
