@@ -26,6 +26,7 @@ use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const TRANSACTIONS: &str = "ToS/source-witnesses/.metadata-transactions";
+const PG_ARCHIVE_HOME: &str = "ToS/source-witnesses/.record-revisions";
 const HISTORY: &str = "source-revision-history.json";
 const PROTOCOL: &str = "tos_selected_source_metadata_v1";
 const MAX_GENERATION: u64 = 9_007_199_254_740_991;
@@ -2208,6 +2209,29 @@ fn metadata_path(path: &str, directory: bool) -> Result<(), ItemRefusal> {
     }
     Ok(())
 }
+/// Exact atomic PG archive path grammar shared with the command writer.
+/// Passing this grammar alone does not validate archive bytes or custody.
+pub fn pg_archive_path(value: &str, directory: bool) -> bool {
+    let Some(tail) = value.strip_prefix(&format!("{PG_ARCHIVE_HOME}/")) else {
+        return directory && value == PG_ARCHIVE_HOME;
+    };
+    let (leaf, member) = tail.split_once('/').unwrap_or((tail, ""));
+    let Some((identity, revision)) = leaf.split_once('-') else {
+        return false;
+    };
+    let hex = |s: &str| {
+        s.len() == 64
+            && s.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    };
+    hex(identity)
+        && hex(revision)
+        && if directory {
+            member.is_empty()
+        } else {
+            member == "manifest.json" || member.strip_suffix(".blob").is_some_and(hex)
+        }
+}
 fn is_ancestor(a: &str, b: &str) -> bool {
     b.strip_prefix(a).is_some_and(|tail| tail.starts_with('/'))
 }
@@ -2933,7 +2957,10 @@ impl<'a> NativeCompoundReader<'a> {
             None
         };
         let version_matches = if companion_home.is_some() {
-            manifest_schema == "tos_selected_metadata_transaction_v2"
+            matches!(
+                manifest_schema,
+                "tos_selected_metadata_transaction_v2" | "tos_selected_metadata_transaction_v5"
+            )
         } else {
             matches!(
                 manifest_schema,
@@ -2975,7 +3002,11 @@ impl<'a> NativeCompoundReader<'a> {
             return Err(bad("new directory order/uniqueness"));
         }
         for d in &dirs {
-            metadata_path(d, true)?;
+            if manifest_schema != "tos_selected_metadata_transaction_v5"
+                || !pg_archive_path(d, true)
+            {
+                metadata_path(d, true)?;
+            }
         }
         let rows = array(plan, "files")?;
         if !(1..=64).contains(&rows.len()) {
@@ -2995,10 +3026,13 @@ impl<'a> NativeCompoundReader<'a> {
             check(self.limits.deadline, self.cancelled)?;
             keys(row, &["path", "before", "after"])?;
             let path = text(row, "path")?;
-            if companion_home.as_ref().is_some_and(|home| {
-                path == format!("{home}/fixity.sha256")
-                    || path == format!("{home}/forensic-report.md")
-            }) {
+            if (manifest_schema == "tos_selected_metadata_transaction_v5"
+                && pg_archive_path(path, false))
+                || companion_home.as_ref().is_some_and(|home| {
+                    path == format!("{home}/fixity.sha256")
+                        || path == format!("{home}/forensic-report.md")
+                })
+            {
                 // The home itself passed the exact public metadata path law.
             } else {
                 metadata_path(path, false)?;
@@ -3054,6 +3088,9 @@ impl<'a> NativeCompoundReader<'a> {
         }
         if !changed {
             return Err(bad("transaction has no change"));
+        }
+        if manifest_schema == "tos_selected_metadata_transaction_v5" {
+            self.transaction_archives(&files)?;
         }
         for a in files.keys() {
             for b in files.keys().map(String::as_str).chain(dirs.iter().copied()) {
@@ -3194,6 +3231,75 @@ impl<'a> NativeCompoundReader<'a> {
             files,
         });
         Ok(tx)
+    }
+    /// Reuse the historical archive owner and bind every retained member to
+    /// this transaction's predecessor bytes. Hidden paths remain new-only.
+    fn transaction_archives(
+        &mut self,
+        files: &BTreeMap<String, (Option<Vec<u8>>, Option<Vec<u8>>)>,
+    ) -> Result<(), ItemRefusal> {
+        let before = self.temporary_state;
+        let result = self.transaction_archives_inner(files);
+        self.release_temporary_since(before);
+        result
+    }
+    fn transaction_archives_inner(
+        &mut self,
+        files: &BTreeMap<String, (Option<Vec<u8>>, Option<Vec<u8>>)>,
+    ) -> Result<(), ItemRefusal> {
+        let mut expected = BTreeSet::new();
+        for (path, (_, after)) in files
+            .iter()
+            .filter(|(p, _)| pg_archive_path(p, false) && p.ends_with("/manifest.json"))
+        {
+            check(self.limits.deadline, self.cancelled)?;
+            let raw = after
+                .as_deref()
+                .ok_or_else(|| bad("PG archive manifest absent"))?;
+            let manifest = self.decoded(raw)?;
+            let source = text(&manifest, "source_path")?;
+            metadata_path(source, false)?;
+            if text(&manifest, "schema_version")? != "tos_source_package_archive_v2" {
+                return Err(bad("PG archive selected protocol"));
+            }
+            let home = parent(path)?;
+            let receipt = json!({
+                "previous_source": manifest["source"],
+                "previous_revision": manifest["revision"],
+                "archive_path": home,
+            });
+            self.temporary(crate::record_biblio_cut::decoded_state(&receipt)?)?;
+            let package = self.archive(source, text(&manifest["source"], "id")?, &receipt)?;
+            let current_manifest = self.required(path, MAX_FILE)?;
+            if current_manifest != raw {
+                return Err(bad("PG archive manifest versus transaction"));
+            }
+            self.temporary(std::mem::size_of::<String>() + path.len())?;
+            expected.insert(path.clone());
+            for (name, raw) in package {
+                let source_member = format!("{}/{name}", parent(source)?);
+                if files.get(&source_member).and_then(|(old, _)| old.as_ref()) != Some(&raw) {
+                    return Err(bad("PG archive predecessor versus transaction"));
+                }
+                let blob = format!("{home}/{}.blob", Digest256::of_bytes(&raw).to_hex());
+                if files.get(&blob).and_then(|(_, new)| new.as_ref()) != Some(&raw) {
+                    return Err(bad("PG archive blob versus transaction"));
+                }
+                self.temporary(std::mem::size_of::<String>() + blob.len())?;
+                expected.insert(blob);
+            }
+        }
+        let mut count = 0;
+        for (path, (before, after)) in files.iter().filter(|(p, _)| pg_archive_path(p, false)) {
+            count += 1;
+            if before.is_some() || after.is_none() || !expected.contains(path) {
+                return Err(bad("PG archive exact new-member closure"));
+            }
+        }
+        if count != expected.len() {
+            return Err(bad("PG archive exact member count"));
+        }
+        Ok(())
     }
     fn archive(&mut self, path: &str, id: &str, receipt: &Value) -> Result<Package, ItemRefusal> {
         self.archive_typed(path, id, receipt, "record_id")

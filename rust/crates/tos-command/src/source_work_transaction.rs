@@ -615,25 +615,7 @@ const PG_ARCHIVE_HOME: &str = "ToS/source-witnesses/.record-revisions";
 // This grammar is exclusive to atomic PG publication. Legacy filesystem
 // movers retain archives separately and keep their public-path restriction.
 fn pg_archive_path(value: &str, directory: bool) -> bool {
-    let Some(tail) = value.strip_prefix(&format!("{PG_ARCHIVE_HOME}/")) else {
-        return directory && value == PG_ARCHIVE_HOME;
-    };
-    let (leaf, member) = tail.split_once('/').unwrap_or((tail, ""));
-    let Some((identity, revision)) = leaf.split_once('-') else {
-        return false;
-    };
-    let hex = |s: &str| {
-        s.len() == 64
-            && s.bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    };
-    hex(identity)
-        && hex(revision)
-        && if directory {
-            member.is_empty()
-        } else {
-            member == "manifest.json" || member.strip_suffix(".blob").is_some_and(hex)
-        }
+    tos_validation::native_compound::pg_archive_path(value, directory)
 }
 
 /// Rebuild every selected archive using the existing owner byte contract.
@@ -7896,9 +7878,21 @@ mod object_refcount_readset_tests {
             &blobs,
         )
         .unwrap();
+        let decoded = publication_package_from_raw(&package.canonical_bytes).unwrap();
+        assert_eq!(decoded.canonical_bytes, package.canonical_bytes);
+        assert_eq!(decoded.sha256, package.sha256);
+        assert_eq!(decoded.source_refs, package.source_refs);
         assert_eq!(
-            publication_package_from_raw(&package.canonical_bytes).unwrap(),
-            package
+            cmd::canonical(&decoded.control).unwrap(),
+            cmd::canonical(&package.control).unwrap()
+        );
+        assert_eq!(
+            cmd::canonical(&decoded.manifest).unwrap(),
+            cmd::canonical(&package.manifest).unwrap()
+        );
+        assert_eq!(
+            cmd::canonical(&decoded.completion).unwrap(),
+            cmd::canonical(&package.completion).unwrap()
         );
         let mut missing_pair = pg_manifest.clone();
         cmd::set(&mut missing_pair, "source_readset", JsonValue::Null).unwrap();
