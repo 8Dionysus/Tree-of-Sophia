@@ -141,7 +141,7 @@ pub(crate) fn pg_schema_contracts(
     }
     if has_native_binding {
         paths.extend(
-            source_sign_native::OWNER_TEXT_UNIT_SCHEMA_CONTRACTS
+            crate::source_sign_native::OWNER_TEXT_UNIT_SCHEMA_CONTRACTS
                 .iter()
                 .map(|path| (*path).to_owned()),
         );
