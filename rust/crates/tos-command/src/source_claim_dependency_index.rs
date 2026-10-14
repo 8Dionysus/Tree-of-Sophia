@@ -248,6 +248,7 @@ pub(crate) fn is_claim_stream_path(path: &str) -> bool {
         && path.ends_with("/source-claims.jsonl")
         && path.split('/').count() == 5)
         || crate::source_creation_store::is_growth_claim_stream_path(path)
+        || crate::source_claims::is_managed_item_claim_stream_path(path)
 }
 
 pub(crate) fn is_shared_schema_source_path(path: &str) -> bool {
@@ -526,7 +527,22 @@ fn navigation_reference_rows(
             .map(|raw| crate::source_creation_store::pg_growth_claim_receipt_name(path, raw))
             .transpose()?
             .flatten();
-        if let Some(receipt_name) = typed_receipt {
+        if crate::source_claims::is_managed_item_claim_stream_path(path) {
+            // Item adoption owns this Claim stream independently of Growth.
+            // Keep dependencies on its receipt and current history even when
+            // bootstrap supplies only the exact stream bytes to this index.
+            for name in [
+                "source-create-request.json",
+                "source-create-environment.json",
+                "edition-item-receipt.json",
+                "source-revision-history.json",
+            ] {
+                owner_references.insert((
+                    ClaimNavigationReferenceKind::SourcePath,
+                    format!("{home}/{name}"),
+                ));
+            }
+        } else if let Some(receipt_name) = typed_receipt {
             for name in [
                 "source-create-request.json",
                 "source-create-environment.json",
@@ -1011,6 +1027,7 @@ fn current_claim_owner_facts(
               AND i.path LIKE 'ToS/source-witnesses/relations/%/source-claims.jsonl')
              OR i.path LIKE 'ToS/source-witnesses/works/%/expressions/%/source-claims.jsonl'
              OR i.path LIKE 'ToS/source-witnesses/works/%/expressions/%/editions/%/source-claims.jsonl'
+             OR i.path LIKE 'ToS/source-witnesses/items/%/source-claims.jsonl'
            )
          ORDER BY i.path COLLATE \"C\",i.token COLLATE \"C\" LIMIT $2",
         &[&domain, &limit],
@@ -2372,7 +2389,7 @@ mod tests {
         let edition_path = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-claims.jsonl";
         let extra_nested_relation =
             "ToS/source-witnesses/relations/fixture/nested/source-claims.jsonl";
-        let item_path = "ToS/source-witnesses/items/fixture/source-claims.jsonl";
+        let item_path = "ToS/source-witnesses/items/fixture/nested/source-claims.jsonl";
 
         assert!(is_claim_navigation_source_member(work_path));
         assert!(is_claim_navigation_source_member(edition_path));
@@ -2409,6 +2426,48 @@ mod tests {
                 && row.basis == NavigationReferenceBasis::OwnerInput
                 && row.endpoint.ends_with("/source-create-receipt.json")
         }));
+    }
+
+    #[test]
+    fn item_exemplar_stream_contributes_reverse_edges_and_navigation_dependencies() {
+        let home = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910";
+        let path = format!("{home}/source-claims.jsonl");
+        let bytes = br#"{"claim_id":"tos.claim.item-exemplar","predicate":"exemplified_by","subject_ref":"tos.edition.fixture","object":"tos.item.fixture"}"#.to_vec();
+        let files = BTreeMap::from([(path.clone(), bytes.clone())]);
+        let definition = Digest256::of_bytes(b"definition");
+        let rows = full_source_rows(&files, definition).expect("Item reverse edges");
+        assert_eq!(rows.len(), 1);
+        let edge = rows.get("tos.claim.item-exemplar").expect("Item exemplar");
+        assert_eq!(edge.path, path);
+        assert_eq!(edge.subject_endpoint, "tos.edition.fixture");
+        assert_eq!(edge.object_endpoint, "tos.item.fixture");
+        assert_eq!(edge.member_digest, Digest256::of_bytes(&bytes));
+        let navigation =
+            full_navigation_source_rows(&files, definition).expect("Item navigation references");
+        for name in [
+            "source-create-request.json",
+            "source-create-environment.json",
+            "edition-item-receipt.json",
+            "source-revision-history.json",
+        ] {
+            assert!(navigation.iter().any(|row| {
+                row.path == path
+                    && row.basis == NavigationReferenceBasis::OwnerInput
+                    && row.endpoint == format!("{home}/{name}")
+            }));
+        }
+        assert!(!navigation.iter().any(|row| {
+            row.path == path && row.endpoint == format!("{home}/source-create-receipt.json")
+        }));
+        assert!(is_claim_stream_path(
+            "ToS/source-witnesses/items/direct/source-claims.jsonl"
+        ));
+        assert!(!is_claim_stream_path(&format!(
+            "{home}/nested/source-claims.jsonl"
+        )));
+        assert!(!is_claim_stream_path(
+            "ToS/source-witnesses/.record-revisions/item/source-claims.jsonl"
+        ));
     }
 
     #[test]
