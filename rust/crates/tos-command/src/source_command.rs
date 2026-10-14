@@ -232,6 +232,16 @@ mod public_refusal_tests {
         assert!(debug.contains("source_command.rs"));
         assert!(!debug.contains("PRIVATE-FIELD-CANARY"));
         assert!(!debug.contains("/srv/abyss-machine"));
+        let expected_line = line!() + 1;
+        let error = exact_keys(&string("PRIVATE-VALUE-CANARY"), &["private-key"])
+            .expect_err("non-object must remain invalid");
+        let SourceCommandError::InvalidAt { reason, file, line } = &error else {
+            panic!("non-object must preserve invalid classification and call site");
+        };
+        assert_eq!(*reason, "expected object");
+        assert_eq!(*file, "source_command.rs");
+        assert_eq!(*line, expected_line);
+        assert!(!format!("{error:?}").contains("PRIVATE-VALUE-CANARY"));
     }
 }
 
@@ -663,9 +673,10 @@ fn invalid_at(
 }
 #[track_caller]
 pub(crate) fn exact_keys(v: &JsonValue, keys: &[&str]) -> SourceCommandResult<()> {
+    let location = std::panic::Location::caller();
     let members = v
         .as_object()
-        .ok_or(SourceCommandError::Invalid("expected object"))?;
+        .ok_or_else(|| invalid_at("expected object", location))?;
     if members.len() != keys.len()
         || members
             .iter()

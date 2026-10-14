@@ -810,6 +810,50 @@ jobs:
             /tests/fixtures/decision_records_oracle/expected/by-surface.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt
+            # Exact source packages and retained history used by the PostgreSQL integration fixtures.
+            /ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json
+            /ToS/review-ledger/2026-09-07-intellectual-formations-source-reading.md
+            /ToS/review-ledger/2026-09-07-parmenides-survival-source-reading.md
+            /ToS/review-ledger/2026-09-07-social-source-reading.md
+            /ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3/8c4ed05ab45c566b536d4b75c6d7c287d566e6bea4ed5ff7f46495377cf03e9a.blob
+            /ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3/e31cb8860cd306d0693e424e45830142f19d659eb49df789ec7838a1339e7bff.blob
+            /ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3/manifest.json
+            /ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10/25114a88356f09e04ec7d2aa538a8925109f4a3cc87cdcc9423b5657ee8e1c7d.blob
+            /ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10/49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab.blob
+            /ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10/manifest.json
+            /ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json
+            /ToS/source-witnesses/agents/friedrich-nietzsche/source-revision-history.json
+            /ToS/source-witnesses/agents/hans-hahn/agent.human-forms.json
+            /ToS/source-witnesses/agents/hans-hahn/agent.json
+            /ToS/source-witnesses/agents/hans-hahn/source-create-environment.json
+            /ToS/source-witnesses/agents/hans-hahn/source-create-provenance.jsonl
+            /ToS/source-witnesses/agents/hans-hahn/source-create-receipt.json
+            /ToS/source-witnesses/agents/hans-hahn/source-create-request.json
+            /ToS/source-witnesses/agents/justus-lipsius/agent.human-forms.json
+            /ToS/source-witnesses/agents/justus-lipsius/agent.json
+            /ToS/source-witnesses/agents/justus-lipsius/source-create-environment.json
+            /ToS/source-witnesses/agents/justus-lipsius/source-create-provenance.jsonl
+            /ToS/source-witnesses/agents/justus-lipsius/source-create-receipt.json
+            /ToS/source-witnesses/agents/justus-lipsius/source-create-request.json
+            /ToS/source-witnesses/agents/parmenides-of-elea/agent.human-forms.json
+            /ToS/source-witnesses/agents/parmenides-of-elea/agent.json
+            /ToS/source-witnesses/agents/parmenides-of-elea/source-create-environment.json
+            /ToS/source-witnesses/agents/parmenides-of-elea/source-create-provenance.jsonl
+            /ToS/source-witnesses/agents/parmenides-of-elea/source-create-receipt.json
+            /ToS/source-witnesses/agents/parmenides-of-elea/source-create-request.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.human-forms.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/source-create-environment.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/source-create-provenance.jsonl
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/source-create-receipt.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/source-create-request.json
+            /ToS/source-witnesses/discovery/runs/ecce-homo-insel-1908-open-scan-witness.2026-07-30.v1.json
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-environment.json
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-provenance.jsonl
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-receipt.json
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-request.json
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/source-revision-history.json
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/work.human-forms.json
+            /ToS/source-witnesses/works/justus-lipsius/de-constantia/work.json
             # Bounded owner inputs for native topology, KAG and source-anchor checks.
             /README.md
             /ROADMAP.md
