@@ -66,8 +66,8 @@ fn main() {
         let input = std::io::stdin();
         match tos_command::source_native_cli::run_private_text(Path::new(&args[1]), input.lock()) {
             Ok(value) => println!("{value}"),
-            Err(_) => {
-                eprintln!("private text read refused");
+            Err(error) => {
+                eprintln!("private text read refused: {}", error.public_reason());
                 std::process::exit(2);
             }
         }

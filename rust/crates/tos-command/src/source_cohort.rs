@@ -282,11 +282,15 @@ fn revision_package(
     let item_adoption = family_tag == crate::source_creation_store::PG_ITEM_ADOPTION_FAMILY_TAG
         && proposal.operation == "item.adopt"
         && proposal.handler_id == "native-item-adoption";
+    let public_text = family_tag == crate::source_public_text_entry::PG_FAMILY_TAG
+        && proposal.operation == "native-text.create"
+        && proposal.handler_id == "public-project-native-text-create";
     if (!record_revision
         && !claim_command
         && !growth_command
         && !forms_historical_command
-        && !item_adoption)
+        && !item_adoption
+        && !public_text)
         || proposal.changes.is_empty()
     {
         return Err(DurableError::Refused(
@@ -4581,6 +4585,9 @@ fn expected_revision_indexes_for_family(
             writes,
         )?);
         Ok(indexes)
+    } else if family_tag == crate::source_public_text_entry::PG_FAMILY_TAG {
+        public_text_insertion_paths(writes)?;
+        Ok(revision_indexes(writes))
     } else if family_tag.starts_with("tos-pg-maintained-growth-v1:") {
         Err(DurableError::Refused(
             "PG Growth owner family is not admitted by the shared writer",
@@ -4901,6 +4908,8 @@ pub(crate) fn check_revision_path_indexes_for_family(
         };
     let allowed_insertions = if item_adoption_indexes.is_some() {
         crate::source_creation_store::pg_item_adoption_insertion_paths(writes)?
+    } else if family_tag == crate::source_public_text_entry::PG_FAMILY_TAG {
+        public_text_insertion_paths(writes)?
     } else {
         BTreeSet::new()
     };
@@ -4911,6 +4920,46 @@ pub(crate) fn check_revision_path_indexes_for_family(
         item_adoption_indexes.as_ref(),
         &allowed_insertions,
     )
+}
+
+fn public_text_insertion_paths(writes: &[SourceRevisionWrite]) -> DurableResult<BTreeSet<String>> {
+    use crate::source_public_text_entry as owner;
+    if writes.len() != owner::FILES.len()
+        || writes
+            .iter()
+            .any(|write| write.expected_predecessor.is_some() || write.proposed_revision != 1)
+    {
+        return Err(DurableError::Refused(
+            "public Text creation requires one new complete package",
+        ));
+    }
+    let packet = writes
+        .iter()
+        .find(|write| write.subject.ends_with("/source-text-unit.v1.json"))
+        .ok_or(DurableError::Refused("public Text creation packet absent"))?;
+    let home = owner::public_text_package_home(&packet.subject).map_err(source_error)?;
+    let prefix = format!("{home}/");
+    let mut files = BTreeMap::new();
+    for write in writes {
+        let name = write
+            .subject
+            .strip_prefix(&prefix)
+            .filter(|name| owner::FILES.contains(name))
+            .ok_or(DurableError::Refused(
+                "public Text creation member outside package",
+            ))?;
+        if files
+            .insert(name.to_owned(), write.exact_bytes.clone())
+            .is_some()
+        {
+            return Err(DurableError::Refused("public Text creation member repeats"));
+        }
+    }
+    // Re-derive the package receipt and native bindings from all exact bytes
+    // at registration and recovery/commit, not from a caller path allowlist.
+    owner::public_text_inventory_projection(&home, &packet.subject, &files)
+        .map_err(source_error)?;
+    Ok(writes.iter().map(|write| write.subject.clone()).collect())
 }
 
 fn check_revision_path_indexes_inner(

@@ -39,7 +39,7 @@ const MAX_SCHEMA_FILES: usize = 128;
 const MAX_SCHEMA_BYTES: usize = 16_777_216;
 const MAX_SCHEMA_FILE_BYTES: u64 = 4_194_304;
 const MAX_PACKAGE_BYTES: usize = 2 * 1024 * 1024;
-const FAMILY: &str = "tos-pg-public-native-text-v1:native-text.create";
+const FAMILY: &str = crate::source_public_text_entry::PG_FAMILY_TAG;
 
 // These are the schemas actually consumed by the public construction route.
 // The three grant schemas form the selection closure; the additional seven
@@ -603,7 +603,7 @@ impl PreparedPgSourceRevision for PreparedPgPublicText {
         domain: &str,
         writes: &[SourceRevisionWrite],
     ) -> Result<IndexRows, DurableError> {
-        crate::source_cohort::check_revision_path_indexes(tx, domain, writes)
+        crate::source_cohort::check_revision_path_indexes_for_family(tx, domain, writes, FAMILY)
     }
 
     fn inventory_owner_contributions(

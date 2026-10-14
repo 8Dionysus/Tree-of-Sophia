@@ -136,6 +136,8 @@ use std::path::Path;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
+pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-public-native-text-v1:native-text.create";
+
 pub(crate) const FILES: [&str; 12] = [
     "source-text-layer.v1.json",
     "source-anchor.v2.json",
