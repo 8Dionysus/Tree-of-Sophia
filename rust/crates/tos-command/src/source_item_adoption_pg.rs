@@ -859,19 +859,7 @@ pub(crate) fn current_closure(
     let edition_children = current_children(session, edition_home, deadline, cancelled)?;
     let items_entry = edition_children.iter().find(|(name, _)| name == "items");
     match items_entry {
-        Some((_, true)) => {
-            let item_children = current_children(
-                session,
-                &format!("{edition_home}/items"),
-                deadline,
-                cancelled,
-            )?;
-            if item_children.iter().any(|(name, _)| name == &items_name) {
-                return Err(SourceCommandError::Conflict(
-                    "PG Item target home is occupied",
-                ));
-            }
-        }
+        Some((_, true)) => {}
         Some((_, false)) => {
             return Err(SourceCommandError::Conflict(
                 "PG Item items parent is not a directory",
@@ -885,6 +873,11 @@ pub(crate) fn current_closure(
     if target_item_home != format!("{edition_home}/items/{items_name}") {
         return Err(SourceCommandError::Conflict("PG Item target path differs"));
     }
+    // Observe only this new home. Sibling Items, archives and journals grow
+    // independently and do not belong in a new command's directory result.
+    session
+        .observe_home_absence(&super::relative(target_item_home)?, deadline, cancelled)
+        .map_err(|_| SourceCommandError::Conflict("PG Item target home occupied or changed"))?;
     new_directories.push(
         RelativePath::parse(target_item_home)
             .map_err(|_| SourceCommandError::Invalid("PG Item target directory"))?,
@@ -954,25 +947,12 @@ pub(crate) fn current_closure(
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("PG Item archive parent"))?
         .0;
-    let archive_leaf = archive_path
-        .rsplit_once('/')
-        .ok_or(SourceCommandError::Invalid("PG Item archive leaf"))?
-        .1;
     let witness_children = current_children(session, "ToS/source-witnesses", deadline, cancelled)?;
     match witness_children
         .iter()
         .find(|(name, _)| name == ".record-revisions")
     {
-        Some((_, true)) => {
-            if current_children(session, archive_parent, deadline, cancelled)?
-                .iter()
-                .any(|(name, _)| name == archive_leaf)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "PG Item predecessor archive path occupied",
-                ));
-            }
-        }
+        Some((_, true)) => {}
         Some((_, false)) => {
             return Err(SourceCommandError::Conflict(
                 "PG Item archive root is not a directory",
@@ -983,6 +963,9 @@ pub(crate) fn current_closure(
                 .map_err(|_| SourceCommandError::Invalid("PG Item archive parent"))?,
         ),
     }
+    session
+        .observe_home_absence(&super::relative(&archive_path)?, deadline, cancelled)
+        .map_err(|_| SourceCommandError::Conflict("PG Item predecessor archive occupied or changed"))?;
     new_directories.push(
         RelativePath::parse(&archive_path)
             .map_err(|_| SourceCommandError::Invalid("PG Item archive path"))?,
@@ -1009,32 +992,20 @@ pub(crate) fn current_closure(
         let transaction_leaf = transaction_id
             .strip_prefix("sha256:")
             .ok_or(SourceCommandError::Invalid("PG Item transaction identity"))?;
-        if transaction_root_exists {
-            if current_children(
-                session,
-                "ToS/source-witnesses/.metadata-transactions",
-                deadline,
-                cancelled,
-            )?
-            .iter()
-            .any(|(name, _)| name == transaction_leaf)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "PG Item transaction journal already exists",
-                ));
-            }
-        } else {
+        let transaction_home = RelativePath::parse(&format!(
+            "ToS/source-witnesses/.metadata-transactions/{transaction_leaf}"
+        ))
+        .map_err(|_| SourceCommandError::Invalid("PG Item transaction directory"))?;
+        session
+            .observe_home_absence(&transaction_home, deadline, cancelled)
+            .map_err(|_| SourceCommandError::Conflict("PG Item transaction journal occupied or changed"))?;
+        if !transaction_root_exists {
             new_directories.push(
                 RelativePath::parse("ToS/source-witnesses/.metadata-transactions")
                     .map_err(|_| SourceCommandError::Invalid("PG Item transaction root"))?,
             );
         }
-        new_directories.push(
-            RelativePath::parse(&format!(
-                "ToS/source-witnesses/.metadata-transactions/{transaction_leaf}"
-            ))
-            .map_err(|_| SourceCommandError::Invalid("PG Item transaction directory"))?,
-        );
+        new_directories.push(transaction_home);
     }
     let (claims, claim_paths) = closure_claims(
         session,

@@ -1589,6 +1589,17 @@ impl SourceRevisionReadSession<'_> {
         if !home.starts_with("ToS/") || home.ends_with('/') {
             return Err(DurableError::Invalid("bounded source home path"));
         }
+        // Bind the generation before checking absence. Reading it afterwards
+        // could accept an insertion between the empty-range read and the
+        // generation observation. A later mutation invalidates this predicate
+        // at the common source-revision commit boundary.
+        let generation = self.observe_predicate_generation(
+            PredicateKind::Range,
+            "source-home",
+            home,
+            deadline,
+            cancelled,
+        )?;
         let mut tx = self.coordinator.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
         let fence = tx.query_one(
@@ -1634,13 +1645,6 @@ impl SourceRevisionReadSession<'_> {
             ));
         }
         tx.commit()?;
-        let generation = self.observe_predicate_generation(
-            PredicateKind::Range,
-            "source-home",
-            home,
-            deadline,
-            cancelled,
-        )?;
         Ok(PgSourceHomeObservation {
             parent: RelativePath::parse(home)
                 .map_err(|_| DurableError::Invalid("bounded source home path"))?,
