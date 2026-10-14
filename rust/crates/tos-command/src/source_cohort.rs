@@ -4668,6 +4668,51 @@ fn validate_revision_indexes(
     Ok(())
 }
 
+/// A revision usually contributes only new semantic identities. Item adoption
+/// also carries the already indexed Edition and its retained form identities.
+/// Reusing those rows requires the exact same kind, path, definition and a
+/// sealed predecessor write; another kind or owner path is still a conflict.
+fn revision_retains_semantic_index(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    attempt: &SourceRevisionAttempt,
+    kind: &str,
+    token: &str,
+    path: &str,
+) -> DurableResult<bool> {
+    let kinds = if kind == "sign-candidate"
+        && attempt.family_tag == "tos-pg-maintained-growth-v1:sign-promotion"
+    {
+        vec!["sign-candidate"]
+    } else {
+        vec!["metadata", "claim", "event", "anchor", "form"]
+    };
+    // One row establishes the owner; a second proves cross-kind ambiguity.
+    let rows = tx.query(
+        "SELECT kind,path,definition_digest FROM cmd2_source_index
+         WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 2",
+        &[&domain, &kinds, &token],
+    )?;
+    if rows.is_empty() {
+        return Ok(false);
+    }
+    if rows.len() != 1
+        || attempt.family_tag != crate::source_creation_store::PG_ITEM_ADOPTION_FAMILY_TAG
+        || rows[0].get::<_, String>("kind") != kind
+        || rows[0].get::<_, String>("path") != path
+        || rows[0].get::<_, String>("definition_digest") != attempt.definition.to_hex()
+        || !attempt
+            .writes
+            .iter()
+            .any(|write| write.subject == path && write.expected_predecessor.is_some())
+    {
+        return Err(DurableError::Conflict(
+            "source revision semantic identity changed",
+        ));
+    }
+    Ok(true)
+}
+
 fn revision_form_ids(raw: &[u8]) -> DurableResult<BTreeSet<String>> {
     let value = cmd::parse(raw).map_err(source_error)?;
     source_forms::apply_form_changes(
@@ -12695,25 +12740,14 @@ pub(super) fn check_commit_owner(
                         ));
                     }
                 } else {
-                    let kinds = if kind == "sign-candidate"
-                        && attempt.family_tag == "tos-pg-maintained-growth-v1:sign-promotion"
-                    {
-                        vec!["sign-candidate"]
-                    } else {
-                        vec!["metadata", "claim", "event", "anchor", "form"]
-                    };
-                    if tx
-                        .query_opt(
-                            "SELECT 1 FROM cmd2_source_index
-                             WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
-                            &[&request.domain, &kinds, token],
-                        )?
-                        .is_some()
-                    {
-                        return Err(DurableError::Conflict(
-                            "source revision semantic identity changed",
-                        ));
-                    }
+                    revision_retains_semantic_index(
+                        tx,
+                        &request.domain,
+                        attempt,
+                        kind,
+                        token,
+                        path,
+                    )?;
                 }
             }
             let dependencies = attempt
@@ -13243,24 +13277,17 @@ pub(super) fn apply_source_change(
                         ));
                     }
                 } else {
-                    let kinds = if kind == "sign-candidate"
-                        && attempt.family_tag == "tos-pg-maintained-growth-v1:sign-promotion"
-                    {
-                        vec!["sign-candidate"]
-                    } else {
-                        vec!["metadata", "claim", "event", "anchor", "form"]
-                    };
-                    if tx
-                        .query_opt(
-                            "SELECT 1 FROM cmd2_source_index
-                             WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
-                            &[&request.domain, &kinds, token],
-                        )?
-                        .is_some()
-                    {
-                        return Err(DurableError::Conflict(
-                            "source revision semantic identity changed before commit",
-                        ));
+                    if revision_retains_semantic_index(
+                        tx,
+                        &request.domain,
+                        attempt,
+                        kind,
+                        token,
+                        path,
+                    )? {
+                        // The exact existing identity remains owned by the same
+                        // source path; only its source version changes.
+                        continue;
                     }
                 }
                 let inserted = tx.execute(
