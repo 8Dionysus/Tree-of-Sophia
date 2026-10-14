@@ -35,7 +35,8 @@ const AUDIT_INTERVAL_ROWS_SQL: &str =
 const ROW_KEY_PROFILE: &[u8] = b"cmd2-audit-delta-v1:table-u16be,key-len-u32be,key-json-utf8";
 
 /// Table identifiers follow `METADATA_TABLES` order; the semantic domain
-/// header is table 11 and the retained inventory overlay is table 12.
+/// header is table 11 and the retained inventory overlay is table 12. New
+/// tables append IDs; retained journal keys and commitments never change.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(i16)]
 pub enum MetadataTable {
@@ -51,10 +52,18 @@ pub enum MetadataTable {
     SourceIndex = 10,
     DomainHeader = 11,
     InventoryProjection = 12,
+    PublicationCurrent = 13,
+    PublicationHistory = 14,
+    PublicationImport = 15,
+    TextIdentity = 16,
+    AnnotationIdentity = 17,
+    ClaimDependency = 18,
+    ClaimNavigationReference = 19,
+    ItemFileAssignment = 20,
 }
 
 impl MetadataTable {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 20] = [
         Self::Job,
         Self::Predicate,
         Self::Attempt,
@@ -67,6 +76,14 @@ impl MetadataTable {
         Self::SourceIndex,
         Self::DomainHeader,
         Self::InventoryProjection,
+        Self::PublicationCurrent,
+        Self::PublicationHistory,
+        Self::PublicationImport,
+        Self::TextIdentity,
+        Self::AnnotationIdentity,
+        Self::ClaimDependency,
+        Self::ClaimNavigationReference,
+        Self::ItemFileAssignment,
     ];
 
     pub const fn id(self) -> i16 {
@@ -90,6 +107,14 @@ impl MetadataTable {
             Self::Member | Self::History => 2,
             Self::SourceIndex => 3,
             Self::InventoryProjection => 2,
+            Self::PublicationCurrent => 1,
+            Self::PublicationHistory => 1,
+            Self::PublicationImport => 1,
+            Self::TextIdentity => 2,
+            Self::AnnotationIdentity => 2,
+            Self::ClaimDependency => 1,
+            Self::ClaimNavigationReference => 6,
+            Self::ItemFileAssignment => 2,
         }
     }
 
@@ -107,6 +132,14 @@ impl MetadataTable {
             Self::SourceIndex => "cmd2_source_index",
             Self::DomainHeader => "cmd2_domain",
             Self::InventoryProjection => "cmd2_source_inventory_projection",
+            Self::PublicationCurrent => "cmd2_source_publication_current",
+            Self::PublicationHistory => "cmd2_source_publication_history",
+            Self::PublicationImport => "cmd2_source_publication_import",
+            Self::TextIdentity => "cmd2_source_text_identity",
+            Self::AnnotationIdentity => "cmd2_source_annotation_identity",
+            Self::ClaimDependency => "cmd2_source_claim_dependency",
+            Self::ClaimNavigationReference => "cmd2_source_claim_navigation_reference",
+            Self::ItemFileAssignment => "cmd2_source_item_file_assignment",
         }
     }
 }
@@ -152,7 +185,16 @@ impl StableRowKey {
                     | (MetadataTable::InventoryProjection, 1)
                     | (MetadataTable::Log, 0)
                     | (MetadataTable::Outbox, 0)
+                    | (MetadataTable::PublicationHistory, 0)
+                    | (MetadataTable::ClaimNavigationReference, 5)
+                    | (MetadataTable::ItemFileAssignment, 1)
             );
+            // Pre-interval migrated Claim references retain an explicit NULL
+            // start. The unique index uses NULLS NOT DISTINCT; the lookup must too.
+            if table == MetadataTable::ClaimNavigationReference && index == 5 && component.is_null()
+            {
+                continue;
+            }
             if is_number {
                 if component.as_i64().is_none() {
                     return Err(AuditDeltaError::ColdRequired(
@@ -1179,6 +1221,35 @@ fn final_lookup_sql(table: MetadataTable) -> String {
             "cmd2_source_inventory_projection",
             "t.subject=k.value->>0 AND t.effective_seq=(k.value->>1)::bigint",
         ),
+        MetadataTable::PublicationCurrent => {
+            ("cmd2_source_publication_current", "t.domain=k.value->>0")
+        }
+        MetadataTable::PublicationHistory => (
+            "cmd2_source_publication_history",
+            "t.publication_generation=(k.value->>0)::bigint",
+        ),
+        MetadataTable::PublicationImport => {
+            ("cmd2_source_publication_import", "t.domain=k.value->>0")
+        }
+        MetadataTable::TextIdentity => (
+            "cmd2_source_text_identity",
+            "t.token=k.value->>0 AND t.path=k.value->>1",
+        ),
+        MetadataTable::AnnotationIdentity => (
+            "cmd2_source_annotation_identity",
+            "t.token=k.value->>0 AND t.path=k.value->>1",
+        ),
+        MetadataTable::ClaimDependency => {
+            ("cmd2_source_claim_dependency", "t.claim_id=k.value->>0")
+        }
+        MetadataTable::ClaimNavigationReference => (
+            "cmd2_source_claim_navigation_reference",
+            "t.path=k.value->>0 AND t.claim_id=k.value->>1 AND t.endpoint_kind=k.value->>2 AND t.endpoint=k.value->>3 AND t.basis=k.value->>4 AND t.valid_from_seq IS NOT DISTINCT FROM (k.value->>5)::bigint",
+        ),
+        MetadataTable::ItemFileAssignment => (
+            "cmd2_source_item_file_assignment",
+            "t.manifest_path=k.value->>0 AND t.payload_ordinal=(k.value->>1)::integer",
+        ),
     };
     format!(
         "SELECT k.ordinality::bigint,
@@ -1205,15 +1276,25 @@ pub fn audit_delta_schema_digest() -> Digest256 {
 // Bind both complete schema byte identities: any further schema change needs
 // its own compatibility review. Both identities have exactly the same journal
 // rows, keys and commitments; keep the original activation marker immutable.
+// The complete-coverage successor adds eight table IDs and requires a fresh
+// cold metadata tree. Compatibility here is for immutable activation markers
+// and cold authentication only; a warm descriptor must match the current profile.
 const ITEM_CLAIM_PREDECESSOR: &str =
     "471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c";
 const ITEM_CLAIM_SUCCESSOR: &str =
     "c9e1f70c15eb8d522e2bf1954a0565269fc5eacfb8cc4688172b444a2af98211";
 
+const COMPLETE_COVERAGE_SUCCESSOR: &str =
+    "6be233b81ce472b8b9829b50eb345dd8c84ead1418f16143731c9d564b352623";
+
 pub(crate) fn profile_is_supported(profile: Digest256) -> bool {
     let current = audit_delta_schema_digest();
     profile == current
-        || (current.to_hex() == ITEM_CLAIM_SUCCESSOR && profile.to_hex() == ITEM_CLAIM_PREDECESSOR)
+        || (current.to_hex() == COMPLETE_COVERAGE_SUCCESSOR
+            && matches!(
+                profile.to_hex().as_str(),
+                ITEM_CLAIM_PREDECESSOR | ITEM_CLAIM_SUCCESSOR
+            ))
 }
 
 pub(crate) fn profile_hex_is_supported(profile: &str) -> bool {
@@ -1302,6 +1383,9 @@ pub(super) fn reselect_cold_profile(
         for statement in item_claim_constraint_upgrade()? {
             tx.batch_execute(statement)?;
         }
+        // All generic fence writers now journal their exact rows. DDL and
+        // the subsequent complete cold selection share this transaction.
+        tx.batch_execute(include_str!("audit_delta_schema_v1.sql"))?;
     }
     Ok(())
 }
@@ -1484,7 +1568,7 @@ mod tests {
     #[test]
     fn item_claim_cold_transition_binds_the_exact_four_constraint_extension() {
         let current = audit_delta_schema_digest();
-        assert_eq!(current.to_hex(), ITEM_CLAIM_SUCCESSOR);
+        assert_eq!(current.to_hex(), COMPLETE_COVERAGE_SUCCESSOR);
         let addition = " OR\n      path ~ '^ToS/source-witnesses/items/[^/]+/source-claims[.]jsonl$' OR\n      path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'";
         let schema = include_str!("durable_schema.sql");
         assert_eq!(schema.matches(addition).count(), 4);
@@ -1492,10 +1576,24 @@ mod tests {
         let mut hasher = Digest256Hasher::new();
         profile_part(&mut hasher, b"cmd2-audit-delta-schema-v1");
         profile_part(&mut hasher, predecessor_schema.as_bytes());
-        profile_part(&mut hasher, include_bytes!("audit_delta_schema_v1.sql"));
+        profile_part(
+            &mut hasher,
+            include_bytes!("../tests/fixtures/audit_delta_schema_12_tables.sql"),
+        );
         profile_part(&mut hasher, ROW_KEY_PROFILE);
         let predecessor = hasher.finalize();
         assert_eq!(predecessor.to_hex(), ITEM_CLAIM_PREDECESSOR);
+        let mut old = Digest256Hasher::new();
+        profile_part(&mut old, b"cmd2-audit-delta-schema-v1");
+        profile_part(&mut old, schema.as_bytes());
+        profile_part(
+            &mut old,
+            include_bytes!("../tests/fixtures/audit_delta_schema_12_tables.sql"),
+        );
+        profile_part(&mut old, ROW_KEY_PROFILE);
+        let old = old.finalize();
+        assert_eq!(old.to_hex(), ITEM_CLAIM_SUCCESSOR);
+        assert!(profile_is_supported(old));
         assert!(profile_is_supported(predecessor));
         assert!(profile_is_supported(current));
         assert!(profiles_are_compatible(current, predecessor));
@@ -1509,6 +1607,41 @@ mod tests {
         assert!(!profile_is_supported(Digest256::of_bytes(
             b"unknown schema"
         )));
+    }
+
+    #[test]
+    fn every_cold_metadata_table_has_a_delta_identity() {
+        let expected: BTreeSet<_> = super::super::METADATA_TABLES
+            .iter()
+            .map(|(name, _)| *name)
+            .chain(["cmd2_domain"])
+            .collect();
+        let actual: BTreeSet<_> = MetadataTable::ALL
+            .into_iter()
+            .map(MetadataTable::sql_name)
+            .collect();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.len(), MetadataTable::ALL.len());
+        let table = MetadataTable::ClaimNavigationReference;
+        for start in [serde_json::json!(0), serde_json::json!(8), Value::Null] {
+            let value = serde_json::json!([
+                "ToS/source-witnesses/relations/x/source-claims.jsonl",
+                "tos.claim.x",
+                "tos-id",
+                "tos.work.x",
+                "claim-value",
+                start
+            ]);
+            assert!(StableRowKey::parse(table, serde_json::to_vec(&value).unwrap(), 4096).is_ok());
+        }
+        assert!(
+            StableRowKey::parse(
+                table,
+                br#"["path","claim","tos-id","tos.work.x","claim-value","8"]"#.to_vec(),
+                4096
+            )
+            .is_err()
+        );
     }
 
     fn key(name: &str) -> StableRowKey {

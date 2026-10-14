@@ -50,17 +50,28 @@ and a bounded complete compatibility export, then restores the addressed selecti
 The legacy cold/export entry refuses an active addressed protocol. These explicit
 restore/export operations do not replace the ordinary addressed mutation path.
 
-The additive Item Claim path CHECK extension has one reviewed compatibility
-pair: audit profiles `471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c`
-and `c9e1f70c15eb8d522e2bf1954a0565269fc5eacfb8cc4688172b444a2af98211`.
-Their journal rows, keys and commitments are identical; only four SQL CHECK
-predicates differ. Explicit cold reselection authenticates the retained
-profile and verifies the complete source, indexes and custody before installing
-the two additive constraints under the unchanged audit fence. It publishes a
-fresh descriptor while preserving the immutable activation marker, baseline
-and journal. Warm delta reads and backup/restore accept this exact reviewed
-pair; unknown profiles refuse. Any further schema change needs its own review.
+The addressed audit journal covers the same 19 metadata tables as the cold
+source audit, plus the semantic domain header. IDs 1..12 retain their original
+keys and commitments; IDs 13..20 add publication current/history/import, Text
+and annotation identities, Claim dependencies and versioned navigation
+references, and Item File assignments. Publication current uses its domain
+primary key; Claim navigation keys include the nullable interval start with
+`NULLS NOT DISTINCT` semantics.
 
+The complete-coverage profile
+`6be233b81ce472b8b9829b50eb345dd8c84ead1418f16143731c9d564b352623`
+accepts the reviewed predecessor activation markers
+`471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c`
+and `c9e1f70c15eb8d522e2bf1954a0565269fc5eacfb8cc4688172b444a2af98211`
+only through explicit cold reselection. After authenticating the retained
+selection and verifying all source, indexes and custody, that transaction
+installs the additive Item Claim constraints and complete journal triggers,
+then publishes a fresh complete metadata tree under the current profile.
+The original activation marker, baseline and journal remain immutable; old
+gaps stay in history. Warm operations require a current-profile descriptor
+and start from its new cold cut. Backup/restore may preserve these exact
+reviewed markers; unknown profiles refuse. Further schema changes require
+their own compatibility review.
 
 ## Private PostgreSQL source-text projection
 
@@ -490,13 +501,14 @@ census coverage. A receipt's `v1` label is not SQL-schema compatibility: it
 describes the old receipt/census wire, not permission to restore an old
 `durable_schema.sql` ABI. Every restored database must still pass the current
 CMD.2 schema and active audit-marker profile checks. The
-`cmd2_audit_delta_v1_domain` marker remains V1, but its `profile_digest` must
-match the current compiled audit-delta profile. A matching marker can be
-preserved across a same-profile database restore and reselected with a fresh
-target-bound descriptor; a historical raw-DDL/source-code profile is refused
-without an in-place marker rewrite or SQL-schema migration. Where retained
-authored source inputs are available, use the current source import/bootstrap
-route to build a fresh domain; a SQL backup receipt is not that export route.
+`cmd2_audit_delta_v1_domain` marker remains V1. Its `profile_digest` must be
+current or one of the explicitly reviewed cold-transition identities above.
+Restore preserves the marker and journal exactly; cold reselection binds a
+fresh descriptor to the target database after the complete audit and any
+reviewed trigger upgrade. Unknown historical SQL profiles refuse. Where
+retained authored source inputs are available, the current source import or
+bootstrap route can build a fresh domain; a SQL backup receipt is not that
+export route.
 Unknown receipt versions are refused.
 Do not point either operation at another owner's live resources.
 

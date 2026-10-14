@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS cmd2_audit_delta_v1 (
   domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
   generation bigint NOT NULL CHECK (generation > 0),
-  table_id smallint NOT NULL CHECK (table_id BETWEEN 1 AND 12),
+  table_id smallint NOT NULL CHECK (table_id BETWEEN 1 AND 20),
   operation text NOT NULL CHECK (operation IN ('I','U','D')),
   old_key bytea,
   new_key bytea,
@@ -31,6 +31,12 @@ CREATE TABLE IF NOT EXISTS cmd2_audit_delta_v1 (
   )
 );
 
+-- Preserve old rows while admitting the additive table IDs on cold upgrade.
+ALTER TABLE cmd2_audit_delta_v1
+  DROP CONSTRAINT IF EXISTS cmd2_audit_delta_v1_table_id_check;
+ALTER TABLE cmd2_audit_delta_v1
+  ADD CONSTRAINT cmd2_audit_delta_v1_table_id_check CHECK (table_id BETWEEN 1 AND 20);
+
 -- A domain is journaled only after an explicit cold-baseline activation.
 -- Other domains keep the V1 fence behavior and produce no journal or WAL.
 CREATE TABLE IF NOT EXISTS cmd2_audit_delta_v1_domain (
@@ -40,7 +46,8 @@ CREATE TABLE IF NOT EXISTS cmd2_audit_delta_v1_domain (
 );
 
 -- IDs 1..10 exactly follow METADATA_TABLES; 11 is the semantic domain header;
--- 12 is the retained source-inventory projection overlay.
+-- 12 is the retained source-inventory projection overlay. IDs 13..20 add
+-- publication and source indexes without renumbering or changing old keys.
 -- The key is the UTF-8 JSON array of the table's exact stable primary-key
 -- fields. Bytea fields retain PostgreSQL's row_to_json `\\x...` spelling.
 CREATE OR REPLACE FUNCTION cmd2_audit_delta_v1_row_key(
@@ -62,6 +69,14 @@ BEGIN
     WHEN 10 THEN key_text := json_build_array(p_row->'kind',p_row->'token',p_row->'path')::text;
     WHEN 11 THEN key_text := json_build_array(p_row->'domain')::text;
     WHEN 12 THEN key_text := json_build_array(p_row->'subject',p_row->'effective_seq')::text;
+    WHEN 13 THEN key_text := json_build_array(p_row->'domain')::text;
+    WHEN 14 THEN key_text := json_build_array(p_row->'publication_generation')::text;
+    WHEN 15 THEN key_text := json_build_array(p_row->'domain')::text;
+    WHEN 16 THEN key_text := json_build_array(p_row->'token',p_row->'path')::text;
+    WHEN 17 THEN key_text := json_build_array(p_row->'token',p_row->'path')::text;
+    WHEN 18 THEN key_text := json_build_array(p_row->'claim_id')::text;
+    WHEN 19 THEN key_text := json_build_array(p_row->'path',p_row->'claim_id',p_row->'endpoint_kind',p_row->'endpoint',p_row->'basis',p_row->'valid_from_seq')::text;
+    WHEN 20 THEN key_text := json_build_array(p_row->'manifest_path',p_row->'payload_ordinal')::text;
     ELSE RAISE EXCEPTION 'CMD2 audit delta unknown table id %',p_table_id;
   END CASE;
   RETURN convert_to(key_text,'UTF8');
@@ -77,7 +92,7 @@ CREATE OR REPLACE FUNCTION cmd2_audit_delta_v1_row_commitment(
 LANGUAGE plpgsql STABLE STRICT AS $$
 DECLARE serialized text;
 BEGIN
-  IF p_table_id BETWEEN 1 AND 10 OR p_table_id=12 THEN
+  IF p_table_id BETWEEN 1 AND 20 AND p_table_id<>11 THEN
     serialized := p_row::text;
   ELSIF p_table_id=11 THEN
     SELECT row_to_json(header_row)::text INTO serialized
@@ -133,6 +148,14 @@ BEGIN
     WHEN 'cmd2_outbox' THEN 9
     WHEN 'cmd2_source_index' THEN 10
     WHEN 'cmd2_source_inventory_projection' THEN 12
+    WHEN 'cmd2_source_publication_current' THEN 13
+    WHEN 'cmd2_source_publication_history' THEN 14
+    WHEN 'cmd2_source_publication_import' THEN 15
+    WHEN 'cmd2_source_text_identity' THEN 16
+    WHEN 'cmd2_source_annotation_identity' THEN 17
+    WHEN 'cmd2_source_claim_dependency' THEN 18
+    WHEN 'cmd2_source_claim_navigation_reference' THEN 19
+    WHEN 'cmd2_source_item_file_assignment' THEN 20
     ELSE NULL
   END;
   IF table_id IS NULL THEN
@@ -277,7 +300,15 @@ BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
     'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox',
-    'cmd2_source_index','cmd2_source_inventory_projection'
+    'cmd2_source_index','cmd2_source_inventory_projection',
+    'cmd2_source_publication_current',
+    'cmd2_source_publication_history',
+    'cmd2_source_publication_import',
+    'cmd2_source_text_identity',
+    'cmd2_source_annotation_identity',
+    'cmd2_source_claim_dependency',
+    'cmd2_source_claim_navigation_reference',
+    'cmd2_source_item_file_assignment'
   ] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS %I ON %I', 'cmd2_audit_' || table_name, table_name);
     EXECUTE format(

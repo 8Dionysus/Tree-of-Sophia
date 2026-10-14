@@ -369,6 +369,11 @@ impl AddressedCutV2 {
         Ok(Digest256::of_bytes(&self.encode()?))
     }
     pub(crate) fn require_store(&self, store: &SegmentStore) -> DurableResult<()> {
+        if self.state_profile_digest != audit_delta::audit_delta_schema_digest() {
+            return Err(DurableError::Refused(
+                "addressed metadata coverage changed; explicit cold reopen required",
+            ));
+        }
         self.require_store_profile(store, audit_delta::audit_delta_schema_digest())
     }
     fn require_store_profile(
