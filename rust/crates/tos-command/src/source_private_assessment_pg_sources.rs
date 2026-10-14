@@ -2063,6 +2063,26 @@ pub(crate) fn select_owner_local_sources_pg(
                     ));
                 }
                 let snapshot = resolved.input_snapshot.clone();
+                // Keep the metadata preflight in the profile snapshot, but
+                // publish the evidence view requested by this selection. A
+                // metadata-only preflight is not a second current TextUnit
+                // beside the same binding's exact Claim/Assessment evidence.
+                let scope_name = source_access(&selection.source_access)?;
+                let allow_content = scope_name == "exact_owner_local";
+                let resolved = if allow_content {
+                    reader.allow_content = true;
+                    crate::source_sign_native::resolve_owner_assessment(
+                        &mut reader,
+                        worker,
+                        binding,
+                        &selection.origin_id,
+                        NativeReadScope::ExactOwnerLocal,
+                        deadline,
+                        cancelled,
+                    )?
+                } else {
+                    resolved
+                };
                 let mut observed = reader.into_public_members();
                 for (path, bytes) in observed.clone() {
                     insert_selected_file(&mut public_members, &path, &bytes)?;
@@ -2072,9 +2092,9 @@ pub(crate) fn select_owner_local_sources_pg(
                     input,
                     &mut observed,
                     resolved,
-                    false,
+                    allow_content,
                     &selection.origin_id,
-                    "metadata_only",
+                    &scope_name,
                     true,
                     &mut native_inputs,
                     &mut native_snapshots,

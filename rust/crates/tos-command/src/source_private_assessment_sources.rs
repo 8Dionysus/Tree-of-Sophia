@@ -2005,9 +2005,32 @@ pub(crate) fn select_owner_local_sources(
                         ));
                     }
                 }
+                // The profile snapshot retains the metadata preflight above;
+                // current native evidence must honor the selected read scope.
+                let allow_content = selection.read_scope == "exact_owner_local";
+                let resolved = if allow_content {
+                    let mut reader = PinnedOwnerReader {
+                        owner,
+                        ctx,
+                        cut,
+                        transport: &mut transport,
+                        allow_content: true,
+                    };
+                    crate::source_sign_native::resolve_owner_assessment(
+                        &mut reader,
+                        worker,
+                        binding,
+                        &selection.origin_id,
+                        NativeReadScope::ExactOwnerLocal,
+                        deadline,
+                        cancelled,
+                    )?
+                } else {
+                    resolved
+                };
                 let _ = retain_native_resolution(
                     resolved,
-                    false,
+                    allow_content,
                     &selection.origin_id,
                     &selection.read_scope,
                     true,
