@@ -40,6 +40,7 @@ use crate::{DurableError, DurableNavigationEventContextV1, DurablePgCoordinator,
 fn producer_refusal(error: crate::source_navigation_cli::SourceNavigationSelectionError) -> &'static str {
     use crate::source_managed_selection::ManagedSelectionError;
     use crate::source_navigation_cli::SourceNavigationSelectionError;
+    use crate::source_command::SourceCommandError;
     match error {
         SourceNavigationSelectionError::Invalid(reason) => reason,
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
@@ -49,7 +50,47 @@ fn producer_refusal(error: crate::source_navigation_cli::SourceNavigationSelecti
             | DurableError::Corrupt(reason)
             | DurableError::Indeterminate(reason),
         )) => reason,
-        _ => "source navigation selected owner refused",
+        SourceNavigationSelectionError::Managed(
+            ManagedSelectionError::Source(error)
+            | ManagedSelectionError::Durable(DurableError::Source(error)),
+        ) => match error {
+            SourceCommandError::Invalid(reason)
+            | SourceCommandError::InvalidAt { reason, .. }
+            | SourceCommandError::Conflict(reason)
+            | SourceCommandError::Denied(reason)
+            | SourceCommandError::Unsupported(reason) => reason,
+            SourceCommandError::DeniedWithReason(_) => "navigation source owner denied",
+            SourceCommandError::SchemaExecution { .. } => "navigation source schema refused",
+            SourceCommandError::MissingProductionAdmission => "navigation source admission missing",
+        },
+        SourceNavigationSelectionError::Managed(ManagedSelectionError::Compiler(error)) => {
+            match error {
+                tos_compiler::Error::Invalid(reason)
+                | tos_compiler::Error::PreparedUnsupported(reason)
+                | tos_compiler::Error::ManagedSourceUnsupported(reason)
+                | tos_compiler::Error::Budget(reason) => reason,
+                _ => "navigation model compiler refused",
+            }
+        }
+        SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
+            DurableError::Database(error),
+        )) => {
+            if std::error::Error::source(&error)
+                .is_some_and(|cause| cause.is::<postgres::types::WrongType>())
+            {
+                "navigation database parameter type mismatch"
+            } else if error.as_db_error().is_some() {
+                "navigation database statement refused"
+            } else {
+                "navigation database client operation failed"
+            }
+        }
+        SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
+            DurableError::Storage(_),
+        )) => "navigation source storage refused",
+        SourceNavigationSelectionError::Managed(ManagedSelectionError::Query(_)) => {
+            "navigation query selection refused"
+        }
     }
 }
 
