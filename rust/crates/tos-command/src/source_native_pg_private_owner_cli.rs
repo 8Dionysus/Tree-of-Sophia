@@ -1541,7 +1541,7 @@ pub(crate) fn run(
         "schema_version":"tos_native_pg_private_owner_result_v1",
         "authentication":"local-unix-account",
         "family":family_schema,
-        "command_id":cmd::text(&request,"command_id")?,
+        "command_id":request.object_get("command_id").and_then(JsonValue::as_str),
         "commit_seq":null,
         "package_sha256":target_current.as_ref().map(|current| current.package_digest.to_prefixed()),
         "receipt_sha256":Digest256::of_bytes(&cmd::canonical(&prepared.response)?).to_prefixed(),
