@@ -24,3 +24,9 @@ license = "Apache-2.0"
 
 [profile.test.package.tos-conformance]
 strip = "debuginfo"
+
+# Native commands hash their executing image before admitting source writes.
+# Keep SHA intrinsics optimized in dev/test builds used by bounded real-input
+# validation; unoptimized SIMD wrappers dominate these short operations.
+[profile.dev.package.sha2]
+opt-level = 3

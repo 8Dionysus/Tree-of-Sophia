@@ -879,16 +879,25 @@ fn family_dependency_commitment(
         })
         .collect();
     let requirements = requirements(context)?;
+    // Preparation and commit carry the same proposal. Commit-only receipt
+    // expectations cannot enter the value they are required to equal.
+    let mut proposal = vec![
+        ("record", cmd::field(request, "record")?.clone()),
+        ("forms", cmd::field(request, "forms")?.clone()),
+    ];
+    if requirements.family.historical() {
+        proposal.push(("claims", cmd::field(request, "claims")?.clone()));
+    }
     let binding = cmd::object(vec![
         (
             "profile",
-            cmd::string("tos_initial_historical_profile_dependency_v1"),
+            cmd::string("tos_initial_historical_profile_dependency_v2"),
         ),
         ("family_tag", cmd::string(family_tag(requirements.family)?)),
         ("identity", cmd::string(&identity.digest().to_prefixed())),
         (
-            "request_sha256",
-            cmd::string(&cmd::record_digest(request)?.to_prefixed()),
+            "proposal_sha256",
+            cmd::string(&cmd::record_digest(&cmd::object(proposal))?.to_prefixed()),
         ),
         (
             "configuration_sha256",
