@@ -141,6 +141,7 @@ pub(crate) fn pg_schema_contracts(
     if has_native_binding {
         paths.insert("ToS/contracts/native-text-unit-binding.schema.json".to_owned());
         paths.insert("ToS/contracts/native-text-unit-assessment-subject.schema.json".to_owned());
+        paths.insert("ToS/contracts/source-text-unit-packet-v1.schema.json".to_owned());
     }
     if paths.len() > MAX_PG_SCHEMA_CLOSURE {
         return Err(SourceCommandError::Unsupported(
