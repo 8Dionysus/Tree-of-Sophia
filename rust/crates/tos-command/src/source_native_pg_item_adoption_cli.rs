@@ -519,6 +519,8 @@ pub(super) fn run(
                     crate::source_creation_store::verify_pg_item_adoption_owner(
                         &owner_fs,
                         &context,
+                        &software,
+                        &components,
                         &transaction_id,
                         &dependencies,
                         &stage,
@@ -809,6 +811,8 @@ pub(super) fn run(
             source_creation_store::verify_pg_item_adoption_owner(
                 &owner_fs,
                 &context,
+                &software,
+                &components,
                 &transaction_id,
                 &dependencies,
                 &stage,
@@ -890,6 +894,8 @@ pub(super) fn run(
         source_creation_store::verify_pg_item_adoption_owner(
             &owner_fs,
             prepared.context(),
+            &software,
+            &components,
             &prepared.transaction_id,
             &prepared.dependencies,
             &prepared.stage,

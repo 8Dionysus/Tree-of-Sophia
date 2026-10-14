@@ -1828,9 +1828,86 @@ pub(crate) struct PgItemAdoptionOwnerPlan {
     pub(crate) prepared_request: Option<JsonValue>,
 }
 
+// PG source roots hold the segment store, not a checkout of the software.
+// Recheck the explicitly selected software capture at the same owner edges as
+// the physical adapter, and keep the exact implementation dependency binding.
+fn selected_software_current(
+    context: &CommandContext,
+    software: &tos_source_store::SoftwareCaptureReader,
+    components: &tos_source_store::SoftwareComponentSelectionV1,
+    dependencies: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let mut total = 0usize;
+    for input in context
+        .files
+        .iter()
+        .filter(|file| !file.path.as_str().starts_with("ToS/"))
+    {
+        total = total
+            .checked_add(input.raw.len())
+            .filter(|total| *total <= 33_554_432)
+            .ok_or(SourceCommandError::Invalid(
+                "PG Item software aggregate budget",
+            ))?;
+        let current = software
+            .read_selected_component(components, &input.path, 8_388_608, deadline, cancelled)
+            .map_err(|_| {
+                SourceCommandError::Conflict("PG Item selected software member changed")
+            })?;
+        if current != input.raw {
+            return Err(SourceCommandError::Conflict(
+                "PG Item selected software bytes changed",
+            ));
+        }
+    }
+    let bindings = cmd::field(dependencies, "implementation")?
+        .as_object()
+        .ok_or(SourceCommandError::Invalid(
+            "PG Item implementation dependency group",
+        ))?;
+    if bindings.len() > 512 {
+        return Err(SourceCommandError::Invalid(
+            "PG Item implementation dependency count",
+        ));
+    }
+    let mut total = 0usize;
+    for (reference, digest) in bindings {
+        super::active(deadline, cancelled)?;
+        let path = super::relative(
+            reference
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("PG Item implementation path"))?,
+        )?;
+        if components.member(&path).is_none() || path.as_str().starts_with("ToS/") {
+            return Err(SourceCommandError::Conflict(
+                "PG Item implementation outside selected software",
+            ));
+        }
+        let raw = context.file(&path)?.ok_or(SourceCommandError::Conflict(
+            "PG Item implementation absent",
+        ))?;
+        total = total
+            .checked_add(raw.len())
+            .filter(|total| *total <= 33_554_432)
+            .ok_or(SourceCommandError::Invalid(
+                "PG Item implementation aggregate budget",
+            ))?;
+        if raw.len() > 2_097_152 || digest.as_str() != Some(super::raw_hex(raw).as_str()) {
+            return Err(SourceCommandError::Conflict(
+                "PG Item implementation bytes changed",
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn verify_pg_item_adoption_owner(
     fs: &CreationFilesystem,
     context: &CommandContext,
+    software: &tos_source_store::SoftwareCaptureReader,
+    components: &tos_source_store::SoftwareComponentSelectionV1,
     transaction_id: &str,
     dependencies: &JsonValue,
     stage: &serde_json::Value,
@@ -1840,17 +1917,14 @@ pub(crate) fn verify_pg_item_adoption_owner(
 ) -> SourceCommandResult<()> {
     let configuration = cmd::parse(&context.configuration_raw)?;
     super::current_grant(fs, context, &configuration, deadline, cancelled)?;
-    super::software_current(fs, context, deadline, cancelled)?;
-    let implementation_only = cmd::object(vec![
-        ("catalog_and_sources", cmd::object(Vec::new())),
-        ("contracts", cmd::object(Vec::new())),
-        (
-            "implementation",
-            cmd::field(dependencies, "implementation")?.clone(),
-        ),
-        ("retained_transactions", cmd::object(Vec::new())),
-    ]);
-    super::work_dependencies_current(fs, &implementation_only, deadline, cancelled)?;
+    selected_software_current(
+        context,
+        software,
+        components,
+        dependencies,
+        deadline,
+        cancelled,
+    )?;
     let config = super::serde_value(&configuration)?;
     crate::source_item_deposit::stage_current(
         &config,
@@ -1993,17 +2067,14 @@ pub(crate) fn prepare_pg_item_adoption(
         limits.deadline,
         cancelled,
     )?;
-    super::software_current(fs, context, limits.deadline, cancelled)?;
-    let implementation_only = cmd::object(vec![
-        ("catalog_and_sources", cmd::object(Vec::new())),
-        ("contracts", cmd::object(Vec::new())),
-        (
-            "implementation",
-            cmd::field(&dependencies, "implementation")?.clone(),
-        ),
-        ("retained_transactions", cmd::object(Vec::new())),
-    ]);
-    super::work_dependencies_current(fs, &implementation_only, limits.deadline, cancelled)?;
+    selected_software_current(
+        context,
+        software,
+        components,
+        &dependencies,
+        limits.deadline,
+        cancelled,
+    )?;
 
     if proposal {
         worker
@@ -2338,8 +2409,14 @@ pub(crate) fn prepare_pg_item_adoption(
         limits.deadline,
         cancelled,
     )?;
-    super::software_current(fs, context, limits.deadline, cancelled)?;
-    super::work_dependencies_current(fs, &implementation_only, limits.deadline, cancelled)?;
+    selected_software_current(
+        context,
+        software,
+        components,
+        &dependencies,
+        limits.deadline,
+        cancelled,
+    )?;
     snapshot.verify_from_input(input.source_input(), limits.deadline, cancelled)?;
     Ok(PgItemAdoptionOwnerPlan {
         transaction_id,
