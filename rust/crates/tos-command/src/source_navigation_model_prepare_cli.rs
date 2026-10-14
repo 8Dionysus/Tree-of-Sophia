@@ -1748,7 +1748,15 @@ fn prepare_initial(
                 }
             }))
         },
-    ).map_err(|_| SourceCommandError::Conflict("source-navigation current-owner publication lease failed"))?;
+    ).map_err(|error| match error {
+        crate::DurableError::Source(error) => error,
+        crate::DurableError::Conflict(reason) => SourceCommandError::Conflict(reason),
+        crate::DurableError::Refused(reason) => SourceCommandError::Denied(reason),
+        crate::DurableError::Invalid(reason) | crate::DurableError::Corrupt(reason) => {
+            SourceCommandError::Invalid(reason)
+        }
+        _ => SourceCommandError::Conflict("source-navigation current-owner publication lease failed"),
+    })?;
         let _ = (invocation, outer_owner_context);
         Ok(publication)
     })();
