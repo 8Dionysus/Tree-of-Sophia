@@ -4536,7 +4536,7 @@ fn real_pg_native_artifact_revision_replays_and_refuses_revoked_rights() {
         let row = Client::connect(&case.lab.url, NoTls)
             .unwrap()
             .query_one(
-                "SELECT source_revision,source_epoch,source_generation,head_seq
+                "SELECT source_revision,source_epoch,source_generation
                  FROM cmd2_domain WHERE domain=$1",
                 &[&case.lab.domain],
             )
@@ -4545,7 +4545,6 @@ fn real_pg_native_artifact_revision_replays_and_refuses_revoked_rights() {
             row.get::<_, String>(0),
             row.get::<_, i64>(1),
             row.get::<_, i64>(2),
-            row.get::<_, i64>(3),
         )
     };
     let source_commitment_before = source_commitment(&case);
