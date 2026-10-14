@@ -197,6 +197,11 @@ rights, consent, publication, or source admission. ToS policy and disclosure
 leases remain independently enforced by their owner. Projection readers check
 the current CMD rights version and refuse revoked or stale output.
 
+Source-navigation preparation, reads and policy operations bind the exact
+current CMD rule and rights versions. Both start at zero for a fresh domain;
+they are independent of the navigation profile version. A version match still
+requires current allowed rights, the selected contract and a live job fence.
+
 ## Native PostgreSQL record revision
 
 The ordinary `--invocation` route also supports a flat corpus

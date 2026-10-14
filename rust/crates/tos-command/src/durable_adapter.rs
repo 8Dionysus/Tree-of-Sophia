@@ -2467,8 +2467,6 @@ impl DurablePgCoordinator {
         if mutation.job_id.is_empty()
             || mutation.job_id.len() > 256
             || mutation.job_id.contains('\0')
-            || mutation.expected_rule_version == 0
-            || mutation.expected_rights_version == 0
             || mutation.job_fence == 0
             || mutation.source_epoch == 0
             || mutation.bootstrap_membership_count == 0

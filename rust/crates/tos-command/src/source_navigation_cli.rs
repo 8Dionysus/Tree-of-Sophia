@@ -510,8 +510,6 @@ fn validate_navigation_selection_scope(
         || selection.profile_id.is_empty()
         || selection.profile_id.len() > 128
         || selection.profile_id.contains('\0')
-        || selection.rule_version == 0
-        || selection.rights_version == 0
         || selection.job_fence == 0
         || selection.profile_version == 0
     {
