@@ -4,10 +4,9 @@
 //! This only captures exact carriers from a `VerifiedKnowledgeModel` inside
 //! its owner lease. It does not grant source admission, rights, or disclosure.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
-use rusqlite::{Connection, params};
 use std::sync::atomic::AtomicBool;
 use tos_compiler::{NavigationHeaderClaim, VerifiedKnowledgeModel};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
@@ -54,8 +53,8 @@ impl SourceNavigationBootstrapCaptureV1 {
     }
 }
 
-/// Copy the original detached header and complete selected node/edge/rights
-/// tables under the verified model pin. All SQL projections are length-gated
+/// Copy the original detached header and authenticated original node/edge/rights
+/// members under the verified model pin. All SQL projections are length-gated
 /// before allocating carrier bytes; any omitted, malformed, or oversized row
 /// fails closed instead of producing a partial baseline.
 pub fn capture_source_navigation_bootstrap_v1(
@@ -122,47 +121,95 @@ pub fn capture_source_navigation_bootstrap_v1(
     if charged_bytes > limits.max_total_bytes {
         return Err(DurableError::Refused("navigation bootstrap byte budget"));
     }
-    let mut source_row_count = 0u64;
-    for (kind, table, key, expected_count, visibility) in [
+    let mut work_bytes = 0u64;
+    let mut node_visibility = BTreeMap::new();
+    for (kind, collection, expected_count) in [
         (
             DurableNavigationBootstrapRowKindV1::Node,
             "nodes",
-            "node_id",
-            Some(receipt.nodes),
-            true,
+            receipt.nodes,
         ),
         (
             DurableNavigationBootstrapRowKindV1::Edge,
             "edges",
-            "edge_id",
-            Some(receipt.edges),
-            true,
-        ),
-        (
-            DurableNavigationBootstrapRowKindV1::Right,
-            "rights",
-            "rights_id",
-            None,
-            false,
+            receipt.edges,
         ),
     ] {
-        let observed = capture_carrier_table(
-            model.connection(),
-            table,
-            key,
-            kind,
-            visibility,
-            limits,
-            &mut rows,
-            &mut owner_source_paths,
-            &mut charged_bytes,
-            &mut source_row_count,
-        )?;
-        if expected_count.is_some_and(|expected| observed != expected) {
+        let mut after = None;
+        let mut observed = 0u64;
+        loop {
+            let page = model
+                .navigation_original_members_under_caller_budget(
+                    collection,
+                    after.as_deref(),
+                    1,
+                    limits.max_row_bytes as u64,
+                )
+                .map_err(|_| DurableError::Corrupt("selected navigation original membership"))?;
+            let Some(member) = page.rows.into_iter().next() else {
+                break;
+            };
+            if after.as_ref().is_some_and(|id| member.id <= *id)
+                || member.collection != collection
+                || observed >= expected_count
+            {
+                return Err(DurableError::Corrupt(
+                    "selected navigation original member order/count",
+                ));
+            }
+            let original =
+                tos_compiler::managed_agent_producer::managed_navigation_original_member_bytes(
+                    model,
+                    collection,
+                    &member.id,
+                    tos_compiler::NavigationOriginalLimits {
+                        max_rows: limits.max_current_rows as u64,
+                        max_row_bytes: limits.max_row_bytes,
+                        max_total_bytes: limits.max_total_bytes.saturating_sub(work_bytes),
+                    },
+                )
+                .map_err(|_| DurableError::Corrupt("selected navigation exact original carrier"))?
+                .ok_or(DurableError::Corrupt(
+                    "selected navigation original member absent",
+                ))?;
+            work_bytes = work_bytes
+                .checked_add(original.work_bytes)
+                .filter(|bytes| *bytes <= limits.max_total_bytes)
+                .ok_or(DurableError::Refused(
+                    "navigation bootstrap original work budget",
+                ))?;
+            capture_original_carrier(
+                kind,
+                member.id.clone(),
+                original.raw,
+                limits,
+                &mut rows,
+                &mut owner_source_paths,
+                &mut charged_bytes,
+                &mut node_visibility,
+            )?;
+            observed += 1;
+            after = Some(member.id);
+        }
+        if observed != expected_count {
             return Err(DurableError::Conflict(
                 "selected navigation carrier count differs from receipt",
             ));
         }
+    }
+    // Original rights retain ordinal duplicates for their receipt. The current
+    // projection uses one identical carrier per rights ID, as the source reader does.
+    for (id, raw) in projected_original_rights(&original_rights, limits)? {
+        capture_original_carrier(
+            DurableNavigationBootstrapRowKindV1::Right,
+            id,
+            raw,
+            limits,
+            &mut rows,
+            &mut owner_source_paths,
+            &mut charged_bytes,
+            &mut node_visibility,
+        )?;
     }
     if rows.is_empty() || owner_source_paths.is_empty() {
         return Err(DurableError::Conflict(
@@ -333,7 +380,7 @@ pub fn publish_current_source_navigation_bootstrap_v1<P: ManagedSelectedProof>(
         .map_err(ManagedSelectionError::Durable)
 }
 
-fn capture_original_rights(
+pub(crate) fn capture_original_rights(
     model: &VerifiedKnowledgeModel<'_>,
     expected_count: u64,
     limits: DurableNavigationEventLimits,
@@ -403,6 +450,31 @@ fn capture_original_rights(
     Ok(rights)
 }
 
+pub(crate) fn projected_original_rights(
+    original_rights: &[(u64, Vec<u8>)],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<BTreeMap<String, Vec<u8>>> {
+    let mut projected = BTreeMap::<String, Vec<u8>>::new();
+    for (_, raw) in original_rights {
+        let value = parse_carrier(raw, limits)?;
+        let id = value
+            .object_get("rights_id")
+            .and_then(|v| v.as_str())
+            .filter(|id| !id.is_empty() && id.len() <= MAX_BOOTSTRAP_ID_BYTES)
+            .ok_or(DurableError::Corrupt("selected original rights identity"))?
+            .to_owned();
+        if projected
+            .insert(id, raw.clone())
+            .is_some_and(|prior| prior != *raw)
+        {
+            return Err(DurableError::Conflict(
+                "selected original rights ID bytes differ",
+            ));
+        }
+    }
+    Ok(projected)
+}
+
 fn navigation_input_root(
     rows: &[DurableNavigationBootstrapRowV1],
     kind: DurableNavigationBootstrapRowKindV1,
@@ -458,210 +530,184 @@ fn require_source_navigation_profile(
     Ok(())
 }
 
+fn parse_carrier(
+    raw: &[u8],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<tos_foundation::JsonValue> {
+    parse_json(
+        raw,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: limits.max_row_bytes,
+            max_depth: 64,
+            max_visits: 300_000,
+            max_integer_digits: 4_300,
+        },
+    )
+    .map(|document| document.into_root())
+    .map_err(|_| DurableError::Corrupt("selected navigation carrier JSON"))
+}
+
 #[allow(clippy::too_many_arguments)]
-fn capture_carrier_table(
-    db: &Connection,
-    table: &str,
-    key: &str,
+fn capture_original_carrier(
     kind: DurableNavigationBootstrapRowKindV1,
-    has_visibility: bool,
+    id: String,
+    raw: Vec<u8>,
     limits: DurableNavigationEventLimits,
     output: &mut Vec<DurableNavigationBootstrapRowV1>,
     owner_source_paths: &mut BTreeSet<String>,
     charged_bytes: &mut u64,
-    source_row_count: &mut u64,
-) -> DurableResult<u64> {
-    let visibility = if has_visibility { "visible" } else { "NULL" };
-    let sql = format!(
-        "SELECT CASE WHEN length(CAST({key} AS BLOB)) BETWEEN 1 AND ?1 THEN {key} END,
-                {visibility},
-                CASE WHEN carrier_size BETWEEN 0 AND ?2
-                           AND length(carrier)<=?2 THEN carrier END,
-                CASE WHEN length(CAST(carrier_sha256 AS BLOB))=64 THEN carrier_sha256 END
-         FROM {table} ORDER BY {key} LIMIT ?3"
-    );
-    let read_cap = limits
-        .max_current_rows
-        .checked_add(1)
-        .ok_or(DurableError::Refused("navigation bootstrap row count"))?;
-    let read_cap = i64::try_from(read_cap)
-        .map_err(|_| DurableError::Refused("navigation bootstrap row count"))?;
-    let row_cap = i64::try_from(limits.max_row_bytes)
-        .map_err(|_| DurableError::Refused("navigation bootstrap row bytes"))?;
-    let mut statement = db
-        .prepare(&sql)
-        .map_err(|_| DurableError::Corrupt("selected navigation table"))?;
-    let mut cursor = statement
-        .query(params![MAX_BOOTSTRAP_ID_BYTES as i64, row_cap, read_cap])
-        .map_err(|_| DurableError::Corrupt("selected navigation table query"))?;
-    let mut observed = 0u64;
-    while let Some(row) = cursor
-        .next()
-        .map_err(|_| DurableError::Corrupt("selected navigation table row"))?
+    node_visibility: &mut BTreeMap<String, bool>,
+) -> DurableResult<()> {
+    if id.is_empty() || id.len() > MAX_BOOTSTRAP_ID_BYTES {
+        return Err(DurableError::Refused(
+            "navigation bootstrap carrier ID size",
+        ));
+    }
+    let value = parse_carrier(&raw, limits)?;
+    let visible = match kind {
+        DurableNavigationBootstrapRowKindV1::Node => {
+            let visible = tos_compiler::visible_node(&value);
+            if node_visibility.insert(id.clone(), visible).is_some() {
+                return Err(DurableError::Corrupt("duplicate original navigation node"));
+            }
+            Some(visible)
+        }
+        DurableNavigationBootstrapRowKindV1::Edge => {
+            let endpoint = |field| {
+                value
+                    .object_get(field)
+                    .and_then(|v| v.as_str())
+                    .and_then(|id| node_visibility.get(id))
+                    .copied()
+                    .ok_or(DurableError::Corrupt(
+                        "navigation original edge endpoint absent",
+                    ))
+            };
+            let from_visible = endpoint("from_id")?;
+            let to_visible = endpoint("to_id")?;
+            Some(from_visible && to_visible)
+        }
+        _ => None,
+    };
+    let id_field = match kind {
+        DurableNavigationBootstrapRowKindV1::Node => "node_id",
+        DurableNavigationBootstrapRowKindV1::Edge => "edge_id",
+        DurableNavigationBootstrapRowKindV1::Right => "rights_id",
+        DurableNavigationBootstrapRowKindV1::Diagnostic => {
+            return Err(DurableError::Invalid("unexpected diagnostic carrier table"));
+        }
+    };
+    if value.object_get(id_field).and_then(|value| value.as_str()) != Some(id.as_str()) {
+        return Err(DurableError::Corrupt("selected navigation carrier key"));
+    }
+    let mut refs = BTreeSet::new();
+    let mut explicit_owner = None;
+    if let Some(path) = value
+        .object_get("source_ref")
+        .and_then(|value| value.as_str())
     {
-        observed = observed
-            .checked_add(1)
-            .ok_or(DurableError::Refused("navigation bootstrap row count"))?;
-        if observed as usize > limits.max_current_rows
-            || *source_row_count as usize >= limits.max_current_rows
-        {
-            return Err(DurableError::Refused("navigation bootstrap row budget"));
-        }
-        *source_row_count += 1;
-        let id: Option<String> = row
-            .get(0)
-            .map_err(|_| DurableError::Corrupt("selected navigation carrier ID"))?;
-        let id = id.ok_or(DurableError::Corrupt("selected navigation carrier ID size"))?;
-        if id.len() > MAX_BOOTSTRAP_ID_BYTES {
-            return Err(DurableError::Refused(
-                "navigation bootstrap carrier ID size",
-            ));
-        }
-        let visible_raw: Option<i64> = row
-            .get(1)
-            .map_err(|_| DurableError::Corrupt("selected navigation visibility"))?;
-        let visible = if has_visibility {
-            match visible_raw {
-                Some(0) => Some(false),
-                Some(1) => Some(true),
-                _ => return Err(DurableError::Corrupt("selected navigation visibility")),
+        let path = checked_path(path)?.into_string();
+        explicit_owner = Some(path.clone());
+        refs.insert(path);
+    }
+    if let Some(path) = value.object_get("path").and_then(|value| value.as_str()) {
+        let path = checked_path(path)?.into_string();
+        explicit_owner.get_or_insert_with(|| path.clone());
+        refs.insert(path);
+    }
+    if let Some(paths) = value
+        .object_get("source_refs")
+        .and_then(|value| value.as_array())
+    {
+        for path in paths {
+            let path = path
+                .as_str()
+                .ok_or(DurableError::Corrupt("selected navigation source ref"))?;
+            if has_uri_scheme(path) {
+                continue;
             }
-        } else {
-            None
-        };
-        let raw: Option<Vec<u8>> = row
-            .get(2)
-            .map_err(|_| DurableError::Corrupt("selected navigation carrier"))?;
-        let raw = raw.ok_or(DurableError::Refused(
-            "selected navigation carrier byte cap",
-        ))?;
-        let sha: Option<String> = row
-            .get(3)
-            .map_err(|_| DurableError::Corrupt("selected navigation carrier digest"))?;
-        let sha = sha.ok_or(DurableError::Corrupt(
-            "selected navigation carrier digest size",
-        ))?;
-        if Digest256::from_hex(&sha).ok() != Some(Digest256::of_bytes(&raw)) {
-            return Err(DurableError::Corrupt("selected navigation carrier digest"));
-        }
-        let value = parse_json(
-            &raw,
-            JsonMode::PublishedStrict,
-            JsonLimits {
-                max_bytes: limits.max_row_bytes,
-                max_depth: 64,
-                max_visits: 300_000,
-                max_integer_digits: 4_300,
-            },
-        )
-        .map_err(|_| DurableError::Corrupt("selected navigation carrier JSON"))?
-        .into_root();
-        let id_field = match kind {
-            DurableNavigationBootstrapRowKindV1::Node => "node_id",
-            DurableNavigationBootstrapRowKindV1::Edge => "edge_id",
-            DurableNavigationBootstrapRowKindV1::Right => "rights_id",
-            DurableNavigationBootstrapRowKindV1::Diagnostic => {
-                return Err(DurableError::Invalid("unexpected diagnostic carrier table"));
+            if let Ok(path) = checked_path(path) {
+                refs.insert(path.into_string());
+            } else {
+                return Err(DurableError::Corrupt("selected navigation source ref"));
             }
-        };
-        if value.object_get(id_field).and_then(|value| value.as_str()) != Some(id.as_str()) {
-            return Err(DurableError::Corrupt("selected navigation carrier key"));
-        }
-        let mut refs = BTreeSet::new();
-        let mut explicit_owner = None;
-        if let Some(path) = value
-            .object_get("source_ref")
-            .and_then(|value| value.as_str())
-        {
-            let path = checked_path(path)?.into_string();
-            explicit_owner = Some(path.clone());
-            refs.insert(path);
-        }
-        if let Some(path) = value.object_get("path").and_then(|value| value.as_str()) {
-            let path = checked_path(path)?.into_string();
-            explicit_owner.get_or_insert_with(|| path.clone());
-            refs.insert(path);
-        }
-        if let Some(paths) = value
-            .object_get("source_refs")
-            .and_then(|value| value.as_array())
-        {
-            for path in paths {
-                let path = path
-                    .as_str()
-                    .ok_or(DurableError::Corrupt("selected navigation source ref"))?;
-                if has_uri_scheme(path) {
-                    continue;
-                }
-                if let Ok(path) = RelativePath::parse(path) {
-                    refs.insert(path.into_string());
-                } else {
-                    return Err(DurableError::Corrupt("selected navigation source ref"));
-                }
-            }
-        }
-        if refs.is_empty() {
-            return Err(DurableError::Conflict(
-                "selected navigation row has no source owner",
-            ));
-        }
-        let owner_record_id = value
-            .object_get("record_id")
-            .and_then(|value| value.as_str())
-            .or_else(|| {
-                value
-                    .object_get("record")
-                    .and_then(|record| record.object_get("record_id"))
-                    .and_then(|value| value.as_str())
-            })
-            .or_else(|| {
-                value
-                    .object_get("source_record")
-                    .and_then(|record| record.object_get("record_id"))
-                    .and_then(|value| value.as_str())
-            })
-            .filter(|record_id| !record_id.is_empty() && record_id.len() <= MAX_BOOTSTRAP_ID_BYTES)
-            .unwrap_or(&id)
-            .to_owned();
-        // `source_refs` are dependency evidence and may include citations;
-        // they are not row ownership. A carrier without an explicit producer
-        // path is assigned only when it has exactly one internal dependency.
-        let owner_path = match explicit_owner {
-            Some(owner_path) => owner_path,
-            None if refs.len() == 1 => refs.iter().next().unwrap().clone(),
-            None => {
-                return Err(DurableError::Conflict(
-                    "selected navigation row ownership is ambiguous",
-                ));
-            }
-        };
-        owner_source_paths.extend(refs.iter().cloned());
-        if owner_source_paths.len() > limits.max_dependencies {
-            return Err(DurableError::Refused(
-                "navigation bootstrap dependency source budget",
-            ));
-        }
-        {
-            *charged_bytes = charged_bytes
-                .checked_add(raw.len() as u64)
-                .ok_or(DurableError::Refused("navigation bootstrap byte budget"))?;
-            if *charged_bytes > limits.max_total_bytes {
-                return Err(DurableError::Refused("navigation bootstrap byte budget"));
-            }
-            if output.len() >= limits.max_current_rows {
-                return Err(DurableError::Refused("navigation bootstrap row budget"));
-            }
-            output.push(DurableNavigationBootstrapRowV1 {
-                kind,
-                id: id.clone(),
-                owner_source_path: owner_path,
-                owner_record_id: owner_record_id.clone(),
-                visible,
-                raw: raw.clone(),
-            });
         }
     }
-    Ok(observed)
+    if refs.is_empty() {
+        return Err(DurableError::Conflict(
+            "selected navigation row has no source owner",
+        ));
+    }
+    let historical_record_id = value
+        .object_get("properties")
+        .and_then(|properties| properties.object_get("record_version_view"))
+        .and_then(|view| view.object_get("record_ref"))
+        .and_then(|reference| reference.object_get("id"))
+        .and_then(|id| id.as_str());
+    let historical_edge_owner = (value.object_get("edge_kind").and_then(|v| v.as_str())
+        == Some("exact_historical_record_reference"))
+    .then(|| value.object_get("from_id").and_then(|v| v.as_str()))
+    .flatten();
+    let owner_record_id = value
+        .object_get("record_id")
+        .and_then(|value| value.as_str())
+        .or_else(|| {
+            value
+                .object_get("record")
+                .and_then(|record| record.object_get("record_id"))
+                .and_then(|value| value.as_str())
+        })
+        .or_else(|| {
+            value
+                .object_get("source_record")
+                .and_then(|record| record.object_get("record_id"))
+                .and_then(|value| value.as_str())
+        })
+        .or(historical_record_id)
+        .or(historical_edge_owner)
+        .filter(|record_id| !record_id.is_empty() && record_id.len() <= MAX_BOOTSTRAP_ID_BYTES)
+        .unwrap_or(&id)
+        .to_owned();
+    // `source_refs` are dependency evidence and may include citations;
+    // they are not row ownership. A carrier without an explicit producer
+    // path is assigned only when it has exactly one internal dependency.
+    let owner_path = match explicit_owner {
+        Some(owner_path) => owner_path,
+        None if refs.len() == 1 => refs.iter().next().unwrap().clone(),
+        None => {
+            return Err(DurableError::Conflict(
+                "selected navigation row ownership is ambiguous",
+            ));
+        }
+    };
+    owner_source_paths.extend(refs.iter().cloned());
+    if owner_source_paths.len() > limits.max_dependencies {
+        return Err(DurableError::Refused(
+            "navigation bootstrap dependency source budget",
+        ));
+    }
+    {
+        *charged_bytes = charged_bytes
+            .checked_add(raw.len() as u64)
+            .ok_or(DurableError::Refused("navigation bootstrap byte budget"))?;
+        if *charged_bytes > limits.max_total_bytes {
+            return Err(DurableError::Refused("navigation bootstrap byte budget"));
+        }
+        if output.len() >= limits.max_current_rows {
+            return Err(DurableError::Refused("navigation bootstrap row budget"));
+        }
+        output.push(DurableNavigationBootstrapRowV1 {
+            kind,
+            id: id.clone(),
+            owner_source_path: owner_path,
+            owner_record_id: owner_record_id.clone(),
+            visible,
+            raw,
+        });
+    }
+
+    Ok(())
 }
 
 fn checked_path(value: &str) -> DurableResult<RelativePath> {
@@ -670,7 +716,7 @@ fn checked_path(value: &str) -> DurableResult<RelativePath> {
             "navigation bootstrap source path size",
         ));
     }
-    RelativePath::parse(value)
+    RelativePath::parse(value.split_once('#').map_or(value, |(path, _)| path))
         .map_err(|_| DurableError::Invalid("navigation bootstrap source path"))
 }
 
@@ -682,4 +728,99 @@ fn has_uri_scheme(value: &str) -> bool {
         && scheme.bytes().enumerate().all(|(index, byte)| {
             byte.is_ascii_alphabetic() || (index > 0 && b"+-.".contains(&byte))
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn original_history_rows_share_owner_and_fragment_refs_keep_exact_file() {
+        let source = "ToS/source-witnesses/works/example/work.json";
+        let packets = [
+            (
+                DurableNavigationBootstrapRowKindV1::Node,
+                json!({"node_id":"work:example","source_ref":source}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Node,
+                json!({"node_id":"record-version:one","source_ref":format!("{source}#L1"),"properties":{"record_version_view":{"record_ref":{"id":"work:example","version":1}}}}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Edge,
+                json!({"edge_id":"history:one","edge_kind":"exact_historical_record_reference","from_id":"work:example","to_id":"record-version:one","source_refs":[source]}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Right,
+                json!({"rights_id":"rights:example","record_id":"work:example","source_ref":source}),
+            ),
+        ];
+        let mut rows = Vec::new();
+        let mut paths = BTreeSet::new();
+        let mut charged = 0;
+        let mut visibility = BTreeMap::new();
+        for (kind, value) in packets {
+            let key = match kind {
+                DurableNavigationBootstrapRowKindV1::Node => "node_id",
+                DurableNavigationBootstrapRowKindV1::Edge => "edge_id",
+                _ => "rights_id",
+            };
+            let raw = serde_json::to_vec(&value).unwrap();
+            capture_original_carrier(
+                kind,
+                value[key].as_str().unwrap().into(),
+                raw.clone(),
+                DurableNavigationEventLimits::default(),
+                &mut rows,
+                &mut paths,
+                &mut charged,
+                &mut visibility,
+            )
+            .unwrap();
+            assert_eq!(rows.last().unwrap().raw, raw);
+        }
+        assert_eq!(paths, BTreeSet::from([source.to_owned()]));
+        assert!(rows.iter().all(|row| row.owner_record_id == "work:example" && row.owner_source_path == source));
+        assert!(rows[..3].iter().all(|row| row.visible == Some(true)));
+        assert_eq!(rows[3].visible, None);
+        assert_eq!(charged, rows.iter().map(|row| row.raw.len() as u64).sum());
+    }
+
+    #[test]
+    fn hidden_original_node_does_not_hide_missing_endpoint_corruption() {
+        let mut rows = Vec::new();
+        let mut paths = BTreeSet::new();
+        let mut charged = 0;
+        let mut visibility = BTreeMap::new();
+        let limits = DurableNavigationEventLimits::default();
+        let node = br#"{"node_id":"hidden","source_ref":"ToS/source-witnesses/works/example/work.json","properties":{"packet_id":"private"}}"#;
+        capture_original_carrier(
+            DurableNavigationBootstrapRowKindV1::Node,
+            "hidden".into(),
+            node.to_vec(),
+            limits,
+            &mut rows,
+            &mut paths,
+            &mut charged,
+            &mut visibility,
+        )
+        .unwrap();
+        assert_eq!(rows[0].visible, Some(false));
+        let edge = br#"{"edge_id":"broken","from_id":"hidden","to_id":"missing","source_refs":["ToS/source-witnesses/works/example/work.json"]}"#;
+        assert!(
+            capture_original_carrier(
+                DurableNavigationBootstrapRowKindV1::Edge,
+                "broken".into(),
+                edge.to_vec(),
+                limits,
+                &mut rows,
+                &mut paths,
+                &mut charged,
+                &mut visibility
+            )
+            .is_err()
+        );
+        assert_eq!(rows.len(), 1);
+    }
 }

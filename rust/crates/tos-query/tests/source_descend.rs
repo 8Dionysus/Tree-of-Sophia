@@ -840,6 +840,14 @@ fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
         adjacency_root: Digest256::of_bytes(b"adjacency"),
         published_index_root,
     });
+    // The managed knowledge model supplies original carriers to the PG overlay.
+    // Its V6 ABI requires the same explicit publication proof in both query APIs.
+    model.binding.model_abi = tos_foundation::KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1.into();
+    let mut without_proof = model.binding.clone();
+    without_proof.source_navigation_proof_v1 = None;
+    assert!(
+        matches!(SourceDescendSession::start(without_proof, request.clone(), budget()), Err(error) if error.code == QueryErrorCode::Unavailable)
+    );
     let binding = model.binding.clone();
     for record in model.nodes.values_mut() {
         record.binding = binding.clone();

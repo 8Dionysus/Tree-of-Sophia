@@ -612,14 +612,73 @@ pub(crate) fn parent_navigation_member(
     work: &mut u64,
     visited_rows: &mut u64,
 ) -> Result<Option<Value>> {
-    use crate::source_bibliographic_render::encode;
     limits.validate()?;
     l.validate()?;
     preparation_check(validator, l, parent)?;
+    let original = managed_navigation_original_member_bytes(
+        parent,
+        collection,
+        id,
+        NavigationOriginalLimits {
+            max_rows: limits.max_seek_rows as u64,
+            max_row_bytes: limits.sqlite.max_row_bytes,
+            max_total_bytes: limits.sqlite.max_work_bytes.saturating_sub(*work),
+        },
+    )?;
+    preparation_check(validator, l, parent)?;
+    let Some(original) = original else {
+        return Ok(None);
+    };
+    charge(
+        work,
+        original.work_bytes as usize,
+        limits.sqlite.max_work_bytes,
+    )?;
+    *visited_rows = visited_rows
+        .checked_add(original.visited_rows)
+        .ok_or(Error::Budget("managed base candidate rows"))?;
+    Ok(Some(
+        crate::knowledge_normalization::SourceRow::parse(
+            &original.raw,
+            limits.sqlite.max_row_bytes,
+        )?
+        .value()
+        .clone(),
+    ))
+}
+
+/// Exact original bytes recovered from the managed V6 model's authenticated
+/// membership and normalized carrier, plus the charged bounded seek work.
+/// This is immutable custody only; the caller retains current owner authority.
+pub struct ManagedNavigationOriginalCarrier {
+    pub raw: Vec<u8>,
+    pub visited_rows: u64,
+    pub work_bytes: u64,
+}
+
+/// Read one original member through the existing managed model format. The
+/// caller retains its SQL cancellation/VM hook. Placeholder carriers cannot
+/// substitute for the raw, canonical and semantic seals in the original index.
+pub fn managed_navigation_original_member_bytes(
+    parent: &crate::VerifiedKnowledgeModel<'_>,
+    collection: &str,
+    id: &str,
+    limits: NavigationOriginalLimits,
+) -> Result<Option<ManagedNavigationOriginalCarrier>> {
+    use crate::source_bibliographic_render::encode;
+    limits.validate()?;
+    parent.check_pin()?;
+    if parent.selection().model_abi != crate::KNOWLEDGE_MANAGED_MODEL_ABI {
+        return Err(Error::ManagedSourceUnsupported(
+            "managed original member model ABI",
+        ));
+    }
+    let mut work = 0u64;
+    let mut visited_rows = 0u64;
     let Some(member) = parent.navigation_original_member_under_caller_budget(
         collection,
         id,
-        limits.max_seek_bytes,
+        limits.max_total_bytes.min(64 * 1024 * 1024),
     )?
     else {
         return Ok(None);
@@ -631,27 +690,27 @@ pub(crate) fn parent_navigation_member(
         _ => return Err(Error::Invalid("managed base member collection")),
     };
     let sql = format!(
-        "SELECT payload_len,CASE WHEN payload_len=length(payload) AND payload_len<=?3 THEN payload ELSE NULL END FROM {table} WHERE native_id=?1 AND source_graph=?2 ORDER BY source_order LIMIT ?4"
+        "SELECT payload_len,CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND payload_len<=?3 THEN payload ELSE NULL END,payload_sha256 FROM {table} WHERE native_id=?1 AND source_graph=?2 ORDER BY source_order LIMIT ?4"
     );
     let mut stmt = parent.connection().prepare(&sql)?;
     let mut rows = stmt.query(rusqlite::params![
         id,
         receipt.source_graph,
-        limits.sqlite.max_row_bytes as i64,
+        limits.max_row_bytes as i64,
         limits
-            .max_seek_rows
+            .max_rows
             .checked_add(1)
             .ok_or(Error::Budget("managed base seek row overflow"))? as i64
     ])?;
     let mut selected = None;
     let mut visits = 0usize;
     while let Some(row) = rows.next()? {
-        preparation_check(validator, l, parent)?;
+        parent.check_pin()?;
         visits += 1;
-        *visited_rows = visited_rows
+        visited_rows = visited_rows
             .checked_add(1)
             .ok_or(Error::Budget("managed base candidate rows"))?;
-        if visits > limits.max_seek_rows {
+        if visits > limits.max_rows as usize {
             return Err(Error::Budget("managed base identity candidates"));
         }
         let len: i64 = row.get(0)?;
@@ -661,19 +720,20 @@ pub(crate) fn parent_navigation_member(
         if len <= 0 || raw.len() as i64 != len {
             return Err(Error::Invalid("managed base row length"));
         }
-        charge(work, raw.len(), limits.sqlite.max_work_bytes)?;
-        let carrier =
-            crate::knowledge_normalization::SourceRow::parse(&raw, limits.sqlite.max_row_bytes)?;
+        let expected: Vec<u8> = row.get(2)?;
+        if expected.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
+            return Err(Error::Invalid("managed base normalized payload digest"));
+        }
+        charge(&mut work, raw.len(), limits.max_total_bytes)?;
+        let carrier = crate::knowledge_normalization::SourceRow::parse(&raw, limits.max_row_bytes)?;
         let payload = &carrier.value()["source_record"]["payload"];
-        let canonical = encode(payload, limits.sqlite.max_row_bytes)?;
-        charge(work, canonical.len(), limits.sqlite.max_work_bytes)?;
+        let canonical = encode(payload, limits.max_row_bytes)?;
+        charge(&mut work, canonical.len(), limits.max_total_bytes)?;
         if Digest256::of_bytes(&canonical).to_hex() != member.canonical_original_sha256 {
             continue;
         }
-        let parsed = crate::knowledge_normalization::SourceRow::parse(
-            &canonical,
-            limits.sqlite.max_row_bytes,
-        )?;
+        let parsed =
+            crate::knowledge_normalization::SourceRow::parse(&canonical, limits.max_row_bytes)?;
         if payload[id_field] != member.id
             || parsed.stable_digest()? != member.semantic_sha256
             || carrier.value()["source_record"]["digest"] != member.semantic_sha256
@@ -684,14 +744,22 @@ pub(crate) fn parent_navigation_member(
                 "managed base exact original closure unavailable",
             ));
         }
-        if selected.replace(payload.clone()).is_some() {
+        if selected.replace(canonical).is_some() {
             return Err(Error::Invalid("managed base duplicate admitted carrier"));
         }
     }
-    preparation_check(validator, l, parent)?;
-    selected.map(Some).ok_or(Error::ManagedSourceUnsupported(
-        "managed base original carrier unavailable; FullOnly required",
-    ))
+    parent.check_pin()?;
+    selected
+        .map(|raw| {
+            Some(ManagedNavigationOriginalCarrier {
+                raw,
+                visited_rows,
+                work_bytes: work,
+            })
+        })
+        .ok_or(Error::ManagedSourceUnsupported(
+            "managed base original carrier unavailable; FullOnly required",
+        ))
 }
 
 /// Reconstruct only cold-verified original membership, never all normalized

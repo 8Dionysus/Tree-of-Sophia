@@ -721,7 +721,8 @@ fn truthy(value: &JsonValue) -> bool {
         JsonValue::Bool(true) => true,
     }
 }
-pub(crate) fn visible_node(row: &JsonValue) -> bool {
+/// Maintained source-navigation visibility rule; this does not grant disclosure rights.
+pub fn visible_node(row: &JsonValue) -> bool {
     !row.object_get("properties")
         .and_then(|p| p.object_get("packet_id"))
         .is_some_and(truthy)

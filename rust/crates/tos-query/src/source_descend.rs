@@ -66,6 +66,13 @@ impl SourceNavigationProofV1 {
 }
 
 impl Binding {
+    fn supports_source_navigation_profile(&self) -> bool {
+        self.selection_profile == SOURCE_NAVIGATION_SELECTION_PROFILE
+            && (self.model_abi == SOURCE_NAVIGATION_MODEL_ABI
+                || (self.model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1
+                    && self.source_navigation_proof_v1.is_some()))
+    }
+
     fn validate_source_navigation_proof(&self) -> Result<(), QueryError> {
         if self
             .source_navigation_proof_v1
@@ -570,9 +577,7 @@ impl SourceDescendSession {
                 "selected read model has not published the requested commit",
             ));
         }
-        if binding.model_abi != SOURCE_NAVIGATION_MODEL_ABI
-            || binding.selection_profile != SOURCE_NAVIGATION_SELECTION_PROFILE
-        {
+        if !binding.supports_source_navigation_profile() {
             return Err(QueryError::new(
                 QueryErrorCode::Unavailable,
                 "source navigation visibility profile unsupported",
@@ -1599,9 +1604,7 @@ fn prepare_source_descend<M: ReadModel>(
             "selected read model has not published the requested commit",
         ));
     }
-    if binding.model_abi != SOURCE_NAVIGATION_MODEL_ABI
-        || binding.selection_profile != SOURCE_NAVIGATION_SELECTION_PROFILE
-    {
+    if !binding.supports_source_navigation_profile() {
         return Err(QueryError::new(
             QueryErrorCode::Unavailable,
             "source navigation visibility profile unsupported",

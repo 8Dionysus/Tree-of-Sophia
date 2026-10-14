@@ -2319,7 +2319,7 @@ pub struct DurableNavigationBootstrapRowV1 {
     pub id: String,
     pub owner_source_path: String,
     pub owner_record_id: String,
-    /// Exact source-table visibility bit for node and edge carriers.
+    /// Shared compiler visibility rule for the exact node and edge carriers.
     /// Rights and diagnostics have no visibility bit and must use `None`.
     pub visible: Option<bool>,
     pub raw: Vec<u8>,
@@ -2792,7 +2792,7 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
         .map_err(|_| DurableError::Conflict("navigation managed source proof is invalid"))?;
     let expectation = selected.selection_expectation();
     if selected.selection_profile() != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
-        || expectation.model_abi != tos_query::SOURCE_NAVIGATION_MODEL_ABI
+        || expectation.model_abi != tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI
     {
         return Err(DurableError::Conflict(
             "navigation selected model profile is unsupported",
@@ -2865,7 +2865,7 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
 
 /// Complete the static owner binding from the same pinned selected model used
 /// by query delivery. The header is a single exact original-row seek; the
-/// normalized rights count is a point read from the sealed model metadata.
+/// projected rights count is derived from the authenticated original rights.
 pub(crate) fn navigation_owner_binding_with_verified_model<P: ManagedSelectedProof>(
     domain: &str,
     selected: &ManagedAgentSelectedParent<P>,
@@ -2917,7 +2917,7 @@ pub(crate) fn navigation_owner_binding_with_verified_model<P: ManagedSelectedPro
             None,
             1,
             limits.max_row_bytes,
-            limits.max_total_bytes,
+            limits.max_row_bytes as u64,
         )
         .map_err(|_| DurableError::Corrupt("selected navigation original header"))?;
     if page.rows.len() != 1 || page.rows[0].0 != -1 {
@@ -2956,22 +2956,28 @@ pub(crate) fn navigation_owner_binding_with_verified_model<P: ManagedSelectedPro
         ));
     }
 
-    let projected_rights_raw: String = model
-        .connection()
-        .query_row(
-            "SELECT value FROM metadata WHERE key='rights_count' AND length(CAST(value AS BLOB)) BETWEEN 1 AND 20",
-            [],
-            |row| row.get(0),
-        )
-        .map_err(|_| DurableError::Corrupt("selected navigation projected rights count"))?;
-    let projected_rights = projected_rights_raw
-        .parse::<u64>()
-        .map_err(|_| DurableError::Corrupt("selected navigation projected rights count"))?;
-    if projected_rights.to_string() != projected_rights_raw {
-        return Err(DurableError::Corrupt(
-            "selected navigation projected rights count",
+    let original_rights = crate::source_navigation_bootstrap::capture_original_rights(
+        model,
+        selected_receipt.rights,
+        limits,
+        limits
+            .max_total_bytes
+            .saturating_sub(header_raw.len() as u64),
+    )?;
+    let rights_refs = original_rights
+        .iter()
+        .map(|(_, raw)| raw.as_slice())
+        .collect::<Vec<_>>();
+    if tos_compiler::navigation_original_rights_root(&rights_refs)
+        != selected_receipt.rights_root_sha256
+    {
+        return Err(DurableError::Conflict(
+            "selected navigation original rights root differs",
         ));
     }
+    let projected_rights =
+        crate::source_navigation_bootstrap::projected_original_rights(&original_rights, limits)?
+            .len() as u64;
     model
         .check_pin()
         .map_err(|_| DurableError::Conflict("selected navigation model pin changed"))?;
@@ -3175,9 +3181,10 @@ fn bootstrap_ref_parts(
     for field in ["source_ref", "path"] {
         if let Some(raw) = value.get(field) {
             let path = raw.as_str().ok_or(DurableError::Invalid(invalid_reason))?;
-            validate_relative_path(path)?;
+            let source_path = path.split_once('#').map_or(path, |(path, _)| path);
+            validate_relative_path(source_path)?;
             refs.insert(path.to_owned());
-            dependencies.insert(path.to_owned());
+            dependencies.insert(source_path.to_owned());
         }
     }
     if let Some(raw) = value.get("source_refs") {
@@ -3191,8 +3198,11 @@ fn bootstrap_ref_parts(
             }
             refs.insert(reference.to_owned());
             if !has_uri_scheme(reference) {
-                validate_relative_path(reference)?;
-                dependencies.insert(reference.to_owned());
+                let source_path = reference
+                    .split_once('#')
+                    .map_or(reference, |(path, _)| path);
+                validate_relative_path(source_path)?;
+                dependencies.insert(source_path.to_owned());
             }
         }
     }
@@ -9489,7 +9499,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
         || owner_binding.selected_software_profile_id != profile.id
         || owner_binding.selected_software_profile_version != profile.version
         || owner_binding.selected_software_contract_digest != profile_digest
-        || owner_binding.selected_model_abi != tos_query::SOURCE_NAVIGATION_MODEL_ABI
+        || owner_binding.selected_model_abi != tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI
         || owner_binding.selected_selection_profile
             != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
         || owner_binding.source_membership_root != owner_binding.selected_membership_root
