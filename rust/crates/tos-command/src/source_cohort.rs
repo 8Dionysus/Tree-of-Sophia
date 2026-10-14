@@ -3634,7 +3634,7 @@ fn validate_revision_owner_projections(
             cmd::field(&item_claim_projection, "claim_owner").map_err(source_error)?;
         let expected_claim_owner =
             item_claim_owner_contribution_from_writes(writes, item_claim_path)?;
-        if stored_claim_owner != &expected_claim_owner {
+        if !cmd::same(stored_claim_owner, &expected_claim_owner).map_err(source_error)? {
             return Err(DurableError::Corrupt(
                 "Item adoption Claim owner projection differs from retained package",
             ));
