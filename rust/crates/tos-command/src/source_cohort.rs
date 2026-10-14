@@ -4827,7 +4827,7 @@ pub(crate) fn check_revision_path_indexes(
     domain: &str,
     writes: &[SourceRevisionWrite],
 ) -> DurableResult<IndexRows> {
-    check_revision_path_indexes_inner(tx, domain, writes, None)
+    check_revision_path_indexes_inner(tx, domain, writes, None, &BTreeSet::new())
 }
 
 pub(crate) fn check_revision_path_indexes_for_family(
@@ -4844,7 +4844,18 @@ pub(crate) fn check_revision_path_indexes_for_family(
         } else {
             None
         };
-    check_revision_path_indexes_inner(tx, domain, writes, item_adoption_indexes.as_ref())
+    let allowed_insertions = if item_adoption_indexes.is_some() {
+        crate::source_creation_store::pg_item_adoption_insertion_paths(writes)?
+    } else {
+        BTreeSet::new()
+    };
+    check_revision_path_indexes_inner(
+        tx,
+        domain,
+        writes,
+        item_adoption_indexes.as_ref(),
+        &allowed_insertions,
+    )
 }
 
 fn check_revision_path_indexes_inner(
@@ -4852,6 +4863,7 @@ fn check_revision_path_indexes_inner(
     domain: &str,
     writes: &[SourceRevisionWrite],
     item_adoption_indexes: Option<&IndexRows>,
+    allowed_insertions: &BTreeSet<String>,
 ) -> DurableResult<IndexRows> {
     let indexes = revision_indexes(writes);
     let history_insertions = writes
@@ -4920,6 +4932,7 @@ fn check_revision_path_indexes_inner(
                 .subject
                 .starts_with("ToS/source-witnesses/.record-revisions/")
                 && !write.subject.ends_with("/source-revision-history.json")
+                && !allowed_insertions.contains(&write.subject)
             {
                 return Err(DurableError::Refused(
                     "bounded source revision insertion is limited to owner history or retained archive members",

@@ -107,7 +107,7 @@ pub use item_adoption::{
 };
 pub(crate) use item_adoption::{
     PG_ITEM_ADOPTION_FAMILY_TAG, PgItemAdoptionOwnerPlan, pg_expected_revision_indexes,
-    pg_inventory_owner_contributions, prepare_pg_item_adoption,
+    pg_inventory_owner_contributions, pg_item_adoption_insertion_paths, prepare_pg_item_adoption,
 };
 #[path = "source_collection_membership.rs"]
 mod collection_membership;

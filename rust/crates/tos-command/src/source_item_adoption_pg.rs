@@ -3006,6 +3006,59 @@ pub(crate) fn claim_owner_contribution(
     Ok(owner)
 }
 
+/// New paths admitted by the already prepared Item package. Keep the file
+/// roles with the Item owner; the common writer still checks path absence.
+pub(crate) fn item_adoption_insertion_paths(
+    writes: &[SourceRevisionWrite],
+) -> crate::DurableResult<BTreeSet<String>> {
+    let items = writes
+        .iter()
+        .filter(|write| write.subject.ends_with("/item.json"))
+        .collect::<Vec<_>>();
+    if items.len() != 1 || items[0].expected_predecessor.is_some() {
+        return Err(crate::DurableError::Conflict(
+            "Item insertion requires one new Item record",
+        ));
+    }
+    let home = items[0].subject.strip_suffix("/item.json").unwrap();
+    let receipt_path = format!("{home}/edition-item-receipt.json");
+    let receipt = writes
+        .iter()
+        .find(|write| write.subject == receipt_path)
+        .ok_or(crate::DurableError::Corrupt(
+            "Item insertion receipt absent",
+        ))?;
+    let receipt = cmd::parse(&receipt.exact_bytes).map_err(crate::DurableError::Source)?;
+    let transaction = cmd::text(&receipt, "transaction_id").map_err(crate::DurableError::Source)?;
+    let transaction = transaction
+        .strip_prefix("sha256:")
+        .filter(|id| lower_hex_64(id))
+        .ok_or(crate::DurableError::Corrupt(
+            "Item insertion transaction identity",
+        ))?;
+    let journal = format!("ToS/source-witnesses/.metadata-transactions/{transaction}/");
+    let prefix = format!("{home}/");
+    let mut paths = BTreeSet::new();
+    for write in writes
+        .iter()
+        .filter(|write| write.expected_predecessor.is_none())
+    {
+        if write
+            .subject
+            .strip_prefix(&prefix)
+            .is_some_and(|name| !name.contains('/') && expected_child_role(name).is_some())
+            || write.subject
+                == format!(
+                    "{journal}{}.blob",
+                    Digest256::of_bytes(&write.exact_bytes).to_hex()
+                )
+        {
+            paths.insert(write.subject.clone());
+        }
+    }
+    Ok(paths)
+}
+
 /// Re-derive the Item adoption semantic source-index rows from the exact
 /// sealed source writes. The shared revision writer calls this again during
 /// recovery and commit; no caller-supplied token list is authoritative.
