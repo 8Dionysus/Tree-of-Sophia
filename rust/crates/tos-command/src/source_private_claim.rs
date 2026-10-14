@@ -5290,7 +5290,15 @@ pub(crate) fn resolve_assessment_claim_sources_pg(
     let mut candidate =
         super::profile::CandidatePrivateSchemaExecutor::new(ctx, cut, selected, worker)?;
     resolve_assessment_claim_sources(
-        owner, context, selections, ctx, cut, &mut candidate, reader, deadline, cancelled,
+        owner,
+        context,
+        selections,
+        ctx,
+        cut,
+        &mut candidate,
+        reader,
+        deadline,
+        cancelled,
     )
 }
 

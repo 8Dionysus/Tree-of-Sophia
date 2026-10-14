@@ -1843,7 +1843,10 @@ pub(crate) fn select_owner_local_sources_pg(
         files: std::mem::take(&mut selected_files),
     };
     crate::source_native_cli::private_owner::profile::candidate_record_binding_matches(
-        ctx, &selected_cut, &selected, worker,
+        ctx,
+        &selected_cut,
+        &selected,
+        worker,
     )?;
     let context_snapshot = owner.snapshot(deadline, cancelled)?.to_prefixed();
 

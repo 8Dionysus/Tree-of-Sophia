@@ -2060,11 +2060,20 @@ pub(crate) fn select_owner_assessment_public_sources_pg(
         claim_dependencies.insert(cmd::text(form, "id")?.to_owned(), closure);
     }
 
-    // Native owner-local resolvers reread public inputs through the installed
-    // OwnerTextContext map. The sibling installs that map before this call;
-    // the `SignNativeRead` adapter extends it only with exact bytes from this
-    // PG epoch, while confidential package bytes stay inside the context.
-    let native = native_envelopes_pg(&mut reader, config, worker, deadline, cancelled)?;
+    // Match the source-cut adapter: v3 owns the public native-unit grammar.
+    // Private v5/v6 units have already been selected and validated by their
+    // confidential adapter; reinterpreting them here duplicates that read
+    // and applies the wrong grant grammar.
+    let native = if cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v3" {
+        native_envelopes_pg(&mut reader, config, worker, deadline, cancelled)?
+    } else {
+        super::NativeSelection {
+            rows: Vec::new(),
+            summaries: Vec::new(),
+            snapshots: Vec::new(),
+            contracts: BTreeMap::new(),
+        }
+    };
     let native_contracts = native.contracts.clone();
     let mut all_rows = rows.clone();
     for row in &native.rows {
