@@ -7593,12 +7593,14 @@ mod object_refcount_readset_tests {
                     .unwrap(),
                 raw,
             );
-            assert!(legacy_selected_publication_sidecar(
-                &package,
-                field,
-                Digest256::of_bytes(&raw[..raw.len() - 1]),
-            )
-            .is_err());
+            assert!(
+                legacy_selected_publication_sidecar(
+                    &package,
+                    field,
+                    Digest256::of_bytes(&raw[..raw.len() - 1]),
+                )
+                .is_err()
+            );
         }
     }
 
