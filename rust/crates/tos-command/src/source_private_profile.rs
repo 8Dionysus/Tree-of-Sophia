@@ -2555,6 +2555,17 @@ fn reserved_ids(value: &JsonValue) -> SourceCommandResult<BTreeSet<String>> {
         let Some(values) = value.object_get(array_key) else {
             continue;
         };
+        // Provenance v2 describes input/output references in an object; it
+        // owns event_id, not a semantic entity-list identity.
+        if array_key == "entities"
+            && value
+                .object_get("schema_version")
+                .and_then(JsonValue::as_str)
+                == Some("tos_provenance_event_v2")
+            && values.as_object().is_some()
+        {
+            continue;
+        }
         let values = values.as_array().ok_or(SourceCommandError::Invalid(
             "identity inventory record list",
         ))?;
@@ -4918,13 +4929,14 @@ mod identity_inventory_tests {
     #[test]
     fn profile_identity_json_and_jsonl_preserve_conflict_detection() {
         for (reference, raw) in [
+            ("record.human-forms.json", b"{\"forms\":[{\"form_id\":\"occupied\"}],\"prior_forms\":[]}".as_slice()),
             (
                 "record.json",
-                b"{\n  \"form_id\": \"occupied\"\n}\n".as_slice(),
+                b"{\n  \"record_id\": \"occupied\"\n}\n".as_slice(),
             ),
             (
                 "provenance.jsonl",
-                b"{\"form_id\":\"other\"}\n{\"form_id\":\"occupied\"}\n".as_slice(),
+                b"{\"event_id\":\"other\"}\n{\"schema_version\":\"tos_provenance_event_v2\",\"event_id\":\"occupied\",\"entities\":{\"inputs\":[],\"outputs\":[],\"byproducts\":[]}}\n".as_slice(),
             ),
         ] {
             for (id, conflicts) in [("fresh", false), ("occupied", true)] {
