@@ -4649,19 +4649,23 @@ fn validate_publication_lineage(
     completion: &JsonValue,
 ) -> SourceCommandResult<PublicationLineage> {
     state(control)?;
-    cmd::exact_keys(
-        manifest,
-        &[
-            "schema_version",
-            "transaction_id",
-            "base_publication",
-            "plan",
-            "parents",
-            "source_readset",
-            "source_successor",
-            "parent_binding_profile",
-        ],
-    )?;
+    // PG publication is fenced by its transactional source readset. Physical
+    // source-store successor witnesses are a separate, paired provenance
+    // profile and are absent for native PG owners.
+    let physical_witnesses = manifest.object_get("source_readset").is_some()
+        || manifest.object_get("source_successor").is_some();
+    let mut keys = vec![
+        "schema_version",
+        "transaction_id",
+        "base_publication",
+        "plan",
+        "parents",
+        "parent_binding_profile",
+    ];
+    if physical_witnesses {
+        keys.extend(["source_readset", "source_successor"]);
+    }
+    cmd::exact_keys(manifest, &keys)?;
     if cmd::text(manifest, "schema_version")? != PG_SOURCE_MANIFEST_SCHEMA
         || cmd::text(manifest, "parent_binding_profile")? != PG_SOURCE_PARENT_PROFILE
     {
@@ -4719,9 +4723,11 @@ fn validate_publication_lineage(
             "PG publication completion lineage",
         ));
     }
-    let readset = parse_source_readset(cmd::field(manifest, "source_readset")?)?;
-    let successor = parse_source_successor(cmd::field(manifest, "source_successor")?)?;
-    validate_source_successor(&readset, &successor)?;
+    if physical_witnesses {
+        let readset = parse_source_readset(cmd::field(manifest, "source_readset")?)?;
+        let successor = parse_source_successor(cmd::field(manifest, "source_successor")?)?;
+        validate_source_successor(&readset, &successor)?;
+    }
     let file_bindings = publication_file_bindings(cmd::field(manifest, "plan")?, true)?;
     validate_publication_parent_bindings(manifest, &file_bindings)?;
     Ok(PublicationLineage {
@@ -7812,6 +7818,95 @@ mod object_refcount_readset_tests {
         let frozen = freeze_profile(plan.clone(), true).unwrap();
         assert!(publication_file_bindings(&frozen.summary, true).is_ok());
         assert!(publication_file_bindings(&frozen.summary, false).is_err());
+        let parents = owned_object(parent_refs(&frozen).unwrap().into_iter().map(|name| {
+            let value = if frozen.directories.iter().any(|d| d.as_str() == name) {
+                JsonValue::Null
+            } else {
+                cmd::object(vec![(
+                    "schema_version",
+                    cmd::string(PG_SOURCE_PARENT_SCHEMA),
+                )])
+            };
+            (name, value)
+        }));
+        let snapshot = PublicationSnapshot {
+            state: None,
+            token: None,
+            generation: 0,
+        };
+        let mut pg_manifest = manifest(&plan.transaction_id, &snapshot, &frozen, parents).unwrap();
+        cmd::set(
+            &mut pg_manifest,
+            "schema_version",
+            cmd::string(PG_SOURCE_MANIFEST_SCHEMA),
+        )
+        .unwrap();
+        cmd::set(
+            &mut pg_manifest,
+            "parent_binding_profile",
+            cmd::string(PG_SOURCE_PARENT_PROFILE),
+        )
+        .unwrap();
+        assert!(pg_manifest.object_get("source_readset").is_none());
+        let control = publication_state(
+            &pg_manifest,
+            &Digest256::of_bytes(&encoded(&pg_manifest).unwrap()).to_prefixed(),
+            false,
+            Some("committed"),
+            None,
+        )
+        .unwrap();
+        let completion = cmd::object(vec![
+            ("schema_version", cmd::string(COMPLETION_SCHEMA)),
+            ("publication", control.clone()),
+        ]);
+        let authored = frozen
+            .files
+            .iter()
+            .map(|f| cmd::SourceChange {
+                path: f.path.clone(),
+                before: f.before.as_deref().map(Digest256::of_bytes),
+                after: f.after.clone(),
+            })
+            .collect::<Vec<_>>();
+        let blobs = frozen
+            .blobs
+            .iter()
+            .map(|(digest, raw)| {
+                let hex = &digest[7..];
+                (
+                    hex.to_owned(),
+                    cmd::SourceChange {
+                        path: RelativePath::parse(&format!(
+                            "{HOME}/{TRANSACTIONS}/{}/{hex}.blob",
+                            &plan.transaction_id[7..]
+                        ))
+                        .unwrap(),
+                        before: None,
+                        after: Some(raw.clone()),
+                    },
+                )
+            })
+            .collect();
+        let package = publication_package_from_values(
+            control.clone(),
+            pg_manifest.clone(),
+            completion.clone(),
+            &authored,
+            &blobs,
+        )
+        .unwrap();
+        assert_eq!(
+            publication_package_from_raw(&package.canonical_bytes).unwrap(),
+            package
+        );
+        let mut missing_pair = pg_manifest.clone();
+        cmd::set(&mut missing_pair, "source_readset", JsonValue::Null).unwrap();
+        assert!(validate_publication_lineage(&control, &missing_pair, &completion).is_err());
+        let mut unknown = pg_manifest;
+        cmd::set(&mut unknown, "unowned", JsonValue::Null).unwrap();
+        assert!(validate_publication_lineage(&control, &unknown, &completion).is_err());
+
         let mut corrupt = plan.clone();
         corrupt
             .files

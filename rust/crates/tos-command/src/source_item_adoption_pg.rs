@@ -336,19 +336,8 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
         ));
     }
     crate::source_work_transaction::state(control)?;
-    cmd::exact_keys(
-        manifest_value,
-        &[
-            "schema_version",
-            "transaction_id",
-            "base_publication",
-            "plan",
-            "parents",
-            "source_readset",
-            "source_successor",
-            "parent_binding_profile",
-        ],
-    )?;
+    // The shared decoder above owns the manifest grammar, including paired
+    // optional physical-store provenance; this owner checks Item identity.
     if cmd::text(manifest_value, "schema_version")?
         != crate::source_work_transaction::PG_SOURCE_MANIFEST_SCHEMA
         || cmd::text(manifest_value, "transaction_id")? != transaction_id
