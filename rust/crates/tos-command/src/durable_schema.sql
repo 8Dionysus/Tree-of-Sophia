@@ -181,7 +181,9 @@ CREATE TABLE IF NOT EXISTS cmd2_source_claim_dependency (
     (
       path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
       path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
-      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/items/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'
     )
     AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
     AND path !~ E'[\\001-\\037]'
@@ -204,7 +206,9 @@ ALTER TABLE cmd2_source_claim_dependency
     (
       path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
       path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
-      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/items/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'
     )
     AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
     AND path !~ E'[\\001-\\037]'
@@ -233,7 +237,9 @@ CREATE TABLE IF NOT EXISTS cmd2_source_claim_navigation_reference (
     (
       path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
       path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
-      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/items/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'
     )
     AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
     AND path !~ E'[\\001-\\037]'
@@ -292,7 +298,9 @@ ALTER TABLE cmd2_source_claim_navigation_reference
     (
       path ~ '^ToS/source-witnesses/relations/[^/]+/source-claims[.]jsonl$' OR
       path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/source-claims[.]jsonl$' OR
-      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$'
+      path ~ '^ToS/source-witnesses/works/[^/]+(/[^/]+)*/expressions/[^/]+/editions/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/items/[^/]+/source-claims[.]jsonl$' OR
+      path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'
     )
     AND path !~ '(^|/)([.][.]?|[.]git)(/|$)'
     AND path !~ E'[\\001-\\037]'

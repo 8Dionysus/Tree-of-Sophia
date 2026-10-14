@@ -1028,6 +1028,7 @@ fn current_claim_owner_facts(
              OR i.path LIKE 'ToS/source-witnesses/works/%/expressions/%/source-claims.jsonl'
              OR i.path LIKE 'ToS/source-witnesses/works/%/expressions/%/editions/%/source-claims.jsonl'
              OR i.path LIKE 'ToS/source-witnesses/items/%/source-claims.jsonl'
+             OR i.path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'
            )
          ORDER BY i.path COLLATE \"C\",i.token COLLATE \"C\" LIMIT $2",
         &[&domain, &limit],

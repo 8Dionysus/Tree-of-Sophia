@@ -6000,6 +6000,9 @@ fn source_claim_path_checks_match_supported_stream_homes() {
         "ToS/source-witnesses/relations/relation\u{7f}/source-claims.jsonl",
         "ToS/source-witnesses/works/collection/work/expressions/expression/source-claims.jsonl",
         "ToS/source-witnesses/works/collection/work/expressions/expression/editions/edition/source-claims.jsonl",
+        "ToS/source-witnesses/items/item/source-claims.jsonl",
+        "ToS/source-witnesses/works/collection/work/expressions/expression/editions/edition/items/item/source-claims.jsonl",
+        "ToS/source-witnesses/editions/edition/items/item/source-claims.jsonl",
     ];
     for (index, path) in accepted_paths.iter().enumerate() {
         let claim_id = format!("tos.claim.pg-path-check-{index}");
@@ -6025,8 +6028,10 @@ fn source_claim_path_checks_match_supported_stream_homes() {
 
     let rejected_paths = [
         "ToS/source-witnesses/owner-local/private/source-claims.jsonl",
+        "ToS/source-witnesses/owner-local/editions/edition/items/item/source-claims.jsonl",
+        "ToS/source-witnesses/editions/edition/items/item/nested/source-claims.jsonl",
         "ToS/source-witnesses/relations/relation\u{1f}/source-claims.jsonl",
-        "ToS/source-witnesses/items/item/source-claims.jsonl",
+        "ToS/source-witnesses/items/item/nested/source-claims.jsonl",
         "ToS/source-witnesses/relations/relation/nested/source-claims.jsonl",
     ];
     for (index, path) in rejected_paths.iter().enumerate() {
