@@ -858,12 +858,28 @@ fn validate_result(
 ) -> SourceCommandResult<()> {
     let stage = &result.stage;
     let expectation = &result.expectation;
+    // The final model binds the managed source proof and verified collections,
+    // whereas the request binds the immutable export used to build that model.
+    // Derive the same receipt as the producer instead of comparing those two
+    // intentionally distinct identities.
+    let snapshot = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
+        request.model_limits.max_total_ms.div_ceil(1_000),
+    )
+    .map_err(|_| SourceCommandError::Invalid("source-navigation model receipt limits"))?;
+    let expected_binding = tos_compiler::managed_agent_producer::managed_model_receipt_binding(
+        &request.source_binding,
+        &request.source_proof_v2,
+        &stage.verified_inputs,
+        snapshot.full.seal.max_header_bytes,
+    )
+    .map_err(|_| SourceCommandError::Conflict("source-navigation managed receipt binding"))?;
     if result.schema_version != RESULT_SCHEMA
         || result.raw_request_sha256 != request_digest
         || result.candidate_leaf != CANDIDATE_LEAF
-        || stage.source_cut != request.source_binding.source_cut
-        || stage.membership_root != request.source_binding.membership_root
-        || !same_binding(&stage.binding, &request.source_binding)
+        || stage.source_cut != expected_binding.source_cut
+        || stage.membership_root != expected_binding.membership_root
+        || stage.input_collections != stage.verified_inputs.len()
+        || !same_binding(&stage.binding, &expected_binding)
         || expectation.source_cut != stage.source_cut
         || expectation.membership_root != stage.membership_root
         || expectation.through_commit_seq != request.source_binding.through_commit_seq
