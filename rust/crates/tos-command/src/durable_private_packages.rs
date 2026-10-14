@@ -1211,6 +1211,27 @@ fn read_private_command_receipt_metadata(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<Option<PrivateOwnerCommandReceiptMetadataV1>> {
+    Ok(read_private_command_receipt_record(
+        client,
+        scope,
+        target_ref,
+        command_id,
+        private_generation,
+        deadline,
+        cancelled,
+    )?
+    .map(|(metadata, _, _)| metadata))
+}
+
+fn read_private_command_receipt_record(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    command_id: &str,
+    private_generation: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Option<(PrivateOwnerCommandReceiptMetadataV1, Vec<u8>, u64)>> {
     check_private_history_deadline(deadline, cancelled)?;
     let receipt_row = client.query_opt(
         "SELECT target_digest,family,request_digest,raw_request_digest,
@@ -1224,7 +1245,7 @@ fn read_private_command_receipt_metadata(
     let history_row = client.query_opt(
         "SELECT target_ref,family,package_digest,request_digest,raw_request_digest,
                 owner_context_binding,owner_configuration_digest,
-                private_owner_audit_generation,commit_seq
+                private_owner_audit_generation,commit_seq,revision
          FROM cmd2_private_package_history
          WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
         &[&scope.domain, &scope.owner_scope, &command_id],
@@ -1279,11 +1300,19 @@ fn read_private_command_receipt_metadata(
                     "private command receipt/history binding",
                 ));
             }
-            Some(PrivateOwnerCommandReceiptMetadataV1 {
-                target_matches: Digest256::of_bytes(history_target.as_bytes())
-                    == Digest256::of_bytes(target_ref.as_bytes()),
-                ..metadata
-            })
+            let revision = as_u64(history.get(9))?;
+            if revision == 0 {
+                return Err(DurableError::Corrupt("private command history revision"));
+            }
+            Some((
+                PrivateOwnerCommandReceiptMetadataV1 {
+                    target_matches: Digest256::of_bytes(history_target.as_bytes())
+                        == Digest256::of_bytes(target_ref.as_bytes()),
+                    ..metadata
+                },
+                response_bytes,
+                revision,
+            ))
         }
     };
     check_private_history_deadline(deadline, cancelled)?;
@@ -2468,6 +2497,79 @@ impl DurablePgCoordinator {
                 check_private_history_deadline(deadline, cancelled)?;
                 tx.commit()?;
                 Ok(PrivateOwnerCommandMetadataV1 { header, receipt })
+            },
+        )
+    }
+
+    /// Resolve one exact historical receipt after the semantic owner has
+    /// revalidated the command against current sources and authority. This
+    /// reads no package members and never appends a command or revision.
+    pub(crate) fn read_private_owner_command_replay(
+        &mut self,
+        scope: &PrivateOwnerScopeV1,
+        target_ref: &str,
+        family: PrivateOwnerPackageFamilyV1,
+        command_id: &str,
+        request_digest: Digest256,
+        raw_request_digest: Digest256,
+        owner_configuration_digest: Digest256,
+        expected_private_generation: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PrivateOwnerPackageReplayV1> {
+        validate_scope(scope)?;
+        validate_target_ref(target_ref)?;
+        if command_id.is_empty() || command_id.len() > 1024 || command_id.contains('\0') {
+            return Err(DurableError::Invalid("private package command ID"));
+        }
+        check_private_history_deadline(deadline, cancelled)?;
+        require_private_schema(&mut self.client)?;
+        with_private_owner_shared_read_lock(
+            &mut self.client,
+            scope,
+            deadline,
+            cancelled,
+            |client| {
+                let mut tx = client.transaction()?;
+                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
+                if !verify_context_binding(&mut tx, scope)? {
+                    return Err(DurableError::Refused(
+                        "private owner context binding mismatch",
+                    ));
+                }
+                let generation = private_audit_generation(&mut tx, scope)?;
+                if generation != expected_private_generation {
+                    return Err(DurableError::Conflict(
+                        "private replay identity generation changed",
+                    ));
+                }
+                let (receipt, response_bytes, package_revision) =
+                    read_private_command_receipt_record(
+                        &mut tx, scope, target_ref, command_id, generation, deadline, cancelled,
+                    )?
+                    .ok_or(DurableError::Corrupt(
+                        "private replay durable receipt absent",
+                    ))?;
+                if !receipt.target_matches
+                    || receipt.family != family
+                    || receipt.request_digest != request_digest
+                    || receipt.raw_request_digest != raw_request_digest
+                    || receipt.owner_configuration_digest != owner_configuration_digest
+                {
+                    return Err(DurableError::Conflict(
+                        "private replay command binding differs",
+                    ));
+                }
+                check_private_history_deadline(deadline, cancelled)?;
+                tx.commit()?;
+                Ok(PrivateOwnerPackageReplayV1 {
+                    replayed: true,
+                    commit_seq: receipt.commit_seq,
+                    package_revision,
+                    package_digest: receipt.package_digest,
+                    private_audit_generation_after: receipt.private_audit_generation_after,
+                    response_bytes,
+                })
             },
         )
     }

@@ -1508,6 +1508,25 @@ pub(crate) fn run(
             "result":result
         }));
     }
+    let retained_replay = if prepared.replayed {
+        Some(
+            db.read_private_owner_command_replay(
+                &scope,
+                &target_ref,
+                family,
+                cmd::text(&request, "command_id")?,
+                Digest256::of_bytes(&cmd::canonical(&request)?),
+                Digest256::of_bytes(&request_raw),
+                Digest256::of_bytes(&grant_raw),
+                private_generation,
+                deadline,
+                cancelled,
+            )
+            .map_err(pg::source_error)?,
+        )
+    } else {
+        None
+    };
     verify_readonly(
         &mut db,
         &store,
@@ -1535,16 +1554,21 @@ pub(crate) fn run(
         deadline,
         cancelled,
     )?;
-    let result: Value = serde_json::from_slice(&cmd::canonical(&prepared.response)?)
+    let response_bytes = match &retained_replay {
+        Some(replay) => replay.response_bytes.clone(),
+        None => cmd::canonical(&prepared.response)?,
+    };
+    let result: Value = serde_json::from_slice(&response_bytes)
         .map_err(|_| SourceCommandError::Invalid("private owner result JSON"))?;
     Ok(json!({
         "schema_version":"tos_native_pg_private_owner_result_v1",
         "authentication":"local-unix-account",
         "family":family_schema,
         "command_id":request.object_get("command_id").and_then(JsonValue::as_str),
-        "commit_seq":null,
-        "package_sha256":target_current.as_ref().map(|current| current.package_digest.to_prefixed()),
-        "receipt_sha256":Digest256::of_bytes(&cmd::canonical(&prepared.response)?).to_prefixed(),
+        "commit_seq":retained_replay.as_ref().map(|replay| replay.commit_seq),
+        "package_sha256":retained_replay.as_ref().map(|replay| replay.package_digest.to_prefixed())
+            .or_else(|| target_current.as_ref().map(|current| current.package_digest.to_prefixed())),
+        "receipt_sha256":Digest256::of_bytes(&response_bytes).to_prefixed(),
         "replayed":prepared.replayed,
         "grants_admission":false,
         "content_disclosure":"owner-local",
