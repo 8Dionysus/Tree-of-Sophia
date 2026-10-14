@@ -637,7 +637,7 @@ pub(super) fn run(
                 )
                 .map_err(DurableError::Source)?;
                 drop(input);
-                let (final_context, _) =
+                let (mut final_context, _) =
                     super::context_with_pg_exact_reads(&context, session, deadline, cancelled)
                         .map_err(DurableError::Source)?;
                 super::pg_claims::check_context_budget(
@@ -678,15 +678,50 @@ pub(super) fn run(
                 let control_path =
                     RelativePath::parse("ToS/source-witnesses/.metadata-publication.json")
                         .map_err(|_| DurableError::Invalid("PG Item publication control path"))?;
-                let context_control_before = final_context
-                    .file(&control_path)
+                // The publication control is a PG virtual member, fenced by
+                // source-publication/current, not an authored STO exact read.
+                let control_raw = if session
+                    .has_file(control_path.as_str(), deadline, cancelled)
                     .map_err(DurableError::Source)?
-                    .map(Digest256::of_bytes);
-                if context_control_before != control_before {
+                {
+                    Some(
+                        session
+                            .read(control_path.as_str(), 8192, deadline, cancelled)
+                            .map_err(DurableError::Source)?,
+                    )
+                } else {
+                    None
+                };
+                if control_raw.as_deref().map(Digest256::of_bytes) != control_before {
                     return Err(DurableError::Conflict(
                         "PG Item publication control predecessor differs",
                     ));
                 }
+                if let Some(raw) = control_raw {
+                    if let Some(existing) = final_context
+                        .file(&control_path)
+                        .map_err(DurableError::Source)?
+                    {
+                        if existing != raw {
+                            return Err(DurableError::Conflict(
+                                "PG Item captured publication control differs",
+                            ));
+                        }
+                    } else {
+                        final_context.files.push(cmd::SourceFile {
+                            path: control_path.clone(),
+                            raw,
+                        });
+                        final_context.files.sort_by(|a, b| a.path.cmp(&b.path));
+                    }
+                }
+                super::pg_claims::check_context_budget(
+                    &final_context,
+                    max_members,
+                    max_total_bytes,
+                    max_member_bytes,
+                )
+                .map_err(DurableError::Source)?;
                 let mut output_members = owner_plan.outputs;
                 if output_members
                     .insert(control_path.as_str().to_owned(), control_after)
@@ -698,10 +733,15 @@ pub(super) fn run(
                 }
                 let changes = item_source_changes(&final_context, &output_members)
                     .map_err(DurableError::Source)?;
+                // Validate the full publication package, then select the same
+                // retained source delta as the common transaction writer.
+                let (_, retained_changes) =
+                    crate::source_work_transaction::extract_selected_publication_package(&changes)
+                        .map_err(DurableError::Source)?;
                 let writes = item_source_writes(
                     &final_context,
                     session,
-                    &changes,
+                    &retained_changes,
                     max_member_bytes,
                     deadline,
                     cancelled,
@@ -712,6 +752,7 @@ pub(super) fn run(
                 PreparedPgItemAdoptionRevision::observe_indexes(
                     session,
                     &semantic_indexes,
+                    &writes,
                     deadline,
                     cancelled,
                 )?;
@@ -1024,6 +1065,7 @@ impl PreparedPgItemAdoptionRevision {
     pub(crate) fn observe_indexes(
         session: &mut SourceRevisionReadSession<'_>,
         semantic_indexes: &IndexRows,
+        writes: &[SourceRevisionWrite],
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<()> {
@@ -1040,11 +1082,24 @@ impl PreparedPgItemAdoptionRevision {
         }
         let tokens = semantic_indexes
             .iter()
-            .map(|(_, token, _)| token.as_str())
-            .collect::<std::collections::BTreeSet<_>>();
-        for token in tokens {
-            for kind in crate::source_cohort::revision::PG_AGENT_INDEX_KINDS {
-                session.observe_unique_index(kind, token, deadline, cancelled)?;
+            .map(|(_, token, _)| token.clone())
+            .collect();
+        // Compound adoption updates existing Edition identities and creates
+        // Item identities. Fence both cases across all five namespaces.
+        let observed = session.lookup_source_identities(&tokens, deadline, cancelled)?;
+        for (token, owner) in observed.owners() {
+            if let Some((kind, path)) = owner {
+                if !semantic_indexes
+                    .iter()
+                    .any(|row| row == &(kind.clone(), token.clone(), path.as_str().to_owned()))
+                    || !writes.iter().any(|write| {
+                        write.subject == path.as_str() && write.expected_predecessor.is_some()
+                    })
+                {
+                    return Err(DurableError::Conflict(
+                        "PG Item identity is occupied outside selected predecessor",
+                    ));
+                }
             }
         }
         Ok(())

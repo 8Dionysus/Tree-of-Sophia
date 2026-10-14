@@ -132,7 +132,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
     let mut other_writes = Vec::new();
     for write in &attempt.writes {
         let mut selected = false;
-        for (home, files) in [(edition_home, &mut parent), (item_home, &mut child)] {
+        for (home, files) in [(item_home, &mut child), (edition_home, &mut parent)] {
             let prefix = format!("{home}/");
             if let Some(name) = write.subject.strip_prefix(&prefix) {
                 if name.contains('/')
@@ -145,6 +145,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
                     ));
                 }
                 selected = true;
+                break;
             }
         }
         if !selected {
@@ -247,8 +248,65 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             "PG Item recovery publication package identity differs",
         ));
     }
+    let mut publication_changes = attempt
+        .writes
+        .iter()
+        .map(|write| {
+            Ok(cmd::SourceChange {
+                path: RelativePath::parse(&write.subject)
+                    .map_err(|_| SourceCommandError::Invalid("PG Item recovery source path"))?,
+                before: write.expected_predecessor.map(|(_, digest)| digest),
+                after: Some(write.exact_bytes.clone()),
+            })
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let journal = format!(
+        "ToS/source-witnesses/.metadata-transactions/{}",
+        &transaction_id[7..]
+    );
+    for (path, value) in [
+        (
+            "ToS/source-witnesses/.metadata-publication.json".to_owned(),
+            &publication_package.control,
+        ),
+        (
+            format!("{journal}/manifest.json"),
+            &publication_package.manifest,
+        ),
+        (
+            format!("{journal}/completion.json"),
+            &publication_package.completion,
+        ),
+    ] {
+        let mut raw = cmd::canonical(value)?;
+        raw.push(b'\n');
+        publication_changes.push(cmd::SourceChange {
+            path: RelativePath::parse(&path)
+                .map_err(|_| SourceCommandError::Invalid("PG Item recovery sidecar path"))?,
+            before: None,
+            after: Some(raw),
+        });
+    }
+    let (decoded, _) = crate::source_work_transaction::decode_selected_publication_package(
+        &publication_package.canonical_bytes,
+        &publication_changes,
+    )?;
+    if &decoded != publication_package {
+        return Err(SourceCommandError::Conflict(
+            "PG Item recovery decoded publication differs",
+        ));
+    }
+    let journal_prefix = format!(
+        "ToS/source-witnesses/.metadata-transactions/{}/",
+        &transaction_id[7..]
+    );
     let mut archive_members = BTreeMap::new();
     for write in other_writes {
+        if write.subject.starts_with(&journal_prefix) {
+            // Exact role, fixity and predecessor coverage are checked below
+            // against the decoded publication source references.
+            continue;
+        }
         let is_archive = write.subject.strip_prefix(&format!("{archive_path}/"));
         let is_archive = is_archive.is_some_and(|name| {
             if flat_digest_blob_or_manifest(name) {
@@ -352,7 +410,15 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
         .ok_or(SourceCommandError::Conflict(
             "PG Item recovery transaction file plan shape differs",
         ))?;
-    let mut planned_writes = attempt.writes.iter().collect::<Vec<_>>();
+    let mut planned_writes = attempt
+        .writes
+        .iter()
+        .filter(|write| {
+            publication_package.source_refs.iter().any(|source_ref| {
+                source_ref.role == "authored_source" && source_ref.path == write.subject
+            })
+        })
+        .collect::<Vec<_>>();
     planned_writes.sort_by(|left, right| left.subject.cmp(&right.subject));
     if file_rows.len() != planned_writes.len() {
         return Err(SourceCommandError::Conflict(
@@ -449,10 +515,28 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             ));
         }
     }
-    if !publication_refs.is_empty() {
-        return Err(SourceCommandError::Conflict(
-            "PG Item recovery publication source omits writes",
-        ));
+    // Retained transaction blobs are distinct from authored source rows.
+    // Their complete set and digest-derived names were checked by the shared
+    // package decoder; bind every one back to the durable attempt's bytes.
+    for (path, source_ref) in publication_refs {
+        let write = attempt_source_refs
+            .get(path)
+            .ok_or(SourceCommandError::Conflict(
+                "PG Item recovery journal write absent",
+            ))?;
+        let digest = Digest256::of_bytes(&write.exact_bytes);
+        if source_ref.role != "selected_transaction_blob"
+            || path != format!("{journal_prefix}{}.blob", digest.to_hex())
+            || write.expected_predecessor.is_some()
+            || source_ref.before.is_some()
+            || source_ref.after.as_ref().is_none_or(|binding| {
+                binding.sha256 != digest || binding.byte_size != write.exact_bytes.len() as u64
+            })
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG Item recovery journal binding differs",
+            ));
+        }
     }
     cmd::exact_keys(completion, &["schema_version", "publication"])?;
     if cmd::text(&completion, "schema_version")? != "tos_selected_metadata_completion_v1" {
