@@ -247,6 +247,7 @@ pub(crate) fn with_selected_navigation_anchor_current<T>(
         &NavigationProducerHeldOwnerIdentity,
         &mut postgres::Transaction<'tx>,
         &NavigationProducerOwnerSelection<'_>,
+        &SegmentStore,
     ) -> ManagedSelectionResult<T>,
 ) -> Result<T, SourceNavigationSelectionError> {
     if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
@@ -337,6 +338,7 @@ pub(crate) fn with_selected_navigation_anchor_current<T>(
                     &facts,
                     tx,
                     &view,
+                    &store,
                 )
             },
         )
@@ -860,7 +862,7 @@ pub fn with_selected_source_navigation<T, E>(
         selected,
         deadline,
         &cancelled,
-        |model, source, parent, _proof, _expectation, facts, tx, owner| {
+        |model, source, parent, _proof, _expectation, facts, tx, owner, _store| {
             crate::source_navigation_query::with_published_source_navigation_v2(
                 model,
                 source,

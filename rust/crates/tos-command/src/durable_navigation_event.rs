@@ -10398,6 +10398,14 @@ impl DurablePgCoordinator {
         let mut selected_binding = navigation_owner_binding(domain, selected, profile)?;
         selected_binding.navigation_header =
             strict_json_value(&package.header_raw, limits.max_row_bytes)?;
+        // The sealed package has authenticated the original rights and their
+        // projection. Re-derive its row count instead of comparing with the
+        // unpopulated binding's default zero.
+        selected_binding.navigation_projected_rights = package
+            .rows
+            .iter()
+            .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Right)
+            .count() as u64;
         if navigation_owner_binding_json(&selected_binding)
             != navigation_owner_binding_json(&package.owner_binding)
         {

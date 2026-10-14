@@ -111,8 +111,9 @@ pub(crate) fn run(
         &selected,
         deadline,
         cancelled,
-        |_model, _lease, _selected, _proof, _expectation, owner, owner_tx, selection| {
+        |_model, _lease, _selected, _proof, _expectation, owner, owner_tx, selection, store| {
             run_held_owner(
+                store,
                 owner,
                 owner_tx,
                 selection,
@@ -140,7 +141,7 @@ pub(crate) fn run_bootstrap(
         &selected,
         deadline,
         cancelled,
-        |model, _lease, selected, _proof, expectation, owner, owner_tx, selection| {
+        |model, _lease, selected, _proof, expectation, owner, owner_tx, selection, store| {
             if Instant::now() >= deadline
                 || cancelled.load(std::sync::atomic::Ordering::Relaxed)
             {
@@ -149,7 +150,7 @@ pub(crate) fn run_bootstrap(
                 ));
             }
             let result = (|| {
-                let (store, mut coordinator) = open_selected_event_store(owner, selection, owner_tx)?;
+                let mut coordinator = open_selected_event_reader(store, owner, selection, owner_tx)?;
                 let capture = crate::source_navigation_bootstrap::capture_source_navigation_bootstrap_v1(
                     model,
                     selection.event_limits,
@@ -157,7 +158,7 @@ pub(crate) fn run_bootstrap(
                 let owner_sources =
                     crate::source_navigation_bootstrap::resolve_source_navigation_bootstrap_owners_v1(
                         &mut coordinator,
-                        &store,
+                        store,
                         selected.generation(),
                         capture.owner_source_paths(),
                         selection.event_limits,
@@ -187,7 +188,7 @@ pub(crate) fn run_bootstrap(
                 }
                 let published = DurablePgCoordinator::publish_navigation_bootstrap_v1_in_tx(
                     owner_tx,
-                    &store,
+                    store,
                     selection.domain,
                     selection.consumer_id,
                     &selection.profile,
@@ -222,6 +223,7 @@ pub(crate) fn run_bootstrap(
 }
 
 fn run_held_owner(
+    store: &SegmentStore,
     owner: &NavigationProducerHeldOwnerIdentity,
     owner_tx: &mut postgres::Transaction<'_>,
     selection: &NavigationProducerOwnerSelection<'_>,
@@ -229,7 +231,7 @@ fn run_held_owner(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<Value> {
-    let (store, mut event_reader) = open_selected_event_store(owner, selection, owner_tx)?;
+    let mut event_reader = open_selected_event_reader(store, owner, selection, owner_tx)?;
     let max_events = requested_max_events.min(selection.max_events);
     if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
         return Err(DurableError::Refused(
@@ -3877,13 +3879,14 @@ fn bibliographic_limits(
 /// addresses the exact database and STO held by the protected owner callback.
 /// The callback's transaction is the owner-side database witness; the producer
 /// never trusts a fresh environment lookup without comparing both witnesses.
-pub(crate) fn open_selected_event_store(
+// Keep the audited store instance from the held selection. Reopening even the
+// same root creates a distinct custody handle and cannot carry that audit.
+fn open_selected_event_reader(
+    store: &SegmentStore,
     owner: &NavigationProducerHeldOwnerIdentity,
     selection: &NavigationProducerOwnerSelection<'_>,
     owner_tx: &mut postgres::Transaction<'_>,
-) -> DurableResult<(SegmentStore, DurablePgCoordinator)> {
-    let store = SegmentStore::open_existing(&selection.store_root, selection.store_limits)
-        .map_err(|_| DurableError::Refused("selected navigation source store unavailable"))?;
+) -> DurableResult<DurablePgCoordinator> {
     if store.custody_domain() != selection.domain.as_bytes() || store.store_id() != owner.store_id {
         return Err(DurableError::Conflict(
             "selected navigation source store differs from held owner",
@@ -3906,7 +3909,7 @@ pub(crate) fn open_selected_event_store(
             "navigation event reader PostgreSQL database differs from held owner",
         ));
     }
-    Ok((store, DurablePgCoordinator::from_configured_client(client)))
+    Ok(DurablePgCoordinator::from_configured_client(client))
 }
 
 fn database_oid(client: &mut impl postgres::GenericClient) -> DurableResult<u64> {
