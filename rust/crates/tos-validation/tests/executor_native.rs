@@ -34,10 +34,10 @@ mod linux {
     #[test]
     fn candidate_scalar_reuse_preserves_exact_inputs_and_budget_refusals() {
         use std::sync::atomic::{AtomicBool, Ordering};
-        use tos_validation::executor::VerifiedWorkerImageHandle;
+        use tos_validation::executor::{BatchBudget, VerifiedWorkerImageHandle};
         use tos_validation::item_rules::ItemRefusal;
         use tos_validation::source_cut::{
-            CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits,
+            CandidateCutWorkerSchemaExecutor, CutSchemaCheck, CutSchemaExecutor, CutWorkerLimits,
         };
 
         let (identity, _, _) = worker();
@@ -57,7 +57,7 @@ mod linux {
         let mut candidate =
             CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
                 17u64,
-                selected,
+                selected.clone(),
                 &image,
                 budget,
                 CutWorkerLimits {
@@ -131,6 +131,54 @@ mod linux {
                 .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
                 .is_err()
         );
+
+        // Candidate batches use the same real worker and ordered coverage
+        // checks, while retaining their own identity rather than a cut receipt.
+        let not_cancelled = AtomicBool::new(false);
+        let mut batch_candidate =
+            CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+                18u64,
+                selected,
+                &image,
+                budget,
+                CutWorkerLimits {
+                    max_receipts: 2,
+                    max_receipt_bytes: 4096,
+                },
+                deadline,
+                &not_cancelled,
+            )
+            .unwrap();
+        let checks = [
+            CutSchemaCheck {
+                path: "valid.json".into(),
+                raw: b"7".to_vec(),
+                contract: contract.into(),
+            },
+            CutSchemaCheck {
+                path: "invalid.json".into(),
+                raw: br#""x""#.to_vec(),
+                contract: contract.into(),
+            },
+        ];
+        assert_eq!(
+            batch_candidate
+                .check_batch(&checks, BatchBudget::laboratory(), deadline, &not_cancelled)
+                .unwrap(),
+            [true, false]
+        );
+        assert_eq!(*batch_candidate.input_identity(), 18);
+        assert_eq!(batch_candidate.selected_source_revision(), None);
+        // Batch executions consume the same budget as scalar executions.
+        assert!(matches!(
+            batch_candidate.check("valid.json", b"7", contract, deadline, &not_cancelled),
+            Err(ItemRefusal::BudgetCheck {
+                used: Some(3),
+                limit: Some(2),
+                ..
+            })
+        ));
+        batch_candidate.finish(deadline, &not_cancelled).unwrap();
     }
 
     #[test]

@@ -3573,11 +3573,6 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Vec<bool>, ItemRefusal> {
-        if self.revision.is_none() {
-            return Err(ItemRefusal::Unsupported(
-                "candidate schema batch execution is unavailable".into(),
-            ));
-        }
         if self.diagnostics_v2.is_some() {
             self.prepared.poison_shared_schema_worker_quota();
             return Err(ItemRefusal::Unsupported(
@@ -3707,9 +3702,6 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         }
         let mut staged = Vec::with_capacity(checks.len());
         let mut verdicts = Vec::with_capacity(checks.len());
-        let source_revision = self.revision.ok_or_else(|| {
-            ItemRefusal::Unsupported("candidate schema batch execution is unavailable".into())
-        })?;
         for (ordinal, ((input, unit), receipt)) in
             checks.iter().zip(&units).zip(receipts).enumerate()
         {
@@ -3731,26 +3723,32 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                     return Err(ItemRefusal::Source("schema batch input rejected".into()));
                 }
             };
-            staged.push(CutSchemaReceipt {
-                path: input.path.clone(),
-                contract: input.contract.clone(),
-                source_revision,
-                source_raw_sha256: raw_digests[ordinal],
-                decoded_instance_sha256: decoded_digest,
-                execution: ExecutionIdentity {
-                    worker_sha256: checkpoint.worker_sha256,
-                    request_sha256: checkpoint.request_sha256,
-                    schema_set_sha256: checkpoint.schema_set_sha256,
-                    instance_sha256: decoded_digest,
-                    profile: checkpoint.profile,
-                },
-                valid,
-                batch: Some(CutBatchBinding {
-                    checkpoint,
-                    ordinal: receipt.ordinal,
-                    unit_sha256: receipt.unit_sha256,
-                }),
-            });
+            // Both adapters verify the complete ordered batch and charge its
+            // executions. Only the immutable-cut adapter can issue receipts
+            // carrying a SourceRevision; candidate identity stays with its
+            // typed wrapper and the consuming mechanics report.
+            if let Some(source_revision) = self.revision {
+                staged.push(CutSchemaReceipt {
+                    path: input.path.clone(),
+                    contract: input.contract.clone(),
+                    source_revision,
+                    source_raw_sha256: raw_digests[ordinal],
+                    decoded_instance_sha256: decoded_digest,
+                    execution: ExecutionIdentity {
+                        worker_sha256: checkpoint.worker_sha256,
+                        request_sha256: checkpoint.request_sha256,
+                        schema_set_sha256: checkpoint.schema_set_sha256,
+                        instance_sha256: decoded_digest,
+                        profile: checkpoint.profile,
+                    },
+                    valid,
+                    batch: Some(CutBatchBinding {
+                        checkpoint,
+                        ordinal: receipt.ordinal,
+                        unit_sha256: receipt.unit_sha256,
+                    }),
+                });
+            }
             verdicts.push(valid);
         }
         self.prepared
