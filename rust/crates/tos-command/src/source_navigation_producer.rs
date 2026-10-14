@@ -35,6 +35,24 @@ use crate::source_navigation_cli::{
 };
 use crate::{DurableError, DurableNavigationEventContextV1, DurablePgCoordinator, DurableResult};
 
+// Static owner reasons identify the failed boundary without exposing database
+// diagnostics, selected paths, or source payloads through the command response.
+fn producer_refusal(error: crate::source_navigation_cli::SourceNavigationSelectionError) -> &'static str {
+    use crate::source_managed_selection::ManagedSelectionError;
+    use crate::source_navigation_cli::SourceNavigationSelectionError;
+    match error {
+        SourceNavigationSelectionError::Invalid(reason) => reason,
+        SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
+            DurableError::Invalid(reason)
+            | DurableError::Conflict(reason)
+            | DurableError::Refused(reason)
+            | DurableError::Corrupt(reason)
+            | DurableError::Indeterminate(reason),
+        )) => reason,
+        _ => "source navigation selected owner refused",
+    }
+}
+
 /// Run the selected producer while the managed source, rights, audit, job,
 /// model, and owner-configuration fences remain held through publication.
 pub(crate) fn run(
@@ -64,7 +82,7 @@ pub(crate) fn run(
             .map_err(crate::source_managed_selection::ManagedSelectionError::Durable)
         },
     )
-    .map_err(|_| "source navigation event producer refused")
+    .map_err(producer_refusal)
 }
 
 /// Bootstrap the selected private navigation read model while the managed
@@ -159,7 +177,7 @@ pub(crate) fn run_bootstrap(
             result.map_err(crate::source_managed_selection::ManagedSelectionError::Durable)
         },
     )
-    .map_err(|_| "source navigation bootstrap refused")
+    .map_err(producer_refusal)
 }
 
 fn run_held_owner(

@@ -2311,7 +2311,7 @@ fn connected_browser_publish_initial_metadata(
         created_result["receipt"]["request_digest"].clone();
     private_json(&invocation_path, &invocation);
 
-    let published = super::command_claim_publication_cases::agent_native_call(
+    let publication = super::command_claim_publication_cases::agent_native_call(
         repository,
         &owner,
         &invocation_path,
@@ -2321,10 +2321,10 @@ fn connected_browser_publish_initial_metadata(
             "creation_request":created_request
         }),
         deadline,
-    )["result"]
-        .clone();
+    );
+    assert_eq!(publication["grants_admission"], false);
+    let published = publication["result"].clone();
     assert_eq!(published["prepared_committed"], true);
-    assert_eq!(published["grants_admission"], false);
     private_json(binding_path, &published["binding"]);
     private_json(&binding_companion_path, &published["binding"]);
 
