@@ -5949,7 +5949,7 @@ impl<S: CutSchemaExecutor + CutSchemaReceiptRange> NativeCompoundSchema for S {
         limits: ItemLimits,
         cancelled: &AtomicBool,
     ) -> Result<LocalClaimValidation, ItemRefusal> {
-        let mut local = crate::record_rules::validate_source_claim_from_cut(
+        let mut local = crate::record_rules::validate_stored_source_claim_from_cut(
             cut.ok_or_else(|| bad("compound Claim validation requires corpus cut"))?,
             claim_raw,
             self,
@@ -5988,11 +5988,16 @@ impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> 
             input,
             identity: *self.input_identity(),
         };
-        let mut local = crate::record_rules::validate_source_claim_from_selected_input(
+        let mut local = crate::record_rules::validate_stored_source_claim_from_selected_input(
             &selected, claim_raw, self, limits, cancelled,
         )?;
-        if !local.issues.is_empty()
-            || local.input_identity != *self.input_identity()
+        if let Some(issue) = local.issues.first() {
+            return Err(bad(&format!(
+                "selected compound Claim local owner profile: {}",
+                issue.code
+            )));
+        }
+        if local.input_identity != *self.input_identity()
             || local.prepared_execution_binding != self.prepared_execution_binding()
             || local.schema_set_sha256 != self.schema_set_digest()
             || local.contract_selection_sha256 != self.contract_selection_digest()
@@ -10310,7 +10315,7 @@ impl NativeCompoundReader<'_> {
         let cut = self.cut;
         let cancelled = self.cancelled;
         let mut validate_local_claim = |raw: &[u8], schemas: &mut S, limits: ItemLimits| {
-            let mut local = crate::record_rules::validate_source_claim_from_cut(
+            let mut local = crate::record_rules::validate_stored_source_claim_from_cut(
                 cut.ok_or_else(|| bad("ObjectLink writer requires corpus cut"))?,
                 raw,
                 schemas,

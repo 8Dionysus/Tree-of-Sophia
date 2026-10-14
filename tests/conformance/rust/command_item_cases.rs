@@ -386,16 +386,33 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     invocation["source_revision"] = json!(second_revision.0.to_prefixed());
     invocation["original_source_revision"] = Value::Null;
     freeze_invocation(&invocation_path, &invocation);
+    // Storage preparation must accept schema-valid private Claims without
+    // treating them as publicly publishable forms or skipping visibility grammar.
+    let mut opaque_proposal = second_fixture["proposal"].clone();
+    opaque_proposal["claim"]["visibility"] = json!("invalid-visibility");
+    cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &opaque_proposal,
+        false,
+        deadline,
+    );
+    opaque_proposal["claim"]["visibility"] = json!("local_only");
     let opaque_preview = cli(
         &repository,
         &owner,
         &invocation_path,
-        &second_fixture["proposal"],
+        &opaque_proposal,
         true,
         deadline,
     );
     assert!(opaque_preview["inventory"].is_null());
     assert!(!opaque_preview["inventory_limitation"].is_null());
+    assert_eq!(
+        opaque_preview["prepared_request"]["claim"]["visibility"],
+        "local_only"
+    );
     let opaque_request = prepared_request(&opaque_preview, "native-item-byte-only");
     let bytes_only = cli(
         &repository,

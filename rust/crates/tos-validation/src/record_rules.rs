@@ -3480,6 +3480,27 @@ pub fn validate_source_claim_from_selected_input<I: Copy + Eq>(
     )
 }
 
+/// Compound source preparation validates storage grammar, not public-form eligibility.
+/// The selected schema still constrains visibility; disclosure remains a separate owner gate.
+pub(crate) fn validate_stored_source_claim_from_selected_input<I: Copy + Eq>(
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    selected_claim_raw: &[u8],
+    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<CandidateSourceClaimInputLocalReport<I>, crate::item_rules::ItemRefusal> {
+    validate_candidate_claim_input_core(
+        input,
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        LocalClaimValidationScope::StoredSource,
+        FormatProfile::LegacyPythonObserved20260923,
+        std::mem::size_of::<CandidateSourceClaimInputLocalReport<I>>(),
+    )
+}
+
 /// Validate the maintained local Claim profile for an exact selected input
 /// whose schema closure is bound to the asserted source-candidate profile.
 /// This preserves the selected input's opaque identity and returns only the
@@ -3641,6 +3662,29 @@ pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRan
         limits,
         cancelled,
         FormatProfile::LegacyPythonObserved20260923,
+        LocalClaimValidationScope::PublicForm,
+        &CutLocalClaimSource(cut),
+    )
+}
+
+/// Validate source compound grammar while retaining nonpublic source visibility.
+pub(crate) fn validate_stored_source_claim_from_cut<
+    S: CutSchemaExecutor + CutSchemaReceiptRange,
+>(
+    cut: &tos_source_store::CorpusCutReader,
+    selected_claim_raw: &[u8],
+    worker: &mut S,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<SourceClaimLocalReport, crate::item_rules::ItemRefusal> {
+    validate_source_claim_from_current_source(
+        cut.current().revision(),
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        FormatProfile::LegacyPythonObserved20260923,
+        LocalClaimValidationScope::StoredSource,
         &CutLocalClaimSource(cut),
     )
 }
@@ -3662,6 +3706,7 @@ pub fn validate_source_claim_from_asserted_cut<S: CutSchemaExecutor + CutSchemaR
         limits,
         cancelled,
         FormatProfile::AssertedSourceCandidateV1,
+        LocalClaimValidationScope::PublicForm,
         &CutLocalClaimSource(cut),
     )
 }
@@ -3685,6 +3730,7 @@ pub fn validate_source_claim_from_members<S: CutSchemaExecutor + CutSchemaReceip
         limits,
         cancelled,
         FormatProfile::LegacyPythonObserved20260923,
+        LocalClaimValidationScope::PublicForm,
         &SelectedMembersLocalClaimSource(members),
     )
 }
@@ -3696,6 +3742,7 @@ fn validate_source_claim_from_current_source<S: CutSchemaExecutor + CutSchemaRec
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
     expected_profile: FormatProfile,
+    scope: LocalClaimValidationScope,
     source: &dyn LocalClaimCurrentSource,
 ) -> Result<SourceClaimLocalReport, crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
@@ -3779,7 +3826,7 @@ fn validate_source_claim_from_current_source<S: CutSchemaExecutor + CutSchemaRec
         source,
         &claim,
         selected_claim_raw,
-        LocalClaimValidationScope::PublicForm,
+        scope,
         std::mem::size_of::<SourceClaimLocalReport>(),
         worker,
         limits,
