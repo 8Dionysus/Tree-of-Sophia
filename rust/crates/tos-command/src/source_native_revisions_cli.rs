@@ -15,7 +15,8 @@ use tos_source_store::{
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+    CandidateCutWorkerSchemaExecutor, CutSchemaDiagnosticsLimits, CutSchemaExecutor,
+    CutWorkerLimits, CutWorkerSchemaExecutor,
 };
 use tos_validation::{FormatProfile, SchemaResource};
 
@@ -1125,7 +1126,7 @@ pub(crate) fn selected_candidate_schema_from_context(
             },
         ));
     }
-    CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
+    let mut executor = CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
         identity,
         resources,
         FormatProfile::LegacyPythonObserved20260923,
@@ -1135,7 +1136,19 @@ pub(crate) fn selected_candidate_schema_from_context(
         deadline,
         cancelled,
     )
-    .map_err(|_| SourceCommandError::Denied("native candidate schema worker"))
+    .map_err(|_| SourceCommandError::Denied("native candidate schema worker"))?;
+    // Selected compound Claim validation consumes candidate-bound diagnostics.
+    // Select that protocol before any scalar check starts the shared operation;
+    // bool checks and Claim diagnostics then retain one exact worker binding.
+    executor
+        .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+            max_total_issues: limits.max_receipts,
+            max_total_report_bytes: limits.max_receipt_bytes,
+            max_total_state_bytes: usize::try_from(super::number(budgets, "max_total_bytes")?)
+                .map_err(|_| SourceCommandError::Invalid("candidate schema state budget"))?,
+        })
+        .map_err(|_| SourceCommandError::Denied("native candidate schema diagnostics budget"))?;
+    Ok(executor)
 }
 
 pub(crate) fn selected_schema_from_context(
