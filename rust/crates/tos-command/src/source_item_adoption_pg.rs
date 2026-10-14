@@ -965,7 +965,9 @@ pub(crate) fn current_closure(
     }
     session
         .observe_home_absence(&super::relative(&archive_path)?, deadline, cancelled)
-        .map_err(|_| SourceCommandError::Conflict("PG Item predecessor archive occupied or changed"))?;
+        .map_err(|_| {
+            SourceCommandError::Conflict("PG Item predecessor archive occupied or changed")
+        })?;
     new_directories.push(
         RelativePath::parse(&archive_path)
             .map_err(|_| SourceCommandError::Invalid("PG Item archive path"))?,
@@ -998,7 +1000,9 @@ pub(crate) fn current_closure(
         .map_err(|_| SourceCommandError::Invalid("PG Item transaction directory"))?;
         session
             .observe_home_absence(&transaction_home, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Conflict("PG Item transaction journal occupied or changed"))?;
+            .map_err(|_| {
+                SourceCommandError::Conflict("PG Item transaction journal occupied or changed")
+            })?;
         if !transaction_root_exists {
             new_directories.push(
                 RelativePath::parse("ToS/source-witnesses/.metadata-transactions")
@@ -1329,21 +1333,43 @@ pub(crate) fn current_closure(
     ] {
         identity_values.extend(super::allowed_forms(&owner.configuration, field)?.into_iter());
     }
-    let identity_absences = identity_values
+    let identities = identity_values
         .iter()
         .cloned()
         .collect::<std::collections::BTreeSet<_>>();
-    if identity_absences.len() != identity_values.len() {
+    if identities.len() != identity_values.len() {
         return Err(SourceCommandError::Conflict(
             "PG Item new identity collision",
         ));
     }
-    for token in identity_absences {
-        if session
+    // The compound command rebinds the Edition's existing source-copy forms.
+    // Only those exact current identities may already be occupied; child forms
+    // and any newly selected Edition form still require global absence.
+    let edition_forms = cmd::parse(
+        before
+            .get("edition.human-forms.json")
+            .ok_or(SourceCommandError::Conflict("PG Item Edition forms absent"))?,
+    )?;
+    let retained_edition_forms = cmd::array(&edition_forms, "forms")?
+        .iter()
+        .map(|form| cmd::text(form, "form_id").map(str::to_owned))
+        .collect::<SourceCommandResult<std::collections::BTreeSet<_>>>()?;
+    let allowed_edition_forms =
+        super::allowed_forms(&owner.configuration, "allowed_edition_form_ids")?;
+    let edition_forms_path = format!("{edition_home}/edition.human-forms.json");
+    for token in identities {
+        let existing = session
             .lookup_source_identity(&token, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Conflict("PG Item identity absence lookup"))?
-            .is_some()
-        {
+            .map_err(|_| SourceCommandError::Conflict("PG Item identity lookup"))?;
+        if allowed_edition_forms.contains(&token) && retained_edition_forms.contains(&token) {
+            if !matches!(existing, Some((kind, path))
+                if kind == "form" && path.as_str() == edition_forms_path)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PG Item retained Edition form identity differs",
+                ));
+            }
+        } else if existing.is_some() {
             return Err(SourceCommandError::Conflict(
                 "PG Item new identity is occupied",
             ));
