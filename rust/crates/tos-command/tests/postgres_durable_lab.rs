@@ -1326,6 +1326,14 @@ fn run_addressed_transport_phase(
 }
 
 fn addressed_journal_snapshot(url: &str, domain: &str) -> serde_json::Value {
+    addressed_journal_snapshot_through(url, domain, None)
+}
+
+fn addressed_journal_snapshot_through(
+    url: &str,
+    domain: &str,
+    through: Option<u64>,
+) -> serde_json::Value {
     use postgres::fallible_iterator::FallibleIterator;
     let mut db = Client::connect(url, NoTls).unwrap();
     db.batch_execute("SET statement_timeout='15000'; SET default_transaction_read_only=on")
@@ -1359,7 +1367,12 @@ fn addressed_journal_snapshot(url: &str, domain: &str) -> serde_json::Value {
         .get(0);
     let mut hash = tos_foundation::Digest256Hasher::new();
     let mut count = 0u64;
-    let mut rows = tx.query_raw("SELECT sha256(convert_to(row_to_json(j)::text,'UTF8')) FROM cmd2_audit_delta_v1 j WHERE domain=$1 ORDER BY generation LIMIT 4097", [&domain]).unwrap();
+    let through = through
+        .map(|value| i64::try_from(value).unwrap())
+        .unwrap_or(generation);
+    assert!((0..=generation).contains(&through));
+    let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &through];
+    let mut rows = tx.query_raw("SELECT sha256(convert_to(row_to_json(j)::text,'UTF8')) FROM cmd2_audit_delta_v1 j WHERE domain=$1 AND generation<=$2 ORDER BY generation LIMIT 4097", params).unwrap();
     while let Some(row) = rows.next().unwrap() {
         count += 1;
         assert!(
@@ -5154,10 +5167,32 @@ fn maintained_agent_creation_operation<
             .unwrap()
             .as_array()
             .unwrap();
+        // Re-selection writes current derived state. Preserve every old journal
+        // byte while requiring one appended row per newly consumed generation.
+        let retained_journal = addressed_journal_snapshot_through(
+            &url,
+            &recovery_domain,
+            Some(original_journal[0].as_u64().unwrap()),
+        );
         assert_eq!(
-            &selected_journal[1..],
+            &retained_journal.as_array().unwrap()[1..],
             &original_journal[1..],
-            "same-profile V1 audit-marker and schema-profile history survive cross-database re-selection"
+            "cold re-selection preserves the exact old journal prefix, schema and activation marker"
+        );
+        let new_generations = selected_journal[0]
+            .as_u64()
+            .unwrap()
+            .checked_sub(original_journal[0].as_u64().unwrap())
+            .expect("cold re-selection never rewinds the audit fence");
+        let appended_rows = selected_journal[3]
+            .as_u64()
+            .unwrap()
+            .checked_sub(original_journal[3].as_u64().unwrap())
+            .expect("cold re-selection never deletes journal history");
+        assert!(new_generations > 0);
+        assert_eq!(
+            appended_rows, new_generations,
+            "new cold-selection generations have complete delta coverage"
         );
     }
     // Record ordinary and controlled plans for the actual keyset queries.
