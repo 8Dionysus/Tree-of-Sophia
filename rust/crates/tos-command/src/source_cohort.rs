@@ -11547,7 +11547,7 @@ impl DurablePgCoordinator {
         };
         if let Some(profile) = addressed_profile {
             if profile != audit_delta::audit_delta_schema_digest()
-                && !(addressed_reselect && audit_delta::cold_profile_is_supported(profile))
+                && !(addressed_reselect && audit_delta::profile_is_supported(profile))
             {
                 return Err(DurableError::Corrupt(
                     "active addressed audit profile differs",

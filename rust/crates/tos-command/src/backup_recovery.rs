@@ -1322,9 +1322,9 @@ fn frozen_domain(
         let marker = db.query_opt("SELECT p.profile_digest,p.baseline_generation,f.generation FROM cmd2_audit_delta_v1_domain p JOIN cmd2_audit_fence f USING(domain) WHERE p.domain=$1", &[&domain]).map_err(|_| error())?;
         if let Some(marker) = marker {
             require(
-                marker.get::<_, String>(0).trim_end()
-                    == crate::durable_adapter::audit_delta::audit_delta_schema_digest().to_hex()
-                    && marker.get::<_, i64>(1) >= 0
+                crate::durable_adapter::audit_delta::profile_hex_is_supported(
+                    marker.get::<_, String>(0).trim_end(),
+                ) && marker.get::<_, i64>(1) >= 0
                     && marker.get::<_, i64>(1) <= marker.get::<_, i64>(2),
             )?;
         } else {

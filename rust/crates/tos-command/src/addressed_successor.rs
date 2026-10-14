@@ -381,7 +381,7 @@ impl AddressedCutV2 {
             || self.domain_digest != store.domain_digest()
             || self.domain.as_bytes() != store.custody_domain()
             || self.schema_profile_digest != schema_profile_digest()
-            || self.state_profile_digest != expected_profile
+            || !audit_delta::profiles_are_compatible(self.state_profile_digest, expected_profile)
             || self.metadata.kind != METADATA_KIND
             || self.history.kind != HISTORY_KIND
             || self.current.kind != CURRENT_KIND
@@ -509,7 +509,7 @@ pub(super) fn verify_published_addressed_inventory(
     };
     let cut = AddressedCutV2::decode(&raw)?;
     if observed_profile != audit_delta::audit_delta_schema_digest()
-        && !(allow_database_rebind && audit_delta::cold_profile_is_supported(observed_profile))
+        && !(allow_database_rebind && audit_delta::profile_is_supported(observed_profile))
     {
         return Err(DurableError::Corrupt("cold addressed profile unsupported"));
     }
@@ -552,7 +552,7 @@ pub(super) fn verify_published_addressed_inventory(
         || complete_cut_digest.trim_end() != state_digest.to_hex()
         || source_projection_digest.trim_end() != projection_root
         || schema_digest.trim_end() != cut.schema_profile_digest.to_hex()
-        || cut.state_profile_digest != observed_profile
+        || !audit_delta::profiles_are_compatible(cut.state_profile_digest, observed_profile)
         || cut.schema_profile_digest != schema_profile_digest()
     {
         return Err(DurableError::Corrupt(

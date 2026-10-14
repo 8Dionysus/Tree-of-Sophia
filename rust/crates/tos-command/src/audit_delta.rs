@@ -599,9 +599,8 @@ pub fn load_interval_controlled_with_work(
         ColdRequiredReason::DomainNotActivated,
     ))?;
     let baseline_generation = nonnegative(profile.get::<_, i64>(0))?;
-    let expected_profile_digest = audit_delta_schema_digest().to_hex();
     let stored_profile_digest: String = profile.get(1);
-    if stored_profile_digest.trim_end() != expected_profile_digest.as_str() {
+    if !profile_hex_is_supported(stored_profile_digest.trim_end()) {
         return Err(AuditDeltaError::ColdRequired(
             ColdRequiredReason::ProfileMismatch,
         ));
@@ -1204,16 +1203,25 @@ pub fn audit_delta_schema_digest() -> Digest256 {
 
 // The Item Claim path extension changed only four SQL CHECK predicates.
 // Bind both complete schema byte identities: any further schema change needs
-// its own compatibility review. Warm replay never accepts the predecessor.
+// its own compatibility review. Both identities have exactly the same journal
+// rows, keys and commitments; keep the original activation marker immutable.
 const ITEM_CLAIM_PREDECESSOR: &str =
     "471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c";
 const ITEM_CLAIM_SUCCESSOR: &str =
     "c9e1f70c15eb8d522e2bf1954a0565269fc5eacfb8cc4688172b444a2af98211";
 
-pub(super) fn cold_profile_is_supported(profile: Digest256) -> bool {
+pub(crate) fn profile_is_supported(profile: Digest256) -> bool {
     let current = audit_delta_schema_digest();
     profile == current
         || (current.to_hex() == ITEM_CLAIM_SUCCESSOR && profile.to_hex() == ITEM_CLAIM_PREDECESSOR)
+}
+
+pub(crate) fn profile_hex_is_supported(profile: &str) -> bool {
+    Digest256::from_hex(profile).is_ok_and(profile_is_supported)
+}
+
+pub(super) fn profiles_are_compatible(left: Digest256, right: Digest256) -> bool {
+    profile_is_supported(left) && profile_is_supported(right)
 }
 
 fn item_claim_constraint_upgrade() -> Result<[&'static str; 2], AuditDeltaError> {
@@ -1243,10 +1251,10 @@ fn item_claim_constraint_upgrade() -> Result<[&'static str; 2], AuditDeltaError>
     Ok(statements)
 }
 
-/// Called only after the complete source/index/custody audit, while holding
-/// its unchanged fence. Retain every journal row; the new cold selection is
-/// the baseline for the current profile. A failed transaction rolls back the
-/// marker together with selection invalidation and projection changes.
+/// Only the complete source/index/custody audit may install the additive
+/// constraints under its unchanged fence. The original activation marker,
+/// baseline and journal remain immutable; the new selection binds the current
+/// descriptor profile. A transaction failure rolls back the DDL and selection.
 pub(super) fn reselect_cold_profile(
     tx: &mut Transaction<'_>,
     domain: &str,
@@ -1254,7 +1262,7 @@ pub(super) fn reselect_cold_profile(
     observed_profile: Digest256,
 ) -> Result<(), AuditDeltaError> {
     require_repeatable_snapshot(tx)?;
-    if !cold_profile_is_supported(observed_profile) {
+    if !profile_is_supported(observed_profile) {
         return Err(AuditDeltaError::ColdRequired(
             ColdRequiredReason::ProfileMismatch,
         ));
@@ -1290,14 +1298,10 @@ pub(super) fn reselect_cold_profile(
     if observed_profile != audit_delta_schema_digest() {
         // Cold entry does not run the general schema installer. Install the
         // two additive CHECKs from its authoritative SQL in this transaction,
-        // validating existing rows before changing the profile marker.
+        // validating existing rows before publishing the new selection.
         for statement in item_claim_constraint_upgrade()? {
             tx.batch_execute(statement)?;
         }
-        tx.execute(
-            "UPDATE cmd2_audit_delta_v1_domain SET profile_digest=$2,baseline_generation=$3 WHERE domain=$1",
-            &[&domain, &audit_delta_schema_digest().to_hex(), &to_pg_i64(expected_generation)?],
-        )?;
     }
     Ok(())
 }
@@ -1367,7 +1371,7 @@ pub fn activate_domain_controlled(
     )? {
         let baseline_generation = nonnegative(existing.get::<_, i64>(0))?;
         let stored_profile_digest: String = existing.get(1);
-        if stored_profile_digest.trim_end() != digest.as_str() {
+        if !profile_hex_is_supported(stored_profile_digest.trim_end()) {
             return Err(AuditDeltaError::ColdRequired(
                 ColdRequiredReason::ProfileMismatch,
             ));
@@ -1492,14 +1496,17 @@ mod tests {
         profile_part(&mut hasher, ROW_KEY_PROFILE);
         let predecessor = hasher.finalize();
         assert_eq!(predecessor.to_hex(), ITEM_CLAIM_PREDECESSOR);
-        assert!(cold_profile_is_supported(predecessor));
-        assert!(cold_profile_is_supported(current));
+        assert!(profile_is_supported(predecessor));
+        assert!(profile_is_supported(current));
+        assert!(profiles_are_compatible(current, predecessor));
+        assert!(profiles_are_compatible(predecessor, current));
+        assert!(!profile_hex_is_supported(&"00".repeat(32)));
         for statement in item_claim_constraint_upgrade().unwrap() {
             assert_eq!(statement.matches(addition).count(), 1);
             assert_eq!(statement.matches("ALTER TABLE ").count(), 2);
             assert!(statement.ends_with("\n  );"));
         }
-        assert!(!cold_profile_is_supported(Digest256::of_bytes(
+        assert!(!profile_is_supported(Digest256::of_bytes(
             b"unknown schema"
         )));
     }
