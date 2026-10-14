@@ -130,20 +130,12 @@ fn condition_group(request: &JsonValue, kind: &str) -> Result<JsonValue, &'stati
         .cloned()
         .ok_or("invalid_path_conditions")
 }
-fn normalize_query(value: &JsonValue, kind: &str) -> Result<JsonValue, &'static str> {
+fn normalize_query(value: &JsonValue) -> Result<JsonValue, &'static str> {
     if descriptor_kind(value, "kind") == Some("undefined") {
         return Ok(object(vec![
             ("enabled", bool(true)),
             ("match", text("all")),
             ("conditions", JsonValue::Array(Vec::new())),
-            (
-                if kind == "nodes" {
-                    "kinds_index"
-                } else {
-                    "predicates_index"
-                },
-                JsonValue::Null,
-            ),
         ]));
     }
     if descriptor_kind(value, "kind") != Some("object")
@@ -229,14 +221,9 @@ fn normalize_step(value: &JsonValue) -> Result<JsonValue, &'static str> {
     };
     valid_type_list(get(value, "kinds").ok_or("invalid_path_types")?)?;
     valid_type_list(get(value, "predicates").ok_or("invalid_path_types")?)?;
-    let node_query = normalize_query(
-        get(value, "node_query").ok_or("invalid_path_query_shape")?,
-        "nodes",
-    )?;
-    let relation_query = normalize_query(
-        get(value, "relation_query").ok_or("invalid_path_query_shape")?,
-        "relations",
-    )?;
+    let node_query = normalize_query(get(value, "node_query").ok_or("invalid_path_query_shape")?)?;
+    let relation_query =
+        normalize_query(get(value, "relation_query").ok_or("invalid_path_query_shape")?)?;
     Ok(object(vec![
         ("direction", text(direction)),
         ("nodeQuery", node_query),
