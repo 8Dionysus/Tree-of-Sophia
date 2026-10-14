@@ -1009,7 +1009,9 @@ pub(crate) fn rebuild_current(
 }
 
 /// Read-only cold exact rowset and current-source verification.
-pub(crate) fn verify_current(
+/// Completeness may be invalidated by maintenance; only the full cold owner
+/// may re-enable it after all row, definition and generation checks succeed.
+pub(crate) fn verify_for_reassessment(
     tx: &mut Transaction<'_>,
     domain: &str,
     files: &BTreeMap<String, Vec<u8>>,
@@ -1083,7 +1085,7 @@ pub(crate) fn verify_current(
         .query_opt(
             "SELECT 1 FROM cmd2_predicate
          WHERE domain=$1 AND kind='range' AND owner=$2 AND scope IN ($3,$4,$5)
-           AND (NOT complete OR definition_version<>$6 OR generation<=0) LIMIT 1",
+           AND (definition_version<>$6 OR generation<=0) LIMIT 1",
             &[
                 &domain,
                 &crate::source_cohort::OWNER,
@@ -1113,7 +1115,6 @@ pub(crate) fn verify_current(
                 )?
                 .ok_or(DurableError::Corrupt("Item File range generation absent"))?;
             if row.get::<_, i64>("generation") <= 0
-                || !row.get::<_, bool>("complete")
                 || row.get::<_, String>("definition_version") != definition_hex
             {
                 return Err(DurableError::Corrupt(

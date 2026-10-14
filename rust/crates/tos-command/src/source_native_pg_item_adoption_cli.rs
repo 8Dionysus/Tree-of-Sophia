@@ -218,15 +218,66 @@ fn item_source_writes(
 
 fn item_dependencies_from_attempt(
     attempt: &crate::source_cohort::SourceRevisionAttempt,
+    request: &JsonValue,
 ) -> DurableResult<JsonValue> {
+    // The compound receipt retains the digest of these bindings. The exact
+    // binding object belongs to the sealed publication authorization.
+    let package = attempt
+        .publication_package
+        .as_ref()
+        .ok_or(DurableError::Corrupt(
+            "PG Item adoption attempt publication package absent",
+        ))?;
+    let plan = cmd::field(&package.manifest, "plan").map_err(DurableError::Source)?;
+    let authorization = cmd::field(plan, "authorization").map_err(DurableError::Source)?;
+    let dependencies =
+        cmd::field(authorization, "dependency_bindings").map_err(DurableError::Source)?;
+    cmd::exact_keys(
+        dependencies,
+        &[
+            "catalog_and_sources",
+            "contracts",
+            "implementation",
+            "retained_transactions",
+        ],
+    )
+    .map_err(DurableError::Source)?;
+    let dependency_digest = cmd::record_digest(dependencies)
+        .map_err(DurableError::Source)?
+        .to_prefixed();
+    if cmd::text(authorization, "schema_version").map_err(DurableError::Source)?
+        != "tos_item_adoption_authorization_v1"
+        || cmd::text(authorization, "command_id").map_err(DurableError::Source)?
+            != attempt.command_id
+        || cmd::text(authorization, "owner_configuration").map_err(DurableError::Source)?
+            != attempt.configuration_canonical_digest.to_prefixed()
+        || cmd::text(authorization, "request_digest").map_err(DurableError::Source)?
+            != cmd::record_digest(request)
+                .map_err(DurableError::Source)?
+                .to_prefixed()
+        || cmd::text(request, "expected_dependencies").map_err(DurableError::Source)?
+            != dependency_digest
+    {
+        return Err(DurableError::Corrupt(
+            "PG Item recovery authorization differs",
+        ));
+    }
     let mut found = None;
     for write in &attempt.writes {
         if write.subject.ends_with("/edition-item-receipt.json") {
             let receipt = cmd::parse(&write.exact_bytes).map_err(DurableError::Source)?;
-            let dependencies = cmd::field(&receipt, "dependencies")
-                .map_err(DurableError::Source)?
-                .clone();
-            if found.replace(dependencies).is_some() {
+            if cmd::text(&receipt, "dependencies").map_err(DurableError::Source)?
+                != dependency_digest
+                || cmd::text(&receipt, "command_id").map_err(DurableError::Source)?
+                    != attempt.command_id
+                || cmd::text(&receipt, "transaction_id").map_err(DurableError::Source)?
+                    != package.transaction_id
+            {
+                return Err(DurableError::Corrupt(
+                    "PG Item recovery dependency binding differs",
+                ));
+            }
+            if found.replace(dependencies.clone()).is_some() {
                 return Err(DurableError::Corrupt(
                     "PG Item adoption attempt has duplicate compound receipts",
                 ));
@@ -449,7 +500,7 @@ pub(super) fn run(
                         "recovered PG Item contract changed",
                     ));
                 }
-                let dependencies = item_dependencies_from_attempt(&attempt)
+                let dependencies = item_dependencies_from_attempt(&attempt, &request)
                     .map_err(super::pg_claims::source_error)?;
                 let deposit_config = crate::source_item_deposit::value(&owner_config)?;
                 let stage = crate::source_item_deposit::read_stage(

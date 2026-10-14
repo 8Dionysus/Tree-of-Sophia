@@ -11894,7 +11894,7 @@ impl DurablePgCoordinator {
         if as_u64(row.get("head_seq"))? != before.through_commit_seq {
             return Err(DurableError::Conflict("source cold head changed"));
         }
-        crate::source_text_identity_index::verify_current(
+        crate::source_text_identity_index::verify_for_reassessment(
             &mut tx,
             domain,
             &files,
@@ -11948,13 +11948,18 @@ impl DurablePgCoordinator {
                 (path.clone(), bytes)
             })
             .collect::<BTreeMap<_, _>>();
-        crate::source_claim_dependency_index::verify_current(
+        crate::source_claim_dependency_index::verify_for_reassessment(
             &mut tx,
             domain,
             &claim_dependency_members,
             cohort.definition,
         )?;
-        crate::source_item_file_index::verify_current(&mut tx, domain, &files, cohort.definition)?;
+        crate::source_item_file_index::verify_for_reassessment(
+            &mut tx,
+            domain,
+            &files,
+            cohort.definition,
+        )?;
         if rebuild_projections {
             if let Some(projections) = &projections {
                 for current in &rows {

@@ -2743,7 +2743,7 @@ fn assess_held_current_source(
             definition(),
         )?;
     } else {
-        crate::source_text_identity_index::verify_current(
+        crate::source_text_identity_index::verify_for_reassessment(
             tx,
             domain,
             &projected.text_identity_candidates,
@@ -2776,7 +2776,7 @@ fn assess_held_current_source(
             cold.through_commit_seq,
         )?;
     } else {
-        crate::source_claim_dependency_index::verify_current(
+        crate::source_claim_dependency_index::verify_for_reassessment(
             tx,
             domain,
             &projected.claim_dependency_candidates,
@@ -2792,7 +2792,7 @@ fn assess_held_current_source(
             definition(),
         )?;
     } else {
-        crate::source_item_file_index::verify_current(
+        crate::source_item_file_index::verify_for_reassessment(
             tx,
             domain,
             &projected.item_file_candidates,

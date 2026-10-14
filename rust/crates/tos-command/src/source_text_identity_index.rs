@@ -425,7 +425,9 @@ pub(crate) fn rebuild_current(
 /// candidate member bodies. Callers must supply the full current candidate
 /// cohort selected by the same source/audit fence; this is intended for cold
 /// equality, where an empty persisted table must not stand in for absence.
-pub(crate) fn verify_current(
+/// Maintenance may have cleared completeness. Verify rows, definitions and
+/// generations before the full cold owner re-enables it under the same fence.
+pub(crate) fn verify_for_reassessment(
     tx: &mut Transaction<'_>,
     domain: &str,
     files: &BTreeMap<String, Vec<u8>>,
@@ -527,8 +529,7 @@ pub(crate) fn verify_current(
                ON p.domain=i.domain AND p.kind='unique' AND p.owner=$2
               AND p.scope=$3 AND p.token=i.token
              WHERE i.domain=$1
-               AND (p.token IS NULL OR NOT p.complete
-                    OR p.definition_version<>$4 OR p.generation<=0)
+               AND (p.token IS NULL OR p.definition_version<>$4 OR p.generation<=0)
              LIMIT 1",
             &[
                 &domain,

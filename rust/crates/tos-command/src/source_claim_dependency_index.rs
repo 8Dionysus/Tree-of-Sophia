@@ -1575,6 +1575,15 @@ fn require_navigation_completeness_generation(
     domain: &str,
     definition: Digest256,
 ) -> DurableResult<u64> {
+    navigation_completeness_generation(tx, domain, definition, true)
+}
+
+fn navigation_completeness_generation(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    definition: Digest256,
+    require_complete: bool,
+) -> DurableResult<u64> {
     let token = navigation_reference_complete_token()?;
     let row = tx.query_opt(
         "SELECT generation,complete,definition_version FROM cmd2_predicate
@@ -1593,7 +1602,7 @@ fn require_navigation_completeness_generation(
     };
     let generation: i64 = row.get("generation");
     if generation <= 0
-        || !row.get::<_, bool>("complete")
+        || (require_complete && !row.get::<_, bool>("complete"))
         || row.get::<_, String>("definition_version") != definition.to_hex()
     {
         return Err(DurableError::Conflict(
@@ -1624,11 +1633,11 @@ fn validate_navigation_cut_state(
     let baseline = baseline.ok_or(DurableError::Conflict(
         "Claim navigation interval baseline absent",
     ))?;
-    // During first bootstrap, the exact current-source verifier runs before
-    // the aggregate source_complete publication. Its only valid incomplete
-    // cut is the baseline at the held head; public lookups still require the
-    // aggregate completion flag.
-    if baseline > head || (!source_complete && (require_source_complete || baseline != head)) {
+    // Exhaustive owner reassessment also runs after maintenance invalidates
+    // readiness at a later head. It verifies every current row and retained
+    // interval under the audit fence before publishing completeness again.
+    // Public lookups always require aggregate completion.
+    if baseline > head || (require_source_complete && !source_complete) {
         return Err(DurableError::Conflict(
             "Claim navigation interval baseline or source completeness differs",
         ));
@@ -1783,7 +1792,9 @@ pub(crate) fn rebuild_current(
 
 /// Verify exact equality with a complete selected ToS source. This is a cold
 /// read-only check; it never repairs a missing or forged index contribution.
-pub(crate) fn verify_current(
+/// Cleared readiness is not required for this full reassessment: the cold
+/// owner re-enables it only after validating all indexes under the same fence.
+pub(crate) fn verify_for_reassessment(
     tx: &mut Transaction<'_>,
     domain: &str,
     files: &BTreeMap<String, Vec<u8>>,
@@ -1848,7 +1859,7 @@ pub(crate) fn verify_current(
         .query_opt(
             "SELECT 1 FROM cmd2_predicate
              WHERE domain=$1 AND kind='range' AND owner=$2 AND scope=$3
-               AND (NOT complete OR definition_version<>$4 OR generation<=0)
+               AND (definition_version<>$4 OR generation<=0)
              LIMIT 1",
             &[
                 &domain,
@@ -1880,7 +1891,6 @@ pub(crate) fn verify_current(
             ));
         };
         if row.get::<_, i64>("generation") <= 0
-            || !row.get::<_, bool>("complete")
             || row.get::<_, String>("definition_version") != expected_definition
         {
             return Err(DurableError::Corrupt(
@@ -2045,12 +2055,12 @@ pub(crate) fn verify_current(
             "Claim navigation reference cold rowset differs from source",
         ));
     }
-    let _ = require_navigation_completeness_generation(tx, domain, definition)?;
+    let _ = navigation_completeness_generation(tx, domain, definition, false)?;
     if tx
         .query_opt(
             "SELECT 1 FROM cmd2_predicate
              WHERE domain=$1 AND kind='range' AND owner=$2 AND scope=$3
-               AND (NOT complete OR definition_version<>$4 OR generation<=0)
+               AND (definition_version<>$4 OR generation<=0)
              LIMIT 1",
             &[
                 &domain,
@@ -2082,7 +2092,6 @@ pub(crate) fn verify_current(
             ));
         };
         if row.get::<_, i64>("generation") <= 0
-            || !row.get::<_, bool>("complete")
             || row.get::<_, String>("definition_version") != expected_definition
         {
             return Err(DurableError::Corrupt(
@@ -2342,14 +2351,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bootstrap_navigation_cut_requires_the_exact_owner_baseline_not_global_completion() {
+    fn reassessment_navigation_cut_preserves_baseline_and_public_completion_fence() {
         assert_eq!(
             validate_navigation_cut_state(Some(17), 17, false, false)
                 .expect("fresh owner verification may precede aggregate completion"),
             (17, 17),
         );
         assert!(validate_navigation_cut_state(Some(17), 17, false, true).is_err());
-        assert!(validate_navigation_cut_state(Some(16), 17, false, false).is_err());
+        assert_eq!(
+            validate_navigation_cut_state(Some(16), 17, false, false)
+                .expect("full reassessment retains the original interval baseline"),
+            (16, 17),
+        );
+        assert!(validate_navigation_cut_state(Some(16), 17, false, true).is_err());
         assert!(validate_navigation_cut_state(None, 17, false, false).is_err());
         assert!(validate_navigation_cut_state(Some(18), 17, true, false).is_err());
         assert_eq!(
