@@ -33,6 +33,7 @@ const ITEM_ADOPTION_CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     "ToS/contracts/corpus-record.schema.json",
+    "ToS/contracts/source-relation-claim.schema.json",
     "ToS/contracts/semantic-entity-type-registry.schema.json",
     "ToS/contracts/semantic-relation-type-registry.schema.json",
     "ToS/contracts/human-form.schema.json",
