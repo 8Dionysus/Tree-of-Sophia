@@ -5150,14 +5150,25 @@ fn maintained_agent_creation_operation<
             .get(0);
         assert_ne!(target_database_oid, source_database_oid);
         assert_ne!(target_selected_digest, source_selected_digest);
-        let target_descriptor = recovered_store
-            .inspect_generation_descriptor_v1(
+        // The explicit addressed selector upgrades the retained V1 checkpoint
+        // to its authenticated V2 descriptor after the complete cold audit.
+        let target_descriptor_raw = recovered_store
+            .read_authenticated_object_v1(
+                b"cmd2-managed-addressed-selection-v2",
                 Digest256::from_hex(&target_selected_digest).unwrap(),
-                generation_profile.generation,
+                65_536,
+                deadline,
+                &cancelled,
             )
             .unwrap();
+        let target_descriptor: serde_json::Value =
+            serde_json::from_slice(&target_descriptor_raw).unwrap();
+        assert_eq!(target_descriptor.as_array().unwrap().len(), 14);
+        assert_eq!(target_descriptor[0], "cmd2-managed-addressed-selection-v2");
+        assert_eq!(current_reopened.digest().to_hex(), target_selected_digest);
         assert_eq!(
-            target_descriptor.cut.database_oid, target_database_oid,
+            target_descriptor[6].as_u64().unwrap(),
+            target_database_oid,
             "cold re-selection writes a descriptor bound to the restored database"
         );
         let selected_journal = addressed_journal_snapshot(&url, &recovery_domain);
