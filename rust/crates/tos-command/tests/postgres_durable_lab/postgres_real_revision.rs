@@ -4526,6 +4526,29 @@ fn real_pg_native_artifact_revision_replays_and_refuses_revoked_rights() {
     assert_eq!(revision["replayed"], true);
     assert_eq!(case.lab.head_seq(), revision["committed_head"]);
 
+    let source_before_revoke = source_member(&mut case, ARTIFACT_TARGET.source_path);
+    assert_eq!(
+        Digest256::of_bytes(&source_before_revoke).to_hex(),
+        revision["current_record_sha256"]
+    );
+    // The source commitment can be inspected without disclosing revoked bytes.
+    let source_commitment = |case: &RevisionCase| {
+        let row = Client::connect(&case.lab.url, NoTls)
+            .unwrap()
+            .query_one(
+                "SELECT source_revision,source_epoch,source_generation,head_seq
+                 FROM cmd2_domain WHERE domain=$1",
+                &[&case.lab.domain],
+            )
+            .unwrap();
+        (
+            row.get::<_, String>(0),
+            row.get::<_, i64>(1),
+            row.get::<_, i64>(2),
+            row.get::<_, i64>(3),
+        )
+    };
+    let source_commitment_before = source_commitment(&case);
     let rights_invocation_path = case
         ._owner_scratch
         .0
@@ -4566,7 +4589,6 @@ fn real_pg_native_artifact_revision_replays_and_refuses_revoked_rights() {
 
     let counts_before_refusal =
         ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
-    let source_before_refusal = source_member(&mut case, ARTIFACT_TARGET.source_path);
     let pg_invocation_path = case._owner_scratch.0.join("revision-invocation.json");
     let refused = invoke_refusal(
         &binary,
@@ -4581,9 +4603,25 @@ fn real_pg_native_artifact_revision_replays_and_refuses_revoked_rights() {
         "rights-refused native describe adds no revision records"
     );
     assert_eq!(
-        source_member(&mut case, ARTIFACT_TARGET.source_path),
-        source_before_refusal,
-        "rights-refused native describe cannot alter the committed Artifact"
+        source_commitment(&case),
+        source_commitment_before,
+        "revocation and refused describe preserve the committed source version"
+    );
+    assert!(
+        matches!(
+            case.lab.db.read_current_source_member(
+                &case.lab.store,
+                &case.cohort,
+                &RelativePath::parse(ARTIFACT_TARGET.source_path).unwrap(),
+                1_048_576,
+                Instant::now() + Duration::from_secs(15),
+                &AtomicBool::new(false),
+            ),
+            Err(tos_command::DurableError::Refused(
+                "current source rights revoked"
+            ))
+        ),
+        "revoked source bytes remain unreadable through the coordinator"
     );
     println!(
         "TOS_PG_REAL_NATIVE_ARTIFACT_REVISION {}",

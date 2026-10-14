@@ -1708,6 +1708,7 @@ pub(crate) fn run(
                 "authentication":"local-unix-account",
                 "command_id":cmd::text(&request, "command_id")?,
                 "commit_seq":replay.commit_seq,
+                "package_revision":replay.package_revision,
                 "package_sha256":replay.package_digest.to_prefixed(),
                 "receipt_sha256":Digest256::of_bytes(&replay.response_bytes).to_prefixed(),
                 "replayed":prepared_replayed || replay.replayed,

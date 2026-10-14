@@ -335,6 +335,9 @@ pub(crate) struct PrivateOwnerPackageReplayV1 {
     /// returns true without inserting a second package or receipt.
     pub(crate) replayed: bool,
     pub(crate) commit_seq: u64,
+    /// Revision of this target's committed package, independent of the
+    /// owner-wide command sequence. Replays retain the historical revision.
+    pub(crate) package_revision: u64,
     pub(crate) package_digest: Digest256,
     pub(crate) private_audit_generation_after: u64,
     pub(crate) response_bytes: Vec<u8>,
@@ -3059,8 +3062,13 @@ impl DurablePgCoordinator {
         let receipt_row = tx.query_opt(
             "SELECT target_digest,family,request_digest,raw_request_digest,owner_context_binding,
                     owner_configuration_digest,package_digest,response_bytes,commit_seq,
-                    private_audit_generation_after
-             FROM cmd2_private_command_receipt
+                    private_audit_generation_after,
+                    (SELECT h.revision FROM cmd2_private_package_history h
+                     WHERE h.domain=r.domain AND h.owner_scope=r.owner_scope
+                       AND h.command_id=r.command_id
+                       AND h.family=r.family AND h.commit_seq=r.commit_seq
+                       AND h.package_digest=r.package_digest)
+             FROM cmd2_private_command_receipt r
              WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
             &[
                 &write.scope.domain,
@@ -3072,6 +3080,9 @@ impl DurablePgCoordinator {
             let replay = PrivateOwnerPackageReplayV1 {
                 replayed: true,
                 commit_seq: as_u64(row.get(8))?,
+                package_revision: as_u64(row.get::<_, Option<i64>>(10).ok_or(
+                    DurableError::Corrupt("private receipt package history absent"),
+                )?)?,
                 package_digest: parse_hex(row.get(6))?,
                 private_audit_generation_after: as_u64(row.get(9))?,
                 response_bytes: row.get(7),
@@ -3442,6 +3453,7 @@ impl DurablePgCoordinator {
         let receipt = PrivateOwnerPackageReplayV1 {
             replayed: false,
             commit_seq,
+            package_revision: revision,
             package_digest: after_digest,
             private_audit_generation_after: generation_after,
             response_bytes: write.response_bytes,
