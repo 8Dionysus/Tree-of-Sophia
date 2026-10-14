@@ -110,6 +110,7 @@ pub(crate) fn pg_schema_contracts(
     let mut has_native_binding = false;
     let mut profile_ids = BTreeSet::new();
     for selection in cmd::array(grant, "claim_selections")? {
+        has_native_binding |= !cmd::array(selection, "native_bindings")?.is_empty();
         for source in cmd::array(selection, "source_records")? {
             profile_ids.insert(cmd::text(source, "profile_type_id")?.to_owned());
             has_native_binding |= !cmd::field(source, "source_binding")?.is_null();
@@ -139,9 +140,11 @@ pub(crate) fn pg_schema_contracts(
         }
     }
     if has_native_binding {
-        paths.insert("ToS/contracts/native-text-unit-binding.schema.json".to_owned());
-        paths.insert("ToS/contracts/native-text-unit-assessment-subject.schema.json".to_owned());
-        paths.insert("ToS/contracts/source-text-unit-packet-v1.schema.json".to_owned());
+        paths.extend(
+            source_sign_native::OWNER_TEXT_UNIT_SCHEMA_CONTRACTS
+                .iter()
+                .map(|path| (*path).to_owned()),
+        );
     }
     if paths.len() > MAX_PG_SCHEMA_CLOSURE {
         return Err(SourceCommandError::Unsupported(

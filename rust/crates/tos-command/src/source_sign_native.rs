@@ -21,6 +21,22 @@ const MAX_EDITS: usize = 128;
 const ASSESSMENT_SCHEMA: &str = "native-text-unit-assessment-subject.schema.json";
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 
+/// Grammar closure consumed by owner-local TextUnit binding resolution,
+/// including predecessor layers, source scope, anchors, rights and the derived
+/// assessment subject. Endpoint profile schemas remain with their registry.
+pub(crate) const OWNER_TEXT_UNIT_SCHEMA_CONTRACTS: &[&str] = &[
+    OWNER_CONTEXT_SCHEMA,
+    "ToS/contracts/native-text-unit-binding.schema.json",
+    "ToS/contracts/source-text-unit-packet-v1.schema.json",
+    "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+    "ToS/contracts/native-text-layer-binding.schema.json",
+    "ToS/contracts/source-text-layer.schema.json",
+    "ToS/contracts/source-anchor-v2.schema.json",
+    "ToS/contracts/corpus-record.schema.json",
+    "ToS/contracts/source-item-manifest.schema.json",
+    "ToS/contracts/rights-record.schema.json",
+];
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeReadKind {
     Metadata,

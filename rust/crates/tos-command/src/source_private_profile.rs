@@ -670,6 +670,13 @@ pub(crate) fn pg_schema_contracts(
         paths.insert(cmd::text(route, "schema_ref")?.to_owned());
         paths.extend(text_array(route, "schema_dependencies", 128)?);
     }
+    if profile.object_get("native_binding_adapter").is_some() {
+        paths.extend(
+            source_sign_native::OWNER_TEXT_UNIT_SCHEMA_CONTRACTS
+                .iter()
+                .map(|path| (*path).to_owned()),
+        );
+    }
     if paths.is_empty() || paths.len() > MAX_INPUTS {
         return Err(SourceCommandError::Invalid(
             "private profile schema reference budget",
