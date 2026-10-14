@@ -610,6 +610,118 @@ fn profiled_path(
     }
     Ok(parsed)
 }
+const PG_ARCHIVE_HOME: &str = "ToS/source-witnesses/.record-revisions";
+
+// This grammar is exclusive to atomic PG publication. Legacy filesystem
+// movers retain archives separately and keep their public-path restriction.
+fn pg_archive_path(value: &str, directory: bool) -> bool {
+    let Some(tail) = value.strip_prefix(&format!("{PG_ARCHIVE_HOME}/")) else {
+        return directory && value == PG_ARCHIVE_HOME;
+    };
+    let (leaf, member) = tail.split_once('/').unwrap_or((tail, ""));
+    let Some((identity, revision)) = leaf.split_once('-') else {
+        return false;
+    };
+    let hex = |s: &str| {
+        s.len() == 64
+            && s.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    };
+    hex(identity)
+        && hex(revision)
+        && if directory {
+            member.is_empty()
+        } else {
+            member == "manifest.json" || member.strip_suffix(".blob").is_some_and(hex)
+        }
+}
+
+/// Rebuild every selected archive using the existing owner byte contract.
+/// Archive members must be new, complete, and preserve exactly the selected
+/// predecessor package; an arbitrary hidden path is never a mover capability.
+fn validate_pg_archives(files: &[SelectedFile]) -> SourceCommandResult<()> {
+    let by_path: BTreeMap<_, _> = files.iter().map(|f| (f.path.as_str(), f)).collect();
+    let mut expected = BTreeMap::new();
+    for file in files.iter().filter(|f| {
+        f.path.as_str().starts_with(&format!("{PG_ARCHIVE_HOME}/"))
+            && f.path.as_str().ends_with("/manifest.json")
+    }) {
+        let raw = file
+            .after
+            .as_deref()
+            .ok_or(SourceCommandError::Invalid("PG archive manifest absent"))?;
+        let manifest = cmd::parse(raw)?;
+        let source_path = cmd::text(&manifest, "source_path")?;
+        path(source_path, false)?;
+        let (home, basename) = source_path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("PG archive source path"))?;
+        let entries = cmd::field(&manifest, "files")?
+            .as_object()
+            .ok_or(SourceCommandError::Invalid("PG archive files"))?;
+        if entries.is_empty() || entries.len() > 3 {
+            return Err(SourceCommandError::Invalid(
+                "PG archive predecessor member count",
+            ));
+        }
+        let mut before = BTreeMap::new();
+        for (name, _) in entries {
+            let name = name
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("PG archive predecessor name"))?;
+            if name.contains('/') || name.starts_with('.') {
+                return Err(SourceCommandError::Denied("PG archive predecessor name"));
+            }
+            let bytes = by_path
+                .get(format!("{home}/{name}").as_str())
+                .and_then(|member| member.before.as_ref())
+                .ok_or(SourceCommandError::Conflict(
+                    "PG archive predecessor not selected",
+                ))?;
+            before.insert(name.to_owned(), bytes.clone());
+        }
+        let record = cmd::parse(
+            before
+                .get(basename)
+                .ok_or(SourceCommandError::Invalid("PG archive source absent"))?,
+        )?;
+        let subject = cmd::reference(&record, "record_id", "record_version")?;
+        let package = prepare_compound_archive_package(
+            source_path,
+            &subject,
+            &before,
+            cmd::text(&manifest, "revision")?,
+            basename,
+            true,
+        )?;
+        if file.path.as_str() != format!("{}/manifest.json", package.path) {
+            return Err(SourceCommandError::Conflict("PG archive identity differs"));
+        }
+        for (name, bytes) in package.members {
+            if expected
+                .insert(format!("{}/{name}", package.path), bytes)
+                .is_some()
+            {
+                return Err(SourceCommandError::Invalid("duplicate PG archive package"));
+            }
+        }
+    }
+    let actual: Vec<_> = files
+        .iter()
+        .filter(|f| f.path.as_str().starts_with(&format!("{PG_ARCHIVE_HOME}/")))
+        .collect();
+    if actual.len() != expected.len()
+        || actual
+            .iter()
+            .any(|f| f.before.is_some() || f.after.as_ref() != expected.get(f.path.as_str()))
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG archive exact predecessor closure differs",
+        ));
+    }
+    Ok(())
+}
+
 /// A concrete canonical-form mover profile. It permits one adjacent form set,
 /// never the canonical node itself. The family guard owns current source/schema,
 /// delegated form IDs and protected configuration; serialized profile is not a grant.
@@ -1350,6 +1462,12 @@ pub(crate) fn validate_plan(plan: &WorkPlan) -> SourceCommandResult<()> {
     freeze(plan.clone()).map(|_| ())
 }
 fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
+    freeze_profile(plan, false)
+}
+fn freeze_profile(plan: WorkPlan, pg_archives: bool) -> SourceCommandResult<FrozenPlan> {
+    if pg_archives {
+        validate_pg_archives(&plan.files)?;
+    }
     if !hash(&plan.transaction_id)
         || plan.files.is_empty()
         || plan.files.len() > MAX_FILES
@@ -1450,7 +1568,9 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
     let mut summaries = Vec::with_capacity(files.len());
     for item in &files {
         let name = item.path.as_str();
-        profiled_path(name, false, &companions, canonical_form.as_ref())?;
+        if !(pg_archives && pg_archive_path(name, false)) {
+            profiled_path(name, false, &companions, canonical_form.as_ref())?;
+        }
         if !seen.insert(name.to_owned()) || item.before.is_none() && item.after.is_none() {
             return Err(SourceCommandError::Invalid(
                 "duplicate/empty selected metadata member",
@@ -1501,7 +1621,9 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
     let mut new_seen = BTreeSet::new();
     for dir in &dirs {
         let name = dir.as_str();
-        path(name, true)?;
+        if !(pg_archives && pg_archive_path(name, true)) {
+            path(name, true)?;
+        }
         if !new_seen.insert(name.to_owned())
             || !files.iter().any(|file| {
                 file.before.is_none() && file.path.as_str().starts_with(&format!("{name}/"))
@@ -1731,7 +1853,18 @@ pub(crate) fn pg_selected_commit_members(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
-    let frozen = freeze(plan.clone())?;
+    if !hash(&plan.transaction_id) {
+        return Err(SourceCommandError::Invalid("PG transaction identity"));
+    }
+    let mut selected = plan.clone();
+    // Journals are generated below, outside the authored delta. Their absence
+    // is already fenced by the PG input; they are not authored directories.
+    let journal_home = format!("{HOME}/{TRANSACTIONS}");
+    let journal = format!("{journal_home}/{}", &plan.transaction_id[7..]);
+    selected
+        .new_directories
+        .retain(|p| p.as_str() != journal_home && p.as_str() != journal);
+    let frozen = freeze_profile(selected, true)?;
     let parents = pg_source_parent_bindings(input, &frozen, deadline, cancelled)?;
     let mut manifest = manifest(&plan.transaction_id, snapshot, &frozen, parents)?;
     cmd::set(
@@ -3658,7 +3791,7 @@ fn legacy_publication_transition_from_exact_members(
             "legacy publication manifest/profile version differs",
         ));
     }
-    let bindings = publication_file_bindings(summary)?;
+    let bindings = publication_file_bindings(summary, false)?;
     let expected_blobs = expected_blob_bindings(&bindings)?;
     let mut blobs = BTreeMap::<String, &[u8]>::new();
     let mut blob_bytes = 0usize;
@@ -3944,7 +4077,7 @@ fn publication_package_from_exact_transaction_members(
             "non-committed or mismatched publication transition",
         ));
     }
-    let file_bindings = publication_file_bindings(cmd::field(&manifest, "plan")?)?;
+    let file_bindings = publication_file_bindings(cmd::field(&manifest, "plan")?, true)?;
     let expected_blobs = expected_blob_bindings(&file_bindings)?;
     let mut blob_bytes = 0usize;
     let mut blobs = BTreeMap::new();
@@ -4333,7 +4466,7 @@ fn publication_package_from_raw(raw: &[u8]) -> SourceCommandResult<SelectedPubli
             "PG publication package identity",
         ));
     }
-    let bindings = publication_file_bindings(cmd::field(&manifest, "plan")?)?;
+    let bindings = publication_file_bindings(cmd::field(&manifest, "plan")?, true)?;
     let refs = parse_publication_source_refs(cmd::field(&value, "source_refs")?)?;
     validate_publication_refs_against_plan(&refs, &bindings, &lineage.transaction_id)?;
     Ok(SelectedPublicationPackage {
@@ -4427,6 +4560,42 @@ fn publication_package_from_values(
 ) -> SourceCommandResult<SelectedPublicationPackage> {
     let lineage = validate_publication_lineage(&control, &manifest, &completion)?;
     let file_bindings = validate_publication_plan_changes(cmd::field(&manifest, "plan")?, changes)?;
+    if file_bindings
+        .keys()
+        .any(|p| p.starts_with(&format!("{PG_ARCHIVE_HOME}/")))
+    {
+        let archive_files = file_bindings
+            .iter()
+            .map(|(name, (before, after))| {
+                let bytes =
+                    |binding: &Option<(Digest256, u64)>| -> SourceCommandResult<Option<Vec<u8>>> {
+                        binding
+                            .map(|(digest, size)| {
+                                let raw = blobs
+                                    .get(&digest.to_hex())
+                                    .and_then(|change| change.after.as_ref())
+                                    .ok_or(SourceCommandError::Conflict(
+                                        "PG archive journal binding absent",
+                                    ))?;
+                                if raw.len() as u64 != size || Digest256::of_bytes(raw) != digest {
+                                    return Err(SourceCommandError::Conflict(
+                                        "PG archive journal binding differs",
+                                    ));
+                                }
+                                Ok(raw.clone())
+                            })
+                            .transpose()
+                    };
+                Ok(SelectedFile {
+                    path: RelativePath::parse(name)
+                        .map_err(|_| SourceCommandError::Invalid("PG archive selected path"))?,
+                    before: bytes(before)?,
+                    after: bytes(after)?,
+                })
+            })
+            .collect::<SourceCommandResult<Vec<_>>>()?;
+        validate_pg_archives(&archive_files)?;
+    }
     let mut source_refs = source_refs_from_plan(&file_bindings);
     source_refs.extend(validate_transaction_blob_changes(
         &file_bindings,
@@ -4553,7 +4722,7 @@ fn validate_publication_lineage(
     let readset = parse_source_readset(cmd::field(manifest, "source_readset")?)?;
     let successor = parse_source_successor(cmd::field(manifest, "source_successor")?)?;
     validate_source_successor(&readset, &successor)?;
-    let file_bindings = publication_file_bindings(cmd::field(manifest, "plan")?)?;
+    let file_bindings = publication_file_bindings(cmd::field(manifest, "plan")?, true)?;
     validate_publication_parent_bindings(manifest, &file_bindings)?;
     Ok(PublicationLineage {
         transaction_id,
@@ -4568,7 +4737,7 @@ fn validate_publication_plan_changes(
     plan: &JsonValue,
     changes: &[cmd::SourceChange],
 ) -> SourceCommandResult<BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>> {
-    let expected = publication_file_bindings(plan)?;
+    let expected = publication_file_bindings(plan, true)?;
     let mut actual = BTreeMap::new();
     for change in changes {
         let path = change.path.as_str().to_owned();
@@ -4604,6 +4773,7 @@ fn validate_publication_plan_changes(
 
 fn publication_file_bindings(
     plan: &JsonValue,
+    pg_archives: bool,
 ) -> SourceCommandResult<BTreeMap<String, (Option<(Digest256, u64)>, Option<(Digest256, u64)>)>> {
     if plan.object_get("path_profile").is_some() {
         cmd::exact_keys(
@@ -4645,7 +4815,9 @@ fn publication_file_bindings(
     for entry in entries {
         cmd::exact_keys(entry, &["path", "before", "after"])?;
         let path_name = cmd::text(entry, "path")?;
-        profiled_path(path_name, false, &companions, canonical_form.as_ref())?;
+        if !(pg_archives && pg_archive_path(path_name, false)) {
+            profiled_path(path_name, false, &companions, canonical_form.as_ref())?;
+        }
         if prior_path
             .as_deref()
             .is_some_and(|prior| prior >= path_name)
@@ -4657,6 +4829,18 @@ fn publication_file_bindings(
         prior_path = Some(path_name.to_owned());
         let before = parse_publication_file_binding(cmd::field(entry, "before")?)?;
         let after = parse_publication_file_binding(cmd::field(entry, "after")?)?;
+        if pg_archives && pg_archive_path(path_name, false) {
+            if before.is_some()
+                || after.is_none()
+                || path_name.strip_suffix(".blob").is_some_and(|p| {
+                    p.rsplit('/').next() != after.map(|(digest, _)| digest.to_hex()).as_deref()
+                })
+            {
+                return Err(SourceCommandError::Invalid(
+                    "PG archive immutable member binding",
+                ));
+            }
+        }
         if before.is_none() && after.is_none() {
             return Err(SourceCommandError::Invalid(
                 "empty PG publication plan path",
@@ -4710,7 +4894,9 @@ fn publication_file_bindings(
         let name = entry
             .as_str()
             .ok_or(SourceCommandError::Invalid("PG publication directory path"))?;
-        path(name, true)?;
+        if !(pg_archives && pg_archive_path(name, true)) {
+            path(name, true)?;
+        }
         let key = (name.split('/').count(), name.to_owned());
         if prior_directory.as_ref().is_some_and(|prior| prior >= &key)
             || !directories.insert(name.to_owned())
@@ -4776,7 +4962,12 @@ fn validate_publication_parent_bindings(
             let name = value.as_str().ok_or(SourceCommandError::Invalid(
                 "PG publication parent directory",
             ))?;
-            path(name, true)
+            if pg_archive_path(name, true) {
+                RelativePath::parse(name)
+                    .map_err(|_| SourceCommandError::Invalid("PG archive directory"))
+            } else {
+                path(name, true)
+            }
         })
         .collect::<SourceCommandResult<Vec<_>>>()?;
     let plan = FrozenPlan {
@@ -7577,6 +7768,77 @@ impl<'a> Parents<'a> {
 #[cfg(test)]
 mod object_refcount_readset_tests {
     use super::*;
+
+    #[test]
+    fn pg_predecessor_archive_is_atomic_exact_and_scoped() {
+        let source = "ToS/source-witnesses/fixture/edition.json";
+        let raw = br#"{"record_id":"tos:fixture:edition","record_version":1}"#.to_vec();
+        let before = BTreeMap::from([("edition.json".to_owned(), raw.clone())]);
+        let record = cmd::parse(&raw).unwrap();
+        let package = prepare_compound_archive_package(
+            source,
+            &cmd::reference(&record, "record_id", "record_version").unwrap(),
+            &before,
+            &crate::source_revisions::revision(&before).unwrap(),
+            "edition.json",
+            true,
+        )
+        .unwrap();
+        let mut files = vec![SelectedFile {
+            path: RelativePath::parse(source).unwrap(),
+            before: Some(raw.clone()),
+            after: Some(raw),
+        }];
+        for (name, raw) in &package.members {
+            files.push(SelectedFile {
+                path: RelativePath::parse(&format!("{}/{name}", package.path)).unwrap(),
+                before: None,
+                after: Some(raw.clone()),
+            });
+        }
+        let plan = WorkPlan {
+            transaction_id: Digest256::of_bytes(b"archive test").to_prefixed(),
+            authorization: cmd::object(vec![]),
+            item_path_profile: None,
+            files,
+            new_directories: vec![
+                RelativePath::parse(PG_ARCHIVE_HOME).unwrap(),
+                RelativePath::parse(&package.path).unwrap(),
+            ],
+            source_readset: None,
+            source_successor: None,
+        };
+        assert!(freeze(plan.clone()).is_err());
+        let frozen = freeze_profile(plan.clone(), true).unwrap();
+        assert!(publication_file_bindings(&frozen.summary, true).is_ok());
+        assert!(publication_file_bindings(&frozen.summary, false).is_err());
+        let mut corrupt = plan.clone();
+        corrupt
+            .files
+            .iter_mut()
+            .find(|f| f.path.as_str().ends_with(".blob"))
+            .unwrap()
+            .after = Some(b"wrong".to_vec());
+        assert!(freeze_profile(corrupt, true).is_err());
+        let mut missing = plan.clone();
+        missing
+            .files
+            .retain(|f| !f.path.as_str().ends_with("/manifest.json"));
+        assert!(freeze_profile(missing, true).is_err());
+        let mut overwrite = plan.clone();
+        overwrite.files[1].before = overwrite.files[1].after.clone();
+        assert!(freeze_profile(overwrite, true).is_err());
+        let mut unrelated = plan.clone();
+        unrelated.files.push(SelectedFile {
+            path: RelativePath::parse("ToS/source-witnesses/.private/test.json").unwrap(),
+            before: None,
+            after: Some(b"{}".to_vec()),
+        });
+        assert!(freeze_profile(unrelated, true).is_err());
+        let mut changed_predecessor = plan;
+        changed_predecessor.files[0].before = Some(b"{}".to_vec());
+        assert!(freeze_profile(changed_predecessor, true).is_err());
+    }
 
     #[test]
     fn imported_publication_sidecars_preserve_source_wire_and_fixity() {
