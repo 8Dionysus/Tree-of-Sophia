@@ -736,8 +736,12 @@ fn require_compiled_generation_current(
     rule_version: u64,
     rights_version: u64,
 ) -> std::result::Result<(), crate::DurableError> {
-    let expected_projection = Digest256::from_hex(&proof.generation.inventory_projection_sha256)
-        .map_err(|_| crate::DurableError::Invalid("compiled source projection digest"))?;
+    // V2 publication stores the authenticated addressed inventory root in
+    // cmd2_domain. The separately retained catalogue transcript has its own
+    // inventory_projection_sha256 and remains part of the compiler proof.
+    let expected_projection =
+        Digest256::from_hex(&proof.generation.addressed_inventory_root_sha256)
+            .map_err(|_| crate::DurableError::Invalid("compiled addressed inventory digest"))?;
     if lease.head_sequence() != generation.commit_seq()
         || lease.source_generation() != generation.commit_seq()
         || lease.audit_generation() != generation.audit_generation()
