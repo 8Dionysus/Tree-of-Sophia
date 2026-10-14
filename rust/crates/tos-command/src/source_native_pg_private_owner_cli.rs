@@ -658,6 +658,51 @@ fn profile_family(value: &str) -> SourceCommandResult<PrivateOwnerPackageFamilyV
     }
 }
 
+/// Select exact endpoint and native-binding packages from the protected grant.
+/// The identity census intentionally omits non-identity packet/payload members;
+/// it cannot substitute for this source dependency closure.
+fn private_dependency_targets(
+    owner: &OwnerTextContext,
+    grant: &JsonValue,
+    family: PrivateOwnerPackageFamilyV1,
+) -> SourceCommandResult<BTreeSet<String>> {
+    use crate::source_private_assessment_pg_sources::{add_binding_targets, add_private_target};
+    let mut targets = BTreeSet::new();
+    match family {
+        PrivateOwnerPackageFamilyV1::Profile => {
+            let binding = cmd::field(grant, "source_binding")?;
+            if !binding.is_null() {
+                add_binding_targets(owner, binding, &mut targets)?;
+            }
+        }
+        PrivateOwnerPackageFamilyV1::Claim => {
+            for selection in cmd::array(grant, "claim_selections")? {
+                for endpoint in cmd::array(selection, "source_records")? {
+                    add_private_target(owner, cmd::text(endpoint, "path")?, &mut targets)?;
+                    let binding = cmd::field(endpoint, "source_binding")?;
+                    if !binding.is_null() {
+                        add_binding_targets(owner, binding, &mut targets)?;
+                    }
+                }
+                for native in cmd::array(selection, "native_bindings")? {
+                    add_binding_targets(owner, cmd::field(native, "binding")?, &mut targets)?;
+                }
+            }
+        }
+        _ => {
+            return Err(SourceCommandError::Denied(
+                "private owner dependency family",
+            ));
+        }
+    }
+    if targets.len() as u64 > MAX_CONTEXT_MEMBERS {
+        return Err(SourceCommandError::Unsupported(
+            "private owner dependency target budget",
+        ));
+    }
+    Ok(targets)
+}
+
 fn source_binding(
     readset: &crate::source_cohort::revision::SourceRevisionReadSet,
     dependencies: &BTreeMap<String, Vec<u8>>,
@@ -1201,6 +1246,40 @@ pub(crate) fn run(
         ));
     }
     let mut selected_private = identity_inputs.files.clone();
+    for dependency_target in private_dependency_targets(&owner, &grant_value, family)? {
+        active(deadline, cancelled)?;
+        let dependency = db
+            .read_private_owner_current(&scope, &dependency_target)
+            .map_err(pg::source_error)?
+            .ok_or(SourceCommandError::Conflict(
+                "private owner selected dependency is absent",
+            ))?;
+        if dependency.private_audit_generation != private_generation {
+            return Err(SourceCommandError::Conflict(
+                "private owner dependency generation changed",
+            ));
+        }
+        for (name, bytes) in dependency.members {
+            add_bytes(
+                &mut selected_private,
+                format!("{dependency_target}/{name}"),
+                bytes,
+            )?;
+        }
+        if selected_private.len() > max_members
+            || selected_private
+                .values()
+                .any(|raw| raw.len() as u64 > max_member_bytes)
+            || selected_private
+                .values()
+                .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
+                .is_none_or(|sum| sum > max_total_bytes)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "private owner selected dependency budget",
+            ));
+        }
+    }
     if let Some(current) = &target_current {
         for (name, bytes) in &current.members {
             add_bytes(

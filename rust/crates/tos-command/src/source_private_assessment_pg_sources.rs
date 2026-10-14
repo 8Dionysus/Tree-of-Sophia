@@ -872,7 +872,7 @@ fn selected_package_member<'a>(
     current_package_member(histories, &target_ref, member).map(Some)
 }
 
-fn add_private_target(
+pub(crate) fn add_private_target(
     owner: &OwnerTextContext,
     reference: &str,
     targets: &mut BTreeSet<String>,
@@ -972,7 +972,7 @@ fn validate_claim_stream_target(
     Ok(())
 }
 
-fn add_binding_targets(
+pub(crate) fn add_binding_targets(
     owner: &OwnerTextContext,
     binding: &JsonValue,
     targets: &mut BTreeSet<String>,
