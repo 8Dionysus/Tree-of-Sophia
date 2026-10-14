@@ -696,9 +696,12 @@ fn select_context_from_pg(
             }
             selected.insert(path, member.raw);
         }
-    }
-    for (path, raw) in selected {
-        context.files.push(cmd::SourceFile { path, raw });
+        // The next requirements pass must see the registry and other inputs
+        // selected in this round before it expands the exact profile route.
+        for (path, raw) in std::mem::take(&mut selected) {
+            context.files.push(cmd::SourceFile { path, raw });
+        }
+        context.files.sort_by(|left, right| left.path.cmp(&right.path));
     }
     context
         .files

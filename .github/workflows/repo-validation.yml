@@ -991,6 +991,8 @@ jobs:
           CARGO_HOME: ${{ runner.temp }}/cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
+          # Apply the native fixture process contract to test executables only.
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "prlimit --as=1073741824:1073741824 --fsize=67108864:67108864 --"
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
           TOS_CMD_POSTGRES_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_lab
           TOS_CMD2_V2_RESTORE_DATABASE: tos_cmd_restore_current_${{ github.run_id }}_${{ github.run_attempt }}
@@ -1014,7 +1016,7 @@ jobs:
             -c "CREATE DATABASE \"$TOS_CMD2_V2_V1_WIRE_RESTORE_DATABASE\""
           export TOS_CMD2_PG_DUMP_SHA256="$(sha256sum "$TOS_CMD2_PG_DUMP_PATH" | cut -d ' ' -f 1)"
           export TOS_CMD2_PG_RESTORE_SHA256="$(sha256sum "$TOS_CMD2_PG_RESTORE_PATH" | cut -d ' ' -f 1)"
-          cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
+          cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture --test-threads=1
 
       - name: Unmount isolated fs-verity test filesystem
         if: ${{ always() }}
