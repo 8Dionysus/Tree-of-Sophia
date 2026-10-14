@@ -1244,6 +1244,8 @@ fn render_current_claim_projection(
             context, owner_file, profile, worker, deadline, cancelled,
         )
         .map_err(source_error)?
+    } else if super::is_item_claim_stream(&owner_path) {
+        super::item_claim_owner_contribution(context, &owner_path, deadline, cancelled)?
     } else {
         crate::source_claims::pg_inventory::claim_owner_contribution(
             context, owner_file, worker, deadline, cancelled,
@@ -1614,6 +1616,10 @@ fn render_current_mixed_projections(
                     && super::is_global_claim_stream(context, stream_path)?;
         }
         let is_item_claim_owner = claim_stream && super::is_item_claim_stream(location);
+        let is_item_claim_form = claim_form
+            && claim_context.as_ref().is_some_and(|context| {
+                super::item_claim_form_owner_stream(context, location).is_some()
+            });
         let is_historical_claim_owner = claim_owner_stream
             .as_deref()
             .is_some_and(crate::source_claims::is_historical_claim_stream_path);
@@ -1630,7 +1636,7 @@ fn render_current_mixed_projections(
                 super::item_claim_owner_contribution(context, location, deadline, cancelled)?;
             let contribution = super::item_claim_current_inventory_contribution(owner, profile)?;
             source_inventory_contribution_projection(location, &file.raw, &contribution)?
-        } else if is_global_claim_owner {
+        } else if is_item_claim_form || is_global_claim_owner {
             if claim_source_profiles.is_none() {
                 claim_source_profiles = Some(
                     crate::source_claims::pg_inventory::

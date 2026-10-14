@@ -171,10 +171,16 @@ jobs:
             /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/bc/PC1-uxlc-shape.json
             /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/c/PC1-uxlc-shape.json
             /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl
+            # Exact named source fixture and retained history archive closure used by native tests.
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/
+            !/ToS/source-witnesses/**/payload/
+            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449/
+            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-22370571e4cd463e98665704bf9078a049cc6e99dec5b952d9e8cdf652bfa56f/
+            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8/
+            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-72f379603bc5ceda5cf51425dd3e439fa55a65f80a869a45b929c2f331aebb0f/
+            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f/
+            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-6b4fa1ee7a09aa19434dab2e7e584849a4a0af0d67945ba863f52f448e1f8402/
+            /ToS/source-witnesses/.record-revisions/5466b177c32b46f4676c6775ce161b07f62cc270fd8a42ab343ba5f421701b4d-8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f/
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json
             /ToS/canon/registries/predicates.csv
@@ -484,8 +490,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        # Same Docker Official Image, mirrored by ECR to avoid shared-runner Hub limits.
-        image: public.ecr.aws/docker/library/postgres:16.14@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
+        # Docker Official Image, pinned to the verified upstream OCI index digest.
+        image: docker.io/library/postgres:16.14@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
         env:
           POSTGRES_DB: tos_cmd_lab
           POSTGRES_USER: tos_cmd_lab
@@ -608,9 +614,15 @@ jobs:
             /ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json
             /ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json
             /ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json
-            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl
+            # Exact named source fixture and retained history archive closure used by native tests.
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/
+            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449/
+            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-22370571e4cd463e98665704bf9078a049cc6e99dec5b952d9e8cdf652bfa56f/
+            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8/
+            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-72f379603bc5ceda5cf51425dd3e439fa55a65f80a869a45b929c2f331aebb0f/
+            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f/
+            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-6b4fa1ee7a09aa19434dab2e7e584849a4a0af0d67945ba863f52f448e1f8402/
+            /ToS/source-witnesses/.record-revisions/5466b177c32b46f4676c6775ce161b07f62cc270fd8a42ab343ba5f421701b4d-8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f/
             /ToS/source-witnesses/relations/oim-a00645-physical-composition/source-claims.jsonl
             /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json
             /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json

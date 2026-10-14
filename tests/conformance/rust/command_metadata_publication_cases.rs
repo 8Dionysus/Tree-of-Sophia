@@ -1885,11 +1885,13 @@ fn connected_browser_create_occurrence(
         .collect();
     let current_source_item_members = current_source_item_files
         .iter()
-        .map(|(path, raw)| json!({
-            "path":path,
-            "bytes":raw.len(),
-            "sha256":Digest256::of_bytes(raw).to_hex()
-        }))
+        .map(|(path, raw)| {
+            json!({
+                "path":path,
+                "bytes":raw.len(),
+                "sha256":Digest256::of_bytes(raw).to_hex()
+            })
+        })
         .collect::<Vec<_>>();
     for (path, current_input) in &current_source_item_files {
         let selected_source_item = fs::read(source_root.join(path)).unwrap();
@@ -2289,7 +2291,7 @@ fn connected_browser_publish_initial_metadata(
         },
         "publication":publication,"catalog":catalog_limits,"semantic":semantic_limits,
         "bibliographic":{
-            "max_claim_cohort_rows":256,"max_claim_cohort_bytes":16_777_216,
+            "max_claim_cohort_rows":16,"max_claim_cohort_bytes":16_777_216,
             "max_output_rows":16_384,"max_output_bytes":16_777_216
         }
     });

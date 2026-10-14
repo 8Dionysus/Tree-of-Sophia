@@ -1688,8 +1688,13 @@ fn inventory_projections_for(
     let has_historical_claims = authored_members
         .iter()
         .any(|file| source_claims::is_historical_claim_stream_path(file.path.as_str()));
-    let has_managed_claim_owners =
-        has_global_claims || has_historical_claims || !growth_claim_contributions.is_empty();
+    let has_item_claim_streams = authored_members
+        .iter()
+        .any(|file| is_item_claim_stream(file.path.as_str()));
+    let has_managed_claim_owners = has_global_claims
+        || has_historical_claims
+        || has_item_claim_streams
+        || !growth_claim_contributions.is_empty();
     let inventory = if has_imported_legacy_claims || has_historical_claims {
         source_claims::maintained_inventory_from_members(
             ctx,
@@ -1769,6 +1774,7 @@ fn inventory_projections_for(
             }
             _ => false,
         };
+        let is_item_claim_form = item_claim_form_owner_stream(ctx, location).is_some();
         let contribution = if let Some(contribution) = growth_claim_contributions.get(location) {
             contribution.clone()
         } else if let Some(owner_stream) = historical_owner_stream.as_deref() {
@@ -1795,10 +1801,14 @@ fn inventory_projections_for(
                     "missing object field in Agent projection member or forms",
                 )
             })?
-        } else if has_global_claims
-            && basename.ends_with(".human-forms.json")
-            && is_global_claim_form
+        } else if basename.ends_with(".human-forms.json")
+            && (is_global_claim_form || is_item_claim_form)
         {
+            if is_item_claim_form {
+                let owner_stream = item_claim_form_owner_stream(ctx, location)
+                    .ok_or(DurableError::Corrupt("Item Claim form owner stream absent"))?;
+                item_claim_owner_contribution(ctx, &owner_stream, deadline, cancelled)?;
+            }
             source_claims::pg_inventory::claim_form_inventory_contribution(
                 file, &grouped, worker, deadline, cancelled,
             )
@@ -1844,6 +1854,29 @@ fn inventory_projections_for(
         projections.insert(file.path.as_str().to_owned(), raw);
     }
     Ok(projections)
+}
+
+/// Bind a current Item Claim form route to the exact selected Item stream and
+/// form bytes. Both full and streamed projection dispatchers use this gate.
+fn item_claim_form_owner_stream(ctx: &CommandContext, location: &str) -> Option<String> {
+    let stream = source_claims::pg_inventory::claim_form_stream_path(location)?;
+    if !is_item_claim_stream(&stream)
+        || ctx
+            .files
+            .iter()
+            .filter(|member| member.path.as_str() == location)
+            .count()
+            != 1
+        || ctx
+            .files
+            .iter()
+            .filter(|member| member.path.as_str() == stream)
+            .count()
+            != 1
+    {
+        return None;
+    }
+    Some(stream)
 }
 
 fn is_item_claim_stream(path: &str) -> bool {
@@ -14416,6 +14449,32 @@ mod item_claim_owner_current_history_tests {
                 .collect(),
         };
         let item_claim_path = format!("{ITEM_HOME}/{}", source_claims::CLAIM_STREAM);
+        let item_claim_form_path = format!(
+            "{ITEM_HOME}/source-claims.67a935708838478f096052106d632fb13c186708024d21794349744041d3f9ad.human-forms.json"
+        );
+        assert_eq!(
+            item_claim_form_owner_stream(&ctx, &item_claim_form_path).as_deref(),
+            Some(item_claim_path.as_str()),
+            "the selected current Item form dispatches through its exact Claim stream"
+        );
+        assert_eq!(
+            item_claim_form_owner_stream(
+                &ctx,
+                "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.d285a13c464ec786f2e1bbbe622e10d57bb1a722ef20c6bc78b92d44c62cdc11.human-forms.json"
+            ),
+            None,
+            "Work/Expression growth forms remain with their existing owner route"
+        );
+        let historical_stream = "ToS/source-witnesses/history/example/historical-claims.jsonl";
+        let historical_form = format!(
+            "ToS/source-witnesses/history/example/historical-claims.{}.human-forms.json",
+            "a".repeat(64)
+        );
+        assert_eq!(
+            source_claims::pg_inventory::claim_form_stream_path(&historical_form).as_deref(),
+            Some(historical_stream),
+            "historical Claim forms resolve to their archive stream before current Item routing"
+        );
         let deadline = Instant::now() + std::time::Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
         let owner = item_claim_owner_contribution(&ctx, &item_claim_path, deadline, &cancelled)
@@ -14453,11 +14512,26 @@ mod item_claim_owner_current_history_tests {
         );
         assert_member(
             direct_members,
-            &format!(
-                "{ITEM_HOME}/source-claims.67a935708838478f096052106d632fb13c186708024d21794349744041d3f9ad.human-forms.json"
-            ),
+            &item_claim_form_path,
             "sha256:6169f0e3f9b7234f830ee46ea8a57935f085cbea76c057b193cec4a30e0a0d6a",
             1486,
+        );
+        let adoption_claim = cmd::array(adoption, "claims").unwrap().first().unwrap();
+        let adoption_form = cmd::field(adoption_claim, "form").unwrap();
+        assert_eq!(
+            cmd::text(adoption_form, "ref").unwrap(),
+            item_claim_form_path
+        );
+        assert_eq!(
+            cmd::text(adoption_form, "sha256").unwrap(),
+            "sha256:6169f0e3f9b7234f830ee46ea8a57935f085cbea76c057b193cec4a30e0a0d6a"
+        );
+        let claim_form = cmd::parse(retained.get(&item_claim_form_path).unwrap()).unwrap();
+        assert_eq!(
+            cmd::array(adoption_form, "form_ids").unwrap(),
+            crate::source_forms::projection_form_ids(&claim_form)
+                .unwrap()
+                .as_slice()
         );
 
         let current = cmd::field(&owner, "current").unwrap();
@@ -14549,6 +14623,25 @@ mod item_claim_owner_current_history_tests {
         assert_eq!(
             cmd::array(item, "direct_members").unwrap().len(),
             direct_count(ITEM_HOME)
+        );
+        assert_member(
+            cmd::field(item, "direct_members").unwrap(),
+            &item_claim_form_path,
+            "sha256:6169f0e3f9b7234f830ee46ea8a57935f085cbea76c057b193cec4a30e0a0d6a",
+            1486,
+        );
+
+        let mut tampered = ctx.clone();
+        let form = tampered
+            .files
+            .iter_mut()
+            .find(|member| member.path.as_str() == item_claim_form_path)
+            .expect("retained Item Claim form");
+        form.raw.push(b' ');
+        assert!(
+            item_claim_owner_contribution(&tampered, &item_claim_path, deadline, &cancelled)
+                .is_err(),
+            "the exact Item adoption/history owner rejects changed Claim-form bytes"
         );
 
         let stream_raw = retained

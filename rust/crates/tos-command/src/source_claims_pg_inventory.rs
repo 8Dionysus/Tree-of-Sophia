@@ -728,6 +728,24 @@ pub(crate) fn claim_inventory_contribution(
     base_projection(file, &grouped.profile, grouped, JsonValue::Null, owner)
 }
 
+/// Resolve only maintained per-Claim HumanForm files to their exact current
+/// stream. Item streams are admitted here because their separate Item owner
+/// contribution validates the adoption receipt and retained package history.
+pub(crate) fn claim_form_stream_path(location: &str) -> Option<String> {
+    if let Some(stream) = crate::source_claims::historical_claim_form_stream_path(location) {
+        return Some(stream);
+    }
+    let basename = location.rsplit('/').next()?;
+    if !basename.starts_with("source-claims.") || !basename.ends_with(".human-forms.json") {
+        return None;
+    }
+    let parent = location.rsplit_once('/')?.0;
+    let stream = format!("{parent}/{CLAIM_STREAM}");
+    (location.starts_with("ToS/source-witnesses/relations/")
+        || crate::source_claims::is_managed_item_claim_stream_path(&stream))
+    .then_some(stream)
+}
+
 pub(crate) fn claim_form_inventory_contribution(
     file: &SourceFile,
     grouped: &AgentInventoryMembers<'_>,
@@ -737,22 +755,9 @@ pub(crate) fn claim_form_inventory_contribution(
 ) -> SourceCommandResult<JsonValue> {
     let location = file.path.as_str();
     let suffix = ".human-forms.json";
-    let historical_stream = crate::source_claims::historical_claim_form_stream_path(location);
-    if !location.starts_with("ToS/source-witnesses/relations/") && historical_stream.is_none() {
-        return Err(SourceCommandError::Unsupported(
-            "maintained Claim form path",
-        ));
-    }
-    if !location.ends_with(suffix) {
-        return Err(SourceCommandError::Unsupported(
-            "maintained Claim form path",
-        ));
-    }
-    let parent = location
-        .rsplit_once('/')
-        .map(|(parent, _)| parent)
-        .ok_or(SourceCommandError::Invalid("Claim form parent"))?;
-    let stream_path = historical_stream.unwrap_or_else(|| format!("{parent}/{CLAIM_STREAM}"));
+    let stream_path = claim_form_stream_path(location).ok_or(SourceCommandError::Unsupported(
+        "maintained Claim form path",
+    ))?;
     let stream = grouped
         .files
         .get(stream_path.as_str())
@@ -895,17 +900,7 @@ pub(crate) fn claim_form_contribution_with_validated_profile(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     let location = file.path.as_str();
-    let stream_path = crate::source_claims::historical_claim_form_stream_path(location)
-        .or_else(|| {
-            location
-                .starts_with("ToS/source-witnesses/relations/")
-                .then(|| {
-                    location
-                        .rsplit_once('/')
-                        .map(|(parent, _)| format!("{parent}/{CLAIM_STREAM}"))
-                })
-                .flatten()
-        })
+    let stream_path = claim_form_stream_path(location)
         .ok_or(SourceCommandError::Unsupported("Claim form path"))?;
     let stream = ctx
         .files
