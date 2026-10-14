@@ -136,7 +136,9 @@ fn maintained_manifest_check_and_selection_reject_python_commands() {
         let issues = lanes::validate_manifest(&root.0).unwrap();
         assert!(
             issues.iter().any(|(_, detail)| {
-                detail.contains(".command uses Python, which is unsupported in maintained validation lanes")
+                detail.contains(
+                    ".command uses Python, which is unsupported in maintained validation lanes",
+                )
             }),
             "manifest validator accepted argv0 {:?}",
             command[0]

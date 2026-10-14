@@ -14631,17 +14631,74 @@ mod item_claim_owner_current_history_tests {
             1486,
         );
 
-        let mut tampered = ctx.clone();
-        let form = tampered
+        let mut changed_current = ctx.clone();
+        let form = changed_current
             .files
             .iter_mut()
             .find(|member| member.path.as_str() == item_claim_form_path)
             .expect("retained Item Claim form");
         form.raw.push(b' ');
+        let changed_form_sha256 = Digest256::of_bytes(&form.raw).to_prefixed();
+        let changed_form_bytes = form.raw.len() as u64;
+        assert_ne!(
+            changed_form_sha256,
+            "sha256:6169f0e3f9b7234f830ee46ea8a57935f085cbea76c057b193cec4a30e0a0d6a"
+        );
+        assert_eq!(changed_form_bytes, 1487);
+        let changed_owner =
+            item_claim_owner_contribution(&changed_current, &item_claim_path, deadline, &cancelled)
+                .expect("current Item owner accepts a distinct current form byte representation");
+        let changed_current_item =
+            cmd::field(cmd::field(&changed_owner, "current").unwrap(), "item").unwrap();
+        assert_member(
+            cmd::field(changed_current_item, "direct_members").unwrap(),
+            &item_claim_form_path,
+            &changed_form_sha256,
+            changed_form_bytes,
+        );
+        let changed_adoption = cmd::field(&changed_owner, "adoption_v1").unwrap();
         assert!(
-            item_claim_owner_contribution(&tampered, &item_claim_path, deadline, &cancelled)
-                .is_err(),
-            "the exact Item adoption/history owner rejects changed Claim-form bytes"
+            cmd::same(adoption, changed_adoption).unwrap(),
+            "a current form edit does not rewrite the immutable adoption owner"
+        );
+
+        let item_history = cmd::parse(
+            retained
+                .get(&format!("{ITEM_HOME}/{}", source_revisions::HISTORY))
+                .expect("retained Item source revision history"),
+        )
+        .unwrap();
+        let first_item_transition = cmd::array(&item_history, "receipts")
+            .unwrap()
+            .first()
+            .expect("first Item record revision");
+        let first_item_archive = cmd::text(first_item_transition, "archive_path").unwrap();
+        let archive_manifest = cmd::parse(
+            retained
+                .get(&format!("{first_item_archive}/manifest.json"))
+                .expect("first Item record revision archive manifest"),
+        )
+        .unwrap();
+        let archived_item_binding =
+            cmd::field(cmd::field(&archive_manifest, "files").unwrap(), "item.json").unwrap();
+        let archived_item_blob = cmd::text(archived_item_binding, "blob").unwrap();
+        let archived_item_blob_path = format!("{first_item_archive}/{archived_item_blob}");
+        let mut tampered_history = ctx.clone();
+        let archived_item = tampered_history
+            .files
+            .iter_mut()
+            .find(|member| member.path.as_str() == archived_item_blob_path)
+            .expect("first Item record revision item.json blob");
+        archived_item.raw.push(b' ');
+        assert!(
+            item_claim_owner_contribution(
+                &tampered_history,
+                &item_claim_path,
+                deadline,
+                &cancelled
+            )
+            .is_err(),
+            "the Item owner rejects a preserved historical blob whose bytes no longer match its manifest"
         );
 
         let stream_raw = retained
