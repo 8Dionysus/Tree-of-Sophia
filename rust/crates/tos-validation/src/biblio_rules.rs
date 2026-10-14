@@ -5758,6 +5758,9 @@ pub fn inspect_bibliographic_delta(
     {
         rules.issue("delta-descriptive-fields-preserved", input.parent_path)?;
     }
+    // These are stored source bytes. The selected Claim schema above owns
+    // visibility grammar; a private Claim need not be a public form to append
+    // its exact bibliographic backlink. Publication remains a separate gate.
     if s(&claim, "schema_version") != Some("tos_source_relation_claim_v1")
         || s(&claim, "claim_type") != Some("relation")
         || s(&claim, "subject_ref") != parent_id
@@ -5770,7 +5773,6 @@ pub fn inspect_bibliographic_delta(
         || claim
             .get("supersedes_claim_ref")
             .is_some_and(|v| !v.is_null())
-        || s(&claim, "visibility") != Some("public_metadata_only")
     {
         rules.issue("delta-unreviewed-new-typed-Claim", input.claim_path)?;
     }
