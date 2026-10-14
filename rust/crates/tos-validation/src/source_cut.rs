@@ -900,6 +900,11 @@ pub struct CandidateCutWorkerSchemaExecutor<I> {
     selected_contracts: BTreeMap<String, (String, Digest256)>,
     catalog_entry_schema_present: bool,
     catalog_claim_entry_schema_present: bool,
+    // Terminal scalar observations belong only to this immutable candidate,
+    // schema closure, profile and worker. They are not SourceRevision receipts.
+    // One digest/bool slot (including Vec growth) fits the already charged
+    // 192-byte scalar receipt allowance; there is at most one per real check.
+    scalar_reuse: Vec<(Digest256, bool)>,
     inner: CutWorkerSchemaExecutor,
 }
 
@@ -1192,8 +1197,19 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             selected_contracts: schema_set.contracts,
             catalog_entry_schema_present,
             catalog_claim_entry_schema_present,
+            scalar_reuse: Vec::new(),
             inner,
         })
+    }
+
+    fn scalar_reuse_key(path: &str, raw: &[u8], contract: &str) -> Digest256 {
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-candidate-scalar-reuse-v1\0");
+        for bytes in [path.as_bytes(), contract.as_bytes(), raw] {
+            hash.update(&(bytes.len() as u64).to_be_bytes());
+            hash.update(bytes);
+        }
+        hash.finalize()
     }
 
     pub fn input_identity(&self) -> &I {
@@ -1450,6 +1466,10 @@ impl<I: Copy + Eq> CutSchemaExecutor for CandidateCutWorkerSchemaExecutor<I> {
             self.account_candidate_envelope_state(&mut diagnostic)?;
             self.inner.pending_diagnostics.push(diagnostic);
         }
+        if self.inner.diagnostics_v2.is_none() {
+            self.scalar_reuse
+                .push((Self::scalar_reuse_key(path, raw, contract), result));
+        }
         Ok(result)
     }
 
@@ -1461,6 +1481,40 @@ impl<I: Copy + Eq> CutSchemaExecutor for CandidateCutWorkerSchemaExecutor<I> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
+        self.inner
+            .prepared
+            .preflight(deadline, cancelled)
+            .map_err(|reason| {
+                operation_failure_with_context(
+                    reason,
+                    self.inner.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
+            })?;
+        if self.inner.diagnostics_v2.is_none() {
+            // Reapply the same contract/fragment and raw/decoded bounds on a
+            // hit. Source reads, rights and currentness remain with callers.
+            let _ = self.inner.decoded_input(raw, contract)?;
+            let key = Self::scalar_reuse_key(path, raw, contract);
+            if let Some(valid) = self
+                .scalar_reuse
+                .iter()
+                .rev()
+                .find_map(|(observed, valid)| (*observed == key).then_some(*valid))
+            {
+                self.inner
+                    .prepared
+                    .preflight(deadline, cancelled)
+                    .map_err(|reason| {
+                        operation_failure_with_context(
+                            reason,
+                            self.inner.prepared.exchange_failure(),
+                            concat!(module_path!(), ":", line!()),
+                        )
+                    })?;
+                return Ok(valid);
+            }
+        }
         self.check(path, raw, contract, deadline, cancelled)
     }
 

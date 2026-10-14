@@ -32,6 +32,108 @@ mod linux {
     }
 
     #[test]
+    fn candidate_scalar_reuse_preserves_exact_inputs_and_budget_refusals() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use tos_validation::executor::VerifiedWorkerImageHandle;
+        use tos_validation::item_rules::ItemRefusal;
+        use tos_validation::source_cut::{
+            CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits,
+        };
+
+        let (identity, _, _) = worker();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let budget = ExecutorBudget::laboratory();
+        let image = VerifiedWorkerImageHandle::prepare(identity, budget, deadline, &cancelled)
+            .expect("exact sealed worker");
+        let contract = "ToS/contracts/scalar-reuse.schema.json";
+        let selected = vec![(
+            contract.to_owned(),
+            SchemaResource {
+                uri: format!("https://tree-of-sophia.local/{contract}"),
+                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/ToS/contracts/scalar-reuse.schema.json","type":"integer","$defs":{"integer":{"type":"integer"}}}"#.to_vec(),
+            },
+        )];
+        let mut candidate =
+            CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+                17u64,
+                selected,
+                &image,
+                budget,
+                CutWorkerLimits {
+                    max_receipts: 2,
+                    max_receipt_bytes: 4096,
+                },
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        // Real valid and invalid executions exhaust the two-check budget.
+        assert!(
+            candidate
+                .check("subject", b"7", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !candidate
+                .check_reusing_scalar("subject", br#""x""#, contract, deadline, &cancelled)
+                .unwrap()
+        );
+        for _ in 0..3 {
+            assert!(
+                candidate
+                    .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                    .unwrap()
+            );
+            assert!(
+                !candidate
+                    .check_reusing_scalar("subject", br#""x""#, contract, deadline, &cancelled)
+                    .unwrap()
+            );
+        }
+        // Same decoded value with different bytes, a different locator, and a
+        // different schema fragment each need another actual execution.
+        for (path, raw, root) in [
+            ("subject", b" 7".as_slice(), contract.to_owned()),
+            ("other", b"7".as_slice(), contract.to_owned()),
+            (
+                "subject",
+                b"7".as_slice(),
+                format!("{contract}#/$defs/integer"),
+            ),
+        ] {
+            assert!(matches!(
+                candidate.check_reusing_scalar(path, raw, &root, deadline, &cancelled),
+                Err(ItemRefusal::BudgetCheck {
+                    check: "Cut scalar receipt count",
+                    used: Some(3),
+                    limit: Some(2)
+                })
+            ));
+        }
+        assert!(
+            candidate
+                .check_reusing_scalar(
+                    "subject",
+                    b"7",
+                    "ToS/contracts/absent.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+        assert_eq!(*candidate.input_identity(), 17);
+        assert_eq!(candidate.selected_source_revision(), None);
+        // Reuse cannot bypass cancellation, even for an already valid input.
+        cancelled.store(true, Ordering::Relaxed);
+        assert!(
+            candidate
+                .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                .is_err()
+        );
+    }
+
+    #[test]
     fn dedicated_worker_evaluates_exact_raw_instances_and_rejects_duplicate_members() {
         let (worker, image_bytes, identity_elapsed) = worker();
         let resources = resources();
