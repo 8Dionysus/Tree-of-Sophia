@@ -1202,6 +1202,73 @@ pub fn audit_delta_schema_digest() -> Digest256 {
     hasher.finalize()
 }
 
+// The Item Claim path extension changed only four SQL CHECK predicates.
+// Bind both complete schema byte identities: any further schema change needs
+// its own compatibility review. Warm replay never accepts the predecessor.
+const ITEM_CLAIM_PREDECESSOR: &str =
+    "471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c";
+const ITEM_CLAIM_SUCCESSOR: &str =
+    "c9e1f70c15eb8d522e2bf1954a0565269fc5eacfb8cc4688172b444a2af98211";
+
+pub(super) fn cold_profile_is_supported(profile: Digest256) -> bool {
+    let current = audit_delta_schema_digest();
+    profile == current
+        || (current.to_hex() == ITEM_CLAIM_SUCCESSOR && profile.to_hex() == ITEM_CLAIM_PREDECESSOR)
+}
+
+/// Called only after the complete source/index/custody audit, while holding
+/// its unchanged fence. Retain every journal row; the new cold selection is
+/// the baseline for the current profile. A failed transaction rolls back the
+/// marker together with selection invalidation and projection changes.
+pub(super) fn reselect_cold_profile(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    expected_generation: u64,
+    observed_profile: Digest256,
+) -> Result<(), AuditDeltaError> {
+    require_repeatable_snapshot(tx)?;
+    if !cold_profile_is_supported(observed_profile) {
+        return Err(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::ProfileMismatch,
+        ));
+    }
+    let fence = tx.query_one(
+        "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR UPDATE",
+        &[&domain],
+    )?;
+    if nonnegative(fence.get(0))? != expected_generation {
+        return Err(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::GenerationGap,
+        ));
+    }
+    if fence.get::<_, String>(1) != "normal" {
+        return Err(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::MaintenanceActive,
+        ));
+    }
+    let row = tx.query_one(
+        "SELECT baseline_generation,profile_digest FROM cmd2_audit_delta_v1_domain WHERE domain=$1 FOR UPDATE",
+        &[&domain],
+    )?;
+    if row.get::<_, String>(1).trim_end() != observed_profile.to_hex() {
+        return Err(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::ProfileMismatch,
+        ));
+    }
+    if nonnegative(row.get(0))? > expected_generation {
+        return Err(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::InvalidBounds,
+        ));
+    }
+    if observed_profile != audit_delta_schema_digest() {
+        tx.execute(
+            "UPDATE cmd2_audit_delta_v1_domain SET profile_digest=$2,baseline_generation=$3 WHERE domain=$1",
+            &[&domain, &audit_delta_schema_digest().to_hex(), &to_pg_i64(expected_generation)?],
+        )?;
+    }
+    Ok(())
+}
+
 /// Activate journaling after the opt-in schema is installed. The caller
 /// supplies a freshly cold-verified cut's observed fence generation and the
 /// reviewed opt-in profile digest. Existing compatible markers are reused at
@@ -1376,6 +1443,28 @@ fn to_pg_i64(value: u64) -> Result<i64, AuditDeltaError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn item_claim_cold_transition_binds_the_exact_four_constraint_extension() {
+        let current = audit_delta_schema_digest();
+        assert_eq!(current.to_hex(), ITEM_CLAIM_SUCCESSOR);
+        let addition = " OR\n      path ~ '^ToS/source-witnesses/items/[^/]+/source-claims[.]jsonl$' OR\n      path ~ '^ToS/source-witnesses/([^/]+/)*editions/[^/]+/items/[^/]+/source-claims[.]jsonl$'";
+        let schema = include_str!("durable_schema.sql");
+        assert_eq!(schema.matches(addition).count(), 4);
+        let predecessor_schema = schema.replace(addition, "");
+        let mut hasher = Digest256Hasher::new();
+        profile_part(&mut hasher, b"cmd2-audit-delta-schema-v1");
+        profile_part(&mut hasher, predecessor_schema.as_bytes());
+        profile_part(&mut hasher, include_bytes!("audit_delta_schema_v1.sql"));
+        profile_part(&mut hasher, ROW_KEY_PROFILE);
+        let predecessor = hasher.finalize();
+        assert_eq!(predecessor.to_hex(), ITEM_CLAIM_PREDECESSOR);
+        assert!(cold_profile_is_supported(predecessor));
+        assert!(cold_profile_is_supported(current));
+        assert!(!cold_profile_is_supported(Digest256::of_bytes(
+            b"unknown schema"
+        )));
+    }
 
     fn key(name: &str) -> StableRowKey {
         StableRowKey {

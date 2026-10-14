@@ -369,12 +369,19 @@ impl AddressedCutV2 {
         Ok(Digest256::of_bytes(&self.encode()?))
     }
     pub(crate) fn require_store(&self, store: &SegmentStore) -> DurableResult<()> {
+        self.require_store_profile(store, audit_delta::audit_delta_schema_digest())
+    }
+    fn require_store_profile(
+        &self,
+        store: &SegmentStore,
+        expected_profile: Digest256,
+    ) -> DurableResult<()> {
         self.inventory.require_store(store)?;
         if self.store_id != store.store_id()
             || self.domain_digest != store.domain_digest()
             || self.domain.as_bytes() != store.custody_domain()
             || self.schema_profile_digest != schema_profile_digest()
-            || self.state_profile_digest != audit_delta::audit_delta_schema_digest()
+            || self.state_profile_digest != expected_profile
             || self.metadata.kind != METADATA_KIND
             || self.history.kind != HISTORY_KIND
             || self.current.kind != CURRENT_KIND
@@ -464,6 +471,7 @@ pub(super) fn verify_published_addressed_inventory(
     context: &CommandContext,
     projections: &ProjectionRows,
     allow_database_rebind: bool,
+    observed_profile: Digest256,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<bool> {
@@ -500,7 +508,12 @@ pub(super) fn verify_published_addressed_inventory(
         Err(error) => return Err(DurableError::Storage(error)),
     };
     let cut = AddressedCutV2::decode(&raw)?;
-    cut.require_store(store)?;
+    if observed_profile != audit_delta::audit_delta_schema_digest()
+        && !(allow_database_rebind && audit_delta::cold_profile_is_supported(observed_profile))
+    {
+        return Err(DurableError::Corrupt("cold addressed profile unsupported"));
+    }
+    cut.require_store_profile(store, observed_profile)?;
     let state_digest = cut.state_digest()?;
     let selected_audit_generation =
         cut.audit_generation
@@ -539,7 +552,7 @@ pub(super) fn verify_published_addressed_inventory(
         || complete_cut_digest.trim_end() != state_digest.to_hex()
         || source_projection_digest.trim_end() != projection_root
         || schema_digest.trim_end() != cut.schema_profile_digest.to_hex()
-        || cut.state_profile_digest != audit_delta::audit_delta_schema_digest()
+        || cut.state_profile_digest != observed_profile
         || cut.schema_profile_digest != schema_profile_digest()
     {
         return Err(DurableError::Corrupt(

@@ -11534,26 +11534,27 @@ impl DurablePgCoordinator {
                 &[],
             )?
             .get::<_, bool>(0);
-        let addressed_protocol_active = if addressed_profile_table {
-            match metadata_tx.query_opt(
-                "SELECT profile_digest FROM cmd2_audit_delta_v1_domain WHERE domain=$1",
-                &[&domain],
-            )? {
-                Some(profile) => {
-                    if profile.get::<_, String>(0).trim_end()
-                        != audit_delta::audit_delta_schema_digest().to_hex()
-                    {
-                        return Err(DurableError::Corrupt(
-                            "active addressed audit profile differs",
-                        ));
-                    }
-                    true
-                }
-                None => false,
-            }
+        let addressed_profile = if addressed_profile_table {
+            metadata_tx
+                .query_opt(
+                    "SELECT profile_digest FROM cmd2_audit_delta_v1_domain WHERE domain=$1",
+                    &[&domain],
+                )?
+                .map(|row| parse_hex(row.get::<_, String>(0).trim_end().into()))
+                .transpose()?
         } else {
-            false
+            None
         };
+        if let Some(profile) = addressed_profile {
+            if profile != audit_delta::audit_delta_schema_digest()
+                && !(addressed_reselect && audit_delta::cold_profile_is_supported(profile))
+            {
+                return Err(DurableError::Corrupt(
+                    "active addressed audit profile differs",
+                ));
+            }
+        }
+        let addressed_protocol_active = addressed_profile.is_some();
         if addressed_protocol_active && !addressed_reselect {
             return Err(DurableError::Refused(
                 "active addressed protocol requires explicit cold reselection",
@@ -11854,6 +11855,8 @@ impl DurablePgCoordinator {
                     &ctx,
                     projections,
                     addressed_reselect,
+                    addressed_profile
+                        .ok_or(DurableError::Corrupt("addressed audit profile absent"))?,
                     deadline,
                     cancelled,
                 )?
@@ -11928,7 +11931,11 @@ impl DurablePgCoordinator {
             owner_check()?;
         }
         let current_membership = membership_of_files(&files);
-        let mut tx = self.client.transaction()?;
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .start()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         if lock_audit_fence(&mut tx, domain)? != before.audit_generation {
             return Err(DurableError::Conflict(
@@ -12009,6 +12016,10 @@ impl DurablePgCoordinator {
             &files,
             cohort.definition,
         )?;
+        if let Some(profile) = addressed_profile {
+            audit_delta::reselect_cold_profile(&mut tx, domain, before.audit_generation, profile)
+                .map_err(addressed_successor::delta_error)?;
+        }
         if rebuild_projections {
             if let Some(projections) = &projections {
                 for current in &rows {

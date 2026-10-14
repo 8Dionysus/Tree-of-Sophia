@@ -50,6 +50,16 @@ and a bounded complete compatibility export, then restores the addressed selecti
 The legacy cold/export entry refuses an active addressed protocol. These explicit
 restore/export operations do not replace the ordinary addressed mutation path.
 
+The additive Item Claim path CHECK extension has one reviewed cold transition
+from audit profile `471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c`
+to `c9e1f70c15eb8d522e2bf1954a0565269fc5eacfb8cc4688172b444a2af98211`.
+Explicit cold reselection authenticates the retained descriptor against its
+stored profile and verifies the complete source, indexes and custody before
+updating the marker under the unchanged audit fence. It preserves journal
+history and starts the new profile at the verified generation. Unknown profiles
+and changed fences refuse; ordinary warm operations still require the current
+profile. A later schema change requires a separate compatibility review.
+
 
 ## Private PostgreSQL source-text projection
 

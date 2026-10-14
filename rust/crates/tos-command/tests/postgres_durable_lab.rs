@@ -2451,6 +2451,52 @@ fn maintained_agent_creation_operation<
     copy_store_tree(&lab._root.0, &copied.0);
     let reopened_store = SegmentStore::open_existing(&copied.0, limits()).unwrap();
     let mut reopened_db = DurablePgCoordinator::connect(&url).unwrap();
+    // Model the retained predecessor after installing the additive Item Claim
+    // CHECK extension. A bogus marker must fail before any mutation; the exact
+    // reviewed predecessor may advance only through full source cold audit.
+    let predecessor_journal = if addressed {
+        let snapshot = addressed_journal_snapshot(&url, &lab.domain);
+        let mut sql = Client::connect(&url, NoTls).unwrap();
+        sql.execute(
+            "UPDATE cmd2_audit_delta_v1_domain SET profile_digest=$2 WHERE domain=$1",
+            &[&lab.domain, &"00".repeat(32)],
+        )
+        .unwrap();
+        let invalid_snapshot = addressed_journal_snapshot(&url, &lab.domain);
+        assert!(
+            reopened_db
+                .cold_reopen_source_cohort_addressed_reselect(
+                    &reopened_store,
+                    &lab.domain,
+                    &cut,
+                    revision,
+                    membership,
+                    &contexts[0],
+                    &software,
+                    &components,
+                    &mut new_worker(&cut),
+                    Some((&reopened_generation_workspace, generation_profile)),
+                    deadline,
+                    &cancelled,
+                )
+                .is_err()
+        );
+        assert_eq!(
+            addressed_journal_snapshot(&url, &lab.domain),
+            invalid_snapshot
+        );
+        sql.execute(
+            "UPDATE cmd2_audit_delta_v1_domain SET profile_digest=$2 WHERE domain=$1",
+            &[
+                &lab.domain,
+                &"471f7513e831693621cd20dd28a9afd0b74b4af544fa414eccce042d2208924c",
+            ],
+        )
+        .unwrap();
+        Some(snapshot)
+    } else {
+        None
+    };
     let reopened = if addressed {
         reopened_db.cold_reopen_source_cohort_addressed_reselect(
             &reopened_store,
@@ -2482,6 +2528,31 @@ fn maintained_agent_creation_operation<
         )
     }
     .unwrap();
+    if let Some(before) = predecessor_journal {
+        let after = addressed_journal_snapshot(&url, &lab.domain);
+        let previous_marker: serde_json::Value =
+            serde_json::from_str(before[2].as_str().unwrap()).unwrap();
+        let current_marker: serde_json::Value =
+            serde_json::from_str(after[2].as_str().unwrap()).unwrap();
+        assert_eq!(
+            current_marker["profile_digest"],
+            previous_marker["profile_digest"]
+        );
+        assert_eq!(current_marker["baseline_generation"], before[0]);
+        let mut sql = Client::connect(&url, NoTls).unwrap();
+        let old_generation = before[0].as_i64().unwrap();
+        let mut hash = tos_foundation::Digest256Hasher::new();
+        let rows = sql.query(
+            "SELECT sha256(convert_to(row_to_json(d)::text,'UTF8')) FROM cmd2_audit_delta_v1 d WHERE domain=$1 AND generation<=$2 ORDER BY generation",
+            &[&lab.domain, &old_generation],
+        ).unwrap();
+        for row in &rows {
+            hash.update(&row.get::<_, Vec<u8>>(0));
+        }
+        assert_eq!(rows.len() as u64, before[3].as_u64().unwrap());
+        assert_eq!(hash.finalize().to_hex(), before[4].as_str().unwrap());
+    }
+
     for (path, expected_raw) in &mixed_source_members {
         assert_eq!(
             reopened.files.get(path),
