@@ -342,6 +342,7 @@ pub(crate) fn requirements(
             .object_get("provenance_event_id")
             .and_then(JsonValue::as_str),
         &BTreeSet::new(),
+        family == CreationFamily::PublicProfile,
         &mut references,
         &mut paths,
     );
@@ -368,6 +369,7 @@ pub(crate) fn requirements(
                 record_id,
                 new_event_id,
                 &new_claim_ids,
+                false,
                 &mut references,
                 &mut paths,
             );
@@ -404,6 +406,7 @@ fn collect_claim_dependencies(
     new_record_id: &str,
     new_event_id: Option<&str>,
     new_claim_ids: &BTreeSet<String>,
+    separate_native_binding: bool,
     tokens: &mut BTreeSet<String>,
     paths: &mut BTreeSet<RelativePath>,
 ) {
@@ -413,6 +416,7 @@ fn collect_claim_dependencies(
         new_record_id: &str,
         new_event_id: Option<&str>,
         new_claim_ids: &BTreeSet<String>,
+        separate_native_binding: bool,
         tokens: &mut BTreeSet<String>,
         paths: &mut BTreeSet<RelativePath>,
     ) {
@@ -446,6 +450,7 @@ fn collect_claim_dependencies(
                         new_record_id,
                         new_event_id,
                         new_claim_ids,
+                        false,
                         tokens,
                         paths,
                     );
@@ -454,12 +459,19 @@ fn collect_claim_dependencies(
             JsonValue::Object(values) => {
                 for (name, value) in values {
                     if let Some(name) = name.as_str() {
+                        // Root native bindings have their own exact packet,
+                        // anchor and rights verification. Private anchors are
+                        // not members of the public source identity index.
+                        if separate_native_binding && name == "native_text_binding" {
+                            continue;
+                        }
                         visit(
                             value,
                             Some(name),
                             new_record_id,
                             new_event_id,
                             new_claim_ids,
+                            false,
                             tokens,
                             paths,
                         );
@@ -475,6 +487,7 @@ fn collect_claim_dependencies(
         new_record_id,
         new_event_id,
         new_claim_ids,
+        separate_native_binding,
         tokens,
         paths,
     );
