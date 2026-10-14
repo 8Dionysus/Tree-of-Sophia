@@ -5285,16 +5285,12 @@ pub(crate) fn resolve_assessment_claim_sources_pg(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AssessmentClaimSources> {
-    let entities = if selections.is_empty() {
-        JsonValue::Null
-    } else {
-        super::profile::candidate_record_binding_matches(ctx, cut, selected, worker)?;
-        crate::source_revisions::validate_source_profile_registry_candidate(
-            worker, deadline, cancelled, selected,
-        )?
-    };
-    resolve_assessment_claim_sources_with_entities(
-        owner, context, selections, ctx, cut, worker, reader, deadline, cancelled, entities,
+    // Endpoint validation also reads the profile registry. Retain the exact
+    // RecordRead throughout the shared resolver, not only its initial load.
+    let mut candidate =
+        super::profile::CandidatePrivateSchemaExecutor::new(ctx, cut, selected, worker)?;
+    resolve_assessment_claim_sources(
+        owner, context, selections, ctx, cut, &mut candidate, reader, deadline, cancelled,
     )
 }
 
