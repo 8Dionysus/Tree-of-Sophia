@@ -1105,7 +1105,10 @@ impl PreparedPgSourceRevision for crate::source_native_cli::revisions::PreparedP
                 "source revision proposal base, family or operation differs",
             ));
         }
-        Ok(())
+        // This typed adapter owns record-revision schema admission. Other
+        // prepared families retain their own semantic admission and must not
+        // be parsed as record-revision owners by the common transaction.
+        validate_selected_record_revision_admission(context, proposal, self.family_tag())
     }
 
     fn work_revision_evidence(
@@ -8798,7 +8801,6 @@ impl DurablePgCoordinator {
         let context = prepared.context();
         let proposal = prepared.proposal();
         prepared.validate_readset(readset)?;
-        validate_selected_record_revision_admission(context, proposal, prepared.family_tag())?;
         let (publication_package, authored_changes) =
             prepared.publication_package_and_source_changes()?;
         let mut authored_proposal = proposal.clone();
