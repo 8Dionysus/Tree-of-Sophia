@@ -3540,14 +3540,12 @@ impl SourceRevisionReadSession<'_> {
                 ("completion", parsed.completion_sha256)
             }
         };
-        let raw = cmd::canonical(cmd::field(&value, field).map_err(DurableError::Source)?)
-            .map_err(DurableError::Source)?;
-        if Digest256::of_bytes(&raw) != expected_digest {
-            return Err(DurableError::Conflict(
-                "source publication import sidecar bytes differ",
-            ));
-        }
-        Ok(raw)
+        crate::source_work_transaction::legacy_selected_publication_sidecar(
+            &value,
+            field,
+            expected_digest,
+        )
+        .map_err(DurableError::Source)
     }
 
     fn read_selected_publication_virtual_member(

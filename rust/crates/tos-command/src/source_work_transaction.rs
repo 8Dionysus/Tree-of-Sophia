@@ -5750,6 +5750,21 @@ fn encoded(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
     raw.push(b'\n');
     Ok(raw)
 }
+
+/// Reconstruct an imported sidecar using the same wire as its source writer.
+pub(crate) fn legacy_selected_publication_sidecar(
+    package: &JsonValue,
+    field: &str,
+    expected_digest: Digest256,
+) -> SourceCommandResult<Vec<u8>> {
+    let raw = encoded(cmd::field(package, field)?)?;
+    if Digest256::of_bytes(&raw) != expected_digest {
+        return Err(SourceCommandError::Conflict(
+            "source publication import sidecar bytes differ",
+        ));
+    }
+    Ok(raw)
+}
 fn journal_dir(
     fs: &CreationFilesystem,
     id: &str,
@@ -7562,6 +7577,30 @@ impl<'a> Parents<'a> {
 #[cfg(test)]
 mod object_refcount_readset_tests {
     use super::*;
+
+    #[test]
+    fn imported_publication_sidecars_preserve_source_wire_and_fixity() {
+        let package = cmd::parse(
+            br#"{"control":{"generation":2},"manifest":{"transaction":"a"},"completion":{"state":"committed"}}"#,
+        ).unwrap();
+        for (field, raw) in [
+            ("control", b"{\"generation\":2}\n".as_slice()),
+            ("manifest", b"{\"transaction\":\"a\"}\n".as_slice()),
+            ("completion", b"{\"state\":\"committed\"}\n".as_slice()),
+        ] {
+            assert_eq!(
+                legacy_selected_publication_sidecar(&package, field, Digest256::of_bytes(raw))
+                    .unwrap(),
+                raw,
+            );
+            assert!(legacy_selected_publication_sidecar(
+                &package,
+                field,
+                Digest256::of_bytes(&raw[..raw.len() - 1]),
+            )
+            .is_err());
+        }
+    }
 
     #[test]
     fn retained_object_observations_preserve_empty_wire_and_refuse_ambiguous_counts() {
