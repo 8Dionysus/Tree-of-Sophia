@@ -2593,15 +2593,20 @@ fn scan_identity_bytes(
             "duplicate profile identity input",
         ));
     }
-    let mut rows = raw.split(|byte| *byte == b'\n').collect::<Vec<_>>();
-    if rows.last().is_some_and(|row| row.is_empty()) {
-        rows.pop();
-    }
-    if rows.len() > 65_536 {
-        return Err(SourceCommandError::Invalid(
-            "profile identity JSONL row budget",
-        ));
-    }
+    let rows = if reference.ends_with(".jsonl") {
+        let mut rows = raw.split(|byte| *byte == b'\n').collect::<Vec<_>>();
+        if rows.last().is_some_and(|row| row.is_empty()) {
+            rows.pop();
+        }
+        if rows.len() > 65_536 {
+            return Err(SourceCommandError::Invalid(
+                "profile identity JSONL row budget",
+            ));
+        }
+        rows
+    } else {
+        vec![raw]
+    };
     for row in rows {
         if row.iter().all(u8::is_ascii_whitespace) {
             continue;
@@ -4903,5 +4908,46 @@ pub(crate) fn prepare(
             }
         }
         _ => Err(SourceCommandError::Unsupported("private profile operation")),
+    }
+}
+
+#[cfg(test)]
+mod identity_inventory_tests {
+    use super::*;
+
+    #[test]
+    fn profile_identity_json_and_jsonl_preserve_conflict_detection() {
+        for (reference, raw) in [
+            (
+                "record.json",
+                b"{\n  \"form_id\": \"occupied\"\n}\n".as_slice(),
+            ),
+            (
+                "provenance.jsonl",
+                b"{\"form_id\":\"other\"}\n{\"form_id\":\"occupied\"}\n".as_slice(),
+            ),
+        ] {
+            for (id, conflicts) in [("fresh", false), ("occupied", true)] {
+                let mut digests = BTreeMap::new();
+                let mut count = 0;
+                let mut remaining = MAX_INVENTORY_BYTES;
+                let result = scan_identity_bytes(
+                    reference,
+                    raw,
+                    &BTreeSet::from([id.to_owned()]),
+                    &mut digests,
+                    &mut count,
+                    &mut remaining,
+                );
+                if conflicts {
+                    assert!(matches!(result, Err(SourceCommandError::Conflict(_))));
+                } else {
+                    result.unwrap();
+                    assert_eq!(count, 1);
+                    assert_eq!(remaining, MAX_INVENTORY_BYTES - raw.len());
+                    assert_eq!(digests[reference], Digest256::of_bytes(raw).to_prefixed());
+                }
+            }
+        }
     }
 }
