@@ -1421,6 +1421,12 @@ fn maintained_agent_creation_operation<
         // Git capture, schema workers, or the full cold source/model setup.
         lab.db.enable_addressed_audit_protocol().unwrap();
         println!("STO addressed audit SQL binding/decode precondition PASS");
+        // The V9 restore assertions below explicitly cover installed navigation
+        // tables. Provision that optional schema here: this test must also run
+        // alone on a fresh database, before any projection test has executed.
+        lab.db
+            .init_projection_schema()
+            .expect("addressed backup fixture installs its selected projection schema");
     }
     // PostgreSQL must preserve named composite JSON and exact accepted
     // aggregates after moving the admission limit below serialization.
