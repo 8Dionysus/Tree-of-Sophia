@@ -673,6 +673,7 @@ fn collect_record_files(
     let record = reader.parsed(owner_path)?;
     let registry = reader.parsed(REGISTRY)?;
     let schema_version = cmd::text(&record, "schema_version")?;
+    let typed_owner_history = schema_version == "tos_corpus_record_v1";
     let mut schemas =
         BTreeSet::from(["ToS/contracts/semantic-entity-type-registry.schema.json".to_owned()]);
     match schema_version {
@@ -762,7 +763,7 @@ fn collect_record_files(
             let manifest = reader.parsed(&manifest_path)?;
             let files = cmd::field(&manifest, "files")?;
             let selected = cmd::field(files, base)?;
-            let bindings = if complete_archives {
+            let mut bindings = if complete_archives {
                 let members = files
                     .as_object()
                     .ok_or(SourceCommandError::Invalid("archive files map"))?;
@@ -773,6 +774,14 @@ fn collect_record_files(
             } else {
                 vec![selected]
             };
+            // Typed corpus history verifies each retained predecessor prefix.
+            // Keep only its exact history member in addition to the selected record.
+            if !complete_archives
+                && typed_owner_history
+                && let Some(history) = files.object_get(HISTORY)
+            {
+                bindings.push(history);
+            }
             let mut declared_bytes = 0u64;
             for binding in bindings {
                 let digest = digest_text(cmd::field(binding, "sha256")?)?;
@@ -8491,104 +8500,147 @@ mod retained_typed_history_prefix_tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../")
     }
 
-    fn read_fixture(root: &Path, relative: &str) -> Vec<u8> {
-        std::fs::read(root.join(relative))
-            .unwrap_or_else(|error| panic!("failed to read retained fixture {relative}: {error}"))
+    struct FixtureReadonlyRecordFiles<'a> {
+        root: &'a Path,
     }
 
-    fn push_fixture_file(files: &mut Vec<SourceFile>, path: &str, raw: Vec<u8>) {
-        files.push(SourceFile {
-            path: RelativePath::parse(path).unwrap(),
-            raw,
-        });
+    impl ReadonlyRecordFiles for FixtureReadonlyRecordFiles<'_> {
+        fn read(
+            &mut self,
+            relative: &str,
+            max_bytes: usize,
+            _deadline: Instant,
+            _cancelled: &AtomicBool,
+        ) -> SourceCommandResult<Vec<u8>> {
+            let relative = super::path(relative)?;
+            let raw = std::fs::read(self.root.join(relative.as_str()))
+                .map_err(|_| SourceCommandError::Unsupported("fixture source member absent"))?;
+            if raw.len() > max_bytes {
+                return Err(SourceCommandError::Unsupported(
+                    "fixture source member byte budget",
+                ));
+            }
+            Ok(raw)
+        }
+
+        fn list_directory(
+            &mut self,
+            _relative: &str,
+            _deadline: Instant,
+            _cancelled: &AtomicBool,
+        ) -> SourceCommandResult<Vec<(String, bool)>> {
+            Ok(Vec::new())
+        }
+
+        fn has_file(
+            &mut self,
+            relative: &str,
+            _deadline: Instant,
+            _cancelled: &AtomicBool,
+        ) -> SourceCommandResult<bool> {
+            let relative = super::path(relative)?;
+            Ok(self.root.join(relative.as_str()).is_file())
+        }
     }
 
     #[test]
     fn readonly_typed_history_verifies_real_two_receipt_archive_prefix() {
         let root = fixture_root();
-        let source_path = "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json";
-        let parent = source_path.rsplit_once('/').unwrap().0;
-        let mut package = Package::new();
-        let mut files = Vec::new();
-        for name in names(source_path).unwrap() {
-            let path = format!("{parent}/{name}");
-            let raw = read_fixture(&root, &path);
-            package.insert(name, raw.clone());
-            push_fixture_file(&mut files, &path, raw);
-        }
-
-        let history: serde_json::Value =
-            serde_json::from_slice(package.get(HISTORY).unwrap()).unwrap();
-        let receipts = history["receipts"].as_array().unwrap();
-        assert_eq!(
-            receipts.len(),
-            2,
-            "fixture must retain two Edition receipts"
-        );
-        assert_eq!(receipts[0]["request"]["operation"], "item.adopt");
-        assert_eq!(receipts[1]["request"]["operation"], "record.revise");
-
-        for receipt in receipts {
-            let archive = receipt["archive_path"].as_str().unwrap();
-            let manifest_path = format!("{archive}/manifest.json");
-            let manifest_raw = read_fixture(&root, &manifest_path);
-            let manifest: serde_json::Value = serde_json::from_slice(&manifest_raw).unwrap();
-            push_fixture_file(&mut files, &manifest_path, manifest_raw);
-            for binding in manifest["files"].as_object().unwrap().values() {
-                let blob = binding["blob"].as_str().unwrap();
-                let blob_path = format!("{archive}/{blob}");
-                push_fixture_file(&mut files, &blob_path, read_fixture(&root, &blob_path));
-            }
-        }
-
-        let second_archive = receipts[1]["archive_path"].as_str().unwrap();
-        let second_manifest: serde_json::Value = serde_json::from_slice(&read_fixture(
-            &root,
-            &format!("{second_archive}/manifest.json"),
-        ))
-        .unwrap();
-        let history_blob = second_manifest["files"][HISTORY]["blob"].as_str().unwrap();
-        let archived_history: serde_json::Value = serde_json::from_slice(&read_fixture(
-            &root,
-            &format!("{second_archive}/{history_blob}"),
-        ))
-        .unwrap();
-        assert_eq!(
-            archived_history["receipts"],
-            serde_json::Value::Array(receipts[..1].to_vec()),
-            "second predecessor archive must carry the exact one-receipt prefix"
-        );
-
-        let record: JsonValue = cmd::parse(package.get("edition.json").unwrap()).unwrap();
-        let config = cmd::parse(
-            &serde_json::to_vec(&serde_json::json!({
-                "source_path": source_path,
-                "record_type": "edition",
-                "record_id": cmd::text(&record, "record_id").unwrap()
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let input = RecordVersionReadInput {
-            files: &files,
-            source_revision: tos_foundation::SourceRevision(Digest256::of_bytes(b"fixture")),
-            effective_uid: 0,
-            schema_source_path: "ToS/contracts/corpus-record.schema.json",
-        };
+        let source_paths = [
+            "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json",
+            "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json",
+            "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json",
+        ];
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        let (observed, _) = verify_history_accounted(
-            &input,
-            &config,
-            &package,
-            &record,
-            None,
-            None,
-            Some((
-                Instant::now() + std::time::Duration::from_secs(10),
-                &cancelled,
-            )),
-        )
-        .unwrap();
-        assert_eq!(cmd::array(&observed, "receipts").unwrap().len(), 2);
+
+        for source_path in source_paths {
+            let mut transport = FixtureReadonlyRecordFiles { root: &root };
+            let files =
+                collect_readonly_record_files(&mut transport, source_path, deadline, &cancelled)
+                    .unwrap();
+            let input = RecordVersionReadInput {
+                files: &files,
+                source_revision: tos_foundation::SourceRevision(Digest256::of_bytes(b"fixture")),
+                effective_uid: 0,
+                schema_source_path: source_path,
+            };
+            let (_, base) = split(source_path).unwrap();
+            let selected_package = package(&input, source_path, true, None).unwrap();
+            let history: serde_json::Value =
+                serde_json::from_slice(selected_package.get(HISTORY).unwrap()).unwrap();
+            let receipts = history["receipts"].as_array().unwrap();
+            assert_eq!(
+                receipts.len(),
+                2,
+                "fixture must retain two receipts: {source_path}"
+            );
+
+            let mut expected_archived_paths = BTreeSet::new();
+            let mut archive_prefixes = BTreeSet::new();
+            for receipt in receipts {
+                let archive = receipt["archive_path"].as_str().unwrap();
+                archive_prefixes.insert(archive.to_owned());
+                let manifest_path = format!("{archive}/manifest.json");
+                let manifest_file = files
+                    .iter()
+                    .find(|file| file.path.as_str() == manifest_path)
+                    .unwrap_or_else(|| panic!("collector omitted {manifest_path}"));
+                let manifest: serde_json::Value =
+                    serde_json::from_slice(&manifest_file.raw).unwrap();
+                expected_archived_paths.insert(manifest_path);
+                expected_archived_paths.insert(format!(
+                    "{archive}/{}",
+                    manifest["files"][base]["blob"].as_str().unwrap()
+                ));
+                if let Some(history_binding) = manifest["files"].get(HISTORY) {
+                    expected_archived_paths.insert(format!(
+                        "{archive}/{}",
+                        history_binding["blob"].as_str().unwrap()
+                    ));
+                }
+            }
+            let observed_archived_paths = files
+                .iter()
+                .filter_map(|file| {
+                    let selected = file.path.as_str();
+                    let in_archive = archive_prefixes.iter().any(|archive| {
+                        let prefix = format!("{archive}/");
+                        selected.starts_with(prefix.as_str())
+                    });
+                    in_archive.then(|| selected.to_owned())
+                })
+                .collect::<BTreeSet<_>>();
+            assert_eq!(
+                observed_archived_paths, expected_archived_paths,
+                "readonly collection must retain only each selected record and typed history prefix: {source_path}"
+            );
+
+            let record: JsonValue = cmd::parse(selected_package.get(base).unwrap()).unwrap();
+            let config = cmd::parse(
+                &serde_json::to_vec(&serde_json::json!({
+                    "source_path": source_path,
+                    "record_type": cmd::text(&record, "record_type").unwrap(),
+                    "record_id": cmd::text(&record, "record_id").unwrap()
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+            let (observed, _) = verify_history_accounted(
+                &input,
+                &config,
+                &selected_package,
+                &record,
+                None,
+                None,
+                Some((deadline, &cancelled)),
+            )
+            .unwrap();
+            assert_eq!(
+                cmd::array(&observed, "receipts").unwrap().len(),
+                2,
+                "typed verifier must confirm the retained predecessor prefix: {source_path}"
+            );
+        }
     }
 }
