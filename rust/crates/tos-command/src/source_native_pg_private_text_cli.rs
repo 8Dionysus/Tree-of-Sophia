@@ -1453,7 +1453,7 @@ pub(crate) fn run(
         ));
     }
 
-    let ((prepared, dependency_members), readset) = db
+    let ((prepared, dependency_members, publication), readset) = db
         .with_source_revision_session(
             &store,
             &selection.domain,
@@ -1513,9 +1513,13 @@ pub(crate) fn run(
                         &target_ref,
                         &private_ancestry,
                     )?;
-                let publication = context
-                    .select_publication(deadline, cancelled)
-                    .map_err(DurableError::Source)?;
+                let publication = {
+                    let input = super::pg_growth::PgGrowthCurrentInput::new(session, 1, 8192)
+                        .map_err(|_| DurableError::Invalid("PostgreSQL Text publication input"))?;
+                    context
+                        .install_pg_publication(&input, deadline, cancelled)
+                        .map_err(DurableError::Source)?
+                };
                 let owner_target = context
                     .private_package_target_for_owner_route(&source_path)
                     .map_err(DurableError::Source)?;
@@ -1569,7 +1573,7 @@ pub(crate) fn run(
                                 .map_err(DurableError::Source)?;
                             initial::prepare_pg_initial_text_preview(
                                 context,
-                                publication,
+                                publication.clone(),
                                 grant,
                                 &software,
                                 &components,
@@ -1585,7 +1589,7 @@ pub(crate) fn run(
                                 .map_err(DurableError::Source)?;
                             derived::prepare_pg_derived_text_preview(
                                 context,
-                                publication,
+                                publication.clone(),
                                 grant,
                                 &software,
                                 &components,
@@ -1598,7 +1602,7 @@ pub(crate) fn run(
                         }
                         SelectedGrant::Unit(grant) => unit::prepare_pg_text_unit_preview(
                             context,
-                            publication,
+                            publication.clone(),
                             grant,
                             &request,
                             exclude,
@@ -1614,7 +1618,7 @@ pub(crate) fn run(
                     prepare_package(
                         grant,
                         context,
-                        publication,
+                        publication.clone(),
                         &request,
                         retained,
                         &software,
@@ -1646,7 +1650,7 @@ pub(crate) fn run(
                         "PostgreSQL private Text dependency selection budget",
                     )));
                 }
-                Ok((prepared, dependency_members))
+                Ok((prepared, dependency_members, publication))
             },
         )
         .map_err(pg::source_error)?;
@@ -1743,6 +1747,11 @@ pub(crate) fn run(
                         "PostgreSQL Text contracts changed during preparation",
                     ));
                 }
+                let input = super::pg_growth::PgGrowthCurrentInput::new(session, 1, 8192)
+                    .map_err(|_| DurableError::Invalid("PostgreSQL Text publication input"))?;
+                publication
+                    .verify_from_input(&input, deadline, cancelled)
+                    .map_err(DurableError::Source)?;
                 Ok(())
             },
         )

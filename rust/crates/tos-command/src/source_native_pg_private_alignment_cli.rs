@@ -1485,7 +1485,10 @@ pub(crate) fn run(
         private_generation
     };
 
-    let ((final_preparation, final_selected, dependencies, final_configuration), readset) = db
+    let (
+        (final_preparation, final_selected, dependencies, final_configuration, publication),
+        readset,
+    ) = db
         .with_private_owner_read_session(&scope, deadline, cancelled, |private_session, _, _| {
             if private_session.private_audit_generation() != private_generation {
                 return Err(DurableError::Conflict(
@@ -1620,6 +1623,18 @@ pub(crate) fn run(
                             "PostgreSQL Alignment dependency budget",
                         )
                         .map_err(DurableError::Source)?;
+                        let publication = {
+                            let input =
+                                super::pg_growth::PgGrowthCurrentInput::new(session, 1, 8192)
+                                    .map_err(|_| {
+                                        DurableError::Invalid(
+                                            "PostgreSQL Alignment publication input",
+                                        )
+                                    })?;
+                            context
+                                .install_pg_publication(&input, deadline, cancelled)
+                                .map_err(DurableError::Source)?
+                        };
                         let final_preparation = if is_prepare {
                             FinalAlignmentPreparation::Preview(
                                 alignment::prepare_pg_alignment_preview(
@@ -1656,6 +1671,7 @@ pub(crate) fn run(
                             selected.selected_members,
                             dependencies,
                             expected_configuration,
+                            publication,
                         ))
                     },
                 )
@@ -1686,6 +1702,30 @@ pub(crate) fn run(
                 "PostgreSQL Alignment preview configuration changed",
             ));
         }
+        source_db
+            .with_source_revision_session(
+                &store,
+                &selection.domain,
+                &selection.job_id,
+                selection.job_fence,
+                deadline,
+                cancelled,
+                |session| {
+                    if !same_epoch(&first_epoch, &epoch(session)) {
+                        return Err(DurableError::Conflict(
+                            "PostgreSQL Alignment preview source epoch changed",
+                        ));
+                    }
+                    let input = super::pg_growth::PgGrowthCurrentInput::new(session, 1, 8192)
+                        .map_err(|_| {
+                            DurableError::Invalid("PostgreSQL Alignment publication input")
+                        })?;
+                    publication
+                        .verify_from_input(&input, deadline, cancelled)
+                        .map_err(DurableError::Source)
+                },
+            )
+            .map_err(pg::source_error)?;
         invocation_changed(
             invocation_path,
             invocation_raw,

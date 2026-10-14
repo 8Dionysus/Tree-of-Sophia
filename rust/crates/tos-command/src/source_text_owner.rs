@@ -14,6 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
+use tos_validation::record_biblio_cut::SourceCutInput;
 use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
@@ -393,6 +394,10 @@ pub(crate) struct OwnerTextContext {
     /// present this map is authoritative and a missing member fails closed;
     /// it never falls back to either filesystem root.
     pg_selected_members: RefCell<Option<BTreeMap<String, Vec<u8>>>>,
+    /// Publication control observed through that same PG source session. The
+    /// session readset owns its live fence; semantic preparation rereads this
+    /// selected snapshot rather than a parallel filesystem publication head.
+    pg_publication: RefCell<Option<crate::source_work_transaction::PublicationSnapshot>>,
     /// Digest of a bounded public-source plus private-store identity inventory
     /// read from the selected PG epoch. The PG writer rechecks its source and
     /// private generations at commit, so later owner validation must not
@@ -1575,6 +1580,19 @@ impl OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<crate::source_creation_store::work_transaction::PublicationSnapshot>
     {
+        if self.has_pg_selected_members()? {
+            self.verify_context_base(deadline, cancelled)?;
+            return self
+                .pg_publication
+                .try_borrow()
+                .map_err(|_| {
+                    SourceCommandError::Invalid("owner-local publication selection state")
+                })?
+                .clone()
+                .ok_or(SourceCommandError::Conflict(
+                    "PostgreSQL Text publication selection absent",
+                ));
+        }
         let root = self.public_root_handle()?;
         crate::source_creation_store::work_transaction::PublicationSnapshot::select_at(
             &root, self.uid, deadline, cancelled,
@@ -1587,8 +1605,47 @@ impl OwnerTextContext {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
+        if self.has_pg_selected_members()? {
+            let current = self.select_publication(deadline, cancelled)?;
+            if current.token != selected.token
+                || current.generation != selected.generation
+                || current.selected_state() != selected.selected_state()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "PostgreSQL Text publication selection changed",
+                ));
+            }
+            return Ok(());
+        }
         let root = self.public_root_handle()?;
         selected.verify_at(&root, self.uid, deadline, cancelled)
+    }
+
+    pub(crate) fn install_pg_publication(
+        &self,
+        input: &dyn SourceCutInput,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<crate::source_work_transaction::PublicationSnapshot> {
+        if !self.has_pg_selected_members()? {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Text source selection absent",
+            ));
+        }
+        let snapshot = crate::source_work_transaction::PublicationSnapshot::select_from_input(
+            input, deadline, cancelled,
+        )?;
+        let mut selected = self
+            .pg_publication
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("owner-local publication selection state"))?;
+        if selected.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "PostgreSQL Text publication already selected",
+            ));
+        }
+        *selected = Some(snapshot.clone());
+        Ok(snapshot)
     }
 
     /// The caller has selected an exact owner-local source file through its
@@ -1830,6 +1887,7 @@ impl OwnerTextContext {
                 uid,
                 held_reads: RefCell::new(BTreeMap::new()),
                 pg_selected_members: RefCell::new(None),
+                pg_publication: RefCell::new(None),
                 pg_identity_snapshot: RefCell::new(None),
             },
             config,
