@@ -84,6 +84,7 @@ fn epoch(session: &SourceRevisionReadSession<'_>) -> SelectedEpoch {
 struct PgPrivateSelectedSource<'a, 'b> {
     session: Rc<RefCell<&'a mut SourceRevisionReadSession<'b>>>,
     identity: PgRecordRevisionIdentity,
+    public_identity_paths: Option<Vec<String>>,
 }
 
 struct PgPrivateSessionRecordRead<'a, 'b> {
@@ -129,6 +130,25 @@ impl RecordRead for PgPrivateSessionRecordRead<'_, '_> {
 impl crate::source_native_cli::private_owner::profile::PrivateSelectedSourceInput
     for PgPrivateSelectedSource<'_, '_>
 {
+    fn selected_public_identity_paths(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<Vec<String>>, ItemRefusal> {
+        if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(ItemRefusal::Source("private source read cancelled".into()));
+        }
+        if Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        if self.session.borrow().selection().identity() != self.identity {
+            return Err(ItemRefusal::Source(
+                "private identity selection changed".into(),
+            ));
+        }
+        Ok(self.public_identity_paths.clone())
+    }
+
     fn private_selection_identity(
         &self,
     ) -> crate::source_native_cli::private_owner::profile::PrivateSelectedSourceIdentity {
@@ -1079,7 +1099,11 @@ pub(crate) fn run(
                     session: session.clone(),
                     identity,
                 };
-                let cut = PgPrivateSelectedSource { session, identity };
+                let cut = PgPrivateSelectedSource {
+                    session,
+                    identity,
+                    public_identity_paths: None,
+                };
                 let basenames = match family {
                     PrivateOwnerPackageFamilyV1::Profile => {
                         super::private_owner::profile::identity_basenames_pg(
@@ -1267,7 +1291,11 @@ pub(crate) fn run(
                     session: session.clone(),
                     identity,
                 };
-                let cut = PgPrivateSelectedSource { session, identity };
+                let cut = PgPrivateSelectedSource {
+                    session,
+                    identity,
+                    public_identity_paths: Some(public_identity.keys().cloned().collect()),
+                };
                 let mut semantic_worker =
                     super::private_owner::profile::CandidatePrivateSchemaExecutor::new(
                         &context,

@@ -1912,6 +1912,20 @@ fn public_native_identity_member(reference: &str) -> bool {
             .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
 }
 
+fn public_identity_member_paths(
+    cut: &dyn PrivateSelectedSourceInput,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<String>> {
+    match cut
+        .selected_public_identity_paths(deadline, cancelled)
+        .map_err(|_| SourceCommandError::Unsupported("private Claim selected identity census"))?
+    {
+        Some(paths) => Ok(paths),
+        None => current_members_under(cut, "ToS/source-witnesses", deadline, cancelled),
+    }
+}
+
 fn selected_public_native_packet_members(
     owner: &OwnerTextContext,
     cut: &dyn PrivateSelectedSourceInput,
@@ -1922,7 +1936,7 @@ fn selected_public_native_packet_members(
 ) -> SourceCommandResult<Vec<SourceFile>> {
     let mut members = Vec::new();
     let mut total_bytes = 0usize;
-    for reference in current_members_under(cut, "ToS/source-witnesses", deadline, cancelled)? {
+    for reference in public_identity_member_paths(cut, deadline, cancelled)? {
         if reference == "ToS/source-witnesses/owner-local"
             || reference.starts_with("ToS/source-witnesses/owner-local/")
         {
@@ -1996,7 +2010,7 @@ fn native_identity_inventory_context(
         }
         packet_digests
     } else {
-        let members = current_members_under(cut, "ToS/source-witnesses", deadline, cancelled)?;
+        let members = public_identity_member_paths(cut, deadline, cancelled)?;
         if members.iter().any(|reference| {
             reference == "ToS/source-witnesses/owner-local"
                 || reference.starts_with("ToS/source-witnesses/owner-local/")
@@ -2106,7 +2120,7 @@ fn identity_inventory(
         ));
     }
     let mut selected = BTreeMap::<String, Vec<u8>>::new();
-    for reference in current_members_under(cut, "ToS/source-witnesses", deadline, cancelled)? {
+    for reference in public_identity_member_paths(cut, deadline, cancelled)? {
         if !reference.starts_with("ToS/source-witnesses/")
             || reference.starts_with("ToS/source-witnesses/owner-local/")
         {

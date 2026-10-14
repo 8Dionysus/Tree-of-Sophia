@@ -248,6 +248,17 @@ impl PrivateSelectedSchemaExecutor for CandidatePrivateSchemaExecutor<'_> {
 pub(crate) trait PrivateSelectedSourceInput {
     fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity;
 
+    /// Complete public metadata census already selected by the current owner
+    /// command, including profile/Claim identities, forms, annotations and
+    /// creation provenance. It is not coverage of every corpus member.
+    fn selected_public_identity_paths(
+        &self,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> Result<Option<Vec<String>>, ItemRefusal> {
+        Ok(None)
+    }
+
     /// Exact-token lookup for the source-maintained semantic annotation
     /// identity index. Filesystem routes return `None` and retain their
     /// established bounded owner-prefix proof.
