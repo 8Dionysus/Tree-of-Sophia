@@ -1374,11 +1374,9 @@ pub(crate) fn current_closure(
                 "PG Item new identity is occupied",
             ));
         }
-        for kind in crate::source_cohort::revision::PG_AGENT_INDEX_KINDS {
-            session
-                .observe_unique_index(kind, &token, deadline, cancelled)
-                .map_err(|_| SourceCommandError::Conflict("PG Item identity absence fence"))?;
-        }
+        // lookup_source_identity already binds all five namespace generations
+        // for both occupied and absent tokens. observe_unique_index additionally
+        // requires absence, so it cannot be used for retained parent forms.
     }
     let file_id = cmd::text(&owner.configuration, "file_id")?.to_owned();
     let file_rows = session
