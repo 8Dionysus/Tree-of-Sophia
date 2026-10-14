@@ -11857,6 +11857,7 @@ impl DurablePgCoordinator {
                     addressed_reselect,
                     addressed_profile
                         .ok_or(DurableError::Corrupt("addressed audit profile absent"))?,
+                    streamed.map_or_else(generation_limits, |(_, profile)| profile.generation),
                     deadline,
                     cancelled,
                 )?

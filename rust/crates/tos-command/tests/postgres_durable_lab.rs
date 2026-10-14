@@ -273,6 +273,16 @@ fn copy_store_tree(source: &std::path::Path, target: &std::path::Path) {
         let kind = entry.file_type().expect("source store entry type reads");
         if kind.is_dir() {
             fs::create_dir(&destination).expect("copied store directory created");
+            // The restored packed-segment reader enforces directory custody.
+            // Preserve the source mode independently of the runner's umask.
+            fs::set_permissions(
+                &destination,
+                entry
+                    .metadata()
+                    .expect("source directory metadata")
+                    .permissions(),
+            )
+            .expect("copied store directory mode preserved");
             copy_store_tree(&entry.path(), &destination);
         } else if kind.is_file() {
             fs::copy(entry.path(), destination).expect("exact store file copied");

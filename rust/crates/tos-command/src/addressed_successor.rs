@@ -460,8 +460,9 @@ impl VerifiedAddressedGeneration {
 /// descriptor and that its authenticated inventory is freshly reconstructed
 /// from source. `Ok(false)` only means the V2 parser did not identify the
 /// selected bytes; callers must positively open the selected V1 generation
-/// before treating it as a legacy transition. All other read/decode failures
-/// remain fail-closed.
+/// before treating it as a legacy transition. A descriptor exceeding the V2
+/// bound must first decode as V1 under its own declared profile. Other
+/// read/decode failures remain fail-closed.
 pub(super) fn verify_published_addressed_inventory(
     store: &SegmentStore,
     row: &postgres::Row,
@@ -472,6 +473,7 @@ pub(super) fn verify_published_addressed_inventory(
     projections: &ProjectionRows,
     allow_database_rebind: bool,
     observed_profile: Digest256,
+    v1_limits: GenerationReadLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<bool> {
@@ -503,6 +505,19 @@ pub(super) fn verify_published_addressed_inventory(
             if error.code == tos_segment_store::SegmentErrorCode::InvalidReceipt
                 && error.detail == "authenticated object kind differs" =>
         {
+            return Ok(false);
+        }
+        // A streamed V1 descriptor can exceed the compact V2 descriptor cap.
+        // Keep each format's own limit: positively identify the exact V1
+        // digest/domain/store here, then require the caller's complete cold
+        // verification of its cut and membership before any re-selection.
+        Err(error)
+            if error.code == tos_segment_store::SegmentErrorCode::BudgetExceeded
+                && error.detail == "authenticated object exceeds read limit" =>
+        {
+            active(deadline, cancelled)?;
+            store.inspect_generation_descriptor_v1(selected_digest, v1_limits)?;
+            active(deadline, cancelled)?;
             return Ok(false);
         }
         Err(error) => return Err(DurableError::Storage(error)),
