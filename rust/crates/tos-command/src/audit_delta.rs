@@ -1216,6 +1216,33 @@ pub(super) fn cold_profile_is_supported(profile: Digest256) -> bool {
         || (current.to_hex() == ITEM_CLAIM_SUCCESSOR && profile.to_hex() == ITEM_CLAIM_PREDECESSOR)
 }
 
+fn item_claim_constraint_upgrade() -> Result<[&'static str; 2], AuditDeltaError> {
+    let schema = include_str!("durable_schema.sql");
+    let mut statements = [""; 2];
+    for (slot, table) in [
+        "cmd2_source_claim_dependency",
+        "cmd2_source_claim_navigation_reference",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let start =
+            format!("ALTER TABLE {table}\n  DROP CONSTRAINT IF EXISTS {table}_public_path;");
+        let suffix = schema
+            .split_once(&start)
+            .ok_or(AuditDeltaError::ColdRequired(
+                ColdRequiredReason::ProfileMismatch,
+            ))?
+            .1;
+        let end = suffix.find("\n  );").ok_or(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::ProfileMismatch,
+        ))? + "\n  );".len();
+        let offset = schema.len() - suffix.len() - start.len();
+        statements[slot] = &schema[offset..offset + start.len() + end];
+    }
+    Ok(statements)
+}
+
 /// Called only after the complete source/index/custody audit, while holding
 /// its unchanged fence. Retain every journal row; the new cold selection is
 /// the baseline for the current profile. A failed transaction rolls back the
@@ -1261,6 +1288,12 @@ pub(super) fn reselect_cold_profile(
         ));
     }
     if observed_profile != audit_delta_schema_digest() {
+        // Cold entry does not run the general schema installer. Install the
+        // two additive CHECKs from its authoritative SQL in this transaction,
+        // validating existing rows before changing the profile marker.
+        for statement in item_claim_constraint_upgrade()? {
+            tx.batch_execute(statement)?;
+        }
         tx.execute(
             "UPDATE cmd2_audit_delta_v1_domain SET profile_digest=$2,baseline_generation=$3 WHERE domain=$1",
             &[&domain, &audit_delta_schema_digest().to_hex(), &to_pg_i64(expected_generation)?],
@@ -1461,6 +1494,11 @@ mod tests {
         assert_eq!(predecessor.to_hex(), ITEM_CLAIM_PREDECESSOR);
         assert!(cold_profile_is_supported(predecessor));
         assert!(cold_profile_is_supported(current));
+        for statement in item_claim_constraint_upgrade().unwrap() {
+            assert_eq!(statement.matches(addition).count(), 1);
+            assert_eq!(statement.matches("ALTER TABLE ").count(), 2);
+            assert!(statement.ends_with("\n  );"));
+        }
         assert!(!cold_profile_is_supported(Digest256::of_bytes(
             b"unknown schema"
         )));
