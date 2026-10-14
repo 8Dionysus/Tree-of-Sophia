@@ -70,12 +70,15 @@ pub fn capture_source_navigation_bootstrap_v1(
     let receipt = model
         .navigation_original_receipt()
         .map_err(|_| DurableError::Corrupt("selected navigation receipt"))?;
+    // The complete capture budget spans many pages. This request contains only
+    // the header and must fit the original-row reader's single-page contract.
+    let header_budget = limits.max_total_bytes.min(limits.max_row_bytes as u64);
     let page = model
         .navigation_original_page_under_caller_budget(
             None,
             1,
-            limits.max_row_bytes,
-            limits.max_total_bytes,
+            header_budget as usize,
+            header_budget,
         )
         .map_err(|_| DurableError::Corrupt("selected navigation header"))?;
     if page.rows.len() != 1 || page.rows[0].0 != -1 {
@@ -360,7 +363,7 @@ fn capture_original_rights(
         let page = model
             .navigation_original_page_under_caller_budget(
                 after,
-                256.min(limits.max_current_rows),
+                1,
                 limits.max_row_bytes.min(page_byte_budget as usize),
                 page_byte_budget,
             )
