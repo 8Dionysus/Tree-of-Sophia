@@ -3532,12 +3532,14 @@ fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Pa
         .map(|path| path.as_str().unwrap().to_owned())
         .collect::<BTreeSet<_>>();
     assert_eq!(actual_paths, expected_paths);
+    let mut created_source_bytes = 0_u64;
     for path in &actual_paths {
         let raw = source_member(case, path);
         assert!(
             !raw.is_empty(),
             "created source member is exactly readable: {path}"
         );
+        created_source_bytes += raw.len() as u64;
     }
     let created_record = source_member(case, CREATED_RECORD_PATH);
     assert_eq!(created_record, published_source_bytes(&record));
@@ -3567,6 +3569,7 @@ fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Pa
         "source_path":CREATED_RECORD_PATH,
         "committed_head":committed_head,
         "created_source_paths":actual_paths,
+        "created_source_bytes":created_source_bytes,
         "record_sha256":Digest256::of_bytes(&created_record).to_hex(),
         "cold_cut_verified":true,
         "initial_source_read_work":initial_source_read_work,
@@ -4257,12 +4260,15 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
             &projection["initial_agent_creation"]["initial_source_read_work"],
             &format!("{records}-record native initial Agent creation"),
         );
+        assert_eq!(
+            projection["projection_work"]["addition"]["exact_source_bytes_read"],
+            projection["initial_agent_creation"]["created_source_bytes"],
+            "addition reads exactly its six committed members, including measured provenance"
+        );
     }
     for counter in [
         "examined_event_members",
         "exact_source_members_read",
-        "exact_source_bytes_read",
-        "segment_bytes_read",
         "committed_member_rows_examined",
         "extracted_documents",
         "published_source_paths",
@@ -4274,6 +4280,21 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
             "the same new Agent event has the same {counter} projection work at 1 and 3 records"
         );
     }
+    // Independent captures retain real timing values. Their serialized byte
+    // lengths can differ even when the selected members and work are the same.
+    // Account for their exact payloads above, then compare framing work.
+    let segment_overhead = |projection: &Value| {
+        let work = &projection["projection_work"]["addition"];
+        work["segment_bytes_read"]
+            .as_u64()
+            .unwrap()
+            .checked_sub(work["exact_source_bytes_read"].as_u64().unwrap())
+            .expect("segment reads include the exact selected member bytes")
+    };
+    assert_eq!(
+        segment_overhead(&one_projection),
+        segment_overhead(&three_projection)
+    );
     for counter in [
         "examined_event_members",
         "exact_source_members_read",
