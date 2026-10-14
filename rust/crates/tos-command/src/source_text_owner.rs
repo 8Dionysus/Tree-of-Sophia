@@ -1852,9 +1852,15 @@ impl OwnerTextContext {
             ));
         }
         match worker.check_reusing_scalar(
-            path.to_str().ok_or(SourceCommandError::Invalid(
-                "owner-local configuration path UTF-8",
-            ))?,
+            if pg_selected {
+                // A schema unit has a relative logical identity. The protected
+                // configuration path and bytes remain bound by the held file.
+                "native-pg-owner-local-source-context"
+            } else {
+                path.to_str().ok_or(SourceCommandError::Invalid(
+                    "owner-local configuration path UTF-8",
+                ))?
+            },
             &cmd::canonical(&config)?,
             CONTEXT_SCHEMA,
             deadline,

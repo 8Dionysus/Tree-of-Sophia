@@ -513,11 +513,11 @@ fn response(
     let record = cmd::field(request, "record")?;
     let record_id = cmd::text(record, "record_id")?;
     let record_type = cmd::text(record, "record_type")?;
-    let configured_type = cmd::text(owner_config, "record_type")?;
     let source_path = cmd::text(owner_config, "source_path")?;
+    // Historical/Profile grants select their family or registry profile, not
+    // a corpus record_type field. Admission already bound that type in attempt.
     if !["historical.create", "source.create"].contains(&operation)
         || record_id != cmd::text(owner_config, "record_id")?
-        || record_type != configured_type
         || record_type != attempt.record_type
         || !attempt
             .writes
