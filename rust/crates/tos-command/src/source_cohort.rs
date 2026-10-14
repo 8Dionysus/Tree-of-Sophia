@@ -11835,9 +11835,14 @@ impl DurablePgCoordinator {
                 .get::<_, Option<String>>("selected_generation_digest")
                 .is_some()
         {
-            return Err(DurableError::Corrupt(
-                "addressed selection remains after projection invalidation",
-            ));
+            // Activation can survive a crash before the V2 inventory root is
+            // published. A selected, fully verified V1 checkpoint is valid in
+            // that state, including after restore to a different database OID.
+            // Positively authenticate its exact cut and both membership streams;
+            // an invalidated V2 descriptor cannot pass this V1-only reader.
+            self.cold_open_selected_generation_v1_addressed_transition(
+                store, domain, streamed, deadline, cancelled,
+            )?;
         }
         if !rebuild_projections && addressed_protocol_active && projections.is_none() {
             return Err(DurableError::Corrupt(

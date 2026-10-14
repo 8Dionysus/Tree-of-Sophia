@@ -49,6 +49,12 @@ API. `select_current_source_cut_addressed` performs the source/index/custody aud
 and a bounded complete compatibility export, then restores the addressed selection.
 The legacy cold/export entry refuses an active addressed protocol. These explicit
 restore/export operations do not replace the ordinary addressed mutation path.
+A crash may leave the audit marker active with a selected V1 checkpoint and no
+published projection root. Explicit cold reselection must positively verify
+that V1 descriptor's complete source-OID-bound cut and both membership streams
+before rebuilding the inventory. An invalidated V2 selection or unknown
+format remains refused; restore never grants an unverified old selector new
+database authority.
 
 The addressed audit journal covers the same 19 metadata tables as the cold
 source audit, plus the semantic domain header. IDs 1..12 retain their original
