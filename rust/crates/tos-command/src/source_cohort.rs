@@ -279,7 +279,14 @@ fn revision_package(
         == crate::source_creation_store::OBJECT_LINK_PG_FAMILY_TAG
         && proposal.operation == "object.link.create"
         && proposal.handler_id == "native-object-link-create";
-    if (!record_revision && !claim_command && !growth_command && !forms_historical_command)
+    let item_adoption = family_tag == crate::source_creation_store::PG_ITEM_ADOPTION_FAMILY_TAG
+        && proposal.operation == "item.adopt"
+        && proposal.handler_id == "native-item-adoption";
+    if (!record_revision
+        && !claim_command
+        && !growth_command
+        && !forms_historical_command
+        && !item_adoption)
         || proposal.changes.is_empty()
     {
         return Err(DurableError::Refused(
