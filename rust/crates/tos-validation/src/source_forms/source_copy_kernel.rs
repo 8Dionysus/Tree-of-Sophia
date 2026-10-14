@@ -529,19 +529,22 @@ fn stopped(form: &JsonValue, subject: &JsonValue, state: &str, issue: &str) -> R
     ]))
 }
 pub fn materialize_source_forms(source: &JsonValue, set: &JsonValue) -> Result<Vec<JsonValue>> {
-    materialize_source_forms_impl(source, set, None, None).map_err(|error| match error {
+    materialize_source_forms_impl(source, set, None, None, true).map_err(|error| match error {
         MaterializeError::Form(error) => error,
         MaterializeError::Logical { .. } => Error::Unsupported("form logical workspace"),
     })
 }
+// Compound preparation has already received exact owner-selected source bytes.
+// These temporary views check source-copy mechanics and are never returned as
+// a read response. Public materialization above still redacts private Claims.
 pub(crate) fn materialize_source_forms_from_fields(
     source: &JsonValue,
     set: &JsonValue,
     fields: &[FormField],
     available: usize,
 ) -> std::result::Result<Vec<JsonValue>, crate::item_rules::ItemRefusal> {
-    materialize_source_forms_impl(source, set, Some(fields), Some(available)).map_err(|error| {
-        match error {
+    materialize_source_forms_impl(source, set, Some(fields), Some(available), false).map_err(
+        |error| match error {
             MaterializeError::Form(error) => crate::item_rules::ItemRefusal::Unsupported(format!(
                 "compound source-copy forms: {error:?}"
             )),
@@ -552,8 +555,8 @@ pub(crate) fn materialize_source_forms_from_fields(
                     limit: Some(limit as u64),
                 }
             }
-        }
-    })
+        },
+    )
 }
 enum MaterializeError {
     Form(FormMechanicsError),
@@ -569,6 +572,7 @@ fn materialize_source_forms_impl(
     set: &JsonValue,
     selected_fields: Option<&[FormField]>,
     logical_limit: Option<usize>,
+    redact_private_claims: bool,
 ) -> std::result::Result<Vec<JsonValue>, MaterializeError> {
     let subject = metadata_subject(source)?;
     validate_history(set, &subject)?;
@@ -606,7 +610,8 @@ fn materialize_source_forms_impl(
             &fields,
             logical_limit.map(|limit| limit.saturating_sub(logical)),
         )?;
-        if source.object_get("claim_id").is_some()
+        if redact_private_claims
+            && source.object_get("claim_id").is_some()
             && !matches!(
                 source.object_get("visibility").and_then(JsonValue::as_str),
                 Some("public" | "public_metadata_only")
@@ -1082,4 +1087,61 @@ fn array_mut<'a>(root: &'a mut JsonValue, name: &str) -> Result<&'a mut Vec<Json
             _ => None,
         })
         .ok_or(Error::Invalid("missing form-set array"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn private_claim_form_mechanics_preserve_public_redaction() {
+        let claim = parse(
+            br#"{
+            "claim_id":"tos.claim.fixture.private",
+            "claim_version":1,
+            "visibility":"private",
+            "qualifiers":{"statement":"Private fixture statement."}
+        }"#,
+        )
+        .unwrap();
+        let subject = metadata_subject(&claim).unwrap();
+        let change = prepare_form_change(
+            &claim,
+            None,
+            "fixture:owner",
+            "tos.form.fixture.private",
+            "claim.statement",
+        )
+        .unwrap();
+        let forms = apply_form_changes(None, &subject, &[change]).unwrap();
+        let fields = metadata_fields(&claim).unwrap();
+        let internal =
+            materialize_source_forms_from_fields(&claim, &forms, &fields, 1_048_576).unwrap();
+        assert_eq!(text(&internal[0], "state").unwrap(), "ready");
+        assert_eq!(text(&internal[0], "role").unwrap(), "statement");
+        let public = materialize_source_forms(&claim, &forms).unwrap();
+        assert_eq!(text(&public[0], "state").unwrap(), "restricted");
+        assert_eq!(field(&public[0], "display_text").unwrap(), &JsonValue::Null);
+        assert!(array(&public[0], "context").unwrap().is_empty());
+
+        // Privacy cannot hide invalid mechanics from the compound validator.
+        let mut invalid = forms.clone();
+        set(
+            &mut array_mut(&mut invalid, "forms").unwrap()[0],
+            "language",
+            string("xx"),
+        )
+        .unwrap();
+        let checked =
+            materialize_source_forms_from_fields(&claim, &invalid, &fields, 1_048_576).unwrap();
+        assert_eq!(text(&checked[0], "state").unwrap(), "invalid");
+        assert_eq!(
+            array(&checked[0], "issues").unwrap(),
+            &[string("source-copy.language-not-bound-to-source")]
+        );
+        assert_eq!(
+            field(&checked[0], "display_text").unwrap(),
+            &JsonValue::Null
+        );
+    }
 }
