@@ -262,56 +262,6 @@ impl PgFormReads<'_, '_> {
     }
 }
 
-fn referenced_schema_paths(raw: &[u8]) -> SourceCommandResult<BTreeSet<String>> {
-    fn visit(value: &Value, paths: &mut BTreeSet<String>) -> SourceCommandResult<()> {
-        match value {
-            Value::Object(object) => {
-                for key in ["$ref", "$dynamicRef"] {
-                    if let Some(reference) = object.get(key).and_then(Value::as_str) {
-                        let base = reference.split('#').next().unwrap_or("");
-                        if base.is_empty() {
-                            continue;
-                        }
-                        let path = base
-                            .strip_prefix("https://tree-of-sophia.local/")
-                            .or_else(|| base.strip_prefix("https://treeofsophia.local/"))
-                            .ok_or(SourceCommandError::Unsupported(
-                                "PG HumanForms external schema reference",
-                            ))?;
-                        let parsed = RelativePath::parse(path).map_err(|_| {
-                            SourceCommandError::Invalid("PG HumanForms schema reference path")
-                        })?;
-                        if !parsed.as_str().starts_with("ToS/contracts/")
-                            || !parsed.as_str().ends_with(".schema.json")
-                        {
-                            return Err(SourceCommandError::Unsupported(
-                                "PG HumanForms schema reference outside contracts",
-                            ));
-                        }
-                        paths.insert(parsed.as_str().to_owned());
-                    }
-                }
-                for child in object.values() {
-                    visit(child, paths)?;
-                }
-            }
-            Value::Array(array) => {
-                for child in array {
-                    visit(child, paths)?;
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    let parsed: Value = serde_json::from_slice(raw)
-        .map_err(|_| SourceCommandError::Invalid("PG HumanForms selected schema JSON"))?;
-    let mut paths = BTreeSet::new();
-    visit(&parsed, &mut paths)?;
-    Ok(paths)
-}
-
 fn read_schema_closure(
     reads: &mut PgFormReads<'_, '_>,
     roots: impl IntoIterator<Item = String>,
@@ -333,11 +283,7 @@ fn read_schema_closure(
                 "PG HumanForms schema member bytes",
             ));
         }
-        for dependency in referenced_schema_paths(&raw)? {
-            if !visited.contains(&dependency) {
-                pending.insert(dependency);
-            }
-        }
+        crate::source_revisions::collect_schema_refs(&cmd::parse(&raw)?, &path, &mut pending, 0)?;
     }
     Ok(())
 }

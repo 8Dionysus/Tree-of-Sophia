@@ -580,7 +580,10 @@ impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
     }
 }
 
-fn collect_schema_refs(
+/// Resolve addressed schema dependencies for filesystem and PostgreSQL owners.
+/// Relative references stay beneath the selected contracts namespace; no
+/// external fetch or path normalization is permitted.
+pub(crate) fn collect_schema_refs(
     value: &JsonValue,
     from: &str,
     out: &mut BTreeSet<String>,
@@ -8262,6 +8265,63 @@ mod readonly_descriptor_tests {
 
     fn parse(value: serde_json::Value) -> JsonValue {
         cmd::parse(&serde_json::to_vec(&value).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn selected_schema_references_resolve_relative_forms_and_reject_external_paths() {
+        let mut paths = BTreeSet::new();
+        for (name, raw) in [
+            (
+                "ToS/contracts/human-form.schema.json",
+                include_bytes!("../../../../ToS/contracts/human-form.schema.json").as_slice(),
+            ),
+            (
+                "ToS/contracts/human-form-set.schema.json",
+                include_bytes!("../../../../ToS/contracts/human-form-set.schema.json").as_slice(),
+            ),
+        ] {
+            collect_schema_refs(&cmd::parse(raw).unwrap(), name, &mut paths, 0).unwrap();
+        }
+        assert_eq!(
+            paths,
+            BTreeSet::from([
+                "ToS/contracts/human-form.schema.json".to_owned(),
+                "ToS/contracts/knowledge-assessment.schema.json".to_owned(),
+            ])
+        );
+        for reference in [
+            "https://tree-of-sophia.local/ToS/contracts/human-form.schema.json#/$defs/example",
+            "https://treeofsophia.local/ToS/contracts/human-form.schema.json",
+            "human-form.schema.json",
+            "#/$defs/local",
+        ] {
+            collect_schema_refs(
+                &parse(serde_json::json!({"$dynamicRef":reference})),
+                "ToS/contracts/human-form-set.schema.json",
+                &mut paths,
+                0,
+            )
+            .unwrap();
+        }
+        assert_eq!(paths.len(), 2);
+        for reference in [
+            serde_json::json!("https://external.invalid/ToS/contracts/human-form.schema.json"),
+            serde_json::json!("https://tree-of-sophia.local/ToS/private.schema.json"),
+            serde_json::json!("../private.schema.json"),
+            serde_json::json!("/ToS/contracts/human-form.schema.json"),
+            serde_json::json!("human-form.json"),
+            serde_json::json!(42),
+        ] {
+            assert!(
+                collect_schema_refs(
+                    &parse(serde_json::json!({"$ref":reference})),
+                    "ToS/contracts/human-form-set.schema.json",
+                    &mut BTreeSet::new(),
+                    0,
+                )
+                .is_err()
+            );
+        }
     }
 
     #[test]

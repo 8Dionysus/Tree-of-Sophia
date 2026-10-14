@@ -123,43 +123,7 @@ fn item_contracts(
         if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
             continue;
         }
-        let parsed: Value = serde_json::from_slice(&raw)
-            .map_err(|_| SourceCommandError::Invalid("PG Item schema JSON"))?;
-        let mut stack = vec![parsed];
-        while let Some(value) = stack.pop() {
-            match value {
-                Value::Object(object) => {
-                    for key in ["$ref", "$dynamicRef"] {
-                        let Some(reference) = object.get(key).and_then(Value::as_str) else {
-                            continue;
-                        };
-                        let base = reference.split('#').next().unwrap_or("");
-                        if base.is_empty() {
-                            continue;
-                        }
-                        let selected = base
-                            .strip_prefix("https://tree-of-sophia.local/")
-                            .or_else(|| base.strip_prefix("https://treeofsophia.local/"))
-                            .ok_or(SourceCommandError::Unsupported(
-                                "PG Item external schema reference",
-                            ))?;
-                        let selected = RelativePath::parse(selected)
-                            .map_err(|_| SourceCommandError::Invalid("PG Item schema reference"))?;
-                        if !selected.as_str().starts_with("ToS/contracts/")
-                            || !selected.as_str().ends_with(".schema.json")
-                        {
-                            return Err(SourceCommandError::Unsupported(
-                                "PG Item schema reference outside contracts",
-                            ));
-                        }
-                        pending.insert(selected.as_str().to_owned());
-                    }
-                    stack.extend(object.into_values());
-                }
-                Value::Array(array) => stack.extend(array),
-                _ => {}
-            }
-        }
+        crate::source_revisions::collect_schema_refs(&cmd::parse(&raw)?, &path, &mut pending, 0)?;
     }
     Ok(())
 }
