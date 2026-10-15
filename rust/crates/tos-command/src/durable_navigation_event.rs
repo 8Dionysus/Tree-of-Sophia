@@ -8176,6 +8176,35 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
         charge(node.raw.len())?;
         if let Some(existing) = nodes.get(&node.node_id) {
             if !same_effective_node(existing, &node) {
+                // Emit only fingerprints and fixed field names, never source
+                // values, so a refused merge can be diagnosed from owner logs.
+                let left = strict_json_value(&existing.raw, limits.max_row_bytes)?;
+                let right = strict_json_value(&node.raw, limits.max_row_bytes)?;
+                let fields = [
+                    "/node_kind",
+                    "/source_ref",
+                    "/source_line",
+                    "/source_sha256",
+                    "/label",
+                    "/identity_status",
+                    "/display",
+                    "/properties",
+                    "/properties/source_record",
+                    "/properties/source_claim",
+                    "/properties/human_forms",
+                    "/properties/record_version_view",
+                ];
+                let changed: Vec<_> = fields
+                    .into_iter()
+                    .filter(|field| left.pointer(field) != right.pointer(field))
+                    .collect();
+                eprintln!(
+                    "navigation node conflict id_sha256={} left_sha256={} right_sha256={} visible_changed={} fields={changed:?}",
+                    Digest256::of_bytes(node.node_id.as_bytes()).to_hex(),
+                    existing.sha256.to_hex(),
+                    node.sha256.to_hex(),
+                    existing.visible != node.visible
+                );
                 return Err(DurableError::Conflict(
                     "navigation shared node contributions conflict",
                 ));
