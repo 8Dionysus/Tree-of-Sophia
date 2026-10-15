@@ -1679,6 +1679,14 @@ fn native_corpus_composition_case(installed: bool) {
     }
     resource_rows.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
     expected["counts"]["resources"] = serde_json::json!(resource_rows.len());
+    assert_retained_corpus_navigation_extension(
+        &projection.value()["source_navigation"],
+        &expected["source_navigation"],
+        &files,
+    );
+    expected["source_navigation"] = projection.value()["source_navigation"].clone();
+    expected["counts"]["source_navigation_nodes"] = json!(12);
+    expected["counts"]["source_navigation_edges"] = json!(10);
     let expected_limits = JsonLimits::new(16 * 1024 * 1024, 96, 1_000_000, 4096).unwrap();
     let expected_document = parse_json(
         &serde_json::to_vec(&expected).unwrap(),
@@ -1695,7 +1703,7 @@ fn native_corpus_composition_case(installed: bool) {
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     // The selected native cut adds the vocabulary resource and current contract.
-    // Preserve every historical query field except its nine resource counts.
+    // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
     assert_eq!(expected["counts"]["resources"], serde_json::json!(339));
     for pointer in [
         "/cases/status/counts/resources",
@@ -1711,6 +1719,17 @@ fn native_corpus_composition_case(installed: bool) {
         let count = query_oracle.pointer_mut(pointer).unwrap();
         assert_eq!(*count, serde_json::json!(337));
         *count = serde_json::json!(339);
+        let parent = pointer.strip_suffix("/resources").unwrap();
+        for (field, old, new) in [
+            ("source_navigation_nodes", 6, 12),
+            ("source_navigation_edges", 4, 10),
+        ] {
+            let value = query_oracle
+                .pointer_mut(&format!("{parent}/{field}"))
+                .unwrap();
+            assert_eq!(*value, json!(old));
+            *value = json!(new);
+        }
     }
     for pointer in [
         "/cases/search/schema",

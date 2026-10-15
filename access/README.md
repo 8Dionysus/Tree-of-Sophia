@@ -1271,9 +1271,12 @@ older catalog-backed bibliographic profile retains its `maker:sha256:` IDs.
 Derived node IDs belong to their selected projection profile; stable source
 Claim and Agent IDs remain unchanged. Existing derived publications require
 their declared rebuild/migration route when switching producer profiles.
-The navigation carrier retains exact bibliographic transport fields under
-`properties.bibliographic_carrier`; authored properties and source Claim bytes
-keep their existing meaning. Initial bootstrap retains every Claim contribution
+Navigation nodes retain exact bibliographic transport fields under
+`properties.bibliographic_carrier`. Claim edges retain their typed source hash,
+source path and line, maker, provenance event and evidence-node references as
+a complete provenance group in the corpus-index schema. Authored properties
+and source Claim bytes keep their existing meaning. Initial bootstrap retains
+every Claim contribution
 to a shared evidence, identity or provenance carrier. Replacing one Claim cannot
 retire another Claim's contribution. Switching from the earlier raw event
 carriers requires an explicit navigation rebuild at the current source head;

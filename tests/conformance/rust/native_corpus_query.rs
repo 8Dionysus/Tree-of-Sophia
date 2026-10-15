@@ -1,6 +1,135 @@
 // Private continuation of the existing native corpus producer case.
 // This is finite selected projection mechanics, not a production rights issuer.
 
+// The frozen Python corpus predates the shared reified-Claim navigation route.
+// Retain every historical row byte-for-byte, then check the exact authored
+// Claim and its finite six-node/six-edge addition before composing expectations.
+fn assert_retained_corpus_navigation_extension(
+    actual: &serde_json::Value,
+    historical: &serde_json::Value,
+    files: &std::collections::BTreeMap<String, Vec<u8>>,
+) {
+    use serde_json::{Value, json};
+    use std::collections::{BTreeMap, BTreeSet};
+    let path = "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.jsonl";
+    let raw = std::str::from_utf8(&files[path]).unwrap();
+    let lines = raw
+        .lines()
+        .filter(|s| !s.trim().is_empty())
+        .collect::<Vec<_>>();
+    assert_eq!(lines.len(), 1);
+    let claim: Value = serde_json::from_str(lines[0]).unwrap();
+    let claim_id = claim["claim_id"].as_str().unwrap();
+    let claim_node_id = format!("claim:{claim_id}");
+    let claim_sha =
+        tos_foundation::Digest256::of_bytes(&serde_json::to_vec(&claim).unwrap()).to_hex();
+    for key in ["schema_version", "authority_boundary", "rights"] {
+        assert_eq!(actual[key], historical[key], "unchanged navigation {key}");
+    }
+    let mut additions = BTreeMap::new();
+    for (collection, id) in [("nodes", "node_id"), ("edges", "edge_id")] {
+        let rows = actual[collection].as_array().unwrap();
+        let old = historical[collection].as_array().unwrap();
+        let old_ids = old
+            .iter()
+            .map(|row| row[id].as_str().unwrap())
+            .collect::<BTreeSet<_>>();
+        for row in old {
+            assert_eq!(
+                rows.iter().find(|new| new[id] == row[id]),
+                Some(row),
+                "historical {collection} {}",
+                row[id]
+            );
+        }
+        let new = rows
+            .iter()
+            .filter(|row| !old_ids.contains(row[id].as_str().unwrap()))
+            .collect::<Vec<_>>();
+        assert_eq!(new.len(), 6, "complete reified addition in {collection}");
+        additions.insert(collection, new);
+        assert_eq!(actual["counts"][collection], rows.len());
+    }
+    let nodes = &additions["nodes"];
+    let kinds = nodes
+        .iter()
+        .map(|n| n["node_kind"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        kinds,
+        BTreeSet::from([
+            "agent",
+            "claim",
+            "evidence",
+            "letter",
+            "maker",
+            "provenance_event"
+        ])
+    );
+    let root = nodes
+        .iter()
+        .find(|n| n["node_id"] == claim_node_id)
+        .unwrap();
+    assert_eq!(root["source_ref"], path);
+    assert_eq!(root["properties"]["source_claim"], claim);
+    assert_eq!(
+        root["properties"]["bibliographic_carrier"]["source_sha256"],
+        claim_sha
+    );
+    assert_eq!(
+        root["properties"]["bibliographic_carrier"]["source_line"],
+        1
+    );
+    let maker = nodes.iter().find(|n| n["node_kind"] == "maker").unwrap();
+    assert_eq!(maker["properties"]["source_maker"], claim["maker"]);
+    assert_eq!(maker["source_ref"], path);
+    let evidence = nodes.iter().find(|n| n["node_kind"] == "evidence").unwrap();
+    assert_eq!(
+        evidence["properties"]["evidence_ref"],
+        claim["evidence_refs"][0]
+    );
+    let edges = &additions["edges"];
+    assert_eq!(
+        edges
+            .iter()
+            .map(|e| e["predicate_id"].as_str().unwrap())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([
+            "has_subject",
+            "has_object",
+            "made_by",
+            "generated_by",
+            "supported_by",
+            "has_source_claim"
+        ])
+    );
+    let all_ids = actual["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["node_id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    for edge in edges {
+        assert_eq!(edge["claim_ref"], claim_id);
+        assert_eq!(edge["claim_sha256"], claim_sha);
+        assert_eq!(edge["source_claim_file_ref"], path);
+        assert_eq!(edge["source_ref"], path);
+        assert_eq!(edge["source_refs"], json!([path]));
+        assert_eq!(edge["source_claim_line"], 1);
+        assert_eq!(edge["review_status"], claim["review_status"]);
+        assert_eq!(edge["maker_node_id"], maker["node_id"]);
+        assert_eq!(edge["evidence_node_ids"], json!([evidence["node_id"]]));
+        assert!(all_ids.contains(edge["from_id"].as_str().unwrap()));
+        assert!(all_ids.contains(edge["to_id"].as_str().unwrap()));
+    }
+    let subject = edges
+        .iter()
+        .find(|e| e["predicate_id"] == "has_source_claim")
+        .unwrap();
+    assert_eq!(subject["from_id"], claim["subject_ref"]);
+    assert_eq!(subject["to_id"], claim_node_id);
+}
+
 fn assert_native_corpus_query_packets(
     selected: &tos_compiler::knowledge_full_fixture::FullKnowledgeFixture,
     projection: &tos_compiler::source_corpus::NativeCorpusProjection,

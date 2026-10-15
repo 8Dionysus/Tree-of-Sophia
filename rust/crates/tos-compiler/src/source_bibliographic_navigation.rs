@@ -690,7 +690,10 @@ mod oracle {
             "source_ref":"ToS/source-witnesses/claims/a/source-claims.jsonl", "source_line":7,
             "source_sha256":"ab".repeat(32), "properties":{"source_claim":claim,"visibility":"public"}});
         let edge = json!({"edge_id":"edge:a","edge_kind":"supported_by","from_id":"claim:tos.claim.a",
-            "to_id":"evidence:a","source_claim_file_ref":original["source_ref"]});
+            "to_id":"evidence:a","source_claim_file_ref":original["source_ref"],
+            "claim_ref":"tos.claim.a","claim_sha256":original["source_sha256"],
+            "source_claim_line":7,"review_status":"unreviewed","evidence_node_ids":["evidence:a"],
+            "maker_node_id":"maker:a","provenance_event_node_id":"provenance_event:a"});
         let output = navigation_claim_carriers(
             graph::SuppliedBibliographicClaimCohort {
                 nodes: vec![original.clone()],
@@ -718,6 +721,43 @@ mod oracle {
             json!([original["source_ref"]])
         );
         assert_eq!(output.trace, json!({"claim_ref":"tos.claim.a"}));
+        let schema_uri = "https://tree-of-sophia.local/ToS/contracts/tos-corpus-index.schema.json";
+        let probe = tos_validation::SchemaBackendProbe::new(
+            [tos_validation::SchemaResource {
+                uri: schema_uri.into(),
+                raw: include_bytes!("../../../../ToS/contracts/tos-corpus-index.schema.json")
+                    .to_vec(),
+            }],
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let edge_uri = format!("{schema_uri}#/$defs/sourceNavigationEdge");
+        let validates = |row: &Value| {
+            probe
+                .is_valid_raw(&edge_uri, &serde_json::to_vec(row).unwrap())
+                .unwrap()
+        };
+        assert!(validates(&output.edges[0]));
+        for field in [
+            "claim_ref",
+            "claim_sha256",
+            "evidence_node_ids",
+            "maker_node_id",
+            "provenance_event_node_id",
+            "source_claim_file_ref",
+            "source_claim_line",
+            "source_ref",
+        ] {
+            let mut incomplete = output.edges[0].clone();
+            incomplete.as_object_mut().unwrap().remove(field);
+            assert!(!validates(&incomplete), "missing provenance field {field}");
+        }
+        let mut malformed = output.edges[0].clone();
+        malformed["claim_sha256"] = json!("not-a-digest");
+        assert!(!validates(&malformed));
+        let mut unknown = output.edges[0].clone();
+        unknown["unexpected"] = json!(true);
+        assert!(!validates(&unknown));
 
         let mut subject_claim = original.clone();
         subject_claim["properties"]["source_claim"]["subject_ref"] = json!("tos.work.a");
