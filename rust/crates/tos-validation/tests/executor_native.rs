@@ -32,6 +32,133 @@ mod linux {
     }
 
     #[test]
+    fn cut_diagnostic_reuse_preserves_exact_inputs_and_execution_cost() {
+        use std::collections::BTreeMap;
+        use std::sync::atomic::AtomicBool;
+        use tos_foundation::SourceRevision;
+        use tos_validation::source_cut::{
+            CutSchemaDiagnosticsLimits, CutWorkerLimits, CutWorkerSchemaExecutor,
+        };
+
+        let (identity, _, _) = worker();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let contract = "ToS/contracts/diagnostic-reuse.schema.json";
+        let uri = format!("https://tree-of-sophia.local/{contract}");
+        let raw = format!(
+            r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{uri}","type":"integer","$defs":{{"integer":{{"type":"integer"}}}}}}"#,
+        ).into_bytes();
+        let mut executor = CutWorkerSchemaExecutor::from_selected_resources(
+            SourceRevision(Digest256::of_bytes(b"exact-reuse-test-cut")),
+            BTreeMap::from([(
+                contract.to_owned(),
+                (uri.clone(), Digest256::of_bytes(&raw)),
+            )]),
+            vec![SchemaResource { uri, raw }],
+            FormatProfile::LegacyPythonObserved20260923,
+            identity,
+            ExecutorBudget::laboratory(),
+            CutWorkerLimits {
+                max_receipts: 6,
+                max_receipt_bytes: 65536,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        executor
+            .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+                max_total_issues: 16,
+                max_total_report_bytes: 65536,
+                max_total_state_bytes: 8 * 1024 * 1024,
+            })
+            .unwrap();
+        let state_before = executor
+            .diagnostics_v2_controller_state_upper_bound(16, 16)
+            .unwrap();
+        assert!(
+            executor
+                .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        let one = executor.diagnostics_v2_cumulative_cost().unwrap();
+        assert_eq!(one.completed_exchanges(), 1);
+        let state_after = executor
+            .diagnostics_v2_controller_state_upper_bound(16, 16)
+            .unwrap();
+        assert!(state_after > state_before);
+        for _ in 0..3 {
+            assert!(
+                executor
+                    .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                    .unwrap()
+            );
+            assert_eq!(executor.diagnostics_v2_cumulative_cost().unwrap(), one);
+            assert_eq!(
+                executor
+                    .diagnostics_v2_controller_state_upper_bound(16, 16)
+                    .unwrap(),
+                state_after
+            );
+        }
+        // The same decoded value with new bytes, locator or fragment still
+        // requires its own real execution against the selected schema.
+        for (path, bytes, selected) in [
+            ("subject", b" 7".as_slice(), contract.to_owned()),
+            ("other", b"7".as_slice(), contract.to_owned()),
+            (
+                "subject",
+                b"7".as_slice(),
+                format!("{contract}#/$defs/integer"),
+            ),
+        ] {
+            assert!(
+                executor
+                    .check_reusing_scalar(path, bytes, &selected, deadline, &cancelled)
+                    .unwrap()
+            );
+        }
+        assert_eq!(
+            executor
+                .diagnostics_v2_cumulative_cost()
+                .unwrap()
+                .completed_exchanges(),
+            4
+        );
+        // Invalid checks keep their actual diagnostic on every invocation.
+        for _ in 0..2 {
+            assert!(
+                !executor
+                    .check_reusing_scalar("subject", br#""x""#, contract, deadline, &cancelled)
+                    .unwrap()
+            );
+        }
+        assert_eq!(
+            executor
+                .diagnostics_v2_cumulative_cost()
+                .unwrap()
+                .completed_exchanges(),
+            6
+        );
+        assert!(
+            executor
+                .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            executor
+                .check_reusing_scalar("subject", b"8", contract, deadline, &cancelled)
+                .is_err()
+        );
+        // An incomplete/exhausted operation cannot be rescued by a cache hit.
+        assert!(
+            executor
+                .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                .is_err()
+        );
+    }
+
+    #[test]
     fn candidate_scalar_reuse_preserves_exact_inputs_and_budget_refusals() {
         use std::sync::atomic::{AtomicBool, Ordering};
         use tos_validation::executor::{BatchBudget, VerifiedWorkerImageHandle};

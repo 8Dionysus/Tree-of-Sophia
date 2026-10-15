@@ -879,6 +879,9 @@ pub struct CutWorkerSchemaExecutor {
     diagnostic_issues_used: usize,
     diagnostic_report_bytes_used: usize,
     diagnostic_state_bytes_used: usize,
+    // Actual valid diagnostics reused only within this immutable executor.
+    // No new execution receipt or diagnostic cost is manufactured on a hit.
+    valid_diagnostic_reuse: Vec<Digest256>,
     pending_diagnostics: Vec<SchemaDiagnosticResult>,
     finished: bool,
     protocol_started: bool,
@@ -1987,6 +1990,7 @@ impl CutWorkerSchemaExecutor {
             diagnostic_issues_used: 0,
             diagnostic_report_bytes_used: 0,
             diagnostic_state_bytes_used: 0,
+            valid_diagnostic_reuse: Vec::new(),
             pending_diagnostics: Vec::new(),
             finished: false,
             protocol_started: false,
@@ -2379,6 +2383,14 @@ impl CutWorkerSchemaExecutor {
         };
         pending_state_bytes
             .checked_add(retained_schema_closure_bytes)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<Digest256>>()))
+            .and_then(|bytes| {
+                bytes.checked_add(
+                    self.valid_diagnostic_reuse
+                        .len()
+                        .checked_mul(4 * std::mem::size_of::<Digest256>())?,
+                )
+            })
             .and_then(|bytes| bytes.checked_add(exchange_peak.max(decode_peak)))
             .ok_or(crate::item_budget_origin!())
     }
@@ -3267,7 +3279,7 @@ impl CutWorkerSchemaExecutor {
                 )
             })?;
         if self.diagnostics_v2.is_some() {
-            return self.check(path, raw, contract, deadline, cancelled);
+            return self.check_reusing_valid_diagnostic(path, raw, contract, deadline, cancelled);
         }
         // Reapply the same selected-contract/fragment and raw/decoded admission
         // bounds even on a hit; a receipt cannot bypass current operation law.
@@ -3307,6 +3319,100 @@ impl CutWorkerSchemaExecutor {
             return Ok(valid);
         }
         self.check(path, raw, contract, deadline, cancelled)
+    }
+
+    fn check_reusing_valid_diagnostic(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        if self.diagnostics_v2_cost_unknown || self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "schema diagnostics operation unavailable for reuse".into(),
+            ));
+        }
+        // The profile, worker image, source revision, schema closure and limits
+        // cannot change after the first execution. Recheck input admission and
+        // bind the locator, exact bytes and selected fragment on every lookup.
+        self.admit_diagnostics_v2_controller_state(raw.len(), path.len(), contract)?;
+        if self.diagnostics_v2_uses_legacy_raw_input() {
+            if raw.len() > self.diagnostics_v2_instance_limit() {
+                return Err(crate::item_budget_origin!());
+            }
+            self.contract_root_uri(contract)?;
+        } else {
+            self.decoded_input(raw, contract)?;
+        }
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-cut-valid-diagnostic-reuse-v1\0");
+        for bytes in [path.as_bytes(), contract.as_bytes(), raw] {
+            hash.update(&(bytes.len() as u64).to_be_bytes());
+            hash.update(bytes);
+        }
+        let key = hash.finalize();
+        if self.valid_diagnostic_reuse.contains(&key) {
+            self.prepared
+                .preflight(deadline, cancelled)
+                .map_err(|reason| {
+                    operation_failure_with_context(
+                        reason,
+                        self.prepared.exchange_failure(),
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
+            return Ok(true);
+        }
+        let valid = self.check(path, raw, contract, deadline, cancelled)?;
+        if valid {
+            // Four digest slots per retained result cover Vec's initial and
+            // geometric spare capacity. Charge this retained state alongside
+            // the closure and outstanding diagnostics, before allocating it.
+            let charge = 4 * std::mem::size_of::<Digest256>();
+            let next = self
+                .diagnostic_state_bytes_used
+                .checked_add(charge)
+                .filter(|bytes| {
+                    self.diagnostics_v2
+                        .is_some_and(|limits| *bytes <= limits.max_total_state_bytes)
+                })
+                .ok_or(crate::item_budget_origin!())?;
+            if let Some(cap) = self.diagnostics_v2_controller_state_cap {
+                let root = self.contract_root_uri(contract)?;
+                let peak = self
+                    .diagnostics_v2_controller_state_upper_bound_for_lengths(
+                        raw.len(),
+                        path.len(),
+                        contract.len(),
+                        root.len(),
+                    )?
+                    .checked_add(charge)
+                    .ok_or(crate::item_budget_origin!())?;
+                if peak > cap {
+                    self.prepared.poison(ExecutorFailure::InputBudget);
+                    return Err(crate::item_budget_origin!());
+                }
+            }
+            self.valid_diagnostic_reuse
+                .try_reserve(1)
+                .map_err(|_| crate::item_budget_origin!())?;
+            if self.valid_diagnostic_reuse.capacity()
+                > self
+                    .valid_diagnostic_reuse
+                    .len()
+                    .saturating_add(1)
+                    .saturating_mul(4)
+            {
+                self.prepared.poison(ExecutorFailure::InputBudget);
+                return Err(crate::item_budget_origin!());
+            }
+            self.diagnostic_state_bytes_used = next;
+            self.valid_diagnostic_reuse.push(key);
+        }
+        // Invalid checks retain their actual diagnostics on every invocation.
+        Ok(valid)
     }
 
     fn contract_root_uri(&self, contract: &str) -> Result<String, ItemRefusal> {
