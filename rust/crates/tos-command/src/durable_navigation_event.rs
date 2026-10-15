@@ -7732,6 +7732,8 @@ fn verify_navigation_reverse_dependency_closure_set<C: GenericClient>(
     Ok(())
 }
 
+// Budgets bound this mutation and its selected old contributions. Persistent
+// corpus size is not a request budget and is never rescanned for this check.
 fn verify_navigation_batch_final_budget<C: GenericClient>(
     tx: &mut C,
     domain: &str,
@@ -7742,92 +7744,40 @@ fn verify_navigation_batch_final_budget<C: GenericClient>(
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<()> {
     let (target_paths, target_ids): (Vec<_>, Vec<_>) = target_owners.iter().cloned().unzip();
-    let base_usage = tx.query_one(
-        "SELECT count(*) AS row_count,COALESCE(sum(octet_length(row_json)),0) AS row_bytes
-           FROM cmd2_projection_navigation_bootstrap_row
-          WHERE domain=$1 AND consumer_id=$2",
-        &[&domain, &consumer_id],
+    let selected = tx.query_one(
+        "WITH target AS (SELECT * FROM unnest($3::text[],$4::text[]) AS t(source_path,record_id)),
+         carriers_raw AS (
+           SELECT octet_length(b.row_json)::bigint AS bytes
+             FROM target t JOIN cmd2_projection_navigation_bootstrap_row b
+               ON b.owner_source_path=t.source_path AND b.owner_record_id=t.record_id
+            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.active
+           UNION ALL
+           SELECT octet_length(n.row_json)::bigint FROM target t JOIN cmd2_projection_navigation_node n
+             ON n.source_path=t.source_path AND n.record_id=t.record_id
+            WHERE n.domain=$1 AND n.consumer_id=$2
+           UNION ALL
+           SELECT octet_length(e.row_json)::bigint FROM target t JOIN cmd2_projection_navigation_edge e
+             ON e.source_path=t.source_path AND e.record_id=t.record_id
+            WHERE e.domain=$1 AND e.consumer_id=$2
+           UNION ALL
+           SELECT octet_length(d.row_json)::bigint FROM target t JOIN cmd2_projection_navigation_diagnostic d
+             ON d.source_path=t.source_path AND d.record_id=t.record_id
+            WHERE d.domain=$1 AND d.consumer_id=$2
+         ), carriers AS (SELECT * FROM carriers_raw LIMIT $5), dependencies_raw AS (
+           SELECT (octet_length(d.dependency_path)+octet_length(d.dependency_role)
+                  +COALESCE(octet_length(d.sha256),0)+COALESCE(octet_length(d.absent_reason),0)+64)::bigint AS bytes
+             FROM target t JOIN cmd2_projection_navigation_dependency d
+               ON d.source_path=t.source_path AND d.record_id=t.record_id
+            WHERE d.domain=$1 AND d.consumer_id=$2
+         ), dependencies AS (SELECT * FROM dependencies_raw LIMIT $6)
+         SELECT (SELECT count(*) FROM carriers) AS carrier_count,
+                  (SELECT COALESCE(sum(bytes),0)::bigint FROM carriers) AS carrier_bytes,
+                  (SELECT count(*) FROM dependencies) AS dependency_count,
+                  (SELECT COALESCE(sum(bytes),0)::bigint FROM dependencies) AS dependency_bytes",
+        &[&domain,&consumer_id,&target_paths,&target_ids,
+          &i64::try_from(limits.max_current_rows.saturating_add(1)).map_err(|_| DurableError::Refused("navigation batch row cap"))?,
+          &i64::try_from(limits.max_dependencies.saturating_add(1)).map_err(|_| DurableError::Refused("navigation batch dependency cap"))?],
     )?;
-    let owner_usage = tx.query_one(
-        "SELECT count(*) AS row_count,
-                COALESCE(sum(octet_length(owner_source_path)+96),0) AS row_bytes
-           FROM cmd2_projection_navigation_bootstrap_owner
-          WHERE domain=$1 AND consumer_id=$2",
-        &[&domain, &consumer_id],
-    )?;
-    let event_usage = tx.query_one(
-        "SELECT count(*) AS row_count,COALESCE(sum(octet_length(row_json)),0) AS row_bytes
-           FROM (
-             SELECT row_json FROM cmd2_projection_navigation_node
-              WHERE domain=$1 AND consumer_id=$2
-             UNION ALL
-             SELECT row_json FROM cmd2_projection_navigation_edge
-              WHERE domain=$1 AND consumer_id=$2
-             UNION ALL
-             SELECT row_json FROM cmd2_projection_navigation_diagnostic
-              WHERE domain=$1 AND consumer_id=$2
-           ) event_rows",
-        &[&domain, &consumer_id],
-    )?;
-    let target_event_usage = tx.query_one(
-        "SELECT count(*) AS row_count,COALESCE(sum(octet_length(row_json)),0) AS row_bytes
-           FROM (
-             SELECT n.row_json FROM cmd2_projection_navigation_node n
-              JOIN unnest($3::text[],$4::text[]) AS target(source_path,record_id)
-                ON n.source_path=target.source_path AND n.record_id=target.record_id
-              WHERE n.domain=$1 AND n.consumer_id=$2
-             UNION ALL
-             SELECT e.row_json FROM cmd2_projection_navigation_edge e
-              JOIN unnest($3::text[],$4::text[]) AS target(source_path,record_id)
-                ON e.source_path=target.source_path AND e.record_id=target.record_id
-              WHERE e.domain=$1 AND e.consumer_id=$2
-             UNION ALL
-             SELECT d.row_json FROM cmd2_projection_navigation_diagnostic d
-              JOIN unnest($3::text[],$4::text[]) AS target(source_path,record_id)
-                ON d.source_path=target.source_path AND d.record_id=target.record_id
-              WHERE d.domain=$1 AND d.consumer_id=$2
-           ) target_rows",
-        &[&domain, &consumer_id, &target_paths, &target_ids],
-    )?;
-    let dependency_usage = tx.query_one(
-        "SELECT count(*) AS row_count,
-                COALESCE(sum(octet_length(dependency_path)+octet_length(dependency_role)
-                  +COALESCE(octet_length(sha256),0)+COALESCE(octet_length(absent_reason),0)
-                  +64),0) AS row_bytes
-           FROM cmd2_projection_navigation_dependency
-          WHERE domain=$1 AND consumer_id=$2",
-        &[&domain, &consumer_id],
-    )?;
-    let target_dependency_usage = tx.query_one(
-        "SELECT count(*) AS row_count,
-                COALESCE(sum(octet_length(d.dependency_path)+octet_length(d.dependency_role)
-                  +COALESCE(octet_length(d.sha256),0)+COALESCE(octet_length(d.absent_reason),0)
-                  +64),0) AS row_bytes
-           FROM cmd2_projection_navigation_dependency d
-           JOIN unnest($3::text[],$4::text[]) AS target(source_path,record_id)
-             ON d.source_path=target.source_path AND d.record_id=target.record_id
-          WHERE d.domain=$1 AND d.consumer_id=$2",
-        &[&domain, &consumer_id, &target_paths, &target_ids],
-    )?;
-    let current_cohort_count: u64 = as_u64(
-        tx.query_one(
-            "SELECT count(*) AS row_count FROM cmd2_projection_navigation_cohort
-              WHERE domain=$1 AND consumer_id=$2",
-            &[&domain, &consumer_id],
-        )?
-        .get("row_count"),
-    )?;
-    let target_cohort_count: u64 = as_u64(
-        tx.query_one(
-            "SELECT count(*) AS row_count FROM cmd2_projection_navigation_cohort c
-             JOIN unnest($3::text[],$4::text[]) AS target(source_path,record_id)
-               ON c.source_path=target.source_path AND c.record_id=target.record_id
-             WHERE c.domain=$1 AND c.consumer_id=$2",
-            &[&domain, &consumer_id, &target_paths, &target_ids],
-        )?
-        .get("row_count"),
-    )?;
-
     let new_carrier_count = replacements.iter().try_fold(0u64, |total, rows| {
         total
             .checked_add(rows.nodes.len() as u64)
@@ -7880,55 +7830,28 @@ fn verify_navigation_batch_final_budget<C: GenericClient>(
             .checked_add(row_bytes)
             .ok_or(DurableError::Refused("navigation batch dependency bytes"))
     })?;
-    let final_carrier_count = as_u64(event_usage.get("row_count"))?
-        .checked_sub(as_u64(target_event_usage.get("row_count"))?)
-        .and_then(|value| value.checked_add(new_carrier_count))
-        .ok_or(DurableError::Corrupt(
-            "navigation batch carrier count underflow",
+    let selected_rows = as_u64(selected.get("carrier_count"))?
+        .checked_add(as_u64(selected.get("dependency_count"))?)
+        .and_then(|n| n.checked_add(new_carrier_count))
+        .and_then(|n| n.checked_add(new_dependency_count))
+        .ok_or(DurableError::Refused("navigation batch selected row count"))?;
+    let selected_bytes = header_bytes
+        .checked_add(as_u64(selected.get("carrier_bytes"))?)
+        .and_then(|n| n.checked_add(as_u64(selected.get("dependency_bytes")).ok()?))
+        .and_then(|n| n.checked_add(new_carrier_bytes))
+        .and_then(|n| n.checked_add(new_dependency_bytes))
+        .ok_or(DurableError::Refused(
+            "navigation batch selected byte count",
         ))?;
-    let final_dependency_count = as_u64(dependency_usage.get("row_count"))?
-        .checked_sub(as_u64(target_dependency_usage.get("row_count"))?)
-        .and_then(|value| value.checked_add(new_dependency_count))
-        .ok_or(DurableError::Corrupt(
-            "navigation batch dependency count underflow",
-        ))?;
-    let final_cohort_count = current_cohort_count
-        .checked_sub(target_cohort_count)
-        .and_then(|value| value.checked_add(replacements.len() as u64))
-        .ok_or(DurableError::Corrupt(
-            "navigation batch cohort count underflow",
-        ))?;
-    let final_rows = as_u64(base_usage.get("row_count"))?
-        .checked_add(final_carrier_count)
-        .and_then(|value| value.checked_add(final_dependency_count))
-        .ok_or(DurableError::Refused("navigation batch total row count"))?;
-    let final_bytes = header_bytes
-        .checked_add(as_u64(owner_usage.get("row_bytes"))?)
-        .and_then(|value| value.checked_add(as_u64(base_usage.get("row_bytes")).ok()?))
-        .and_then(|value| {
-            value.checked_add(
-                as_u64(event_usage.get("row_bytes"))
-                    .ok()?
-                    .checked_sub(as_u64(target_event_usage.get("row_bytes")).ok()?)?
-                    .checked_add(new_carrier_bytes)?,
-            )
-        })
-        .and_then(|value| {
-            value.checked_add(
-                as_u64(dependency_usage.get("row_bytes"))
-                    .ok()?
-                    .checked_sub(as_u64(target_dependency_usage.get("row_bytes")).ok()?)?
-                    .checked_add(new_dependency_bytes)?,
-            )
-        })
-        .ok_or(DurableError::Refused("navigation batch total byte count"))?;
-    if final_rows > limits.max_current_rows as u64
-        || final_dependency_count > limits.max_dependencies as u64
-        || final_cohort_count > limits.max_current_cohorts as u64
-        || final_bytes > limits.max_total_bytes
+    if selected_rows > limits.max_current_rows as u64
+        || as_u64(selected.get("dependency_count"))?.saturating_add(new_dependency_count)
+            > limits.max_dependencies as u64
+        || target_owners.len() > limits.max_current_cohorts
+        || replacements.len() > limits.max_current_cohorts
+        || selected_bytes > limits.max_total_bytes
     {
         return Err(DurableError::Refused(
-            "navigation batch final current-index budget",
+            "navigation batch selected mutation budget",
         ));
     }
     Ok(())
@@ -8156,6 +8079,209 @@ fn same_effective_edge(left: &NavigationEffectiveEdge, right: &NavigationEffecti
         && left.raw == right.raw
 }
 
+/// Select only changed owners, their shared carriers, incident edges and the
+/// complete outgoing neighborhoods whose certificates can change. Unrelated
+/// graph rows and certificates are never inputs to an ordinary batch.
+fn load_navigation_batch_neighborhood<C: GenericClient>(
+    tx: &mut C,
+    domain: &str,
+    consumer_id: &str,
+    target_owners: &BTreeSet<(String, String)>,
+    replacements: &[&PersistedRows],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<(Vec<postgres::Row>, Vec<postgres::Row>, BTreeSet<String>)> {
+    let (paths, records): (Vec<_>, Vec<_>) = target_owners.iter().cloned().unzip();
+    let row_cap = i64::try_from(limits.max_current_rows.saturating_add(1))
+        .map_err(|_| DurableError::Refused("navigation neighborhood row cap"))?;
+    let edge_cap = i64::try_from(limits.max_adjacency_rows.saturating_add(1))
+        .map_err(|_| DurableError::Refused("navigation neighborhood edge cap"))?;
+    let row_bytes = as_i64(limits.max_row_bytes as u64)?;
+    let total_bytes = as_i64(limits.max_total_bytes)?;
+    let seeds = tx.query(
+        "WITH target AS (SELECT * FROM unnest($3::text[],$4::text[]) AS t(path,id))
+         SELECT row_kind,row_id,from_id FROM (
+           SELECT b.row_kind,b.row_id,b.from_id FROM target t
+             JOIN cmd2_projection_navigation_bootstrap_row b
+               ON b.owner_source_path=t.path AND b.owner_record_id=t.id
+            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.active AND b.row_kind IN ('node','edge')
+           UNION ALL
+           SELECT 'node',n.node_id,NULL::text FROM target t
+             JOIN cmd2_projection_navigation_node n ON n.source_path=t.path AND n.record_id=t.id
+            WHERE n.domain=$1 AND n.consumer_id=$2
+           UNION ALL
+           SELECT 'edge',e.edge_id,e.from_id FROM target t
+             JOIN cmd2_projection_navigation_edge e ON e.source_path=t.path AND e.record_id=t.id
+            WHERE e.domain=$1 AND e.consumer_id=$2
+         ) selected LIMIT $5",
+        &[&domain, &consumer_id, &paths, &records, &row_cap],
+    )?;
+    if seeds.len() > limits.max_current_rows {
+        return Err(DurableError::Refused(
+            "navigation affected owner row budget",
+        ));
+    }
+    let mut node_ids = BTreeSet::new();
+    let mut edge_ids = BTreeSet::new();
+    let mut affected = BTreeSet::new();
+    for row in seeds {
+        let id: String = row.get("row_id");
+        if row.get::<_, String>("row_kind") == "node" {
+            node_ids.insert(id.clone());
+            affected.insert(id);
+        } else {
+            edge_ids.insert(id);
+            affected.insert(row.get::<_, Option<String>>("from_id").ok_or(
+                DurableError::Corrupt("navigation affected edge source absent"),
+            )?);
+        }
+    }
+    for rows in replacements {
+        for node in &rows.nodes {
+            node_ids.insert(node.node_id.clone());
+            affected.insert(node.node_id.clone());
+        }
+        for edge in &rows.edges {
+            edge_ids.insert(edge.edge_id.clone());
+            affected.insert(edge.from_id.clone());
+        }
+    }
+    if node_ids.len() > limits.max_current_rows || edge_ids.len() > limits.max_adjacency_rows {
+        return Err(DurableError::Refused("navigation affected identity budget"));
+    }
+    // Incoming edges observe node disappearance/visibility changes. Existing
+    // contributions to a replacement edge must also agree on its endpoints.
+    let node_ids: Vec<_> = node_ids.into_iter().collect();
+    let edge_ids: Vec<_> = edge_ids.into_iter().collect();
+    let incoming = tx.query(
+        "SELECT from_id FROM (
+           SELECT from_id FROM cmd2_projection_navigation_bootstrap_row
+            WHERE domain=$1 AND consumer_id=$2 AND active AND row_kind='edge'
+              AND (to_id COLLATE \"C\"=ANY($3) OR row_id COLLATE \"C\"=ANY($4))
+           UNION ALL
+           SELECT from_id FROM cmd2_projection_navigation_edge
+            WHERE domain=$1 AND consumer_id=$2
+              AND (to_id COLLATE \"C\"=ANY($3) OR edge_id COLLATE \"C\"=ANY($4))
+         ) incident LIMIT $5",
+        &[&domain, &consumer_id, &node_ids, &edge_ids, &edge_cap],
+    )?;
+    if incoming.len() > limits.max_adjacency_rows {
+        return Err(DurableError::Refused("navigation incident edge budget"));
+    }
+    for row in incoming {
+        affected.insert(
+            row.get::<_, Option<String>>(0)
+                .ok_or(DurableError::Corrupt(
+                    "navigation incident edge source absent",
+                ))?,
+        );
+    }
+    if affected.len() > limits.max_current_rows {
+        return Err(DurableError::Refused(
+            "navigation affected certificate budget",
+        ));
+    }
+    let affected_ids: Vec<_> = affected.iter().cloned().collect();
+    // Length gates apply before PostgreSQL returns carrier text. The window
+    // covers at most edge_cap candidates and refuses overflow via NULL, so a
+    // row-count cap cannot materialize max_rows * max_row_bytes in the client.
+    let edges = tx.query(
+        "WITH selected AS (
+           SELECT * FROM (
+             SELECT row_id AS edge_id,from_id,to_id,visible,row_sha256,row_json,
+                    owner_source_path,owner_record_id
+               FROM cmd2_projection_navigation_bootstrap_row
+              WHERE domain=$1 AND consumer_id=$2 AND active AND row_kind='edge'
+                AND from_id COLLATE \"C\"=ANY($3)
+             UNION ALL
+             SELECT edge_id,from_id,to_id,visible,row_sha256,row_json,
+                    source_path AS owner_source_path,record_id AS owner_record_id
+               FROM cmd2_projection_navigation_edge
+              WHERE domain=$1 AND consumer_id=$2 AND from_id COLLATE \"C\"=ANY($3)
+           ) outgoing LIMIT $4
+         ), charged AS (
+           SELECT *,sum(octet_length(row_json)::bigint) OVER (
+             ORDER BY edge_id COLLATE \"C\",owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\"
+             ROWS UNBOUNDED PRECEDING) AS charged_bytes FROM selected
+         ) SELECT edge_id,from_id,to_id,visible,row_sha256,owner_source_path,owner_record_id,
+                  CASE WHEN octet_length(row_json)<=$5::bigint AND charged_bytes<=$6::bigint THEN row_json END AS row_json
+             FROM charged",
+        &[&domain, &consumer_id, &affected_ids, &edge_cap, &row_bytes, &total_bytes],
+    )?;
+    if edges.len() > limits.max_adjacency_rows {
+        return Err(DurableError::Refused(
+            "navigation outgoing neighborhood row budget",
+        ));
+    }
+    let mut endpoints = affected.clone();
+    for row in &edges {
+        if row.get::<_, Option<&str>>("row_json").is_none() {
+            return Err(DurableError::Refused(
+                "navigation outgoing neighborhood byte budget",
+            ));
+        }
+        for field in ["from_id", "to_id"] {
+            endpoints.insert(
+                row.get::<_, Option<String>>(field)
+                    .ok_or(DurableError::Corrupt(
+                        "navigation neighborhood endpoint absent",
+                    ))?,
+            );
+        }
+    }
+    for rows in replacements {
+        for edge in &rows.edges {
+            endpoints.insert(edge.from_id.clone());
+            endpoints.insert(edge.to_id.clone());
+        }
+    }
+    if endpoints.len() > limits.max_current_rows {
+        return Err(DurableError::Refused(
+            "navigation neighborhood endpoint budget",
+        ));
+    }
+    let endpoints: Vec<_> = endpoints.into_iter().collect();
+    let nodes = tx.query(
+        "WITH selected AS (
+           SELECT * FROM (
+             SELECT row_id AS node_id,visible,row_sha256,row_json,owner_source_path,owner_record_id
+               FROM cmd2_projection_navigation_bootstrap_row
+              WHERE domain=$1 AND consumer_id=$2 AND active AND row_kind='node'
+                AND row_id COLLATE \"C\"=ANY($3)
+             UNION ALL
+             SELECT node_id,visible,row_sha256,row_json,
+                    source_path AS owner_source_path,record_id AS owner_record_id
+               FROM cmd2_projection_navigation_node
+              WHERE domain=$1 AND consumer_id=$2 AND node_id COLLATE \"C\"=ANY($3)
+           ) endpoint_nodes LIMIT $4
+         ), charged AS (
+           SELECT *,sum(octet_length(row_json)::bigint) OVER (
+             ORDER BY node_id COLLATE \"C\",owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\"
+             ROWS UNBOUNDED PRECEDING) AS charged_bytes FROM selected
+         ) SELECT node_id,visible,row_sha256,owner_source_path,owner_record_id,
+                  CASE WHEN octet_length(row_json)<=$5::bigint AND charged_bytes<=$6::bigint THEN row_json END AS row_json
+             FROM charged",
+        &[&domain, &consumer_id, &endpoints, &row_cap, &row_bytes, &total_bytes],
+    )?;
+    if nodes.len() > limits.max_current_rows {
+        return Err(DurableError::Refused(
+            "navigation neighborhood node row budget",
+        ));
+    }
+    if nodes
+        .iter()
+        .any(|row| row.get::<_, Option<&str>>("row_json").is_none())
+    {
+        return Err(DurableError::Refused(
+            "navigation neighborhood node byte budget",
+        ));
+    }
+    Ok((nodes, edges, affected))
+}
+
+#[cfg(all(test, feature = "postgres-lab"))]
+#[path = "durable_navigation_event/bounded_batch_pg_tests.rs"]
+mod bounded_batch_pg_tests;
+
 fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
     tx: &mut C,
     domain: &str,
@@ -8170,41 +8296,14 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
     BTreeMap<String, Option<NavigationAdjacencyCertificate>>,
     Digest256,
 )> {
-    let row_cap = i64::try_from(limits.max_current_rows.saturating_add(1))
-        .map_err(|_| DurableError::Refused("navigation batch graph row count"))?;
-    let bootstrap_rows = tx.query(
-        "SELECT row_kind,row_id AS node_id,row_id AS edge_id,visible,row_sha256,row_json,
-                from_id,to_id,owner_source_path,owner_record_id
-           FROM cmd2_projection_navigation_bootstrap_row
-          WHERE domain=$1 AND consumer_id=$2 AND active AND row_kind IN ('node','edge')
-          ORDER BY row_kind COLLATE \"C\",row_id COLLATE \"C\"
-          LIMIT $3",
-        &[&domain, &consumer_id, &row_cap],
+    let (event_nodes, event_edges, affected) = load_navigation_batch_neighborhood(
+        tx,
+        domain,
+        consumer_id,
+        target_owners,
+        replacements,
+        limits,
     )?;
-    let event_nodes = tx.query(
-        "SELECT source_path AS owner_source_path,record_id AS owner_record_id,
-                node_id,visible,row_sha256,row_json
-           FROM cmd2_projection_navigation_node
-          WHERE domain=$1 AND consumer_id=$2
-          ORDER BY node_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\"
-          LIMIT $3",
-        &[&domain, &consumer_id, &row_cap],
-    )?;
-    let event_edges = tx.query(
-        "SELECT source_path AS owner_source_path,record_id AS owner_record_id,
-                edge_id,from_id,to_id,visible,row_sha256,row_json
-           FROM cmd2_projection_navigation_edge
-          WHERE domain=$1 AND consumer_id=$2
-          ORDER BY edge_id COLLATE \"C\",source_path COLLATE \"C\",record_id COLLATE \"C\"
-          LIMIT $3",
-        &[&domain, &consumer_id, &row_cap],
-    )?;
-    if bootstrap_rows.len() > limits.max_current_rows
-        || event_nodes.len() > limits.max_current_rows
-        || event_edges.len() > limits.max_current_rows
-    {
-        return Err(DurableError::Refused("navigation batch graph row budget"));
-    }
     let mut graph_rows = 0usize;
     let mut graph_bytes = 0u64;
     let mut charge = |bytes: usize| -> DurableResult<()> {
@@ -8267,17 +8366,6 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
         nodes.insert(node.node_id.clone(), node);
         Ok(())
     };
-    for row in &bootstrap_rows {
-        let kind: String = row.get("row_kind");
-        let owner_path: String = row.get("owner_source_path");
-        let owner_id: String = row.get("owner_record_id");
-        if is_target(&owner_path, &owner_id) {
-            continue;
-        }
-        if kind == "node" {
-            insert_node(stored_navigation_node(row, limits)?)?;
-        }
-    }
     for row in &event_nodes {
         let owner_path: String = row.get("owner_source_path");
         let owner_id: String = row.get("owner_record_id");
@@ -8311,18 +8399,6 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
         edges.insert(edge.edge_id.clone(), edge);
         Ok(())
     };
-    for row in &bootstrap_rows {
-        let kind: String = row.get("row_kind");
-        if kind != "edge" {
-            continue;
-        }
-        let owner_path: String = row.get("owner_source_path");
-        let owner_id: String = row.get("owner_record_id");
-        if is_target(&owner_path, &owner_id) {
-            continue;
-        }
-        insert_edge(stored_navigation_edge(row, limits)?)?;
-    }
     for row in &event_edges {
         let owner_path: String = row.get("owner_source_path");
         let owner_id: String = row.get("owner_record_id");
@@ -8347,7 +8423,7 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
 
     let mut outgoing = BTreeMap::<String, BTreeMap<String, Digest256>>::new();
     for (node_id, node) in &nodes {
-        if node.visible {
+        if node.visible && affected.contains(node_id) {
             outgoing.entry(node_id.clone()).or_default();
         }
     }
@@ -8391,29 +8467,6 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
     if outgoing.len() > limits.max_current_rows {
         return Err(DurableError::Refused(
             "navigation batch adjacency node budget",
-        ));
-    }
-    let certificate_cap = i64::try_from(limits.max_current_rows.saturating_add(1))
-        .map_err(|_| DurableError::Refused("navigation certificate count"))?;
-    let stored_certificates = tx.query(
-        "SELECT node_id FROM cmd2_projection_navigation_adjacency_certificate
-          WHERE domain=$1 AND consumer_id=$2 ORDER BY node_id COLLATE \"C\" LIMIT $3",
-        &[&domain, &consumer_id, &certificate_cap],
-    )?;
-    if stored_certificates.len() > limits.max_current_rows {
-        return Err(DurableError::Refused(
-            "navigation stored certificate count budget",
-        ));
-    }
-    let mut affected = outgoing.keys().cloned().collect::<BTreeSet<_>>();
-    affected.extend(
-        stored_certificates
-            .into_iter()
-            .map(|row| row.get::<_, String>("node_id")),
-    );
-    if affected.len() > limits.max_current_rows {
-        return Err(DurableError::Refused(
-            "navigation batch certificate update count budget",
         ));
     }
     let mut updates = BTreeMap::new();
