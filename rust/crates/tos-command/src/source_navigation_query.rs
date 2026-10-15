@@ -798,7 +798,7 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
                      SELECT row_id AS edge_id,from_id,to_id,visible,row_sha256,row_json
                      FROM cmd2_projection_navigation_bootstrap_row
                      WHERE domain=$1 AND consumer_id=$2 AND row_kind='edge' AND active
-                       AND from_id=$3 AND ($4::text IS NULL OR edge_id COLLATE \"C\" > $4 COLLATE \"C\")
+                       AND from_id=$3 AND ($4::text IS NULL OR row_id COLLATE \"C\" > $4 COLLATE \"C\")
                      UNION ALL
                      SELECT edge_id,from_id,to_id,visible,row_sha256,row_json
                      FROM cmd2_projection_navigation_edge
