@@ -1855,7 +1855,7 @@ impl NavigationClaimDependencyRefreshCohortV1 {
                 &self.dependencies,
                 &self.proof.provenance_event_path,
                 NavigationDependencyRoleV1::Event,
-            )? != self.proof.provenance_event_sha256
+            )? != self.provenance_event_file_sha256
             || dependency_present_digest(
                 &self.dependencies,
                 &self.proof.provenance_receipt_path,
@@ -3019,6 +3019,9 @@ pub struct NavigationClaimDependencyRefreshCohortV1 {
     claim_stream_sha256: Digest256,
     claim_stream_rows_scanned: u64,
     proof: NavigationClaimDependencyRefreshProofV1,
+    // The proof identifies one JSONL record; Event dependencies bind the whole file.
+    // Its digest is already committed by dependency_root and the creation receipt.
+    provenance_event_file_sha256: Digest256,
     trace_sha256: Digest256,
     dependencies: Vec<NavigationDependencyV1>,
     projection: NavigationClaimEventProjectionV1,
@@ -3158,6 +3161,7 @@ struct NavigationClaimCreationBindingV1 {
     event_id: String,
     event_version: u64,
     event_sha256: Digest256,
+    event_file_sha256: Digest256,
     receipt_path: RelativePath,
     receipt_sha256: Digest256,
 }
@@ -4378,6 +4382,7 @@ fn project_navigation_claim_event_core_v1(
                 claim_stream_sha256,
                 claim_stream_rows_scanned,
                 proof,
+                provenance_event_file_sha256: creation_binding.event_file_sha256,
                 trace_sha256,
                 dependencies,
                 projection,
@@ -4477,6 +4482,7 @@ fn project_navigation_claim_event_core_v1(
                 claim_stream_sha256,
                 claim_stream_rows_scanned,
                 proof,
+                provenance_event_file_sha256: creation_binding.event_file_sha256,
                 trace_sha256,
                 dependencies,
                 projection,
@@ -7202,6 +7208,7 @@ fn validate_provenance_event(
             .and_then(Value::as_u64)
             .ok_or(Error::Invalid("navigation Claim provenance event version"))?,
         event_sha256: Digest256::of_bytes(&event_bytes),
+        event_file_sha256: Digest256::of_bytes(input.provenance_event_bytes),
         receipt_path,
         receipt_sha256: Digest256::of_bytes(input.provenance_receipt_bytes),
     })
