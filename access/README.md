@@ -1250,7 +1250,8 @@ projection and issue no ToS admission, QRY disclosure, or canon grant. If a
 receipt write is lost after publication, repeating the exact bootstrap request
 is safe and reports `replayed: true`.
 
-Event-local Claim projections bind maker evidence to the exact Claim source.
+Initial and event-local SourceNavigation projections use the same reified
+renderer for `source-claims.jsonl` and bind maker evidence to the exact Claim source.
 Their `maker:claim:sha256:` node IDs identify each Claim's authorship declaration;
 `agent_ref` and an available `identity_node_id` retain the common author link.
 Two Claims by one author can therefore retain distinct evidence hashes. The
@@ -1258,6 +1259,13 @@ older catalog-backed bibliographic profile retains its `maker:sha256:` IDs.
 Derived node IDs belong to their selected projection profile; stable source
 Claim and Agent IDs remain unchanged. Existing derived publications require
 their declared rebuild/migration route when switching producer profiles.
+The navigation carrier retains exact bibliographic transport fields under
+`properties.bibliographic_carrier`; authored properties and source Claim bytes
+keep their existing meaning. Initial bootstrap retains every Claim contribution
+to a shared evidence, identity or provenance carrier. Replacing one Claim cannot
+retire another Claim's contribution. Switching from the earlier raw event
+carriers requires an explicit navigation rebuild at the current source head;
+it does not migrate or rewrite authored records or command history.
 
 Each query reopens the retained model as the immutable bootstrap anchor and
 holds a separate live PostgreSQL source-navigation lease through disclosure.

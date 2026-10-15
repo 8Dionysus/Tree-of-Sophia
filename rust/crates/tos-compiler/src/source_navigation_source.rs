@@ -719,6 +719,47 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                 }
             }
         }
+        // Generic source Claims share the addressed renderer. The legacy
+        // relation edges above retain their separately declared projection.
+        let contracts = catalog::prepare_catalog_contracts(stage, validator, l.catalog)?;
+        let relations = original(
+            &versions.required(
+                "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+                validator,
+                l,
+            )?,
+            l,
+        )?;
+        let mut after_claim = None;
+        while let Some(id) = catalog::catalog_next(stage, "claims", after_claim.as_deref())? {
+            let row = catalog::catalog_row(stage, "claims", &id, l.catalog)?
+                .ok_or(Error::Invalid("navigation catalog Claim disappeared"))?;
+            if row["entry"]["source_claim_file_ref"]
+                .as_str()
+                .is_some_and(|path| path.ends_with("/source-claims.jsonl"))
+            {
+                let cohort = crate::source_bibliographic::claim_cohort(
+                    stage,
+                    &contracts,
+                    &id,
+                    receipt,
+                    validator,
+                    entities,
+                    &relations,
+                    forms,
+                    l,
+                    Some(&mut versions),
+                    true,
+                )?;
+                for node in cohort.nodes {
+                    projection.node(node)?;
+                }
+                for edge in cohort.edges {
+                    projection.edge(edge)?;
+                }
+            }
+            after_claim = Some(id);
+        }
         project_files(stage, &mut projection, &mut versions, &paths, validator, l)?;
         for path in paths.selected(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p)) {
             let path = path?;

@@ -17,9 +17,9 @@ use crate::{
     source_bibliographic::{
         BibliographicDocumentLimits, BibliographicForms, BibliographicLimits,
         SuppliedBibliographicClaimInputs, SuppliedEvidenceResolution, materialize_checked_form_set,
-        render_supplied_claim, supplied_bibliographic_event, supplied_bibliographic_evidence,
-        supplied_bibliographic_identity, supplied_bibliographic_maker_with_fallback,
-        supplied_claim_navigation_descriptor,
+        render_supplied_navigation_claim, supplied_bibliographic_event,
+        supplied_bibliographic_evidence, supplied_bibliographic_identity,
+        supplied_bibliographic_maker_with_fallback, supplied_claim_navigation_descriptor,
     },
     source_bibliographic_render::digest as source_digest,
     source_bibliographic_selected_files::SelectedBibliographicFilesV1,
@@ -4198,7 +4198,7 @@ fn project_navigation_claim_event_core_v1(
     )? {
         return Err(Error::Invalid("navigation Claim maker binding"));
     }
-    let rendered = render_supplied_claim(input.claim_inputs, limits)?;
+    let rendered = render_supplied_navigation_claim(input.claim_inputs, limits)?;
     let trace_sha256 = digest_json(&rendered.trace, limits.max_claim_cohort_bytes)?;
     let projection = NavigationClaimEventProjectionV1 {
         nodes: rendered.nodes,

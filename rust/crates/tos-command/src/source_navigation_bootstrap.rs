@@ -211,6 +211,7 @@ pub fn capture_source_navigation_bootstrap_v1(
             &mut node_visibility,
         )?;
     }
+    expand_claim_contributions(&mut rows, limits, &mut charged_bytes)?;
     if rows.is_empty() || owner_source_paths.is_empty() {
         return Err(DurableError::Conflict(
             "selected navigation owner rows absent",
@@ -710,6 +711,111 @@ fn capture_original_carrier(
     Ok(())
 }
 
+/// Restore each reified Claim's contribution to shared carriers. PostgreSQL's
+/// existing bootstrap key includes the owner pair; selecting one arbitrary
+/// owner would lose surviving contributions when another Claim is replaced.
+fn expand_claim_contributions(
+    rows: &mut Vec<DurableNavigationBootstrapRowV1>,
+    limits: DurableNavigationEventLimits,
+    charged_bytes: &mut u64,
+) -> DurableResult<()> {
+    type Owner = (String, String);
+    let mut owners = BTreeMap::<String, BTreeSet<Owner>>::new();
+    let mut linked = BTreeMap::<String, String>::new();
+    let mut claim_edges = BTreeMap::<String, Owner>::new();
+    let local_nodes = rows
+        .iter()
+        .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Node)
+        .map(|row| row.id.clone())
+        .collect::<BTreeSet<_>>();
+    for row in rows.iter() {
+        let value = parse_carrier(&row.raw, limits)?;
+        let field = |key| value.object_get(key).and_then(|v| v.as_str());
+        if row.kind == DurableNavigationBootstrapRowKindV1::Node {
+            if let Some(identity) = value
+                .object_get("properties")
+                .and_then(|p| p.object_get("identity_node_id"))
+                .and_then(|v| v.as_str())
+            {
+                linked.insert(row.id.clone(), identity.to_owned());
+            }
+        } else if row.kind == DurableNavigationBootstrapRowKindV1::Edge {
+            if let (Some(claim), Some(path)) = (field("claim_ref"), field("source_claim_file_ref"))
+            {
+                let owner = (checked_path(path)?.into_string(), claim.to_owned());
+                let root = format!("claim:{claim}");
+                if field("from_id") != Some(root.as_str()) {
+                    return Err(DurableError::Corrupt("navigation Claim edge owner differs"));
+                }
+                owners.entry(root).or_default().insert(owner.clone());
+                let target =
+                    field("to_id").ok_or(DurableError::Corrupt("navigation Claim target"))?;
+                // Alternative/superseded Claims retain their own cohorts.
+                if !target.starts_with("claim:") {
+                    owners
+                        .entry(target.to_owned())
+                        .or_default()
+                        .insert(owner.clone());
+                }
+                claim_edges.insert(row.id.clone(), owner);
+            }
+        }
+    }
+    for (node, identity) in linked {
+        if local_nodes.contains(&identity)
+            && let Some(contributors) = owners.get(&node).cloned()
+        {
+            owners.entry(identity).or_default().extend(contributors);
+        }
+    }
+    let mut expanded = Vec::new();
+    for row in std::mem::take(rows) {
+        let contributions = match row.kind {
+            DurableNavigationBootstrapRowKindV1::Node => owners.remove(&row.id),
+            DurableNavigationBootstrapRowKindV1::Edge => claim_edges
+                .remove(&row.id)
+                .map(|owner| BTreeSet::from([owner])),
+            _ => None,
+        };
+        if let Some(contributions) = contributions {
+            for (index, (path, id)) in contributions.into_iter().enumerate() {
+                if index > 0 {
+                    *charged_bytes = charged_bytes
+                        .checked_add(row.raw.len() as u64)
+                        .filter(|n| *n <= limits.max_total_bytes)
+                        .ok_or(DurableError::Refused("navigation Claim contribution bytes"))?;
+                }
+                if expanded.len() >= limits.max_current_rows {
+                    return Err(DurableError::Refused("navigation Claim contribution rows"));
+                }
+                expanded.push(DurableNavigationBootstrapRowV1 {
+                    kind: row.kind,
+                    id: row.id.clone(),
+                    owner_source_path: path,
+                    owner_record_id: id,
+                    visible: row.visible,
+                    raw: row.raw.clone(),
+                });
+            }
+        } else {
+            if expanded.len() >= limits.max_current_rows {
+                return Err(DurableError::Refused(
+                    "navigation bootstrap contribution rows",
+                ));
+            }
+            expanded.push(row);
+        }
+    }
+    // A maker's identity may already be represented by the same subject/object,
+    // but every retained ownership target must be an actual selected carrier.
+    if !owners.is_empty() || !claim_edges.is_empty() {
+        return Err(DurableError::Corrupt(
+            "navigation Claim contribution carrier absent",
+        ));
+    }
+    *rows = expanded;
+    Ok(())
+}
 fn checked_path(value: &str) -> DurableResult<RelativePath> {
     if value.len() > MAX_BOOTSTRAP_PATH_BYTES {
         return Err(DurableError::Refused(
@@ -734,6 +840,78 @@ fn has_uri_scheme(value: &str) -> bool {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn shared_claim_carriers_survive_removal_of_one_contributor() {
+        let limits = DurableNavigationEventLimits::default();
+        let path = "ToS/source-witnesses/claims/example/source-claims.jsonl";
+        let mut rows = Vec::new();
+        for (kind, id, value) in [
+            (
+                DurableNavigationBootstrapRowKindV1::Node,
+                "claim:a",
+                json!({"node_id":"claim:a"}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Node,
+                "claim:b",
+                json!({"node_id":"claim:b"}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Node,
+                "evidence:shared",
+                json!({"node_id":"evidence:shared","properties":{"evidence_ref":"ToS/evidence.md"}}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Edge,
+                "edge:a",
+                json!({"edge_id":"edge:a","claim_ref":"a","source_claim_file_ref":path,"from_id":"claim:a","to_id":"evidence:shared"}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Edge,
+                "edge:b",
+                json!({"edge_id":"edge:b","claim_ref":"b","source_claim_file_ref":path,"from_id":"claim:b","to_id":"evidence:shared"}),
+            ),
+            (
+                DurableNavigationBootstrapRowKindV1::Edge,
+                "alternative:a",
+                json!({"edge_id":"alternative:a","claim_ref":"a","source_claim_file_ref":path,"from_id":"claim:a","to_id":"claim:b"}),
+            ),
+        ] {
+            rows.push(DurableNavigationBootstrapRowV1 {
+                kind,
+                id: id.into(),
+                owner_source_path: path.into(),
+                owner_record_id: id.into(),
+                visible: Some(true),
+                raw: serde_json::to_vec(&value).unwrap(),
+            });
+        }
+        let mut bytes = rows.iter().map(|row| row.raw.len() as u64).sum();
+        expand_claim_contributions(&mut rows, limits, &mut bytes).unwrap();
+        assert_eq!(
+            rows.iter()
+                .filter(|row| row.id == "evidence:shared")
+                .count(),
+            2
+        );
+        assert_eq!(rows.iter().filter(|row| row.id == "claim:b").count(), 1);
+        assert_eq!(
+            bytes,
+            rows.iter().map(|row| row.raw.len() as u64).sum::<u64>()
+        );
+        rows.retain(|row| row.owner_record_id != "a");
+        assert_eq!(
+            rows.iter()
+                .map(|row| row.id.as_str())
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from(["claim:b", "edge:b", "evidence:shared"])
+        );
+        assert!(
+            rows.iter()
+                .all(|row| row.owner_record_id == "b" && row.owner_source_path == path)
+        );
+    }
 
     #[test]
     fn original_history_rows_share_owner_and_fragment_refs_keep_exact_file() {

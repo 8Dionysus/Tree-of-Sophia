@@ -126,6 +126,18 @@ pub fn render_supplied_claim(
     Ok(result)
 }
 
+/// SourceNavigation uses the same Claim rules with its own carrier envelope.
+/// Both initial construction and addressed publication call this adapter.
+pub fn render_supplied_navigation_claim(
+    inputs: SuppliedBibliographicClaimInputs<'_>,
+    limits: BibliographicLimits,
+) -> Result<SuppliedBibliographicClaimCohort> {
+    crate::source_bibliographic_navigation::navigation_claim_carriers(
+        render_supplied_claim(inputs, limits)?,
+        limits,
+    )
+}
+
 /// Rebuild the existing descriptor syntax from explicitly supplied source
 /// Claim and endpoints. Source authentication remains with the caller.
 pub fn supplied_claim_navigation_descriptor(
@@ -1140,7 +1152,7 @@ pub fn supplied_retained_object_link_context(
     )
 }
 
-fn claim_cohort<B: catalog::CatalogInputBinding>(
+pub(crate) fn claim_cohort<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     contracts: &catalog::Contracts,
     id: &str,
@@ -1151,6 +1163,7 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
     versions: Option<&mut crate::source_bibliographic_versions::Versions<'_, '_>>,
+    navigation: bool,
 ) -> Result<render::Cohort> {
     let row = catalog::catalog_row(stage, "claims", id, l.catalog)?
         .ok_or(Error::Invalid("bibliographic retained Claim row missing"))?;
@@ -1362,15 +1375,33 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
         validator,
         l,
     )?;
-    let (maker, maker_identity) = maker(
-        stage,
-        contracts,
-        &claim,
-        receipt,
-        validator,
-        materializer,
-        l,
-    )?;
+    let (maker, maker_identity) = if navigation {
+        let identity = identity(
+            stage,
+            contracts,
+            text(&claim["maker"], "agent_ref")?,
+            validator,
+            materializer,
+            l,
+        )?;
+        supplied_bibliographic_maker_with_fallback(
+            &claim,
+            identity,
+            source_ref,
+            source_sha256,
+            l.catalog.max_output_row_bytes,
+        )?
+    } else {
+        maker(
+            stage,
+            contracts,
+            &claim,
+            receipt,
+            validator,
+            materializer,
+            l,
+        )?
+    };
     let mut evidence_nodes = Vec::new();
     let mut counter_nodes = Vec::new();
     for (field, resolved) in [
@@ -1501,7 +1532,12 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
         entities,
         l.catalog.into(),
     )?;
-    let result = render_supplied_claim(
+    let renderer = if navigation {
+        render_supplied_navigation_claim
+    } else {
+        render_supplied_claim
+    };
+    let result = renderer(
         render::ClaimInputs {
             entry,
             claim: &claim,
@@ -1752,6 +1788,7 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
                 materializer,
                 l,
                 versions.as_mut(),
+                false,
             )?;
             for (collection, definition, field, rows) in [
                 ("nodes", "node", "node_id", cohort.nodes),

@@ -12,6 +12,80 @@ use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
+/// Adapt reified bibliographic rows without discarding source fields or changing
+/// their identities. Transport metadata is retained inside the six-field
+/// navigation envelope; authored properties remain exactly as supplied.
+pub(crate) fn navigation_claim_carriers(
+    mut cohort: graph::SuppliedBibliographicClaimCohort,
+    limits: BibliographicLimits,
+) -> Result<graph::SuppliedBibliographicClaimCohort> {
+    for row in &mut cohort.nodes {
+        let original = row
+            .as_object()
+            .ok_or(Error::Invalid("navigation Claim node object"))?;
+        let mut properties = row["properties"]
+            .as_object()
+            .ok_or(Error::Invalid("navigation Claim node properties"))?
+            .clone();
+        let carrier = original
+            .iter()
+            .filter(|(key, _)| {
+                !matches!(
+                    key.as_str(),
+                    "node_id" | "node_kind" | "source_ref" | "properties"
+                )
+            })
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect::<serde_json::Map<_, _>>();
+        if properties
+            .insert("bibliographic_carrier".into(), Value::Object(carrier))
+            .is_some()
+        {
+            return Err(Error::Invalid("navigation Claim reserved carrier property"));
+        }
+        let kind = if row["node_kind"] == "identity" {
+            text(&row["properties"], "identity_kind")?
+        } else {
+            text(row, "node_kind")?
+        };
+        let label = row
+            .pointer("/display/title/default")
+            .and_then(Value::as_str)
+            .or_else(|| {
+                row.pointer("/properties/preferred_label")
+                    .and_then(Value::as_str)
+            })
+            .filter(|value| !value.is_empty())
+            .unwrap_or(text(row, "node_id")?);
+        let status = row
+            .pointer("/properties/identity_status")
+            .and_then(Value::as_str)
+            .unwrap_or("not_applicable");
+        *row = json!({"node_id":row["node_id"], "node_kind":kind, "label":label,
+            "source_ref":row["source_ref"], "identity_status":status, "properties":properties});
+        encode(row, limits.catalog.max_output_row_bytes)?;
+    }
+    for row in &mut cohort.edges {
+        row["predicate_id"] = row["edge_kind"].clone();
+        row["source_ref"] = row["source_claim_file_ref"].clone();
+        row["source_refs"] = json!([row["source_claim_file_ref"]]);
+        encode(row, limits.catalog.max_output_row_bytes)?;
+    }
+    let mut bytes = 0usize;
+    for row in cohort
+        .nodes
+        .iter()
+        .chain(&cohort.edges)
+        .chain(std::iter::once(&cohort.trace))
+    {
+        bytes = bytes
+            .checked_add(encode(row, limits.catalog.max_output_row_bytes)?.len())
+            .filter(|n| *n <= limits.max_claim_cohort_bytes)
+            .ok_or(Error::Budget("navigation Claim carrier bytes"))?;
+    }
+    Ok(cohort)
+}
+
 /// Borrowed inputs are not a source receipt. Pure rendering retains the exact
 /// ordered history resolution set supplied by the checked caller.
 pub struct NavigationRecordInput<'a> {
@@ -503,6 +577,58 @@ pub(crate) fn prepare_navigation_record_from_catalog<B: catalog::CatalogInputBin
 mod oracle {
     use super::*;
     use std::time::{Duration, Instant};
+    #[test]
+    fn navigation_claim_carrier_preserves_source_and_exact_evidence() {
+        let limits = BibliographicLimits {
+            catalog: catalog::SourceCatalogLimits {
+                max_files: 128,
+                max_rows: 4096,
+                max_file_bytes: 2097152,
+                max_row_bytes: 1048576,
+                max_contract_bytes: 2097152,
+                max_output_row_bytes: 262144,
+            },
+            max_claim_cohort_rows: 256,
+            max_claim_cohort_bytes: 67108864,
+            max_output_rows: 1000,
+            max_output_bytes: 67108864,
+            deadline: Instant::now() + Duration::from_secs(5),
+        };
+        let claim =
+            json!({"claim_id":"tos.claim.a", "object":"Точное чтение", "visibility":"public"});
+        let original = json!({"node_id":"claim:tos.claim.a","node_kind":"claim",
+            "source_ref":"ToS/source-witnesses/claims/a/source-claims.jsonl", "source_line":7,
+            "source_sha256":"ab".repeat(32), "properties":{"source_claim":claim,"visibility":"public"}});
+        let edge = json!({"edge_id":"edge:a","edge_kind":"supported_by","from_id":"claim:tos.claim.a",
+            "to_id":"evidence:a","source_claim_file_ref":original["source_ref"]});
+        let output = navigation_claim_carriers(
+            graph::SuppliedBibliographicClaimCohort {
+                nodes: vec![original.clone()],
+                edges: vec![edge],
+                trace: json!({"claim_ref":"tos.claim.a"}),
+            },
+            limits,
+        )
+        .unwrap();
+        let node = &output.nodes[0];
+        assert_eq!(node.as_object().unwrap().len(), 6);
+        assert_eq!(node["properties"]["source_claim"], claim);
+        assert_eq!(node["source_ref"], original["source_ref"]);
+        assert_eq!(
+            node["properties"]["bibliographic_carrier"]["source_line"],
+            7
+        );
+        assert_eq!(
+            node["properties"]["bibliographic_carrier"]["source_sha256"],
+            original["source_sha256"]
+        );
+        assert_eq!(output.edges[0]["predicate_id"], "supported_by");
+        assert_eq!(
+            output.edges[0]["source_refs"],
+            json!([original["source_ref"]])
+        );
+        assert_eq!(output.trace, json!({"claim_ref":"tos.claim.a"}));
+    }
     #[test]
     fn retained_python_record_projection_preserves_complete_semantic_source() {
         let raw = include_bytes!(
