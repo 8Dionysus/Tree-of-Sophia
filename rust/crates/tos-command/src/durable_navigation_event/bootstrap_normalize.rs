@@ -387,6 +387,7 @@ pub(super) fn prepare_page<C: GenericClient>(
         {
             break;
         }
+        let mut local_work = 0u64;
         let mut local_rows = Vec::with_capacity(owners.len());
         let mut local_deps = BTreeSet::new();
         let mut local_paths = BTreeSet::new();
@@ -395,13 +396,36 @@ pub(super) fn prepare_page<C: GenericClient>(
             contribution.owner_source_path = path;
             contribution.owner_record_id = id;
             let (base, dependencies) = prepare_navigation_bootstrap_row(contribution, limits)?;
+            // Charge every encoded SQL field, including reverse dependencies
+            // and source-witness metadata, before retaining the next fanout.
+            add(&mut local_work, base.raw.len() as u64)?;
+            add(
+                &mut local_work,
+                (base.kind.as_str().len()
+                    + base.id.len()
+                    + base.owner_source_path.len()
+                    + base.owner_record_id.len()
+                    + base.from_id.as_ref().map_or(0, String::len)
+                    + base.to_id.as_ref().map_or(0, String::len)
+                    + 65) as u64,
+            )?;
             for path in dependencies {
-                local_paths.insert(path.clone());
-                local_deps.insert((
+                if local_paths.insert(path.clone()) {
+                    add(&mut local_work, (path.len() + 72) as u64)?;
+                }
+                let size = base.owner_source_path.len() + base.owner_record_id.len() + path.len();
+                if local_deps.insert((
                     base.owner_source_path.clone(),
                     base.owner_record_id.clone(),
                     path,
-                ));
+                )) {
+                    add(&mut local_work, size as u64)?;
+                }
+                if local_work > limits.max_total_bytes / 2 {
+                    return Err(DurableError::Refused(
+                        "navigation initial carrier and dependency transaction bytes",
+                    ));
+                }
             }
             local_rows.push(base);
         }
@@ -413,7 +437,13 @@ pub(super) fn prepare_page<C: GenericClient>(
             }
             break;
         }
-        output_bytes += expanded_bytes;
+        if output_bytes
+            .checked_add(local_work)
+            .is_none_or(|bytes| bytes > limits.max_total_bytes / 2)
+        {
+            break;
+        }
+        output_bytes += local_work;
         result.rows.extend(local_rows);
         result.dependencies.extend(local_deps);
         result.paths.extend(local_paths);
@@ -481,7 +511,7 @@ pub(super) fn persist_page(
     for row in &page.rows {
         if row.kind == DurableNavigationBootstrapRowKindV1::Right {
             let prior = tx.query(
-                "SELECT row_sha256,CASE WHEN octet_length(row_json)<=$4 THEN row_json END
+                "SELECT row_sha256,CASE WHEN octet_length(row_json)::bigint<=$4 THEN row_json END
                  FROM cmd2_projection_navigation_bootstrap_row WHERE domain=$1 AND consumer_id=$2
                    AND row_kind='right' AND row_id=$3 LIMIT 2",
                 &[&domain, &consumer, &row.id, &(limits.max_row_bytes as i64)],
@@ -519,7 +549,7 @@ pub(super) fn persist_page(
                 ));
             }
             let stored = tx.query_one(
-                "SELECT row_sha256,CASE WHEN octet_length(row_json)<=$6 THEN row_json END
+                "SELECT row_sha256,CASE WHEN octet_length(row_json)::bigint<=$6 THEN row_json END
                  FROM cmd2_projection_navigation_bootstrap_row WHERE domain=$1 AND consumer_id=$2
                   AND row_kind='right' AND row_id=$3 AND owner_source_path=$4 AND owner_record_id=$5",
                 &[&domain, &consumer, &row.id, &row.owner_source_path, &row.owner_record_id, &(limits.max_row_bytes as i64)],
