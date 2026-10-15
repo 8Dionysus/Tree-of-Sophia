@@ -5744,7 +5744,7 @@ fn maintained_agent_creation_operation<
             &cancelled,
         ),
         Err(DurableError::Refused(
-            "cold metadata preadmission budget exceeded"
+            "cold metadata preadmission row budget exceeded"
         ))
     ));
     assert!(matches!(
@@ -5764,7 +5764,7 @@ fn maintained_agent_creation_operation<
             &cancelled,
         ),
         Err(DurableError::Refused(
-            "cold metadata preadmission budget exceeded"
+            "cold metadata preadmission row budget exceeded"
         ))
     ));
     assert_eq!(
