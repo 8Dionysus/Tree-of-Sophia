@@ -417,8 +417,13 @@ selected source member limit cannot exceed that value. It uses the exact
 `initialize_schema: false` can finish an interrupted assessment after all
 ORIGINAL batches have committed. It verifies original EOF, the retained
 membership and history, exact lease and initial authority, then runs the same
-cold and semantic assessment without rewriting source batches. Partial original
-writes and changed authority are refused. Results declare this bounded resume
+cold and semantic assessment without rewriting source batches. If assessment
+already committed and packing stopped before selection, it instead verifies
+the saved projection transcript against current, historical and path-index
+rows and finishes the addressed trees. It reuses the completed schema work;
+the result reports `completed_assessments_reused`. Partial original writes,
+incomplete predicates, changed projection bytes and changed authority are refused.
+Results declare this bounded resume
 scope and whether the invocation resumed. Source frame and segment limits must
 fit the selected largest member and batch framing; the derived index budget
 covers metadata and index work, independently of total source body bytes.

@@ -717,7 +717,7 @@ pub(super) fn run(
         "selected_state_sha256": selected_state_digest.to_prefixed(),
         "streamed": true,
         "bootstrap_resume_supported": true,
-        "bootstrap_resume_scope": "complete-original-write-before-assessment",
+        "bootstrap_resume_scope": "complete-original-write-or-committed-assessment-before-selection",
         "bootstrap_resumed": selection.job_mode == BootstrapJobMode::RequireExisting,
         "schema_work": {
             "execution_receipts": worker.receipt_count(),
@@ -764,6 +764,8 @@ pub(super) fn run(
         json!(body_work.predicate_completion_rows_updated);
     result["logical_source_work"]["predicate_completion_batches"] =
         json!(body_work.predicate_completion_batches);
+    result["logical_source_work"]["completed_assessments_reused"] =
+        json!(body_work.completed_assessments_reused);
     Ok(result)
 }
 

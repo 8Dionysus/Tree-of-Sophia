@@ -32,6 +32,7 @@ pub struct StreamedColdSourceWorkV1 {
     pub fresh_pg_rows_written: u64,
     pub predicate_completion_rows_updated: u64,
     pub predicate_completion_batches: u64,
+    pub completed_assessments_reused: u64,
 }
 
 pub(super) fn set_streamed_pg_limits(
@@ -2458,6 +2459,130 @@ fn build_assessed_inventory(
     result
 }
 
+// Completion and its transcript commit atomically before addressed packing.
+// Reuse is restricted to the unchanged initial bootstrap: the caller holds
+// its domain/audit/rights fence and checked ORIGINAL bytes and software inputs.
+// Verify the full retained projection transcript without rerunning source
+// semantics or schema children. This never promotes an incomplete seed.
+fn reuse_completed_bootstrap_assessment(
+    tx: &mut Transaction<'_>,
+    store: &SegmentStore,
+    domain: &str,
+    expected_members: u64,
+    expected_projection: Digest256,
+    max_statement_ms: u64,
+    limits: SourceAssessmentLimits,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
+    body_work: &mut StreamedColdSourceWorkV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    owner_check: &dyn Fn() -> DurableResult<()>,
+) -> DurableResult<super::addressed_inventory::AddressedMixedInventoryV1> {
+    active(deadline, cancelled)?;
+    owner_check()?;
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    let admission = tx.query_one(
+        "SELECT count(*),coalesce(sum(octet_length(inventory_projection)),0),coalesce(max(octet_length(inventory_projection)),0),count(*) FILTER(WHERE inventory_projection IS NULL OR revision<>1 OR profile_id<>$2) FROM cmd2_current WHERE domain=$1",
+        &[&domain, &std::str::from_utf8(ORIGINAL).map_err(|_| DurableError::Corrupt("bootstrap original profile"))?],
+    )?;
+    if as_u64(admission.get(0))? != expected_members
+        || expected_members > limits.max_rows
+        || as_u64(admission.get(1))? > limits.max_logical_bytes
+        || admission.get::<_, i32>(2) as usize > limits.max_value_bytes
+        || admission.get::<_, i64>(3) != 0
+    {
+        return Err(DurableError::Corrupt(
+            "completed bootstrap projection coverage differs",
+        ));
+    }
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    let incomplete = tx.query_one(
+        "SELECT count(*) FROM cmd2_predicate WHERE domain=$1 AND owner=$2 AND definition_version=$3 AND NOT complete",
+        &[&domain, &OWNER, &definition().to_hex()],
+    )?;
+    if incomplete.get::<_, i64>(0) != 0 {
+        return Err(DurableError::Corrupt(
+            "completed bootstrap predicate is incomplete",
+        ));
+    }
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    let cap = i32::try_from(limits.max_value_bytes)
+        .map_err(|_| DurableError::Refused("completed bootstrap projection byte bound"))?;
+    let mut rows = tx.query_raw(
+        "SELECT c.subject,CASE WHEN octet_length(c.inventory_projection)<=$2 THEN c.inventory_projection ELSE NULL END AS current_projection,CASE WHEN octet_length(h.inventory_projection)<=$2 THEN h.inventory_projection ELSE NULL END AS history_projection,CASE WHEN octet_length(i.inventory_projection)<=$2 THEN i.inventory_projection ELSE NULL END AS indexed_projection FROM cmd2_current c LEFT JOIN cmd2_history h ON h.domain=c.domain AND h.subject=c.subject AND h.revision=c.revision AND h.content_digest=c.content_digest LEFT JOIN cmd2_source_index i ON i.domain=c.domain AND i.kind='path' AND i.token=c.subject AND i.path=c.subject AND i.definition_digest=$3 WHERE c.domain=$1 ORDER BY c.subject COLLATE \"C\"",
+        &[&domain as &(dyn postgres::types::ToSql + Sync), &cap, &definition().to_hex()],
+    )?;
+    let mut transcript = Digest256Hasher::new();
+    part(
+        &mut transcript,
+        b"tos-managed-mixed-source-inventory-coverage-v1",
+    );
+    let mut count = 0u64;
+    let mut ended = false;
+    let projections = std::iter::from_fn(|| {
+        if ended {
+            return None;
+        }
+        let next = (|| -> DurableResult<Option<(String, Vec<u8>)>> {
+            active(deadline, cancelled)?;
+            let Some(row) = rows.next()? else {
+                return Ok(None);
+            };
+            let path: String = row.get("subject");
+            let current: Option<Vec<u8>> = row.get("current_projection");
+            let history: Option<Vec<u8>> = row.get("history_projection");
+            let indexed: Option<Vec<u8>> = row.get("indexed_projection");
+            ManagedSourceWorkV1::charge(&mut body_work.current_projection_query_rows_returned, 1)?;
+            ManagedSourceWorkV1::charge(
+                &mut body_work.current_and_history_projection_bytes_returned,
+                current.as_ref().map_or(0, |v| v.len() as u64)
+                    + history.as_ref().map_or(0, |v| v.len() as u64),
+            )?;
+            let current = current.ok_or(DurableError::Corrupt(
+                "completed bootstrap projection is absent",
+            ))?;
+            if history.as_deref() != Some(current.as_slice())
+                || indexed.as_deref() != Some(current.as_slice())
+            {
+                return Err(DurableError::Corrupt(
+                    "completed bootstrap retained projection differs",
+                ));
+            }
+            part(&mut transcript, path.as_bytes());
+            part(&mut transcript, Digest256::of_bytes(&current).as_bytes());
+            count = count.checked_add(1).ok_or(DurableError::Refused(
+                "completed bootstrap row count overflow",
+            ))?;
+            Ok(Some((path, current)))
+        })();
+        match next {
+            Ok(Some(value)) => Some(Ok(value)),
+            Ok(None) => {
+                ended = true;
+                None
+            }
+            Err(error) => {
+                ended = true;
+                Some(Err(error))
+            }
+        }
+    });
+    let mut tree_owner_check = || owner_check().is_ok();
+    let inventory = super::addressed_inventory::AddressedMixedInventoryV1::build_from_assessed_projections_with_callback(
+        store, projections, expected_members, tree_limits, deadline, cancelled, tree_work, &mut tree_owner_check,
+    )?;
+    drop(rows);
+    if count != expected_members || transcript.finalize() != expected_projection {
+        return Err(DurableError::Corrupt(
+            "completed bootstrap projection transcript differs",
+        ));
+    }
+    owner_check()?;
+    ManagedSourceWorkV1::charge(&mut body_work.completed_assessments_reused, 1)?;
+    Ok(inventory)
+}
+
 // Aggregate admission is a resource boundary only. Exact rows are subsequently
 // consumed by the existing bounded PG page cursors and compared to regenerated
 // semantics; the aggregate cannot grant completeness.
@@ -3205,13 +3330,6 @@ impl DurablePgCoordinator {
                         ));
                     }
                 }
-                let mut index = SourceAssessmentIndex::open(
-                    workspace,
-                    limits,
-                    deadline,
-                    std::sync::Arc::clone(&cancelled),
-                    &mut index_work,
-                )?;
                 let mut tx = self
                     .client
                     .build_transaction()
@@ -3260,6 +3378,7 @@ impl DurablePgCoordinator {
                 if let Some(seed) = seed.as_ref() {
                     let observed = seed.observation();
                     if row.get::<_, bool>("source_complete")
+                        != observed.completed_projection.is_some()
                         || row.get::<_, Option<i64>>("source_epoch") != Some(1)
                         || row.get::<_, i64>("rights_version") != 0
                         || row.get::<_, i64>("rule_version") != 0
@@ -3267,9 +3386,8 @@ impl DurablePgCoordinator {
                         || row
                             .get::<_, Option<String>>("selected_generation_digest")
                             .is_some()
-                        || row
-                            .get::<_, Option<String>>("source_projection_digest")
-                            .is_some()
+                        || row.get::<_, Option<String>>("source_projection_digest")
+                            != observed.completed_projection.map(|digest| digest.to_hex())
                     {
                         return Err(DurableError::Conflict("fresh streamed seed header differs"));
                     }
@@ -3304,71 +3422,109 @@ impl DurablePgCoordinator {
                         "invalidated streamed source retains a selected descriptor",
                     ));
                 }
-                let (assessment, inventory) = assess_held_current_source(
-                    &mut tx,
-                    generation_profile.max_sql_statement_ms,
-                    seed.is_some(),
-                    rebuild_projections,
-                    store,
-                    domain,
-                    &before,
-                    original,
-                    &original_content,
-                    context,
-                    &mut index,
-                    limits,
-                    source_limits.max_member_bytes,
-                    &mut index_work,
-                    body_work,
-                    worker,
-                    context.effective_uid,
-                    schema_source_path,
-                    item_limits,
-                    tree_limits,
-                    tree_work,
-                    deadline,
-                    &cancelled,
-                    owner_check,
-                )?;
-                super::ensure_source_publication_bootstrap_state(
-                    &mut tx,
-                    domain,
-                    store.store_id(),
-                    initial_revision,
-                    initial_membership,
-                    before.through_commit_seq,
-                    cohort.definition,
-                    assessment.publication_import.as_ref(),
-                )?;
-                // Locks remain held. Completion includes empty and absent predicates;
-                // only existing owned definitions are re-enabled, never invented grants.
-                active(deadline, &cancelled)?;
-                owner_check()?;
-                set_streamed_pg_limits(
-                    &mut tx,
-                    generation_profile.max_sql_statement_ms,
-                    deadline,
-                    &cancelled,
-                )?;
-                complete_owned_predicates_streamed(
-                    &mut tx,
-                    generation_profile.max_sql_statement_ms,
-                    domain,
-                    &cohort.definition.to_hex(),
-                    body_work,
-                    deadline,
-                    &cancelled,
-                    owner_check,
-                )?;
-                owner_check()?;
-                set_streamed_pg_limits(
-                    &mut tx,
-                    generation_profile.max_sql_statement_ms,
-                    deadline,
-                    &cancelled,
-                )?;
-                tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1",
+                let completed_projection = seed
+                    .as_ref()
+                    .and_then(|seed| seed.observation().completed_projection);
+                let (assessment, inventory) = if let Some(projection_digest) = completed_projection
+                {
+                    let inventory = reuse_completed_bootstrap_assessment(
+                        &mut tx,
+                        store,
+                        domain,
+                        before.current_members,
+                        projection_digest,
+                        generation_profile.max_sql_statement_ms,
+                        limits,
+                        tree_limits,
+                        tree_work,
+                        body_work,
+                        deadline,
+                        &cancelled,
+                        owner_check,
+                    )?;
+                    (
+                        CompleteStreamedMixedSourceAssessmentV1 {
+                            members: before.current_members,
+                            projection_digest,
+                            publication_import: None,
+                        },
+                        inventory,
+                    )
+                } else {
+                    let mut index = SourceAssessmentIndex::open(
+                        workspace,
+                        limits,
+                        deadline,
+                        std::sync::Arc::clone(&cancelled),
+                        &mut index_work,
+                    )?;
+                    let (assessment, inventory) = assess_held_current_source(
+                        &mut tx,
+                        generation_profile.max_sql_statement_ms,
+                        seed.is_some(),
+                        rebuild_projections,
+                        store,
+                        domain,
+                        &before,
+                        original,
+                        &original_content,
+                        context,
+                        &mut index,
+                        limits,
+                        source_limits.max_member_bytes,
+                        &mut index_work,
+                        body_work,
+                        worker,
+                        context.effective_uid,
+                        schema_source_path,
+                        item_limits,
+                        tree_limits,
+                        tree_work,
+                        deadline,
+                        &cancelled,
+                        owner_check,
+                    )?;
+                    super::ensure_source_publication_bootstrap_state(
+                        &mut tx,
+                        domain,
+                        store.store_id(),
+                        initial_revision,
+                        initial_membership,
+                        before.through_commit_seq,
+                        cohort.definition,
+                        assessment.publication_import.as_ref(),
+                    )?;
+                    // Locks remain held. Completion includes empty and absent predicates;
+                    // only existing owned definitions are re-enabled, never invented grants.
+                    active(deadline, &cancelled)?;
+                    owner_check()?;
+                    set_streamed_pg_limits(
+                        &mut tx,
+                        generation_profile.max_sql_statement_ms,
+                        deadline,
+                        &cancelled,
+                    )?;
+                    complete_owned_predicates_streamed(
+                        &mut tx,
+                        generation_profile.max_sql_statement_ms,
+                        domain,
+                        &cohort.definition.to_hex(),
+                        body_work,
+                        deadline,
+                        &cancelled,
+                        owner_check,
+                    )?;
+                    owner_check()?;
+                    set_streamed_pg_limits(
+                        &mut tx,
+                        generation_profile.max_sql_statement_ms,
+                        deadline,
+                        &cancelled,
+                    )?;
+                    tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1",
             &[&domain, &assessment.projection_digest.to_hex()])?;
+                    (assessment, inventory)
+                };
                 active(deadline, &cancelled)?;
                 owner_check()?;
                 set_streamed_pg_limits(

@@ -20,6 +20,9 @@ pub(super) struct FreshSourceBootstrapObservationV1 {
     pub head: u64,
     pub audit: u64,
     pub contract: Digest256,
+    // The same source-completion transaction persists this transcript. A
+    // resumed initial bootstrap may finish packing without repeating schemas.
+    pub completed_projection: Option<Digest256>,
 }
 
 impl FreshSourceBootstrapV1 {
@@ -393,6 +396,7 @@ impl DurablePgCoordinator {
                 head,
                 audit,
                 contract,
+                completed_projection: None,
             },
         })
     }
@@ -453,12 +457,16 @@ impl DurablePgCoordinator {
             "SELECT (SELECT count(*) FROM cmd2_current WHERE domain=$1), (SELECT count(*) FROM cmd2_history WHERE domain=$1)",
             &[&domain],
         )?;
+        let completed_projection = row
+            .get::<_, Option<String>>("source_projection_digest")
+            .map(parse_hex)
+            .transpose()?;
         if head == 0
             || head > max_commit_seq
             || job.as_ref().map(|r| r.get::<_, i64>(0)) != Some(1)
             || as_u64(counts.get(0))? != verified.authored_members
             || as_u64(counts.get(1))? != verified.authored_members
-            || row.get::<_, bool>("source_complete")
+            || row.get::<_, bool>("source_complete") != completed_projection.is_some()
             || !row.get::<_, bool>("rights_allowed")
             || row.get::<_, i64>("rights_version") != 0
             || row.get::<_, i64>("rule_version") != 0
@@ -479,9 +487,6 @@ impl DurablePgCoordinator {
             || row
                 .get::<_, Option<String>>("selected_generation_digest")
                 .is_some()
-            || row
-                .get::<_, Option<String>>("source_projection_digest")
-                .is_some()
         {
             return Err(DurableError::Conflict(
                 "bootstrap resume requires complete original writes and unchanged initial authority",
@@ -500,6 +505,7 @@ impl DurablePgCoordinator {
                 head,
                 audit,
                 contract,
+                completed_projection,
             },
         })
     }

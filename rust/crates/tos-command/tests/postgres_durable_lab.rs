@@ -2392,17 +2392,44 @@ fn maintained_agent_creation_operation<
             &cancelled,
         )
         .unwrap();
-        let owner_check = || -> tos_command::DurableResult<()> { Ok(()) };
+        let observer = std::cell::RefCell::new(Client::connect(&lab.url, NoTls).unwrap());
+        let observed_domain = lab.domain.clone();
+        let stop_after_completion = std::cell::Cell::new(false);
+        let owner_check = || -> tos_command::DurableResult<()> {
+            if stop_after_completion.get() {
+                let completed: bool = observer
+                    .borrow_mut()
+                    .query_one(
+                        "SELECT source_complete FROM cmd2_domain WHERE domain=$1",
+                        &[&observed_domain],
+                    )?
+                    .get(0);
+                if completed {
+                    stop_after_completion.set(false);
+                    return Err(DurableError::Refused(
+                        "injected stop after committed source assessment",
+                    ));
+                }
+            }
+            Ok(())
+        };
         let mut tree_work = tos_segment_store::AuthenticatedTreeWorkV1::default();
-        // Simulate a finishing-assessment refusal after durable ORIGINAL EOF.
-        // Resume must reuse every committed source row and receipt.
+        // Stop first before assessment and then after its actual commit.
+        // Both resumes retain ORIGINAL receipts; the second reuses assessment.
         let mut seeded_head = 0;
         let mut seeded_counts = Vec::new();
+        let mut assessed_receipts = 0;
+        let mut assessed_writes = 0;
         let mut completed = None;
-        for bootstrap_mode in [
+        for (phase, bootstrap_mode) in [
             tos_command::source_cohort::BootstrapJobMode::Initialize,
             tos_command::source_cohort::BootstrapJobMode::RequireExisting,
-        ] {
+            tos_command::source_cohort::BootstrapJobMode::RequireExisting,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            stop_after_completion.set(phase == 1);
             let result = lab.db.bootstrap_source_cohort_streamed(
                 &lab.store,
                 &lab.domain,
@@ -2474,7 +2501,25 @@ fn maintained_agent_creation_operation<
                         .map(|table| lab.count(table))
                         .collect::<Vec<_>>()
                 );
-                completed = Some(result);
+                if phase == 1 {
+                    assert!(matches!(
+                        result,
+                        Err(DurableError::Refused(
+                            "injected stop after committed source assessment"
+                        ))
+                    ));
+                    assert!(work.derived_index.sqlite_file_len_high_water > 0);
+                    assert!(work.derived_index.sqlite_allocated_bytes_high_water > 0);
+                    assessed_receipts = worker.receipt_count();
+                    assessed_writes = work.fresh_pg_rows_written;
+                    assert!(assessed_receipts > 0);
+                } else {
+                    assert_eq!(worker.receipt_count(), assessed_receipts);
+                    assert_eq!(work.fresh_pg_rows_written, assessed_writes);
+                    assert_eq!(work.completed_assessments_reused, 1);
+                    assert_eq!(work.derived_index, Default::default());
+                    completed = Some(result);
+                }
             }
         }
         let result = completed.unwrap();
@@ -2483,8 +2528,6 @@ fn maintained_agent_creation_operation<
             result.is_ok()
         );
         let initial = result.unwrap();
-        assert!(work.derived_index.sqlite_file_len_high_water > 0);
-        assert!(work.derived_index.sqlite_allocated_bytes_high_water > 0);
         assert_eq!(
             std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(),
             0,
