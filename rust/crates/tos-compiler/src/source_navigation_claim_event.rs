@@ -7144,7 +7144,7 @@ fn validate_provenance_event(
             != Some("tos_local_claim_create_receipt_v1")
         || receipt.get("source_path").and_then(Value::as_str) != Some(source_path.as_str())
         || schema.get("$id").and_then(Value::as_str)
-            != Some("https://treeofsophia.local/ToS/contracts/provenance-event-v2.schema.json")
+            != Some("https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json")
     {
         return Err(Error::Invalid(
             "navigation Claim provenance identity binding",
