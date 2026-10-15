@@ -65,6 +65,10 @@ and checks exact bootstrap or event-cohort roots. Previously persisted range
 manifests remain readable through their authenticated roots. New publication
 requires the complete inventory. Subsequent events recognize both Record and
 Claim range-reconciliation cohorts as predecessor owners.
+Historical record nodes retain their archived source references and exact
+carrier bytes, while bootstrap groups them with the current record that owns
+their history view. A prior bootstrap with archive-file ownership requires the
+explicit source-backed bootstrap route before addressed updates.
 
 The addressed audit journal covers the same 19 metadata tables as the cold
 source audit, plus the semantic domain header. IDs 1..12 retain their original

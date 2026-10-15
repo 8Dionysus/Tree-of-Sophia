@@ -211,6 +211,7 @@ pub fn capture_source_navigation_bootstrap_v1(
             &mut node_visibility,
         )?;
     }
+    bind_historical_record_owners(&mut rows, limits)?;
     expand_claim_contributions(&mut rows, limits, &mut charged_bytes)?;
     if rows.is_empty() || owner_source_paths.is_empty() {
         return Err(DurableError::Conflict(
@@ -733,6 +734,66 @@ fn capture_original_carrier(
     Ok(())
 }
 
+/// A version node keeps its exact archived source reference, but its view also
+/// contains the current record/history provenance. It must therefore be
+/// replaced with that record. Resolve ownership after all original nodes are
+/// captured: historical node IDs may sort before the current record ID.
+fn bind_historical_record_owners(
+    rows: &mut [DurableNavigationBootstrapRowV1],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<()> {
+    let current_owners = rows
+        .iter()
+        .filter(|row| {
+            row.kind == DurableNavigationBootstrapRowKindV1::Node && row.id == row.owner_record_id
+        })
+        .map(|row| (row.id.clone(), row.owner_source_path.clone()))
+        .collect::<BTreeMap<_, _>>();
+    for row in rows
+        .iter_mut()
+        .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Node)
+    {
+        let value = parse_carrier(&row.raw, limits)?;
+        let Some(view) = value
+            .object_get("properties")
+            .and_then(|properties| properties.object_get("record_version_view"))
+        else {
+            continue;
+        };
+        let id = view
+            .object_get("record_ref")
+            .and_then(|reference| reference.object_get("id"))
+            .and_then(|id| id.as_str())
+            .ok_or(DurableError::Corrupt(
+                "navigation history record identity absent",
+            ))?;
+        let owner_path = current_owners
+            .get(id)
+            .filter(|_| id == row.owner_record_id)
+            .ok_or(DurableError::Corrupt(
+                "navigation historical record owner absent",
+            ))?;
+        let declared_source = view
+            .object_get("provenance")
+            .and_then(|provenance| provenance.object_get("source"))
+            .and_then(|source| source.object_get("source_ref"))
+            .and_then(|path| path.as_str());
+        if let Some(path) = declared_source {
+            if checked_path(path)?.as_str() != owner_path {
+                return Err(DurableError::Corrupt(
+                    "navigation historical record source differs",
+                ));
+            }
+        } else if row.owner_source_path != *owner_path {
+            return Err(DurableError::Corrupt(
+                "navigation historical archive has no record source",
+            ));
+        }
+        row.owner_source_path = owner_path.clone();
+    }
+    Ok(())
+}
+
 /// Restore each reified Claim's contribution to shared carriers. PostgreSQL's
 /// existing bootstrap key includes the owner pair; selecting one arbitrary
 /// owner would lose surviving contributions when another Claim is replaced.
@@ -982,11 +1043,11 @@ mod tests {
         let packets = [
             (
                 DurableNavigationBootstrapRowKindV1::Node,
-                json!({"node_id":"work:example","source_ref":source}),
+                json!({"node_id":"record-version:one","source_ref":format!("{archive}#L1"),"properties":{"record_version_view":{"record_ref":{"id":"work:example","version":1},"provenance":{"source":{"source_ref":source}}}}}),
             ),
             (
                 DurableNavigationBootstrapRowKindV1::Node,
-                json!({"node_id":"record-version:one","source_ref":format!("{source}#L1"),"properties":{"record_version_view":{"record_ref":{"id":"work:example","version":1}}}}),
+                json!({"node_id":"work:example","source_ref":source}),
             ),
             (
                 DurableNavigationBootstrapRowKindV1::Edge,
@@ -1021,6 +1082,12 @@ mod tests {
             .unwrap();
             assert_eq!(rows.last().unwrap().raw, raw);
         }
+        let original_raw = rows.iter().map(|row| row.raw.clone()).collect::<Vec<_>>();
+        bind_historical_record_owners(&mut rows, DurableNavigationEventLimits::default()).unwrap();
+        assert_eq!(
+            original_raw,
+            rows.iter().map(|row| row.raw.clone()).collect::<Vec<_>>()
+        );
         assert_eq!(
             paths,
             BTreeSet::from([source.to_owned(), archive.to_owned()])
@@ -1031,6 +1098,11 @@ mod tests {
         assert_eq!(
             charged,
             rows.iter().map(|row| row.raw.len() as u64).sum::<u64>()
+        );
+        rows[1].owner_source_path = "ToS/source-witnesses/works/another/work.json".into();
+        assert!(
+            bind_historical_record_owners(&mut rows, DurableNavigationEventLimits::default())
+                .is_err()
         );
     }
 
