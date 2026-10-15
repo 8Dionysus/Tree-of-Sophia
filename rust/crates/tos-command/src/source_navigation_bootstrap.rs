@@ -1056,6 +1056,34 @@ fn has_uri_scheme(value: &str) -> bool {
 }
 
 #[cfg(test)]
+pub(crate) fn normalize_original_fixture(
+    mut input: Vec<(DurableNavigationBootstrapRowKindV1, String, Vec<u8>)>,
+) -> DurableResult<Vec<DurableNavigationBootstrapRowV1>> {
+    input.sort_by(|a, b| (a.0, &a.1).cmp(&(b.0, &b.1)));
+    input.dedup_by(|a, b| a.0 == b.0 && a.1 == b.1 && a.2 == b.2);
+    let limits = DurableNavigationEventLimits::default();
+    let mut rows = Vec::new();
+    let mut paths = BTreeSet::new();
+    let mut bytes = 0;
+    let mut visibility = BTreeMap::new();
+    for (kind, id, raw) in input {
+        capture_original_carrier(
+            kind,
+            id,
+            raw,
+            limits,
+            &mut rows,
+            &mut paths,
+            &mut bytes,
+            &mut visibility,
+        )?;
+    }
+    bind_historical_record_owners(&mut rows, limits)?;
+    expand_claim_contributions(&mut rows, limits, &mut bytes)?;
+    Ok(rows)
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;

@@ -35,7 +35,7 @@ const BACKUP_SCHEMA_V9: &str = "tos_cmd2_quiescent_backup_v9";
 const BACKUP_SCHEMA_V10: &str = "tos_cmd2_quiescent_backup_v10";
 const BACKUP_SCHEMA_V11: &str = "tos_cmd2_quiescent_backup_v11";
 const SOURCE_NAVIGATION_INITIAL_CENSUS_V1: &str = "tos_backup_source_navigation_initial_v1";
-const SOURCE_NAVIGATION_INITIAL_TABLES: [(&str, &str); 2] = [
+const SOURCE_NAVIGATION_INITIAL_TABLES: [(&str, &str); 3] = [
     (
         "cmd2_projection_navigation_initial",
         "consumer_id COLLATE \"C\"",
@@ -43,6 +43,10 @@ const SOURCE_NAVIGATION_INITIAL_TABLES: [(&str, &str); 2] = [
     (
         "cmd2_projection_navigation_initial_row",
         "consumer_id COLLATE \"C\",collection COLLATE \"C\",row_key COLLATE \"C\"",
+    ),
+    (
+        "cmd2_projection_navigation_initial_contributor",
+        "consumer_id COLLATE \"C\",node_id COLLATE \"C\",owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\"",
     ),
 ];
 const SOURCE_NAVIGATION_COHORT_TREE_CENSUS_V1: &str = "tos_backup_source_navigation_cohort_tree_v1";

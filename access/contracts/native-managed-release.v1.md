@@ -217,7 +217,8 @@ current cohort and exact map cardinality. Restoring identical current metadata
 restores the identical map root, independently of update history. Existing
 format 1/2 publications need explicit source-backed bootstrap; a cursor or stored
 row cannot manufacture format 3 admission. Backup format 11 includes both map
-tables and the private initial-capture position and Original carriers; restore
+tables and the private initial-capture position, Original carriers, node facts
+and Claim contributor relation; restore
 retains older backup-format readers and their declared checks.
 
 The private initial-capture adapter commits exact Original rows and keyset
@@ -225,6 +226,13 @@ position together in bounded pages. Its selected source, audit, rights, job and
 model binding must match on resume. Capturing or verifying Original roots does
 not publish a consumer: its cursor stays zero until a complete derived baseline
 is sealed. Ordinary event writers reject an unfinished initial construction.
+Node facts, Claim contributors, ordered maker propagation and normalized rows
+use resumable pages. A carrier's contribution fanout and an owner's dependency
+set must fit their declared transaction bounds; the complete model is not
+limited to one page. Historical ownership, Claim ownership, source-reference
+bindings and visibility use the same rules as the sealed-package writer.
+Identical repeated Original rights rows retain their ordinals in staging and
+collapse only in the query-facing projection; conflicting bytes fail closed.
 This adapter is preparation for the streamed initial writer; the public
 bootstrap command still uses the sealed-package writer until that integration
 is complete.

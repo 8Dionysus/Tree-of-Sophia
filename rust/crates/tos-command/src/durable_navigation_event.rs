@@ -2520,96 +2520,33 @@ impl DurableNavigationBootstrapPackageV1 {
         let mut base_rows = Vec::with_capacity(rows.len());
         let mut dependencies = BTreeMap::<(String, String), BTreeSet<String>>::new();
         for row in rows {
-            validate_identifier(
-                &row.id,
-                if row.kind == DurableNavigationBootstrapRowKindV1::Edge {
-                    MAX_NAVIGATION_EDGE_ID_BYTES
-                } else {
-                    MAX_NAVIGATION_RECORD_ID_BYTES
-                },
-                "navigation bootstrap row ID",
-            )?;
-            validate_relative_path(&row.owner_source_path)?;
-            validate_identifier(
-                &row.owner_record_id,
-                MAX_NAVIGATION_RECORD_ID_BYTES,
-                "navigation bootstrap owner record ID",
-            )?;
-            if row.raw.len() > limits.max_row_bytes
-                || !identities.insert((
-                    row.kind,
-                    row.id.clone(),
-                    row.owner_source_path.clone(),
-                    row.owner_record_id.clone(),
-                ))
-            {
-                return Err(DurableError::Invalid(
-                    "navigation bootstrap row identity or size",
-                ));
-            }
-            if matches!(
+            if !identities.insert((
                 row.kind,
-                DurableNavigationBootstrapRowKindV1::Node
-                    | DurableNavigationBootstrapRowKindV1::Edge
-            ) != row.visible.is_some()
-            {
-                return Err(DurableError::Invalid(
-                    "navigation bootstrap visibility witness",
-                ));
+                row.id.clone(),
+                row.owner_source_path.clone(),
+                row.owner_record_id.clone(),
+            )) {
+                return Err(DurableError::Invalid("navigation bootstrap row identity"));
             }
             charged_bytes = charged_bytes
                 .checked_add(row.raw.len() as u64)
+                .filter(|bytes| *bytes <= limits.max_total_bytes)
                 .ok_or(DurableError::Refused("navigation bootstrap byte budget"))?;
-            if charged_bytes > limits.max_total_bytes {
-                return Err(DurableError::Refused("navigation bootstrap byte budget"));
-            }
-            let value = strict_json_value(&row.raw, limits.max_row_bytes)?;
-            if let Some(field) = row.kind.id_field()
-                && value.get(field).and_then(Value::as_str) != Some(row.id.as_str())
-            {
-                return Err(DurableError::Invalid(
-                    "navigation bootstrap carrier ID differs",
-                ));
-            }
-            let (mut source_refs, mut dependencies_for_owner) =
-                bootstrap_ref_parts(&value, "navigation bootstrap source ref")?;
-            source_refs.insert(row.owner_source_path.clone());
-            dependencies_for_owner.insert(row.owner_source_path.clone());
-            let sha256 = Digest256::of_bytes(&row.raw);
+            let (row, dependencies_for_owner) = prepare_navigation_bootstrap_row(row, limits)?;
             if let Some((prior_digest, prior_raw)) = carriers.get(&(row.kind, row.id.clone())) {
-                if *prior_digest != sha256 || prior_raw != &row.raw {
+                if *prior_digest != row.sha256 || prior_raw != &row.raw {
                     return Err(DurableError::Conflict(
                         "navigation bootstrap shared carrier bytes differ",
                     ));
                 }
             } else {
-                carriers.insert((row.kind, row.id.clone()), (sha256, row.raw.clone()));
+                carriers.insert((row.kind, row.id.clone()), (row.sha256, row.raw.clone()));
             }
-            let owner = (row.owner_source_path.clone(), row.owner_record_id.clone());
             dependencies
-                .entry(owner)
+                .entry((row.owner_source_path.clone(), row.owner_record_id.clone()))
                 .or_default()
                 .extend(dependencies_for_owner);
-            let source_refs = source_refs.into_iter().collect::<Vec<_>>();
-            base_rows.push(DurableNavigationBaseRowReadV1 {
-                kind: row.kind,
-                id: row.id,
-                owner_source_path: row.owner_source_path,
-                owner_record_id: row.owner_record_id,
-                active: true,
-                visible: row.visible,
-                sha256,
-                from_id: value
-                    .get("from_id")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned),
-                to_id: value
-                    .get("to_id")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned),
-                source_refs,
-                raw: row.raw,
-            });
+            base_rows.push(row);
         }
         for (kind, expected) in [
             (DurableNavigationBootstrapRowKindV1::Node, receipt.nodes),
@@ -2724,6 +2661,93 @@ impl DurableNavigationBootstrapPackageV1 {
             bootstrap_root,
         })
     }
+}
+
+/// The carrier and dependency rules shared by one-shot and paged initial
+/// construction. Storage adapters choose their own bounded transaction shape.
+fn prepare_navigation_bootstrap_row(
+    row: DurableNavigationBootstrapRowV1,
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<(DurableNavigationBaseRowReadV1, BTreeSet<String>)> {
+    validate_identifier(
+        &row.id,
+        if row.kind == DurableNavigationBootstrapRowKindV1::Edge {
+            MAX_NAVIGATION_EDGE_ID_BYTES
+        } else {
+            MAX_NAVIGATION_RECORD_ID_BYTES
+        },
+        "navigation bootstrap row ID",
+    )?;
+    validate_relative_path(&row.owner_source_path)?;
+    validate_identifier(
+        &row.owner_record_id,
+        MAX_NAVIGATION_RECORD_ID_BYTES,
+        "navigation bootstrap owner record ID",
+    )?;
+    if row.raw.len() > limits.max_row_bytes {
+        return Err(DurableError::Refused("navigation bootstrap row size"));
+    }
+    if matches!(
+        row.kind,
+        DurableNavigationBootstrapRowKindV1::Node | DurableNavigationBootstrapRowKindV1::Edge
+    ) != row.visible.is_some()
+    {
+        return Err(DurableError::Invalid(
+            "navigation bootstrap visibility witness",
+        ));
+    }
+    let value = strict_json_value(&row.raw, limits.max_row_bytes)?;
+    if let Some(field) = row.kind.id_field()
+        && value.get(field).and_then(Value::as_str) != Some(row.id.as_str())
+    {
+        return Err(DurableError::Invalid(
+            "navigation bootstrap carrier ID differs",
+        ));
+    }
+    let (mut refs, mut dependencies) =
+        bootstrap_ref_parts(&value, "navigation bootstrap source ref")?;
+    refs.insert(row.owner_source_path.clone());
+    dependencies.insert(row.owner_source_path.clone());
+    if dependencies.len() > limits.max_dependencies {
+        return Err(DurableError::Refused(
+            "navigation bootstrap carrier dependencies",
+        ));
+    }
+    let from_id = value
+        .get("from_id")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    let to_id = value
+        .get("to_id")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    if row.kind == DurableNavigationBootstrapRowKindV1::Edge {
+        for endpoint in [&from_id, &to_id] {
+            validate_identifier(
+                endpoint.as_deref().ok_or(DurableError::Corrupt(
+                    "navigation bootstrap edge endpoint absent",
+                ))?,
+                MAX_NAVIGATION_RECORD_ID_BYTES,
+                "navigation bootstrap edge endpoint",
+            )?;
+        }
+    }
+    Ok((
+        DurableNavigationBaseRowReadV1 {
+            kind: row.kind,
+            id: row.id,
+            owner_source_path: row.owner_source_path,
+            owner_record_id: row.owner_record_id,
+            active: true,
+            visible: row.visible,
+            sha256: Digest256::of_bytes(&row.raw),
+            from_id,
+            to_id,
+            source_refs: refs.into_iter().collect(),
+            raw: row.raw,
+        },
+        dependencies,
+    ))
 }
 
 /// Current-owner facts carried into a global read model. The navigation

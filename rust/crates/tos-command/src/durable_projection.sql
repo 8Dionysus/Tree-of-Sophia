@@ -276,6 +276,23 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_initial_row (
 );
 CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_initial_row_seek
   ON cmd2_projection_navigation_initial_row(domain,consumer_id,collection,row_key COLLATE "C");
+ALTER TABLE cmd2_projection_navigation_initial_row
+  ADD COLUMN IF NOT EXISTS node_facts_json text
+  CHECK (node_facts_json IS NULL OR
+    (collection='nodes' AND octet_length(node_facts_json)<=8192));
+
+-- The set of Claim contributors is a resumable intermediate relation. It is
+-- derived with the shared Rust Claim/maker rules and grants no publication.
+CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_initial_contributor (
+  domain text NOT NULL,
+  consumer_id text NOT NULL,
+  node_id text NOT NULL CHECK (octet_length(node_id) BETWEEN 1 AND 256),
+  owner_source_path text NOT NULL CHECK (octet_length(owner_source_path) BETWEEN 1 AND 4096),
+  owner_record_id text NOT NULL CHECK (octet_length(owner_record_id) BETWEEN 1 AND 256),
+  PRIMARY KEY (domain,consumer_id,node_id,owner_source_path,owner_record_id),
+  FOREIGN KEY (domain,consumer_id)
+    REFERENCES cmd2_projection_navigation_initial(domain,consumer_id) ON DELETE CASCADE
+);
 
 -- One exact whole-source bootstrap, tied to the owner-selected managed model.
 -- Its rows are separate from event cohorts so an event update can replace a

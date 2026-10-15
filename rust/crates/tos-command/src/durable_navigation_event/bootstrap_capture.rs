@@ -9,6 +9,9 @@ use super::*;
 use postgres::Transaction;
 use serde::{Deserialize, Serialize};
 
+#[path = "bootstrap_normalize.rs"]
+mod normalize;
+
 const PAGE_ROWS: usize = 128;
 const MEMBER_BOUND: u64 = 4096 + 5 + 192 + 8;
 
@@ -21,6 +24,12 @@ struct Position {
     rights: u64,
     raw_bytes: u64,
     work_bytes: u64,
+    #[serde(default)]
+    normalized_rows: u64,
+    #[serde(default)]
+    normalized_bytes: u64,
+    #[serde(default)]
+    projected_rights: u64,
 }
 
 impl Default for Position {
@@ -33,6 +42,9 @@ impl Default for Position {
             rights: 0,
             raw_bytes: 0,
             work_bytes: 0,
+            normalized_rows: 0,
+            normalized_bytes: 0,
+            projected_rights: 0,
         }
     }
 }
@@ -60,6 +72,9 @@ pub(crate) struct NavigationInitialCaptureProgress {
     pub total_work_bytes: u64,
     pub call_work_bytes: u64,
     pub committed_batches: usize,
+    pub normalized_rows: u64,
+    pub normalized_bytes: u64,
+    pub projected_rights: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -117,11 +132,30 @@ fn read_position(
             "navigation initial selected cut changed; use a new consumer",
         ));
     }
-    serde_json::from_str(
+    let position: Position = serde_json::from_str(
         &row.get::<_, Option<String>>(1)
             .ok_or(DurableError::Corrupt("navigation initial position size"))?,
     )
-    .map_err(|_| DurableError::Corrupt("navigation initial position encoding"))
+    .map_err(|_| DurableError::Corrupt("navigation initial position encoding"))?;
+    if !matches!(
+        position.phase.as_str(),
+        "nodes"
+            | "edges"
+            | "rights"
+            | "captured"
+            | "verified"
+            | "node_facts"
+            | "claim_contributors"
+            | "maker_contributors"
+            | "normalize_nodes"
+            | "normalize_edges"
+            | "normalize_rights"
+            | "normalized"
+            | "complete"
+    ) {
+        return Err(DurableError::Corrupt("navigation initial position phase"));
+    }
+    Ok(position)
 }
 
 fn begin_capture(
@@ -587,9 +621,114 @@ impl DurablePgCoordinator {
             add(&mut call_work_bytes, work)?;
             committed_batches += 1;
         }
+        while committed_batches < max_batches
+            && matches!(
+                position.phase.as_str(),
+                "verified"
+                    | "node_facts"
+                    | "claim_contributors"
+                    | "maker_contributors"
+                    | "normalize_nodes"
+                    | "normalize_edges"
+                    | "normalize_rights"
+            )
+        {
+            live(deadline, cancelled)?;
+            let mut prepared = if position.phase.starts_with("normalize_") {
+                Some(normalize::prepare_page(
+                    &mut self.client,
+                    domain,
+                    consumer,
+                    &position,
+                    limits,
+                    deadline,
+                    cancelled,
+                )?)
+            } else {
+                None
+            };
+            // Member resolution uses the coordinator's own short read
+            // transaction, outside the page writer, under the held source cut.
+            let mut owners = Vec::new();
+            if let Some(page) = &prepared {
+                for path in &page.paths {
+                    live(deadline, cancelled)?;
+                    if self
+                        .client
+                        .query_opt(
+                            "SELECT 1 FROM cmd2_projection_navigation_bootstrap_owner
+                          WHERE domain=$1 AND consumer_id=$2 AND owner_source_path=$3",
+                            &[&domain, &consumer, path],
+                        )?
+                        .is_some()
+                    {
+                        continue;
+                    }
+                    let relative = RelativePath::parse(path)
+                        .map_err(|_| DurableError::Invalid("navigation initial source path"))?;
+                    let member = selected
+                        .generation()
+                        .member(self, store, &relative, deadline, cancelled)
+                        .map_err(DurableError::Source)?
+                        .ok_or(DurableError::Conflict(
+                            "navigation initial source path outside selected generation",
+                        ))?;
+                    if member.size_bytes == 0 {
+                        return Err(DurableError::Corrupt(
+                            "navigation initial empty source member",
+                        ));
+                    }
+                    owners.push(DurableNavigationBootstrapOwnerSourceV1 {
+                        source_path: path.clone(),
+                        sha256: member.sha256,
+                        size_bytes: member.size_bytes,
+                    });
+                }
+            }
+            let mut tx = self.client.transaction()?;
+            set_local_timeouts(&mut tx, limits.statement_timeout)?;
+            check_fences(&mut tx, domain, profile, &selected_cut)?;
+            if read_position(&mut tx, domain, consumer, &selection)? != position {
+                return Err(DurableError::Conflict(
+                    "navigation initial normalization position changed",
+                ));
+            }
+            let (next, work) = if let Some(page) = &mut prepared {
+                normalize::persist_page(&mut tx, domain, consumer, page, &owners, limits)?;
+                (page.next.clone(), page.work)
+            } else if position.phase == "verified" {
+                normalize::begin_rows(&mut tx, domain, consumer, &selected_cut, header)?;
+                let mut next = position.clone();
+                next.phase = "node_facts".into();
+                next.after.clear();
+                (next, 0)
+            } else {
+                normalize::metadata_page(
+                    &mut tx, domain, consumer, &position, limits, deadline, cancelled,
+                )?
+            };
+            live(deadline, cancelled)?;
+            commit_page(
+                &mut tx,
+                domain,
+                consumer,
+                &selection,
+                &position,
+                &next,
+                &[],
+                limits,
+            )?;
+            tx.commit()?;
+            position = next;
+            committed_batches += 1;
+            add(&mut call_work_bytes, work)?;
+        }
         Ok(NavigationInitialCaptureProgress {
-            captured: matches!(position.phase.as_str(), "captured" | "verified"),
-            verified: position.phase == "verified",
+            captured: !matches!(position.phase.as_str(), "nodes" | "edges" | "rights"),
+            verified: !matches!(
+                position.phase.as_str(),
+                "nodes" | "edges" | "rights" | "captured"
+            ),
             phase: position.phase,
             after: position.after,
             nodes: position.nodes,
@@ -599,6 +738,9 @@ impl DurablePgCoordinator {
             total_work_bytes: position.work_bytes,
             call_work_bytes,
             committed_batches,
+            normalized_rows: position.normalized_rows,
+            normalized_bytes: position.normalized_bytes,
+            projected_rights: position.projected_rights,
         })
     }
 }
