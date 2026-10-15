@@ -1117,6 +1117,18 @@ fn process_ready_range(
         )?;
     }
 
+    let claim_stream_predecessors = event_reader
+        .read_navigation_event_range_claim_stream_predecessors_v1(
+            selection.domain,
+            selection.consumer_id,
+            &selection.profile,
+            coverage,
+            &terminal_claim_stream_paths
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>(),
+            selection.event_limits,
+        )?;
     let claim_manifest =
         tos_compiler::source_navigation_claim_event::seal_navigation_claim_event_range_manifest_v1(
             NavigationClaimEventRangeManifestInputV1 {
@@ -1124,6 +1136,7 @@ fn process_ready_range(
                 mutations: &claim_mutation_inputs,
                 dependency_causes: &claim_dependency_inputs,
                 prior_owners: &claim_prior_inputs,
+                stream_predecessors: &claim_stream_predecessors,
                 terminal_inventory: &claim_inventory,
             },
         )
@@ -1555,12 +1568,21 @@ fn process_ready_range(
             |validator| {
                 for stream in claim_manifest.terminal_streams() {
                     for claim_id in stream.owner_ids() {
-                        let predecessor = read_record_predecessor(
-                            event_reader,
-                            selection,
-                            stream.source_path(),
-                            claim_id,
-                        )?;
+                        let predecessor = claim_manifest
+                            .stream_predecessors()
+                            .iter()
+                            .find(|owner| {
+                                owner.claim_stream_path == stream.source_path()
+                                    && owner.claim_id == *claim_id
+                            })
+                            .and_then(|owner| match owner.basis {
+                                NavigationClaimEventRangePriorOwnerBasisV1::EventCohort {
+                                    cohort_root,
+                                } => Some(cohort_root),
+                                NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap {
+                                    ..
+                                } => None,
+                            });
                         let (cohort, cost) = crate::source_navigation_claim_input::assemble_selected_claim_event_range_owner_v1(
                         &context,
                         identity,

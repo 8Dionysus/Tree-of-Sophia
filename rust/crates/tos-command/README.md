@@ -56,6 +56,16 @@ before rebuilding the inventory. An invalidated V2 selection or unknown
 format remains refused; restore never grants an unverified old selector new
 database authority.
 
+Addressed navigation replaces complete selected Claim streams. Its range
+manifest keeps causal reverse dependencies separate from the complete
+published predecessor inventory of those streams. The additive
+`stream_predecessors` field binds unchanged companions as well as directly
+affected Claims; publication re-reads the inventory under its held transaction
+and checks exact bootstrap or event-cohort roots. Previously persisted range
+manifests remain readable through their authenticated roots. New publication
+requires the complete inventory. Subsequent events recognize both Record and
+Claim range-reconciliation cohorts as predecessor owners.
+
 The addressed audit journal covers the same 19 metadata tables as the cold
 source audit, plus the semantic domain header. IDs 1..12 retain their original
 keys and commitments; IDs 13..20 add publication current/history/import, Text

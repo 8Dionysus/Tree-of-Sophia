@@ -83,6 +83,16 @@ pub struct NavigationClaimEventRangePriorOwnerV1 {
     pub basis: NavigationClaimEventRangePriorOwnerBasisV1,
 }
 
+/// Published predecessor of a member of a selected terminal stream. Stream
+/// replacement includes unchanged companions as well as reverse dependencies;
+/// this inventory deliberately makes no claim about what caused a change.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NavigationClaimEventRangeStreamPredecessorV1 {
+    pub claim_stream_path: String,
+    pub claim_id: String,
+    pub basis: NavigationClaimEventRangePriorOwnerBasisV1,
+}
+
 /// One event-attributed non-Claim dependency change. Reverse-owner sets are
 /// range-boundary observations: predecessor IDs are at `cursor_before`, and
 /// current IDs are at `through_sequence`. Repeated changes to one path retain
@@ -202,6 +212,7 @@ pub struct NavigationClaimEventRangeManifestInputV1<'a> {
     pub mutations: &'a [NavigationClaimEventRangeMutationInputV1<'a>],
     pub dependency_causes: &'a [NavigationClaimEventRangeDependencyCauseInputV1<'a>],
     pub prior_owners: &'a [NavigationClaimEventRangePriorOwnerV1],
+    pub stream_predecessors: &'a [NavigationClaimEventRangeStreamPredecessorV1],
     pub terminal_inventory: &'a NavigationClaimEventOwnerInventoryV1,
 }
 
@@ -260,6 +271,7 @@ pub struct NavigationClaimEventRangeManifestV1 {
     mutations: Vec<NavigationClaimEventRangeMutationV1>,
     dependency_causes: Vec<NavigationClaimEventRangeDependencyCauseV1>,
     prior_owners: Vec<NavigationClaimEventRangePriorOwnerV1>,
+    stream_predecessors: Vec<NavigationClaimEventRangeStreamPredecessorV1>,
     terminal_inventory_root: Digest256,
     empty_owner_evidence: Option<NavigationClaimEventRangeEmptyOwnerEvidenceV1>,
     terminal_streams: Vec<NavigationClaimEventAffectedOwnerStreamV1>,
@@ -331,6 +343,10 @@ impl NavigationClaimEventRangeManifestV1 {
         &self.prior_owners
     }
 
+    pub fn stream_predecessors(&self) -> &[NavigationClaimEventRangeStreamPredecessorV1] {
+        &self.stream_predecessors
+    }
+
     pub fn terminal_inventory_root(&self) -> Digest256 {
         self.terminal_inventory_root
     }
@@ -365,6 +381,7 @@ impl NavigationClaimEventRangeManifestV1 {
             &self.mutations,
             &self.dependency_causes,
             &self.prior_owners,
+            &self.stream_predecessors,
             self.terminal_inventory_root,
             self.empty_owner_evidence.as_ref(),
             &self.terminal_streams,
@@ -504,6 +521,12 @@ impl NavigationClaimEventRangeManifestV1 {
         // operation retires a Claim row. Dependency-edge retractions are
         // handled by re-rendering prior reverse owners in their full terminal
         // stream, so a missing predecessor ID has no admissible proof here.
+        verify_range_stream_predecessors(
+            &self.stream_predecessors,
+            &self.prior_owners,
+            &self.terminal_streams,
+            &self.mutations,
+        )?;
         let expected_removed = Vec::<NavigationClaimEventRangePriorOwnerV1>::new();
         if expected_removed != self.removed_owners {
             return Err(Error::Invalid(
@@ -515,6 +538,7 @@ impl NavigationClaimEventRangeManifestV1 {
             &self.mutations,
             &self.dependency_causes,
             &self.prior_owners,
+            &self.stream_predecessors,
             self.terminal_inventory_root,
             self.empty_owner_evidence.as_ref(),
             &self.terminal_streams,
@@ -539,6 +563,7 @@ pub fn seal_navigation_claim_event_range_manifest_v1(
     if input.mutations.len() > MAX_CLAIM_RANGE_EVENTS
         || input.dependency_causes.len() > MAX_CLAIM_RANGE_MEMBERS
         || input.prior_owners.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
+        || input.stream_predecessors.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
     {
         return Err(Error::Budget("navigation Claim range cause count"));
     }
@@ -694,12 +719,19 @@ pub fn seal_navigation_claim_event_range_manifest_v1(
             "navigation Claim range terminal owner closure",
         ));
     }
+    verify_range_stream_predecessors(
+        input.stream_predecessors,
+        &prior_owners,
+        &terminal_streams,
+        &mutations,
+    )?;
     let removed_owners = Vec::new();
     let mut manifest = NavigationClaimEventRangeManifestV1 {
         coverage,
         mutations,
         dependency_causes,
         prior_owners,
+        stream_predecessors: input.stream_predecessors.to_vec(),
         terminal_inventory_root: inventory.root,
         empty_owner_evidence: inventory.empty_owner_evidence.clone(),
         terminal_streams,
@@ -712,6 +744,7 @@ pub fn seal_navigation_claim_event_range_manifest_v1(
         &manifest.mutations,
         &manifest.dependency_causes,
         &manifest.prior_owners,
+        &manifest.stream_predecessors,
         manifest.terminal_inventory_root,
         manifest.empty_owner_evidence.as_ref(),
         &manifest.terminal_streams,
@@ -3784,7 +3817,7 @@ fn project_navigation_claim_event_core_v1(
             ));
         }
         let predecessor_roots = range_manifest
-            .prior_owners()
+            .stream_predecessors()
             .iter()
             .filter(|owner| owner.claim_stream_path == source_path.as_str() && owner.claim_id == id)
             .map(|owner| match owner.basis {
@@ -4619,6 +4652,71 @@ fn range_prior_owners_canonical(owners: &[NavigationClaimEventRangePriorOwnerV1]
     })
 }
 
+fn verify_range_stream_predecessors(
+    predecessors: &[NavigationClaimEventRangeStreamPredecessorV1],
+    causes: &[NavigationClaimEventRangePriorOwnerV1],
+    streams: &[NavigationClaimEventAffectedOwnerStreamV1],
+    mutations: &[NavigationClaimEventRangeMutationV1],
+) -> Result<()> {
+    if predecessors.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
+        || predecessors.windows(2).any(|pair| {
+            (&pair[0].claim_stream_path, &pair[0].claim_id)
+                >= (&pair[1].claim_stream_path, &pair[1].claim_id)
+        })
+    {
+        return Err(Error::Invalid(
+            "navigation Claim stream predecessor order or budget",
+        ));
+    }
+    let by_owner = predecessors
+        .iter()
+        .map(|owner| {
+            (
+                (owner.claim_stream_path.as_str(), owner.claim_id.as_str()),
+                owner.basis,
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    for owner in predecessors {
+        let root = match owner.basis {
+            NavigationClaimEventRangePriorOwnerBasisV1::EventCohort { cohort_root } => cohort_root,
+            NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => owner_root,
+        };
+        if root == Digest256::of_bytes(&[])
+            || !streams.iter().any(|stream| {
+                stream.source_path == owner.claim_stream_path
+                    && stream.owner_ids.binary_search(&owner.claim_id).is_ok()
+            })
+        {
+            return Err(Error::Invalid(
+                "navigation Claim stream predecessor is outside terminal owners",
+            ));
+        }
+    }
+    if causes.iter().any(|owner| {
+        by_owner.get(&(owner.claim_stream_path.as_str(), owner.claim_id.as_str()))
+            != Some(&owner.basis)
+    }) {
+        return Err(Error::Invalid(
+            "navigation Claim causal predecessor differs from stream predecessor",
+        ));
+    }
+    for mutation in mutations {
+        let receipt = strict_value(&mutation.receipt_raw, TOTAL_DEPENDENCY_BYTES)?;
+        if receipt.get("schema_version").and_then(Value::as_str)
+            == Some("tos_local_claim_create_receipt_v1")
+            && mutation.mutation_claim_ids.iter().any(|id| {
+                by_owner.contains_key(&(mutation.claim_stream_member_path.as_str(), id.as_str()))
+            })
+        {
+            return Err(Error::Invalid(
+                "navigation Claim create ID already has a stream predecessor",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn seal_range_mutation(
     input: &NavigationClaimEventRangeMutationInputV1<'_>,
     coverage: &NavigationClaimEventRangeCoverageV1,
@@ -5445,6 +5543,7 @@ fn claim_event_range_manifest_root(
     mutations: &[NavigationClaimEventRangeMutationV1],
     dependency_causes: &[NavigationClaimEventRangeDependencyCauseV1],
     prior_owners: &[NavigationClaimEventRangePriorOwnerV1],
+    stream_predecessors: &[NavigationClaimEventRangeStreamPredecessorV1],
     terminal_inventory_root: Digest256,
     empty_owner_evidence: Option<&NavigationClaimEventRangeEmptyOwnerEvidenceV1>,
     terminal_streams: &[NavigationClaimEventAffectedOwnerStreamV1],
@@ -5456,6 +5555,7 @@ fn claim_event_range_manifest_root(
         mutations,
         dependency_causes,
         prior_owners,
+        stream_predecessors,
         terminal_inventory_root,
         empty_owner_evidence,
         terminal_streams,
@@ -5469,6 +5569,7 @@ fn claim_event_range_manifest_bytes(
     mutations: &[NavigationClaimEventRangeMutationV1],
     dependency_causes: &[NavigationClaimEventRangeDependencyCauseV1],
     prior_owners: &[NavigationClaimEventRangePriorOwnerV1],
+    stream_predecessors: &[NavigationClaimEventRangeStreamPredecessorV1],
     terminal_inventory_root: Digest256,
     empty_owner_evidence: Option<&NavigationClaimEventRangeEmptyOwnerEvidenceV1>,
     terminal_streams: &[NavigationClaimEventAffectedOwnerStreamV1],
@@ -5511,6 +5612,11 @@ fn claim_event_range_manifest_bytes(
                 "current_claim_ids":cause.current_claim_ids,
             })).collect::<Vec<_>>(),
             "prior_owners":prior_owners.iter().map(range_prior_owner_value).collect::<Vec<_>>(),
+            "stream_predecessors":stream_predecessors.iter().map(|owner| json!({
+                "claim_stream_path":owner.claim_stream_path,
+                "claim_id":owner.claim_id,
+                "basis":range_prior_basis_value(owner.basis),
+            })).collect::<Vec<_>>(),
             "terminal_inventory_root":terminal_inventory_root.to_hex(),
             "empty_owner_evidence":empty_owner_evidence.map(empty_range_evidence_value),
             "terminal_streams":terminal_streams.iter().map(|stream| json!({
@@ -5570,17 +5676,21 @@ fn range_prior_owner_value(owner: &NavigationClaimEventRangePriorOwnerV1) -> Val
         "cause_path":owner.cause_path,
         "claim_stream_path":owner.claim_stream_path,
         "claim_id":owner.claim_id,
-        "basis":match owner.basis {
-            NavigationClaimEventRangePriorOwnerBasisV1::EventCohort { cohort_root } => json!({
-                "kind":"event-cohort",
-                "root":cohort_root.to_hex(),
-            }),
-            NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => json!({
-                "kind":"bootstrap",
-                "root":owner_root.to_hex(),
-            }),
-        },
+        "basis":range_prior_basis_value(owner.basis),
     })
+}
+
+fn range_prior_basis_value(basis: NavigationClaimEventRangePriorOwnerBasisV1) -> Value {
+    match basis {
+        NavigationClaimEventRangePriorOwnerBasisV1::EventCohort { cohort_root } => json!({
+            "kind":"event-cohort",
+            "root":cohort_root.to_hex(),
+        }),
+        NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap { owner_root } => json!({
+            "kind":"bootstrap",
+            "root":owner_root.to_hex(),
+        }),
+    }
 }
 
 fn sorted_unique(values: &[String]) -> bool {
@@ -7852,6 +7962,53 @@ fn navigation_claim_event_budget_cost(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stream_predecessors_bind_unchanged_companions_without_inventing_causes() {
+        let path = "ToS/source-witnesses/relations/source-claims.jsonl".to_owned();
+        let basis = NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap {
+            owner_root: Digest256::of_bytes(b"published-owner"),
+        };
+        let streams = vec![NavigationClaimEventAffectedOwnerStreamV1 {
+            source_path: path.clone(),
+            stream_sha256: Digest256::of_bytes(b"stream"),
+            rows_scanned: 2,
+            owner_ids: vec!["tos.claim.a".to_owned(), "tos.claim.b".to_owned()],
+        }];
+        let causal = vec![NavigationClaimEventRangePriorOwnerV1 {
+            cause_path: "ToS/source-witnesses/works/work.json".to_owned(),
+            claim_stream_path: path.clone(),
+            claim_id: "tos.claim.a".to_owned(),
+            basis,
+        }];
+        let mut predecessors = streams[0]
+            .owner_ids
+            .iter()
+            .map(|id| NavigationClaimEventRangeStreamPredecessorV1 {
+                claim_stream_path: path.clone(),
+                claim_id: id.clone(),
+                basis,
+            })
+            .collect::<Vec<_>>();
+        assert!(verify_range_stream_predecessors(&predecessors, &causal, &streams, &[]).is_ok());
+        // A companion may have a different valid predecessor without becoming
+        // a reverse dependency of the changed Work.
+        predecessors[1].basis = NavigationClaimEventRangePriorOwnerBasisV1::EventCohort {
+            cohort_root: Digest256::of_bytes(b"companion-event"),
+        };
+        assert!(verify_range_stream_predecessors(&predecessors, &causal, &streams, &[]).is_ok());
+        assert!(
+            verify_range_stream_predecessors(&predecessors[1..], &causal, &streams, &[]).is_err()
+        );
+        let saved = predecessors[0].basis;
+        predecessors[0].basis = predecessors[1].basis;
+        assert!(verify_range_stream_predecessors(&predecessors, &causal, &streams, &[]).is_err());
+        predecessors[0].basis = saved;
+        predecessors[1].claim_id = "tos.claim.foreign".to_owned();
+        assert!(verify_range_stream_predecessors(&predecessors, &causal, &streams, &[]).is_err());
+        predecessors[1] = predecessors[0].clone();
+        assert!(verify_range_stream_predecessors(&predecessors, &causal, &streams, &[]).is_err());
+    }
 
     fn test_range_coverage(
         events: Vec<NavigationClaimEventRangeEventV1>,

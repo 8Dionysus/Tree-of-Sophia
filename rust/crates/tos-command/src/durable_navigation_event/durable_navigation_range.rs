@@ -554,6 +554,25 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
         limits,
     )?;
 
+    let claim_stream_paths = claim_set
+        .manifest()
+        .terminal_streams()
+        .iter()
+        .map(|stream| stream.source_path().to_owned())
+        .collect::<Vec<_>>();
+    let held_claim_predecessors = read_navigation_claim_stream_predecessors(
+        tx,
+        domain,
+        consumer_id,
+        &claim_stream_paths,
+        limits,
+    )?;
+    if held_claim_predecessors != claim_set.manifest().stream_predecessors() {
+        return Err(DurableError::Conflict(
+            "navigation Claim stream predecessors differ from held publication",
+        ));
+    }
+
     // Reverse projection dependencies describe the predecessor publication.
     // Terminal owners also include new Records and stream-complete Claims;
     // their current source causes were verified above against the held closure.
@@ -616,7 +635,7 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
                 .or_else(|| {
                     claim_set
                         .manifest()
-                        .prior_owners()
+                        .stream_predecessors()
                         .iter()
                         .find(|prior| prior.claim_stream_path == *path && prior.claim_id == *id)
                         .map(|prior| match prior.basis {
@@ -799,6 +818,36 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
 }
 
 impl DurablePgCoordinator {
+    pub fn read_navigation_event_range_claim_stream_predecessors_v1(
+        &mut self,
+        domain: &str,
+        consumer_id: &str,
+        profile: &DurableProjectionProfile,
+        coverage: &DurableNavigationEventRangeCoverageV1,
+        stream_paths: &[String],
+        limits: DurableNavigationEventLimits,
+    ) -> DurableResult<Vec<tos_compiler::source_navigation_claim_event::NavigationClaimEventRangeStreamPredecessorV1>>{
+        let limits = limits.validate()?;
+        coverage.verify(limits)?;
+        let cursor =
+            read_navigation_event_cursor(&mut self.client, domain, consumer_id, profile, limits)?;
+        let head = read_navigation_event_head(&mut self.client, domain, profile, limits)?;
+        if cursor.sequence != coverage.cursor_before()
+            || head != coverage.held_source_head_sequence()
+        {
+            return Err(DurableError::Conflict(
+                "navigation Claim predecessor source cut changed",
+            ));
+        }
+        read_navigation_claim_stream_predecessors(
+            &mut self.client,
+            domain,
+            consumer_id,
+            stream_paths,
+            limits,
+        )
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
         tx: &mut postgres::Transaction<'_>,
@@ -1283,7 +1332,7 @@ fn verify_range_claim_reverse_closure(
                 WHERE c.domain=$1 AND c.consumer_id=$2 AND c.source_path=ANY($3)
                   AND c.basis_kind IN (
                     'record-mutation','dependency-refresh','dependency-refresh-set',
-                    'claim-revision-refresh'
+                    'claim-revision-refresh','range-reconciliation'
                   )
                UNION
                SELECT d.dependency_path AS cause_path,c.source_path AS owner_source_path,
@@ -1296,7 +1345,7 @@ fn verify_range_claim_reverse_closure(
                 WHERE d.domain=$1 AND d.consumer_id=$2 AND d.dependency_path=ANY($3)
                   AND c.basis_kind IN (
                     'record-mutation','dependency-refresh','dependency-refresh-set',
-                    'claim-revision-refresh'
+                    'claim-revision-refresh','range-reconciliation'
                   )
                UNION
                SELECT b.owner_source_path AS cause_path,
@@ -1413,7 +1462,7 @@ fn verify_range_claim_reverse_closure(
                   WHERE c.domain=$1 AND c.consumer_id=$2
                     AND c.source_path=ANY($3)
                     AND c.basis_kind IN (
-                      'claim-mutation','claim-dependency-refresh','claim-revision-refresh'
+                      'claim-mutation','claim-dependency-refresh','claim-revision-refresh','claim-range-reconciliation'
                     )
                  UNION
                  SELECT d.dependency_path AS cause_path,c.source_path AS claim_stream_path,
@@ -1426,7 +1475,7 @@ fn verify_range_claim_reverse_closure(
                   WHERE d.domain=$1 AND d.consumer_id=$2
                     AND d.dependency_path=ANY($3)
                     AND c.basis_kind IN (
-                      'claim-mutation','claim-dependency-refresh','claim-revision-refresh'
+                      'claim-mutation','claim-dependency-refresh','claim-revision-refresh','claim-range-reconciliation'
                     )
                  UNION
                  SELECT b.owner_source_path AS cause_path,
@@ -3142,6 +3191,109 @@ fn navigation_bootstrap_owner_root<C: postgres::GenericClient>(
     Ok(Digest256::of_bytes(&raw))
 }
 
+/// Complete published owner inventory for the selected Claim streams. A
+/// reverse lookup returns causal owners only; replacing a whole stream also
+/// needs the roots of its unchanged companions. Re-read this same bounded
+/// inventory in the publication transaction before accepting the manifest.
+fn read_navigation_claim_stream_predecessors<C: postgres::GenericClient>(
+    tx: &mut C,
+    domain: &str,
+    consumer_id: &str,
+    stream_paths: &[String],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<
+    Vec<tos_compiler::source_navigation_claim_event::NavigationClaimEventRangeStreamPredecessorV1>,
+> {
+    use tos_compiler::source_navigation_claim_event::{
+        NavigationClaimEventRangePriorOwnerBasisV1 as Basis,
+        NavigationClaimEventRangeStreamPredecessorV1 as Predecessor,
+    };
+    if stream_paths.is_empty() {
+        return Ok(Vec::new());
+    }
+    if stream_paths.len() > limits.max_dependencies
+        || stream_paths.windows(2).any(|pair| pair[0] >= pair[1])
+    {
+        return Err(DurableError::Invalid(
+            "navigation Claim predecessor stream set",
+        ));
+    }
+    for path in stream_paths {
+        validate_relative_path(path)?;
+        if !path.ends_with("/source-claims.jsonl") {
+            return Err(DurableError::Invalid(
+                "navigation Claim predecessor stream path",
+            ));
+        }
+    }
+    let cap = i64::try_from(limits.max_current_cohorts.saturating_add(1))
+        .map_err(|_| DurableError::Refused("navigation Claim stream predecessor count"))?;
+    let rows = tx.query(
+        "SELECT source_path,record_id,output_root FROM (
+           SELECT c.source_path,c.record_id,c.output_root
+             FROM cmd2_projection_navigation_cohort c
+            WHERE c.domain=$1 AND c.consumer_id=$2 AND c.source_path=ANY($3)
+              AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh',
+                                  'claim-revision-refresh','claim-range-reconciliation')
+           UNION
+           SELECT b.owner_source_path,b.owner_record_id,NULL::text
+             FROM cmd2_projection_navigation_bootstrap_row b
+            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.active
+              AND b.owner_source_path=ANY($3) AND b.owner_record_id LIKE 'tos.claim.%'
+              AND NOT EXISTS (
+                SELECT 1 FROM cmd2_projection_navigation_cohort c
+                 WHERE c.domain=b.domain AND c.consumer_id=b.consumer_id
+                   AND c.source_path=b.owner_source_path AND c.record_id=b.owner_record_id)
+         ) owners ORDER BY source_path COLLATE \"C\",record_id COLLATE \"C\" LIMIT $4",
+        &[&domain, &consumer_id, &stream_paths, &cap],
+    )?;
+    if rows.len() > limits.max_current_cohorts {
+        return Err(DurableError::Refused(
+            "navigation Claim stream predecessor count",
+        ));
+    }
+    let mut result = Vec::with_capacity(rows.len());
+    let mut previous = None;
+    for row in rows {
+        let path: String = row.get("source_path");
+        let id: String = row.get("record_id");
+        validate_relative_path(&path)?;
+        validate_identifier(
+            &id,
+            MAX_NAVIGATION_RECORD_ID_BYTES,
+            "navigation Claim predecessor ID",
+        )?;
+        let key = (path.clone(), id.clone());
+        if !id.starts_with("tos.claim.") || previous.as_ref().is_some_and(|prior| prior >= &key) {
+            return Err(DurableError::Corrupt(
+                "navigation Claim stream predecessor identity",
+            ));
+        }
+        previous = Some(key);
+        let basis = match row.get::<_, Option<String>>("output_root") {
+            Some(root) => Basis::EventCohort {
+                cohort_root: parse_digest(root)?,
+            },
+            None => Basis::Bootstrap {
+                owner_root: navigation_bootstrap_owner_root(
+                    tx,
+                    domain,
+                    consumer_id,
+                    &path,
+                    &id,
+                    limits,
+                )?,
+            },
+        };
+        result.push(Predecessor {
+            claim_stream_path: path,
+            claim_id: id,
+            basis,
+        });
+    }
+    Ok(result)
+}
+
 /// One direct Claim mutation at its exact historical CMD event cut.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DurableNavigationEventRangeClaimMutationV1 {
@@ -3718,7 +3870,7 @@ impl DurablePgCoordinator {
                    FROM cmd2_projection_navigation_cohort c
                   WHERE c.domain=$1 AND c.consumer_id=$2
                     AND c.source_path=ANY($3)
-                    AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh','claim-revision-refresh')
+                    AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh','claim-revision-refresh','claim-range-reconciliation')
                  UNION
                  SELECT d.dependency_path AS cause_path,c.source_path AS claim_stream_path,
                         c.record_id AS claim_id,'event'::text AS predecessor_kind,
@@ -3729,7 +3881,7 @@ impl DurablePgCoordinator {
                     AND c.source_path=d.source_path AND c.record_id=d.record_id
                   WHERE d.domain=$1 AND d.consumer_id=$2
                     AND d.dependency_path=ANY($3)
-                    AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh','claim-revision-refresh')
+                    AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh','claim-revision-refresh','claim-range-reconciliation')
                  UNION
                  SELECT b.owner_source_path AS cause_path,b.owner_source_path AS claim_stream_path,
                         b.owner_record_id AS claim_id,'bootstrap'::text AS predecessor_kind,
@@ -3940,7 +4092,7 @@ impl DurablePgCoordinator {
                   WHERE c.domain=$1 AND c.consumer_id=$2 AND c.source_path=ANY($3)
                     AND c.basis_kind IN (
                       'record-mutation','dependency-refresh','dependency-refresh-set',
-                      'claim-revision-refresh'
+                      'claim-revision-refresh','range-reconciliation'
                     )
                  UNION
                  SELECT d.dependency_path AS cause_path,c.source_path,c.record_id,
@@ -3952,7 +4104,7 @@ impl DurablePgCoordinator {
                   WHERE d.domain=$1 AND d.consumer_id=$2 AND d.dependency_path=ANY($3)
                     AND c.basis_kind IN (
                       'record-mutation','dependency-refresh','dependency-refresh-set',
-                      'claim-revision-refresh'
+                      'claim-revision-refresh','range-reconciliation'
                     )
                  UNION
                  SELECT DISTINCT b.owner_source_path AS cause_path,b.owner_source_path AS source_path,
@@ -4144,7 +4296,7 @@ impl DurablePgCoordinator {
                        WHERE c.domain=$1 AND c.consumer_id=$2
                          AND c.source_path=affected.owner_source_path
                          AND c.record_id=affected.owner_record_id
-                         AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh','claim-revision-refresh')
+                         AND c.basis_kind IN ('claim-mutation','claim-dependency-refresh','claim-revision-refresh','claim-range-reconciliation')
                     ) THEN 'claim' ELSE 'record' END AS owner_kind
              FROM (
                SELECT DISTINCT owner_source_path,owner_record_id
