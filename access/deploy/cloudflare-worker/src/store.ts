@@ -110,13 +110,6 @@ export async function philosophyEdge(db: D1Database, id: string): Promise<Item |
   return row ? parseItem(row.json) : null;
 }
 
-export async function philosophyItem(db: D1Database, id: string): Promise<{ item: Item; kind: "node" | "edge" }> {
-  const [node, edge] = await Promise.all([philosophyNode(db, id), philosophyEdge(db, id)]);
-  if (node) return { item: node, kind: "node" };
-  if (edge) return { item: edge, kind: "edge" };
-  throw new HttpError(404, `unknown ToS philosophy projection item: ${id}`);
-}
-
 export async function itemsByIds(
   db: D1Database,
   table: "philosophy_nodes" | "philosophy_edges",

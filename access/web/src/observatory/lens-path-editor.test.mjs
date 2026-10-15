@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {lensContext} from '../../fixtures/lens-scenarios.mjs';
 import {ContractError} from './knowledge-client.mjs';
 import {compileDraft,decodeDraft,encodeDraft,initialDraft} from './lens-model.mjs';
-import {compilePathQuery,draftPathsFromSpec,pathLimits,validatePathDraft} from './lens-path-editor.mjs';
+import {compilePathQuery,pathDraftFromSpec,pathLimits,validatePathDraft} from './lens-path-editor.mjs';
 
 const context=lensContext();
 const query=(conditions=[],extra={})=>({enabled:true,match:'all',conditions,...extra});
@@ -64,7 +64,7 @@ test('wire path import round-trips scoped absence and preserves non-type filters
   const wire=[{path_id:'typed',quantifier:'not_exists',steps:[{direction:'either',node_query:{enabled:false,match:'any',filters:[
     {field:'epistemic.review_posture',op:'prefix',value:'fixture-'},
   ]},relation_query:{filters:[{field:'predicate_id',op:'in',value:['fixture-related']},{field:'display.label.default',op:'contains',value:'связь'}]}}]}];
-  const draft=draftPathsFromSpec(wire);
+  const draft=pathDraftFromSpec(wire);
   expect(draft).toEqual([{pathId:'typed',quantifier:'not_exists',steps:[{direction:'either',kinds:[],predicates:['fixture-related'],
     nodeQuery:{enabled:false,match:'any',conditions:[{selector:'field',id:'epistemic.review_posture',op:'prefix',value:'fixture-'}]},
     relationQuery:{enabled:true,match:'all',conditions:[{selector:'field',id:'display.label.default',op:'contains',value:'связь'}]}}]}]);
@@ -77,15 +77,15 @@ test('wire import does not merge repeated type filters with different boolean me
   const wire=[{path_id:'repeated',steps:[{node_query:{match:'all',filters:[
     {field:'kind_id',op:'in',value:['fixture-material']},{field:'kind_id',op:'in',value:['another-kind']},
   ]}}]}];
-  const draft=draftPathsFromSpec(wire);
+  const draft=pathDraftFromSpec(wire);
   expect(draft[0].steps[0].kinds).toEqual(['fixture-material']);
   expect(draft[0].steps[0].nodeQuery.conditions).toEqual([{selector:'field',id:'kind_id',op:'in',value:['another-kind']}]);
 });
 
 test('wire import applies defaults and preserves sparse path and step slots',()=>{
-  expect(draftPathsFromSpec()).toEqual([]);
+  expect(pathDraftFromSpec()).toEqual([]);
   const wire=new Array(2);wire[1]={path_id:'defaults',steps:new Array(2)};wire[1].steps[1]={};
-  const draft=draftPathsFromSpec(wire);
+  const draft=pathDraftFromSpec(wire);
   assert.equal(0 in draft,false);assert.equal(0 in draft[1].steps,false);
   expect(draft[1].steps[1]).toEqual({direction:'outgoing',kinds:[],predicates:[],
     nodeQuery:{enabled:true,match:'all',conditions:[]},relationQuery:{enabled:true,match:'all',conditions:[]}});

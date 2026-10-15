@@ -1,7 +1,6 @@
 /** Browser custody for the Rust constructor authoring session. */
 import {createBrowserResearchWorkspace} from '../src/research-workspace-rust.ts';
 
-export const CONSTRUCTOR_SCHEMA='tos_constructor_workspace_v1';
 export const CONSTRUCTOR_LIMITS=Object.freeze({nodes:200,edges:600,history:64,bytes:1_000_000});
 let ConstructorSession;
 const encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true});

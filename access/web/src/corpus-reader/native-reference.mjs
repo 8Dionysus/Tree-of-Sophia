@@ -12,14 +12,6 @@ export function nativeReferenceKey(value){
   return corpusReferenceRule('native_reference_key',value);
 }
 
-export function nativeReferenceDocumentId(value){
-  return corpusReferenceRule('native_reference_document_id',value);
-}
-
-export function nativeReferenceVersionId(value){
-  return corpusReferenceRule('native_reference_version_id',value);
-}
-
 /** Input must be a successful result of the shared exact-source consumer. */
 export function createNativeReference(result,spanIndex,{start,end}={}){
   return corpusReferenceRule('create_native_reference',{result,spanIndex,start,end});

@@ -134,13 +134,7 @@ export function versionIdentity(version = {}, document = {}) {
   };
 }
 
-function rawReference(value) {
-  if (!object(value)) return null;
-  const nested = first(value.reference, value.anchor, value.sourceReference, value.source_reference);
-  return object(nested) ? nested : value;
-}
-
-export function exactReference(value = {}, identity = {}) {
+export function exactReference(value = {}) {
   return isReference(value) ? validateReference(value) : null;
 }
 
@@ -229,7 +223,7 @@ export function normalizeUnit(raw, index, identity = {}) {
   const item = object(raw) ? clone(raw) : {text: text(raw)};
   const unitId = first(item.id, item.unitId, item.unit_id, item.segmentId, item.segment_id, item.textUnitId, item.text_unit_id, null);
   const providerReference = first(item.reference, item.anchor, item.sourceReference, null);
-  const reference = typeof providerReference === 'string' ? null : exactReference(providerReference || item, {...identity, unitId});
+  const reference = typeof providerReference === 'string' ? null : exactReference(providerReference || item);
   if (reference && !reference.unitId && unitId !== null && unitId !== undefined) reference.unitId = unitId;
   const value = first(item.text, item.content, item.value, item.body, item.wording, '');
   const heading = item.heading === true || ['heading', 'chapter', 'section', 'title'].includes(String(first(item.kind, item.type, '')).toLowerCase());
@@ -362,10 +356,6 @@ export function searchUnits(units, query, {limit = READER_LIMITS.searchResults, 
     }
   }
   return {items, nextCursor: null, total: items.length, truncated: false, scope};
-}
-
-function identityFor(document, version) {
-  return versionIdentity(version, document);
 }
 
 function keyFor(documentId, versionId) {
@@ -529,7 +519,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       return null;
     }
     if (requestedReference && providerMethod(provider, 'resolve')) {
-      const resolved = await run(`resolve:${document.id}\u0000${active.id}`, signal => callProvider(provider, 'resolve', {documentId: document.id, versionId: active.id, reference: exactReference(requestedReference, identityFor(document, active)), signal}));
+      const resolved = await run(`resolve:${document.id}\u0000${active.id}`, signal => callProvider(provider, 'resolve', {documentId: document.id, versionId: active.id, reference: exactReference(requestedReference), signal}));
       if (openToken !== latestOpen) return null;
       if (resolved) {
         if (Array.isArray(resolved.units)) {
@@ -560,7 +550,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
 
   function applyWindow(document, version, window, requestedReference = null, requestedLink = null) {
     const key = keyFor(document.id, version.id);
-    state.windows[key] = {...window, documentId: document.id, versionId: version.id, requestedReference: requestedReference ? exactReference(requestedReference, identityFor(document, version)) : null};
+    state.windows[key] = {...window, documentId: document.id, versionId: version.id, requestedReference: requestedReference ? exactReference(requestedReference) : null};
     delete state.windowErrors[key];
     windowUse.set(key, ++sequence);
     while (Object.keys(state.windows).length > 2) {

@@ -23,8 +23,6 @@ export function isSourceDossierRef(value){
   if(!dossierPredicate('reference_size',typeof value==='string',typeof value==='string'?value.length:0))return false;
   return dossierPredicate('reference_value',dossierTextUnits(value));
 }
-// Transport bounds are not a license to draw or retain every delivered page.
-export const EXPLORATION_BUDGET = Object.freeze({nodes:302,relations:101});
 const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}

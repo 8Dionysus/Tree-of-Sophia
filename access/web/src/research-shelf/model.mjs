@@ -3,7 +3,7 @@ import {readingKey} from '../observatory/reader-model.mjs';
 import {validateReading} from '../observatory/reading-resume.mjs';
 import {exactFormRef} from '../observatory/human-forms.mjs';
 import {validateDraft} from '../observatory/lens-model.mjs';
-import {COPY_SCHEMA,validateWorkspaceCopy} from '../observatory/workspace-copy.mjs';
+import {validateWorkspaceCopy} from '../observatory/workspace-copy.mjs';
 import {validateWorkspaceCopyLenses} from '../observatory/workspace-copy-rust.mjs';
 import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION} from '../research-workspace.ts';
 import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
@@ -11,7 +11,6 @@ import {researchShelfRule,validateResearchShelfPacketIndex} from './rules.mjs';
 
 // The shelf is a local, user-owned index of exact addresses. It never owns a
 // source passage, an exploration page, or a command/runtime handle.
-export const SHELF_SCHEMA='tos.research_shelf.v1';
 export const SHELF_VERSION=1;
 export const SHELF_EXPORT_SCHEMA='tos.research_shelf.export.v1';
 export const DEFAULT_DB_NAME='tos-research-shelf-v1';
@@ -21,26 +20,12 @@ export const DEFAULT_DB_NAME='tos-research-shelf-v1';
  * not the time the source material or export wrapper was produced.
  */
 export const MIGRATION_RECORD_TIMESTAMP='1970-01-01T00:00:00.000Z';
-export const DEFAULT_PAGE_SIZE=24;
-export const MAX_PAGE_SIZE=100;
-export const MAX_RECORDS=200_000;
-export const MAX_COLLECTIONS=2_000;
-export const MAX_COLLECTION_IDS=32;
-export const MAX_ID_LENGTH=1_024;
-export const MAX_TITLE_LENGTH=256;
-export const MAX_COLLECTION_TITLE_LENGTH=128;
-export const MAX_TARGET_BYTES=200_000;
-export const MAX_OPTION_LIST=100;
-export const EXPLORATION_PROFILES=Object.freeze(['overview','all']);
-export const EXPLORATION_DIRECTIONS=Object.freeze(['either','incoming','outgoing']);
-export const EXPLORATION_DEPTH={min:0,max:10};
 /** Explicit owner packet names accepted by the supplied-packet importer. */
 export const SUPPLIED_PACKET_SOURCES=Object.freeze({
   READING_RESUME:'reading-resume',
   RESEARCH_WORKSPACE:'research-workspace',
   WORKSPACE_COPY:'workspace-copy',
 });
-
 
 export class ResearchShelfError extends Error {
   constructor(code,message,details={}){
@@ -200,8 +185,6 @@ export function decodeShelfCursor(cursor,{generation,type=null,collectionId=null
 
 // Short aliases keep the model convenient for adapters and callers that use
 // the noun without the storage-specific `Shelf` prefix.
-export const validateRecord=validateShelfRecord;
-export const validateCollectionRecord=validateCollection;
 
 export function validateShelfExport(value){
   let packet=value;
@@ -362,11 +345,3 @@ export function importSuppliedResearchPacket(value,options={}){
 }
 
 export function validateMigrationOptions(options={}){return migrationOptions(options);}
-
-// Kept as a semantic alias for callers migrating from the old method name;
-// there is no synthetic shelf-export v0 schema or implicit history here.
-export const migrateResearchShelfExport=importSuppliedResearchPacket;
-
-export const canonicalNow=canonicalTimestamp;
-export const validateShelfTarget=validateTarget;
-export const migrateShelfExport=importSuppliedResearchPacket;

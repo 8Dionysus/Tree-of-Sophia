@@ -29,8 +29,6 @@ export function pageDirectionRule(value: Uint16Array): boolean {
   return requestRules().page_direction(value);
 }
 
-export type ToSMode = "philosophy" | "corpus";
-
 export type ToSQueryOperationId =
   | "tos.status"
   | "tos.snapshot"

@@ -9,7 +9,6 @@ import {
   isReference,
   referenceKey,
   sameReference,
-  searchUnits,
   unitReference,
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
@@ -237,12 +236,6 @@ export function mountCorpusReader({
     }
   };
   const stateKey = (documentId, versionId) => `${documentId}\u0000${versionId}`;
-  const currentIdentity = versionId => {
-    const state = modelState();
-    const document = state.document;
-    const version = document?.versions?.find(item => item.id === (versionId === undefined ? state.activeVersionId : versionId));
-    return {documentId: document?.id || '', versionId: version?.id || '', sourceRevision: version?.sourceRevision ?? null, contentRevision: version?.contentRevision ?? null};
-  };
   const currentWindow = versionId => {
     const state = modelState();
     return state.windows[stateKey(state.document?.id, versionId)] || null;
@@ -280,7 +273,7 @@ export function mountCorpusReader({
 
   function emitLocation(reference = currentRef()) {
     if (!reference || typeof onLocation !== 'function') return;
-    const exact = exactReference(reference, currentIdentity(reference.versionId));
+    const exact = exactReference(reference);
     if (!exact) return;
     onLocation({
       documentId: exact.target.workId,

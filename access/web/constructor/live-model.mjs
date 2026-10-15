@@ -1,5 +1,5 @@
 import {catalogNodeKindLabel,relationLabel} from '../src/observatory/human-presentation.mjs';
-import {displayTitleForm,localized} from '../src/observatory/knowledge-client.mjs';
+import {displayTitleForm} from '../src/observatory/knowledge-client.mjs';
 import {displayForm} from '../src/observatory/display-language.mjs';
 import {validateHumanForms,resolveClaimReading} from '../src/observatory/human-forms.mjs';
 

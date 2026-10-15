@@ -1,11 +1,6 @@
 import {NATIVE_REFERENCE_SCHEMA} from './native-reference.mjs';
 import {corpusReferenceRule} from './corpus-reference-rules.mjs';
 
-export const CORPUS_REFERENCE_SCHEMA='tos.corpus.reader.reference.v1';
-export const TEXT_SELECTOR_TYPE='text_position';
-export const TEXT_POSITION_UNIT='unicode_code_point';
-export const TEXT_INTERVAL='half_open';
-
 /** Validate and normalize a durable text reference. */
 export function validateReference(value){
   return corpusReferenceRule('validate_reference',value);

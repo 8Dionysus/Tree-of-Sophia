@@ -8,8 +8,8 @@ import {COPY_SCHEMA} from '../observatory/workspace-copy.mjs';
 import {DEFAULT_INTERFACE} from '../observatory/interface-model.mjs';
 import {emptyReading} from '../observatory/reading-resume.mjs';
 import {
-  EXPLORATION_DIRECTIONS,EXPLORATION_PROFILES,SUPPLIED_PACKET_SOURCES,
-  MIGRATION_RECORD_TIMESTAMP,importSuppliedResearchPacket,migrateResearchShelfExport,validateMaterialTarget,validateShelfExport,validateTarget,
+  SUPPLIED_PACKET_SOURCES,
+  MIGRATION_RECORD_TIMESTAMP,importSuppliedResearchPacket,validateMaterialTarget,validateShelfExport,validateTarget,
 } from './model.mjs';
 import {createMemoryResearchShelfState,createMemoryResearchShelfStore,createResearchShelfStore} from './storage.mjs';
 
@@ -38,7 +38,6 @@ test('all five target types retain exact owner fields and reject unknown types o
   expect(()=>validateTarget('material',{...material(),extra:'must reject'})).toThrow();
   expect(()=>validateTarget('material',{...material(),claimReference:{...claimReference,extra:'must reject'}})).toThrow();
   expect(()=>validateTarget('route',{...target('route'),options:{...target('route').options,unexpected:true}})).toThrow();
-  expect(EXPLORATION_DIRECTIONS).toContain('either');expect(EXPLORATION_PROFILES).toContain('overview');
 });
 
 test('Claim validation is delegated to one exact reading entry',()=>{
@@ -129,7 +128,7 @@ test('explicit supplied reading-resume import retains exact material and never m
   const reading={v:1,activeKey:readingKey('node',material().id),entries:[{kind:'node',id:material().id,sourceRevision:revision,contentRevision:content,
     preferred:'default',positions:[],claimReference}]};
   const before=structuredClone(reading);
-  expect(()=>migrateResearchShelfExport(reading)).toThrow(/explicit|Choose/);
+  expect(()=>importSuppliedResearchPacket(reading)).toThrow(/explicit|Choose/);
   const migrated=importSuppliedResearchPacket(reading,{source:SUPPLIED_PACKET_SOURCES.READING_RESUME,now:()=> '2026-09-15T12:00:00.000Z'});
   expect(reading).toEqual(before);expect(migrated.source).toBe('reading-resume');expect(migrated.retained).toHaveLength(1);expect(migrated.skipped).toEqual([]);
   expect(validateShelfExport(migrated.packet).records[0]).toMatchObject({type:'material',target:{kind:'node',id:material().id,claimReference}});
