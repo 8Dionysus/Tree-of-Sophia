@@ -259,7 +259,11 @@ fn record_ids(
                     .find(|(key, _)| key.as_str() == Some("passage_id"))
                     .map(|(_, value)| value)
             }) {
-                add(value)?;
+                // Both Anchor schemas allow an absent or null passage_id.
+                // Only an actual passage identifier owns an index token.
+                if !matches!(value, JsonValue::Null) {
+                    add(value)?;
+                }
             }
         }
         _ if name.contains("provenance") => add(cmd::field(record, "event_id")?)?,
@@ -781,6 +785,34 @@ mod tests {
             assert!(is_candidate(name));
             // Missing schema_version still fails for actual record candidates.
             assert!(text_identity_ids_for_member(name, br#"{}"#).is_err());
+        }
+    }
+
+    #[test]
+    fn bootstrap_contract_anchor_optional_passage_identity_follows_both_schemas() {
+        for version in [1, 2] {
+            for suffix in ["", ",\"passage_id\":null"] {
+                let raw = format!(
+                    "{{\"schema_version\":\"tos_source_anchor_v{version}\",\"anchor_id\":\"tos.anchor.a\"{suffix}}}"
+                );
+                assert_eq!(
+                    text_identity_ids_for_member("anchors.jsonl", raw.as_bytes()).unwrap(),
+                    BTreeSet::from(["tos.anchor.a".to_owned()])
+                );
+            }
+            let raw = format!(
+                "{{\"schema_version\":\"tos_source_anchor_v{version}\",\"anchor_id\":\"tos.anchor.a\",\"passage_id\":\"tos.passage.p\"}}"
+            );
+            assert_eq!(
+                text_identity_ids_for_member("anchors.jsonl", raw.as_bytes()).unwrap(),
+                BTreeSet::from(["tos.anchor.a".to_owned(), "tos.passage.p".to_owned()])
+            );
+            for invalid in ["0", "false", "{}", "[]", "\"\""] {
+                let raw = format!(
+                    "{{\"schema_version\":\"tos_source_anchor_v{version}\",\"anchor_id\":\"tos.anchor.a\",\"passage_id\":{invalid}}}"
+                );
+                assert!(text_identity_ids_for_member("anchors.jsonl", raw.as_bytes()).is_err());
+            }
         }
     }
 
