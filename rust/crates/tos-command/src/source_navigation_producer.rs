@@ -928,7 +928,7 @@ fn process_ready_range(
         }
         let files = selected_bibliographic_files(&context, &selection.event_limits)?;
         let blobs =
-            crate::source_navigation_record_input::archive_blob_paths(&manifests, &files, limits)?;
+            crate::source_navigation_record_input::archive_blob_paths(&plan.owners, &manifests, &files, limits)?;
         if !blobs.is_empty() {
             stage_range_context(
                 event_reader,
@@ -1931,7 +1931,7 @@ fn process_ready_event(
         }
         let files = selected_bibliographic_files(&context, &selection.event_limits)?;
         let blobs =
-            crate::source_navigation_record_input::archive_blob_paths(&manifests, &files, limits)?;
+            crate::source_navigation_record_input::archive_blob_paths(&record_plan.owners, &manifests, &files, limits)?;
         if !blobs.is_empty() {
             stage_event_context(event_reader, store, selection, seed, &mut context, blobs)?;
         }

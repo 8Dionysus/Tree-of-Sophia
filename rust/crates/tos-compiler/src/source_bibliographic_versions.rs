@@ -2634,6 +2634,51 @@ pub fn selected_metadata_archive_record_blob_path_v1(
     manifest_raw: &[u8],
     l: BibliographicLimits,
 ) -> Result<String> {
+    selected_metadata_archive_blob_path_v1(manifest_path, manifest_raw, false, l)?
+        .ok_or(Error::Invalid("selected metadata archive Record member absent"))
+}
+
+/// Select creation-time HumanForms from the same exact archive manifest as
+/// the retained Record. Absence is established by the manifest file map.
+pub fn selected_metadata_archive_forms_blob_path_v1(
+    manifest_path: &str,
+    manifest_raw: &[u8],
+    l: BibliographicLimits,
+) -> Result<Option<String>> {
+    selected_metadata_archive_blob_path_v1(manifest_path, manifest_raw, true, l)
+}
+
+/// Read only the selected archived forms blob and verify its declared bytes.
+/// The complete history resolver separately verifies the package commitment.
+pub fn resolve_selected_metadata_archive_forms_v1<'a>(
+    manifest_path: &str,
+    files: &'a SelectedBibliographicFilesV1,
+    l: BibliographicLimits,
+) -> Result<Option<(String, &'a [u8])>> {
+    let manifest_raw = files.required(manifest_path)?;
+    let Some(blob_path) = selected_metadata_archive_forms_blob_path_v1(manifest_path, manifest_raw, l)? else {
+        return Ok(None);
+    };
+    let manifest = owned(manifest_raw, l.catalog.max_row_bytes)?;
+    let source_path = text(&manifest, "source_path")?;
+    let basename = source_path.rsplit('/').next().ok_or(Error::Invalid("selected metadata archive source basename"))?;
+    let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".json"));
+    let binding = &manifest["files"][&forms_name];
+    let raw = files.required(&blob_path)?;
+    if binding["bytes"].as_u64() != Some(raw.len() as u64)
+        || binding["sha256"] != format!("sha256:{}", Digest256::of_bytes(raw).to_hex())
+    {
+        return Err(Error::Invalid("selected metadata archived forms raw binding"));
+    }
+    Ok(Some((blob_path, raw)))
+}
+
+fn selected_metadata_archive_blob_path_v1(
+    manifest_path: &str,
+    manifest_raw: &[u8],
+    forms: bool,
+    l: BibliographicLimits,
+) -> Result<Option<String>> {
     l.validate()?;
     let manifest = owned(manifest_raw, l.catalog.max_row_bytes)?;
     let schema = manifest
@@ -2678,12 +2723,17 @@ pub fn selected_metadata_archive_record_blob_path_v1(
         .rsplit('/')
         .next()
         .ok_or(Error::Invalid("selected metadata archive source basename"))?;
-    let binding = manifest["files"]
-        .as_object()
-        .and_then(|files| files.get(basename))
-        .ok_or(Error::Invalid(
-            "selected metadata archive Record member absent",
-        ))?;
+    let member_name = if forms {
+        format!("{}.human-forms.json", basename.trim_end_matches(".json"))
+    } else {
+        basename.to_owned()
+    };
+    let bindings = manifest["files"].as_object()
+        .ok_or(Error::Invalid("selected metadata archive file map"))?;
+    let Some(binding) = bindings.get(&member_name) else {
+        if forms { return Ok(None); }
+        return Err(Error::Invalid("selected metadata archive Record member absent"));
+    };
     exact_keys(binding, &["blob", "sha256", "bytes"])?;
     let sha = hash(text(binding, "sha256")?)?;
     let blob = text(binding, "blob")?;
@@ -2697,7 +2747,7 @@ pub fn selected_metadata_archive_record_blob_path_v1(
     let blob_path = format!("{expected_archive}/{blob}");
     RelativePath::parse(&blob_path)
         .map_err(|_| Error::Invalid("selected metadata archive Record blob path"))?;
-    Ok(blob_path)
+    Ok(Some(blob_path))
 }
 
 /// Resolve the complete current Record chain from exact selected PG bytes.
@@ -5294,6 +5344,35 @@ mod oracle {
                     resolve(&manifest).unwrap(),
                     vec![format!("{archive}/{sha}.blob")]
                 );
+                if !claim {
+                    assert!(selected_metadata_archive_forms_blob_path_v1(
+                        &path, &serde_json::to_vec(&manifest).unwrap(), limits,
+                    ).unwrap().is_none());
+                    let forms_raw = b"{\"original_forms\":true}\n".to_vec();
+                    let forms_sha = Digest256::of_bytes(&forms_raw).to_hex();
+                    let forms_name = "work.human-forms.json";
+                    let forms_path = format!("{archive}/{forms_sha}.blob");
+                    let mut with_forms = manifest.clone();
+                    with_forms["files"][forms_name] = json!({
+                        "sha256":format!("sha256:{forms_sha}"),
+                        "blob":format!("{forms_sha}.blob"), "bytes":forms_raw.len(),
+                    });
+                    let selected_files = |manifest: &Value, raw: Vec<u8>| {
+                        SelectedBibliographicFilesV1::new(BTreeMap::from([
+                            (path.clone(), serde_json::to_vec(manifest).unwrap()),
+                            (forms_path.clone(), raw),
+                        ]), BTreeSet::new(), 2, 4096).unwrap()
+                    };
+                    let files = selected_files(&with_forms, forms_raw.clone());
+                    let (observed_path, observed_raw) = resolve_selected_metadata_archive_forms_v1(&path, &files, limits).unwrap().unwrap();
+                    assert_eq!(observed_path, forms_path);
+                    assert_eq!(observed_raw, forms_raw);
+                    let changed = selected_files(&with_forms, b"different forms".to_vec());
+                    assert!(resolve_selected_metadata_archive_forms_v1(&path, &changed, limits).is_err());
+                    with_forms["files"][forms_name]["bytes"] = json!(forms_raw.len() + 1);
+                    let wrong_length = selected_files(&with_forms, forms_raw);
+                    assert!(resolve_selected_metadata_archive_forms_v1(&path, &wrong_length, limits).is_err());
+                }
                 let mut unprefixed = manifest.clone();
                 unprefixed["files"][basename]["sha256"] = json!(sha);
                 assert!(resolve(&unprefixed).is_err());

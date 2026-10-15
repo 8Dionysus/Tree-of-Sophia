@@ -10,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::Value;
 use tos_compiler::{
     SelectedBibliographicFilesV1, resolve_selected_metadata_history_v1,
+    resolve_selected_metadata_archive_forms_v1, selected_metadata_archive_forms_blob_path_v1,
     selected_metadata_archive_manifest_paths_v1, selected_metadata_archive_record_blob_path_v1,
     selected_metadata_record_schema_path_v1,
     source_bibliographic::{BibliographicForms, BibliographicLimits},
@@ -952,6 +953,7 @@ pub(crate) fn archive_manifest_paths(
 /// compiler's maintained history resolver later verifies the manifest/package
 /// commitment and the exact archived bytes again.
 pub(crate) fn archive_blob_paths(
+    owners: &[RecordOwnerV1],
     manifest_paths: &[String],
     files: &SelectedBibliographicFilesV1,
     limits: BibliographicLimits,
@@ -961,6 +963,13 @@ pub(crate) fn archive_blob_paths(
             "selected navigation Record archive count",
         ));
     }
+    let baseline_manifests = owners.iter()
+        .map(|owner| baseline_archive_manifest_path(owner, files, limits))
+        .collect::<DurableResult<Vec<_>>>()?
+        .into_iter().flatten().collect::<BTreeSet<_>>();
+    if !baseline_manifests.iter().all(|path| manifest_paths.contains(path)) {
+        return Err(DurableError::Conflict("Record baseline archive is outside selected history"));
+    }
     let mut blobs = BTreeSet::new();
     for manifest_path in manifest_paths {
         let raw = files
@@ -969,8 +978,35 @@ pub(crate) fn archive_blob_paths(
         let path = selected_metadata_archive_record_blob_path_v1(manifest_path, raw, limits)
             .map_err(compiler_refusal)?;
         add_path(&mut blobs, &path, MAX_PATHS)?;
+        if baseline_manifests.contains(manifest_path) {
+            if let Some(forms_path) = selected_metadata_archive_forms_blob_path_v1(manifest_path, raw, limits)
+                .map_err(compiler_refusal)?
+            {
+                add_path(&mut blobs, &forms_path, MAX_PATHS)?;
+            }
+        }
     }
     Ok(blobs.into_iter().collect())
+}
+
+// History identity and continuous receipts are verified by the compiler
+// before projection; this only selects the first retained archive address.
+fn baseline_archive_manifest_path(
+    owner: &RecordOwnerV1,
+    files: &SelectedBibliographicFilesV1,
+    limits: BibliographicLimits,
+) -> DurableResult<Option<String>> {
+    let home = owner.source_path.rsplit_once('/').map(|(home, _)| home)
+        .ok_or(DurableError::Invalid("Record baseline source home"))?;
+    let history_path = format!("{home}/source-revision-history.json");
+    let Some(raw) = files.optional(&history_path).map_err(compiler_refusal)? else { return Ok(None); };
+    let history = parse_value(raw, limits.catalog.max_row_bytes)?;
+    let archive = history.get("receipts").and_then(Value::as_array)
+        .and_then(|receipts| receipts.first())
+        .and_then(|receipt| receipt.get("archive_path"))
+        .and_then(Value::as_str)
+        .ok_or(DurableError::Invalid("Record baseline archive absent from retained history"))?;
+    Ok(Some(format!("{archive}/manifest.json")))
 }
 
 /// Assemble, validate, and project one Record from the final exact PG-selected
@@ -1445,6 +1481,25 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
             .ok_or(DurableError::Conflict(
                 "navigation Record consumer source revision absent",
             ))?;
+    // Existing owners are absent from the range's creation list. Bind their
+    // original forms to the first retained archive, never to revised forms.
+    let retained_origin_forms = if matches!(&basis, RecordProjectionBasisV1::Range { origin_forms_bytes: None, .. }) {
+        if let Some(manifest_path) = baseline_archive_manifest_path(owner, files, limits)? {
+            match resolve_selected_metadata_archive_forms_v1(&manifest_path, files, limits)
+                .map_err(compiler_refusal)?
+            {
+                Some((path, raw)) => {
+                    insert_file_dependency(files, &mut dependencies, &path, NavigationDependencyRoleV1::VersionSource, true)?;
+                    Some(raw)
+                }
+                None => None,
+            }
+        } else {
+            forms_bytes
+        }
+    } else {
+        None
+    };
     let dependency_rows = dependencies.into_values().collect::<Vec<_>>();
     let input = NavigationRecordEventInputV1 {
         validator,
@@ -1495,7 +1550,7 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
                 input,
                 coverage,
                 cause_root,
-                origin_forms_bytes,
+                origin_forms_bytes.or(retained_origin_forms),
                 limits,
             )
             .map_err(compiler_refusal)
