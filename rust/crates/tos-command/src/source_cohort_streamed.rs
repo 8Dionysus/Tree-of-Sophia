@@ -2470,7 +2470,23 @@ fn admit_streamed_owner_metadata(
     let mut total_rows = 0u64;
     let mut total_bytes = 0u64;
     let mut counts = [0u64; 2];
-    for (position, table) in ["cmd2_source_index", "cmd2_predicate"]
+    // Count the fields consumed by the binary PG cursors. row_to_json doubles
+    // bytea values as hex and adds an unrelated transport envelope; neither is
+    // part of a projection value or of this index's logical-byte contract.
+    for (position, (table, fields, keys, value)) in [
+        (
+            "cmd2_source_index",
+            "octet_length(domain)::bigint+octet_length(kind)+octet_length(token)+octet_length(path)+octet_length(definition_digest)+coalesce(octet_length(inventory_projection),0)",
+            "greatest(octet_length(domain),octet_length(kind),octet_length(token),octet_length(path),octet_length(definition_digest))",
+            "coalesce(octet_length(inventory_projection),0)",
+        ),
+        (
+            "cmd2_predicate",
+            "octet_length(domain)::bigint+octet_length(kind)+octet_length(owner)+octet_length(scope)+octet_length(token)+octet_length(definition_version)+8+1",
+            "greatest(octet_length(domain),octet_length(kind),octet_length(owner),octet_length(scope),octet_length(token),octet_length(definition_version))",
+            "0",
+        ),
+    ]
         .into_iter()
         .enumerate()
     {
@@ -2481,7 +2497,7 @@ fn admit_streamed_owner_metadata(
             .and_then(|n| n.checked_add(1))
             .ok_or(DurableError::Refused("streamed owner metadata row bound"))?;
         let query = format!(
-            "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0)::bigint,coalesce(sum(octet_length(row_to_json(t)::text)),0)::bigint FROM (SELECT * FROM {table} WHERE domain=$1 LIMIT $2) t"
+            "SELECT count(*),coalesce(max({keys}),0)::bigint,coalesce(sum({fields}),0)::bigint,coalesce(max({value}),0)::bigint FROM (SELECT * FROM {table} WHERE domain=$1 LIMIT $2) t"
         );
         set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
         let row = tx.query_one(&query, &[&domain, &as_i64(scan_rows)?])?;
@@ -2496,12 +2512,24 @@ fn admit_streamed_owner_metadata(
             .ok_or(DurableError::Refused(
                 "streamed owner metadata byte overflow",
             ))?;
-        if total_rows > limits.max_rows
-            || total_bytes > limits.max_logical_bytes
-            || as_u64(row.get(1))? > limits.max_value_bytes as u64
-        {
+        if total_rows > limits.max_rows {
             return Err(DurableError::Refused(
-                "streamed owner metadata preflight bounds",
+                "streamed owner metadata preflight row bound",
+            ));
+        }
+        if total_bytes > limits.max_logical_bytes {
+            return Err(DurableError::Refused(
+                "streamed owner metadata preflight logical byte bound",
+            ));
+        }
+        if as_u64(row.get(1))? > limits.max_key_bytes as u64 {
+            return Err(DurableError::Refused(
+                "streamed owner metadata preflight key byte bound",
+            ));
+        }
+        if as_u64(row.get(3))? > limits.max_value_bytes as u64 {
+            return Err(DurableError::Refused(
+                "streamed owner metadata preflight projection byte bound",
             ));
         }
     }
@@ -3683,6 +3711,101 @@ mod bounded_claim_context_tests {
         let selected = selected_claim_archive_paths(&[history_file]).expect("selected archives");
         assert_eq!(selected, BTreeSet::from([retained.to_owned()]));
         assert!(!selected.contains(unrelated));
+    }
+}
+
+#[cfg(test)]
+mod owner_metadata_budget_tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires an explicitly selected disposable PostgreSQL 16 database"]
+    fn postgres_contract_owner_metadata_logical_fields() {
+        let url = std::env::var("TOS_METADATA_TEST_PG_URL").expect("disposable PG URL required");
+        let mut client = postgres::Client::connect(&url, postgres::NoTls).expect("connect PG");
+        let mut tx = client.transaction().unwrap();
+        tx.batch_execute(
+            "CREATE TEMP TABLE cmd2_source_index (domain text,kind text,token text,path text,definition_digest char(64),inventory_projection bytea) ON COMMIT DROP;
+             CREATE TEMP TABLE cmd2_predicate (domain text,kind text,owner text,scope text,token text,definition_version text,generation bigint,complete boolean) ON COMMIT DROP;",
+        ).unwrap();
+        let domain = "metadata-budget-test";
+        let value = vec![b'X'; 1_048_576];
+        tx.execute(
+            "INSERT INTO cmd2_source_index VALUES($1,'path','ToS/a','ToS/a',repeat('a',64),$2)",
+            &[&domain, &value],
+        )
+        .unwrap();
+        tx.execute("INSERT INTO cmd2_predicate VALUES($1,'identity',$2,'scope','token',repeat('a',64),0,false)", &[&domain,&OWNER]).unwrap();
+        let transport: i32 = tx
+            .query_one(
+                "SELECT octet_length(row_to_json(t)::text) FROM cmd2_source_index t",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert!(transport as usize > value.len() * 2);
+        let limits = SourceAssessmentLimits {
+            max_rows: 2,
+            max_logical_bytes: 4_194_304,
+            max_key_bytes: 4096,
+            max_value_bytes: value.len(),
+            max_placement_bytes: 16_777_216,
+            max_sqlite_file_bytes: 134_217_728,
+            max_vm_steps: 200_000_000,
+        };
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(20);
+        let check = |tx: &mut Transaction<'_>, bounds| {
+            admit_streamed_owner_metadata(tx, 5000, domain, bounds, deadline, &cancelled)
+        };
+        assert_eq!(check(&mut tx, limits).unwrap(), (1, 1));
+        // Reject actual value, combined count and aggregate work overruns.
+        assert!(
+            check(
+                &mut tx,
+                SourceAssessmentLimits {
+                    max_value_bytes: value.len() - 1,
+                    ..limits
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            check(
+                &mut tx,
+                SourceAssessmentLimits {
+                    max_rows: 1,
+                    ..limits
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            check(
+                &mut tx,
+                SourceAssessmentLimits {
+                    max_logical_bytes: value.len() as u64,
+                    ..limits
+                }
+            )
+            .is_err()
+        );
+        // Key bounds are UTF-8 bytes, including predicates not owned by us.
+        tx.execute(
+            "UPDATE cmd2_predicate SET token=$1,owner='other-owner'",
+            &[&"я".repeat(2049)],
+        )
+        .unwrap();
+        assert!(check(&mut tx, limits).is_err());
+        tx.execute(
+            "UPDATE cmd2_predicate SET token='token',owner=$1",
+            &[&OWNER],
+        )
+        .unwrap();
+        // An unrelated domain does not consume this cut's bounds.
+        tx.execute("INSERT INTO cmd2_source_index VALUES('other','path','ToS/b','ToS/b',repeat('b',64),$1)", &[&vec![0u8; value.len()+1]]).unwrap();
+        assert_eq!(check(&mut tx, limits).unwrap(), (1, 1));
+        tx.rollback().unwrap();
     }
 }
 
