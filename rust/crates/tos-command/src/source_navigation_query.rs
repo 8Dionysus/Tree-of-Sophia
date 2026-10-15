@@ -1045,7 +1045,17 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
                     "source authority boundary is absent",
                 )
             })?;
-        if authority != self.guard.owner_binding().selected_authority_boundary {
+        // This is the source navigation carrier's note. The normalized graph
+        // selection has its own authority envelope; both are independently
+        // bound by the verified owner binding and need not have equal text.
+        if Some(authority)
+            != self
+                .guard
+                .owner_binding()
+                .navigation_header
+                .get("authority_boundary")
+                .and_then(serde_json::Value::as_str)
+        {
             return Err(query_error(
                 QueryErrorCode::StaleSelection,
                 "source authority boundary differs",
