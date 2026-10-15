@@ -71,7 +71,8 @@ const MAX_QUERY_RESULTS: usize = 100;
 /// Immutable owner-selected extractor identity. `source_contract` must match
 /// the current CMD domain contract; changing any extractor behavior requires
 /// a new version or contract digest and a new consumer. Version 2 consumers
-/// begin at sequence zero so every joined projection has a complete event cut.
+/// begin at sequence zero; ordered replay or explicit initial construction
+/// must establish a complete source cut before joined output is readable.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DurableProjectionProfile {
     pub id: String,

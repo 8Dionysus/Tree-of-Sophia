@@ -28,6 +28,18 @@ pub(super) fn require_no_active_bootstrap<C: GenericClient>(
     domain: &str,
     consumer: &str,
 ) -> DurableResult<()> {
+    // Existing projection consumers remain usable before an explicit derived
+    // schema init adds this optional initial-build table. Without the table
+    // there cannot be an unfinished build; no implicit DDL is performed here.
+    if !tx
+        .query_one(
+            "SELECT to_regclass('cmd2_projection_text_bootstrap') IS NOT NULL",
+            &[],
+        )?
+        .get::<_, bool>(0)
+    {
+        return Ok(());
+    }
     if tx.query_opt(
         "SELECT 1 FROM cmd2_projection_text_bootstrap WHERE domain=$1 AND consumer_id=$2 AND NOT completed",
         &[&domain, &consumer],

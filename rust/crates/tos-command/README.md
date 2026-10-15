@@ -201,8 +201,9 @@ must name the exact subject identity, version and digest. Freeform and direct
 record text keep the v1 field selection; templates and prior forms remain
 outside the profile. A missing or stale subject produces no source-copy text.
 
-Select v2 with a new consumer ID and replay from zero; changing the profile of
-an existing consumer is refused. The worker reads paired sources at the event's
+Select v2 with a new consumer ID and replay from zero, or use the explicit
+initial `bootstrap-text` route below; changing the profile of an existing
+consumer is refused. The worker reads paired sources at the event's
 commit sequence, follows bounded reverse dependencies and includes the exact
 sibling candidate when a record changes. It publishes the affected documents
 and cursor atomically. A direct document has one source dependency; a

@@ -1067,7 +1067,7 @@ mod tests {
             project_source_text("input.jsonl", raw.as_bytes()),
             Err("source JSONL exceeds parse budget")
         );
-        // Four object/string/container visits plus ten values per line.
+        // Four object/string/container visits plus twenty values per line.
         let constrained = SourceSearchParseLimits {
             max_json_visits: 20,
             max_json_state_bytes: MAX_JSON_STATE_BYTES,
