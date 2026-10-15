@@ -65,12 +65,16 @@ const MAX_NAVIGATION_ADJACENCY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_NAVIGATION_TIMEOUT: Duration = Duration::from_secs(300);
 const MAX_NAVIGATION_EVENT_ID_BYTES: usize = 256;
 const MAX_NAVIGATION_RECORD_ID_BYTES: usize = 256;
+use crate::source_navigation_bootstrap::MAX_NAVIGATION_EDGE_ID_BYTES;
 const MAX_NAVIGATION_EVENT_LOG_ROWS: usize = 100_000;
 const MAX_NAVIGATION_EVENT_STEPS_PER_CALL: usize = 256;
 pub(super) const VERIFIED_PREFIX_FORMAT_VERSION: i16 = 3;
 
 #[path = "durable_navigation_event/cohort_tree.rs"]
 mod cohort_tree;
+
+#[path = "durable_navigation_event/bootstrap_capture.rs"]
+mod bootstrap_capture;
 
 /// Independent resource ceilings for one event-local cohort or selected cut.
 #[derive(Clone, Copy, Debug)]
@@ -2518,7 +2522,11 @@ impl DurableNavigationBootstrapPackageV1 {
         for row in rows {
             validate_identifier(
                 &row.id,
-                MAX_NAVIGATION_RECORD_ID_BYTES,
+                if row.kind == DurableNavigationBootstrapRowKindV1::Edge {
+                    MAX_NAVIGATION_EDGE_ID_BYTES
+                } else {
+                    MAX_NAVIGATION_RECORD_ID_BYTES
+                },
                 "navigation bootstrap row ID",
             )?;
             validate_relative_path(&row.owner_source_path)?;
@@ -2940,33 +2948,95 @@ fn navigation_bootstrap_root(
     owner_sources: &BTreeMap<String, DurableNavigationBootstrapOwnerSourceV1>,
     max_bytes: usize,
 ) -> DurableResult<Digest256> {
-    let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-source-navigation-bootstrap-v1");
-    let binding = canonical_value(&navigation_owner_binding_json(binding), max_bytes)?;
-    navigation_hash_part(&mut hash, &binding);
-    navigation_hash_part(&mut hash, header_raw);
+    let mut hash = NavigationBootstrapRootHasher::new(binding, header_raw, max_bytes)?;
     for source in owner_sources.values() {
-        navigation_hash_part(&mut hash, source.source_path.as_bytes());
-        navigation_hash_part(&mut hash, source.sha256.to_hex().as_bytes());
-        navigation_hash_part(&mut hash, &source.size_bytes.to_be_bytes());
+        hash.source(source)?;
     }
     for row in rows {
-        navigation_hash_part(&mut hash, row.kind.as_str().as_bytes());
-        navigation_hash_part(&mut hash, row.id.as_bytes());
-        navigation_hash_part(&mut hash, row.owner_source_path.as_bytes());
-        navigation_hash_part(&mut hash, row.owner_record_id.as_bytes());
+        hash.row(row)?;
+    }
+    Ok(hash.finish())
+}
+
+/// V1 framing over a source-ordered then row-ordered stream. Retain only the
+/// previous keys, so an explicit initial seal need not materialize all bytes.
+struct NavigationBootstrapRootHasher {
+    hash: Digest256Hasher,
+    last_source: Option<String>,
+    last_row: Option<(DurableNavigationBootstrapRowKindV1, String, String, String)>,
+}
+
+impl NavigationBootstrapRootHasher {
+    fn new(
+        binding: &DurableNavigationCurrentIndexOwnerBindingV1,
+        header_raw: &[u8],
+        max_bytes: usize,
+    ) -> DurableResult<Self> {
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-source-navigation-bootstrap-v1");
+        let binding = canonical_value(&navigation_owner_binding_json(binding), max_bytes)?;
+        navigation_hash_part(&mut hash, &binding);
+        navigation_hash_part(&mut hash, header_raw);
+        Ok(Self {
+            hash,
+            last_source: None,
+            last_row: None,
+        })
+    }
+
+    fn source(&mut self, source: &DurableNavigationBootstrapOwnerSourceV1) -> DurableResult<()> {
+        if self.last_row.is_some()
+            || self
+                .last_source
+                .as_ref()
+                .is_some_and(|path| *path >= source.source_path)
+        {
+            return Err(DurableError::Corrupt(
+                "navigation bootstrap seal source order",
+            ));
+        }
+        navigation_hash_part(&mut self.hash, source.source_path.as_bytes());
+        navigation_hash_part(&mut self.hash, source.sha256.to_hex().as_bytes());
+        navigation_hash_part(&mut self.hash, &source.size_bytes.to_be_bytes());
+        self.last_source = Some(source.source_path.clone());
+        Ok(())
+    }
+
+    fn row(&mut self, row: &DurableNavigationBaseRowReadV1) -> DurableResult<()> {
+        let key = (
+            row.kind,
+            row.id.clone(),
+            row.owner_source_path.clone(),
+            row.owner_record_id.clone(),
+        );
+        if self
+            .last_row
+            .as_ref()
+            .is_some_and(|previous| *previous >= key)
+        {
+            return Err(DurableError::Corrupt("navigation bootstrap seal row order"));
+        }
+        navigation_hash_part(&mut self.hash, row.kind.as_str().as_bytes());
+        navigation_hash_part(&mut self.hash, row.id.as_bytes());
+        navigation_hash_part(&mut self.hash, row.owner_source_path.as_bytes());
+        navigation_hash_part(&mut self.hash, row.owner_record_id.as_bytes());
         navigation_hash_part(
-            &mut hash,
+            &mut self.hash,
             &[match row.visible {
                 Some(false) => 0,
                 Some(true) => 1,
                 None => 2,
             }],
         );
-        navigation_hash_part(&mut hash, row.sha256.to_hex().as_bytes());
-        navigation_hash_part(&mut hash, &row.raw);
+        navigation_hash_part(&mut self.hash, row.sha256.to_hex().as_bytes());
+        navigation_hash_part(&mut self.hash, &row.raw);
+        self.last_row = Some(key);
+        Ok(())
     }
-    Ok(hash.finalize())
+
+    fn finish(self) -> Digest256 {
+        self.hash.finalize()
+    }
 }
 
 fn navigation_hash_part(hash: &mut Digest256Hasher, bytes: &[u8]) {
@@ -10698,6 +10768,7 @@ impl DurablePgCoordinator {
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
         )?;
+        bootstrap_capture::require_no_active_initial(tx, domain, consumer_id)?;
         if consumer.get::<_, String>("profile_id") != profile.id
             || consumer.get::<_, String>("profile_version") != profile_version
             || consumer.get::<_, String>("source_contract_digest") != source_contract
@@ -12526,6 +12597,7 @@ impl DurablePgCoordinator {
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
         )?;
+        bootstrap_capture::require_no_active_initial(&mut tx, domain, consumer_id)?;
         if cursor_row.get::<_, String>("profile_id") != profile.id
             || cursor_row.get::<_, String>("profile_version") != profile_version
             || cursor_row.get::<_, String>("source_contract_digest") != source_contract
@@ -13544,7 +13616,8 @@ impl DurablePgCoordinator {
                     row_json,row_sha256
              FROM cmd2_projection_navigation_bootstrap_row
              WHERE domain=$1 AND consumer_id=$2
-             ORDER BY row_kind COLLATE \"C\",row_id COLLATE \"C\",
+             ORDER BY CASE row_kind WHEN 'node' THEN 0 WHEN 'edge' THEN 1 WHEN 'right' THEN 2 ELSE 3 END,
+                      row_id COLLATE \"C\",
                       owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\"
              LIMIT $3",
             &[&domain, &consumer_id, &row_cap],
@@ -14904,6 +14977,7 @@ impl DurablePgCoordinator {
              WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
             &[&domain, &consumer_id],
         )?;
+        bootstrap_capture::require_no_active_initial(&mut tx, domain, consumer_id)?;
         if cursor_row.get::<_, String>("profile_id") != profile.id
             || cursor_row.get::<_, String>("profile_version") != profile_version
             || cursor_row.get::<_, String>("source_contract_digest") != source_contract
@@ -17011,7 +17085,7 @@ fn persist_navigation_projection_rows(
             .ok_or(DurableError::Invalid("navigation output edge identity"))?;
         validate_identifier(
             edge_id,
-            MAX_NAVIGATION_RECORD_ID_BYTES,
+            MAX_NAVIGATION_EDGE_ID_BYTES,
             "navigation output edge ID",
         )?;
         if !edge_ids.insert(edge_id.to_owned()) {
@@ -18174,7 +18248,7 @@ fn verify_claim_read_roots(
             ))?;
         validate_identifier(
             id,
-            MAX_NAVIGATION_RECORD_ID_BYTES,
+            MAX_NAVIGATION_EDGE_ID_BYTES,
             "stored navigation Claim edge ID",
         )?;
         let from_id = row

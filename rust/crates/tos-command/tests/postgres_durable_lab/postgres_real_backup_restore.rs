@@ -8,7 +8,7 @@ fn real_parmenides_backup_restore_cold_reads_and_continues_native_revision() {
     assert_eq!(report["restore"]["status"], "restore_verified");
     assert_eq!(report["restore"]["source_admission"], false);
     assert_eq!(report["restore"]["source_currentness_granted"], false);
-    assert_eq!(report["backup"]["schema"], "tos_cmd2_quiescent_backup_v10");
+    assert_eq!(report["backup"]["schema"], "tos_cmd2_quiescent_backup_v11");
     assert_eq!(
         report["private_package_schema_guard"]["fresh_schema_accepted"],
         true

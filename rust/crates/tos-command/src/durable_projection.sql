@@ -245,6 +245,38 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort_tree_node (
   FOREIGN KEY(domain,consumer_id) REFERENCES cmd2_projection_navigation_consumer(domain,consumer_id) ON DELETE CASCADE
 );
 
+-- Explicit initial construction retains exact Original carriers and its
+-- selected-cut/keyset progress independently of publication. Cursor zero and
+-- adjacency_ready=false keep every incomplete stage unreadable.
+CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_initial (
+  domain text NOT NULL,
+  consumer_id text NOT NULL,
+  selection_json text NOT NULL CHECK (octet_length(selection_json) <= 1048576),
+  header_raw text NOT NULL CHECK (octet_length(header_raw) <= 1048576),
+  position_json text NOT NULL CHECK (octet_length(position_json) <= 8192),
+  PRIMARY KEY (domain,consumer_id),
+  FOREIGN KEY (domain,consumer_id)
+    REFERENCES cmd2_projection_navigation_consumer(domain,consumer_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_initial_row (
+  domain text NOT NULL,
+  consumer_id text NOT NULL,
+  collection text NOT NULL CHECK (collection IN ('nodes','edges','rights')),
+  row_key text NOT NULL CHECK (octet_length(row_key) BETWEEN 1 AND 512),
+  row_id text NOT NULL CHECK (octet_length(row_id) BETWEEN 1 AND
+    CASE WHEN collection='edges' THEN 512 ELSE 256 END),
+  ordinal bigint,
+  row_json text NOT NULL CHECK (octet_length(row_json) <= 4194304),
+  row_sha256 char(64) NOT NULL CHECK (row_sha256 ~ '^[0-9a-f]{64}$'),
+  PRIMARY KEY (domain,consumer_id,collection,row_key),
+  FOREIGN KEY (domain,consumer_id)
+    REFERENCES cmd2_projection_navigation_initial(domain,consumer_id) ON DELETE CASCADE,
+  CHECK ((collection='rights' AND ordinal IS NOT NULL AND ordinal>=0) OR
+    (collection IN ('nodes','edges') AND ordinal IS NULL AND row_key=row_id))
+);
+CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_initial_row_seek
+  ON cmd2_projection_navigation_initial_row(domain,consumer_id,collection,row_key COLLATE "C");
+
 -- One exact whole-source bootstrap, tied to the owner-selected managed model.
 -- Its rows are separate from event cohorts so an event update can replace a
 -- source owner's baseline contribution without confusing it with provenance.
@@ -287,7 +319,8 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_bootstrap_row (
   domain text NOT NULL,
   consumer_id text NOT NULL,
   row_kind text NOT NULL CHECK (row_kind IN ('node','edge','right','diagnostic')),
-  row_id text NOT NULL CHECK (octet_length(row_id) BETWEEN 1 AND 256),
+  row_id text NOT NULL CHECK (octet_length(row_id) BETWEEN 1 AND
+    CASE WHEN row_kind='edge' THEN 512 ELSE 256 END),
   owner_source_path text NOT NULL,
   owner_record_id text NOT NULL CHECK (octet_length(owner_record_id) BETWEEN 1 AND 256),
   active boolean NOT NULL DEFAULT true,
@@ -305,6 +338,11 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_bootstrap_row (
     REFERENCES cmd2_projection_navigation_bootstrap_owner(domain,consumer_id,owner_source_path)
     ON DELETE CASCADE
 );
+ALTER TABLE cmd2_projection_navigation_bootstrap_row
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_bootstrap_row_row_id_check;
+ALTER TABLE cmd2_projection_navigation_bootstrap_row
+  ADD CONSTRAINT cmd2_projection_navigation_bootstrap_row_row_id_check
+    CHECK (octet_length(row_id) BETWEEN 1 AND CASE WHEN row_kind='edge' THEN 512 ELSE 256 END);
 ALTER TABLE cmd2_projection_navigation_bootstrap_row
   ADD COLUMN IF NOT EXISTS from_id text;
 ALTER TABLE cmd2_projection_navigation_bootstrap_row
@@ -690,7 +728,7 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_edge (
   consumer_id text NOT NULL,
   source_path text NOT NULL,
   record_id text NOT NULL,
-  edge_id text NOT NULL CHECK (octet_length(edge_id) BETWEEN 1 AND 256),
+  edge_id text NOT NULL CHECK (octet_length(edge_id) BETWEEN 1 AND 512),
   from_id text NOT NULL CHECK (octet_length(from_id) BETWEEN 1 AND 256),
   to_id text NOT NULL CHECK (octet_length(to_id) BETWEEN 1 AND 256),
   visible boolean NOT NULL,
@@ -705,6 +743,11 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_edge (
     ON DELETE CASCADE
 );
 ALTER TABLE cmd2_projection_navigation_edge ADD COLUMN IF NOT EXISTS from_id text;
+ALTER TABLE cmd2_projection_navigation_edge
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_edge_edge_id_check;
+ALTER TABLE cmd2_projection_navigation_edge
+  ADD CONSTRAINT cmd2_projection_navigation_edge_edge_id_check
+    CHECK (octet_length(edge_id) BETWEEN 1 AND 512);
 ALTER TABLE cmd2_projection_navigation_edge ADD COLUMN IF NOT EXISTS to_id text;
 ALTER TABLE cmd2_projection_navigation_edge ADD COLUMN IF NOT EXISTS visible boolean;
 ALTER TABLE cmd2_projection_navigation_edge ADD COLUMN IF NOT EXISTS row_sha256 char(64);

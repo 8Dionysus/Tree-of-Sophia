@@ -216,8 +216,21 @@ they do not audit unrelated table rows. Explicit full-index audit verifies every
 current cohort and exact map cardinality. Restoring identical current metadata
 restores the identical map root, independently of update history. Existing
 format 1/2 publications need explicit source-backed bootstrap; a cursor or stored
-row cannot manufacture format 3 admission. Backup format 10 includes both map
-tables; restore retains older backup-format readers and their declared checks.
+row cannot manufacture format 3 admission. Backup format 11 includes both map
+tables and the private initial-capture position and Original carriers; restore
+retains older backup-format readers and their declared checks.
+
+The private initial-capture adapter commits exact Original rows and keyset
+position together in bounded pages. Its selected source, audit, rights, job and
+model binding must match on resume. Capturing or verifying Original roots does
+not publish a consumer: its cursor stays zero until a complete derived baseline
+is sealed. Ordinary event writers reject an unfinished initial construction.
+This adapter is preparation for the streamed initial writer; the public
+bootstrap command still uses the sealed-package writer until that integration
+is complete.
+
+Relation carrier IDs have a 512-byte ceiling. Node, record, owner and endpoint
+IDs retain their 256-byte ceiling. Neither adapter truncates an identity.
 
 This anchor supports PostgreSQL source-navigation publication and exact retained
 Original reads. It does not support offline indexed search or claim a complete

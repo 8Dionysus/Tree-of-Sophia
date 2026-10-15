@@ -6021,7 +6021,7 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     );
     let backup = run_recovery_cli(&binary, "backup", &backup_args, &source_url);
     assert_eq!(backup["status"], "backup_complete");
-    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v10");
+    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v11");
     assert_eq!(backup["receipt"]["source_admission"], false);
     assert_eq!(backup["receipt"]["production_quiescence_verified"], false);
     let inventory_census = &backup["receipt"]["metadata"]["source_inventory_projection_v1"];

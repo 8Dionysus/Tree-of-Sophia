@@ -108,8 +108,8 @@ mod knowledge_navigation_original;
 pub use knowledge_navigation_original::{
     KNOWLEDGE_NAVIGATION_MODEL_ABI, NAVIGATION_ORIGINAL_PROFILE, NavigationOriginalInput,
     NavigationOriginalLimits, NavigationOriginalMember, NavigationOriginalMemberPage,
-    NavigationOriginalPage, NavigationOriginalReceipt, navigation_original_rights_root,
-    retain_navigation_original,
+    NavigationOriginalPage, NavigationOriginalReceipt, NavigationOriginalRightsHasher,
+    navigation_original_rights_root, retain_navigation_original,
 };
 mod controlled_cold_model;
 mod knowledge_byte_codec;

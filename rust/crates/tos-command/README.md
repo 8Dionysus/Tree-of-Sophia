@@ -609,7 +609,7 @@ then restores the schema/data in one PostgreSQL transaction and checks the
 native committed-history cut. A missing dump schema is not filled in by lab
 initialization.
 
-New receipts use `tos_cmd2_quiescent_backup_v10`. They also authenticate the transactional navigation cohort-map roots and immutable nodes, while V1–V9 readers retain their historical census rules. Their bounded census includes
+New receipts use `tos_cmd2_quiescent_backup_v11`. They authenticate navigation cohort-map roots and immutable nodes plus the resumable initial-capture position and exact staged Original carriers; V1–V10 readers retain their historical census rules. Their bounded census includes
 the current durable-schema profile, publication/import lineage, source indexes,
 and the complete source-navigation projection, policy and processing state.
 The V3 navigation census canonicalizes database row keys before counting and
@@ -619,7 +619,7 @@ comparing these roots from the same quiescent state. Cold verification is
 read-only.
 
 Restore retains explicit wire readers for `tos_cmd2_quiescent_backup_v1` through
-`tos_cmd2_quiescent_backup_v8`, including their original census hash rules;
+`tos_cmd2_quiescent_backup_v10`, including their original census hash rules;
 each receipt version carries only its declared
 census coverage. A receipt's `v1` label is not SQL-schema compatibility: it
 describes the old receipt/census wire, not permission to restore an old

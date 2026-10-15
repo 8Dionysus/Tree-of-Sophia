@@ -760,16 +760,54 @@ pub fn navigation_original_rights_root(rights: &[&[u8]]) -> String {
         .expect("unbudgeted navigation rights framing is infallible")
 }
 
+/// The existing Original rights framing over an ordinal stream. Initial
+/// consumers can verify a complete receipt without retaining all right bytes.
+pub struct NavigationOriginalRightsHasher {
+    hash: Digest256Hasher,
+    next_ordinal: i64,
+}
+
+impl Default for NavigationOriginalRightsHasher {
+    fn default() -> Self {
+        Self {
+            hash: rights_hash(),
+            next_ordinal: 0,
+        }
+    }
+}
+
+impl NavigationOriginalRightsHasher {
+    pub fn push(&mut self, ordinal: i64, raw: &[u8]) -> Result<()> {
+        if ordinal != self.next_ordinal {
+            return Err(Error::Invalid("navigation original rights stream ordinal"));
+        }
+        row_hash(&mut self.hash, ordinal, raw);
+        self.next_ordinal = self
+            .next_ordinal
+            .checked_add(1)
+            .ok_or(Error::Budget("navigation original rights stream count"))?;
+        Ok(())
+    }
+
+    pub fn finish(self) -> String {
+        self.hash.finalize().to_hex()
+    }
+}
+
 pub(crate) fn navigation_original_rights_root_with_check(
     rights: &[&[u8]],
     check: &mut impl FnMut(usize) -> Result<()>,
 ) -> Result<String> {
-    let mut h = rights_hash();
+    let mut h = NavigationOriginalRightsHasher::default();
     for (i, r) in rights.iter().enumerate() {
         check(r.len())?;
-        row_hash(&mut h, i as i64, r);
+        h.push(
+            i64::try_from(i)
+                .map_err(|_| Error::Budget("navigation original rights stream count"))?,
+            r,
+        )?;
     }
-    Ok(h.finalize().to_hex())
+    Ok(h.finish())
 }
 /// Reuse the component's own framing law for the independent producer
 /// companion. Source admission remains outside this mechanical consistency.
