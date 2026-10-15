@@ -2511,7 +2511,7 @@ fn reuse_completed_bootstrap_assessment(
         .map_err(|_| DurableError::Refused("completed bootstrap projection byte bound"))?;
     let mut rows = tx.query_raw(
         "SELECT c.subject,CASE WHEN octet_length(c.inventory_projection)<=$2 THEN c.inventory_projection ELSE NULL END AS current_projection,CASE WHEN octet_length(h.inventory_projection)<=$2 THEN h.inventory_projection ELSE NULL END AS history_projection,CASE WHEN octet_length(i.inventory_projection)<=$2 THEN i.inventory_projection ELSE NULL END AS indexed_projection FROM cmd2_current c LEFT JOIN cmd2_history h ON h.domain=c.domain AND h.subject=c.subject AND h.revision=c.revision AND h.content_digest=c.content_digest LEFT JOIN cmd2_source_index i ON i.domain=c.domain AND i.kind='path' AND i.token=c.subject AND i.path=c.subject AND i.definition_digest=$3 WHERE c.domain=$1 ORDER BY c.subject COLLATE \"C\"",
-        &[&domain as &(dyn postgres::types::ToSql + Sync), &cap, &definition().to_hex()],
+        [&domain as &(dyn postgres::types::ToSql + Sync), &cap, &definition().to_hex()],
     )?;
     let mut transcript = Digest256Hasher::new();
     part(
