@@ -10549,7 +10549,7 @@ impl DurablePgCoordinator {
         )?;
         let consumer = tx.query_one(
             "SELECT profile_id,profile_version,source_contract_digest,cursor_seq,
-                    last_event_id,last_input_root,last_output_root,coverage_seq,coverage_root,
+                    source_revision,last_event_id,last_input_root,last_output_root,coverage_seq,coverage_root,
                     adjacency_seq,adjacency_root,adjacency_ready,verified_prefix_version,verified_prefix_seq,
                     verified_prefix_coverage_root,verified_prefix_cohort_root,verified_prefix_digest
              FROM cmd2_projection_navigation_consumer
