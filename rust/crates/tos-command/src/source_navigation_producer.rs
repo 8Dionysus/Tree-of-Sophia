@@ -37,9 +37,7 @@ use crate::{DurableError, DurableNavigationEventContextV1, DurablePgCoordinator,
 
 // Owner reasons use bounded renderers; selected paths, source payloads and
 // dynamic database diagnostics remain private.
-fn producer_refusal(
-    error: crate::source_navigation_cli::SourceNavigationSelectionError,
-) -> String {
+fn producer_refusal(error: crate::source_navigation_cli::SourceNavigationSelectionError) -> String {
     use crate::source_command::SourceCommandError;
     use crate::source_managed_selection::ManagedSelectionError;
     use crate::source_navigation_cli::SourceNavigationSelectionError;
@@ -63,7 +61,9 @@ fn producer_refusal(
             | SourceCommandError::Unsupported(reason) => reason.to_owned(),
             SourceCommandError::DeniedWithReason(reason) => reason,
             error @ SourceCommandError::SchemaExecution { .. } => error.public_reason(),
-            SourceCommandError::MissingProductionAdmission => "navigation source admission missing".into(),
+            SourceCommandError::MissingProductionAdmission => {
+                "navigation source admission missing".into()
+            }
         },
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Compiler(error)) => {
             crate::source_command::public_compiler_reason(&error)
@@ -927,8 +927,12 @@ fn process_ready_range(
             )?;
         }
         let files = selected_bibliographic_files(&context, &selection.event_limits)?;
-        let blobs =
-            crate::source_navigation_record_input::archive_blob_paths(&plan.owners, &manifests, &files, limits)?;
+        let blobs = crate::source_navigation_record_input::archive_blob_paths(
+            &plan.owners,
+            &manifests,
+            &files,
+            limits,
+        )?;
         if !blobs.is_empty() {
             stage_range_context(
                 event_reader,
@@ -1930,8 +1934,12 @@ fn process_ready_event(
             )?;
         }
         let files = selected_bibliographic_files(&context, &selection.event_limits)?;
-        let blobs =
-            crate::source_navigation_record_input::archive_blob_paths(&record_plan.owners, &manifests, &files, limits)?;
+        let blobs = crate::source_navigation_record_input::archive_blob_paths(
+            &record_plan.owners,
+            &manifests,
+            &files,
+            limits,
+        )?;
         if !blobs.is_empty() {
             stage_event_context(event_reader, store, selection, seed, &mut context, blobs)?;
         }
@@ -3867,9 +3875,7 @@ fn bibliographic_limits(
         max_output_bytes: max_output_bytes.max(1),
         deadline,
     };
-    limits
-        .validate()
-        .map_err(compiler_refusal)?;
+    limits.validate().map_err(compiler_refusal)?;
     Ok(limits)
 }
 
@@ -4558,9 +4564,7 @@ fn with_selected_schema_validator<T>(
     )
     .map_err(compiler_refusal)?;
     let result = consume(&validator)?;
-    validator
-        .finish()
-        .map_err(compiler_refusal)?;
+    validator.finish().map_err(compiler_refusal)?;
     Ok(result)
 }
 

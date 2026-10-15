@@ -554,22 +554,27 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
         limits,
     )?;
 
-    let mut target_owners = owner_keys.clone();
+    // Reverse projection dependencies describe the predecessor publication.
+    // Terminal owners also include new Records and stream-complete Claims;
+    // their current source causes were verified above against the held closure.
+    let mut predecessor_owners = BTreeSet::new();
     for prior in record_set.prior_owners() {
-        target_owners.insert((
+        predecessor_owners.insert((
             prior.source_path().as_str().to_owned(),
             prior.record_id().to_owned(),
         ));
     }
     for prior in claim_set.manifest().prior_owners() {
-        target_owners.insert((prior.claim_stream_path.clone(), prior.claim_id.clone()));
+        predecessor_owners.insert((prior.claim_stream_path.clone(), prior.claim_id.clone()));
     }
+    let mut target_owners = owner_keys.clone();
+    target_owners.extend(predecessor_owners.iter().cloned());
     let changed_paths = coverage.changed_source_paths();
     verify_navigation_range_reverse_dependency_closure(
         tx,
         domain,
         consumer_id,
-        &target_owners,
+        &predecessor_owners,
         &changed_paths,
         limits,
     )?;
@@ -2839,12 +2844,12 @@ fn verify_navigation_range_reverse_dependency_closure(
     tx: &mut postgres::Transaction<'_>,
     domain: &str,
     consumer_id: &str,
-    target_owners: &BTreeSet<(String, String)>,
+    expected_predecessor_owners: &BTreeSet<(String, String)>,
     changed_paths: &[String],
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<()> {
     if changed_paths.is_empty() {
-        if target_owners.is_empty() {
+        if expected_predecessor_owners.is_empty() {
             return Ok(());
         }
         return Err(DurableError::Conflict(
@@ -2893,7 +2898,7 @@ fn verify_navigation_range_reverse_dependency_closure(
             )
         })
         .collect::<BTreeSet<_>>();
-    if observed != *target_owners {
+    if observed != *expected_predecessor_owners {
         return Err(DurableError::Conflict(
             "navigation range does not cover the complete reverse-owner closure",
         ));

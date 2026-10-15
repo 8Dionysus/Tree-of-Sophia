@@ -411,7 +411,9 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, String> {
                 json!({"schema_version":"tos_source_projection_search_v1", "profile":profile.id, "result":result}),
             )
         }
-        Request::SearchText { .. } => Err("source-text search requires the streaming writer route".into()),
+        Request::SearchText { .. } => {
+            Err("source-text search requires the streaming writer route".into())
+        }
         Request::Status => {
             let result = db
                 .projection_status(
@@ -551,7 +553,8 @@ pub fn run_to_writer(
                 cursor,
             },
             output,
-        ).map_err(String::from);
+        )
+        .map_err(String::from);
     }
     let value = run(selection_path, Cursor::new(request_bytes))?;
     write_projection_value(output, &value).map_err(String::from)

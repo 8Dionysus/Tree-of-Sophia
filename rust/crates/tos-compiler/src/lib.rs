@@ -318,9 +318,9 @@ pub use source_bibliographic_source::{
 pub use source_bibliographic_versions::StreamedBibliographicReadLedger;
 pub use source_bibliographic_versions::{
     SelectedClaimVersionV1, SelectedMetadataHistoryV1, SelectedMetadataVersionSourceV1,
-    resolve_selected_claim_version_v1, resolve_selected_metadata_history_v1,
-    resolve_selected_metadata_archive_forms_v1, selected_metadata_archive_forms_blob_path_v1,
-    selected_claim_archive_blob_paths_v1, selected_claim_archive_manifest_paths_v1,
+    resolve_selected_claim_version_v1, resolve_selected_metadata_archive_forms_v1,
+    resolve_selected_metadata_history_v1, selected_claim_archive_blob_paths_v1,
+    selected_claim_archive_manifest_paths_v1, selected_metadata_archive_forms_blob_path_v1,
     selected_metadata_archive_manifest_paths_v1, selected_metadata_archive_record_blob_path_v1,
     selected_metadata_record_schema_path_v1,
 };

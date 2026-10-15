@@ -151,8 +151,8 @@ fn project_record_event_with_basis(
     }
     validate_committed_member_dependencies(context, &input)?;
 
-    let cohort = project(input, limits)
-        .map_err(crate::source_navigation_producer::compiler_refusal)?;
+    let cohort =
+        project(input, limits).map_err(crate::source_navigation_producer::compiler_refusal)?;
     if cohort.event_id() != context.event_id()
         || cohort.event_sequence() != context.event_sequence()
         || cohort.source_revision() != identity.event_source_revision()
