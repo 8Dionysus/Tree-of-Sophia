@@ -18048,9 +18048,19 @@ fn verify_claim_read_roots(
             "stored Claim edge target",
         )?;
         if !node_ids.contains(from_id) {
-            return Err(DurableError::Corrupt(
-                "stored navigation Claim edge source is not in its cohort",
-            ));
+            if tos_compiler::source_bibliographic::navigation_claim_subject_identity(
+                row,
+                &read.nodes,
+                &read.edges,
+            )
+            .map_err(|_| DurableError::Corrupt("stored Claim subject anchor differs"))?
+            .is_none()
+            {
+                return Err(DurableError::Corrupt(
+                    "stored navigation Claim edge source is not in its cohort",
+                ));
+            }
+            external_endpoint_ids.insert(from_id.to_owned());
         }
         if !node_ids.contains(to_id) {
             if to_id.starts_with("claim:") {

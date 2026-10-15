@@ -138,6 +138,15 @@ pub fn render_supplied_navigation_claim(
     )
 }
 
+/// Validate the derived metadata-to-Claim edge against its exact reified cohort.
+pub fn navigation_claim_subject_identity<'a>(
+    edge: &Value,
+    nodes: &'a [Value],
+    edges: &[Value],
+) -> Result<Option<&'a Value>> {
+    crate::source_bibliographic_navigation::navigation_claim_subject_identity(edge, nodes, edges)
+}
+
 /// Rebuild the existing descriptor syntax from explicitly supplied source
 /// Claim and endpoints. Source authentication remains with the caller.
 pub fn supplied_claim_navigation_descriptor(

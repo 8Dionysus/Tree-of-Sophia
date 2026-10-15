@@ -1267,6 +1267,12 @@ retire another Claim's contribution. Switching from the earlier raw event
 carriers requires an explicit navigation rebuild at the current source head;
 it does not migrate or rewrite authored records or command history.
 
+For a Claim with a resolved metadata subject, `has_source_claim` connects that
+metadata record to the reified Claim. This derived navigation edge retains the
+Claim's exact source reference and requires its subject identity and original
+`has_subject` edge. It does not assign the metadata record to the Claim's
+contribution; replacing the Claim retires its navigation edge, not the Work.
+
 Each query reopens the retained model as the immutable bootstrap anchor and
 holds a separate live PostgreSQL source-navigation lease through disclosure.
 The query is ready only when its verified coverage and adjacency publication

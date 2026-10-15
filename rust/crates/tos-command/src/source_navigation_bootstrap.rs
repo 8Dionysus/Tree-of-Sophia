@@ -745,14 +745,17 @@ fn expand_claim_contributions(
             {
                 let owner = (checked_path(path)?.into_string(), claim.to_owned());
                 let root = format!("claim:{claim}");
-                if field("from_id") != Some(root.as_str()) {
+                let subject_navigation = field("edge_kind") == Some("claim_subject_navigation")
+                    && field("predicate_id") == Some("has_source_claim")
+                    && field("to_id") == Some(root.as_str());
+                if !subject_navigation && field("from_id") != Some(root.as_str()) {
                     return Err(DurableError::Corrupt("navigation Claim edge owner differs"));
                 }
                 owners.entry(root).or_default().insert(owner.clone());
                 let target =
                     field("to_id").ok_or(DurableError::Corrupt("navigation Claim target"))?;
                 // Alternative/superseded Claims retain their own cohorts.
-                if !target.starts_with("claim:") {
+                if !subject_navigation && !target.starts_with("claim:") {
                     owners
                         .entry(target.to_owned())
                         .or_default()
@@ -878,6 +881,13 @@ mod tests {
                 "alternative:a",
                 json!({"edge_id":"alternative:a","claim_ref":"a","source_claim_file_ref":path,"from_id":"claim:a","to_id":"claim:b"}),
             ),
+            (
+                DurableNavigationBootstrapRowKindV1::Edge,
+                "subject:b",
+                json!({"edge_id":"subject:b","claim_ref":"b","source_claim_file_ref":path,
+                    "edge_kind":"claim_subject_navigation","predicate_id":"has_source_claim",
+                    "from_id":"tos.work.a","to_id":"claim:b"}),
+            ),
         ] {
             rows.push(DurableNavigationBootstrapRowV1 {
                 kind,
@@ -888,8 +898,30 @@ mod tests {
                 raw: serde_json::to_vec(&value).unwrap(),
             });
         }
+        rows.push(DurableNavigationBootstrapRowV1 {
+            kind: DurableNavigationBootstrapRowKindV1::Node,
+            id: "tos.work.a".into(),
+            owner_source_path: "ToS/source-witnesses/works/a/work.json".into(),
+            owner_record_id: "tos.work.a".into(),
+            visible: Some(true),
+            raw: br#"{"node_id":"tos.work.a"}"#.to_vec(),
+        });
         let mut bytes = rows.iter().map(|row| row.raw.len() as u64).sum();
         expand_claim_contributions(&mut rows, limits, &mut bytes).unwrap();
+        assert_eq!(
+            rows.iter()
+                .find(|row| row.id == "tos.work.a")
+                .unwrap()
+                .owner_record_id,
+            "tos.work.a"
+        );
+        assert_eq!(
+            rows.iter()
+                .find(|row| row.id == "subject:b")
+                .unwrap()
+                .owner_record_id,
+            "b"
+        );
         assert_eq!(
             rows.iter()
                 .filter(|row| row.id == "evidence:shared")
@@ -906,10 +938,17 @@ mod tests {
             rows.iter()
                 .map(|row| row.id.as_str())
                 .collect::<BTreeSet<_>>(),
-            BTreeSet::from(["claim:b", "edge:b", "evidence:shared"])
+            BTreeSet::from([
+                "claim:b",
+                "edge:b",
+                "evidence:shared",
+                "subject:b",
+                "tos.work.a"
+            ])
         );
         assert!(
             rows.iter()
+                .filter(|row| row.id != "tos.work.a")
                 .all(|row| row.owner_record_id == "b" && row.owner_source_path == path)
         );
     }

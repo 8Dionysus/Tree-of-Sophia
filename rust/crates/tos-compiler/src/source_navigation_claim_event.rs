@@ -5850,6 +5850,18 @@ fn validate_external_claim_endpoints(
         .collect::<BTreeSet<_>>();
     let mut endpoint_ids = BTreeSet::new();
     for edge in &projection.edges {
+        let from = edge
+            .get("from_id")
+            .and_then(Value::as_str)
+            .ok_or(Error::Invalid("navigation Claim endpoint source"))?;
+        if !local_nodes.contains(from) {
+            crate::source_bibliographic::navigation_claim_subject_identity(
+                edge,
+                &projection.nodes,
+                &projection.edges,
+            )?
+            .ok_or(Error::Invalid("navigation Claim external source absent"))?;
+        }
         let endpoint = edge
             .get("to_id")
             .and_then(Value::as_str)
@@ -7367,7 +7379,15 @@ fn output_rows(
                 .filter(|id| !id.is_empty() && id.len() <= PATH_BYTES)
                 .ok_or(Error::Invalid("navigation Claim output edge endpoint"))?;
             if !node_ids.contains(endpoint_id) {
-                if endpoint == "from_id" || !endpoint_id.starts_with("claim:") {
+                let subject_anchor = endpoint == "from_id"
+                    && crate::source_bibliographic::navigation_claim_subject_identity(
+                        value,
+                        &projection.nodes,
+                        &projection.edges,
+                    )?
+                    .is_some();
+                if !subject_anchor && (endpoint == "from_id" || !endpoint_id.starts_with("claim:"))
+                {
                     return Err(Error::Invalid("navigation Claim output endpoint absent"));
                 }
                 external.insert(endpoint_id.to_owned());
@@ -7415,10 +7435,23 @@ fn projection_visibility(
             .get("to_id")
             .and_then(Value::as_str)
             .ok_or(Error::Invalid("navigation Claim edge visibility target"))?;
-        let from_visible = by_node_id
-            .get(from_id)
-            .copied()
+        let from_visible = if let Some(visible) = by_node_id.get(from_id) {
+            *visible
+        } else {
+            let identity = crate::source_bibliographic::navigation_claim_subject_identity(
+                edge,
+                &projection.nodes,
+                &projection.edges,
+            )?
             .ok_or(Error::Invalid("navigation Claim edge source node absent"))?;
+            let identity_id = identity["node_id"]
+                .as_str()
+                .ok_or(Error::Invalid("navigation Claim subject identity ID"))?;
+            external.insert(from_id.to_owned());
+            *by_node_id
+                .get(identity_id)
+                .ok_or(Error::Invalid("navigation Claim subject visibility absent"))?
+        };
         let to_visible = if let Some(visible) = by_node_id.get(to_id) {
             *visible
         } else {

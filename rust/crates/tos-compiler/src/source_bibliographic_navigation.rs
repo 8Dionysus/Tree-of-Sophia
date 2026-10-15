@@ -71,6 +71,55 @@ pub(crate) fn navigation_claim_carriers(
         row["source_refs"] = json!([row["source_claim_file_ref"]]);
         encode(row, limits.catalog.max_output_row_bytes)?;
     }
+    // The metadata record and its reified identity carrier are distinct views
+    // of the same source ID. Make the Claim discoverable from the metadata
+    // record without replacing that record or assigning it to this Claim.
+    let mut subject_edges = Vec::new();
+    for edge in &cohort.edges {
+        if edge["edge_kind"] != "has_subject" {
+            continue;
+        }
+        let Some(subject) = cohort.nodes.iter().find(|node| {
+            node["node_id"] == edge["to_id"]
+                && node
+                    .pointer("/properties/identity_ref")
+                    .and_then(Value::as_str)
+                    .is_some()
+        }) else {
+            continue;
+        };
+        let identity = text(&subject["properties"], "identity_ref")?;
+        let claim = text(edge, "claim_ref")?;
+        let mut inverse = edge.clone();
+        inverse["edge_id"] = json!(format!("source-navigation:claim-subject:{claim}"));
+        inverse["from_id"] = json!(identity);
+        inverse["to_id"] = edge["from_id"].clone();
+        inverse["edge_kind"] = json!("claim_subject_navigation");
+        inverse["predicate_id"] = json!("has_source_claim");
+        navigation_claim_subject_identity(&inverse, &cohort.nodes, &cohort.edges)?
+            .ok_or(Error::Invalid("navigation Claim subject anchor absent"))?;
+        subject_edges.push(inverse);
+    }
+    if !subject_edges.is_empty() {
+        let ids = cohort.trace["edge_ids"]
+            .as_array_mut()
+            .ok_or(Error::Invalid("navigation Claim trace edge IDs"))?;
+        ids.extend(subject_edges.iter().map(|edge| edge["edge_id"].clone()));
+        ids.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+        cohort.edges.extend(subject_edges);
+        cohort
+            .edges
+            .sort_by(|a, b| a["edge_id"].as_str().cmp(&b["edge_id"].as_str()));
+    }
+    if cohort
+        .nodes
+        .len()
+        .checked_add(cohort.edges.len())
+        .and_then(|n| n.checked_add(1))
+        .is_none_or(|n| n > limits.max_claim_cohort_rows)
+    {
+        return Err(Error::Budget("navigation Claim carrier rows"));
+    }
     let mut bytes = 0usize;
     for row in cohort
         .nodes
@@ -84,6 +133,47 @@ pub(crate) fn navigation_claim_carriers(
             .ok_or(Error::Budget("navigation Claim carrier bytes"))?;
     }
     Ok(cohort)
+}
+
+/// Check the one external metadata endpoint introduced by Claim navigation.
+/// Its identity and directed subject edge must both be present in this exact
+/// cohort. This grants neither ownership of the metadata nor its visibility.
+pub(crate) fn navigation_claim_subject_identity<'a>(
+    edge: &Value,
+    nodes: &'a [Value],
+    edges: &[Value],
+) -> Result<Option<&'a Value>> {
+    if edge["edge_kind"] != "claim_subject_navigation" {
+        return Ok(None);
+    }
+    let claim = text(edge, "claim_ref")?;
+    let from = text(edge, "from_id")?;
+    let root = format!("claim:{claim}");
+    let identity_id = format!("identity:{from}");
+    let identity = nodes
+        .iter()
+        .find(|node| node["node_id"] == identity_id)
+        .ok_or(Error::Invalid("navigation Claim subject identity absent"))?;
+    if edge["predicate_id"] != "has_source_claim"
+        || edge["edge_id"] != format!("source-navigation:claim-subject:{claim}")
+        || edge["to_id"] != root
+        || identity["properties"]["identity_ref"] != from
+        || !nodes.iter().any(|node| {
+            node["node_id"] == root
+                && node["properties"]["source_claim"]["claim_id"] == claim
+                && node["properties"]["source_claim"]["subject_ref"] == from
+        })
+        || !edges.iter().any(|subject| {
+            subject["edge_kind"] == "has_subject"
+                && subject["from_id"] == root
+                && subject["to_id"] == identity_id
+                && subject["claim_ref"] == claim
+                && subject["source_claim_file_ref"] == edge["source_claim_file_ref"]
+        })
+    {
+        return Err(Error::Invalid("navigation Claim subject anchor differs"));
+    }
+    Ok(Some(identity))
 }
 
 /// Borrowed inputs are not a source receipt. Pure rendering retains the exact
@@ -628,6 +718,59 @@ mod oracle {
             json!([original["source_ref"]])
         );
         assert_eq!(output.trace, json!({"claim_ref":"tos.claim.a"}));
+
+        let mut subject_claim = original.clone();
+        subject_claim["properties"]["source_claim"]["subject_ref"] = json!("tos.work.a");
+        let subject = json!({"node_id":"identity:tos.work.a", "node_kind":"identity",
+            "source_ref":"ToS/source-witnesses/works/a/work.json", "source_sha256":"cd".repeat(32),
+            "properties":{"identity_ref":"tos.work.a","identity_kind":"work","preferred_label":"Work A"}});
+        let subject_edge = json!({"edge_id":"edge:subject:a","edge_kind":"has_subject",
+            "from_id":"claim:tos.claim.a","to_id":"identity:tos.work.a","claim_ref":"tos.claim.a",
+            "source_claim_file_ref":original["source_ref"]});
+        let output = navigation_claim_carriers(
+            graph::SuppliedBibliographicClaimCohort {
+                nodes: vec![subject_claim.clone(), subject.clone()],
+                edges: vec![subject_edge.clone()],
+                trace: json!({"claim_ref":"tos.claim.a","edge_ids":["edge:subject:a"]}),
+            },
+            limits,
+        )
+        .unwrap();
+        let inverse = output
+            .edges
+            .iter()
+            .find(|edge| edge["predicate_id"] == "has_source_claim")
+            .unwrap();
+        assert_eq!(inverse["from_id"], "tos.work.a");
+        assert_eq!(inverse["to_id"], "claim:tos.claim.a");
+        assert!(
+            output
+                .nodes
+                .iter()
+                .all(|node| node["node_id"] != "tos.work.a")
+        );
+        assert!(
+            navigation_claim_subject_identity(inverse, &output.nodes, &output.edges)
+                .unwrap()
+                .is_some()
+        );
+        let mut altered = inverse.clone();
+        altered["from_id"] = json!("tos.work.unrelated");
+        assert!(navigation_claim_subject_identity(&altered, &output.nodes, &output.edges).is_err());
+        assert!(navigation_claim_subject_identity(inverse, &output.nodes, &[]).is_err());
+        let mut bounded = limits;
+        bounded.max_claim_cohort_rows = 4;
+        assert!(
+            navigation_claim_carriers(
+                graph::SuppliedBibliographicClaimCohort {
+                    nodes: vec![subject_claim, subject],
+                    edges: vec![subject_edge],
+                    trace: json!({"claim_ref":"tos.claim.a","edge_ids":["edge:subject:a"]}),
+                },
+                bounded
+            )
+            .is_err()
+        );
     }
     #[test]
     fn retained_python_record_projection_preserves_complete_semantic_source() {
