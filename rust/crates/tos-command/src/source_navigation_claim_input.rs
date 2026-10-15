@@ -616,8 +616,7 @@ fn assemble_owner<'a, 'validator>(
         }
     }
 
-    validate_supplied_catalogue_attribution(claim)
-        .map_err(compiler_refusal)?;
+    validate_supplied_catalogue_attribution(claim).map_err(compiler_refusal)?;
     let maker_identity = claim
         .pointer("/maker/agent_ref")
         .and_then(Value::as_str)
@@ -752,6 +751,7 @@ fn assemble_owner<'a, 'validator>(
         files,
         source_path,
         &provenance_event_path,
+        event_schema_path,
         &provenance_receipt_path,
         &claim_forms_path,
         history_path.as_str(),
@@ -858,9 +858,7 @@ fn assemble_owner<'a, 'validator>(
             };
             let cohort = project_navigation_claim_event_with_inventory_v1(input, inventory, limits)
                 .map_err(compiler_refusal)?;
-            let cost = cohort
-                .budget_cost()
-                .map_err(compiler_refusal)?;
+            let cost = cohort.budget_cost().map_err(compiler_refusal)?;
             Ok(Contribution::Mutation(cohort, cost))
         }
         Cause::RefreshSet { manifest } => {
@@ -872,9 +870,7 @@ fn assemble_owner<'a, 'validator>(
                 input, inventory, limits,
             )
             .map_err(compiler_refusal)?;
-            let cost = cohort
-                .budget_cost()
-                .map_err(compiler_refusal)?;
+            let cost = cohort.budget_cost().map_err(compiler_refusal)?;
             Ok(Contribution::Refresh(cohort, cost))
         }
         Cause::Range { manifest } => {
@@ -883,9 +879,7 @@ fn assemble_owner<'a, 'validator>(
                 input, manifest, inventory, limits,
             )
             .map_err(compiler_refusal)?;
-            let cost = cohort
-                .budget_cost()
-                .map_err(compiler_refusal)?;
+            let cost = cohort.budget_cost().map_err(compiler_refusal)?;
             Ok(Contribution::Range(cohort, cost))
         }
     }
@@ -1822,6 +1816,7 @@ fn selected_files_and_dependencies<'a>(
     files: &'a SelectedBibliographicFilesV1,
     owner_source_path: &str,
     provenance_event_path: &str,
+    provenance_event_schema_path: &str,
     provenance_receipt_path: &str,
     forms_path: &str,
     history_path: &str,
@@ -1899,6 +1894,7 @@ fn selected_files_and_dependencies<'a>(
             path,
             owner_source_path,
             provenance_event_path,
+            provenance_event_schema_path,
             provenance_receipt_path,
             forms_path,
             history_path,
@@ -1919,6 +1915,7 @@ fn dependency_role(
     path: &str,
     owner_source_path: &str,
     provenance_event_path: &str,
+    provenance_event_schema_path: &str,
     provenance_receipt_path: &str,
     forms_path: &str,
     history_path: &str,
@@ -1936,7 +1933,7 @@ fn dependency_role(
     if path == provenance_receipt_path {
         return NavigationDependencyRoleV1::EventReceipt;
     }
-    if path == EVENT_SCHEMA_V1 || path == EVENT_SCHEMA_V2 {
+    if path == provenance_event_schema_path {
         return NavigationDependencyRoleV1::EventSchema;
     }
     if path == ENTITY_REGISTRY {
