@@ -694,19 +694,13 @@ fn process_ready_range(
             .iter()
             .cloned()
             .collect::<Vec<_>>();
-        let mut paths =
+        // Select support files before deriving any addresses from their bytes.
+        // Archive manifests are resolved below, after history is in the context.
+        let paths =
             crate::source_navigation_claim_selection::claim_event_range_current_owner_paths_v1(
                 &context,
                 &stream_paths,
             )?;
-        paths.extend(
-            crate::source_navigation_claim_selection::claim_event_range_archive_manifest_paths_v1(
-                &context,
-                &stream_paths,
-            )?,
-        );
-        paths.sort();
-        paths.dedup();
         stage_range_context(
             event_reader,
             store,

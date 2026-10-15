@@ -1076,6 +1076,9 @@ pub(crate) fn claim_event_range_current_owner_paths_v1(
             add_direct_evidence_paths(&mut paths, owner.exact_row_bytes)?;
         }
     }
+    // Identity resolution reads the relation registry in the next phase,
+    // including ranges with no Record owner to supply shared inputs.
+    add_static_paths(&mut paths)?;
     paths_within_limit(paths)
 }
 
