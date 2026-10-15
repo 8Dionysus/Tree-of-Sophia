@@ -474,7 +474,7 @@ impl DurablePgCoordinator {
         let receipt = model
             .navigation_original_receipt()
             .map_err(|_| DurableError::Corrupt("navigation initial Original receipt"))?;
-        if receipt != *selected.navigation_original_receipt() {
+        if receipt != selected.navigation_original_receipt() {
             return Err(DurableError::Conflict(
                 "navigation initial Original receipt differs from selection",
             ));

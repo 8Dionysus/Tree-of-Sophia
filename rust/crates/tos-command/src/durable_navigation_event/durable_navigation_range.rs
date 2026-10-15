@@ -429,7 +429,7 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
           WHERE domain=$1 AND consumer_id=$2 FOR UPDATE",
         &[&domain, &consumer_id],
     )?;
-    bootstrap_capture::require_no_active_initial(tx, domain, consumer_id)?;
+    super::bootstrap_capture::require_no_active_initial(tx, domain, consumer_id)?;
     if consumer.get::<_, String>("profile_id") != profile.id
         || consumer.get::<_, String>("profile_version") != profile_version
         || consumer.get::<_, String>("source_contract_digest") != source_contract
