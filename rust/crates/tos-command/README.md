@@ -361,6 +361,11 @@ rights assertion into an access grant. Private and `local-content` members keep
 their exact custody while contributing no public records, events, anchors or
 forms.
 
+Addressed inventory uses the same declared Claim stream families as the source
+owner. Other retained source packets, including laboratory `graph-claims.jsonl`,
+keep their exact bytes and source identity without acquiring a command Claim
+owner or catalog membership from their filename suffix.
+
 For a larger exact cut, the separate
 `tos_local_pg_source_bootstrap_streamed_invocation_v1` profile streams the
 selected revision without requiring a current pointer and retains only one

@@ -1976,8 +1976,13 @@ fn is_claim_form_path(subject: &str) -> bool {
 
 fn is_claim_stream_path(subject: &str) -> bool {
     let basename = subject.rsplit('/').next().unwrap_or(subject);
-    subject.starts_with("ToS/source-witnesses/")
-        && (basename == crate::source_claims::CLAIM_STREAM || basename.ends_with("-claims.jsonl"))
+    // Match the source owner's declared stream families. Laboratory packets
+    // such as gold-set graph-claims.jsonl retain their exact source bytes but
+    // are not maintained Claim packages or imported catalog streams merely
+    // because their filename has the same suffix.
+    (subject.starts_with("ToS/source-witnesses/") && basename == crate::source_claims::CLAIM_STREAM)
+        || crate::source_claims::is_imported_legacy_claim_path(subject)
+        || crate::source_claims::is_historical_claim_stream_path(subject)
 }
 
 fn validate_record_form_projection(
@@ -4848,6 +4853,85 @@ mod tests {
                     "source revision public Text owner projection differs"
                 ))
             ));
+        }
+    }
+
+    #[test]
+    fn bootstrap_contract_addressed_claim_routes_match_declared_source_families() {
+        let laboratory = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/graph-claims.jsonl";
+        let source = b"retained laboratory packet\n";
+        let digest = Digest256::of_bytes(source).to_hex();
+        let envelope = |path: &str, owner| {
+            super::super::mixed_projection_envelope(
+                path,
+                source,
+                cmd::object(
+                    crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+                        .iter()
+                        .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                        .collect(),
+                ),
+                cmd::object(Vec::new()),
+                cmd::object(Vec::new()),
+                cmd::object(Vec::new()),
+                tos_foundation::JsonValue::Null,
+                owner,
+                tos_foundation::JsonValue::Null,
+            )
+            .unwrap()
+        };
+        let raw = envelope(laboratory, tos_foundation::JsonValue::Null);
+        let decoded = AddressedMixedInventoryV1::checked_projection(laboratory, &raw, &digest)
+            .expect("retained laboratory source is not a command Claim owner");
+        assert_eq!(cmd::text(&decoded, "path").unwrap(), laboratory);
+        assert_eq!(
+            cmd::field(&decoded, "claim_owner").unwrap(),
+            &tos_foundation::JsonValue::Null
+        );
+        assert!(
+            AddressedMixedInventoryV1::checked_projection(
+                laboratory,
+                &raw,
+                &Digest256::of_bytes(b"changed").to_hex()
+            )
+            .is_err()
+        );
+        assert!(
+            AddressedMixedInventoryV1::checked_projection(
+                laboratory,
+                &envelope(laboratory, cmd::object(Vec::new())),
+                &digest,
+            )
+            .is_err()
+        );
+
+        // The native, historical and all declared nonhistorical imported
+        // streams still require a real owner contribution, even if empty.
+        for basename in [
+            "source-claims.jsonl",
+            "membership-claims.jsonl",
+            "responsibility-claims.jsonl",
+            "publication-claims.jsonl",
+            "provision-activity-claims.jsonl",
+            "work-chronology-claims.jsonl",
+            "work-expression-claims.jsonl",
+            "expression-edition-claims.jsonl",
+            "edition-item-claims.jsonl",
+            "expression-derivation-claims.jsonl",
+            "object-link-claims.jsonl",
+            "historical-claims.jsonl",
+        ] {
+            let path = format!("ToS/source-witnesses/history/example/{basename}");
+            assert!(is_claim_stream_path(&path), "{path}");
+            assert!(
+                AddressedMixedInventoryV1::checked_projection(
+                    &path,
+                    &envelope(&path, tos_foundation::JsonValue::Null),
+                    &digest,
+                )
+                .is_err(),
+                "missing owner was accepted for {path}"
+            );
         }
     }
 
