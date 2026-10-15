@@ -566,6 +566,11 @@ pub(super) fn run(
             Arc::clone(cancelled),
             owner_check,
         )
+        .inspect_err(|_| {
+            // Numeric work remains observable on a refused initial assessment.
+            // It contains no source text, paths, owner secrets or PG errors.
+            eprintln!("streamed bootstrap refused work={body_work:?}");
+        })
         .map_err(source_error)?;
     let (current_membership_digest, selected_state_digest) = match reopened.selected() {
         crate::durable_adapter::SelectedSourceGeneration::Addressed(selected) => {
@@ -611,6 +616,15 @@ pub(super) fn run(
                 "allocated_bytes": tree_work.allocated_bytes,
             },
             "derived_index": {
+                "source_input_rows_attempted": body_work.derived_index.source_input_rows_attempted,
+                "source_input_logical_bytes": body_work.derived_index.source_input_logical_bytes,
+                "carrier_input_rows_attempted": body_work.derived_index.carrier_input_rows_attempted,
+                "carrier_input_logical_bytes": body_work.derived_index.carrier_input_logical_bytes,
+                "sqlite_rows_inserted": body_work.derived_index.sqlite_rows_inserted,
+                "sqlite_rows_updated": body_work.derived_index.sqlite_rows_updated,
+                "sqlite_rows_returned": body_work.derived_index.sqlite_rows_returned,
+                "sqlite_logical_bytes_returned": body_work.derived_index.sqlite_logical_bytes_returned,
+                "sqlite_vm_progress_callbacks": body_work.derived_index.sqlite_vm_progress_callbacks,
                 "sqlite_file_len_high_water": body_work.derived_index.sqlite_file_len_high_water,
                 "sqlite_allocated_bytes_high_water": body_work.derived_index.sqlite_allocated_bytes_high_water,
             },

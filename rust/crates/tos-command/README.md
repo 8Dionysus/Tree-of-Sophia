@@ -379,8 +379,12 @@ source-witness subtree into memory.
 The result also exposes a finite `logical_source_work` object: returned original,
 current and software body counts/bytes, fresh-bootstrap PG field/row counters,
 authenticated-tree logical read/write/allocated bytes, and private derived-index
-high-water sizes. These are logical owner counters, not whole-operation or
-physical-I/O measurements; process and cgroup accounting remains separate.
+input, returned-row, logical-byte and high-water counters. The index row and
+logical-byte budgets bound cumulative work, including repeated metadata reads;
+they are not unique source counts or physical file-size caps. A refused streamed
+assessment preserves its numeric work counters in stderr for cost diagnosis.
+These are logical owner counters, not whole-operation or physical-I/O
+measurements; process and cgroup accounting remains separate.
 
 `source_selection.initialize_schema: true` must also be present in the
 protected owner configuration, with `initialization_mode: "initialize"` and
