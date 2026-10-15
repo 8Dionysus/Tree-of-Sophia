@@ -6963,18 +6963,24 @@ fn bootstrap_adjacency_certificates(
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<Vec<NavigationAdjacencyCertificate>> {
     let mut visible_nodes = BTreeMap::<String, bool>::new();
-    let mut all_node_ids = BTreeSet::new();
-    let mut all_edge_ids = BTreeSet::new();
+    let mut all_node_ids = BTreeMap::<&str, &DurableNavigationBaseRowReadV1>::new();
+    let mut all_edge_ids = BTreeMap::<&str, &DurableNavigationBaseRowReadV1>::new();
     let mut outgoing = BTreeMap::<String, BTreeMap<String, Digest256>>::new();
     let mut adjacency_rows = 0usize;
     let mut adjacency_bytes = 0u64;
     for row in rows {
         match row.kind {
             DurableNavigationBootstrapRowKindV1::Node => {
-                if !all_node_ids.insert(row.id.clone()) {
-                    return Err(DurableError::Conflict(
-                        "navigation bootstrap has duplicate effective node IDs",
-                    ));
+                if let Some(prior) = all_node_ids.insert(&row.id, row) {
+                    if prior.sha256 != row.sha256
+                        || prior.raw != row.raw
+                        || prior.visible != row.visible
+                    {
+                        return Err(DurableError::Conflict(
+                            "navigation bootstrap shared node contributions conflict",
+                        ));
+                    }
+                    continue;
                 }
                 let visible = row.visible.ok_or(DurableError::Corrupt(
                     "navigation bootstrap node visibility absent",
@@ -6985,10 +6991,18 @@ fn bootstrap_adjacency_certificates(
                 }
             }
             DurableNavigationBootstrapRowKindV1::Edge => {
-                if !all_edge_ids.insert(row.id.clone()) {
-                    return Err(DurableError::Conflict(
-                        "navigation bootstrap has duplicate effective edge IDs",
-                    ));
+                if let Some(prior) = all_edge_ids.insert(&row.id, row) {
+                    if prior.sha256 != row.sha256
+                        || prior.raw != row.raw
+                        || prior.visible != row.visible
+                        || prior.from_id != row.from_id
+                        || prior.to_id != row.to_id
+                    {
+                        return Err(DurableError::Conflict(
+                            "navigation bootstrap shared edge contributions conflict",
+                        ));
+                    }
+                    continue;
                 }
                 let visible = row.visible.ok_or(DurableError::Corrupt(
                     "navigation bootstrap edge visibility absent",
@@ -7056,6 +7070,84 @@ fn bootstrap_adjacency_certificates(
         ));
     }
     Ok(certificates)
+}
+
+#[cfg(test)]
+mod bootstrap_adjacency_tests {
+    use super::*;
+
+    #[test]
+    fn shared_bootstrap_rows_have_one_adjacency_and_conflicts_refuse() {
+        let row = |kind, id: &str, from: Option<&str>, to: Option<&str>| {
+            let raw = serde_json::to_vec(&json!({"id":id,"from":from,"to":to})).unwrap();
+            DurableNavigationBaseRowReadV1 {
+                kind,
+                id: id.into(),
+                owner_source_path: "ToS/source-witnesses/claims/a/source-claims.jsonl".into(),
+                owner_record_id: "claim:a".into(),
+                active: true,
+                visible: Some(true),
+                sha256: Digest256::of_bytes(&raw),
+                raw,
+                from_id: from.map(str::to_owned),
+                to_id: to.map(str::to_owned),
+                source_refs: Vec::new(),
+            }
+        };
+        let node = row(
+            DurableNavigationBootstrapRowKindV1::Node,
+            "shared",
+            None,
+            None,
+        );
+        let target = row(
+            DurableNavigationBootstrapRowKindV1::Node,
+            "target",
+            None,
+            None,
+        );
+        let edge = row(
+            DurableNavigationBootstrapRowKindV1::Edge,
+            "edge",
+            Some("shared"),
+            Some("target"),
+        );
+        let mut limits = DurableNavigationEventLimits::default();
+        limits.max_adjacency_rows = 1;
+        let root = Digest256::of_bytes(b"bootstrap");
+        let baseline = bootstrap_adjacency_certificates(
+            root,
+            &[node.clone(), target.clone(), edge.clone()],
+            limits,
+        )
+        .unwrap();
+        let mut shared_node = node.clone();
+        shared_node.owner_record_id = "claim:b".into();
+        let mut shared_edge = edge.clone();
+        shared_edge.owner_record_id = "claim:b".into();
+        let rows = vec![node, shared_node, target, edge, shared_edge];
+        let actual = bootstrap_adjacency_certificates(root, &rows, limits).unwrap();
+        assert_eq!(actual.len(), 2);
+        for (left, right) in baseline.iter().zip(&actual) {
+            assert_eq!(left.node_id, right.node_id);
+            assert_eq!(left.edge_count, right.edge_count);
+            assert_eq!(left.certificate_root, right.certificate_root);
+        }
+        assert_eq!(actual[0].edge_count, 1);
+        for case in 0..4 {
+            let mut conflicting = rows.clone();
+            match case {
+                0 => conflicting[1].visible = Some(false),
+                1 => {
+                    conflicting[1].raw.push(b' ');
+                    conflicting[1].sha256 = Digest256::of_bytes(&conflicting[1].raw);
+                }
+                2 => conflicting[4].to_id = Some("shared".into()),
+                _ => conflicting[4].id = "another-edge".into(),
+            }
+            assert!(bootstrap_adjacency_certificates(root, &conflicting, limits).is_err());
+        }
+    }
 }
 
 fn navigation_coverage_root_next(
