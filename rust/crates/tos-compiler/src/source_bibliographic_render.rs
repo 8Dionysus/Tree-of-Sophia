@@ -17,7 +17,9 @@ pub(crate) fn array<'a>(v: &'a Value, key: &str) -> Result<&'a [Value]> {
         .map(Vec::as_slice)
         .ok_or(Error::Invalid("bibliographic required array"))
 }
-pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
+/// Count a complete carrier without retaining a second serialized copy. Its
+/// already validated rows keep their own grammar and per-row parser limits.
+pub(crate) fn encoded_size(v: &Value, cap: usize) -> Result<usize> {
     struct Count {
         n: usize,
         cap: usize,
@@ -35,8 +37,13 @@ pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
             Ok(())
         }
     }
-    serde_json::to_writer(&mut Count { n: 0, cap }, v)
+    let mut count = Count { n: 0, cap };
+    serde_json::to_writer(&mut count, v)
         .map_err(|_| Error::Budget("bibliographic output bytes"))?;
+    Ok(count.n)
+}
+pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
+    encoded_size(v, cap)?;
     let raw = serde_json::to_vec(v).map_err(|_| Error::Invalid("bibliographic encode"))?;
     canonical_raw_bytes_v1(
         &raw,

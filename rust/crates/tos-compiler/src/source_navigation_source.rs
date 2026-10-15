@@ -856,7 +856,9 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
         let value = json!({"schema_version":if catalog_epoch {"tos_source_navigation_v2"} else {"tos_source_navigation_v1"},"authority_boundary":"generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority",
             "counts":counts,"nodes":projection.nodes.into_values()?,
             "edges":projection.edges.into_values()?,"rights":projection.rights.into_values()?});
-        encode(
+        // Each row passed the strict encoder in Projection::charge. This is
+        // the aggregate byte bound, not another single-row parser envelope.
+        crate::source_bibliographic_render::encoded_size(
             &value,
             usize::try_from(l.max_output_bytes)
                 .map_err(|_| Error::Budget("navigation output usize"))?,
