@@ -639,7 +639,15 @@ fn capture_original_carrier(
     let bindings = checked_source_reference_bindings(
         bindings
             .iter()
-            .map(|(key, value)| (key.as_str(), value.as_str())),
+            .map(|(key, value)| {
+                Ok((
+                    key.as_str().ok_or(DurableError::Corrupt(
+                        "selected navigation source binding key",
+                    ))?,
+                    value.as_str(),
+                ))
+            })
+            .collect::<DurableResult<Vec<_>>>()?,
         |reference| source_refs.iter().any(|v| v.as_str() == Some(reference)),
     )?;
     {
