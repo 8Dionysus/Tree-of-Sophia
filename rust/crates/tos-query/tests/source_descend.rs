@@ -836,6 +836,7 @@ fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
         anchor_membership_root,
         anchor_projection_root,
         published_through_commit_seq: 19,
+        observed_source_head_commit_seq: 20,
         coverage_root: Digest256::of_bytes(b"coverage"),
         adjacency_root: Digest256::of_bytes(b"adjacency"),
         published_index_root,
@@ -866,6 +867,7 @@ fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
     let proof = field(&packet, "source_navigation_proof_v1");
     assert_eq!(string(proof, "anchor_through_commit_seq"), "17");
     assert_eq!(string(proof, "published_through_commit_seq"), "19");
+    assert_eq!(string(proof, "observed_source_head_commit_seq"), "20");
     assert_eq!(
         string(proof, "anchor_membership_root"),
         anchor_membership_root.to_hex()
@@ -881,6 +883,13 @@ fn source_navigation_proof_separates_anchor_roots_from_live_publication() {
     assert!(proof.object_get("current_membership_root").is_none());
 
     drop(result);
+    let mut invalid = model.binding.clone();
+    invalid
+        .source_navigation_proof_v1
+        .as_mut()
+        .unwrap()
+        .observed_source_head_commit_seq = 18;
+    assert!(SourceDescendSession::start(invalid, request.clone(), budget()).is_err());
     let (_, need) = SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
     let header = parse_json(
         &need.wire_header(16 * 1024).unwrap(),

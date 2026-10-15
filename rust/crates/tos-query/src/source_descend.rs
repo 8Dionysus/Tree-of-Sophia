@@ -28,7 +28,8 @@ pub struct Binding {
 
 /// Additive proof metadata for a current source-navigation event overlay.
 /// Anchor roots identify the retained model and bootstrap; published roots
-/// certify the contiguous event and adjacency outputs through the live head.
+/// certify the contiguous event and adjacency outputs through the published
+/// sequence. The separately observed source head can be newer.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceNavigationProofV1 {
     pub bootstrap_root: Digest256,
@@ -36,6 +37,7 @@ pub struct SourceNavigationProofV1 {
     pub anchor_membership_root: Digest256,
     pub anchor_projection_root: Digest256,
     pub published_through_commit_seq: u64,
+    pub observed_source_head_commit_seq: u64,
     pub coverage_root: Digest256,
     pub adjacency_root: Digest256,
     pub published_index_root: Digest256,
@@ -44,6 +46,7 @@ pub struct SourceNavigationProofV1 {
 impl SourceNavigationProofV1 {
     fn matches_binding(&self, binding: &Binding) -> bool {
         self.anchor_through_commit_seq <= self.published_through_commit_seq
+            && self.published_through_commit_seq <= self.observed_source_head_commit_seq
             && self.anchor_membership_root == binding.membership_root
             && self.anchor_projection_root == binding.projection_root
             && self.published_through_commit_seq == binding.through_commit_seq
@@ -52,12 +55,13 @@ impl SourceNavigationProofV1 {
 
     fn wire_json(&self) -> String {
         format!(
-            "{{\"bootstrap_root\":\"{}\",\"anchor_through_commit_seq\":\"{}\",\"anchor_membership_root\":\"{}\",\"anchor_projection_root\":\"{}\",\"published_through_commit_seq\":\"{}\",\"coverage_root\":\"{}\",\"adjacency_root\":\"{}\",\"published_index_root\":\"{}\"}}",
+            "{{\"bootstrap_root\":\"{}\",\"anchor_through_commit_seq\":\"{}\",\"anchor_membership_root\":\"{}\",\"anchor_projection_root\":\"{}\",\"published_through_commit_seq\":\"{}\",\"observed_source_head_commit_seq\":\"{}\",\"coverage_root\":\"{}\",\"adjacency_root\":\"{}\",\"published_index_root\":\"{}\"}}",
             self.bootstrap_root.to_hex(),
             self.anchor_through_commit_seq,
             self.anchor_membership_root.to_hex(),
             self.anchor_projection_root.to_hex(),
             self.published_through_commit_seq,
+            self.observed_source_head_commit_seq,
             self.coverage_root.to_hex(),
             self.adjacency_root.to_hex(),
             self.published_index_root.to_hex(),

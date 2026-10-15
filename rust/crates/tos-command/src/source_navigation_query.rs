@@ -294,6 +294,7 @@ fn verify_selected_binding(
             anchor_membership_root: owner.selected_membership_root,
             anchor_projection_root: facts.anchor_projection_digest,
             published_through_commit_seq: guard.published_sequence(),
+            observed_source_head_commit_seq: live.head_sequence(),
             coverage_root: guard.coverage_root(),
             adjacency_root: guard.adjacency_root(),
             published_index_root: guard.published_root(),
@@ -303,8 +304,8 @@ fn verify_selected_binding(
 }
 
 /// Result of checking the exact last-published source-navigation generation.
-/// A lagging consumer remains an explicit non-ready outcome and never invokes
-/// the reader callback.
+/// Missing publication remains non-ready. A lagging publication can serve
+/// unchanged dependency scopes under the independently held current policy.
 pub enum SourceNavigationPublishedReadV2<T> {
     Ready(T),
     NotReady,
@@ -383,9 +384,6 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
             "published navigation index differs from the immutable source anchor or live owner",
         ))
     })?;
-    if guard.published_sequence() < source.head_sequence() {
-        return Ok(SourceNavigationPublishedReadV2::NotReady);
-    }
     let policy_receipt = SourceNavigationPolicyReceiptV1::parse(
         owner_selection.policy_receipt_value,
     )
@@ -532,6 +530,140 @@ impl SourceNavigationPgReadModel<'_, '_, '_, '_> {
             cpu_steps: 0,
             cpu_meter: tos_query::CpuStepsMeter::Unavailable,
         }
+    }
+
+    /// A current policy receipt authorizes the selected metadata carrier; it
+    /// does not establish that a source dependency retained its disclosure
+    /// conditions after publication. Until such a changed scope is republished,
+    /// only unchanged scopes can be served from the older coherent version.
+    /// The surrounding source/PG fences hold every observation through flush.
+    fn authorize_published_dependencies(
+        &mut self,
+        record: &RawRecord,
+    ) -> Result<Charged, QueryError> {
+        if self.guard.published_sequence() == self.source.head_sequence() {
+            return Ok(Charged::default());
+        }
+        let parsed = parse_json(
+            &record.raw,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_bytes: self.limits.max_row_bytes,
+                max_depth: 128,
+                max_visits: 200_000,
+                max_integer_digits: 128,
+            },
+        )
+        .map_err(|_| {
+            query_error(
+                QueryErrorCode::CorruptSelectedCarrier,
+                "published disclosure record is invalid",
+            )
+        })?;
+        let value = parsed.root();
+        let (kind, id) = if let Some(id) = value.object_get("node_id").and_then(|v| v.as_str()) {
+            ("node", id)
+        } else if let Some(id) = value.object_get("edge_id").and_then(|v| v.as_str()) {
+            ("edge", id)
+        } else {
+            // The authenticated authority header is checked by authority_boundary
+            // and the current owner policy; it has no source object contribution.
+            return Ok(self.charge(0, 0, record.raw.len() as u64));
+        };
+        checked_id(id)?;
+        let cap = self.limits.max_dependencies;
+        let row_cap = cap
+            .checked_add(1)
+            .and_then(|n| i64::try_from(n).ok())
+            .ok_or_else(|| {
+                query_error(
+                    QueryErrorCode::BudgetExceeded,
+                    "disclosure dependency bound",
+                )
+            })?;
+        let digest = record.sha256.to_hex();
+        let rows = self.tx.query(
+            "WITH owners AS MATERIALIZED (
+                 (SELECT owner_source_path AS source_path,owner_record_id AS record_id,true AS baseline
+                  FROM cmd2_projection_navigation_bootstrap_row
+                  WHERE domain=$1 AND consumer_id=$2 AND row_kind=$3 AND row_id=$4
+                    AND row_sha256=$5 AND active LIMIT $6)
+                 UNION ALL
+                 (SELECT source_path,record_id,false AS baseline
+                  FROM cmd2_projection_navigation_node
+                  WHERE domain=$1 AND consumer_id=$2 AND $3='node' AND node_id=$4
+                    AND row_sha256=$5 LIMIT $6)
+                 UNION ALL
+                 (SELECT source_path,record_id,false AS baseline
+                  FROM cmd2_projection_navigation_edge
+                  WHERE domain=$1 AND consumer_id=$2 AND $3='edge' AND edge_id=$4
+                    AND row_sha256=$5 LIMIT $6)
+                 LIMIT $6
+             ), dependencies AS MATERIALIZED (
+                 SELECT source_path AS path,true AS is_required FROM owners
+                 UNION ALL
+                 SELECT d.dependency_path,false AS is_required
+                 FROM owners o JOIN cmd2_projection_navigation_bootstrap_dependency d
+                   ON d.domain=$1 AND d.consumer_id=$2
+                  AND d.owner_source_path=o.source_path AND d.owner_record_id=o.record_id
+                 WHERE o.baseline
+                 UNION ALL
+                 SELECT d.dependency_path,d.observation_state='present' AS is_required
+                 FROM owners o JOIN cmd2_projection_navigation_dependency d
+                   ON d.domain=$1 AND d.consumer_id=$2
+                  AND d.source_path=o.source_path AND d.record_id=o.record_id
+                 WHERE NOT o.baseline
+                 LIMIT $6
+             )
+             SELECT d.path,d.is_required,c.commit_seq,
+                    CASE WHEN c.subject IS NULL THEN EXISTS (
+                        SELECT 1 FROM cmd2_history h WHERE h.domain=$1 AND h.subject=d.path
+                    ) ELSE false END AS missing_retained_member,
+                    (SELECT count(*) FROM owners) AS owner_count
+             FROM dependencies d LEFT JOIN cmd2_current c ON c.domain=$1 AND c.subject=d.path",
+            &[&self.domain, &self.consumer_id, &kind, &id, &digest, &row_cap],
+        ).map_err(|_| query_error(QueryErrorCode::CorruptSelectedCarrier, "published disclosure dependencies unavailable"))?;
+        if rows.is_empty() {
+            return Err(query_error(
+                QueryErrorCode::CorruptSelectedCarrier,
+                "published disclosure owner is absent",
+            ));
+        }
+        if rows.len() > cap || rows[0].get::<_, i64>("owner_count") > cap as i64 {
+            return Err(query_error(
+                QueryErrorCode::BudgetExceeded,
+                "published disclosure dependency budget",
+            ));
+        }
+        let mut bytes = record.raw.len() as u64;
+        for row in &rows {
+            let path: &str = row.get("path");
+            bytes = bytes.checked_add(path.len() as u64 + 18).ok_or_else(|| {
+                query_error(
+                    QueryErrorCode::BudgetExceeded,
+                    "published disclosure byte overflow",
+                )
+            })?;
+            let sequence: Option<i64> = row.get("commit_seq");
+            let required: bool = row.get("is_required");
+            let missing: bool = row.get("missing_retained_member");
+            if sequence.is_some_and(|n| n < 0 || n as u64 > self.guard.published_sequence())
+                || (sequence.is_none() && (required || missing))
+            {
+                return Err(query_error(
+                    QueryErrorCode::PublicationPending,
+                    "published source dependencies changed; await their publication",
+                ));
+            }
+        }
+        if bytes > self.limits.max_total_bytes {
+            return Err(query_error(
+                QueryErrorCode::BudgetExceeded,
+                "published disclosure byte budget",
+            ));
+        }
+        self.check_current()?;
+        Ok(self.charge(1 + 2 * rows.len() as u64, rows.len() as u64, bytes))
     }
 
     fn node_lookup(
@@ -1005,8 +1137,17 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
                 "source policy input binding differs",
             ));
         }
-        self.policy
-            .authorize_current(&self.disclosure_scope, record)
+        let policy = self
+            .policy
+            .authorize_current(&self.disclosure_scope, record)?;
+        let dependencies = self.authorize_published_dependencies(record)?;
+        Ok(Charged {
+            probes: policy.probes.saturating_add(dependencies.probes),
+            rows: policy.rows.saturating_add(dependencies.rows),
+            bytes: policy.bytes.saturating_add(dependencies.bytes),
+            cpu_steps: policy.cpu_steps.saturating_add(dependencies.cpu_steps),
+            cpu_meter: tos_query::CpuStepsMeter::Unavailable,
+        })
     }
 
     fn authority_boundary(&mut self, max_bytes: usize) -> Result<RawRecord, QueryError> {

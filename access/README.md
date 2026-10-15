@@ -1275,13 +1275,24 @@ contribution; replacing the Claim retires its navigation edge, not the Work.
 
 Each query reopens the retained model as the immutable bootstrap anchor and
 holds a separate live PostgreSQL source-navigation lease through disclosure.
-The query is ready only when its verified coverage and adjacency publication
-cursor equals the current CMD head. In its binding, `source_cut`,
+The query reads one verified coverage and adjacency publication while holding
+current CMD rights and the explicit source-owner navigation policy through
+delivery. A newer CMD head does not block an unrelated published answer. When
+publication lags, each disclosed node/edge resolves its bounded bootstrap or
+event owner contributions and dependency paths against current source metadata.
+A changed dependency, missing retained member, or changed owner makes that
+answer `publication_pending`; this conservative rule does not yet authorize old
+content from a changed scope merely because its visible fields appear public.
+Absent references that remain absent do not block reading. Dependency work is
+bounded and charged to the query; there is no full-source or backlog scan.
+In its binding, `source_cut`,
 `membership_root`, and `projection_root` keep their bootstrap-anchor meaning;
 `through_commit_seq` and `index_root` identify the current complete navigation
 publication. The additive `source_navigation_proof_v1` metadata reports the
 bootstrap root, anchor sequence and roots, and published sequence, coverage,
-adjacency, and index roots. It does not claim that the anchor membership root
+adjacency, and index roots. `observed_source_head_commit_seq` separately reports
+the current CMD head as an exact decimal string, allowing clients to show the
+publication lag. It does not claim that the anchor membership root
 is the current full-source membership.
 
 CLI `source descend NODE_ID --at-least-commit-seq SEQUENCE`, the HTTP query
