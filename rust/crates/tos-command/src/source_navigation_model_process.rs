@@ -1242,15 +1242,61 @@ fn pump_pipes(pipes: &mut PipeState) -> SourceCommandResult<()> {
 }
 
 fn forward_validated_phase_trace(stderr: &[u8], oversized: bool) {
-    let Some(markers) = validated_phase_trace(stderr, oversized) else {
-        return;
-    };
+    let markers = validated_phase_trace(stderr, oversized).unwrap_or_default();
+    let search_refusal = validated_search_work_refusal(stderr, oversized);
     let stderr = io::stderr();
     let mut output = stderr.lock();
     for marker in markers {
         let _ = writeln!(output, "{marker}");
     }
+    if let Some(marker) = search_refusal {
+        let _ = writeln!(output, "{marker}");
+    }
     let _ = output.flush();
+}
+
+// Forward only the compiler's numeric work refusal. Never relay a child path,
+// source text, arbitrary stderr, or an ambiguous duplicate diagnostic.
+fn validated_search_work_refusal(stderr: &[u8], oversized: bool) -> Option<String> {
+    if oversized || stderr.len() > STDERR_RETAIN_BYTES {
+        return None;
+    }
+    let mut matched = None;
+    for line in std::str::from_utf8(stderr).ok()?.lines() {
+        let Some(value) = line.strip_prefix("Native search work refused at ") else {
+            continue;
+        };
+        if matched.is_some() || line.len() > 256 {
+            return None;
+        }
+        let value = value.strip_prefix("rust/crates/tos-compiler/src/knowledge_search.rs:")?;
+        let (line_number, fields) = value.split_once(": ")?;
+        let number = |value: &str| -> Option<u64> {
+            if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+                return None;
+            }
+            value.parse().ok()
+        };
+        let line_number = number(line_number)?;
+        let mut fields = fields.split(' ');
+        let charged = number(fields.next()?.strip_prefix("charged_bytes=")?)?;
+        let next = number(fields.next()?.strip_prefix("next_bytes=")?)?;
+        let limit = number(fields.next()?.strip_prefix("work_limit=")?)?;
+        if fields.next().is_some()
+            || line_number == 0
+            || line_number > 100_000
+            || next == 0
+            || limit == 0
+            || charged > limit
+            || charged.checked_add(next)? <= limit
+        {
+            return None;
+        }
+        matched = Some(format!(
+            "tos_source_navigation_search_work_v1 compiler_line={line_number} charged_bytes={charged} next_bytes={next} work_limit={limit}"
+        ));
+    }
+    matched
 }
 
 fn validated_phase_trace(stderr: &[u8], oversized: bool) -> Option<Vec<String>> {
@@ -1403,6 +1449,13 @@ mod phase_trace_tests {
             markers[2],
             "tos_source_navigation_phase_v1 stage=catalog_planning edge=begin elapsed_ms=4"
         );
+        let search = "Native search work refused at rust/crates/tos-compiler/src/knowledge_search.rs:1062: charged_bytes=63 next_bytes=2 work_limit=64\n";
+        assert_eq!(
+            validated_search_work_refusal(search.as_bytes(), false).as_deref(),
+            Some(
+                "tos_source_navigation_search_work_v1 compiler_line=1062 charged_bytes=63 next_bytes=2 work_limit=64"
+            )
+        );
     }
 
     #[test]
@@ -1419,6 +1472,21 @@ mod phase_trace_tests {
         for stderr in invalid {
             assert!(validated_phase_trace(stderr.as_bytes(), false).is_none());
         }
+        let valid = "Native search work refused at rust/crates/tos-compiler/src/knowledge_search.rs:1062: charged_bytes=63 next_bytes=2 work_limit=64\n";
+        for invalid in [
+            valid.replace(
+                "rust/crates/tos-compiler/src/knowledge_search.rs",
+                "/private/source.txt",
+            ),
+            valid.replace("next_bytes=2", "next_bytes=0"),
+            valid.replace("charged_bytes=63", "charged_bytes=65"),
+            valid.replace("charged_bytes=63", "charged_bytes=1"),
+            valid.replace("work_limit=64", "work_limit=secret"),
+            format!("{valid}{valid}"),
+        ] {
+            assert!(validated_search_work_refusal(invalid.as_bytes(), false).is_none());
+        }
+        assert!(validated_search_work_refusal(valid.as_bytes(), true).is_none());
     }
 
     #[test]
