@@ -1,11 +1,10 @@
 import {validateNativePackets} from './native-schema-worker.mjs';
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {explorationCapabilitiesD1} from '../src/exploration.ts';
 import {exploreD1,publishExplorationFixture,validateExploration} from './native-exploration-fixture.ts';
@@ -21,13 +20,11 @@ type Packet = Item & {origin: ResolvedOrigin; nodes: Item[]; relations: Item[];
   page: {primary_node_ids: string[]; context_node_ids: string[]; primary_relation_ids: string[];
     context_relation_ids: string[]; next_cursor: string | null; work_units?: number};
   counts: {discovered_nodes: number; emitted_relations: number}};
-const repo = fileURLToPath(new URL('../../../../', import.meta.url));
+
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
-const python = (code: string, input: unknown) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-  "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code],
-  {cwd: repo, input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
+const reference = (referenceId: string, input: unknown) => JSON.parse(frozenReference(import.meta.url, referenceId, JSON.stringify(input)));
 function graph(seed = 0, identities = false): Graph {
-  const result=python("from test_exploration_origin import origin_graph;p=json.load(sys.stdin);print(json.dumps(origin_graph(seed=p['seed'],identities=p['identities'])))", {seed, identities});
+  const result=reference("origin/graph", {seed, identities});
   result.authority_boundary={source_owner:'Tree-of-Sophia',is_source:false,is_canon:false,writes_to_tree:false};
   return result;
 }
@@ -131,7 +128,7 @@ test(`D1 typed origins conserve Python pages and independent zero/one-distance r
         }
       }
       if(direction==='either')for (const max_depth of [0, 2]) requests.push(query(g, 'node', {max_depth, page_nodes: 1, page_relations: 1}));
-      const expected = python("from test_exploration_origin import origin_reference;from tos_access.exploration import ExplorationService;p=json.load(sys.stdin);out=[]\nfor q in p['queries']:\n s=ExplorationService(lambda:p['graph']);r=s.explore(q);pages=[r]\n while r['page']['next_cursor']:\n  r=s.explore({'cursor':r['page']['next_cursor']});pages.append(r)\n nodes,relations,roots=origin_reference(p['graph'],q);out.append({'pages':pages,'nodes':sorted(nodes),'relations':sorted(relations),'roots':roots})\nprint(json.dumps(out))",
+      const expected = reference("origin/pages",
         {graph: g, queries: requests}) as {pages: Packet[]; nodes: string[]; relations: string[]; roots: string[]}[];
       for (const [index, request] of requests.entries()) {
         const pages = await collect(db, request), oracle = expected[index]!;

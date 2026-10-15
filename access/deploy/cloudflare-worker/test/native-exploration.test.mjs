@@ -1,43 +1,19 @@
 import {parseLosslessJson,stringifyLosslessJson,compareLosslessValues} from './lossless-json-compare.mjs';
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtempSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {publishedNodeFixtureWorker,publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {HttpError} from '../src/common.ts';
 
-const repo=fileURLToPath(new URL('../../../../',import.meta.url));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
-const python=(code,input)=>JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',"import sys,json;sys.path[:0]=['access/src','access/tests','access/deploy/cloudflare-worker/scripts'];"+code],
- {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
-const fixture=python(String.raw`
-from test_exploration_origin import origin_graph
-from tos_access.published_read_metadata import published_reader_metadata,emitted_row_digest,published_row_digest_key
-from build_runtime import compact_json
-g=origin_graph(seed=1,identities=True)
-g['schema']='tos_knowledge_graph_v1'
-probe={'11':9007199254740993,'2':1.0,'zero':-0.0,'float':1e-7,'tiny':5e-324,'nested':[2**100,-(2**100),False,None,{'z':1,'a':1.0}]}
-g['normalization_binding']={'schema':'tos_knowledge_graph_normalization_binding_v1',**{k:'0'*64 for k in ('processor_digest','entity_registry_digest','relation_registry_digest','configuration_digest')}}
-g['authority_boundary']={'source_owner':'Tree-of-Sophia','is_source':False,'is_canon':False,'writes_to_tree':False,'transport':probe}
-for item in g['nodes']+g['relations']:
- item['transport_probe']=probe
- item['semantics']['transport_probe']=probe
- item['attributes']['dropped_probe']=probe
- item['readable_context']={'dropped':probe}
-metadata=published_reader_metadata(g,{'schema':'tos_knowledge_catalog_v1','source_revision':g['source_revision']},'tos_cloudflare_edge_read_model_v8','d'*64)
-metadata['data_revision']={'sha256':'d'*64}
-metadata['knowledge_exploration_top']={k:g[k] for k in ('source_revision','authority_boundary')}
-for kind in ('node','relation'):
- for item in g[kind+'s']:metadata[published_row_digest_key(kind,item['id'])]=emitted_row_digest(compact_json(item))
-print(json.dumps({'nodes':[compact_json(n) for n in g['nodes']],'relations':[compact_json(r) for r in g['relations']],
- 'metadata':{k:compact_json(v) for k,v in metadata.items()}}))
-`);
+const reference=(referenceId, input) => JSON.parse(frozenReference(import.meta.url, referenceId, input===undefined?undefined:JSON.stringify(input)));
+const fixture=reference("exploration/published-fixture");
 const migration=readFileSync(new URL('../migrations/0001-exploration.sql',import.meta.url),'utf8');
 const schema=`CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
  CREATE TABLE knowledge_nodes(id TEXT,entity_id TEXT,native_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,json TEXT);
@@ -66,23 +42,7 @@ const node=JSON.parse(fixture.nodes[0]),edge=JSON.parse(fixture.relations[0]);
 const request=(kind='node',options={})=>({schema_version:'tos_exploration_request_v2',source_revision:'a'.repeat(64),
  origin:{kind,id:(kind==='node'?node:edge).id,content_revision:(kind==='node'?node:edge).content_revision},...options});
 function oracle(data,request,stream=true) {
- return python(String.raw`
-from tos_access.published_read_model import PublishedKnowledgeReadModel,PublishedReadBudgetExceeded,PublishedSnapshotConflict,PublishedReadModelError
-from tos_access.published_exploration import PublishedExplorationService
-from tos_access.exploration_origin import ExplorationReadModelInvalid
-from tos_access.lens_pagination import KnowledgeRevisionConflict
-p=json.load(sys.stdin)
-try:
- service=PublishedExplorationService(PublishedKnowledgeReadModel(p['path'],p['binding']))
- packet=service.explore(p['request']);pages=[packet]
- while p['stream'] and packet['page']['next_cursor']:
-  packet=service.explore({'cursor':packet['page']['next_cursor']});pages.append(packet)
-  if len(pages)>500:raise RuntimeError('nonterminating bounded fixture')
- print(json.dumps({'status':200,'pages':[json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False) for v in pages]}))
-except Exception as e:
- status=413 if isinstance(e,PublishedReadBudgetExceeded) else 409 if isinstance(e,(PublishedSnapshotConflict,KnowledgeRevisionConflict)) else 503 if isinstance(e,(PublishedReadModelError,ExplorationReadModelInvalid)) else 404 if isinstance(e,KeyError) else 400 if isinstance(e,ValueError) else 500
- print(json.dumps({'status':status,'error':str(e)}))
-`,{path:data.path,binding:data.binding(),request,stream});
+ return reference("exploration/published-pages",{path:data.path,binding:data.binding(),request,stream});
 }
 const worker=publishedNodeFixtureWorker;
 async function exploreD1(db,request) {
@@ -103,14 +63,7 @@ function compareStreams(actual,expected){
  const nullValue={kind:'null',value:null};
  // Freeze independent scene outputs for exactly the carriers the former pure
  // Python function reads. The comparisons below always evaluate current data.
- const scenes=python(String.raw`
-from tos_access.knowledge import knowledge_scene
-p=json.load(sys.stdin);out=[]
-for raw in p:
- c=json.loads(raw)
- out.append(json.dumps(knowledge_scene(c['nodes'],c['relations'],c['focus'],c['relation']),ensure_ascii=False,separators=(',',':'),allow_nan=False))
-print(json.dumps(out))
-`,a.map(page=>{
+ const scenes=reference("scene/published-pages",a.map(page=>{
    const origin=page.value.find(([name])=>name==='origin')?.[1];
    const hasOrigin=origin?.kind==='dict';
    const kind=hasOrigin?field(origin,'kind').value:null;
@@ -138,7 +91,7 @@ print(json.dumps(out))
  for(const key of ['status','limit_reason','counts','authority_boundary'])assert.deepEqual(compareLosslessValues(field(a.at(-1),key),field(b.at(-1),key)),[],key);
 }
 
-test('native exploration full traversal selections and source packets equal current published Python',async t=>{
+test('native exploration full traversal selections and source packets equal captured published reference packets',async t=>{
  for(const kind of ['node','relation'])for(const profile of ['all','overview'])for(const direction of ['either','incoming','outgoing'])await t.test(kind+' '+profile+' '+direction,async()=>{
   const data=database();try {const query=request(kind,{profile,direction,max_depth:2,page_nodes:2,page_relations:2});
    const expected=oracle(data,query);assert.equal(expected.status,200,expected.error);

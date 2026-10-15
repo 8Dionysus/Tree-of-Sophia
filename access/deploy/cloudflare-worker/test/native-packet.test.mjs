@@ -1,35 +1,16 @@
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {parseNativeJson, nativeChild, nativeField, nativeJson, nativeNumberInfo, isNativeRef,
   nativePacketArray, nativePacketObject, nativePacketJson, nativeInteger, nativeFloat,
   NativeContextLost, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
-function python(code, input) {
-  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B', '-c', code], {
-    input, encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024,
-  }));
+function reference(referenceId, input) {
+  return JSON.parse(frozenReference(import.meta.url, referenceId, input));
 }
 
-const shapeCode = String.raw`
-def shape(value):
-    if isinstance(value,dict): return {'type':'dict','keys':list(value),'values':[shape(v) for v in value.values()]}
-    if isinstance(value,list): return {'type':'list','values':[shape(v) for v in value]}
-    return {'type':type(value).__name__,'repr':repr(value)}
-`;
-
 test('mixed packet matches captured Python source values, numeric kinds and ordered keys', () => {
-  const fixture = python(String.raw`
-import json
-` + shapeCode + String.raw`
-source={'10':1.0,'2':2**53+1,'__proto__':{'constructor':-0.0},
-    'constructor':[False,0,None,{'2':1e-5,'1':10**400}],'unicode':'İ 😀'}
-packet={'10':source,'2':source,'__proto__':source['__proto__'],
-    'constructor':[source['2'],source['10'],source['constructor']],
-    'derived':{'count':2,'float_count':2.0,'negative_zero':-0.0,'large':10**50}}
-raw=lambda value:json.dumps(value,ensure_ascii=False,separators=(',',':'))
-print(json.dumps({'source':raw(source),'packet':raw(packet),'shape':shape(packet)}))
-`);
+  const fixture = reference("packet/typed-values");
   const source = parseNativeJson(fixture.source);
   const packet = nativePacketObject([
     ['10', source], ['2', source], ['__proto__', nativeChild(source, '__proto__')],
@@ -41,7 +22,7 @@ print(json.dumps({'source':raw(source),'packet':raw(packet),'shape':shape(packet
   ]);
   const output = nativePacketJson(packet);
   assert.equal(output, fixture.packet); // actual Python compact JSON, not a JS stringify oracle.
-  const decodedShape = python('import json,sys\n' + shapeCode + '\nprint(json.dumps(shape(json.load(sys.stdin))))', output);
+  const decodedShape = reference("packet/value-shape", output);
   assert.deepEqual(decodedShape, fixture.shape);
   assert.equal(nativeJson(source), fixture.source);
   assert.equal(nativeNumberInfo(nativeField(source, '__proto__.constructor')).lexeme, '-0.0');
