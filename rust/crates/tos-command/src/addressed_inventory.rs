@@ -4862,22 +4862,26 @@ mod tests {
         let source = b"retained laboratory packet\n";
         let digest = Digest256::of_bytes(source).to_hex();
         let envelope = |path: &str, owner| {
-            super::super::mixed_projection_envelope(
-                path,
-                source,
-                cmd::object(
-                    crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
-                        .iter()
-                        .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
-                        .collect(),
+            cmd::canonical(&cmd::object(vec![
+                ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+                ("path", cmd::string(path)),
+                ("raw_sha256", cmd::string(&digest)),
+                (
+                    "records",
+                    cmd::object(
+                        crate::source_claims::MIXED_INVENTORY_RECORD_KINDS
+                            .iter()
+                            .map(|kind| (*kind, tos_foundation::JsonValue::Array(Vec::new())))
+                            .collect(),
+                    ),
                 ),
-                cmd::object(Vec::new()),
-                cmd::object(Vec::new()),
-                cmd::object(Vec::new()),
-                tos_foundation::JsonValue::Null,
-                owner,
-                tos_foundation::JsonValue::Null,
-            )
+                ("source_profiles", cmd::object(Vec::new())),
+                ("events", cmd::object(Vec::new())),
+                ("anchors", cmd::object(Vec::new())),
+                ("form", tos_foundation::JsonValue::Null),
+                ("claim_owner", owner),
+                ("public_text_owner", tos_foundation::JsonValue::Null),
+            ]))
             .unwrap()
         };
         let raw = envelope(laboratory, tos_foundation::JsonValue::Null);
