@@ -401,7 +401,13 @@ fn navigation_producer_owner_selection(
         schema_profile: tos_validation::FormatProfile::LegacyPythonObserved20260923,
         schema_budget: ExecutorBudget {
             execution_wall: std::time::Duration::from_millis(producer.schema_execution_wall_ms),
-            cleanup_grace: std::time::Duration::from_millis(producer.schema_cleanup_grace_ms),
+            // As in initial model preparation, the outer allowance cannot
+            // enlarge the schema executor's hard child cleanup ceiling.
+            cleanup_grace: std::time::Duration::from_millis(
+                producer
+                    .schema_cleanup_grace_ms
+                    .min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
+            ),
             cpu_seconds: producer.schema_cpu_seconds,
             address_space_bytes: producer.schema_address_space_bytes,
         },

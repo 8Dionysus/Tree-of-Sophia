@@ -1120,6 +1120,8 @@ impl ExecutorBudget {
     /// Existing per-scalar child CPU ceiling; aggregate invocation quotas are
     /// separate and must not be passed through as one scalar child limit.
     pub const MAX_SCALAR_CPU_SECONDS: u64 = 60;
+    /// Hard child cleanup ceiling; callers may declare a larger outer allowance.
+    pub const MAX_SCALAR_CLEANUP_GRACE_MILLIS: u64 = 1_000;
 
     pub fn laboratory() -> Self {
         Self {
@@ -1246,7 +1248,8 @@ impl BatchBudget {
             || budget.startup_wall > budget.total_execution_wall
             || budget.per_unit_wall.is_zero()
             || budget.per_unit_wall > budget.total_execution_wall
-            || budget.cleanup_grace > Duration::from_secs(1)
+            || budget.cleanup_grace
+                > Duration::from_millis(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS)
             || budget.cpu_seconds == 0
             || budget.cpu_seconds > 3600
             || budget.address_space_bytes < 64 * 1024 * 1024
@@ -3377,7 +3380,8 @@ mod native {
 
     fn scalar_budget(budget: ExecutorBudget) -> Result<(), ExecutorFailure> {
         if budget.execution_wall.is_zero()
-            || budget.cleanup_grace > Duration::from_secs(1)
+            || budget.cleanup_grace
+                > Duration::from_millis(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS)
             || budget.cpu_seconds == 0
             || budget.cpu_seconds > ExecutorBudget::MAX_SCALAR_CPU_SECONDS
             || budget.address_space_bytes < 64 * 1024 * 1024

@@ -1102,7 +1102,9 @@ pub(crate) fn compile(
     }
     let schema_budget = ExecutorBudget {
         execution_wall: schema_duration,
-        cleanup_grace: Duration::from_millis(schema_cleanup_ms.min(1_000)),
+        cleanup_grace: Duration::from_millis(
+            schema_cleanup_ms.min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
+        ),
         cpu_seconds: schema_cpu_seconds,
         address_space_bytes: schema_address_space,
     };
@@ -1138,7 +1140,9 @@ pub(crate) fn compile(
             total_execution_wall: batch_wall,
             startup_wall: batch_wall.min(Duration::from_secs(1)),
             per_unit_wall: batch_wall,
-            cleanup_grace: Duration::from_millis(schema_cleanup_ms.min(1_000)),
+            cleanup_grace: Duration::from_millis(
+                schema_cleanup_ms.min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
+            ),
             cpu_seconds: schema_cpu_seconds,
             address_space_bytes: schema_address_space,
             max_units: batch_units,
