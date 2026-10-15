@@ -49,6 +49,10 @@ API. `select_current_source_cut_addressed` performs the source/index/custody aud
 and a bounded complete compatibility export, then restores the addressed selection.
 The legacy cold/export entry refuses an active addressed protocol. These explicit
 restore/export operations do not replace the ordinary addressed mutation path.
+Initial addressed metadata packing and retained inventory reads fetch at most
+128 PostgreSQL rows at a time in the same held transaction. SQL execution is
+suspended while the client builds immutable tree pages, so the statement timeout
+bounds each fetch; the whole operation retains its own deadline and work limits.
 A crash may leave the audit marker active with a selected V1 checkpoint and no
 published projection root. Explicit cold reselection must positively verify
 that V1 descriptor's complete source-OID-bound cut and both membership streams

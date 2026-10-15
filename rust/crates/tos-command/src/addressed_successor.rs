@@ -15,6 +15,55 @@ const HISTORY_KIND: &[u8] = b"cmd2-history-addressed-v2";
 const CURRENT_KIND: &[u8] = b"cmd2-current-addressed-v2";
 const MAX_DESCRIPTOR: usize = 65536;
 
+// A query_raw result stays active on the server while a slow tree builder
+// consumes it. A bounded portal suspends the SQL between pages, so the SQL
+// statement timeout measures a database fetch, not client-side packing. The
+// caller keeps the same transaction, snapshot, order and owner fences.
+pub(super) struct BoundedPgRows<'a, 'connection> {
+    tx: &'a mut Transaction<'connection>,
+    portal: postgres::Portal,
+    page: std::vec::IntoIter<postgres::Row>,
+    ended: bool,
+}
+
+pub(super) fn bounded_pg_rows<'a, 'connection>(
+    tx: &'a mut Transaction<'connection>,
+    query: &str,
+    params: &[&(dyn postgres::types::ToSql + Sync)],
+) -> Result<BoundedPgRows<'a, 'connection>, postgres::Error> {
+    let portal = tx.bind(query, params)?;
+    Ok(BoundedPgRows {
+        tx,
+        portal,
+        page: Vec::new().into_iter(),
+        ended: false,
+    })
+}
+
+impl Iterator for BoundedPgRows<'_, '_> {
+    type Item = Result<postgres::Row, postgres::Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(row) = self.page.next() {
+            return Some(Ok(row));
+        }
+        if self.ended {
+            return None;
+        }
+        match self.tx.query_portal(&self.portal, 128) {
+            Ok(rows) => {
+                self.ended = rows.len() < 128;
+                self.page = rows.into_iter();
+                self.page.next().map(Ok)
+            }
+            Err(error) => {
+                self.ended = true;
+                Some(Err(error))
+            }
+        }
+    }
+}
+
 pub(super) fn build_mixed_inventory_from_retained_projections(
     tx: &mut Transaction<'_>,
     store: &SegmentStore,
@@ -43,11 +92,8 @@ pub(super) fn build_mixed_inventory_from_retained_projections(
     let sql = format!(
         "WITH members AS ({RETAINED_PROJECTIONS}) SELECT * FROM members ORDER BY subject COLLATE \"C\""
     );
-    let mut rows = tx.query_raw(
-        &sql,
-        [&domain as &(dyn postgres::types::ToSql + Sync), &sequence],
-    )?;
-    let projections = std::iter::from_fn(|| match rows.next() {
+    let mut rows = bounded_pg_rows(tx, &sql, &[&domain, &sequence])?;
+    let projections = std::iter::from_fn(|| match rows.next().transpose() {
         Ok(Some(row)) => {
             let result = (|| -> DurableResult<(String, Vec<u8>)> {
                 active(deadline, cancelled)?;
@@ -216,8 +262,8 @@ pub(super) fn build_addressed_metadata_tree_with_callback(
     let sql = format!(
         "SELECT table_id,row_key,row_commitment FROM ({union}) rows ORDER BY table_id,octet_length(row_key),row_key"
     );
-    let mut rows = tx.query_raw(&sql, &[&domain])?;
-    let entries = std::iter::from_fn(|| match rows.next() {
+    let mut rows = bounded_pg_rows(tx, &sql, &[&domain])?;
+    let entries = std::iter::from_fn(|| match rows.next().transpose() {
         Ok(Some(row)) => Some((|| {
             active(deadline, cancelled).map_err(|_| source_tree_error("cold metadata deadline"))?;
             let table = audit_delta::MetadataTable::from_id(row.get(0))
@@ -632,6 +678,85 @@ fn metadata_tree_key(
 }
 fn source_tree_error(message: &'static str) -> SegmentError {
     SegmentError::new(tos_segment_store::SegmentErrorCode::CorruptBytes, message)
+}
+
+#[cfg(all(test, feature = "postgres-lab"))]
+#[test]
+#[ignore = "requires explicit isolated TOS_CMD_POSTGRES_URL"]
+fn addressed_cold_pages_suspend_sql_during_slow_consumer_and_keep_snapshot() {
+    let url = std::env::var("TOS_CMD_POSTGRES_URL").expect("explicit isolated PG URL");
+    let mut client = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+    let mut observer = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+    client
+        .batch_execute(
+            "CREATE SCHEMA tos_addressed_page_test;
+         CREATE TABLE tos_addressed_page_test.rows(id integer PRIMARY KEY);
+         INSERT INTO tos_addressed_page_test.rows SELECT generate_series(1,1025)",
+        )
+        .unwrap();
+    let pid: i32 = client
+        .query_one("SELECT pg_backend_pid()", &[])
+        .unwrap()
+        .get(0);
+    let mut tx = client
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::RepeatableRead)
+        .start()
+        .unwrap();
+    tx.batch_execute("SET LOCAL statement_timeout='500ms'")
+        .unwrap();
+    let mut rows = bounded_pg_rows(
+        &mut tx,
+        "SELECT id,repeat('x',32768) FROM tos_addressed_page_test.rows ORDER BY id",
+        &[],
+    )
+    .unwrap();
+    let first = rows.next().unwrap().unwrap();
+    assert_eq!(first.get::<_, i32>(0), 1);
+    // The source is larger than transport buffers. A client-side packing pause
+    // exceeds the SQL timeout, while the actual bounded fetches remain short.
+    assert_eq!(
+        observer
+            .query_one("SELECT state FROM pg_stat_activity WHERE pid=$1", &[&pid])
+            .unwrap()
+            .get::<_, String>(0),
+        "idle in transaction"
+    );
+    observer
+        .execute("INSERT INTO tos_addressed_page_test.rows VALUES(1026)", &[])
+        .unwrap();
+    std::thread::sleep(Duration::from_millis(750));
+    for expected in 2..=1025 {
+        let row = rows.next().unwrap().unwrap();
+        assert_eq!(row.get::<_, i32>(0), expected);
+        assert_eq!(row.get::<_, String>(1).len(), 32768);
+    }
+    assert!(rows.next().is_none());
+    drop(rows);
+    assert_eq!(
+        tx.query_one("SELECT count(*) FROM tos_addressed_page_test.rows", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1025
+    );
+    tx.commit().unwrap();
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM tos_addressed_page_test.rows", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1026
+    );
+    let mut tx = client.transaction().unwrap();
+    let mut rows =
+        bounded_pg_rows(&mut tx, "SELECT 1/(n-1) FROM generate_series(1,1) n", &[]).unwrap();
+    assert!(rows.next().unwrap().is_err());
+    assert!(rows.next().is_none());
+    drop(rows);
+    tx.rollback().unwrap();
+    client
+        .batch_execute("DROP SCHEMA tos_addressed_page_test CASCADE")
+        .unwrap();
 }
 
 impl DurablePgCoordinator {
