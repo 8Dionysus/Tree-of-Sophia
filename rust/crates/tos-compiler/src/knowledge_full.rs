@@ -345,6 +345,14 @@ pub(crate) fn compile_managed_navigation_components(
     if stage.public_build() || stage.payload_layout().uses_carriers() {
         return Err(Error::Invalid("native navigation stage required"));
     }
+    if stage.exact_receipt()?.binding.reader_abi
+        == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+    {
+        let core = stage.core_roots()?;
+        if core.nodes != 0 || core.relations != 0 {
+            return Err(Error::Invalid("Original anchor contains normalized graph"));
+        }
+    }
     let result = compile_inner(
         stage,
         graph_header,

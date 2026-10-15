@@ -379,14 +379,18 @@ fn seal_inner(
     if search.is_none()
         && (managed_source_root_sha256.is_none()
             || stage.payload_layout().uses_carriers()
-            || binding.reader_abi != tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1)
+            || !tos_foundation::is_managed_navigation_model_abi(&binding.reader_abi))
     {
         return Err(Error::Invalid(
             "search omission requires native managed navigation profile",
         ));
     }
     let model_abi = if search.is_none() {
-        tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+        if binding.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2 {
+            tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+        } else {
+            tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+        }
     } else if stage.payload_layout().uses_carriers() {
         if stage.owned_creation_state().is_none()
             || managed_source_root_sha256.is_some()

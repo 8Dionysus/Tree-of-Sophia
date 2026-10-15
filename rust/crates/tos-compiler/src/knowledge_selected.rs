@@ -536,7 +536,7 @@ pub(crate) fn validate(
     if expected.model_size_bytes == 0
         || expected.model_size_bytes > limits.max_file_bytes
         || !(tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&expected.model_abi.as_str())
-            || expected.model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1)
+            || tos_foundation::is_managed_navigation_model_abi(&expected.model_abi))
         || !expected.complete
         || expected.source_scopes.is_empty()
         || expected.source_scopes.len() > limits.max_sources
@@ -552,7 +552,8 @@ pub(crate) fn validate(
         (KNOWLEDGE_MODEL_ABI, None, None, None) => (),
         (
             crate::KNOWLEDGE_MANAGED_MODEL_ABI
-            | tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1,
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2,
             Some(nav),
             None,
             None,
@@ -641,8 +642,9 @@ pub(crate) fn validate(
         &expected.search_index_root_sha256,
         expected.model_abi.as_str(),
     ) {
-        (None, tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1)
-            if expected.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1 =>
+        (None, abi)
+            if tos_foundation::is_managed_navigation_model_abi(abi)
+                && expected.reader_abi == abi =>
         {
             ()
         }
@@ -650,6 +652,16 @@ pub(crate) fn validate(
             checked_digest(root)?
         }
         _ => return Err(Error::Invalid("knowledge search capability and ABI differ")),
+    }
+    if expected.model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+        && (expected.node_count != 0
+            || expected.relation_count != 0
+            || expected.source_scopes.len() != 1
+            || expected.source_scopes[0].adapter_profile != "source-navigation-node-edge-v1")
+    {
+        return Err(Error::Invalid(
+            "Original anchor has no normalized graph capability",
+        ));
     }
     let mut previous: Option<&str> = None;
     let mut node_total = 0u64;
@@ -2379,6 +2391,9 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
             crate::knowledge_corpus_original::ROW_TABLE,
         ]);
     }
+    if native_original_anchor_schema(db)? {
+        expected.push(crate::knowledge_navigation_original::CARRIER_TABLE);
+    }
     expected.sort_unstable();
     let mut table_statement=db.prepare("SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END FROM sqlite_master WHERE type='table' ORDER BY name")?;
     let mut rows = table_statement.query([])?;
@@ -2401,10 +2416,21 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
 /// Bounded explicit format switch used by finish and cold admission. Admission
 /// separately compares this metadata to the owner-selected ABI and file digest.
 pub(crate) fn native_navigation_schema(db: &Connection) -> Result<bool> {
+    Ok(selected_model_abi(db)?
+        .as_deref()
+        .is_some_and(tos_foundation::is_managed_navigation_model_abi))
+}
+
+pub(crate) fn native_original_anchor_schema(db: &Connection) -> Result<bool> {
+    Ok(selected_model_abi(db)?.as_deref()
+        == Some(tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2))
+}
+
+fn selected_model_abi(db: &Connection) -> Result<Option<String>> {
     let abi: Option<String> = db.query_row(
         "SELECT CASE WHEN typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))<=128 THEN CAST(value AS TEXT) ELSE NULL END FROM metadata WHERE key='model_abi'",
         [], |r| r.get(0)).optional()?.flatten();
-    Ok(abi.as_deref() == Some(tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1))
+    Ok(abi)
 }
 
 pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
@@ -2413,6 +2439,9 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     knowledge_stage::selected_table_closure(db)?;
     if crate::knowledge_navigation_original::present(db)? {
         crate::knowledge_navigation_original::verify_ddl(db)?;
+    }
+    if native_original_anchor_schema(db)? {
+        crate::knowledge_navigation_original::verify_carrier_ddl(db)?;
     }
     if crate::knowledge_philosophy_original::present(db)? {
         crate::knowledge_philosophy_original::verify_ddl(db)?;
@@ -4377,6 +4406,28 @@ mod tests {
         navigation.managed_source_root_sha256 = Some(EMPTY.into());
         navigation.navigation_original_root_sha256 = None;
         assert!(validate(&navigation, limits()).is_err());
+    }
+
+    #[test]
+    fn managed_navigation_original_anchor_requires_absent_normalized_rows() {
+        let mut anchor = expected();
+        anchor.model_abi = tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2.into();
+        anchor.reader_abi = anchor.model_abi.clone();
+        anchor.managed_source_root_sha256 = Some(EMPTY.into());
+        anchor.navigation_original_root_sha256 = Some(EMPTY.into());
+        anchor.search_index_root_sha256 = None;
+        anchor.source_scopes[0].adapter_profile = "source-navigation-node-edge-v1".into();
+        assert!(validate(&anchor, limits()).is_ok());
+        anchor.node_count = 1;
+        anchor.source_scopes[0].node_count = 1;
+        assert!(validate(&anchor, limits()).is_err());
+        anchor.node_count = 0;
+        anchor.source_scopes[0].node_count = 0;
+        anchor.search_index_root_sha256 = Some(EMPTY.into());
+        assert!(validate(&anchor, limits()).is_err());
+        anchor.search_index_root_sha256 = None;
+        anchor.source_scopes[0].adapter_profile = "indexed-node-edge-v1".into();
+        assert!(validate(&anchor, limits()).is_err());
     }
 
     #[test]

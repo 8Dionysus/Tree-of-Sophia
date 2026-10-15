@@ -21,10 +21,24 @@ pub const KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1: &str = "tos_knowledge_read_model_v
 /// Search is a separately versioned PostgreSQL projection, never an empty index.
 pub const KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1: &str = "tos_knowledge_managed_navigation_v1";
 
+/// Native PostgreSQL bootstrap anchor with exact Original carriers. Normalized
+/// graph rows and offline search are absent capabilities; the current graph is
+/// served by the PostgreSQL projection. V1 remains readable as its own format.
+pub const KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2: &str = "tos_knowledge_managed_navigation_v2";
+
+pub fn is_managed_navigation_model_abi(abi: &str) -> bool {
+    matches!(
+        abi,
+        KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1 | KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+    )
+}
+
 pub fn is_managed_knowledge_model_abi(abi: &str) -> bool {
     matches!(
         abi,
-        KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1 | KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+        KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1
+            | KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+            | KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
     )
 }
 

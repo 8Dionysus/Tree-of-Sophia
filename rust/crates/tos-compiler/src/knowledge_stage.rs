@@ -5736,6 +5736,7 @@ fn selected_table_closure_with_layout_and_state(
         "catalog_source_counts",
     ];
     let navigation_only = crate::knowledge_selected::native_navigation_schema(db)?;
+    let original_anchor = crate::knowledge_selected::native_original_anchor_schema(db)?;
     if navigation_only && (layout.uses_carriers() || state.is_some()) {
         return Err(Error::Invalid(
             "native navigation requires plain managed stage",
@@ -5797,6 +5798,7 @@ fn selected_table_closure_with_layout_and_state(
             || layout.uses_carriers() && name == "knowledge_source_carriers"
             || layout.dictionary_bytes() && name == "knowledge_byte_dictionaries"
             || navigation_original && navigation_tables.contains(&name.as_str())
+            || original_anchor && name == crate::knowledge_navigation_original::CARRIER_TABLE
             || philosophy_original && philosophy_tables.contains(&name.as_str())
             || corpus_original
                 && [
@@ -5814,6 +5816,7 @@ fn selected_table_closure_with_layout_and_state(
             + if layout.uses_carriers() { 1 } else { 0 }
             + if layout.dictionary_bytes() { 1 } else { 0 }
             + if navigation_original { 3 } else { 0 }
+            + if original_anchor { 1 } else { 0 }
             + if philosophy_original { 2 } else { 0 }
             + if corpus_original { 2 } else { 0 }
     {

@@ -384,17 +384,48 @@ fn build_selected<P: ManagedProducerProof>(
         expected_rights_root_sha256: &rights_root,
         limits: original_limits,
     });
-    let native = crate::materialize_native_sources_with_inputs(
-        &mut stage,
-        &registry,
-        entity_raw,
-        relation_raw,
-        &vocabulary,
-        descriptor_raw,
-        &claim,
-        native_limits,
-        additional,
-    )?;
+    let navigation = if stage.exact_receipt()?.binding.reader_abi
+        == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+    {
+        let prepared = crate::prepare_source_navigation(
+            &mut stage,
+            &vocabulary,
+            &claim,
+            native_limits.navigation_prepare,
+        )?;
+        let original = crate::retain_navigation_original(
+            &mut stage,
+            &vocabulary,
+            &prepared,
+            &claim,
+            &rights_slices,
+            &rights_root,
+            original_limits,
+        )?;
+        crate::knowledge_source_navigation_prepare::clear_original_anchor_prepare(
+            &mut stage,
+            &vocabulary,
+            &claim,
+            &prepared,
+            &original,
+            native_limits.navigation_prepare,
+        )?;
+        original
+    } else {
+        crate::materialize_native_sources_with_inputs(
+            &mut stage,
+            &registry,
+            entity_raw,
+            relation_raw,
+            &vocabulary,
+            descriptor_raw,
+            &claim,
+            native_limits,
+            additional,
+        )?
+        .navigation_original
+        .ok_or(Error::Invalid("managed selected original receipt"))?
+    };
     let normalized = stage.core_roots()?;
     let mut header = build_header(&mut stage, &registry)?;
     let after_header = stage.core_roots()?;
@@ -420,33 +451,32 @@ fn build_selected<P: ManagedProducerProof>(
         serde_json::to_value(proof.basis()).map_err(|e| Error::Source(e.to_string()))?,
     );
     let source_binding = stage.exact_receipt()?.binding.clone();
-    let full =
-        if source_binding.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1 {
-            crate::knowledge_full::compile_managed_navigation_components(
-                &mut stage,
-                &header,
-                &registry,
-                entity_raw,
-                relation_raw,
-                saved_lenses,
-                &vocabulary,
-                descriptor_raw,
-                full_limits,
-            )?
-        } else {
-            crate::compile_full_knowledge_components(
-                &mut stage,
-                &header,
-                &registry,
-                entity_raw,
-                relation_raw,
-                saved_lenses,
-                &vocabulary,
-                descriptor_raw,
-                full_limits,
-            )?
-            .into()
-        };
+    let full = if tos_foundation::is_managed_navigation_model_abi(&source_binding.reader_abi) {
+        crate::knowledge_full::compile_managed_navigation_components(
+            &mut stage,
+            &header,
+            &registry,
+            entity_raw,
+            relation_raw,
+            saved_lenses,
+            &vocabulary,
+            descriptor_raw,
+            full_limits,
+        )?
+    } else {
+        crate::compile_full_knowledge_components(
+            &mut stage,
+            &header,
+            &registry,
+            entity_raw,
+            relation_raw,
+            saved_lenses,
+            &vocabulary,
+            descriptor_raw,
+            full_limits,
+        )?
+        .into()
+    };
     let scopes = stage.with_connection(WritePhase::Finalize, |db| {
         let mut rows = db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
         let scopes = rows.query_map([], |r| Ok(ExpectedSourceScope { source_graph:r.get(0)?, input_role:r.get(1)?,
@@ -455,9 +485,6 @@ fn build_selected<P: ManagedProducerProof>(
         Ok(scopes)
     })?;
     let output = stage.finish()?;
-    let navigation = native
-        .navigation_original
-        .ok_or(Error::Invalid("managed selected original receipt"))?;
     let expectation = KnowledgeSelectedExpectation {
         model_sha256: output.sqlite_sha256.clone(),
         model_size_bytes: output.sqlite_size_bytes,
@@ -663,8 +690,8 @@ pub(crate) fn parent_navigation_member(
     ))
 }
 
-/// Exact original bytes recovered from the managed V6 model's authenticated
-/// membership and normalized carrier, plus the charged bounded seek work.
+/// Exact original bytes recovered from authenticated membership and either
+/// the V2 direct carrier or the older normalized carrier, plus bounded work.
 /// This is immutable custody only; the caller retains current owner authority.
 pub struct ManagedNavigationOriginalCarrier {
     pub raw: Vec<u8>,
@@ -699,6 +726,15 @@ pub fn managed_navigation_original_member_bytes(
     else {
         return Ok(None);
     };
+    if parent.selection().model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2 {
+        let carrier = crate::knowledge_navigation_original::exact_carrier(
+            parent.connection(),
+            &member,
+            limits,
+        )?;
+        parent.check_pin()?;
+        return Ok(Some(carrier));
+    }
     let receipt = parent.navigation_original_receipt()?;
     let (table, id_field) = match collection {
         "nodes" => ("knowledge_nodes", "node_id"),

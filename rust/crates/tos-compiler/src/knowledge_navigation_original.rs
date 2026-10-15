@@ -14,6 +14,11 @@ pub(crate) const MEMBER_TABLE: &str = "navigation_original_members";
 pub(crate) const MEMBER_DDL: &str = "CREATE TABLE navigation_original_members(collection TEXT NOT NULL,id TEXT NOT NULL,raw_bytes INTEGER NOT NULL,raw_sha256 BLOB NOT NULL,semantic_sha256 BLOB NOT NULL,canonical_original_sha256 BLOB NOT NULL,PRIMARY KEY(collection,id)) WITHOUT ROWID";
 pub(crate) const META_DDL: &str = "CREATE TABLE navigation_original_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),profile TEXT NOT NULL,descriptor_sha256 TEXT NOT NULL,source_cut TEXT NOT NULL,membership_root TEXT NOT NULL,source_graph TEXT NOT NULL,node_count INTEGER NOT NULL,edge_count INTEGER NOT NULL,rights_count INTEGER NOT NULL,node_input_root BLOB NOT NULL,edge_input_root BLOB NOT NULL,header_sha256 BLOB NOT NULL,rights_root BLOB NOT NULL,component_root BLOB NOT NULL,total_bytes INTEGER NOT NULL,member_index_root BLOB NOT NULL,member_index_bytes INTEGER NOT NULL)";
 pub(crate) const ROW_DDL: &str = "CREATE TABLE navigation_original_rows(ordinal INTEGER PRIMARY KEY,packet_len INTEGER NOT NULL,packet_sha256 BLOB NOT NULL,packet BLOB NOT NULL)";
+/// V2 managed anchors retain exact carriers directly. A rowid payload table
+/// avoids index-btree overflow amplification; the separate unique key retains
+/// the original collection and stable ID without shortening either.
+pub(crate) const CARRIER_TABLE: &str = "navigation_original_carriers";
+pub(crate) const CARRIER_DDL: &str = "CREATE TABLE navigation_original_carriers(collection TEXT NOT NULL,id TEXT NOT NULL,packet_len INTEGER NOT NULL,packet_sha256 BLOB NOT NULL,packet BLOB NOT NULL,UNIQUE(collection,id))";
 
 fn navigation_original_model_abi_supported(model_abi: &str) -> bool {
     crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(model_abi).uses_carriers()
@@ -23,6 +28,7 @@ fn navigation_original_model_abi_supported(model_abi: &str) -> bool {
             crate::KNOWLEDGE_CORPUS_MODEL_ABI,
             crate::KNOWLEDGE_MANAGED_MODEL_ABI,
             tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1,
+            tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2,
         ]
         .contains(&model_abi)
 }
@@ -374,6 +380,132 @@ fn right(raw: &[u8], cap: usize) -> Result<()> {
     }
     Ok(())
 }
+
+fn verify_carrier_bytes(
+    raw: &[u8],
+    member: &NavigationOriginalMember,
+    cap: usize,
+) -> Result<usize> {
+    if raw.len() > cap
+        || raw.len() as u64 != member.raw_bytes
+        || Digest256::of_bytes(raw).to_hex() != member.raw_sha256
+    {
+        return Err(Error::Invalid("navigation exact carrier bytes"));
+    }
+    let parsed = crate::knowledge_normalization::SourceRow::parse(raw, cap)?;
+    let field = match member.collection.as_str() {
+        "nodes" => "node_id",
+        "edges" => "edge_id",
+        _ => return Err(Error::Invalid("navigation exact carrier collection")),
+    };
+    let canonical = tos_foundation::canonical_raw_bytes_v1(
+        raw,
+        tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+        tos_foundation::JsonLimits::new(cap, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("navigation exact carrier JSON limits"))?,
+    )
+    .map_err(|_| Error::Invalid("navigation exact carrier canonical bytes"))?;
+    if parsed.value()[field].as_str() != Some(member.id.as_str())
+        || parsed.stable_digest()? != member.semantic_sha256
+        || Digest256::of_bytes(&canonical).to_hex() != member.canonical_original_sha256
+    {
+        return Err(Error::Invalid("navigation exact carrier member binding"));
+    }
+    raw.len()
+        .checked_add(canonical.len())
+        .ok_or(Error::Budget("navigation carrier work"))
+}
+
+pub(crate) fn verify_carrier_ddl(db: &Connection) -> Result<()> {
+    let ddl: Option<String> = db.query_row(
+        "SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=1024 THEN sql END FROM sqlite_master WHERE type='table' AND name=?1",
+        [CARRIER_TABLE], |row| row.get(0),
+    ).optional()?.flatten();
+    if ddl.as_deref() != Some(CARRIER_DDL) {
+        return Err(Error::Invalid("navigation exact carrier DDL"));
+    }
+    Ok(())
+}
+
+/// Verify complete correspondence, not only the rows requested by a query.
+/// Per-row allocation is bounded in SQL before decoding; stable/canonical/raw
+/// identities remain independent seals and no normalized graph is inferred.
+pub(crate) fn verify_carriers(
+    db: &Connection,
+    receipt: &NavigationOriginalReceipt,
+    max_row_bytes: usize,
+    work: &mut u64,
+    max_work: u64,
+) -> Result<()> {
+    verify_carrier_ddl(db)?;
+    let expected = receipt
+        .nodes
+        .checked_add(receipt.edges)
+        .ok_or(Error::Budget("navigation carrier count"))?;
+    let count: u64 = db.query_row(
+        "SELECT count(*) FROM navigation_original_carriers",
+        [],
+        |row| row.get(0),
+    )?;
+    if count != expected {
+        return Err(Error::Invalid("navigation exact carrier count"));
+    }
+    let mut statement = db.prepare("SELECT CASE WHEN m.collection IN ('nodes','edges') THEN m.collection END,CASE WHEN typeof(m.id)='text' AND length(CAST(m.id AS BLOB)) BETWEEN 1 AND 4096 THEN m.id END,m.raw_bytes,CASE WHEN typeof(m.raw_sha256)='blob' AND length(m.raw_sha256)=32 THEN lower(hex(m.raw_sha256)) END,CASE WHEN typeof(m.semantic_sha256)='blob' AND length(m.semantic_sha256)=32 THEN lower(hex(m.semantic_sha256)) END,CASE WHEN typeof(m.canonical_original_sha256)='blob' AND length(m.canonical_original_sha256)=32 THEN lower(hex(m.canonical_original_sha256)) END,CASE WHEN typeof(c.packet)='blob' AND c.packet_len=m.raw_bytes AND c.packet_len=length(c.packet) AND c.packet_len<=?1 AND c.packet_sha256=m.raw_sha256 THEN c.packet END FROM navigation_original_members m LEFT JOIN navigation_original_carriers c USING(collection,id) ORDER BY m.collection,m.id")?;
+    let mut rows = statement.query([max_row_bytes])?;
+    let mut seen = 0u64;
+    while let Some(row) = rows.next()? {
+        let member = NavigationOriginalMember {
+            collection: row.get(0)?,
+            id: row.get(1)?,
+            raw_bytes: row.get(2)?,
+            raw_sha256: row.get(3)?,
+            semantic_sha256: row.get(4)?,
+            canonical_original_sha256: row.get(5)?,
+        };
+        let raw: Vec<u8> = row.get::<_, Option<Vec<u8>>>(6)?.ok_or(Error::Invalid(
+            "navigation exact carrier missing or oversized",
+        ))?;
+        let bytes = verify_carrier_bytes(&raw, &member, max_row_bytes)?;
+        *work = work
+            .checked_add(bytes as u64)
+            .filter(|n| *n <= max_work)
+            .ok_or(Error::Budget("navigation exact carrier verification work"))?;
+        seen += 1;
+        if seen > expected {
+            return Err(Error::Invalid("navigation carrier extra member"));
+        }
+    }
+    if seen != expected {
+        return Err(Error::Invalid("navigation carrier incomplete members"));
+    }
+    Ok(())
+}
+
+pub(crate) fn exact_carrier(
+    db: &Connection,
+    member: &NavigationOriginalMember,
+    limits: NavigationOriginalLimits,
+) -> Result<crate::managed_agent_producer::ManagedNavigationOriginalCarrier> {
+    let raw: Option<Vec<u8>> = db.query_row(
+        "SELECT CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND packet_len=?3 AND packet_len<=?4 AND packet_sha256=?5 THEN packet END FROM navigation_original_carriers WHERE collection=?1 AND id=?2",
+        params![member.collection,member.id,member.raw_bytes,limits.max_row_bytes,Digest256::from_hex(&member.raw_sha256).map_err(|_|Error::Invalid("navigation carrier expected SHA"))?.as_bytes().as_slice()],
+        |row| row.get(0),
+    ).optional()?.flatten();
+    let raw = raw.ok_or(Error::Invalid(
+        "navigation exact carrier absent or oversized",
+    ))?;
+    let work_bytes = verify_carrier_bytes(&raw, member, limits.max_row_bytes)? as u64;
+    if work_bytes > limits.max_total_bytes {
+        return Err(Error::Budget("navigation exact carrier work"));
+    }
+    Ok(
+        crate::managed_agent_producer::ManagedNavigationOriginalCarrier {
+            raw,
+            visited_rows: 1,
+            work_bytes,
+        },
+    )
+}
 /// Independently supplied expected rights root binds the original ordered rows.
 /// The same-cut owner must supply these originals alongside its prepared raw
 /// navigation. Mechanical binding does not admit the source or current rights.
@@ -450,6 +582,14 @@ pub fn retain_navigation_original(
         let mut members = Vec::new();
         let mut member_bytes = 0u64;
         let mut index_root = member_hash();
+        let direct_carriers =
+            binding.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2;
+        if direct_carriers {
+            stage.with_connection(WritePhase::Schema, |db| {
+                db.execute_batch(CARRIER_DDL)?;
+                Ok(())
+            })?;
+        }
         for collection in ["edges", "nodes"] {
             let mut after = None;
             loop {
@@ -506,6 +646,25 @@ pub fn retain_navigation_original(
                         })
                         .ok_or(Error::Budget("navigation original member bytes"))?;
                     member_item(&mut index_root, &member)?;
+                    if direct_carriers {
+                        stage.charge_materialized(1, raw.payload.len() as u64)?;
+                        stage.with_connection(WritePhase::Finalize, |db| {
+                            db.execute(
+                                "INSERT INTO navigation_original_carriers VALUES(?1,?2,?3,?4,?5)",
+                                params![
+                                    collection,
+                                    member.id,
+                                    member.raw_bytes,
+                                    Digest256::from_hex(&member.raw_sha256)
+                                        .map_err(|_| Error::Invalid("navigation carrier SHA"))?
+                                        .as_bytes()
+                                        .as_slice(),
+                                    raw.payload,
+                                ],
+                            )?;
+                            Ok(())
+                        })?;
+                    }
                     members.push(member);
                 }
                 after = page.next_id;
@@ -785,6 +944,9 @@ pub(crate) fn verify(
         work,
         l.max_work_bytes,
     )?;
+    if expected.model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2 {
+        verify_carriers(db, &r, l.max_row_bytes, work, l.max_work_bytes)?;
+    }
     let meta:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='navigation_original_root_sha256' AND length(CAST(value AS BLOB))=64",[],|r|r.get(0)).optional()?;
     if meta.as_deref() != Some(&r.component_root_sha256) {
         return Err(Error::Invalid("navigation original sealed root"));
@@ -924,13 +1086,17 @@ pub(crate) fn verify_stage(
             let abi_matches = if let Some(expected) = layout.carrier_model_abi() {
                 abi.as_deref() == Some(expected)
             } else {
-                abi.as_deref().is_some_and(|abi| [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1].contains(&abi))
+                abi.as_deref().is_some_and(|abi| [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2].contains(&abi))
             };
             if !abi_matches { return Err(Error::Invalid("navigation original finish ABI")); }
             for (key,wanted) in [("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
                 let actual:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1 AND length(CAST(value AS BLOB))<=128",[key],|r|r.get(0)).optional()?;
                 if actual.as_deref()!=Some(wanted){return Err(Error::Invalid("navigation original finish seal"));}
             }
+        }
+        if binding.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2 {
+            verify_carriers(db, &r, crate::knowledge_original_rows::MAX_ROW_BYTES,
+                &mut 0, crate::knowledge_original_rows::MAX_COLD_WORK)?;
         }
         Ok(Some(r))
     })
@@ -939,6 +1105,121 @@ pub(crate) fn verify_stage(
 #[cfg(test)]
 mod addressed_membership_tests {
     use super::*;
+
+    #[test]
+    fn managed_navigation_original_anchor_retains_bytes_and_rejects_corruption() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(MEMBER_DDL).unwrap();
+        db.execute_batch(CARRIER_DDL).unwrap();
+        // Exact source spelling is distinct from its canonical and semantic seals.
+        let raw = br#"{ "node_id": "anchor:one", "value": 1.00, "big": 9007199254740993 }"#;
+        let parsed = crate::knowledge_normalization::SourceRow::parse(raw, 1024).unwrap();
+        let canonical = tos_foundation::canonical_raw_bytes_v1(
+            raw,
+            tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+            tos_foundation::JsonLimits::new(1024, 96, 1_000_000, 4096).unwrap(),
+        )
+        .unwrap();
+        let member = NavigationOriginalMember {
+            collection: "nodes".into(),
+            id: "anchor:one".into(),
+            raw_bytes: raw.len() as u64,
+            raw_sha256: Digest256::of_bytes(raw).to_hex(),
+            semantic_sha256: parsed.stable_digest().unwrap(),
+            canonical_original_sha256: Digest256::of_bytes(&canonical).to_hex(),
+        };
+        db.execute(
+            "INSERT INTO navigation_original_members VALUES(?1,?2,?3,?4,?5,?6)",
+            params![
+                member.collection,
+                member.id,
+                member.raw_bytes,
+                Digest256::from_hex(&member.raw_sha256)
+                    .unwrap()
+                    .as_bytes()
+                    .as_slice(),
+                Digest256::from_hex(&member.semantic_sha256)
+                    .unwrap()
+                    .as_bytes()
+                    .as_slice(),
+                Digest256::from_hex(&member.canonical_original_sha256)
+                    .unwrap()
+                    .as_bytes()
+                    .as_slice()
+            ],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO navigation_original_carriers VALUES(?1,?2,?3,?4,?5)",
+            params![
+                member.collection,
+                member.id,
+                member.raw_bytes,
+                Digest256::of_bytes(raw).as_bytes().as_slice(),
+                raw.as_slice()
+            ],
+        )
+        .unwrap();
+        let limits = NavigationOriginalLimits {
+            max_rows: 2,
+            max_row_bytes: 1024,
+            max_total_bytes: 16384,
+        };
+        let actual = exact_carrier(&db, &member, limits).unwrap();
+        assert_eq!(actual.raw, raw);
+        assert_eq!(actual.work_bytes, (raw.len() + canonical.len()) as u64);
+        assert!(
+            exact_carrier(
+                &db,
+                &member,
+                NavigationOriginalLimits {
+                    max_row_bytes: raw.len() - 1,
+                    ..limits
+                }
+            )
+            .is_err()
+        );
+        let receipt = NavigationOriginalReceipt {
+            profile: NAVIGATION_ORIGINAL_PROFILE.into(),
+            descriptor_sha256: String::new(),
+            source_cut: String::new(),
+            membership_root: String::new(),
+            source_graph: "source-navigation".into(),
+            nodes: 1,
+            edges: 0,
+            rights: 0,
+            node_input_root_sha256: String::new(),
+            edge_input_root_sha256: String::new(),
+            header_sha256: String::new(),
+            rights_root_sha256: String::new(),
+            component_root_sha256: String::new(),
+            total_bytes: 0,
+            member_index_root_sha256: String::new(),
+            member_index_bytes: 0,
+        };
+        verify_carriers(&db, &receipt, 1024, &mut 0, 16384).unwrap();
+        db.execute(
+            "UPDATE navigation_original_carriers SET packet=?1",
+            [b"damaged".as_slice()],
+        )
+        .unwrap();
+        assert!(exact_carrier(&db, &member, limits).is_err());
+        assert!(verify_carriers(&db, &receipt, 1024, &mut 0, 16384).is_err());
+        db.execute(
+            "UPDATE navigation_original_carriers SET packet=?1",
+            [raw.as_slice()],
+        )
+        .unwrap();
+        db.execute(
+            "UPDATE navigation_original_members SET semantic_sha256=zeroblob(32)",
+            [],
+        )
+        .unwrap();
+        assert!(verify_carriers(&db, &receipt, 1024, &mut 0, 16384).is_err());
+        db.execute("DELETE FROM navigation_original_members", [])
+            .unwrap();
+        assert!(verify_carriers(&db, &receipt, 1024, &mut 0, 16384).is_err());
+    }
 
     #[test]
     fn exact_original_member_preserves_absence_and_refuses_corrupt_commitment() {

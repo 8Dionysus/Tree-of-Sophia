@@ -1402,7 +1402,7 @@ fn prepare_initial(
         membership_root: membership.digest.to_hex(),
         index_generation: proof.generation.installed_generation_sha256.clone(),
         route_map_version: "tos-source-navigation-managed-current-v2".into(),
-        reader_abi: tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1.into(),
+        reader_abi: tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2.into(),
         projection_root_sha256: proof.generation.inventory_projection_sha256.clone(),
         complete: true,
     };

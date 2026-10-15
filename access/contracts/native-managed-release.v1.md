@@ -181,13 +181,20 @@ separate evidence claims.
 ### PostgreSQL navigation anchor
 
 The managed source-navigation preparation route uses
-`tos_knowledge_managed_navigation_v1`, with the existing managed producer
-companion schema and source proof. Its selected component set is normalized
-graph, catalog, source scope and Navigation Original, including retained rights
-witnesses. `search_index_root_sha256` is absent from its seal, expectation and
+`tos_knowledge_managed_navigation_v2`, with the existing managed producer
+companion schema and source proof. It retains complete Navigation Original,
+including rights witnesses and an exact rowid carrier table keyed by collection
+and stable ID. Raw, semantic and canonical commitments independently bind each
+carrier. Native preparation does not materialize normalized graph answers.
+The retained graph/catalog/source-scope metadata describes zero normalized rows;
+the Original receipt carries the complete node and edge counts. Those zero
+normalized counts do not describe an empty source corpus. PostgreSQL owns the
+published graph, and this anchor has no standalone normalized-graph capability.
+`search_index_root_sha256` is absent from its seal, expectation and
 SQLite metadata; the three `search_*` tables and `search_document_filter` index
 are absent. Cold admission checks that physical closure against the explicit ABI.
-Older postings ABIs require their complete search root and tables, and continue
+V1 anchors retain their complete normalized graph and remain readable under V1;
+their format cannot contain the V2 carrier table. Older postings ABIs require their complete search root and tables, and continue
 to decode the same string-valued JSON field. Older consumers reject the new ABI.
 
 This anchor supports PostgreSQL source-navigation publication and exact retained

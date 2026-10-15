@@ -706,6 +706,67 @@ pub fn clear_source_navigation_prepare(
     result
 }
 
+/// The Original-only native anchor closes its input preparation against exact
+/// retained carriers, not normalized graph rows. This is private to the managed
+/// producer; the full graph assembler keeps its separate join-closure proof.
+pub(crate) fn clear_original_anchor_prepare(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    header: &NavigationHeaderClaim,
+    prepared: &NavigationPrepareReceipt,
+    original: &crate::NavigationOriginalReceipt,
+    limits: NavigationPrepareLimits,
+) -> Result<()> {
+    let result = (|| {
+        limits.validate()?;
+        let selected = select(vocabulary, stage.exact_receipt()?, limits)?;
+        let rights = exact_header(header, &selected, limits)?;
+        if stage.exact_receipt()?.binding.reader_abi
+            != tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+            || prepared.source_graph != selected.source
+            || prepared.input_role != selected.role
+            || prepared.source_cut != selected.cut
+            || prepared.nodes != selected.expected[0].0
+            || prepared.edges != selected.expected[1].0
+            || prepared.node_input_root_sha256 != selected.expected[0].1
+            || prepared.edge_input_root_sha256 != selected.expected[1].1
+            || prepared.header_claim_sha256 != header.expected_sha256
+            || prepared.header_claim_rights_count != rights
+            || prepared.final_graph_rows_written
+            || prepared.external_dependencies != EXTERNAL_DEPENDENCIES
+            || original.source_graph != prepared.source_graph
+            || original.source_cut != prepared.source_cut
+            || original.nodes != prepared.nodes
+            || original.edges != prepared.edges
+            || original.rights != rights
+            || original.node_input_root_sha256 != prepared.node_input_root_sha256
+            || original.edge_input_root_sha256 != prepared.edge_input_root_sha256
+            || original.header_sha256 != header.expected_sha256
+            || dependency_root(stage, &selected, &header.expected_sha256)?
+                != prepared.dependency_root_sha256
+        {
+            return Err(Error::Invalid("Original anchor preparation binding"));
+        }
+        let core = stage.core_roots()?;
+        if core.nodes != 0 || core.relations != 0 {
+            return Err(Error::Invalid("Original anchor contains normalized graph"));
+        }
+        stage.with_connection(WritePhase::Finalize, |db| {
+            crate::knowledge_navigation_original::verify_carrier_ddl(db)?;
+            let count: u64 = db.query_row("SELECT count(*) FROM navigation_original_carriers", [], |row|row.get(0))?;
+            let expected = prepared.nodes.checked_add(prepared.edges).ok_or(Error::Budget("Original anchor row count"))?;
+            let missing:Option<i64> = db.query_row("SELECT 1 FROM raw_records r WHERE r.source_graph=?1 AND r.collection IN ('nodes','edges') AND NOT EXISTS (SELECT 1 FROM navigation_original_carriers c WHERE c.collection=r.collection AND c.id=r.id AND c.packet_len=r.payload_len AND c.packet_sha256=r.payload_sha256 AND c.packet=r.payload) LIMIT 1", [&prepared.source_graph], |row|row.get(0)).optional()?;
+            if count != expected || missing.is_some() { return Err(Error::Invalid("Original anchor exact input coverage")); }
+            db.execute_batch("DROP TABLE knowledge_navigation_endpoints; DROP TABLE knowledge_navigation_edges; DROP TABLE knowledge_navigation_nodes;")?;
+            Ok(())
+        })
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

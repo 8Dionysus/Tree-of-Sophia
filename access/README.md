@@ -1258,16 +1258,20 @@ the bound member in the selected generation before recording the dependency.
 It does not interpret the stable ID as a filename or select an arbitrary
 evidence reference as the carrier's owner.
 
-The initial native compiler selects `tos_knowledge_managed_navigation_v1`.
-This PostgreSQL bootstrap anchor retains the complete selected normalized graph,
-source scope, catalog and authenticated Navigation Original carriers. It omits
+The initial native compiler selects `tos_knowledge_managed_navigation_v2`.
+This PostgreSQL bootstrap anchor retains complete authenticated Navigation
+Original carriers directly, together with their source proof and descriptor
+metadata. Raw, semantic and canonical identities remain separately checked.
+It builds no normalized graph answers: the complete source node/edge counts
+live in the Original receipt; normalized metadata counts are zero because that
+capability is absent. PostgreSQL owns the published graph. The anchor omits
 offline search tables and the `search_index_root_sha256` field in both seal and
 selection expectation. Cold admission requires that exact absence under this
 ABI; a missing index in an older postings ABI remains corruption. Native text
 search uses the independently maintained PostgreSQL text projection and its
 published cursor. Offline indexed search is unavailable on this anchor.
 Portable full-model builders retain their declared search indexes and ABIs.
-Existing V6 anchors remain readable; preparing a new native anchor is an explicit
+Existing V1 and V6 anchors remain readable; preparing a new native anchor is an explicit
 derived rebuild, preserving source versions, command history and current rights.
 
 Initial and event-local SourceNavigation projections use the same reified

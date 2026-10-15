@@ -837,7 +837,7 @@ pub(crate) fn compile(
         || request.source_binding.index_generation != proof.generation.installed_generation_sha256
         || request.source_binding.route_map_version != "tos-source-navigation-managed-current-v2"
         || request.source_binding.reader_abi
-            != tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+            != tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
         || request.source_binding.projection_root_sha256
             != proof.generation.inventory_projection_sha256
         || !request.source_binding.complete
