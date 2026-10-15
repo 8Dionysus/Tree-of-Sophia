@@ -702,7 +702,7 @@ pub(super) fn run(
             ));
         }
     };
-    Ok(json!({
+    let mut result = json!({
         "schema_version": RESULT_SCHEMA,
         "domain": selection.domain,
         "source_revision_sha256": selection.source_revision.0.to_prefixed(),
@@ -738,8 +738,6 @@ pub(super) fn run(
             "software_body_bytes_returned": body_work.software_body_bytes_returned,
             "fresh_pg_field_bytes_attempted": body_work.fresh_pg_field_bytes_attempted,
             "fresh_pg_rows_written": body_work.fresh_pg_rows_written,
-            "predicate_completion_rows_updated": body_work.predicate_completion_rows_updated,
-            "predicate_completion_batches": body_work.predicate_completion_batches,
             "tree": {
                 "read_bytes": tree_work.read_bytes,
                 "written_bytes": tree_work.written_bytes,
@@ -761,7 +759,12 @@ pub(super) fn run(
         },
         "grants_admission": false,
         "grants_publication": false
-    }))
+    });
+    result["logical_source_work"]["predicate_completion_rows_updated"] =
+        json!(body_work.predicate_completion_rows_updated);
+    result["logical_source_work"]["predicate_completion_batches"] =
+        json!(body_work.predicate_completion_batches);
+    Ok(result)
 }
 
 #[cfg(test)]
