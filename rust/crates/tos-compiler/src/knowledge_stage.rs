@@ -8328,7 +8328,8 @@ mod tests {
                 "tos-managed-source-navigation-v2"
             } else {
                 "tos-native-projection-snapshot-v1"
-            }.into();
+            }
+            .into();
             receipt.collections[0].expected_count = 96;
             let mut selected = limits();
             selected.sqlite.max_output_bytes = 1024 * 1024;
@@ -8340,23 +8341,30 @@ mod tests {
                 )
             } else {
                 KnowledgeStage::create_captured_native_snapshot(
-                &candidate,
-                selected,
-                receipt,
-                &owner,
-                &quota,
-                Arc::new(AtomicU64::new(0)),
-                Arc::new(AtomicU64::new(0)),
-                Arc::new(AtomicBool::new(false)),
-                selected.sqlite.max_work_bytes,
-                Instant::now() + std::time::Duration::from_secs(60),
+                    &candidate,
+                    selected,
+                    receipt,
+                    &owner,
+                    &quota,
+                    Arc::new(AtomicU64::new(0)),
+                    Arc::new(AtomicU64::new(0)),
+                    Arc::new(AtomicBool::new(false)),
+                    selected.sqlite.max_work_bytes,
+                    Instant::now() + std::time::Duration::from_secs(60),
                 )
             }
             .unwrap();
-            assert_eq!(stage.db().query_row(
-                "SELECT count(*) FROM main.sqlite_schema WHERE name='raw_records'",
-                [], |row| row.get::<_, u64>(0),
-            ).unwrap(), 0);
+            assert_eq!(
+                stage
+                    .db()
+                    .query_row(
+                        "SELECT count(*) FROM main.sqlite_schema WHERE name='raw_records'",
+                        [],
+                        |row| row.get::<_, u64>(0),
+                    )
+                    .unwrap(),
+                0
+            );
             for n in (0..96).rev() {
                 stage
                     .ingest_input(InputRow {

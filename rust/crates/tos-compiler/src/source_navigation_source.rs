@@ -526,14 +526,18 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                 if let Some(owner) = branches.get(parent)? {
                     let left = text(&owner, "branch_id")?;
                     let right = text(&manifest, "branch_id")?;
-                    projection.edge(edge(
+                    let source_path = format!("{child}/branch.manifest.json");
+                    let mut projected = edge(
                         &format!("source-navigation:branch:{left}:{right}"),
                         left,
                         "contains",
                         right,
                         "authored_branch_hierarchy",
-                        &[&format!("{child}/branch.manifest.json")],
-                    ))?;
+                        &[&source_path],
+                    );
+                    projected["source_ref"] = json!(source_path);
+                    projected["record_id"] = json!(right);
+                    projection.edge(projected)?;
                     break;
                 }
             }
@@ -594,14 +598,17 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             projection.node(node(id,"source_planting",label,&path,status,json!({"status":planting["status"],"discovery_ref":planting["discovery_ref"],"research_ref":planting["research_ref"]})))?;
             if let Some(owner) = branches.get(branch)? {
                 let branch_id = text(&owner, "branch_id")?;
-                projection.edge(edge(
+                let mut projected = edge(
                     &format!("source-navigation:planting:{branch_id}:{id}"),
                     branch_id,
                     "has_source_planting",
                     id,
                     "authored_source_planting",
                     &[&path],
-                ))?;
+                );
+                projected["source_ref"] = json!(path);
+                projected["record_id"] = json!(id);
+                projection.edge(projected)?;
             }
             if let Some(witness_id) = ["work_id", "artifact_id", "composite_id", "item_id"]
                 .into_iter()
@@ -618,14 +625,17 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                         json!({}),
                     ))?;
                 }
-                projection.edge(edge(
+                let mut projected = edge(
                     &format!("source-navigation:witness:{id}:{witness_id}"),
                     id,
                     field(witness, "relationship").unwrap_or("references_source_witness"),
                     witness_id,
                     "authored_source_planting",
                     &[&path, witness_ref],
-                ))?;
+                );
+                projected["source_ref"] = json!(path);
+                projected["record_id"] = json!(id);
+                projection.edge(projected)?;
             }
         }
         for basename in [
@@ -671,12 +681,24 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                         continue;
                     }
                     let mut refs = vec![path.as_str()];
+                    let mut source_ref_bindings = BTreeMap::<String, String>::new();
                     for evidence in array(&claim, "evidence_refs")? {
-                        refs.push(
-                            evidence
-                                .as_str()
-                                .ok_or(Error::Invalid("navigation legacy evidence reference"))?,
-                        );
+                        let reference = evidence
+                            .as_str()
+                            .ok_or(Error::Invalid("navigation legacy evidence reference"))?;
+                        refs.push(reference);
+                        // Keep the stable evidence ID in source_refs. Bind its
+                        // actual source member separately using the exact
+                        // catalog slot, so consumers never treat an anchor ID
+                        // as a filename or lose its dependency on that member.
+                        if let Some((_, location)) =
+                            crate::source_bibliographic::slot(stage, "anchor", reference, l)?
+                        {
+                            source_ref_bindings.insert(
+                                reference.to_owned(),
+                                text(&location, "source_ref")?.to_owned(),
+                            );
+                        }
                     }
                     let mut projected = edge(
                         &format!("source-navigation:claim:{id}"),
@@ -689,6 +711,11 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                     projected["review_status"] =
                         json!(field(&claim, "review_status").unwrap_or("unknown"));
                     projected["claim_ref"] = json!(id);
+                    projected["source_ref"] = json!(path);
+                    projected["record_id"] = json!(id);
+                    if !source_ref_bindings.is_empty() {
+                        projected["source_ref_bindings"] = json!(source_ref_bindings);
+                    }
                     if path == "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"
                     {
                         let (bound, location) =

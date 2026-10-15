@@ -618,10 +618,32 @@ fn capture_original_carrier(
         explicit_owner.get_or_insert_with(|| path.clone());
         refs.insert(path);
     }
-    if let Some(paths) = value
+    let source_refs = value
         .object_get("source_refs")
-        .and_then(|value| value.as_array())
+        .map(|value| {
+            value
+                .as_array()
+                .ok_or(DurableError::Corrupt("selected navigation source refs"))
+        })
+        .transpose()?
+        .unwrap_or(&[]);
+    let bindings = value
+        .object_get("source_ref_bindings")
+        .map(|value| {
+            value
+                .as_object()
+                .ok_or(DurableError::Corrupt("selected navigation source bindings"))
+        })
+        .transpose()?
+        .unwrap_or(&[]);
+    let bindings = checked_source_reference_bindings(
+        bindings
+            .iter()
+            .map(|(key, value)| (key.as_str(), value.as_str())),
+        |reference| source_refs.iter().any(|v| v.as_str() == Some(reference)),
+    )?;
     {
+        let paths = source_refs;
         for path in paths {
             let path = path
                 .as_str()
@@ -629,7 +651,8 @@ fn capture_original_carrier(
             if has_uri_scheme(path) {
                 continue;
             }
-            if let Ok(path) = checked_path(path) {
+            let source_path = bindings.get(path).map(String::as_str).unwrap_or(path);
+            if let Ok(path) = checked_path(source_path) {
                 refs.insert(path.into_string());
             } else {
                 return Err(DurableError::Corrupt("selected navigation source ref"));
@@ -913,6 +936,36 @@ fn checked_path(value: &str) -> DurableResult<RelativePath> {
         .map_err(|_| DurableError::Invalid("navigation bootstrap source path"))
 }
 
+/// A stable evidence reference stays in the carrier's source_refs. The source
+/// producer may additionally bind it to the exact catalog member that owns the
+/// referenced record. Both bootstrap capture and sealing use this contract;
+/// a binding cannot add an unrelated reference, redirect a URI, or hide a path.
+pub(crate) fn checked_source_reference_bindings<'a>(
+    bindings: impl IntoIterator<Item = (&'a str, Option<&'a str>)>,
+    has_reference: impl Fn(&str) -> bool,
+) -> DurableResult<BTreeMap<String, String>> {
+    let mut result = BTreeMap::new();
+    for (reference, source) in bindings {
+        let source = source.ok_or(DurableError::Invalid("navigation source binding path"))?;
+        let path = checked_path(source)?;
+        if reference.is_empty()
+            || reference.len() > MAX_BOOTSTRAP_PATH_BYTES
+            || reference.contains('/')
+            || reference.contains('#')
+            || reference.contains('\0')
+            || has_uri_scheme(reference)
+            || !has_reference(reference)
+            || path.as_str() != source
+            || result
+                .insert(reference.to_owned(), path.into_string())
+                .is_some()
+        {
+            return Err(DurableError::Invalid("navigation source reference binding"));
+        }
+    }
+    Ok(result)
+}
+
 fn has_uri_scheme(value: &str) -> bool {
     let Some((scheme, _)) = value.split_once(':') else {
         return false;
@@ -927,6 +980,62 @@ fn has_uri_scheme(value: &str) -> bool {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn navigation_reference_binding_capture_preserves_owner_and_dependencies() {
+        let limits = DurableNavigationEventLimits::default();
+        let owner = "ToS/source-witnesses/example/responsibility-claims.jsonl";
+        let anchor_source = "ToS/source-witnesses/example/anchors.jsonl";
+        let anchor = "tos.anchor.example.title-page";
+        let row = json!({
+            "edge_id":"edge:claim", "from_id":"from", "to_id":"to",
+            "edge_kind":"evidence_claim", "record_id":"tos.claim.example.author",
+            "source_ref":owner, "source_refs":[owner,anchor,"ToS/research.md"],
+            "source_ref_bindings":{anchor:anchor_source}
+        });
+        let capture = |value: &serde_json::Value| {
+            let mut rows = Vec::new();
+            let mut paths = BTreeSet::new();
+            capture_original_carrier(
+                DurableNavigationBootstrapRowKindV1::Edge,
+                "edge:claim".into(),
+                serde_json::to_vec(value).unwrap(),
+                limits,
+                &mut rows,
+                &mut paths,
+                &mut 0,
+                &mut BTreeMap::from([("from".into(), true), ("to".into(), true)]),
+            )?;
+            Ok::<_, DurableError>((rows, paths))
+        };
+        let (rows, paths) = capture(&row).unwrap();
+        assert_eq!(rows[0].owner_source_path, owner);
+        assert_eq!(rows[0].owner_record_id, "tos.claim.example.author");
+        assert_eq!(
+            paths,
+            BTreeSet::from([
+                owner.to_owned(),
+                anchor_source.to_owned(),
+                "ToS/research.md".into(),
+            ])
+        );
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&rows[0].raw).unwrap(),
+            row
+        );
+        let mut missing_owner = row.clone();
+        missing_owner.as_object_mut().unwrap().remove("source_ref");
+        assert!(matches!(
+            capture(&missing_owner),
+            Err(DurableError::Conflict(_))
+        ));
+        let mut unrelated = row.clone();
+        unrelated["source_ref_bindings"]["tos.anchor.unrelated"] = json!(anchor_source);
+        assert!(capture(&unrelated).is_err());
+        let mut redirected_path = row;
+        redirected_path["source_ref_bindings"]["ToS/research.md"] = json!(anchor_source);
+        assert!(capture(&redirected_path).is_err());
+    }
 
     #[test]
     fn shared_claim_carriers_survive_removal_of_one_contributor() {

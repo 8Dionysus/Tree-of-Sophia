@@ -3190,6 +3190,22 @@ fn bootstrap_ref_parts(
             dependencies.insert(source_path.to_owned());
         }
     }
+    let bindings = value
+        .get("source_ref_bindings")
+        .map(|raw| raw.as_object().ok_or(DurableError::Invalid(invalid_reason)))
+        .transpose()?;
+    let bindings = crate::source_navigation_bootstrap::checked_source_reference_bindings(
+        bindings
+            .into_iter()
+            .flat_map(|map| map.iter())
+            .map(|(key, value)| (key.as_str(), value.as_str())),
+        |reference| {
+            value
+                .get("source_refs")
+                .and_then(Value::as_array)
+                .is_some_and(|refs| refs.iter().any(|v| v.as_str() == Some(reference)))
+        },
+    )?;
     if let Some(raw) = value.get("source_refs") {
         let paths = raw
             .as_array()
@@ -3201,9 +3217,11 @@ fn bootstrap_ref_parts(
             }
             refs.insert(reference.to_owned());
             if !has_uri_scheme(reference) {
-                let source_path = reference
-                    .split_once('#')
-                    .map_or(reference, |(path, _)| path);
+                let bound = bindings
+                    .get(reference)
+                    .map(String::as_str)
+                    .unwrap_or(reference);
+                let source_path = bound.split_once('#').map_or(bound, |(path, _)| path);
                 validate_relative_path(source_path)?;
                 dependencies.insert(source_path.to_owned());
             }
@@ -3217,6 +3235,34 @@ fn bootstrap_source_refs(value: &Value, owner_source_path: &str) -> DurableResul
         .map_err(|_| DurableError::Corrupt("navigation stored source ref"))?;
     refs.insert(owner_source_path.to_owned());
     Ok(refs.into_iter().collect())
+}
+
+#[cfg(test)]
+mod bootstrap_reference_binding_tests {
+    use super::*;
+
+    #[test]
+    fn navigation_reference_binding_seal_keeps_stable_identity() {
+        let value = json!({
+            "source_ref":"ToS/claims.jsonl",
+            "source_refs":["tos.anchor.example", "ToS/evidence.md#part", "https://example.org/evidence"],
+            "source_ref_bindings":{"tos.anchor.example":"ToS/anchors.jsonl"}
+        });
+        let (refs, paths) = bootstrap_ref_parts(&value, "test source refs").unwrap();
+        assert!(refs.contains("tos.anchor.example"));
+        assert!(refs.contains("https://example.org/evidence"));
+        assert_eq!(
+            paths,
+            BTreeSet::from([
+                "ToS/claims.jsonl".into(),
+                "ToS/anchors.jsonl".into(),
+                "ToS/evidence.md".into(),
+            ])
+        );
+        let mut invalid = value;
+        invalid["source_ref_bindings"] = json!({"tos.anchor.absent":"ToS/anchors.jsonl"});
+        assert!(bootstrap_ref_parts(&invalid, "test source refs").is_err());
+    }
 }
 
 fn navigation_not_ready(

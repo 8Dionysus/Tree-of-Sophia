@@ -1250,6 +1250,14 @@ projection and issue no ToS admission, QRY disclosure, or canon grant. If a
 receipt write is lost after publication, repeating the exact bootstrap request
 is safe and reports `replayed: true`.
 
+Branch, planting and legacy Claim navigation edges identify their producing file with
+`source_ref` and its record with `record_id`. Evidence remains in `source_refs`; when an
+evidence value names a stable source-anchor ID, `source_ref_bindings` maps that
+ID to its exact catalog member. Bootstrap retains the evidence ID and checks
+the bound member in the selected generation before recording the dependency.
+It does not interpret the stable ID as a filename or select an arbitrary
+evidence reference as the carrier's owner.
+
 The initial native compiler selects `tos_knowledge_managed_navigation_v1`.
 This PostgreSQL bootstrap anchor retains the complete selected normalized graph,
 source scope, catalog and authenticated Navigation Original carriers. It omits
