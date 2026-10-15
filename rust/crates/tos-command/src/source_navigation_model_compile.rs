@@ -1045,7 +1045,10 @@ pub(crate) fn compile(
         .cold_limits
         .max_rows
         .min(snapshot.stage.sqlite.max_rows);
-    let max_output_row_bytes = source_row_bytes.min(32_768).max(1);
+    // The selected consumer owns the emitted-row envelope. A provenance row
+    // can exceed its source document after reification; the input/parser cap
+    // and the old 32 KiB small-export ceiling do not bound that output.
+    let max_output_row_bytes = request.cold_limits.max_row_bytes.min(4 * 1024 * 1024);
     let claim_rows = usize::try_from(initial_rows.min(16_384))
         .map_err(|_| SourceCommandError::Invalid("selected bibliographic row cap"))?
         .min((128 * 1024 * 1024) / max_output_row_bytes)

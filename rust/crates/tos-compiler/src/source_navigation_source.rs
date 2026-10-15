@@ -458,7 +458,10 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
         let mut path_bytes = 0usize;
         source.visit_members(validator, l, |path, _, _| {
             if let SelectedBibliographicSourceCut::Resident(input) = source {
-                if paths.len() >= input.max_read_files {
+                // Inventory membership is the complete selected cut. The
+                // independent read limit bounds resolved source documents,
+                // not the paths needed to establish their presence/absence.
+                if paths.len() as u64 >= input.expected_membership.count {
                     return Err(Error::Budget("navigation current inventory rows"));
                 }
                 path_bytes = path_bytes
