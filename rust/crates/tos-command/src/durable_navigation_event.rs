@@ -2736,6 +2736,8 @@ pub struct DurableNavigationCurrentIndexOwnerBindingV1 {
     pub selected_software_profile_version: u32,
     pub selected_software_contract_digest: Digest256,
     pub selected_model_digest: Digest256,
+    /// Exact complete expectation admitted by the bootstrap cold verifier.
+    pub selected_expectation_digest: Option<Digest256>,
     pub selected_model_abi: String,
     pub selected_selection_profile: String,
     pub selected_descriptor_digest: Digest256,
@@ -2828,6 +2830,7 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
             &expectation.model_sha256,
             "navigation selected model digest",
         )?,
+        selected_expectation_digest: Some(navigation_selected_expectation_digest(expectation)?),
         selected_model_abi: expectation.model_abi.clone(),
         selected_selection_profile: selected.selection_profile().to_owned(),
         selected_descriptor_digest: digest(
@@ -2871,6 +2874,18 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
     })
 }
 
+pub(crate) fn navigation_selected_expectation_digest(
+    expected: &tos_compiler::KnowledgeSelectedExpectation,
+) -> DurableResult<Digest256> {
+    let value = serde_json::to_value(expected)
+        .map_err(|_| DurableError::Invalid("navigation selected expectation JSON"))?;
+    let raw = canonical_value(&value, 1_048_576)?;
+    let mut root = Digest256Hasher::new();
+    root.update(b"tos-pg-navigation-admitted-expectation-v1");
+    navigation_hash_part(&mut root, &raw);
+    Ok(root.finalize())
+}
+
 fn navigation_owner_binding_json(binding: &DurableNavigationCurrentIndexOwnerBindingV1) -> Value {
     let mut value = json!({
         "domain":binding.domain,
@@ -2906,6 +2921,9 @@ fn navigation_owner_binding_json(binding: &DurableNavigationCurrentIndexOwnerBin
         "navigation_rights":binding.navigation_rights,
         "navigation_projected_rights":binding.navigation_projected_rights
     });
+    if let Some(digest) = binding.selected_expectation_digest {
+        value["selected_expectation_sha256"] = json!(digest.to_hex());
+    }
     if let Some(receipt) = &binding.navigation_original_receipt {
         value["navigation_original_receipt"] = json!(receipt);
     }
@@ -3010,6 +3028,10 @@ fn navigation_owner_binding_from_json(
             "selected_software_contract_digest",
         )?,
         selected_model_digest: navigation_json_digest(value, "selected_model_digest")?,
+        selected_expectation_digest: value
+            .get("selected_expectation_sha256")
+            .map(|_| navigation_json_digest(value, "selected_expectation_sha256"))
+            .transpose()?,
         selected_model_abi: navigation_json_text(value, "selected_model_abi")?,
         selected_selection_profile: navigation_json_text(value, "selected_selection_profile")?,
         selected_descriptor_digest: navigation_json_digest(value, "selected_descriptor_digest")?,

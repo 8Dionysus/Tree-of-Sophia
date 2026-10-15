@@ -106,7 +106,14 @@ fn verify_admitted_original_metadata(
     receipt
         .verify_selected_metadata(expected)
         .map_err(|_| invalid())?;
-    if owner.navigation_original_root != parse_digest(&receipt.component_root_sha256)?
+    let admitted =
+        crate::durable_adapter::durable_projection::navigation_selected_expectation_digest(
+            expected,
+        )
+        .map_err(|_| invalid())?;
+    if !expected.complete
+        || owner.selected_expectation_digest != Some(admitted)
+        || owner.navigation_original_root != parse_digest(&receipt.component_root_sha256)?
         || owner.source_graph != receipt.source_graph
         || owner.navigation_header_sha256 != parse_digest(&receipt.header_sha256)?
         || owner.navigation_node_input_root != parse_digest(&receipt.node_input_root_sha256)?

@@ -198,7 +198,7 @@ their format cannot contain the V2 carrier table. Older postings ABIs require th
 to decode the same string-valued JSON field. Older consumers reject the new ABI.
 
 Initial PostgreSQL bootstrap persists the complete Navigation Original receipt
-in its owner binding. Routine queries and event advances verify the receipt's
+and the complete selected-expectation digest in its owner binding. Routine queries and event advances verify the receipt's
 component root against the protected selection and verify all publication,
 source, rights, job and audit fences. They do not reopen the cold model or issue
 a `VerifiedKnowledgeModel` from persisted JSON. Publication metadata without the
