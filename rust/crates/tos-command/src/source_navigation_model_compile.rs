@@ -30,7 +30,7 @@ use tos_source_store::{
 };
 use tos_validation::{
     executor::{BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget},
-    source_cut::CutWorkerLimits,
+    source_cut::{CutSchemaDiagnosticsLimits, CutWorkerLimits},
 };
 
 use crate::source_command::{SourceCommandError, SourceCommandResult};
@@ -1170,16 +1170,33 @@ pub(crate) fn compile(
     schema_work.validate().map_err(|_| {
         SourceCommandError::Invalid("selected source-navigation schema work budget")
     })?;
-    let validator = SourceCatalogValidator::from_cut(
+    // Whole selected source packets use the existing bounded diagnostics-v2
+    // input lane. The scalar probe's one-MiB ceiling describes ordinary rows.
+    let diagnostics = CutSchemaDiagnosticsLimits::from_operation_ceilings(
+        CutSchemaDiagnosticsLimits {
+            max_total_issues: 8192,
+            max_total_report_bytes: initial_receipt_bytes,
+            max_total_state_bytes: usize::try_from(model.max_plan_work_bytes)
+                .map_err(|_| SourceCommandError::Invalid("initial schema state cap"))?,
+        },
+        initial_receipts,
+        schema_work,
+    )
+    .map_err(|_| SourceCommandError::Invalid("initial schema diagnostics limits"))?;
+    let validator = SourceCatalogValidator::from_cut_diagnostics_v2(
         &cut,
         &schema_worker_identity,
         schema_budget,
         schema_limits,
         schema_work,
+        diagnostics,
         deadline,
         &cancelled,
     )
     .map_err(|error| compiler_failure("schema-preparation", error))?;
+    validator
+        .set_diagnostics_v2_legacy_raw_instance_limit(source_file_bytes)
+        .map_err(|error| compiler_failure("schema-source-packet-limit", error))?;
 
     drop(schema_phase);
 

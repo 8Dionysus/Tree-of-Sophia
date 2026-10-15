@@ -542,7 +542,6 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             let output =
                 crate::source_bibliographic_navigation::prepare_navigation_record_from_catalog(
                     stage,
-                    receipt,
                     &mut versions,
                     &id,
                     entities,

@@ -5,9 +5,7 @@ use crate::knowledge_stage::KnowledgeStage;
 use crate::source_bibliographic::{self as graph, BibliographicForms, BibliographicLimits};
 use crate::source_bibliographic_render::{array, digest, encode, text};
 use crate::source_bibliographic_versions::{Version, Versions};
-use crate::source_witness_catalog::{
-    self as catalog, SourceCatalogReceipt, SourceCatalogValidator,
-};
+use crate::source_witness_catalog::{self as catalog, SourceCatalogValidator};
 use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
@@ -558,9 +556,11 @@ fn resolved(reference: &Value, version: Version) -> Value {
 /// already been sealed by the catalog owner; Versions additionally proves the
 /// independent current cut and every selected retained source read. Global
 /// navigation incidence, publication and admission remain caller-owned.
-pub(crate) fn prepare_navigation_record_from_catalog<B: catalog::CatalogInputBinding>(
+/// The enclosing navigation operation verifies the complete private catalog
+/// before and after projection. Each addressed seek still checks its digest;
+/// repeating the entire input census around every record adds corpus-wide I/O.
+pub(crate) fn prepare_navigation_record_from_catalog(
     stage: &mut KnowledgeStage<'_>,
-    receipt: &SourceCatalogReceipt<B>,
     versions: &mut Versions<'_, '_>,
     id: &str,
     entities: &Value,
@@ -569,7 +569,6 @@ pub(crate) fn prepare_navigation_record_from_catalog<B: catalog::CatalogInputBin
     l: BibliographicLimits,
 ) -> Result<NavigationRecordProjection> {
     l.validate()?;
-    versions.verify_catalog_binding(stage, receipt, l)?;
     let row = catalog::catalog_row(stage, "records", id, l.catalog)?
         .ok_or(Error::Invalid("navigation catalog record absent"))?;
     let entry = &row["entry"];
@@ -659,7 +658,6 @@ pub(crate) fn prepare_navigation_record_from_catalog<B: catalog::CatalogInputBin
         }
         output.check(l)?;
     }
-    versions.verify_catalog_binding(stage, receipt, l)?;
     Ok(output)
 }
 
