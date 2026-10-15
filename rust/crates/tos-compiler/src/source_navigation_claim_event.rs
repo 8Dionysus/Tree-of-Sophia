@@ -1836,6 +1836,7 @@ impl NavigationClaimDependencyRefreshCohortV1 {
                 cost.source_path == self.source_path.as_str()
                     && cost.stream_sha256 == self.claim_stream_sha256
                     && cost.owner_ids == self.event_claim_owner_ids
+                    && cost.rows_scanned == self.claim_stream_rows_scanned
             })
         {
             return Err(Error::Invalid(
@@ -1965,7 +1966,7 @@ impl NavigationClaimDependencyRefreshCohortV1 {
             &self.dependencies,
             &self.source_path,
             self.claim_stream_sha256,
-            self.claim_stream_rows_scanned,
+            self.history_stream_rows_scanned,
         )
     }
 }
@@ -2803,6 +2804,8 @@ pub struct NavigationClaimEventCohortV1 {
     event_claim_owner_ids: Vec<String>,
     claim_stream_sha256: Digest256,
     claim_stream_rows_scanned: u64,
+    // Actual additional archive scans; the shared current inventory is charged once.
+    history_stream_rows_scanned: u64,
     mutation_receipt_path: RelativePath,
     mutation_receipt_role: NavigationDependencyRoleV1,
     event_claim_set_binding: Digest256,
@@ -3018,6 +3021,8 @@ pub struct NavigationClaimDependencyRefreshCohortV1 {
     event_claim_owner_ids: Vec<String>,
     claim_stream_sha256: Digest256,
     claim_stream_rows_scanned: u64,
+    // Actual additional archive scans; the shared current inventory is charged once.
+    history_stream_rows_scanned: u64,
     proof: NavigationClaimDependencyRefreshProofV1,
     // The proof identifies one JSONL record; Event dependencies bind the whole file.
     // Its digest is already committed by dependency_root and the creation receipt.
@@ -3304,6 +3309,7 @@ impl NavigationClaimEventCohortV1 {
                 cost.source_path == self.source_path.as_str()
                     && cost.stream_sha256 == self.claim_stream_sha256
                     && cost.owner_ids == self.event_claim_owner_ids
+                    && cost.rows_scanned == self.claim_stream_rows_scanned
             })
             || !self.owner_inventory_scan_costs.iter().any(|cost| {
                 cost.source_path == self.mutation_source_path.as_str()
@@ -3466,7 +3472,7 @@ impl NavigationClaimEventCohortV1 {
             &self.dependencies,
             &self.source_path,
             self.claim_stream_sha256,
-            self.claim_stream_rows_scanned,
+            self.history_stream_rows_scanned,
         )
     }
 }
@@ -3721,7 +3727,7 @@ fn project_navigation_claim_event_core_v1(
             ));
         }
     }
-    let mut claim_stream_rows_scanned = 0u64;
+    let mut history_stream_rows_scanned = 0u64;
     let claim_schema_path = checked_path(input.claim_schema_path)?;
     if claim_schema_path.as_str() != "ToS/contracts/source-claim-record.schema.json" {
         return Err(Error::Invalid("navigation Claim schema owner path"));
@@ -3737,6 +3743,9 @@ fn project_navigation_claim_event_core_v1(
         ));
     }
     let claim_owner_ids = owner_stream.rows.keys().cloned().collect::<Vec<_>>();
+    // Persist the certified current stream size. Archive work is a separate
+    // per-cohort cost and must not replace (or inflate) this membership count.
+    let claim_stream_rows_scanned = claim_owner_ids.len() as u64;
     if claim_owner_ids != input.owner_claim_ids {
         return Err(Error::Invalid("navigation Claim owner inventory differs"));
     }
@@ -4147,7 +4156,7 @@ fn project_navigation_claim_event_core_v1(
         &dependencies,
         &source_files,
         limits,
-        &mut claim_stream_rows_scanned,
+        &mut history_stream_rows_scanned,
     )?;
     let history_sha256 = history_validation.history_sha256;
     let latest_revision_receipt_sha256 = history_validation.latest_revision_receipt_sha256;
@@ -4287,6 +4296,7 @@ fn project_navigation_claim_event_core_v1(
                 event_claim_owner_ids,
                 claim_stream_sha256,
                 claim_stream_rows_scanned,
+                history_stream_rows_scanned,
                 event_claim_set_binding,
                 event_claim_set_root,
                 affected_owner_manifest_root,
@@ -4381,6 +4391,7 @@ fn project_navigation_claim_event_core_v1(
                 event_claim_owner_ids,
                 claim_stream_sha256,
                 claim_stream_rows_scanned,
+                history_stream_rows_scanned,
                 proof,
                 provenance_event_file_sha256: creation_binding.event_file_sha256,
                 trace_sha256,
@@ -4481,6 +4492,7 @@ fn project_navigation_claim_event_core_v1(
                 event_claim_owner_ids,
                 claim_stream_sha256,
                 claim_stream_rows_scanned,
+                history_stream_rows_scanned,
                 proof,
                 provenance_event_file_sha256: creation_binding.event_file_sha256,
                 trace_sha256,
