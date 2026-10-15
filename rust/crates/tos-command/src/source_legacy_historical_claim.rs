@@ -1358,6 +1358,20 @@ fn package_revision(current: &LegacyPackage) -> SourceCommandResult<String> {
     source_revisions::revision(current)
 }
 
+fn validate_captured_request_bytes(raw: &[u8], request: &JsonValue) -> SourceCommandResult<()> {
+    // historical.create stores canonical command JSON followed by one LF.
+    // Its receipt binds those exact bytes; pretty source-form serialization
+    // belongs to another output contract and cannot reinterpret this capture.
+    let mut expected = cmd::canonical(request)?;
+    expected.push(b'\n');
+    if raw != expected {
+        return Err(SourceCommandError::Conflict(
+            "captured historical request bytes differ",
+        ));
+    }
+    Ok(())
+}
+
 fn validate_capture(
     current: &LegacyPackage,
     owner: &Owner,
@@ -1535,13 +1549,7 @@ fn validate_capture(
         }
     }
     let request_raw = current.get("source-create-request.json").ok_or(invalid())?;
-    let mut canonical_request = cmd::canonical(&request)?;
-    canonical_request.push(b'\n');
-    if request_raw != &canonical_request {
-        return Err(SourceCommandError::Conflict(
-            "captured historical request bytes differ",
-        ));
-    }
+    validate_captured_request_bytes(request_raw, &request)?;
     for claim in &original_claims {
         if cmd::text(claim, "schema_version")? != "tos_historical_claim_v1"
             || cmd::text(claim, "subject_ref")? != record_id
@@ -4803,6 +4811,8 @@ pub(crate) fn pg_current_owner_inventory_contribution(
         .ok_or(invalid())?;
     if cmd::text(&request, "schema_version")? != "tos_local_source_command_v1"
         || cmd::text(&request, "operation")? != "historical.create"
+        || cmd::field(&request, "expected_source")? != &JsonValue::Null
+        || cmd::field(&request, "expected_revision")? != &JsonValue::Null
         || !matches!(
             record_type,
             "historical-event" | "historical-process" | "historical-state"
@@ -4814,6 +4824,10 @@ pub(crate) fn pg_current_owner_inventory_contribution(
         || cmd::field(&receipt, "owner_configuration")?
             != cmd::field(&request, "expected_configuration")?
         || cmd::field(&receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
+        || !cmd::same(
+            cmd::field(&receipt, "source")?,
+            &source_forms::metadata_subject(record)?,
+        )?
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
         || record_path.rsplit_once('/').map(|pair| pair.0) != Some(home)
         || record_path.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
@@ -4826,12 +4840,12 @@ pub(crate) fn pg_current_owner_inventory_contribution(
                 .iter()
                 .map(String::as_str)
                 .collect::<BTreeSet<_>>()
-        || request_raw.as_slice() != cmd::published(&request)?.as_slice()
     {
         return Err(SourceCommandError::Conflict(
             "historical Claim retained creation receipt differs",
         ));
     }
+    validate_captured_request_bytes(request_raw, &request)?;
     let request_claims = cmd::array(&request, "claims")?;
     let request_ids = request_claims
         .iter()
@@ -5293,6 +5307,20 @@ fn historical_package_role(name: &str) -> SourceCommandResult<&'static str> {
 #[cfg(test)]
 mod pg_identity_selection_tests {
     use super::*;
+
+    #[test]
+    fn bootstrap_contract_captured_historical_request_keeps_command_serialization() {
+        let raw = "{\"operation\":\"historical.create\",\"record\":{\"label\":\"История\"},\"schema_version\":\"tos_local_source_command_v1\"}\n".as_bytes();
+        let request = cmd::parse(raw).unwrap();
+        assert!(validate_captured_request_bytes(raw, &request).is_ok());
+        assert!(
+            validate_captured_request_bytes(&cmd::published(&request).unwrap(), &request).is_err()
+        );
+        assert!(validate_captured_request_bytes(&raw[..raw.len() - 1], &request).is_err());
+        let mut changed = request.clone();
+        cmd::set(&mut changed, "operation", cmd::string("changed")).unwrap();
+        assert!(validate_captured_request_bytes(raw, &changed).is_err());
+    }
 
     fn current_package() -> LegacyPackage {
         BTreeMap::from([(

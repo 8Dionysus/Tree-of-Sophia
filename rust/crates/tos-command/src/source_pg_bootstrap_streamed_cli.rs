@@ -686,7 +686,7 @@ mod initial_schema_budget_tests {
     use super::*;
 
     #[test]
-    fn selected_initial_envelope_retains_aggregate_execution_bounds() {
+    fn bootstrap_contract_selected_initial_envelope_retains_aggregate_execution_bounds() {
         let budgets = json!({"max_schema_receipts": 4096,
             "max_schema_receipt_bytes": 2097152, "worker_cpu_seconds": 60,
             "worker_address_space_bytes": 1073741824});
