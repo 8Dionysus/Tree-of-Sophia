@@ -2139,9 +2139,8 @@ connection, without changing its progress hook or transaction policy.
 
 Logical allocation bounds include transport buffers and typed row state.
 SQLite heap/sort work, Python allocator overhead, thread stack and process RSS
-remain physical admission and measurement obligations. The legacy Python
-emitter resides in `native_edge_capture_oracle.py` solely for retained
-differential fixtures; production capture has no oracle fallback. If helper
+remain physical admission and measurement obligations. The native encoder
+owns logical emission. If helper
 cleanup is unproven, `CaptureCustodyError.borrowed_custody` transfers the original
 views, frames and descriptors to the caller's outer holder. The caller must
 retain that custody until its exclusive supervisor proves cleanup; final v2

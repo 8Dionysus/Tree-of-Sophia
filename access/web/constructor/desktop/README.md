@@ -2,7 +2,7 @@
 
 Этот запуск открывает философский макет в отдельном окне Chromium. Он использует
 собственный профиль и сохранённое рабочее пространство. Обычные окна и профили
-браузера, старый стенд на порту 44338 и сохранённый `snapshot-v1` остаются отдельными.
+браузера остаются отдельными.
 Это локальная упаковка демо, без публикации и без официальной подписи приложения.
 
 ## Подготовка
@@ -11,16 +11,19 @@
 владелец ресурсов `abyss-machine`. Для установки требуется `desktop-file-validate`.
 Причина отказа запуска остаётся в журнале и stderr. Зависимости установщик не устанавливает.
 
-Сначала соберите и проверьте **неизменяемый** релиз в
-`/srv/abyss-machine/storage/artifacts/tos-sophia-demo/releases/meaning-v2`.
+Сначала соберите и проверьте **неизменяемый** релиз в явно выбранном каталоге.
 В нём нужны `constructor.html`, `library.json` и каталог `assets/`.
 Установщик запоминает точный путь и SHA-256 всех файлов, доступных по HTTP.
 Символические ссылки для переключения релиза не используются.
 
 ```sh
-tos-constructor-desktop install
-# Проверив показанные пути:
-tos-constructor-desktop install --install
+tos-constructor-desktop install \
+  --application-root /absolute/application \
+  --release /absolute/release \
+  --runtime-root /absolute/runtime \
+  --cache-root /absolute/cache \
+  --browser /absolute/chromium
+# Проверив показанные пути, повторите команду с --install.
 ```
 
 Установка добавляет запись «Древо Софии — демо» в меню приложений, компактную
@@ -28,8 +31,8 @@ tos-constructor-desktop install --install
 Она не запускает сервер или браузер, не включает автозапуск и не создаёт профиль
 или дисковый кэш. Перед первым запуском владелец хоста должен допустить и
 зарезервировать их запись: профиль напрямую в
-`/srv/abyss-machine/runtimes/tos-sophia-demo/profile`, кэш отдельно в
-`/srv/abyss-machine/cache/tos-sophia-demo`. Лимит дискового кэша Chromium — 32 MiB;
+`profile` внутри выбранного `--runtime-root`, кэш отдельно в
+выбранном `--cache-root`. Лимит дискового кэша Chromium — 32 MiB;
 размер профиля зависит от Chromium и сохранённых пользовательских данных.
 
 ## Запуск и проверка
@@ -62,8 +65,8 @@ journalctl --user -u tos-sophia-demo.service -n 30
 systemctl --user stop tos-sophia-demo.service
 ```
 
-Журналы `server.log`, `browser.log` и `launcher.log` расположены под
-`/srv/abyss-machine/runtimes/tos-sophia-demo`. Остановка сервера не закрывает
+Журналы `server.log`, `browser.log` и `launcher.log` расположены в
+каталоге `--runtime-root`. Остановка сервера не закрывает
 браузер; вкладка сможет продолжить работу после следующего запуска сервера.
 Служба не включена на вход в систему и завершается вместе с сеансом пользователя.
 
@@ -72,10 +75,8 @@ systemctl --user stop tos-sophia-demo.service
 Для обновления сначала сохраните прежний релиз и пользовательское рабочее
 пространство, затем явно остановите эту службу. Укажите новый проверенный каталог:
 
-```sh
-tos-constructor-desktop install --release /absolute/path/to/release
-tos-constructor-desktop install --release /absolute/path/to/release --install --replace
-```
+Повторите команду из раздела подготовки с новым `--release`, сохранив пути
+приложения, профиля и кэша. После проверки добавьте `--install --replace`.
 
 Изменение файлов уже запущенного релиза не является обновлением: launcher
 обнаружит несовпадение digest. Установщик откажется менять активную установку.

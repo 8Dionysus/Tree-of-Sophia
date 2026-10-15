@@ -9,9 +9,8 @@ tos-release-check --repo-root "$PWD" --phase tests
 For a changed source builder or validator, run the affected native owner test
 module or command. Ordinary ToS source and command behavior is covered by Rust
 owner tests and the `rust_workspace` route. Python's default test discovery is
-limited to the standalone SDK tests under `access/tests`. Tests marked
-`data_release` require an explicitly selected `TOS_DATA_ROOT` and belong to
-that data release; they are not part of the software command.
+limited to the standalone SDK tests under `access/tests`. Native tests marked `#[ignore = "data_release: ..."]` require an explicitly
+selected `TOS_DATA_ROOT` and belong to that data release.
 
 With that complete source snapshot explicitly selected, run the native data
 checks separately. Missing required private layers fail the selected private-data
@@ -25,9 +24,9 @@ cargo test --locked -p tos-ops-mechanics-plan table_one_and_two_language_packets
 cargo test --locked -p tos-ops-mechanics-plan --test source_routes_native current_source_routes_run_natively_and_preserve_authority_bounds -- --ignored
 ```
 
-Prior Python assertions and acquisition references are retained as nonexecutable
-`.py.snapshot` files under `tests/historical/`. Their maintained behavior runs through
-the native owner tests above. They are not a second validation route.
+The acquisition and XML reference material linked by the owner routes remains
+under `tests/historical/`. Superseded Python tests are available in Git history;
+their maintained behavior runs through the native owner tests above.
 
 The ignored `actual_native_corpus_managed_installed_consumer` case requires
 explicit installed native products and host resource admission. Its producer

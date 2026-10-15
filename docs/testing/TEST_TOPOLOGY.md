@@ -53,9 +53,9 @@ Python-only discovery/import helpers are retired. Cargo discovers Rust
 library and integration tests in their crate homes; navigation coverage is
 optional under TOS-D-0062.
 
-The remaining root Python assertions, acquisition references and HTTP bootstrap
-are retained byte-for-byte as `.py.snapshot` history under `tests/historical/`.
-Their maintained successors are the existing native owners:
+Superseded root Python assertions and the HTTP bootstrap remain in Git history.
+`tests/historical/` retains only acquisition and XML reference material linked
+by the owner routes. Maintained behavior belongs to the native owners:
 
 - Root entry and release routes: `tos-ops-mechanics-plan` documentation checks.
 - Node contracts: `tree_nodes` and `source_routes_native`.

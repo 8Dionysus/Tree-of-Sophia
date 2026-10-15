@@ -1,9 +1,7 @@
 //! Standalone native prepared-dossier dispatch. Whole-process custody is the
 //! existing philosophy executor; source, work and IO share ResearchExecution.
 use crate::prepared_dossier_native::{NativePreparedDossierInputs, run_native};
-use crate::prepared_dossier_readiness::{
-    DEFAULT_DOC_ROOT, OBSERVATORY_TABLE_CHOICES, PreparedSourceProfile,
-};
+use crate::prepared_dossier_readiness::{OBSERVATORY_TABLE_CHOICES, PreparedSourceProfile};
 use serde_json::Value;
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
@@ -23,28 +21,25 @@ fn help_requested(args: &[String]) -> bool {
     args.iter()
         .any(|argument| matches!(argument.as_str(), "--help" | "-h"))
 }
-fn help_text() -> String {
-    format!(
-        concat!(
-            "Usage: tos-ops-mechanics-plan --prepared-dossier [OPTIONS]\n",
-            "Inspect or run prepared philosophy dossier planting.\n\n",
-            "Source and output:\n",
-            "  --source-root PATH       Selected repository root (required)\n",
-            "  --doc-root PATH          DOCX root (default: {})\n",
-            "  --output-root PATH       Output root (default: source root)\n",
-            "  --source-profile NAME    tos_legacy_python_observed_json_v1 or tos_published_json_v1\n",
-            "                           Default: tos_legacy_python_observed_json_v1\n",
-            "  --max-seconds N          Whole-operation deadline (default: 600; range: 1..3600)\n",
-            "  --scratch-bytes N        Reserved scratch space (default: 268435456; must be positive)\n\n",
-            "Prepared dossiers:\n",
-            "  --table TABLE            Limit readiness output to one master-table package; planting is aggregate-only.\n",
-            "                           Choices: table-i, table-ii, table-iii\n",
-            "  --readiness              Print planting readiness JSON and exit.\n",
-            "  --plant                  Run the supported planting package.\n\n",
-            "Value options accept --option=value; boolean flags do not.\n",
-            "-h, --help                 Show this help and exit.\n"
-        ),
-        DEFAULT_DOC_ROOT
+fn help_text() -> &'static str {
+    concat!(
+        "Usage: tos-ops-mechanics-plan --prepared-dossier [OPTIONS]\n",
+        "Inspect or run prepared philosophy dossier planting.\n\n",
+        "Source and output:\n",
+        "  --source-root PATH       Selected repository root (required)\n",
+        "  --doc-root PATH          Selected DOCX root (required)\n",
+        "  --output-root PATH       Output root (default: source root)\n",
+        "  --source-profile NAME    tos_legacy_python_observed_json_v1 or tos_published_json_v1\n",
+        "                           Default: tos_legacy_python_observed_json_v1\n",
+        "  --max-seconds N          Whole-operation deadline (default: 600; range: 1..3600)\n",
+        "  --scratch-bytes N        Reserved scratch space (default: 268435456; must be positive)\n\n",
+        "Prepared dossiers:\n",
+        "  --table TABLE            Limit readiness output to one master-table package; planting is aggregate-only.\n",
+        "                           Choices: table-i, table-ii, table-iii\n",
+        "  --readiness              Print planting readiness JSON and exit.\n",
+        "  --plant                  Run the supported planting package.\n\n",
+        "Value options accept --option=value; boolean flags do not.\n",
+        "-h, --help                 Show this help and exit.\n"
     )
 }
 fn set_once<T>(slot: &mut Option<T>, value: T, name: &str) -> Result<(), String> {
@@ -151,7 +146,7 @@ fn options(args: &[String]) -> Result<Options, String> {
         }
     }
     let repository_root = repository_root.ok_or("--source-root is required")?;
-    let doc_root = doc_root.unwrap_or_else(|| PathBuf::from(DEFAULT_DOC_ROOT));
+    let doc_root = doc_root.ok_or("--doc-root is required")?;
     let output_root = output_root.unwrap_or_else(|| repository_root.clone());
     for (path, label) in [
         (&repository_root, "source-root"),
@@ -167,8 +162,7 @@ fn options(args: &[String]) -> Result<Options, String> {
             "prepared-dossier max-seconds must be 1..3600 and scratch-bytes positive".into(),
         );
     }
-    // This is the explicit source decoding profile of the maintained Python
-    // caller, not a fallback after strict parsing fails.
+    // Preserve the declared source decoding profile of retained inputs.
     let source_profile = source_profile.unwrap_or(PreparedSourceProfile::LegacyPythonObserved);
     Ok(Options {
         inputs: NativePreparedDossierInputs {

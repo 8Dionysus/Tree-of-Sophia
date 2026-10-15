@@ -95,7 +95,7 @@ questions and comparisons, not admitted ToS nodes, quotations or canon. The
 fixture does not change the source corpus, accepted graph or review history.
 
 A bounded selection of existing source materials can come from the private
-`library.json` built by `tos-constructor-library`. The exact DE/RU text, source addresses,
+`library.json` built by `tos-constructor-library --source-repo REPO --demo-packet DEMO --output LIBRARY`. The exact DE/RU text, source addresses,
 speaker context and three prepared English demo translations are retained.
 Other archival passages remain available to the library builder but are not
 used as the mockup's main reading surface. Source text is not committed here.

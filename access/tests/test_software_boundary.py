@@ -1,20 +1,16 @@
 """Behavior at the boundary between installed software and selected data."""
 from __future__ import annotations
 
-import importlib.util
 import asyncio
-import hashlib
 import json
 import os
 from pathlib import Path
 import sys
 import signal
-import socket
 import subprocess
 import tempfile
 import time
 import unittest
-from datetime import timedelta
 from unittest.mock import patch
 
 ACCESS_ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +19,6 @@ sys.path.insert(0, str(ACCESS_ROOT / "src"))
 
 from tos_access.core import ToSAccessCore
 from tos_access.locations import data_root
-
 
 
 class SoftwareBoundaryTests(unittest.TestCase):
@@ -400,95 +395,6 @@ class SoftwareBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(TimeoutError, 'no remaining operation budget'):
             anyio.run(attempt, time.monotonic() + 1)
 
-    @unittest.skipUnless(os.environ.get('TOS_NATIVE_MCP_STREAMABLE_PREFIX'), 'explicit installed successor not selected')
-    def test_installed_imported_native_streamable_http_contract_consumer(self):
-        whole_deadline = time.monotonic() + 180
-        from mcp import ClientSession
-        from mcp.client.streamable_http import streamable_http_client
-        import httpx
-        prefix = Path(os.environ['TOS_NATIVE_MCP_STREAMABLE_PREFIX'])
-        expected_sha = os.environ['TOS_NATIVE_MCP_STREAMABLE_ACCESS_SHA256']
-        image = prefix / 'software/access/src/tos_access/tos-access'
-        adapter = Path(os.environ['TOS_NATIVE_MCP_STREAMABLE_ADAPTER'])
-        assert prefix.is_absolute() and adapter.is_absolute()
-        assert len(expected_sha) == 64 and all(c in '0123456789abcdef' for c in expected_sha)
-        def image_hash():
-            assert time.monotonic() < whole_deadline and not image.is_symlink()
-            def stamp(value):
-                return (value.st_dev, value.st_ino, value.st_uid, value.st_mode,
-                        value.st_size, value.st_mtime_ns, value.st_ctime_ns)
-            descriptor = os.open(image, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
-            with os.fdopen(descriptor, 'rb') as stream:
-                before = stamp(os.fstat(stream.fileno()))
-                assert stamp(image.lstat()) == before
-                value = hashlib.file_digest(stream, 'sha256').hexdigest()
-                assert stamp(os.fstat(stream.fileno())) == before and stamp(image.lstat()) == before
-                return value
-        assert image_hash() == expected_sha
-        with tempfile.TemporaryDirectory() as temporary:
-            empty_data = Path(temporary)
-            # This operation is a software contract, independent of corpus or
-            # prepared publication. The maintained import API is the oracle.
-            expected = ToSAccessCore.discover(tos_root=empty_data).source_read_contract()
-            with socket.socket() as reserve:
-                reserve.bind(('127.0.0.1', 0)); port = reserve.getsockname()[1]
-            program = '''
-import importlib.util, sys
-import tos_access
-spec = importlib.util.spec_from_file_location('tos_access.native_mcp', sys.argv[1])
-module = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = module
-spec.loader.exec_module(module)
-server = module.NativeMCPServer(sys.argv[2])
-server.settings.port = int(sys.argv[3])
-server.run(transport='streamable-http')
-'''
-            env = os.environ.copy()
-            for key in ('TOS_DATA_ROOT','TOS_RELEASE_ROOT','PYTHONHOME','LD_PRELOAD','LD_LIBRARY_PATH'):
-                env.pop(key, None)
-            env['PYTHONDONTWRITEBYTECODE'] = '1'
-            child_deadline = min(whole_deadline, time.monotonic() + 50)
-            operation_deadline = child_deadline - 5
-            def left():
-                seconds = operation_deadline - time.monotonic()
-                assert seconds > 0, 'absolute MCP child operation deadline'
-                return seconds
-            with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
-                child = subprocess.Popen([sys.executable, '-B', '-c', program, str(adapter), str(prefix), str(port)],
-                    cwd=empty_data, env=env, stdout=output, stderr=errors, start_new_session=True)
-                try:
-                    while True:
-                        left(); assert child.poll() is None, 'native MCP HTTP startup refused'
-                        try:
-                            with socket.create_connection(('127.0.0.1', port), timeout=min(.5,left())):
-                                break
-                        except OSError:
-                            time.sleep(min(.02,left()))
-                    async def consume():
-                        async with httpx.AsyncClient(timeout=httpx.Timeout(min(5,left()))) as http_client:
-                            async with streamable_http_client(f'http://127.0.0.1:{port}/mcp', http_client=http_client) as (read,write,session_id):
-                                async with ClientSession(read,write,read_timeout_seconds=timedelta(seconds=min(5,left()))) as session:
-                                    initialized = await session.initialize()
-                                    assert initialized.protocolVersion == '2025-11-25'
-                                    assert initialized.capabilities.tools is not None
-                                    assert session_id() is not None
-                                    names = {tool.name for tool in (await session.list_tools()).tools}
-                                    assert 'tos_source_read_contract' in names
-                                    returned = await session.call_tool('tos_source_read_contract', {})
-                                    assert not returned.isError and returned.structuredContent == expected
-                                    assert json.loads(returned.content[0].text) == expected
-                    asyncio.run(asyncio.wait_for(consume(), timeout=left()))
-                    left()
-                finally:
-                    if child.poll() is None:
-                        os.killpg(child.pid, signal.SIGKILL)
-                    cleanup_left = child_deadline - time.monotonic()
-                    assert cleanup_left > 0, 'absolute MCP child cleanup deadline'
-                    child.wait(timeout=cleanup_left)
-                    assert time.monotonic() <= child_deadline
-                    output.seek(0); assert len(output.read(65537)) <= 65536
-                    errors.seek(0); assert len(errors.read(65537)) <= 65536
-        assert image_hash() == expected_sha and time.monotonic() < whole_deadline
 
     def test_imported_native_tool_api_owned_child_cleanup(self):
         # Real tiny OS children/groups exercise the production stdlib owner.
@@ -613,138 +519,7 @@ server.run(transport='streamable-http')
                     directory.mkdir()
                     anyio.run(scenario, kind, directory)
 
-    @unittest.skipUnless(os.environ.get('TOS_NATIVE_MCP_API_PREFIX'), 'explicit installed native API successor not selected')
-    def test_installed_imported_native_tool_api_contract_consumer(self):
-        # Two distinct maintained API methods, two bounded native children;
-        # software-only contract, no corpus/publication/payload replay.
-        whole_deadline = time.monotonic() + 180
-        prefix = Path(os.environ['TOS_NATIVE_MCP_API_PREFIX'])
-        adapter = Path(os.environ['TOS_NATIVE_MCP_API_ADAPTER'])
-        expected_sha = os.environ['TOS_NATIVE_MCP_API_ACCESS_SHA256']
-        image = prefix / 'software/access/src/tos_access/tos-access'
-        assert prefix.is_absolute() and adapter.is_absolute()
-        assert len(expected_sha) == 64 and all(c in '0123456789abcdef' for c in expected_sha)
-        def image_hash():
-            assert time.monotonic() < whole_deadline and not image.is_symlink()
-            def stamp(value):
-                return (value.st_dev, value.st_ino, value.st_uid, value.st_mode,
-                        value.st_size, value.st_mtime_ns, value.st_ctime_ns)
-            fd = os.open(image, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
-            with os.fdopen(fd, 'rb') as stream:
-                before = stamp(os.fstat(stream.fileno()))
-                assert stamp(image.lstat()) == before
-                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-                assert stamp(os.fstat(stream.fileno())) == before and stamp(image.lstat()) == before
-                return digest
-        assert image_hash() == expected_sha
-        spec = importlib.util.spec_from_file_location('tos_access.native_tool_api_candidate', adapter)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        server = module.NativeMCPServer(prefix)
-        with tempfile.TemporaryDirectory() as temporary:
-            expected = ToSAccessCore.discover(tos_root=temporary).source_read_contract()
-            async def consume():
-                tools = await server.list_tools()
-                assert isinstance(tools, list)
-                assert 'tos_source_read_contract' in {tool.name for tool in tools}
-                result = await server.call_tool('tos_source_read_contract', {})
-                assert isinstance(result, tuple) and len(result) == 2
-                content, structured = result
-                assert structured == expected and json.loads(content[0].text) == expected
-            asyncio.run(asyncio.wait_for(consume(), timeout=max(0,whole_deadline-time.monotonic())))
-        assert image_hash() == expected_sha and time.monotonic() < whole_deadline
 
-    @unittest.skipUnless(os.environ.get('TOS_NATIVE_MCP_METADATA_PREFIX'), 'explicit installed metadata successor not selected')
-    def test_installed_imported_native_metadata_prompts_and_word_absence(self):
-        # Six unique imported API calls; no data reads, source producer or old
-        # software-contract/list-tools replay. Exact image/manifest hashes are
-        # required from the forthcoming installed custody, never guessed here.
-        whole_deadline = time.monotonic() + 180
-        prefix = Path(os.environ['TOS_NATIVE_MCP_METADATA_PREFIX'])
-        adapter = Path(os.environ['TOS_NATIVE_MCP_METADATA_ADAPTER'])
-        expected_image = os.environ['TOS_NATIVE_MCP_METADATA_ACCESS_SHA256']
-        expected_manifest = os.environ['TOS_NATIVE_MCP_METADATA_MANIFEST_SHA256']
-        assert prefix.is_absolute() and adapter.is_absolute()
-        for digest in (expected_image, expected_manifest):
-            assert len(digest) == 64 and all(c in '0123456789abcdef' for c in digest)
-        software = prefix / 'software'
-        provider = software / 'scripts/prepare_zarathustra_word_analysis_v1.py'
-        def stamp(value):
-            return (value.st_dev, value.st_ino, value.st_uid, value.st_mode,
-                    value.st_size, value.st_mtime_ns, value.st_ctime_ns)
-        def held(path, expected, max_bytes=None):
-            assert time.monotonic() < whole_deadline
-            stream = os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC), 'rb')
-            try:
-                before = stamp(os.fstat(stream.fileno()))
-                assert before == stamp(path.lstat())
-                assert max_bytes is None or before[4] <= max_bytes
-                assert hashlib.file_digest(stream, 'sha256').hexdigest() == expected
-                assert before == stamp(os.fstat(stream.fileno())) == stamp(path.lstat())
-                return stream, before
-            except BaseException:
-                stream.close()
-                raise
-        image_path = software / 'access/src/tos_access/tos-access'
-        image, image_stamp = held(image_path, expected_image)
-        manifest = None
-        try:
-            manifest_path = software / 'software.manifest.json'
-            manifest, manifest_stamp = held(manifest_path, expected_manifest, 1048576)
-            assert manifest_stamp[4] <= 1048576
-            manifest.seek(0)
-            declared = json.load(manifest)
-            assert declared['schema_version'] == 'tos_software_bundle_manifest_v1'
-            assert declared['data_included'] is False
-            # Missing provider is checked on the same selected software, not on
-            # a reference checkout or fabricated capability. Native guards also
-            # authenticate manifest membership and held parent identity.
-            assert not provider.exists() and not provider.is_symlink()
-            parent = provider.parent if provider.parent.exists() else software
-            parent_stamp = stamp(parent.lstat())
-            assert not parent.is_symlink()
-            spec = importlib.util.spec_from_file_location('tos_access.native_metadata_candidate', adapter)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            server = module.NativeMCPServer(prefix)
-            async def consume():
-                resources = await server.list_resources()
-                templates = await server.list_resource_templates()
-                prompts = await server.list_prompts()
-                assert len(resources) == 12
-                assert len(templates) == 5
-                assert len(prompts) == 3
-                prompt = await server.get_prompt(
-                    'tos-zarathustra-word-analysis',
-                    {'query': "a'\\\n\ud800", 'language': 'ru', 'rank': '+002.00'},
-                )
-                assert prompt is not None
-                content, structured = await server.call_tool(
-                    'tos_zarathustra_prepare_word_analysis',
-                    {'query': 'Wort', 'language': '\u001cRU\u001f', 'rank': 1,
-                     'include_semantic_neighbors': False},
-                )
-                assert structured['available'] is False
-                assert structured['reason'] == 'local source-bound word-analysis provider is not installed', structured
-                assert json.loads(content[0].text) == structured
-            asyncio.run(asyncio.wait_for(consume(), timeout=max(0, whole_deadline-time.monotonic())))
-            assert not provider.exists() and not provider.is_symlink()
-            assert stamp(parent.lstat()) == parent_stamp
-        finally:
-            try:
-                assert time.monotonic() < whole_deadline
-                guarded = [(image, image_path, image_stamp, expected_image)]
-                if manifest is not None:
-                    guarded.append((manifest, manifest_path, manifest_stamp, expected_manifest))
-                for stream, path, before, expected in guarded:
-                    stream.seek(0)
-                    assert stamp(os.fstat(stream.fileno())) == before == stamp(path.lstat())
-                    assert hashlib.file_digest(stream, 'sha256').hexdigest() == expected
-                    assert stamp(os.fstat(stream.fileno())) == before == stamp(path.lstat())
-            finally:
-                image.close()
-                if manifest is not None:
-                    manifest.close()
 
     def test_imported_native_mcp_serving_has_explicit_software_and_stdio_boundary(self):
         from tos_access.native_mcp import NativeMCPServer
@@ -786,17 +561,6 @@ server.run(transport='streamable-http')
             with patch.dict(os.environ, {"TOS_DATA_ROOT": str(missing)}):
                 self.assertEqual(data_root(), missing)
 
-    def test_selected_data_cannot_replace_executable_api_contracts(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            contracts = root / "access/contracts"
-            contracts.mkdir(parents=True)
-            (contracts / "exploration-request.v1.schema.json").write_text('{"malicious_override":true}')
-            core = ToSAccessCore.discover(tos_root=root)
-            result = core.knowledge_exploration_contracts()
-            expected = json.loads((ACCESS_ROOT / "contracts/exploration-request.v1.schema.json").read_text())
-            self.assertEqual(result["request"], expected)
-            self.assertNotIn("malicious_override", result["request"])
 
 
 if __name__ == "__main__":

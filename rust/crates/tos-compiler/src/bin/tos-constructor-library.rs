@@ -10,12 +10,6 @@ use std::{
     process,
 };
 
-const DEFAULT_SOURCE: &str = "/srv/AbyssOS/Tree-of-Sophia";
-const DEFAULT_DEMO: &str =
-    "/srv/abyss-machine/storage/artifacts/tos-eternal-return-demo-20260910/demo-data.json";
-const DEFAULT_OUTPUT: &str =
-    "/srv/abyss-machine/storage/artifacts/tos-tree-constructor-20260910/library.json";
-
 struct Args {
     repo: PathBuf,
     demo: PathBuf,
@@ -25,26 +19,32 @@ struct Args {
 }
 
 fn usage() -> &'static str {
-    "Usage: tos-constructor-library [--source-repo PATH] [--demo-packet PATH] [--output PATH] [--builder-repo PATH] [--check]"
+    "Usage: tos-constructor-library --source-repo PATH --demo-packet PATH --output PATH [--builder-repo PATH] [--check]"
 }
 
 fn parse_args() -> Result<Args, String> {
-    let mut repo = PathBuf::from(DEFAULT_SOURCE);
-    let mut demo = PathBuf::from(DEFAULT_DEMO);
-    let mut output = PathBuf::from(DEFAULT_OUTPUT);
+    let mut repo = None;
+    let mut demo = None;
+    let mut output = None;
     let mut builder = None;
     let mut check = false;
     let mut args = env::args_os().skip(1);
     while let Some(argument) = args.next() {
         match argument.to_str() {
             Some("--source-repo") => {
-                repo = PathBuf::from(args.next().ok_or("--source-repo requires a path")?)
+                repo = Some(PathBuf::from(
+                    args.next().ok_or("--source-repo requires a path")?,
+                ))
             }
             Some("--demo-packet") => {
-                demo = PathBuf::from(args.next().ok_or("--demo-packet requires a path")?)
+                demo = Some(PathBuf::from(
+                    args.next().ok_or("--demo-packet requires a path")?,
+                ))
             }
             Some("--output") => {
-                output = PathBuf::from(args.next().ok_or("--output requires a path")?)
+                output = Some(PathBuf::from(
+                    args.next().ok_or("--output requires a path")?,
+                ))
             }
             Some("--builder-repo") => {
                 builder = Some(PathBuf::from(
@@ -60,9 +60,9 @@ fn parse_args() -> Result<Args, String> {
         }
     }
     Ok(Args {
-        repo,
-        demo,
-        output,
+        repo: repo.ok_or("--source-repo is required")?,
+        demo: demo.ok_or("--demo-packet is required")?,
+        output: output.ok_or("--output is required")?,
         builder,
         check,
     })
