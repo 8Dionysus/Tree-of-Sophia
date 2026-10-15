@@ -3,7 +3,7 @@
 //! grants authority to remove an unlisted path.
 
 use crate::source_command::{SourceCommandError as Error, SourceCommandResult as Result};
-use crate::source_creation_store::{IsolatedCreationRoot, MAX_FILES, active, inode, owned};
+use crate::source_creation_store::{IsolatedCreationRoot, active, inode, owned};
 use rustix::fs::{AtFlags, Dir, unlinkat};
 use std::collections::BTreeSet;
 use std::fs::{File, Metadata};
@@ -21,7 +21,8 @@ const SNAPSHOT_FILE: &str = "snapshot.json";
 const PRIVATE_DIR_MODE: u32 = 0o700;
 const IMMUTABLE_FILE_MODE: u32 = 0o444;
 const PRIVATE_INPUT_MODE: u32 = 0o400;
-pub(crate) const MAX_MANAGED_SOURCE_CUT_CLEANUP_ENTRIES_V1: usize = MAX_FILES * 8;
+pub(crate) const MAX_MANAGED_SOURCE_CUT_CLEANUP_ENTRIES_V1: usize =
+    crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES;
 const MAX_HOST_EXPORT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 /// Explicit limits for inventorying and removing the staged export.
@@ -51,16 +52,18 @@ struct DirectoryEntry {
 struct FileEntry {
     parent: usize,
     name: String,
-    file: File,
     identity: (u64, u64),
+    timestamps: (i64, i64, i64, i64),
     uid: u32,
     mode: u32,
     size_bytes: u64,
     sha256: Digest256,
 }
 
-/// Descriptor-bound record of every known file and directory in the staged
-/// source export. It intentionally is not serializable or cloneable.
+/// Parent-descriptor-bound inventory of the staged source export. Only the
+/// fixed-layout directories remain open; files are reopened one at a time and
+/// matched by inode, timestamps, metadata and digest before cleanup. It
+/// intentionally is not serializable or cloneable.
 pub(crate) struct ManagedSourceCutCleanupManifestV1 {
     root: File,
     root_identity: (u64, u64),
@@ -582,8 +585,13 @@ fn capture_file(
     Ok(FileEntry {
         parent,
         name,
-        file,
         identity,
+        timestamps: (
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+            metadata.ctime(),
+            metadata.ctime_nsec(),
+        ),
         uid: metadata.uid(),
         mode,
         size_bytes,
@@ -781,7 +789,12 @@ fn verify_file_entry(
         || metadata.mode() & 0o777 != entry.mode
         || metadata.len() != entry.size_bytes
         || metadata.nlink() != 1
-        || inode(&owned(&entry.file, uid, false)?) != entry.identity
+        || (
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+            metadata.ctime(),
+            metadata.ctime_nsec(),
+        ) != entry.timestamps
     {
         return Err(Error::Conflict("navigation cleanup file identity changed"));
     }
@@ -797,5 +810,73 @@ fn directory_file(manifest: &ManagedSourceCutCleanupManifestV1, index: usize) ->
         &manifest.root
     } else {
         &manifest.directories[index - 1].file
+    }
+}
+
+#[cfg(test)]
+mod streamed_cleanup_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    #[test]
+    fn bootstrap_contract_export_cleanup_keeps_bounded_descriptors_and_refuses_drift() {
+        let temp = tempfile::tempdir().unwrap();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let limits = ManagedSourceCutCleanupLimitsV1 {
+            max_entries: 40_000,
+            max_total_bytes: 1024 * 1024,
+            max_file_bytes: 1024,
+        };
+        for adversarial in [false, true] {
+            let isolated = IsolatedCreationRoot::create(temp.path(), deadline, &cancelled).unwrap();
+            let export = isolated.path().join(EXPORT_DIR);
+            let objects = export.join("objects");
+            for path in [&export, &objects, &export.join("revisions")] {
+                std::fs::create_dir(path).unwrap();
+                std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+            }
+            let mut first = None;
+            for index in 0..256 {
+                let raw = format!("source member {index}");
+                let path = objects.join(Digest256::of_bytes(raw.as_bytes()).to_hex());
+                std::fs::write(&path, &raw).unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o444)).unwrap();
+                first.get_or_insert(path);
+            }
+            let manifest = capture_partial_managed_source_cut_cleanup_v1(
+                &isolated, None, limits, deadline, &cancelled,
+            )
+            .unwrap();
+            let held = std::fs::read_dir("/proc/self/fd")
+                .unwrap()
+                .filter_map(|entry| std::fs::read_link(entry.ok()?.path()).ok())
+                .filter(|path| path.starts_with(isolated.path()))
+                .count();
+            assert!(
+                held < 16,
+                "cleanup retained {held} descriptors for 256 members"
+            );
+            if adversarial {
+                let unknown = objects.join("unknown");
+                std::fs::write(&unknown, b"unlisted").unwrap();
+                assert!(verify_inventory(&manifest, deadline, &cancelled).is_err());
+                std::fs::remove_file(unknown).unwrap();
+                let path = first.unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+                std::fs::write(&path, b"changed content").unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o444)).unwrap();
+                assert!(
+                    cleanup_managed_source_cut_export_v1(&isolated, manifest, deadline, &cancelled)
+                        .is_err()
+                );
+                assert_eq!(std::fs::read_dir(&objects).unwrap().count(), 256);
+            } else {
+                cleanup_managed_source_cut_export_v1(&isolated, manifest, deadline, &cancelled)
+                    .unwrap();
+                assert_eq!(std::fs::read_dir(isolated.path()).unwrap().count(), 0);
+            }
+        }
     }
 }
