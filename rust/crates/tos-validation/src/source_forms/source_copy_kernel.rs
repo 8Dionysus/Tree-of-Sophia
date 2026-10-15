@@ -133,13 +133,6 @@ fn reference(v: &JsonValue, id: &str, version: &str) -> Result<JsonValue> {
     ]))
 }
 
-fn record_reference(id: &str, version: u64, body: &JsonValue) -> Result<JsonValue> {
-    Ok(object(vec![
-        ("id", string(id)),
-        ("version", number(version)),
-        ("digest", string(&record_digest(body)?.to_prefixed())),
-    ]))
-}
 pub fn form_reference(form: &JsonValue) -> Result<JsonValue> {
     reference(form, "form_id", "form_version")
 }

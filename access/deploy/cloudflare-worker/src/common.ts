@@ -80,11 +80,3 @@ export function jsonResponse(payload: unknown, status = 200, method = "GET"): Re
   headers.set("Cache-Control", "no-store");
   return new Response(method === "HEAD" ? null : JSON.stringify(payload), { status, headers });
 }
-
-export function matchesMask(rowMask: number, filterMask: number | null): boolean {
-  return filterMask === null || (rowMask & filterMask) !== 0;
-}
-
-export function allowedPredicate(predicate: string, filters: string[]): boolean {
-  return filters.length === 0 || filters.includes(predicate);
-}

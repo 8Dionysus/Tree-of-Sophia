@@ -28,7 +28,6 @@ import {
 } from "./knowledge-store";
 import { SourceNavigationError, sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
 import { meta, metaItem, requirePublicD1ProducerProfile } from "./store";
-import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
 import {nativePacketResponse} from './native-lens-response.ts';
 import {codePointCompare, installNativePythonRuntime, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
@@ -601,7 +600,6 @@ export default {
           : url.pathname === '/api/knowledge/temporal/compare' ? 'temporal' : 'lens';
         return await lensCompileResponse(request, env, operation);
       } catch (error) {
-        if (error instanceof KnowledgeRevisionConflict) return jsonResponse({ error: error.message }, 409, request.method);
         if (error instanceof HttpError) return jsonResponse({ error: error.message }, error.status, request.method);
         console.error("Cloudflare edge lens request failed", error);
         return jsonResponse({ error: "Cloudflare edge lens request failed" }, 500, request.method);

@@ -3170,12 +3170,6 @@ fn leaks_local_path(value: &Value) -> bool {
     })
 }
 
-fn string_values_set(value: &Value) -> BTreeSet<String> {
-    let mut strings = Vec::new();
-    string_values(value, &mut strings);
-    strings.into_iter().map(str::to_owned).collect()
-}
-
 fn private_handoff_semantic_issues(value: &Value, destination_exists: bool) -> Vec<String> {
     let Some(object) = value.as_object() else {
         return vec!["private-evidence handoff is not an object".into()];

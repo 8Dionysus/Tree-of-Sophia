@@ -12,7 +12,6 @@ use receipt_codec::{
 };
 
 const RECEIPT_SPOOL_PAGE_SIZE: u64 = 4096;
-const RECEIPT_SPOOL_SCHEMA_VERSION: u8 = 1;
 const RECEIPT_SPOOL_LEGACY: u8 = 1;
 const RECEIPT_SPOOL_DIAGNOSTICS_V2: u8 = 2;
 const RECEIPT_SPOOL_DIGEST_DOMAIN: &[u8] = b"tos-cut-schema-observation-spool-v1\0";

@@ -68,8 +68,10 @@ deadlines remain independently required.
 
 `npm run build:ci` installs the web dependencies and builds the site plus the
 native D1 read model. `npm run check` builds, generates Worker types, typechecks,
-and runs the Node/TypeScript tests. `npm run load:local` applies the generated
-read model to the explicitly selected local D1 store. Remote import and deploy
+and runs the Node/TypeScript tests. `npm run typecheck` regenerates the ignored
+`worker-configuration.d.ts` from the pinned Wrangler and `wrangler.jsonc`;
+generated runtime declarations are not maintained in Git. `npm run load:local`
+applies the generated read model to the explicitly selected local D1 store. Remote import and deploy
 remain separate commands with their existing credentials and authorization.
 
 `npm run verify:local` invokes `scripts/verify_local_native.sh`, which delegates

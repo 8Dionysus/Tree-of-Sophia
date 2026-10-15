@@ -1051,7 +1051,7 @@ mod tests {
             let value: Value = serde_json::from_slice(raw)
                 .map_err(|_| ItemRefusal::Source("fixture JSON".into()))?;
             self.schemas
-                .is_valid(&format!("https://tree-of-sophia.local/{contract}"), &value)
+                .is_valid_value(&format!("https://tree-of-sophia.local/{contract}"), &value)
                 .map_err(|e| ItemRefusal::Unsupported(format!("{e:?}")))
         }
     }

@@ -14,8 +14,8 @@ import type {NativeD1Limits} from '../src/native-d1-read.ts';
 import {parseNativeJson, type NativeRef} from '../src/native-lens.ts';
 import {HttpError} from '../src/common.ts';
 import {nativeLower, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-semantics.ts';
-import type {Item, KnowledgeNode, KnowledgeRelation, LensSpec} from '../src/knowledge.ts';
-type FixtureLensReply = Item & {nodes:KnowledgeNode[];relations:KnowledgeRelation[];presentation:LensSpec['presentation'];fingerprint:string;authority_boundary:Item};
+import type {Item, KnowledgeNode, KnowledgeRelation, LensPresentation} from '../src/knowledge.ts';
+type FixtureLensReply = Item & {nodes:KnowledgeNode[];relations:KnowledgeRelation[];presentation:LensPresentation;fingerprint:string;authority_boundary:Item};
 const initialized = new WeakSet<object>();
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
 

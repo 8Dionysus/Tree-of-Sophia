@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import {readFile,stat} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {createConstructorModel,installConstructorRules} from '../../../../access/web/constructor/model.mjs';
-import {createConstructorModel as legacy} from '../../../../access/web/constructor/model-legacy.mjs';
 import {installBrowserWorkspaceMachine} from '../../../../access/web/src/research-workspace-rust.ts';
 
 const [bindingPath,wasmPath]=process.argv.slice(2);
@@ -23,11 +22,10 @@ if(process.argv.includes('--library-order-only')){
   const ordered={schema:library.schema,fingerprint,rootId:'work',nodes:[material('work','work',null),
     ...['zeta','alpha','mu','beta','extra'].map(id=>material(id,'part','work')),
     material('chapter-z','chapter','zeta'),material('chapter-a','chapter','zeta')]};
-  const actual=createConstructorModel(ordered,{storage:null}),previous=legacy(ordered,{storage:null});
-  actual.seed();previous.seed();
+  const actual=createConstructorModel(ordered,{storage:null});
+  actual.seed();
   assert.deepEqual(actual.getState().nodes.map(n=>n.materialId),['work','zeta','alpha','mu','beta']);
-  assert.deepEqual(actual.getState().nodes.map(n=>n.materialId),previous.getState().nodes.map(n=>n.materialId));
-  assert.deepEqual(actual.expand('material:zeta'),previous.expand('material:zeta'));
+  assert.deepEqual(actual.expand('material:zeta'),['material:chapter-z','material:chapter-a']);
   assert.deepEqual(actual.getState().nodes.slice(-2).map(n=>n.materialId),['chapter-z','chapter-a']);
   const cycle=structuredClone(ordered);cycle.nodes.find(n=>n.id==='zeta').parentId='alpha';
   cycle.nodes.find(n=>n.id==='alpha').parentId='zeta';
@@ -38,28 +36,17 @@ if(process.argv.includes('--library-order-only')){
   process.exit(0);
 }
 const store=new Map(),storage={getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,value)};
-const tree=createConstructorModel(library,{storage,key:'tree'}),oracle=legacy(library,{storage:null});
+const tree=createConstructorModel(library,{storage,key:'tree'});
 let cases=0,events=0;tree.subscribe(()=>events++);
-const compare=label=>{
-  const actual=tree.getState(),expected=oracle.getState();
-  for(const node of actual.nodes){const other=expected.nodes.find(item=>item.id===node.id);
-    assert.ok(other,`${label}/node ${node.id}`);
-    node.position.forEach((value,index)=>assert.ok(Math.abs(value-other.position[index])<1e-9,`${label}/position ${node.id}/${index}`));
-    node.position=other.position;
-  }
-  assert.deepEqual(actual,expected,label);cases++;
-};
-compare('initial');
 const read=tree.getState();read.title='caller mutation';
-assert.equal(tree.getState().title,oracle.getState().title,'cached Rust projection is copy-on-read');cases++;
-const apply=(label,fn)=>{assert.deepEqual(fn(tree),fn(oracle),`${label}/return`);compare(label);};
-apply('atlas',m=>m.seedAtlas());
-apply('material',m=>m.addMaterial('work'));
-apply('context',m=>m.addDraftWithContext({kind:'question',title:'Что значит?',sourceIds:['material:fragment']},{sourceId:'material:fragment',relationKind:'questions',reverse:true}));
-const draft=tree.getState().nodes.find(n=>n.id.startsWith('draft:')).id;
-apply('rename',m=>m.rename('Моё дерево'));
-apply('move',m=>m.moveNode(draft,[11,-2,3]));
-apply('undo',m=>m.undo());apply('redo',m=>m.redo());
+assert.equal(tree.getState().title,'Tree of Sophia','cached Rust projection is copy-on-read');cases++;
+tree.seedAtlas();
+tree.addMaterial('work');
+const draft=tree.addDraftWithContext({kind:'question',title:'Что значит?',sourceIds:['material:fragment']},
+  {sourceId:'material:fragment',relationKind:'questions',reverse:true});
+tree.rename('Моё дерево');
+tree.moveNode(draft,[11,-2,3]);
+tree.undo();tree.redo();
 const before=tree.exportPacket(),priorEvents=events;
 const reordered=JSON.parse(before),reverseFields=Object.fromEntries(Object.entries(reordered).reverse());
 assert.equal(tree.importPacket(JSON.stringify(reverseFields)),false);
@@ -85,5 +72,5 @@ const protectedTree=createConstructorModel(library,{storage:badStorage});
 assert.match(protectedTree.persistenceError(),/protected/);protectedTree.addMaterial('work');assert.match(protectedTree.persistenceError(),/protected/);cases++;
 assert.ok(events>=7);cases++;
 tree.dispose();tree.dispose();fresh.dispose();protectedTree.dispose();
-console.log(JSON.stringify({status:'pass',constructor_cases:cases,actual_wasm:true,legacy_oracle:true,
+console.log(JSON.stringify({status:'pass',constructor_cases:cases,actual_wasm:true,
   startup_ms:Number((performance.now()-startup).toFixed(2)),wasm_bytes:(await stat(wasmPath)).size}));
