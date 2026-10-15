@@ -549,7 +549,7 @@ fn source_commit_lower_bound_survives_cli_http_and_mcp_without_rounding() {
     .unwrap();
     assert_eq!(Params::from_json(parsed.root()).unwrap(), expected);
     let input = format!(
-        "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_source_descend\",\"arguments\":{request}}}}\n"
+        "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_source_descend\",\"arguments\":{request}}}}}\n"
     );
     let mut mcp_output = Vec::new();
     run_io(
