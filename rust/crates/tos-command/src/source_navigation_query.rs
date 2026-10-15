@@ -90,7 +90,7 @@ fn remaining_timeout(deadline: Instant, configured: Duration) -> Result<Duration
 }
 
 fn verify_admitted_original_metadata(
-    owner: &crate::DurableNavigationCurrentIndexOwnerBindingV1,
+    owner: &crate::durable_adapter::durable_projection::DurableNavigationCurrentIndexOwnerBindingV1,
     expected: &KnowledgeSelectedExpectation,
 ) -> Result<(), QueryError> {
     let invalid = || {
