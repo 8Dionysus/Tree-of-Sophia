@@ -2103,8 +2103,22 @@ fn check_active(deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> 
     Ok(())
 }
 
-fn sqlite_error(_: rusqlite::Error) -> DurableError {
-    DurableError::Refused("source assessment SQLite operation failed")
+fn sqlite_error(error: rusqlite::Error) -> DurableError {
+    // Preserve the actionable SQLite class without exposing SQL, paths or
+    // source values carried by its free-form error message.
+    let reason = match error {
+        rusqlite::Error::SqliteFailure(code, _) => match code.extended_code & 0xff {
+            rusqlite::ffi::SQLITE_FULL => "source assessment SQLite storage/page budget exhausted",
+            rusqlite::ffi::SQLITE_IOERR => "source assessment SQLite storage IO failed",
+            rusqlite::ffi::SQLITE_NOMEM => "source assessment SQLite allocation failed",
+            rusqlite::ffi::SQLITE_INTERRUPT => "source assessment SQLite operation interrupted",
+            rusqlite::ffi::SQLITE_CONSTRAINT => "source assessment SQLite constraint failed",
+            rusqlite::ffi::SQLITE_CORRUPT => "source assessment SQLite index corrupt",
+            _ => "source assessment SQLite operation failed",
+        },
+        _ => "source assessment SQLite operation failed",
+    };
+    DurableError::Refused(reason)
 }
 
 fn sqlite_value_logical_bytes(value: &ValueRef<'_>) -> usize {

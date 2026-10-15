@@ -251,6 +251,201 @@ impl ManagedCurrentSourceCut {
     }
 }
 
+/// Metadata-only carrier for an explicit export. Ordinary command selection
+/// keeps its own smaller admission contract and never uses this full visitor.
+pub(crate) struct ManagedCurrentSourceExport {
+    pub generation: ManagedCurrentSourceGeneration,
+    pub read_limits: ReadLimits,
+    pub cut: CorpusCutReader,
+    pub membership: SourceMembershipV1,
+    pub source_bytes: u64,
+}
+
+// Finite source-export parser/history ceilings, independent of command batches
+// and the separately bounded portable model. The selected owner must also
+// reserve the actual host export bytes/inodes before this route is called.
+pub(crate) const INITIAL_EXPORT_MANIFEST_BYTES: usize = 32 * 1024 * 1024;
+pub(crate) const INITIAL_EXPORT_MANIFEST_ENTRIES: usize = 262_144;
+pub(crate) const INITIAL_EXPORT_HISTORY_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+pub(crate) const INITIAL_EXPORT_JSON_VISITS: usize = 3_000_000;
+
+/// Deliver one selected generation without rebuilding its source assessment
+/// or retaining corpus bodies in a complete map. PG/rights/custody fences and
+/// each authenticated current placement are checked by the export visitor.
+pub(crate) fn export_current_source_generation_addressed(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    generation: ManagedCurrentSourceGeneration,
+    original: &CorpusCutReader,
+    isolated: &IsolatedCreationRoot,
+    read_limits: ReadLimits,
+    current_limits: CutReadLimits,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<ManagedCurrentSourceExport> {
+    active(deadline, cancel)?;
+    if generation.cohort().initial_revision() != original.current().revision()
+        || generation.cohort().initial_membership()
+            != original
+                .stream(original.current().revision())
+                .map_err(|_| Error::Invalid("initial export original membership"))?
+                .expectation()
+        || read_limits.max_manifest_bytes > INITIAL_EXPORT_MANIFEST_BYTES
+        || read_limits.max_manifest_entries > INITIAL_EXPORT_MANIFEST_ENTRIES
+        || current_limits.max_total_bytes > INITIAL_EXPORT_HISTORY_BYTES
+        || current_limits.max_member_bytes > read_limits.max_selected_object_bytes
+    {
+        return Err(Error::Conflict("selected export source/profile differs"));
+    }
+    let uid = rustix::process::geteuid().as_raw();
+    let root = isolated.verify_current(deadline, cancel)?;
+    let export = directory(&root, ".managed-source-cut", uid)?;
+    let objects = directory(&export, "objects", uid)?;
+    let revisions = directory(&export, "revisions", uid)?;
+    let max_member_bytes = usize::try_from(current_limits.max_member_bytes)
+        .map_err(|_| Error::Invalid("initial export member bound"))?;
+    copy_cut_with_member_limit(
+        original,
+        &objects,
+        &revisions,
+        uid,
+        read_limits,
+        max_member_bytes,
+        deadline,
+        cancel,
+    )?;
+    let source = coordinator
+        .visit_selected_source_export(
+            store,
+            &generation,
+            current_limits,
+            (read_limits.max_manifest_bytes as u64)
+                .checked_mul(8)
+                .ok_or(Error::Invalid("initial export metadata bound"))?,
+            read_limits.max_manifest_entries,
+            deadline,
+            cancel,
+            |member, raw| {
+                object_with_limit(
+                    &objects,
+                    member.sha256,
+                    raw,
+                    uid,
+                    max_member_bytes,
+                    deadline,
+                    cancel,
+                )
+                .map_err(DurableError::Source)
+            },
+        )
+        .map_err(durable)?;
+    let (history_read_limits, history_cut_limits) = current_and_history_cut_limits_bounded(
+        original,
+        &source.metadata,
+        &source.indexes,
+        &source.dependencies,
+        read_limits,
+        current_limits,
+        INITIAL_EXPORT_MANIFEST_ENTRIES,
+        INITIAL_EXPORT_HISTORY_BYTES,
+    )?;
+    let mut identities = BTreeMap::<String, RelativePath>::new();
+    for (_, id, path) in &source.indexes {
+        let path = RelativePath::parse(path)
+            .map_err(|_| Error::Invalid("initial export identity path"))?;
+        if identities
+            .insert(id.clone(), path.clone())
+            .is_some_and(|prior| prior != path)
+        {
+            return Err(Error::Conflict(
+                "current source stable identity has multiple paths",
+            ));
+        }
+    }
+    for snapshot in original.revisions() {
+        for (id, path) in snapshot.indexed_identities() {
+            if identities.get(id).is_some_and(|current| current != path) {
+                return Err(Error::Conflict(
+                    "current identity changes retained owning path",
+                ));
+            }
+        }
+    }
+    let ids = cmd::object(
+        identities
+            .iter()
+            .map(|(id, path)| (id.as_str(), cmd::string(path.as_str())))
+            .collect(),
+    );
+    let deps = cmd::object(
+        source
+            .dependencies
+            .iter()
+            .filter_map(|(path, claims)| {
+                claims.as_ref().map(|refs| {
+                    (
+                        path.as_str(),
+                        JsonValue::Array(refs.iter().map(|r| cmd::string(r.as_str())).collect()),
+                    )
+                })
+            })
+            .collect(),
+    );
+    let encoded = manifest(
+        Some(original.current().revision()),
+        original.current().validator_sha256(),
+        members(source.metadata.values().cloned()),
+        ids,
+        deps,
+        retirements(original.current().retirements()),
+        history_read_limits,
+    )?;
+    install_manifest_with_limit(
+        &revisions,
+        encoded.0,
+        &encoded.1,
+        uid,
+        history_read_limits.max_manifest_bytes,
+        deadline,
+        cancel,
+    )?;
+    verify_export_chain(
+        isolated, &export, &objects, &revisions, uid, deadline, cancel,
+    )?;
+    let reader = CorpusReader::open_existing(
+        &isolated.path().join(".managed-source-cut"),
+        history_read_limits,
+    )
+    .map_err(|error| Error::Invalid(error.detail))?;
+    let cut = reader
+        .open_source_cut(encoded.0, history_cut_limits, deadline, cancel)
+        .map_err(|error| Error::Invalid(error.detail))?;
+    let mut stream = cut
+        .stream(encoded.0)
+        .map_err(|_| Error::Invalid("initial export source stream"))?;
+    while stream
+        .next_member(deadline, cancel)
+        .map_err(|error| Error::Invalid(error.detail))?
+        .is_some()
+    {}
+    if stream.coverage() != Some(source.membership) {
+        return Err(Error::Conflict(
+            "initial export membership differs from selected generation",
+        ));
+    }
+    drop(stream);
+    verify_export_chain(
+        isolated, &export, &objects, &revisions, uid, deadline, cancel,
+    )?;
+    Ok(ManagedCurrentSourceExport {
+        generation,
+        read_limits: history_read_limits,
+        cut,
+        membership: source.membership,
+        source_bytes: source.source_bytes,
+    })
+}
+
 /// Explicit cold selection of existing durable roots without a v1 export.
 /// This strict legacy route refuses any active addressed protocol marker so it
 /// cannot select or rebuild V1 beneath V2 state. The present owner still
@@ -747,6 +942,20 @@ fn copy_cut(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<()> {
+    copy_cut_with_member_limit(
+        cut, objects, revisions, uid, limits, 8_388_608, deadline, cancel,
+    )
+}
+fn copy_cut_with_member_limit(
+    cut: &CorpusCutReader,
+    objects: &File,
+    revisions: &File,
+    uid: u32,
+    limits: ReadLimits,
+    max_member_bytes: usize,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<()> {
     for snapshot in cut.revisions() {
         active(deadline, cancel)?;
         let encoded = snapshot_manifest(snapshot, limits)?;
@@ -755,7 +964,15 @@ fn copy_cut(
         match tos_fd_open::open_directory_at(revisions, Path::new(&encoded.0.0.to_hex())) {
             Ok(existing) => {
                 owned(&existing, uid, true)?;
-                install_manifest(revisions, encoded.0, &encoded.1, uid, deadline, cancel)?;
+                install_manifest_with_limit(
+                    revisions,
+                    encoded.0,
+                    &encoded.1,
+                    uid,
+                    limits.max_manifest_bytes,
+                    deadline,
+                    cancel,
+                )?;
                 continue;
             }
             Err(error)
@@ -775,11 +992,12 @@ fn copy_cut(
             .next_member(deadline, cancel)
             .map_err(|_| Error::Invalid("retained source object/EOF"))?
         {
-            object(
+            object_with_limit(
                 objects,
                 Digest256::of_bytes(&member.raw),
                 &member.raw,
                 uid,
+                max_member_bytes,
                 deadline,
                 cancel,
             )?;
@@ -797,24 +1015,34 @@ fn copy_cut(
                     cancel,
                 )
                 .map_err(|_| Error::Invalid("retained retirement object"))?;
-            object(
+            object_with_limit(
                 objects,
                 retired.metadata.sha256,
                 &retired.raw,
                 uid,
+                max_member_bytes,
                 deadline,
                 cancel,
             )?;
-            object(
+            object_with_limit(
                 objects,
                 retired.metadata.event_sha256,
                 &retired.event_raw,
                 uid,
+                max_member_bytes,
                 deadline,
                 cancel,
             )?;
         }
-        install_manifest(revisions, encoded.0, &encoded.1, uid, deadline, cancel)?;
+        install_manifest_with_limit(
+            revisions,
+            encoded.0,
+            &encoded.1,
+            uid,
+            limits.max_manifest_bytes,
+            deadline,
+            cancel,
+        )?;
     }
     Ok(())
 }
@@ -897,6 +1125,27 @@ fn current_and_history_cut_limits(
     current_read_limits: ReadLimits,
     current_cut_limits: CutReadLimits,
 ) -> Result<(ReadLimits, CutReadLimits)> {
+    current_and_history_cut_limits_bounded(
+        parent,
+        current,
+        indexes,
+        dependency_claims,
+        current_read_limits,
+        current_cut_limits,
+        MAX_FILES,
+        MAX_BYTES as u64,
+    )
+}
+fn current_and_history_cut_limits_bounded(
+    parent: &CorpusCutReader,
+    current: &BTreeMap<String, MemberMetadata>,
+    indexes: &[(String, String, String)],
+    dependency_claims: &BTreeMap<String, Option<Vec<RelativePath>>>,
+    current_read_limits: ReadLimits,
+    current_cut_limits: CutReadLimits,
+    max_entries: usize,
+    max_bytes: u64,
+) -> Result<(ReadLimits, CutReadLimits)> {
     if current_cut_limits.max_revisions == 0
         || current_cut_limits.max_revisions == usize::MAX
         || current_cut_limits.max_members == 0
@@ -949,7 +1198,7 @@ fn current_and_history_cut_limits(
         .and_then(|count| count.checked_add(current_dependency_entries))
         .and_then(|count| count.checked_add(parent.current().retirement_count()))
         .ok_or(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON))?;
-    if current_manifest_entries > MAX_FILES {
+    if current_manifest_entries > max_entries {
         return Err(Error::Invalid(CURRENT_SOURCE_EXPORT_LIMIT_REASON));
     }
 
@@ -971,7 +1220,7 @@ fn current_and_history_cut_limits(
     for retirement in parent.current().retirements() {
         history_max_member = history_max_member.max(retirement.event_size_bytes);
     }
-    if history_max_member == 0 || history_max_member > MAX_BYTES as u64 {
+    if history_max_member == 0 || history_max_member > max_bytes {
         return Err(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON));
     }
 
@@ -1014,11 +1263,11 @@ fn current_and_history_cut_limits(
             .ok_or(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON))?;
     }
     if history_members == 0
-        || history_members > MAX_FILES as u64
+        || history_members > max_entries as u64
         || history_bytes == 0
-        || history_bytes > MAX_BYTES as u64
+        || history_bytes > max_bytes
         || history_manifest_entries == 0
-        || history_manifest_entries > MAX_FILES
+        || history_manifest_entries > max_entries
         || history_revisions == 0
         || history_revisions > current_cut_limits.max_revisions
     {
@@ -1029,14 +1278,14 @@ fn current_and_history_cut_limits(
         max_manifest_bytes: current_read_limits.max_manifest_bytes,
         max_manifest_entries: current_read_limits
             .max_manifest_entries
-            .min(MAX_FILES)
+            .min(max_entries)
             .max(history_manifest_entries),
         max_selected_object_bytes: current_read_limits
             .max_selected_object_bytes
             .max(history_max_member),
         json: current_read_limits.json,
     };
-    if history_read_limits.max_selected_object_bytes > MAX_BYTES as u64 {
+    if history_read_limits.max_selected_object_bytes > max_bytes {
         return Err(Error::Invalid(RETAINED_SOURCE_HISTORY_LIMIT_REASON));
     }
     let history_cut_limits = CutReadLimits {

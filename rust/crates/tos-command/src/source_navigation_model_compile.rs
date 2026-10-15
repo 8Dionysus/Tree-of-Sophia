@@ -46,8 +46,6 @@ const NORMALIZATION_INPUT_RELATIVE: &str = "inputs/knowledge_normalization.rs";
 const ENTITY_REGISTRY_PATH: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATION_REGISTRY_PATH: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const QUERY_VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
-const MAX_SOURCE_BYTES: u64 = 33_554_432;
-const MAX_SOURCE_MEMBERS: u64 = 2_048;
 // The process parent accepts only these fixed, non-sensitive child phase names.
 pub(super) const SOURCE_NAVIGATION_PHASE_STAGES: &[&str] = &[
     "input_cut_verification",
@@ -165,17 +163,19 @@ impl SourceNavigationCompileReadLimitsV1 {
     fn checked(self) -> SourceCommandResult<ReadLimits> {
         let default_json = tos_foundation::JsonLimits::default();
         if self.max_manifest_bytes == 0
-            || self.max_manifest_bytes > 1_048_576
+            || self.max_manifest_bytes > crate::source_current_cut::INITIAL_EXPORT_MANIFEST_BYTES
             || self.max_manifest_entries == 0
-            || self.max_manifest_entries > crate::source_creation_store::MAX_FILES
+            || self.max_manifest_entries
+                > crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES
             || self.max_selected_object_bytes == 0
-            || self.max_selected_object_bytes > crate::source_creation_store::MAX_BYTES as u64
+            || self.max_selected_object_bytes
+                > crate::source_current_cut::INITIAL_EXPORT_HISTORY_BYTES
             || self.json_max_bytes == 0
-            || self.json_max_bytes > default_json.max_bytes
+            || self.json_max_bytes > crate::source_current_cut::INITIAL_EXPORT_MANIFEST_BYTES
             || self.json_max_depth == 0
             || self.json_max_depth > default_json.max_depth
             || self.json_max_visits == 0
-            || self.json_max_visits > default_json.max_visits
+            || self.json_max_visits > crate::source_current_cut::INITIAL_EXPORT_JSON_VISITS
             || self.json_max_integer_digits == 0
             || self.json_max_integer_digits > default_json.max_integer_digits
         {
@@ -225,11 +225,11 @@ impl SourceNavigationCompileCutLimitsV1 {
         if self.max_revisions == 0
             || self.max_revisions > MAX_SOURCE_HISTORY_REVISIONS
             || self.max_members == 0
-            || self.max_members > crate::source_creation_store::MAX_FILES as u64
+            || self.max_members > crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES as u64
             || self.max_total_bytes == 0
-            || self.max_total_bytes > crate::source_creation_store::MAX_BYTES as u64
+            || self.max_total_bytes > crate::source_current_cut::INITIAL_EXPORT_HISTORY_BYTES
             || self.max_member_bytes == 0
-            || self.max_member_bytes > crate::source_creation_store::MAX_BYTES as u64
+            || self.max_member_bytes > crate::source_current_cut::INITIAL_EXPORT_HISTORY_BYTES
         {
             return Err(SourceCommandError::Invalid(
                 "source-navigation retained cut limits outside bounded history envelope",
@@ -1499,11 +1499,12 @@ fn validate_model_limits(limits: SourceNavigationCompileModelLimitsV1) -> Source
         || !(128..=1_000_000).contains(&limits.tmpfs_inodes)
         || !(512 * 1024 * 1024..=16 * 1024 * 1024 * 1024).contains(&limits.working_ram_bytes)
         || limits.max_source_members == 0
-        || limits.max_source_members > MAX_SOURCE_MEMBERS
+        || limits.max_source_members > limits.host_export_inodes
         || limits.max_source_total_bytes == 0
-        || limits.max_source_total_bytes > MAX_SOURCE_BYTES
+        || limits.max_source_total_bytes > limits.host_export_bytes
         || limits.max_source_member_bytes == 0
         || limits.max_source_member_bytes > limits.max_source_total_bytes
+        || limits.max_source_member_bytes > limits.working_ram_bytes / 8
         || limits.max_plan_bytes == 0
         || limits.max_plan_bytes > 64 * 1024 * 1024
         || limits.max_plan_work_bytes == 0
@@ -1521,6 +1522,37 @@ fn validate_model_limits(limits: SourceNavigationCompileModelLimitsV1) -> Source
 #[cfg(test)]
 mod history_limit_tests {
     use super::*;
+
+    #[test]
+    fn bootstrap_contract_initial_export_history_is_not_a_command_batch() {
+        let history = SourceNavigationCompileCutLimitsV1 {
+            max_revisions: 2,
+            max_members: 19_034,
+            max_total_bytes: 549_726_458,
+            max_member_bytes: 16_734_381,
+        };
+        assert!(history.checked().is_ok());
+        let manifest = SourceNavigationCompileReadLimitsV1 {
+            max_manifest_bytes: 10 * 1024 * 1024,
+            max_manifest_entries: 40_000,
+            max_selected_object_bytes: 16_734_381,
+            json_max_bytes: 10 * 1024 * 1024,
+            json_max_depth: 64,
+            json_max_visits: 3_000_000,
+            json_max_integer_digits: 4_300,
+        };
+        assert!(manifest.checked().is_ok());
+        assert!(history.max_members > crate::source_creation_store::MAX_FILES as u64);
+        assert!(history.max_total_bytes > crate::source_creation_store::MAX_BYTES as u64);
+        assert!(
+            SourceNavigationCompileCutLimitsV1 {
+                max_total_bytes: crate::source_current_cut::INITIAL_EXPORT_HISTORY_BYTES + 1,
+                ..history
+            }
+            .checked()
+            .is_err()
+        );
+    }
 
     #[test]
     fn retained_history_limits_are_separate_from_current_source_limits_and_bounded() {
@@ -1552,12 +1584,12 @@ mod history_limit_tests {
         assert!(cut.max_total_bytes > current_max_bytes);
 
         let over_history_members = SourceNavigationCompileCutLimitsV1 {
-            max_members: crate::source_creation_store::MAX_FILES as u64 + 1,
+            max_members: crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES as u64 + 1,
             ..retained
         };
         assert!(over_history_members.checked().is_err());
         let over_history_bytes = SourceNavigationCompileCutLimitsV1 {
-            max_total_bytes: crate::source_creation_store::MAX_BYTES as u64 + 1,
+            max_total_bytes: crate::source_current_cut::INITIAL_EXPORT_HISTORY_BYTES + 1,
             ..retained
         };
         assert!(over_history_bytes.checked().is_err());
@@ -1567,7 +1599,7 @@ mod history_limit_tests {
         };
         assert!(over_history_revisions.checked().is_err());
         let over_history_manifest_entries = SourceNavigationCompileReadLimitsV1 {
-            max_manifest_entries: crate::source_creation_store::MAX_FILES + 1,
+            max_manifest_entries: crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES + 1,
             max_manifest_bytes: 1_048_576,
             max_selected_object_bytes: 2_531_887,
             json_max_bytes: 1_048_576,

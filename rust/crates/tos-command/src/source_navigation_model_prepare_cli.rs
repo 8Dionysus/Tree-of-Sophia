@@ -221,10 +221,9 @@ fn record_export_object_with_unknown_size(
     objects.entry(digest.to_owned()).or_insert(maximum_size);
 }
 
-/// Preflight the largest write set admitted by `select_current_source_cut_addressed`.
-/// That owner currently has a fixed 32 MiB/4096-member PG inventory ceiling,
-/// so the host reservation must cover it even when the final model owner asks
-/// for a smaller current-source result. Retained retirement payloads are
+/// Preflight the selected explicit source export and its retained history.
+/// The current-generation envelope comes from the protected model owner;
+/// ordinary command batch ceilings do not define this export. Retirement payloads are
 /// charged at their protected selected-object ceiling because v1 metadata
 /// does not carry their exact byte length.
 fn preflight_host_export(
@@ -272,10 +271,8 @@ fn preflight_host_export(
         .ok_or(SourceCommandError::Invalid(
             "host export retained byte count overflow",
         ))?;
-    let source_writer_bytes = u64::try_from(crate::source_creation_store::MAX_BYTES)
-        .map_err(|_| SourceCommandError::Invalid("host export source writer byte ceiling"))?;
-    let source_writer_members = u64::try_from(crate::source_creation_store::MAX_FILES)
-        .map_err(|_| SourceCommandError::Invalid("host export source writer member ceiling"))?;
+    let source_writer_bytes = limits.max_source_total_bytes;
+    let source_writer_members = limits.max_source_members;
     // Include one concurrent same-size temporary used by atomic object
     // installation, each copied/derived manifest, the compiler input, and
     // conservative directory/inode overhead.
@@ -438,8 +435,6 @@ const RESULT_SCHEMA: &str = "tos_local_source_navigation_model_prepare_result_v1
 const SELECTION_SCHEMA: &str = "tos_local_pg_source_navigation_selection_v1";
 const FINAL_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
 const MAX_OWNER_BYTES: usize = 1_048_576;
-const MAX_SOURCE_BYTES: u64 = 33_554_432;
-const MAX_SOURCE_MEMBERS: u64 = 2_048;
 const NORMALIZATION_PROCESSOR_PATH: &str =
     "rust/crates/tos-compiler/src/knowledge_normalization.rs";
 const ENTITY_REGISTRY_PATH: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -528,11 +523,12 @@ fn validate_model_limits(limits: ModelLimits) -> SourceCommandResult<()> {
         || !(128..=1_000_000).contains(&limits.tmpfs_inodes)
         || !(512 * 1024 * 1024..=16 * 1024 * 1024 * 1024).contains(&limits.working_ram_bytes)
         || limits.max_source_members == 0
-        || limits.max_source_members > MAX_SOURCE_MEMBERS
+        || limits.max_source_members > limits.host_export_inodes
         || limits.max_source_total_bytes == 0
-        || limits.max_source_total_bytes > MAX_SOURCE_BYTES
+        || limits.max_source_total_bytes > limits.host_export_bytes
         || limits.max_source_member_bytes == 0
         || limits.max_source_member_bytes > limits.max_source_total_bytes
+        || limits.max_source_member_bytes > limits.working_ram_bytes / 8
         || limits.max_plan_bytes == 0
         || limits.max_plan_bytes > 64 * 1024 * 1024
         || limits.max_plan_work_bytes == 0
@@ -1054,11 +1050,28 @@ fn prepare_initial(
         .ok_or(SourceCommandError::Conflict(
             "selected normalization processor changed",
         ))?;
+    let manifest_bytes =
+        usize::try_from(owner.model_limits.max_source_members.saturating_mul(1024))
+            .map_err(|_| SourceCommandError::Invalid("initial export manifest bound"))?
+            .clamp(
+                1_048_576,
+                crate::source_current_cut::INITIAL_EXPORT_MANIFEST_BYTES,
+            );
+    let export_read_limits = ReadLimits {
+        max_manifest_bytes: manifest_bytes,
+        max_manifest_entries: crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES,
+        max_selected_object_bytes: owner.model_limits.max_source_member_bytes,
+        json: tos_foundation::JsonLimits {
+            max_bytes: manifest_bytes,
+            max_visits: crate::source_current_cut::INITIAL_EXPORT_JSON_VISITS,
+            ..tos_foundation::JsonLimits::default()
+        },
+    };
     let (host_export_bytes, host_export_inodes) = preflight_host_export(
         original_cut,
         owner.model_limits,
         normalization_member.size_bytes,
-        1_048_576,
+        manifest_bytes as u64,
     )?;
     let cleanup_max_entries = usize::try_from(host_export_inodes.min(
         super::source_navigation_model_cleanup::MAX_MANAGED_SOURCE_CUT_CLEANUP_ENTRIES_V1 as u64,
@@ -1086,7 +1099,6 @@ fn prepare_initial(
             "initial and navigation schema worker identities differ",
         ));
     }
-    let mut worker = super::selected_schema(invocation, original_cut, deadline, cancelled)?;
     let store =
         SegmentStore::open_existing(&selection.store_root, selection.store_limits.into_limits())
             .map_err(|_| SourceCommandError::Conflict("selected source-navigation store"))?;
@@ -1192,46 +1204,33 @@ fn prepare_initial(
             sha256: normalization_member.sha256,
         };
     let staged_source = (|| {
-        let export =
-            crate::source_current_cut::select_current_source_cut_addressed_current_limited(
-                &mut coordinator,
+        let generation = coordinator
+            .reopen_current_addressed_source_selection(
                 &store,
                 &selection.domain,
-                original_cut,
                 bootstrap_source_revision,
                 source_membership,
-                &bootstrap.context,
-                &bootstrap.software,
-                &bootstrap.components,
-                &mut worker,
-                None,
-                &isolated,
-                None,
-                tos_source_store::ReadLimits {
-                    max_manifest_bytes: 1_048_576,
-                    max_manifest_entries: owner.model_limits.max_source_members as usize,
-                    max_selected_object_bytes: owner.model_limits.max_source_total_bytes,
-                    json: tos_foundation::JsonLimits::default(),
-                },
-                CutReadLimits {
-                    max_revisions:
-                        super::source_navigation_model_compile::MAX_SOURCE_HISTORY_REVISIONS,
-                    max_members: owner.model_limits.max_source_members,
-                    max_total_bytes: owner.model_limits.max_source_total_bytes,
-                    max_member_bytes: owner.model_limits.max_source_member_bytes,
-                },
                 selection.tree_limits.into_limits(),
                 deadline,
                 cancelled,
             )
-            .map_err(|error| match error {
-                error @ SourceCommandError::Invalid(_)
-                | error @ SourceCommandError::InvalidAt { .. }
-                | error @ SourceCommandError::Conflict(_)
-                | error @ SourceCommandError::Denied(_)
-                | error @ SourceCommandError::Unsupported(_) => error,
-                _ => SourceCommandError::Conflict("addressed source-navigation cut refused"),
-            })?;
+            .map_err(crate::source_current_cut::durable)?;
+        let export = crate::source_current_cut::export_current_source_generation_addressed(
+            &mut coordinator,
+            &store,
+            generation,
+            original_cut,
+            &isolated,
+            export_read_limits,
+            CutReadLimits {
+                max_revisions: super::source_navigation_model_compile::MAX_SOURCE_HISTORY_REVISIONS,
+                max_members: owner.model_limits.max_source_members,
+                max_total_bytes: owner.model_limits.max_source_total_bytes,
+                max_member_bytes: owner.model_limits.max_source_member_bytes,
+            },
+            deadline,
+            cancelled,
+        )?;
         bootstrap
             .owner_check(
                 &bootstrap_invocation_path,
@@ -1243,11 +1242,11 @@ fn prepare_initial(
             .map_err(|_| {
                 SourceCommandError::Conflict("bootstrap changed during source selection")
             })?;
-        let revision = export.cut().current().revision();
-        let membership = export.membership();
+        let revision = export.cut.current().revision();
+        let membership = export.membership;
         let projection = coordinator
             .visit_managed_model_catalogue_with_work(
-                export.generation(),
+                &export.generation,
                 deadline,
                 cancelled,
                 &mut crate::ManagedSourceWorkV1::default(),
@@ -1255,14 +1254,10 @@ fn prepare_initial(
             )
             .map_err(|_| SourceCommandError::Conflict("managed source projection incomplete"))?;
         let proof = <tos_compiler::managed_source::ManagedSourceProofV2 as crate::source_managed_selection::ManagedSelectedProof>::from_selected(
-            export.generation(), projection, (&revision.0.to_hex(), &membership.digest.to_hex(), membership.count), None,
+            &export.generation, projection, (&revision.0.to_hex(), &membership.digest.to_hex(), membership.count), None,
         ).map_err(|_| SourceCommandError::Conflict("managed source proof unavailable"))?;
-        let current_source_bytes = export
-            .files()
-            .values()
-            .try_fold(0u64, |total, bytes| total.checked_add(bytes.len() as u64))
-            .ok_or(SourceCommandError::Invalid("selected source size overflow"))?;
-        if export.files().len() as u64 > owner.model_limits.max_source_members
+        let current_source_bytes = export.source_bytes;
+        if export.membership.count > owner.model_limits.max_source_members
             || current_source_bytes > owner.model_limits.max_source_total_bytes
         {
             return Err(SourceCommandError::Conflict(
@@ -1310,16 +1305,16 @@ fn prepare_initial(
     };
     let source_read_limits =
         super::source_navigation_model_compile::SourceNavigationCompileReadLimitsV1::from(
-            export.read_limits(),
+            export.read_limits,
         );
     let source_cut_limits =
         super::source_navigation_model_compile::SourceNavigationCompileCutLimitsV1::from(
-            export.cut().limits(),
+            export.cut.limits(),
         );
     let source_binding = SourceBinding {
         owner_profile: "tos-managed-source-navigation-v2".into(),
         source_cut: revision.0.to_hex(),
-        through_commit_seq: export.generation().commit_seq(),
+        through_commit_seq: export.generation.commit_seq(),
         membership_root: membership.digest.to_hex(),
         index_generation: proof.generation.installed_generation_sha256.clone(),
         route_map_version: "tos-source-navigation-managed-current-v2".into(),
@@ -1445,7 +1440,6 @@ fn prepare_initial(
             cancelled,
         );
     let model_ms = model_start.elapsed().as_millis();
-    drop(worker);
     drop(export);
     let export_cleanup = cleanup_captured_source_export(&isolated, cleanup_manifest);
     let cleanup_deadline = Instant::now() + Duration::from_millis(HOST_FINALIZATION_RESERVE_MS);

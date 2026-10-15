@@ -3,8 +3,8 @@
 //! bounded point index, never a source or semantic admission record.
 
 use crate::source_text_identity::{
-    MAX_BYTES, MAX_FILES, MAX_POINT_OWNERS, TextIdentityContribution, TextIdentityOwner,
-    is_candidate, text_identity_contributions,
+    MAX_BYTES, MAX_FILES, MAX_POINT_OWNERS, TextIdentityOwner, is_candidate,
+    text_identity_contributions,
 };
 use crate::{DurableError, DurableResult};
 use postgres::Transaction;
@@ -13,6 +13,118 @@ use tos_foundation::{Digest256, RelativePath};
 
 pub(crate) const PREDICATE_SCOPE: &str = "text-identity";
 const MAX_INDEX_ROWS: usize = MAX_POINT_OWNERS * 16;
+
+/// Compact complete contribution set for a full assessment. Bodies are parsed
+/// one member at a time and discarded; the retained metadata has independent
+/// finite row/byte limits. This does not expand private package admission.
+#[derive(Default)]
+pub(crate) struct CurrentTextIdentityRows {
+    rows: BTreeMap<(String, String), Digest256>,
+    paths: BTreeSet<String>,
+    metadata_bytes: usize,
+}
+impl CurrentTextIdentityRows {
+    pub(crate) fn add_member(&mut self, path: &str, bytes: &[u8]) -> DurableResult<()> {
+        validate_public_path(path)?;
+        if !is_public_candidate_path(path) {
+            return Err(DurableError::Invalid("Text identity candidate source path"));
+        }
+        if self.paths.len() >= MAX_FILES || !self.paths.insert(path.to_owned()) {
+            return Err(DurableError::Refused(
+                "Text identity candidate count/uniqueness bound",
+            ));
+        }
+        self.metadata_bytes = self
+            .metadata_bytes
+            .checked_add(path.len())
+            .filter(|size| *size <= MAX_BYTES)
+            .ok_or(DurableError::Refused(
+                "Text identity contribution metadata byte bound",
+            ))?;
+        for (token, member_digest) in member_rows(path, bytes)? {
+            self.metadata_bytes = self
+                .metadata_bytes
+                .checked_add(path.len() + token.len() + 32)
+                .filter(|size| *size <= MAX_BYTES)
+                .ok_or(DurableError::Refused(
+                    "Text identity contribution metadata byte bound",
+                ))?;
+            if self.rows.len() >= MAX_INDEX_ROWS
+                || self
+                    .rows
+                    .insert((path.to_owned(), token), member_digest)
+                    .is_some()
+            {
+                return Err(DurableError::Refused(
+                    "Text identity contribution row bound",
+                ));
+            }
+        }
+        Ok(())
+    }
+    pub(crate) fn tokens(&self) -> BTreeSet<String> {
+        self.rows.keys().map(|(_, token)| token.clone()).collect()
+    }
+    fn from_files(files: &BTreeMap<String, Vec<u8>>) -> DurableResult<Self> {
+        let mut selected = Self::default();
+        let mut body_bytes = 0usize;
+        for (path, bytes) in files {
+            if path.is_empty() || path.len() > 4096 || RelativePath::parse(path).is_err() {
+                return Err(DurableError::Invalid("Text identity full source path"));
+            }
+            if !is_public_candidate_path(path) {
+                continue;
+            }
+            body_bytes = body_bytes
+                .checked_add(bytes.len())
+                .filter(|n| *n <= MAX_BYTES)
+                .ok_or(DurableError::Refused(
+                    "Text identity full byte bound exceeded",
+                ))?;
+            selected.add_member(path, bytes)?;
+        }
+        Ok(selected)
+    }
+}
+
+#[cfg(test)]
+mod compact_assessment_tests {
+    use super::*;
+
+    #[test]
+    fn bootstrap_contract_text_identity_stream_retains_rows_instead_of_bodies() {
+        let raw = format!(
+            r#"{{"schema_version":"tos_source_text_layer_v1","layer_id":"tos.layer.fixture","text":"{}"}}"#,
+            "x".repeat(1024 * 1024)
+        ).into_bytes();
+        let digest = Digest256::of_bytes(&raw);
+        let mut rows = CurrentTextIdentityRows::default();
+        for index in 0..65 {
+            let path = format!("ToS/source-witnesses/text/{index}/source-text-layer.json");
+            rows.add_member(&path, &raw).expect("one bounded member");
+            assert_eq!(
+                rows.rows.get(&(path, "tos.layer.fixture".into())),
+                Some(&digest)
+            );
+        }
+        assert!(65 * raw.len() > MAX_BYTES);
+        assert_eq!(rows.rows.len(), 65);
+        assert_eq!(rows.tokens(), BTreeSet::from(["tos.layer.fixture".into()]));
+        assert!(rows.metadata_bytes < 64 * 1024);
+        assert!(
+            rows.add_member("ToS/source-witnesses/text/0/source-text-layer.json", &raw)
+                .is_err()
+        );
+        assert!(
+            CurrentTextIdentityRows::default()
+                .add_member(
+                    "ToS/source-witnesses/owner-local/hidden/source-text-layer.json",
+                    &raw,
+                )
+                .is_err()
+        );
+    }
+}
 
 fn as_i64(value: usize) -> DurableResult<i64> {
     i64::try_from(value).map_err(|_| DurableError::Refused("Text identity index count overflow"))
@@ -291,6 +403,20 @@ pub(crate) fn rebuild_current(
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,
 ) -> DurableResult<()> {
+    rebuild_current_rows(
+        tx,
+        domain,
+        &CurrentTextIdentityRows::from_files(files)?,
+        definition,
+    )
+}
+
+pub(crate) fn rebuild_current_rows(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    contributions: &CurrentTextIdentityRows,
+    definition: Digest256,
+) -> DurableResult<()> {
     let row_limit = as_i64(MAX_INDEX_ROWS + 1)?;
     let old_rows = tx.query(
         "SELECT token,path,member_digest,definition_digest FROM cmd2_source_text_identity
@@ -318,49 +444,7 @@ pub(crate) fn rebuild_current(
         }
     }
 
-    let mut new = BTreeMap::<(String, String), Digest256>::new();
-    let mut candidate_files = 0usize;
-    let mut candidate_bytes = 0usize;
-    for (path, bytes) in files {
-        if path.is_empty() || path.len() > 4096 || RelativePath::parse(path).is_err() {
-            return Err(DurableError::Invalid("Text identity full source path"));
-        }
-        if !is_public_candidate_path(path) {
-            continue;
-        }
-        candidate_files += 1;
-        if candidate_files > MAX_FILES {
-            return Err(DurableError::Refused(
-                "Text identity full member bound exceeded",
-            ));
-        }
-        candidate_bytes = candidate_bytes
-            .checked_add(bytes.len())
-            .filter(|count| *count <= MAX_BYTES)
-            .ok_or(DurableError::Refused(
-                "Text identity full byte bound exceeded",
-            ))?;
-        let rows: Vec<TextIdentityContribution> =
-            text_identity_contributions(path, bytes).map_err(DurableError::Source)?;
-        if rows.len() > MAX_POINT_OWNERS {
-            return Err(DurableError::Refused(
-                "Text identity contributions exceed member bound",
-            ));
-        }
-        let member_digest = Digest256::of_bytes(bytes);
-        for row in rows {
-            if new.len() >= MAX_INDEX_ROWS {
-                return Err(DurableError::Refused(
-                    "Text identity full index row bound exceeded",
-                ));
-            }
-            if new.insert((row.path, row.token), member_digest).is_some() {
-                return Err(DurableError::Corrupt(
-                    "duplicate Text identity contribution in full source",
-                ));
-            }
-        }
-    }
+    let new = &contributions.rows;
 
     let predicate_limit = as_i64(MAX_INDEX_ROWS + 1)?;
     let predicate_rows = tx.query(
@@ -410,7 +494,7 @@ pub(crate) fn rebuild_current(
         &[&domain],
     )?;
     let definition_digest = definition.to_hex();
-    for ((path, token), member_digest) in &new {
+    for ((path, token), member_digest) in new {
         let member_digest = member_digest.to_hex();
         tx.execute(
             "INSERT INTO cmd2_source_text_identity(domain,token,path,member_digest,definition_digest)
@@ -433,51 +517,21 @@ pub(crate) fn verify_for_reassessment(
     files: &BTreeMap<String, Vec<u8>>,
     definition: Digest256,
 ) -> DurableResult<()> {
-    let mut expected = BTreeMap::<(String, String), Digest256>::new();
-    let mut candidate_files = 0usize;
-    let mut candidate_bytes = 0usize;
-    for (path, bytes) in files {
-        if path.is_empty() || path.len() > 4096 || RelativePath::parse(path).is_err() {
-            return Err(DurableError::Invalid("Text identity full source path"));
-        }
-        if !is_public_candidate_path(path) {
-            continue;
-        }
-        candidate_files += 1;
-        if candidate_files > MAX_FILES {
-            return Err(DurableError::Refused(
-                "Text identity full member bound exceeded",
-            ));
-        }
-        candidate_bytes = candidate_bytes
-            .checked_add(bytes.len())
-            .filter(|count| *count <= MAX_BYTES)
-            .ok_or(DurableError::Refused(
-                "Text identity full byte bound exceeded",
-            ))?;
-        let rows = text_identity_contributions(path, bytes).map_err(DurableError::Source)?;
-        if rows.len() > MAX_POINT_OWNERS {
-            return Err(DurableError::Refused(
-                "Text identity contributions exceed member bound",
-            ));
-        }
-        let member_digest = Digest256::of_bytes(bytes);
-        for row in rows {
-            if expected.len() >= MAX_INDEX_ROWS {
-                return Err(DurableError::Refused(
-                    "Text identity full index row bound exceeded",
-                ));
-            }
-            if expected
-                .insert((row.path, row.token), member_digest)
-                .is_some()
-            {
-                return Err(DurableError::Corrupt(
-                    "duplicate Text identity contribution in full source",
-                ));
-            }
-        }
-    }
+    verify_rows_for_reassessment(
+        tx,
+        domain,
+        &CurrentTextIdentityRows::from_files(files)?,
+        definition,
+    )
+}
+
+pub(crate) fn verify_rows_for_reassessment(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    contributions: &CurrentTextIdentityRows,
+    definition: Digest256,
+) -> DurableResult<()> {
+    let expected = &contributions.rows;
 
     let row_limit = as_i64(MAX_INDEX_ROWS + 1)?;
     let rows = tx.query(
@@ -516,7 +570,7 @@ pub(crate) fn verify_for_reassessment(
             return Err(DurableError::Corrupt("duplicate Text identity cold row"));
         }
     }
-    if observed != expected {
+    if &observed != expected {
         return Err(DurableError::Conflict(
             "Text identity cold rowset differs from current candidates",
         ));

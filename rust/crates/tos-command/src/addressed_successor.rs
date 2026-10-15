@@ -1116,45 +1116,63 @@ impl DurablePgCoordinator {
             .validate()
             .map_err(|_| DurableError::Refused("persisted managed source proof is invalid"))?;
         let described = &proof.generation;
-        let digest = Digest256::from_hex(&described.installed_generation_sha256)
-            .map_err(|_| DurableError::Corrupt("persisted addressed generation digest"))?;
         let parse_digest = |value: &str| {
             Digest256::from_hex(value)
                 .map_err(|_| DurableError::Corrupt("persisted addressed cohort digest"))
         };
-        let cohort = ManagedSourceCohort {
-            domain: described.domain.clone(),
-            store_id: described.store_id,
-            initial_revision: SourceRevision(parse_digest(&described.bootstrap_source_revision)?),
-            initial_membership: SourceMembershipV1 {
+        let generation = self.reopen_current_addressed_source_selection(
+            store,
+            &described.domain,
+            SourceRevision(parse_digest(&described.bootstrap_source_revision)?),
+            SourceMembershipV1 {
                 digest: parse_digest(&described.bootstrap_membership_sha256)?,
                 count: described.bootstrap_members,
             },
-            epoch: described.epoch,
-            definition: parse_digest(&described.definition_sha256)?,
-            generation: described.through_commit_seq,
-        };
-        if cohort.store_id != store.store_id()
-            || parse_digest(&described.domain_sha256)? != store.domain_digest()
-            || cohort.domain.as_bytes() != store.custody_domain()
-        {
+            limits,
+            deadline,
+            cancelled,
+        )?;
+        let projection = parse_digest(&described.inventory_projection_sha256)?;
+        if Self::managed_model_generation_description_v2(&generation, projection)? != *described {
             return Err(DurableError::Conflict(
-                "persisted addressed source store/domain differs",
+                "persisted addressed selection proof differs",
             ));
         }
+        Ok(generation)
+    }
 
+    /// Reuse an already assessed current V2 generation for explicit export.
+    /// This reads the authenticated descriptor under the same live fences as
+    /// persisted proof reopening; it neither reassesses source bodies nor
+    /// selects a new generation. A stale/restored database still needs its
+    /// explicit cold assessment before this constructor can succeed.
+    pub(crate) fn reopen_current_addressed_source_selection(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        limits: AuthenticatedTreeLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
+        active(deadline, cancelled)?;
+        if domain.as_bytes() != store.custody_domain() {
+            return Err(DurableError::Conflict(
+                "addressed source store/domain differs",
+            ));
+        }
+        let audited_root = store.hold_audit_root()?;
         let mut tx = self
             .client
             .build_transaction()
             .isolation_level(IsolationLevel::RepeatableRead)
             .start()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
-        let audit = tx
-            .query_opt(
-                "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
-                &[&cohort.domain],
-            )?
-            .ok_or(DurableError::Corrupt("domain audit fence absent"))?;
+        let audit = tx.query_opt(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?.ok_or(DurableError::Corrupt("domain audit fence absent"))?;
         if audit.get::<_, String>(1) != "normal" {
             return Err(DurableError::Refused("physical maintenance in progress"));
         }
@@ -1162,28 +1180,40 @@ impl DurablePgCoordinator {
         let row = tx
             .query_opt(
                 "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
-                &[&cohort.domain],
+                &[&domain],
             )?
             .ok_or(DurableError::Corrupt("managed source domain absent"))?;
+        let head = as_u64(row.get("head_seq"))?;
+        let cohort = ManagedSourceCohort {
+            domain: domain.into(),
+            store_id: store.store_id(),
+            initial_revision,
+            initial_membership,
+            epoch: as_u64(
+                row.get::<_, Option<i64>>("source_epoch")
+                    .ok_or(DurableError::Corrupt("source epoch absent"))?,
+            )?,
+            definition: parse_hex(
+                row.get::<_, Option<String>>("source_definition_digest")
+                    .ok_or(DurableError::Corrupt("source definition absent"))?,
+            )?,
+            generation: head,
+        };
         cohort_matches(&row, &cohort, true)?;
-        let head = described.through_commit_seq;
-        if audit_generation != described.selected_audit_generation
-            || as_u64(row.get("head_seq"))? != head
-            || row.get::<_, Option<i64>>("source_generation") != Some(as_i64(head)?)
+        if row.get::<_, Option<i64>>("source_generation") != Some(as_i64(head)?)
             || as_u64(row.get("published_seq"))? != head
             || !row.get::<_, bool>("rights_allowed")
             || row.get::<_, Option<i64>>("complete_cut_generation")
-                != Some(as_i64(described.selected_audit_generation)?)
-            || row.get::<_, Option<String>>("selected_generation_digest")
-                != Some(described.installed_generation_sha256.clone())
-            || row.get::<_, Option<String>>("schema_profile_digest")
-                != Some(described.schema_profile_sha256.clone())
-            || database_oid(&mut tx)? != described.database_oid
+                != Some(as_i64(audit_generation)?)
         {
             return Err(DurableError::Conflict(
-                "persisted addressed source selection is no longer current",
+                "addressed source selection is no longer current",
             ));
         }
+        let digest = parse_hex(
+            row.get::<_, Option<String>>("selected_generation_digest")
+                .ok_or(DurableError::Conflict("addressed source selection absent"))?,
+        )?;
         let raw = store.read_authenticated_object_v1(
             OBJECT_KIND,
             digest,
@@ -1194,37 +1224,22 @@ impl DurablePgCoordinator {
         let cut = AddressedCutV2::decode(&raw)?;
         cut.require_store(store)?;
         let state_digest = cut.state_digest()?;
-        let expected_selected_audit =
-            cut.audit_generation
-                .checked_add(1)
-                .ok_or(DurableError::Corrupt(
-                    "addressed selected audit generation overflow",
-                ))?;
-        if cut.domain != cohort.domain
+        if cut.domain != domain
             || cut.through_seq != head
-            || cut.audit_generation.checked_add(1) != Some(described.selected_audit_generation)
-            || expected_selected_audit != audit_generation
-            || cut.database_oid != described.database_oid
-            || cut.schema_profile_digest.to_hex() != described.schema_profile_sha256
-            || cut.state_profile_digest.to_hex() != described.state_profile_sha256
-            || cut.metadata.commitment.to_hex() != described.addressed_metadata_tree_sha256
-            || cut.metadata.entries != described.addressed_metadata_members
-            || cut.inventory.root().to_hex() != described.addressed_inventory_root_sha256
-            || cut.current.commitment.to_hex() != described.addressed_current_tree_sha256
-            || cut.current.entries != described.current_members
-            || cut.history.commitment.to_hex() != described.addressed_history_tree_sha256
-            || cut.history.entries != described.history_members
-            || cut.log_digest.to_hex() != described.log_sha256
+            || cut.audit_generation.checked_add(1) != Some(audit_generation)
+            || cut.database_oid != database_oid(&mut tx)?
+            || row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(cut.schema_profile_digest.to_hex())
             || row.get::<_, Option<String>>("complete_cut_digest") != Some(state_digest.to_hex())
             || row.get::<_, Option<String>>("source_projection_digest")
                 != Some(cut.inventory.root().to_hex())
         {
             return Err(DurableError::Conflict(
-                "persisted addressed descriptor differs from its selected proof",
+                "addressed descriptor differs from current selection",
             ));
         }
         let selected = VerifiedAddressedGeneration {
-            audited_root: store.hold_audit_root()?,
+            audited_root,
             store: store.clone(),
             cut,
             digest,
@@ -1233,19 +1248,13 @@ impl DurablePgCoordinator {
             log_frontier: None,
             limits,
         };
-        let generation =
-            crate::source_current_cut::ManagedCurrentSourceGeneration::from_verified_addressed(
-                store, cohort, selected,
-            );
-        let projection = parse_digest(&described.inventory_projection_sha256)?;
-        if Self::managed_model_generation_description_v2(&generation, projection)? != *described {
-            return Err(DurableError::Conflict(
-                "persisted addressed selection proof differs",
-            ));
-        }
         active(deadline, cancelled)?;
         tx.commit()?;
-        Ok(generation)
+        Ok(
+            crate::source_current_cut::ManagedCurrentSourceGeneration::from_verified_addressed(
+                store, cohort, selected,
+            ),
+        )
     }
 
     pub(super) fn continue_addressed_creation(

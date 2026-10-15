@@ -8,6 +8,8 @@ mod addressed_inventory;
 mod addressed_successor;
 #[path = "source_cohort_bootstrap_streamed.rs"]
 mod source_cohort_bootstrap_streamed;
+#[path = "source_cohort_export.rs"]
+mod source_cohort_export;
 #[path = "source_cohort_stream_index.rs"]
 mod source_cohort_stream_index;
 #[path = "source_cohort_streamed.rs"]

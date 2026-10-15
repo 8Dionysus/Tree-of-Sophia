@@ -1349,9 +1349,9 @@ struct CompleteMixedProjectionPassV1 {
     members: u64,
     // Exact ordered mixed projection transcript, not the addressed root.
     projection_digest: Digest256,
-    // Candidate bodies are retained from the same full current-member pass so
-    // the Text point index can be rebuilt without another corpus scan.
-    text_identity_candidates: BTreeMap<String, Vec<u8>>,
+    // Compact identity rows come from the same exact current-member pass.
+    // Large Text/provenance bodies do not survive their individual parse.
+    text_identity_candidates: crate::source_text_identity_index::CurrentTextIdentityRows,
     // Public semantic annotation packets from that same full source pass.
     annotation_identity_candidates: BTreeMap<String, Vec<u8>>,
     // Exact Claim streams and shared-schema paths from that same bounded pass
@@ -1439,8 +1439,8 @@ fn render_current_mixed_projections(
     let mut claim_context = None::<CommandContext>;
     let mut claim_context_path = None::<String>;
     let mut claim_source_profiles = None::<tos_foundation::JsonValue>;
-    let mut text_identity_candidates = BTreeMap::new();
-    let mut text_identity_candidate_bytes = 0usize;
+    let mut text_identity_candidates =
+        crate::source_text_identity_index::CurrentTextIdentityRows::default();
     let mut annotation_identity_candidates = BTreeMap::new();
     let mut annotation_identity_candidate_bytes = 0usize;
     let mut claim_dependency_candidates = BTreeMap::new();
@@ -1985,26 +1985,9 @@ fn render_current_mixed_projections(
             && !member.path.starts_with("ToS/source-witnesses/owner-local/")
             && crate::source_text_identity::is_candidate(basename)
         {
-            if text_identity_candidates.len() >= crate::source_text_identity::MAX_FILES {
-                return Err(DurableError::Refused(
-                    "streamed Text identity candidate file bound",
-                ));
-            }
-            text_identity_candidate_bytes = text_identity_candidate_bytes
-                .checked_add(file.raw.len())
-                .filter(|bytes| *bytes <= crate::source_text_identity::MAX_BYTES)
-                .ok_or(DurableError::Refused(
-                    "streamed Text identity candidate byte bound",
-                ))?;
-            if text_identity_candidates
-                .insert(member.path.clone(), file.raw)
-                .is_some()
-            {
-                return Err(DurableError::Corrupt(
-                    "duplicate streamed Text identity candidate path",
-                ));
-            }
+            text_identity_candidates.add_member(&member.path, &file.raw)?;
         }
+
         if epoch.fresh_sink {
             // SQL profile_id is TEXT; retain the original byte identity elsewhere.
             let original_profile = std::str::from_utf8(ORIGINAL)
@@ -2164,9 +2147,7 @@ fn stage_current_owner_predicate_expectations(
         return Ok(());
     }
     let version = definition().to_hex();
-    for token in crate::source_text_identity_index::current_predicate_tokens(
-        &projected.text_identity_candidates,
-    )? {
+    for token in projected.text_identity_candidates.tokens() {
         add_expected_owned_predicate(
             index,
             work,
@@ -2738,14 +2719,14 @@ fn assess_held_current_source(
     )?;
     set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
     if fresh_sink {
-        crate::source_text_identity_index::rebuild_current(
+        crate::source_text_identity_index::rebuild_current_rows(
             tx,
             domain,
             &projected.text_identity_candidates,
             definition(),
         )?;
     } else {
-        crate::source_text_identity_index::verify_for_reassessment(
+        crate::source_text_identity_index::verify_rows_for_reassessment(
             tx,
             domain,
             &projected.text_identity_candidates,
@@ -3440,7 +3421,8 @@ mod predicate_expectation_tests {
         let projected = CompleteMixedProjectionPassV1 {
             members: 0,
             projection_digest: Digest256::of_bytes(b"empty projected source"),
-            text_identity_candidates: BTreeMap::new(),
+            text_identity_candidates:
+                crate::source_text_identity_index::CurrentTextIdentityRows::default(),
             annotation_identity_candidates: BTreeMap::new(),
             claim_dependency_candidates: BTreeMap::new(),
             item_file_candidates: BTreeMap::new(),

@@ -399,8 +399,22 @@ input, returned-row, logical-byte and high-water counters. The index row and
 logical-byte budgets bound cumulative work, including repeated metadata reads;
 they are not unique source counts or physical file-size caps. A refused streamed
 assessment preserves its numeric work counters in stderr for cost diagnosis.
+Text identity assessment retains per-member identifier/path/digest rows while
+discarding each parsed body. The existing owner parser and point-index
+comparison still govern identity and fixity; metadata row/byte budgets bound
+the retained contribution set independently of the summed source text size.
 These are logical owner counters, not whole-operation or physical-I/O
 measurements; process and cgroup accounting remains separate.
+
+Initial Source Navigation preparation reopens that completed addressed
+generation under its current PostgreSQL, rights and custody fences. Its
+explicit export visits bounded metadata pages and delivers one source body at
+a time; it does not repeat source assessment or build a complete body map.
+The export carries the exact original history and verifies current membership
+through EOF before compilation. Protected export bytes/inodes and retained
+manifest/history budgets govern this initial operation independently of the
+ordinary command batch and portable model budgets. A stale selection or a
+restored database still requires explicit cold assessment before export.
 
 `source_selection.initialize_schema: true` must also be present in the
 protected owner configuration, with `initialization_mode: "initialize"` and
