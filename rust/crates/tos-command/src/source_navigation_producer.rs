@@ -35,23 +35,23 @@ use crate::source_navigation_cli::{
 };
 use crate::{DurableError, DurableNavigationEventContextV1, DurablePgCoordinator, DurableResult};
 
-// Static owner reasons identify the failed boundary without exposing database
-// diagnostics, selected paths, or source payloads through the command response.
+// Owner reasons use bounded renderers; selected paths, source payloads and
+// dynamic database diagnostics remain private.
 fn producer_refusal(
     error: crate::source_navigation_cli::SourceNavigationSelectionError,
-) -> &'static str {
+) -> String {
     use crate::source_command::SourceCommandError;
     use crate::source_managed_selection::ManagedSelectionError;
     use crate::source_navigation_cli::SourceNavigationSelectionError;
     match error {
-        SourceNavigationSelectionError::Invalid(reason) => reason,
+        SourceNavigationSelectionError::Invalid(reason) => reason.to_owned(),
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
             DurableError::Invalid(reason)
             | DurableError::Conflict(reason)
             | DurableError::Refused(reason)
             | DurableError::Corrupt(reason)
             | DurableError::Indeterminate(reason),
-        )) => reason,
+        )) => reason.to_owned(),
         SourceNavigationSelectionError::Managed(
             ManagedSelectionError::Source(error)
             | ManagedSelectionError::Durable(DurableError::Source(error)),
@@ -60,19 +60,13 @@ fn producer_refusal(
             | SourceCommandError::InvalidAt { reason, .. }
             | SourceCommandError::Conflict(reason)
             | SourceCommandError::Denied(reason)
-            | SourceCommandError::Unsupported(reason) => reason,
-            SourceCommandError::DeniedWithReason(_) => "navigation source owner denied",
-            SourceCommandError::SchemaExecution { .. } => "navigation source schema refused",
-            SourceCommandError::MissingProductionAdmission => "navigation source admission missing",
+            | SourceCommandError::Unsupported(reason) => reason.to_owned(),
+            SourceCommandError::DeniedWithReason(reason) => reason,
+            error @ SourceCommandError::SchemaExecution { .. } => error.public_reason(),
+            SourceCommandError::MissingProductionAdmission => "navigation source admission missing".into(),
         },
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Compiler(error)) => {
-            match error {
-                tos_compiler::Error::Invalid(reason)
-                | tos_compiler::Error::PreparedUnsupported(reason)
-                | tos_compiler::Error::ManagedSourceUnsupported(reason)
-                | tos_compiler::Error::Budget(reason) => reason,
-                _ => "navigation model compiler refused",
-            }
+            crate::source_command::public_compiler_reason(&error)
         }
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
             DurableError::Database(error),
@@ -80,18 +74,18 @@ fn producer_refusal(
             if std::error::Error::source(&error)
                 .is_some_and(|cause| cause.is::<postgres::types::WrongType>())
             {
-                "navigation database parameter type mismatch"
+                "navigation database parameter type mismatch".into()
             } else if error.as_db_error().is_some() {
-                "navigation database statement refused"
+                "navigation database statement refused".into()
             } else {
-                "navigation database client operation failed"
+                "navigation database client operation failed".into()
             }
         }
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(
             DurableError::Storage(_),
-        )) => "navigation source storage refused",
+        )) => "navigation source storage refused".into(),
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Query(_)) => {
-            "navigation query selection refused"
+            "navigation query selection refused".into()
         }
     }
 }
@@ -102,9 +96,9 @@ pub(crate) fn run(
     selection_path: &Path,
     requested_max_events: usize,
     cancelled: &AtomicBool,
-) -> Result<Value, &'static str> {
+) -> Result<Value, String> {
     if !(1..=256).contains(&requested_max_events) {
-        return Err("max_events must be 1..256");
+        return Err("max_events must be 1..256".into());
     }
     let deadline = Instant::now() + Duration::from_secs(300);
     let selected = crate::source_navigation_cli::SelectedSourceNavigation::new(selection_path)
@@ -135,7 +129,7 @@ pub(crate) fn run(
 pub(crate) fn run_bootstrap(
     selection_path: &Path,
     cancelled: &AtomicBool,
-) -> Result<Value, &'static str> {
+) -> Result<Value, String> {
     let deadline = Instant::now() + Duration::from_secs(300);
     let selected = crate::source_navigation_cli::SelectedSourceNavigation::new(selection_path)
         .map_err(|_| "source navigation selection refused")?;

@@ -337,7 +337,7 @@ fn read_request(input: impl Read) -> Result<Request, &'static str> {
 /// Value-returning compatibility API for non-disclosing projection operations.
 /// Search-text is intentionally refused here because a returned `Value` cannot
 /// retain its disclosure transaction through the caller's final flush.
-pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static str> {
+pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, String> {
     let cancelled = AtomicBool::new(false);
     let selection_path = crate::source_text_owner::normalized_absolute(
         selection_path
@@ -348,7 +348,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
     let request = read_request(input)?;
     if let Request::AdvanceNavigation { max_events } = &request {
         if !(1..=256).contains(max_events) {
-            return Err("max_events must be 1..256");
+            return Err("max_events must be 1..256".into());
         }
         return crate::source_navigation_producer::run(&selection_path, *max_events, &cancelled);
     }
@@ -370,13 +370,13 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
     let version = match selection.profile.as_str() {
         crate::source_search_projection::SOURCE_SEARCH_PROFILE => 1,
         crate::source_search_projection::SOURCE_SEARCH_PROFILE_V2 => 2,
-        _ => return Err("unsupported projection profile"),
+        _ => return Err("unsupported projection profile".into()),
     };
     if selection.schema_version != "tos_source_projection_selection_v1"
         || selection.domain.is_empty()
         || selection.domain.len() > 1024
     {
-        return Err("unsupported projection selection");
+        return Err("unsupported projection selection".into());
     }
     let consumer_id = selection.selected_consumer()?;
     let source_contract = Digest256::from_hex(&selection.source_contract_sha256)
@@ -411,7 +411,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
                 json!({"schema_version":"tos_source_projection_search_v1", "profile":profile.id, "result":result}),
             )
         }
-        Request::SearchText { .. } => Err("source-text search requires the streaming writer route"),
+        Request::SearchText { .. } => Err("source-text search requires the streaming writer route".into()),
         Request::Status => {
             let result = db
                 .projection_status(
@@ -441,14 +441,14 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
             }))
         }
         Request::AdvanceNavigation { .. } => {
-            Err("advance-navigation requires its protected source-navigation route")
+            Err("advance-navigation requires its protected source-navigation route".into())
         }
         Request::BootstrapNavigation => {
-            Err("bootstrap-navigation requires its protected source-navigation route")
+            Err("bootstrap-navigation requires its protected source-navigation route".into())
         }
         Request::Apply { max_events } => {
             if !(1..=256).contains(&max_events) {
-                return Err("max_events must be 1..256");
+                return Err("max_events must be 1..256".into());
             }
             let store = open_store(&selection)?;
             let limits = DurableProjectionLimits {
@@ -481,7 +481,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
         } => {
             RelativePath::parse(&source_path).map_err(|_| "invalid source path")?;
             if revision == 0 {
-                return Err("source revision must be positive");
+                return Err("source revision must be positive".into());
             }
             let store = open_store(&selection)?;
             let (_, bytes, _, work) = db
@@ -526,7 +526,7 @@ pub fn run_to_writer(
     selection_path: &Path,
     input: impl Read,
     output: &mut impl Write,
-) -> Result<(), &'static str> {
+) -> Result<(), String> {
     let request_bytes = read_request_bytes(input)?;
     let request: Request =
         serde_json::from_slice(&request_bytes).map_err(|_| "invalid projection request")?;
@@ -551,10 +551,10 @@ pub fn run_to_writer(
                 cursor,
             },
             output,
-        );
+        ).map_err(String::from);
     }
     let value = run(selection_path, Cursor::new(request_bytes))?;
-    write_projection_value(output, &value)
+    write_projection_value(output, &value).map_err(String::from)
 }
 
 fn run_source_text_search_to_writer(

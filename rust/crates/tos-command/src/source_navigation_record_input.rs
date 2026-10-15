@@ -41,16 +41,12 @@ const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const REGISTRY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
 const FORMS_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
 
-// Keep static compiler boundary reasons while withholding dynamic source,
-// filesystem and database diagnostics from the public command response.
+// Use the command owner's bounded renderer: worker evidence survives while
+// dynamic source, filesystem and database details remain redacted.
 fn history_refusal(error: tos_compiler::Error) -> DurableError {
-    DurableError::Refused(match error {
-        tos_compiler::Error::Invalid(reason)
-        | tos_compiler::Error::PreparedUnsupported(reason)
-        | tos_compiler::Error::ManagedSourceUnsupported(reason)
-        | tos_compiler::Error::Budget(reason) => reason,
-        _ => "selected navigation Record history refused",
-    })
+    DurableError::Source(crate::source_command::SourceCommandError::DeniedWithReason(
+        crate::source_command::public_compiler_reason(&error),
+    ))
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
