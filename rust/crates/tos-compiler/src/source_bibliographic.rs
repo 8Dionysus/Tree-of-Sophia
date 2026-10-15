@@ -935,6 +935,9 @@ pub fn supplied_bibliographic_maker(
 /// Pure maker carrier using an exact owner-selected fallback source when the
 /// metadata identity is absent. Event-local projection can bind this to the
 /// exact Claim row instead of reading the generated whole Claim catalog.
+/// In that profile the carrier is a Claim-owned authorship declaration, not
+/// the author's identity: two Claims may have different source hashes and
+/// maker details. The retained catalog profile keeps its existing shared IDs.
 pub fn supplied_bibliographic_maker_with_fallback(
     claim: &Value,
     identity: Option<Value>,
@@ -964,8 +967,17 @@ pub fn supplied_bibliographic_maker_with_fallback(
     } else {
         (json!(fallback_source_ref), json!(fallback_sha256))
     };
+    let maker_id = if fallback_source_ref == CLAIM_CATALOG {
+        node_id("maker", reference)
+    } else {
+        let declaration = encode(&json!([text(claim, "claim_id")?, reference]), max_row_bytes)?;
+        format!(
+            "maker:claim:sha256:{}",
+            Digest256::of_bytes(&declaration).to_hex()
+        )
+    };
     Ok((
-        json!({"node_id":node_id("maker",reference),"node_kind":"maker","source_ref":source_ref,"source_sha256":sha,
+        json!({"node_id":maker_id,"node_kind":"maker","source_ref":source_ref,"source_sha256":sha,
         "properties":{"agent_ref":reference,"maker_type":maker["maker_type"],"source_maker":maker,"identity_node_id":identity.as_ref().map(|n|n["node_id"].clone()).unwrap_or(Value::Null)}}),
         identity,
     ))
@@ -1910,6 +1922,55 @@ pub fn clear_bibliographic_graph(
 
 #[cfg(test)]
 mod descriptor_limit_tests {
+    #[test]
+    fn claim_owned_makers_preserve_distinct_evidence_and_legacy_ids() {
+        use super::*;
+        let claim = json!({"claim_id":"tos.claim.first", "maker":{
+            "agent_ref":"agent:researcher", "maker_type":"agent"}});
+        let mut other = claim.clone();
+        other["claim_id"] = json!("tos.claim.second");
+        let sha_a = "a".repeat(64);
+        let sha_b = "b".repeat(64);
+        let source = "ToS/source-witnesses/relations/research/source-claims.jsonl";
+        let render = |claim: &Value, sha: &str| {
+            supplied_bibliographic_maker_with_fallback(claim, None, source, sha, 4096)
+                .unwrap()
+                .0
+        };
+        let first = render(&claim, &sha_a);
+        let second = render(&other, &sha_b);
+        assert_ne!(first["node_id"], second["node_id"]);
+        assert_eq!(first["source_sha256"], sha_a);
+        assert_eq!(second["source_sha256"], sha_b);
+        assert_eq!(
+            first["properties"]["agent_ref"],
+            second["properties"]["agent_ref"]
+        );
+        assert_eq!(first["node_id"], render(&claim, &sha_b)["node_id"]);
+        let legacy = supplied_bibliographic_maker(&claim, None, &sha_a, 4096)
+            .unwrap()
+            .0;
+        assert_eq!(legacy["node_id"], node_id("maker", "agent:researcher"));
+        assert_eq!(legacy["source_ref"], CLAIM_CATALOG);
+        let identity = json!({"node_id":"identity:tos.agent.researcher",
+            "source_ref":"ToS/source-witnesses/agents/researcher/agent.json",
+            "source_sha256":sha_a});
+        let (linked, retained) = supplied_bibliographic_maker_with_fallback(
+            &claim,
+            Some(identity.clone()),
+            source,
+            &sha_b,
+            4096,
+        )
+        .unwrap();
+        assert_eq!(linked["node_id"], first["node_id"]);
+        assert_eq!(
+            linked["properties"]["identity_node_id"],
+            identity["node_id"]
+        );
+        assert_eq!(retained, Some(identity));
+    }
+
     use super::*;
 
     #[test]

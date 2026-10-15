@@ -1250,6 +1250,15 @@ projection and issue no ToS admission, QRY disclosure, or canon grant. If a
 receipt write is lost after publication, repeating the exact bootstrap request
 is safe and reports `replayed: true`.
 
+Event-local Claim projections bind maker evidence to the exact Claim source.
+Their `maker:claim:sha256:` node IDs identify each Claim's authorship declaration;
+`agent_ref` and an available `identity_node_id` retain the common author link.
+Two Claims by one author can therefore retain distinct evidence hashes. The
+older catalog-backed bibliographic profile retains its `maker:sha256:` IDs.
+Derived node IDs belong to their selected projection profile; stable source
+Claim and Agent IDs remain unchanged. Existing derived publications require
+their declared rebuild/migration route when switching producer profiles.
+
 Each query reopens the retained model as the immutable bootstrap anchor and
 holds a separate live PostgreSQL source-navigation lease through disclosure.
 The query is ready only when its verified coverage and adjacency publication
