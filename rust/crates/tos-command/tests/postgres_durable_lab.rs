@@ -3859,6 +3859,10 @@ fn maintained_agent_creation_operation<
             serde_json::from_slice::<serde_json::Value>(&current_package.files()["agent.json"])
                 .unwrap()
         );
+        assert_eq!(
+            version["properties"]["record_version_view"]["reason"],
+            "exact-current-version"
+        );
         eprintln!("CMD2_MODEL_V2_VERSIONS read={version_work:?} guards={version_guards:?}");
         // Keep the real opaque restore witness in this same existing whole
         // operation. JSON from a transport subprocess cannot grant rebind.

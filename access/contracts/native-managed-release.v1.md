@@ -197,3 +197,19 @@ Initial native preparation selects this component set explicitly; complete
 portable builders continue to produce their full search component. Live source
 and policy holds remain necessary for publication and disclosure with either
 managed ABI.
+
+At the same published source cut, initial and addressed navigation preserve
+identities, records, HumanForms, version histories, relations and visibility.
+Metadata version views use `exact-current-version` or
+`exact-historical-version`; the history enumeration uses
+`verified-record-references`. Compare decoded values, not JSON object key order.
+The catalog provenance describes the actual preparation route: a full catalog
+records its file digest, line, source record path and current reference; an
+addressed entry records `selection=event-derived-entry-v1`, its projection path,
+entry digest and selected event source revision. These provenance carriers remain
+visible and are verified against their respective inputs. They are not equal
+byte strings and must not be replaced with invented full-catalog evidence.
+Equivalence requires every other field to agree and both provenance claims to
+resolve to the same selected record; it does not discard provenance or reduce
+the comparison to IDs. Source-byte fixity and current disclosure policy remain
+separate mandatory checks.
