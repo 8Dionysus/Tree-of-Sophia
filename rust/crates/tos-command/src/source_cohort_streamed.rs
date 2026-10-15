@@ -30,6 +30,8 @@ pub struct StreamedColdSourceWorkV1 {
     /// Bound fields sent to fresh-bootstrap SQL, not WAL or protocol IO.
     pub fresh_pg_field_bytes_attempted: u64,
     pub fresh_pg_rows_written: u64,
+    pub predicate_completion_rows_updated: u64,
+    pub predicate_completion_batches: u64,
 }
 
 pub(super) fn set_streamed_pg_limits(
@@ -2613,7 +2615,11 @@ fn populate_fresh_owner_rows(
             "fresh predicate bound fields overflow",
         ))?;
         ManagedSourceWorkV1::charge(&mut body_work.fresh_pg_field_bytes_attempted, bytes)?;
-        let written = tx.execute("INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete) VALUES($1,$2,$3,$4,$5,$6,0,false)",
+        // The complete semantic seal already exists. These rows and the
+        // domain's final readiness commit in this same held transaction; no
+        // reader can observe an intermediate grant. Avoid inserting false and
+        // then rewriting every fresh predicate through the row audit trigger.
+        let written = tx.execute("INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete) VALUES($1,$2,$3,$4,$5,$6,0,true)",
             &[&domain,&row.kind,&row.owner,&row.scope,&row.token,&row.definition_version])?;
         ManagedSourceWorkV1::charge(&mut body_work.fresh_pg_rows_written, written)?;
         if written != 1 {
@@ -2870,6 +2876,71 @@ fn assess_held_current_source(
     )?;
     active(deadline, cancelled)?;
     Ok((assessment, inventory))
+}
+
+// Complete only retained incomplete predicates. A bounded keyset UPDATE avoids
+// one enormous trigger queue and repeated audit-fence churn. Every update still
+// runs the actual audit trigger under the same held source transaction.
+fn complete_owned_predicates_streamed(
+    tx: &mut Transaction<'_>,
+    max_statement_ms: u64,
+    domain: &str,
+    definition: &str,
+    work: &mut StreamedColdSourceWorkV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    owner_check: &dyn Fn() -> DurableResult<()>,
+) -> DurableResult<()> {
+    let mut after = (String::new(), String::new(), String::new());
+    loop {
+        active(deadline, cancelled)?;
+        owner_check()?;
+        set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+        let rows = tx.query(
+            "WITH page AS MATERIALIZED (
+                SELECT kind,scope,token FROM cmd2_predicate
+                WHERE domain=$1 AND owner=$2 AND definition_version=$3 AND NOT complete
+                  AND (kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\") > ($4,$5,$6)
+                ORDER BY kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\" LIMIT 256
+             ) UPDATE cmd2_predicate p SET complete=true FROM page
+             WHERE p.domain=$1 AND p.owner=$2 AND p.definition_version=$3 AND NOT p.complete
+               AND p.kind=page.kind AND p.scope=page.scope AND p.token=page.token
+             RETURNING p.kind,p.scope,p.token",
+            &[&domain, &OWNER, &definition, &after.0, &after.1, &after.2],
+        )?;
+        if rows.is_empty() {
+            return Ok(());
+        }
+        if rows.len() > 256 {
+            return Err(DurableError::Corrupt(
+                "predicate completion page exceeds bound",
+            ));
+        }
+        ManagedSourceWorkV1::charge(
+            &mut work.predicate_completion_rows_updated,
+            rows.len() as u64,
+        )?;
+        ManagedSourceWorkV1::charge(&mut work.predicate_completion_batches, 1)?;
+        let next = rows
+            .iter()
+            .map(|r| {
+                (
+                    r.get::<_, String>(0),
+                    r.get::<_, String>(1),
+                    r.get::<_, String>(2),
+                )
+            })
+            .max()
+            .ok_or(DurableError::Corrupt(
+                "predicate completion page has no cursor",
+            ))?;
+        if next <= after {
+            return Err(DurableError::Corrupt(
+                "predicate completion cursor did not advance",
+            ));
+        }
+        after = next;
+    }
 }
 
 /// Explicit derived-index limits; these do not enlarge compatibility admission
@@ -3279,8 +3350,16 @@ impl DurablePgCoordinator {
                     deadline,
                     &cancelled,
                 )?;
-                tx.execute("UPDATE cmd2_predicate SET complete=true WHERE domain=$1 AND owner=$2 AND definition_version=$3",
-            &[&domain, &OWNER, &cohort.definition.to_hex()])?;
+                complete_owned_predicates_streamed(
+                    &mut tx,
+                    generation_profile.max_sql_statement_ms,
+                    domain,
+                    &cohort.definition.to_hex(),
+                    body_work,
+                    deadline,
+                    &cancelled,
+                    owner_check,
+                )?;
                 owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
@@ -3717,6 +3796,130 @@ mod bounded_claim_context_tests {
 #[cfg(test)]
 mod owner_metadata_budget_tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires an explicitly selected disposable PostgreSQL 16 database"]
+    fn postgres_contract_predicate_completion_is_bounded_and_fenced() {
+        let url = std::env::var("TOS_METADATA_TEST_PG_URL").expect("disposable PG URL required");
+        let mut db = DurablePgCoordinator::connect(&url).unwrap();
+        db.initialize_empty_schema().unwrap();
+        let mut client = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+        let mut tx = client.transaction().unwrap();
+        let domain = "bounded-predicate-completion";
+        tx.execute(
+            "INSERT INTO cmd2_domain(domain,contract_digest) VALUES($1,repeat('a',64))",
+            &[&domain],
+        )
+        .unwrap();
+        let version = "b".repeat(64);
+        let started = Instant::now();
+        // Use the real row audit triggers; each source-owned insert is a
+        // separate statement, as in the actual initial import.
+        for i in 0..8193 {
+            tx.execute("INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version) VALUES($1,'unique',$2,'scope',$3,$4)",
+                &[&domain, &OWNER, &format!("token-{i:05}"), &version]).unwrap();
+        }
+        for (owner, definition, token, complete) in [
+            (OWNER, version.as_str(), "already-complete", true),
+            ("other-owner", version.as_str(), "other-owner", false),
+            (OWNER, "other-definition", "other-definition", false),
+        ] {
+            tx.execute("INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,complete) VALUES($1,'unique',$2,'scope',$3,$4,$5)",
+                &[&domain, &owner, &token, &definition, &complete]).unwrap();
+        }
+        let seeded_ms = started.elapsed().as_millis();
+        let before: i64 = tx
+            .query_one(
+                "SELECT generation FROM cmd2_audit_fence WHERE domain=$1",
+                &[&domain],
+            )
+            .unwrap()
+            .get(0);
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(90);
+        let mut work = StreamedColdSourceWorkV1::default();
+        let started = Instant::now();
+        complete_owned_predicates_streamed(
+            &mut tx,
+            5000,
+            domain,
+            &version,
+            &mut work,
+            deadline,
+            &cancelled,
+            &|| Ok(()),
+        )
+        .unwrap();
+        let completed_ms = started.elapsed().as_millis();
+        assert_eq!(work.predicate_completion_rows_updated, 8193);
+        assert_eq!(work.predicate_completion_batches, 33);
+        let after: i64 = tx
+            .query_one(
+                "SELECT generation FROM cmd2_audit_fence WHERE domain=$1",
+                &[&domain],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(
+            after - before,
+            8193,
+            "every changed row retained its audit fence"
+        );
+        assert_eq!(
+            tx.query_one(
+                "SELECT count(*) FROM cmd2_predicate WHERE domain=$1 AND NOT complete",
+                &[&domain]
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+            2
+        );
+        let before_work = work;
+        complete_owned_predicates_streamed(
+            &mut tx,
+            5000,
+            domain,
+            &version,
+            &mut work,
+            deadline,
+            &cancelled,
+            &|| Ok(()),
+        )
+        .unwrap();
+        assert_eq!(
+            work, before_work,
+            "ready predicates are not rewritten on replay"
+        );
+        cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+        assert!(
+            complete_owned_predicates_streamed(
+                &mut tx,
+                5000,
+                domain,
+                &version,
+                &mut work,
+                deadline,
+                &cancelled,
+                &|| Ok(())
+            )
+            .is_err()
+        );
+        eprintln!(
+            "predicate completion measured rows=8193 batches=33 seed_ms={seeded_ms} completion_ms={completed_ms}; all row audit fences preserved"
+        );
+        tx.rollback().unwrap();
+        assert_eq!(
+            client
+                .query_one(
+                    "SELECT count(*) FROM cmd2_predicate WHERE domain=$1",
+                    &[&domain]
+                )
+                .unwrap()
+                .get::<_, i64>(0),
+            0,
+            "outer source transaction still owns rollback"
+        );
+    }
 
     #[test]
     #[ignore = "requires an explicitly selected disposable PostgreSQL 16 database"]

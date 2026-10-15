@@ -1061,8 +1061,12 @@ mod tests {
 
     #[test]
     fn initial_parse_workspace_keeps_routine_limits_and_strict_grammar() {
-        let line = "{\"schema_version\":\"unindexed\",\"values\":[0,1,2,3,4,5,6,7,8,9]}\n";
+        let line = "{\"schema_version\":\"unindexed\",\"values\":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]}\n";
         let raw = line.repeat(16_000);
+        assert_eq!(
+            project_source_text("input.jsonl", raw.as_bytes()),
+            Err("source JSONL exceeds parse budget")
+        );
         // Four object/string/container visits plus ten values per line.
         let constrained = SourceSearchParseLimits {
             max_json_visits: 20,

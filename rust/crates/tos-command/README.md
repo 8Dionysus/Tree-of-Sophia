@@ -120,6 +120,13 @@ whole-segment verification; damage to an unrelated frame is detected by that
 frame's read or a cold audit. Work counters distinguish selected source bytes,
 segment bytes including envelopes, custody metadata and committed-member rows.
 These are logical read counts; device I/O is measured separately.
+Initial predicate completion uses the existing transaction and audit triggers.
+New predicates are inserted ready only after the complete semantic seal, while
+still invisible outside that transaction; retained incomplete predicates are
+completed in keyset batches of at most 256. Already complete rows are not
+rewritten. The bootstrap result reports completion rows and batches separately;
+this does not change source admission or the final domain readiness fence.
+
 
 The native owner entry is:
 
