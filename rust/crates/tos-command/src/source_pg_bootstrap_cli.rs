@@ -665,9 +665,8 @@ pub(super) fn selected_store(
 pub(super) fn source_error(error: DurableError) -> SourceCommandError {
     match error {
         DurableError::Source(error) => error,
-        DurableError::Conflict(_) => {
-            SourceCommandError::Conflict("PostgreSQL bootstrap selection changed")
-        }
+        // Conflict reasons are static owner labels, not database/source text.
+        DurableError::Conflict(reason) => SourceCommandError::Conflict(reason),
         DurableError::Refused(reason) => SourceCommandError::Denied(reason),
         // These owner labels are static strings, never database messages or
         // source values. Preserve the exact refusal so a failed import can be

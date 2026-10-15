@@ -469,7 +469,9 @@ impl DurablePgCoordinator {
             || row.get::<_, Option<i64>>("source_membership_count")
                 != Some(as_i64(membership.count)?)
             || row.get::<_, Option<i64>>("source_epoch") != Some(1)
-            || row.get::<_, Option<i64>>("source_generation") != Some(0)
+            // Bootstrap commits advance source_generation with the durable head
+            // even while source_complete remains false until assessment.
+            || row.get::<_, Option<i64>>("source_generation") != Some(as_i64(head)?)
             || row.get::<_, Option<String>>("source_definition_digest")
                 != Some(definition().to_hex())
             || row.get::<_, Option<String>>("schema_profile_digest")
