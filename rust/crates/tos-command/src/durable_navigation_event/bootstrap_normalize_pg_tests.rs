@@ -285,6 +285,41 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
         FROM cmd2_projection_navigation_bootstrap_dependency WHERE domain='lab' AND consumer_id='initial'", &[]).unwrap()
         .into_iter().map(|r| (r.get(0),r.get(1),r.get(2))).collect::<BTreeSet<_>>();
     assert_eq!(actual_deps, expected_deps);
+    // Exercise the PostgreSQL cursor/key order and exact raw hashing against
+    // the established stream framing, including multiple owners for one node.
+    let empty_hash = || NavigationBootstrapRootHasher {
+        hash: Digest256Hasher::new(),
+        last_source: None,
+        last_row: None,
+    };
+    let mut expected_hash = empty_hash();
+    let mut ordered = normalized.clone();
+    ordered.sort_by(|a, b| {
+        (a.kind, &a.id, &a.owner_source_path, &a.owner_record_id).cmp(&(
+            b.kind,
+            &b.id,
+            &b.owner_source_path,
+            &b.owner_record_id,
+        ))
+    });
+    for row in &ordered {
+        expected_hash.row(row).unwrap();
+    }
+    let mut actual_hash = empty_hash();
+    let mut tx = client.transaction().unwrap();
+    let hash_work = super::super::seal::hash_rows(
+        &mut tx,
+        "lab",
+        "initial",
+        &mut actual_hash,
+        limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(actual_hash.finish(), expected_hash.finish());
+    assert_eq!(hash_work, position.normalized_bytes);
+    tx.commit().unwrap();
     // The seal derives its own facts and contributor/dependency sets. A
     // plausible stored position or updated row hash cannot bless corruption.
     let mut tx = client.transaction().unwrap();

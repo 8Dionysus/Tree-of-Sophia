@@ -244,6 +244,23 @@ pub(super) fn root<P: ManagedSelectedProof>(
         }
     }
     tx.batch_execute("CLOSE tos_initial_sources")?;
+    add(
+        &mut work,
+        hash_rows(tx, domain, consumer, &mut hash, limits, deadline, cancelled)?,
+    )?;
+    Ok((hash.finish(), work, sources, source_bytes))
+}
+
+pub(super) fn hash_rows(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    consumer: &str,
+    hash: &mut NavigationBootstrapRootHasher,
+    limits: DurableNavigationEventLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<u64> {
+    let mut work = 0;
     for kind in [
         DurableNavigationBootstrapRowKindV1::Node,
         DurableNavigationBootstrapRowKindV1::Edge,
@@ -311,7 +328,7 @@ pub(super) fn root<P: ManagedSelectedProof>(
         }
         tx.batch_execute("CLOSE tos_initial_rows")?;
     }
-    Ok((hash.finish(), work, sources, source_bytes))
+    Ok(work)
 }
 
 fn node_certificate(

@@ -305,12 +305,12 @@ pub(super) fn metadata_page_to(
                             "navigation initial contributor transaction rows",
                         ));
                     }
-                    for target in targets {
-                        let (_, bytes) = node_facts(tx, domain, consumer, &target)?.ok_or(
+                    for node in targets {
+                        let (_, bytes) = node_facts(tx, domain, consumer, &node)?.ok_or(
                             DurableError::Corrupt("navigation Claim contribution carrier absent"),
                         )?;
                         add(&mut work, bytes)?;
-                        insert_contributor(target, tx, domain, consumer, &target, &owner)?;
+                        insert_contributor(target, tx, domain, consumer, &node, &owner)?;
                         writes += 1;
                     }
                 }
