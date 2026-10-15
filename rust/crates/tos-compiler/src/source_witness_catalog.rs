@@ -2294,6 +2294,7 @@ fn entry_claim(
         if !matches!(
             reader,
             "identity-relation-v1"
+                | "semantic-relation-v1"
                 | "historical-temporal-v1"
                 | "document-catalogue-temporal-v1"
                 | "structured-value-v1"
@@ -2305,11 +2306,12 @@ fn entry_claim(
                 "catalog Claim owner value adapter not connected",
             ));
         }
+        let reference_object = matches!(reader, "identity-relation-v1" | "semantic-relation-v1");
         if text(v, "claim_type")? != "relation"
             || !array(&p.descriptor, "assertion_layers")?.contains(&v["assertion_layer"])
             || !v["subject_ref"].is_string()
-            || (reader == "identity-relation-v1" && !v["object"].is_string())
-            || (reader != "identity-relation-v1" && !v["object"].is_object())
+            || (reference_object && !v["object"].is_string())
+            || (!reference_object && !v["object"].is_object())
             || v["claim_id"] == v["subject_ref"]
             || v["claim_id"] == v["object"]
         {

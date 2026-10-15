@@ -847,8 +847,11 @@ pub(crate) fn compile(
         ));
     }
 
-    let max_manifest_entries = usize::try_from(model.max_source_members)
-        .map_err(|_| SourceCommandError::Invalid("source-navigation manifest member limit"))?;
+    // The immutable corpus and the selected catalogue are different scopes.
+    // The plan checks its actual dependency closure against its own envelope.
+    let max_catalog_members = usize::try_from(model.max_source_members)
+        .map_err(|_| SourceCommandError::Invalid("source-navigation manifest member limit"))?
+        .min(SourceCatalogInputLimits::MAX_SELECTED_MEMBERS);
     let max_source_member_bytes = model.max_source_member_bytes;
     let read_limits = request.source_read_limits.checked()?;
     let corpus =
@@ -1069,7 +1072,7 @@ pub(crate) fn compile(
     })?;
     let catalog_input_limits = SourceCatalogInputLimits {
         max_manifest_members: model.max_source_members,
-        max_selected_members: max_manifest_entries,
+        max_selected_members: max_catalog_members,
         max_plan_bytes: model.max_plan_bytes,
         max_work_bytes: model.max_plan_work_bytes,
     };

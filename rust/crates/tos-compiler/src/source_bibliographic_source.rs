@@ -47,12 +47,15 @@ pub struct SourceCatalogInputLimits {
     pub max_work_bytes: u64,
 }
 impl SourceCatalogInputLimits {
+    /// Retained selected-catalog envelope, independent of corpus membership.
+    pub const MAX_SELECTED_MEMBERS: usize = 4096;
+
     pub fn validate(self, l: BibliographicLimits) -> Result<()> {
         l.validate()?;
         l.catalog.validate()?;
         if self.max_manifest_members == 0
             || self.max_selected_members == 0
-            || self.max_selected_members > 4096
+            || self.max_selected_members > Self::MAX_SELECTED_MEMBERS
             || self.max_plan_bytes == 0
             || self.max_plan_bytes > 64 * 1024 * 1024
             || self.max_work_bytes == 0
