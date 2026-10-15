@@ -49,8 +49,10 @@ pub(crate) struct PgSourceTextIdentityObservation {
 }
 
 pub(crate) fn is_candidate(name: &str) -> bool {
-    // Schema documents describe this namespace; they do not own record IDs.
-    if name.ends_with(".schema.json") {
+    // Schemas and the philosophy producer's future-source backlog describe
+    // this namespace; neither owns Text/Anchor record identities. Backlog
+    // bytes still belong to the source cohort and its history.
+    if name.ends_with(".schema.json") || name == "source-anchor-backlog.jsonl" {
         return false;
     }
     (name.contains("source-text-unit")
@@ -753,7 +755,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     #[test]
-    fn identity_candidates_distinguish_contracts_from_owned_records() {
+    fn bootstrap_contract_identity_candidates_distinguish_contracts_from_owned_records() {
         for name in [
             "native-translation-alignment-record-v1.schema.json",
             "source-anchor-v2.schema.json",
@@ -761,6 +763,7 @@ mod tests {
             "source-text-layer.schema.json",
             "source-text-unit-packet-v1.schema.json",
             "translation-alignment-packet-v1.schema.json",
+            "source-anchor-backlog.jsonl",
         ] {
             assert!(!is_candidate(name));
             assert!(!is_alignment_candidate(name));
@@ -773,6 +776,7 @@ mod tests {
             "source-text-unit-packet.v1.json",
             "translation-alignment-packet.v1.json",
             "source-create-provenance.jsonl",
+            "source-anchor.jsonl",
         ] {
             assert!(is_candidate(name));
             // Missing schema_version still fails for actual record candidates.

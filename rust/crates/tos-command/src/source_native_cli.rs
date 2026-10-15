@@ -633,6 +633,7 @@ fn run_selected(
         .object_get("schema_version")
         .and_then(|value| value.as_str())
         .unwrap_or("");
+    let mut initial_navigation_limits = None;
     if local_owner_process
         && schema == "tos_local_native_source_invocation_v1"
         && request_schema == "tos_local_source_navigation_model_prepare_request_v1"
@@ -640,24 +641,14 @@ fn run_selected(
     {
         let owner_path = absolute(text(&invocation, "owner_config")?)?;
         let owner_raw = read_absolute(&owner_path, uid, true, 1_048_576, deadline, &cancelled)?;
-        let owner_hint = cmd::parse(&owner_raw)?;
-        if cmd::text(&owner_hint, "schema_version")?
-            == "tos_local_source_navigation_model_prepare_owner_v1"
-        {
-            let max_total_ms = owner_hint
-                .object_get("model_limits")
-                .and_then(|limits| limits.object_get("max_total_ms"))
-                .and_then(|value| value.as_u64())
-                .filter(|value| (1_000..=600_000).contains(value))
-                .ok_or(SourceCommandError::Invalid(
-                    "source-navigation model total-time budget",
-                ))?;
-            deadline = invocation_started
-                .checked_add(Duration::from_millis(max_total_ms))
-                .ok_or(SourceCommandError::Invalid(
-                    "source-navigation model deadline overflow",
-                ))?;
-        }
+        let (read, cut, max_total_ms) =
+            source_navigation_model_prepare::initial_invocation_limits(&owner_raw, uid)?;
+        initial_navigation_limits = Some((read, cut));
+        deadline = invocation_started
+            .checked_add(Duration::from_millis(max_total_ms))
+            .ok_or(SourceCommandError::Invalid(
+                "source-navigation model deadline overflow",
+            ))?;
     }
     if private_owner_process != (operation == "native-text.read-private")
         || private_owner_process
@@ -756,12 +747,20 @@ fn run_selected(
             "worker_address_space_bytes",
         ],
     )?;
-    let read_limits = ReadLimits {
-        max_manifest_bytes: 4_194_304,
-        max_manifest_entries: 2048,
-        max_selected_object_bytes: 8_388_608,
-        json: JsonLimits::default(),
-    };
+    let (read_limits, cut_caps) = initial_navigation_limits.unwrap_or((
+        ReadLimits {
+            max_manifest_bytes: 4_194_304,
+            max_manifest_entries: 2048,
+            max_selected_object_bytes: 8_388_608,
+            json: JsonLimits::default(),
+        },
+        CutReadLimits {
+            max_revisions: 4,
+            max_members: 2048,
+            max_total_bytes: 33_554_432,
+            max_member_bytes: 8_388_608,
+        },
+    ));
     let store =
         CorpusReader::open_existing(&absolute(text(&invocation, "corpus_store")?)?, read_limits)
             .map_err(|_| SourceCommandError::Conflict("selected corpus store"))?;
@@ -779,11 +778,15 @@ fn run_selected(
         .open_source_cut(
             revision,
             CutReadLimits {
-                max_revisions: usize::try_from(capped(budgets, "max_revisions", 4)?)
-                    .map_err(|_| SourceCommandError::Invalid("cut budget"))?,
-                max_members: capped(budgets, "max_members", 2048)?,
-                max_total_bytes: capped(budgets, "max_total_bytes", 33_554_432)?,
-                max_member_bytes: capped(budgets, "max_member_bytes", 8_388_608)?,
+                max_revisions: usize::try_from(capped(
+                    budgets,
+                    "max_revisions",
+                    cut_caps.max_revisions as u64,
+                )?)
+                .map_err(|_| SourceCommandError::Invalid("cut budget"))?,
+                max_members: capped(budgets, "max_members", cut_caps.max_members)?,
+                max_total_bytes: capped(budgets, "max_total_bytes", cut_caps.max_total_bytes)?,
+                max_member_bytes: capped(budgets, "max_member_bytes", cut_caps.max_member_bytes)?,
             },
             deadline,
             &cancelled,

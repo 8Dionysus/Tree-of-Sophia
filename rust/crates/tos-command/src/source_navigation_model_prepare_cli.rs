@@ -541,6 +541,59 @@ fn validate_model_limits(limits: ModelLimits) -> SourceCommandResult<()> {
     Ok(())
 }
 
+fn initial_source_read_limits(limits: ModelLimits) -> SourceCommandResult<ReadLimits> {
+    validate_model_limits(limits)?;
+    let manifest_bytes = usize::try_from(limits.max_source_members.saturating_mul(1024))
+        .map_err(|_| SourceCommandError::Invalid("initial export manifest bound"))?
+        .clamp(
+            1_048_576,
+            crate::source_current_cut::INITIAL_EXPORT_MANIFEST_BYTES,
+        );
+    Ok(ReadLimits {
+        max_manifest_bytes: manifest_bytes,
+        max_manifest_entries: crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES,
+        max_selected_object_bytes: limits.max_source_member_bytes,
+        json: tos_foundation::JsonLimits {
+            max_bytes: manifest_bytes,
+            max_visits: crate::source_current_cut::INITIAL_EXPORT_JSON_VISITS,
+            ..tos_foundation::JsonLimits::default()
+        },
+    })
+}
+
+/// Only the explicit local initial-export route uses these protected owner
+/// bounds. This preflight grants no mutation authority; execute reselects the
+/// protected filesystem owner and validates its full scope before doing work.
+pub(super) fn initial_invocation_limits(
+    owner_raw: &[u8],
+    uid: u32,
+) -> SourceCommandResult<(ReadLimits, CutReadLimits, u64)> {
+    let owner_value = cmd::parse(owner_raw)?;
+    let owner: PrepareOwner = serde_json::from_slice(&cmd::canonical(&owner_value)?)
+        .map_err(|_| SourceCommandError::Invalid("source-navigation preparation owner"))?;
+    if owner.schema_version != OWNER_SCHEMA || owner.uid != u64::from(uid) {
+        return Err(SourceCommandError::Denied(
+            "source-navigation preparation owner scope",
+        ));
+    }
+    let limits = owner.model_limits;
+    let read = initial_source_read_limits(limits)?;
+    let revisions = super::source_navigation_model_compile::MAX_SOURCE_HISTORY_REVISIONS;
+    let cut = CutReadLimits {
+        max_revisions: revisions,
+        max_members: limits
+            .max_source_members
+            .saturating_mul(revisions as u64)
+            .min(crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES as u64),
+        max_total_bytes: limits
+            .max_source_total_bytes
+            .saturating_mul(revisions as u64)
+            .min(crate::source_current_cut::INITIAL_EXPORT_HISTORY_BYTES),
+        max_member_bytes: limits.max_source_member_bytes,
+    };
+    Ok((read, cut, limits.max_total_ms))
+}
+
 fn validate_launcher(value: &Value) -> SourceCommandResult<()> {
     exact_keys(
         value,
@@ -1050,28 +1103,12 @@ fn prepare_initial(
         .ok_or(SourceCommandError::Conflict(
             "selected normalization processor changed",
         ))?;
-    let manifest_bytes =
-        usize::try_from(owner.model_limits.max_source_members.saturating_mul(1024))
-            .map_err(|_| SourceCommandError::Invalid("initial export manifest bound"))?
-            .clamp(
-                1_048_576,
-                crate::source_current_cut::INITIAL_EXPORT_MANIFEST_BYTES,
-            );
-    let export_read_limits = ReadLimits {
-        max_manifest_bytes: manifest_bytes,
-        max_manifest_entries: crate::source_current_cut::INITIAL_EXPORT_MANIFEST_ENTRIES,
-        max_selected_object_bytes: owner.model_limits.max_source_member_bytes,
-        json: tos_foundation::JsonLimits {
-            max_bytes: manifest_bytes,
-            max_visits: crate::source_current_cut::INITIAL_EXPORT_JSON_VISITS,
-            ..tos_foundation::JsonLimits::default()
-        },
-    };
+    let export_read_limits = initial_source_read_limits(owner.model_limits)?;
     let (host_export_bytes, host_export_inodes) = preflight_host_export(
         original_cut,
         owner.model_limits,
         normalization_member.size_bytes,
-        manifest_bytes as u64,
+        export_read_limits.max_manifest_bytes as u64,
     )?;
     let cleanup_max_entries = usize::try_from(host_export_inodes.min(
         super::source_navigation_model_cleanup::MAX_MANAGED_SOURCE_CUT_CLEANUP_ENTRIES_V1 as u64,
@@ -1847,5 +1884,51 @@ impl PreparationSelection {
         validate_selection_input(value)?;
         serde_json::from_value(value.clone())
             .map_err(|_| SourceCommandError::Invalid("source-navigation model selection"))
+    }
+}
+
+#[cfg(test)]
+mod initial_envelope_tests {
+    use super::*;
+
+    #[test]
+    fn bootstrap_contract_initial_invocation_uses_explicit_owner_bounds() {
+        let mut owner = json!({
+            "schema_version": OWNER_SCHEMA, "uid": 1000,
+            "source_root": "/selected", "expires_at": "2026-10-15T12:00:00Z",
+            "host_export_stage_parent": "/selected/export",
+            "bootstrap_invocation_path": "/selected/bootstrap.json",
+            "bootstrap_request_path": "/selected/request.json",
+            "model_leaf": "model.sqlite", "final_owner_leaf": "owner.json",
+            "source_navigation": {}, "launcher": {},
+            "policy_template": {
+                "schema_version": "policy", "issuer_ref": "issuer",
+                "receipt_id": "receipt", "carrier_layer": "layer",
+                "intended_use": "use", "model_abi": "abi", "selection_profile": "profile",
+                "policy_epoch": 1, "withdrawal_generation": 0, "expires_at": "expiry"
+            },
+            "model_limits": {
+                "max_total_ms": 600000, "host_export_bytes": 2147483648u64,
+                "host_export_inodes": 100000, "tmpfs_bytes": 1073741824,
+                "tmpfs_inodes": 100000, "working_ram_bytes": 1073741824,
+                "max_source_members": 10000, "max_source_total_bytes": 300000000,
+                "max_source_member_bytes": 33554432, "max_plan_bytes": 1048576,
+                "max_plan_work_bytes": 33554432, "max_model_bytes": 536870912
+            }
+        });
+        let (read, cut, ms) =
+            initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1000).unwrap();
+        assert!(read.max_manifest_bytes > 2_600_000);
+        assert!(read.json.max_bytes >= read.max_manifest_bytes);
+        assert!(read.max_manifest_entries >= 9517);
+        assert!(read.max_selected_object_bytes >= 16_734_381);
+        assert!(cut.max_members >= 19_034 && cut.max_total_bytes >= 549_726_458);
+        assert_eq!(ms, 600000);
+        assert!(initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1001).is_err());
+        owner["model_limits"]["max_source_total_bytes"] = json!(2147483649u64);
+        assert!(initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1000).is_err());
+        owner["model_limits"]["max_source_total_bytes"] = json!(300000000);
+        owner["schema_version"] = json!("tos_local_source_owner_v1");
+        assert!(initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1000).is_err());
     }
 }
