@@ -542,6 +542,214 @@ fn build_selected<P: ManagedProducerProof>(
     })
 }
 
+#[cfg(test)]
+mod original_anchor_tests {
+    use super::*;
+    use crate::managed_source::{ManagedSourceGenerationV2, ManagedSourceProofV2};
+    use crate::{ColdOpenLimits, ImmutableKnowledgeCustody, knowledge_stage::WritePhase};
+    use serde_json::json;
+
+    // Synthetic custody and source ownership only, matching the existing full
+    // software fixture. This test issues no runtime admission or source proof.
+    struct Fixture;
+    impl StageOwner for Fixture {
+        fn verify_receipt(&self, _: &ExactInputReceipt) -> Result<()> {
+            Ok(())
+        }
+        fn recheck_sealed_cut(&self, _: &ExactInputReceipt) -> Result<()> {
+            Ok(())
+        }
+    }
+    impl StageIsolation for Fixture {
+        fn verify(&self, _: &Path, _: StageLimits, _: WritePhase) -> Result<()> {
+            Ok(())
+        }
+    }
+    impl ImmutableKnowledgeCustody for Fixture {
+        fn verify(
+            &self,
+            file: &std::fs::File,
+            expected: &KnowledgeSelectedExpectation,
+        ) -> Result<()> {
+            if file.metadata()?.len() != expected.model_size_bytes {
+                return Err(Error::Invalid("fixture model length"));
+            }
+            Ok(())
+        }
+        fn verify_cold_resources(&self, _: ColdOpenLimits) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn managed_navigation_original_anchor_builds_finishes_and_cold_reads() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("anchor.sqlite");
+        let hash = Digest256::of_bytes(b"Original anchor software fixture").to_hex();
+        let proof = ManagedSourceProofV2 {
+            schema: crate::managed_source::MANAGED_SOURCE_V2_SCHEMA.into(),
+            generation: ManagedSourceGenerationV2 {
+                domain: "test-only".into(),
+                store_id: [0; 16],
+                installed_generation_sha256: hash.clone(),
+                through_commit_seq: 1,
+                selected_audit_generation: 1,
+                epoch: 1,
+                definition_sha256: hash.clone(),
+                bootstrap_source_revision: hash.clone(),
+                bootstrap_membership_sha256: hash.clone(),
+                bootstrap_members: 1,
+                domain_sha256: hash.clone(),
+                database_oid: 1,
+                schema_profile_sha256: hash.clone(),
+                addressed_metadata_tree_sha256: hash.clone(),
+                addressed_metadata_members: 1,
+                state_profile_sha256: hash.clone(),
+                addressed_inventory_root_sha256: hash.clone(),
+                log_sha256: hash.clone(),
+                addressed_current_tree_sha256: hash.clone(),
+                current_members: 1,
+                addressed_history_tree_sha256: hash.clone(),
+                history_members: 1,
+                inventory_projection_sha256: hash.clone(),
+            },
+            initial_export_source_revision: hash.clone(),
+            initial_export_membership_sha256: hash.clone(),
+            initial_export_members: 1,
+            delta: None,
+        };
+        let binding = SourceBinding {
+            owner_profile: "tos-managed-source-navigation-v2".into(),
+            source_cut: hash.clone(),
+            through_commit_seq: 1,
+            membership_root: hash.clone(),
+            index_generation: hash.clone(),
+            route_map_version: "test-only".into(),
+            reader_abi: tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2.into(),
+            projection_root_sha256: hash.clone(),
+            complete: true,
+        };
+        let entity =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+        let relation =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
+        let mut descriptor: Value = serde_json::from_slice(include_bytes!(
+            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+        ))
+        .unwrap();
+        descriptor["sources"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|v| v["source_graph_id"] == "source-navigation");
+        let descriptor = serde_json::to_vec(&descriptor).unwrap();
+        let node = json!({"node_id":"n:a","node_kind":"work","label":"Alpha","source_ref":"ToS/a.json","identity_status":"not_applicable","properties":{}});
+        let edge = json!({"edge_id":"e:a","from_id":"n:a","to_id":"n:a","predicate_id":"references","edge_kind":"source_record_link","review_status":"not_applicable","source_refs":["ToS/a.json"]});
+        let projection = json!({"schema_version":"tos_source_navigation_v1","authority_boundary":"software fixture, no source authority","counts":{"nodes":1,"edges":1,"rights":1},"nodes":[node],"edges":[edge],"rights":[{"rights_id":"test-only"}]});
+        let mut limits =
+            crate::native_snapshot_manifest::portable_native_snapshot_limits(60).unwrap();
+        limits.stage.sqlite.max_output_bytes = 8 * 1024 * 1024;
+        limits.stage.max_temp_bytes = 16 * 1024 * 1024;
+        limits.stage.sqlite.max_work_bytes = 128 * 1024 * 1024;
+        let original_limits = NavigationOriginalLimits {
+            max_rows: 16,
+            max_row_bytes: 1024 * 1024,
+            max_total_bytes: 16 * 1024 * 1024,
+        };
+        let header_proof = proof.clone();
+        let completed = build_selected(
+            &projection,
+            &hash,
+            SourceRevision(Digest256::from_hex(&hash).unwrap()),
+            SourceMembershipV1 {
+                count: 1,
+                digest: Digest256::from_hex(&hash).unwrap(),
+            },
+            hash.clone(),
+            hash.clone(),
+            proof,
+            &path,
+            binding,
+            limits.stage,
+            &Fixture,
+            &Fixture,
+            entity,
+            relation,
+            &descriptor,
+            crate::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+            limits.native,
+            original_limits,
+            limits.full,
+            &[],
+            "test-only".into(),
+            0,
+            None,
+            None,
+            None,
+            |stage, registry| {
+                crate::managed_navigation_header_with_binding(
+                    stage,
+                    registry,
+                    entity,
+                    &header_proof,
+                    Digest256::of_bytes(b"fixture processor"),
+                    Digest256::of_bytes(b"fixture configuration"),
+                )
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            completed.expectation().model_abi,
+            tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+        );
+        assert_eq!(
+            (completed.stage().node_rows, completed.stage().relation_rows),
+            (0, 0)
+        );
+        assert_eq!(
+            (
+                completed.navigation_original().nodes,
+                completed.navigation_original().edges
+            ),
+            (1, 1)
+        );
+        assert!(completed.expectation().search_index_root_sha256.is_none());
+        let cold = ColdOpenLimits {
+            max_file_bytes: 8 * 1024 * 1024,
+            max_vm_steps: 100_000_000,
+            sqlite_cache_kib: 1024,
+            max_rows: 100_000,
+            max_work_bytes: 128 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_metadata_bytes: ColdOpenLimits::MAX_METADATA_BYTES,
+            max_sources: 1,
+        };
+        let model = crate::open_selected_knowledge_model(
+            completed.artifact_path(),
+            completed.expectation().clone(),
+            &Fixture,
+            cold,
+        )
+        .unwrap();
+        for (collection, key) in [("nodes", "node_id"), ("edges", "edge_id")] {
+            let value = &projection[collection][0];
+            let actual = managed_navigation_original_member_bytes(
+                &model,
+                collection,
+                value[key].as_str().unwrap(),
+                original_limits,
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(
+                actual.raw,
+                crate::source_bibliographic_render::encode(value, original_limits.max_row_bytes)
+                    .unwrap()
+            );
+            assert_eq!(actual.visited_rows, 1);
+        }
+    }
+}
+
 fn preparation_check(
     validator: &crate::source_witness_catalog::SourceCatalogValidator<'_>,
     limits: crate::source_bibliographic::BibliographicLimits,
