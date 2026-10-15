@@ -433,6 +433,7 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
         if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
+        let contracts = versions.contracts();
         let selected_entities = original(
             &versions.required(
                 "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -573,10 +574,9 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             ) else {
                 continue;
             };
-            catalog::check_catalog_schema(
-                stage,
+            catalog::check_catalog_schema_with_contracts(
+                &contracts,
                 validator,
-                l.catalog,
                 "ToS/contracts/philosophy-source-planting.schema.json",
                 "",
                 &encode(&planting, l.catalog.max_file_bytes)?,
@@ -723,7 +723,6 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
         }
         // Generic source Claims share the addressed renderer. The legacy
         // relation edges above retain their separately declared projection.
-        let contracts = catalog::prepare_catalog_contracts(stage, validator, l.catalog)?;
         let relations = original(
             &versions.required(
                 "ToS/doctrine/semantic-interchange/relation-types.v1.json",
@@ -762,7 +761,14 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             }
             after_claim = Some(id);
         }
-        project_files(stage, &mut projection, &mut versions, &paths, validator, l)?;
+        project_files(
+            &contracts,
+            &mut projection,
+            &mut versions,
+            &paths,
+            validator,
+            l,
+        )?;
         for path in paths.selected(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p)) {
             let path = path?;
             if path
@@ -773,11 +779,10 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             }
             let raw = versions.required(&path, validator, l)?;
             let packet = crate::source_navigation_packets::project_packet(
-                stage,
+                &contracts,
                 &raw,
                 &path,
                 validator,
-                l.catalog,
                 l.catalog.max_file_bytes,
                 l.max_output_bytes.min(64 * 1024 * 1024) as usize,
                 l.max_output_rows.min(65_536) as usize,
@@ -811,10 +816,9 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             let raw = versions.required(&path, validator, l)?;
             let rights = original(&raw, l)?;
             if visible(&rights) {
-                catalog::check_catalog_schema(
-                    stage,
+                catalog::check_catalog_schema_with_contracts(
+                    &contracts,
                     validator,
-                    l.catalog,
                     "ToS/contracts/rights-record.schema.json",
                     "",
                     &raw,
@@ -983,7 +987,7 @@ impl<'a> FileGroups<'a> {
 }
 
 fn project_files(
-    stage: &KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     projection: &mut Projection,
     versions: &mut Versions<'_, '_>,
     paths: &NavigationPaths<'_>,
@@ -1007,10 +1011,9 @@ fn project_files(
         if !projection.nodes.contains(item)? {
             continue;
         }
-        catalog::check_catalog_schema(
-            stage,
+        catalog::check_catalog_schema_with_contracts(
+            contracts,
             validator,
-            l.catalog,
             "ToS/contracts/source-item-manifest.schema.json",
             "",
             &raw,

@@ -532,6 +532,9 @@ pub(crate) struct Versions<'a, 'b> {
     files: BTreeMap<String, Vec<u8>>,
     bytes: usize,
     catalog_root: String,
+    // One exact schema closure for this sealed catalog operation. Source reads
+    // and version checks remain per record; the immutable schemas are shared.
+    contracts: std::rc::Rc<catalog::Contracts>,
     catalog_epoch: Option<(
         crate::VersionsCatalogEpochV2,
         tos_segment_store::AuthenticatedTreeLimitsV1,
@@ -786,6 +789,9 @@ impl<'a, 'b> Versions<'a, 'b> {
             files: BTreeMap::new(),
             bytes: 0,
             catalog_root: receipt.row_root_sha256.clone(),
+            contracts: std::rc::Rc::new(catalog::prepare_catalog_contracts(
+                stage, validator, l.catalog,
+            )?),
             catalog_epoch: None,
         };
         // Bind every declared raw input, including selected schemas and native
@@ -834,6 +840,9 @@ impl<'a, 'b> Versions<'a, 'b> {
         // copy and does not claim the selected source is publicly admissible.
         result.bytes = 0;
         Ok(result)
+    }
+    pub(crate) fn contracts(&self) -> std::rc::Rc<catalog::Contracts> {
+        self.contracts.clone()
     }
     pub(crate) fn binding(&self) -> Value {
         self.input.binding()
@@ -1175,7 +1184,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             ));
         }
         let schema = route.schema.as_str();
-        catalog::check_catalog_schema(stage, validator, l.catalog, schema, "", &raw)?;
+        catalog::check_catalog_schema_with_contracts(&self.contracts, validator, schema, "", &raw)?;
         let history_ref = adjacent(reference, "source-revision-history.json")?;
         let history_raw = self.optional(&history_ref, validator, l)?;
         let history = if let Some(raw) = &history_raw {
@@ -1222,7 +1231,6 @@ impl<'a, 'b> Versions<'a, 'b> {
                 reference,
                 receipt,
                 validator,
-                stage,
                 &route,
                 &record["schema_version"],
                 l,
@@ -1326,11 +1334,11 @@ impl<'a, 'b> Versions<'a, 'b> {
         reference: &str,
         receipt: &Value,
         validator: &SourceCatalogValidator<'_>,
-        stage: &KnowledgeStage<'_>,
         route: &RecordRoute,
         schema_version: &Value,
         l: BibliographicLimits,
     ) -> Result<(Value, Value)> {
+        let contracts = self.contracts();
         validate_archived_metadata_record(
             reference,
             receipt,
@@ -1339,7 +1347,13 @@ impl<'a, 'b> Versions<'a, 'b> {
             l,
             |path| self.required(path, validator, l),
             |_path, _schema, raw| {
-                catalog::check_catalog_schema(stage, validator, l.catalog, &route.schema, "", raw)
+                catalog::check_catalog_schema_with_contracts(
+                    &contracts,
+                    validator,
+                    &route.schema,
+                    "",
+                    raw,
+                )
             },
         )
     }
@@ -1571,7 +1585,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         let captured = historical_path(reference);
         if captured {
             for record in current_records.values() {
-                historical_claim_shape(stage, record, validator, l)?;
+                historical_claim_shape(&self.contracts, record, validator, l)?;
             }
         }
         let id = text(exact, "id")?;
@@ -1719,7 +1733,7 @@ impl<'a, 'b> Versions<'a, 'b> {
                 forms.materialize(current_source, &current_forms, 262_144)?;
             encode(&json!(current_materializations), 262_144)?;
             reconstruct_forms(
-                stage,
+                &self.contracts,
                 &revised,
                 prior.as_ref(),
                 &current_forms,
@@ -1761,7 +1775,7 @@ impl<'a, 'b> Versions<'a, 'b> {
                 initial_stream.as_deref().unwrap_or(stream),
                 &current_records,
                 receipts,
-                stage,
+                &self.contracts,
                 validator,
                 forms,
                 l,
@@ -4602,13 +4616,13 @@ fn historical_path(reference: &str) -> bool {
         })
 }
 fn historical_claim_shape(
-    stage: &KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     record: &Value,
     validator: &SourceCatalogValidator<'_>,
     l: BibliographicLimits,
 ) -> Result<()> {
     historical_claim_shape_with(record, l, |schema, fragment, raw| {
-        catalog::check_catalog_schema(stage, validator, l.catalog, schema, fragment, raw)
+        catalog::check_catalog_schema_with_contracts(contracts, validator, schema, fragment, raw)
     })
 }
 
@@ -4651,7 +4665,7 @@ fn verify_historical_capture(
     initial: &[u8],
     current: &BTreeMap<String, Value>,
     receipts: &[Value],
-    stage: &KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     validator: &SourceCatalogValidator<'_>,
     forms: &mut dyn BibliographicForms,
     l: BibliographicLimits,
@@ -4666,10 +4680,9 @@ fn verify_historical_capture(
         forms,
         l,
         |_path, raw| {
-            catalog::check_catalog_schema(
-                stage,
+            catalog::check_catalog_schema_with_contracts(
+                contracts,
                 validator,
-                l.catalog,
                 "ToS/contracts/human-form-set.schema.json",
                 "",
                 raw,
@@ -5134,7 +5147,7 @@ fn form_ref(form: &Value, l: BibliographicLimits) -> Result<Value> {
     )
 }
 fn reconstruct_forms(
-    stage: &KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     revised: &Value,
     prior: Option<&Value>,
     current: &Value,
@@ -5152,10 +5165,9 @@ fn reconstruct_forms(
         forms,
         l,
         |raw| {
-            catalog::check_catalog_schema(
-                stage,
+            catalog::check_catalog_schema_with_contracts(
+                contracts,
                 validator,
-                l.catalog,
                 "ToS/contracts/human-form-set.schema.json",
                 "",
                 raw,

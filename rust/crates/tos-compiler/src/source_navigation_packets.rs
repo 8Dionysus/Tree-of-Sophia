@@ -1,7 +1,6 @@
 //! Exact stand-off metadata projection. Original payload text is never read;
 //! source declarations remain weaker than assessment/current rights authority.
-use crate::knowledge_stage::KnowledgeStage;
-use crate::source_witness_catalog::{SourceCatalogLimits, SourceCatalogValidator};
+use crate::source_witness_catalog::{Contracts, SourceCatalogValidator};
 use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -193,11 +192,10 @@ impl Projector<'_> {
 /// Validation uses that same cut's exact contracts, never an ambient checkout.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn project_packet(
-    stage: &mut KnowledgeStage<'_>,
+    contracts: &Contracts,
     raw: &[u8],
     source: &str,
     validator: &SourceCatalogValidator<'_>,
-    catalog_limits: SourceCatalogLimits,
     max_raw: usize,
     max_output: usize,
     max_rows: usize,
@@ -243,13 +241,8 @@ pub(crate) fn project_packet(
     } else {
         "ToS/contracts/semantic-annotation-packet-v2.schema.json"
     };
-    crate::source_witness_catalog::check_catalog_schema(
-        stage,
-        validator,
-        catalog_limits,
-        contract,
-        "",
-        raw,
+    crate::source_witness_catalog::check_catalog_schema_with_contracts(
+        contracts, validator, contract, "", raw,
     )?;
     if schema == "tos_source_text_unit_packet_v1" {
         let report = tos_validation::text_metadata_rules::inspect_source_text_unit_v1_metadata(
