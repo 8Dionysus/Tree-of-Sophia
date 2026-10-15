@@ -80,6 +80,11 @@
               "type": "string",
               "minLength": 1
             },
+            "at_least_commit_seq": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "description": "Optional canonical u64 decimal sequence from a command receipt; refuses an older publication. Values above 18446744073709551615 are invalid."
+            },
             "max_depth": {
               "type": "integer",
               "minimum": 1,
@@ -104,6 +109,7 @@
       },
       "request": {
         "node_id": "opaque exact UTF-8 ID",
+        "at_least_commit_seq": "optional canonical u64 decimal string; requires selected publication >= sequence",
         "max_depth": "1..8; default 8",
         "limit": "1..300; default 300"
       },

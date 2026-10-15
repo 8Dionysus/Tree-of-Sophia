@@ -187,6 +187,7 @@ describe("ToS query operations", () => {
       node_id: "philosophy.eras.bronze-age",
       max_depth: 7,
       limit: 250,
+      at_least_commit_seq: "9007199254740993",
     });
     await operations.invoke("tos.dossier.inspect", {
       object_id: "tos.link.cdli.cdlb-2006-1.pdf",
@@ -195,7 +196,9 @@ describe("ToS query operations", () => {
 
     const descent = new URL(requested[0], "http://tos.local");
     expect(descent.pathname).toBe("/api/source/navigation/philosophy.eras.bronze-age");
-    expect(Object.fromEntries(descent.searchParams)).toEqual({ max_depth: "7", limit: "250" });
+    expect(Object.fromEntries(descent.searchParams)).toEqual({
+      max_depth: "7", limit: "250", at_least_commit_seq: "9007199254740993",
+    });
     const dossier = new URL(requested[1], "http://tos.local");
     expect(dossier.pathname).toBe("/api/source/dossiers/tos.link.cdli.cdlb-2006-1.pdf");
     expect(Object.fromEntries(dossier.searchParams)).toEqual({ limit: "80" });

@@ -336,6 +336,9 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   if (path === "/api/source-gaps") return sourceGapResponse(request, env, search);
   const sourceNavigationPrefix = "/api/source/navigation/";
   if (path.startsWith(sourceNavigationPrefix)) {
+    if (search.has("at_least_commit_seq")) {
+      throw new HttpError(503, "unavailable: this D1 export has no comparable command sequence");
+    }
     return jsonResponse(
       await sourceDescendD1(
         env.DB,

@@ -359,18 +359,28 @@ fn run_cli_with_input_and_source_fd(
     if args.len() < 3 || args[0] != "source" || args[1] != "descend" {
         let _ = writeln!(
             stderr,
-            "usage: tos-access source descend NODE_ID [--max-depth 1..8] [--limit 1..300]"
+            "usage: tos-access source descend NODE_ID [--max-depth 1..8] [--limit 1..300] [--at-least-commit-seq DECIMAL]"
         );
         return 2;
     }
     let mut max_depth = 8;
     let mut limit = 300;
+    let mut at_least_commit_seq = None;
     let mut at = 3;
     while at < args.len() {
         let Some(value) = args.get(at + 1) else {
             let _ = writeln!(stderr, "missing value for {}", args[at]);
             return 2;
         };
+        if args[at] == "--at-least-commit-seq" {
+            if at_least_commit_seq.is_some() {
+                let _ = writeln!(stderr, "--at-least-commit-seq must occur once");
+                return 2;
+            }
+            at_least_commit_seq = Some(value.as_str());
+            at += 2;
+            continue;
+        }
         let parsed = match value.parse::<usize>() {
             Ok(value) => value,
             Err(_) => {
@@ -388,7 +398,9 @@ fn run_cli_with_input_and_source_fd(
         }
         at += 2;
     }
-    let params = match Params::new(args[2].clone(), max_depth, limit) {
+    let params = match Params::new(args[2].clone(), max_depth, limit)
+        .and_then(|params| params.with_commit_lower_bound(at_least_commit_seq))
+    {
         Ok(value) => value,
         Err(error) => {
             let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);

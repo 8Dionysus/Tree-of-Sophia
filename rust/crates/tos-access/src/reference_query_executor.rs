@@ -264,7 +264,7 @@ where
             node_id: request.node_id,
             max_depth: request.max_depth,
             limit: request.limit,
-            at_least_commit_seq: None,
+            at_least_commit_seq: request.at_least_commit_seq,
         };
         let mut model = self.model.try_borrow_mut().map_err(|_| busy())?;
         let mut context = self.context.try_borrow_mut().map_err(|_| busy())?;

@@ -176,10 +176,17 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
       }
       case "tos.source.descend": {
         const nodeId = requiredString(input.node_id, "node_id");
+        if (input.at_least_commit_seq !== undefined &&
+            (typeof input.at_least_commit_seq !== "string" || input.at_least_commit_seq === "")) {
+          throw new Error("at_least_commit_seq must be a decimal string");
+        }
         return fetchJson<ToSQueryResult>(
           `/api/source/navigation/${encodeURIComponent(nodeId)}${params({
             max_depth: boundedInt(input.max_depth, "descent-depth"),
             limit: boundedInt(input.limit, "source-limit"),
+            ...(input.at_least_commit_seq !== undefined ? {
+              at_least_commit_seq: input.at_least_commit_seq,
+            } : {}),
           })}`,
           request,
         );

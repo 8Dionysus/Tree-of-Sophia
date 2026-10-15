@@ -1284,6 +1284,17 @@ bootstrap root, anchor sequence and roots, and published sequence, coverage,
 adjacency, and index roots. It does not claim that the anchor membership root
 is the current full-source membership.
 
+CLI `source descend NODE_ID --at-least-commit-seq SEQUENCE`, the HTTP query
+parameter `at_least_commit_seq`, and the MCP/WebMCP argument of that name carry
+the sequence from a command receipt to the shared Rust read rule. JSON uses a
+canonical unsigned 64-bit decimal **string** so browser transports preserve
+values above JavaScript's exact-integer range. The Python SDK exposes the same
+optional keyword. A selected publication below that sequence returns
+`publication_pending` without disclosing a packet. This is an immediate check;
+the client may retry after processing progresses. It never grants rights or
+forces projection processing. The D1 export has no comparable CMD sequence and
+explicitly refuses the parameter; omission preserves its existing behavior.
+
 Publication atomically records a V2 verified-prefix checkpoint with the current
 cohort commitment, exact active manifests, coverage and adjacency roots. Reads
 verify that checkpoint, current cohorts and terminal coverage instead of

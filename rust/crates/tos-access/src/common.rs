@@ -392,6 +392,7 @@ pub struct Params {
     pub node_id: String,
     pub max_depth: u8,
     pub limit: usize,
+    pub at_least_commit_seq: Option<u64>,
 }
 
 impl Params {
@@ -406,7 +407,23 @@ impl Params {
             node_id,
             max_depth,
             limit,
+            at_least_commit_seq: None,
         })
+    }
+
+    /// Decimal strings preserve command sequences across JSON/JavaScript
+    /// transports. A malformed lower bound must never become an unbounded read.
+    pub fn with_commit_lower_bound(mut self, value: Option<&str>) -> Result<Self, AccessError> {
+        self.at_least_commit_seq = value
+            .map(|value| {
+                value.parse::<u64>().ok().filter(|number| number.to_string() == value)
+                    .ok_or_else(|| AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "at_least_commit_seq must be a canonical unsigned 64-bit decimal string",
+                    ))
+            })
+            .transpose()?;
+        Ok(self)
     }
     pub fn from_json(value: &JsonValue) -> Result<Self, AccessError> {
         let node_id = value
@@ -436,7 +453,18 @@ impl Params {
         let limit = usize::try_from(limit).map_err(|_| {
             AccessError::new(AccessErrorCode::InvalidRequest, "limit exceeds range")
         })?;
-        Self::new(node_id.to_owned(), depth, limit)
+        let sequence = value
+            .object_get("at_least_commit_seq")
+            .map(|value| {
+                value.as_str().ok_or_else(|| {
+                    AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "at_least_commit_seq must be a decimal string",
+                    )
+                })
+            })
+            .transpose()?;
+        Self::new(node_id.to_owned(), depth, limit)?.with_commit_lower_bound(sequence)
     }
 }
 
@@ -1320,7 +1348,7 @@ impl<M: ReadModel> QuerySession<M> {
             node_id: params.node_id,
             max_depth: params.max_depth,
             limit: params.limit,
-            at_least_commit_seq: None,
+            at_least_commit_seq: params.at_least_commit_seq,
         };
         let result = source_descend(&mut self.model, &request, self.budget)?;
         let (body, lease) = result.into_parts();

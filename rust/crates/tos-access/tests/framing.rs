@@ -502,6 +502,114 @@ fn http_maps_legacy_route_defaults_and_preserves_packet() {
 }
 
 #[test]
+fn source_commit_lower_bound_survives_cli_http_and_mcp_without_rounding() {
+    let executor = Synthetic {
+        allowed: true,
+        calls: Mutex::new(vec![]),
+    };
+    let sequence = "9007199254740993";
+    let expected = Params::new("tos.x".into(), 8, 300)
+        .unwrap()
+        .with_commit_lower_bound(Some(sequence))
+        .unwrap();
+    let mut out = Vec::new();
+    let mut error = Vec::new();
+    assert_eq!(
+        cli::run_cli(
+            &[
+                "source".into(),
+                "descend".into(),
+                "tos.x".into(),
+                "--at-least-commit-seq".into(),
+                sequence.into()
+            ],
+            &executor,
+            profile(),
+            &mut out,
+            &mut error,
+        ),
+        0
+    );
+    assert_eq!(
+        handle_get(
+            &executor,
+            "GET",
+            "/api/source/navigation/tos.x?at_least_commit_seq=9007199254740993",
+            profile()
+        )
+        .status,
+        200
+    );
+    let request = format!("{{\"node_id\":\"tos.x\",\"at_least_commit_seq\":\"{sequence}\"}}");
+    let parsed = parse_json(
+        request.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(Params::from_json(parsed.root()).unwrap(), expected);
+    let input = format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_source_descend\",\"arguments\":{request}}}}\n"
+    );
+    let mut mcp_output = Vec::new();
+    run_io(
+        Cursor::new(input.as_bytes()),
+        &mut mcp_output,
+        &executor,
+        profile(),
+    )
+    .unwrap();
+    assert!(
+        String::from_utf8(mcp_output)
+            .unwrap()
+            .contains("structuredContent")
+    );
+    assert_eq!(
+        executor.calls.lock().unwrap().as_slice(),
+        &[expected.clone(), expected.clone(), expected]
+    );
+
+    for value in ["", "01", "+1", "-1", "1.0", " 1", "18446744073709551616"] {
+        assert!(
+            Params::new("tos.x".into(), 8, 300)
+                .unwrap()
+                .with_commit_lower_bound(Some(value))
+                .is_err()
+        );
+    }
+    for query in [
+        "at_least_commit_seq=%zz",
+        "at_least_commit_seq=8&at_least_commit_seq=7",
+    ] {
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                &format!("/api/source/navigation/tos.x?{query}"),
+                profile()
+            )
+            .status,
+            400
+        );
+    }
+    let numeric = parse_json(
+        br#"{"node_id":"tos.x","at_least_commit_seq":9007199254740993}"#,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert!(Params::from_json(numeric.root()).is_err());
+    assert_eq!(
+        Params::new("tos.x".into(), 8, 300)
+            .unwrap()
+            .with_commit_lower_bound(Some("18446744073709551615"))
+            .unwrap()
+            .at_least_commit_seq,
+        Some(u64::MAX)
+    );
+}
+
+#[test]
 fn capability_requires_real_owner_selection() {
     let executor = Synthetic {
         allowed: false,

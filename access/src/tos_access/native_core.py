@@ -194,8 +194,11 @@ class NativeCore:
     def stored_knowledge_lens(self, lens_id: str) -> dict:
         return self._packet('tos_knowledge_lens_open', {'lens_id': lens_id}, source_errors=False)
 
-    def source_descend(self, node_id: str, max_depth: int=8, limit: int=300) -> dict:
-        return self._packet('tos_source_descend', {'node_id': node_id, 'max_depth': max_depth, 'limit': limit}, source_errors=False)
+    def source_descend(self, node_id: str, max_depth: int=8, limit: int=300, *, at_least_commit_seq: str | None=None) -> dict:
+        arguments = {'node_id': node_id, 'max_depth': max_depth, 'limit': limit}
+        if at_least_commit_seq is not None:
+            arguments['at_least_commit_seq'] = at_least_commit_seq
+        return self._packet('tos_source_descend', arguments, source_errors=False)
 
     def source_dossier(self, object_id: str, limit: int=300) -> dict:
         return self._packet('tos_dossier_inspect', {'object_id': object_id, 'limit': limit}, source_errors=False)

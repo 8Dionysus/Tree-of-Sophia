@@ -72,7 +72,7 @@ impl SelectedPgSourceNavigation {
             node_id: params.node_id,
             max_depth: params.max_depth,
             limit: params.limit,
-            at_least_commit_seq: None,
+            at_least_commit_seq: params.at_least_commit_seq,
         };
         let budget = Budget {
             max_probes: 100_000,

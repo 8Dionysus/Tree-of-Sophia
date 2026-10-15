@@ -175,7 +175,8 @@ fn source_descend_target(
             bounded_legacy_int(query_value(query, "max_depth").as_deref(), 8, 1, 8) as u8;
         let limit =
             bounded_legacy_int(query_value(query, "limit").as_deref(), 300, 1, 300) as usize;
-        Params::new(node_id, max_depth, limit)
+        Params::new(node_id, max_depth, limit)?
+            .with_commit_lower_bound(source_commit_lower_bound(query)?.as_deref())
     }))
 }
 
@@ -191,6 +192,23 @@ fn query_value<'a>(query: &'a str, name: &str) -> Option<String> {
             }
         })
         .next()
+}
+
+fn source_commit_lower_bound(query: &str) -> Result<Option<String>, AccessError> {
+    let mut found = None;
+    for pair in query.split('&') {
+        let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
+        if percent_decode(key, true)? == "at_least_commit_seq" {
+            if found.is_some() {
+                return Err(AccessError::new(
+                    AccessErrorCode::InvalidRequest,
+                    "at_least_commit_seq must occur once",
+                ));
+            }
+            found = Some(percent_decode(value, true)?);
+        }
+    }
+    Ok(found)
 }
 
 fn query_list(query: &str, name: &str) -> Vec<String> {
@@ -758,7 +776,8 @@ fn handle_get_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + 
                 bounded_legacy_int(query_value(query, "max_depth").as_deref(), 8, 1, 8) as u8;
             let limit =
                 bounded_legacy_int(query_value(query, "limit").as_deref(), 300, 1, 300) as usize;
-            Params::new(node_id, max_depth, limit)
+            Params::new(node_id, max_depth, limit)?
+                .with_commit_lower_bound(source_commit_lower_bound(query)?.as_deref())
         })
         .and_then(|params| {
             checked_execute(abort_probe, |probe| executor.source_descend(params, probe))

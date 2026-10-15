@@ -236,12 +236,17 @@ pub fn execute_selected_source_navigation_descend<
         || request.node_id.len() > budget.inspect.max_field_bytes
         || !(1..=8).contains(&request.max_depth)
         || !(1..=300).contains(&request.limit)
-        || request.at_least_commit_seq.is_some()
     {
-        // This immutable selected-original receipt has no publication sequence.
         return Err(err(
             SearchV2ErrorCode::InvalidRequest,
             "invalid selected original descent request",
+        ));
+    }
+    if request.at_least_commit_seq.is_some() {
+        // This immutable selected-original receipt has no publication sequence.
+        return Err(err(
+            SearchV2ErrorCode::Unavailable,
+            "selected original export has no comparable command sequence",
         ));
     }
     if budget.max_candidates == 0
