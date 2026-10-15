@@ -2863,6 +2863,53 @@ impl DurablePgCoordinator {
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
         let owner_cancelled = std::sync::Arc::clone(&cancelled);
         let owner_check = move || active(deadline, &owner_cancelled);
+        self.select_current_source_generation_addressed_streaming_controlled(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            context,
+            software,
+            components,
+            worker,
+            schema_source_path,
+            workspace,
+            generation_profile,
+            source_limits,
+            item_limits,
+            tree_limits,
+            body_work,
+            tree_work,
+            deadline,
+            cancelled,
+            &owner_check,
+        )
+    }
+
+    pub(crate) fn select_current_source_generation_addressed_streaming_controlled(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        original: &tos_source_store::StreamedCorpusCutReaderV1,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        context: &CommandContext,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        schema_source_path: &str,
+        workspace: &super::PrivateGenerationWorkspace,
+        generation_profile: super::StreamedGenerationProfile,
+        source_limits: StreamedColdSourceLimitsV1,
+        item_limits: tos_validation::item_rules::ItemLimits,
+        tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+        body_work: &mut StreamedColdSourceWorkV1,
+        tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
+        deadline: Instant,
+        cancelled: std::sync::Arc<AtomicBool>,
+        owner_check: &dyn Fn() -> DurableResult<()>,
+    ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
         self.complete_streamed_source_generation(
             store,
             None,
@@ -2884,7 +2931,7 @@ impl DurablePgCoordinator {
             tree_work,
             deadline,
             cancelled,
-            &owner_check,
+            owner_check,
         )
     }
 

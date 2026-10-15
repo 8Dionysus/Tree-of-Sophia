@@ -407,6 +407,87 @@ fn worker_limits_and_image(
     Ok((image, worker_budget, limits, operation))
 }
 
+/// Initial model preparation may reuse a current assessment. When none is
+/// current, perform the same streamed assessor with the retained protected
+/// bootstrap inputs; never reseed commands or materialize all source bodies.
+pub(super) fn reassess_existing_for_initial_model(
+    invocation: &Value,
+    protected: &super::pg_bootstrap::ProtectedBootstrapContext,
+    corpus: &CorpusReader,
+    db: &mut DurablePgCoordinator,
+    store: &tos_segment_store::SegmentStore,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+    owner_check: &dyn Fn() -> crate::DurableResult<()>,
+) -> SourceCommandResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
+    let budgets = streamed_budgets(object(invocation, "streamed_budgets")?, deadline)?;
+    let workspace_root = absolute(text(invocation, "workspace_root")?)?;
+    if workspace_root == protected.selection.store_root {
+        return Err(SourceCommandError::Denied(
+            "streamed assessment workspace overlaps source",
+        ));
+    }
+    owner_check().map_err(source_error)?;
+    let workspace = PrivateGenerationWorkspace::open(&workspace_root, budgets.workspace)
+        .map_err(source_error)?;
+    let mut body_work = crate::source_cohort::StreamedColdSourceWorkV1::default();
+    let cut = workspace
+        .open_streamed_source_cut(
+            corpus,
+            protected.selection.source_revision,
+            budgets.cut_read,
+            deadline,
+            cancelled,
+            &mut body_work,
+        )
+        .map_err(source_error)?;
+    let (image, worker_budget, worker_limits, operation) =
+        worker_limits_and_image(invocation, deadline, cancelled)?;
+    let mut worker = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        &image,
+        worker_budget,
+        worker_limits,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("streamed assessment schema worker"))?;
+    worker
+        .set_operation_budget(operation)
+        .map_err(|_| SourceCommandError::Denied("streamed assessment schema budget"))?;
+    db.require_compatible_schema().map_err(source_error)?;
+    db.require_addressed_audit_protocol(deadline, cancelled)
+        .map_err(source_error)?;
+    let mut tree_work = tos_segment_store::AuthenticatedTreeWorkV1::default();
+    db.select_current_source_generation_addressed_streaming_controlled(
+        store,
+        &protected.selection.domain,
+        &cut,
+        protected.selection.source_revision,
+        protected.selection.membership,
+        &protected.context,
+        &protected.software,
+        &protected.components,
+        &mut worker,
+        "ToS/contracts/corpus-record.schema.json",
+        &workspace,
+        budgets.generation,
+        budgets.source_limits,
+        budgets.item,
+        budgets.tree,
+        &mut body_work,
+        &mut tree_work,
+        deadline,
+        Arc::clone(cancelled),
+        owner_check,
+    )
+    .inspect_err(|_| {
+        eprintln!("initial model source assessment refused work={body_work:?}");
+    })
+    .map_err(source_error)
+}
+
 pub(super) fn run(
     invocation_path: &Path,
     invocation_raw: &[u8],

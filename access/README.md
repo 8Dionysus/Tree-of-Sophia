@@ -1361,8 +1361,13 @@ member/byte ceilings, plan bytes/work, and maximum model bytes. Initial
 catalog compilation uses these model limits and the selected cold row limit;
 ordinary incremental event/window limits continue to apply to later advances.
 
-The parent retains the protected owner and PostgreSQL connection. It exports
-an exact selected cut under `host_export_stage_parent` and starts the compiler
+The parent retains the protected owner and PostgreSQL connection. It reuses a
+current assessed source selection. After source changes or database restore,
+initial preparation runs the existing streamed source assessment under the
+retained bootstrap invocation's workspace, schema and index budgets. It does
+not repeat source commands. Invalid bindings and withdrawn rights still refuse;
+this explicit initial assessment does not run during ordinary event catch-up.
+It exports an exact selected cut under `host_export_stage_parent` and starts the compiler
 through the pinned private-stage issuer. `launcher` fixes `tos_access_path`,
 `tos_access_sha256`, `unshare_path`, `unshare_sha256`, `setup_cgroup`,
 `consumer_cgroup`, `scratch_parent`, `persistent_staging_root`, and

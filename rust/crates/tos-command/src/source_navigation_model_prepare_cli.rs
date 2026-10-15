@@ -11,7 +11,7 @@ use std::{
     io::{Cursor, Read, Write},
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
-    sync::atomic::AtomicBool,
+    sync::{Arc, atomic::AtomicBool},
     time::{Duration, Instant},
 };
 use tos_compiler::SourceBinding;
@@ -826,7 +826,7 @@ pub(crate) fn run(
     original_software: &SoftwareCaptureReader,
     original_components: &SoftwareComponentSelectionV1,
     deadline: Instant,
-    cancelled: &AtomicBool,
+    cancelled: &Arc<AtomicBool>,
 ) -> SourceCommandResult<Value> {
     if super::text(invocation, "schema_version")? != "tos_local_native_source_invocation_v1" {
         return Err(SourceCommandError::Denied(
@@ -953,12 +953,12 @@ fn prepare_initial(
     owner: PrepareOwner,
     filesystem: crate::source_creation_store::CreationFilesystem,
     uid: u32,
-    _original_store: &CorpusReader,
+    original_store: &CorpusReader,
     original_cut: &CorpusCutReader,
     original_software: &SoftwareCaptureReader,
     original_components: &SoftwareComponentSelectionV1,
     deadline: Instant,
-    cancelled: &AtomicBool,
+    cancelled: &Arc<AtomicBool>,
 ) -> SourceCommandResult<Value> {
     let selection = PreparationSelection::parse(&owner.source_navigation)?;
     // Rule and rights versions belong to the selected CMD domain. Fresh
@@ -1241,8 +1241,8 @@ fn prepare_initial(
             sha256: normalization_member.sha256,
         };
     let staged_source = (|| {
-        let generation = coordinator
-            .reopen_current_addressed_source_selection(
+        let generation = match coordinator
+            .try_reopen_current_addressed_source_selection(
                 &store,
                 &selection.domain,
                 bootstrap_source_revision,
@@ -1251,7 +1251,54 @@ fn prepare_initial(
                 deadline,
                 cancelled,
             )
-            .map_err(crate::source_current_cut::durable)?;
+            .map_err(crate::source_current_cut::durable)?
+        {
+            Some(generation) => generation,
+            None => {
+                // Initial preparation explicitly owns this full assessment.
+                // Ordinary navigation updates never enter this route.
+                let owner_check = || {
+                    bootstrap.owner_check(
+                        &bootstrap_invocation_path,
+                        &bootstrap_invocation_raw,
+                        uid,
+                        deadline,
+                        cancelled,
+                    )?;
+                    if super::read_absolute(
+                        &owner_path,
+                        uid,
+                        true,
+                        MAX_OWNER_BYTES,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(crate::DurableError::Source)?
+                        != owner_raw
+                    {
+                        return Err(crate::DurableError::Conflict(
+                            "navigation preparation owner changed",
+                        ));
+                    }
+                    drop(
+                        filesystem
+                            .hold_source_navigation_owner(deadline, cancelled)
+                            .map_err(crate::DurableError::Source)?,
+                    );
+                    Ok(())
+                };
+                super::pg_bootstrap_streamed::reassess_existing_for_initial_model(
+                    &bootstrap_invocation,
+                    &bootstrap,
+                    original_store,
+                    &mut coordinator,
+                    &store,
+                    deadline,
+                    cancelled,
+                    &owner_check,
+                )?
+            }
+        };
         let export = crate::source_current_cut::export_current_source_generation_addressed(
             &mut coordinator,
             &store,

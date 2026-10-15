@@ -1141,11 +1141,7 @@ impl DurablePgCoordinator {
         Ok(generation)
     }
 
-    /// Reuse an already assessed current V2 generation for explicit export.
-    /// This reads the authenticated descriptor under the same live fences as
-    /// persisted proof reopening; it neither reassesses source bodies nor
-    /// selects a new generation. A stale/restored database still needs its
-    /// explicit cold assessment before this constructor can succeed.
+    /// Require a current assessed selection, including for persisted proof reuse.
     pub(crate) fn reopen_current_addressed_source_selection(
         &mut self,
         store: &SegmentStore,
@@ -1156,6 +1152,35 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
+        self.try_reopen_current_addressed_source_selection(
+            store,
+            domain,
+            initial_revision,
+            initial_membership,
+            limits,
+            deadline,
+            cancelled,
+        )?
+        .ok_or(DurableError::Conflict(
+            "addressed source requires explicit current assessment",
+        ))
+    }
+
+    /// Reuse an already assessed current V2 generation for explicit export.
+    /// This reads the authenticated descriptor under the same live fences as
+    /// persisted proof reopening; it neither reassesses source bodies nor
+    /// selects a new generation. None requests an explicit cold assessment
+    /// for a stale selection or restored database; corrupt bindings remain errors.
+    pub(crate) fn try_reopen_current_addressed_source_selection(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        limits: AuthenticatedTreeLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<crate::source_current_cut::ManagedCurrentSourceGeneration>> {
         active(deadline, cancelled)?;
         if domain.as_bytes() != store.custody_domain() {
             return Err(DurableError::Conflict(
@@ -1200,15 +1225,16 @@ impl DurablePgCoordinator {
             generation: head,
         };
         cohort_matches(&row, &cohort, true)?;
+        if !row.get::<_, bool>("rights_allowed") {
+            return Err(DurableError::Refused("addressed source rights withdrawn"));
+        }
         if row.get::<_, Option<i64>>("source_generation") != Some(as_i64(head)?)
             || as_u64(row.get("published_seq"))? != head
-            || !row.get::<_, bool>("rights_allowed")
             || row.get::<_, Option<i64>>("complete_cut_generation")
                 != Some(as_i64(audit_generation)?)
         {
-            return Err(DurableError::Conflict(
-                "addressed source selection is no longer current",
-            ));
+            tx.commit()?;
+            return Ok(None);
         }
         let digest = parse_hex(
             row.get::<_, Option<String>>("selected_generation_digest")
@@ -1227,7 +1253,6 @@ impl DurablePgCoordinator {
         if cut.domain != domain
             || cut.through_seq != head
             || cut.audit_generation.checked_add(1) != Some(audit_generation)
-            || cut.database_oid != database_oid(&mut tx)?
             || row.get::<_, Option<String>>("schema_profile_digest")
                 != Some(cut.schema_profile_digest.to_hex())
             || row.get::<_, Option<String>>("complete_cut_digest") != Some(state_digest.to_hex())
@@ -1237,6 +1262,10 @@ impl DurablePgCoordinator {
             return Err(DurableError::Conflict(
                 "addressed descriptor differs from current selection",
             ));
+        }
+        if cut.database_oid != database_oid(&mut tx)? {
+            tx.commit()?;
+            return Ok(None);
         }
         let selected = VerifiedAddressedGeneration {
             audited_root,
@@ -1250,11 +1279,11 @@ impl DurablePgCoordinator {
         };
         active(deadline, cancelled)?;
         tx.commit()?;
-        Ok(
+        Ok(Some(
             crate::source_current_cut::ManagedCurrentSourceGeneration::from_verified_addressed(
                 store, cohort, selected,
             ),
-        )
+        ))
     }
 
     pub(super) fn continue_addressed_creation(
