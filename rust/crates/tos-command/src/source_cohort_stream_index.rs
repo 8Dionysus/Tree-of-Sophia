@@ -971,6 +971,9 @@ impl SourceAssessmentIndex {
                     0,
                 ))
             };
+            // Keep the indexed columns bare: wrapping row-value columns in
+            // COLLATE makes SQLite scan from the beginning for every cursor.
+            // Their declared BINARY collation already owns byte ordering.
             let result = if let Some((kind, token)) = after {
                 query_optional_decoded(
                     db,
@@ -983,7 +986,7 @@ impl SourceAssessmentIndex {
                             length(CAST(definition_digest AS BLOB)),
                             CASE WHEN typeof(definition_digest)='text' AND length(CAST(definition_digest AS BLOB))=64 THEN definition_digest END
                      FROM expected_index
-                     WHERE (kind COLLATE BINARY,token COLLATE BINARY)>
+                     WHERE (kind,token)>
                            (?1 COLLATE BINARY,?2 COLLATE BINARY)
                      ORDER BY kind COLLATE BINARY,token COLLATE BINARY LIMIT 1",
                     params![kind, token, key_bytes],
@@ -1165,7 +1168,7 @@ impl SourceAssessmentIndex {
                             length(CAST(definition_version AS BLOB)),
                             CASE WHEN typeof(definition_version)='text' AND length(CAST(definition_version AS BLOB))=64 THEN definition_version END
                      FROM expected_predicate
-                     WHERE (kind COLLATE BINARY,owner COLLATE BINARY,scope COLLATE BINARY,token COLLATE BINARY)>
+                     WHERE (kind,owner,scope,token)>
                            (?1 COLLATE BINARY,?2 COLLATE BINARY,?3 COLLATE BINARY,?4 COLLATE BINARY)
                      ORDER BY kind COLLATE BINARY,owner COLLATE BINARY,scope COLLATE BINARY,token COLLATE BINARY LIMIT 1",
                     params![kind, owner, scope, token, key_bytes],
@@ -2626,4 +2629,155 @@ fn read_member(
 
 fn count_row_read(work: &mut SourceAssessmentWork, bytes: usize) -> DurableResult<()> {
     add_read_bytes(work, bytes)
+}
+
+#[cfg(test)]
+mod cursor_work_tests {
+    use super::*;
+    use crate::ColdWorkspaceLimits;
+    use std::time::Duration;
+
+    #[test]
+    fn bootstrap_contract_source_index_cursors_seek_with_bounded_work() {
+        let temporary = tempfile::tempdir().unwrap();
+        let workspace = PrivateGenerationWorkspace::open(
+            temporary.path(),
+            ColdWorkspaceLimits {
+                max_scratch_written_bytes: 8 * 1024 * 1024,
+                max_run_bytes: 4096,
+                max_runs: 2,
+                merge_fan_in: 2,
+                max_rows: 20_000,
+                max_key_bytes: 4096,
+            },
+        )
+        .unwrap();
+        let mut work = SourceAssessmentWork::default();
+        let mut index = SourceAssessmentIndex::open(
+            &workspace,
+            SourceAssessmentLimits {
+                max_rows: 20_000,
+                max_logical_bytes: 8 * 1024 * 1024,
+                max_key_bytes: 4096,
+                max_value_bytes: 65_536,
+                max_placement_bytes: 65_536,
+                max_sqlite_file_bytes: 8 * 1024 * 1024,
+                max_vm_steps: 10_000_000,
+            },
+            Instant::now() + Duration::from_secs(20),
+            Arc::new(AtomicBool::new(false)),
+            &mut work,
+        )
+        .unwrap();
+        let path = "ToS/source-witnesses/cursor-fixture.json";
+        index
+            .add_member(
+                SourceAssessmentMember {
+                    path,
+                    sha256: [1; 32],
+                    size_bytes: 1,
+                    mode: 0o600,
+                    dependencies: None,
+                },
+                &mut work,
+            )
+            .unwrap();
+        index
+            .add_current_placement(path, b"fixture", &mut work)
+            .unwrap();
+        let mut expected_index = Vec::new();
+        let mut expected_predicates = Vec::new();
+        for i in 0..2048 {
+            let token = format!("tos.{}.{i:04}", ["A", "a", "é", "Ω"][i % 4]);
+            let row = AssessmentIndexRow {
+                kind: "metadata".into(),
+                token: token.clone(),
+                path: path.into(),
+                definition_digest: "a".repeat(64),
+            };
+            index
+                .add_identity(SourceIdentityKind::Metadata, &token, path, &mut work)
+                .unwrap();
+            index.add_index_row(&row, &mut work).unwrap();
+            expected_index.push(row);
+            let row = AssessmentPredicateRow {
+                kind: ["range", "unique"][i % 2].into(),
+                owner: format!("owner-{}", i % 3),
+                scope: format!("scope-{}", i % 5),
+                token,
+                definition_version: "b".repeat(64),
+            };
+            index.add_predicate_row(&row, &mut work).unwrap();
+            expected_predicates.push(row);
+        }
+        index.finish_source_inputs(&mut work).unwrap();
+        expected_index.sort_by(|a, b| (&a.kind, &a.token).cmp(&(&b.kind, &b.token)));
+        expected_predicates.sort_by(|a, b| {
+            (&a.kind, &a.owner, &a.scope, &a.token).cmp(&(&b.kind, &b.owner, &b.scope, &b.token))
+        });
+        let before = work.sqlite_vm_progress_callbacks;
+        let mut after = None;
+        for expected in expected_index {
+            let actual = index
+                .expected_index_after(
+                    after
+                        .as_ref()
+                        .map(|(kind, token): &(String, String)| (kind.as_str(), token.as_str())),
+                    &mut work,
+                )
+                .unwrap()
+                .unwrap();
+            assert_eq!(actual, expected);
+            after = Some((actual.kind, actual.token));
+        }
+        assert!(
+            index
+                .expected_index_after(
+                    after
+                        .as_ref()
+                        .map(|(kind, token)| (kind.as_str(), token.as_str())),
+                    &mut work
+                )
+                .unwrap()
+                .is_none()
+        );
+        let mut after = None;
+        for expected in expected_predicates {
+            let actual = index
+                .expected_predicate_after(
+                    after.as_ref().map(
+                        |(kind, owner, scope, token): &(String, String, String, String)| {
+                            (
+                                kind.as_str(),
+                                owner.as_str(),
+                                scope.as_str(),
+                                token.as_str(),
+                            )
+                        },
+                    ),
+                    &mut work,
+                )
+                .unwrap()
+                .unwrap();
+            assert_eq!(actual, expected);
+            after = Some((actual.kind, actual.owner, actual.scope, actual.token));
+        }
+        assert!(
+            index
+                .expected_predicate_after(
+                    after.as_ref().map(|(kind, owner, scope, token)| (
+                        kind.as_str(),
+                        owner.as_str(),
+                        scope.as_str(),
+                        token.as_str()
+                    )),
+                    &mut work
+                )
+                .unwrap()
+                .is_none()
+        );
+        // The former prefix rescans spend millions of VM steps on this cut.
+        // This bound covers both complete cursors and their EOF queries.
+        assert!(work.sqlite_vm_progress_callbacks - before < 4096 * 200);
+    }
 }
