@@ -521,7 +521,14 @@ pub(super) fn run(
             })?;
     }
     owner_check().map_err(source_error)?;
-    let store = selected_store(&protected.owner_fs, selection)?;
+    let store = match selection.job_mode {
+        BootstrapJobMode::Initialize => selected_store(&protected.owner_fs, selection)?,
+        BootstrapJobMode::RequireExisting => tos_segment_store::SegmentStore::open_existing_at(
+            protected.owner_fs.protected_root_file(),
+            selection.store_limits,
+        )
+        .map_err(|_| SourceCommandError::Conflict("open retained streamed bootstrap store"))?,
+    };
     owner_check().map_err(source_error)?;
     if store.custody_domain() != selection.domain.as_bytes() {
         return Err(SourceCommandError::Conflict(
