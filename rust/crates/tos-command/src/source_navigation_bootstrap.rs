@@ -673,6 +673,28 @@ fn capture_original_carrier(
     // `source_refs` are dependency evidence and may include citations;
     // they are not row ownership. A carrier without an explicit producer
     // path is assigned only when it has exactly one internal dependency.
+    // A historical reference belongs to its current record node; the archive
+    // is an additional dependency, not an alternative owner of that edge.
+    if explicit_owner.is_none() {
+        if let Some(record_id) = historical_edge_owner {
+            let record = output
+                .iter()
+                .find(|row| {
+                    row.kind == DurableNavigationBootstrapRowKindV1::Node
+                        && row.id == record_id
+                        && row.owner_record_id == record_id
+                })
+                .ok_or(DurableError::Corrupt(
+                    "navigation history source owner absent",
+                ))?;
+            if !refs.contains(&record.owner_source_path) {
+                return Err(DurableError::Corrupt(
+                    "navigation history source owner differs",
+                ));
+            }
+            explicit_owner = Some(record.owner_source_path.clone());
+        }
+    }
     let owner_path = match explicit_owner {
         Some(owner_path) => owner_path,
         None if refs.len() == 1 => refs.iter().next().unwrap().clone(),
@@ -956,6 +978,7 @@ mod tests {
     #[test]
     fn original_history_rows_share_owner_and_fragment_refs_keep_exact_file() {
         let source = "ToS/source-witnesses/works/example/work.json";
+        let archive = "ToS/source-witnesses/.record-revisions/example/previous.blob";
         let packets = [
             (
                 DurableNavigationBootstrapRowKindV1::Node,
@@ -967,7 +990,7 @@ mod tests {
             ),
             (
                 DurableNavigationBootstrapRowKindV1::Edge,
-                json!({"edge_id":"history:one","edge_kind":"exact_historical_record_reference","from_id":"work:example","to_id":"record-version:one","source_refs":[source]}),
+                json!({"edge_id":"history:one","edge_kind":"exact_historical_record_reference","from_id":"work:example","to_id":"record-version:one","source_refs":[archive,source]}),
             ),
             (
                 DurableNavigationBootstrapRowKindV1::Right,
@@ -998,7 +1021,10 @@ mod tests {
             .unwrap();
             assert_eq!(rows.last().unwrap().raw, raw);
         }
-        assert_eq!(paths, BTreeSet::from([source.to_owned()]));
+        assert_eq!(
+            paths,
+            BTreeSet::from([source.to_owned(), archive.to_owned()])
+        );
         assert!(rows.iter().all(|row| row.owner_record_id == "work:example" && row.owner_source_path == source));
         assert!(rows[..3].iter().all(|row| row.visible == Some(true)));
         assert_eq!(rows[3].visible, None);
