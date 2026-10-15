@@ -535,6 +535,8 @@ pub(crate) struct Versions<'a, 'b> {
     // One exact schema closure for this sealed catalog operation. Source reads
     // and version checks remain per record; the immutable schemas are shared.
     contracts: std::rc::Rc<catalog::Contracts>,
+    legacy_catalog_locations: BTreeMap<(String, Option<String>), LegacyCatalogLocations>,
+    legacy_catalog_location_bytes: u64,
     catalog_epoch: Option<(
         crate::VersionsCatalogEpochV2,
         tos_segment_store::AuthenticatedTreeLimitsV1,
@@ -792,6 +794,8 @@ impl<'a, 'b> Versions<'a, 'b> {
             contracts: std::rc::Rc::new(catalog::prepare_catalog_contracts(
                 stage, validator, l.catalog,
             )?),
+            legacy_catalog_locations: BTreeMap::new(),
+            legacy_catalog_location_bytes: 0,
             catalog_epoch: None,
         };
         // Bind every declared raw input, including selected schemas and native
@@ -989,7 +993,7 @@ impl<'a, 'b> Versions<'a, 'b> {
     }
 
     fn catalog_location(
-        &self,
+        &mut self,
         stage: &mut KnowledgeStage<'_>,
         category: &str,
         kind: Option<&str>,
@@ -1012,8 +1016,41 @@ impl<'a, 'b> Versions<'a, 'b> {
                 validator.cancelled,
             )?));
         }
-        let (line, sha) = legacy_catalog(stage, category, kind, id, l)?;
-        Ok(CatalogLocation::Legacy(line, sha))
+        check(validator, l)?;
+        let key = (category.to_owned(), kind.map(str::to_owned));
+        if !self.legacy_catalog_locations.contains_key(&key) {
+            // Legacy source-return packets retain their exact JSONL digest and
+            // family-relative line. Compute each immutable catalog once, rather
+            // than reserializing its whole population for every record version.
+            // This is bounded operation state under the selected projection's
+            // byte envelope, independent of source-read accounting.
+            let key_bytes = (key.0.capacity() + key.1.as_ref().map_or(0, String::capacity)) as u64;
+            let remaining = l
+                .max_output_bytes
+                .checked_sub(self.legacy_catalog_location_bytes)
+                .and_then(|bytes| bytes.checked_sub(key_bytes))
+                .ok_or(Error::Budget("bibliographic catalog location state"))?;
+            let mut after = None;
+            let mut index = legacy_catalog_locations(
+                || {
+                    let Some(key) = catalog::catalog_next(stage, category, after.as_deref())?
+                    else {
+                        return Ok(None);
+                    };
+                    let row = catalog::catalog_row(stage, category, &key, l.catalog)?
+                        .ok_or(Error::Invalid("bibliographic version catalog disappeared"))?;
+                    after = Some(key.clone());
+                    Ok(Some((key, row)))
+                },
+                kind,
+                remaining,
+                l,
+            )?;
+            index.retained_bytes += key_bytes;
+            self.legacy_catalog_location_bytes += index.retained_bytes;
+            self.legacy_catalog_locations.insert(key.clone(), index);
+        }
+        self.legacy_catalog_locations[&key].locate(id)
     }
 
     pub(crate) fn verify_catalog_binding<B: catalog::CatalogInputBinding>(
@@ -4256,38 +4293,64 @@ impl CatalogLocation {
     }
 }
 
-fn legacy_catalog(
-    stage: &mut KnowledgeStage<'_>,
-    category: &str,
+struct LegacyCatalogLocations {
+    lines: BTreeMap<String, u64>,
+    sha256: String,
+    retained_bytes: u64,
+}
+impl LegacyCatalogLocations {
+    fn locate(&self, id: &str) -> Result<CatalogLocation> {
+        let line = self
+            .lines
+            .get(id)
+            .ok_or(Error::Invalid("bibliographic exact legacy catalog address"))?;
+        Ok(CatalogLocation::Legacy(*line, self.sha256.clone()))
+    }
+}
+
+fn legacy_catalog_locations(
+    mut next: impl FnMut() -> Result<Option<(String, Value)>>,
     kind: Option<&str>,
-    id: &str,
+    max_retained_bytes: u64,
     l: BibliographicLimits,
-) -> Result<(u64, String)> {
+) -> Result<LegacyCatalogLocations> {
     let mut hash = Digest256Hasher::new();
-    let mut after = None;
+    let mut lines = BTreeMap::new();
     let mut line = 0u64;
-    let mut selected = None;
-    while let Some(key) = catalog::catalog_next(stage, category, after.as_deref())? {
+    // Includes the outer map node, bounded category/family key, map roots and
+    // digest. Per-key charge conservatively covers sparse BTreeMap nodes.
+    let mut retained_bytes = 4096u64;
+    if retained_bytes > max_retained_bytes {
+        return Err(Error::Budget("bibliographic catalog location state"));
+    }
+    while let Some((key, row)) = next()? {
         if std::time::Instant::now() >= l.deadline {
             return Err(Error::Budget("bibliographic exact catalog render deadline"));
         }
-        let row = catalog::catalog_row(stage, category, &key, l.catalog)?
-            .ok_or(Error::Invalid("bibliographic version catalog disappeared"))?;
         if kind.is_none_or(|kind| row["entry"]["record_type"] == kind) {
-            line += 1;
+            retained_bytes = retained_bytes
+                .checked_add(key.capacity() as u64)
+                .and_then(|bytes| bytes.checked_add(512))
+                .filter(|bytes| *bytes <= max_retained_bytes)
+                .ok_or(Error::Budget("bibliographic catalog location state"))?;
+            line = line
+                .checked_add(1)
+                .filter(|count| *count <= l.catalog.max_rows)
+                .ok_or(Error::Budget("bibliographic catalog location rows"))?;
             hash.update(&encode(&row["entry"], l.catalog.max_output_row_bytes)?);
             hash.update(b"\n");
-            if key == id {
-                selected = Some(line);
+            if lines.insert(key, line).is_some() {
+                return Err(Error::Invalid("bibliographic duplicate catalog address"));
             }
         }
-        after = Some(key);
     }
-    Ok((
-        selected.ok_or(Error::Invalid("bibliographic exact legacy catalog address"))?,
-        format!("sha256:{}", hash.finalize().to_hex()),
-    ))
+    Ok(LegacyCatalogLocations {
+        lines,
+        sha256: format!("sha256:{}", hash.finalize().to_hex()),
+        retained_bytes,
+    })
 }
+
 fn bind_files(provenance: &Value, inputs: &mut BTreeMap<String, String>) -> Result<()> {
     let mut bind = |reference: &Value, sha: &Value| -> Result<()> {
         if reference.is_null() || sha.is_null() {
@@ -5300,6 +5363,66 @@ fn public_form_lock(name: &str) -> bool {
 #[cfg(test)]
 mod oracle {
     use super::*;
+
+    #[test]
+    fn legacy_catalog_locations_preserve_exact_family_lines_digest_and_bound() {
+        let l = BibliographicLimits {
+            catalog: catalog::SourceCatalogLimits {
+                max_files: 16,
+                max_rows: 16,
+                max_file_bytes: 4096,
+                max_row_bytes: 4096,
+                max_contract_bytes: 4096,
+                max_output_row_bytes: 4096,
+            },
+            max_claim_cohort_rows: 16,
+            max_claim_cohort_bytes: 8192,
+            max_output_rows: 16,
+            max_output_bytes: 8192,
+            deadline: std::time::Instant::now() + std::time::Duration::from_secs(5),
+        };
+        let rows = [
+            (
+                "a".to_owned(),
+                json!({"entry":{"label":"Первый","record_type":"work"}}),
+            ),
+            (
+                "b".to_owned(),
+                json!({"entry":{"label":"Middle","record_type":"agent"}}),
+            ),
+            (
+                "c".to_owned(),
+                json!({"entry":{"label":"Last","record_type":"work"}}),
+            ),
+        ];
+        let build = |kind, cap| {
+            let mut rows = rows.clone().into_iter();
+            legacy_catalog_locations(|| Ok(rows.next()), kind, cap, l)
+        };
+        let work = build(Some("work"), 8192).unwrap();
+        let expected = concat!(
+            "{\"label\":\"Первый\",\"record_type\":\"work\"}\n",
+            "{\"label\":\"Last\",\"record_type\":\"work\"}\n"
+        );
+        let digest = format!(
+            "sha256:{}",
+            Digest256::of_bytes(expected.as_bytes()).to_hex()
+        );
+        for (id, expected_line) in [("a", 1), ("c", 2), ("a", 1)] {
+            let CatalogLocation::Legacy(line, sha) = work.locate(id).unwrap() else {
+                panic!("legacy shape")
+            };
+            assert_eq!((line, sha), (expected_line, digest.clone()));
+        }
+        assert!(work.locate("b").is_err());
+        let all = build(None, 8192).unwrap();
+        let CatalogLocation::Legacy(line, _) = all.locate("c").unwrap() else {
+            panic!("legacy shape")
+        };
+        assert_eq!(line, 3);
+        assert!(build(Some("work"), work.retained_bytes).is_ok());
+        assert!(build(Some("work"), work.retained_bytes - 1).is_err());
+    }
 
     #[test]
     fn selected_archive_locators_accept_writer_digest_format_and_reject_mismatches() {
