@@ -747,13 +747,16 @@ fn run_selected(
             "worker_address_space_bytes",
         ],
     )?;
+    // Software components have their own bounded capture. Selecting a small
+    // source-member ceiling must not constrain an unrelated software member.
+    let software_read_limits = ReadLimits {
+        max_manifest_bytes: 4_194_304,
+        max_manifest_entries: 2048,
+        max_selected_object_bytes: 8_388_608,
+        json: JsonLimits::default(),
+    };
     let (read_limits, cut_caps) = initial_navigation_limits.unwrap_or((
-        ReadLimits {
-            max_manifest_bytes: 4_194_304,
-            max_manifest_entries: 2048,
-            max_selected_object_bytes: 8_388_608,
-            json: JsonLimits::default(),
-        },
+        software_read_limits,
         CutReadLimits {
             max_revisions: 4,
             max_members: 2048,
@@ -809,7 +812,7 @@ fn run_selected(
             source_git_tree: text(selection, "source_git_tree")?.to_owned(),
             capture_manifest_sha256: digest(text(selection, "capture_manifest_sha256")?)?,
         },
-        read_limits,
+        software_read_limits,
         deadline,
         &cancelled,
     )
