@@ -164,6 +164,51 @@ impl PgPrivateAssessmentSources {
     }
 }
 
+// A caller's source snapshot binds exact selected package contents and
+// revisions. The global private audit generation also advances on journal
+// append and unrelated package writes; including it makes a successful append
+// invalidate its own retry. Keep that generation in the held currentness
+// guards and PackageHeadMarker, outside this stable source fingerprint.
+fn source_package_snapshot(
+    private_heads: &BTreeMap<String, PackageHeadMarker>,
+) -> SourceCommandResult<String> {
+    let package_rows = JsonValue::Object(
+        private_heads
+            .iter()
+            .map(|(target, head)| {
+                (
+                    JsonString::from_utf8(target),
+                    cmd::object(vec![
+                        ("revision", cmd::number(head.revision)),
+                        (
+                            "package_digest",
+                            cmd::string(&head.package_digest.to_prefixed()),
+                        ),
+                        (
+                            "members",
+                            JsonValue::Object(
+                                head.members
+                                    .iter()
+                                    .map(|(name, (size, digest))| {
+                                        (
+                                            JsonString::from_utf8(name),
+                                            cmd::object(vec![
+                                                ("size_bytes", cmd::number(*size as u64)),
+                                                ("sha256", cmd::string(&digest.to_prefixed())),
+                                            ]),
+                                        )
+                                    })
+                                    .collect(),
+                            ),
+                        ),
+                    ]),
+                )
+            })
+            .collect(),
+    );
+    digest_snapshot(&cmd::object(vec![("targets", package_rows)]))
+}
+
 fn package_member_markers(
     members: &BTreeMap<String, Vec<u8>>,
 ) -> SourceCommandResult<BTreeMap<String, (usize, tos_foundation::Digest256)>> {
@@ -1797,7 +1842,7 @@ pub(crate) fn select_owner_local_sources_pg(
         histories: package_histories,
     };
     let targets = private_source_target_refs(owner, configuration)?;
-    let (private_members, private_heads, private_generation) =
+    let (private_members, private_heads, _private_generation) =
         selected_private_package_members(owner, package_histories, &targets)?;
     if !private_members.is_empty() {
         install_selected_members(owner, private_members.clone())?;
@@ -2469,51 +2514,7 @@ pub(crate) fn select_owner_local_sources_pg(
         ));
     }
     let native_inputs = native_inputs.into_values().collect::<Vec<_>>();
-    let package_rows = JsonValue::Object(
-        private_heads
-            .iter()
-            .map(|(target, head)| {
-                (
-                    JsonString::from_utf8(target),
-                    cmd::object(vec![
-                        ("revision", cmd::number(head.revision)),
-                        (
-                            "package_digest",
-                            cmd::string(&head.package_digest.to_prefixed()),
-                        ),
-                        (
-                            "private_audit_generation",
-                            cmd::number(head.private_audit_generation),
-                        ),
-                        (
-                            "members",
-                            JsonValue::Object(
-                                head.members
-                                    .iter()
-                                    .map(|(name, (size, digest))| {
-                                        (
-                                            JsonString::from_utf8(name),
-                                            cmd::object(vec![
-                                                ("size_bytes", cmd::number(*size as u64)),
-                                                ("sha256", cmd::string(&digest.to_prefixed())),
-                                            ]),
-                                        )
-                                    })
-                                    .collect(),
-                            ),
-                        ),
-                    ]),
-                )
-            })
-            .collect(),
-    );
-    let package_snapshot = digest_snapshot(&cmd::object(vec![
-        (
-            "private_audit_generation",
-            cmd::number(private_generation.unwrap_or_default()),
-        ),
-        ("targets", package_rows),
-    ]))?;
+    let package_snapshot = source_package_snapshot(&private_heads)?;
     let source_rows = JsonValue::Object(
         public_members
             .iter()
@@ -2613,4 +2614,46 @@ pub(crate) fn select_owner_local_sources_pg(
         private_heads,
         public_members,
     })
+}
+
+#[cfg(test)]
+mod source_snapshot_tests {
+    use super::*;
+    use tos_foundation::Digest256;
+
+    #[test]
+    fn bootstrap_contract_assessment_snapshot_tracks_sources_not_journal_epoch() {
+        let head = PackageHeadMarker {
+            revision: 1,
+            package_digest: Digest256::of_bytes(b"source package"),
+            private_audit_generation: 7,
+            members: BTreeMap::from([("source.json".into(), (6, Digest256::of_bytes(b"source")))]),
+        };
+        let original = BTreeMap::from([("package/source".into(), head)]);
+        let expected = source_package_snapshot(&original).unwrap();
+        let mut advanced = original.clone();
+        advanced
+            .get_mut("package/source")
+            .unwrap()
+            .private_audit_generation += 1;
+        assert_eq!(source_package_snapshot(&advanced).unwrap(), expected);
+        assert_ne!(advanced, original); // operation-local fence still observes it
+        let mut changed = original.clone();
+        changed.get_mut("package/source").unwrap().revision += 1;
+        assert_ne!(source_package_snapshot(&changed).unwrap(), expected);
+        let mut changed = original.clone();
+        changed.get_mut("package/source").unwrap().package_digest = Digest256::of_bytes(b"other");
+        assert_ne!(source_package_snapshot(&changed).unwrap(), expected);
+        let mut changed = original.clone();
+        changed
+            .get_mut("package/source")
+            .unwrap()
+            .members
+            .insert("source.json".into(), (7, Digest256::of_bytes(b"changed")));
+        assert_ne!(source_package_snapshot(&changed).unwrap(), expected);
+        let mut changed = original;
+        let head = changed.remove("package/source").unwrap();
+        changed.insert("package/other".into(), head);
+        assert_ne!(source_package_snapshot(&changed).unwrap(), expected);
+    }
 }
