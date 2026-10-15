@@ -48,7 +48,7 @@ use crate::{
     source_navigation_claim_selection::{
         ClaimEventIdentityOwnerV1, canonical_serde_source_record_v1, relation_profile,
     },
-    source_navigation_producer::NavigationEventSourceCutIdentityV1,
+    source_navigation_producer::{NavigationEventSourceCutIdentityV1, compiler_refusal},
 };
 
 const MAX_PATHS: usize = 4096;
@@ -322,7 +322,7 @@ fn assemble_owner<'a, 'validator>(
         Some(CLAIM_SCHEMA),
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("selected Claim catalog entry refused"))?;
+    .map_err(compiler_refusal)?;
     let history_path = sibling(source_path, "claim-revision-history.json")?;
     let history_bytes = files
         .optional(&history_path)
@@ -364,7 +364,7 @@ fn assemble_owner<'a, 'validator>(
         &provenance_location,
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("selected Claim provenance event refused"))?;
+    .map_err(compiler_refusal)?;
 
     let claim_forms_path = claim_form_path(source_path, claim_id)?;
     let claim_forms_bytes = files
@@ -382,7 +382,7 @@ fn assemble_owner<'a, 'validator>(
     let claim_forms = match claim_forms_bytes {
         Some(raw) => {
             materialize_checked_form_set(raw, &claim_forms_path, claim, forms_materializer, limits)
-                .map_err(|_| DurableError::Refused("selected Claim forms refused"))?
+                .map_err(compiler_refusal)?
         }
         None => None,
     };
@@ -412,7 +412,7 @@ fn assemble_owner<'a, 'validator>(
     if let Some(profile) = relation_profile {
         for reference in
             supplied_claim_reference_members(claim, profile, limits.catalog.max_row_bytes)
-                .map_err(|_| DurableError::Refused("Claim member reference grammar refused"))?
+                .map_err(compiler_refusal)?
         {
             required_identity_ids.insert(reference.to_owned());
         }
@@ -478,7 +478,7 @@ fn assemble_owner<'a, 'validator>(
                     output_row_bytes: limits.catalog.max_output_row_bytes,
                 },
             )
-            .map_err(|_| DurableError::Refused("Claim literal rendering refused"))?,
+            .map_err(compiler_refusal)?,
         },
         _ => supplied_bibliographic_literal(
             &entry,
@@ -488,7 +488,7 @@ fn assemble_owner<'a, 'validator>(
                 output_row_bytes: limits.catalog.max_output_row_bytes,
             },
         )
-        .map_err(|_| DurableError::Refused("Claim literal rendering refused"))?,
+        .map_err(compiler_refusal)?,
     };
 
     let predicate = text(claim, "predicate")?;
@@ -542,7 +542,7 @@ fn assemble_owner<'a, 'validator>(
                 display_schema,
                 &display_bytes,
             )
-            .map_err(|_| DurableError::Refused("selected Claim display fields refused"))?;
+            .map_err(compiler_refusal)?;
     }
     if profiled || historical {
         let relation = relation_entry(&relations, predicate)?;
@@ -556,7 +556,7 @@ fn assemble_owner<'a, 'validator>(
                     output_row_bytes: limits.catalog.max_output_row_bytes,
                 },
             )
-            .map_err(|_| DurableError::Refused("Claim subject domain check refused"))?
+            .map_err(compiler_refusal)?
         {
             return Err(DurableError::Conflict("Claim subject domain violation"));
         }
@@ -571,7 +571,7 @@ fn assemble_owner<'a, 'validator>(
                     output_row_bytes: limits.catalog.max_output_row_bytes,
                 },
             )
-            .map_err(|_| DurableError::Refused("Claim object range check refused"))?
+            .map_err(compiler_refusal)?
         {
             return Err(DurableError::Conflict("Claim object range violation"));
         }
@@ -581,7 +581,7 @@ fn assemble_owner<'a, 'validator>(
     if let Some(profile) = relation_profile {
         for reference in
             supplied_claim_reference_members(claim, profile, limits.catalog.max_row_bytes)
-                .map_err(|_| DurableError::Refused("Claim member reference grammar refused"))?
+                .map_err(compiler_refusal)?
         {
             let node = identity_nodes
                 .get(reference)
@@ -600,7 +600,7 @@ fn assemble_owner<'a, 'validator>(
                         output_row_bytes: limits.catalog.max_output_row_bytes,
                     },
                 )
-                .map_err(|_| DurableError::Refused("Claim member domain check refused"))?
+                .map_err(compiler_refusal)?
             {
                 return Err(DurableError::Conflict("Claim member domain violation"));
             }
@@ -617,7 +617,7 @@ fn assemble_owner<'a, 'validator>(
     }
 
     validate_supplied_catalogue_attribution(claim)
-        .map_err(|_| DurableError::Refused("Claim catalogue attribution refused"))?;
+        .map_err(compiler_refusal)?;
     let maker_identity = claim
         .pointer("/maker/agent_ref")
         .and_then(Value::as_str)
@@ -635,7 +635,7 @@ fn assemble_owner<'a, 'validator>(
             .ok_or(DurableError::Corrupt("Claim entry digest absent"))?,
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("Claim maker projection refused"))?;
+    .map_err(compiler_refusal)?;
     let mut evidence = Vec::new();
     let mut counterevidence = Vec::new();
     for (field, output) in [
@@ -681,7 +681,7 @@ fn assemble_owner<'a, 'validator>(
                     &entry["source_claim_line"],
                     &entry["claim_sha256"],
                 )
-                .map_err(|_| DurableError::Refused("retained object-link context refused"))?,
+                .map_err(compiler_refusal)?,
             )
         } else {
             None
@@ -715,7 +715,7 @@ fn assemble_owner<'a, 'validator>(
             output_row_bytes: limits.catalog.max_output_row_bytes,
         },
     )
-    .map_err(|_| DurableError::Refused("Claim navigation descriptor refused"))?;
+    .map_err(compiler_refusal)?;
     let claim_inputs = SuppliedBibliographicClaimInputs {
         entry: &entry,
         claim,
@@ -857,10 +857,10 @@ fn assemble_owner<'a, 'validator>(
                 claim_inputs: common.claim_inputs,
             };
             let cohort = project_navigation_claim_event_with_inventory_v1(input, inventory, limits)
-                .map_err(|_| DurableError::Refused("selected Claim renderer refused"))?;
+                .map_err(compiler_refusal)?;
             let cost = cohort
                 .budget_cost()
-                .map_err(|_| DurableError::Refused("selected Claim budget refused"))?;
+                .map_err(compiler_refusal)?;
             Ok(Contribution::Mutation(cohort, cost))
         }
         Cause::RefreshSet { manifest } => {
@@ -871,10 +871,10 @@ fn assemble_owner<'a, 'validator>(
             let cohort = project_navigation_claim_dependency_refresh_set_with_inventory_v1(
                 input, inventory, limits,
             )
-            .map_err(|_| DurableError::Refused("selected Claim dependency refresh refused"))?;
+            .map_err(compiler_refusal)?;
             let cost = cohort
                 .budget_cost()
-                .map_err(|_| DurableError::Refused("selected Claim refresh budget refused"))?;
+                .map_err(compiler_refusal)?;
             Ok(Contribution::Refresh(cohort, cost))
         }
         Cause::Range { manifest } => {
@@ -882,10 +882,10 @@ fn assemble_owner<'a, 'validator>(
             let cohort = project_navigation_claim_event_range_owner_with_inventory_v1(
                 input, manifest, inventory, limits,
             )
-            .map_err(|_| DurableError::Refused("selected Claim range renderer refused"))?;
+            .map_err(compiler_refusal)?;
             let cost = cohort
                 .budget_cost()
-                .map_err(|_| DurableError::Refused("selected Claim range budget refused"))?;
+                .map_err(compiler_refusal)?;
             Ok(Contribution::Range(cohort, cost))
         }
     }
@@ -964,7 +964,7 @@ fn resolve_metadata_identity<'a>(
     }
     let schema_path =
         selected_metadata_record_schema_path_v1(record_type, source_path, &source, &entities)
-            .map_err(|_| DurableError::Refused("selected metadata schema route refused"))?;
+            .map_err(compiler_refusal)?;
     let schema_path = schema_path.to_owned();
     let schema_bytes = files
         .required(&schema_path)
@@ -977,14 +977,14 @@ fn resolve_metadata_identity<'a>(
             schema_bytes,
             source_bytes,
         )
-        .map_err(|_| DurableError::Refused("selected metadata schema rejected"))?;
+        .map_err(compiler_refusal)?;
     let entry = render_catalog_record(
         &source,
         source_path,
         Some(&schema_path),
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("selected metadata catalog entry refused"))?;
+    .map_err(compiler_refusal)?;
     let forms_path = identity_forms_path(source_path)?;
     let forms_bytes = files
         .optional(&forms_path)
@@ -1001,14 +1001,14 @@ fn resolve_metadata_identity<'a>(
                 schema,
                 raw,
             )
-            .map_err(|_| DurableError::Refused("selected metadata forms schema rejected"))?;
+            .map_err(compiler_refusal)?;
         Some(schema)
     } else {
         None
     };
     let materialized = match forms_bytes {
         Some(raw) => materialize_checked_form_set(raw, &forms_path, &source, materializer, limits)
-            .map_err(|_| DurableError::Refused("selected metadata forms refused"))?,
+            .map_err(compiler_refusal)?,
         None => None,
     };
     let node = supplied_bibliographic_identity(
@@ -1022,7 +1022,7 @@ fn resolve_metadata_identity<'a>(
             output_row_bytes: limits.catalog.max_output_row_bytes,
         },
     )
-    .map_err(|_| DurableError::Refused("selected metadata identity projection refused"))?;
+    .map_err(compiler_refusal)?;
     Ok(Some((
         node,
         OwnedIdentitySource {
@@ -1273,7 +1273,7 @@ fn normalized_nodes(
                     output_row_bytes: 2 * 1024 * 1024,
                 },
             )
-            .map_err(|_| DurableError::Refused("relative date anchor domain check refused"))?
+            .map_err(compiler_refusal)?
             {
                 return Err(DurableError::Conflict(
                     "relative date anchor domain differs",
@@ -1321,7 +1321,7 @@ fn resolve_evidence(
             raw,
             limits.catalog.max_output_row_bytes,
         )
-        .map_err(|_| DurableError::Refused("selected path evidence refused"));
+        .map_err(compiler_refusal);
     }
     if let Some(owner) = identity_owners.iter().find(|owner| owner.id == reference) {
         if let Some(path) = owner.source_path.as_deref() {
@@ -1363,7 +1363,7 @@ fn resolve_evidence(
                         },
                         limits.catalog.max_output_row_bytes,
                     )
-                    .map_err(|_| DurableError::Refused("selected Claim anchor evidence refused"));
+                    .map_err(compiler_refusal);
                 }
                 Some("event") => {
                     let raw = files.required(path).map_err(|_| {
@@ -1405,7 +1405,7 @@ fn resolve_evidence(
             SuppliedEvidenceResolution::Identity(identity),
             limits.catalog.max_output_row_bytes,
         )
-        .map_err(|_| DurableError::Refused("selected identity evidence refused"));
+        .map_err(compiler_refusal);
     }
     if let Ok((event, location)) = find_jsonl(
         event_bytes,
@@ -1434,7 +1434,7 @@ fn resolve_evidence(
         SuppliedEvidenceResolution::ExternalCitation,
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("external Claim citation refused"))
+    .map_err(compiler_refusal)
 }
 
 fn resolve_provenance_evidence(
@@ -1470,7 +1470,7 @@ fn resolve_provenance_evidence(
             schema,
             &event_raw,
         )
-        .map_err(|_| DurableError::Refused("selected Claim evidence event schema rejected"))?;
+        .map_err(compiler_refusal)?;
     if event.get("schema_version").and_then(Value::as_str) == Some("tos_provenance_event_v2")
         && (!matches!(
             event
@@ -1504,7 +1504,7 @@ fn resolve_provenance_evidence(
         SuppliedEvidenceResolution::ProvenanceEvent(&event_location),
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("selected Claim provenance evidence refused"))
+    .map_err(compiler_refusal)
 }
 
 fn collection_order_basis(
@@ -1573,7 +1573,7 @@ fn collection_order_basis(
         &collection_record,
         &entities,
     )
-    .map_err(|_| DurableError::Refused("collection-order Collection schema route refused"))?;
+    .map_err(compiler_refusal)?;
     let collection_schema_path = collection_schema_path.to_owned();
     let collection_schema_bytes = files
         .required(&collection_schema_path)
@@ -1586,14 +1586,14 @@ fn collection_order_basis(
             collection_schema_bytes,
             collection_raw,
         )
-        .map_err(|_| DurableError::Refused("collection-order Collection schema rejected"))?;
+        .map_err(compiler_refusal)?;
     let collection_entry = render_catalog_record(
         &collection_record,
         collection_path,
         Some(&collection_schema_path),
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("collection-order Collection catalog entry refused"))?;
+    .map_err(compiler_refusal)?;
     let selected_collection = resolve_selected_metadata_history_v1(
         &collection_entry,
         &entities,
@@ -1602,7 +1602,7 @@ fn collection_order_basis(
         event_revision,
         limits,
     )
-    .map_err(|_| DurableError::Refused("selected Collection history refused"))?;
+    .map_err(compiler_refusal)?;
     let collection_version = selected_collection
         .versions
         .iter()
@@ -1672,7 +1672,7 @@ fn collection_order_basis(
             Some(schema_path),
             limits.catalog.max_output_row_bytes,
         )
-        .map_err(|_| DurableError::Refused("membership Claim catalog entry refused"))?;
+        .map_err(compiler_refusal)?;
         let resolved = resolve_selected_claim_version_v1(
             &entry,
             exact,
@@ -1682,7 +1682,7 @@ fn collection_order_basis(
             materializer,
             limits,
         )
-        .map_err(|_| DurableError::Refused("selected exact membership Claim resolver refused"))?;
+        .map_err(compiler_refusal)?;
         let member = resolved.record.as_ref().ok_or(DurableError::Conflict(
             "exact membership Claim version is not retained",
         ))?;
