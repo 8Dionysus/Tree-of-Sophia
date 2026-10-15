@@ -37,10 +37,12 @@ use crate::{DurableError, DurableNavigationEventContextV1, DurablePgCoordinator,
 
 // Static owner reasons identify the failed boundary without exposing database
 // diagnostics, selected paths, or source payloads through the command response.
-fn producer_refusal(error: crate::source_navigation_cli::SourceNavigationSelectionError) -> &'static str {
+fn producer_refusal(
+    error: crate::source_navigation_cli::SourceNavigationSelectionError,
+) -> &'static str {
+    use crate::source_command::SourceCommandError;
     use crate::source_managed_selection::ManagedSelectionError;
     use crate::source_navigation_cli::SourceNavigationSelectionError;
-    use crate::source_command::SourceCommandError;
     match error {
         SourceNavigationSelectionError::Invalid(reason) => reason,
         SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(

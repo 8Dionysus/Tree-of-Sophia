@@ -2814,7 +2814,7 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
         source_membership_root: bootstrap_membership.digest,
         source_membership_count: bootstrap_membership.count,
         source_projection_digest: digest(
-            selected.source_proof().inventory_projection(),
+            selected.source_proof().native_inventory_root(),
             "navigation source projection digest",
         )?,
         selected_software_profile_id: profile.id.clone(),

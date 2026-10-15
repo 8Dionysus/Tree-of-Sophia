@@ -240,7 +240,7 @@ fn verify_selected_binding(
         || owner.source_membership_root != bootstrap_membership
         || owner.source_membership_count != proof.generation.bootstrap_members
         || owner.source_projection_digest
-            != Digest256::from_hex(&selected.source_proof().inventory_projection()).map_err(
+            != Digest256::from_hex(selected.source_proof().native_inventory_root()).map_err(
                 |_| {
                     query_error(
                         QueryErrorCode::StaleSelection,
@@ -281,7 +281,7 @@ fn verify_selected_binding(
         source_cut: owner.selected_source_cut.clone(),
         through_commit_seq: guard.published_sequence(),
         membership_root: owner.selected_membership_root,
-        projection_root: owner.source_projection_digest,
+        projection_root: facts.anchor_projection_digest,
         index_root: guard.published_root(),
         index_generation: owner.selected_index_generation.clone(),
         route_map_version: owner.selected_route_map_version.clone(),
@@ -292,7 +292,7 @@ fn verify_selected_binding(
             bootstrap_root: guard.bootstrap_root(),
             anchor_through_commit_seq: selected.generation().commit_seq(),
             anchor_membership_root: owner.selected_membership_root,
-            anchor_projection_root: owner.source_projection_digest,
+            anchor_projection_root: facts.anchor_projection_digest,
             published_through_commit_seq: guard.published_sequence(),
             coverage_root: guard.coverage_root(),
             adjacency_root: guard.adjacency_root(),

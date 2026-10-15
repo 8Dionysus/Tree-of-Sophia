@@ -15,6 +15,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_compiler::SourceBinding;
+use tos_compiler::managed_source::ManagedProducerProof;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_segment_store::SegmentStore;
 use tos_source_store::{
@@ -739,9 +740,8 @@ fn require_compiled_generation_current(
     // V2 publication stores the authenticated addressed inventory root in
     // cmd2_domain. The separately retained catalogue transcript has its own
     // inventory_projection_sha256 and remains part of the compiler proof.
-    let expected_projection =
-        Digest256::from_hex(&proof.generation.addressed_inventory_root_sha256)
-            .map_err(|_| crate::DurableError::Invalid("compiled addressed inventory digest"))?;
+    let expected_projection = Digest256::from_hex(proof.native_inventory_root())
+        .map_err(|_| crate::DurableError::Invalid("compiled addressed inventory digest"))?;
     if lease.head_sequence() != generation.commit_seq()
         || lease.source_generation() != generation.commit_seq()
         || lease.audit_generation() != generation.audit_generation()

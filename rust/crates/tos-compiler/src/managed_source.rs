@@ -333,6 +333,10 @@ pub trait ManagedProducerProof: sealed::Proof + Clone + std::fmt::Debug + Partia
     fn current_root(&self) -> &str;
     fn through_commit_seq(&self) -> u64;
     fn inventory_projection(&self) -> &str;
+    /// Commitment stored by the selected native inventory: the V1 catalogue
+    /// transcript or the V2 addressed inventory tree. This describes the
+    /// immutable selection; a live owner lease still establishes currentness.
+    fn native_inventory_root(&self) -> &str;
     fn initial_export(&self) -> (&str, &str, u64);
     fn delta(&self) -> Option<&ManagedSourceDeltaV1>;
     fn same_immutable_context(&self, other: &Self) -> bool;
@@ -490,6 +494,9 @@ impl ManagedProducerProof for ManagedSourceProofV1 {
     fn inventory_projection(&self) -> &str {
         &self.generation.inventory_projection_sha256
     }
+    fn native_inventory_root(&self) -> &str {
+        &self.generation.inventory_projection_sha256
+    }
     fn initial_export(&self) -> (&str, &str, u64) {
         (
             &self.initial_export_source_revision,
@@ -539,6 +546,9 @@ impl ManagedProducerProof for ManagedSourceProofV2 {
     }
     fn inventory_projection(&self) -> &str {
         &self.generation.inventory_projection_sha256
+    }
+    fn native_inventory_root(&self) -> &str {
+        &self.generation.addressed_inventory_root_sha256
     }
     fn initial_export(&self) -> (&str, &str, u64) {
         (
@@ -614,6 +624,13 @@ mod versioned_tests {
             "2".repeat(64).into(),
         );
         let after: ManagedSourceProofV2 = serde_json::from_value(addressed.clone()).unwrap();
+        assert_eq!(
+            before.native_inventory_root(),
+            before.inventory_projection()
+        );
+        assert_eq!(after.inventory_projection(), before.inventory_projection());
+        assert_eq!(after.native_inventory_root(), "2".repeat(64));
+        assert_ne!(after.native_inventory_root(), after.inventory_projection());
         assert!(serde_json::from_value::<ManagedSourceProofV1>(addressed).is_err());
         assert!(serde_json::from_value::<ManagedSourceProofV2>(old.clone()).is_err());
         assert_eq!(serde_json::to_value(&before).unwrap(), old);
