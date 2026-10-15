@@ -506,6 +506,14 @@ pub(crate) struct Contracts {
     claims: BTreeMap<String, Profile>,
 }
 
+impl Contracts {
+    pub(crate) fn entity_registry_value(&self) -> Result<&Value> {
+        self.values.get(ENTITY).ok_or(Error::Invalid(
+            "metadata version sealed entity registry absent",
+        ))
+    }
+}
+
 #[derive(Debug)]
 pub struct SourceCatalogReceipt<B = crate::SourceBinding> {
     pub record_count: u64,
@@ -2203,6 +2211,7 @@ fn entry_record(
                 }
                 crate::source_bibliographic_native_text::resolve_native_text_binding(
                     stage,
+                    c,
                     &v["native_text_binding"],
                     validator,
                     l,

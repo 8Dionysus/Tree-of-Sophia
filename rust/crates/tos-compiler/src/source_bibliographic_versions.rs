@@ -535,6 +535,8 @@ pub(crate) struct Versions<'a, 'b> {
     // One exact schema closure for this sealed catalog operation. Source reads
     // and version checks remain per record; the immutable schemas are shared.
     contracts: std::rc::Rc<catalog::Contracts>,
+    // Raw and canonical byte envelope of the once-verified immutable registry.
+    entity_registry_bytes: usize,
     legacy_catalog_locations: BTreeMap<(String, Option<String>), LegacyCatalogLocations>,
     legacy_catalog_location_bytes: u64,
     catalog_epoch: Option<(
@@ -794,6 +796,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             contracts: std::rc::Rc::new(catalog::prepare_catalog_contracts(
                 stage, validator, l.catalog,
             )?),
+            entity_registry_bytes: 0,
             legacy_catalog_locations: BTreeMap::new(),
             legacy_catalog_location_bytes: 0,
             catalog_epoch: None,
@@ -843,10 +846,23 @@ impl<'a, 'b> Versions<'a, 'b> {
         // The read cache starts empty: binding staged bytes reserves no second
         // copy and does not claim the selected source is publicly admissible.
         result.bytes = 0;
+        result.entity_registry_bytes =
+            verify_entities(stage, result.contracts.entity_registry_value()?, l)?;
         Ok(result)
     }
     pub(crate) fn contracts(&self) -> std::rc::Rc<catalog::Contracts> {
         self.contracts.clone()
+    }
+    fn verify_entities(&self, entities: &Value, l: BibliographicLimits) -> Result<()> {
+        if std::time::Instant::now() >= l.deadline {
+            return Err(Error::Budget("bibliographic entity registry deadline"));
+        }
+        verify_bound_entities(
+            self.contracts.entity_registry_value()?,
+            entities,
+            self.entity_registry_bytes,
+            l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes),
+        )
     }
     pub(crate) fn binding(&self) -> Value {
         self.input.binding()
@@ -1075,7 +1091,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         entities: &Value,
         l: BibliographicLimits,
     ) -> Result<bool> {
-        verify_entities(stage, entities, l)?;
+        self.verify_entities(entities, l)?;
         let row = catalog::catalog_row(stage, "records", id, l.catalog)?
             .ok_or(Error::Invalid("metadata supports catalog identity absent"))?;
         let entry = &row["entry"];
@@ -1202,7 +1218,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         entities: &Value,
         l: BibliographicLimits,
     ) -> Result<Version> {
-        verify_entities(stage, entities, l)?;
+        self.verify_entities(entities, l)?;
         exact_ref(exact, false)?;
         let id = text(exact, "id")?;
         let row = catalog::catalog_row(stage, "records", id, l.catalog)?.ok_or(Error::Invalid(
@@ -4148,7 +4164,7 @@ fn verify_entities(
     stage: &KnowledgeStage<'_>,
     entities: &Value,
     l: BibliographicLimits,
-) -> Result<()> {
+) -> Result<usize> {
     let registry = stage
         .raw_by_id(
             catalog::CATALOG_SOURCE,
@@ -4158,11 +4174,22 @@ fn verify_entities(
         .ok_or(Error::Invalid(
             "metadata version sealed entity registry absent",
         ))?;
-    if owned(
-        &registry.payload,
-        l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes),
-    )? != *entities
-    {
+    let cap = l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes);
+    let checked = owned(&registry.payload, cap)?;
+    let bytes = registry.payload.len().max(encode(&checked, cap)?.len());
+    verify_bound_entities(&checked, entities, bytes, cap)?;
+    Ok(bytes)
+}
+fn verify_bound_entities(
+    selected: &Value,
+    supplied: &Value,
+    selected_bytes: usize,
+    max_bytes: usize,
+) -> Result<()> {
+    if selected_bytes > max_bytes {
+        return Err(Error::Budget("metadata version entity registry bytes"));
+    }
+    if selected != supplied {
         return Err(Error::Invalid(
             "metadata version supplied entity registry differs from sealed source",
         ));
@@ -5363,6 +5390,24 @@ fn public_form_lock(name: &str) -> bool {
 #[cfg(test)]
 mod oracle {
     use super::*;
+
+    #[test]
+    fn sealed_entity_registry_reuse_preserves_value_and_byte_binding() {
+        let raw = br#"{ "types": [{"type_id":"tos.entity.test","rank":1.0}], "extra":10000000000000000001 }"#;
+        let selected = owned(raw, 1024).unwrap();
+        let required = raw.len().max(encode(&selected, 1024).unwrap().len());
+        for _ in 0..2 {
+            assert!(verify_bound_entities(&selected, &selected, required, required).is_ok());
+        }
+        assert!(verify_bound_entities(&selected, &selected, required, required - 1).is_err());
+        let mut changed = selected.clone();
+        changed["types"][0]["type_id"] = json!("tos.entity.changed");
+        assert!(verify_bound_entities(&selected, &changed, required, 1024).is_err());
+        changed = selected.clone();
+        changed["extra"] = json!(10000000000000000002u64);
+        assert!(verify_bound_entities(&selected, &changed, required, 1024).is_err());
+        assert!(owned(br#"{"types":[],"types":[]}"#, 1024).is_err());
+    }
 
     #[test]
     fn legacy_catalog_locations_preserve_exact_family_lines_digest_and_bound() {

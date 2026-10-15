@@ -14,6 +14,7 @@ use tos_foundation::Digest256;
 
 struct Resolver<'a, 'b, 'c> {
     stage: &'a KnowledgeStage<'b>,
+    contracts: &'a catalog::Contracts,
     validator: &'a SourceCatalogValidator<'c>,
     limits: SourceCatalogLimits,
     files: BTreeMap<String, Vec<u8>>,
@@ -96,16 +97,21 @@ impl Resolver<'_, '_, '_> {
     }
     fn record(&mut self, reference: &str, expected: Option<&str>, schema: &str) -> Result<Value> {
         let raw = self.read(reference, expected, false)?;
-        catalog::check_catalog_schema(self.stage, self.validator, self.limits, schema, "", &raw)?;
+        catalog::check_catalog_schema_with_contracts(
+            self.contracts,
+            self.validator,
+            schema,
+            "",
+            &raw,
+        )?;
         Ok(SourceRow::parse(&raw, self.limits.max_row_bytes)?
             .value()
             .clone())
     }
     fn schema(&self, value: &Value, schema: &str) -> Result<()> {
-        catalog::check_catalog_schema(
-            self.stage,
+        catalog::check_catalog_schema_with_contracts(
+            self.contracts,
             self.validator,
-            self.limits,
             schema,
             "",
             &encode(value, self.limits.max_row_bytes)?,
@@ -646,12 +652,14 @@ impl Resolver<'_, '_, '_> {
 
 pub(crate) fn resolve_native_text_binding(
     stage: &KnowledgeStage<'_>,
+    contracts: &catalog::Contracts,
     binding: &Value,
     validator: &SourceCatalogValidator<'_>,
     limits: SourceCatalogLimits,
 ) -> Result<()> {
     Resolver {
         stage,
+        contracts,
         validator,
         limits,
         files: BTreeMap::new(),

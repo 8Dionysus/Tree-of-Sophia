@@ -283,42 +283,11 @@ pub trait BibliographicForms {
         ))
     }
 }
-pub(crate) fn forms(
-    stage: &KnowledgeStage<'_>,
-    reference: &str,
-    source: &Value,
-    validator: &SourceCatalogValidator<'_>,
-    materializer: &mut dyn BibliographicForms,
-    l: BibliographicLimits,
-) -> Result<Option<(String, Value)>> {
-    forms_inner(stage, reference, source, None, validator, materializer, l)
-}
-
-fn forms_with_contracts(
+pub(crate) fn forms_with_contracts(
     stage: &KnowledgeStage<'_>,
     reference: &str,
     source: &Value,
     contracts: &catalog::Contracts,
-    validator: &SourceCatalogValidator<'_>,
-    materializer: &mut dyn BibliographicForms,
-    l: BibliographicLimits,
-) -> Result<Option<(String, Value)>> {
-    forms_inner(
-        stage,
-        reference,
-        source,
-        Some(contracts),
-        validator,
-        materializer,
-        l,
-    )
-}
-
-fn forms_inner(
-    stage: &KnowledgeStage<'_>,
-    reference: &str,
-    source: &Value,
-    contracts: Option<&catalog::Contracts>,
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
@@ -329,24 +298,13 @@ fn forms_inner(
     if raw.len() > 2_097_152 {
         return Err(Error::Budget("bibliographic HumanForm set bytes"));
     }
-    if let Some(contracts) = contracts {
-        catalog::check_catalog_schema_with_contracts(
-            contracts,
-            validator,
-            "ToS/contracts/human-form-set.schema.json",
-            "",
-            &raw,
-        )?;
-    } else {
-        catalog::check_catalog_schema(
-            stage,
-            validator,
-            l.catalog,
-            "ToS/contracts/human-form-set.schema.json",
-            "",
-            &raw,
-        )?;
-    }
+    catalog::check_catalog_schema_with_contracts(
+        contracts,
+        validator,
+        "ToS/contracts/human-form-set.schema.json",
+        "",
+        &raw,
+    )?;
     materialize_checked_form_set(&raw, reference, source, materializer, l)
 }
 /// The same form binding/materialization law after the owner schema check.
@@ -1752,7 +1710,13 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
         // The selected catalog closure is immutable for this sealed render.
         // Load, digest-verify, bind and validate it once, then reuse this exact
         // context for every emitted node/edge/trace schema check below.
-        let contracts = catalog::prepare_catalog_contracts(stage, validator, l.catalog)?;
+        let contracts = if let Some(versions) = &versions {
+            versions.contracts()
+        } else {
+            std::rc::Rc::new(catalog::prepare_catalog_contracts(
+                stage, validator, l.catalog,
+            )?)
+        };
         let entities = json_file(stage, ENTITY, l)?;
         let registry = json_file(stage, RELATION, l)?;
         // The selected corpus retains its exact projection contract. Older

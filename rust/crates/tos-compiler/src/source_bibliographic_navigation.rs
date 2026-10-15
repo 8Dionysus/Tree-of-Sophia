@@ -615,7 +615,9 @@ pub(crate) fn prepare_navigation_record_from_catalog(
             .strip_suffix(".json")
             .ok_or(Error::Invalid("navigation source metadata basename"))?
     );
-    let materialized = graph::forms(stage, &form_ref, &record, validator, forms, l)?;
+    let contracts = versions.contracts();
+    let materialized =
+        graph::forms_with_contracts(stage, &form_ref, &record, &contracts, validator, forms, l)?;
     let mut output = project_source_navigation_record(
         NavigationRecordInput {
             entry,
