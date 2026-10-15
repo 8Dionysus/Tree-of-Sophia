@@ -336,7 +336,7 @@ fn build_selected<P: ManagedProducerProof>(
         &collections,
         full_limits.seal.max_header_bytes,
     )?;
-    let mut stage = KnowledgeStage::create(
+    let mut stage = KnowledgeStage::create_managed_projection(
         candidate,
         stage_limits,
         ExactInputReceipt {

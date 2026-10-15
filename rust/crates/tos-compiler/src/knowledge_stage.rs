@@ -1492,6 +1492,31 @@ impl<'a> KnowledgeStage<'a> {
         )
     }
 
+    /// Managed native reconstruction has the same disposable raw-input phase
+    /// as a captured native snapshot. Keep those exact inputs and preparation
+    /// tables in the existing bounded TEMP pager, separately from the final
+    /// model file. This selects physical storage only: the actual managed
+    /// receipt, source owner, isolation and both byte ceilings are unchanged.
+    pub(crate) fn create_managed_projection(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        isolation: &'a dyn StageIsolation,
+    ) -> Result<Self> {
+        Self::create_inner(
+            candidate,
+            limits,
+            StageStorageProfile::NativeProjection,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
+            Some(isolation),
+            None,
+            None,
+            None,
+        )
+    }
+
     /// Stage complete authored input files independently of normalized row
     /// widths. The same projection owner, private quota, cumulative counters
     /// and absolute deadline still govern every input and output operation.
@@ -8277,116 +8302,132 @@ mod tests {
 
     #[test]
     fn native_raw_input_pager_keeps_exact_bytes_under_temp_ceiling() {
-        let owner = Owner {
-            checks: AtomicUsize::new(0),
-        };
-        let quota = TestQuota {
-            calls: AtomicUsize::new(0),
-            deny: false,
-        };
-        let candidate = stage_path("raw-input-geometry");
-        let payload = format!(
-            "{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n",
-            "z".repeat(1500)
-        )
-        .into_bytes();
-        let mut hash = Digest256Hasher::new();
-        for n in 0..96 {
-            let id = format!("fixture-{n:04}");
-            hash.update(&(id.len() as u64).to_be_bytes());
-            hash.update(id.as_bytes());
-            hash.update(Digest256::of_bytes(&payload).as_bytes());
-        }
-        let mut receipt = exact_receipt(&hash.finalize().to_hex());
-        receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
-        receipt.collections[0].expected_count = 96;
-        let mut selected = limits();
-        selected.sqlite.max_output_bytes = 1024 * 1024;
-        selected.max_temp_bytes = 256 * 1024;
-        selected.max_seek_bytes = 4096;
-        let mut stage = KnowledgeStage::create_captured_native_snapshot(
-            &candidate,
-            selected,
-            receipt,
-            &owner,
-            &quota,
-            Arc::new(AtomicU64::new(0)),
-            Arc::new(AtomicU64::new(0)),
-            Arc::new(AtomicBool::new(false)),
-            selected.sqlite.max_work_bytes,
-            Instant::now() + std::time::Duration::from_secs(60),
-        )
-        .unwrap();
-        for n in (0..96).rev() {
-            stage
-                .ingest_input(InputRow {
-                    source_graph: "fixture.graph",
-                    collection: "fixture/raw",
-                    id: &format!("fixture-{n:04}"),
-                    payload: &payload,
-                })
-                .unwrap();
-        }
-        let mut after = None;
-        for n in 0..96 {
-            let rows = stage
-                .scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1)
-                .unwrap();
-            assert_eq!(rows.rows.len(), 1);
-            assert_eq!(rows.rows[0].id, format!("fixture-{n:04}"));
-            assert_eq!(rows.rows[0].payload, payload);
-            assert_eq!(
-                rows.rows[0].payload_sha256,
-                Digest256::of_bytes(&payload).to_hex()
-            );
-            after = Some(rows.rows[0].id.clone());
-        }
-        assert!(
-            stage
-                .scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1)
-                .unwrap()
-                .rows
-                .is_empty()
-        );
-        assert_eq!(stage.verified_input_rows().unwrap(), 96);
-        let size: u64 = stage
-            .db()
-            .query_row("PRAGMA temp.page_size", [], |r| r.get(0))
-            .unwrap();
-        let pages: u64 = stage
-            .db()
-            .query_row("PRAGMA temp.page_count", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(size, 16384);
-        assert!(size * pages <= selected.max_temp_bytes);
-        // The same source bytes and composite key exceed this ceiling in the
-        // previous 4-KiB index-btree layout; no payload codec is involved.
-        let old = Connection::open_in_memory().unwrap();
-        old.execute_batch("PRAGMA page_size=4096; CREATE TABLE raw_records(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID").unwrap();
-        for n in (0..96).rev() {
-            old.execute(
-                "INSERT INTO raw_records VALUES(?1,?2,?3,?4,?5,?6)",
-                params![
-                    "fixture.graph",
-                    "fixture/raw",
-                    format!("fixture-{n:04}"),
-                    payload.len(),
-                    Digest256::of_bytes(&payload).as_bytes().as_slice(),
-                    &payload
-                ],
+        for managed in [false, true] {
+            let owner = Owner {
+                checks: AtomicUsize::new(0),
+            };
+            let quota = TestQuota {
+                calls: AtomicUsize::new(0),
+                deny: false,
+            };
+            let candidate = stage_path("raw-input-geometry");
+            let payload = format!(
+                "{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n",
+                "z".repeat(1500)
             )
+            .into_bytes();
+            let mut hash = Digest256Hasher::new();
+            for n in 0..96 {
+                let id = format!("fixture-{n:04}");
+                hash.update(&(id.len() as u64).to_be_bytes());
+                hash.update(id.as_bytes());
+                hash.update(Digest256::of_bytes(&payload).as_bytes());
+            }
+            let mut receipt = exact_receipt(&hash.finalize().to_hex());
+            receipt.binding.owner_profile = if managed {
+                "tos-managed-source-navigation-v2"
+            } else {
+                "tos-native-projection-snapshot-v1"
+            }.into();
+            receipt.collections[0].expected_count = 96;
+            let mut selected = limits();
+            selected.sqlite.max_output_bytes = 1024 * 1024;
+            selected.max_temp_bytes = 256 * 1024;
+            selected.max_seek_bytes = 4096;
+            let mut stage = if managed {
+                KnowledgeStage::create_managed_projection(
+                    &candidate, selected, receipt, &owner, &quota,
+                )
+            } else {
+                KnowledgeStage::create_captured_native_snapshot(
+                &candidate,
+                selected,
+                receipt,
+                &owner,
+                &quota,
+                Arc::new(AtomicU64::new(0)),
+                Arc::new(AtomicU64::new(0)),
+                Arc::new(AtomicBool::new(false)),
+                selected.sqlite.max_work_bytes,
+                Instant::now() + std::time::Duration::from_secs(60),
+                )
+            }
             .unwrap();
+            assert_eq!(stage.db().query_row(
+                "SELECT count(*) FROM main.sqlite_schema WHERE name='raw_records'",
+                [], |row| row.get::<_, u64>(0),
+            ).unwrap(), 0);
+            for n in (0..96).rev() {
+                stage
+                    .ingest_input(InputRow {
+                        source_graph: "fixture.graph",
+                        collection: "fixture/raw",
+                        id: &format!("fixture-{n:04}"),
+                        payload: &payload,
+                    })
+                    .unwrap();
+            }
+            let mut after = None;
+            for n in 0..96 {
+                let rows = stage
+                    .scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1)
+                    .unwrap();
+                assert_eq!(rows.rows.len(), 1);
+                assert_eq!(rows.rows[0].id, format!("fixture-{n:04}"));
+                assert_eq!(rows.rows[0].payload, payload);
+                assert_eq!(
+                    rows.rows[0].payload_sha256,
+                    Digest256::of_bytes(&payload).to_hex()
+                );
+                after = Some(rows.rows[0].id.clone());
+            }
+            assert!(
+                stage
+                    .scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1)
+                    .unwrap()
+                    .rows
+                    .is_empty()
+            );
+            assert_eq!(stage.verified_input_rows().unwrap(), 96);
+            let size: u64 = stage
+                .db()
+                .query_row("PRAGMA temp.page_size", [], |r| r.get(0))
+                .unwrap();
+            let pages: u64 = stage
+                .db()
+                .query_row("PRAGMA temp.page_count", [], |r| r.get(0))
+                .unwrap();
+            assert_eq!(size, 16384);
+            assert!(size * pages <= selected.max_temp_bytes);
+            // The same source bytes and composite key exceed this ceiling in the
+            // previous 4-KiB index-btree layout; no payload codec is involved.
+            let old = Connection::open_in_memory().unwrap();
+            old.execute_batch("PRAGMA page_size=4096; CREATE TABLE raw_records(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID").unwrap();
+            for n in (0..96).rev() {
+                old.execute(
+                    "INSERT INTO raw_records VALUES(?1,?2,?3,?4,?5,?6)",
+                    params![
+                        "fixture.graph",
+                        "fixture/raw",
+                        format!("fixture-{n:04}"),
+                        payload.len(),
+                        Digest256::of_bytes(&payload).as_bytes().as_slice(),
+                        &payload
+                    ],
+                )
+                .unwrap();
+            }
+            let old_pages: u64 = old
+                .query_row("PRAGMA page_count", [], |r| r.get(0))
+                .unwrap();
+            assert!(old_pages * 4096 > selected.max_temp_bytes);
+            drop(old);
+            stage.close_inputs_for_full_components().unwrap();
+            assert_eq!(stage.closed_input_rows, Some(96));
+            drop(stage);
+            assert!(!candidate.exists());
+            fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
         }
-        let old_pages: u64 = old
-            .query_row("PRAGMA page_count", [], |r| r.get(0))
-            .unwrap();
-        assert!(old_pages * 4096 > selected.max_temp_bytes);
-        drop(old);
-        stage.close_inputs_for_full_components().unwrap();
-        assert_eq!(stage.closed_input_rows, Some(96));
-        drop(stage);
-        assert!(!candidate.exists());
-        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
     }
 
     #[test]
