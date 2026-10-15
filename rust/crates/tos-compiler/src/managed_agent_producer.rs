@@ -420,30 +420,33 @@ fn build_selected<P: ManagedProducerProof>(
         serde_json::to_value(proof.basis()).map_err(|e| Error::Source(e.to_string()))?,
     );
     let source_binding = stage.exact_receipt()?.binding.clone();
-    let compile_components = if source_binding.reader_abi
-        == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
-    {
-        crate::knowledge_full::compile_managed_navigation_components
-    } else {
-        |stage, header, registry, entities, relations, lenses, vocabulary, descriptor, limits| {
+    let full =
+        if source_binding.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1 {
+            crate::knowledge_full::compile_managed_navigation_components(
+                &mut stage,
+                &header,
+                &registry,
+                entity_raw,
+                relation_raw,
+                saved_lenses,
+                &vocabulary,
+                descriptor_raw,
+                full_limits,
+            )?
+        } else {
             crate::compile_full_knowledge_components(
-                stage, header, registry, entities, relations, lenses, vocabulary, descriptor,
-                limits,
-            )
-            .map(Into::into)
-        }
-    };
-    let full = compile_components(
-        &mut stage,
-        &header,
-        &registry,
-        entity_raw,
-        relation_raw,
-        saved_lenses,
-        &vocabulary,
-        descriptor_raw,
-        full_limits,
-    )?;
+                &mut stage,
+                &header,
+                &registry,
+                entity_raw,
+                relation_raw,
+                saved_lenses,
+                &vocabulary,
+                descriptor_raw,
+                full_limits,
+            )?
+            .into()
+        };
     let scopes = stage.with_connection(WritePhase::Finalize, |db| {
         let mut rows = db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
         let scopes = rows.query_map([], |r| Ok(ExpectedSourceScope { source_graph:r.get(0)?, input_role:r.get(1)?,
