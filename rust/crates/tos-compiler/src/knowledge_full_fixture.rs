@@ -846,7 +846,7 @@ fn finish_fixture_with_limits(
         catalog_packet_sha256: full.catalog.catalog_packet_sha256,
         catalog_index_root_sha256: full.catalog.catalog_index_root_sha256,
         source_scope_root_sha256: full.source_scope.source_scope_root_sha256,
-        search_index_root_sha256: full.search.search_index_root_sha256,
+        search_index_root_sha256: Some(full.search.search_index_root_sha256),
         node_count: output.node_rows,
         relation_count: output.relation_rows,
         index_generation: source_binding.index_generation,

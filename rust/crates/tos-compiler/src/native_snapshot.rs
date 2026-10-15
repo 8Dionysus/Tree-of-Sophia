@@ -4959,7 +4959,7 @@ fn build_native_snapshot_from_capture_inner(
         catalog_packet_sha256: full.catalog.catalog_packet_sha256.clone(),
         catalog_index_root_sha256: full.catalog.catalog_index_root_sha256.clone(),
         source_scope_root_sha256: full.source_scope.source_scope_root_sha256.clone(),
-        search_index_root_sha256: full.search.search_index_root_sha256.clone(),
+        search_index_root_sha256: Some(full.search.search_index_root_sha256.clone()),
         node_count: output.node_rows,
         relation_count: output.relation_rows,
         index_generation: binding.index_generation,

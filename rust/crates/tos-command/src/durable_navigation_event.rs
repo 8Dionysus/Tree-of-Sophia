@@ -2794,7 +2794,7 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
         .map_err(|_| DurableError::Conflict("navigation managed source proof is invalid"))?;
     let expectation = selected.selection_expectation();
     if selected.selection_profile() != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
-        || expectation.model_abi != tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI
+        || !tos_foundation::is_managed_knowledge_model_abi(&expectation.model_abi)
     {
         return Err(DurableError::Conflict(
             "navigation selected model profile is unsupported",
@@ -9623,7 +9623,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
         || owner_binding.selected_software_profile_id != profile.id
         || owner_binding.selected_software_profile_version != profile.version
         || owner_binding.selected_software_contract_digest != profile_digest
-        || owner_binding.selected_model_abi != tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI
+        || !tos_foundation::is_managed_knowledge_model_abi(&owner_binding.selected_model_abi)
         || owner_binding.selected_selection_profile
             != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
         || bootstrap_source_revision != owner_binding.selected_membership_root

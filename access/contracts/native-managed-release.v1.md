@@ -177,3 +177,23 @@ wall-time owner; a completed scan must pass the same original deadline before
 publication. These structural counters do not certify allocator RSS or host
 memory. Publication, durable readback and subsequent installed cold reopen are
 separate evidence claims.
+
+### PostgreSQL navigation anchor
+
+The managed source-navigation preparation route uses
+`tos_knowledge_managed_navigation_v1`, with the existing managed producer
+companion schema and source proof. Its selected component set is normalized
+graph, catalog, source scope and Navigation Original, including retained rights
+witnesses. `search_index_root_sha256` is absent from its seal, expectation and
+SQLite metadata; the three `search_*` tables and `search_document_filter` index
+are absent. Cold admission checks that physical closure against the explicit ABI.
+Older postings ABIs require their complete search root and tables, and continue
+to decode the same string-valued JSON field. Older consumers reject the new ABI.
+
+This anchor supports PostgreSQL source-navigation publication and exact retained
+Original reads. It does not support offline indexed search or claim a complete
+portable Site profile. PostgreSQL text search has its own model and cursor.
+Initial native preparation selects this component set explicitly; complete
+portable builders continue to produce their full search component. Live source
+and policy holds remain necessary for publication and disclosure with either
+managed ABI.

@@ -73,7 +73,7 @@ impl Binding {
     fn supports_source_navigation_profile(&self) -> bool {
         self.selection_profile == SOURCE_NAVIGATION_SELECTION_PROFILE
             && (self.model_abi == SOURCE_NAVIGATION_MODEL_ABI
-                || (self.model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1
+                || (tos_foundation::is_managed_knowledge_model_abi(&self.model_abi)
                     && self.source_navigation_proof_v1.is_some()))
     }
 

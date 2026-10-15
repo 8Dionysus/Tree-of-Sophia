@@ -71,7 +71,10 @@ pub struct KnowledgeSealReceipt {
     pub catalog_packet_sha256: String,
     pub catalog_index_root_sha256: String,
     pub source_scope_root_sha256: String,
-    pub search_index_root_sha256: String,
+    /// Absent only for the explicit native navigation ABI, which does not
+    /// advertise an offline search capability.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_index_root_sha256: Option<String>,
 }
 
 pub(crate) fn canonical(value: &Value, cap: usize) -> Result<Vec<u8>> {
@@ -237,6 +240,28 @@ pub fn seal_knowledge_model(
     search: &SearchIndexReceipt,
     limits: SealLimits,
 ) -> Result<KnowledgeSealReceipt> {
+    seal_selected_knowledge_model(
+        stage,
+        header,
+        vocabulary,
+        registry,
+        scope,
+        catalog,
+        Some(search),
+        limits,
+    )
+}
+
+pub(crate) fn seal_selected_knowledge_model(
+    stage: &mut KnowledgeStage<'_>,
+    header: &Value,
+    vocabulary: &QueryVocabulary,
+    registry: &KnowledgeRegistry,
+    scope: &ScopeReceipt,
+    catalog: &CatalogIndexReceipt,
+    search: Option<&SearchIndexReceipt>,
+    limits: SealLimits,
+) -> Result<KnowledgeSealReceipt> {
     if stage.public_build() {
         return Err(Error::Invalid("public D1 stage cannot seal selected model"));
     }
@@ -256,7 +281,7 @@ fn seal_inner(
     registry: &KnowledgeRegistry,
     scope: &ScopeReceipt,
     catalog: &CatalogIndexReceipt,
-    search: &SearchIndexReceipt,
+    search: Option<&SearchIndexReceipt>,
     limits: SealLimits,
 ) -> Result<KnowledgeSealReceipt> {
     if limits.max_header_bytes == 0 || limits.max_header_bytes > MAX_GRAPH_HEADER_BYTES {
@@ -267,15 +292,16 @@ fn seal_inner(
         || catalog.descriptor_sha256 != vocabulary.descriptor_sha256
         || scope.source_count != vocabulary.sources.len()
         || catalog.source_count != scope.source_count as u64
-        || search.profile != crate::knowledge_search::SEARCH_PROFILE
+        || search.is_some_and(|s| s.profile != crate::knowledge_search::SEARCH_PROFILE)
     {
         return Err(Error::Invalid("knowledge descriptor/registry binding"));
     }
     let roots = stage.core_roots()?;
     if scope.node_count != roots.nodes
         || scope.relation_count != roots.relations
-        || search.node_documents != roots.nodes
-        || search.relation_documents != roots.relations
+        || search.is_some_and(|s| {
+            s.node_documents != roots.nodes || s.relation_documents != roots.relations
+        })
     {
         return Err(Error::Invalid("knowledge component row counts"));
     }
@@ -308,12 +334,15 @@ fn seal_inner(
         &scope.source_scope_root_sha256,
         &catalog.catalog_packet_sha256,
         &catalog.catalog_index_root_sha256,
-        &search.search_index_root_sha256,
         &vocabulary.descriptor_sha256,
         &registry.entity_sha256,
         &registry.relation_sha256,
     ] {
         Digest256::from_hex(digest).map_err(|_| Error::Invalid("knowledge component root"))?;
+    }
+    if let Some(search) = search {
+        Digest256::from_hex(&search.search_index_root_sha256)
+            .map_err(|_| Error::Invalid("knowledge search component root"))?;
     }
     let graph_root_sha256 = graph_root(
         &header_sha,
@@ -347,7 +376,18 @@ fn seal_inner(
     } else {
         None
     };
-    let model_abi = if stage.payload_layout().uses_carriers() {
+    if search.is_none()
+        && (managed_source_root_sha256.is_none()
+            || stage.payload_layout().uses_carriers()
+            || binding.reader_abi != tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1)
+    {
+        return Err(Error::Invalid(
+            "search omission requires native managed navigation profile",
+        ));
+    }
+    let model_abi = if search.is_none() {
+        tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+    } else if stage.payload_layout().uses_carriers() {
         if stage.owned_creation_state().is_none()
             || managed_source_root_sha256.is_some()
             || navigation.is_none()
@@ -416,10 +456,6 @@ fn seal_inner(
             "source_scope_root_sha256",
             scope.source_scope_root_sha256.clone(),
         ),
-        (
-            "search_index_root_sha256",
-            search.search_index_root_sha256.clone(),
-        ),
         ("index_generation", binding.index_generation),
         ("route_map_version", binding.route_map_version),
         ("reader_abi", binding.reader_abi),
@@ -428,6 +464,12 @@ fn seal_inner(
         ("relation_count", roots.relations.to_string()),
         ("complete", "true".to_owned()),
     ];
+    if let Some(search) = search {
+        metadata.push((
+            "search_index_root_sha256",
+            search.search_index_root_sha256.clone(),
+        ));
+    }
     if let Some(root) = &managed_source_root_sha256 {
         metadata.push(("managed_source_root_sha256", root.clone()));
     }
@@ -508,7 +550,7 @@ fn seal_inner(
         catalog_packet_sha256: catalog.catalog_packet_sha256.clone(),
         catalog_index_root_sha256: catalog.catalog_index_root_sha256.clone(),
         source_scope_root_sha256: scope.source_scope_root_sha256.clone(),
-        search_index_root_sha256: search.search_index_root_sha256.clone(),
+        search_index_root_sha256: search.map(|s| s.search_index_root_sha256.clone()),
     })
 }
 

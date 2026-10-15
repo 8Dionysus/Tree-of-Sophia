@@ -16,6 +16,18 @@ pub const KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4: &str =
     "tos_knowledge_read_model_v5_postings_v2_carrier_once_v4";
 pub const KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1: &str = "tos_knowledge_read_model_v6_postings_v1";
 
+/// Native PostgreSQL bootstrap anchor. It retains authenticated graph,
+/// catalog and Original carriers; it has no offline search tables or root.
+/// Search is a separately versioned PostgreSQL projection, never an empty index.
+pub const KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1: &str = "tos_knowledge_managed_navigation_v1";
+
+pub fn is_managed_knowledge_model_abi(abi: &str) -> bool {
+    matches!(
+        abi,
+        KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1 | KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+    )
+}
+
 /// Only the current compressed-posting selected format. Distinct versions
 /// still require their own component/source-basis checks at cold admission.
 pub const KNOWLEDGE_POSTINGS_MODEL_ABIS: [&str; 9] = [

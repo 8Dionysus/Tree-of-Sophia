@@ -439,7 +439,12 @@ fn bind_knowledge_from_parts<'a>(
         catalog_packet_sha256: digest(&selected.catalog_packet_sha256)?,
         catalog_index_root_sha256: digest(&selected.catalog_index_root_sha256)?,
         source_scope_root_sha256: digest(&selected.source_scope_root_sha256)?,
-        search_index_root_sha256: digest(&selected.search_index_root_sha256)?,
+        search_index_root_sha256: digest(
+            selected
+                .search_index_root_sha256
+                .as_deref()
+                .ok_or_else(|| stale("selected model has no offline search index"))?,
+        )?,
         index_root_sha256: digest(&selected.model_sha256)?,
         index_generation: selected.index_generation.clone(),
         route_map_version: selected.route_map_version.clone(),

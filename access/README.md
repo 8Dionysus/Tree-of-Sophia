@@ -1250,6 +1250,18 @@ projection and issue no ToS admission, QRY disclosure, or canon grant. If a
 receipt write is lost after publication, repeating the exact bootstrap request
 is safe and reports `replayed: true`.
 
+The initial native compiler selects `tos_knowledge_managed_navigation_v1`.
+This PostgreSQL bootstrap anchor retains the complete selected normalized graph,
+source scope, catalog and authenticated Navigation Original carriers. It omits
+offline search tables and the `search_index_root_sha256` field in both seal and
+selection expectation. Cold admission requires that exact absence under this
+ABI; a missing index in an older postings ABI remains corruption. Native text
+search uses the independently maintained PostgreSQL text projection and its
+published cursor. Offline indexed search is unavailable on this anchor.
+Portable full-model builders retain their declared search indexes and ABIs.
+Existing V6 anchors remain readable; preparing a new native anchor is an explicit
+derived rebuild, preserving source versions, command history and current rights.
+
 Initial and event-local SourceNavigation projections use the same reified
 renderer for `source-claims.jsonl` and bind maker evidence to the exact Claim source.
 Their `maker:claim:sha256:` node IDs identify each Claim's authorship declaration;

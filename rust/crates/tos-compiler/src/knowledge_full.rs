@@ -9,7 +9,7 @@ use crate::{
         CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog, materialize_catalog_packet,
     },
     knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope},
-    knowledge_seal::{KnowledgeSealReceipt, SealLimits, seal_knowledge_model},
+    knowledge_seal::{KnowledgeSealReceipt, SealLimits},
     knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index},
     knowledge_stage::{KnowledgeStage, WritePhase},
     managed_source::{KnowledgeSourceBasis, ManagedProducerProof, ManagedSourceProofV2},
@@ -187,6 +187,24 @@ pub struct FullKnowledgeReceipt {
     pub seal: KnowledgeSealReceipt,
 }
 
+pub(crate) struct SelectedKnowledgeComponents {
+    pub source_scope: ScopeReceipt,
+    pub catalog: CatalogIndexReceipt,
+    pub search: Option<SearchIndexReceipt>,
+    pub seal: KnowledgeSealReceipt,
+}
+
+impl From<FullKnowledgeReceipt> for SelectedKnowledgeComponents {
+    fn from(full: FullKnowledgeReceipt) -> Self {
+        Self {
+            source_scope: full.source_scope,
+            catalog: full.catalog,
+            search: Some(full.search),
+            seal: full.seal,
+        }
+    }
+}
+
 pub(crate) fn registry_value(
     raw: &[u8],
     expected_sha256: &str,
@@ -292,6 +310,53 @@ pub(crate) fn compile_full_knowledge_components_prepared(
         descriptor_bytes,
         limits,
         prepared,
+        true,
+    )
+    .and_then(|parts| {
+        Ok(FullKnowledgeReceipt {
+            source_scope: parts.source_scope,
+            catalog: parts.catalog,
+            search: parts
+                .search
+                .ok_or(Error::Invalid("full model search component absent"))?,
+            seal: parts.seal,
+        })
+    });
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+/// Initial native navigation anchor. Full portable producers never enter this
+/// route; the seal requires managed source proof and authentic Original rows.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn compile_managed_navigation_components(
+    stage: &mut KnowledgeStage<'_>,
+    graph_header: &Value,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    relation_registry_bytes: &[u8],
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    limits: FullKnowledgeLimits,
+) -> Result<SelectedKnowledgeComponents> {
+    if stage.public_build() || stage.payload_layout().uses_carriers() {
+        return Err(Error::Invalid("native navigation stage required"));
+    }
+    let result = compile_inner(
+        stage,
+        graph_header,
+        registry,
+        entity_registry_bytes,
+        relation_registry_bytes,
+        saved_lenses,
+        vocabulary,
+        descriptor_bytes,
+        limits,
+        None,
+        false,
     );
     if result.is_err() {
         stage.poison();
@@ -311,7 +376,8 @@ fn compile_inner(
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
     prepared: Option<crate::catalog::PreparedCatalog<'_, '_>>,
-) -> Result<FullKnowledgeReceipt> {
+    include_search: bool,
+) -> Result<SelectedKnowledgeComponents> {
     if let Some(creation) = stage.owned_creation_state() {
         vocabulary.verify_authored_bytes_with_owned_state(descriptor_bytes, creation)?;
     } else {
@@ -384,22 +450,26 @@ fn compile_inner(
             })?
         }
     };
-    let search = full_component_stage("search", creation, || {
-        build_search_index(stage, limits.search)
-    })?;
+    let search = if include_search {
+        Some(full_component_stage("search", creation, || {
+            build_search_index(stage, limits.search)
+        })?)
+    } else {
+        None
+    };
     let seal = full_component_stage("seal", creation, || {
-        seal_knowledge_model(
+        crate::knowledge_seal::seal_selected_knowledge_model(
             stage,
             graph_header,
             vocabulary,
             registry,
             &source_scope,
             &catalog,
-            &search,
+            search.as_ref(),
             limits.seal,
         )
     })?;
-    Ok(FullKnowledgeReceipt {
+    Ok(SelectedKnowledgeComponents {
         source_scope,
         catalog,
         search,

@@ -420,7 +420,20 @@ fn build_selected<P: ManagedProducerProof>(
         serde_json::to_value(proof.basis()).map_err(|e| Error::Source(e.to_string()))?,
     );
     let source_binding = stage.exact_receipt()?.binding.clone();
-    let full = crate::compile_full_knowledge_components(
+    let compile_components = if source_binding.reader_abi
+        == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1
+    {
+        crate::knowledge_full::compile_managed_navigation_components
+    } else {
+        |stage, header, registry, entities, relations, lenses, vocabulary, descriptor, limits| {
+            crate::compile_full_knowledge_components(
+                stage, header, registry, entities, relations, lenses, vocabulary, descriptor,
+                limits,
+            )
+            .map(Into::into)
+        }
+    };
+    let full = compile_components(
         &mut stage,
         &header,
         &registry,
@@ -467,7 +480,7 @@ fn build_selected<P: ManagedProducerProof>(
         catalog_packet_sha256: full.catalog.catalog_packet_sha256,
         catalog_index_root_sha256: full.catalog.catalog_index_root_sha256,
         source_scope_root_sha256: full.source_scope.source_scope_root_sha256,
-        search_index_root_sha256: full.search.search_index_root_sha256,
+        search_index_root_sha256: full.seal.search_index_root_sha256.clone(),
         node_count: output.node_rows,
         relation_count: output.relation_rows,
         index_generation: source_binding.index_generation,
@@ -668,7 +681,7 @@ pub fn managed_navigation_original_member_bytes(
     use crate::source_bibliographic_render::encode;
     limits.validate()?;
     parent.check_pin()?;
-    if parent.selection().model_abi != crate::KNOWLEDGE_MANAGED_MODEL_ABI {
+    if !tos_foundation::is_managed_knowledge_model_abi(&parent.selection().model_abi) {
         return Err(Error::ManagedSourceUnsupported(
             "managed original member model ABI",
         ));

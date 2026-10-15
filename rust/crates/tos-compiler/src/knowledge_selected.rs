@@ -71,7 +71,10 @@ pub struct KnowledgeSelectedExpectation {
     pub catalog_packet_sha256: String,
     pub catalog_index_root_sha256: String,
     pub source_scope_root_sha256: String,
-    pub search_index_root_sha256: String,
+    /// Absent only for the explicit native navigation ABI, which does not
+    /// advertise an offline search capability.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_index_root_sha256: Option<String>,
     pub node_count: u64,
     pub relation_count: u64,
     pub index_generation: String,
@@ -437,7 +440,11 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     /// the producer seal accepts only this compiled search profile. This is
     /// distinct from the authored query primitive profile in the descriptor.
     pub fn search_index_profile(&self) -> &'static str {
-        crate::knowledge_search::SEARCH_PROFILE
+        if self.selection.search_index_root_sha256.is_some() {
+            crate::knowledge_search::SEARCH_PROFILE
+        } else {
+            "unavailable-native-navigation-v1"
+        }
     }
     /// The exact revision in the canonical graph header, verified during
     /// cold admission against the selected graph root and file SHA.
@@ -528,7 +535,8 @@ pub(crate) fn validate(
     limits.validate()?;
     if expected.model_size_bytes == 0
         || expected.model_size_bytes > limits.max_file_bytes
-        || !tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&expected.model_abi.as_str())
+        || !(tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&expected.model_abi.as_str())
+            || expected.model_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1)
         || !expected.complete
         || expected.source_scopes.is_empty()
         || expected.source_scopes.len() > limits.max_sources
@@ -542,7 +550,13 @@ pub(crate) fn validate(
         &expected.corpus_original_root_sha256,
     ) {
         (KNOWLEDGE_MODEL_ABI, None, None, None) => (),
-        (crate::KNOWLEDGE_MANAGED_MODEL_ABI, Some(nav), None, None) => checked_digest(nav)?,
+        (
+            crate::KNOWLEDGE_MANAGED_MODEL_ABI
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1,
+            Some(nav),
+            None,
+            None,
+        ) => checked_digest(nav)?,
         (crate::KNOWLEDGE_NAVIGATION_MODEL_ABI, Some(nav), None, None) => checked_digest(nav)?,
         (crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, nav, Some(phi), None) => {
             checked_digest(phi)?;
@@ -582,8 +596,10 @@ pub(crate) fn validate(
         &expected.managed_source_root_sha256,
         expected.model_abi.as_str(),
     ) {
-        (Some(root), crate::KNOWLEDGE_MANAGED_MODEL_ABI) => checked_digest(root)?,
-        (None, abi) if abi != crate::KNOWLEDGE_MANAGED_MODEL_ABI => (),
+        (Some(root), abi) if tos_foundation::is_managed_knowledge_model_abi(abi) => {
+            checked_digest(root)?
+        }
+        (None, abi) if !tos_foundation::is_managed_knowledge_model_abi(abi) => (),
         _ => return Err(Error::Invalid("knowledge managed source expectation")),
     }
     for text in [
@@ -618,9 +634,22 @@ pub(crate) fn validate(
         &expected.catalog_packet_sha256,
         &expected.catalog_index_root_sha256,
         &expected.source_scope_root_sha256,
-        &expected.search_index_root_sha256,
     ] {
         checked_digest(digest)?;
+    }
+    match (
+        &expected.search_index_root_sha256,
+        expected.model_abi.as_str(),
+    ) {
+        (None, tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1)
+            if expected.reader_abi == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1 =>
+        {
+            ()
+        }
+        (Some(root), abi) if tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&abi) => {
+            checked_digest(root)?
+        }
+        _ => return Err(Error::Invalid("knowledge search capability and ABI differ")),
     }
     let mut previous: Option<&str> = None;
     let mut node_total = 0u64;
@@ -899,10 +928,6 @@ fn check_metadata(
             "source_scope_root_sha256",
             expected.source_scope_root_sha256.as_str(),
         ),
-        (
-            "search_index_root_sha256",
-            expected.search_index_root_sha256.as_str(),
-        ),
         ("index_generation", expected.index_generation.as_str()),
         ("route_map_version", expected.route_map_version.as_str()),
         ("reader_abi", expected.reader_abi.as_str()),
@@ -911,6 +936,25 @@ fn check_metadata(
     ] {
         if !metadata_matches(db, key, cap, value)? {
             return Err(Error::Invalid("knowledge metadata binding"));
+        }
+    }
+    match expected.search_index_root_sha256.as_deref() {
+        Some(root) => {
+            if !metadata_matches(db, "search_index_root_sha256", cap, root)? {
+                return Err(Error::Invalid("knowledge search metadata binding"));
+            }
+        }
+        None => {
+            let present: bool = db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM metadata WHERE key='search_index_root_sha256')",
+                [],
+                |r| r.get(0),
+            )?;
+            if present {
+                return Err(Error::Invalid(
+                    "native navigation has unexpected search root",
+                ));
+            }
         }
     }
     let managed: Option<String> = db.query_row(
@@ -1069,7 +1113,10 @@ pub(crate) fn check_native_metadata_with_owned_context(
         ),
         (
             "search_index_root_sha256",
-            expected.search_index_root_sha256.as_str(),
+            expected
+                .search_index_root_sha256
+                .as_deref()
+                .ok_or(Error::Invalid("native full model search root absent"))?,
         ),
         ("index_generation", expected.index_generation.as_str()),
         ("route_map_version", expected.route_map_version.as_str()),
@@ -1608,7 +1655,9 @@ fn open_selected_pinned_validated<'a>(
     verify_schema(&db)?;
     check_metadata(&db, &expected, limits.max_metadata_bytes)?;
     let (node_root, relation_root) = verify_core_and_scope(&db, &expected, limits, &mut work)?;
-    verify_search(&db, &expected, limits, &mut work)?;
+    if expected.search_index_root_sha256.is_some() {
+        verify_search(&db, &expected, limits, &mut work)?;
+    }
     let source_basis =
         verify_graph_root(&db, &expected, limits, &mut work, node_root, relation_root)?;
     verify_catalog(&db, &expected, limits, &mut work)?;
@@ -2305,7 +2354,12 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
     // The selected file contains only the read model. In particular, private
     // raw input and intermediate build tables must not survive publication.
     let optional = crate::knowledge_navigation_original::present(db)?;
-    let mut expected: Vec<_> = SELECTED_TABLES.iter().map(|(name, _)| *name).collect();
+    let navigation_only = native_navigation_schema(db)?;
+    let mut expected: Vec<_> = SELECTED_TABLES
+        .iter()
+        .filter(|(name, _)| !navigation_only || !name.starts_with("search_"))
+        .map(|(name, _)| *name)
+        .collect();
     if optional {
         expected.extend([
             crate::knowledge_navigation_original::META_TABLE,
@@ -2344,7 +2398,17 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
     Ok(())
 }
 
+/// Bounded explicit format switch used by finish and cold admission. Admission
+/// separately compares this metadata to the owner-selected ABI and file digest.
+pub(crate) fn native_navigation_schema(db: &Connection) -> Result<bool> {
+    let abi: Option<String> = db.query_row(
+        "SELECT CASE WHEN typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))<=128 THEN CAST(value AS TEXT) ELSE NULL END FROM metadata WHERE key='model_abi'",
+        [], |r| r.get(0)).optional()?.flatten();
+    Ok(abi.as_deref() == Some(tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1))
+}
+
 pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
+    let navigation_only = native_navigation_schema(db)?;
     verify_selected_table_allowlist(db)?;
     knowledge_stage::selected_table_closure(db)?;
     if crate::knowledge_navigation_original::present(db)? {
@@ -2357,6 +2421,9 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
         crate::knowledge_corpus_original::verify_ddl(db)?;
     }
     for (table, expected_ddl_sha256) in SELECTED_TABLES {
+        if navigation_only && table.starts_with("search_") {
+            continue;
+        }
         let ddl: Option<Vec<u8>> = db
             .query_row(
                 "SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=65536
@@ -2373,6 +2440,9 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
         }
     }
     for (table, columns) in SELECTED_COLUMN_SPECS.iter().copied() {
+        if navigation_only && table.starts_with("search_") {
+            continue;
+        }
         let create: Option<String> = db
             .query_row(
                 "SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=65536 THEN sql ELSE NULL END
@@ -2435,6 +2505,9 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
         "knowledge_relations_predicate",
         "search_document_filter",
     ] {
+        if navigation_only && name == "search_document_filter" {
+            continue;
+        }
         let present: Option<i64> = db
             .query_row(
                 "SELECT 1 FROM sqlite_master WHERE type='index' AND name=?1",
@@ -4204,7 +4277,7 @@ fn verify_search_inner(
         }
     }
     if grouped_rows.next()?.is_some()
-        || root.finalize().to_hex() != expected.search_index_root_sha256
+        || Some(root.finalize().to_hex()) != expected.search_index_root_sha256
     {
         return Err(Error::Invalid("knowledge search index root/coverage"));
     }
@@ -4257,7 +4330,7 @@ mod tests {
             catalog_packet_sha256: EMPTY.into(),
             catalog_index_root_sha256: EMPTY.into(),
             source_scope_root_sha256: EMPTY.into(),
-            search_index_root_sha256: EMPTY.into(),
+            search_index_root_sha256: Some(EMPTY.into()),
             node_count: 0,
             relation_count: 0,
             index_generation: "g".into(),
@@ -4275,6 +4348,35 @@ mod tests {
             }],
             complete: true,
         }
+    }
+
+    #[test]
+    fn managed_navigation_search_absence_is_an_explicit_abi_contract() {
+        let mut full = expected();
+        assert!(validate(&full, limits()).is_ok());
+        let wire = serde_json::to_value(&full).unwrap();
+        assert_eq!(wire["search_index_root_sha256"], EMPTY);
+        full.search_index_root_sha256 = None;
+        assert!(validate(&full, limits()).is_err());
+
+        let mut navigation = full.clone();
+        navigation.model_abi = tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1.into();
+        navigation.reader_abi = navigation.model_abi.clone();
+        navigation.managed_source_root_sha256 = Some(EMPTY.into());
+        navigation.navigation_original_root_sha256 = Some(EMPTY.into());
+        assert!(validate(&navigation, limits()).is_ok());
+        let wire = serde_json::to_value(&navigation).unwrap();
+        assert!(wire.get("search_index_root_sha256").is_none());
+        let round_trip: KnowledgeSelectedExpectation = serde_json::from_value(wire).unwrap();
+        assert!(validate(&round_trip, limits()).is_ok());
+        navigation.search_index_root_sha256 = Some(EMPTY.into());
+        assert!(validate(&navigation, limits()).is_err());
+        navigation.search_index_root_sha256 = None;
+        navigation.managed_source_root_sha256 = None;
+        assert!(validate(&navigation, limits()).is_err());
+        navigation.managed_source_root_sha256 = Some(EMPTY.into());
+        navigation.navigation_original_root_sha256 = None;
+        assert!(validate(&navigation, limits()).is_err());
     }
 
     #[test]

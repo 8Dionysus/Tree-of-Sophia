@@ -522,7 +522,7 @@ fn require_source_navigation_profile(
     model_abi: &str,
     selection_profile: &str,
 ) -> DurableResult<()> {
-    if model_abi != tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI
+    if !tos_foundation::is_managed_knowledge_model_abi(model_abi)
         || selection_profile != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
     {
         return Err(DurableError::Refused(

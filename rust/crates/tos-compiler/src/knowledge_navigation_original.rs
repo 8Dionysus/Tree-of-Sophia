@@ -22,6 +22,7 @@ fn navigation_original_model_abi_supported(model_abi: &str) -> bool {
             crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
             crate::KNOWLEDGE_CORPUS_MODEL_ABI,
             crate::KNOWLEDGE_MANAGED_MODEL_ABI,
+            tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1,
         ]
         .contains(&model_abi)
 }
@@ -923,7 +924,7 @@ pub(crate) fn verify_stage(
             let abi_matches = if let Some(expected) = layout.carrier_model_abi() {
                 abi.as_deref() == Some(expected)
             } else {
-                abi.as_deref().is_some_and(|abi| [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI].contains(&abi))
+                abi.as_deref().is_some_and(|abi| [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1].contains(&abi))
             };
             if !abi_matches { return Err(Error::Invalid("navigation original finish ABI")); }
             for (key,wanted) in [("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {

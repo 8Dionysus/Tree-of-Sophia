@@ -282,7 +282,7 @@ pub(crate) fn verify_native_file_size_limit(minimum_bytes: u64) -> Result<()> {
     Ok(())
 }
 fn validate_packet(p: &Packet) -> Result<()> {
-    let schema = if p.expectation.model_abi == crate::KNOWLEDGE_MANAGED_MODEL_ABI {
+    let schema = if tos_foundation::is_managed_knowledge_model_abi(&p.expectation.model_abi) {
         crate::managed_source::MANAGED_SELECTION_SCHEMA
     } else if p.expectation.model_abi == crate::KNOWLEDGE_CORPUS_MODEL_ABI
         || crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(&p.expectation.model_abi)

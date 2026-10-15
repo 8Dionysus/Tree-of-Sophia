@@ -5710,6 +5710,12 @@ fn selected_table_closure_with_layout_and_state(
         "catalog_routes",
         "catalog_source_counts",
     ];
+    let navigation_only = crate::knowledge_selected::native_navigation_schema(db)?;
+    if navigation_only && (layout.uses_carriers() || state.is_some()) {
+        return Err(Error::Invalid(
+            "native navigation requires plain managed stage",
+        ));
+    }
     let node = 11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>();
     let key_count = TABLES.len()
         + 8
@@ -5759,6 +5765,9 @@ fn selected_table_closure_with_layout_and_state(
         let Some(name) = name else {
             return Err(Error::Budget("selected knowledge table name bytes"));
         };
+        if navigation_only && name.starts_with("search_") {
+            return Err(Error::Invalid("native navigation contains search table"));
+        }
         if !(TABLES.contains(&name.as_str())
             || layout.uses_carriers() && name == "knowledge_source_carriers"
             || layout.dictionary_bytes() && name == "knowledge_byte_dictionaries"
@@ -5776,7 +5785,7 @@ fn selected_table_closure_with_layout_and_state(
         }
     }
     if seen.len()
-        != TABLES.len()
+        != TABLES.len() - if navigation_only { 3 } else { 0 }
             + if layout.uses_carriers() { 1 } else { 0 }
             + if layout.dictionary_bytes() { 1 } else { 0 }
             + if navigation_original { 3 } else { 0 }
@@ -5826,6 +5835,9 @@ fn selected_table_closure_with_layout_and_state(
         let (Some(name), Some(sql)) = (name, sql) else {
             return Err(Error::Budget("selected knowledge schema text bytes"));
         };
+        if navigation_only && name == "search_document_filter" {
+            return Err(Error::Invalid("native navigation contains search index"));
+        }
         if !(SELECTED_EXPLICIT_INDEXES
             .iter()
             .any(|(expected_name, expected_sql)| {
@@ -5842,7 +5854,7 @@ fn selected_table_closure_with_layout_and_state(
         }
     }
     if indexes.len()
-        != SELECTED_EXPLICIT_INDEXES.len()
+        != SELECTED_EXPLICIT_INDEXES.len() - if navigation_only { 1 } else { 0 }
             + if corpus_original {
                 crate::knowledge_corpus_original::INDEXES.len()
             } else {
