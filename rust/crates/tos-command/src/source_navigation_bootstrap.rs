@@ -784,7 +784,10 @@ mod tests {
         assert!(rows.iter().all(|row| row.owner_record_id == "work:example" && row.owner_source_path == source));
         assert!(rows[..3].iter().all(|row| row.visible == Some(true)));
         assert_eq!(rows[3].visible, None);
-        assert_eq!(charged, rows.iter().map(|row| row.raw.len() as u64).sum());
+        assert_eq!(
+            charged,
+            rows.iter().map(|row| row.raw.len() as u64).sum::<u64>()
+        );
     }
 
     #[test]
