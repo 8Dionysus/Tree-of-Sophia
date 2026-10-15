@@ -5917,6 +5917,14 @@ fn selected_source_metadata(
 ) -> DurableResult<MemberMetadata> {
     let placement = selected.placement;
     let coordinate = placement.coordinate();
+    let profile: String = row.get("profile_id");
+    // All maintained source-file writers share selected placement and metadata
+    // law. The unselected generic shadow profile is not a source-file writer.
+    if !known_profile(profile.as_bytes()) || profile.as_bytes() == PROFILE_ID {
+        return Err(DurableError::Corrupt(
+            "selected metadata source profile unsupported",
+        ));
+    }
     if selected.key != membership_key(CURRENT_KEY_TAG, domain, path.as_str(), None)?
         || selected.logical_digest != coordinate.sha256
         || selected.logical_length != coordinate.size_bytes
@@ -5936,11 +5944,6 @@ fn selected_source_metadata(
         || as_u64(row.get("frame_header_offset"))? != coordinate.header_offset
         || row.get::<_, String>("frame_digest") != coordinate.sha256.to_hex()
         || as_u64(row.get("frame_length"))? != coordinate.size_bytes
-        || ![
-            "tos.source-file.original-v1",
-            "tos.source-file.agent-create-v1",
-        ]
-        .contains(&row.get::<_, String>("profile_id").as_str())
     {
         return Err(DurableError::Corrupt("selected metadata placement differs"));
     }
