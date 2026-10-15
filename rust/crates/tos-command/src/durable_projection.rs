@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant};
 
 use postgres::{GenericClient, IsolationLevel, Row, Transaction};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::SegmentStore;
 
@@ -48,6 +48,12 @@ pub use durable_navigation_event::{
     DurableNavigationEventRangePriorClaimOwnerV1, DurableNavigationEventRangePriorOwnerBasisV1,
     DurableNavigationEventRangePriorRecordOwnerV1, DurableNavigationEventRangeSeedV1,
     DurableNavigationEventSeedV1, DurableNavigationEventSourceV1,
+};
+
+#[path = "durable_projection_bootstrap.rs"]
+mod durable_projection_bootstrap;
+pub use durable_projection_bootstrap::{
+    DurableProjectionBootstrapLimits, DurableProjectionBootstrapProgress,
 };
 
 const MAX_PROJECTION_TIMEOUT: Duration = Duration::from_secs(300);
@@ -382,7 +388,7 @@ impl DurableProjectionWork {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 struct DomainSnapshot {
     // Extraction-to-publication guard only. Reader freshness deliberately does
     // not persist this audit counter because unrelated attempts also change it.
@@ -1763,6 +1769,7 @@ fn read_frontier_and_events(
             "projection consumer profile differs",
         ));
     }
+    durable_projection_bootstrap::require_no_active_bootstrap(&mut tx, domain, consumer_id)?;
     let cursor = as_u64(consumer.cursor_seq)?;
     let head = snapshot.head_seq()?;
     if cursor > head {
@@ -2171,6 +2178,7 @@ fn publish_event(
             "projection consumer profile differs",
         ));
     }
+    durable_projection_bootstrap::require_no_active_bootstrap(&mut tx, domain, consumer_id)?;
     let cursor = as_u64(consumer.cursor_seq)?;
     if cursor >= event.commit_seq {
         tx.commit()?;
@@ -2181,6 +2189,45 @@ fn publish_event(
     }
 
     let source_contract = profile.source_contract.to_hex();
+    write_staged_documents(&mut tx, domain, consumer_id, &staged, limits)?;
+    let seq_db = as_i64(event.commit_seq)?;
+    let changed = tx.execute(
+        "UPDATE cmd2_projection_consumer SET cursor_seq=$3,observed_head_seq=$4,
+            observed_rights_version=$5,observed_rights_allowed=$6,observed_rule_version=$7,
+            observed_contract_digest=$8,observed_schema_profile_digest=$9,
+            observed_source_generation=$10,observed_source_complete=$11
+         WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12",
+        &[
+            &domain,
+            &consumer_id,
+            &seq_db,
+            &snapshot.head_seq,
+            &snapshot.rights_version,
+            &snapshot.rights_allowed,
+            &snapshot.rule_version,
+            &source_contract,
+            &snapshot.schema_profile_digest,
+            &snapshot.source_generation,
+            &snapshot.source_complete,
+            &as_i64(cursor)?,
+        ],
+    )?;
+    if changed != 1 {
+        return Err(DurableError::Conflict(
+            "projection watermark compare-and-set failed",
+        ));
+    }
+    tx.commit()?;
+    Ok(PublishOutcome::Applied(event.commit_seq))
+}
+
+fn write_staged_documents(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    consumer_id: &str,
+    staged: &StagedEvent,
+    limits: DurableProjectionLimits,
+) -> DurableResult<()> {
     for path in &staged.replaced_source_paths {
         tx.execute(
             "DELETE FROM cmd2_projection_document
@@ -2233,35 +2280,7 @@ fn publish_event(
             )?;
         }
     }
-    let seq_db = as_i64(event.commit_seq)?;
-    let changed = tx.execute(
-        "UPDATE cmd2_projection_consumer SET cursor_seq=$3,observed_head_seq=$4,
-            observed_rights_version=$5,observed_rights_allowed=$6,observed_rule_version=$7,
-            observed_contract_digest=$8,observed_schema_profile_digest=$9,
-            observed_source_generation=$10,observed_source_complete=$11
-         WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12",
-        &[
-            &domain,
-            &consumer_id,
-            &seq_db,
-            &snapshot.head_seq,
-            &snapshot.rights_version,
-            &snapshot.rights_allowed,
-            &snapshot.rule_version,
-            &source_contract,
-            &snapshot.schema_profile_digest,
-            &snapshot.source_generation,
-            &snapshot.source_complete,
-            &as_i64(cursor)?,
-        ],
-    )?;
-    if changed != 1 {
-        return Err(DurableError::Conflict(
-            "projection watermark compare-and-set failed",
-        ));
-    }
-    tx.commit()?;
-    Ok(PublishOutcome::Applied(event.commit_seq))
+    Ok(())
 }
 
 fn lock_domain_snapshot<C: GenericClient>(

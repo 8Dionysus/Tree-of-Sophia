@@ -139,6 +139,7 @@ pub use durable_adapter::durable_projection::{
     DurableNavigationEventDependencyReadV1, DurableNavigationEventLimits,
     DurableNavigationEventPendingReasonV2, DurableNavigationEventSeedV1,
     DurableNavigationEventSourceV1, DurableProjectionDocument, DurableProjectionExtractor,
+    DurableProjectionBootstrapLimits, DurableProjectionBootstrapProgress,
     DurableProjectionHit, DurableProjectionLimits, DurableProjectionProfile,
     DurableProjectionProgress, DurableProjectionQueueAge, DurableProjectionQueueAgeStatus,
     DurableProjectionSearch, DurableProjectionSource, DurableProjectionStatus,

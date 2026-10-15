@@ -817,6 +817,289 @@ fn mark_projection_member_as_source(lab: &Lab, prepare_id: &[u8], subject: &str)
 }
 
 #[test]
+fn initial_text_bootstrap_resumes_unpublished_sources_then_ordinary_events() {
+    let url = database_url();
+    let mut lab = Lab::new(&url);
+    lab.db.init_projection_schema().unwrap();
+    let members = lab.prepare(
+        b"text-initial",
+        "text-initial",
+        &[
+            MemberSpec::first(PROJECTION_RECORD_PATH, b"record-v1"),
+            MemberSpec::first(PROJECTION_FORMS_PATH, b"forms-v1"),
+        ],
+    );
+    mark_projection_member_as_source(&lab, b"text-initial", PROJECTION_RECORD_PATH);
+    mark_projection_member_as_source(&lab, b"text-initial", PROJECTION_FORMS_PATH);
+    lab.commit(b"text-initial", &members, 0, 1).unwrap();
+    let profile = tos_command::DurableProjectionProfile {
+        id: "lab-paired-source-v2".into(),
+        version: 2,
+        source_contract: contract_digest(),
+    };
+    let ordinary = tos_command::DurableProjectionLimits {
+        max_dependencies: 2,
+        ..Default::default()
+    };
+    let limits = tos_command::DurableProjectionBootstrapLimits {
+        max_sources: 1,
+        max_call_bytes: ordinary.max_event_bytes,
+        source: ordinary,
+    };
+    // A compound seed can exceed routine cardinality; bootstrap traverses its
+    // current sources independently without changing the ordinary admission.
+    let tight = tos_command::DurableProjectionLimits {
+        max_event_members: 1,
+        ..ordinary
+    };
+    assert!(
+        lab.db
+            .apply_projection_batch(
+                &lab.store,
+                &lab.domain,
+                "initial",
+                &profile,
+                &PairedProjectionExtractor,
+                tight
+            )
+            .is_err()
+    );
+    let first = lab
+        .db
+        .bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "initial",
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .unwrap();
+    assert!(!first.completed);
+    assert_eq!(first.processed_sources, 1);
+    assert_eq!(first.through_seq, 0);
+    assert_eq!(first.work.extracted_documents, 1);
+    assert!(matches!(
+        lab.db
+            .search_projection(
+                &lab.domain,
+                "initial",
+                &profile,
+                "joined-form",
+                10,
+                Duration::from_secs(5)
+            )
+            .unwrap(),
+        tos_command::DurableProjectionSearch::Pending {
+            through_seq: 0,
+            head_seq: 1
+        }
+    ));
+    assert!(matches!(
+        lab.db.apply_projection_batch(
+            &lab.store,
+            &lab.domain,
+            "initial",
+            &profile,
+            &PairedProjectionExtractor,
+            ordinary
+        ),
+        Err(DurableError::Conflict(
+            "initial text bootstrap is unfinished"
+        ))
+    ));
+    // Lost reply/process restart: reopen a connection and continue from the
+    // stored key. The previous paired document is neither reread nor duplicated.
+    let mut reopened = DurablePgCoordinator::connect(&url).unwrap();
+    let second = reopened
+        .bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "initial",
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .unwrap();
+    assert_eq!(second.processed_sources, 2);
+    assert_eq!(second.applied_sources, 1);
+    assert_eq!(second.work.exact_source_members_read, 1);
+    assert!(!second.completed);
+    let done = reopened
+        .bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "initial",
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .unwrap();
+    assert!(done.completed);
+    assert_eq!(done.through_seq, 1);
+    assert_eq!(done.work.exact_source_members_read, 0);
+    let replay = reopened
+        .bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "initial",
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .unwrap();
+    assert!(replay.completed);
+    assert_eq!(replay.applied_sources, 0);
+    lab.db
+        .apply_projection_batch(
+            &lab.store,
+            &lab.domain,
+            "event-replay",
+            &profile,
+            &PairedProjectionExtractor,
+            ordinary,
+        )
+        .unwrap();
+    let mut sql = Client::connect(&url, NoTls).unwrap();
+    let docs = |sql: &mut Client, consumer: &str| -> Vec<String> {
+        sql.query("SELECT (to_jsonb(d)-'consumer_id')::text FROM cmd2_projection_document d WHERE domain=$1 AND consumer_id=$2 ORDER BY source_path,document_id", &[&lab.domain, &consumer]).unwrap().into_iter().map(|r|r.get(0)).collect()
+    };
+    assert_eq!(docs(&mut sql, "initial"), docs(&mut sql, "event-replay"));
+    let old = tos_command::lab_record_bytes(PROJECTION_RECORD_PATH, 1, b"record-v1");
+    let members = lab.prepare(
+        b"text-successor",
+        "text-successor",
+        &[MemberSpec {
+            subject: PROJECTION_RECORD_PATH,
+            revision: 2,
+            predecessor: Some((1, Digest256::of_bytes(&old))),
+            payload: b"record-v2",
+        }],
+    );
+    mark_projection_member_as_source(&lab, b"text-successor", PROJECTION_RECORD_PATH);
+    lab.commit(b"text-successor", &members, 1, 1).unwrap();
+    let delta = reopened
+        .apply_projection_batch(
+            &lab.store,
+            &lab.domain,
+            "initial",
+            &profile,
+            &PairedProjectionExtractor,
+            ordinary,
+        )
+        .unwrap();
+    assert_eq!(delta.applied_events, 1);
+    assert_eq!(delta.through_seq, 2);
+    assert_eq!(delta.work.exact_source_members_read, 2);
+    assert!(
+        reopened
+            .bootstrap_projection_sources(
+                &lab.store,
+                &lab.domain,
+                "initial",
+                &profile,
+                &PairedProjectionExtractor,
+                limits
+            )
+            .is_err()
+    );
+}
+
+#[test]
+fn initial_text_bootstrap_retains_prefix_on_failure_and_refuses_changed_fence() {
+    let url = database_url();
+    let mut lab = Lab::new(&url);
+    lab.db.init_projection_schema().unwrap();
+    let members = lab.prepare(
+        b"initial-failure",
+        "initial-failure",
+        &[
+            MemberSpec::first("ToS/a.json", b"first"),
+            MemberSpec::first("ToS/b.json", b"second"),
+        ],
+    );
+    for path in ["ToS/a.json", "ToS/b.json"] {
+        mark_projection_member_as_source(&lab, b"initial-failure", path);
+    }
+    lab.commit(b"initial-failure", &members, 0, 1).unwrap();
+    let profile = tos_command::DurableProjectionProfile {
+        id: "initial-failure".into(),
+        version: 1,
+        source_contract: contract_digest(),
+    };
+    let limits = tos_command::DurableProjectionBootstrapLimits {
+        max_sources: 2,
+        max_call_bytes: 32 * 1024 * 1024,
+        source: Default::default(),
+    };
+    let failing = |path: &str, _rev: u64, _raw: &[u8]| {
+        if path == "ToS/b.json" {
+            Err(DurableError::Refused("injected interrupted source"))
+        } else {
+            Ok(Vec::new())
+        }
+    };
+    assert!(matches!(
+        lab.db.bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "partial",
+            &profile,
+            &failing,
+            limits
+        ),
+        Err(DurableError::Refused("injected interrupted source"))
+    ));
+    let mut sql = Client::connect(&url, NoTls).unwrap();
+    let position = sql.query_one("SELECT after_path,processed_sources FROM cmd2_projection_text_bootstrap WHERE domain=$1 AND consumer_id='partial'", &[&lab.domain]).unwrap();
+    assert_eq!(position.get::<_, String>(0), "ToS/a.json");
+    assert_eq!(position.get::<_, i64>(1), 1);
+    let succeeding = |_path: &str, _rev: u64, _raw: &[u8]| Ok(Vec::new());
+    let resumed = lab
+        .db
+        .bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "partial",
+            &profile,
+            &succeeding,
+            limits,
+        )
+        .unwrap();
+    assert!(resumed.completed);
+    assert_eq!(resumed.applied_sources, 1);
+    assert_eq!(resumed.work.exact_source_members_read, 1);
+    let one = tos_command::DurableProjectionBootstrapLimits {
+        max_sources: 1,
+        ..limits
+    };
+    lab.db
+        .bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "revoked",
+            &profile,
+            &succeeding,
+            one,
+        )
+        .unwrap();
+    lab.db.revoke_local(&lab.domain).unwrap();
+    assert!(matches!(
+        lab.db.bootstrap_projection_sources(
+            &lab.store,
+            &lab.domain,
+            "revoked",
+            &profile,
+            &succeeding,
+            one
+        ),
+        Err(DurableError::Refused("current rights revoked"))
+    ));
+    let count: i64 = sql.query_one("SELECT processed_sources FROM cmd2_projection_text_bootstrap WHERE domain=$1 AND consumer_id='revoked'", &[&lab.domain]).unwrap().get(0);
+    assert_eq!(count, 1);
+}
+
+#[test]
 fn v2_projection_replays_exact_event_cut_and_reverse_dependents() {
     let url = database_url();
     let mut lab = Lab::new(&url);

@@ -52,6 +52,37 @@ const MAX_PROJECTED_ALIASES: usize = 64;
 const MAX_SUBJECT_PATH_BYTES: usize = 4096;
 const AGENT_SOURCE_PATH_PREFIX: &str = "ToS/source-witnesses/agents/";
 
+/// Explicit parser workspace for an initial data operation. The field model,
+/// source byte/depth limits and projected document limits are unchanged. Routine
+/// events retain Default; initial migration may select its measured workspace.
+#[derive(Clone, Copy, Debug)]
+pub struct SourceSearchParseLimits {
+    pub max_json_visits: usize,
+    pub max_json_state_bytes: usize,
+}
+
+impl Default for SourceSearchParseLimits {
+    fn default() -> Self {
+        Self {
+            max_json_visits: MAX_JSON_VISITS,
+            max_json_state_bytes: MAX_JSON_STATE_BYTES,
+        }
+    }
+}
+
+impl SourceSearchParseLimits {
+    pub fn validate(self) -> Result<Self, &'static str> {
+        if self.max_json_visits == 0
+            || self.max_json_visits > 4_000_000
+            || self.max_json_state_bytes == 0
+            || self.max_json_state_bytes > 512 * 1024 * 1024
+        {
+            return Err("invalid selected source parse limits");
+        }
+        Ok(self)
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceSearchDocument {
     pub id: String,
@@ -79,6 +110,15 @@ pub fn project_source_text(
     subject: &str,
     raw: &[u8],
 ) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    project_source_text_with_parse_limits(subject, raw, SourceSearchParseLimits::default())
+}
+
+pub fn project_source_text_with_parse_limits(
+    subject: &str,
+    raw: &[u8],
+    limits: SourceSearchParseLimits,
+) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    let limits = limits.validate()?;
     if raw.len() > MAX_SOURCE_BYTES {
         return Err("source exceeds byte limit");
     }
@@ -89,13 +129,13 @@ pub fn project_source_text(
         return Err("subject path exceeds byte limit");
     }
     if subject.ends_with(".jsonl") {
-        return project_jsonl(subject, raw);
+        return project_jsonl(subject, raw, limits);
     }
     if !subject.ends_with(".json") {
         return Ok(Vec::new());
     }
 
-    let value = match parse_source_json(raw, MAX_JSON_VISITS, MAX_JSON_STATE_BYTES) {
+    let value = match parse_source_json(raw, limits.max_json_visits, limits.max_json_state_bytes) {
         Ok((value, _)) => value,
         Err(SourceParseError::Budget) => return Err("source JSON exceeds parse budget"),
         Err(SourceParseError::Invalid) if contains_recognized_wrapper(raw) => {
@@ -158,8 +198,26 @@ pub fn project_source_text_v2(
     exact_root_bytes: &[u8],
     exact_sibling_metadata: Option<(&str, &[u8])>,
 ) -> Result<Vec<SourceSearchDocument>, &'static str> {
-    let mut projection =
-        Projection::from_documents(project_source_text(root_path, exact_root_bytes)?)?;
+    project_source_text_v2_with_parse_limits(
+        root_path,
+        exact_root_bytes,
+        exact_sibling_metadata,
+        SourceSearchParseLimits::default(),
+    )
+}
+
+pub fn project_source_text_v2_with_parse_limits(
+    root_path: &str,
+    exact_root_bytes: &[u8],
+    exact_sibling_metadata: Option<(&str, &[u8])>,
+    limits: SourceSearchParseLimits,
+) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    let limits = limits.validate()?;
+    let mut projection = Projection::from_documents(project_source_text_with_parse_limits(
+        root_path,
+        exact_root_bytes,
+        limits,
+    )?)?;
     let Some(expected_metadata_path) = agent_metadata_path_for_human_forms(root_path) else {
         return if exact_sibling_metadata.is_some() {
             Err("sibling metadata input is unsupported for source path")
@@ -179,8 +237,10 @@ pub fn project_source_text_v2(
 
     let (forms, forms_visits, forms_retained) = parse_foundation_json(
         exact_root_bytes,
-        MAX_JSON_VISITS,
-        MAX_JSON_STATE_BYTES.saturating_sub(projection.retained_bytes),
+        limits.max_json_visits,
+        limits
+            .max_json_state_bytes
+            .saturating_sub(projection.retained_bytes),
     )?;
     if forms
         .object_get("schema_version")
@@ -198,8 +258,9 @@ pub fn project_source_text_v2(
     }
     let (metadata, _, _) = parse_foundation_json(
         metadata_bytes,
-        MAX_JSON_VISITS.saturating_sub(forms_visits),
-        MAX_JSON_STATE_BYTES
+        limits.max_json_visits.saturating_sub(forms_visits),
+        limits
+            .max_json_state_bytes
             .saturating_sub(projection.retained_bytes)
             .saturating_sub(forms_retained),
     )?;
@@ -371,9 +432,13 @@ fn append_dependency(
     Ok(())
 }
 
-fn project_jsonl(subject: &str, raw: &[u8]) -> Result<Vec<SourceSearchDocument>, &'static str> {
+fn project_jsonl(
+    subject: &str,
+    raw: &[u8],
+    limits: SourceSearchParseLimits,
+) -> Result<Vec<SourceSearchDocument>, &'static str> {
     let mut projection = Projection::default();
-    let mut visits_remaining = MAX_JSON_VISITS;
+    let mut visits_remaining = limits.max_json_visits;
     let mut lines = 0usize;
     for line in raw
         .split(|byte| *byte == b'\n')
@@ -383,11 +448,13 @@ fn project_jsonl(subject: &str, raw: &[u8]) -> Result<Vec<SourceSearchDocument>,
         if lines > MAX_JSONL_LINES {
             return Err("source JSONL exceeds line limit");
         }
-        let (value, visits) = parse_source_json(line, visits_remaining, MAX_JSON_STATE_BYTES)
-            .map_err(|error| match error {
-                SourceParseError::Budget => "source JSONL exceeds parse budget",
-                SourceParseError::Invalid => "malformed source JSONL line",
-            })?;
+        let (value, visits) =
+            parse_source_json(line, visits_remaining, limits.max_json_state_bytes).map_err(
+                |error| match error {
+                    SourceParseError::Budget => "source JSONL exceeds parse budget",
+                    SourceParseError::Invalid => "malformed source JSONL line",
+                },
+            )?;
         visits_remaining = visits_remaining.saturating_sub(visits);
         project_value(subject, &value, &mut projection)?;
     }
@@ -989,6 +1056,49 @@ mod tests {
         assert_eq!(
             project_source_text("ToS/unrelated.json", raw.as_bytes()),
             Err("source JSON exceeds parse budget")
+        );
+    }
+
+    #[test]
+    fn initial_parse_workspace_keeps_routine_limits_and_strict_grammar() {
+        let line = "{\"schema_version\":\"unindexed\",\"values\":[0,1,2,3,4,5,6,7,8,9]}\n";
+        let raw = line.repeat(16_000);
+        // Four object/string/container visits plus ten values per line.
+        let constrained = SourceSearchParseLimits {
+            max_json_visits: 20,
+            max_json_state_bytes: MAX_JSON_STATE_BYTES,
+        };
+        assert_eq!(
+            project_source_text_with_parse_limits("input.jsonl", raw.as_bytes(), constrained),
+            Err("source JSONL exceeds parse budget")
+        );
+        let initial = SourceSearchParseLimits {
+            max_json_visits: 1_000_000,
+            max_json_state_bytes: 128 * 1024 * 1024,
+        };
+        assert_eq!(
+            project_source_text_with_parse_limits("input.jsonl", raw.as_bytes(), initial),
+            Ok(Vec::new())
+        );
+        assert_eq!(
+            SourceSearchParseLimits::default().max_json_visits,
+            MAX_JSON_VISITS
+        );
+        assert_eq!(
+            SourceSearchParseLimits::default().max_json_state_bytes,
+            MAX_JSON_STATE_BYTES
+        );
+        assert_eq!(
+            project_source_text_with_parse_limits("input.jsonl", b"{\"a\":1,\"a\":2}", initial),
+            Err("malformed source JSONL line")
+        );
+        let invalid = SourceSearchParseLimits {
+            max_json_visits: usize::MAX,
+            ..initial
+        };
+        assert_eq!(
+            project_source_text_with_parse_limits("input.json", b"{}", invalid),
+            Err("invalid selected source parse limits")
         );
     }
 

@@ -22,7 +22,7 @@ Selection for text projections: tos_source_projection_selection_v1; existing
 domain, exact source contract digest, consumer, private STO root and store limits.
 Navigation requests use a protected tos_local_source_navigation_owner_v1 config
 with the retained V2 model/proof, selected consumer/profile and explicit limits.
-Requests: init, apply, bootstrap-navigation, advance-navigation, status, queue-age, search, search-text, exact-source. Init installs derived tables only.
+Requests: init, apply, bootstrap-text, bootstrap-navigation, advance-navigation, status, queue-age, search, search-text, exact-source. Init installs derived tables only.
 Queue-age reports one selected consumer's oldest unprocessed sequence and persisted server-clock age; legacy timestamps remain unknown.
 Apply resumes the durable outbox cursor; search uses selected text token matching.
 Navigation uses the protected source-navigation owner selection and its explicit resource limits.
@@ -47,6 +47,18 @@ struct Selection {
     profile: String,
     store_root: String,
     store_limits: StoreLimits,
+    #[serde(default)]
+    bootstrap: Option<TextBootstrapSelection>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TextBootstrapSelection {
+    max_source_work_bytes: u64,
+    max_call_work_bytes: u64,
+    max_json_visits: usize,
+    max_json_state_bytes: usize,
+    timeout_ms: u64,
 }
 
 #[derive(Deserialize)]
@@ -65,6 +77,9 @@ enum Request {
     Status,
     QueueAge,
     BootstrapNavigation,
+    BootstrapText {
+        max_sources: usize,
+    },
     AdvanceNavigation {
         max_events: usize,
     },
@@ -300,6 +315,80 @@ impl DurableProjectionExtractor for SourceTextExtractorV2 {
     }
 }
 
+struct InitialSourceTextExtractor {
+    version: u32,
+    parse: crate::source_search_projection::SourceSearchParseLimits,
+}
+
+impl DurableProjectionExtractor for InitialSourceTextExtractor {
+    fn extract(
+        &self,
+        path: &str,
+        revision: u64,
+        raw: &[u8],
+    ) -> DurableResult<Vec<DurableProjectionDocument>> {
+        self.extract_with_sources(path, revision, raw, &[])
+    }
+
+    fn required_source_paths(
+        &self,
+        path: &str,
+        revision: u64,
+        raw: &[u8],
+    ) -> DurableResult<Vec<String>> {
+        if self.version == 2 {
+            SourceTextExtractorV2.required_source_paths(path, revision, raw)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    fn extract_with_sources(
+        &self,
+        path: &str,
+        _revision: u64,
+        raw: &[u8],
+        inputs: &[DurableProjectionSource],
+    ) -> DurableResult<Vec<DurableProjectionDocument>> {
+        let result = if self.version == 2 {
+            let expected =
+                crate::source_search_projection::agent_metadata_path_for_human_forms(path);
+            if inputs.len() > 1
+                || inputs.iter().any(|input| {
+                    Some(input.source_path.as_str()) != expected.as_deref() || input.revision == 0
+                })
+            {
+                return Err(DurableError::Invalid(
+                    "source-copy projection selected sibling differs",
+                ));
+            }
+            crate::source_search_projection::project_source_text_v2_with_parse_limits(
+                path,
+                raw,
+                inputs.first().map(|input| {
+                    (
+                        input.source_path.as_str(),
+                        input.exact_source_bytes.as_slice(),
+                    )
+                }),
+                self.parse,
+            )
+        } else {
+            if !inputs.is_empty() {
+                return Err(DurableError::Invalid(
+                    "v1 initial projection has companion inputs",
+                ));
+            }
+            crate::source_search_projection::project_source_text_with_parse_limits(
+                path, raw, self.parse,
+            )
+        };
+        result
+            .map(projection_documents)
+            .map_err(DurableError::Invalid)
+    }
+}
+
 fn projection_documents(
     documents: Vec<crate::source_search_projection::SourceSearchDocument>,
 ) -> Vec<DurableProjectionDocument> {
@@ -447,6 +536,49 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, String> {
         }
         Request::BootstrapNavigation => {
             Err("bootstrap-navigation requires its protected source-navigation route".into())
+        }
+        Request::BootstrapText { max_sources } => {
+            let initial = selection
+                .bootstrap
+                .as_ref()
+                .ok_or("bootstrap-text requires explicit initial resource selection")?;
+            if !(1..=256).contains(&max_sources)
+                || initial.max_source_work_bytes == 0
+                || initial.max_source_work_bytes > 512 * 1024 * 1024
+                || initial.max_call_work_bytes < initial.max_source_work_bytes
+                || initial.max_call_work_bytes > 4 * 1024 * 1024 * 1024
+                || !(1..=300_000).contains(&initial.timeout_ms)
+            {
+                return Err("invalid initial text resource selection".into());
+            }
+            let parse = crate::source_search_projection::SourceSearchParseLimits {
+                max_json_visits: initial.max_json_visits,
+                max_json_state_bytes: initial.max_json_state_bytes,
+            }
+            .validate()?;
+            let store = open_store(&selection)?;
+            let result = db
+                .bootstrap_projection_sources(
+                    &store,
+                    &selection.domain,
+                    consumer_id,
+                    &profile,
+                    &InitialSourceTextExtractor { version, parse },
+                    crate::DurableProjectionBootstrapLimits {
+                        max_sources,
+                        max_call_bytes: initial.max_call_work_bytes,
+                        source: DurableProjectionLimits {
+                            max_event_bytes: initial.max_source_work_bytes,
+                            max_dependencies: if version == 2 { 2 } else { 1 },
+                            statement_timeout: Duration::from_millis(initial.timeout_ms),
+                            ..Default::default()
+                        },
+                    },
+                )
+                .map_err(|_| "initial text bootstrap refused; committed progress retained")?;
+            Ok(
+                json!({"schema_version":"tos_source_text_bootstrap_progress_v1", "profile":profile.id, "result":result}),
+            )
         }
         Request::Apply { max_events } => {
             if !(1..=256).contains(&max_events) {

@@ -56,6 +56,21 @@ ALTER TABLE cmd2_projection_consumer
 ALTER TABLE cmd2_projection_consumer
   ADD COLUMN IF NOT EXISTS source_text_search_profile_version integer;
 
+-- Unpublished, resumable initial text projection. The ordinary consumer cursor
+-- stays zero until the complete selected source cut has been traversed. Backup
+-- may retain these derived rows; a changed source fence requires a new consumer.
+CREATE TABLE IF NOT EXISTS cmd2_projection_text_bootstrap (
+  domain text NOT NULL,
+  consumer_id text NOT NULL,
+  snapshot_json text NOT NULL CHECK (octet_length(snapshot_json) <= 8192),
+  after_path text NOT NULL DEFAULT '' CHECK (octet_length(after_path) <= 4096),
+  processed_sources bigint NOT NULL DEFAULT 0 CHECK (processed_sources >= 0),
+  completed boolean NOT NULL DEFAULT false,
+  PRIMARY KEY(domain,consumer_id),
+  FOREIGN KEY(domain,consumer_id)
+    REFERENCES cmd2_projection_consumer(domain,consumer_id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS cmd2_projection_document (
   domain text NOT NULL,
   consumer_id text NOT NULL,

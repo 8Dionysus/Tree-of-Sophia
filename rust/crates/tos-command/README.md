@@ -210,10 +210,44 @@ External rights and semantic/source admission remain with the actual owner.
 
 The CLI's initial event limits are 64 changed members, 256 documents and 16 MiB
 of exact source input, with 1 MiB per document. They bound one compound event,
-not total corpus size. Oversized initial bootstrap events require a resumable
-bootstrap path; increasing these limits is not that implementation. Run under
-the normal host resource supervisor: deadlines are cooperative around database
-and filesystem calls.
+not total corpus size. `bootstrap-text` provides the separate initial route for
+compound seed events that exceed those routine limits. It requires a new
+consumer and an explicit `bootstrap` object in the protected selection:
+
+```json
+{
+  "max_source_work_bytes": 134217728,
+  "max_call_work_bytes": 536870912,
+  "max_json_visits": 1000000,
+  "max_json_state_bytes": 134217728,
+  "timeout_ms": 60000
+}
+```
+
+These values illustrate a selected initial workload, not default routine
+limits or a claim that every corpus fits. Reserve the actual peak storage and
+memory through the host supervisor before running. Parser workspace bounds
+apply to the same strict JSON grammar and exact field selection; the 16 MiB
+source, depth, line and output limits remain unchanged. Routine `apply` keeps
+its existing parser and event limits. Source work includes exact payload,
+custody metadata, physical segment bytes and projected documents; it is not a
+measurement of device I/O.
+
+Call `{"operation":"bootstrap-text","max_sources":32}` repeatedly. Each call
+seeks from a durable source-path position and commits each source with its
+selected companions, documents and position atomically. A failed source leaves
+earlier committed work available for resume; reopening or retrying after a
+lost reply continues from that position. The ordinary consumer cursor stays
+zero and search reports pending until EOF publishes the complete captured head.
+The final call is replayable. Ordinary event application is refused while that
+consumer's initial build is unfinished. After completion it continues from the
+captured head using the existing dependency and publication engine.
+
+A changed source, rights, schema or audit fence refuses the partial build;
+select a new consumer to build the new cut. Previously completed consumers are
+retained. Neither initial construction nor its progress grants source admission,
+rights or publication authority. Deadlines are cooperative around database and
+filesystem calls; retain the normal host resource supervisor.
 
 The source-text projection is not a general source-command migration, does not
 resolve every knowledge-graph join and does not replace CLI/HTTP/MCP/Worker
