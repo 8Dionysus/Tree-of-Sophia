@@ -24,7 +24,9 @@ use tos_source_store::{
     CorpusReader, CutReadLimits, ReadLimits, SourceMembershipV1, StreamedCutReadLimitsV1,
 };
 use tos_validation::FormatProfile;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
+use tos_validation::executor::{
+    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
+};
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
 const INVOCATION_SCHEMA: &str = "tos_local_pg_source_bootstrap_streamed_invocation_v1";
@@ -343,19 +345,55 @@ fn software_limits(invocation: &Value) -> SourceCommandResult<SoftwareInputLimit
     })
 }
 
+// Initial assessment covers the explicitly selected corpus, whereas ordinary
+// mutations retain their command-local schema limits. These are cumulative
+// execution/receipt ceilings, never a license to omit a schema check.
+fn initial_schema_budget(
+    budgets: &Value,
+    deadline: Instant,
+) -> SourceCommandResult<(ExecutorBudget, CutWorkerLimits, BatchStreamBudget)> {
+    let mut worker = ExecutorBudget::laboratory();
+    worker.execution_wall = deadline
+        .saturating_duration_since(Instant::now())
+        .min(Duration::from_secs(3600));
+    let total_cpu_seconds = capped(budgets, "worker_cpu_seconds", 300)?;
+    worker.cpu_seconds = total_cpu_seconds.min(3);
+    worker.address_space_bytes = capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
+    let limits = CutWorkerLimits {
+        max_receipts: usize_field(budgets, "max_schema_receipts", 65_536)?,
+        max_receipt_bytes: usize_field(budgets, "max_schema_receipt_bytes", 16_777_216)?,
+    };
+    if limits.max_receipts == 0 || limits.max_receipt_bytes == 0 {
+        return Err(SourceCommandError::Invalid(
+            "streamed schema receipt budget",
+        ));
+    }
+    let mut operation = BatchStreamBudget::laboratory();
+    operation.max_chunks = limits.max_receipts as u64;
+    operation.max_total_units = limits.max_receipts as u64;
+    operation.total_execution_wall = worker.execution_wall;
+    operation.operation_cpu_seconds = total_cpu_seconds;
+    operation.operation_address_space_bytes = worker.address_space_bytes;
+    operation
+        .validate()
+        .map_err(|_| SourceCommandError::Invalid("streamed initial schema operation budget"))?;
+    Ok((worker, limits, operation))
+}
+
 fn worker_limits_and_image(
     invocation: &Value,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(VerifiedWorkerImageHandle, ExecutorBudget, CutWorkerLimits)> {
+) -> SourceCommandResult<(
+    VerifiedWorkerImageHandle,
+    ExecutorBudget,
+    CutWorkerLimits,
+    BatchStreamBudget,
+)> {
     let worker = object(invocation, "schema_worker")?;
     exact(worker, &["absolute_path", "sha256"])?;
     let budgets = object(invocation, "budgets")?;
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
+    let (worker_budget, limits, operation) = initial_schema_budget(budgets, deadline)?;
     let image = VerifiedWorkerImageHandle::prepare(
         ExactWorkerIdentity {
             absolute_path: absolute(text(worker, "absolute_path")?)?,
@@ -366,15 +404,7 @@ fn worker_limits_and_image(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("streamed schema worker image"))?;
-    let limits = CutWorkerLimits {
-        max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
-            .map_err(|_| SourceCommandError::Invalid("streamed schema receipt budget"))?,
-        max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
-            .map_err(|_| {
-            SourceCommandError::Invalid("streamed schema receipt budget")
-        })?,
-    };
-    Ok((image, worker_budget, limits))
+    Ok((image, worker_budget, limits, operation))
 }
 
 pub(super) fn run(
@@ -474,7 +504,7 @@ pub(super) fn run(
             "streamed exact revision membership differs",
         ));
     }
-    let (image, worker_budget, worker_limits) =
+    let (image, worker_budget, worker_limits, schema_operation) =
         worker_limits_and_image(invocation, deadline, cancelled.as_ref())?;
     let mut worker = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
         &streamed,
@@ -486,6 +516,9 @@ pub(super) fn run(
         cancelled.as_ref(),
     )
     .map_err(|_| SourceCommandError::Denied("streamed schema worker"))?;
+    worker
+        .set_operation_budget(schema_operation)
+        .map_err(|_| SourceCommandError::Denied("streamed initial schema operation"))?;
     let mut db = DurablePgCoordinator::from_configured_client(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
@@ -570,6 +603,12 @@ pub(super) fn run(
             // Numeric work remains observable on a refused initial assessment.
             // It contains no source text, paths, owner secrets or PG errors.
             eprintln!("streamed bootstrap refused work={body_work:?}");
+            eprintln!(
+                "streamed bootstrap schema_receipts={} max_receipts={} max_receipt_bytes={}",
+                worker.receipt_count(),
+                worker_limits.max_receipts,
+                worker_limits.max_receipt_bytes
+            );
         })
         .map_err(source_error)?;
     let (current_membership_digest, selected_state_digest) = match reopened.selected() {
@@ -599,6 +638,14 @@ pub(super) fn run(
         "bootstrap_resume_supported": true,
         "bootstrap_resume_scope": "complete-original-write-before-assessment",
         "bootstrap_resumed": selection.job_mode == BootstrapJobMode::RequireExisting,
+        "schema_work": {
+            "execution_receipts": worker.receipt_count(),
+            "max_receipts": worker_limits.max_receipts,
+            "max_receipt_bytes": worker_limits.max_receipt_bytes,
+            "max_worker_cpu_seconds": schema_operation.operation_cpu_seconds,
+            "max_worker_raw_bytes": schema_operation.max_total_raw_bytes,
+            "max_worker_wire_bytes": schema_operation.max_total_wire_bytes,
+        },
         "logical_source_work": {
             "original_bodies_returned": body_work.original_bodies_returned,
             "original_body_bytes_returned": body_work.original_body_bytes_returned,
@@ -632,4 +679,38 @@ pub(super) fn run(
         "grants_admission": false,
         "grants_publication": false
     }))
+}
+
+#[cfg(test)]
+mod initial_schema_budget_tests {
+    use super::*;
+
+    #[test]
+    fn selected_initial_envelope_retains_aggregate_execution_bounds() {
+        let budgets = json!({"max_schema_receipts": 4096,
+            "max_schema_receipt_bytes": 2097152, "worker_cpu_seconds": 60,
+            "worker_address_space_bytes": 1073741824});
+        let deadline = Instant::now() + Duration::from_secs(600);
+        let (worker, receipts, operation) = initial_schema_budget(&budgets, deadline).unwrap();
+        assert_eq!(receipts.max_receipts, 4096);
+        assert_eq!(receipts.max_receipt_bytes, 2097152);
+        assert_eq!(operation.max_total_units, 4096);
+        assert_eq!(operation.max_chunks, 4096);
+        assert_eq!(operation.operation_cpu_seconds, 60);
+        assert_eq!(worker.cpu_seconds, 3);
+        assert_eq!(operation.total_execution_wall, worker.execution_wall);
+        assert!(worker.execution_wall <= Duration::from_secs(600));
+        assert_eq!(operation.max_total_raw_bytes, 134217728);
+        for (key, value) in [
+            ("max_schema_receipts", 65537),
+            ("max_schema_receipt_bytes", 16777217),
+            ("worker_cpu_seconds", 301),
+            ("worker_address_space_bytes", 1073741825),
+            ("max_schema_receipts", 0),
+        ] {
+            let mut invalid = budgets.clone();
+            invalid[key] = json!(value);
+            assert!(initial_schema_budget(&invalid, deadline).is_err(), "{key}");
+        }
+    }
 }

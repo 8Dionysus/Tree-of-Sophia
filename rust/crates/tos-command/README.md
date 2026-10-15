@@ -372,6 +372,16 @@ covers metadata and index work, independently of total source body bytes.
 Its validated `generation.max_elapsed_seconds` also bounds the streamed
 command's cooperative whole-invocation deadline; an enclosing supervisor may
 apply a stricter wall-clock limit.
+Only this initial-assessment invocation interprets `budgets.max_schema_receipts`,
+`max_schema_receipt_bytes` and `worker_cpu_seconds` as the selected full-pass
+envelope: at most 65,536 checks, 16 MiB of accounted receipts and 300 worker CPU
+seconds. The caller selects smaller positive bounds. Schema execution also
+retains the 128 MiB raw-input and 288 MiB wire bounds, a 1 GiB worker address
+space ceiling and the lesser of the invocation deadline and one hour. Receipt
+count and worker envelope are returned in `schema_work`; failed assessment
+reports its completed receipt count. Ordinary command profiles keep their own
+smaller limits. This initial-work allowance does not replace addressed updates,
+skip checks, reset cumulative accounting or grant completeness before success.
 Claim projection reads each owner's bounded current package, referenced
 archives and schema inputs. The completed disk identity pass supplies the
 corpus-wide identity checks; reading one Claim does not collect the whole
