@@ -416,6 +416,8 @@ pub(crate) fn direct_record_revisions_for_range_v1(
                 member.is_source
                     && member.source_path.starts_with(&format!("{home}/"))
                     && member.source_path.ends_with(".json")
+                    // The history carries the same record_id but is not the record.
+                    && member.source_path != history_path
                     && !member.source_path.ends_with(".human-forms.json")
             }) {
                 let raw = read_member(event.sequence, &member.source_path)?;
