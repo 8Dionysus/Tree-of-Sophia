@@ -67,7 +67,10 @@ const MAX_NAVIGATION_EVENT_ID_BYTES: usize = 256;
 const MAX_NAVIGATION_RECORD_ID_BYTES: usize = 256;
 const MAX_NAVIGATION_EVENT_LOG_ROWS: usize = 100_000;
 const MAX_NAVIGATION_EVENT_STEPS_PER_CALL: usize = 256;
-pub(super) const VERIFIED_PREFIX_FORMAT_VERSION: i16 = 2;
+pub(super) const VERIFIED_PREFIX_FORMAT_VERSION: i16 = 3;
+
+#[path = "durable_navigation_event/cohort_tree.rs"]
+mod cohort_tree;
 
 /// Independent resource ceilings for one event-local cohort or selected cut.
 #[derive(Clone, Copy, Debug)]
@@ -3215,7 +3218,7 @@ fn navigation_current_index_root(
     cohort_root: Digest256,
 ) -> Digest256 {
     let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-source-navigation-current-index-v2");
+    hash.update(b"tos-source-navigation-current-index-v3");
     navigation_hash_part(&mut hash, bootstrap_root.to_hex().as_bytes());
     navigation_hash_part(&mut hash, coverage_root.to_hex().as_bytes());
     navigation_hash_part(&mut hash, adjacency_root.to_hex().as_bytes());
@@ -3223,35 +3226,39 @@ fn navigation_current_index_root(
     hash.finalize()
 }
 
-/// Commit the bounded current owner-cohort table, not its unbounded event history.
-/// The owner publishers advance this root in the same transaction as the cursor.
+/// Read the authenticated current-map root. Full table coverage is an explicit
+/// audit; ordinary delivery proves the metadata of its selected owners.
 pub(super) fn navigation_current_cohort_root_in_tx(
     tx: &mut postgres::Transaction<'_>,
     domain: &str,
     consumer_id: &str,
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<Digest256> {
-    let row_cap = i64::try_from(limits.max_current_cohorts.saturating_add(1))
-        .map_err(|_| DurableError::Refused("navigation current cohort count"))?;
-    let rows = tx.query(
-        "SELECT row_to_json(c)::text AS row_json
-           FROM cmd2_projection_navigation_cohort c
-          WHERE c.domain=$1 AND c.consumer_id=$2
-          ORDER BY c.source_path COLLATE \"C\",c.record_id COLLATE \"C\" LIMIT $3",
-        &[&domain, &consumer_id, &row_cap],
-    )?;
-    if rows.len() > limits.max_current_cohorts {
-        return Err(DurableError::Refused(
-            "navigation current cohort count budget",
-        ));
-    }
-    let row_json = rows
-        .into_iter()
-        .map(|row| row.get::<_, String>("row_json"))
-        .collect::<Vec<_>>();
-    navigation_current_cohort_root_from_row_json(&row_json, limits.max_total_bytes)
+    cohort_tree::current_root(tx, domain, consumer_id, limits)
 }
 
+pub(crate) fn verify_navigation_selected_cohort_metadata_v3(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    consumer_id: &str,
+    owners: &BTreeSet<(String, String)>,
+    limits: DurableNavigationEventLimits,
+    max_probes: u64,
+    max_rows: u64,
+) -> DurableResult<(u64, u64, u64)> {
+    let checkpoint = cohort_tree::verify_owners_with_work(
+        tx,
+        domain,
+        consumer_id,
+        owners,
+        limits,
+        max_probes,
+        max_rows,
+    )?;
+    Ok(checkpoint.work())
+}
+
+#[cfg(test)]
 fn navigation_current_cohort_root_from_row_json(
     rows: &[String],
     max_total_bytes: u64,
@@ -3308,7 +3315,7 @@ pub(super) fn navigation_verified_prefix_digest(
     output_root: Digest256,
 ) -> Digest256 {
     let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-source-navigation-verified-prefix-v2");
+    hash.update(b"tos-source-navigation-verified-prefix-v3");
     for part in [
         domain.as_bytes(),
         consumer_id.as_bytes(),
@@ -10770,6 +10777,7 @@ impl DurablePgCoordinator {
                 "navigation bootstrap would move coverage backwards",
             ));
         }
+        cohort_tree::initialize(tx, domain, consumer_id)?;
         tx.execute(
             "DELETE FROM cmd2_projection_navigation_cohort
              WHERE domain=$1 AND consumer_id=$2",
@@ -12679,6 +12687,8 @@ impl DurablePgCoordinator {
             &source_paths,
             limits,
         )?;
+        let cohort_checkpoint =
+            cohort_tree::verify_owners(&mut tx, domain, consumer_id, &target_owners, limits)?;
         let replacement_rows = rows.iter().collect::<Vec<_>>();
         let (adjacency_updates, adjacency_root) = prepare_navigation_adjacency_update_batch(
             &mut tx,
@@ -12797,8 +12807,14 @@ impl DurablePgCoordinator {
             )?;
         }
         active_navigation(deadline)?;
-        let cohort_root =
-            navigation_current_cohort_root_in_tx(&mut tx, domain, consumer_id, limits)?;
+        let cohort_root = cohort_tree::update_owners(
+            &mut tx,
+            domain,
+            consumer_id,
+            &target_owners,
+            &cohort_checkpoint,
+            limits,
+        )?;
         let owner_binding_json: String = bootstrap.get("owner_binding_json");
         let checkpoint_digest = navigation_verified_prefix_digest(
             domain,
@@ -14234,6 +14250,17 @@ impl DurablePgCoordinator {
             }
             cohorts.push(cohort);
         }
+        let audited_owners = cohorts
+            .iter()
+            .map(|cohort| (cohort.source_path.clone(), cohort.record_id.clone()))
+            .collect::<BTreeSet<_>>();
+        let audited =
+            cohort_tree::verify_owners(&mut tx, domain, consumer_id, &audited_owners, limits)?;
+        if audited.count() != audited_owners.len() as u64 {
+            return Err(DurableError::Corrupt(
+                "navigation full cohort membership differs",
+            ));
+        }
         let coverage_root = coverage_root.ok_or(DurableError::Corrupt(
             "navigation coverage root absent after readiness check",
         ))?;
@@ -14306,6 +14333,13 @@ impl DurablePgCoordinator {
         let snapshot = read_domain_snapshot(&mut tx, domain)?;
         snapshot.require_live_projection(profile)?;
         verify_navigation_consumer(&mut tx, domain, consumer_id, profile)?;
+        cohort_tree::verify_owners(
+            &mut tx,
+            domain,
+            consumer_id,
+            &BTreeSet::from([(source_path.to_owned(), record_id.to_owned())]),
+            limits,
+        )?;
         let row = tx.query_opt(
             "SELECT event_id,event_sequence,source_event_id,source_event_version,
                     predecessor_source_revision,source_revision,basis_kind,
@@ -15071,6 +15105,13 @@ impl DurablePgCoordinator {
             None
         };
 
+        cohort_tree::initialize_empty_if_absent(&mut tx, domain, consumer_id)?;
+        let tree_owners = BTreeSet::from([(
+            cohort.source_path.as_str().to_owned(),
+            cohort.record_id.clone(),
+        )]);
+        let cohort_checkpoint =
+            cohort_tree::verify_owners(&mut tx, domain, consumer_id, &tree_owners, limits)?;
         let existing_root = tx.query_opt(
             "SELECT output_root FROM cmd2_projection_navigation_cohort
              WHERE domain=$1 AND consumer_id=$2 AND source_path=$3 AND record_id=$4 FOR UPDATE",
@@ -15232,6 +15273,14 @@ impl DurablePgCoordinator {
                 ],
             )?;
         }
+        let updated_cohort_root = cohort_tree::update_owners(
+            &mut tx,
+            domain,
+            consumer_id,
+            &tree_owners,
+            &cohort_checkpoint,
+            limits,
+        )?;
         if let Some((
             previous_coverage_root,
             coverage_root,
@@ -15305,8 +15354,7 @@ impl DurablePgCoordinator {
         }
         active_navigation(deadline)?;
         let changed = if let Some((_, coverage_root, _, adjacency_root, _, _)) = next_coverage {
-            let cohort_root =
-                navigation_current_cohort_root_in_tx(&mut tx, domain, consumer_id, limits)?;
+            let cohort_root = updated_cohort_root;
             let (bootstrap_sequence, bootstrap_root, owner_binding_json) =
                 checkpoint_bootstrap.as_ref().ok_or(DurableError::Conflict(
                     "navigation checkpoint lacks bootstrap",

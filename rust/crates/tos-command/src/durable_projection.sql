@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_consumer (
   adjacency_seq bigint NOT NULL DEFAULT 0 CHECK (adjacency_seq >= 0),
   adjacency_root char(64) CHECK (adjacency_root IS NULL OR adjacency_root ~ '^[0-9a-f]{64}$'),
   adjacency_ready boolean NOT NULL DEFAULT false,
-  verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2)),
+  verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2,3)),
   verified_prefix_seq bigint CHECK (verified_prefix_seq IS NULL OR verified_prefix_seq >= 0),
   verified_prefix_coverage_root char(64) CHECK (verified_prefix_coverage_root IS NULL OR verified_prefix_coverage_root ~ '^[0-9a-f]{64}$'),
   verified_prefix_cohort_root char(64) CHECK (verified_prefix_cohort_root IS NULL OR verified_prefix_cohort_root ~ '^[0-9a-f]{64}$'),
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_consumer (
   CONSTRAINT cmd2_projection_navigation_consumer_verified_prefix_check CHECK (
     (verified_prefix_version IS NULL AND verified_prefix_seq IS NULL AND verified_prefix_coverage_root IS NULL AND
       verified_prefix_cohort_root IS NULL AND verified_prefix_digest IS NULL) OR
-    (verified_prefix_version IS NOT NULL AND verified_prefix_version IN (1,2) AND verified_prefix_seq IS NOT NULL AND verified_prefix_coverage_root IS NOT NULL AND
+    (verified_prefix_version IS NOT NULL AND verified_prefix_version IN (1,2,3) AND verified_prefix_seq IS NOT NULL AND verified_prefix_coverage_root IS NOT NULL AND
       verified_prefix_cohort_root IS NOT NULL AND verified_prefix_digest IS NOT NULL)
   )
 );
@@ -195,7 +195,7 @@ ALTER TABLE cmd2_projection_navigation_consumer
 ALTER TABLE cmd2_projection_navigation_consumer
   ADD COLUMN IF NOT EXISTS adjacency_ready boolean NOT NULL DEFAULT false;
 ALTER TABLE cmd2_projection_navigation_consumer
-  ADD COLUMN IF NOT EXISTS verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2));
+  ADD COLUMN IF NOT EXISTS verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2,3));
 ALTER TABLE cmd2_projection_navigation_consumer
   ADD COLUMN IF NOT EXISTS verified_prefix_seq bigint CHECK (verified_prefix_seq IS NULL OR verified_prefix_seq >= 0);
 ALTER TABLE cmd2_projection_navigation_consumer
@@ -218,9 +218,32 @@ ALTER TABLE cmd2_projection_navigation_consumer
   ADD CONSTRAINT cmd2_projection_navigation_consumer_verified_prefix_check CHECK (
     (verified_prefix_version IS NULL AND verified_prefix_seq IS NULL AND verified_prefix_coverage_root IS NULL AND
       verified_prefix_cohort_root IS NULL AND verified_prefix_digest IS NULL) OR
-    (verified_prefix_version IS NOT NULL AND verified_prefix_version IN (1,2) AND verified_prefix_seq IS NOT NULL AND verified_prefix_coverage_root IS NOT NULL AND
+    (verified_prefix_version IS NOT NULL AND verified_prefix_version IN (1,2,3) AND verified_prefix_seq IS NOT NULL AND verified_prefix_coverage_root IS NOT NULL AND
       verified_prefix_cohort_root IS NOT NULL AND verified_prefix_digest IS NOT NULL)
   );
+
+-- Preserve old format markers: source-backed bootstrap is the only v3 admission.
+ALTER TABLE cmd2_projection_navigation_consumer
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_consumer_verified_prefix_version_check;
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD CONSTRAINT cmd2_projection_navigation_consumer_verified_prefix_version_check
+  CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2,3));
+
+-- Immutable compressed radix nodes; the exact owner tuple remains in each leaf.
+-- Nodes and root pointers are transactional PG state and travel in native backup.
+CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort_tree (
+  domain text NOT NULL, consumer_id text NOT NULL,
+  root_json text NOT NULL CHECK (octet_length(root_json) BETWEEN 4 AND 512),
+  PRIMARY KEY(domain,consumer_id),
+  FOREIGN KEY(domain,consumer_id) REFERENCES cmd2_projection_navigation_consumer(domain,consumer_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort_tree_node (
+  domain text NOT NULL, consumer_id text NOT NULL,
+  node_sha256 text NOT NULL CHECK (node_sha256 ~ '^[0-9a-f]{64}$'),
+  node_json text NOT NULL CHECK (octet_length(node_json) BETWEEN 1 AND 65536),
+  PRIMARY KEY(domain,consumer_id,node_sha256),
+  FOREIGN KEY(domain,consumer_id) REFERENCES cmd2_projection_navigation_consumer(domain,consumer_id) ON DELETE CASCADE
+);
 
 -- One exact whole-source bootstrap, tied to the owner-selected managed model.
 -- Its rows are separate from event cohorts so an event update can replace a

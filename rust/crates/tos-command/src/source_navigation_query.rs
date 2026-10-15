@@ -19,7 +19,7 @@ use tos_query::{
 };
 
 use crate::{
-    DurableNavigationEventLimits, DurableNavigationPublishedGenerationGuardV2,
+    DurableError, DurableNavigationEventLimits, DurableNavigationPublishedGenerationGuardV2,
     DurableProjectionProfile,
     durable_adapter::durable_projection::DurableNavigationPublishedGenerationV2,
     source_managed_selection::{
@@ -684,6 +684,45 @@ impl SourceNavigationPgReadModel<'_, '_, '_, '_> {
         Ok(self.charge(1 + 2 * rows.len() as u64, rows.len() as u64, bytes))
     }
 
+    fn verify_selected_owner_metadata(
+        &mut self,
+        rows: &[postgres::Row],
+        bytes: u64,
+        probes: u64,
+        work_rows: u64,
+    ) -> Result<Charged, QueryError> {
+        let owners = rows
+            .iter()
+            .map(|row| {
+                (
+                    row.get::<_, String>("owner_source_path"),
+                    row.get::<_, String>("owner_record_id"),
+                )
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        if owners.is_empty() {
+            return Ok(Charged::default());
+        }
+        let mut limits = self.limits;
+        limits.max_total_bytes = limits.max_total_bytes.min(bytes);
+        limits.max_current_cohorts = limits.max_current_cohorts.min(work_rows as usize);
+        let (observed_probes, observed_rows, observed_bytes) =
+            crate::durable_adapter::durable_projection::verify_navigation_selected_cohort_metadata_v3(
+                self.tx, self.domain, self.consumer_id, &owners, limits, probes, work_rows,
+            ).map_err(|error| match error {
+                DurableError::Refused(_) => query_error(QueryErrorCode::BudgetExceeded, "selected cohort proof budget"),
+                _ => query_error(QueryErrorCode::CorruptSelectedCarrier, "selected cohort metadata proof differs"),
+            })?;
+        if observed_probes > probes || observed_rows > work_rows || observed_bytes > bytes {
+            return Err(query_error(
+                QueryErrorCode::BudgetExceeded,
+                "selected cohort proof work budget",
+            ));
+        }
+        self.check_current()?;
+        Ok(self.charge(observed_probes, observed_rows, observed_bytes))
+    }
+
     fn node_lookup(
         &mut self,
         id: &str,
@@ -712,16 +751,16 @@ impl SourceNavigationPgReadModel<'_, '_, '_, '_> {
         let carrier_cap = checked_u64(max_carrier_bytes, "source node byte budget overflow")?;
         let candidates = self.tx.query(
             "WITH candidates AS (
-                 SELECT row_id AS id,visible,row_sha256,octet_length(row_json)::bigint AS size,row_json
+                 SELECT row_id AS id,visible,row_sha256,octet_length(row_json)::bigint AS size,row_json,owner_source_path,owner_record_id
                  FROM cmd2_projection_navigation_bootstrap_row
-                 WHERE domain=$1 AND consumer_id=$2 AND row_kind='node' AND active AND row_id=$3
+                 WHERE domain=$1 AND consumer_id=$2 AND row_kind='node' AND active AND row_id COLLATE \"C\"=$3
                  UNION ALL
-                 SELECT node_id AS id,visible,row_sha256,octet_length(row_json)::bigint AS size,row_json
+                 SELECT node_id AS id,visible,row_sha256,octet_length(row_json)::bigint AS size,row_json,source_path AS owner_source_path,record_id AS owner_record_id
                  FROM cmd2_projection_navigation_node
-                 WHERE domain=$1 AND consumer_id=$2 AND node_id=$3
+                 WHERE domain=$1 AND consumer_id=$2 AND node_id COLLATE \"C\"=$3
                  LIMIT $5
              )
-             SELECT id,visible,row_sha256,size,
+             SELECT id,visible,row_sha256,size,owner_source_path,owner_record_id,
                     CASE WHEN size <= $4 THEN row_json END AS row_json
              FROM candidates ORDER BY id COLLATE \"C\"",
             &[&self.domain, &self.consumer_id, &id, &carrier_cap, &row_limit],
@@ -832,10 +871,20 @@ impl SourceNavigationPgReadModel<'_, '_, '_, '_> {
                 "source node result exceeds byte budget",
             ));
         }
+        let proof = self.verify_selected_owner_metadata(
+            &candidates,
+            (max_bytes as u64).saturating_sub(charged_bytes),
+            max_work_probes.saturating_sub(1),
+            max_work_rows.saturating_sub(candidates.len() as u64),
+        )?;
         self.check_current()?;
         Ok((
             found,
-            self.charge(1, candidates.len() as u64, charged_bytes),
+            self.charge(
+                1 + proof.probes,
+                candidates.len() as u64 + proof.rows,
+                charged_bytes + proof.bytes,
+            ),
         ))
     }
 
@@ -943,17 +992,17 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
         let carrier_cap = checked_u64(max_carrier_bytes, "source adjacency byte limit overflow")?;
         let rows = self.tx.query(
             "WITH physical AS (
-                 SELECT edge_id,from_id,to_id,visible,row_sha256,row_json
+                 SELECT edge_id,from_id,to_id,visible,row_sha256,row_json,owner_source_path,owner_record_id
                  FROM (
-                     SELECT row_id AS edge_id,from_id,to_id,visible,row_sha256,row_json
+                     SELECT row_id AS edge_id,from_id,to_id,visible,row_sha256,row_json,owner_source_path,owner_record_id
                      FROM cmd2_projection_navigation_bootstrap_row
                      WHERE domain=$1 AND consumer_id=$2 AND row_kind='edge' AND active
-                       AND from_id=$3 AND ($4::text IS NULL OR row_id COLLATE \"C\" > $4 COLLATE \"C\")
+                       AND from_id COLLATE \"C\"=$3 AND ($4::text IS NULL OR row_id COLLATE \"C\" > $4 COLLATE \"C\")
                      UNION ALL
-                     SELECT edge_id,from_id,to_id,visible,row_sha256,row_json
+                     SELECT edge_id,from_id,to_id,visible,row_sha256,row_json,source_path AS owner_source_path,record_id AS owner_record_id
                      FROM cmd2_projection_navigation_edge
                      WHERE domain=$1 AND consumer_id=$2
-                       AND from_id=$3 AND ($4::text IS NULL OR edge_id COLLATE \"C\" > $4 COLLATE \"C\")
+                       AND from_id COLLATE \"C\"=$3 AND ($4::text IS NULL OR edge_id COLLATE \"C\" > $4 COLLATE \"C\")
                  ) effective
              ), candidate_ids AS (
                  SELECT edge_id FROM physical
@@ -962,10 +1011,10 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
              ), candidates AS (
                  SELECT physical.edge_id,physical.from_id,physical.to_id,physical.visible,
                         physical.row_sha256,octet_length(physical.row_json)::bigint AS size,
-                        physical.row_json
+                        physical.row_json,physical.owner_source_path,physical.owner_record_id
                  FROM physical JOIN candidate_ids USING(edge_id)
              )
-             SELECT edge_id,from_id,to_id,visible,row_sha256,size,
+             SELECT edge_id,from_id,to_id,visible,row_sha256,size,owner_source_path,owner_record_id,
                     CASE WHEN size <= $6 THEN row_json END AS row_json,
                     count(*) OVER () AS candidate_count
              FROM candidates ORDER BY edge_id COLLATE \"C\",row_sha256 COLLATE \"C\"
@@ -1134,6 +1183,12 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
                 "source adjacency result exceeds byte budget",
             ));
         }
+        let proof = self.verify_selected_owner_metadata(
+            &rows,
+            (max_bytes as u64).saturating_sub(charged_bytes),
+            max_work_probes.saturating_sub(2),
+            max_work_rows.saturating_sub(rows_total as u64),
+        )?;
         self.check_current()?;
         Ok(AdjacencyPage {
             binding: self.binding.clone(),
@@ -1143,7 +1198,11 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
             exhausted,
             expected_count,
             expected_digest,
-            charged: self.charge(2, rows_total as u64, charged_bytes),
+            charged: self.charge(
+                2 + proof.probes,
+                rows_total as u64 + proof.rows,
+                charged_bytes + proof.bytes,
+            ),
         })
     }
 

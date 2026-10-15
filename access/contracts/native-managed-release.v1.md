@@ -206,6 +206,19 @@ receipt requires explicit rebuild into a new consumer and selection switch;
 existing source history and publication are preserved. This metadata addition
 changes new private bootstrap roots, not Original roots or model bytes.
 
+Navigation publication checkpoints use format 3. The current event-cohort map
+is a compressed radix tree over owner-key digests in PostgreSQL; leaves retain
+the exact owner tuple and canonical metadata digest. The map root, exact row
+changes and cursor commit atomically. Changing one owner touches only its tree
+paths and actual graph dependencies. Ordinary reads authenticate the published
+root and selected owner paths, including absence, within their query budgets;
+they do not audit unrelated table rows. Explicit full-index audit verifies every
+current cohort and exact map cardinality. Restoring identical current metadata
+restores the identical map root, independently of update history. Existing
+format 1/2 publications need explicit source-backed bootstrap; a cursor or stored
+row cannot manufacture format 3 admission. Backup format 10 includes both map
+tables; restore retains older backup-format readers and their declared checks.
+
 This anchor supports PostgreSQL source-navigation publication and exact retained
 Original reads. It does not support offline indexed search or claim a complete
 portable Site profile. PostgreSQL text search has its own model and cursor.

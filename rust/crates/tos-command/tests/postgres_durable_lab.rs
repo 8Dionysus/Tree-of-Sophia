@@ -1465,7 +1465,7 @@ fn project_current_backup_as_v1_wire_for_test(
 
     let current_raw = fs::read(current_backup.join("receipt.json")).unwrap();
     let current: serde_json::Value = serde_json::from_slice(&current_raw).unwrap();
-    assert_eq!(current["schema"], "tos_cmd2_quiescent_backup_v9");
+    assert_eq!(current["schema"], "tos_cmd2_quiescent_backup_v10");
     assert!(current.get("profile").is_some());
     assert!(current.get("metadata").is_some());
     assert_eq!(current["source_admission"], false);
@@ -5245,7 +5245,7 @@ fn maintained_agent_creation_operation<
         let receipt = fs::read(backup_root.0.join("receipt.json")).unwrap();
         assert!(receipt.len() <= 1024 * 1024);
         let receipt_value: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
-        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v9");
+        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v10");
         let metadata = &receipt_value["metadata"];
         assert_eq!(
             metadata["durable_schema_profile_v1"]["schema"],

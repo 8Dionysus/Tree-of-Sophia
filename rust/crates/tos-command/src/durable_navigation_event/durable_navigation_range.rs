@@ -17,10 +17,10 @@ use super::{
     DurableProjectionLimits, DurableProjectionProfile, DurableResult, EventWitness,
     MAX_NAVIGATION_EVENT_ID_BYTES, MAX_NAVIGATION_EVENT_STEPS_PER_CALL,
     MAX_NAVIGATION_RECORD_ID_BYTES, as_i64, as_u64, canonical_value,
-    navigation_current_cohort_root_in_tx, navigation_verified_prefix_digest, parse_digest,
-    read_domain_snapshot, read_navigation_event_cursor, read_navigation_event_head,
-    resolve_event_witness, selected_version_at_cut, set_local_timeouts, validate_identifier,
-    validate_relative_path, verify_navigation_consumer, verify_navigation_verified_prefix_in_tx,
+    navigation_verified_prefix_digest, parse_digest, read_domain_snapshot,
+    read_navigation_event_cursor, read_navigation_event_head, resolve_event_witness,
+    selected_version_at_cut, set_local_timeouts, validate_identifier, validate_relative_path,
+    verify_navigation_consumer, verify_navigation_verified_prefix_in_tx,
 };
 
 /// One exact source-history member committed by a range event.
@@ -588,6 +588,8 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
     }
     let mut target_owners = owner_keys.clone();
     target_owners.extend(predecessor_owners.iter().cloned());
+    let cohort_checkpoint =
+        super::cohort_tree::verify_owners(tx, domain, consumer_id, &target_owners, limits)?;
     let changed_paths = coverage.changed_source_paths();
     verify_navigation_range_reverse_dependency_closure(
         tx,
@@ -758,7 +760,14 @@ pub(crate) fn publish_navigation_event_range_cohort_set_v1_in_tx(
             ],
         )?;
     }
-    let cohort_root = navigation_current_cohort_root_in_tx(tx, domain, consumer_id, limits)?;
+    let cohort_root = super::cohort_tree::update_owners(
+        tx,
+        domain,
+        consumer_id,
+        &target_owners,
+        &cohort_checkpoint,
+        limits,
+    )?;
     let owner_binding_json: String = bootstrap.get("owner_binding_json");
     let checkpoint_digest = navigation_verified_prefix_digest(
         domain,
