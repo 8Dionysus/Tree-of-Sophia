@@ -2,6 +2,75 @@ use super::*;
 
 #[test]
 #[ignore = "requires explicit isolated TOS_CMD_POSTGRES_URL"]
+fn navigation_schema_upgrade_replaces_postgres_generated_version_check() {
+    let url = std::env::var("TOS_CMD_POSTGRES_URL").expect("explicit private PG lab URL");
+    let mut client = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+    client
+        .batch_execute(
+            "CREATE SCHEMA tos_initial_version_upgrade_test;
+             SET search_path=tos_initial_version_upgrade_test; SET statement_timeout='20s'",
+        )
+        .unwrap();
+    client
+        .batch_execute(include_str!("../durable_schema.sql"))
+        .unwrap();
+    client
+        .batch_execute(include_str!("../durable_private_packages.sql"))
+        .unwrap();
+    let projection = include_str!("../durable_projection.sql");
+    client.batch_execute(projection).unwrap();
+    // Let PostgreSQL choose the historical inline-column check name. Merely
+    // spelling the long name in ADD CONSTRAINT exercises a different name.
+    client.batch_execute(
+        "ALTER TABLE cmd2_projection_navigation_consumer DROP COLUMN verified_prefix_version CASCADE;
+         ALTER TABLE cmd2_projection_navigation_consumer ADD COLUMN verified_prefix_version smallint
+           CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2));
+         INSERT INTO cmd2_projection_navigation_consumer
+           (domain,consumer_id,profile_id,profile_version,source_contract_digest,
+            verified_prefix_version,verified_prefix_seq,verified_prefix_coverage_root,
+            verified_prefix_cohort_root,verified_prefix_digest)
+         VALUES('d','c','p','1',repeat('0',64),2,0,repeat('0',64),repeat('0',64),repeat('0',64));"
+    ).unwrap();
+    assert!(client
+        .execute(
+            "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=3",
+            &[]
+        )
+        .is_err());
+    client.batch_execute(projection).unwrap();
+    client.batch_execute(projection).unwrap();
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT verified_prefix_version FROM cmd2_projection_navigation_consumer",
+                &[]
+            )
+            .unwrap()
+            .get::<_, i16>(0),
+        2
+    );
+    assert_eq!(
+        client
+            .execute(
+                "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=3",
+                &[]
+            )
+            .unwrap(),
+        1
+    );
+    assert!(client
+        .execute(
+            "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=4",
+            &[]
+        )
+        .is_err());
+    client
+        .batch_execute("DROP SCHEMA tos_initial_version_upgrade_test CASCADE")
+        .unwrap();
+}
+
+#[test]
+#[ignore = "requires explicit isolated TOS_CMD_POSTGRES_URL"]
 fn navigation_initial_normalization_matches_shared_rules_across_committed_pages() {
     let url = std::env::var("TOS_CMD_POSTGRES_URL").expect("explicit private PG lab URL");
     let connect = || {
@@ -393,12 +462,10 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
         expected_adjacency_root
     );
     tx.execute("UPDATE cmd2_projection_navigation_adjacency_certificate SET edge_count=edge_count+1 WHERE node_id='work:current'", &[]).unwrap();
-    assert!(
-        super::super::seal::verify_adjacency(
-            &mut tx, "lab", "initial", root, limits, deadline, &cancelled
-        )
-        .is_err()
-    );
+    assert!(super::super::seal::verify_adjacency(
+        &mut tx, "lab", "initial", root, limits, deadline, &cancelled
+    )
+    .is_err());
     tx.rollback().unwrap();
     // A changed duplicate rights carrier must not become another owner copy.
     let mut position = Position {

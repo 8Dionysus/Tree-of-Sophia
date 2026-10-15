@@ -162,7 +162,8 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_consumer (
   adjacency_seq bigint NOT NULL DEFAULT 0 CHECK (adjacency_seq >= 0),
   adjacency_root char(64) CHECK (adjacency_root IS NULL OR adjacency_root ~ '^[0-9a-f]{64}$'),
   adjacency_ready boolean NOT NULL DEFAULT false,
-  verified_prefix_version smallint CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2,3)),
+  verified_prefix_version smallint CONSTRAINT cmd2_navigation_verified_prefix_version_check
+    CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2,3)),
   verified_prefix_seq bigint CHECK (verified_prefix_seq IS NULL OR verified_prefix_seq >= 0),
   verified_prefix_coverage_root char(64) CHECK (verified_prefix_coverage_root IS NULL OR verified_prefix_coverage_root ~ '^[0-9a-f]{64}$'),
   verified_prefix_cohort_root char(64) CHECK (verified_prefix_cohort_root IS NULL OR verified_prefix_cohort_root ~ '^[0-9a-f]{64}$'),
@@ -223,10 +224,17 @@ ALTER TABLE cmd2_projection_navigation_consumer
   );
 
 -- Preserve old format markers: source-backed bootstrap is the only v3 admission.
+-- PostgreSQL shortens an automatic table/column check name by shortening the
+-- table component. An explicitly supplied overlong name is truncated at the
+-- end instead. Retire both historical names and use one name below 63 bytes.
+ALTER TABLE cmd2_projection_navigation_consumer
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_consum_verified_prefix_version_check;
 ALTER TABLE cmd2_projection_navigation_consumer
   DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_consumer_verified_prefix_version_check;
 ALTER TABLE cmd2_projection_navigation_consumer
-  ADD CONSTRAINT cmd2_projection_navigation_consumer_verified_prefix_version_check
+  DROP CONSTRAINT IF EXISTS cmd2_navigation_verified_prefix_version_check;
+ALTER TABLE cmd2_projection_navigation_consumer
+  ADD CONSTRAINT cmd2_navigation_verified_prefix_version_check
   CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2,3));
 
 -- Immutable compressed radix nodes; the exact owner tuple remains in each leaf.

@@ -1228,6 +1228,11 @@ receipt, and a bounded nested producer selection (event/schema worker identity,
 dependency paths, event and aggregate limits). Bootstrap uses its event limits
 but does not execute the schema worker. Keep `TOS_SOURCE_PG_URL` in the private
 process environment.
+On installation or upgrade, first use the same native `source-projection`
+entry with a protected `tos_source_projection_selection_v1` selection for the
+same database and `{"operation":"init"}`. This installs or upgrades the derived
+tables without changing source state. Model preparation and policy installation
+do not replace this explicit schema step.
 Bootstrap the complete selected current model before advancing event ranges:
 
 ```sh
@@ -1359,9 +1364,9 @@ their existing tables. A missing bootstrap cannot be repaired by event replay.
 #### One-time model preparation and policy
 
 Preparing the initial model is a separate local-owner-only operation. Call
-`source-projection` with a protected
-`tos_local_source_navigation_model_prepare_owner_v1` selection and the generic
-`tos_local_native_source_invocation_v1` invocation. The prepare owner fixes the
+`source-commands` with the generic `tos_local_native_source_invocation_v1`
+invocation referring to a protected
+`tos_local_source_navigation_model_prepare_owner_v1` owner. The prepare owner fixes the
 bootstrap invocation/request, model and final-owner leaves, selected
 `source_navigation` producer/profile, finite `model_limits`, and an explicit
 `policy_template`. Its request carries only
@@ -1371,8 +1376,8 @@ protected preparation owner. Run it through the local native command and save
 the one-line result yourself:
 
 ```sh
-/absolute/prefix/bin/tos-native-owner-command source-projection \
-  --selection /absolute/protected/tos-local-source-navigation-model-prepare-owner.json \
+/absolute/prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/protected/tos-local-source-navigation-model-prepare-invocation.json \
   < /absolute/requests/prepare-initial.json \
   > /absolute/receipts/navigation-model-prepare.json
 ```

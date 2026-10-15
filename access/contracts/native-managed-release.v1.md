@@ -251,6 +251,11 @@ does not grant publication. Each full seal starts in a fresh invocation so
 its deadline is not consumed by earlier capture/normalization pages.
 The load-readiness consumer resumes these calls under its operation deadline
 and records their count separately from controlled event-interruption evidence.
+Installation and upgrade explicitly run `source-projection` with the existing
+source-text projection selection and `{"operation":"init"}` before bootstrap.
+This derived-schema migration preserves older prefix markers and replaces both
+historical PostgreSQL constraint names before accepting format 3; it does not
+upgrade an existing publication's evidence or modify source state.
 
 Relation carrier IDs have a 512-byte ceiling. Node, record, owner and endpoint
 IDs retain their 256-byte ceiling. Neither adapter truncates an identity.
