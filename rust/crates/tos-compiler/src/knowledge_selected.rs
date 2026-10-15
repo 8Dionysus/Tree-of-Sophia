@@ -4443,7 +4443,13 @@ mod tests {
     fn selected_table_allowlist_refuses_private_input_and_prepare_tables() {
         let db = Connection::open_in_memory().unwrap();
         for (table, _) in SELECTED_TABLES {
-            db.execute(&format!("CREATE TABLE {table}(x)"), []).unwrap();
+            let columns = if table == "metadata" {
+                "key TEXT PRIMARY KEY, value BLOB"
+            } else {
+                "x"
+            };
+            db.execute(&format!("CREATE TABLE {table}({columns})"), [])
+                .unwrap();
         }
         assert!(verify_selected_table_allowlist(&db).is_ok());
         db.execute_batch(crate::knowledge_navigation_original::META_DDL)
@@ -4472,6 +4478,19 @@ mod tests {
         db.execute("DROP TABLE raw_records", []).unwrap();
         db.execute("CREATE TABLE search_pending_grams(x)", [])
             .unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_err());
+        db.execute("DROP TABLE search_pending_grams", []).unwrap();
+        db.execute_batch("DROP TABLE search_documents; DROP TABLE search_gram_stats; DROP TABLE search_posting_blocks").unwrap();
+        // Missing postings are corruption until an independently selected
+        // navigation ABI explicitly chooses this different physical closure.
+        assert!(verify_selected_table_allowlist(&db).is_err());
+        db.execute(
+            "INSERT INTO metadata(key,value) VALUES('model_abi',?1)",
+            [tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1],
+        )
+        .unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_ok());
+        db.execute("CREATE TABLE search_documents(x)", []).unwrap();
         assert!(verify_selected_table_allowlist(&db).is_err());
     }
 
