@@ -81,6 +81,7 @@ impl DurablePgCoordinator {
         components: &SoftwareComponentSelectionV1,
         worker: &mut CutWorkerSchemaExecutor,
         contract: Digest256,
+        job_mode: BootstrapJobMode,
         max_rows: u64,
         max_source_bytes: u64,
         max_member_bytes: u64,
@@ -109,26 +110,44 @@ impl DurablePgCoordinator {
         }
         source_limits.index_limits()?;
         let generation_profile = generation_profile.validate(workspace)?;
-        let seed = self.seed_fresh_source_bootstrap_streamed(
-            store,
-            domain,
-            original,
-            revision,
-            membership,
-            context,
-            software,
-            components,
-            contract,
-            max_rows,
-            max_source_bytes,
-            max_member_bytes,
-            max_dependency_bytes_per_member,
-            generation_profile.max_commit_seq,
-            body_work,
-            deadline,
-            &cancelled,
-            owner_check,
-        )?;
+        let seed = match job_mode {
+            BootstrapJobMode::Initialize => self.seed_fresh_source_bootstrap_streamed(
+                store,
+                domain,
+                original,
+                revision,
+                membership,
+                context,
+                software,
+                components,
+                contract,
+                max_rows,
+                max_source_bytes,
+                max_member_bytes,
+                max_dependency_bytes_per_member,
+                generation_profile.max_commit_seq,
+                body_work,
+                deadline,
+                &cancelled,
+                owner_check,
+            )?,
+            BootstrapJobMode::RequireExisting => self.resume_seeded_source_bootstrap_streamed(
+                store,
+                domain,
+                original,
+                revision,
+                membership,
+                contract,
+                max_rows,
+                max_source_bytes,
+                max_member_bytes,
+                generation_profile.max_commit_seq,
+                body_work,
+                deadline,
+                &cancelled,
+                owner_check,
+            )?,
+        };
         self.complete_fresh_source_bootstrap_streamed(
             store,
             seed,
@@ -371,6 +390,111 @@ impl DurablePgCoordinator {
                 revision,
                 membership,
                 authored_members,
+                head,
+                audit,
+                contract,
+            },
+        })
+    }
+
+    fn resume_seeded_source_bootstrap_streamed(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        original: &StreamedCorpusCutReaderV1,
+        revision: SourceRevision,
+        membership: SourceMembershipV1,
+        contract: Digest256,
+        max_rows: u64,
+        max_source_bytes: u64,
+        max_member_bytes: u64,
+        max_commit_seq: u64,
+        body_work: &mut super::source_cohort_streamed::StreamedColdSourceWorkV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        owner_check: &dyn Fn() -> DurableResult<()>,
+    ) -> DurableResult<FreshSourceBootstrapV1> {
+        active(deadline, cancelled)?;
+        owner_check()?;
+        let input_limits = original.content_limits();
+        if store.custody_domain() != domain.as_bytes()
+            || input_limits.max_total_bytes > max_source_bytes
+            || input_limits.max_member_bytes > max_member_bytes
+        {
+            return Err(DurableError::Refused("bootstrap resume input selection"));
+        }
+        let verified = super::source_cohort_streamed::verify_original_content(
+            original,
+            revision,
+            membership,
+            max_member_bytes,
+            deadline,
+            cancelled,
+            body_work,
+        )?;
+        if verified.authored_members == 0 || verified.authored_members > max_rows {
+            return Err(DurableError::Refused(
+                "bootstrap resume original member bound",
+            ));
+        }
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let audit = lock_audit_fence(&mut tx, domain)?;
+        let row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+            &[&domain],
+        )?;
+        let head = as_u64(row.get("head_seq"))?;
+        let job = tx.query_opt(
+            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id='source-bootstrap' FOR SHARE",
+            &[&domain],
+        )?;
+        let counts = tx.query_one(
+            "SELECT (SELECT count(*) FROM cmd2_current WHERE domain=$1), (SELECT count(*) FROM cmd2_history WHERE domain=$1)",
+            &[&domain],
+        )?;
+        if head == 0
+            || head > max_commit_seq
+            || job.as_ref().map(|r| r.get::<_, i64>(0)) != Some(1)
+            || as_u64(counts.get(0))? != verified.authored_members
+            || as_u64(counts.get(1))? != verified.authored_members
+            || row.get::<_, bool>("source_complete")
+            || !row.get::<_, bool>("rights_allowed")
+            || row.get::<_, i64>("rights_version") != 0
+            || row.get::<_, i64>("rule_version") != 0
+            || row.get::<_, String>("contract_digest") != contract.to_hex()
+            || row.get::<_, Option<String>>("source_revision") != Some(revision.0.to_hex())
+            || row.get::<_, Option<String>>("source_membership_digest")
+                != Some(membership.digest.to_hex())
+            || row.get::<_, Option<i64>>("source_membership_count")
+                != Some(as_i64(membership.count)?)
+            || row.get::<_, Option<i64>>("source_epoch") != Some(1)
+            || row.get::<_, Option<i64>>("source_generation") != Some(0)
+            || row.get::<_, Option<String>>("source_definition_digest")
+                != Some(definition().to_hex())
+            || row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(schema_profile_digest().to_hex())
+            || row
+                .get::<_, Option<String>>("selected_generation_digest")
+                .is_some()
+            || row
+                .get::<_, Option<String>>("source_projection_digest")
+                .is_some()
+        {
+            return Err(DurableError::Conflict(
+                "bootstrap resume requires complete original writes and unchanged initial authority",
+            ));
+        }
+        owner_check()?;
+        tx.commit()?;
+        owner_check()?;
+        Ok(FreshSourceBootstrapV1 {
+            observed: FreshSourceBootstrapObservationV1 {
+                domain: domain.to_owned(),
+                store_id: store.store_id(),
+                revision,
+                membership,
+                authored_members: verified.authored_members,
                 head,
                 audit,
                 contract,

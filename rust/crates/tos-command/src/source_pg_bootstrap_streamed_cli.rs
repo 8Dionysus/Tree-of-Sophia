@@ -412,12 +412,9 @@ pub(super) fn run(
         ));
     }
     let selection = selected_source(invocation)?;
-    if selection.job_mode != BootstrapJobMode::Initialize
-        || selection.job_id != "source-bootstrap"
-        || selection.job_fence != 1
-    {
+    if selection.job_id != "source-bootstrap" || selection.job_fence != 1 {
         return Err(SourceCommandError::Denied(
-            "streamed bootstrap requires the fresh source-bootstrap lease",
+            "streamed bootstrap requires the exact source-bootstrap lease",
         ));
     }
     if digest(text(invocation, "source_revision")?)? != selection.source_revision.0 {
@@ -545,6 +542,7 @@ pub(super) fn run(
             &protected.components,
             &mut worker,
             selection.contract,
+            selection.job_mode,
             budgets.cut.max_members,
             budgets.max_source_bytes,
             budgets.max_member_bytes,
@@ -586,7 +584,9 @@ pub(super) fn run(
         "selected_head_seq": reopened.commit_seq(),
         "selected_state_sha256": selected_state_digest.to_prefixed(),
         "streamed": true,
-        "bootstrap_resume_supported": false,
+        "bootstrap_resume_supported": true,
+        "bootstrap_resume_scope": "complete-original-write-before-assessment",
+        "bootstrap_resumed": selection.job_mode == BootstrapJobMode::RequireExisting,
         "logical_source_work": {
             "original_bodies_returned": body_work.original_bodies_returned,
             "original_body_bytes_returned": body_work.original_body_bytes_returned,

@@ -2111,48 +2111,90 @@ fn maintained_agent_creation_operation<
         .unwrap();
         let owner_check = || -> tos_command::DurableResult<()> { Ok(()) };
         let mut tree_work = tos_segment_store::AuthenticatedTreeWorkV1::default();
-        let result = lab.db.bootstrap_source_cohort_streamed(
-            &lab.store,
-            &lab.domain,
-            &streamed_original,
-            revision,
-            membership,
-            &bootstrap_context,
-            &software,
-            &components,
-            &mut worker,
-            contract_digest(),
-            2048,
-            33_554_432,
-            8_388_608,
-            1_048_576,
-            "ToS/contracts/corpus-record.schema.json",
-            &bootstrap_workspace,
-            generation_profile,
-            tos_command::source_cohort::StreamedColdSourceLimitsV1 {
-                max_member_bytes: source_member_cap,
-                max_rows: 100_000,
-                max_logical_bytes: 64 * 1024 * 1024,
-                max_key_bytes: 4096,
-                max_value_bytes: 1_048_576,
-                max_placement_bytes: 1_048_576,
-                max_sqlite_file_bytes: 16 * 1024 * 1024,
-                max_vm_steps: 200_000_000,
-            },
-            tos_validation::item_rules::ItemLimits {
-                max_member_bytes: 8_388_608,
-                max_total_bytes: 64 * 1024 * 1024,
-                max_state_bytes: 16 * 1024 * 1024,
-                max_issues: 256,
+        // Simulate a finishing-assessment refusal after durable ORIGINAL EOF.
+        // Resume must reuse every committed source row and receipt.
+        let mut seeded_head = 0;
+        let mut seeded_counts = Vec::new();
+        let mut completed = None;
+        for bootstrap_mode in [
+            tos_command::source_cohort::BootstrapJobMode::Initialize,
+            tos_command::source_cohort::BootstrapJobMode::RequireExisting,
+        ] {
+            let result = lab.db.bootstrap_source_cohort_streamed(
+                &lab.store,
+                &lab.domain,
+                &streamed_original,
+                revision,
+                membership,
+                &bootstrap_context,
+                &software,
+                &components,
+                &mut worker,
+                contract_digest(),
+                bootstrap_mode,
+                2048,
+                33_554_432,
+                8_388_608,
+                1_048_576,
+                "ToS/contracts/corpus-record.schema.json",
+                &bootstrap_workspace,
+                generation_profile,
+                tos_command::source_cohort::StreamedColdSourceLimitsV1 {
+                    max_member_bytes: source_member_cap,
+                    max_rows: if bootstrap_mode
+                        == tos_command::source_cohort::BootstrapJobMode::Initialize
+                    {
+                        1
+                    } else {
+                        100_000
+                    },
+                    max_logical_bytes: 64 * 1024 * 1024,
+                    max_key_bytes: 4096,
+                    max_value_bytes: 1_048_576,
+                    max_placement_bytes: 1_048_576,
+                    max_sqlite_file_bytes: 16 * 1024 * 1024,
+                    max_vm_steps: 200_000_000,
+                },
+                tos_validation::item_rules::ItemLimits {
+                    max_member_bytes: 8_388_608,
+                    max_total_bytes: 64 * 1024 * 1024,
+                    max_state_bytes: 16 * 1024 * 1024,
+                    max_issues: 256,
+                    deadline,
+                },
+                tree_limits,
+                &mut work,
+                &mut tree_work,
                 deadline,
-            },
-            tree_limits,
-            &mut work,
-            &mut tree_work,
-            deadline,
-            std::sync::Arc::clone(&cancelled),
-            &owner_check,
-        );
+                std::sync::Arc::clone(&cancelled),
+                &owner_check,
+            );
+            if bootstrap_mode == tos_command::source_cohort::BootstrapJobMode::Initialize {
+                assert!(matches!(
+                    result,
+                    Err(DurableError::Refused(
+                        "streamed current input preflight bounds"
+                    ))
+                ));
+                seeded_head = lab.head_seq();
+                assert!(seeded_head > 0);
+                seeded_counts = ["current", "history", "receipt", "log"]
+                    .iter()
+                    .map(|table| lab.count(table))
+                    .collect();
+            } else {
+                assert_eq!(lab.head_seq(), seeded_head);
+                assert_eq!(
+                    seeded_counts,
+                    ["current", "history", "receipt", "log"]
+                        .iter()
+                        .map(|table| lab.count(table))
+                        .collect::<Vec<_>>()
+                );
+                completed = Some(result);
+            }
+        }
+        let result = completed.unwrap();
         eprintln!(
             "CMD2_STREAMED_BOOTSTRAP result_ok={} source_work={work:?} tree_work={tree_work:?}",
             result.is_ok()

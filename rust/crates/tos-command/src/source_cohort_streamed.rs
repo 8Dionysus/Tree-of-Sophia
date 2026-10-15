@@ -232,13 +232,13 @@ impl ReadonlyRecordFiles for StreamedSourceReadEpoch<'_, '_> {
 
 /// Complete content fixity is a prerequisite only. This private witness grants
 /// no semantic assessment, current PG selection, rights or generation.
-struct VerifiedStreamedOriginalContentV1 {
+pub(super) struct VerifiedStreamedOriginalContentV1 {
     revision: SourceRevision,
     membership: SourceMembershipV1,
-    authored_members: u64,
+    pub(super) authored_members: u64,
 }
 
-fn verify_original_content(
+pub(super) fn verify_original_content(
     original: &tos_source_store::StreamedCorpusCutReaderV1,
     revision: SourceRevision,
     membership: SourceMembershipV1,
@@ -351,18 +351,20 @@ fn index_current_source(
     cold.audited_root.require_store(store)?;
     set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
     let admitted = tx.query_one(
-        "SELECT count(*),coalesce(sum(content_length),0)::bigint,coalesce(max(content_length),0),coalesce(max(octet_length(inventory_projection)),0)::bigint,coalesce(max(octet_length(row_to_json(c)::text)),0)::bigint,coalesce(sum(octet_length(row_to_json(c)::text)),0)::bigint FROM cmd2_current c WHERE domain=$1",
+        "SELECT count(*),coalesce(max(content_length),0),coalesce(max(octet_length(inventory_projection)),0)::bigint,coalesce(max(octet_length(row_to_json(c)::text)),0)::bigint,coalesce(sum(octet_length(row_to_json(c)::text)),0)::bigint FROM cmd2_current c WHERE domain=$1",
         &[&domain],
     )?;
+    // This index stores identity/placement metadata, not source bodies. Whole
+    // source bytes are bounded by the selected cut and streamed generation;
+    // charging their sum to the index budget would reintroduce a corpus cap.
     if as_u64(admitted.get(0))? != cold.current_members
         || cold.current_members > limits.max_rows
-        || as_u64(admitted.get(1))? > limits.max_logical_bytes
         || max_member_bytes == 0
         || max_member_bytes > usize::MAX as u64
-        || as_u64(admitted.get(2))? > max_member_bytes
+        || as_u64(admitted.get(1))? > max_member_bytes
+        || as_u64(admitted.get(2))? > limits.max_value_bytes as u64
         || as_u64(admitted.get(3))? > limits.max_value_bytes as u64
-        || as_u64(admitted.get(4))? > limits.max_value_bytes as u64
-        || as_u64(admitted.get(5))? > limits.max_logical_bytes
+        || as_u64(admitted.get(4))? > limits.max_logical_bytes
     {
         return Err(DurableError::Refused(
             "streamed current input preflight bounds",

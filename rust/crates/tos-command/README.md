@@ -359,9 +359,16 @@ For a larger exact cut, the separate
 `tos_local_pg_source_bootstrap_streamed_invocation_v1` profile streams the
 selected revision without requiring a current pointer and retains only one
 bounded durable batch at a time. Its fixed batch body limit is 32 MiB, and the
-selected source member limit cannot exceed that value. It requires the fresh
-`source-bootstrap` lease at fence `1`; resume and custom lease selections are
-refused, and the result reports `bootstrap_resume_supported: false`.
+selected source member limit cannot exceed that value. It uses the exact
+`source-bootstrap` lease at fence `1`. `initialization_mode: existing` with
+`initialize_schema: false` can finish an interrupted assessment after all
+ORIGINAL batches have committed. It verifies original EOF, the retained
+membership and history, exact lease and initial authority, then runs the same
+cold and semantic assessment without rewriting source batches. Partial original
+writes and changed authority are refused. Results declare this bounded resume
+scope and whether the invocation resumed. Source frame and segment limits must
+fit the selected largest member and batch framing; the derived index budget
+covers metadata and index work, independently of total source body bytes.
 Its validated `generation.max_elapsed_seconds` also bounds the streamed
 command's cooperative whole-invocation deadline; an enclosing supervisor may
 apply a stricter wall-clock limit.
