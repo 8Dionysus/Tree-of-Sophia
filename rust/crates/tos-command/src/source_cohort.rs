@@ -7328,26 +7328,11 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<Option<MemberMetadata>> {
-        active(deadline, cancelled)?;
-        let selection = generation.selected();
-        selection.facts().audited_root.require_store(store)?;
-        let domain = generation.cohort().domain();
-        let selected = selection.lookup_current(domain, path, deadline, cancelled)?;
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
-        held_generation_metadata(&mut tx, store, generation)?;
-        let row = tx.query_opt(
-            "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
-            &[&domain, &path.as_str()],
+        let result = read_generation_source_metadata_in_tx(
+            &mut tx, store, generation, path, deadline, cancelled,
         )?;
-        let result = match (selected, row) {
-            (None, None) => None,
-            (Some(selected), Some(row)) => {
-                Some(selected_source_metadata(&row, &selected, domain, path)?)
-            }
-            _ => return Err(DurableError::Conflict("selected source presence differs")),
-        };
-        active(deadline, cancelled)?;
         tx.commit()?;
         Ok(result)
     }
@@ -14831,4 +14816,34 @@ mod item_claim_stream_route_tests {
             "ToS/contracts/example/editions/example/items/example/source-claims.jsonl"
         ));
     }
+}
+
+/// Reuse the exact selected-placement law inside a caller-owned consistent cut.
+pub(crate) fn read_generation_source_metadata_in_tx(
+    tx: &mut Transaction<'_>,
+    store: &SegmentStore,
+    generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+    path: &RelativePath,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Option<MemberMetadata>> {
+    active(deadline, cancelled)?;
+    let selection = generation.selected();
+    selection.facts().audited_root.require_store(store)?;
+    let domain = generation.cohort().domain();
+    let selected = selection.lookup_current(domain, path, deadline, cancelled)?;
+    held_generation_metadata(tx, store, generation)?;
+    let row = tx.query_opt(
+        "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
+        &[&domain, &path.as_str()],
+    )?;
+    let result = match (selected, row) {
+        (None, None) => None,
+        (Some(selected), Some(row)) => {
+            Some(selected_source_metadata(&row, &selected, domain, path)?)
+        }
+        _ => return Err(DurableError::Conflict("selected source presence differs")),
+    };
+    active(deadline, cancelled)?;
+    Ok(result)
 }

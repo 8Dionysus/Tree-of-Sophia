@@ -368,6 +368,9 @@ UPDATE cmd2_projection_navigation_bootstrap_row
 SET from_id=row_json::jsonb->>'from_id',to_id=row_json::jsonb->>'to_id'
 WHERE row_kind='edge' AND (from_id IS NULL OR to_id IS NULL);
 
+CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_bootstrap_row_initial_seal
+  ON cmd2_projection_navigation_bootstrap_row(domain,consumer_id,row_kind,row_id COLLATE "C",
+    owner_source_path COLLATE "C",owner_record_id COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_bootstrap_row_owner_seek
   ON cmd2_projection_navigation_bootstrap_row(domain,consumer_id,owner_source_path COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_bootstrap_edge_from_seek

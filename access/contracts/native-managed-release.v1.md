@@ -233,9 +233,17 @@ limited to one page. Historical ownership, Claim ownership, source-reference
 bindings and visibility use the same rules as the sealed-package writer.
 Identical repeated Original rights rows retain their ordinals in staging and
 collapse only in the query-facing projection; conflicting bytes fail closed.
-This adapter is preparation for the streamed initial writer; the public
-bootstrap command still uses the sealed-package writer until that integration
-is complete.
+The final seal independently rebuilds node facts, contributors and dependency
+sets from Original and compares every normalized key, field and exact carrier.
+It resolves every source witness against the held managed placement generation.
+The seal streams the existing bootstrap hash framing, then builds adjacency
+certificates in bounded committed pages. Publication repeats the closure,
+checks all adjacency certificates and atomically installs the format-3 prefix.
+Only after this publication may bounded cleanup retire initial Original and
+contributor staging; the exact selected cold source and completion provenance
+remain. Replay verifies the published prefix without recapturing deleted staging.
+This adapter remains private preparation: the public bootstrap command still
+uses the sealed-package writer until its caller/result integration is complete.
 
 Relation carrier IDs have a 512-byte ceiling. Node, record, owner and endpoint
 IDs retain their 256-byte ceiling. Neither adapter truncates an identity.

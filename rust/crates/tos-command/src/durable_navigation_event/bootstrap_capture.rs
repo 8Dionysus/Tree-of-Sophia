@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 #[path = "bootstrap_normalize.rs"]
 mod normalize;
+#[path = "bootstrap_seal.rs"]
+mod seal;
 
 const PAGE_ROWS: usize = 128;
 const MEMBER_BOUND: u64 = 4096 + 5 + 192 + 8;
@@ -30,6 +32,14 @@ struct Position {
     normalized_bytes: u64,
     #[serde(default)]
     projected_rights: u64,
+    #[serde(default)]
+    bootstrap_root: Option<String>,
+    #[serde(default)]
+    owner_source_count: u64,
+    #[serde(default)]
+    owner_source_bytes: u64,
+    #[serde(default)]
+    cleanup_complete: bool,
 }
 
 impl Default for Position {
@@ -45,6 +55,10 @@ impl Default for Position {
             normalized_rows: 0,
             normalized_bytes: 0,
             projected_rights: 0,
+            bootstrap_root: None,
+            owner_source_count: 0,
+            owner_source_bytes: 0,
+            cleanup_complete: false,
         }
     }
 }
@@ -61,6 +75,13 @@ struct CapturedRow {
 
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct NavigationInitialCaptureProgress {
+    pub completed: bool,
+    pub cleanup_complete: bool,
+    pub replayed: bool,
+    pub through_sequence: Option<u64>,
+    pub bootstrap_root: Option<String>,
+    pub selected_owner_source_count: u64,
+    pub selected_owner_source_bytes: u64,
     pub captured: bool,
     pub verified: bool,
     pub phase: String,
@@ -151,6 +172,8 @@ fn read_position(
             | "normalize_edges"
             | "normalize_rights"
             | "normalized"
+            | "adjacency"
+            | "publish"
             | "complete"
     ) {
         return Err(DurableError::Corrupt("navigation initial position phase"));
@@ -184,9 +207,6 @@ fn begin_capture(
     if row.get::<_, String>(0) != profile.id
         || row.get::<_, String>(1) != profile.version.to_string()
         || row.get::<_, String>(2) != profile.source_contract.to_hex()
-        || row.get::<_, i64>(3) != 0
-        || row.get::<_, i64>(4) != 0
-        || row.get::<_, bool>(5)
     {
         return Err(DurableError::Conflict(
             "navigation initial capture requires an unused matching consumer",
@@ -212,7 +232,15 @@ fn begin_capture(
             &[&domain, &consumer, &selection, &header, &position_json(&Position::default())?],
         )?;
     }
-    read_position(tx, domain, consumer, selection)
+    let position = read_position(tx, domain, consumer, selection)?;
+    if position.phase != "complete"
+        && (row.get::<_, i64>(3) != 0 || row.get::<_, i64>(4) != 0 || row.get::<_, bool>(5))
+    {
+        return Err(DurableError::Conflict(
+            "navigation initial unfinished consumer is already published",
+        ));
+    }
+    Ok(position)
 }
 
 fn commit_page(
@@ -565,6 +593,18 @@ impl DurablePgCoordinator {
         let selection = serde_json::to_string(&selected_cut)
             .map_err(|_| DurableError::Invalid("navigation initial selection encoding"))?;
         let mut position = begin_capture(&mut tx, domain, consumer, profile, &selection, header)?;
+        let replayed = position.phase == "complete";
+        if replayed {
+            seal::verify_published(
+                &mut tx,
+                domain,
+                consumer,
+                profile,
+                &selected_cut,
+                &position,
+                limits,
+            )?;
+        }
         tx.commit()?;
         let mut call_work_bytes = header.len() as u64;
         let mut committed_batches = 0;
@@ -723,7 +763,147 @@ impl DurablePgCoordinator {
             committed_batches += 1;
             add(&mut call_work_bytes, work)?;
         }
+        while committed_batches < max_batches
+            && matches!(
+                position.phase.as_str(),
+                "normalized" | "adjacency" | "publish"
+            )
+        {
+            live(deadline, cancelled)?;
+            let mut tx = self
+                .client
+                .build_transaction()
+                .isolation_level(postgres::IsolationLevel::RepeatableRead)
+                .start()?;
+            set_local_timeouts(&mut tx, limits.statement_timeout)?;
+            check_fences(&mut tx, domain, profile, &selected_cut)?;
+            tx.query_one("SELECT cursor_seq FROM cmd2_projection_navigation_consumer WHERE domain=$1 AND consumer_id=$2 FOR UPDATE", &[&domain, &consumer])?;
+            if read_position(&mut tx, domain, consumer, &selection)? != position {
+                return Err(DurableError::Conflict(
+                    "navigation initial seal position changed",
+                ));
+            }
+            let (next, work) = if position.phase == "adjacency" {
+                let root = parse_digest(position.bootstrap_root.clone().ok_or(
+                    DurableError::Corrupt("navigation initial seal root missing"),
+                )?)?;
+                seal::adjacency_page(
+                    &mut tx, domain, consumer, &position, root, limits, deadline, cancelled,
+                )?
+            } else {
+                let mut work = verify_captured_roots(
+                    &mut tx, domain, consumer, &receipt, limits, deadline, cancelled,
+                )?;
+                let closure =
+                    seal::verify_derived(&mut tx, domain, consumer, limits, deadline, cancelled)?;
+                add(&mut work, closure.work)?;
+                if position.normalized_rows != closure.rows
+                    || position.normalized_bytes != closure.bytes
+                    || position.projected_rights != closure.rights
+                {
+                    return Err(DurableError::Conflict(
+                        "navigation initial normalized counters differ",
+                    ));
+                }
+                binding.navigation_projected_rights = closure.rights;
+                let (root, bytes, source_count, source_bytes) = seal::root(
+                    &mut tx, store, domain, consumer, selected, &binding, header, limits, deadline,
+                    cancelled,
+                )?;
+                add(&mut work, bytes)?;
+                let mut next = position.clone();
+                next.after.clear();
+                if position.phase == "publish" {
+                    if position.bootstrap_root.as_deref() != Some(root.to_hex().as_str()) {
+                        return Err(DurableError::Conflict(
+                            "navigation initial seal root changed",
+                        ));
+                    }
+                    let (adjacency, bytes) = seal::verify_adjacency(
+                        &mut tx, domain, consumer, root, limits, deadline, cancelled,
+                    )?;
+                    add(&mut work, bytes)?;
+                    seal::publish(
+                        &mut tx, domain, consumer, profile, &binding, header, root, adjacency,
+                        limits,
+                    )?;
+                    next.phase = "complete".into();
+                } else {
+                    next.phase = "adjacency".into();
+                    next.bootstrap_root = Some(root.to_hex());
+                }
+                next.owner_source_count = source_count;
+                next.owner_source_bytes = source_bytes;
+                add(&mut next.work_bytes, work)?;
+                (next, work)
+            };
+            live(deadline, cancelled)?;
+            commit_page(
+                &mut tx,
+                domain,
+                consumer,
+                &selection,
+                &position,
+                &next,
+                &[],
+                limits,
+            )?;
+            tx.commit()?;
+            position = next;
+            committed_batches += 1;
+            add(&mut call_work_bytes, work)?;
+        }
+        // Published rows and their v3 prefix remain. Only private staging is
+        // retired, with deletion and progress committed in bounded batches.
+        while position.phase == "complete"
+            && !position.cleanup_complete
+            && committed_batches < max_batches
+        {
+            live(deadline, cancelled)?;
+            let mut tx = self.client.transaction()?;
+            set_local_timeouts(&mut tx, limits.statement_timeout)?;
+            seal::verify_published(
+                &mut tx,
+                domain,
+                consumer,
+                profile,
+                &selected_cut,
+                &position,
+                limits,
+            )?;
+            if read_position(&mut tx, domain, consumer, &selection)? != position {
+                return Err(DurableError::Conflict(
+                    "navigation initial cleanup position changed",
+                ));
+            }
+            let mut next = position.clone();
+            next.cleanup_complete = seal::cleanup_page(&mut tx, domain, consumer, limits)?;
+            live(deadline, cancelled)?;
+            commit_page(
+                &mut tx,
+                domain,
+                consumer,
+                &selection,
+                &position,
+                &next,
+                &[],
+                limits,
+            )?;
+            tx.commit()?;
+            position = next;
+            committed_batches += 1;
+        }
         Ok(NavigationInitialCaptureProgress {
+            completed: position.phase == "complete",
+            cleanup_complete: position.cleanup_complete,
+            replayed,
+            through_sequence: (position.phase == "complete")
+                .then_some(selected.generation().commit_seq()),
+            bootstrap_root: (position.phase == "complete")
+                .then_some(position.bootstrap_root)
+                .flatten(),
+            selected_owner_source_count: position.owner_source_count,
+            selected_owner_source_bytes: position.owner_source_bytes,
             captured: !matches!(position.phase.as_str(), "nodes" | "edges" | "rights"),
             verified: !matches!(
                 position.phase.as_str(),

@@ -249,6 +249,11 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
     );
     assert!(position.normalized_bytes > limits.max_total_bytes);
     assert_eq!(position.projected_rights, 1);
+    let normalized = expected
+        .iter()
+        .cloned()
+        .map(|row| prepare_navigation_bootstrap_row(row, limits).unwrap().0)
+        .collect::<Vec<_>>();
     let mut expected_keys = BTreeSet::new();
     let mut expected_deps = BTreeSet::new();
     for row in expected {
@@ -280,6 +285,86 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
         FROM cmd2_projection_navigation_bootstrap_dependency WHERE domain='lab' AND consumer_id='initial'", &[]).unwrap()
         .into_iter().map(|r| (r.get(0),r.get(1),r.get(2))).collect::<BTreeSet<_>>();
     assert_eq!(actual_deps, expected_deps);
+    // The seal derives its own facts and contributor/dependency sets. A
+    // plausible stored position or updated row hash cannot bless corruption.
+    let mut tx = client.transaction().unwrap();
+    let closed =
+        super::super::seal::verify_derived(&mut tx, "lab", "initial", limits, deadline, &cancelled)
+            .unwrap();
+    assert_eq!(
+        (closed.rows, closed.bytes, closed.rights),
+        (
+            position.normalized_rows,
+            position.normalized_bytes,
+            position.projected_rights
+        )
+    );
+    tx.commit().unwrap();
+    for tamper in [
+        "UPDATE cmd2_projection_navigation_initial_row SET node_facts_json='{\"visible\":false,\"current_owner\":null}' WHERE row_id='work:current'",
+        "DELETE FROM cmd2_projection_navigation_initial_contributor WHERE node_id='evidence:shared' AND owner_record_id='a'",
+        "INSERT INTO cmd2_projection_navigation_initial_contributor VALUES('lab','initial','evidence:shared','ToS/current.json','forged')",
+        "UPDATE cmd2_projection_navigation_bootstrap_row SET active=false WHERE row_id='work:current'",
+        "UPDATE cmd2_projection_navigation_bootstrap_row SET to_id='work:current' WHERE row_id='edge:a'",
+        "UPDATE cmd2_projection_navigation_bootstrap_row SET row_json=row_json || ' ' WHERE row_id='work:current'",
+        "DELETE FROM cmd2_projection_navigation_bootstrap_dependency WHERE dependency_path='ToS/archive.json'",
+        "INSERT INTO cmd2_projection_navigation_bootstrap_owner VALUES('lab','initial','ToS/forged.json',repeat('0',64),1)",
+    ] {
+        let mut tx = client.transaction().unwrap();
+        assert!(tx.execute(tamper, &[]).unwrap() > 0, "{tamper}");
+        assert!(
+            super::super::seal::verify_derived(
+                &mut tx, "lab", "initial", limits, deadline, &cancelled
+            )
+            .is_err(),
+            "{tamper}"
+        );
+        tx.rollback().unwrap();
+    }
+    client.batch_execute("CREATE TABLE cmd2_projection_navigation_adjacency_certificate(
+        domain text,consumer_id text,node_id text,edge_count bigint,edge_digest text,certificate_root text,
+        PRIMARY KEY(domain,consumer_id,node_id))").unwrap();
+    let root = Digest256::of_bytes(b"independently tested adjacency root");
+    let reference = bootstrap_adjacency_certificates(root, &normalized, limits).unwrap();
+    let expected_adjacency_root = navigation_adjacency_root_initial(root, &reference);
+    let mut adjacent = Position {
+        phase: "adjacency".into(),
+        ..Default::default()
+    };
+    let mut adjacency_pages = 0;
+    while adjacent.phase != "publish" {
+        let mut tx = client.transaction().unwrap();
+        let (next, _) = super::super::seal::adjacency_page(
+            &mut tx, "lab", "initial", &adjacent, root, limits, deadline, &cancelled,
+        )
+        .unwrap();
+        if adjacency_pages == 1 {
+            tx.rollback().unwrap();
+        } else {
+            tx.commit().unwrap();
+            adjacent = next;
+        }
+        adjacency_pages += 1;
+        assert!(adjacency_pages < 100);
+    }
+    assert!(adjacency_pages > 2);
+    let mut tx = client.transaction().unwrap();
+    assert_eq!(
+        super::super::seal::verify_adjacency(
+            &mut tx, "lab", "initial", root, limits, deadline, &cancelled
+        )
+        .unwrap()
+        .0,
+        expected_adjacency_root
+    );
+    tx.execute("UPDATE cmd2_projection_navigation_adjacency_certificate SET edge_count=edge_count+1 WHERE node_id='work:current'", &[]).unwrap();
+    assert!(
+        super::super::seal::verify_adjacency(
+            &mut tx, "lab", "initial", root, limits, deadline, &cancelled
+        )
+        .is_err()
+    );
+    tx.rollback().unwrap();
     // A changed duplicate rights carrier must not become another owner copy.
     let mut position = Position {
         phase: "normalize_rights".into(),
@@ -311,6 +396,68 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
     let mut tx = client.transaction().unwrap();
     assert!(read_position(&mut tx, "lab", "initial", "selection").is_err());
     tx.rollback().unwrap();
+    let before = client
+        .query_one(
+            "SELECT count(*) FROM cmd2_projection_navigation_initial_row",
+            &[],
+        )
+        .unwrap()
+        .get::<_, i64>(0);
+    let mut tx = client.transaction().unwrap();
+    assert!(!super::super::seal::cleanup_page(&mut tx, "lab", "initial", limits).unwrap());
+    tx.rollback().unwrap();
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM cmd2_projection_navigation_initial_row",
+                &[]
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        before
+    );
+    let mut cleanup_pages = 0;
+    loop {
+        let mut tx = client.transaction().unwrap();
+        let complete = super::super::seal::cleanup_page(&mut tx, "lab", "initial", limits).unwrap();
+        tx.commit().unwrap();
+        cleanup_pages += 1;
+        if complete {
+            break;
+        }
+        assert!(cleanup_pages < 100);
+    }
+    assert!(cleanup_pages > 2);
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM cmd2_projection_navigation_bootstrap_row",
+                &[]
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        normalized.len() as i64
+    );
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM cmd2_projection_navigation_initial_row",
+                &[]
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM cmd2_projection_navigation_initial",
+                &[]
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
     client
         .batch_execute("DROP SCHEMA tos_initial_normalization_test CASCADE")
         .unwrap();

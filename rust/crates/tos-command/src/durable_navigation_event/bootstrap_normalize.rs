@@ -8,9 +8,25 @@ use std::cell::{Cell, RefCell};
 
 type Owner = (String, String);
 
+// Fixed private tables only. Verification rebuilds the contribution relation
+// without trusting a persisted phase, counter, or derived metadata row.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum MetadataTarget {
+    Staged,
+    Verification,
+}
+impl MetadataTarget {
+    fn table(self) -> &'static str {
+        match self {
+            Self::Staged => "cmd2_projection_navigation_initial_contributor",
+            Self::Verification => "pg_temp.tos_initial_verify_contributor",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub(super) struct NodeFacts {
-    visible: bool,
+    pub(super) visible: bool,
     // Only the current record node may supply a historical carrier's owner.
     current_owner: Option<String>,
 }
@@ -107,6 +123,7 @@ pub(super) fn decode<C: GenericClient>(
 }
 
 fn contributors<C: GenericClient>(
+    target: MetadataTarget,
     tx: &mut C,
     domain: &str,
     consumer: &str,
@@ -114,11 +131,14 @@ fn contributors<C: GenericClient>(
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<(Vec<Owner>, u64)> {
     let rows = tx.query(
-        "SELECT CASE WHEN octet_length(owner_source_path)<=4096 THEN owner_source_path END,
+        &format!(
+            "SELECT CASE WHEN octet_length(owner_source_path)<=4096 THEN owner_source_path END,
                 CASE WHEN octet_length(owner_record_id)<=256 THEN owner_record_id END
-           FROM cmd2_projection_navigation_initial_contributor
+           FROM {}
           WHERE domain=$1 AND consumer_id=$2 AND node_id=$3
           ORDER BY owner_source_path COLLATE \"C\",owner_record_id COLLATE \"C\" LIMIT $4",
+            target.table()
+        ),
         &[
             &domain,
             &consumer,
@@ -157,6 +177,7 @@ fn contributors<C: GenericClient>(
 }
 
 fn insert_contributor<C: GenericClient>(
+    target: MetadataTarget,
     tx: &mut C,
     domain: &str,
     consumer: &str,
@@ -164,9 +185,12 @@ fn insert_contributor<C: GenericClient>(
     owner: &Owner,
 ) -> DurableResult<()> {
     tx.execute(
-        "INSERT INTO cmd2_projection_navigation_initial_contributor
+        &format!(
+            "INSERT INTO {}
          (domain,consumer_id,node_id,owner_source_path,owner_record_id) VALUES($1,$2,$3,$4,$5)
          ON CONFLICT(domain,consumer_id,node_id,owner_source_path,owner_record_id) DO NOTHING",
+            target.table()
+        ),
         &[&domain, &consumer, &node, &owner.0, &owner.1],
     )?;
     Ok(())
@@ -185,6 +209,28 @@ fn page_limits(limits: DurableNavigationEventLimits) -> DurableNavigationEventLi
 /// same bytewise node order as the existing in-memory rule. A page and its
 /// position are committed by the caller in the same transaction.
 pub(super) fn metadata_page(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    consumer: &str,
+    position: &Position,
+    limits: DurableNavigationEventLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(Position, u64)> {
+    metadata_page_to(
+        MetadataTarget::Staged,
+        tx,
+        domain,
+        consumer,
+        position,
+        limits,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(super) fn metadata_page_to(
+    target: MetadataTarget,
     tx: &mut Transaction<'_>,
     domain: &str,
     consumer: &str,
@@ -225,7 +271,17 @@ pub(super) fn metadata_page(
                     return Err(DurableError::Refused("navigation initial node facts size"));
                 }
                 add(&mut work, raw.len() as u64)?;
-                if tx.execute(
+                if target == MetadataTarget::Verification {
+                    let stored = node_facts(tx, domain, consumer, &captured.id)?.ok_or(
+                        DurableError::Corrupt("navigation initial node facts missing"),
+                    )?;
+                    add(&mut work, stored.1)?;
+                    if stored.0 != facts {
+                        return Err(DurableError::Conflict(
+                            "navigation initial node facts differ from Original",
+                        ));
+                    }
+                } else if tx.execute(
                     "UPDATE cmd2_projection_navigation_initial_row SET node_facts_json=$4
                       WHERE domain=$1 AND consumer_id=$2 AND collection='nodes' AND row_key=$3
                         AND node_facts_json IS NULL",
@@ -254,7 +310,7 @@ pub(super) fn metadata_page(
                             DurableError::Corrupt("navigation Claim contribution carrier absent"),
                         )?;
                         add(&mut work, bytes)?;
-                        insert_contributor(tx, domain, consumer, &target, &owner)?;
+                        insert_contributor(target, tx, domain, consumer, &target, &owner)?;
                         writes += 1;
                     }
                 }
@@ -269,10 +325,14 @@ pub(super) fn metadata_page(
                     |_| Ok(None),
                     |_| Ok(None),
                 )?;
-                if let Some(identity) = maker_identity(&row, limits)? {
+                if let Some(identity) = maker_identity(&row, limits)?.filter(|id| {
+                    validate_identifier(id, MAX_NAVIGATION_RECORD_ID_BYTES, "maker identity")
+                        .is_ok()
+                }) {
                     if let Some((_, bytes)) = node_facts(tx, domain, consumer, &identity)? {
                         add(&mut work, bytes)?;
-                        let (owners, bytes) = contributors(tx, domain, consumer, &row.id, limits)?;
+                        let (owners, bytes) =
+                            contributors(target, tx, domain, consumer, &row.id, limits)?;
                         add(&mut work, bytes)?;
                         if writes + owners.len() > limits.max_cohort_rows && index > 0 {
                             break;
@@ -283,7 +343,7 @@ pub(super) fn metadata_page(
                             ));
                         }
                         for owner in owners {
-                            insert_contributor(tx, domain, consumer, &identity, &owner)?;
+                            insert_contributor(target, tx, domain, consumer, &identity, &owner)?;
                             writes += 1;
                         }
                     }
@@ -358,7 +418,14 @@ pub(super) fn prepare_page<C: GenericClient>(
         add(&mut result.work, bytes)?;
         let owners = match row.kind {
             DurableNavigationBootstrapRowKindV1::Node => {
-                let (owners, bytes) = contributors(tx, domain, consumer, &row.id, limits)?;
+                let (owners, bytes) = contributors(
+                    MetadataTarget::Staged,
+                    tx,
+                    domain,
+                    consumer,
+                    &row.id,
+                    limits,
+                )?;
                 add(&mut result.work, bytes)?;
                 owners
             }
