@@ -41,6 +41,18 @@ const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const REGISTRY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
 const FORMS_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
 
+// Keep static compiler boundary reasons while withholding dynamic source,
+// filesystem and database diagnostics from the public command response.
+fn history_refusal(error: tos_compiler::Error) -> DurableError {
+    DurableError::Refused(match error {
+        tos_compiler::Error::Invalid(reason)
+        | tos_compiler::Error::PreparedUnsupported(reason)
+        | tos_compiler::Error::ManagedSourceUnsupported(reason)
+        | tos_compiler::Error::Budget(reason) => reason,
+        _ => "selected navigation Record history refused",
+    })
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum RecordOwnerOriginV1 {
     /// The command carries the exact initial source-create receipt, event, and
@@ -940,7 +952,7 @@ pub(crate) fn archive_manifest_paths(
     for owner in owners {
         let (entry, _, _) = selected_record_entry(owner, files, &entities, limits)?;
         for path in selected_metadata_archive_manifest_paths_v1(&entry, &entities, files, limits)
-            .map_err(|_| DurableError::Refused("selected navigation Record history refused"))?
+            .map_err(history_refusal)?
         {
             add_path(&mut manifests, &path, MAX_PATHS)?;
         }
@@ -1229,7 +1241,7 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
         event_revision,
         limits,
     )
-    .map_err(|_| DurableError::Refused("selected navigation Record history refused"))?;
+    .map_err(history_refusal)?;
     if selected_history.current_record != source_record
         || selected_history.schema_path != schema_path
         || selected_history.schema_bytes != schema_bytes
