@@ -732,10 +732,11 @@ fn expand_claim_contributions(
         let value = parse_carrier(&row.raw, limits)?;
         let field = |key| value.object_get(key).and_then(|v| v.as_str());
         if row.kind == DurableNavigationBootstrapRowKindV1::Node {
-            if let Some(identity) = value
-                .object_get("properties")
-                .and_then(|p| p.object_get("identity_node_id"))
-                .and_then(|v| v.as_str())
+            if field("node_kind") == Some("maker")
+                && let Some(identity) = value
+                    .object_get("properties")
+                    .and_then(|p| p.object_get("identity_node_id"))
+                    .and_then(|v| v.as_str())
             {
                 linked.insert(row.id.clone(), identity.to_owned());
             }
