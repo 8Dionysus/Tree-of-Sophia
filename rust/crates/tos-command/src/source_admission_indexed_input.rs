@@ -5,10 +5,6 @@
 //! descriptors and supplies their exact file digests.
 
 use super::source_admission::{AdmissionWorkBudget, active, invalid};
-use super::source_admission_packed_objects::{PackedObjectLimitsV2, PackedObjectReaderV2};
-use super::source_admission_segment_v2::{
-    MEMBERS_KIND, OBJECT_EXTENTS_KIND, SOURCE_ADMISSION_V2_DOMAIN,
-};
 use super::source_current_cut::foundation_capture as source_foundation_capture;
 use rusqlite::params;
 use std::{
@@ -30,6 +26,10 @@ use tos_segment_store::{
     AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
     AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, FrameCoordinate, SegmentLimits,
     SegmentOperationLimitsV1, SegmentOperationWorkV1, SegmentStore,
+};
+use tos_source_store::native_v2::objects::{PackedObjectLimitsV2, PackedObjectReaderV2};
+use tos_source_store::native_v2::roots::{
+    MEMBERS_KIND, OBJECT_EXTENTS_KIND, SOURCE_ADMISSION_V2_DOMAIN,
 };
 use tos_source_store::{PinnedSqliteConnection, PinnedSqliteIoBudget};
 
@@ -1503,7 +1503,7 @@ fn open_selection_from_held_declaration_inner_v1(
     if manifest.max_frames_per_pack == 0
         || manifest.max_frames_per_pack > segment_limits.max_frames
         || manifest.max_frames_per_pack
-            > crate::source_admission_packed_objects::MAX_PACKED_OBJECT_FRAMES_V2
+            > tos_source_store::native_v2::objects::MAX_PACKED_OBJECT_FRAMES_V2
         || manifest.unique_object_count == 0
         || manifest.unique_object_count > manifest.member_count
         || manifest.unique_payload_bytes > manifest.source_bytes
@@ -3188,7 +3188,7 @@ impl IndexedInputReaderV1 {
     fn record_extent(
         &self,
         digest: Digest256,
-        location: crate::source_admission_packed_objects::PackedObjectLocationV2,
+        location: tos_source_store::native_v2::objects::PackedObjectLocationV2,
         debit_work: &mut dyn FnMut() -> bool,
     ) -> io::Result<()> {
         let row_size = i64::try_from(location.size)

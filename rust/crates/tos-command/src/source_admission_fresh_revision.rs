@@ -8,12 +8,10 @@
 use super::source_admission::{
     AdmissionBatch, AdmissionLimits, SourceUpdate, active as active_io, invalid,
 };
-use super::source_admission_segment_v2::SourceRevisionRootsV2;
 use super::source_admission_source_census::{
     SourceCensusLimits, SourceCensusScan, SourceCensusSummary, SourceCensusWorkKind,
     census_selected_to_scratch, working_state_upper_bound,
 };
-use super::source_admission_v2_reader::{V2MemberTupleObservation, V2ReadSession};
 use super::source_admission_v2_seen_pack::configure_db;
 use super::source_creation_store::{CreationFilesystem, active as active_owner};
 use super::source_foundation_admission::NativeSourceValidator;
@@ -28,6 +26,8 @@ use std::mem::size_of;
 use std::sync::{Arc, atomic::AtomicBool};
 use std::time::Instant;
 use tos_foundation::{Digest256, SourceRevision};
+use tos_source_store::native_v2::reader::{V2MemberTupleObservation, V2ReadSession};
+use tos_source_store::native_v2::roots::SourceRevisionRootsV2;
 use tos_source_store::{
     PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
 };

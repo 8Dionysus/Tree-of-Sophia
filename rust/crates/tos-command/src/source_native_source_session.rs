@@ -2,12 +2,6 @@
 //! invocation. The profile is a finite resource envelope, not a source grant.
 
 use crate::source_admission::AdmissionWorkBudget;
-use crate::source_admission_segment_v2::{
-    SourceRevisionRootsV2, SourceRootSetV2, decode_workspace_upper_bound,
-};
-use crate::source_admission_v2_reader::{
-    V2CurrentSelectionObservation, V2PointReadLimits, V2ReadSession, V2RootKind,
-};
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_revisions::ReadonlyRecordFiles;
 use serde_json::Value;
@@ -19,6 +13,12 @@ use std::sync::{Arc, atomic::AtomicBool};
 use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, RelativePath, SourceRevision};
 use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits};
+use tos_source_store::native_v2::reader::{
+    V2CurrentSelectionObservation, V2PointReadLimits, V2ReadSession, V2RootKind,
+};
+use tos_source_store::native_v2::roots::{
+    SourceRevisionRootsV2, SourceRootSetV2, decode_workspace_upper_bound,
+};
 use tos_source_store::{
     MemberMetadata, PinnedSqliteIoBudget, ReadLimits, RetiredSourceMemberV1, RetirementMetadata,
     SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceCutDependencyWitness,

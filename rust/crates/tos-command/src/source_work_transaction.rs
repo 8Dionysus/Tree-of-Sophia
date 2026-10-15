@@ -1147,7 +1147,7 @@ fn validate_source_successor(
     readset: &SourceCutReadsetV1,
     locator: &PreparedV2SuccessorLocatorV2,
 ) -> SourceCommandResult<()> {
-    use crate::source_admission_segment_v2::SourceRevisionArtifactV2;
+    use tos_source_store::native_v2::roots::SourceRevisionArtifactV2;
     let selection = locator.expected_selection;
     let compact_artifact = matches!(
         &locator.source_artifact,
@@ -1299,7 +1299,7 @@ fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommand
 fn source_successor_value(
     locator: &PreparedV2SuccessorLocatorV2,
 ) -> SourceCommandResult<JsonValue> {
-    use crate::source_admission_segment_v2::SourceRevisionArtifactV2;
+    use tos_source_store::native_v2::roots::SourceRevisionArtifactV2;
     let artifact_bytes = locator
         .source_artifact
         .bytes()
@@ -1359,7 +1359,7 @@ fn source_successor_value(
 }
 
 fn parse_source_successor(value: &JsonValue) -> SourceCommandResult<PreparedV2SuccessorLocatorV2> {
-    use crate::source_admission_segment_v2::SourceRevisionArtifactV2;
+    use tos_source_store::native_v2::roots::SourceRevisionArtifactV2;
     cmd::exact_keys(
         value,
         &[

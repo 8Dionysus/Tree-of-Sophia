@@ -95,3 +95,8 @@ mod wasm {
 
 mod owned_state;
 pub use owned_state::{OwnedState, checked_state_add};
+
+mod schema_profile;
+pub use schema_profile::{
+    CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol, FormatProfile,
+};

@@ -37,12 +37,12 @@ pub(crate) struct SelectedNativeAdmissionRootV1 {
     dependency_source_count: u64,
     dependency_count: u64,
     retirement_count: u64,
-    completion_proof: crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1,
+    completion_proof: tos_source_store::native_v2::completion::NativeAdmissionCompletionProofV1,
 }
 
 impl SelectedNativeAdmissionRootV1 {
     pub(crate) fn from_selected_current_roots(
-        roots: &super::source_admission_segment_v2::SourceRevisionRootsV2,
+        roots: &tos_source_store::native_v2::roots::SourceRevisionRootsV2,
         rootset_sha256: Digest256,
     ) -> io::Result<Self> {
         let completion_proof = roots
@@ -109,7 +109,7 @@ impl SelectedNativeAdmissionRootV1 {
     }
     pub(crate) fn completion_proof(
         self,
-    ) -> crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1 {
+    ) -> tos_source_store::native_v2::completion::NativeAdmissionCompletionProofV1 {
         self.completion_proof
     }
 }
@@ -419,10 +419,16 @@ impl<'delta, 'proposal> ValidatedSourceEntrySuccessorV1<'delta, 'proposal> {
         self.retirement_count_after
     }
 
+    /// Carry the rechecked, typed successor counts without claiming a V1 digest.
     pub(crate) fn completion_proof(
         &self,
-    ) -> crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1 {
-        crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1::from_validated_source_entry_successor(self)
+    ) -> tos_source_store::native_v2::completion::NativeAdmissionCompletionProofV1 {
+        let selected = self.current_base();
+        tos_source_store::native_v2::completion::NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
+            selected.validator_sha256(), None, self.source_bytes_after(),
+            selected.completion_proof().prepared_schema(), self.identity_count_after(),
+            self.dependency_source_count_after(), self.dependency_count_after(),
+        ).expect("validated successor preserves dependency counts")
     }
 }
 

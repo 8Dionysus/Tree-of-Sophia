@@ -22,13 +22,13 @@ use tos_segment_store::{
     SegmentOperationWorkV1, SegmentStore,
 };
 
-use super::source_admission_segment_v2::OBJECT_EXTENTS_KIND;
+use super::roots::OBJECT_EXTENTS_KIND;
 
 const EXTENT_MAGIC: &[u8; 8] = b"TOSOBJX2";
 const EXTENT_VERSION: u16 = 2;
 const EXTENT_VALUE_BYTES: usize = 76;
 const BLOCK_BYTES: u64 = 64 * 1024;
-pub(crate) const MAX_PACKED_OBJECT_FRAMES_V2: u32 = 64;
+pub const MAX_PACKED_OBJECT_FRAMES_V2: u32 = 64;
 const OBJECT_PROFILE_ID: &[u8] = b"tos-source-object-v2";
 const OBJECT_PROFILE_VERSION: &[u8] = b"2";
 
@@ -38,17 +38,17 @@ fn invalid(message: &'static str) -> io::Error {
 
 /// Exact frame location committed by one revision's object extent tree.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct PackedObjectLocationV2 {
-    pub(crate) size: u64,
-    pub(crate) segment_digest: Digest256,
-    pub(crate) segment_size: u64,
-    pub(crate) frame_index: u32,
-    pub(crate) frame_count: u32,
-    pub(crate) header_offset: u64,
+pub struct PackedObjectLocationV2 {
+    pub size: u64,
+    pub segment_digest: Digest256,
+    pub segment_size: u64,
+    pub frame_index: u32,
+    pub frame_count: u32,
+    pub header_offset: u64,
 }
 
 impl PackedObjectLocationV2 {
-    pub(crate) fn encode(self) -> io::Result<[u8; EXTENT_VALUE_BYTES]> {
+    pub fn encode(self) -> io::Result<[u8; EXTENT_VALUE_BYTES]> {
         self.validate()?;
         let mut raw = [0u8; EXTENT_VALUE_BYTES];
         raw[..8].copy_from_slice(EXTENT_MAGIC);
@@ -63,7 +63,7 @@ impl PackedObjectLocationV2 {
         Ok(raw)
     }
 
-    pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+    pub fn decode(raw: &[u8]) -> io::Result<Self> {
         if raw.len() != EXTENT_VALUE_BYTES
             || &raw[..8] != EXTENT_MAGIC
             || u16::from_le_bytes(
@@ -122,7 +122,7 @@ impl PackedObjectLocationV2 {
 /// One seekable, finite payload slice. Slice sources share a single held pack
 /// descriptor and use positional reads, so a 100K-row cursor does not open
 /// 100K files or disturb another row's file position.
-pub(crate) enum PackedObjectSourceReaderV2 {
+pub enum PackedObjectSourceReaderV2 {
     File(File),
     Slice {
         file: Arc<File>,
@@ -163,15 +163,15 @@ impl Read for PackedObjectSourceReaderV2 {
 /// Digest-ordered object row consumed by the full authenticated extent build.
 /// Exactly one source form is present: a new finite payload, or a location
 /// already authenticated by the selected base revision.
-pub(crate) struct PackedObjectSourceV2 {
-    pub(crate) digest: Digest256,
-    pub(crate) size: u64,
-    pub(crate) source: Option<PackedObjectSourceReaderV2>,
-    pub(crate) existing: Option<PackedObjectLocationV2>,
+pub struct PackedObjectSourceV2 {
+    pub digest: Digest256,
+    pub size: u64,
+    pub source: Option<PackedObjectSourceReaderV2>,
+    pub existing: Option<PackedObjectLocationV2>,
 }
 
 impl PackedObjectSourceV2 {
-    pub(crate) fn from_file(digest: Digest256, size: u64, file: File) -> Self {
+    pub fn from_file(digest: Digest256, size: u64, file: File) -> Self {
         Self {
             digest,
             size,
@@ -180,7 +180,7 @@ impl PackedObjectSourceV2 {
         }
     }
 
-    pub(crate) fn from_slice(digest: Digest256, size: u64, file: Arc<File>, offset: u64) -> Self {
+    pub fn from_slice(digest: Digest256, size: u64, file: Arc<File>, offset: u64) -> Self {
         Self {
             digest,
             size,
@@ -194,11 +194,7 @@ impl PackedObjectSourceV2 {
         }
     }
 
-    pub(crate) fn retain_existing(
-        digest: Digest256,
-        size: u64,
-        location: PackedObjectLocationV2,
-    ) -> Self {
+    pub fn retain_existing(digest: Digest256, size: u64, location: PackedObjectLocationV2) -> Self {
         Self {
             digest,
             size,
@@ -210,49 +206,49 @@ impl PackedObjectSourceV2 {
 
 /// One digest-keyed COW change. `payload: None` removes an unreachable extent;
 /// `Some` seals a new payload and installs its new extent value.
-pub(crate) struct PackedObjectChangeV2 {
-    pub(crate) digest: Digest256,
-    pub(crate) payload: Option<PackedObjectSourceV2>,
+pub struct PackedObjectChangeV2 {
+    pub digest: Digest256,
+    pub payload: Option<PackedObjectSourceV2>,
 }
 
 impl PackedObjectChangeV2 {
-    pub(crate) fn upsert(source: PackedObjectSourceV2) -> Self {
+    pub fn upsert(source: PackedObjectSourceV2) -> Self {
         Self {
             digest: source.digest,
             payload: Some(source),
         }
     }
 
-    pub(crate) fn remove(digest: Digest256) -> Self {
+    pub fn remove(digest: Digest256) -> Self {
         Self {
             digest,
             payload: None,
         }
     }
 
-    pub(crate) fn delete(digest: Digest256) -> Self {
+    pub fn delete(digest: Digest256) -> Self {
         Self::remove(digest)
     }
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct PackedObjectLimitsV2 {
-    pub(crate) tree_limits: AuthenticatedTreeLimitsV1,
+pub struct PackedObjectLimitsV2 {
+    pub tree_limits: AuthenticatedTreeLimitsV1,
     /// Physical bounds selected by the enclosing invocation.
-    pub(crate) segment_limits: tos_segment_store::SegmentLimits,
-    pub(crate) max_working_state_bytes: usize,
+    pub segment_limits: tos_segment_store::SegmentLimits,
+    pub max_working_state_bytes: usize,
     /// All retained caller-owned state live across object tree/frame work.
-    pub(crate) caller_live_state_bytes: usize,
+    pub caller_live_state_bytes: usize,
     /// Shared invocation work capacity; operation limits never exceed it.
-    pub(crate) max_work_units: u64,
+    pub max_work_units: u64,
     /// Maximum unique extent rows admitted by the selected input/candidate.
-    pub(crate) max_objects: u64,
+    pub max_objects: u64,
     /// Maximum delta rows left in the enclosing invocation-wide tree-row
     /// budget; for readers and full builds this remains a finite structural
     /// ceiling.
-    pub(crate) max_delta_rows: u64,
+    pub max_delta_rows: u64,
     /// Producer-selected maximum frames per immutable pack.
-    pub(crate) max_pack_frames: u32,
+    pub max_pack_frames: u32,
 }
 
 impl PackedObjectLimitsV2 {
@@ -282,18 +278,18 @@ impl PackedObjectLimitsV2 {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(crate) struct PackedObjectBuildWorkV2 {
+pub struct PackedObjectBuildWorkV2 {
     /// Standalone build work, or cumulative work for a COW apply.
-    pub(crate) tree_work: AuthenticatedTreeWorkV1,
-    pub(crate) segment_work: SegmentOperationWorkV1,
-    pub(crate) object_rows: u64,
-    pub(crate) payload_bytes: u64,
+    pub tree_work: AuthenticatedTreeWorkV1,
+    pub segment_work: SegmentOperationWorkV1,
+    pub object_rows: u64,
+    pub payload_bytes: u64,
 }
 
-pub(crate) struct PackedObjectWriterV2;
+pub struct PackedObjectWriterV2;
 
 impl PackedObjectWriterV2 {
-    pub(crate) fn build<I>(
+    pub fn build<I>(
         segment: &SegmentStore,
         rows: I,
         limits: PackedObjectLimitsV2,
@@ -365,7 +361,7 @@ impl PackedObjectWriterV2 {
         Ok((descriptor, work))
     }
 
-    pub(crate) fn apply_delta<I>(
+    pub fn apply_delta<I>(
         segment: &SegmentStore,
         old: &AuthenticatedTreeDescriptorV2,
         changes: I,
@@ -1122,7 +1118,7 @@ fn add_segment_work(
 
 /// Authenticated object-index reader. Tree lookup work and physical frame IO
 /// share the original ledger, deadline, and caller work debit.
-pub(crate) struct PackedObjectReaderV2<'a> {
+pub struct PackedObjectReaderV2<'a> {
     segment: &'a SegmentStore,
     descriptor: &'a AuthenticatedTreeDescriptorV2,
     limits: PackedObjectLimitsV2,
@@ -1138,7 +1134,7 @@ pub(crate) struct PackedObjectReaderV2<'a> {
 
 impl<'a> PackedObjectReaderV2<'a> {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub fn new(
         segment: &'a SegmentStore,
         descriptor: &'a AuthenticatedTreeDescriptorV2,
         limits: PackedObjectLimitsV2,
@@ -1194,7 +1190,7 @@ impl<'a> PackedObjectReaderV2<'a> {
         })
     }
 
-    pub(crate) fn lookup(
+    pub fn lookup(
         &mut self,
         digest: Digest256,
         expected_size: Option<u64>,
@@ -1203,7 +1199,7 @@ impl<'a> PackedObjectReaderV2<'a> {
             .map(|(location, _)| location)
     }
 
-    pub(crate) fn lookup_with_work(
+    pub fn lookup_with_work(
         &mut self,
         digest: Digest256,
         expected_size: Option<u64>,
@@ -1272,11 +1268,11 @@ impl<'a> PackedObjectReaderV2<'a> {
         Ok((location, work))
     }
 
-    pub(crate) fn tree_work(&self) -> AuthenticatedTreeWorkV1 {
+    pub fn tree_work(&self) -> AuthenticatedTreeWorkV1 {
         self.tree_work
     }
 
-    pub(crate) fn read_exact(
+    pub fn read_exact(
         &mut self,
         location: &PackedObjectLocationV2,
         digest: Digest256,
@@ -1286,7 +1282,7 @@ impl<'a> PackedObjectReaderV2<'a> {
         self.read_exact_with_caller_state(location, digest, size, 0, sink)
     }
 
-    pub(crate) fn read_exact_with_caller_state(
+    pub fn read_exact_with_caller_state(
         &mut self,
         location: &PackedObjectLocationV2,
         digest: Digest256,

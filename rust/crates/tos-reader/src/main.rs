@@ -346,7 +346,7 @@ fn run_v2(
         .and_then(|n| n.checked_add(selector_state_bytes))
         .and_then(|n| n.checked_add(4096))
         .ok_or_else(|| "V2 caller state estimate overflow".to_owned())?;
-    let point = tos_command::source_admission_v2_reader::V2PointReadLimits {
+    let point = tos_source_store::native_v2::reader::V2PointReadLimits {
         pointer,
         segment,
         tree,
@@ -364,7 +364,7 @@ fn run_v2(
     check_active(deadline, cancelled.as_ref())?;
     let mut reader = match max_work_units {
         Some(max_work_units) => {
-            tos_command::source_admission_v2_reader::V2ReadSession::open_with_work_limit(
+            tos_source_store::native_v2::reader::V2ReadSession::open_with_work_limit(
                 &store,
                 point,
                 io_budget.clone(),
@@ -373,7 +373,7 @@ fn run_v2(
                 cancelled.clone(),
             )
         }
-        None => tos_command::source_admission_v2_reader::V2ReadSession::open(
+        None => tos_source_store::native_v2::reader::V2ReadSession::open(
             &store,
             point,
             io_budget.clone(),

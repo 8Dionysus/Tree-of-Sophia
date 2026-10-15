@@ -14,3 +14,11 @@ flate2 = { version = "=1.1.10", default-features = false, features = ["rust_back
 tar = { version = "=0.4.45", default-features = false }
 sha1 = "=0.10.6"
 rusqlite = { version = "0.37", features = ["bundled"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+tos-segment-store = { path = "../tos-segment-store" }
+rustix = { version = "=1.1.5", features = ["fs", "process"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+
+[dev-dependencies]
+tempfile = "3"

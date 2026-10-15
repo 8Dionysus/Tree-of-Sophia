@@ -7,7 +7,6 @@ use super::source_admission_v2_backup_restore::{
     open_selected_target, transfer_image, transfer_image_with_cold_spill,
     transfer_image_with_cold_spill_at, verify_named_root,
 };
-use super::source_admission_v2_reader::{V2PointReadLimits, V2ReadSession};
 use super::source_admission_v2_seen_pack::V2SeenPackSpillRequests;
 use std::{
     fs::File,
@@ -18,6 +17,7 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
+use tos_source_store::native_v2::reader::{V2PointReadLimits, V2ReadSession};
 use tos_source_store::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, PinnedSqliteSpaceReservation,
 };

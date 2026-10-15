@@ -335,25 +335,7 @@ pub struct SchemaResource {
     pub raw: Vec<u8>,
 }
 
-/// The observed legacy profile is evidence for migration comparison only.
-/// A normative profile is selected by the source owner, not by installed
-/// optional format packages on the host.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FormatProfile {
-    LegacyPythonObserved20260923,
-    AssertedSourceCandidateV1,
-}
-
-impl FormatProfile {
-    pub fn id(self) -> &'static str {
-        match self {
-            Self::LegacyPythonObserved20260923 => {
-                "tos.schema.format.legacy-python-observed-20260923"
-            }
-            Self::AssertedSourceCandidateV1 => "tos.schema.format.asserted-source-candidate-v1",
-        }
-    }
-}
+pub use tos_foundation::FormatProfile;
 
 /// FND owns decoded-member uniqueness and the raw JSON budget. Convert its
 /// strict tree directly so no second parser can erase a duplicate before the
@@ -1156,7 +1138,10 @@ mod tests {
         );
         let annotation_probe = probe(&annotated);
         assert_eq!(annotation_probe.compile_all(), Ok(1));
-        assert_eq!(annotation_probe.is_valid_value(root, &json!("text")), Ok(true));
+        assert_eq!(
+            annotation_probe.is_valid_value(root, &json!("text")),
+            Ok(true)
+        );
         assert_eq!(annotation_probe.is_valid_value(root, &json!(1)), Ok(false));
         assert_eq!(
             SchemaBackendProbe::new(

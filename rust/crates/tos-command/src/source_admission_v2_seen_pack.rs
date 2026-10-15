@@ -3,8 +3,6 @@
 //! fixed at construction; the segment-store callback alone can complete rows.
 
 use super::source_admission::AdmissionWorkBudget;
-use super::source_admission_packed_objects::PackedObjectLocationV2;
-use super::source_admission_segment_v2::{SourceRevisionRootsV2, decode_workspace_upper_bound};
 use rusqlite::{OptionalExtension, params, types::ValueRef};
 use std::{
     cell::{Cell, RefCell},
@@ -22,6 +20,8 @@ use tos_segment_store::{
     FrameCoordinate, Result as SegmentResult, SegmentError, SegmentErrorCode,
     SegmentOperationLimitsV1, SegmentOperationWorkV1, SegmentStore,
 };
+use tos_source_store::native_v2::objects::PackedObjectLocationV2;
+use tos_source_store::native_v2::roots::{SourceRevisionRootsV2, decode_workspace_upper_bound};
 use tos_source_store::{
     PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
     PinnedSqliteSpaceBudget,

@@ -2,11 +2,6 @@
 //! A copied selector is installed last, after the independent copy passes
 //! authenticated current/history closure checks. Bytes confer no admission.
 use super::source_admission::{AdmissionWorkBudget, active, invalid};
-use super::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLocationV2};
-use super::source_admission_segment_v2::{
-    CompactCommitV2, MAX_COMPACT_COMMIT_V2_BYTES, SourceRevisionArtifactV2, SourceRevisionRootsV2,
-    SourceRootSetV2, decode_workspace_upper_bound,
-};
 use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::{
     V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
@@ -30,6 +25,11 @@ use tos_segment_store::{
     AuthenticatedTreeCoverageV1, AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1,
     AuthenticatedTreePackSetV2, AuthenticatedTreeRowStreamV2, AuthenticatedTreeWorkV1,
     SegmentLimits, SegmentStore,
+};
+use tos_source_store::native_v2::objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLocationV2};
+use tos_source_store::native_v2::roots::{
+    CompactCommitV2, MAX_COMPACT_COMMIT_V2_BYTES, SourceRevisionArtifactV2, SourceRevisionRootsV2,
+    SourceRootSetV2, decode_workspace_upper_bound,
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget,

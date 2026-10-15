@@ -656,119 +656,7 @@ impl CandidateRecordsReportVerified {
     }
 }
 
-/// Durable mechanical binding for a current root produced by the native
-/// admission route. This records the full V1 membership digest only when the
-/// exact ordered membership was actually validated. Incremental V2 successors
-/// may omit it; their current membership remains bound by the separate V2
-/// authenticated tree commitment.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct NativeAdmissionCompletionProofV1 {
-    validator_sha256: Digest256,
-    membership_v1: Option<SourceMembershipV1>,
-    source_bytes: u64,
-    prepared_schema: CutPreparedSchemaExecutionBinding,
-    identity_count: u64,
-    dependency_source_count: u64,
-    dependency_count: u64,
-}
-
-impl NativeAdmissionCompletionProofV1 {
-    /// Reconstitute only a completion binding decoded from an authenticated
-    /// current-root tuple. Fresh proof issuance remains on `IndexView`.
-    pub(crate) fn from_authenticated_root_fields(
-        validator_sha256: Digest256,
-        membership_v1: Option<SourceMembershipV1>,
-        source_bytes: u64,
-        prepared_schema: CutPreparedSchemaExecutionBinding,
-        identity_count: u64,
-        dependency_source_count: u64,
-        dependency_count: u64,
-    ) -> io::Result<Self> {
-        if dependency_source_count > dependency_count {
-            return Err(invalid("native completion root counts are inconsistent"));
-        }
-        Ok(Self {
-            validator_sha256,
-            membership_v1,
-            source_bytes,
-            prepared_schema,
-            identity_count,
-            dependency_source_count,
-            dependency_count,
-        })
-    }
-
-    /// Carry an exact bounded delta onto a rechecked latest root without
-    /// claiming a current V1 membership digest. The typed successor includes
-    /// both the authenticated current-root binding and latest readset proof.
-    pub(crate) fn from_validated_source_entry_successor(
-        successor: &crate::source_admission_index::ValidatedSourceEntrySuccessorV1<'_, '_>,
-    ) -> Self {
-        let selected = successor.current_base();
-        Self {
-            validator_sha256: selected.validator_sha256(),
-            membership_v1: None,
-            source_bytes: successor.source_bytes_after(),
-            prepared_schema: selected.completion_proof().prepared_schema(),
-            identity_count: successor.identity_count_after(),
-            dependency_source_count: successor.dependency_source_count_after(),
-            dependency_count: successor.dependency_count_after(),
-        }
-    }
-
-    pub(crate) fn validator_sha256(self) -> Digest256 {
-        self.validator_sha256
-    }
-
-    pub(crate) fn membership_v1(self) -> Option<SourceMembershipV1> {
-        self.membership_v1
-    }
-
-    pub(crate) fn source_bytes(self) -> u64 {
-        self.source_bytes
-    }
-
-    pub(crate) fn prepared_schema(self) -> CutPreparedSchemaExecutionBinding {
-        self.prepared_schema
-    }
-
-    pub(crate) fn identity_count(self) -> u64 {
-        self.identity_count
-    }
-
-    pub(crate) fn dependency_source_count(self) -> u64 {
-        self.dependency_source_count
-    }
-
-    pub(crate) fn dependency_count(self) -> u64 {
-        self.dependency_count
-    }
-
-    /// Copy the exact payload fields needed by the V2 rootset codec. Keeping
-    /// the tuple conversion here lets the sibling segment codec serialize the
-    /// proof without reaching through its private fields.
-    pub(crate) fn authenticated_root_fields(
-        self,
-    ) -> (
-        Digest256,
-        Option<SourceMembershipV1>,
-        u64,
-        CutPreparedSchemaExecutionBinding,
-        u64,
-        u64,
-        u64,
-    ) {
-        (
-            self.validator_sha256,
-            self.membership_v1,
-            self.source_bytes,
-            self.prepared_schema,
-            self.identity_count,
-            self.dependency_source_count,
-            self.dependency_count,
-        )
-    }
-}
+use tos_source_store::native_v2::completion::NativeAdmissionCompletionProofV1;
 
 #[derive(Clone, Copy)]
 enum FreshPairTable {
@@ -1961,15 +1849,15 @@ impl IndexView<'_> {
                 "native full completion binding differs from its sealed index",
             ));
         }
-        Ok(NativeAdmissionCompletionProofV1 {
-            validator_sha256: self.fence.validator_sha256,
-            membership_v1: Some(self.fence.membership),
-            source_bytes: self.fence.source_bytes,
-            prepared_schema: records.prepared_schema(),
-            identity_count: self.identity_count,
-            dependency_source_count: self.dependency_source_count,
-            dependency_count: self.dependency_count,
-        })
+        NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
+            self.fence.validator_sha256,
+            Some(self.fence.membership),
+            self.fence.source_bytes,
+            records.prepared_schema(),
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+        )
     }
 
     /// Declared retained Rust and nominal SQLite-cache state while publication

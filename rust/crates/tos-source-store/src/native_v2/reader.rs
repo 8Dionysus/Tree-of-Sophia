@@ -1,14 +1,16 @@
 //! Bounded exact-revision point reads from the private native V2 store.
 //! These observations confer no admission, rights or currentness after the
 //! selected immutable session. Strict legacy V1 readers remain unchanged.
-use super::source_admission::{AdmissionWorkBudget, active, invalid};
-use super::source_admission_packed_objects::{
+use super::custody::NativeSourceCustody;
+use super::objects::{
     MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2, PackedObjectLocationV2, PackedObjectReaderV2,
 };
-use super::source_admission_segment_v2::{
-    SourceRevisionRootsV2, SourceRootSetV2, decode_workspace_upper_bound,
+use super::roots::{SourceRevisionRootsV2, SourceRootSetV2, decode_workspace_upper_bound};
+use super::work::{AdmissionWorkBudget, active, invalid};
+use crate::{
+    CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, ReadLimits,
+    SourceMembershipV1, SourceMembershipV2,
 };
-use super::source_admission_store::AdmissionStore;
 use std::{
     fs::File,
     io::{self, Read},
@@ -23,13 +25,9 @@ use tos_segment_store::{
     AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
     AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
 };
-use tos_source_store::{
-    CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, ReadLimits,
-    SourceMembershipV1, SourceMembershipV2,
-};
 
-const DOMAIN: &[u8] = b"tos-native-admission-source-v2";
-const ROOT_BYTES: usize = 65_536;
+use super::roots::ROOTSET_MAX_BYTES as ROOT_BYTES;
+use super::roots::SOURCE_ADMISSION_V2_DOMAIN as DOMAIN;
 const BLOCK_BYTES: usize = 65_536;
 
 #[derive(Clone, Copy)]
@@ -48,7 +46,7 @@ pub struct V2PointReadLimits {
 /// a successfully decoded selector that no longer names this retained cut;
 /// custody, IO, layout, deadline, cancellation and decode errors stay errors.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum V2CurrentSelectionObservation {
+pub enum V2CurrentSelectionObservation {
     StillSelected,
     Advanced,
 }
@@ -180,27 +178,27 @@ pub enum V2RootKind {
 /// the current rootset that proved the retained row; it is not represented as
 /// the historical publication's original pointer digest or receipt.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct AcceptedV2Publication {
-    pub(crate) revision: SourceRevision,
-    pub(crate) base_revision: Option<SourceRevision>,
-    pub(crate) batch_sha256: Digest256,
-    pub(crate) validator_sha256: Digest256,
-    pub(crate) membership_v1: Option<SourceMembershipV1>,
-    pub(crate) membership_v2: Option<SourceMembershipV2>,
-    pub(crate) source_bytes: u64,
-    pub(crate) member_count: u64,
-    pub(crate) identity_count: u64,
-    pub(crate) dependency_source_count: u64,
-    pub(crate) dependency_count: u64,
-    pub(crate) retirement_count: u64,
-    pub(crate) source_artifact: super::source_admission_segment_v2::SourceRevisionArtifactV2,
-    pub(crate) history_proof_rootset_sha256: Digest256,
+pub struct AcceptedV2Publication {
+    pub revision: SourceRevision,
+    pub base_revision: Option<SourceRevision>,
+    pub batch_sha256: Digest256,
+    pub validator_sha256: Digest256,
+    pub membership_v1: Option<SourceMembershipV1>,
+    pub membership_v2: Option<SourceMembershipV2>,
+    pub source_bytes: u64,
+    pub member_count: u64,
+    pub identity_count: u64,
+    pub dependency_source_count: u64,
+    pub dependency_count: u64,
+    pub retirement_count: u64,
+    pub source_artifact: super::roots::SourceRevisionArtifactV2,
+    pub history_proof_rootset_sha256: Digest256,
 }
 
 /// One pinned immutable selected cut. Caller-owned IO/deadline/cancellation
 /// are shared by all its lookups and actual object reads.
 pub struct V2ReadSession {
-    store: AdmissionStore,
+    store: NativeSourceCustody,
     segment: SegmentStore,
     roots: SourceRootSetV2,
     history_roots_cache: Option<SourceRevisionRootsV2>,
@@ -234,8 +232,12 @@ impl V2ReadSession {
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
         let work = AdmissionWorkBudget::new(max_work_units)?;
-        let store =
-            AdmissionStore::open_existing_with_io(path, original_io.clone(), deadline, &cancel)?;
+        let store = NativeSourceCustody::open_existing_with_io(
+            path,
+            original_io.clone(),
+            deadline,
+            &cancel,
+        )?;
         Self::open_store(store, limits, original_io, Some(work), deadline, cancel)
     }
 
@@ -246,8 +248,12 @@ impl V2ReadSession {
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
-        let store =
-            AdmissionStore::open_existing_with_io(path, original_io.clone(), deadline, &cancel)?;
+        let store = NativeSourceCustody::open_existing_with_io(
+            path,
+            original_io.clone(),
+            deadline,
+            &cancel,
+        )?;
         Self::open_store(store, limits, original_io, None, deadline, cancel)
     }
 
@@ -273,7 +279,7 @@ impl V2ReadSession {
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
-        let store = AdmissionStore::open_existing_at_named_with_io(
+        let store = NativeSourceCustody::open_existing_at_named_with_io(
             path,
             held_root,
             original_io.clone(),
@@ -286,7 +292,7 @@ impl V2ReadSession {
     /// Open a selected V2 source cut using the caller's original invocation
     /// work meter. Tree visits, packed-frame operations and later cursors all
     /// debit this same handle.
-    pub(crate) fn open_at_named_with_work(
+    pub fn open_at_named_with_work(
         path: &Path,
         held_root: &File,
         limits: V2PointReadLimits,
@@ -295,7 +301,7 @@ impl V2ReadSession {
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
-        let store = AdmissionStore::open_existing_at_named_with_io(
+        let store = NativeSourceCustody::open_existing_at_named_with_io(
             path,
             held_root,
             original_io.clone(),
@@ -306,7 +312,7 @@ impl V2ReadSession {
     }
 
     fn open_store(
-        store: AdmissionStore,
+        store: NativeSourceCustody,
         limits: V2PointReadLimits,
         original_io: PinnedSqliteIoBudget,
         work: Option<AdmissionWorkBudget>,
@@ -343,13 +349,8 @@ impl V2ReadSession {
         let _existing =
             tos_fd_open::open_directory_at(root, Path::new("segments-v2")).map_err(invalid)?;
         let tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1> = Arc::new(TreeIo(original_io.clone()));
-        let segment = store.segment_store_v2_with_io(
-            DOMAIN,
-            limits.segment,
-            tree_io.clone(),
-            deadline,
-            &cancel,
-        )?;
+        let segment =
+            store.open_segment_store_v2(limits.segment, tree_io.clone(), deadline, &cancel)?;
         if segment.custody_domain() != DOMAIN {
             return Err(invalid("V2 point physical domain differs"));
         }
@@ -390,38 +391,29 @@ impl V2ReadSession {
         self.selection.revision
     }
 
-    pub(crate) fn selected_selection(&self) -> CorpusCurrentSelection {
+    pub fn selected_selection(&self) -> CorpusCurrentSelection {
         self.selection.clone()
     }
 
-    pub(crate) fn current_roots(&self) -> &SourceRevisionRootsV2 {
+    pub fn current_roots(&self) -> &SourceRevisionRootsV2 {
         &self.roots.current
     }
 
-    pub(crate) fn selected_native_admission_root(
-        &self,
-    ) -> io::Result<super::source_admission_index::SelectedNativeAdmissionRootV1> {
-        super::source_admission_index::SelectedNativeAdmissionRootV1::from_selected_current_roots(
-            &self.roots.current,
-            self.selected_rootset_sha256()?,
-        )
-    }
-
-    pub(crate) fn current_rootset(&self) -> &SourceRootSetV2 {
+    pub fn current_rootset(&self) -> &SourceRootSetV2 {
         &self.roots
     }
 
-    pub(crate) fn segment_store(&self) -> &SegmentStore {
+    pub fn segment_store(&self) -> &SegmentStore {
         &self.segment
     }
 
-    pub(crate) fn selected_rootset_sha256(&self) -> io::Result<Digest256> {
+    pub fn selected_rootset_sha256(&self) -> io::Result<Digest256> {
         self.selection
             .rootset_sha256
             .ok_or_else(|| invalid("V2 selected rootset digest absent"))
     }
 
-    pub(crate) fn accumulated_tree_work(&self) -> AuthenticatedTreeWorkV1 {
+    pub fn accumulated_tree_work(&self) -> AuthenticatedTreeWorkV1 {
         AuthenticatedTreeWorkV1 {
             read_nodes: self.read_nodes,
             read_bytes: self.tree_read_bytes,
@@ -444,7 +436,7 @@ impl V2ReadSession {
             .ok_or_else(|| invalid("V2 reader wrapper state overflow"))
     }
 
-    pub(crate) fn retained_live_state_bytes(&self) -> io::Result<usize> {
+    pub fn retained_live_state_bytes(&self) -> io::Result<usize> {
         let roots_state = self.roots.retained_state_bytes()?;
         let mut retained = self
             .held_wrapper_state_bytes()?
@@ -467,7 +459,7 @@ impl V2ReadSession {
         Ok(retained)
     }
 
-    pub(crate) fn retained_history_count(&self) -> u64 {
+    pub fn retained_history_count(&self) -> u64 {
         self.roots.history.entries
     }
 
@@ -475,7 +467,7 @@ impl V2ReadSession {
     /// A match is returned only after the selected history reaches EOF, the
     /// immutable source-record file passes digest/size/EOF/stamp checks, and
     /// the selected mutable pointer still names this session's rootset.
-    pub(crate) fn find_accepted_batch(
+    pub fn find_accepted_batch(
         &mut self,
         batch_sha256: Digest256,
         base_revision: Option<SourceRevision>,
@@ -596,13 +588,13 @@ impl V2ReadSession {
         result
     }
 
-    pub(crate) fn history_root_result_state_upper_bound(&self) -> io::Result<usize> {
+    pub fn history_root_result_state_upper_bound(&self) -> io::Result<usize> {
         SourceRevisionRootsV2::retained_state_upper_bound_for_value(
             self.limits.tree.max_value_bytes,
         )
     }
 
-    pub(crate) fn identity_lookup_result_state_upper_bound(&self) -> io::Result<usize> {
+    pub fn identity_lookup_result_state_upper_bound(&self) -> io::Result<usize> {
         usize::try_from(self.limits.tree.max_value_bytes)
             .map_err(|_| invalid("V2 identity value bound exceeds address space"))?
             .checked_mul(4)
@@ -610,15 +602,15 @@ impl V2ReadSession {
             .ok_or_else(|| invalid("V2 identity result state overflow"))
     }
 
-    pub(crate) fn shares_io_budget(&self, io: &PinnedSqliteIoBudget) -> bool {
+    pub fn shares_io_budget(&self, io: &PinnedSqliteIoBudget) -> bool {
         self.io.shares_with(io)
     }
 
-    pub(crate) fn io_budget(&self) -> &PinnedSqliteIoBudget {
+    pub fn io_budget(&self) -> &PinnedSqliteIoBudget {
         &self.io
     }
 
-    pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<(usize, usize)> {
+    pub fn declared_retained_state_bytes(&self) -> io::Result<(usize, usize)> {
         self.limits
             .base_state_bytes()?
             .checked_add(self.held_wrapper_state_bytes()?)
@@ -626,14 +618,14 @@ impl V2ReadSession {
             .ok_or_else(|| invalid("V2 point retained state overflow"))
     }
 
-    pub(crate) fn roots_for_revision(
+    pub fn roots_for_revision(
         &mut self,
         revision: SourceRevision,
     ) -> io::Result<Option<SourceRevisionRootsV2>> {
         self.revision_roots(revision)
     }
 
-    pub(crate) fn roots_for_revision_with_caller_state(
+    pub fn roots_for_revision_with_caller_state(
         &mut self,
         revision: SourceRevision,
         caller_retained_state_bytes: usize,
@@ -641,7 +633,7 @@ impl V2ReadSession {
         self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)
     }
 
-    pub(crate) fn next_history_roots_after(
+    pub fn next_history_roots_after(
         &mut self,
         after_revision: Option<&[u8]>,
         caller_result_state_bytes: usize,
@@ -696,7 +688,7 @@ impl V2ReadSession {
         Ok(Some((roots, raw_bytes)))
     }
 
-    pub(crate) fn identity_path(
+    pub fn identity_path(
         &mut self,
         revision: SourceRevision,
         id: &str,
@@ -704,7 +696,7 @@ impl V2ReadSession {
         self.identity_path_with_caller_state(revision, id, 0)
     }
 
-    pub(crate) fn identity_path_with_caller_state(
+    pub fn identity_path_with_caller_state(
         &mut self,
         revision: SourceRevision,
         id: &str,
@@ -746,7 +738,7 @@ impl V2ReadSession {
     /// Observe whether the protected selector still names this exact retained
     /// cut while preserving every real observation error for callers that may
     /// rebase only on a valid selector advance.
-    pub(crate) fn observe_current_selection(&self) -> io::Result<V2CurrentSelectionObservation> {
+    pub fn observe_current_selection(&self) -> io::Result<V2CurrentSelectionObservation> {
         let current = self.store.current_selection(
             self.limits.pointer,
             self.deadline,
@@ -786,7 +778,7 @@ impl V2ReadSession {
         )
     }
 
-    pub(crate) fn next_row_after_with_caller_state(
+    pub fn next_row_after_with_caller_state(
         &mut self,
         revision: SourceRevision,
         kind: V2RootKind,
@@ -916,7 +908,7 @@ impl V2ReadSession {
     /// ledger. The caller includes all still-live census and previous-result
     /// state in `caller_retained_state_bytes`; the newly returned path and
     /// transient raw row are reserved before the authenticated seek.
-    pub(crate) fn next_member_tuple_after(
+    pub fn next_member_tuple_after(
         &mut self,
         revision: SourceRevision,
         after_exclusive: Option<&[u8]>,
@@ -978,7 +970,7 @@ impl V2ReadSession {
         self.member_tuple_with_caller_state(revision, path, 0)
     }
 
-    pub(crate) fn member_tuple_with_caller_state(
+    pub fn member_tuple_with_caller_state(
         &mut self,
         revision: SourceRevision,
         path: &RelativePath,
@@ -1195,7 +1187,7 @@ impl V2ReadSession {
         self.read_member_with_caller_state(revision, path, 0)
     }
 
-    pub(crate) fn read_member_with_caller_state(
+    pub fn read_member_with_caller_state(
         &mut self,
         revision: SourceRevision,
         path: &RelativePath,
@@ -1236,7 +1228,7 @@ impl V2ReadSession {
         self.read_identity_with_caller_state(revision, id, 0)
     }
 
-    pub(crate) fn read_identity_with_caller_state(
+    pub fn read_identity_with_caller_state(
         &mut self,
         revision: SourceRevision,
         id: &str,
@@ -1280,7 +1272,7 @@ impl V2ReadSession {
         }
     }
 
-    pub(crate) fn object_location_by_digest(
+    pub fn object_location_by_digest(
         &mut self,
         revision: SourceRevision,
         digest: Digest256,
@@ -1301,7 +1293,7 @@ impl V2ReadSession {
         self.lookup_packed_object_location(descriptor, digest, retained)
     }
 
-    pub(crate) fn next_object_extent_after(
+    pub fn next_object_extent_after(
         &mut self,
         revision: SourceRevision,
         after_digest: Option<&[u8]>,
@@ -1436,7 +1428,7 @@ impl V2ReadSession {
         Ok(())
     }
 
-    pub(crate) fn read_object_by_digest(
+    pub fn read_object_by_digest(
         &mut self,
         revision: SourceRevision,
         digest: Digest256,
@@ -1628,14 +1620,6 @@ impl V2ReadSession {
         Ok(Some(bytes))
     }
 
-    fn read_from_roots(
-        &mut self,
-        roots: &SourceRevisionRootsV2,
-        path: &RelativePath,
-    ) -> io::Result<Option<V2MemberObservation>> {
-        self.read_from_roots_with_caller_state(roots, path, 0)
-    }
-
     fn read_from_roots_with_caller_state(
         &mut self,
         roots: &SourceRevisionRootsV2,
@@ -1677,14 +1661,6 @@ impl V2ReadSession {
             source_mode: mode,
             bytes,
         }))
-    }
-
-    fn member_tuple_from_roots(
-        &mut self,
-        roots: &SourceRevisionRootsV2,
-        path: &RelativePath,
-    ) -> io::Result<Option<V2MemberTupleObservation>> {
-        self.member_tuple_from_roots_with_caller_state(roots, path, 0)
     }
 
     fn member_tuple_from_roots_with_caller_state(
@@ -1749,4 +1725,197 @@ fn stamp(file: &File) -> io::Result<(u64, u64, u64, u32, u32, i64, i64, i64, i64
         m.ctime(),
         m.ctime_nsec(),
     ))
+}
+
+#[cfg(test)]
+mod storage_boundary_tests {
+    use super::super::roots::*;
+    use super::*;
+    use std::{fs, os::unix::fs::PermissionsExt, time::Duration};
+    use tos_foundation::{CanonicalProfile, JsonLimits, canonical_raw_bytes_v1};
+
+    // Synthetic storage tuples exercise exact reads, not source admission.
+    #[test]
+    fn current_and_retained_reads_keep_fixity_budgets_and_read_only_open() {
+        let fixture = tempfile::tempdir().unwrap();
+        let root = fixture.path();
+        for name in ["objects", "revisions", "staging", "segments-v2"] {
+            fs::create_dir(root.join(name)).unwrap();
+            fs::set_permissions(root.join(name), fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let segment_limits = SegmentLimits {
+            max_segment_bytes: 1024 * 1024,
+            max_frame_bytes: 64 * 1024,
+            max_frames: 8,
+            max_journal_bytes: 64 * 1024,
+        };
+        let tree_limits = AuthenticatedTreeLimitsV1 {
+            max_key_bytes: 1024,
+            max_value_bytes: 65_536,
+            max_kind_bytes: 64,
+            max_node_bytes: 128 * 1024,
+            max_children: 16,
+            max_nodes: 128,
+            max_total_bytes: 16 * 1024 * 1024,
+            max_rows: 16,
+        };
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancel = Arc::new(AtomicBool::new(false));
+        let segment = SegmentStore::initialize_empty(
+            &root.join("segments-v2"),
+            SOURCE_ADMISSION_V2_DOMAIN,
+            segment_limits,
+        )
+        .unwrap();
+        let tree = |kind: &[u8], rows: Vec<AuthenticatedTreeEntryV1>| {
+            segment
+                .build_authenticated_tree_v2(
+                    kind,
+                    rows.into_iter().map(Ok),
+                    tree_limits,
+                    deadline,
+                    &cancel,
+                )
+                .unwrap()
+        };
+        let path = RelativePath::parse("texts/exact.txt").unwrap();
+        let mut revisions = Vec::<SourceRevisionRootsV2>::new();
+        for payload in [b"retained bytes".as_slice(), b"current bytes".as_slice()] {
+            let digest = Digest256::of_bytes(payload);
+            let object = root.join("objects").join(digest.to_hex());
+            fs::write(&object, payload).unwrap();
+            fs::set_permissions(&object, fs::Permissions::from_mode(0o444)).unwrap();
+            let mut value = digest.as_bytes().to_vec();
+            value.extend_from_slice(&(payload.len() as u64).to_be_bytes());
+            value.extend_from_slice(&0o444u32.to_le_bytes());
+            let members = tree(
+                MEMBERS_KIND,
+                vec![AuthenticatedTreeEntryV1 {
+                    key: path.as_str().as_bytes().to_vec(),
+                    value,
+                }],
+            );
+            revisions.push(SourceRevisionRootsV2 {
+                revision: SourceRevision(digest),
+                base_revision: revisions.last().map(|r| r.revision),
+                validator_sha256: Digest256::of_bytes(b"synthetic-validator"),
+                manifest_sha256: digest,
+                source_artifact: SourceRevisionArtifactV2::LegacyManifestV1 { sha256: digest },
+                batch_sha256: None,
+                membership_v1: None,
+                membership_v2: Some(SourceMembershipV2::from_members_tree(
+                    1,
+                    payload.len() as u64,
+                    members.commitment,
+                )),
+                completion_proof: None,
+                source_bytes: payload.len() as u64,
+                member_count: 1,
+                identity_count: 0,
+                dependency_source_count: 0,
+                dependency_count: 0,
+                retirement_count: 0,
+                members,
+                identities: tree(IDENTITIES_KIND, vec![]),
+                dependencies: tree(DEPENDENCIES_KIND, vec![]),
+                retirements: tree(RETIREMENTS_KIND, vec![]),
+                objects: None,
+                identity_paths: None,
+            });
+        }
+        let mut history_rows = revisions
+            .iter()
+            .map(|revision| AuthenticatedTreeEntryV1 {
+                key: revision.revision.0.as_bytes().to_vec(),
+                value: revision
+                    .encode_with_state_limit(16 * 1024 * 1024, 0)
+                    .unwrap(),
+            })
+            .collect::<Vec<_>>();
+        history_rows.sort_by(|a, b| a.key.cmp(&b.key));
+        let roots = SourceRootSetV2 {
+            current: revisions[1].clone(),
+            history: tree(HISTORY_KIND, history_rows),
+        };
+        let raw = roots.encode_with_state_limit(16 * 1024 * 1024, 0).unwrap();
+        let revision_dir = root
+            .join("revisions")
+            .join(roots.current.revision.0.to_hex());
+        fs::create_dir(&revision_dir).unwrap();
+        let rootset = revision_dir.join("rootset-v2.json");
+        fs::write(&rootset, &raw).unwrap();
+        fs::set_permissions(&rootset, fs::Permissions::from_mode(0o444)).unwrap();
+        let json = JsonLimits {
+            max_bytes: 65_536,
+            max_depth: 32,
+            max_visits: 100_000,
+            max_integer_digits: 64,
+        };
+        let pointer = serde_json::to_vec(&serde_json::json!({
+            "schema_version": "tos_corpus_pointer_v2",
+            "current": roots.current.revision.0.to_hex(),
+            "previous": revisions[0].revision.0.to_hex(),
+            "rootset_sha256": Digest256::of_bytes(&raw).to_hex(),
+        }))
+        .unwrap();
+        fs::write(
+            root.join("current.json"),
+            canonical_raw_bytes_v1(&pointer, CanonicalProfile::CorpusSnapshotV1, json).unwrap(),
+        )
+        .unwrap();
+        drop(segment);
+        let limits = V2PointReadLimits {
+            pointer: ReadLimits {
+                max_manifest_bytes: 65_536,
+                max_manifest_entries: 16,
+                max_selected_object_bytes: 4096,
+                json,
+            },
+            segment: segment_limits,
+            tree: tree_limits,
+            max_object_bytes: 4096,
+            max_state_bytes: 128 * 1024 * 1024,
+            caller_retained_state_bytes: 0,
+        };
+        let open = |io: PinnedSqliteIoBudget, cancelled: Arc<AtomicBool>| {
+            V2ReadSession::open_with_work_limit(root, limits, io, 100_000, deadline, cancelled)
+        };
+        let budget = || PinnedSqliteIoBudget::new(32 * 1024 * 1024, 1).unwrap();
+        let io = budget();
+        let mut reader = open(io.clone(), cancel.clone()).unwrap();
+        assert_eq!(
+            reader
+                .read_member(revisions[1].revision, &path)
+                .unwrap()
+                .unwrap()
+                .bytes,
+            b"current bytes"
+        );
+        assert_eq!(
+            reader
+                .read_member(revisions[0].revision, &path)
+                .unwrap()
+                .unwrap()
+                .bytes,
+            b"retained bytes"
+        );
+        reader.verify_current_fence().unwrap();
+        assert_eq!(io.snapshot().write_attempted_bytes, 0);
+        assert!(open(PinnedSqliteIoBudget::new(1, 1).unwrap(), cancel.clone()).is_err());
+        assert!(open(budget(), Arc::new(AtomicBool::new(true))).is_err());
+        let object = root.join("objects").join(revisions[0].revision.0.to_hex());
+        fs::set_permissions(&object, fs::Permissions::from_mode(0o644)).unwrap();
+        fs::write(&object, b"corrupt bytes!").unwrap();
+        fs::set_permissions(&object, fs::Permissions::from_mode(0o444)).unwrap();
+        assert!(reader.read_member(revisions[0].revision, &path).is_err());
+        drop(reader);
+        fs::rename(root.join("segments-v2"), root.join("held-segments")).unwrap();
+        assert!(open(budget(), cancel.clone()).is_err());
+        assert!(!root.join("segments-v2").exists());
+        fs::rename(root.join("held-segments"), root.join("segments-v2")).unwrap();
+        fs::set_permissions(&rootset, fs::Permissions::from_mode(0o644)).unwrap();
+        fs::write(&rootset, b"corrupt rootset").unwrap();
+        fs::set_permissions(&rootset, fs::Permissions::from_mode(0o444)).unwrap();
+        assert!(open(budget(), cancel).is_err());
+    }
 }
