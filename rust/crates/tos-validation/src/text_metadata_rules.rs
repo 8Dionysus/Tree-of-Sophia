@@ -17,6 +17,12 @@ pub struct TextMetadataLimits {
     pub max_issues: usize,
     pub deadline: Instant,
 }
+impl TextMetadataLimits {
+    // Explicit whole-packet envelopes. Ordinary command callers retain their
+    // smaller selected limits; a packet is not one emitted navigation row.
+    pub const MAX_PACKET_BYTES: usize = 16 * 1024 * 1024;
+    pub const MAX_STATE_BYTES: usize = 256 * 1024 * 1024;
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextMetadataState {
     CheckedMetadata,
@@ -909,9 +915,9 @@ fn inspect(
     run: fn(&mut Metadata<'_>, &Value) -> Result<(), ItemRefusal>,
 ) -> Result<TextMetadataReport, ItemRefusal> {
     if limits.max_packet_bytes == 0
-        || limits.max_packet_bytes > 2_097_152
+        || limits.max_packet_bytes > TextMetadataLimits::MAX_PACKET_BYTES
         || limits.max_state_bytes == 0
-        || limits.max_state_bytes > 134_217_728
+        || limits.max_state_bytes > TextMetadataLimits::MAX_STATE_BYTES
         || limits.max_issues == 0
         || limits.max_issues > 8192
     {

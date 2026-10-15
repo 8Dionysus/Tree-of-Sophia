@@ -779,9 +779,9 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                 &path,
                 validator,
                 l.catalog,
-                l.catalog.max_row_bytes,
-                l.max_claim_cohort_bytes,
-                l.max_claim_cohort_rows,
+                l.catalog.max_file_bytes,
+                l.max_output_bytes.min(64 * 1024 * 1024) as usize,
+                l.max_output_rows.min(65_536) as usize,
                 l.deadline,
                 validator.cancelled,
             )?;
@@ -1313,7 +1313,11 @@ fn inspect_annotation_owner(
                 validator.cancelled,
             )
             .map_err(|e| Error::Source(e.to_string()))?;
-        let value = original(&member.raw, l)?;
+        let parsed = crate::knowledge_normalization::SourceRow::parse_raw_input(
+            &member.raw,
+            l.catalog.max_file_bytes,
+        )?;
+        let value = parsed.value();
         if value["schema_version"] == "tos_semantic_annotation_packet_v2" {
             rules.inspect(&mut adapter, &path).map_err(|e| {
                 Error::Source(format!("navigation owner annotation predicates:{e:?}"))
@@ -1371,7 +1375,11 @@ fn inspect_streamed_annotation_owner(
                 .map_err(|_| Error::Invalid("navigation annotation path"))?;
             let raw =
                 SelectedBibliographicSourceCut::Streamed(source).read(&relative, validator, l)?;
-            let value = original(&raw, l)?;
+            let parsed = crate::knowledge_normalization::SourceRow::parse_raw_input(
+                &raw,
+                l.catalog.max_file_bytes,
+            )?;
+            let value = parsed.value();
             if value["schema_version"] == "tos_semantic_annotation_packet_v2" {
                 let (files, bytes) = source
                     .read_ledger

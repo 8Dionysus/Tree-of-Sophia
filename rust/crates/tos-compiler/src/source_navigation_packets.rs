@@ -205,7 +205,7 @@ pub(crate) fn project_packet(
     cancelled: &AtomicBool,
 ) -> Result<PacketProjection> {
     if max_raw == 0
-        || max_raw > 8 * 1024 * 1024
+        || max_raw > tos_validation::text_metadata_rules::TextMetadataLimits::MAX_PACKET_BYTES
         || max_output == 0
         || max_output > 64 * 1024 * 1024
         || max_rows == 0
@@ -213,7 +213,7 @@ pub(crate) fn project_packet(
     {
         return Err(Error::Budget("navigation packet bounds"));
     }
-    let parsed = crate::knowledge_normalization::SourceRow::parse(raw, max_raw)?;
+    let parsed = crate::knowledge_normalization::SourceRow::parse_raw_input(raw, max_raw)?;
     let packet = parsed.value();
     let schema = packet
         .get("schema_version")
@@ -257,7 +257,11 @@ pub(crate) fn project_packet(
             source,
             tos_validation::text_metadata_rules::TextMetadataLimits {
                 max_packet_bytes: max_raw,
-                max_state_bytes: max_output,
+                // Owner metadata validation indexes the input packet. Its
+                // workspace is independent of the selected projection bytes.
+                max_state_bytes: max_raw
+                    .saturating_mul(16)
+                    .min(tos_validation::text_metadata_rules::TextMetadataLimits::MAX_STATE_BYTES),
                 max_issues: 1024,
                 deadline,
             },
