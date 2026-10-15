@@ -99,7 +99,7 @@ pub(crate) fn compiler_refusal(error: tos_compiler::Error) -> DurableError {
 }
 
 /// Run the selected producer while the managed source, rights, audit, job,
-/// model, and owner-configuration fences remain held through publication.
+/// admission metadata, and owner-configuration fences remain held through publication.
 pub(crate) fn run(
     selection_path: &Path,
     requested_max_events: usize,
@@ -111,11 +111,26 @@ pub(crate) fn run(
     let deadline = Instant::now() + Duration::from_secs(300);
     let selected = crate::source_navigation_cli::SelectedSourceNavigation::new(selection_path)
         .map_err(|_| "source navigation selection refused")?;
-    crate::source_navigation_cli::with_selected_navigation_anchor_current(
+    crate::source_navigation_cli::with_selected_navigation_current(
         &selected,
         deadline,
         cancelled,
-        |_model, _lease, _selected, _proof, _expectation, owner, owner_tx, selection, store| {
+        |lease, generation, proof, expectation, owner, owner_tx, selection, store| {
+            // The prior publication must be bound to this protected selection.
+            // Do not take a consumer FOR SHARE here: publication uses its own
+            // bounded transactions under this same source-owner hold.
+            let guard = crate::durable_adapter::durable_projection::read_navigation_published_guard_with_tx_v2(
+                owner_tx, selection.domain, selection.consumer_id,
+                &selection.profile, selection.event_limits,
+            ).map_err(crate::source_managed_selection::ManagedSelectionError::Durable)?;
+            let crate::durable_adapter::durable_projection::DurableNavigationPublishedGenerationV2::Ready(guard) = guard else {
+                return Err(crate::source_managed_selection::ManagedSelectionError::Durable(
+                    DurableError::Conflict("navigation initial publication required")));
+            };
+            crate::source_navigation_query::verify_selected_binding(
+                generation, expectation, proof, lease, owner, &guard, selection,
+            ).map_err(|_| crate::source_managed_selection::ManagedSelectionError::Durable(
+                DurableError::Conflict("navigation published anchor differs from protected selection")))?;
             run_held_owner(
                 store,
                 owner,

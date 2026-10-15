@@ -64,7 +64,7 @@ pub struct NavigationOriginalInput<'a> {
     pub expected_rights_root_sha256: &'a str,
     pub limits: NavigationOriginalLimits,
 }
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationOriginalReceipt {
     pub profile: String,
@@ -83,6 +83,30 @@ pub struct NavigationOriginalReceipt {
     pub total_bytes: u64,
     pub member_index_root_sha256: String,
     pub member_index_bytes: u64,
+}
+impl NavigationOriginalReceipt {
+    /// Authenticate retained bounded metadata against the owner-selected
+    /// component root. This verifies a receipt, never model bytes or rights.
+    /// It cannot create a VerifiedKnowledgeModel or an immutable custody hold.
+    pub fn verify_selected_metadata(&self, expected: &KnowledgeSelectedExpectation) -> Result<()> {
+        if expected.navigation_original_root_sha256.as_deref()
+            != Some(self.component_root_sha256.as_str())
+            || self.profile != NAVIGATION_ORIGINAL_PROFILE
+            || self.descriptor_sha256 != expected.descriptor_sha256
+            || self.source_cut != expected.source_cut
+            || self.membership_root != expected.membership_root
+            || !expected.source_scopes.iter().any(|scope| {
+                scope.source_graph == self.source_graph
+                    && scope.adapter_profile == "source-navigation-node-edge-v1"
+            })
+            || root(self)? != self.component_root_sha256
+        {
+            return Err(Error::Invalid(
+                "navigation original selected metadata binding",
+            ));
+        }
+        Ok(())
+    }
 }
 #[derive(Debug)]
 pub struct NavigationOriginalPage {
@@ -906,19 +930,8 @@ pub(crate) fn verify(
     }
     verify_ddl(db)?;
     let r = receipt(db)?;
-    if expected.navigation_original_root_sha256.as_deref() != Some(r.component_root_sha256.as_str())
-        || r.profile != NAVIGATION_ORIGINAL_PROFILE
-        || r.descriptor_sha256 != expected.descriptor_sha256
-        || r.source_cut != expected.source_cut
-        || r.membership_root != expected.membership_root
-        || r.rights.checked_add(1).is_none_or(|n| n > l.max_rows)
-        || r.total_bytes > l.max_work_bytes
-        || !expected.source_scopes.iter().any(|s| {
-            s.source_graph == r.source_graph
-                && s.adapter_profile == "source-navigation-node-edge-v1"
-        })
-        || root(&r)? != r.component_root_sha256
-    {
+    r.verify_selected_metadata(expected)?;
+    if r.rights.checked_add(1).is_none_or(|n| n > l.max_rows) || r.total_bytes > l.max_work_bytes {
         return Err(Error::Invalid("navigation original selected binding"));
     }
     *work = work
@@ -1276,6 +1289,30 @@ mod cold_abi_admission_tests {
                 .unwrap()
                 .component_root_sha256
         );
+
+        verified.verify_selected_metadata(&expected).unwrap();
+        for field in [
+            "nodes",
+            "header_sha256",
+            "rights_root_sha256",
+            "member_index_root_sha256",
+            "source_graph",
+        ] {
+            let mut altered = serde_json::to_value(&verified).unwrap();
+            altered[field] = match field {
+                "nodes" => serde_json::json!(verified.nodes + 1),
+                "source_graph" => serde_json::json!("other-navigation-source"),
+                _ => serde_json::json!("0".repeat(64)),
+            };
+            let altered: NavigationOriginalReceipt = serde_json::from_value(altered).unwrap();
+            assert!(
+                altered.verify_selected_metadata(&expected).is_err(),
+                "{field}"
+            );
+        }
+        let mut other_selection = expected.clone();
+        other_selection.navigation_original_root_sha256 = Some("0".repeat(64));
+        assert!(verified.verify_selected_metadata(&other_selection).is_err());
 
         let mut unknown = expected.clone();
         unknown.model_abi = "unknown-carrier-once-model-abi".into();

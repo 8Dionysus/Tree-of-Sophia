@@ -1300,8 +1300,16 @@ Claim's exact source reference and requires its subject identity and original
 `has_subject` edge. It does not assign the metadata record to the Claim's
 contribution; replacing the Claim retires its navigation edge, not the Work.
 
-Each query reopens the retained model as the immutable bootstrap anchor and
-holds a separate live PostgreSQL source-navigation lease through disclosure.
+Initial bootstrap cold-verifies the retained model and persists its complete
+Navigation Original receipt with the published binding. Ordinary queries and
+event advances authenticate that bounded receipt against the protected model
+expectation and hold the live PostgreSQL source-navigation lease. They do not
+open or scan the SQLite anchor, and still work when the artifact is offline.
+The artifact remains necessary for explicit bootstrap, rebuild and restoration.
+A publication from an earlier software version without this receipt requires
+an explicit rebuild into a new navigation consumer before switching selection;
+its source history, rights and existing publication remain intact. Missing or
+changed admission metadata is refused, with no automatic whole-model fallback.
 The query reads one verified coverage and adjacency publication while holding
 current CMD rights and the explicit source-owner navigation policy through
 delivery. A newer CMD head does not block an unrelated published answer. When

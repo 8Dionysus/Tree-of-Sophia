@@ -230,7 +230,131 @@ pub(crate) fn with_selected_navigation_policy_owner<T>(
     Ok(result)
 }
 
-/// Run the event producer against the persisted selected model and current PG
+struct NavigationOwnerContext {
+    filesystem: crate::source_creation_store::CreationFilesystem,
+    owner: OwnerConfiguration,
+    owner_configuration_sha256: Digest256,
+    store: SegmentStore,
+    coordinator: crate::DurablePgCoordinator,
+    generation: crate::source_current_cut::ManagedCurrentSourceGeneration,
+}
+
+fn open_navigation_owner_context(
+    selected: &SelectedSourceNavigation,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<NavigationOwnerContext, SourceNavigationSelectionError> {
+    if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(SourceNavigationSelectionError::Invalid(
+            "source navigation producer deadline exhausted",
+        ));
+    }
+    let (filesystem, owner, owner_configuration_sha256) =
+        read_selected_owner_configuration(&selected.owner_configuration, deadline, cancelled)?;
+    let selection = &owner.source_navigation;
+    validate_navigation_selection_scope(selection)?;
+    let view = navigation_producer_owner_selection(&owner, owner_configuration_sha256)?;
+    selection
+        .source_proof_v2
+        .validate()
+        .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation V2 proof"))?;
+    let store = SegmentStore::open_existing(&view.store_root, selection.store_limits.into_limits())
+        .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation store refused"))?;
+    let client = crate::source_projection_cli::connect_selected_source_pg16()
+        .map_err(|_| SourceNavigationSelectionError::Invalid("selected PostgreSQL unavailable"))?;
+    let mut coordinator = crate::DurablePgCoordinator::from_configured_client(client);
+    let generation = coordinator
+        .reopen_persisted_addressed_navigation_anchor(
+            &store,
+            &selection.source_proof_v2,
+            selection.tree_limits.into_limits(),
+            deadline,
+            cancelled,
+        )
+        .map_err(|error| {
+            SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(error))
+        })?;
+    Ok(NavigationOwnerContext {
+        filesystem,
+        owner,
+        owner_configuration_sha256,
+        store,
+        coordinator,
+        generation,
+    })
+}
+
+/// Ordinary native work uses the admitted PG publication and bounded immutable
+/// source descriptor. No SQLite model or whole-corpus capability is reopened.
+/// Current source, rights, audit, job and protected-owner holds remain identical
+/// to initial bootstrap and cover the complete callback/delivery.
+pub(crate) fn with_selected_navigation_current<T>(
+    selected: &SelectedSourceNavigation,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    consume: impl for<'lease, 'tx> FnOnce(
+        &'lease SourceNavigationCurrentLeaseV1<'lease>,
+        &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        &tos_compiler::managed_source::ManagedSourceProofV2,
+        &tos_compiler::KnowledgeSelectedExpectation,
+        &NavigationProducerHeldOwnerIdentity,
+        &mut postgres::Transaction<'tx>,
+        &NavigationProducerOwnerSelection<'_>,
+        &SegmentStore,
+    ) -> ManagedSelectionResult<T>,
+) -> Result<T, SourceNavigationSelectionError> {
+    let NavigationOwnerContext {
+        filesystem,
+        owner,
+        owner_configuration_sha256,
+        store,
+        mut coordinator,
+        generation,
+    } = open_navigation_owner_context(selected, deadline, cancelled)?;
+    let selection = &owner.source_navigation;
+    let view = navigation_producer_owner_selection(&owner, owner_configuration_sha256)?;
+    coordinator
+        .with_current_source_navigation_lease(
+            &store,
+            &generation,
+            &selection.source_proof_v2,
+            &filesystem,
+            view.source_contract,
+            selection.rule_version,
+            selection.rights_version,
+            &selection.job_id,
+            selection.job_fence,
+            deadline,
+            cancelled,
+            |lease, tx| {
+                let facts = NavigationProducerHeldOwnerIdentity::from_selected(
+                    &selection.source_proof_v2,
+                    &selection.expectation,
+                    lease,
+                    &view,
+                    generation.digest(),
+                    generation.member_count(),
+                )
+                .map_err(|_| crate::DurableError::Conflict("source navigation producer binding"))?;
+                Ok(consume(
+                    lease,
+                    &generation,
+                    &selection.source_proof_v2,
+                    &selection.expectation,
+                    &facts,
+                    tx,
+                    &view,
+                    &store,
+                ))
+            },
+        )
+        .map_err(|error| {
+            SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(error))
+        })?
+        .map_err(SourceNavigationSelectionError::Managed)
+}
+
+/// Admit the bootstrap against the persisted selected model and current PG
 /// source owner. Unlike the lower-level owner-config reader, this callback is
 /// entered only after the retained V2 descriptor/model have been reopened and
 /// the source, rights, job, audit, and owner fences are held in one RR read.
@@ -250,20 +374,17 @@ pub(crate) fn with_selected_navigation_anchor_current<T>(
         &SegmentStore,
     ) -> ManagedSelectionResult<T>,
 ) -> Result<T, SourceNavigationSelectionError> {
-    if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
-        return Err(SourceNavigationSelectionError::Invalid(
-            "source navigation producer deadline exhausted",
-        ));
-    }
-    let (filesystem, owner, owner_configuration_sha256) =
-        read_selected_owner_configuration(&selected.owner_configuration, deadline, cancelled)?;
+    let NavigationOwnerContext {
+        filesystem,
+        owner,
+        owner_configuration_sha256,
+        store,
+        mut coordinator,
+        generation,
+    } = open_navigation_owner_context(selected, deadline, cancelled)?;
     let selection = &owner.source_navigation;
     let contract = validate_navigation_selection_scope(selection)?;
     let view = navigation_producer_owner_selection(&owner, owner_configuration_sha256)?;
-    selection
-        .source_proof_v2
-        .validate()
-        .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation V2 proof"))?;
     selection
         .cold_limits
         .validate()
@@ -272,22 +393,6 @@ pub(crate) fn with_selected_navigation_anchor_current<T>(
         .process_limits
         .verify_current()
         .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation process limits"))?;
-    let store = SegmentStore::open_existing(&view.store_root, selection.store_limits.into_limits())
-        .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation store refused"))?;
-    let client = crate::source_projection_cli::connect_selected_source_pg16()
-        .map_err(|_| SourceNavigationSelectionError::Invalid("selected PostgreSQL unavailable"))?;
-    let mut coordinator = crate::DurablePgCoordinator::from_configured_client(client);
-    let generation = coordinator
-        .reopen_persisted_addressed_navigation_anchor(
-            &store,
-            &selection.source_proof_v2,
-            selection.tree_limits.into_limits(),
-            deadline,
-            cancelled,
-        )
-        .map_err(|error| {
-            SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(error))
-        })?;
     let model_path = crate::source_text_owner::normalized_absolute(&selection.model_path)
         .map_err(|_| SourceNavigationSelectionError::Invalid("source navigation model path"))?;
     let parent = ManagedAgentSelectedParent::<
@@ -864,15 +969,16 @@ pub fn with_selected_source_navigation<T, E>(
             "source navigation request deadline exhausted",
         ));
     }
-    let query_result = with_selected_navigation_anchor_current(
+    let query_result = with_selected_navigation_current(
         selected,
         deadline,
         &cancelled,
-        |model, source, parent, _proof, _expectation, facts, tx, owner, _store| {
+        |source, generation, proof, expectation, facts, tx, owner, _store| {
             crate::source_navigation_query::with_published_source_navigation_v2(
-                model,
                 source,
-                parent,
+                generation,
+                proof,
+                expectation,
                 facts,
                 tx,
                 owner,

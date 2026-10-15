@@ -197,6 +197,15 @@ V1 anchors retain their complete normalized graph and remain readable under V1;
 their format cannot contain the V2 carrier table. Older postings ABIs require their complete search root and tables, and continue
 to decode the same string-valued JSON field. Older consumers reject the new ABI.
 
+Initial PostgreSQL bootstrap persists the complete Navigation Original receipt
+in its owner binding. Routine queries and event advances verify the receipt's
+component root against the protected selection and verify all publication,
+source, rights, job and audit fences. They do not reopen the cold model or issue
+a `VerifiedKnowledgeModel` from persisted JSON. Publication metadata without the
+receipt requires explicit rebuild into a new consumer and selection switch;
+existing source history and publication are preserved. This metadata addition
+changes new private bootstrap roots, not Original roots or model bytes.
+
 This anchor supports PostgreSQL source-navigation publication and exact retained
 Original reads. It does not support offline indexed search or claim a complete
 portable Site profile. PostgreSQL text search has its own model and cursor.

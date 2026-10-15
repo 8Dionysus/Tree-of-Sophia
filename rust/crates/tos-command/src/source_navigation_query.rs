@@ -1,15 +1,16 @@
 //! Bounded PostgreSQL read model for the current managed source-navigation
-//! projection. The selected model remains an immutable bootstrap anchor while
-//! a separate live PG lease validates the published cursor and current rights.
-//! Both holds remain active through query preparation and final delivery.
+//! projection. Its admitted Original receipt authenticates immutable bootstrap
+//! metadata against the protected selection; no SQLite file is reopened.
+//! A live PG/source lease holds publication and current rights through delivery.
 
 use std::{
     sync::{Arc, atomic::AtomicBool},
     time::{Duration, Instant},
 };
 
+use crate::source_current_cut::ManagedCurrentSourceGeneration;
 use postgres::Transaction;
-use tos_compiler::VerifiedKnowledgeModel;
+use tos_compiler::KnowledgeSelectedExpectation;
 use tos_compiler::managed_source::ManagedProducerProof;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 use tos_query::{
@@ -20,12 +21,9 @@ use tos_query::{
 use crate::{
     DurableNavigationEventLimits, DurableNavigationPublishedGenerationGuardV2,
     DurableProjectionProfile,
-    durable_adapter::durable_projection::{
-        DurableNavigationPublishedGenerationV2, navigation_owner_binding_with_verified_model,
-    },
+    durable_adapter::durable_projection::DurableNavigationPublishedGenerationV2,
     source_managed_selection::{
-        ManagedAgentSelectedParent, ManagedSelectionError, ManagedSelectionResult,
-        SourceNavigationCurrentLeaseV1,
+        ManagedSelectionError, ManagedSelectionResult, SourceNavigationCurrentLeaseV1,
     },
     source_navigation_cli::{
         NavigationProducerHeldOwnerIdentity, NavigationProducerOwnerSelection,
@@ -91,18 +89,48 @@ fn remaining_timeout(deadline: Instant, configured: Duration) -> Result<Duration
     Ok(bounded)
 }
 
-fn verify_selected_binding(
-    model: &VerifiedKnowledgeModel<'_>,
-    selected: &ManagedAgentSelectedParent<tos_compiler::managed_source::ManagedSourceProofV2>,
+fn verify_admitted_original_metadata(
+    owner: &crate::DurableNavigationCurrentIndexOwnerBindingV1,
+    expected: &KnowledgeSelectedExpectation,
+) -> Result<(), QueryError> {
+    let invalid = || {
+        query_error(
+            QueryErrorCode::StaleSelection,
+            "published navigation admission metadata differs; explicit bootstrap required",
+        )
+    };
+    let receipt = owner
+        .navigation_original_receipt
+        .as_ref()
+        .ok_or_else(invalid)?;
+    receipt
+        .verify_selected_metadata(expected)
+        .map_err(|_| invalid())?;
+    if owner.navigation_original_root != parse_digest(&receipt.component_root_sha256)?
+        || owner.source_graph != receipt.source_graph
+        || owner.navigation_header_sha256 != parse_digest(&receipt.header_sha256)?
+        || owner.navigation_node_input_root != parse_digest(&receipt.node_input_root_sha256)?
+        || owner.navigation_edge_input_root != parse_digest(&receipt.edge_input_root_sha256)?
+        || owner.navigation_nodes != receipt.nodes
+        || owner.navigation_edges != receipt.edges
+        || owner.navigation_rights != receipt.rights
+        || owner.navigation_projected_rights > receipt.rights
+    {
+        return Err(invalid());
+    }
+    Ok(())
+}
+
+pub(crate) fn verify_selected_binding(
+    generation: &ManagedCurrentSourceGeneration,
+    expected: &KnowledgeSelectedExpectation,
     proof: &tos_compiler::managed_source::ManagedSourceProofV2,
     live: &SourceNavigationCurrentLeaseV1<'_>,
     facts: &NavigationProducerHeldOwnerIdentity,
     guard: &DurableNavigationPublishedGenerationGuardV2,
     owner_selection: &NavigationProducerOwnerSelection<'_>,
-    limits: DurableNavigationEventLimits,
 ) -> Result<Binding, QueryError> {
     let owner = guard.owner_binding();
-    let expected = model.selection();
     let model_digest = Digest256::from_hex(&expected.model_sha256).map_err(|_| {
         query_error(
             QueryErrorCode::StaleSelection,
@@ -168,21 +196,8 @@ fn verify_selected_binding(
                 "managed source schema profile digest is invalid",
             )
         })?;
-    let expected_owner_binding = navigation_owner_binding_with_verified_model(
-        owner_selection.domain,
-        selected,
-        &owner_selection.profile,
-        model,
-        limits,
-    )
-    .map_err(|_| {
-        query_error(
-            QueryErrorCode::StaleSelection,
-            "immutable navigation owner binding is invalid",
-        )
-    })?;
-    if guard.owner_binding() != &expected_owner_binding
-        || live.require_managed_v2_basis(proof).is_err()
+    verify_admitted_original_metadata(owner, expected)?;
+    if live.require_managed_v2_basis(proof).is_err()
         || !live.rights_allowed()
         || live.head_sequence() != live.source_generation()
         || live.domain() != owner_selection.domain
@@ -194,7 +209,7 @@ fn verify_selected_binding(
         || live.bootstrap_membership().digest != bootstrap_membership
         || live.source_definition_digest() != source_definition
         || live.schema_profile_digest() != schema_profile
-        || live.anchor_commit_sequence() != selected.generation().commit_seq()
+        || live.anchor_commit_sequence() != generation.commit_seq()
         || facts.domain != owner_selection.domain
         || facts.proof_sha256 != proof_digest
         || facts.domain_sha256 != domain_digest
@@ -220,8 +235,8 @@ fn verify_selected_binding(
         || facts.job_id_sha256 != Digest256::of_bytes(owner_selection.job_id.as_bytes())
         || facts.job_fence != owner_selection.job_fence
         || facts.source_epoch != proof.generation.epoch
-        || facts.managed_generation_digest != selected.generation().digest()
-        || facts.anchor_member_count != selected.generation().member_count()
+        || facts.managed_generation_digest != generation.digest()
+        || facts.anchor_member_count != generation.member_count()
         || facts.anchor_projection_digest
             != Digest256::from_hex(&proof.inventory_projection()).map_err(|_| {
                 query_error(
@@ -231,26 +246,27 @@ fn verify_selected_binding(
             })?
         || facts.model_sha256 != model_digest
         || facts.model_membership_root != membership
-        || selected.selection_expectation().through_commit_seq != selected.generation().commit_seq()
+        || expected.through_commit_seq != generation.commit_seq()
         || owner.domain != owner_selection.domain
         || owner.owner_receipt_id != expected.owner_receipt_id
-        || owner.managed_generation_digest != selected.generation().digest()
-        || owner.managed_generation_commit_sequence != selected.generation().commit_seq()
-        || owner.managed_agent_definition_digest != selected.generation().agent_definition_digest()
+        || owner.managed_generation_digest != generation.digest()
+        || owner.managed_generation_member_count != generation.member_count()
+        || owner.managed_generation_commit_sequence != generation.commit_seq()
+        || owner.managed_agent_definition_digest != generation.agent_definition_digest()
         || owner.source_membership_root != bootstrap_membership
         || owner.source_membership_count != proof.generation.bootstrap_members
         || owner.source_projection_digest
-            != Digest256::from_hex(selected.source_proof().native_inventory_root()).map_err(
-                |_| {
-                    query_error(
-                        QueryErrorCode::StaleSelection,
-                        "managed source projection digest is invalid",
-                    )
-                },
-            )?
+            != Digest256::from_hex(proof.native_inventory_root()).map_err(|_| {
+                query_error(
+                    QueryErrorCode::StaleSelection,
+                    "managed source projection digest is invalid",
+                )
+            })?
         || owner.selected_model_digest != model_digest
         || owner.selected_model_abi != expected.model_abi
-        || owner.selected_selection_profile != model.selection_profile()
+        || !tos_foundation::is_managed_knowledge_model_abi(&expected.model_abi)
+        || owner.selected_descriptor_digest != parse_digest(&expected.descriptor_sha256)?
+        || owner.selected_selection_profile != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
         || owner.selected_source_cut != expected.source_cut
         || owner.selected_membership_root != membership
         || owner.selected_index_generation != expected.index_generation
@@ -261,7 +277,7 @@ fn verify_selected_binding(
         || owner.selected_software_profile_version != owner_selection.profile.version
         || owner.selected_software_contract_digest != owner_selection.source_contract
         || live.source_contract() != owner_selection.source_contract
-        || selected.generation().commit_seq() > guard.published_sequence()
+        || generation.commit_seq() > guard.published_sequence()
         || guard.domain_head_sequence() != live.head_sequence()
         || guard.published_sequence() > guard.domain_head_sequence()
         || !guard.rights_allowed()
@@ -290,7 +306,7 @@ fn verify_selected_binding(
         selection_profile: owner.selected_selection_profile.clone(),
         source_navigation_proof_v1: Some(tos_query::SourceNavigationProofV1 {
             bootstrap_root: guard.bootstrap_root(),
-            anchor_through_commit_seq: selected.generation().commit_seq(),
+            anchor_through_commit_seq: generation.commit_seq(),
             anchor_membership_root: owner.selected_membership_root,
             anchor_projection_root: facts.anchor_projection_digest,
             published_through_commit_seq: guard.published_sequence(),
@@ -316,10 +332,11 @@ pub enum SourceNavigationPublishedReadV2<T> {
 /// and job fences in the same repeatable-read transaction. `consume` must
 /// finish any transport write before it returns.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 'request, T, E>(
-    model: &'model VerifiedKnowledgeModel<'static>,
+pub(crate) fn with_published_source_navigation_v2<'lease, 'tx_ref, 'tx, 'request, T, E>(
     source: &'lease SourceNavigationCurrentLeaseV1<'lease>,
-    selected: &ManagedAgentSelectedParent<tos_compiler::managed_source::ManagedSourceProofV2>,
+    generation: &ManagedCurrentSourceGeneration,
+    proof: &tos_compiler::managed_source::ManagedSourceProofV2,
+    expected: &KnowledgeSelectedExpectation,
     facts: &NavigationProducerHeldOwnerIdentity,
     tx: &'tx_ref mut Transaction<'tx>,
     owner_selection: &'request NavigationProducerOwnerSelection<'request>,
@@ -346,7 +363,7 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
         ));
     }
     source
-        .require_managed_v2_basis(selected.source_proof())
+        .require_managed_v2_basis(proof)
         .map_err(ManagedSelectionError::Source)?;
     tx.query_opt(
         "SELECT cursor_seq FROM cmd2_projection_navigation_consumer
@@ -370,14 +387,13 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
         }
     };
     let binding = verify_selected_binding(
-        model,
-        selected,
-        selected.source_proof(),
+        generation,
+        expected,
+        proof,
         source,
         facts,
         &guard,
         owner_selection,
-        limits,
     )
     .map_err(|_| {
         ManagedSelectionError::Durable(crate::DurableError::Conflict(
@@ -392,13 +408,8 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
             "explicit source navigation policy receipt is invalid",
         ))
     })?;
-    let selected_export = model.navigation_original_receipt().map_err(|_| {
-        ManagedSelectionError::Durable(crate::DurableError::Refused(
-            "selected source export receipt is absent",
-        ))
-    })?;
     let expected_export_id = source_navigation_policy::selected_export_receipt_id(
-        &selected_export.component_root_sha256,
+        &guard.owner_binding().navigation_original_root.to_hex(),
     )
     .map_err(|_| {
         ManagedSelectionError::Durable(crate::DurableError::Refused(
@@ -406,9 +417,9 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
         ))
     })?;
     if policy_receipt.0.export_receipt_id != expected_export_id
-        || policy_receipt.0.model_receipt_id != model.selection().owner_receipt_id
-        || policy_receipt.0.model_abi != model.selection().model_abi
-        || policy_receipt.0.selection_profile != model.selection_profile()
+        || policy_receipt.0.model_receipt_id != expected.owner_receipt_id
+        || policy_receipt.0.model_abi != expected.model_abi
+        || policy_receipt.0.selection_profile != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
     {
         return Err(ManagedSelectionError::Durable(
             crate::DurableError::Refused("source-owner policy receipt differs from selected model"),
@@ -422,8 +433,8 @@ pub(crate) fn with_published_source_navigation_v2<'model, 'lease, 'tx_ref, 'tx, 
         &policy_receipt.0,
         policy_receipt.1,
         &binding,
-        &model.selection().owner_receipt_id,
-        &model.selection().source_cut,
+        &expected.owner_receipt_id,
+        &expected.source_cut,
     )
     .map_err(|_| {
         ManagedSelectionError::Durable(crate::DurableError::Refused(
