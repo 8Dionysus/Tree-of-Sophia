@@ -593,6 +593,9 @@ impl DurablePgCoordinator {
         let selection = serde_json::to_string(&selected_cut)
             .map_err(|_| DurableError::Invalid("navigation initial selection encoding"))?;
         let mut position = begin_capture(&mut tx, domain, consumer, profile, &selection, header)?;
+        // Each full seal gets a fresh invocation deadline. Do not start a
+        // whole closure after spending most of the call on earlier pages.
+        let entry_phase = position.phase.clone();
         let replayed = position.phase == "complete";
         if replayed {
             seal::verify_published(
@@ -764,6 +767,7 @@ impl DurablePgCoordinator {
             add(&mut call_work_bytes, work)?;
         }
         while committed_batches < max_batches
+            && position.phase == entry_phase
             && matches!(
                 position.phase.as_str(),
                 "normalized" | "adjacency" | "publish"

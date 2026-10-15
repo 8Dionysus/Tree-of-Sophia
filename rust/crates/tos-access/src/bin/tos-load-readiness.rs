@@ -4767,14 +4767,19 @@ fn validate_projection_operation(
     }
     match operation_name {
         "bootstrap-navigation" => {
-            if operation
-                .request
-                .as_object()
-                .is_none_or(|fields| fields.len() != 1 || !fields.contains_key("operation"))
-                || operation.interrupt_resume_after_ms.is_some()
+            if operation.request.as_object().is_none_or(|fields| {
+                !fields.contains_key("operation")
+                    || fields
+                        .keys()
+                        .any(|key| key != "operation" && key != "max_batches")
+                    || fields
+                        .get("max_batches")
+                        .is_some_and(|v| v.as_u64().is_none_or(|n| !(1..=256).contains(&n)))
+            }) || operation.interrupt_resume_after_ms.is_some()
             {
                 return Err(
-                    "navigation bootstrap is a one-time setup request with no extra fields".into(),
+                    "navigation bootstrap accepts only operation and optional max_batches 1..256"
+                        .into(),
                 );
             }
         }
@@ -6933,7 +6938,9 @@ fn navigation_bootstrap_observation(
     let root = response["bootstrap_root"]
         .as_str()
         .ok_or("navigation bootstrap root absent")?;
-    if response["schema_version"] != "tos_source_navigation_bootstrap_result_v1"
+    if response["schema_version"] != "tos_source_navigation_bootstrap_result_v2"
+        || response["completed"] != true
+        || response["cleanup_complete"] != true
         || response["domain"] != selected["domain"]
         || response["consumer_id"] != selected["consumer_id"]
         || response["profile"] != selected["profile_id"]
@@ -6942,7 +6949,7 @@ fn navigation_bootstrap_observation(
         || source_membership_count != expected_source_membership_count
         || source_head_sequence != through_sequence
         || !valid_sha(root)
-        || response["replayed"] != false
+        || response["replayed"].as_bool().is_none()
     {
         return Err(
             "navigation bootstrap did not bind the selected source and new current cursor".into(),
@@ -6957,7 +6964,7 @@ fn navigation_bootstrap_observation(
         "bootstrap_root": root,
         "selected_owner_source_count": selected_owner_source_count,
         "selected_owner_source_bytes": selected_owner_source_bytes,
-        "replayed": false
+        "replayed": response["replayed"]
     }))
 }
 
@@ -7657,11 +7664,62 @@ fn run_operation(
             }
         }
     }
+    // Initial construction is a resumable maintenance operation. Each child
+    // call has its own bounded transaction count; the selected operation's
+    // existing deadline bounds the whole loop and its retained responses.
+    if op.channel == "projection"
+        && op.request["operation"] == "bootstrap-navigation"
+        && error.is_none()
+    {
+        loop {
+            let response = match navigation_response_body(attempts.last()) {
+                Ok(response) => response,
+                Err(reason) => {
+                    error = Some(reason);
+                    break;
+                }
+            };
+            if response["schema_version"] != "tos_source_navigation_bootstrap_result_v2"
+                || response["completed"].as_bool().is_none()
+                || response["cleanup_complete"].as_bool().is_none()
+                || (response["cleanup_complete"] == true && response["completed"] != true)
+                || (response["completed"] == false
+                    && (!response["bootstrap_root"].is_null()
+                        || !response["through_sequence"].is_null()))
+            {
+                error = Some("navigation bootstrap progress contract differs".into());
+                break;
+            }
+            if response["completed"] == true && response["cleanup_complete"] == true {
+                break;
+            }
+            if response["committed_batches"].as_u64().unwrap_or(0) == 0 {
+                error = Some("navigation bootstrap made no durable progress".into());
+                break;
+            }
+            match projection_process(
+                op,
+                &args.output,
+                deadline,
+                args.request_cap,
+                args.response_cap,
+                pids,
+                None,
+            ) {
+                Ok(attempt) => attempts.push(attempt),
+                Err(reason) => {
+                    error = Some(reason);
+                    break;
+                }
+            }
+        }
+    }
     if op.channel == "projection" && error.is_none() {
         match op.request["operation"].as_str() {
             Some("bootstrap-navigation") => {
                 match navigation_bootstrap_observation(op, attempts.last()) {
-                    Ok(observation) => {
+                    Ok(mut observation) => {
+                        observation["calls"] = json!(attempts.len());
                         projection_navigation_bootstrap_observation_value = observation
                     }
                     Err(reason) => error = Some(reason),

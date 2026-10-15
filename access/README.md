@@ -1237,13 +1237,18 @@ Bootstrap the complete selected current model before advancing event ranges:
   > /absolute/receipts/navigation-bootstrap.json
 ```
 
-The bootstrap request is exactly
-`{"operation":"bootstrap-navigation"}`. Its stdout is one compact JSON
+The bootstrap request is `{"operation":"bootstrap-navigation"}` with an
+optional `"max_batches": N` in 1..256 (default 256). Its stdout is one compact JSON
 object followed by a newline; the command flushes stdout and does not create the
-receipt file. The `tos_source_navigation_bootstrap_result_v1` receipt binds
+receipt file. The `tos_source_navigation_bootstrap_result_v2` progress result binds
 domain, consumer, profile, selected source revision and membership, current
 source head, published sequence and bootstrap root, resolved source-member
-count/bytes, and whether the operation replayed. Then advance bounded events
+count/bytes, and whether the operation replayed. Repeat the same request and
+selection until both `completed` and `cleanup_complete` are true. Before
+publication the sequence and bootstrap root are null; `phase`, `after`, counts
+and `committed_batches` describe retained work. After publication, bounded
+cleanup removes private staging while preserving the exact selected source.
+Then advance bounded events
 with `{"operation":"advance-navigation","max_events":1}`; unsupported
 events remain pending. These maintenance operations publish only the private
 projection and issue no ToS admission, QRY disclosure, or canon grant. If a

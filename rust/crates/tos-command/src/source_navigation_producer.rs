@@ -148,9 +148,10 @@ pub(crate) fn run(
 
 /// Bootstrap the selected private navigation read model while the managed
 /// source, rights, audit, job, model, and owner-configuration fences remain
-/// held through the same-transaction publication.
+/// held across this invocation's bounded page transactions and publication.
 pub(crate) fn run_bootstrap(
     selection_path: &Path,
+    max_batches: usize,
     cancelled: &AtomicBool,
 ) -> Result<Value, String> {
     let deadline = Instant::now() + Duration::from_secs(300);
@@ -161,79 +162,49 @@ pub(crate) fn run_bootstrap(
         deadline,
         cancelled,
         |model, _lease, selected, _proof, expectation, owner, owner_tx, selection, store| {
-            if Instant::now() >= deadline
-                || cancelled.load(std::sync::atomic::Ordering::Relaxed)
-            {
-                return Err(crate::source_managed_selection::ManagedSelectionError::Durable(
-                    DurableError::Refused("navigation bootstrap deadline or cancellation"),
-                ));
+            if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(
+                    crate::source_managed_selection::ManagedSelectionError::Durable(
+                        DurableError::Refused("navigation bootstrap deadline or cancellation"),
+                    ),
+                );
             }
             let result = (|| {
-                let mut coordinator = open_selected_event_reader(store, owner, selection, owner_tx)?;
-                let capture = crate::source_navigation_bootstrap::capture_source_navigation_bootstrap_v1(
-                    model,
-                    selection.event_limits,
-                )?;
-                let owner_sources =
-                    crate::source_navigation_bootstrap::resolve_source_navigation_bootstrap_owners_v1(
-                        &mut coordinator,
-                        store,
-                        selected.generation(),
-                        capture.owner_source_paths(),
-                        selection.event_limits,
-                        deadline,
-                        cancelled,
-                    )?;
-                let owner_source_count = owner_sources.len();
-                let owner_source_bytes = owner_sources.iter().try_fold(0u64, |total, source| {
-                    total.checked_add(source.size_bytes).ok_or(DurableError::Refused(
-                        "navigation bootstrap selected source byte count",
-                    ))
-                })?;
-                let package = crate::source_navigation_bootstrap::seal_source_navigation_bootstrap_v1(
-                    &owner.domain,
-                    selected,
-                    &selection.profile,
-                    capture,
-                    owner_sources,
-                    selection.event_limits,
-                )?;
-                if Instant::now() >= deadline
-                    || cancelled.load(std::sync::atomic::Ordering::Relaxed)
-                {
-                    return Err(DurableError::Refused(
-                        "navigation bootstrap deadline or cancellation",
-                    ));
-                }
-                let published = DurablePgCoordinator::publish_navigation_bootstrap_v1_in_tx(
-                    owner_tx,
+                let mut coordinator =
+                    open_selected_event_reader(store, owner, selection, owner_tx)?;
+                let progress = coordinator.capture_navigation_initial_v1(
                     store,
                     selection.domain,
                     selection.consumer_id,
                     &selection.profile,
                     selected,
-                    &package,
+                    model,
                     selection.source_contract,
                     selection.rule_version,
                     selection.rights_version,
                     selection.job_id,
                     selection.job_fence,
                     selection.event_limits,
+                    max_batches,
+                    deadline,
+                    cancelled,
                 )?;
-                Ok(json!({
-                    "schema_version": "tos_source_navigation_bootstrap_result_v1",
+                let mut response = serde_json::to_value(progress)
+                    .map_err(|_| DurableError::Invalid("navigation initial progress encoding"))?;
+                let metadata = json!({
+                    "schema_version": "tos_source_navigation_bootstrap_result_v2",
                     "domain": selection.domain,
                     "consumer_id": selection.consumer_id,
                     "profile": selection.profile.id,
                     "source_revision": expectation.membership_root,
                     "source_membership_count": selected.generation().member_count(),
                     "source_head_sequence": owner.source_head_sequence,
-                    "through_sequence": published.through_sequence,
-                    "bootstrap_root": published.bootstrap_root.to_hex(),
-                    "selected_owner_source_count": owner_source_count,
-                    "selected_owner_source_bytes": owner_source_bytes,
-                    "replayed": published.replayed,
-                }))
+                });
+                response
+                    .as_object_mut()
+                    .ok_or(DurableError::Invalid("navigation initial progress object"))?
+                    .extend(metadata.as_object().unwrap().clone());
+                Ok(response)
             })();
             result.map_err(crate::source_managed_selection::ManagedSelectionError::Durable)
         },

@@ -242,8 +242,15 @@ checks all adjacency certificates and atomically installs the format-3 prefix.
 Only after this publication may bounded cleanup retire initial Original and
 contributor staging; the exact selected cold source and completion provenance
 remain. Replay verifies the published prefix without recapturing deleted staging.
-This adapter remains private preparation: the public bootstrap command still
-uses the sealed-package writer until its caller/result integration is complete.
+The public `bootstrap-navigation` command uses this adapter and returns
+`tos_source_navigation_bootstrap_result_v2`. Each call commits at most the
+optional `max_batches` (default 256, range 1..256). Repeat the exact request and
+selection until `completed` and `cleanup_complete` are true. Unfinished results
+have null `through_sequence` and `bootstrap_root`; captured/verified progress
+does not grant publication. Each full seal starts in a fresh invocation so
+its deadline is not consumed by earlier capture/normalization pages.
+The load-readiness consumer resumes these calls under its operation deadline
+and records their count separately from controlled event-interruption evidence.
 
 Relation carrier IDs have a 512-byte ceiling. Node, record, owner and endpoint
 IDs retain their 256-byte ceiling. Neither adapter truncates an identity.

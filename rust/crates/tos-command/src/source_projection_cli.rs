@@ -26,7 +26,8 @@ Requests: init, apply, bootstrap-text, bootstrap-navigation, advance-navigation,
 Queue-age reports one selected consumer's oldest unprocessed sequence and persisted server-clock age; legacy timestamps remain unknown.
 Apply resumes the durable outbox cursor; search uses selected text token matching.
 Navigation uses the protected source-navigation owner selection and its explicit resource limits.
-Bootstrap request: {"operation":"bootstrap-navigation"}; result: tos_source_navigation_bootstrap_result_v1.
+Bootstrap request: {"operation":"bootstrap-navigation","max_batches":256}; max_batches is optional, 1..256.
+Result: tos_source_navigation_bootstrap_result_v2; repeat the same request until completed and cleanup_complete.
 Advance request: {"operation":"advance-navigation","max_events":N}; unsupported events remain pending.
 Profiles: tos_source_selected_text_v1 (direct fields),
 tos_source_selected_text_v2 (also bound Agent source-copy HumanForms).
@@ -76,7 +77,10 @@ enum Request {
     Init,
     Status,
     QueueAge,
-    BootstrapNavigation,
+    BootstrapNavigation {
+        #[serde(default = "default_initial_batches")]
+        max_batches: usize,
+    },
     BootstrapText {
         max_sources: usize,
     },
@@ -104,6 +108,10 @@ enum Request {
         source_path: String,
         revision: u64,
     },
+}
+
+fn default_initial_batches() -> usize {
+    256
 }
 
 impl Selection {
@@ -441,8 +449,15 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, String> {
         }
         return crate::source_navigation_producer::run(&selection_path, *max_events, &cancelled);
     }
-    if matches!(&request, Request::BootstrapNavigation) {
-        return crate::source_navigation_producer::run_bootstrap(&selection_path, &cancelled);
+    if let Request::BootstrapNavigation { max_batches } = &request {
+        if !(1..=256).contains(max_batches) {
+            return Err("max_batches must be 1..256".into());
+        }
+        return crate::source_navigation_producer::run_bootstrap(
+            &selection_path,
+            *max_batches,
+            &cancelled,
+        );
     }
     let deadline = Instant::now() + Duration::from_secs(60);
     let selection_bytes = crate::source_text_owner::read_absolute(
@@ -534,7 +549,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, String> {
         Request::AdvanceNavigation { .. } => {
             Err("advance-navigation requires its protected source-navigation route".into())
         }
-        Request::BootstrapNavigation => {
+        Request::BootstrapNavigation { .. } => {
             Err("bootstrap-navigation requires its protected source-navigation route".into())
         }
         Request::BootstrapText { max_sources } => {
