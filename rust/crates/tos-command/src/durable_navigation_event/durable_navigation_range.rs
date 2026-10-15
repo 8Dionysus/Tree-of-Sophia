@@ -2294,6 +2294,7 @@ pub(super) fn verify_navigation_event_range_terminal_manifest(
             "stored Claim range streams differ from terminal owner IDs",
         ));
     }
+    let stream_predecessors = read_stored_claim_stream_predecessors(claim_manifest, &claim_keys)?;
 
     let cohorts_value =
         value
@@ -2411,6 +2412,14 @@ pub(super) fn verify_navigation_event_range_terminal_manifest(
                 "stored range source event version is absent",
             ))?;
         let predecessor_cohort_root = optional_digest_field(cohort, "predecessor_cohort_root")?;
+        if owner_kind == "claim"
+            && let Some(predecessors) = &stream_predecessors
+            && predecessors.get(&key).copied().flatten() != predecessor_cohort_root
+        {
+            return Err(DurableError::Corrupt(
+                "stored Claim cohort predecessor differs from stream inventory",
+            ));
+        }
         let manifest_cohort = super::NavigationEventManifestCohortV2 {
             source_path: source_path.to_owned(),
             record_id: record_id.to_owned(),
@@ -2480,7 +2489,13 @@ fn verify_component_range_binding(
 ) -> DurableResult<()> {
     let expected_fields = match schema {
         "tos_source_navigation_record_event_range_cohort_v1" => 11,
-        "tos_source_navigation_claim_event_range_manifest_v1" => 13,
+        "tos_source_navigation_claim_event_range_manifest_v1" => {
+            if value.get("stream_predecessors").is_some() {
+                14
+            } else {
+                13
+            }
+        }
         _ => {
             return Err(DurableError::Corrupt(
                 "stored navigation range component schema",
@@ -2501,6 +2516,104 @@ fn verify_component_range_binding(
         ));
     }
     Ok(())
+}
+
+/// V1 manifests written before the complete stream inventory remain readable.
+/// The additive field is accepted only as the exact, canonical typed owner set;
+/// arbitrary extra fields do not change the accepted component shape.
+fn read_stored_claim_stream_predecessors(
+    manifest: &Value,
+    claim_keys: &[(String, String)],
+) -> DurableResult<Option<BTreeMap<(String, String), Option<Digest256>>>> {
+    let Some(value) = manifest.get("stream_predecessors") else {
+        return Ok(None);
+    };
+    let rows = value.as_array().ok_or(DurableError::Corrupt(
+        "stored Claim stream predecessor shape",
+    ))?;
+    if rows.len() > claim_keys.len() {
+        return Err(DurableError::Corrupt(
+            "stored Claim stream predecessor count",
+        ));
+    }
+    let mut predecessors = BTreeMap::new();
+    let mut bases = BTreeMap::new();
+    let mut previous = None;
+    for row in rows {
+        let object =
+            row.as_object()
+                .filter(|object| object.len() == 3)
+                .ok_or(DurableError::Corrupt(
+                    "stored Claim stream predecessor row shape",
+                ))?;
+        let key = (
+            object
+                .get("claim_stream_path")
+                .and_then(Value::as_str)
+                .ok_or(DurableError::Corrupt("stored Claim predecessor path"))?
+                .to_owned(),
+            object
+                .get("claim_id")
+                .and_then(Value::as_str)
+                .ok_or(DurableError::Corrupt("stored Claim predecessor ID"))?
+                .to_owned(),
+        );
+        if previous.as_ref().is_some_and(|prior| prior >= &key)
+            || claim_keys.binary_search(&key).is_err()
+        {
+            return Err(DurableError::Corrupt(
+                "stored Claim stream predecessor order or membership",
+            ));
+        }
+        previous = Some(key.clone());
+        let basis = object
+            .get("basis")
+            .ok_or(DurableError::Corrupt("stored Claim predecessor basis"))?;
+        if basis.as_object().is_none_or(|object| object.len() != 2) {
+            return Err(DurableError::Corrupt(
+                "stored Claim predecessor basis shape",
+            ));
+        }
+        let root = json_digest_field(basis, "root")?;
+        if root == Digest256::of_bytes(&[]) {
+            return Err(DurableError::Corrupt(
+                "stored Claim predecessor root is empty",
+            ));
+        }
+        let event_root = match basis.get("kind").and_then(Value::as_str) {
+            Some("event-cohort") => Some(root),
+            Some("bootstrap") => None,
+            _ => return Err(DurableError::Corrupt("stored Claim predecessor basis kind")),
+        };
+        bases.insert(key.clone(), basis);
+        predecessors.insert(key, event_root);
+    }
+    let causal = manifest
+        .get("prior_owners")
+        .and_then(Value::as_array)
+        .ok_or(DurableError::Corrupt(
+            "stored Claim causal predecessors absent",
+        ))?;
+    for row in causal {
+        let key = (
+            row.get("claim_stream_path")
+                .and_then(Value::as_str)
+                .ok_or(DurableError::Corrupt(
+                    "stored Claim causal predecessor path",
+                ))?
+                .to_owned(),
+            row.get("claim_id")
+                .and_then(Value::as_str)
+                .ok_or(DurableError::Corrupt("stored Claim causal predecessor ID"))?
+                .to_owned(),
+        );
+        if bases.get(&key).copied() != row.get("basis") {
+            return Err(DurableError::Corrupt(
+                "stored Claim causal predecessor differs from stream inventory",
+            ));
+        }
+    }
+    Ok(Some(predecessors))
 }
 
 fn verify_empty_claim_manifest_evidence(
@@ -4605,4 +4718,68 @@ fn range_manifest_value(
             })).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
     })
+}
+
+#[cfg(test)]
+mod range_manifest_tests {
+    use super::*;
+
+    #[test]
+    fn claim_stream_predecessor_extension_preserves_legacy_and_rejects_unbound_rows() {
+        let root = Digest256::of_bytes(b"published");
+        let path = "ToS/source-witnesses/relations/source-claims.jsonl";
+        let keys = vec![
+            (path.to_owned(), "tos.claim.a".to_owned()),
+            (path.to_owned(), "tos.claim.b".to_owned()),
+        ];
+        let mut manifest = json!({
+            "schema":"tos_source_navigation_claim_event_range_manifest_v1",
+            "cursor_before":6,"through_sequence":7,"terminal_event_id":"event-7",
+            "coverage_root":root.to_hex(),"mutations":[],"dependency_causes":[],
+            "prior_owners":[],"terminal_inventory_root":root.to_hex(),
+            "empty_owner_evidence":null,"terminal_streams":[],"terminal_owner_ids":[],"removed_owners":[],
+        });
+        let verify_shape = |value: &Value| {
+            verify_component_range_binding(
+                value,
+                "tos_source_navigation_claim_event_range_manifest_v1",
+                6,
+                7,
+                "event-7",
+                root,
+            )
+        };
+        assert!(verify_shape(&manifest).is_ok());
+        assert!(
+            read_stored_claim_stream_predecessors(&manifest, &keys)
+                .unwrap()
+                .is_none()
+        );
+        let bootstrap = json!({"kind":"bootstrap","root":root.to_hex()});
+        let event = json!({"kind":"event-cohort","root":root.to_hex()});
+        manifest["stream_predecessors"] = json!([
+            {"claim_stream_path":path,"claim_id":"tos.claim.a","basis":bootstrap},
+            {"claim_stream_path":path,"claim_id":"tos.claim.b","basis":event},
+        ]);
+        manifest["prior_owners"] = json!([{"cause_path":"ToS/works/work.json", "claim_stream_path":path,"claim_id":"tos.claim.a","basis":bootstrap}]);
+        assert!(verify_shape(&manifest).is_ok());
+        let predecessors = read_stored_claim_stream_predecessors(&manifest, &keys)
+            .unwrap()
+            .unwrap();
+        assert_eq!(predecessors[&keys[0]], None);
+        assert_eq!(predecessors[&keys[1]], Some(root));
+        manifest["prior_owners"][0]["basis"] = event;
+        assert!(read_stored_claim_stream_predecessors(&manifest, &keys).is_err());
+        manifest["prior_owners"] = json!([]);
+        manifest["stream_predecessors"][1]["claim_id"] = json!("tos.claim.foreign");
+        assert!(read_stored_claim_stream_predecessors(&manifest, &keys).is_err());
+        manifest["stream_predecessors"] = Value::Null;
+        assert!(read_stored_claim_stream_predecessors(&manifest, &keys).is_err());
+        manifest
+            .as_object_mut()
+            .unwrap()
+            .remove("stream_predecessors");
+        manifest["unknown_extension"] = json!([]);
+        assert!(verify_shape(&manifest).is_err());
+    }
 }

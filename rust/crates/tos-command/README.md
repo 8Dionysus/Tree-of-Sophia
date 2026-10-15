@@ -62,8 +62,10 @@ published predecessor inventory of those streams. The additive
 `stream_predecessors` field binds unchanged companions as well as directly
 affected Claims; publication re-reads the inventory under its held transaction
 and checks exact bootstrap or event-cohort roots. Previously persisted range
-manifests remain readable through their authenticated roots. New publication
-requires the complete inventory. Subsequent events recognize both Record and
+manifests remain readable through their authenticated roots. The reader accepts
+the exact earlier 13-field shape and the 14-field shape with a validated stream
+inventory; older readers reject the latter and must be upgraded with the
+producer. New publication requires the complete inventory. Subsequent events recognize both Record and
 Claim range-reconciliation cohorts as predecessor owners.
 Historical record nodes retain their archived source references and exact
 carrier bytes, while bootstrap groups them with the current record that owns
