@@ -399,6 +399,15 @@ input, returned-row, logical-byte and high-water counters. The index row and
 logical-byte budgets bound cumulative work, including repeated metadata reads;
 they are not unique source counts or physical file-size caps. A refused streamed
 assessment preserves its numeric work counters in stderr for cost diagnosis.
+The source-index preflight counts logical field bytes, with independent key
+and projection-value limits. The complete cold audit has a different contract:
+its metadata-byte budget counts every byte of the retained PostgreSQL JSON
+encoding, including bytea hex expansion. Streamed cold audit transfers that
+encoding in 64 KiB fragments and preserves the existing complete-state digest;
+it does not allocate an entire encoded row in Rust. The caller must still
+select and reserve a sufficient aggregate initial-audit profile. Ordinary
+addressed updates do not repeat this complete audit, and the legacy whole-row
+reader retains its 1 MiB row limit.
 Text identity assessment retains per-member identifier/path/digest rows while
 discarding each parsed body. The existing owner parser and point-index
 comparison still govern identity and fixity; metadata row/byte budgets bound

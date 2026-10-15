@@ -1186,17 +1186,253 @@ fn admit_private_metadata(
         admitted_bytes = admitted_bytes
             .checked_add(as_u64(row.get::<_, i64>(2))?)
             .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
-        if admitted_rows > row_limit
-            || row.get::<_, i32>(1) > 1_048_576
-            || admitted_bytes > profile.map_or(64 * 1024 * 1024, |p| p.max_metadata_bytes) as u64
-        {
+        if admitted_rows > row_limit {
             return Err(DurableError::Refused(
-                "cold metadata preadmission budget exceeded",
+                "cold metadata preadmission row budget exceeded",
+            ));
+        }
+        // The streamed reader transfers fixed-size chunks and retains the
+        // exact same row-to-JSON digest. Only the legacy whole-row reader has
+        // a separate 1 MiB allocation ceiling. Both charge every encoded byte
+        // to the selected aggregate budget before any rows are transferred.
+        if profile.is_none() && row.get::<_, i32>(1) > 1_048_576 {
+            return Err(DurableError::Refused(
+                "cold metadata preadmission whole-row budget exceeded",
+            ));
+        }
+        if admitted_bytes > profile.map_or(64 * 1024 * 1024, |p| p.max_metadata_bytes) as u64 {
+            return Err(DurableError::Refused(
+                "cold metadata preadmission byte budget exceeded",
             ));
         }
     }
     Ok(())
 }
+
+const COLD_METADATA_CHUNK_BYTES: usize = 64 * 1024;
+
+#[cfg(test)]
+mod metadata_chunk_tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires an explicitly selected disposable PostgreSQL 16 database"]
+    fn postgres_contract_metadata_chunking_preserves_digest_and_budgets() {
+        let url = std::env::var("TOS_METADATA_TEST_PG_URL").expect("disposable PG URL required");
+        let mut client = Client::connect(&url, NoTls).unwrap();
+        let mut tx = client.transaction().unwrap();
+        tx.batch_execute(include_str!("durable_schema.sql"))
+            .unwrap();
+        let domain = "chunk-budget-test";
+        tx.execute(
+            "INSERT INTO cmd2_domain(domain,contract_digest) VALUES($1,repeat('a',64))",
+            &[&domain],
+        )
+        .unwrap();
+        // Reverse insertion, non-ASCII keys, and a value spanning many chunks.
+        for (token, size) in [("ToS/я", 1_048_576), ("ToS/a", 32760)] {
+            tx.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest,inventory_projection) VALUES($1,'path',$2,$2,repeat('a',64),$3)", &[&domain,&token,&vec![0xab_u8;size]]).unwrap();
+        }
+        let mut reference = Digest256Hasher::new();
+        let mut byte_count = 0usize;
+        for row in tx.query("SELECT row_to_json(t)::text FROM cmd2_source_index t WHERE domain=$1 ORDER BY kind,token,path", &[&domain]).unwrap() {
+            let encoded: String = row.get(0);
+            byte_count += encoded.len();
+            part(&mut reference, encoded.as_bytes());
+        }
+        assert!(byte_count > 2_097_152);
+        let profile = StreamedGenerationProfile {
+            max_commit_seq: 1,
+            max_members: 2,
+            max_pins: 2,
+            max_segment_bytes: 8_388_608,
+            max_membership_key_bytes: 8192,
+            max_metadata_rows: 2,
+            max_metadata_bytes: byte_count,
+            max_elapsed: Duration::from_secs(30),
+            max_pg_temp_bytes: 8_388_608,
+            max_sql_statement_ms: 5000,
+            generation: GenerationReadLimits {
+                max_descriptor_bytes: 4096,
+                shape: GenerationShapeLimits {
+                    max_partitions: 2,
+                    max_rows_per_partition: 2,
+                    max_key_bytes: 4096,
+                    max_leaf_bytes: 16384,
+                },
+                max_stream_rows: 2,
+                max_stream_key_bytes: 8192,
+            },
+            rows_per_leaf: 2,
+        };
+        let started = Instant::now();
+        admit_private_metadata(&mut tx, domain, started, None, Some(profile)).unwrap();
+        assert!(admit_private_metadata(&mut tx, domain, started, None, None).is_err());
+        let short = StreamedGenerationProfile {
+            max_metadata_bytes: byte_count - 1,
+            ..profile
+        };
+        assert!(admit_private_metadata(&mut tx, domain, started, None, Some(short)).is_err());
+        let few = StreamedGenerationProfile {
+            max_metadata_rows: 1,
+            ..profile
+        };
+        assert!(admit_private_metadata(&mut tx, domain, started, None, Some(few)).is_err());
+        let mut actual = Digest256Hasher::new();
+        let mut rows = 0;
+        let mut bytes = 0;
+        assert_eq!(
+            append_private_metadata_chunked_table(
+                &mut tx,
+                domain,
+                "cmd2_source_index",
+                "kind,token,path",
+                &mut actual,
+                started,
+                None,
+                profile,
+                &mut rows,
+                &mut bytes
+            )
+            .unwrap(),
+            2
+        );
+        assert_eq!((rows, bytes), (2, byte_count));
+        assert_eq!(reference.finalize(), actual.finalize());
+        assert!(
+            append_private_metadata_chunked_table(
+                &mut tx,
+                domain,
+                "cmd2_source_index",
+                "kind,token,path",
+                &mut Digest256Hasher::new(),
+                started,
+                None,
+                short,
+                &mut 0,
+                &mut 0
+            )
+            .is_err()
+        );
+        assert!(
+            append_private_metadata_chunked_table(
+                &mut tx,
+                domain,
+                "cmd2_source_index",
+                "kind,token,path",
+                &mut Digest256Hasher::new(),
+                started,
+                None,
+                few,
+                &mut 0,
+                &mut 0
+            )
+            .is_err()
+        );
+        // Exercise every maintained table's ordering clause and the full
+        // digest path with ordinary values accepted by the legacy reader.
+        tx.execute(
+            "UPDATE cmd2_source_index SET inventory_projection=$1 WHERE domain=$2",
+            &[&vec![0xab_u8; 13], &domain],
+        )
+        .unwrap();
+        let mut legacy = Digest256Hasher::new();
+        let mut streamed = Digest256Hasher::new();
+        append_private_metadata(&mut tx, domain, &mut legacy, started, None, None).unwrap();
+        append_private_metadata(&mut tx, domain, &mut streamed, started, None, Some(profile))
+            .unwrap();
+        assert_eq!(legacy.finalize(), streamed.finalize());
+        tx.rollback().unwrap();
+    }
+}
+
+// Preserve part(row_json) byte for byte without receiving a complete encoded
+// row. PostgreSQL's held snapshot and the explicit row/aggregate/time/temp
+// limits still bound the complete initial audit. The lateral OFFSET prevents
+// flattening the payload expression into a separate serialization per chunk.
+fn append_private_metadata_chunked_table(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    table: &str,
+    order: &str,
+    state_hasher: &mut Digest256Hasher,
+    started: Instant,
+    requested: Option<(Instant, &AtomicBool)>,
+    profile: StreamedGenerationProfile,
+    audited_rows: &mut usize,
+    audited_bytes: &mut usize,
+) -> DurableResult<u64> {
+    let query = format!(
+        "SELECT octet_length(payload.raw)::bigint,chunk.ordinal,
+                substring(payload.raw FROM chunk.ordinal*$2+1 FOR $2)
+         FROM {table} t
+         CROSS JOIN LATERAL (
+             SELECT convert_to(row_to_json(t)::text,'UTF8') AS raw OFFSET 0
+         ) payload
+         CROSS JOIN LATERAL generate_series(0,(octet_length(payload.raw)-1)/$2) AS chunk(ordinal)
+         WHERE domain=$1 ORDER BY {order},chunk.ordinal"
+    );
+    let mut rows = tx.query_raw(
+        &query,
+        &[
+            &domain as &(dyn postgres::types::ToSql + Sync),
+            &(COLD_METADATA_CHUNK_BYTES as i32),
+        ],
+    )?;
+    let mut table_rows = 0u64;
+    let mut expected_length = 0usize;
+    let mut consumed = 0usize;
+    let mut next_chunk = 0i32;
+    while let Some(row) = rows.next()? {
+        check_cold_profile_deadline(started, requested, Some(profile))?;
+        let length = usize::try_from(as_u64(row.get(0))?)
+            .map_err(|_| DurableError::Refused("cold metadata row length overflow"))?;
+        let ordinal: i32 = row.get(1);
+        let bytes: &[u8] = row.get(2);
+        if ordinal == 0 {
+            if consumed != expected_length {
+                return Err(DurableError::Corrupt("cold metadata row chunks incomplete"));
+            }
+            *audited_rows = audited_rows
+                .checked_add(1)
+                .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
+            *audited_bytes = audited_bytes
+                .checked_add(length)
+                .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
+            if *audited_rows > profile.max_metadata_rows
+                || *audited_bytes > profile.max_metadata_bytes
+            {
+                return Err(DurableError::Refused(
+                    "cold metadata streamed budget exceeded",
+                ));
+            }
+            table_rows += 1;
+            expected_length = length;
+            consumed = 0;
+            next_chunk = 0;
+            state_hasher.update(&(length as u64).to_be_bytes());
+        }
+        if ordinal != next_chunk
+            || length != expected_length
+            || consumed >= length
+            || bytes.len() != (length - consumed).min(COLD_METADATA_CHUNK_BYTES)
+        {
+            return Err(DurableError::Corrupt("cold metadata row chunk shape"));
+        }
+        state_hasher.update(bytes);
+        consumed += bytes.len();
+        next_chunk = next_chunk.checked_add(1).ok_or(DurableError::Refused(
+            "cold metadata chunk ordinal overflow",
+        ))?;
+    }
+    if consumed != expected_length {
+        return Err(DurableError::Corrupt(
+            "cold metadata final row chunks incomplete",
+        ));
+    }
+    Ok(table_rows)
+}
+
 fn append_private_metadata(
     tx: &mut Transaction<'_>,
     domain: &str,
@@ -1214,6 +1450,22 @@ fn append_private_metadata(
     for (table, order) in METADATA_TABLES {
         check_cold_profile_deadline(started, requested, profile)?;
         part(state_hasher, table.as_bytes());
+        if let Some(profile) = profile {
+            let table_rows = append_private_metadata_chunked_table(
+                tx,
+                domain,
+                table,
+                order,
+                state_hasher,
+                started,
+                requested,
+                profile,
+                &mut audited_rows,
+                &mut audited_metadata_bytes,
+            )?;
+            part(state_hasher, &table_rows.to_be_bytes());
+            continue;
+        }
         let query =
             format!("SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}");
         let mut rows = tx.query_raw(&query, &[&domain])?;
