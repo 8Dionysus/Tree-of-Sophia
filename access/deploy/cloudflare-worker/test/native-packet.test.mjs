@@ -2,7 +2,7 @@ import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {parseNativeJson, nativeChild, nativeField, nativeJson, nativeNumberInfo, isNativeRef,
-  nativePacketArray, nativePacketObject, nativePacketJson, nativeInteger, nativeFloat,
+  nativePacketArray, nativePacketObject, nativePacketJson, nativeInteger,
   NativeContextLost, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
 function reference(referenceId, input) {
@@ -16,8 +16,8 @@ test('mixed packet matches captured Python source values, numeric kinds and orde
     ['10', source], ['2', source], ['__proto__', nativeChild(source, '__proto__')],
     ['constructor', nativePacketArray([nativeChild(source, '2'), nativeChild(source, '10'), nativeChild(source, 'constructor')])],
     ['derived', nativePacketObject([
-      ['count', nativeInteger(2)], ['float_count', nativeFloat(2)],
-      ['negative_zero', nativeFloat(-0)], ['large', nativeInteger(10n ** 50n)],
+      ['count', nativeInteger(2)], ['float_count', parseNativeJson('2.0')],
+      ['negative_zero', parseNativeJson('-0.0')], ['large', nativeInteger(10n ** 50n)],
     ])],
   ]);
   const output = nativePacketJson(packet);
@@ -85,13 +85,10 @@ test('lost references, implicit values, malformed members and cyclic data fail c
   }
 });
 
-test('derived numbers require explicit safe integer or finite float kinds', () => {
+test('derived numbers require explicit safe integer kinds', () => {
   assert.equal(nativePacketJson(nativeInteger(-2)), '-2');
   assert.equal(nativePacketJson(nativeInteger(9007199254740993n)), '9007199254740993');
-  assert.equal(nativePacketJson(nativeFloat(2)), '2.0');
-  assert.equal(nativePacketJson(nativeFloat(-0)), '-0.0');
   for (const value of [9007199254740992, 1.5, -0, Infinity, NaN, '1']) assert.throws(() => nativeInteger(value), TypeError);
-  for (const value of [NaN, Infinity, -Infinity, 1n, '1']) assert.throws(() => nativeFloat(value), TypeError);
   assert.throws(() => nativeInteger(10n ** 4300n), NativeBudgetExceeded);
 });
 

@@ -1,9 +1,8 @@
-import {nativeUnicodeVersion, nativeUnicodeAlgorithm, nativeLowerMappings, nativeCasefoldMappings, nativeDecimalMappings,
-  nativeCasedRanges, nativeCaseIgnorableRanges, nativePrintableRanges} from './native-unicode.generated.ts';
+import {nativeUnicodeVersion, nativeUnicodeAlgorithm, nativeLowerMappings, nativeDecimalMappings,
+  nativeCasedRanges, nativeCaseIgnorableRanges} from './native-unicode.generated.ts';
 
 export {nativeUnicodeVersion, nativeUnicodeAlgorithm};
 const lower = new Map(nativeLowerMappings);
-const casefold = new Map(nativeCasefoldMappings);
 const decimal = new Map(nativeDecimalMappings);
 const stripEdges = /^[\u0009-\u000d\u001c-\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\u0009-\u000d\u001c-\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/gu;
 export function nativeStrip(value: string): string {return value.replace(stripEdges, '');}
@@ -14,10 +13,6 @@ export function nativeIntegerString(value: string): number {
   const normalized = Array.from(nativeStrip(value), char => decimal.get(char.codePointAt(0)!) ?? char).join('');
   return /^[+-]?[0-9](?:_?[0-9])*$/u.test(normalized) ? Number(normalized.replaceAll('_', '')) : NaN;
 }
-export function nativeCasefold(value: string): string {
-  return Array.from(value, char => casefold.get(char.codePointAt(0)!) ?? char).join('');
-}
-
 function inRanges(point: number, ranges: ReadonlyArray<readonly [number, number]>): boolean {
   let lo = 0, hi = ranges.length;
   while (lo < hi) {
@@ -28,10 +23,6 @@ function inRanges(point: number, ranges: ReadonlyArray<readonly [number, number]
     else return true;
   }
   return false;
-}
-
-export function nativeIsPrintable(point: number): boolean {
-  return inRanges(point, nativePrintableRanges);
 }
 
 export function codePointCompare(left: string, right: string): number {
