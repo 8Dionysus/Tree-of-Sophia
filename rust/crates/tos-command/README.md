@@ -72,6 +72,12 @@ carrier bytes, while bootstrap groups them with the current record that owns
 their history view. A prior bootstrap with archive-file ownership requires the
 explicit source-backed bootstrap route before addressed updates.
 
+Streamed mixed-source bootstrap resolves declared native TextUnit bindings through
+its held source epoch and the shared native metadata resolver. It retains the
+same schema, identity, rights and exact-input checks as the complete inventory,
+with at most 128 metadata inputs and 8 MiB per binding closure. Payload bytes
+are not read by this metadata projection.
+
 The addressed audit journal covers the same 19 metadata tables as the cold
 source audit, plus the semantic domain header. IDs 1..12 retain their original
 keys and commitments; IDs 13..20 add publication current/history/import, Text

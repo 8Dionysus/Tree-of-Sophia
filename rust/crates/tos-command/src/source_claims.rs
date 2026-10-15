@@ -4802,11 +4802,17 @@ fn catalogue_claim<'a>(
     Ok(CatalogueEntry(fields))
 }
 
-/// Exact metadata transport for the shared native resolver. The cut supplies
-/// membership and secure current reads; selected context bytes must match it.
+/// Exact metadata transport for the shared native resolver. Both adapters hold
+/// the selected source epoch; the cut also binds preselected context bytes.
+enum ProfileMetadataSource<'a> {
+    Cut {
+        ctx: &'a CommandContext,
+        cut: &'a CorpusCutReader,
+    },
+    Epoch(&'a mut dyn crate::source_revisions::ReadonlyRecordFiles),
+}
 struct ProfileMetadataReader<'a> {
-    ctx: &'a CommandContext,
-    cut: &'a CorpusCutReader,
+    source: ProfileMetadataSource<'a>,
     observed: BTreeMap<String, (Digest256, usize)>,
     observed_bytes: usize,
 }
@@ -4828,21 +4834,32 @@ impl ProfileMetadataReader<'_> {
         Ok(parsed)
     }
     fn current_raw(
-        &self,
+        &mut self,
         name: &str,
         cap: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<u8>> {
-        if self.cut.current().revision() != self.ctx.base_revision {
+        let parsed = self.public_path(name)?;
+        let (ctx, cut) = match &mut self.source {
+            ProfileMetadataSource::Epoch(transport) => {
+                let raw = transport.read(name, cap, deadline, cancelled)?;
+                if raw.len() > cap {
+                    return Err(SourceCommandError::Unsupported(
+                        "native profile selected metadata byte budget",
+                    ));
+                }
+                return Ok(raw);
+            }
+            ProfileMetadataSource::Cut { ctx, cut } => (*ctx, *cut),
+        };
+        if cut.current().revision() != ctx.base_revision {
             return Err(SourceCommandError::Conflict(
                 "native profile source cut changed",
             ));
         }
-        let parsed = self.public_path(name)?;
-        let expected = selected(self.ctx, name)?;
-        let descriptor = self
-            .cut
+        let expected = selected(ctx, name)?;
+        let descriptor = cut
             .current()
             .member(&parsed)
             .ok_or(SourceCommandError::Conflict(
@@ -4857,15 +4874,8 @@ impl ProfileMetadataReader<'_> {
                 "native profile selected metadata descriptor mismatch",
             ));
         }
-        let member = self
-            .cut
-            .read_member(
-                self.ctx.base_revision,
-                &parsed,
-                cap as u64,
-                deadline,
-                cancelled,
-            )
+        let member = cut
+            .read_member(ctx.base_revision, &parsed, cap as u64, deadline, cancelled)
             .map_err(|_| {
                 SourceCommandError::Conflict("native profile secure current read refused")
             })?;
@@ -4901,7 +4911,7 @@ impl SignNativeRead for ProfileMetadataReader<'_> {
                 "native profile input kind namespace",
             ));
         }
-        let prior = self.observed.get(name);
+        let prior = self.observed.get(name).copied();
         if prior.is_none() && self.observed.len() >= 128 {
             return Err(SourceCommandError::Invalid(
                 "native profile shared input count",
@@ -4915,7 +4925,7 @@ impl SignNativeRead for ProfileMetadataReader<'_> {
         let raw = self.current_raw(name, cap, deadline, cancelled)?;
         let digest = Digest256::of_bytes(&raw);
         if let Some((expected, length)) = prior {
-            if *expected != digest || *length != raw.len() {
+            if expected != digest || length != raw.len() {
                 return Err(SourceCommandError::Conflict(
                     "native profile shared read changed",
                 ));
@@ -4942,9 +4952,10 @@ impl SignNativeRead for ProfileMetadataReader<'_> {
                 "native profile read deadline or cancellation",
             ));
         }
-        for (name, (digest, length)) in &self.observed {
-            let raw = self.current_raw(name, *length, deadline, cancelled)?;
-            if Digest256::of_bytes(&raw) != *digest {
+        // Recheck the bounded descriptor set without retaining source bodies.
+        for (name, (digest, length)) in self.observed.clone() {
+            let raw = self.current_raw(&name, length, deadline, cancelled)?;
+            if Digest256::of_bytes(&raw) != digest {
                 return Err(SourceCommandError::Conflict(
                     "native profile observed input changed",
                 ));
@@ -5058,8 +5069,7 @@ impl MaintainedInventorySchemaWorker for CutWorkerSchemaExecutor {
             "maintained native text binding snapshot adapter",
         ))?;
         let mut reader = ProfileMetadataReader {
-            ctx,
-            cut,
+            source: ProfileMetadataSource::Cut { ctx, cut },
             observed: BTreeMap::new(),
             observed_bytes: 0,
         };
@@ -6574,11 +6584,6 @@ pub(crate) fn render_agent_inventory_member(
                     "catalog record kind differs from basename",
                 ));
             }
-            if record.object_get("native_text_binding").is_some() {
-                return Err(SourceCommandError::Unsupported(
-                    "mixed metadata requires native text binding owner",
-                ));
-            }
             let exact = metadata_subject(&record)?;
             let package = crate::source_revisions::collect_readonly_record_files(
                 transport, location, deadline, cancelled,
@@ -6626,6 +6631,47 @@ pub(crate) fn render_agent_inventory_member(
                         "mixed metadata owner descriptor absent",
                     ))?;
             let schema_ref = text(descriptor, "source_schema_ref")?;
+            if let Some(binding) = record.object_get("native_text_binding") {
+                // The readonly record owner validated the profile and binding
+                // shape. Resolve its actual metadata closure through the same
+                // native owner used by the full inventory and Sign reader.
+                let mut reader = ProfileMetadataReader {
+                    source: ProfileMetadataSource::Epoch(transport),
+                    observed: BTreeMap::new(),
+                    observed_bytes: 0,
+                };
+                let native = crate::source_sign_native::resolve_binding(
+                    &mut reader,
+                    executor,
+                    binding,
+                    NativeReadScope::MetadataOnly,
+                    deadline,
+                    cancelled,
+                )?;
+                if native.summary.object_get("public_content_declared")
+                    != Some(&JsonValue::Bool(true))
+                {
+                    return Err(SourceCommandError::Denied(
+                        "profile native text binding has no declared public content",
+                    ));
+                }
+                for input in &native.inputs {
+                    if input.kind == NativeReadKind::Content
+                        || reader
+                            .observed
+                            .get(&input.reference)
+                            .map(|(digest, _)| *digest)
+                            != Some(input.raw_sha256)
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile exported read closure differs",
+                        ));
+                    }
+                }
+                for (name, digest) in native.schema_digests {
+                    set(&mut source_profiles, &name, string(&digest.to_hex()))?;
+                }
+            }
             for input in &unique {
                 if input.path.as_str().starts_with("ToS/contracts/")
                     && input.path.as_str().ends_with(".schema.json")
@@ -10925,6 +10971,102 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
 #[cfg(test)]
 mod mixed_inventory_boundary_tests {
     use super::*;
+
+    #[test]
+    fn bootstrap_contract_native_profile_epoch_preserves_metadata_bounds_and_fixity() {
+        struct Epoch {
+            reads: usize,
+            change_after_read: bool,
+        }
+        impl crate::source_revisions::ReadonlyRecordFiles for Epoch {
+            fn read(
+                &mut self,
+                _: &str,
+                _: usize,
+                _: Instant,
+                _: &AtomicBool,
+            ) -> SourceCommandResult<Vec<u8>> {
+                self.reads += 1;
+                Ok(if self.change_after_read && self.reads > 1 {
+                    b"changed".to_vec()
+                } else {
+                    b"initial".to_vec()
+                })
+            }
+            fn list_directory(
+                &mut self,
+                _: &str,
+                _: Instant,
+                _: &AtomicBool,
+            ) -> SourceCommandResult<Vec<(String, bool)>> {
+                panic!("native binding reads must remain addressed")
+            }
+        }
+        let deadline = Instant::now() + std::time::Duration::from_secs(5);
+        let cancelled = AtomicBool::new(false);
+        let name = "ToS/source-witnesses/text/example/packet.json";
+        for changed in [false, true] {
+            let mut epoch = Epoch {
+                reads: 0,
+                change_after_read: changed,
+            };
+            let mut reader = ProfileMetadataReader {
+                source: ProfileMetadataSource::Epoch(&mut epoch),
+                observed: BTreeMap::new(),
+                observed_bytes: 0,
+            };
+            assert_eq!(
+                reader
+                    .read(name, NativeReadKind::Metadata, 7, deadline, &cancelled)
+                    .unwrap(),
+                b"initial"
+            );
+            assert_eq!(reader.observed_bytes, 7);
+            let verified = reader.verify_current(deadline, &cancelled);
+            if changed {
+                assert!(matches!(verified, Err(SourceCommandError::Conflict(_))));
+            } else {
+                verified.unwrap();
+            }
+        }
+        let mut epoch = Epoch {
+            reads: 0,
+            change_after_read: false,
+        };
+        let mut reader = ProfileMetadataReader {
+            source: ProfileMetadataSource::Epoch(&mut epoch),
+            observed: BTreeMap::new(),
+            observed_bytes: 0,
+        };
+        for (name, kind) in [
+            (name, NativeReadKind::Content),
+            (
+                "ToS/source-witnesses/owner-local/x.json",
+                NativeReadKind::Metadata,
+            ),
+            (
+                "ToS/source-witnesses/payload/x.json",
+                NativeReadKind::Metadata,
+            ),
+            ("ToS/doctrine/x.json", NativeReadKind::Schema),
+        ] {
+            assert!(matches!(
+                reader.read(name, kind, 64, deadline, &cancelled),
+                Err(SourceCommandError::Denied(_))
+            ));
+        }
+        assert!(matches!(
+            reader.read(name, NativeReadKind::Metadata, 6, deadline, &cancelled),
+            Err(SourceCommandError::Unsupported(_))
+        ));
+        assert!(reader.observed.is_empty());
+        assert_eq!(reader.observed_bytes, 0);
+        reader
+            .read(name, NativeReadKind::Metadata, 7, deadline, &cancelled)
+            .unwrap();
+        cancelled.store(true, std::sync::atomic::Ordering::Release);
+        assert!(reader.verify_current(deadline, &cancelled).is_err());
+    }
 
     #[test]
     fn imported_legacy_claim_reader_is_path_bounded_and_public_only() {
