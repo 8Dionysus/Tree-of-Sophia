@@ -670,6 +670,7 @@ fn form_identity_inputs(
         }
         let payload = cmd::parse(raw)?;
         schema(
+            path.as_str(),
             ctx,
             worker,
             &payload,
@@ -919,15 +920,18 @@ fn contract_digests(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
 }
 
 fn schema(
+    source_path: &str,
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl source_revisions::RecordSchemaWorker<Identity = SourceRevision>,
     instance: &JsonValue,
     root: &str,
     refs: &[&str],
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
-    source_revisions::schema(
+    // Whole-corpus assessment has no single command-owner source_path.
+    // Every historical schema call supplies the source it is checking.
+    source_revisions::schema_for_source_path_worker(
         worker,
         deadline,
         cancelled,
@@ -937,6 +941,7 @@ fn schema(
             .map(|name| (*name).to_owned())
             .collect::<Vec<_>>(),
         root,
+        source_path,
         instance,
     )
 }
@@ -1313,6 +1318,7 @@ fn decode_form_set(
         name
     );
     schema(
+        &path,
         ctx,
         worker,
         &cmd::parse(raw)?,
@@ -1490,6 +1496,7 @@ fn validate_capture(
         .ok_or(invalid())?;
     let current_record = cmd::parse(record_raw)?;
     schema(
+        record_path,
         ctx,
         worker,
         &current_record,
@@ -1575,6 +1582,7 @@ fn validate_config_claim(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     schema(
+        cmd::text(&owner.config, "source_path")?,
         ctx,
         worker,
         claim,
@@ -1608,6 +1616,7 @@ fn validate_config_claim(
             &field.id,
         )?;
         schema(
+            cmd::text(&owner.config, "source_path")?,
             ctx,
             worker,
             cmd::field(&change, "form")?,
@@ -1624,6 +1633,7 @@ fn validate_config_claim(
         == Some("tos_claim_display_fields_v1")
     {
         schema(
+            cmd::text(&owner.config, "source_path")?,
             ctx,
             worker,
             cmd::field(claim, "qualifiers")?,
@@ -1691,6 +1701,7 @@ fn validate_historical_creation_outputs(
     let event_bytes = event_lines[0].strip_suffix(b"\r").unwrap_or(event_lines[0]);
     let event = cmd::parse(event_bytes)?;
     schema(
+        &format!("{base}/source-create-provenance.jsonl"),
         ctx,
         worker,
         &event,
@@ -1859,6 +1870,7 @@ fn verify_record_origin(
         ));
     }
     schema(
+        record_path,
         ctx,
         worker,
         &record,
@@ -2084,6 +2096,7 @@ fn verify_record_origin(
             ),
         )?;
         schema(
+            record_path,
             ctx,
             worker,
             &successor,
@@ -2120,6 +2133,7 @@ fn verify_record_origin(
     let forms_raw = current.get(&forms_name).ok_or(invalid())?;
     let forms = cmd::parse(forms_raw)?;
     schema(
+        record_path,
         ctx,
         worker,
         &forms,
@@ -2561,6 +2575,7 @@ fn verify_archived_form_result(
     let prior = prior_raw.map(|raw| cmd::parse(raw)).transpose()?;
     if let (Some(raw), Some(set)) = (prior_raw, prior.as_ref()) {
         schema(
+            path,
             ctx,
             worker,
             set,
@@ -3527,6 +3542,7 @@ fn validate_claim_head(
         .transpose()?;
     if let Some(set) = &set {
         schema(
+            cmd::text(&owner.config, "source_path")?,
             ctx,
             worker,
             set,
@@ -4082,6 +4098,7 @@ fn prepare_forms(
         ));
     }
     schema(
+        cmd::text(&owner.config, "source_path")?,
         ctx,
         worker,
         &next,
@@ -4990,6 +5007,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
     let mut claims = Vec::with_capacity(current_claims.len());
     for (id, claim) in &current_claims {
         schema(
+            source_path,
             ctx,
             worker,
             claim,
@@ -5019,6 +5037,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
         let form_ids = if let Some(raw) = form {
             let set = cmd::parse(raw)?;
             schema(
+                source_path,
                 ctx,
                 worker,
                 &set,
@@ -5307,6 +5326,110 @@ fn historical_package_role(name: &str) -> SourceCommandResult<&'static str> {
 #[cfg(test)]
 mod pg_identity_selection_tests {
     use super::*;
+
+    #[test]
+    fn bootstrap_contract_historical_schema_uses_explicit_member_without_command_path() {
+        const GRAMMAR: &str = "ToS/contracts/historical-path-fixture.schema.json";
+        const SOURCE: &str = "ToS/source-witnesses/history/fixture/historical-claims.jsonl";
+        let grammar =
+            format!(r#"{{"$id":"https://tree-of-sophia.local/{GRAMMAR}","type":"object"}}"#)
+                .into_bytes();
+        let revision = SourceRevision(Digest256::of_bytes(b"historical schema fixture"));
+        struct Worker {
+            revision: SourceRevision,
+            digest: Digest256,
+            calls: Vec<String>,
+            valid: bool,
+        }
+        impl tos_validation::source_cut::CutSchemaExecutor for Worker {
+            fn check(
+                &mut self,
+                path: &str,
+                raw: &[u8],
+                contract: &str,
+                _: Instant,
+                _: &AtomicBool,
+            ) -> Result<bool, tos_validation::item_rules::ItemRefusal> {
+                assert_eq!(contract, GRAMMAR);
+                assert_eq!(raw, b"{}");
+                self.calls.push(path.to_owned());
+                Ok(self.valid)
+            }
+        }
+        impl source_revisions::RecordSchemaWorker for Worker {
+            type Identity = SourceRevision;
+            fn input_identity(&self) -> SourceRevision {
+                self.revision
+            }
+            fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+                (contract == GRAMMAR).then_some(self.digest)
+            }
+        }
+        let mut worker = Worker {
+            revision,
+            digest: Digest256::of_bytes(&grammar),
+            calls: Vec::new(),
+            valid: true,
+        };
+        let mut context = CommandContext {
+            base_revision: revision,
+            configuration_raw: b"{}".to_vec(),
+            request_raw: b"{}".to_vec(),
+            recorded_at: "2026-10-15T00:00:00Z".into(),
+            effective_uid: 1000,
+            files: vec![SourceFile {
+                path: rel(GRAMMAR).unwrap(),
+                raw: grammar,
+            }],
+        };
+        let deadline = Instant::now() + std::time::Duration::from_secs(5);
+        let cancelled = AtomicBool::new(false);
+        let instance = cmd::object(vec![]);
+        // The worker double tests this adapter's input binding only; it makes
+        // no claim about validity under an actual historical schema.
+        schema(
+            SOURCE,
+            &context,
+            &mut worker,
+            &instance,
+            GRAMMAR,
+            &[GRAMMAR],
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(worker.calls, [SOURCE]);
+        worker.valid = false;
+        assert!(matches!(
+            schema(
+                SOURCE,
+                &context,
+                &mut worker,
+                &instance,
+                GRAMMAR,
+                &[GRAMMAR],
+                deadline,
+                &cancelled
+            ),
+            Err(SourceCommandError::Invalid(_))
+        ));
+        assert_eq!(worker.calls.len(), 2);
+        context.files[0].raw.push(b' ');
+        assert!(matches!(
+            schema(
+                SOURCE,
+                &context,
+                &mut worker,
+                &instance,
+                GRAMMAR,
+                &[GRAMMAR],
+                deadline,
+                &cancelled
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
+        assert_eq!(worker.calls.len(), 2);
+    }
 
     #[test]
     fn bootstrap_contract_captured_historical_request_keeps_command_serialization() {
