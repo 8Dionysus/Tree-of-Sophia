@@ -2727,6 +2727,8 @@ pub struct DurableNavigationCurrentIndexOwnerBindingV1 {
     pub managed_generation_commit_sequence: u64,
     pub managed_generation_member_count: u64,
     pub managed_agent_definition_digest: Digest256,
+    /// Immutable cohort bootstrap retained by CMD's source_membership columns.
+    /// The selected model and current generation have independent commitments.
     pub source_membership_root: Digest256,
     pub source_membership_count: u64,
     pub source_projection_digest: Digest256,
@@ -2799,6 +2801,7 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
         ));
     }
     let receipt = selected.navigation_original_receipt();
+    let bootstrap_membership = selected.generation().cohort().initial_membership();
     let digest =
         |value: &str, label| Digest256::from_hex(value).map_err(|_| DurableError::Corrupt(label));
     Ok(DurableNavigationCurrentIndexOwnerBindingV1 {
@@ -2808,8 +2811,8 @@ pub(crate) fn navigation_owner_binding<P: ManagedSelectedProof>(
         managed_generation_commit_sequence: selected.generation().commit_seq(),
         managed_generation_member_count: selected.generation().member_count(),
         managed_agent_definition_digest: selected.generation().agent_definition_digest(),
-        source_membership_root: digest(&expectation.membership_root, "navigation membership root")?,
-        source_membership_count: selected.generation().member_count(),
+        source_membership_root: bootstrap_membership.digest,
+        source_membership_count: bootstrap_membership.count,
         source_projection_digest: digest(
             selected.source_proof().inventory_projection(),
             "navigation source projection digest",
@@ -9502,8 +9505,7 @@ fn read_navigation_currentness_guard_in_tx_mode(
         || owner_binding.selected_model_abi != tos_compiler::KNOWLEDGE_MANAGED_MODEL_ABI
         || owner_binding.selected_selection_profile
             != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
-        || owner_binding.source_membership_root != owner_binding.selected_membership_root
-        || bootstrap_source_revision != owner_binding.source_membership_root
+        || bootstrap_source_revision != owner_binding.selected_membership_root
     {
         return Ok(navigation_currentness_not_ready(
             head,
@@ -10405,7 +10407,9 @@ impl DurablePgCoordinator {
             .rows
             .iter()
             .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Right)
-            .count() as u64;
+            .map(|row| row.id.as_str())
+            .collect::<BTreeSet<_>>()
+            .len() as u64;
         if navigation_owner_binding_json(&selected_binding)
             != navigation_owner_binding_json(&package.owner_binding)
         {

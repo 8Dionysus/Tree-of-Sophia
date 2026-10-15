@@ -237,8 +237,8 @@ fn verify_selected_binding(
         || owner.managed_generation_digest != selected.generation().digest()
         || owner.managed_generation_commit_sequence != selected.generation().commit_seq()
         || owner.managed_agent_definition_digest != selected.generation().agent_definition_digest()
-        || owner.source_membership_root != membership
-        || owner.source_membership_count != selected.generation().member_count()
+        || owner.source_membership_root != bootstrap_membership
+        || owner.source_membership_count != proof.generation.bootstrap_members
         || owner.source_projection_digest
             != Digest256::from_hex(&selected.source_proof().inventory_projection()).map_err(
                 |_| {
