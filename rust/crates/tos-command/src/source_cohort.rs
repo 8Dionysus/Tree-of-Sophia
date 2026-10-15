@@ -12036,79 +12036,18 @@ impl DurablePgCoordinator {
                 for current in &rows {
                     active(deadline, cancelled)?;
                     let path: String = current.get("subject");
-                    let revision: i64 = current.get("revision");
-                    let commit_seq: i64 = current.get("commit_seq");
                     let projection = projections.get(&path).ok_or(DurableError::Corrupt(
                         "rebuilt Agent projection member missing",
                     ))?;
-                    if current
-                        .get::<_, Option<Vec<u8>>>("inventory_projection")
-                        .as_ref()
-                        != Some(projection)
-                    {
-                        let changed = tx.execute(
-                            "UPDATE cmd2_current SET inventory_projection=$5
-                             WHERE domain=$1 AND subject=$2 AND revision=$3 AND commit_seq=$4",
-                            &[&domain, &path, &revision, &commit_seq, projection],
-                        )?;
-                        if changed != 1 {
-                            return Err(DurableError::Conflict("cold current projection changed"));
-                        }
-                    }
-                    if current
-                        .get::<_, Option<Vec<u8>>>("retained_inventory_projection")
-                        .as_ref()
-                        != Some(projection)
-                    {
-                        // Shared evidence may be newer than this member's
-                        // source commit. Publish its projection at the actual
-                        // verified cut without rewriting earlier history.
-                        let effective_seq = as_i64(before.through_commit_seq)?;
-                        let content_digest: String = current.get("content_digest");
-                        let definition_digest = cohort.definition.to_hex();
-                        tx.execute(
-                            "INSERT INTO cmd2_source_inventory_projection(
-                                domain,subject,effective_seq,source_revision,content_digest,
-                                definition_digest,inventory_projection)
-                             VALUES($1,$2,$3,$4,$5,$6,$7)
-                             ON CONFLICT(domain,subject,effective_seq) DO NOTHING",
-                            &[
-                                &domain,
-                                &path,
-                                &effective_seq,
-                                &revision,
-                                &content_digest,
-                                &definition_digest,
-                                projection,
-                            ],
-                        )?;
-                        let retained = tx.query_one(
-                            "SELECT source_revision,content_digest,definition_digest,inventory_projection
-                             FROM cmd2_source_inventory_projection
-                             WHERE domain=$1 AND subject=$2 AND effective_seq=$3",
-                            &[&domain, &path, &effective_seq],
-                        )?;
-                        if retained.get::<_, i64>(0) != revision
-                            || retained.get::<_, String>(1) != content_digest
-                            || retained.get::<_, String>(2) != definition_digest
-                            || retained.get::<_, Vec<u8>>(3) != *projection
-                        {
-                            return Err(DurableError::Conflict(
-                                "cold inventory projection cut already has a different value",
-                            ));
-                        }
-                    }
-                    if indexed_projections.get(&path) != Some(projection) {
-                        let changed = tx.execute(
-                            "UPDATE cmd2_source_index SET inventory_projection=$3
-                             WHERE domain=$1 AND kind='path' AND token=$2 AND path=$2
-                               AND definition_digest=$4",
-                            &[&domain, &path, projection, &cohort.definition.to_hex()],
-                        )?;
-                        if changed != 1 {
-                            return Err(DurableError::Conflict("cold indexed projection changed"));
-                        }
-                    }
+                    recovery::refresh_current_projection(
+                        &mut tx,
+                        domain,
+                        current,
+                        projection,
+                        indexed_projections.get(&path) == Some(projection),
+                        before.through_commit_seq,
+                        cohort.definition,
+                    )?;
                 }
             }
         }

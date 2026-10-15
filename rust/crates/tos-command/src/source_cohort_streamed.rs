@@ -70,6 +70,7 @@ struct StreamedSourceReadEpoch<'a, 'db> {
     // locks for the entire read epoch, then repeats the final source fences.
     cold: &'a ColdCut,
     fresh_sink: bool,
+    rebuild_projections: bool,
     public_text_packages: &'a [super::CurrentPublicTextPackageV1],
 }
 
@@ -344,6 +345,7 @@ fn index_current_source(
     limits: SourceAssessmentLimits,
     max_member_bytes: u64,
     index_work: &mut SourceAssessmentWork,
+    body_work: &mut StreamedColdSourceWorkV1,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<()> {
@@ -443,28 +445,18 @@ fn index_current_source(
             let original_member = original
                 .member(original_content.revision, &path)
                 .map_err(|_| DurableError::Refused("streamed original member lookup"))?;
-            if let Some(original_member) = original_member {
-                // A complete content EOF witness preceded this lookup; unchanged
-                // bytes retain their original source fixity/profile, not a new tag.
-                if original_member.sha256 != metadata.sha256
-                    || original_member.size_bytes != metadata.size_bytes
-                    || original_member.mode != metadata.mode
-                    || receipt.binding().profile_id != ORIGINAL
-                {
-                    return Err(DurableError::Corrupt("streamed original carrier changed"));
-                }
+            let original_metadata = if let Some(member) = &original_member {
+                originals = originals
+                    .checked_add(1)
+                    .ok_or(DurableError::Refused("streamed original count overflow"))?;
                 let has_dependencies = original
                     .has_dependency_index(original_content.revision, &path)
                     .map_err(|_| {
                         DurableError::Refused("streamed original dependency key lookup")
                     })?;
-                if has_dependencies != carrier.dependencies.is_some() {
-                    return Err(DurableError::Corrupt(
-                        "streamed original dependency presence differs",
-                    ));
-                }
-                let mut after: Option<RelativePath> = None;
-                let mut position = 0usize;
+                let mut dependencies = Vec::new();
+                let mut bytes = 0usize;
+                let mut after = None;
                 while let Some(target) = original
                     .dependency_after(original_content.revision, &path, after.as_ref())
                     .map_err(|_| {
@@ -472,41 +464,75 @@ fn index_current_source(
                     })?
                 {
                     active(deadline, cancelled)?;
-                    if carrier
-                        .dependencies
-                        .as_ref()
-                        .and_then(|values| values.get(position))
-                        .map(String::as_str)
-                        != Some(target.as_str())
-                    {
-                        return Err(DurableError::Corrupt(
-                            "streamed original dependencies differ",
-                        ));
-                    }
-                    position = position
-                        .checked_add(1)
-                        .ok_or(DurableError::Refused("streamed dependency count overflow"))?;
+                    bytes = bytes
+                        .checked_add(target.as_str().len() + std::mem::size_of::<String>())
+                        .filter(|value| *value <= limits.max_value_bytes)
+                        .ok_or(DurableError::Refused(
+                            "streamed original dependency byte bound",
+                        ))?;
+                    dependencies.push(target.as_str().to_owned());
                     after = Some(target);
                 }
-                if carrier
-                    .dependencies
-                    .as_ref()
-                    .is_some_and(|values| values.len() != position)
-                {
+                if !has_dependencies && !dependencies.is_empty() {
                     return Err(DurableError::Corrupt(
-                        "streamed original dependency EOF differs",
+                        "streamed original dependency presence differs",
                     ));
                 }
-                originals = originals
-                    .checked_add(1)
-                    .ok_or(DurableError::Refused("streamed original count overflow"))?;
-            } else if receipt.binding().profile_id != CREATION
-                || carrier.mode != 0o644
-                || carrier.dependencies.is_none()
-            {
-                return Err(DurableError::Corrupt(
-                    "streamed extra member outside controlled Agent writer",
-                ));
+                Some(SourceFileMetadata {
+                    mode: member.mode,
+                    dependencies: has_dependencies.then_some(dependencies),
+                })
+            } else {
+                None
+            };
+            if receipt.binding().profile_id == ORIGINAL {
+                // Verified ORIGINAL content stays exact, including carrier metadata.
+                if original_member.as_ref().is_none_or(|member| {
+                    member.sha256 != metadata.sha256 || member.size_bytes != metadata.size_bytes
+                }) || original_metadata.as_ref() != Some(&carrier)
+                {
+                    return Err(DurableError::Corrupt("streamed original carrier changed"));
+                }
+            } else {
+                // One current/initial pair at a time. The same lineage validator
+                // as ordinary cold restore verifies revisions and all native writers.
+                let original_raw = original_member
+                    .as_ref()
+                    .map(|_| {
+                        original
+                            .read_member(
+                                original_content.revision,
+                                &path,
+                                max_member_bytes,
+                                deadline,
+                                cancelled,
+                            )
+                            .map_err(|_| DurableError::Corrupt("streamed original lineage bytes"))
+                    })
+                    .transpose()?;
+                if let Some(member) = &original_raw {
+                    ManagedSourceWorkV1::charge(&mut body_work.original_bodies_returned, 1)?;
+                    ManagedSourceWorkV1::charge(
+                        &mut body_work.original_body_bytes_returned,
+                        member.raw.len() as u64,
+                    )?;
+                }
+                let mut raw = Vec::new();
+                store.read_selected(receipt, max_member_bytes, &mut raw)?;
+                ManagedSourceWorkV1::charge(&mut body_work.current_bodies_returned, 1)?;
+                ManagedSourceWorkV1::charge(
+                    &mut body_work.current_body_bytes_returned,
+                    raw.len() as u64,
+                )?;
+                set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+                recovery::check_current_source_lineage(
+                    tx,
+                    domain,
+                    &row,
+                    &raw,
+                    original_raw.as_ref().map(|member| member.raw.as_slice()),
+                    original_metadata.as_ref(),
+                )?;
             }
             index.add_member(
                 SourceAssessmentMember {
@@ -2037,7 +2063,23 @@ fn render_current_mixed_projections(
                 .current_and_history_projection_bytes_returned,
             retained.as_ref().map_or(0, |raw| raw.len() as u64),
         )?;
-        if returned
+        if epoch.rebuild_projections {
+            set_streamed_pg_limits(epoch.tx, epoch.max_statement_ms, deadline, cancelled)?;
+            let current = epoch.tx.query_one(
+                "SELECT c.*,$3::bytea AS retained_inventory_projection,i.inventory_projection AS indexed_inventory_projection FROM cmd2_current c LEFT JOIN cmd2_source_index i ON i.domain=c.domain AND i.kind='path' AND i.token=c.subject AND i.path=c.subject WHERE c.domain=$1 AND c.subject=$2",
+                &[&epoch.domain, &member.path, &retained],
+            )?;
+            let indexed: Option<Vec<u8>> = current.get("indexed_inventory_projection");
+            recovery::refresh_current_projection(
+                epoch.tx,
+                epoch.domain,
+                &current,
+                &projection,
+                indexed.as_deref() == Some(projection.as_slice()),
+                epoch.cold.through_commit_seq,
+                definition(),
+            )?;
+        } else if returned
             .get::<_, Option<i32>>(1)
             .is_none_or(|n| n < 0 || n as usize != projection.len())
             || returned
@@ -2583,6 +2625,7 @@ fn assess_held_current_source(
     tx: &mut Transaction<'_>,
     max_statement_ms: u64,
     fresh_sink: bool,
+    rebuild_projections: bool,
     store: &SegmentStore,
     domain: &str,
     cold: &ColdCut,
@@ -2634,6 +2677,7 @@ fn assess_held_current_source(
         limits,
         max_member_bytes,
         index_work,
+        body_work,
         deadline,
         cancelled,
     )?;
@@ -2644,6 +2688,7 @@ fn assess_held_current_source(
             tx,
             max_statement_ms,
             fresh_sink,
+            rebuild_projections,
             index: &index_cell,
             index_work: &work_cell,
             body_work,
@@ -3147,10 +3192,24 @@ impl DurablePgCoordinator {
                         "streamed source rights/head/database changed",
                     ));
                 }
+                let rebuild_projections = seed.is_none()
+                    && row
+                        .get::<_, Option<String>>("source_projection_digest")
+                        .is_none();
+                if rebuild_projections
+                    && row
+                        .get::<_, Option<String>>("selected_generation_digest")
+                        .is_some()
+                {
+                    return Err(DurableError::Conflict(
+                        "invalidated streamed source retains a selected descriptor",
+                    ));
+                }
                 let (assessment, inventory) = assess_held_current_source(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
                     seed.is_some(),
+                    rebuild_projections,
                     store,
                     domain,
                     &before,
