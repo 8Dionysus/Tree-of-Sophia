@@ -2416,6 +2416,44 @@ pub(crate) fn select_owner_local_sources_pg(
         )?;
         required_languages.insert(unit_id, languages);
     }
+    // A standalone TextLayer selection also needs its manifest, rights,
+    // anchors and retained derivation metadata. Those dependencies must not
+    // depend on an unrelated TextUnit happening to populate the PG read set.
+    let mut layer_reader =
+        PgOwnerAssessmentReader::new(owner, input, false, context_snapshot.clone());
+    for selection in cmd::array(configuration, "native_text_layers")? {
+        for native in crate::source_sign_native::resolve_owner_text_layer_metadata(
+            &mut layer_reader,
+            worker,
+            cmd::field(selection, "binding")?,
+            deadline,
+            cancelled,
+        )? {
+            let kind = match native.kind {
+                NativeReadKind::Metadata => "metadata",
+                NativeReadKind::Schema => "schema",
+                NativeReadKind::Support => "support",
+                NativeReadKind::Content => {
+                    return Err(SourceCommandError::Denied(
+                        "private assessment layer metadata selected content",
+                    ));
+                }
+            };
+            let key = (native.reference.clone(), kind.to_owned(), native.category);
+            if native_inputs
+                .insert(key, native.clone())
+                .is_some_and(|previous| previous != native)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private assessment layer metadata dependency changed",
+                ));
+            }
+        }
+    }
+    layer_reader.verify_current(deadline, cancelled)?;
+    for (path, raw) in layer_reader.into_public_members() {
+        insert_selected_file(&mut public_members, &path, &raw)?;
+    }
     reader.verify_current(deadline, cancelled)?;
     for (path, raw) in &reader.public_members {
         insert_selected_file(&mut public_members, path, raw)?;

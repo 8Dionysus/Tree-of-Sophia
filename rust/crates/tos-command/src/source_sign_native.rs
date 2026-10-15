@@ -2376,6 +2376,33 @@ pub(crate) fn resolve_derived_owner_text_source<R: SignNativeRead + ?Sized>(
     })
 }
 
+/// Resolve a selected layer's metadata closure without opening its text or
+/// acquired payload. PG assessment uses the same native dependency rules to
+/// populate its held read set even when no TextUnit is selected alongside it.
+pub(crate) fn resolve_owner_text_layer_metadata<R: SignNativeRead + ?Sized>(
+    context: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
+    binding: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<NativeInput>> {
+    context.verify_current(deadline, cancelled)?;
+    let mut native = Native {
+        reader: context,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: 0,
+        route_profile: NativeRoute::OwnerText,
+    };
+    native.resolve_layer_metadata(binding)?;
+    native.snapshot()?;
+    Ok(selected_inputs(&native))
+}
+
 pub(crate) fn resolve_owner_text_layer<R: SignNativeRead + ?Sized>(
     context: &mut R,
     worker: &mut dyn CutSchemaExecutor,
