@@ -1374,7 +1374,7 @@ fn append_private_metadata_chunked_table(
     );
     let mut rows = tx.query_raw(
         &query,
-        &[
+        [
             &domain as &(dyn postgres::types::ToSql + Sync),
             &(COLD_METADATA_CHUNK_BYTES as i32),
         ],
