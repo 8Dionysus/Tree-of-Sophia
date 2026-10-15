@@ -25,6 +25,7 @@ fn navigation_schema_upgrade_replaces_postgres_generated_version_check() {
         "ALTER TABLE cmd2_projection_navigation_consumer DROP COLUMN verified_prefix_version CASCADE;
          ALTER TABLE cmd2_projection_navigation_consumer ADD COLUMN verified_prefix_version smallint
            CHECK (verified_prefix_version IS NULL OR verified_prefix_version IN (1,2));
+         INSERT INTO cmd2_domain(domain,contract_digest) VALUES('d',repeat('0',64));
          INSERT INTO cmd2_projection_navigation_consumer
            (domain,consumer_id,profile_id,profile_version,source_contract_digest,
             verified_prefix_version,verified_prefix_seq,verified_prefix_coverage_root,
