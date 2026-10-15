@@ -317,7 +317,6 @@ fn selected_plan(
 ) -> Plan {
     Plan {
         schema_version,
-        test_file_count: 0,
         commands: steps
             .iter()
             .map(|(label, argv)| crate::Command {
@@ -1173,40 +1172,15 @@ mod native {
                 }
             }
             if matches!(style, Style::Mechanics) {
-                let summary = if plan
+                let native = plan
                     .commands
                     .iter()
-                    .all(|command| command.kind == "native_assertions")
-                {
-                    format!(
-                        "[ok] completed native mechanics assertions across {} supported homes; Growth Cycle reference cohort not run\n",
-                        plan.commands.len()
-                    )
-                } else if plan
-                    .commands
-                    .iter()
-                    .any(|command| command.kind == "native_assertions")
-                {
-                    let native = plan
-                        .commands
-                        .iter()
-                        .filter(|command| command.kind == "native_assertions")
-                        .count();
-                    let reference = plan
-                        .commands
-                        .iter()
-                        .filter(|command| command.kind == "unittest")
-                        .count();
-                    format!(
-                        "[ok] completed mechanics-local native assertions across {native} homes, reference unittest across {reference} homes, builders and validators; {} reference test files discovered\n",
-                        plan.test_file_count
-                    )
-                } else {
-                    format!(
-                        "[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n",
-                        plan.test_file_count
-                    )
-                };
+                    .filter(|command| command.kind == "native_assertions")
+                    .count();
+                let summary = format!(
+                    "[ok] completed {} mechanics commands across {native} native assertion homes\n",
+                    plan.commands.len()
+                );
                 write(1, summary.as_bytes(), lane_deadline, cancel)?;
             }
             Ok(0)

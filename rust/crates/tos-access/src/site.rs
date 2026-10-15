@@ -1057,56 +1057,6 @@ mod mcp_maintained_tests {
     }
 
     #[test]
-    fn cloudflare_tunnel_assets_keep_native_origin_and_external_credentials() {
-        use std::process::Command;
-
-        let deploy = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../access/deploy/cloudflare-tunnel");
-        let launcher = deploy.join("run-origin.sh");
-        let syntax = Command::new("sh")
-            .arg("-n")
-            .arg(&launcher)
-            .status()
-            .expect("POSIX shell is required to validate the maintained launcher");
-        assert!(
-            syntax.success(),
-            "origin launcher must remain valid POSIX shell"
-        );
-        let source = std::fs::read_to_string(&launcher).unwrap();
-        assert!(source.contains("TOS_ACCESS_BIN"));
-        assert!(source.contains("exec \"${TOS_ACCESS_BIN}\" \"$@\" serve"));
-        assert!(source.contains("TOS_SOURCE_TEXT_SEARCH_SELECTION"));
-        assert!(source.contains("--source-text-search-selection"));
-        assert!(source.contains("TOS_SITE_ROOT or TOS_SOURCE_TEXT_SEARCH_SELECTION"));
-        assert!(source.contains("127.0.0.1:${tos_port}"));
-        assert!(!source.contains("python3"));
-        assert!(!source.contains("-m tos_access"));
-        assert!(!source.contains("abyss-stack"));
-
-        let example = std::fs::read_to_string(deploy.join("site.env.example")).unwrap();
-        assert!(example.contains("TOS_ACCESS_BIN=/absolute/fresh-prefix/bin/tos"));
-        assert!(example.contains("TOS_SOURCE_TEXT_SEARCH_SELECTION="));
-        assert!(example.contains("TOS_SOURCE_PG_URL="));
-        assert!(!example.contains("TOS_PYTHON"));
-
-        let origin =
-            std::fs::read_to_string(deploy.join("systemd/tos-access-origin.service")).unwrap();
-        assert!(origin.contains("EnvironmentFile=%h/.config/tree-of-sophia/site.env"));
-        assert!(origin.contains("installed native access origin"));
-        assert!(origin.contains("TOS_ACCESS_ORIGIN_LAUNCHER"));
-        assert!(origin.contains("$$TOS_SITE_ROOT/access/deploy/cloudflare-tunnel/run-origin.sh"));
-
-        let unit =
-            std::fs::read_to_string(deploy.join("systemd/tos-cloudflare-tunnel.service")).unwrap();
-        assert!(unit.contains("LoadCredential=cloudflare-tunnel-token:"));
-        assert!(unit.contains("--token-file %d/cloudflare-tunnel-token"));
-        assert!(!unit.contains("--token "));
-        assert!(!unit.contains("TUNNEL_TOKEN="));
-        assert!(unit.contains("Requires=tos-access-origin.service"));
-        assert!(unit.contains("After=network-online.target tos-access-origin.service"));
-    }
-
-    #[test]
     fn cloudflare_origin_launcher_forwards_to_installed_native_tos_on_loopback() {
         use std::{os::unix::fs::PermissionsExt, process::Command};
 

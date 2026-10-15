@@ -14,14 +14,7 @@ pub(crate) struct Coverage {
     #[serde(default)]
     native_execution_sequence: Option<String>,
     #[serde(default)]
-    reference_discovery: Option<ReferenceDiscovery>,
-    #[serde(default)]
     pub(crate) native_test_routes: Vec<crate::growth_native_plan::TestRoute>,
-}
-
-#[derive(Deserialize)]
-struct ReferenceDiscovery {
-    root: String,
 }
 
 pub(crate) fn load(root: &Path) -> io::Result<Coverage> {
@@ -97,26 +90,15 @@ pub fn require_whole_route(root: &Path) -> io::Result<()> {
     selected_steps(root).map(|_| ())
 }
 
-/// Keep other mechanics and Growth builders/validators in authored order;
-/// replace only the owner's retained unittest comparison with its real native
-/// workspace pipeline. One executor owns the combined lane wall deadline.
+/// Keep mechanics commands in authored order and append the native Growth
+/// pipeline. One executor owns the combined lane wall deadline.
 pub fn whole_steps(
     root: &Path,
     mechanics: &crate::Plan,
 ) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
-    let coverage = load(root)?;
-    let discovery = coverage
-        .reference_discovery
-        .ok_or_else(|| io::Error::other("Growth reference discovery owner is missing"))?;
-    let tests = tos_foundation::RelativePath::parse(&discovery.root).map_err(io::Error::other)?;
-    let owner = Path::new(tests.as_str())
-        .parent()
-        .and_then(Path::to_str)
-        .ok_or_else(|| io::Error::other("Growth reference test root has no owner home"))?;
     let mut steps: Vec<_> = mechanics
         .commands
         .iter()
-        .filter(|command| !(command.kind == "unittest" && command.home == owner))
         .map(|command| {
             (
                 (

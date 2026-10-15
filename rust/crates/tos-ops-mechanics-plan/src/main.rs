@@ -96,10 +96,9 @@ extern "C" fn cancelled(signal: i32) {
     }
 }
 
-fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), String> {
+fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
     let mut args = env::args().skip(1);
     let mut root = None;
-    let mut python = "python".to_owned();
     let mut execute = false;
     let mut native_contracts_only = false;
     let mut growth_native_plan = false;
@@ -247,8 +246,9 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => {
-                python = args.next().ok_or("missing Python adapter")?;
-                semantic.selected_interpreter = Some(PathBuf::from(&python));
+                semantic.selected_interpreter = Some(PathBuf::from(
+                    args.next().ok_or("missing external-owner Python adapter")?,
+                ));
             }
             "--command-timeout-ms"
             | "--lane-timeout-ms"
@@ -438,7 +438,6 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     };
     Ok((
         root.ok_or("--repo-root is required")?,
-        python,
         action,
         limits,
         semantic,
@@ -616,7 +615,7 @@ fn main() {
             std::process::exit(1);
         }
     }
-    let (root, python, action, limits, semantic) = arguments().unwrap_or_else(|error| {
+    let (root, action, limits, semantic) = arguments().unwrap_or_else(|error| {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
@@ -1129,7 +1128,7 @@ fn main() {
                 );
                 Ok(0)
             }),
-        Action::Plan | Action::Execute { .. } => tos_ops_mechanics_plan::discover(&root, &python)
+        Action::Plan | Action::Execute { .. } => tos_ops_mechanics_plan::discover(&root)
             .and_then(|mut plan| {
                 let whole_steps = if matches!(
                     action,
@@ -1154,7 +1153,6 @@ fn main() {
                 ) {
                     plan.commands
                         .retain(|command| command.kind == "native_assertions");
-                    plan.test_file_count = 0; // Native assertions do not count retired Python files.
                     if plan.commands.len() != 3 {
                         return Err(std::io::Error::other(
                             "native mechanics contracts require all three supported homes",

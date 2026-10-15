@@ -2,8 +2,8 @@
 
 `tos-ops-mechanics-plan` discovers native package-local and part-local mechanics
 assertions, builders and validators. The default CLI emits one
-`tos_mechanics_local_plan_v1` JSON line with `test_file_count` (zero after Python
-retirement) and commands containing `kind`, `home` and `argv`. Order is native
+`tos_mechanics_local_plan_v2` JSON line with commands containing `kind`, `home`
+and `argv`. Order is native
 assertions by home, builder checks, then validators.
 
 `--repo-root ABSOLUTE_PATH` is required. `--execute` runs the native Growth
@@ -58,7 +58,7 @@ outside its ancestry, and malicious same-user interference require external
 host supervision. No host services or privileges are configured by this tool.
 
 Discovery visits only immediate `mechanics/*` and `mechanics/*/parts/*`
-homes, rejects encountered symlinks and caps scanned entries/commands. The
+homes, rejects encountered symlinks and caps scanned entries. The
 native discovery fixtures protect ordering; the real validation-lane CLI fixture protects
 stop behavior, output/cancellation deadlines, ordinary/escaped descendants,
 successful daemon cleanup, and syscall-unavailable refusal before tool start.
