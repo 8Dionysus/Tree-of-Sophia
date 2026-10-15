@@ -2685,8 +2685,7 @@ pub fn selected_metadata_archive_record_blob_path_v1(
             "selected metadata archive Record member absent",
         ))?;
     exact_keys(binding, &["blob", "sha256", "bytes"])?;
-    let sha = text(binding, "sha256")?;
-    hash(&format!("sha256:{sha}"))?;
+    let sha = hash(text(binding, "sha256")?)?;
     let blob = text(binding, "blob")?;
     if blob != format!("{sha}.blob")
         || binding["bytes"]
@@ -3253,8 +3252,7 @@ pub fn selected_claim_archive_blob_paths_v1(
             {
                 return Err(Error::Invalid("selected Claim archive member scope"));
             }
-            let sha = text(binding, "sha256")?;
-            hash(&format!("sha256:{sha}"))?;
+            let sha = hash(text(binding, "sha256")?)?;
             let blob = format!("{sha}.blob");
             if binding["blob"] != blob
                 || binding["bytes"]
@@ -3889,8 +3887,7 @@ fn selected_claim_archive_manifest(
         {
             return Err(Error::Invalid("selected Claim archive member scope"));
         }
-        let sha = text(binding, "sha256")?;
-        hash(&format!("sha256:{sha}"))?;
+        let sha = hash(text(binding, "sha256")?)?;
         if binding["blob"] != format!("{sha}.blob")
             || binding["bytes"]
                 .as_u64()
@@ -5228,6 +5225,84 @@ fn public_form_lock(name: &str) -> bool {
 #[cfg(test)]
 mod oracle {
     use super::*;
+
+    #[test]
+    fn selected_archive_locators_accept_writer_digest_format_and_reject_mismatches() {
+        let limits = BibliographicLimits {
+            catalog: catalog::SourceCatalogLimits {
+                max_files: 128,
+                max_rows: 4096,
+                max_file_bytes: 2_097_152,
+                max_row_bytes: 1_048_576,
+                max_contract_bytes: 2_097_152,
+                max_output_row_bytes: 1_048_576,
+            },
+            max_claim_cohort_rows: 1,
+            max_claim_cohort_bytes: 1_048_576,
+            max_output_rows: 4096,
+            max_output_bytes: 8_388_608,
+            deadline: std::time::Instant::now() + std::time::Duration::from_secs(10),
+        };
+        let sha = Digest256::of_bytes(b"retained source").to_hex();
+        let revision = Digest256::of_bytes(b"retained package").to_hex();
+        for selected in [false, true] {
+            for (id, source_path, claim) in [
+                (
+                    "tos.work.fixture",
+                    "ToS/source-witnesses/works/fixture/work.json",
+                    false,
+                ),
+                (
+                    "tos.claim.fixture",
+                    "ToS/source-witnesses/relations/fixture/source-claims.jsonl",
+                    true,
+                ),
+            ] {
+                let archive = format!(
+                    "ToS/source-witnesses/.record-revisions/{}-{revision}",
+                    Digest256::of_bytes(id.as_bytes()).to_hex()
+                );
+                let path = format!("{archive}/manifest.json");
+                let basename = source_path.rsplit('/').next().unwrap();
+                let mut manifest = json!({
+                    "schema_version": if selected { "tos_source_package_archive_v2" } else { "tos_source_package_archive_v1" },
+                    "source_path": source_path,
+                    "source": {"id": id, "version": 1, "digest": format!("sha256:{sha}")},
+                    "revision": format!("sha256:{revision}"),
+                    "files": {basename: {"sha256": format!("sha256:{sha}"), "blob": format!("{sha}.blob"), "bytes": 15}}
+                });
+                if selected {
+                    manifest["publication_protocol"] = json!("tos_selected_source_metadata_v1");
+                }
+                let resolve = |manifest: &Value| -> Result<Vec<String>> {
+                    let raw = serde_json::to_vec(manifest).unwrap();
+                    if claim {
+                        selected_claim_archive_manifest(&path, &raw, limits)?;
+                        let files = SelectedBibliographicFilesV1::new(
+                            BTreeMap::from([(path.clone(), raw)]),
+                            BTreeSet::new(),
+                            1,
+                            4096,
+                        )?;
+                        selected_claim_archive_blob_paths_v1(&[path.clone()], &files, limits)
+                    } else {
+                        selected_metadata_archive_record_blob_path_v1(&path, &raw, limits)
+                            .map(|path| vec![path])
+                    }
+                };
+                assert_eq!(
+                    resolve(&manifest).unwrap(),
+                    vec![format!("{archive}/{sha}.blob")]
+                );
+                let mut unprefixed = manifest.clone();
+                unprefixed["files"][basename]["sha256"] = json!(sha);
+                assert!(resolve(&unprefixed).is_err());
+                manifest["files"][basename]["blob"] = json!(format!("{revision}.blob"));
+                assert!(resolve(&manifest).is_err());
+            }
+        }
+    }
+
     #[test]
     fn retained_python_successor_preserves_unselected_sibling_bytes() {
         // Independent maintained claim_revisions._advance/_replace oracle,
