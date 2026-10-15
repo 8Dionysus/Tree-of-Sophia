@@ -152,7 +152,7 @@ fn project_record_event_with_basis(
     validate_committed_member_dependencies(context, &input)?;
 
     let cohort = project(input, limits)
-        .map_err(|_| DurableError::Refused("selected navigation Record projection refused"))?;
+        .map_err(crate::source_navigation_producer::compiler_refusal)?;
     if cohort.event_id() != context.event_id()
         || cohort.event_sequence() != context.event_sequence()
         || cohort.source_revision() != identity.event_source_revision()
@@ -164,7 +164,7 @@ fn project_record_event_with_basis(
     }
     let cost = cohort
         .budget_cost()
-        .map_err(|_| DurableError::Refused("selected navigation Record budget refused"))?;
+        .map_err(crate::source_navigation_producer::compiler_refusal)?;
     Ok((cohort, cost))
 }
 

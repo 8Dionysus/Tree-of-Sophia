@@ -90,6 +90,14 @@ fn producer_refusal(
     }
 }
 
+// Use the command owner's bounded renderer: worker evidence survives while
+// dynamic source, filesystem and database details remain redacted.
+pub(crate) fn compiler_refusal(error: tos_compiler::Error) -> DurableError {
+    DurableError::Source(crate::source_command::SourceCommandError::DeniedWithReason(
+        crate::source_command::public_compiler_reason(&error),
+    ))
+}
+
 /// Run the selected producer while the managed source, rights, audit, job,
 /// model, and owner-configuration fences remain held through publication.
 pub(crate) fn run(
@@ -1075,7 +1083,7 @@ fn process_ready_range(
             &claim_endpoint_paths,
             limits,
         )
-        .map_err(|_| DurableError::Refused("terminal Claim owner inventory refused"))?
+        .map_err(compiler_refusal)?
     };
 
     if !claim_inventory.scan_costs().is_empty() {
@@ -1964,7 +1972,7 @@ fn process_ready_event(
         let stream_files = claim_source_files(&context, &claim_closure, &reverse_claim_paths, &[])?;
         let inventory = tos_compiler::source_navigation_claim_event::
             prepare_navigation_claim_event_owner_inventory_v1(&stream_files, limits)
-            .map_err(|_| DurableError::Refused("selected Claim owner inventory refused"))?;
+            .map_err(compiler_refusal)?;
         let cause_storage =
             claim_refresh_causes(&context, &claim_closure, &changed_tos_paths, &ids_by_path)?;
         let cause_inputs = cause_storage
@@ -2158,7 +2166,7 @@ fn process_ready_event(
                 &historical_endpoint_paths,
                 limits,
             )
-            .map_err(|_| DurableError::Refused("final Claim owner inventory refused"))?;
+            .map_err(compiler_refusal)?;
         let final_manifest = final_inventory
             .affected_dependency_stream_set(&cause_inputs, claim_closure.closure_root())
             .map_err(|_| DurableError::Conflict("final Claim owner manifest differs"))?;
@@ -3543,7 +3551,7 @@ fn prepare_direct_claim_mutation(
     let initial_files = claim_source_files(context, closure, &current_stream_paths, &[])?;
     let inventory = tos_compiler::source_navigation_claim_event::
         prepare_navigation_claim_event_owner_inventory_v1(&initial_files, limits)
-        .map_err(|_| DurableError::Refused("selected Claim owner inventory refused"))?;
+        .map_err(compiler_refusal)?;
     let manifest = inventory
         .affected_owner_streams(reverse_claim_ids, mutation_source_path, mutation_ids)
         .map_err(|_| DurableError::Conflict("Claim mutation owner manifest differs"))?;
@@ -3715,7 +3723,7 @@ fn prepare_direct_claim_mutation(
             &historical_endpoint_paths,
             limits,
         )
-        .map_err(|_| DurableError::Refused("final Claim owner inventory refused"))?;
+        .map_err(compiler_refusal)?;
     let final_manifest = final_inventory
         .affected_owner_streams(reverse_claim_ids, mutation_source_path, mutation_ids)
         .map_err(|_| DurableError::Conflict("final Claim mutation manifest differs"))?;
@@ -3861,7 +3869,7 @@ fn bibliographic_limits(
     };
     limits
         .validate()
-        .map_err(|_| DurableError::Refused("bibliographic event limits refused"))?;
+        .map_err(compiler_refusal)?;
     Ok(limits)
 }
 
@@ -4218,7 +4226,7 @@ pub(crate) fn selected_bibliographic_files(
         }
     }
     tos_compiler::SelectedBibliographicFilesV1::new(files, absent, max_files, max_bytes)
-        .map_err(|_| DurableError::Refused("navigation selected source file set refused"))
+        .map_err(compiler_refusal)
 }
 
 /// Select reverse-Claim index predicates for every exact changed path and
@@ -4548,11 +4556,11 @@ fn with_selected_schema_validator<T>(
         &identity,
         &mut schemas,
     )
-    .map_err(|_| DurableError::Refused("selected navigation catalog binding refused"))?;
+    .map_err(compiler_refusal)?;
     let result = consume(&validator)?;
     validator
         .finish()
-        .map_err(|_| DurableError::Refused("selected navigation schema worker finish refused"))?;
+        .map_err(compiler_refusal)?;
     Ok(result)
 }
 

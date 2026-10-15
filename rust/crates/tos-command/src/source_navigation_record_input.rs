@@ -28,7 +28,7 @@ use tos_foundation::{Digest256, RelativePath};
 use crate::{
     DurableError, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
     DurableNavigationEventContextV1, DurableNavigationEventSourceV1, DurableResult,
-    source_navigation_producer::NavigationEventSourceCutIdentityV1,
+    source_navigation_producer::{NavigationEventSourceCutIdentityV1, compiler_refusal},
     source_navigation_record_adapter::project_record_event_cohort_v1,
 };
 
@@ -40,14 +40,6 @@ const RECEIPT_HOME_FILE: &str = "source-create-receipt.json";
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const REGISTRY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
 const FORMS_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
-
-// Use the command owner's bounded renderer: worker evidence survives while
-// dynamic source, filesystem and database details remain redacted.
-fn history_refusal(error: tos_compiler::Error) -> DurableError {
-    DurableError::Source(crate::source_command::SourceCommandError::DeniedWithReason(
-        crate::source_command::public_compiler_reason(&error),
-    ))
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum RecordOwnerOriginV1 {
@@ -948,7 +940,7 @@ pub(crate) fn archive_manifest_paths(
     for owner in owners {
         let (entry, _, _) = selected_record_entry(owner, files, &entities, limits)?;
         for path in selected_metadata_archive_manifest_paths_v1(&entry, &entities, files, limits)
-            .map_err(history_refusal)?
+            .map_err(compiler_refusal)?
         {
             add_path(&mut manifests, &path, MAX_PATHS)?;
         }
@@ -975,7 +967,7 @@ pub(crate) fn archive_blob_paths(
             .required(manifest_path)
             .map_err(|_| DurableError::Invalid("selected Record archive manifest absent"))?;
         let path = selected_metadata_archive_record_blob_path_v1(manifest_path, raw, limits)
-            .map_err(|_| DurableError::Refused("selected navigation Record archive manifest"))?;
+            .map_err(compiler_refusal)?;
         add_path(&mut blobs, &path, MAX_PATHS)?;
     }
     Ok(blobs.into_iter().collect())
@@ -1237,7 +1229,7 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
         event_revision,
         limits,
     )
-    .map_err(history_refusal)?;
+    .map_err(compiler_refusal)?;
     if selected_history.current_record != source_record
         || selected_history.schema_path != schema_path
         || selected_history.schema_bytes != schema_bytes
@@ -1389,7 +1381,7 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
     for manifest_path in selected_metadata_archive_manifest_paths_v1(
         &entry, &entities, files, limits,
     )
-    .map_err(|_| DurableError::Refused("selected Record archive manifest closure refused"))?
+    .map_err(compiler_refusal)?
     {
         insert_file_dependency(
             files,
@@ -1506,11 +1498,11 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
                 origin_forms_bytes,
                 limits,
             )
-            .map_err(|_| DurableError::Refused("selected navigation Record range refused"))
+            .map_err(compiler_refusal)
             .and_then(|cohort| {
                 let cost = cohort
                     .budget_cost()
-                    .map_err(|_| DurableError::Refused("selected navigation Record budget refused"))?;
+                    .map_err(compiler_refusal)?;
                 Ok((cohort, cost))
             }),
         RecordProjectionBasisV1::DependencyRefresh {
@@ -1609,14 +1601,14 @@ fn selected_record_entry(
     let record_type = record_type(&record, &owner.record_id)?;
     let schema_path =
         selected_metadata_record_schema_path_v1(&record_type, source_path, &record, entities)
-            .map_err(|_| DurableError::Refused("selected Record schema route refused"))?;
+            .map_err(compiler_refusal)?;
     let entry = render_catalog_record(
         &record,
         source_path,
         Some(&schema_path),
         limits.catalog.max_output_row_bytes,
     )
-    .map_err(|_| DurableError::Refused("selected Record catalog entry refused"))?;
+    .map_err(compiler_refusal)?;
     let identity = record
         .get("record_id")
         .or_else(|| record.get("artifact_id"))
