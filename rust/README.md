@@ -23,7 +23,10 @@ feature. Access, command and conformance consumers select that feature;
 `tos-web-rules` uses the shared rules without it on native hosts as well as WASM.
 Native disclosure leases still require `Send` in both configurations.
 Run selected-model integration tests with `cargo test -p tos-query --features
-native-models`; a default query build does not include those adapters.
+test-fixture`. That profile explicitly enables the compiler fixtures and gzip
+reader needed by those tests. Default query tests exercise the portable rules
+without building the compiler or storage stack. Native model tests are declared
+with `required-features` in Cargo; the full validation lanes select `test-fixture`.
 
 `tos-query::source_text_search` owns the portable `tos_source_text_search_v1`
 ranking, Unicode-16 query normalization, cursor binding and response budget over

@@ -13,7 +13,7 @@ native-models = [
     "dep:tos-validation", "dep:serde_json", "dep:unicode-normalization",
     "dep:unicode-general-category",
 ]
-test-fixture = ["native-models"]
+test-fixture = ["native-models", "tos-compiler/test-fixture", "dep:flate2"]
 
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
@@ -28,11 +28,32 @@ tos-validation = { path = "../tos-validation", optional = true }
 serde_json = { version = "1", features = ["arbitrary_precision"], optional = true }
 unicode-normalization = { version = "=0.1.24", optional = true }
 unicode-general-category = { version = "=1.1.0", optional = true }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
-tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"], optional = true }
 
 [lib]
 name = "tos_query"
 path = "src/lib.rs"
+
+[[test]]
+name = "compressed_search"
+required-features = ["native-models"]
+
+[[test]]
+name = "knowledge_inspect"
+required-features = ["test-fixture"]
+
+[[test]]
+name = "knowledge_selected_search"
+required-features = ["test-fixture"]
+
+[[test]]
+name = "exploration_temporal_selected"
+required-features = ["test-fixture"]
+
+[[test]]
+name = "selected_lens"
+required-features = ["test-fixture"]
+
+[[test]]
+name = "philosophy_source_backlog"
+required-features = ["native-models"]
