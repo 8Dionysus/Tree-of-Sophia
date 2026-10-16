@@ -2010,45 +2010,6 @@ impl BoundedSchemaExecutor {
         }
     }
 
-    /// Cooperative cancellation checked before and after image verification
-    /// and at every nonblocking parent poll. It cannot interrupt a blocked
-    /// host filesystem read; cleanup retains the explicit grace budget.
-    pub fn evaluate_cancellable(
-        worker: &ExactWorkerIdentity,
-        resources: &[SchemaResource],
-        profile: FormatProfile,
-        root_uri: &str,
-        raw_instance: &[u8],
-        budget: ExecutorBudget,
-        cancelled: &AtomicBool,
-    ) -> ExecutorOutcome {
-        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-        {
-            native::evaluate(
-                worker,
-                resources,
-                profile,
-                root_uri,
-                raw_instance,
-                budget,
-                Some(cancelled),
-            )
-        }
-        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-        {
-            let _ = (
-                worker,
-                resources,
-                profile,
-                root_uri,
-                raw_instance,
-                budget,
-                cancelled,
-            );
-            unknown(ExecutorFailure::UnsupportedHost, None)
-        }
-    }
-
     pub fn evaluate_batch(
         worker: &ExactWorkerIdentity,
         resources: &[SchemaResource],
@@ -2110,43 +2071,6 @@ impl BoundedSchemaExecutor {
         #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
         {
             let _ = (resources, units, expected, budget);
-            empty_diagnostics_outcome(
-                worker.sha256,
-                profile,
-                Digest256::of_bytes(b""),
-                ExecutorFailure::UnsupportedHost,
-            )
-        }
-    }
-
-    /// Cancellation-aware variant of [`Self::evaluate_batch_with_diagnostics`].
-    pub fn evaluate_batch_with_diagnostics_cancellable(
-        worker: &ExactWorkerIdentity,
-        resources: &[SchemaResource],
-        profile: FormatProfile,
-        units: impl IntoIterator<Item = BatchUnit>,
-        expected: BatchCoverageExpectation,
-        budget: BatchBudget,
-        cancelled: &AtomicBool,
-    ) -> SchemaDiagnosticsOutcome {
-        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-        {
-            native::evaluate_batch_with_diagnostics(
-                worker,
-                resources,
-                profile,
-                DiagnosticsInputProfile::FiniteJson,
-                units,
-                expected,
-                budget,
-                None,
-                Some(cancelled),
-                None,
-            )
-        }
-        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-        {
-            let _ = (resources, units, expected, budget, cancelled);
             empty_diagnostics_outcome(
                 worker.sha256,
                 profile,
@@ -2244,46 +2168,6 @@ impl BoundedSchemaExecutor {
                 remaining_worker_wire_bytes,
                 cancelled,
             );
-            empty_diagnostics_outcome(
-                worker.sha256,
-                profile,
-                Digest256::of_bytes(b""),
-                ExecutorFailure::UnsupportedHost,
-            )
-        }
-    }
-
-    /// Evaluates exact raw instances using the FND legacy-Python observed
-    /// decoder inside the same diagnostics-v2 worker. The original bytes stay
-    /// the unit payload and digest input; nonfinite or otherwise unrepresentable
-    /// Python values return typed indeterminate diagnostics.
-    pub fn evaluate_batch_with_legacy_python_diagnostics_cancellable(
-        worker: &ExactWorkerIdentity,
-        resources: &[SchemaResource],
-        profile: FormatProfile,
-        units: impl IntoIterator<Item = BatchUnit>,
-        expected: BatchCoverageExpectation,
-        budget: BatchBudget,
-        cancelled: &AtomicBool,
-    ) -> SchemaDiagnosticsOutcome {
-        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-        {
-            native::evaluate_batch_with_diagnostics(
-                worker,
-                resources,
-                profile,
-                DiagnosticsInputProfile::LegacyPythonObserved,
-                units,
-                expected,
-                budget,
-                None,
-                Some(cancelled),
-                None,
-            )
-        }
-        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-        {
-            let _ = (resources, units, expected, budget, cancelled);
             empty_diagnostics_outcome(
                 worker.sha256,
                 profile,

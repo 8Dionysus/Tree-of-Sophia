@@ -1468,35 +1468,6 @@ impl NavigationClaimEventRangeOwnerSetV1 {
     }
 }
 
-/// Prepare every exact selected Claim stream once for a multi-owner event.
-/// The input is normally the final event context's present Claim stream
-/// members; it may also contain addressed Claim streams used as edge targets.
-pub fn prepare_navigation_claim_event_owner_inventory_v1(
-    source_files: &[NavigationClaimEventSourceFileV1<'_>],
-    limits: BibliographicLimits,
-) -> Result<NavigationClaimEventOwnerInventoryV1> {
-    prepare_navigation_claim_event_owner_inventory_with_endpoints_v1(source_files, &[], limits)
-}
-
-/// Prepare the empty affected-Claim set for a complete rights/rule-only event
-/// range. This does not assert that the corpus has no Claims: it is bound to
-/// one exact sealed range and refuses all Claim mutations, dependency causes,
-/// prior owners, and Claim stream members.
-pub fn prepare_navigation_claim_event_empty_range_owner_inventory_v1(
-    coverage: &NavigationClaimEventRangeCoverageInputV1<'_>,
-    mutations: &[NavigationClaimEventRangeMutationInputV1<'_>],
-    dependency_causes: &[NavigationClaimEventRangeDependencyCauseInputV1<'_>],
-    prior_owners: &[NavigationClaimEventRangePriorOwnerV1],
-) -> Result<NavigationClaimEventOwnerInventoryV1> {
-    prepare_empty_range_owner_inventory(
-        coverage,
-        mutations,
-        dependency_causes,
-        prior_owners,
-        NavigationClaimEventRangeEmptyOwnerEvidenceV1::RightsRuleOnly,
-    )
-}
-
 /// Prepare an empty Claim set when a complete exact range has no ToS source
 /// members at all. This is appropriate for command-only, rights/rule-only, or
 /// mixed ranges whose committed members all belong to non-ToS owners. The
@@ -1704,16 +1675,6 @@ pub fn prepare_navigation_claim_event_owner_inventory_with_endpoints_v1(
     inventory.historical_claims = historical_claims;
     inventory.historical_owner_paths = historical_owner_paths;
     Ok(inventory)
-}
-
-/// Prepare an owner inventory directly from a bounded list of exact Claim
-/// stream members. `source_files` callers can use the wrapper above when they
-/// already hold the full dependency closure.
-pub fn prepare_navigation_claim_event_owner_streams_v1(
-    streams: &[NavigationClaimEventOwnerStreamInputV1<'_>],
-    max_row_bytes: usize,
-) -> Result<NavigationClaimEventOwnerInventoryV1> {
-    owner_inventory_from_streams(streams, max_row_bytes)
 }
 
 fn owner_inventory_from_streams(

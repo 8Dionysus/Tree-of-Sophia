@@ -690,16 +690,6 @@ fn count_values<'a>(values: impl Iterator<Item = &'a str>) -> BTreeMap<String, u
     counts
 }
 
-/// Find recurring normalized lexical sequences. Source text remains exact in
-/// spans and is never repaired, lemmatized, translated, or semantically merged.
-pub fn build_formulas(
-    root: &ResearchExecution,
-    contexts: &[Value],
-    surfaces: &[Value],
-) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
-    build_formulas_with_settings(root, contexts, surfaces, FormulaSettings::default())
-}
-
 /// The maintained bounded formula profile; defaults preserve the v1 recipe.
 pub fn build_formulas_with_settings(
     root: &ResearchExecution,

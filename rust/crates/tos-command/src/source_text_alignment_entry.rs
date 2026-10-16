@@ -2462,21 +2462,6 @@ pub(crate) fn selected_owner_cli_profile(
     })
 }
 
-/// Discovery of this one protected delegation never reads a representation.
-pub fn describe_owner_alignment_from_cut(
-    context_path: &Path,
-    grant_path: &Path,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<NativeAlignmentDescription> {
-    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
-    let (context, grant) =
-        selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
-    describe_owner_alignment_selected(context, grant, worker, deadline, cancelled)
-}
-
 pub(crate) fn describe_owner_alignment_selected(
     context: OwnerTextContext,
     grant: OwnerTextAlignmentSelection,
@@ -2734,23 +2719,6 @@ fn selected_inspection_record_pg(
     Ok((selected.clone(), body))
 }
 
-/// Inspect the delegated current record or one exact member of its verified
-/// immutable ancestry. Only metadata/rights bindings are resolved here.
-pub fn inspect_owner_alignment_from_cut(
-    context_path: &Path,
-    grant_path: &Path,
-    exact_version: Option<&JsonValue>,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<NativeAlignmentInspection> {
-    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
-    let (context, grant) =
-        selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
-    inspect_owner_alignment_selected(context, grant, exact_version, worker, deadline, cancelled)
-}
-
 pub(crate) fn inspect_owner_alignment_selected(
     mut context: OwnerTextContext,
     grant: OwnerTextAlignmentSelection,
@@ -2953,27 +2921,6 @@ fn inspect_owner_alignment_record(
         content_verified: false,
         grants_admission: false,
     })
-}
-
-/// Inspect an exact retained construction by command ID without resuming it.
-/// The ordinary create entry resumes a pending plan only after rebuilding
-/// the original request against current source, grants and software.
-pub fn inspect_owner_alignment_recovery_from_cut(
-    context_path: &Path,
-    grant_path: &Path,
-    target_ref: &str,
-    command_id: &str,
-    cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<NativeAlignmentRecovery> {
-    let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
-    let (context, grant) =
-        selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
-    inspect_owner_alignment_recovery_selected(
-        context, grant, target_ref, command_id, worker, deadline, cancelled,
-    )
 }
 
 pub(crate) fn inspect_owner_alignment_recovery_selected(

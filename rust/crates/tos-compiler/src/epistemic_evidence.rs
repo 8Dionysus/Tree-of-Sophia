@@ -1773,27 +1773,6 @@ pub(crate) fn check_completed_owned(
     Ok(holder)
 }
 
-/// Isolated checked projection route for `evidence_projection()` on a partial
-/// root. This binds its complete corpus/philosophy/canon/route cut without
-/// requiring the optional biblio registry or building the whole graph.
-pub fn check_isolated(
-    root: &Path,
-    staging: &Path,
-    limits: PublicCaptureLimits,
-    deadline: Instant,
-) -> Result<CompletedEvidenceProjection> {
-    let built = build_checked(
-        root,
-        staging,
-        limits,
-        deadline,
-        None,
-        Arc::new(AtomicBool::new(false)),
-    )?;
-    let source_revision = evidence_input_revision(&built)?;
-    completed_from_built(root, built, limits, deadline, source_revision, None)
-}
-
 /// Isolated checked projection for the exact Evidence Lens path selected by
 /// a Reference Core constructor. Corpus/philosophy data and the output path
 /// remain the caller's selected paths; source definition, canon, schema, and

@@ -647,67 +647,6 @@ pub fn inspect_item_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     })
 }
 
-/// The exact narrow retirement route preserves the owner's fallback to full
-/// validation. A wider edit becomes MissingRules; no caller flag can opt out.
-pub fn inspect_retirement_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
-    cut: &CorpusCutReader,
-    proposal: &OperationProposal,
-    operation_limits: OperationLimits,
-    retirement_limits: RetirementLimits,
-    cancelled: &AtomicBool,
-    schemas: &mut S,
-) -> Result<OperationFamilyReport, OperationRefusal> {
-    worker_matches(cut, schemas)?;
-    let binding = bind_operation_from_cut(cut, proposal, operation_limits, cancelled)?;
-    if !schemas.receipt_range_supported() {
-        return Err(OperationRefusal::Unsupported(
-            "operation report requires legacy schema receipts".into(),
-        ));
-    }
-    let receipt_start = schemas.receipt_count();
-    let result = inspect_retirements_from_cut(cut, retirement_limits, cancelled, schemas).map_err(
-        |error| match error {
-            RetirementRefusal::Budget => OperationRefusal::Budget,
-            RetirementRefusal::Schema(refusal) => item_error(refusal),
-            RetirementRefusal::Deadline => OperationRefusal::Deadline,
-            RetirementRefusal::Source(reason) => OperationRefusal::Source(reason),
-            RetirementRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
-        },
-    )?;
-    let state = if result.membership_transition.is_some() {
-        OperationFamilyState::MechanicsComplete
-    } else {
-        OperationFamilyState::MissingRules {
-            rule_ids: REQUIRED_GENERAL_ROWS
-                .iter()
-                .map(|rule| (*rule).into())
-                .collect(),
-        }
-    };
-    check(operation_limits, cancelled)?;
-    schemas
-        .finish(operation_limits.deadline, cancelled)
-        .map_err(item_error)?;
-    let receipt_end = schemas.receipt_count();
-    let schema_receipts = collect_schema_receipts(
-        schemas,
-        receipt_start,
-        receipt_end,
-        operation_limits.max_state_bytes,
-        operation_limits.deadline,
-        cancelled,
-    )?;
-    Ok(OperationFamilyReport {
-        binding,
-        scope: OperationFamilyScope::RetirementNarrow,
-        state,
-        worker: CutSchemaReceiptRange::execution_binding(schemas),
-        schema_receipts,
-        executed_rules: vec!["tos.val.source.retirement@1".into()],
-        item_family: None,
-    })
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct GeneralOperationLimits {
     pub operation: OperationLimits,

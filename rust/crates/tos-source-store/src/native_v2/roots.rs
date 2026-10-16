@@ -709,20 +709,6 @@ pub struct SourceRevisionRootsV2 {
 impl SourceRevisionRootsV2 {
     pub const MAX_ENCODED_BYTES: usize = ROOTSET_MAX_BYTES;
 
-    /// Return the V2 membership commitment declared by this root, or derive
-    /// the equivalent read-only value for a legacy root. The derivation is
-    /// bound to the authenticated members descriptor and exact counts; it is
-    /// never exposed as a V1 ordered-row digest.
-    pub fn source_membership_v2(&self) -> Option<SourceMembershipV2> {
-        self.membership_v2.or_else(|| {
-            Some(SourceMembershipV2::from_members_tree(
-                self.member_count,
-                self.source_bytes,
-                self.members.commitment,
-            ))
-        })
-    }
-
     pub fn retained_state_bytes(&self) -> io::Result<usize> {
         {
             let (roots, count) = revision_descriptor_refs(

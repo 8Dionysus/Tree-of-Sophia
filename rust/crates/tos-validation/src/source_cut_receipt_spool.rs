@@ -217,13 +217,6 @@ impl CutWorkerSchemaExecutorSpooling {
         self.diagnostics_v2_terminal_count
     }
 
-    /// Take the one complete authenticated non-verdict terminal that caused a
-    /// spool check refusal. The refusal blocks further checks; callers may
-    /// still explicitly finish, verify EOF, and read bounded persisted pages.
-    pub fn take_diagnostics_v2_status_refusal(&mut self) -> Option<CutSchemaDiagnostic> {
-        self.inner.take_spooled_diagnostics_v2_status_refusal()
-    }
-
     pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
         self.guard_configurable()?;
         self.inner.set_operation_budget(budget)

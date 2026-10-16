@@ -1576,64 +1576,6 @@ pub fn render_canon_source_plan(
     }
     result
 }
-/// Actual native CMD adapter injects only its pure source-copy materializer.
-/// `CutWorkerSchemaExecutor::from_cut` and all source/member/resource custody
-/// remain owned by the caller. Independent raw job receipts must already be
-/// registered; this function cannot rewrite that selected input contract.
-pub fn prepare_canon_source_inputs<F>(
-    stage: &mut KnowledgeStage<'_>,
-    cut: &CorpusCutReader,
-    expected_revision: SourceRevision,
-    expected_membership: SourceMembershipV1,
-    vocabulary: &QueryVocabulary,
-    executor: &mut impl CutSchemaExecutor,
-    limits: CanonSourceLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    mut materialize_forms: F,
-) -> Result<CanonSourceReceipt>
-where
-    F: FnMut(&Value, &Value, usize) -> Result<Vec<Value>>,
-{
-    let result = (|| {
-        let mut receipt = derive(
-            stage,
-            cut,
-            expected_revision,
-            expected_membership,
-            vocabulary,
-            executor,
-            limits,
-            deadline,
-            cancelled,
-            &mut materialize_forms,
-            0,
-        )?;
-        match_target(stage, &receipt)?;
-        let mut work = receipt.work_bytes;
-        for collection in &receipt.collections {
-            let (count, root) = visit_rows(
-                stage,
-                collection,
-                limits,
-                deadline,
-                cancelled,
-                &mut work,
-                |stage, page| ingest_canon_page(stage, collection, page, deadline, cancelled),
-            )?;
-            if count != collection.count || root != collection.root_sha256 {
-                return Err(Error::Invalid("canon rendered raw plan root/count"));
-            }
-        }
-        clear_plan(stage)?;
-        receipt.work_bytes = work;
-        Ok(receipt)
-    })();
-    if result.is_err() {
-        stage.poison();
-    }
-    result
-}
 
 #[cfg(test)]
 mod tests {

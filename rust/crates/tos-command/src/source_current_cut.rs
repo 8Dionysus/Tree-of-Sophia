@@ -1399,55 +1399,6 @@ pub fn select_current_source_cut_addressed(
     )
 }
 
-/// Addressed export with distinct current-source and retained-history budgets.
-/// The supplied member/byte limits remain current-generation ceilings; the
-/// complete carried history receives a separate exact bounded budget.
-pub fn select_current_source_cut_addressed_current_limited(
-    coordinator: &mut DurablePgCoordinator,
-    store: &SegmentStore,
-    domain: &str,
-    original: &CorpusCutReader,
-    initial_revision: SourceRevision,
-    initial_membership: SourceMembershipV1,
-    bootstrap_context: &CommandContext,
-    software: &SoftwareCaptureReader,
-    components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
-    streamed: Option<(
-        &crate::durable_adapter::PrivateGenerationWorkspace,
-        crate::durable_adapter::StreamedGenerationProfile,
-    )>,
-    isolated: &IsolatedCreationRoot,
-    parent: Option<&ManagedCurrentSourceCut>,
-    current_read_limits: ReadLimits,
-    current_cut_limits: CutReadLimits,
-    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
-    deadline: Instant,
-    cancel: &AtomicBool,
-) -> Result<ManagedCurrentSourceCut> {
-    select_current_source_cut_inner(
-        coordinator,
-        store,
-        domain,
-        original,
-        initial_revision,
-        initial_membership,
-        bootstrap_context,
-        software,
-        components,
-        worker,
-        streamed,
-        isolated,
-        parent,
-        current_read_limits,
-        current_cut_limits,
-        Some(tree_limits),
-        Some((current_read_limits, current_cut_limits)),
-        deadline,
-        cancel,
-    )
-}
-
 fn select_current_source_cut_inner(
     coordinator: &mut DurablePgCoordinator,
     store: &SegmentStore,

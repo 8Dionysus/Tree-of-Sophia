@@ -416,9 +416,6 @@ impl DedicatedSessionSqliteHeap {
     pub fn reserved_state_bytes(&self) -> usize {
         self.reserved_bytes
     }
-    pub fn effective_heap_bytes(&self) -> usize {
-        self.effective_limit as usize
-    }
     pub fn verify_current(&self) -> Result<()> {
         let current = unsafe { rusqlite::ffi::sqlite3_hard_heap_limit64(-1) };
         if current <= 0 || current > self.effective_limit {

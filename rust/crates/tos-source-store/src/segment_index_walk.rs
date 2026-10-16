@@ -55,18 +55,6 @@ impl SegmentIndexReaderV1 {
         Ok(workspace)
     }
 
-    /// Visit every leaf entry in strict byte-key order, then return the actual
-    /// row/value/page totals only after the entire tree reaches true EOF.
-    /// Visitor side effects must remain private until this method returns its
-    /// summary because a later row or closure check can still fail.
-    pub fn walk_leaves(
-        &self,
-        max_workspace_bytes: usize,
-        visitor: &mut impl FnMut(SegmentIndexLeafEntryV1<'_>) -> Result<()>,
-    ) -> Result<SegmentIndexSummaryV1> {
-        self.walk_pages_and_leaves(max_workspace_bytes, &mut |_| Ok(()), visitor)
-    }
-
     /// Visit each checked page frame once, including the root, and stream all
     /// leaf entries in strict byte-key order. Internal pages are reread when
     /// resuming after a child, but their page callback is emitted only on the

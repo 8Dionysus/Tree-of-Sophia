@@ -457,9 +457,6 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     pub fn connection(&self) -> &Connection {
         &self.connection
     }
-    pub fn connection_mut(&mut self) -> &mut Connection {
-        &mut self.connection
-    }
     /// Bytes actually consumed by the cold full-file digest. A warm fork
     /// performs no digest admission and reports zero, never repeats its base's
     /// historical cost as newly performed I/O.

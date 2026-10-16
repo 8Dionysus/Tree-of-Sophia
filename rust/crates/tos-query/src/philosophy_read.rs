@@ -1687,21 +1687,6 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
     )
 }
 
-/// Minimal health seed under the existing philosophy-views scope. It exposes
-/// only the source projection schema and first declared view identity; the
-/// selected original header stays private to this bounded reader.
-pub fn execute_selected_philosophy_health_seed<
-    'hold,
-    A: InspectCurrentAuthority<'hold> + ?Sized,
->(
-    model: &mut VerifiedKnowledgeModel<'_>,
-    bound: &BoundCmpKnowledge<'_>,
-    authority: &mut A,
-    budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
-    execute_selected_philosophy_health_seed_with_meter(model, bound, authority, budget, None)
-}
-
 pub fn execute_selected_philosophy_health_seed_metered<
     'hold,
     A: InspectCurrentAuthority<'hold> + ?Sized,

@@ -1015,41 +1015,6 @@ where
     result
 }
 
-/// Single-operation convenience delegates to the same admitted context.
-pub fn with_selected_metadata(
-    capture: &PublicCapture,
-    completed: &CompletedNativeSnapshot,
-    isolation: &dyn StageIsolation,
-    cold: ColdOpenLimits,
-    process: NativeProcessLimits,
-    working_ram_bytes: u64,
-    resource_hold: &dyn NativeColdOpenResourceHold,
-    operation: ReferenceMetadataOperation,
-    deadline: Instant,
-    cancelled: &Arc<AtomicBool>,
-    consume: impl for<'model, 'view, 'capture> FnOnce(
-        &mut VerifiedKnowledgeModel<'model>,
-        &BoundCmpKnowledge<'_>,
-        &mut ReferenceRootMetadataHold<'view, 'capture>,
-        &'view CompletedCaptureCarriers<'capture>,
-    ) -> Result<()>,
-) -> Result<()> {
-    with_selected_metadata_context(
-        capture,
-        completed,
-        isolation,
-        cold,
-        process,
-        working_ram_bytes,
-        resource_hold,
-        deadline,
-        cancelled,
-        |model, bound, context, view| {
-            context.with_operation(operation, |hold| consume(model, bound, hold, view))
-        },
-    )
-}
-
 impl tos_foundation::OwnedState for ReferenceRootMetadataHold<'_, '_> {
     fn owned_heap_bytes(&self) -> tos_foundation::Result<usize> {
         use tos_foundation::{OwnedState, checked_state_add};

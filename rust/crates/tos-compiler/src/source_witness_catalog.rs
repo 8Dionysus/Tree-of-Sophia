@@ -616,14 +616,6 @@ pub fn cold_source_catalog_output_selection(
 ) -> Result<SourceCatalogOutputSelection<'_>> {
     output_selection(receipt, l)
 }
-/// Same tuple for the candidate route's unforgeable, completed input binding.
-/// This does not substitute for the owned admission completion or publication.
-pub fn candidate_source_catalog_output_selection<I: Copy + Eq + 'static>(
-    receipt: &CandidateSourceCatalogReceipt<I>,
-    l: SourceCatalogLimits,
-) -> Result<SourceCatalogOutputSelection<'_>> {
-    output_selection(receipt, l)
-}
 
 pub(crate) trait CatalogInputBinding: Clone {
     fn selected(stage: &KnowledgeStage<'_>) -> Result<Self>;
@@ -1171,19 +1163,6 @@ impl<'a> SourceCatalogValidator<'a> {
         Ok(())
     }
 
-    pub fn candidate_schema_execution_count(&self) -> Result<usize> {
-        self.guard()?;
-        let schemas = self
-            .schemas
-            .try_borrow()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let CatalogSchemas::Candidate(s) = &*schemas else {
-            return Err(Error::Invalid("candidate catalog schemas not selected"));
-        };
-        s.execution_count()
-            .map_err(|e| Error::Source(format!("catalog execution count:{e:?}")))
-    }
-
     /// Prepare one exact cut/worker image and bounded isolated operation.
     /// Supplied bytes remain distinct from decoded
     /// worker instances and neither receipt grants source admission.
@@ -1262,67 +1241,6 @@ impl<'a> SourceCatalogValidator<'a> {
         })
     }
 
-    pub fn from_streamed_cut_with_image_spooling(
-        cut: &StreamedCorpusCutReaderV1,
-        image: &'a VerifiedWorkerImageHandle,
-        budget: ExecutorBudget,
-        limits: CutWorkerLimits,
-        operation: BatchStreamBudget,
-        workspace_dir: std::fs::File,
-        request: tos_source_store::PinnedSqliteAuxRequest,
-        spool_limits: tos_validation::source_cut::CutSchemaReceiptSpoolLimits,
-        diagnostics_limits: Option<tos_validation::source_cut::CutSchemaDiagnosticsLimits>,
-        shared_quota: Option<SharedSchemaWorkerQuota>,
-        selected_raw_limit: Option<usize>,
-        deadline: Instant,
-        cancelled: &'a std::sync::Arc<AtomicBool>,
-    ) -> Result<Self> {
-        let deadline = deadline.min(image.operation_deadline());
-        let mut core = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            image,
-            budget,
-            limits,
-            deadline,
-            cancelled.as_ref(),
-        )
-        .map_err(|e| Error::Source(format!("catalog exact streamed executor:{e:?}")))?;
-        core.set_operation_budget(operation)
-            .map_err(|e| Error::Source(format!("catalog schema operation budget:{e:?}")))?;
-        if let Some(limits) = diagnostics_limits {
-            core.enable_diagnostics_v2(limits).map_err(|e| {
-                Error::Source(format!("catalog spool diagnostics configuration:{e:?}"))
-            })?;
-        }
-        if let Some(limit) = selected_raw_limit {
-            core.set_diagnostics_v2_legacy_raw_instance_limit(limit)
-                .map_err(|e| Error::Source(format!("catalog spool selected raw limit:{e:?}")))?;
-        }
-        if let Some(quota) = shared_quota {
-            core.set_shared_schema_worker_quota(quota)
-                .map_err(|e| Error::Source(format!("catalog spool shared schema quota:{e:?}")))?;
-        }
-        let spooling = core
-            .into_spooling(
-                workspace_dir,
-                request,
-                spool_limits,
-                deadline,
-                std::sync::Arc::clone(cancelled),
-            )
-            .map_err(|e| Error::Source(format!("catalog receipt spool:{e:?}")))?;
-        Ok(Self {
-            worker: image.identity(),
-            budget,
-            cancelled: cancelled.as_ref(),
-            schemas: RefCell::new(CatalogSchemas::Spooling(spooling)),
-            worker_pin: image.identity().clone(),
-            budget_pin: budget,
-            deadline,
-            event_source_revision: None,
-        })
-    }
     fn from_cut_inner(
         cut: &CorpusCutReader,
         worker: &'a ExactWorkerIdentity,
@@ -1521,74 +1439,6 @@ impl<'a> SourceCatalogValidator<'a> {
         self.guard()
     }
 
-    /// Check an exact owner document while binding the supplied schema bytes
-    /// to the resource selected by this validator's already-pinned worker.
-    /// This lets event-local producers reuse the selected schema executor
-    /// without rebuilding a whole KnowledgeStage/catalog view.
-    pub fn check_selected_document_exact(
-        &self,
-        revision: SourceRevision,
-        path: &str,
-        schema_path: &str,
-        schema_bytes: &[u8],
-        raw: &[u8],
-    ) -> Result<()> {
-        self.verify_schema_binding(revision)?;
-        if schema_bytes.is_empty()
-            || schema_path.is_empty()
-            || self
-                .schemas
-                .try_borrow()
-                .map_err(|_| Error::Invalid("catalog executor already in use"))?
-                .selected_contract_digest(schema_path)
-                != Some(Digest256::of_bytes(schema_bytes))
-        {
-            return Err(Error::Invalid("catalog selected exact schema bytes differ"));
-        }
-        self.check_selected_document(revision, path, raw, schema_path)
-    }
-
-    /// Bounded exact execution observations, separate from source membership.
-    pub fn schema_spool_receipts_after(
-        &self,
-        after: Option<u64>,
-        max_rows: usize,
-        max_bytes: usize,
-    ) -> Result<tos_validation::source_cut::CutSchemaReceiptPage> {
-        self.guard()?;
-        let mut schemas = self
-            .schemas
-            .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        match &mut *schemas {
-            CatalogSchemas::Spooling(s) => s
-                .read_receipts_after(after, max_rows, max_bytes, self.deadline, self.cancelled)
-                .map_err(|e| Error::Source(format!("catalog receipt page:{e:?}"))),
-            CatalogSchemas::Candidate(_) | CatalogSchemas::Resident(_) => {
-                Err(Error::Invalid("catalog bounded receipt spool not selected"))
-            }
-        }
-    }
-    pub fn schema_spool_diagnostics_after(
-        &self,
-        after: Option<u64>,
-        max_rows: usize,
-        max_bytes: usize,
-    ) -> Result<tos_validation::source_cut::CutSchemaDiagnosticPage> {
-        self.guard()?;
-        let mut schemas = self
-            .schemas
-            .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        match &mut *schemas {
-            CatalogSchemas::Spooling(s) => s
-                .read_diagnostics_after(after, max_rows, max_bytes, self.deadline, self.cancelled)
-                .map_err(|e| Error::Source(format!("catalog diagnostic page:{e:?}"))),
-            CatalogSchemas::Candidate(_) | CatalogSchemas::Resident(_) => {
-                Err(Error::Invalid("catalog bounded receipt spool not selected"))
-            }
-        }
-    }
     /// Finish the same worker EOF and retain a typed execution-only summary.
     pub fn finish_spooled(
         &self,
@@ -2952,43 +2802,6 @@ fn outputs(
     Ok((manifest, file_sha, record_count, claim_count))
 }
 
-/// Complete applicable catalog family preparation. Unsupported owner adapters
-/// fail closed before a candidate receipt is issued; schema success alone is
-/// insufficient for native text, scoped structure or identity transitions.
-pub fn prepare_source_witness_catalog(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-) -> Result<SourceCatalogReceipt> {
-    prepare_catalog_receipt(stage, validator, l)
-}
-pub fn prepare_cold_source_witness_catalog(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-) -> Result<ColdSourceCatalogReceipt> {
-    prepare_catalog_receipt(stage, validator, l)
-}
-pub fn prepare_cold_source_witness_catalog_observed(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-) -> Result<ColdSourceCatalogReceipt> {
-    prepare_catalog_receipt_observed(stage, validator, l, observer)
-}
-pub fn prepare_candidate_source_witness_catalog<I: Copy + Eq + 'static>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-) -> Result<CandidateSourceCatalogReceipt<I>> {
-    prepare_candidate_source_witness_catalog_observed(
-        stage,
-        validator,
-        l,
-        &mut IgnoreCatalogProfiles,
-    )
-}
 pub fn prepare_candidate_source_witness_catalog_observed<I: Copy + Eq + 'static>(
     stage: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
@@ -2998,32 +2811,6 @@ pub fn prepare_candidate_source_witness_catalog_observed<I: Copy + Eq + 'static>
     let result = (|| {
         stage.recheck_candidate_owner::<I>()?;
         let receipt = prepare_catalog_receipt_observed(stage, validator, l, observer)?;
-        stage.recheck_candidate_owner::<I>()?;
-        Ok(receipt)
-    })();
-    if result.is_err() {
-        stage.poison();
-    }
-    result
-}
-pub fn prepare_candidate_source_witness_catalog_observed_with_selection<I: Copy + Eq + 'static>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
-    verification_workspace: Option<usize>,
-) -> Result<CandidateSourceCatalogReceipt<I>> {
-    let result = (|| {
-        stage.recheck_candidate_owner::<I>()?;
-        let receipt = prepare_catalog_receipt_observed_with_selection(
-            stage,
-            validator,
-            l,
-            observer,
-            selection,
-            verification_workspace,
-        )?;
         stage.recheck_candidate_owner::<I>()?;
         Ok(receipt)
     })();
@@ -3253,33 +3040,6 @@ fn render_catalog_receipt<B: CatalogInputBinding>(
         }
         sink.manifest(&receipt.manifest)?;
         Ok(())
-    })();
-    if result.is_err() {
-        stage.poison();
-    }
-    result
-}
-
-/// Remove only this family's private staging rows after candidate consumption.
-pub fn clear_source_witness_catalog(
-    stage: &mut KnowledgeStage<'_>,
-    receipt: &SourceCatalogReceipt,
-    l: SourceCatalogLimits,
-) -> Result<()> {
-    let result = (|| {
-        l.validate()?;
-        if summary(receipt, l)? != receipt.summary_sha256
-            || input_root::<crate::SourceBinding>(stage, l)? != receipt.input_root
-            || row_root(stage, l)? != (receipt.row_count, receipt.row_root_sha256.clone())
-        {
-            return Err(Error::Invalid("catalog cleanup exact seal mismatch"));
-        }
-        stage.with_connection(WritePhase::Finalize, |db| {
-            db.execute_batch(
-                "DROP TABLE source_catalog_rows; DROP TABLE source_catalog_reserved;",
-            )?;
-            Ok(())
-        })
     })();
     if result.is_err() {
         stage.poison();

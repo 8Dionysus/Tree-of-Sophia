@@ -1208,51 +1208,6 @@ impl LayerFamilyRules {
         }
         Ok(())
     }
-    /// Explicit anchor inputs avoid interpreting a source identity as a path.
-    pub fn inspect_anchor(
-        &mut self,
-        source: &mut impl LayerFamilySource,
-        path: &str,
-        target: &str,
-        target_digest: &str,
-        method: &str,
-        method_digest: &str,
-    ) -> Result<(), ItemRefusal> {
-        let Some((_, raw)) = self.object(source, path, None)? else {
-            return Ok(());
-        };
-        let schema_valid = self.schema(
-            source,
-            path,
-            &raw,
-            "ToS/contracts/source-anchor-v2.schema.json",
-        )?;
-        if !schema_valid {
-            self.issue(path, "schema", "source-anchor-v2")?;
-        }
-        let Some(bytes) = self.bytes(source, target, Some(target_digest))? else {
-            return Ok(());
-        };
-        let Some(config) = self.bytes(source, method, Some(method_digest))? else {
-            return Ok(());
-        };
-        let generation = source.generation();
-        let report = text_rules::inspect_source_anchor_v2_single(
-            &raw,
-            &bytes,
-            &config,
-            &text_rules::AnchorRuleContext {
-                anchor_path: path.into(),
-                target_locator: target.into(),
-                method_configuration_locator: method.into(),
-                schema_checked: schema_valid,
-                requested_profiles: vec![text_rules::ANCHOR_V2_PROFILE.into()],
-                interval_generation: generation.clone(),
-                reverse_generation: generation,
-            },
-        );
-        self.absorb_text(path, report)
-    }
     fn absorb_text(&mut self, path: &str, report: TextRuleReport) -> Result<(), ItemRefusal> {
         if report.state == TextRuleState::BudgetExceeded {
             return Err(ItemRefusal::Budget);

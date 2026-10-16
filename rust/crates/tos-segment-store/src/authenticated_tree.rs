@@ -1888,37 +1888,6 @@ impl SegmentStore {
         )
     }
 
-    /// State-limited bulk build form. `additional_live_state_bytes` covers
-    /// caller-owned state and dynamic heap retained by the row iterator; this
-    /// method accounts its cursor, frame stack, copied keys, child handles,
-    /// node construction and pack writer before allocation or growth.
-    pub fn build_authenticated_tree_v2_with_work_and_io_and_state<I>(
-        &self,
-        kind: &[u8],
-        rows: I,
-        limits: AuthenticatedTreeLimitsV1,
-        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
-        max_working_state_bytes: usize,
-        additional_live_state_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
-    where
-        I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
-    {
-        self.build_authenticated_tree_v2_with_pack_cap(
-            kind,
-            rows,
-            limits,
-            AUTHENTICATED_PACK_MAX_BYTES,
-            io_ledger,
-            Some((max_working_state_bytes, additional_live_state_bytes)),
-            None,
-            deadline,
-            cancelled,
-        )
-    }
-
     /// State-limited bulk build that also debits the caller's shared
     /// invocation work meter before each tree-node visit, node creation and
     /// immutable pack installation.
@@ -2300,69 +2269,6 @@ impl SegmentStore {
             io_ledger,
             AuthenticatedTreeWorkV1::default(),
             None,
-            None,
-            deadline,
-            cancelled,
-        )
-    }
-
-    /// State-limited COW delta form. `additional_live_state_bytes` is the
-    /// caller's already retained rootset, source cursor, and candidate state;
-    /// this operation adds its own decoded-node, ancestor, delta-row, and pack
-    /// writer peaks before loading, cloning, or growing those structures.
-    pub fn apply_authenticated_tree_delta_v2_with_work_and_io_and_state<I>(
-        &self,
-        old: &AuthenticatedTreeDescriptorV2,
-        changes: I,
-        limits: AuthenticatedTreeLimitsV1,
-        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
-        max_working_state_bytes: usize,
-        additional_live_state_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
-    where
-        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
-    {
-        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
-            old,
-            changes,
-            limits,
-            AUTHENTICATED_PACK_MAX_BYTES,
-            io_ledger,
-            AuthenticatedTreeWorkV1::default(),
-            Some((max_working_state_bytes, additional_live_state_bytes)),
-            None,
-            deadline,
-            cancelled,
-        )
-    }
-
-    /// COW form for a sequence of root-family deltas that keeps the caller's
-    /// already-spent authenticated tree work in the same finite operation cap.
-    pub fn apply_authenticated_tree_delta_v2_with_work_and_io_and_state_cumulative<I>(
-        &self,
-        old: &AuthenticatedTreeDescriptorV2,
-        changes: I,
-        limits: AuthenticatedTreeLimitsV1,
-        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
-        initial_work: AuthenticatedTreeWorkV1,
-        max_working_state_bytes: usize,
-        additional_live_state_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
-    where
-        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
-    {
-        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
-            old,
-            changes,
-            limits,
-            AUTHENTICATED_PACK_MAX_BYTES,
-            io_ledger,
-            initial_work,
-            Some((max_working_state_bytes, additional_live_state_bytes)),
             None,
             deadline,
             cancelled,

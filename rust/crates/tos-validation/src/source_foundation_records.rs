@@ -5008,65 +5008,6 @@ fn bounded_native_value(
     .map(|(value, _)| value)
 }
 
-/// Check the maintained current record/Item district over one caller-captured
-/// immutable cut. `expected_revision` and `expected_membership` must come from
-/// the independent source-capture owner; they are checked against the record
-/// family's complete EOF result before Item traversal begins.
-///
-/// The record family uses the bounded `inspect_records_from_cut` route, which
-/// reconstructs record identity from exact current bytes. The Item family then
-/// uses that report's current record map for typed Item/Edition lookups and
-/// runs the existing `ItemRules` mechanics over the same current cut.
-///
-/// This function is current-only. It refuses cuts with retained base revisions
-/// because the maintained Python foundation route checks the selected current
-/// publication, not historical record profiles. It does not assert that this
-/// district covers every normative source profile or companion.
-/// `require_local_payloads` is an explicit caller posture: metadata-only mode
-/// may report unavailable payloads, while local mode requires custody checks.
-/// Physical payload, Git tracking and ignore evidence comes from the explicit
-/// host-owned `SourcePhysicalFacts` input; the authenticated source cut does
-/// not stand in for any of those observations.
-pub fn inspect_source_foundation_records_from_cut(
-    cut: &CorpusCutReader,
-    expected_revision: SourceRevision,
-    expected_membership: SourceMembershipV1,
-    limits: SourceFoundationRecordsLimits,
-    require_local_payloads: bool,
-    cancelled: &AtomicBool,
-    record_executor: &mut BiblioRecordExecutor,
-    item_schemas: &mut CutWorkerSchemaExecutor,
-    physical_facts: &SourcePhysicalFacts,
-    payloads: &mut impl CutPayloadReader,
-) -> Result<SourceFoundationRecordsReport, ItemRefusal> {
-    if item_schemas.source_revision() != expected_revision {
-        return Err(ItemRefusal::Source(
-            "source-foundation Item schema worker belongs to another cut".into(),
-        ));
-    }
-    let schema_cost = schema_resource_cost(cut, item_schemas)?;
-    let core = inspect_source_foundation_records_with_mode(
-        SourceFoundationCurrentInput::Cut {
-            cut,
-            revision: expected_revision,
-        },
-        Some(expected_revision),
-        expected_membership,
-        limits,
-        require_local_payloads,
-        cancelled,
-        record_executor,
-        item_schemas,
-        physical_facts,
-        payloads,
-        false,
-        schema_cost,
-        None,
-        None,
-    )?;
-    resident_source_foundation_report(core, expected_revision)
-}
-
 /// Additive rolling Records→Item route. It preserves the fixed entry above,
 /// but assigns Item the operation capacity left after the completed Records
 /// pass's actual read, issue and logical-state observations.
@@ -5108,61 +5049,6 @@ pub fn inspect_source_foundation_records_from_cut_rolling(
         None,
     )?;
     resident_source_foundation_report(core, expected_revision)
-}
-
-/// Additive rolling entry that persists Records and Item owner facts through a
-/// caller-owned bounded store while the existing source kernel discovers
-/// them. The returned index borrows that same store; it cannot outlive the
-/// candidate scope that owns it.
-pub fn inspect_source_foundation_records_from_cut_rolling_stored<'a>(
-    cut: &CorpusCutReader,
-    expected_revision: SourceRevision,
-    expected_membership: SourceMembershipV1,
-    limits: SourceFoundationRecordsLimits,
-    require_local_payloads: bool,
-    cancelled: &AtomicBool,
-    record_executor: &mut BiblioRecordExecutor,
-    item_schemas: &mut CutWorkerSchemaExecutor,
-    physical_facts: &SourcePhysicalFacts,
-    payloads: &mut impl CutPayloadReader,
-    store: &'a mut dyn SourceFoundationRecordsStore,
-) -> Result<SourceFoundationRecordsStreamedReport<'a, SourceRevision>, ItemRefusal> {
-    if item_schemas.source_revision() != expected_revision {
-        return Err(ItemRefusal::Source(
-            "source-foundation Item schema worker belongs to another cut".into(),
-        ));
-    }
-    let schema_cost = schema_resource_cost(cut, item_schemas)?;
-    let report = inspect_source_foundation_records_with_mode(
-        SourceFoundationCurrentInput::Cut {
-            cut,
-            revision: expected_revision,
-        },
-        Some(expected_revision),
-        expected_membership,
-        limits,
-        require_local_payloads,
-        cancelled,
-        record_executor,
-        item_schemas,
-        physical_facts,
-        payloads,
-        true,
-        schema_cost,
-        None,
-        Some(&mut *store),
-    )?;
-    let record_usage = report.record_usage.ok_or(crate::item_budget_origin!())?;
-    let items = streamed_item_summary(&report.items);
-    Ok(SourceFoundationRecordsStreamedReport::new_completed(
-        expected_revision,
-        report.source_membership,
-        record_usage,
-        items,
-        report.cost,
-        None,
-        store,
-    ))
 }
 
 pub(crate) fn source_refusal_origin(error: ItemRefusal, stage: &'static str) -> ItemRefusal {

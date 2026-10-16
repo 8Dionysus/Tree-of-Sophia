@@ -328,16 +328,6 @@ impl<'a> PhilosophyNormalizer<'a> {
         }
     }
 
-    pub fn relation_endpoints(
-        &self,
-        stage: &mut KnowledgeStage<'_>,
-        prepared: &PhilosophyPrepareReceipt,
-        native: &str,
-    ) -> Result<(String, String)> {
-        let raw = self.raw(stage, prepared, native, true)?;
-        let source = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
-        endpoints(source.value(), &self.source_graph)
-    }
     pub fn normalize_relation(
         &self,
         stage: &mut KnowledgeStage<'_>,

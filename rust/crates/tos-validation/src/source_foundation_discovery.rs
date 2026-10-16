@@ -7521,57 +7521,6 @@ pub fn inspect<S: LayerFamilySource + ?Sized>(
     )
 }
 
-/// Inspect authored metadata plus the bounded physical/Git facts captured by
-/// the selected host adapter. Payload bytes are never reopened here.
-pub fn inspect_with_physical_facts<S: LayerFamilySource + ?Sized>(
-    source: &mut S,
-    current_paths: &[String],
-    prior_events: &BTreeMap<String, Value>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-) -> Result<Report, ItemRefusal> {
-    inspect_internal(
-        source,
-        current_paths,
-        prior_events,
-        limits,
-        Some(physical),
-        false,
-        None,
-        None,
-        None,
-        None,
-    )
-}
-
-/// Inspect discovery and artifact source under the same exact corpus cut used
-/// by the native-history kernel and Closure. CMD supplies the complete current
-/// member list and the genuine measured observations; this function never
-/// replays selected history itself.
-pub fn inspect_with_cut<S: LayerFamilySource + ?Sized>(
-    source: &mut S,
-    current_paths: &[String],
-    prior_events: &BTreeMap<String, Value>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    cut: &CorpusCutReader,
-    native_histories: &BTreeMap<String, NativeRecordHistoryReadObservation>,
-    require_local_payloads: bool,
-) -> Result<Report, ItemRefusal> {
-    let artifact_replays = ArtifactCorrectionReplayMap::new();
-    inspect_with_cut_and_artifact_replays(
-        source,
-        current_paths,
-        prior_events,
-        limits,
-        physical,
-        cut,
-        native_histories,
-        &artifact_replays,
-        require_local_payloads,
-    )
-}
-
 /// Inspect the exact source cut while consuming successful-only Artifact
 /// correction replay observations from CMD. The borrowed proof map is an
 /// evidence input; current receipts, native history and cut identity are

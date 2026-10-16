@@ -198,13 +198,6 @@ impl PinnedSqliteConnection {
             .and_then(|n| n.checked_add(std::mem::size_of::<PinnedSqliteDerivedWriteGuard>()))
             .ok_or_else(|| invalid("budgeted derived Rust custody overflow"))
     }
-    /// Continue one owner-sanctioned preparation of an already-populated,
-    /// disposable private capture. FD possession is mechanical custody;
-    /// source/family authority, finite ceilings and permanent failure stay
-    /// with PublicCapture. This is not the fresh unnamed derived contract.
-    pub fn open_private_capture_for_family_preparation(file: &File) -> Result<Self> {
-        Self::open_private_capture_for_family_preparation_with_setup(file, |_| {})
-    }
 
     /// Install the owner's existing progress hook before any settings SQL.
     pub fn open_private_capture_for_family_preparation_with_setup(

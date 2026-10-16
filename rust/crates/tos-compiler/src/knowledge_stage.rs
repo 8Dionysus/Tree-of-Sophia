@@ -1553,47 +1553,6 @@ impl<'a> KnowledgeStage<'a> {
         Ok(stage)
     }
 
-    pub fn create_cold(
-        candidate: &Path,
-        limits: StageLimits,
-        receipt: ColdExactInputReceipt,
-        owner: &'a dyn ColdStageOwner,
-        isolation: &'a dyn StageIsolation,
-    ) -> Result<Self> {
-        Self::create_inner(
-            candidate,
-            limits,
-            StageStorageProfile::Persistent,
-            StageInputReceipt::Cold(receipt),
-            StageInputOwner::Cold(owner),
-            Some(isolation),
-            None,
-            None,
-            None,
-        )
-    }
-
-    /// Bind the existing connection-wide VM counter and progress callback to
-    /// the caller's absolute operation deadline. Cold input remains a cold
-    /// receipt; no public-build or projection authority is selected here.
-    pub fn create_cold_until(
-        candidate: &Path,
-        limits: StageLimits,
-        receipt: ColdExactInputReceipt,
-        owner: &'a dyn ColdStageOwner,
-        isolation: &'a dyn StageIsolation,
-        deadline: Instant,
-    ) -> Result<Self> {
-        Self::create_cold_until_with_input_cap(
-            candidate,
-            limits,
-            receipt,
-            owner,
-            isolation,
-            deadline,
-            limits.sqlite.max_row_bytes,
-        )
-    }
     /// Select an authenticated cold raw-input ceiling independently of the
     /// unchanged normalized/projection row ceiling. All cumulative counters,
     /// isolation and the original absolute deadline remain shared.

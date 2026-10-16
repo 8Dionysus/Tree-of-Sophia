@@ -705,10 +705,6 @@ impl LegacyStore {
         self.verify_currentness()?;
         Ok(count)
     }
-    /// Preserve Reference corpus_header's ordered graph_views selection.
-    pub fn corpus_header_with_graph_views(&mut self) -> Result<Value> {
-        self.corpus_header_with_graph_views_bounded(usize::MAX)
-    }
     /// Same ordered collector with the caller's original live-state ceiling.
     pub fn corpus_header_with_graph_views_bounded(
         &mut self,
@@ -2523,17 +2519,6 @@ impl OwnedSqlWindow {
 }
 
 impl LegacyStore {
-    pub fn metadata_with_owned_budget(
-        &mut self,
-        tool: &str,
-        budget: &OriginalStoreBudget<'_>,
-        usage: &mut StoreUsage,
-        call_deadline: Instant,
-        operation: Arc<dyn AbortProbe>,
-    ) -> Result<Value> {
-        self.metadata_result_with_owned_budget(tool, budget, usage, call_deadline, operation)
-            .map(|(value, _)| value)
-    }
     /// Encode the complete authentic metadata result under the same owner. The
     /// caller holds this store and packet through final Reply/send fences.
     pub fn metadata_packet_with_owned_budget(

@@ -204,41 +204,6 @@ pub struct Material {
     pub source_anchors: BTreeMap<String, Value>,
     layers: BTreeMap<usize, Layer>,
 }
-/// Exact native structural read closure, derived from the selected plan/item.
-/// This lists physical inputs, never a subtree or inferred historical source cut.
-pub fn structural_read_dependencies(repo: &ResearchExecution, plan: &Value) -> Result<Vec<String>> {
-    repo.check()?;
-    let source = &plan["source_item"];
-    let manifest_ref = s(&source["manifest_ref"])?;
-    let manifest = load(repo, manifest_ref)?;
-    let entries = arr(&manifest["payload_files"])?;
-    let selected: Vec<_> = entries
-        .iter()
-        .filter(|r| r["file_id"] == source["file_ref"])
-        .collect();
-    ensure(selected.len() == 1, "structural PDF manifest closure drift")?;
-    let pdf = Path::new(manifest_ref)
-        .parent()
-        .ok_or("structural manifest parent missing")?
-        .join(relative(s(&selected[0]["relative_path"])?)?)
-        .to_str()
-        .ok_or("structural PDF reference UTF8")?
-        .to_owned();
-    Ok(vec![
-        at(
-            "technical-markup/antonovsky-1911-pdf-layout-v1",
-            "plan.v1.json",
-        ),
-        manifest_ref.into(),
-        s(&source["resource_inventory_ref"])?.into(),
-        at(
-            "technical-markup/antonovsky-1911-pdf-layout-v1",
-            "citation-spine.v1.jsonl",
-        ),
-        at(RU, "structure-census.v2.jsonl"),
-        pdf,
-    ])
-}
 /// Reconstruct exact private paragraph bytes using the native structural compiler.
 pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
     let primary = lines(repo, &output("primary-proposals-input.v1.jsonl"))?;

@@ -588,26 +588,6 @@ impl SourceRecordSelection {
         }
         checkpoint(deadline, cancelled)
     }
-    pub fn verify_slot<'a>(
-        &self,
-        slot: &SelectedSourceSlot,
-        raw: &'a [u8],
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<&'a [u8], ItemRefusal> {
-        checkpoint(deadline, cancelled)?;
-        if self.slot(&slot.source.source_ref, slot.source.source_line) != Some(slot) {
-            return Err(refuse());
-        }
-        self.verify_metadata_member(&slot.source.source_ref, raw)?;
-        let peak = slot.verification_state_upper_bound()?;
-        if peak > self.limits.max_verify_state_bytes {
-            return Err(crate::item_budget_origin!());
-        }
-        let row = slot.verify_member(raw, self.limits.max_row_bytes, deadline, cancelled)?;
-        checkpoint(deadline, cancelled)?;
-        Ok(row)
-    }
 }
 impl SelectedSourceSlot {
     pub fn verification_state_upper_bound(&self) -> Result<usize, ItemRefusal> {

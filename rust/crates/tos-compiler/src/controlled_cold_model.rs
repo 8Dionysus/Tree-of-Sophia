@@ -291,30 +291,6 @@ pub struct ControlledLegacySearchScan {
 }
 
 impl ControlledKnowledgeModel<'_, '_, '_> {
-    /// Lend the next exact retained Original row under the existing capture,
-    /// receipt, State, Work and VM owners. The callback must retain any derived
-    /// allocation in the caller's same-state ControlledQueryHeap.
-    pub fn with_controlled_original_row(
-        &mut self,
-        collection: ControlledOriginalCollection,
-        after_ordinal: i64,
-        max_row_bytes: usize,
-        max_decoded_bytes: u64,
-        max_vm_steps: u64,
-        json: JsonLimits,
-        consume: impl FnOnce(i64, Digest256, &[u8], &JsonValue) -> Result<()>,
-    ) -> Result<ControlledOriginalRowRead> {
-        self.with_controlled_original_row_receipt(
-            collection,
-            after_ordinal,
-            max_row_bytes,
-            max_decoded_bytes,
-            max_vm_steps,
-            json,
-            |_, ordinal, digest, raw, value| consume(ordinal, digest, raw, value),
-        )
-    }
-
     pub fn with_controlled_original_row_receipt(
         &mut self,
         collection: ControlledOriginalCollection,

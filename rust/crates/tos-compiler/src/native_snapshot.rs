@@ -3617,37 +3617,6 @@ pub struct NativeSnapshotCreationUsage {
     pub json_visits: usize,
 }
 
-pub fn build_native_knowledge_snapshot_from_capture_with_owned_budget(
-    capture: &PublicCapture,
-    candidate: &Path,
-    declaration_raw: &[u8],
-    isolation: &dyn StageIsolation,
-    limits: NativeSnapshotLimits,
-    whole_limits: NativeWholeSnapshotLimits,
-    include_catalog_inputs: bool,
-    retain_state: bool,
-    owner_deadline: Instant,
-    cancelled: &AtomicBool,
-    budget: NativeSnapshotOwnedBudget<'_>,
-    usage: &mut NativeSnapshotCreationUsage,
-) -> Result<(CompletedNativeSnapshot, NativeKnowledgeSnapshot)> {
-    build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout(
-        capture,
-        candidate,
-        declaration_raw,
-        isolation,
-        limits,
-        whole_limits,
-        include_catalog_inputs,
-        retain_state,
-        owner_deadline,
-        cancelled,
-        budget,
-        usage,
-        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
-    )
-}
-
 /// Physical layout is explicit owner policy for this SAME controlled full
 /// producer. It does not admit source, renew any counter, or bypass a reader.
 pub fn build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout(
@@ -4186,37 +4155,6 @@ where
     // either Result outcome. The original Driver settles this aggregate once.
     usage.json_visits = state.json_visits();
     outcome
-}
-
-pub fn check_completed_evidence_projection_with_owned_budget(
-    capture: &PublicCapture,
-    staging: &Path,
-    limits: PublicCaptureLimits,
-    owner_deadline: Instant,
-    budget: NativeSnapshotOwnedBudget<'_>,
-    usage: &mut NativeSnapshotCreationUsage,
-) -> Result<crate::epistemic_evidence::CompletedEvidenceProjection> {
-    *usage = NativeSnapshotCreationUsage::default();
-    if owner_deadline != capture.deadline() {
-        return Err(Error::Invalid("owned Evidence admission lifetime changed"));
-    }
-    let state = capture.model_creation_state(
-        budget.remaining_after_retained,
-        budget.original_sqlite_heap,
-        budget.max_creation_json_visits,
-        budget.creation_deadline,
-    )?;
-    let result = capture.with_owned_operation_deadline(budget.creation_deadline, || {
-        crate::epistemic_evidence::check_completed_owned(
-            capture,
-            staging,
-            limits,
-            owner_deadline,
-            &state,
-        )
-    });
-    usage.json_visits = state.json_visits();
-    result
 }
 
 /// Apply one exact owner-supplied record replacement to a producer-issued

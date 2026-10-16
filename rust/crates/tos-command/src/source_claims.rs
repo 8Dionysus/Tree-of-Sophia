@@ -1253,42 +1253,6 @@ pub fn run_claim_command(
     )
 }
 
-/// Authenticate the complete current member universe before inventory-based
-/// absence, form allocation or maintained dependency fingerprint decisions.
-/// Named Python sources are frozen rule inputs, never a runtime identity.
-pub fn run_claim_command_from_cut(
-    ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    executor: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<PreparedCommand> {
-    if ctx
-        .files
-        .iter()
-        .any(|input| !input.path.as_str().starts_with("ToS/"))
-    {
-        return Err(SourceCommandError::Unsupported(
-            "Claim software rule inputs require separately selected software capture",
-        ));
-    }
-    let files = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
-    let complete = claim_context_with_files(ctx, cut.current().revision(), files);
-    complete.check()?;
-    run_claim_command_inner(
-        &complete,
-        Some(ctx),
-        Some(cut),
-        None,
-        None,
-        None,
-        false,
-        executor,
-        deadline,
-        cancelled,
-    )
-}
-
 /// Software rule-contract bytes are custody-checked through their separate
 /// selected component capture; they never become authored source members.
 pub fn run_claim_command_from_captures(

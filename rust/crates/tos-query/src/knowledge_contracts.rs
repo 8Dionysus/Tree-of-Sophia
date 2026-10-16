@@ -189,31 +189,6 @@ pub fn build_knowledge_contract_bundle(
     })?;
     Ok(packet)
 }
-/// Bind the pure bundle to a cold-verified native selection. This is deliberately
-/// not a Disclosable packet: callers still need exact registry source authority.
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub fn build_selected_knowledge_contract_bundle(
-    model: &tos_compiler::VerifiedKnowledgeModel<'_>,
-    bound: &crate::BoundCmpKnowledge<'_>,
-    registry_bytes: [&[u8]; 2],
-    budget: KnowledgeContractBudget,
-) -> Result<JsonValue, SearchV2Error> {
-    bound.check_model(model)?;
-    let selected = model.selection();
-    let entity = Digest256::from_hex(&selected.entity_registry_sha256).map_err(|_| {
-        err(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
-            "selected entity registry digest invalid",
-        )
-    })?;
-    let relation = Digest256::from_hex(&selected.relation_registry_sha256).map_err(|_| {
-        err(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
-            "selected relation registry digest invalid",
-        )
-    })?;
-    build_knowledge_contract_bundle(registry_bytes, [entity, relation], budget)
-}
 
 pub const KNOWLEDGE_CONTRACTS_OPERATION: &str = "tos.knowledge.contracts";
 pub const KNOWLEDGE_CONTRACTS_INTENDED_USE: &str = "read_only_public_knowledge_contracts_v1";

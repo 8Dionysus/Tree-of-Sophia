@@ -257,20 +257,6 @@ impl V2ReadSession {
         Self::open_store(store, limits, original_io, None, deadline, cancel)
     }
 
-    /// Open from an exact held root while checking its normalized name before
-    /// and after the reader is constructed. Physical reads stay rooted at the
-    /// supplied descriptor even if an unrelated path is later replaced.
-    pub fn open_at_named(
-        path: &Path,
-        held_root: &File,
-        limits: V2PointReadLimits,
-        original_io: PinnedSqliteIoBudget,
-        deadline: Instant,
-        cancel: Arc<AtomicBool>,
-    ) -> io::Result<Self> {
-        Self::open_at_named_with_io(path, held_root, limits, original_io, deadline, cancel)
-    }
-
     pub fn open_at_named_with_io(
         path: &Path,
         held_root: &File,
@@ -625,14 +611,6 @@ impl V2ReadSession {
         self.revision_roots(revision)
     }
 
-    pub fn roots_for_revision_with_caller_state(
-        &mut self,
-        revision: SourceRevision,
-        caller_retained_state_bytes: usize,
-    ) -> io::Result<Option<SourceRevisionRootsV2>> {
-        self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)
-    }
-
     pub fn next_history_roots_after(
         &mut self,
         after_revision: Option<&[u8]>,
@@ -960,16 +938,6 @@ impl V2ReadSession {
         result
     }
 
-    /// Point-read only the authenticated 44-byte member tuple. This does not
-    /// read or verify the referenced payload object.
-    pub fn member_tuple(
-        &mut self,
-        revision: SourceRevision,
-        path: &RelativePath,
-    ) -> io::Result<Option<V2MemberTupleObservation>> {
-        self.member_tuple_with_caller_state(revision, path, 0)
-    }
-
     pub fn member_tuple_with_caller_state(
         &mut self,
         revision: SourceRevision,
@@ -1270,27 +1238,6 @@ impl V2ReadSession {
                 Err(error)
             }
         }
-    }
-
-    pub fn object_location_by_digest(
-        &mut self,
-        revision: SourceRevision,
-        digest: Digest256,
-        caller_retained_state_bytes: usize,
-    ) -> io::Result<Option<PackedObjectLocationV2>> {
-        let Some(roots) =
-            self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
-        else {
-            return Ok(None);
-        };
-        let Some(descriptor) = roots.objects.as_ref() else {
-            return Ok(None);
-        };
-        let roots_state = roots.retained_state_bytes()?;
-        let retained = caller_retained_state_bytes
-            .checked_add(roots_state)
-            .ok_or_else(|| invalid("V2 object lookup retained state overflow"))?;
-        self.lookup_packed_object_location(descriptor, digest, retained)
     }
 
     pub fn next_object_extent_after(

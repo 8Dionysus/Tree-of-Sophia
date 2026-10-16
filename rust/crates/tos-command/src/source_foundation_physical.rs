@@ -1337,10 +1337,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         }
     }
 
-    pub fn paths_observed(&self) -> usize {
-        self.repo_paths.len() + self.artifact_requested_paths.len()
-    }
-
     /// Recheck physical/Git facts for a captured-source snapshot. Candidate
     /// snapshots must use `recheck_candidate` so their original source fence
     /// is also verified. The caller separately rechecks captured bytes or the

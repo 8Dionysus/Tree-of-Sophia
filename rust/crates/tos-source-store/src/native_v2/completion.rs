@@ -72,29 +72,4 @@ impl NativeAdmissionCompletionProofV1 {
     pub fn dependency_count(self) -> u64 {
         self.dependency_count
     }
-
-    /// Copy the exact payload fields needed by the V2 rootset codec. Keeping
-    /// the tuple conversion here lets the sibling segment codec serialize the
-    /// proof without reaching through its private fields.
-    pub fn authenticated_root_fields(
-        self,
-    ) -> (
-        Digest256,
-        Option<SourceMembershipV1>,
-        u64,
-        CutPreparedSchemaExecutionBinding,
-        u64,
-        u64,
-        u64,
-    ) {
-        (
-            self.validator_sha256,
-            self.membership_v1,
-            self.source_bytes,
-            self.prepared_schema,
-            self.identity_count,
-            self.dependency_source_count,
-            self.dependency_count,
-        )
-    }
 }

@@ -617,9 +617,6 @@ impl ByteDurabilityReceipt {
     pub fn receipt_id(&self) -> Digest256 {
         self.receipt_id
     }
-    pub fn staging_id(&self) -> [u8; 16] {
-        self.pin_id
-    }
     pub fn durability_class(&self) -> DurabilityClass {
         DurabilityClass::LinuxFileAndDirectorySyncReopenSha256V1
     }
@@ -1619,17 +1616,6 @@ impl SegmentStore {
         })
     }
 
-    /// Allocated blocks in the immutable store's fixed metadata file. Callers
-    /// include this only when they created a fresh V2 physical root.
-    pub fn store_metadata_allocated_bytes(&self) -> Result<u64> {
-        let file = open_regular(&self.inner._root, "store.meta")?;
-        file.metadata()
-            .map_err(|error| SegmentError::io("cannot stat segment store metadata", error))?
-            .blocks()
-            .checked_mul(512)
-            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "store allocation overflow"))
-    }
-
     /// Read exact bounded bytes from the existing content-addressed generation
     /// directory. The enclosing format is verified by the tree/object owner.
     pub(crate) fn read_authenticated_blob(
@@ -1897,52 +1883,6 @@ impl SegmentStore {
             Some((attempt_fence, segment_slot)),
             frames,
             None,
-        )
-    }
-
-    /// Ledger-bound fenced segment seal for packed source objects. The same
-    /// original IO ledger, deadline, cancellation flag and caller work debit
-    /// cover intent, pin, frame source, staged writes, full readback and pin
-    /// transition. Partial counters remain in `work_out` when this returns an
-    /// error; on failure all persistent allocation reservation remains held.
-    #[allow(clippy::too_many_arguments)]
-    pub fn seal_segment_fenced_accounted(
-        &self,
-        prepare_id: &[u8],
-        attempt_fence: u64,
-        segment_slot: u32,
-        frames: &mut [FrameInput<'_>],
-        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
-        operation_limits: SegmentOperationLimitsV1,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        work: &mut dyn FnMut() -> bool,
-        work_out: &mut SegmentOperationWorkV1,
-    ) -> Result<Vec<ByteDurabilityReceipt>> {
-        if attempt_fence == 0 || segment_slot != 0 {
-            return Err(SegmentError::new(
-                if attempt_fence == 0 {
-                    Code::InvalidReceipt
-                } else {
-                    Code::UnsupportedOversized
-                },
-                if attempt_fence == 0 {
-                    "invalid attempt fence"
-                } else {
-                    "unsupported multi-segment attempt"
-                },
-            ));
-        }
-        self.seal_segment_accounted_inner(
-            prepare_id,
-            Some((attempt_fence, segment_slot)),
-            frames,
-            io,
-            operation_limits,
-            deadline,
-            cancelled,
-            work,
-            work_out,
         )
     }
 

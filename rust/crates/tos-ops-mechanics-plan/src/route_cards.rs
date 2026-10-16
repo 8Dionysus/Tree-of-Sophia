@@ -507,14 +507,6 @@ impl RouteSources {
         self.check()?;
         Ok(observed)
     }
-    /// Observe a selected symlink's bytes through its O_PATH nofollow inode,
-    /// never through the target. The bounded result is internal custody data;
-    /// consumers must not disclose an absolute host target in diagnostics.
-    #[cfg(target_os = "linux")]
-    pub fn bounded_link_target(&mut self, value: &str) -> io::Result<Option<String>> {
-        self.link_target_observation(value)
-            .map(|observation| observation.map(|(target, _)| target))
-    }
     #[cfg(target_os = "linux")]
     fn link_target_observation(
         &mut self,
@@ -1849,13 +1841,6 @@ pub fn load_inventory(root: &Path) -> io::Result<Value> {
 pub fn discover_route_cards(root: &Path, inventory: &Value) -> io::Result<Vec<String>> {
     RouteSources::new(root)?
         .discover_cards_with_limits(inventory, MAX_SELECTED_PATH_DISCOVERY_ENTRIES)
-}
-pub fn target_inheritance_stack(
-    root: &Path,
-    target: &str,
-    discovered: &BTreeSet<String>,
-) -> io::Result<Vec<String>> {
-    RouteSources::new(root)?.target_stack(target, discovered)
 }
 fn stack(
     target: &str,

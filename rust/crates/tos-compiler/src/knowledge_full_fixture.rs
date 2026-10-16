@@ -1093,14 +1093,6 @@ fn build_native_philosophy_fixture(
         None,
     )
 }
-/// Exact ordered phi owner input through the existing native assembler and cold opener.
-pub fn build_native_fixture_with_philosophy_inputs(
-    header: &[u8],
-    nodes: &[&[u8]],
-    edges: &[&[u8]],
-) -> FullKnowledgeFixture {
-    build_native_fixture_inner(false, false, None, Some((header, nodes, edges)), None, None)
-}
 /// Reuse a real existing software capture of unchanged public corpus inputs.
 /// Abbreviated compatibility rows are never passed off as native canon inputs.
 pub fn build_native_fixture_with_captured_corpus(

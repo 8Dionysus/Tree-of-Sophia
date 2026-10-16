@@ -1167,22 +1167,3 @@ fn bounded_manifest(manifest: &Value) -> io::Result<()> {
     }
     Ok(())
 }
-/// Independently callable parity check; a new invocation observes new source bytes.
-pub fn currentness_parity_issues(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>> {
-    let mut sources = RouteSources::new(root)?;
-    if !sources.is_file(CURRENTNESS_PATH)? {
-        return Ok(vec![(
-            CURRENTNESS_PATH.into(),
-            "generated currentness is missing".into(),
-        )]);
-    }
-    let current = agent_surface::build_currentness_with_sources(root, &mut sources, cancel)?;
-    let rendered = route_cards::render_currentness(&current)?;
-    if sources.bytes(CURRENTNESS_PATH)? != rendered.as_bytes() {
-        return Ok(vec![(
-            CURRENTNESS_PATH.into(),
-            "generated currentness is stale".into(),
-        )]);
-    }
-    Ok(Vec::new())
-}

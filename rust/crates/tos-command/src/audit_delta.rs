@@ -520,18 +520,6 @@ impl VerifiedAuditInterval {
         &self.expected_final_commitments
     }
 
-    /// Fetch final row commitments in the same caller-owned snapshot and
-    /// require them to equal the journal replay result. Missing rows are
-    /// represented by `None` and are valid only when the journal ends deleted.
-    pub fn verify_final_rows(
-        &self,
-        tx: &mut Transaction<'_>,
-        domain: &str,
-        limits: AuditDeltaLimits,
-    ) -> Result<(), AuditDeltaError> {
-        self.verify_final_rows_controlled(tx, domain, limits, None)
-    }
-
     pub fn verify_final_rows_controlled(
         &self,
         tx: &mut Transaction<'_>,
@@ -541,16 +529,6 @@ impl VerifiedAuditInterval {
     ) -> Result<(), AuditDeltaError> {
         let mut work = AuditDeltaWork::default();
         self.verify_final_rows_controlled_with_work(tx, domain, limits, control, &mut work)
-    }
-
-    pub fn verify_final_rows_with_work(
-        &self,
-        tx: &mut Transaction<'_>,
-        domain: &str,
-        limits: AuditDeltaLimits,
-        work: &mut AuditDeltaWork,
-    ) -> Result<(), AuditDeltaError> {
-        self.verify_final_rows_controlled_with_work(tx, domain, limits, None, work)
     }
 
     pub fn verify_final_rows_controlled_with_work(

@@ -240,32 +240,6 @@ pub fn project_source_navigation_from_cut(
     )
 }
 
-/// Opt-in V2 catalog provenance. This cold whole projection remains global;
-/// warm addressed model construction is a separate explicit producer.
-pub fn project_source_navigation_from_cut_with_catalog_epoch(
-    stage: &mut KnowledgeStage<'_>,
-    receipt: &SourceCatalogReceipt,
-    source: &BibliographicSourceCut<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    entities: &Value,
-    forms: &mut dyn BibliographicForms,
-    l: BibliographicLimits,
-    epoch: &crate::VersionsCatalogEpochV2,
-    expected_epoch: tos_foundation::Digest256,
-    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
-) -> Result<NavigationSourceProjection> {
-    project_source_navigation_with_epoch(
-        stage,
-        receipt,
-        source,
-        validator,
-        entities,
-        forms,
-        l,
-        Some((epoch, expected_epoch, tree_limits)),
-    )
-}
-
 fn project_source_navigation_with_epoch(
     stage: &mut KnowledgeStage<'_>,
     receipt: &SourceCatalogReceipt,

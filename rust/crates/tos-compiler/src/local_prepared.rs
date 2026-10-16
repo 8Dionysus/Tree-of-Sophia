@@ -957,16 +957,6 @@ pub fn publish_prepared_rows_until<R: PreparedRows>(
         None,
     )
 }
-pub fn publish_prepared_rows_with_search<R: PreparedRows>(
-    path: &Path,
-    header: &JsonValue,
-    catalog: &JsonValue,
-    rows: &mut R,
-    limits: PublicationLimits,
-    search: BootstrapSearch,
-) -> Result<JsonValue> {
-    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, search, None, None)
-}
 pub fn publish_prepared_rows_with_search_until<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,

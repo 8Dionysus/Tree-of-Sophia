@@ -644,18 +644,6 @@ impl<'a> ClaimNormalizer<'a> {
         }
         Ok(seen.into_iter().collect())
     }
-    /// Per-row primitive. `predicate` belongs to the prepared object-to-Claim
-    /// association; dossier admission is supplied by the complete navigation pass.
-    pub fn normalize_base_node(
-        &self,
-        raw: &SeekRow,
-        prepared: &ClaimPrepareReceipt,
-        predicate: Option<&str>,
-        dossier: Option<&str>,
-    ) -> Result<Value> {
-        self.verify(raw, prepared)?;
-        self.normalize_supplied_node(raw, predicate, dossier)
-    }
     /// Normalize one explicitly supplied carrier. This verifies its bytes and
     /// selected owner, but does not prove cut membership or closure admission.
     pub fn normalize_supplied_node(

@@ -391,28 +391,6 @@ fn handle_search<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
     }
 }
 
-/// Parse and prepare using the existing HTTP route law inside a held owner.
-pub fn handle_get_scoped<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
-    executor: &E,
-    method: &str,
-    target: &str,
-    profile: AccessProfile,
-    probe: Arc<dyn AbortProbe>,
-) -> ScopedHttpResponse<'hold> {
-    handle_get_with_probe(executor, method, target, profile, probe, None)
-}
-
-/// Structured read route; no authored write or new scope is introduced.
-pub fn handle_post_scoped<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
-    executor: &E,
-    target: &str,
-    body: &[u8],
-    profile: AccessProfile,
-    probe: Arc<dyn AbortProbe>,
-) -> ScopedHttpResponse<'hold> {
-    handle_post_with_probe_and_source_text_search(executor, target, body, profile, probe, None)
-}
-
 pub fn handle_get(
     executor: &dyn AccessExecutor,
     method: &str,
@@ -880,26 +858,6 @@ pub fn handle_post(
     profile: AccessProfile,
 ) -> HttpResponse {
     handle_post_with_probe(executor, target, body, profile, profile.deadline_probe())
-}
-
-/// POST handler for a separately selected durable source-text consumer. The
-/// request body contains search terms only; the selection remains startup
-/// state owned by the server.
-pub fn handle_post_with_source_text_search(
-    executor: &dyn AccessExecutor,
-    target: &str,
-    body: &[u8],
-    profile: AccessProfile,
-    selected: Option<&crate::source_text_search::SelectedPgSourceTextSearch>,
-) -> HttpResponse {
-    handle_post_with_probe_and_source_text_search(
-        executor,
-        target,
-        body,
-        profile,
-        profile.deadline_probe(),
-        selected,
-    )
 }
 
 fn handle_post_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
@@ -1800,18 +1758,6 @@ pub fn serve_with_source_text_search(
         std::io::ErrorKind::Unsupported,
         "native HTTP access is unavailable in wasm",
     ))
-}
-
-/// Owner-only measurement mode. Ordinary serve keeps its existing listener,
-/// admission, packet and cleanup contract. EOF is control, never a request.
-#[cfg(not(target_arch = "wasm32"))]
-pub fn serve_observed(
-    addr: &str,
-    executor: Arc<dyn AccessExecutor>,
-    profile: AccessProfile,
-    deadline: crate::http_observation::OwnerDeadline,
-) -> std::io::Result<()> {
-    serve_observed_with_source_text_search(addr, executor, profile, deadline, None)
 }
 
 /// Owner-only measurement mode with the same explicitly selected source-text

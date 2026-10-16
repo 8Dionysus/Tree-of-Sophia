@@ -1569,17 +1569,6 @@ fn summary(receipt: &BibliographicReceipt, l: BibliographicLimits) -> Result<Str
     )
 }
 
-/// Prepare sorted raw bibliographic rows from the verified catalog/source slots.
-/// Schema and explicit endpoint closure run before any candidate is returned.
-pub fn prepare_bibliographic_graph(
-    stage: &mut KnowledgeStage<'_>,
-    catalog_receipt: &SourceCatalogReceipt,
-    validator: &SourceCatalogValidator<'_>,
-    materializer: &mut dyn BibliographicForms,
-    l: BibliographicLimits,
-) -> Result<BibliographicReceipt> {
-    prepare_impl(stage, catalog_receipt, validator, materializer, l, None)
-}
 /// Resolve exact-version Collection order from one independently selected
 /// immutable source cut. The cut proves current membership/absence; it grants
 /// no permission to use or publish retained historical bytes.
@@ -1825,24 +1814,6 @@ pub fn render_bibliographic_graph(
 ) -> Result<()> {
     render_impl(stage, catalog_receipt, receipt, l, sink)
 }
-pub fn render_cold_bibliographic_graph(
-    stage: &mut KnowledgeStage<'_>,
-    catalog_receipt: &catalog::ColdSourceCatalogReceipt,
-    receipt: &BibliographicReceipt,
-    l: BibliographicLimits,
-    sink: &mut impl BibliographicSink,
-) -> Result<()> {
-    render_impl(stage, catalog_receipt, receipt, l, sink)
-}
-pub fn render_candidate_bibliographic_graph<I: Eq + Copy + 'static>(
-    stage: &mut KnowledgeStage<'_>,
-    catalog_receipt: &catalog::CandidateSourceCatalogReceipt<I>,
-    receipt: &BibliographicReceipt,
-    l: BibliographicLimits,
-    sink: &mut impl BibliographicSink,
-) -> Result<()> {
-    render_impl(stage, catalog_receipt, receipt, l, sink)
-}
 fn render_impl<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     catalog_receipt: &SourceCatalogReceipt<B>,
@@ -1870,40 +1841,6 @@ fn render_impl<B: catalog::CatalogInputBinding>(
         stage.with_connection(WritePhase::Catalog,|db|{
             let mut statement=db.prepare("SELECT collection,id,payload FROM source_bibliographic_rows ORDER BY collection,id")?;let mut rows=statement.query([])?;
             while let Some(row)=rows.next()?{let collection:String=row.get(0)?;let id:String=row.get(1)?;let raw:Vec<u8>=row.get(2)?;sink.row(&collection,&id,&raw)?;}Ok(())
-        })
-    })();
-    if result.is_err() {
-        stage.poison()
-    }
-    result
-}
-
-pub fn clear_bibliographic_graph(
-    stage: &mut KnowledgeStage<'_>,
-    catalog_receipt: &SourceCatalogReceipt,
-    receipt: &BibliographicReceipt,
-    l: BibliographicLimits,
-) -> Result<()> {
-    let result = (|| {
-        l.validate()?;
-        catalog::verify_catalog(stage, catalog_receipt, l.catalog)?;
-        if summary(receipt, l)? != receipt.summary_sha256
-            || receipt.source_catalog_root_sha256 != catalog_receipt.row_root_sha256
-            || root(stage, l)?
-                != (
-                    receipt.node_count,
-                    receipt.edge_count,
-                    receipt.claim_count,
-                    receipt.row_root_sha256.clone(),
-                )
-        {
-            return Err(Error::Invalid("bibliographic cleanup exact seal"));
-        }
-        stage.with_connection(WritePhase::Finalize, |db| {
-            db.execute_batch(
-                "DROP TABLE source_bibliographic_rows;DROP TABLE source_bibliographic_totals;",
-            )?;
-            Ok(())
         })
     })();
     if result.is_err() {

@@ -6565,16 +6565,6 @@ pub fn finish_selected_compound_bytes<I: Copy + Eq>(
     finish_prepared_compound_bytes(core, environment_raw, event_raw, schemas, true)
 }
 
-/// Reconstruct retained capture bytes for a selected-input compound package.
-pub fn restore_selected_compound_bytes<I: Copy + Eq>(
-    core: WorkExpressionCore<'_>,
-    environment_raw: &[u8],
-    event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-) -> Result<WorkExpressionBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core, environment_raw, event_raw, schemas, false)
-}
-
 /// Finish one selected Expression/Edition package through its typed owner
 /// recipe and the exact candidate schema binding used during preparation.
 pub fn finish_selected_expression_edition_bytes<I: Copy + Eq>(
@@ -6584,16 +6574,6 @@ pub fn finish_selected_expression_edition_bytes<I: Copy + Eq>(
     schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
 ) -> Result<ExpressionEditionBytes, ItemRefusal> {
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
-}
-
-/// Reconstruct retained capture bytes for a selected Expression/Edition package.
-pub fn restore_selected_expression_edition_bytes<I: Copy + Eq>(
-    core: ExpressionEditionCore<'_>,
-    environment_raw: &[u8],
-    event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-) -> Result<ExpressionEditionBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
 }
 
 /// Finish one selected Expression responsibility package through its typed
@@ -6607,16 +6587,6 @@ pub fn finish_selected_expression_responsibility_bytes<I: Copy + Eq>(
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
 }
 
-/// Reconstruct retained capture bytes for a selected Expression responsibility package.
-pub fn restore_selected_expression_responsibility_bytes<I: Copy + Eq>(
-    core: ExpressionResponsibilityCore<'_>,
-    environment_raw: &[u8],
-    event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
-}
-
 /// Finish one selected Collection membership package through its typed owner
 /// recipe and exact candidate schema binding.
 pub fn finish_selected_collection_membership_bytes<I: Copy + Eq>(
@@ -6626,16 +6596,6 @@ pub fn finish_selected_collection_membership_bytes<I: Copy + Eq>(
     schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
 ) -> Result<CollectionMembershipBytes, ItemRefusal> {
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
-}
-
-/// Reconstruct retained capture bytes for a selected Collection membership package.
-pub fn restore_selected_collection_membership_bytes<I: Copy + Eq>(
-    core: CollectionMembershipCore<'_>,
-    environment_raw: &[u8],
-    event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-) -> Result<CollectionMembershipBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
 }
 
 fn finish_prepared_compound_bytes(
@@ -7713,9 +7673,6 @@ impl EditionItemCore<'_> {
     pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
         self.inner.into_prepared_outputs()
     }
-    pub fn expects_request_capture(&self) -> bool {
-        true
-    }
 }
 /// Consume the genuine CMD deposit's source-safe public receipt. This verifies
 /// its metadata binding, never possession, payload fixity or publication rights.
@@ -7847,22 +7804,6 @@ pub fn finish_selected_edition_item_bytes<I: Copy + Eq>(
         ));
     }
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
-}
-
-/// Reconstruct the retained Edition/Item capture from a selected-input owner
-/// recipe during exact recovery.
-pub fn restore_selected_edition_item_bytes<I: Copy + Eq>(
-    core: EditionItemCore<'_>,
-    environment_raw: &[u8],
-    event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-) -> Result<EditionItemBytes, ItemRefusal> {
-    if core.descriptive_preview {
-        return Err(bad(
-            "descriptive Item preview cannot restore retained capture",
-        ));
-    }
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
 }
 
 fn preview_item_receipt(
@@ -8038,74 +7979,6 @@ pub fn prepare_edition_item_preview_bytes<'a>(
     )?;
     if grammar.binding != NativeSchemaBinding::Cut(schemas.execution_binding()) {
         return Err(bad("Item preview schema binding changed"));
-    }
-    let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
-    prepare_native_with_reader(
-        CompoundKind::EditionItem,
-        Some(ItemPreparationInput::Preview {
-            generator: inventory_generator,
-        }),
-        reader,
-        schemas,
-        scope,
-        Cow::Owned(request_raw),
-        owned_before,
-        recorded_at,
-        Some((proposed_claim_raw, grammar)),
-        |_| Ok(authority),
-    )
-    .map(|inner| EditionItemCore {
-        inner,
-        descriptive_preview: true,
-    })
-}
-
-/// Produce a descriptive Edition/Item preview from a selected Claim grammar
-/// pass. The callback builds request and authorization from those exact bytes.
-pub fn prepare_selected_edition_item_preview_bytes<'a, I: Copy + Eq>(
-    input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-    scope: &Value,
-    proposed_claim_raw: &[u8],
-    owned_before: &BTreeMap<String, Vec<u8>>,
-    recorded_at: &str,
-    inventory_generator: &str,
-    limits: ItemLimits,
-    cancelled: &'a AtomicBool,
-    build_request_and_authorization: impl FnOnce(
-        &BTreeMap<String, String>,
-    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
-) -> Result<EditionItemCore<'a>, ItemRefusal> {
-    check(limits.deadline, cancelled)?;
-    if input.input_identity() != schemas.input_identity() || proposed_claim_raw.len() > MAX_FILE {
-        return Err(bad("selected Item grammar input/schema or Claim size"));
-    }
-    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
-        .map_err(|_| bad("selected Item recorded aware instant"))?;
-    let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    reader.temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len())?;
-    let claim = reader.decoded(proposed_claim_raw)?;
-    let mut expected = canonical(&claim)?;
-    expected.push(b'\n');
-    let expected = reader.buffer(expected)?;
-    if proposed_claim_raw != expected {
-        return Err(bad("selected Item proposed Claim exact canonical bytes"));
-    }
-    let decoded_state = crate::record_biblio_cut::decoded_state(&claim)?;
-    drop(claim);
-    reader.release_temporary(decoded_state);
-    let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
-    drop(expected);
-    reader.release_temporary(encoded_state);
-    let grammar = preparation_grammar_from_selected_input(
-        CompoundKind::EditionItem,
-        &mut reader,
-        input,
-        schemas,
-        proposed_claim_raw,
-    )?;
-    if grammar.binding != schemas.native_schema_binding() {
-        return Err(bad("selected Item preview schema binding changed"));
     }
     let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
     prepare_native_with_reader(
@@ -8334,65 +8207,6 @@ pub struct ObjectLinkBytes {
     pub bytes_read: u64,
 }
 
-/// Compose exact new-only source buffers using the retained verifier's kernel.
-/// The caller owns current delegation, dependency currentness and publication.
-pub fn prepare_object_link_bytes<'a>(
-    cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
-    scope: &Value,
-    authorization: &Value,
-    request_raw: &[u8],
-    environment_raw: &[u8],
-    recorded_at: &str,
-    limits: ItemLimits,
-    cancelled: &'a AtomicBool,
-) -> Result<ObjectLinkBytes, ItemRefusal> {
-    check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision()
-        || request_raw.len() > MAX_FILE
-        || environment_raw.len() > MAX_FILE
-    {
-        return Err(bad("object-Link source/schema revision or input size"));
-    }
-    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
-    // Reserve the bounded output envelope before any package buffer allocation.
-    // Eight metadata files are produced by this exact kernel.
-    reader.temporary(
-        8usize
-            .checked_mul(MAX_FILE)
-            .and_then(|n| {
-                n.checked_add(crate::record_biblio_cut::decoded_state(authorization).ok()?)
-            })
-            .and_then(|n| {
-                n.checked_add(
-                    std::mem::size_of::<Package>() + 8 * std::mem::size_of::<(String, Vec<u8>)>(),
-                )
-            })
-            .ok_or(ItemRefusal::Budget)?,
-    )?;
-    let prepared = reader.compose_object_link(
-        scope,
-        authorization,
-        request_raw,
-        environment_raw,
-        recorded_at,
-        schemas,
-        None,
-        None,
-    )?;
-    let transaction_id = text(&prepared.receipt, "transaction_id")?.to_owned();
-    reader.release_raw_cache();
-    Ok(ObjectLinkBytes {
-        scope: prepared.scope,
-        request: prepared.request,
-        receipt: prepared.receipt,
-        files: prepared.files,
-        transaction_id,
-        reads: reader.reads,
-        bytes_read: reader.bytes,
-    })
-}
-
 fn compose_selected_object_link_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
     schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
@@ -8458,35 +8272,6 @@ fn compose_selected_object_link_bytes<'a, I: Copy + Eq>(
     })
 }
 
-/// Compose one maintained ObjectLink package from exact selected source reads.
-/// It returns mechanical buffers only; the caller still owns registration,
-/// exact-readset fencing, recovery and publication.
-pub fn prepare_selected_object_link_bytes<'a, I: Copy + Eq>(
-    input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-    scope: &Value,
-    authorization: &Value,
-    request_raw: &[u8],
-    environment_raw: &[u8],
-    recorded_at: &str,
-    limits: ItemLimits,
-    cancelled: &'a AtomicBool,
-) -> Result<ObjectLinkBytes, ItemRefusal> {
-    compose_selected_object_link_bytes(
-        input,
-        schemas,
-        scope,
-        authorization,
-        request_raw,
-        environment_raw,
-        recorded_at,
-        limits,
-        cancelled,
-        None,
-        None,
-    )
-}
-
 /// Compose a native-produced ObjectLink package from exact selected reads.
 pub fn prepare_selected_native_object_link_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
@@ -8511,37 +8296,6 @@ pub fn prepare_selected_native_object_link_bytes<'a, I: Copy + Eq>(
         cancelled,
         None,
         Some(&mut capture),
-    )
-}
-
-/// Reconstruct one retained ObjectLink package from exact selected reads.
-pub fn reconstruct_selected_object_link_bytes<'a, I: Copy + Eq>(
-    input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-    scope: &Value,
-    authorization: &Value,
-    request_raw: &[u8],
-    environment_raw: &[u8],
-    event_raw: &[u8],
-    recorded_at: &str,
-    limits: ItemLimits,
-    cancelled: &'a AtomicBool,
-) -> Result<ObjectLinkBytes, ItemRefusal> {
-    if event_raw.len() > MAX_FILE {
-        return Err(bad("selected ObjectLink retained event size"));
-    }
-    compose_selected_object_link_bytes(
-        input,
-        schemas,
-        scope,
-        authorization,
-        request_raw,
-        environment_raw,
-        recorded_at,
-        limits,
-        cancelled,
-        Some(event_raw),
-        None,
     )
 }
 

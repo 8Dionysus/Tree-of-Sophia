@@ -1238,46 +1238,6 @@ impl ReleaseLease {
         self.recheck()?;
         Ok((context, guards))
     }
-    /// Admit the exact query-visible members from this already selected
-    /// managed release. The seven-path cap matches the maintained Reference
-    /// selector; results preserve input order. This selects no root and does
-    /// not accept the older standalone Reference snapshot format.
-    pub fn admit_query_source_members(
-        &mut self,
-        source_paths: &[&str],
-        max_bytes: usize,
-    ) -> Result<Vec<PathBuf>> {
-        self.check_hold()?;
-        let planned = query_source_plan(
-            CorpusMetadata {
-                members: &self.release.members,
-                source_bindings: &self.release.source_bindings,
-                compiler_bindings: &self.release.compiler_bindings,
-                corpus_revision: &self.release.corpus_revision,
-            },
-            source_paths,
-            max_bytes,
-        )?;
-        let mut paths = Vec::with_capacity(planned.len());
-        let mut guards = Vec::with_capacity(planned.len());
-        for (member_path, size) in planned {
-            let cap = usize::try_from(size)
-                .map_err(|_| unavailable("query source member size invalid"))?;
-            let before = member_identity(&child(&self.release.data, &member_path)?)?;
-            self.release.member_bytes(&member_path, cap)?;
-            if member_identity(&child(&self.release.data, &member_path)?)? != before {
-                return Err(unavailable("query source member changed during admission"));
-            }
-            paths.push(self.release.member_path(&member_path)?);
-            guards.push(ReleaseMemberGuard {
-                path: member_path,
-                identity: before,
-            });
-        }
-        self.member_guards.extend(guards);
-        self.check_hold()?;
-        Ok(paths)
-    }
     pub fn retain_member_guards(&mut self, guards: &[ReleaseMemberGuard]) -> Result<()> {
         self.member_guards = guards.to_vec();
         self.check_hold()

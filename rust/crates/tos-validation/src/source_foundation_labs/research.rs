@@ -353,43 +353,6 @@ pub fn inspect_source_foundation_lab(
     inspect_source_foundation_lab_inner(source, limits, lab, &current_paths, None)
 }
 
-/// Run one lab against caller-owned current-path membership without requiring a
-/// materialized copy of the complete member list.
-pub fn inspect_source_foundation_lab_from_paths(
-    source: &mut impl LayerFamilySource,
-    limits: ItemLimits,
-    lab: SourceFoundationLab,
-    current_paths: &dyn SourceFoundationDefaultPaths,
-) -> Result<SourceFoundationLabResult, ItemRefusal> {
-    inspect_source_foundation_lab_inner(source, limits, lab, current_paths, None)
-}
-
-/// Run one lab route with physical path and Git observations from the selected
-/// host snapshot. These observations close only bridge-local private-output
-/// ignore predicates; they do not make source membership or publication claims.
-pub fn inspect_source_foundation_lab_with_physical(
-    source: &mut impl LayerFamilySource,
-    limits: ItemLimits,
-    lab: SourceFoundationLab,
-    current_paths: &[String],
-    physical: &SourcePhysicalFacts,
-) -> Result<SourceFoundationLabResult, ItemRefusal> {
-    let current_paths = SliceDefaultPaths(current_paths);
-    inspect_source_foundation_lab_inner(source, limits, lab, &current_paths, Some(physical))
-}
-
-/// Run one lab with exact physical observations and caller-owned current-path
-/// membership.
-pub fn inspect_source_foundation_lab_with_physical_from_paths(
-    source: &mut impl LayerFamilySource,
-    limits: ItemLimits,
-    lab: SourceFoundationLab,
-    current_paths: &dyn SourceFoundationDefaultPaths,
-    physical: &SourcePhysicalFacts,
-) -> Result<SourceFoundationLabResult, ItemRefusal> {
-    inspect_source_foundation_lab_inner(source, limits, lab, current_paths, Some(physical))
-}
-
 fn inspect_source_foundation_lab_inner(
     source: &mut impl LayerFamilySource,
     limits: ItemLimits,
@@ -399,27 +362,6 @@ fn inspect_source_foundation_lab_inner(
 ) -> Result<SourceFoundationLabResult, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
     inspect_one(source, limits, lab, current_paths, physical)
-}
-
-/// Run all six lab-only routes and then the three default authored bridges in
-/// the exact maintained Python concatenation order.
-pub fn inspect_source_foundation_labs(
-    source: &mut impl LayerFamilySource,
-    limits: ItemLimits,
-    current_paths: &[String],
-) -> Result<SourceFoundationLabsReport, ItemRefusal> {
-    let current_paths = SliceDefaultPaths(current_paths);
-    inspect_source_foundation_labs_inner(source, limits, &current_paths, None)
-}
-
-/// Run all lab and authored routes against caller-owned current-path
-/// membership without materializing the complete member list.
-pub fn inspect_source_foundation_labs_from_paths(
-    source: &mut impl LayerFamilySource,
-    limits: ItemLimits,
-    current_paths: &dyn SourceFoundationDefaultPaths,
-) -> Result<SourceFoundationLabsReport, ItemRefusal> {
-    inspect_source_foundation_labs_inner(source, limits, current_paths, None)
 }
 
 /// Run all six labs and three authored bridges against one selected physical

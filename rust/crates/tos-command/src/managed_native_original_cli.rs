@@ -4302,19 +4302,6 @@ fn report_assessed_candidate(
     }
 }
 
-/// Build or byte-check a private assessed graph candidate from one captured
-/// source projection and the explicitly pinned native public-v2 assessment
-/// invocation. `check` is read-only; `publish` commits by no-replace link only
-/// after the staged file is synced and the full assessment/source fence passes.
-pub fn run_corpus_assessed_candidate(
-    input: impl Read,
-    output: &mut impl Write,
-    diagnostics: &mut impl Write,
-) -> i32 {
-    let result = read_assessed_candidate_request(input).and_then(execute_assessed_candidate);
-    report_assessed_candidate(result, output, diagnostics)
-}
-
 pub fn run_corpus_assessed_candidate_args(
     args: &[OsString],
     output: &mut impl Write,

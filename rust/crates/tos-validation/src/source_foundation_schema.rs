@@ -1440,61 +1440,6 @@ pub fn evaluate_source_foundation_schema_checks(
     )
 }
 
-/// Finite-input variant attached to the same invocation-wide quota used by
-/// other explicitly selected diagnostics-v2 schema lanes.
-pub fn evaluate_source_foundation_schema_checks_with_shared_quota(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationSchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: &SharedSchemaWorkerQuota,
-) -> SourceFoundationSchemaOutcome {
-    let outcome = evaluate_source_foundation_schema_checks_with_optional_quota(
-        schema_set,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        Some(quota),
-        None,
-    );
-    if matches!(&outcome, SourceFoundationSchemaOutcome::Incomplete { .. }) {
-        quota.poison();
-    }
-    outcome
-}
-
-/// Finite-input source-foundation check using the invocation's shared quota
-/// and already verified immutable worker image.
-pub fn evaluate_source_foundation_schema_checks_with_shared_quota_and_image(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationSchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: &SharedSchemaWorkerQuota,
-    image: &VerifiedWorkerImageHandle,
-) -> SourceFoundationSchemaOutcome {
-    let outcome = evaluate_source_foundation_schema_checks_with_optional_quota(
-        schema_set,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        Some(quota),
-        Some(image),
-    );
-    if matches!(&outcome, SourceFoundationSchemaOutcome::Incomplete { .. }) {
-        quota.poison();
-    }
-    outcome
-}
-
 fn evaluate_source_foundation_schema_checks_with_optional_quota(
     schema_set: &SourceFoundationSchemaSet,
     worker: &ExactWorkerIdentity,
@@ -1524,76 +1469,6 @@ fn evaluate_source_foundation_schema_checks_with_optional_quota(
         quota,
         image,
     )
-}
-
-/// Evaluate raw legacy-Python observed instances against the exact selected
-/// source-foundation contracts. The diagnostics-v2 request binds the original
-/// bytes and closed input-profile marker; unsupported Python-only values yield
-/// an incomplete report and are never reduced to schema-valid/schema-invalid.
-pub fn evaluate_source_foundation_legacy_schema_checks(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationLegacySchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceFoundationSchemaOutcome {
-    evaluate_source_foundation_legacy_schema_checks_with_optional_quota(
-        schema_set, worker, checks, limits, deadline, cancelled, None, None,
-    )
-}
-
-/// Raw LegacyPythonObserved variant attached to the shared invocation quota.
-pub fn evaluate_source_foundation_legacy_schema_checks_with_shared_quota(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationLegacySchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: &SharedSchemaWorkerQuota,
-) -> SourceFoundationSchemaOutcome {
-    let outcome = evaluate_source_foundation_legacy_schema_checks_with_optional_quota(
-        schema_set,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        Some(quota),
-        None,
-    );
-    if matches!(&outcome, SourceFoundationSchemaOutcome::Incomplete { .. }) {
-        quota.poison();
-    }
-    outcome
-}
-
-/// Raw LegacyPythonObserved checks sharing both quota and sealed worker image.
-pub fn evaluate_source_foundation_legacy_schema_checks_with_shared_quota_and_image(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationLegacySchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: &SharedSchemaWorkerQuota,
-    image: &VerifiedWorkerImageHandle,
-) -> SourceFoundationSchemaOutcome {
-    let outcome = evaluate_source_foundation_legacy_schema_checks_with_optional_quota(
-        schema_set,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        Some(quota),
-        Some(image),
-    );
-    if matches!(&outcome, SourceFoundationSchemaOutcome::Incomplete { .. }) {
-        quota.poison();
-    }
-    outcome
 }
 
 fn evaluate_source_foundation_legacy_schema_checks_with_optional_quota(

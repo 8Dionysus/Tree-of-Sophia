@@ -813,11 +813,6 @@ fn source_descend_reply<'packet>(
     Ok(())
 }
 
-/// Each stdio line is one UTF-8 JSON-RPC message. Process diagnostics belong
-/// on stderr; stdout carries protocol frames only.
-pub fn run_stdio(executor: &dyn AccessExecutor, profile: AccessProfile) -> io::Result<()> {
-    run_stdio_with_software(executor, profile, None)
-}
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run_stdio_with_software(
     executor: &dyn AccessExecutor,
