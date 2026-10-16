@@ -518,8 +518,8 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_cohort (
   coverage_manifest_sha256 char(64) CHECK (
     coverage_manifest_sha256 IS NULL OR coverage_manifest_sha256 ~ '^[0-9a-f]{64}$'
   ),
-  source_event_id text NOT NULL CHECK (octet_length(source_event_id) BETWEEN 1 AND 256),
-  source_event_version bigint NOT NULL CHECK (source_event_version > 0),
+  source_event_id text CHECK (octet_length(source_event_id) BETWEEN 1 AND 256),
+  source_event_version bigint CHECK (source_event_version > 0),
   predecessor_source_revision char(64) NOT NULL CHECK (predecessor_source_revision ~ '^[0-9a-f]{64}$'),
   source_revision char(64) NOT NULL CHECK (source_revision ~ '^[0-9a-f]{64}$'),
   basis_kind text NOT NULL DEFAULT 'record-mutation',
@@ -596,6 +596,20 @@ ALTER TABLE cmd2_projection_navigation_cohort
   ADD COLUMN IF NOT EXISTS claim_event_basis_root char(64);
 ALTER TABLE cmd2_projection_navigation_cohort
   ADD COLUMN IF NOT EXISTS claim_navigation_manifest_root char(64);
+-- Original admitted Records can predate source-create. Preserve that absence
+-- separately from authored provenance; continuity requires an existing cohort.
+ALTER TABLE cmd2_projection_navigation_cohort
+  ALTER COLUMN source_event_id DROP NOT NULL;
+ALTER TABLE cmd2_projection_navigation_cohort
+  ALTER COLUMN source_event_version DROP NOT NULL;
+ALTER TABLE cmd2_projection_navigation_cohort
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_cohort_source_origin_check;
+ALTER TABLE cmd2_projection_navigation_cohort
+  ADD CONSTRAINT cmd2_projection_navigation_cohort_source_origin_check CHECK (
+    (source_event_id IS NOT NULL AND source_event_version IS NOT NULL)
+    OR (source_event_id IS NULL AND source_event_version IS NULL
+        AND predecessor_cohort_root IS NOT NULL AND basis_kind='range-reconciliation')
+  );
 ALTER TABLE cmd2_projection_navigation_cohort
   DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_cohort_basis_kind_check;
 ALTER TABLE cmd2_projection_navigation_cohort

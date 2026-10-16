@@ -1945,7 +1945,7 @@ fn range_record_owner(
     super::NavigationEventOwnerV2 {
         event_id: cohort.event_id().to_owned(),
         event_sequence: cohort.event_sequence(),
-        source_event_id: cohort.source_event_id().to_owned(),
+        source_event_id: cohort.source_event_id().map(str::to_owned),
         source_event_version: cohort.source_event_version(),
         predecessor_source_revision: cohort.predecessor_source_revision(),
         source_revision: cohort.source_revision(),
@@ -1980,8 +1980,8 @@ fn range_claim_owner(
     super::NavigationEventOwnerV2 {
         event_id: cohort.terminal_event_id().to_owned(),
         event_sequence: cohort.through_sequence(),
-        source_event_id: terminal.source_event_id.to_owned(),
-        source_event_version: terminal.source_event_version,
+        source_event_id: Some(terminal.source_event_id.to_owned()),
+        source_event_version: Some(terminal.source_event_version),
         predecessor_source_revision: terminal.predecessor_source_revision,
         source_revision: terminal.source_revision,
         basis_kind: "claim-range-reconciliation".to_owned(),
@@ -2411,22 +2411,24 @@ pub(super) fn verify_navigation_event_range_terminal_manifest(
             ));
         }
         let predecessor_source_revision = json_digest_field(cohort, "predecessor_source_revision")?;
-        let source_event_id = cohort
-            .get("source_event_id")
-            .and_then(Value::as_str)
-            .filter(|value| !value.is_empty())
-            .ok_or(DurableError::Corrupt(
-                "stored range source event ID is absent",
-            ))?
-            .to_owned();
-        let source_event_version = cohort
-            .get("source_event_version")
-            .and_then(Value::as_u64)
-            .filter(|version| *version != 0)
-            .ok_or(DurableError::Corrupt(
-                "stored range source event version is absent",
-            ))?;
         let predecessor_cohort_root = optional_digest_field(cohort, "predecessor_cohort_root")?;
+        let (source_event_id, source_event_version) = match (
+            cohort.get("source_event_id"),
+            cohort.get("source_event_version"),
+        ) {
+            (Some(Value::String(id)), Some(version)) if !id.is_empty() && id.len() <= 256 => {
+                let version = version.as_u64().filter(|version| *version != 0).ok_or(
+                    DurableError::Corrupt("stored range source event version invalid"),
+                )?;
+                (Some(id.clone()), Some(version))
+            }
+            (Some(Value::Null), Some(Value::Null))
+                if owner_kind == "record" && predecessor_cohort_root.is_some() =>
+            {
+                (None, None)
+            }
+            _ => return Err(DurableError::Corrupt("stored range source origin invalid")),
+        };
         if owner_kind == "claim"
             && let Some(predecessors) = &stream_predecessors
             && predecessors.get(&key).copied().flatten() != predecessor_cohort_root
@@ -2454,8 +2456,8 @@ pub(super) fn verify_navigation_event_range_terminal_manifest(
             claim_navigation_manifest_root,
             claim_source_line,
             claim_trace_sha256,
-            source_event_id: Some(source_event_id),
-            source_event_version: Some(source_event_version),
+            source_event_id,
+            source_event_version,
             predecessor_source_revision: Some(predecessor_source_revision),
             predecessor_cohort_root,
             source_revision: json_digest_field(cohort, "source_revision")?,

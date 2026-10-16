@@ -61,6 +61,15 @@ format remains refused; restore never grants an unverified old selector new
 database authority.
 
 Navigation publication has one maintained path: the bounded event-range producer.
+Records already present in an admitted bootstrap can predate `source-create`.
+Range replacement binds their existing cohort root, exact source/history and
+the committed mutation or dependency cause. Both creation files must be
+explicitly absent or both present and verified; new Records still require
+their creation receipt. The admitted-predecessor input uses v6 with null
+authored-event identity; receipt-backed v5 roots remain unchanged. Explicit
+projection `init` migrates the two derived provenance columns to nullable
+values with a paired-state constraint restricted to predecessor-bound Record
+range rows. It does not change source bytes, source admission or Claim origins.
 The unused single-event publishers, per-event backlog driver and their compiler
 adapters are retired. The unconsumed full-index/cohort materializing read APIs
 and standalone currentness wrappers are retired with them. Published selection

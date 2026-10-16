@@ -340,11 +340,11 @@ pub struct NavigationRecordEventInputV1<'a, 'validator> {
     pub event_path: &'a str,
     /// Exact JSONL source member that contains the authored provenance event.
     /// The selected event row is derived by its receipt reference below.
-    pub event_file_bytes: &'a [u8],
+    pub event_file_bytes: Option<&'a [u8]>,
     pub event_schema_path: &'a str,
     pub event_schema_bytes: &'a [u8],
     pub event_receipt_path: &'a str,
-    pub event_receipt_bytes: &'a [u8],
+    pub event_receipt_bytes: Option<&'a [u8]>,
     pub source_path: &'a str,
     pub source_record_bytes: &'a [u8],
     pub entity_registry_path: &'a str,
@@ -376,9 +376,10 @@ pub struct NavigationRecordEventCohortV1 {
     /// CMD event identity; the PG publisher checks this against outbox/log.
     pub event_id: String,
     pub event_sequence: u64,
-    /// Authored ToS provenance identity derived from the exact event bytes.
-    pub source_event_id: String,
-    pub source_event_version: u64,
+    /// Authored ToS provenance when retained. An admitted original Record
+    /// may predate source-create; its predecessor and range cause bind it.
+    pub source_event_id: Option<String>,
+    pub source_event_version: Option<u64>,
     pub predecessor_source_revision: Digest256,
     pub source_revision: Digest256,
     pub source_path: RelativePath,
@@ -452,10 +453,10 @@ impl NavigationRecordEventCohortV1 {
     pub fn event_sequence(&self) -> u64 {
         self.event_sequence
     }
-    pub fn source_event_id(&self) -> &str {
-        &self.source_event_id
+    pub fn source_event_id(&self) -> Option<&str> {
+        self.source_event_id.as_deref()
     }
-    pub fn source_event_version(&self) -> u64 {
+    pub fn source_event_version(&self) -> Option<u64> {
         self.source_event_version
     }
     pub fn predecessor_source_revision(&self) -> Digest256 {
@@ -536,7 +537,7 @@ impl NavigationRecordEventCohortV1 {
         let input_root = input_root_with_cap(
             &self.event_id,
             self.event_sequence,
-            &self.source_event_id,
+            self.source_event_id.as_deref(),
             self.source_event_version,
             self.predecessor_source_revision,
             self.source_revision,
@@ -640,12 +641,14 @@ fn project_navigation_record_event_with_basis(
             "navigation event entity registry schema owner path",
         ));
     }
-    if input.event_file_bytes.is_empty()
+    if input.event_file_bytes.is_some_and(|bytes| bytes.is_empty())
         || input.source_record_bytes.is_empty()
         || input.entity_registry_bytes.is_empty()
         || input.entity_registry_schema_bytes.is_empty()
         || input.event_schema_bytes.is_empty()
-        || input.event_receipt_bytes.is_empty()
+        || input
+            .event_receipt_bytes
+            .is_some_and(|bytes| bytes.is_empty())
         || input.schema_bytes.is_empty()
         || input.forms_bytes.is_some_and(|bytes| bytes.is_empty())
         || input.history_bytes.is_some_and(|bytes| bytes.is_empty())
@@ -653,48 +656,74 @@ fn project_navigation_record_event_with_basis(
         return Err(Error::Invalid("navigation event exact source bytes"));
     }
     let source_sha256 = Digest256::of_bytes(input.source_record_bytes);
-    let event_record_bytes = select_provenance_event_record(
-        input.event_file_bytes,
-        event_receipt_path.as_str(),
-        limits.catalog.max_row_bytes,
-        limits.max_claim_cohort_bytes,
-    )?;
-    let event_value = strict_value(&event_record_bytes, limits.catalog.max_row_bytes)?;
     let event_id_sequence = input
         .event_id
         .rsplit_once(':')
         .and_then(|(domain, sequence)| sequence.parse::<u64>().ok().map(|n| (domain, n)));
     if event_id_sequence
         .is_none_or(|(domain, sequence)| domain.is_empty() || sequence != input.event_sequence)
-        || event_value.get("schema_version").and_then(Value::as_str)
-            != Some("tos_provenance_event_v2")
     {
         return Err(Error::Invalid("navigation committed event identity"));
     }
-    let source_event_id = event_value
-        .get("event_id")
-        .and_then(Value::as_str)
-        .filter(|id| !id.is_empty() && id.len() <= EVENT_ID_BYTES)
-        .ok_or(Error::Invalid("navigation source event identity"))?
-        .to_owned();
-    let source_event_version = event_value
-        .get("event_version")
-        .and_then(Value::as_u64)
-        .filter(|version| *version > 0)
-        .ok_or(Error::Invalid("navigation source event version"))?;
     let event_schema = strict_value(input.event_schema_bytes, limits.catalog.max_row_bytes)?;
-    let event_receipt = strict_value(input.event_receipt_bytes, limits.catalog.max_row_bytes)?;
     if event_schema_path.as_str() != "ToS/contracts/provenance-event-v2.schema.json"
-        || event_receipt_path.as_str()
-            != event_value
-                .pointer("/record_binding/manifest_ref")
-                .and_then(Value::as_str)
-                .ok_or(Error::Invalid("navigation event receipt ref absent"))?
         || event_schema.get("$id").and_then(Value::as_str)
             != Some("https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json")
     {
-        return Err(Error::Invalid("navigation event schema or receipt binding"));
+        return Err(Error::Invalid("navigation event schema binding"));
     }
+    let authored_event = match (input.event_file_bytes, input.event_receipt_bytes) {
+        (Some(event_bytes), Some(receipt_bytes)) => {
+            let raw = select_provenance_event_record(
+                event_bytes,
+                event_receipt_path.as_str(),
+                limits.catalog.max_row_bytes,
+                limits.max_claim_cohort_bytes,
+            )?;
+            let event = strict_value(&raw, limits.catalog.max_row_bytes)?;
+            let receipt = strict_value(receipt_bytes, limits.catalog.max_row_bytes)?;
+            if event.get("schema_version").and_then(Value::as_str)
+                != Some("tos_provenance_event_v2")
+                || event
+                    .pointer("/record_binding/manifest_ref")
+                    .and_then(Value::as_str)
+                    != Some(event_receipt_path.as_str())
+            {
+                return Err(Error::Invalid("navigation event schema or receipt binding"));
+            }
+            Some((raw, event, receipt, event_bytes))
+        }
+        (None, None)
+            if input.predecessor_cohort_root.is_some()
+                && matches!(
+                    basis,
+                    NavigationRecordEventBasisV1::RangeReconciliation { .. }
+                ) =>
+        {
+            None
+        }
+        _ => {
+            return Err(Error::Invalid(
+                "navigation Record creation evidence or admitted predecessor absent",
+            ));
+        }
+    };
+    let (source_event_id, source_event_version) = if let Some((_, event, _, _)) = &authored_event {
+        let id = event
+            .get("event_id")
+            .and_then(Value::as_str)
+            .filter(|id| !id.is_empty() && id.len() <= EVENT_ID_BYTES)
+            .ok_or(Error::Invalid("navigation source event identity"))?
+            .to_owned();
+        let version = event
+            .get("event_version")
+            .and_then(Value::as_u64)
+            .filter(|version| *version > 0)
+            .ok_or(Error::Invalid("navigation source event version"))?;
+        (Some(id), Some(version))
+    } else {
+        (None, None)
+    };
     let source_from_bytes = strict_value(input.source_record_bytes, limits.catalog.max_row_bytes)?;
     let entities_from_bytes =
         strict_value(input.entity_registry_bytes, limits.catalog.max_row_bytes)?;
@@ -714,54 +743,56 @@ fn project_navigation_record_event_with_basis(
     )? {
         return Err(Error::Invalid("navigation event parsed source differs"));
     }
-    let (origin_record_bytes, origin_record) =
-        match (input.versions.first(), input.version_sources.first()) {
-            (Some((_, resolution)), Some(Some(version_source)))
-                if resolution.get("status").and_then(Value::as_str) == Some("available") =>
-            {
-                let record = resolution
-                    .get("record")
-                    .filter(|record| record.is_object())
-                    .ok_or(Error::Invalid(
-                        "navigation Record range origin version record absent",
-                    ))?;
-                let raw = version_source.source_record_bytes;
-                let parsed = strict_value(raw, limits.catalog.max_row_bytes)?;
-                if !same_canonical(&parsed, record, limits.catalog.max_row_bytes)? {
+    if let Some((event_record_bytes, event_value, event_receipt, event_bytes)) = &authored_event {
+        let (origin_record_bytes, origin_record) =
+            match (input.versions.first(), input.version_sources.first()) {
+                (Some((_, resolution)), Some(Some(version_source)))
+                    if resolution.get("status").and_then(Value::as_str) == Some("available") =>
+                {
+                    let record = resolution
+                        .get("record")
+                        .filter(|record| record.is_object())
+                        .ok_or(Error::Invalid(
+                            "navigation Record range origin version record absent",
+                        ))?;
+                    let raw = version_source.source_record_bytes;
+                    let parsed = strict_value(raw, limits.catalog.max_row_bytes)?;
+                    if !same_canonical(&parsed, record, limits.catalog.max_row_bytes)? {
+                        return Err(Error::Invalid(
+                            "navigation Record range origin version bytes differ",
+                        ));
+                    }
+                    (raw, record)
+                }
+                (None, None) if input.history.is_none() && input.history_bytes.is_none() => {
+                    (input.source_record_bytes, input.source_record)
+                }
+                _ => {
                     return Err(Error::Invalid(
-                        "navigation Record range origin version bytes differ",
+                        "navigation Record range origin version is not retained",
                     ));
                 }
-                (raw, record)
-            }
-            (None, None) if input.history.is_none() && input.history_bytes.is_none() => {
-                (input.source_record_bytes, input.source_record)
-            }
-            _ => {
-                return Err(Error::Invalid(
-                    "navigation Record range origin version is not retained",
-                ));
-            }
-        };
-    validate_event_record_binding(
-        &event_value,
-        &event_receipt,
-        &event_path,
-        &source_path,
-        origin_record_bytes,
-        origin_forms_bytes,
-        &forms_path,
-        input.event_file_bytes,
-        origin_record,
-    )?;
-    check_selected_navigation_document(
-        input.validator,
-        selected_source_binding,
-        event_path.as_str(),
-        event_schema_path.as_str(),
-        input.event_schema_bytes,
-        &event_record_bytes,
-    )?;
+            };
+        validate_event_record_binding(
+            event_value,
+            event_receipt,
+            &event_path,
+            &source_path,
+            origin_record_bytes,
+            origin_forms_bytes,
+            &forms_path,
+            event_bytes,
+            origin_record,
+        )?;
+        check_selected_navigation_document(
+            input.validator,
+            selected_source_binding,
+            event_path.as_str(),
+            event_schema_path.as_str(),
+            input.event_schema_bytes,
+            event_record_bytes,
+        )?;
+    }
     crate::source_bibliographic_versions::validate_supplied_metadata_record(
         input.entry,
         input.source_record,
@@ -922,7 +953,7 @@ fn project_navigation_record_event_with_basis(
     let input_root = input_root(
         input.event_id,
         input.event_sequence,
-        &source_event_id,
+        source_event_id.as_deref(),
         source_event_version,
         input.predecessor_source_revision,
         source_revision,
@@ -1349,19 +1380,9 @@ fn validate_dependencies(
     }
     let exact_required = [
         (
-            event_path,
-            NavigationDependencyRoleV1::Event,
-            input.event_file_bytes,
-        ),
-        (
             event_schema_path,
             NavigationDependencyRoleV1::EventSchema,
             input.event_schema_bytes,
-        ),
-        (
-            event_receipt_path,
-            NavigationDependencyRoleV1::EventReceipt,
-            input.event_receipt_bytes,
         ),
         (
             record_path,
@@ -1395,6 +1416,28 @@ fn validate_dependencies(
             || observed.map(|value| value.1) != Some(expected_bytes.len() as u64)
         {
             return Err(Error::Invalid("navigation event source digest differs"));
+        }
+    }
+    for (path, role, bytes) in [
+        (
+            event_path,
+            NavigationDependencyRoleV1::Event,
+            input.event_file_bytes,
+        ),
+        (
+            event_receipt_path,
+            NavigationDependencyRoleV1::EventReceipt,
+            input.event_receipt_bytes,
+        ),
+    ] {
+        let observed = by_path.get(path.as_str()).copied().ok_or(Error::Invalid(
+            "navigation creation dependency witness absent",
+        ))?;
+        let expected = bytes.map(|raw| (Digest256::of_bytes(raw), raw.len() as u64));
+        if observed != (role, expected) {
+            return Err(Error::Invalid(
+                "navigation creation dependency witness differs",
+            ));
         }
     }
     let (forms_role, forms_state) = by_path
@@ -1968,8 +2011,8 @@ fn visible_node(row: &Value) -> Result<bool> {
 fn input_root(
     event_id: &str,
     sequence: u64,
-    source_event_id: &str,
-    source_event_version: u64,
+    source_event_id: Option<&str>,
+    source_event_version: Option<u64>,
     predecessor_source_revision: Digest256,
     source_revision: Digest256,
     predecessor_cohort_root: Option<Digest256>,
@@ -2005,8 +2048,8 @@ fn input_root(
 fn input_root_with_cap(
     event_id: &str,
     sequence: u64,
-    source_event_id: &str,
-    source_event_version: u64,
+    source_event_id: Option<&str>,
+    source_event_version: Option<u64>,
     predecessor_source_revision: Digest256,
     source_revision: Digest256,
     predecessor_cohort_root: Option<Digest256>,
@@ -2019,6 +2062,17 @@ fn input_root_with_cap(
     output_root: Digest256,
     byte_cap: usize,
 ) -> Result<Digest256> {
+    match (source_event_id, source_event_version) {
+        (Some(id), Some(version))
+            if !id.is_empty() && id.len() <= EVENT_ID_BYTES && version > 0 => {}
+        (None, None)
+            if predecessor_cohort_root.is_some()
+                && matches!(
+                    basis,
+                    NavigationRecordEventBasisV1::RangeReconciliation { .. }
+                ) => {}
+        _ => return Err(Error::Invalid("navigation Record source origin binding")),
+    }
     let (input_schema, basis) = match basis {
         NavigationRecordEventBasisV1::Mutation => (
             "tos_source_navigation_event_input_v2",
@@ -2028,7 +2082,11 @@ fn input_root_with_cap(
             coverage_root,
             cause_root,
         } => (
-            "tos_source_navigation_event_input_v5",
+            if source_event_id.is_some() {
+                "tos_source_navigation_event_input_v5"
+            } else {
+                "tos_source_navigation_event_input_v6"
+            },
             json!({
                 "kind":"range-reconciliation",
                 "coverage_root":coverage_root.to_hex(),

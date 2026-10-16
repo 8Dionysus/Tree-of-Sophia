@@ -966,19 +966,24 @@ pub(crate) fn assemble_record_range_terminal_cohort_v1<'a, 'validator>(
     let event_path = format!("{home}/{EVENT_HOME_FILE}");
     let receipt_path = format!("{home}/{RECEIPT_HOME_FILE}");
     let event_file_bytes = files
-        .required(&event_path)
-        .map_err(|_| DurableError::Invalid("selected Record creation event absent"))?;
+        .optional(&event_path)
+        .map_err(|_| DurableError::Invalid("selected Record creation event state unknown"))?;
     let event_receipt_bytes = files
-        .required(&receipt_path)
-        .map_err(|_| DurableError::Invalid("selected Record creation receipt absent"))?;
-    verify_creation_receipt(
-        &entry,
-        source_path,
-        &receipt_path,
-        event_file_bytes,
-        event_receipt_bytes,
-        limits,
-    )?;
+        .optional(&receipt_path)
+        .map_err(|_| DurableError::Invalid("selected Record creation receipt state unknown"))?;
+    match (event_file_bytes, event_receipt_bytes) {
+        (Some(event), Some(receipt)) => {
+            verify_creation_receipt(&entry, source_path, &receipt_path, event, receipt, limits)?
+        }
+        (None, None)
+            if predecessor_cohort_root.is_some()
+                && owner.origin == RecordOwnerOriginV1::PersistedAffected => {}
+        _ => {
+            return Err(DurableError::Conflict(
+                "Record creation evidence is incomplete or lacks an admitted predecessor",
+            ));
+        }
+    }
 
     let entity_schema_bytes = files
         .required(REGISTRY_SCHEMA)
@@ -1026,9 +1031,7 @@ pub(crate) fn assemble_record_range_terminal_cohort_v1<'a, 'validator>(
 
     for (path, role) in [
         (source_path, NavigationDependencyRoleV1::Record),
-        (&event_path, NavigationDependencyRoleV1::Event),
         (EVENT_SCHEMA, NavigationDependencyRoleV1::EventSchema),
-        (&receipt_path, NavigationDependencyRoleV1::EventReceipt),
         (REGISTRY, NavigationDependencyRoleV1::EntityRegistry),
         (
             REGISTRY_SCHEMA,
@@ -1037,6 +1040,15 @@ pub(crate) fn assemble_record_range_terminal_cohort_v1<'a, 'validator>(
         (&schema_path, NavigationDependencyRoleV1::RecordSchema),
     ] {
         insert_file_dependency(files, &mut dependencies, path, role, true)?;
+    }
+    // Imported/authored Records can predate the source-create command. Their
+    // admitted predecessor and range cause own continuity; absent creation
+    // files are explicit witnesses, never fabricated provenance.
+    for (path, role) in [
+        (&event_path, NavigationDependencyRoleV1::Event),
+        (&receipt_path, NavigationDependencyRoleV1::EventReceipt),
+    ] {
+        insert_file_dependency(files, &mut dependencies, path, role, false)?;
     }
     insert_file_dependency(
         files,
