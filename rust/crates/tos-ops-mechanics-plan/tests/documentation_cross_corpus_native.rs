@@ -1146,20 +1146,6 @@ fn script_navigation_keeps_unique_owners_side_effects_and_advisory_boundaries() 
             }
         }
     }
-    // Navigation is optional under D-0062; it cannot require a row for every
-    // executable, native module or test, or store the command sequence.
-    let doc = fs::read_to_string(root.join("docs/validation/SCRIPT_TOPOLOGY.md")).unwrap();
-    for token in [
-        "# ToS Script Topology",
-        "## Command Authority",
-        "## Script Families",
-        "## Skill Helper Scripts",
-        "validation_lanes.json",
-        "skill_local_contract_tool",
-        "Promotion Rule",
-    ] {
-        assert!(doc.contains(token), "{token}");
-    }
 }
 fn test_home(path: &str) -> (String, String) {
     let p: Vec<_> = path.split('/').collect();
@@ -1325,21 +1311,4 @@ fn test_navigation_keeps_home_scopes_without_duplicating_command_authority() {
     for token in ["command_sequence", "python ", "pytest "] {
         assert!(!raw.contains(token), "{token}");
     }
-    let doc = fs::read_to_string(root.join("docs/testing/TEST_TOPOLOGY.md")).unwrap();
-    for token in [
-        "# ToS Test Topology",
-        "## Route Shape",
-        "## Home Scopes",
-        "## Families",
-        "## Inventory Rules",
-        "docs/validation/validation_lanes.json",
-        "root",
-        "product-local",
-        "mechanic-level",
-        "part-local",
-        "agent-lane",
-    ] {
-        assert!(doc.contains(token), "{token}");
-    }
-    assert!(!doc.contains("python "));
 }

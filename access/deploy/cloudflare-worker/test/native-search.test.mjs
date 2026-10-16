@@ -1,11 +1,10 @@
 import {compareLosslessJson} from './lossless-json-compare.mjs';
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
@@ -14,51 +13,9 @@ import {nativePacketJson} from '../src/native-lens.ts';
 import {sourceTextGatewayCapability,sourceTextSearchGatewayResponse} from '../src/source-text-gateway.ts';
 import {publishedNodeFixtureWorker,publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
 
-const repo=fileURLToPath(new URL('../../../../',import.meta.url));
-const python=(code,input)=>JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',
-  "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
-  {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
+const reference=(referenceId, input) => JSON.parse(frozenReference(import.meta.url, referenceId, input===undefined?undefined:JSON.stringify(input)));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
-const fixture=python(String.raw`
-import hashlib
-from tos_access.knowledge import _normalize_node,_normalize_relation
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-from tos_access.published_read_metadata import published_reader_metadata,published_lens_metadata,emitted_row_digest,published_row_digest_key
-from build_runtime import compact_json
-unknown={'10':9007199254740993,'2':1.0,'01':-0.0,'x':[False,None,1e-7], '__proto__':{'constructor':1.0,'2':-0.0}}
-nodes=[]
-for name,title in [('z','ΑΒΓ'),('a','Other'),('scalar','Scalar αβγ'),('tie','Common alpha'),('TIE','Common alpha'),
- ('straße','Straße'),('strasse','STRASSE'),('nfc','école'),('nfd','e\u0301cole'),('astral','😀'*256),('A','Common alpha')]:
- n=_normalize_node({'node_id':name,'label':title,'source_ref':'test:search'},'philosophy')
- n['display']['title']=title if name=='scalar' else {'default':title,'grc-Grek':title}
- n['unknown']=unknown;n['attributes']['match']='αβγ metadata' if name=='a' else 'common alpha metadata'
- nodes.append(n)
-relations=[]
-for name,title in [('r','ΑΒΓ'),('R','Alpha relation')]:
- r=_normalize_relation({'edge_id':name,'from_id':nodes[0]['id'],'to_id':nodes[1]['id'],'predicate_id':'links','source_ref':'test:search'},'philosophy',{n['id']:n for n in nodes})
- r['from_id']=nodes[0]['id'];r['to_id']=nodes[1]['id'];r['display']['label']={'default':title};r['unknown']=unknown;relations.append(r)
-graph={'schema':'tos_knowledge_graph_v1','source_revision':'a'*64,'nodes':nodes,'relations':relations,
- 'normalization_binding':{'schema':'tos_knowledge_graph_normalization_binding_v1',**{k:'0'*64 for k in ('processor_digest','entity_registry_digest','relation_registry_digest','configuration_digest')}},
- 'authority_boundary':{'source_owner':'Tree-of-Sophia','is_source':False,'is_canon':False,'writes_to_tree':False,'unknown':unknown}}
-out={'graph':compact_json(graph),'rows':{},'documents':[],'grams':[],'stats':[],'metadata':{}}
-counts={}
-for kind in ('nodes','relations'):
- out['rows'][kind]=[]
- for position,n in enumerate(graph[kind]):
-  text=S._searchable(n);raw=compact_json(n);out['rows'][kind].append({'raw':raw,'text':text})
-  out['documents'].append([kind,position,n['id'],n['source_graph'],n.get('kind_id',''),n.get('predicate_id',''),*S._rank_fields(n,relation=kind=='relations'),len(text),hashlib.sha256(text.encode('utf-8')).hexdigest()])
-  for gram in dict.fromkeys(text[i:i+3] for i in range(len(text)-2)):
-   out['grams'].append([kind,3,gram,position]);counts[(kind,gram)]=counts.get((kind,gram),0)+1
-out['stats']=[[kind,3,gram,count] for (kind,gram),count in counts.items()]
-for version in (8,9):
- m=published_reader_metadata(graph,{'schema':'tos_knowledge_catalog_v1','source_revision':graph['source_revision']},'tos_cloudflare_edge_read_model_v'+str(version),'d'*64,**({'lens_metadata':published_lens_metadata(graph)} if version==9 else {}))
- m['data_revision']={'sha256':'d'*64}
- for kind in ('nodes','relations'):
-  for row in out['rows'][kind]:
-   n=json.loads(row['raw']);m[published_row_digest_key(kind[:-1],n['id'])]=emitted_row_digest(row['raw'])
- out['metadata'][str(version)]={k:compact_json(v) for k,v in m.items() if k!='knowledge_lens_top'}
-print(json.dumps(out))
-`);
+const fixture=reference("search/fixture");
 const schema=`CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
 CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,entity_id TEXT,native_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,title_text TEXT,search_text TEXT,json TEXT);
 CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,source_graph TEXT,from_id TEXT,to_id TEXT,predicate_id TEXT,relation_type_id TEXT,label_text TEXT,search_text TEXT,json TEXT);
@@ -91,27 +48,7 @@ async function response(database,mode='legacy',query='',extra={},method='GET'){
 }
 const options=(query='',extra={})=>({query,sources:null,kindIds:[],predicateIds:[],offset:0,limit:100,...extra});
 async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra),publishedFixtureSearchControlsRuntime));}
-function oracle(mode,query,extra={},graph=fixture.graph){return python(String.raw`
-import tempfile
-from pathlib import Path
-from types import SimpleNamespace
-from tos_access.knowledge import search_knowledge_graph
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel
-from tos_access.core import ToSAccessCore
-p=json.load(sys.stdin);graph=json.loads(p['graph']);options=p['extra'];out=[]
-if p['mode']=='legacy':out=[search_knowledge_graph(graph,p['query'],**options)]
-else:
- with tempfile.TemporaryDirectory(prefix='tos-native-search-oracle-') as temporary:
-  model=SQLiteKnowledgeSearchReadModel.build(graph,Path(temporary)/'search.sqlite',max_bytes=8*1024*1024)
-  try:
-   core=SimpleNamespace(_data_guard=None,knowledge_graph=lambda:graph,_query_store=lambda:None,_search_read_model_for_snapshot=lambda graph:model,search_read_model_max_verify_chars=16000000)
-   cursor=None
-   while True:
-    page=ToSAccessCore.knowledge_search_indexed(core,p['query'],cursor=cursor,**options);out.append(page);cursor=page['page']['next_cursor']
-    if cursor is None:break
-  finally:model.close()
-print(json.dumps([json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False) for packet in out]))
-`,{graph,mode,query,extra});}
+function oracle(mode,query,extra={},graph=fixture.graph){return reference("search/indexed-pages",{graph,mode,query,extra});}
 function assertPackets(actual, expected, indexed = false) {
   assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
 }
@@ -449,15 +386,7 @@ function prefixVerificationFixture(){
  for(const gram of grams)assert.ok(d.sqlite.prepare('SELECT postings FROM knowledge_search_gram_stats WHERE kind=? AND n=3 AND gram=?').get('nodes',gram),`missing fixture stats for ${JSON.stringify(gram)}`);
  const source=JSON.parse(fixture.rows.nodes.find(row=>JSON.parse(row.raw).id==='philosophy:A').raw);
  source.display.title={default:'False positive'};source.display.provenance.summary='synthetic';source.display.summary_state='synthetic';
- const searchableDocument=raw=>python(String.raw`
-import hashlib,json
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-p=json.load(sys.stdin);n=json.loads(p['raw']);text=S._searchable(n)
-id_lower,native_id_lower,identity_values,visible_values=S._rank_fields(n,relation=False)
-print(json.dumps({'raw':json.dumps(n,ensure_ascii=False,separators=(',',':')),'text':text,
- 'document':['nodes',100003,n['id'],n.get('source_graph',''),n.get('kind_id',''),n.get('predicate_id',''),id_lower,native_id_lower,identity_values,visible_values,len(text),hashlib.sha256(text.encode('utf-8','surrogatepass')).hexdigest()],
- 'grams':list(dict.fromkeys(text[i:i+3] for i in range(len(text)-2)))},ensure_ascii=False,separators=(',',':')))
- `,{raw});
+ const searchableDocument=raw=>reference("search/prefix-fixture",{raw});
  for(const [suffix,position] of [[1,100000],[2,100001],[3,100002]]){
   const wide=JSON.parse(JSON.stringify(source));wide.id=`philosophy:aa-prefix-false-positive-${suffix}`;wide.entity_id=wide.id;wide.native_id=`aa-prefix-false-positive-${suffix}`;wide.source_ref='test:prefix-false-positive';
   wide.attributes.match='metXetaXtadXadaXdatXata'+'x'.repeat(7_999_000);
@@ -605,22 +534,7 @@ test('indexed candidate budgets and ranking start from the rare gram before sour
 });
 
 test('addressed case-tie relocation preserves Worker search and continuation source order',async()=>{
- const change=python(String.raw`
-import sqlite3
-from incremental_runtime import prepare_search_address_indexes_transaction,plan_search_addresses_transaction
-p=json.load(sys.stdin);graph=json.loads(p['graph']);db=sqlite3.connect(':memory:')
-db.execute('CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part))')
-db.execute('INSERT INTO edge_meta VALUES (?,0,?)',('data_revision',json.dumps({'sha256':'d'*64})))
-db.execute('CREATE TABLE knowledge_search_documents(kind TEXT,position INTEGER,id TEXT,id_lower TEXT,PRIMARY KEY(kind,position))')
-db.executemany('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)',[(r[0],r[1],r[2],r[2].lower()) for r in p['documents']])
-prepare_search_address_indexes_transaction(db,expected_revision='d'*64)
-group=[n for n in graph['nodes'] if n['id'].lower()=='philosophy:tie'];assert len(group)==2
-ids=[n['id'] for n in reversed(group)]
-positions=[i for i,n in enumerate(graph['nodes']) if n['id'].lower()=='philosophy:tie']
-for i,n in zip(positions,reversed(group)):graph['nodes'][i]=n
-plan=plan_search_addresses_transaction(db,expected_revision='d'*64,kind='nodes',successor_groups={'philosophy:tie':ids})
-print(json.dumps({'plan':plan,'graph':json.dumps(graph,ensure_ascii=False,separators=(',',':'))}))
-`,{graph:fixture.graph,documents:fixture.documents});
+ const change=reference("search/tie-relocation",{graph:fixture.graph,documents:fixture.documents});
  const d=database();try{
   const unrelated=d.sqlite.prepare("SELECT * FROM knowledge_search_grams WHERE kind='nodes' AND position NOT IN (?,?) ORDER BY gram,position")
    .all(...Object.values(change.plan.before));
@@ -649,7 +563,7 @@ for(const version of [8,9])test(`v${version} full search rows retain Python kind
   assert.equal(d.statements.some(row=>row.sql.includes('SELECT json FROM knowledge_')),false);
  }finally{d.close();}
 });
-test('indexed native first and continuation packets match actual Python core/read-model without restarting exhausted kinds',async()=>{
+test('indexed native first and continuation packets match captured core/read-model packets without restarting exhausted kinds',async()=>{
  const d=database();try{
   for(const query of ['alpha','αβγ','\u0085ΑΒΓ\u0085','straße','STRASSE','😀'.repeat(256)]){
    const expected=oracle('indexed',query,{limit:2});let cursor=null;
@@ -685,7 +599,7 @@ test('Python mode-specific whitespace, code-point lengths and bounded filters fa
 test('search HTTP numeric parsing follows Python whole integers, Unicode decimal digits and default/clamp',async()=>{
  const d=database();try{
   const values=['1','1.0','1suffix','1_0','١٢','\u00852\u0085','\u001c2','\ufeff2','-100','999999999999999999999','9'.repeat(4301)];
-  const expected=python("from tos_access.http_server import _integer;p=json.load(sys.stdin);print(json.dumps([_integer({'limit':[v]},'limit',40,1,100) for v in p]))",values);
+  const expected=reference("search/http-integers",values);
   for(const mode of ['legacy','indexed'])for(const [at,value]of values.entries()){
    const result=await response(d,mode,'alpha',{limit:value});assert.equal(result.status,200);assert.equal((await result.json()).page.limit_per_kind,expected[at],mode+': '+value.slice(0,20));
   }
@@ -767,7 +681,7 @@ test('retained invalid Unicode strings and keys refuse the Python UTF-8 response
   d.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(row.json_chunk.replace('"unknown":',malformed+'"unknown":'));
   const result=await response(d,mode,'alpha');assert.equal(result.status,503);assert.match(await result.text(),/invalid Unicode/);
  }finally{d.close();}}
- assert.equal(python("p={'x':'\\ud800'};\ntry: json.dumps(p,ensure_ascii=False).encode('utf-8');print('false')\nexcept UnicodeEncodeError: print('true')"),true);
+ assert.equal(reference("search/invalid-utf8"),true);
 });
 test('aggregate selected ID budget masks oversized headers in SQL before source bodies are read',async()=>{
  const d=database();try{

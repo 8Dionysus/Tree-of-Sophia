@@ -773,10 +773,6 @@ fn validate_target_ref(reference: &str) -> DurableResult<()> {
     Ok(())
 }
 
-fn hex_digest(digest: Digest256) -> String {
-    digest.to_hex()
-}
-
 fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> {
     // PostgreSQL truncates identifiers to 63 bytes; use the installed catalog spelling.
     let compatible: bool = client

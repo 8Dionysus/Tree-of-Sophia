@@ -22,6 +22,13 @@ CLI/HTTP/MCP entrypoints. `access/src/tos_access/` retains a source-importable
 Python SDK bridge for external callers; it delegates to an explicitly selected
 native binary and has no Python query fallback or installable wheel.
 
+Owned Python sessions use `NativeAccessCore.owned_ordinary_source_session` with
+the native READY capabilities and the caller's original transport, deadline,
+cancellation and receiving-state limits. The earlier GraphViews-only,
+selected-probe, lazy-selected and discovered-session prototype factories are
+retired. Callers select their paths before entering the ordinary session;
+unsupported capabilities remain explicit refusals.
+
 Use the repository's native validation route after installing its declared
 development dependencies. Build browser assets with `npm ci --prefix access/web`
 and `npm run build --prefix access/web`. To read production data, explicitly
@@ -1163,6 +1170,25 @@ bound to the selected release. The `software_browser` lane separately runs
 handlers using bounded synthetic fixtures; that fixture run is not a live
 selected-release deployment check.
 
+## Explicit research tools
+
+Source-selected research builders use `tos-research COMMAND [OPTIONS]`.
+Build the separate executable with
+`cargo build --locked -p tos-access --features research-tools --bin tos-research`.
+This also enables the historical laboratory and gold-set validation implementations.
+Ordinary source readers and selected-source validation omit them. For the complete
+protected foundation audit, build the owner command explicitly with
+`cargo build --locked -p tos-command --features research --bin tos-native-owner-command`.
+A build without that feature refuses `FullAudit`; it never reports skipped districts as valid.
+Ordinary `tos-access` builds exclude these recipe modules and their command
+handlers. Select this binary for data validation lanes with
+`TOS_RESEARCH_EXECUTOR=/absolute/path/to/tos-research`.
+`tos-research COMMAND --help` documents each operation's exact source,
+resource and output contract. The options and source/provenance requirements are
+unchanged; existing automation invoking these commands must select this binary.
+The constructor library builder and online reading/query endpoints retain their
+existing entries.
+
 ## Explicit SourceRoot SDK adapter
 
 The opt-in `NativeAccessCore.from_source_root` adapter selects native software,
@@ -1681,7 +1707,7 @@ registry and open-work queue. Every value contains only absolute `binary` and
 `receipt` paths. Each build-owned receipt uses
 `tos_native_software_command_build_v1`, the access receipt identity fields,
 and the exact role feature set. Mechanics, registry and queue require
-`["compiler-backed-validators", "default"]`; the schema worker requires
+`["compiler-backed-validators", "default", "philosophy-library"]`; the schema worker requires
 `["default", "native"]`. Other roles require `features: []`; the lightweight
 ops commands use `--no-default-features` so compiler validators do not leak
 into their receipts.
@@ -2175,9 +2201,8 @@ connection, without changing its progress hook or transaction policy.
 
 Logical allocation bounds include transport buffers and typed row state.
 SQLite heap/sort work, Python allocator overhead, thread stack and process RSS
-remain physical admission and measurement obligations. The legacy Python
-emitter resides in `native_edge_capture_oracle.py` solely for retained
-differential fixtures; production capture has no oracle fallback. If helper
+remain physical admission and measurement obligations. The native encoder
+owns logical emission. If helper
 cleanup is unproven, `CaptureCustodyError.borrowed_custody` transfers the original
 views, frames and descriptors to the caller's outer holder. The caller must
 retain that custody until its exclusive supervisor proves cleanup; final v2
@@ -2211,15 +2236,15 @@ a request grant no source, field, rights or publication authority. Host
 `private-stage-run`, when required by a selected receiver, supplies OS/resource
 isolation under its actual admitted profile; it is not this source-policy issuer.
 
-The private foundation producers run through the installed Rust CLI with explicit
+The private foundation producers run through the separately built research CLI with explicit
 source and local payload roots:
 
 ```sh
-/absolute/prefix/bin/tos source-text-foundation --source-root /absolute/source \
+/absolute/path/to/tos-research source-text-foundation --source-root /absolute/source \
   --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
-/absolute/prefix/bin/tos target-text-foundation --source-root /absolute/source \
+/absolute/path/to/tos-research target-text-foundation --source-root /absolute/source \
   --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
-/absolute/prefix/bin/tos opening-sentence-alignment --source-root /absolute/source \
+/absolute/path/to/tos-research opening-sentence-alignment --source-root /absolute/source \
   --local-input-root /absolute/private-input --check
 ```
 
@@ -2238,8 +2263,8 @@ publication or canon admission.
 Native transfer readiness uses the same explicit source selection:
 
 ```sh
-tos transfer-route-readiness --source-root /absolute/source --check
-tos transfer-route-readiness --source-root /absolute/source --build \
+tos-research transfer-route-readiness --source-root /absolute/source --check
+tos-research transfer-route-readiness --source-root /absolute/source --build \
   --output ToS/source-witnesses/transfer-readiness.native.json \
   --event-id tos.event.native-projection.golden-kernel-transfer-route-readiness.example \
   --scratch-bytes 4194304
@@ -2255,10 +2280,10 @@ it grants no passage alignment, eligibility, gold or canon status.
 Native target transfer passages use the frozen twenty-page, thirty-five-route frame:
 
 ```sh
-tos transfer-target-passages --source-root /absolute/source --validate-tracked
-tos transfer-target-passages --source-root /absolute/source \
+tos-research transfer-target-passages --source-root /absolute/source --validate-tracked
+tos-research transfer-target-passages --source-root /absolute/source \
   --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
-tos transfer-target-passages --source-root /absolute/source \
+tos-research transfer-target-passages --source-root /absolute/source \
   --local-input-root /absolute/private-input --local-output-root /absolute/private-output \
   --build --generation native-r1 --event-id tos.event.native-segmentation.transfer-target.example \
   --scratch-bytes 50331648
@@ -2274,7 +2299,7 @@ the PDF; an explicit output root additionally checks private fixity and mode.
 The 32 page intersections and three rejected nonintersections retain their
 candidate status and confer no alignment, accepted text, gold or publication.
 
-`tos transfer-source-passages --source-root ABS --validate-tracked` checks the
+`tos-research transfer-source-passages --source-root ABS --validate-tracked` checks the
 tracked thirty-five German source passage candidates without reading private text.
 Use `--check --local-input-root ABS --local-output-root ABS` to reproduce the
 retained exact private layer bytes. The private roots contain repository-relative
@@ -2283,7 +2308,7 @@ an admitted `--scratch-bytes` quota; private output stays ignored and mode 0600.
 Native Poppler 26.01.0 extraction, streamed ABBYY/DjVuXML and authored PDF/JP2
 marker returns preserve their separate source/review and rights boundaries.
 
-`tos transfer-candidates --source-root ABS --validate-tracked` verifies the
+`tos-research transfer-candidates --source-root ABS --validate-tracked` verifies the
 text-free candidate plan and provenance. `--selection-only --local-input-root
 ABS` reports the twenty selected pages and aggregate metrics. `--check` also
 requires explicit `--local-input-root ABS --local-output-root ABS` and checks
@@ -2295,7 +2320,7 @@ new confirmation. Candidates remain ineligible; no target gold or textual
 acceptance is created. The default historical generation remains byte exact.
 
 
-`tos transfer-source-visible --source-root ABS --validate-tracked` checks the
+`tos-research transfer-source-visible --source-root ABS --validate-tracked` checks the
 text-free receipt and current rights without opening private sources. Use
 `--check --local-input-root ABS` to verify the retained private bundle, exact
 PDFs, four page-render hashes, critical HTML selector and aggregate diagnostics.
@@ -2306,7 +2331,7 @@ in memory and are not retained. The default `v1` is an exact historical replay.
 New receipts preserve the original review authorship and timestamp and perform
 no new source-visible review, textual acceptance or publication decision.
 
-`tos german-triangulation --source-root ABS --check --local-input-root ABS`
+`tos-research german-triangulation --source-root ABS --check --local-input-root ABS`
 reproduces the retained twelve-paragraph eKGWB/DTA comparison and the exact
 Naumann OCR diagnostic shape. `--validate-tracked` checks metadata only. A new
 `--build --generation NAME --prepared-at RFC3339 --scratch-bytes RESERVED_BYTES`
@@ -2315,7 +2340,7 @@ and alignment-event files. Historical discovery, acquisition and appended
 provenance remain unchanged; no source text or acceptance is produced.
 
 
-`tos bounded-translation-input --source-root ABS --check --local-input-root ABS
+`tos-research bounded-translation-input --source-root ABS --check --local-input-root ABS
 --local-output-root ABS` reproduces the exact local DTA opening sentence, its
 cross-witness corroboration and tracked text-free bindings. All three roots
 use repository-relative paths. `--validate-tracked` reads only metadata; add
@@ -2328,7 +2353,7 @@ local calibration input without performing translation, source assessment or
 publication admission.
 
 
-`tos antonovsky-collation --source-root ABS --local-input-root ABS
+`tos-research antonovsky-collation --source-root ABS --local-input-root ABS
 --artifact-input-root ABS --local-output-root ABS --check` reconstructs the
 retained 2007/1911 proposal from exact witness bytes and the existing unattested
 Workbench observation. Source and local roots contain repository-relative
@@ -2341,7 +2366,7 @@ The command preserves the existing observation and creates no new human review,
 textual equivalence, translation relation, source acceptance or publication right.
 
 
-`tos synthetic-foundation-lab --source-root ABS --laboratory NAME --check`
+`tos-research synthetic-foundation-lab --source-root ABS --laboratory NAME --check`
 checks one generated public laboratory and its declared negative controls.
 `NAME` is `source-text-unit-v1`, `translation-alignment-v1`, or
 `semantic-annotation-v2`. `--build --scratch-bytes RESERVED_BYTES` refreshes
@@ -2350,7 +2375,7 @@ bindings, committing its manifest last. Reserve the output bytes first.
 A deliberately invalid variant remains an expected negative example.
 
 
-`tos provenance-event-v2-lab --source-root ABS --check` verifies either the
+`tos-research provenance-event-v2-lab --source-root ABS --check` verifies either the
 retained historical A/B/C records or a fresh native run. Historical builder
 and contract digests resolve only to their exact nonexecuted archives; the
 current schema still validates each record. To execute a new public synthetic
@@ -2363,7 +2388,7 @@ the manifest. Matching finalization repeats are idempotent. Events record the
 actual executable, times and argv digest while withholding local paths; they
 remain unsigned evidence without human review or publication authority.
 
-`tos authored-canon-bridge --source-root ABS --local-input-root ABS
+`tos-research authored-canon-bridge --source-root ABS --local-input-root ABS
 --local-output-root ABS --check` reconstructs the bounded DTA/authored route:
 twelve source paragraphs, twelve independent authored segments, 92 nodes and
 125 relations. Historical public records and all four private artifacts must
@@ -2375,7 +2400,7 @@ This bridge preserves source/authored boundary differences and current
 rights; it performs no translation assessment, claim admission, publication
 or canon revision.
 
-`tos jenseits-label-correspondence --source-root ABS --check` reconstructs the
+`tos-research jenseits-label-correspondence --source-root ABS --check` reconstructs the
 retained text-free map and provenance exactly from the two numbered-unit maps
 and their rights files. It preserves the target ordering of 298 pairs and leaves
 source-only `237a` unpaired. This check does not replay the historical execution.
@@ -2388,7 +2413,7 @@ the same request preserves matching bytes, and the same selection with `--check`
 verifies the new result. Neither mode reads local payloads or admits a
 translation, rights change, or canon judgment.
 
-`tos nietzsche-transfer-source-routes --source-root ABS --check` reconstructs
+`tos-research nietzsche-transfer-source-routes --source-root ABS --check` reconstructs
 both retained hierarchical label maps, target-candidate source routes and
 provenance events for Genealogie and Antichrist. The maps pair 78 and 62
 series-qualified labels respectively, preserving target order. Historical
@@ -2402,7 +2427,7 @@ preserved; repeated identical generation is idempotent. Inputs and source
 rights bindings are checked before any output. This route reads structural
 metadata only and keeps candidates ineligible for variant execution.
 
-`tos nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
+`tos-research nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
 also checks both German source maps against their schemas, source inventory
 resources, address/navigation page relation, proposed anchors, rights digests
 and input/output provenance. It requires the retained aggregate of 140 pairs,

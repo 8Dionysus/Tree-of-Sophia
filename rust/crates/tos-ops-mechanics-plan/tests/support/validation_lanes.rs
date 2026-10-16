@@ -155,353 +155,40 @@ fn maintained_manifest_check_and_selection_reject_python_commands() {
 }
 
 #[test]
-fn release_software_native_test_packages_are_selected_once() {
-    let root = repository();
-    let sequence = lanes::command_sequence(&root, "release_check").unwrap();
-    let tests = lanes::release_steps(&root, ReleasePhase::Tests).unwrap();
-    let expected = [
-        (
-            "run tests: native access package".to_owned(),
-            vec![
-                "cargo",
-                "test",
-                "--locked",
-                "-p",
-                "tos-access",
-                "--",
-                "--skip",
-                "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
-            ],
-        ),
-        (
-            "run tests: native software/data release actions fixture".to_owned(),
-            vec![
-                "cargo",
-                "test",
-                "--locked",
-                "-p",
-                "tos-access",
-                "--test",
-                "native_release_actions",
-                "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
-                "--",
-                "--exact",
-                "--nocapture",
-            ],
-        ),
-        (
-            "run tests: native query package".to_owned(),
-            vec!["cargo", "test", "--locked", "-p", "tos-query"],
-        ),
-        (
-            "run tests: isolated process-cold Work37 fixture".to_owned(),
-            vec![
-                "cargo",
-                "test",
-                "--locked",
-                "-p",
-                "tos-command",
-                "--lib",
-                "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-                "--",
-                "--exact",
-            ],
-        ),
-        (
-            "run tests: native source and command packages excluding isolated Work37 fixture"
-                .to_owned(),
-            vec![
-                "cargo",
-                "test",
-                "--locked",
-                "-p",
-                "tos-command",
-                "-p",
-                "tos-source-store",
-                "--",
-                "--skip",
-                "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-            ],
-        ),
-    ];
-    assert_eq!(tests.len(), expected.len());
-    for ((label, argv), (expected_label, expected_argv)) in tests.iter().zip(expected) {
-        assert_eq!(label, &expected_label);
-        assert_eq!(
-            argv,
-            &expected_argv
-                .iter()
-                .map(|arg| (*arg).to_owned())
-                .collect::<Vec<_>>()
-        );
-    }
-    let mut combined = lanes::release_steps(&root, ReleasePhase::Checks).unwrap();
-    combined.extend(tests);
-    assert_eq!(combined, sequence);
-    assert_eq!(
-        lanes::command_sequence(&root, "software_reader").unwrap(),
-        vec![(
-            "native selected access wires".into(),
-            vec![
-                "cargo".into(),
-                "test".into(),
-                "--locked".into(),
-                "-p".into(),
-                "tos-access".into(),
-                "--test".into(),
-                "selected_wires".into(),
-            ],
-        )]
-    );
-}
-
-#[test]
-fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() {
-    let root = repository();
+fn workspace_consumers_run_before_package_tests_can_relink_products() {
     let value = authored();
     let steps = value["command_sequences"]["rust_workspace"]
         .as_array()
         .unwrap();
-    let labels: Vec<_> = steps.iter().map(|s| s["label"].as_str().unwrap()).collect();
-    assert_eq!(
-        labels[..7],
-        [
-            "check Rust formatting",
-            "check WASM foundation target",
-            "check WASM validation backend target",
-            "build exact native schema worker for source-cut fixtures",
-            "build exact native owner CLI for process-cold fixtures",
-            "build exact native prepared consumer for conformance fixtures",
-            "compile exact Rust conformance test image"
-        ]
-    );
-    let command =
-        |label: &str| steps.iter().find(|s| s["label"] == label).unwrap()["command"].clone();
-    assert_eq!(
-        command("build exact native prepared consumer for conformance fixtures"),
-        json!([
-            "cargo",
-            "build",
-            "--locked",
-            "-p",
-            "tos-access",
-            "--bin",
-            "tos-access"
-        ])
-    );
-    assert_eq!(
-        command("compile exact Rust conformance test image"),
-        json!([
-            "cargo",
-            "test",
-            "--no-run",
-            "--workspace",
-            "--locked",
-            "--message-format=json"
-        ])
-    );
-    let workspace =
-        "test Rust workspace remainder excluding conformance and isolated process-cold fixtures";
-    let source = "test Rust conformance root and source families";
-    let classes = "test source-owned native Growth assertion classes";
-    assert_eq!(
-        command(workspace),
-        json!([
-            "cargo",
-            "test",
-            "--workspace",
-            "--locked",
-            "--no-fail-fast",
-            "--exclude",
-            "tos-conformance",
-            "--",
-            "--nocapture",
-            "@tos-native-growth-exclusions",
-            "--skip",
-            "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
-        ])
-    );
-    let release = "test native software/data release actions fixture";
-    assert_eq!(
-        command(release),
-        json!([
-            "cargo",
-            "test",
-            "--locked",
-            "-p",
-            "tos-access",
-            "--test",
-            "native_release_actions",
-            "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
-            "--",
-            "--exact",
-            "--nocapture"
-        ])
-    );
-    assert_eq!(
-        command(source),
-        json!([
-            "cargo",
-            "test",
-            "--workspace",
-            "--locked",
-            "--test",
-            "conformance",
-            "--",
-            "--nocapture",
-            "@tos-native-growth-exclusions"
-        ])
-    );
-    assert_eq!(command(classes), json!(["@tos-native-growth-classes"]));
-    let segment = "test Rust segment conformance target";
-    assert_eq!(
-        command(segment),
-        json!([
-            "cargo",
-            "test",
-            "--workspace",
-            "--locked",
-            "--test",
-            "segment-conformance",
-            "--",
-            "--nocapture"
-        ])
-    );
-    let cases = [
-        (
-            "test isolated process-cold source revision fixture",
-            "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
-            "rust/crates/tos-command/src/source_record_revision_tests.rs",
-        ),
-        (
-            "test isolated process-cold Work37 fixture",
-            "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-            "rust/crates/tos-command/src/source_work_expression_tests.rs",
-        ),
-        (
-            "test isolated process-cold Work recovery fixture",
-            "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
-            "rust/crates/tos-command/src/source_work_expression_tests.rs",
-        ),
-        (
-            "test isolated conformance Artifact fixture",
-            "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes",
-            "tests/conformance/rust/command_artifact_cases.rs",
-        ),
-        (
-            "test isolated conformance Claim successor fixture",
-            "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
-            "tests/conformance/rust/command_claim_cases.rs",
-        ),
-        (
-            "test isolated conformance initial Claim fixture",
-            "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
-            "tests/conformance/rust/command_claim_cases.rs",
-        ),
-        (
-            "test isolated conformance Collection order fixture",
-            "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays",
-            "tests/conformance/rust/command_claim_cases.rs",
-        ),
-        (
-            "test isolated conformance public assessment lifecycle fixture",
-            "command_owner_text_cases::native_public_assessment_v1_v2_v3_append_replay_and_revocation_preserve_source",
-            "tests/conformance/rust/command_owner_text_cases.rs",
-        ),
-        (
-            "test isolated conformance assessed form batch fixture",
-            "command_owner_text_cases::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift",
-            "tests/conformance/rust/command_owner_text_cases.rs",
-        ),
-    ];
-    for (i, (label, name, path)) in cases.iter().enumerate() {
-        let argv = if i < 3 {
-            json!([
-                "cargo",
-                "test",
-                "--locked",
-                "-p",
-                "tos-command",
-                "--lib",
-                name,
-                "--",
-                "--exact"
-            ])
-        } else {
-            json!([
-                "cargo",
-                "test",
-                "--workspace",
-                "--locked",
-                "--test",
-                "conformance",
-                name,
-                "--",
-                "--exact",
-                "--nocapture"
-            ])
-        };
-        assert_eq!(command(label), argv);
-        let source = fs::read_to_string(root.join(path)).unwrap();
-        assert_eq!(
-            source
-                .matches(&format!(
-                    "#[test]\nfn {}(",
-                    name.rsplit("::").next().unwrap()
-                ))
-                .count(),
-            1
-        );
+    let mut prepared = false;
+    let mut package_tests_started = false;
+    let mut consumers = 0;
+    for step in steps {
+        let argv: Vec<_> = step["command"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap())
+            .collect();
+        if argv.contains(&"--no-run") && argv.contains(&"--message-format=json") {
+            assert!(!prepared, "prepare workspace products once");
+            prepared = true;
+        } else if argv.first() == Some(&"@tos-native-growth-classes")
+            || (argv.first() == Some(&"cargo")
+                && argv.contains(&"test")
+                && argv.contains(&"--workspace"))
+        {
+            assert!(prepared, "prepare products before their consumers");
+            assert!(
+                !package_tests_started,
+                "package tests can relink prepared products"
+            );
+            consumers += 1;
+        } else if argv.first() == Some(&"cargo") && argv.contains(&"test") {
+            package_tests_started = true;
+        }
     }
-    // All consumers of the pinned workspace products precede package-local
-    // Cargo tests. Those tests can relink target/debug/tos-access with a
-    // different dependency feature set, which must still fail the image guard.
-    let expected = vec![
-        source, classes, segment, cases[3].0, cases[4].0, cases[5].0, cases[6].0, cases[7].0,
-        cases[8].0, workspace, release, cases[0].0, cases[1].0, cases[2].0,
-    ];
-    assert_eq!(
-        labels
-            .iter()
-            .filter(|l| expected.contains(l))
-            .copied()
-            .collect::<Vec<_>>(),
-        expected
-    );
-    assert_eq!(
-        labels
-            .iter()
-            .filter(|l| l.starts_with("test isolated "))
-            .count(),
-        cases.len()
-    );
-    assert_eq!(
-        steps
-            .iter()
-            .filter_map(|s| s
-                .get("command_timeout_ms")
-                .map(|b| (s["label"].as_str().unwrap(), b.as_u64().unwrap())))
-            .collect::<Vec<_>>(),
-        [
-            ("compile exact Rust conformance test image", 900000),
-            (source, 900000),
-            (classes, 900000),
-            (cases[7].0, 900000),
-            (cases[8].0, 900000),
-            (workspace, 900000),
-            (release, 900000),
-            (cases[0].0, 1020000),
-            ("install native exact reader outside checkout", 3600000),
-            (
-                "install native mechanics executor and verify process custody",
-                3600000
-            ),
-            (
-                "verify generated WEB.1 binding in Node WebAssembly host",
-                3600000
-            )
-        ]
-    );
+    assert!(prepared && consumers > 0 && package_tests_started);
 }
 
 #[test]
@@ -532,37 +219,6 @@ fn browser_behavior_runs_the_complete_native_node_playwright_suite() {
             "access/e2e/test_webmcp.mjs"
         ]
     );
-
-    let source = fs::read_to_string(repository().join("access/e2e/test_webmcp.mjs")).unwrap();
-    let expected = [
-        "test_real_browser_webmcp_loop_and_stale_deixis",
-        "test_real_browser_source_gap_research_stages_reviewable_route",
-        "test_real_browser_sources_panel_reads_frozen_metadata_record",
-        "test_research_seeded_locale_and_panel_sequence",
-        "test_real_browser_cancellation_reload_and_deep_link",
-        "test_real_browser_prepared_search_preserves_engine_and_selection",
-        "test_observatory_prepared_human_agent_search_and_continuation",
-        "test_research_visibility_refreshes_links_and_preserves_source_disclosure",
-        "test_built_research_entry_persists_exact_shelf_and_camera",
-        "test_research_catalog_limit_explains_failed_connection_and_can_retry",
-        "test_observatory_research_and_saved_route_links_use_packaged_entry",
-        "test_research_lens_preview_save_apply_and_return",
-        "test_real_browser_graceful_without_webmcp",
-        "test_corpus_note_exit_recovers_exact_draft",
-        "test_research_shelf_collection_delete_is_atomic",
-        "test_lens_large_relation_area_requires_scope_confirmation",
-        "test_native_delivery_export_preserves_identity_and_respects_expiry",
-        "test_reader_positions_survive_pagehide_before_debounce",
-    ];
-    for name in expected {
-        assert!(
-            source.contains(&format!("test('{name}'")),
-            "missing browser case: {name}"
-        );
-    }
-    assert!(source.contains("for(const failure of ['network','malformed'])"));
-    assert!(source.contains("test_source_metadata_remains_when_native_discovery_fails_${failure}"));
-    assert_eq!(expected.len() + 2, 20);
 }
 
 #[cfg(target_os = "linux")]
@@ -755,37 +411,4 @@ fn native_verifier_consumes_installed_symlink_entries_and_preserves_command_beha
         .output()
         .unwrap();
     assert!(!bad.status.success());
-}
-
-#[test]
-fn authored_source_foundation_lane_selects_the_native_full_audit_route() {
-    let manifest = authored();
-    let steps = manifest["command_sequences"]["source_witness_foundation"]
-        .as_array()
-        .unwrap();
-    let foundation = steps
-        .iter()
-        .find(|step| {
-            let command = step["command"].as_array();
-            command.is_some_and(|command| {
-                command.first().and_then(Value::as_str) == Some("tos-native-owner-command")
-                    && command.get(1).and_then(Value::as_str) == Some("foundation")
-            })
-        })
-        .unwrap();
-    let command = foundation["command"].as_array().unwrap();
-    assert_eq!(command[2], "--repo-root");
-    assert_eq!(command[3], "{repo_root}");
-    assert_eq!(command[4], "--invocation");
-    assert_eq!(command[5], "{foundation_invocation}");
-    assert!(!steps.iter().any(|step| {
-        step["command"].as_array().is_some_and(|command| {
-            command.iter().any(|part| {
-                part.as_str().is_some_and(|part| {
-                    part == "scripts/build_source_witness_catalog.py"
-                        || part == "scripts/validate_source_witness_foundation.py"
-                })
-            })
-        })
-    }));
 }

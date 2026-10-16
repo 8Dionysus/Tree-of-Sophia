@@ -6550,17 +6550,6 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
     })
 }
 
-fn current_member_size(cut: &CorpusCutReader, path: &str) -> Result<u64, ItemRefusal> {
-    let relative = RelativePath::parse(path)
-        .map_err(|_| ItemRefusal::Unsupported("source-foundation record path".into()))?;
-    cut.current()
-        .member(&relative)
-        .map(|member| member.size_bytes)
-        .ok_or_else(|| {
-            ItemRefusal::Source(format!("record member missing from captured cut: {path}"))
-        })
-}
-
 struct CurrentItemSource<'a, 'store, P: CutPayloadReader> {
     cut: Option<&'a CorpusCutReader>,
     input: Option<&'a dyn SourceCutInput>,

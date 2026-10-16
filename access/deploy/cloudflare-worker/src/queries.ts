@@ -18,7 +18,6 @@ import {
   meta,
   metaItem,
   philosophyEdge,
-  philosophyItem,
   philosophyNode,
   positions,
   rowJson,

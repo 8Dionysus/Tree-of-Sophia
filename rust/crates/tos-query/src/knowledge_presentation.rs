@@ -740,13 +740,7 @@ fn json_same(a: &JsonValue, b: &JsonValue) -> bool {
         )
         .ok()
 }
-fn member_count(v: &JsonValue) -> usize {
-    match v {
-        JsonValue::Array(a) => 1 + a.iter().map(member_count).sum::<usize>(),
-        JsonValue::Object(o) => 1 + o.iter().map(|(_, v)| 1 + member_count(v)).sum::<usize>(),
-        _ => 1,
-    }
-}
+
 fn form_cost(v: &JsonValue, limit: usize) -> Result<usize, SearchV2Error> {
     fn walk(
         v: &JsonValue,

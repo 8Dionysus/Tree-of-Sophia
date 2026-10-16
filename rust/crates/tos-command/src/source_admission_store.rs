@@ -11,17 +11,18 @@ use std::{
     os::fd::AsRawFd,
     os::unix::fs::FileExt,
     os::unix::fs::{MetadataExt, PermissionsExt},
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Arc, atomic::AtomicBool},
     time::{Duration, Instant},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::AuthenticatedTreeIoLedgerV1;
-use tos_source_store::{CorpusReader, ReadLimits};
+use tos_source_store::ReadLimits;
+use tos_source_store::native_v2::custody::{
+    NativeSourceCustody, charge_v2_component_guard, charge_v2_layout_guard, identity,
+    optional_directory, owned_directory,
+};
 
-const V2_LAYOUT_COMPONENT_METADATA_BYTES: u64 = 4_096;
-const V2_LAYOUT_PATH_BYTES: usize = 4_096;
-const V2_LAYOUT_PATH_COMPONENTS: usize = 128;
 const ADMISSION_IO_BLOCK_BYTES: usize = 65_536;
 const SOURCE_WORK_MARKER: &str = ".source-work-intent.v1";
 const SOURCE_WORK_MARKER_MAGIC: &[u8; 8] = b"TOSSWI01";
@@ -29,56 +30,6 @@ const SOURCE_WORK_MARKER_MAX_BYTES: usize = 512;
 // `ingest_accounted` retains its copy block while final fixity verification
 // calls `verify_file_recorded`, which owns a second block.
 pub(crate) const INGEST_ACCOUNTED_SCRATCH_BYTES: usize = 2 * ADMISSION_IO_BLOCK_BYTES;
-
-fn v2_component_guard_bytes(name: &[u8]) -> io::Result<u64> {
-    u64::try_from(name.len())
-        .map_err(|_| invalid("V2 layout component length exceeds range"))?
-        .checked_add(1)
-        .and_then(|bytes| bytes.checked_add(V2_LAYOUT_COMPONENT_METADATA_BYTES))
-        .ok_or_else(|| invalid("V2 layout component guard overflow"))
-}
-
-fn charge_v2_component_guard(
-    io: &tos_source_store::PinnedSqliteIoBudget,
-    name: &str,
-) -> io::Result<()> {
-    io.charge_read_upper_bound(v2_component_guard_bytes(name.as_bytes())?)
-        .map_err(invalid)
-}
-
-fn charge_v2_layout_guard(
-    io: &tos_source_store::PinnedSqliteIoBudget,
-    path: &Path,
-) -> io::Result<()> {
-    if !path.is_absolute()
-        || path.as_os_str().as_encoded_bytes().len() > V2_LAYOUT_PATH_BYTES
-        || path.components().count() > V2_LAYOUT_PATH_COMPONENTS
-        || path.components().any(|component| {
-            matches!(
-                component,
-                std::path::Component::CurDir | std::path::Component::ParentDir
-            )
-        })
-    {
-        return Err(invalid("V2 layout path is not bounded and normalized"));
-    }
-    let relative_names = ["objects", "revisions", "staging", "segments-v2"]
-        .into_iter()
-        .try_fold(0u64, |total, name| {
-            let component = v2_component_guard_bytes(name.as_bytes())?;
-            total
-                .checked_add(component)
-                .ok_or_else(|| invalid("V2 layout guard overflow"))
-        })?;
-    // Reopening the root consumes its name and metadata, exactly like the
-    // child namespaces. No 64 KiB file is read by this layout fence. The
-    // existing metadata allowance covers owned_directory plus both identity
-    // observations; keep every original openat2 and inode comparison below.
-    let upper = v2_component_guard_bytes(path.as_os_str().as_encoded_bytes())?
-        .checked_add(relative_names)
-        .ok_or_else(|| invalid("V2 layout guard overflow"))?;
-    io.charge_read_upper_bound(upper).map_err(invalid)
-}
 
 /// A streamed pointer rename succeeded, but a required post-rename durability
 /// or custody fence refused. The immutable revision identity and its original
@@ -97,7 +48,7 @@ pub(crate) struct StreamedPublicationCommittedRefusal {
 /// manifest identity.
 pub(crate) struct V2SuccessorPublicationCommittedRefusal {
     pub(crate) revision: tos_foundation::SourceRevision,
-    pub(crate) source_artifact: super::source_admission_segment_v2::SourceRevisionArtifactV2,
+    pub(crate) source_artifact: tos_source_store::native_v2::roots::SourceRevisionArtifactV2,
     pub(crate) rootset_sha256: Digest256,
     pub(crate) custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
     cause: io::Error,
@@ -111,7 +62,7 @@ pub(crate) struct PreparedV2SuccessorLocatorV2 {
     pub(crate) expected_selection: tos_source_store::CorpusCurrentSelection,
     pub(crate) target_revision: tos_foundation::SourceRevision,
     pub(crate) rootset_sha256: Digest256,
-    pub(crate) source_artifact: super::source_admission_segment_v2::SourceRevisionArtifactV2,
+    pub(crate) source_artifact: tos_source_store::native_v2::roots::SourceRevisionArtifactV2,
 }
 
 /// In-memory prepared successor. The durable Work intent stores only its
@@ -145,12 +96,6 @@ impl std::fmt::Display for V2SuccessorBaseAdvanced {
 }
 
 impl std::error::Error for V2SuccessorBaseAdvanced {}
-
-pub(crate) fn is_v2_successor_base_advanced(error: &io::Error) -> bool {
-    error
-        .get_ref()
-        .is_some_and(|source| source.is::<V2SuccessorBaseAdvanced>())
-}
 
 fn v2_base_advanced() -> io::Error {
     io::Error::new(io::ErrorKind::WouldBlock, V2SuccessorBaseAdvanced)
@@ -258,17 +203,6 @@ impl Drop for SnapshotStage<'_> {
     }
 }
 
-fn identity(file: &File) -> io::Result<(u64, u64)> {
-    let m = file.metadata()?;
-    Ok((m.dev(), m.ino()))
-}
-fn owned_directory(file: File) -> io::Result<File> {
-    let m = file.metadata()?;
-    if !m.is_dir() || m.uid() != rustix::process::geteuid().as_raw() || m.mode() & 0o022 != 0 {
-        return Err(invalid("corpus write directory ownership or mode differs"));
-    }
-    Ok(file)
-}
 fn directory(parent: &File, name: &str) -> io::Result<File> {
     match rustix::fs::mkdirat(parent, name, Mode::from_raw_mode(0o700)) {
         Ok(()) => parent.sync_all()?,
@@ -282,18 +216,7 @@ fn directory_new(parent: &File, name: &str) -> io::Result<File> {
     parent.sync_all()?;
     owned_directory(tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(invalid)?)
 }
-fn optional_directory(parent: &File, name: &str) -> io::Result<Option<File>> {
-    match openat(
-        parent,
-        name,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-        Mode::empty(),
-    ) {
-        Ok(fd) => owned_directory(File::from(fd)).map(Some),
-        Err(Errno::NOENT) => Ok(None),
-        Err(error) => Err(error.into()),
-    }
-}
+
 fn random_name() -> io::Result<String> {
     let mut bytes = [0; 24];
     File::open("/dev/urandom")?.read_exact(&mut bytes)?;
@@ -698,14 +621,14 @@ fn source_work_marker_bytes(
     raw.extend_from_slice(locator.target_revision.0.as_bytes());
     raw.extend_from_slice(locator.rootset_sha256.as_bytes());
     raw.push(match locator.source_artifact {
-        super::source_admission_segment_v2::SourceRevisionArtifactV2::LegacyManifestV1 {
+        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::LegacyManifestV1 {
             ..
         } => 1,
-        super::source_admission_segment_v2::SourceRevisionArtifactV2::SnapshotV1 { .. } => 2,
-        super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactCommitV2 {
+        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::SnapshotV1 { .. } => 2,
+        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::CompactCommitV2 {
             ..
         } => 3,
-        super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactPackedV2 {
+        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::CompactPackedV2 {
             ..
         } => 4,
     });
@@ -835,36 +758,52 @@ fn lock_at_root(
 }
 
 pub(crate) struct AdmissionStore {
-    path: PathBuf,
-    root: File,
-    objects: File,
-    revisions: File,
-    staging: File,
-    // Created only by an explicit native V2 selection and retained as the
-    // exact physical root for all authenticated current/history trees.
-    v2_segments: RefCell<Option<File>>,
-    // Never released at rename: the invocation and its returned custody retain
-    // surviving named allocation until an explicit terminal/baseline handoff.
+    custody: NativeSourceCustody,
+    // Surviving allocations remain held through terminal handoff, including refusal.
     streamed_manifest_custody: RefCell<Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>>,
-    // V2 physical bytes remain attached to this exact private store when a
-    // later source fence refuses or publication needs forward recovery.
     v2_store_custody: RefCell<Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>>,
-    // Attached by the protected native V2 invocation before immutable object
-    // ingestion; object files and later trees share one source allocation cap.
+    // Object ingestion and tree construction share the selected allocation cap.
     v2_allocation_accountant:
         RefCell<Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>>,
-    // The original selected V2 IO ledger also accounts each later private
-    // root/namespace identity fence. Legacy V1 stores keep this unbound.
-    v2_layout_io: RefCell<Option<tos_source_store::PinnedSqliteIoBudget>>,
-    // Same-process accounting receipt for the transient store-owned Work
-    // marker. A recovered marker is charged conservatively as retained store
-    // baseline and is never subtracted from an unrelated invocation ledger.
+    // Recovered Work markers must not debit an unrelated invocation ledger.
     source_work_marker_accounting: RefCell<Option<(Digest256, Digest256, u64, u64)>>,
 }
-impl AdmissionStore {
-    pub(crate) fn retained_path_capacity(&self) -> usize {
-        self.path.capacity()
+impl std::ops::Deref for AdmissionStore {
+    type Target = NativeSourceCustody;
+    fn deref(&self) -> &Self::Target {
+        &self.custody
     }
+}
+
+impl AdmissionStore {
+    fn from_custody(custody: NativeSourceCustody) -> Self {
+        Self {
+            custody,
+            streamed_manifest_custody: RefCell::new(None),
+            v2_store_custody: RefCell::new(None),
+            v2_allocation_accountant: RefCell::new(None),
+            source_work_marker_accounting: RefCell::new(None),
+        }
+    }
+    pub(crate) fn open_existing(
+        path: &Path,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        NativeSourceCustody::open_existing(path, deadline, cancel).map(Self::from_custody)
+    }
+
+    pub(crate) fn open_existing_at_named_with_io(
+        path: &Path,
+        root: &File,
+        io: tos_source_store::PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        NativeSourceCustody::open_existing_at_named_with_io(path, root, io, deadline, cancel)
+            .map(Self::from_custody)
+    }
+
     pub(crate) fn streamed_manifest_custody(
         &self,
     ) -> io::Result<Arc<tos_source_store::PinnedSqliteSpaceReservation>> {
@@ -1273,161 +1212,6 @@ impl AdmissionStore {
         }
         Ok(())
     }
-    /// Recovery is an existing-store operation. A typo may not create a
-    /// different blank store or mutate its parent namespaces.
-    pub(crate) fn open_existing(
-        path: &Path,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Self> {
-        active(deadline, cancel)?;
-        if !path.is_absolute() {
-            return Err(invalid("corpus store must be absolute"));
-        }
-        let root = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
-        Self::open_existing_at_named(path, &root, deadline, cancel)
-    }
-
-    pub(crate) fn open_existing_with_io(
-        path: &Path,
-        io: tos_source_store::PinnedSqliteIoBudget,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Self> {
-        active(deadline, cancel)?;
-        charge_v2_layout_guard(&io, path)?;
-        let root = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
-        Self::open_existing_at_named_with_io(path, &root, io, deadline, cancel)
-    }
-
-    /// Open all namespaces from the caller's exact held root descriptor after
-    /// verifying that its normalized name still resolves to that same object.
-    /// Reads remain descriptor-rooted; name checks only fence substitution.
-    pub(crate) fn open_existing_at_named(
-        path: &Path,
-        held_root: &File,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Self> {
-        Self::open_existing_at_named_inner(path, held_root, None, deadline, cancel)
-    }
-
-    pub(crate) fn open_existing_at_named_with_io(
-        path: &Path,
-        held_root: &File,
-        io: tos_source_store::PinnedSqliteIoBudget,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Self> {
-        Self::open_existing_at_named_inner(path, held_root, Some(io), deadline, cancel)
-    }
-
-    fn open_existing_at_named_inner(
-        path: &Path,
-        held_root: &File,
-        io: Option<tos_source_store::PinnedSqliteIoBudget>,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Self> {
-        active(deadline, cancel)?;
-        if let Some(io) = io.as_ref() {
-            charge_v2_layout_guard(io, path)?;
-        } else if !path.is_absolute()
-            || path.components().any(|component| {
-                matches!(
-                    component,
-                    std::path::Component::CurDir | std::path::Component::ParentDir
-                )
-            })
-        {
-            return Err(invalid("corpus store path must be absolute and normalized"));
-        }
-        // A protected root may be an O_PATH anchor. Open a readable
-        // description of that exact inode; cloning would preserve O_PATH
-        // and make the backup walk fail at getdents64. A fresh description
-        // also gives each store its own directory cursor.
-        if let Some(io) = io.as_ref() {
-            io.charge_read_upper_bound(v2_component_guard_bytes(b".")?)
-                .map_err(invalid)?;
-        }
-        let root = owned_directory(tos_fd_open::reopen_directory(held_root).map_err(invalid)?)?;
-        let named = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
-        if identity(&named)? != identity(&root)? {
-            return Err(invalid("named corpus root differs from held root"));
-        }
-        let objects = owned_directory(
-            tos_fd_open::open_directory_at(&root, Path::new("objects")).map_err(invalid)?,
-        )?;
-        let revisions = owned_directory(
-            tos_fd_open::open_directory_at(&root, Path::new("revisions")).map_err(invalid)?,
-        )?;
-        let staging = owned_directory(
-            tos_fd_open::open_directory_at(&root, Path::new("staging")).map_err(invalid)?,
-        )?;
-        let v2_segments = optional_directory(&root, "segments-v2")?;
-        let store = Self {
-            path: path.to_owned(),
-            root,
-            objects,
-            revisions,
-            staging,
-            v2_segments: RefCell::new(v2_segments),
-            streamed_manifest_custody: RefCell::new(None),
-            v2_store_custody: RefCell::new(None),
-            v2_allocation_accountant: RefCell::new(None),
-            v2_layout_io: RefCell::new(io),
-            source_work_marker_accounting: RefCell::new(None),
-        };
-        store.verify_layout()?;
-        active(deadline, cancel)?;
-        Ok(store)
-    }
-    /// Borrowed physical namespaces for the existing restore lane's independent
-    /// retained-closure backup. This supplies no mutation/admission witness;
-    /// the caller must preserve exact bindings and recheck layout on completion.
-    pub(crate) fn backup_namespaces(&self) -> io::Result<(&File, &File, &File)> {
-        self.verify_layout()?;
-        Ok((&self.root, &self.objects, &self.revisions))
-    }
-    pub(crate) fn reader(&self, limits: ReadLimits) -> io::Result<CorpusReader> {
-        self.verify_layout()?;
-        let reader = CorpusReader::open_from_held_namespaces(
-            &self.root,
-            &self.objects,
-            &self.revisions,
-            limits,
-        )
-        .map_err(invalid)?;
-        self.verify_layout()?;
-        Ok(reader)
-    }
-
-    pub(crate) fn current_selection(
-        &self,
-        limits: ReadLimits,
-        deadline: Instant,
-        cancel: &AtomicBool,
-        io_budget: Option<&tos_source_store::PinnedSqliteIoBudget>,
-    ) -> io::Result<Option<tos_source_store::CorpusCurrentSelection>> {
-        if let Some(io) = self.v2_layout_io.borrow().as_ref() {
-            let selected =
-                io_budget.ok_or_else(|| invalid("V2 selector lacks its original IO ledger"))?;
-            if !io.shares_with(selected) {
-                return Err(invalid("V2 selector and layout IO ledgers differ"));
-            }
-            charge_v2_component_guard(io, "current.json")?;
-        }
-        let reader = self.reader(limits)?;
-        let selection = match io_budget {
-            Some(io) => reader.select_current_selection_budgeted(io, deadline, cancel),
-            None => reader.select_current_selection(),
-        }
-        .map_err(invalid)?;
-        active(deadline, cancel)?;
-        self.verify_layout()?;
-        Ok(selection)
-    }
-
     /// Typed observation for forward recovery: only a current pointer that
     /// still names the exact prepared base or exact target is reported as
     /// such. Any other well-formed pointer advance remains distinct from IO,
@@ -1465,102 +1249,6 @@ impl AdmissionStore {
     /// Read the exact immutable rootset selected by a V2 pointer. The held
     /// revision directory, digest fence and EOF check bind these bytes to the
     /// one current selector without interpreting their source meaning.
-    pub(crate) fn read_v2_rootset(
-        &self,
-        revision: Digest256,
-        expected_sha256: Digest256,
-        max_bytes: usize,
-        deadline: Instant,
-        cancel: &AtomicBool,
-        io_budget: &tos_source_store::PinnedSqliteIoBudget,
-    ) -> io::Result<Vec<u8>> {
-        active(deadline, cancel)?;
-        if max_bytes == 0 || max_bytes == usize::MAX {
-            return Err(invalid("V2 rootset read profile is invalid"));
-        }
-        charge_v2_component_guard(io_budget, &revision.to_hex())?;
-        charge_v2_component_guard(io_budget, "rootset-v2.json")?;
-        self.verify_layout()?;
-        let directory =
-            tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision.to_hex()))
-                .map_err(invalid)?;
-        let mut file = tos_fd_open::open_regular_at(&directory, Path::new("rootset-v2.json"))
-            .map_err(invalid)?;
-        let before = file.metadata()?;
-        if !before.is_file()
-            || before.uid() != rustix::process::geteuid().as_raw()
-            || before.mode() & 0o222 != 0
-            || before.len() == 0
-            || before.len() > max_bytes as u64
-        {
-            return Err(invalid("selected V2 rootset file custody differs"));
-        }
-        let stamp = |metadata: &std::fs::Metadata| {
-            (
-                metadata.dev(),
-                metadata.ino(),
-                metadata.len(),
-                metadata.mode(),
-                metadata.uid(),
-                metadata.mtime(),
-                metadata.mtime_nsec(),
-                metadata.ctime(),
-                metadata.ctime_nsec(),
-            )
-        };
-        let count = usize::try_from(before.len())
-            .map_err(|_| invalid("selected V2 rootset exceeds address space"))?;
-        let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(count)
-            .map_err(|_| invalid("selected V2 rootset allocation failed"))?;
-        let mut block = [0u8; 8192];
-        while bytes.len() < count {
-            active(deadline, cancel)?;
-            let wanted = (count - bytes.len()).min(block.len());
-            io_budget.charge_read(wanted as u64).map_err(invalid)?;
-            match file.read(&mut block[..wanted]) {
-                Ok(0) => return Err(invalid("selected V2 rootset ended before its size")),
-                Ok(read) => {
-                    io_budget
-                        .record_read_returned(read as u64)
-                        .map_err(invalid)?;
-                    bytes.extend_from_slice(&block[..read]);
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Err(error),
-            }
-        }
-        active(deadline, cancel)?;
-        let mut tail = [0u8; 1];
-        let tail_read = loop {
-            active(deadline, cancel)?;
-            io_budget.charge_read(1).map_err(invalid)?;
-            match file.read(&mut tail) {
-                Ok(read) => {
-                    io_budget
-                        .record_read_returned(read as u64)
-                        .map_err(invalid)?;
-                    break read;
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Err(error),
-            }
-        };
-        let after = file.metadata()?;
-        let selected = tos_fd_open::open_regular_at(&directory, Path::new("rootset-v2.json"))
-            .map_err(invalid)?;
-        if tail_read != 0
-            || stamp(&after) != stamp(&before)
-            || stamp(&selected.metadata()?) != stamp(&before)
-            || Digest256::of_bytes(&bytes) != expected_sha256
-        {
-            return Err(invalid("selected V2 rootset digest or EOF differs"));
-        }
-        active(deadline, cancel)?;
-        self.verify_layout()?;
-        Ok(bytes)
-    }
 
     /// Hash one exact retained V1 snapshot through the held revision namespace.
     /// This supplies the real artifact binding when a full V1 history is
@@ -1664,121 +1352,6 @@ impl AdmissionStore {
         active(deadline, cancel)?;
         self.verify_layout()?;
         Ok(digest)
-    }
-
-    /// Verify an exact typed source artifact under the held immutable revision
-    /// directory. This is used only when recovering an already accepted
-    /// publication from the authenticated V2 history tree; it creates no new
-    /// publication receipt or persistent allocation custody.
-    pub(crate) fn verify_v2_source_artifact(
-        &self,
-        revision: Digest256,
-        artifact: &super::source_admission_segment_v2::SourceRevisionArtifactV2,
-        max_bytes: u64,
-        deadline: Instant,
-        cancel: &AtomicBool,
-        io_budget: &tos_source_store::PinnedSqliteIoBudget,
-    ) -> io::Result<()> {
-        active(deadline, cancel)?;
-        let layout_io = self
-            .v2_layout_io
-            .borrow()
-            .clone()
-            .ok_or_else(|| invalid("V2 source artifact lacks its original IO ledger"))?;
-        if !layout_io.shares_with(io_budget) || max_bytes == 0 || max_bytes == u64::MAX {
-            return Err(invalid("V2 source artifact read profile differs"));
-        }
-        let size = artifact
-            .bytes()
-            .ok_or_else(|| invalid("legacy V2 source artifact has no typed byte count"))?;
-        if size == 0 || size > max_bytes {
-            return Err(invalid("V2 source artifact exceeds selected read bound"));
-        }
-        if matches!(
-            artifact,
-            super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactCommitV2 { .. }
-                | super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactPackedV2 { .. }
-        ) && size > super::source_admission_segment_v2::MAX_COMPACT_COMMIT_V2_BYTES as u64
-        {
-            return Err(invalid("compact source artifact exceeds its wire bound"));
-        }
-        let revision_name = revision.to_hex();
-        let filename = artifact.filename();
-        charge_v2_component_guard(io_budget, &revision_name)?;
-        charge_v2_component_guard(io_budget, filename)?;
-        self.verify_layout()?;
-        let directory = tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision_name))
-            .map_err(invalid)?;
-        let mut file =
-            tos_fd_open::open_regular_at(&directory, Path::new(filename)).map_err(invalid)?;
-        let stamp = |metadata: &std::fs::Metadata| {
-            (
-                metadata.dev(),
-                metadata.ino(),
-                metadata.len(),
-                metadata.mode(),
-                metadata.uid(),
-                metadata.mtime(),
-                metadata.mtime_nsec(),
-                metadata.ctime(),
-                metadata.ctime_nsec(),
-            )
-        };
-        let before = file.metadata()?;
-        if !before.is_file()
-            || before.uid() != rustix::process::geteuid().as_raw()
-            || before.mode() & 0o222 != 0
-            || before.len() != size
-        {
-            return Err(invalid("V2 source artifact custody differs"));
-        }
-        let mut hash = Digest256Hasher::new();
-        let mut remaining = size;
-        let mut block = [0u8; 65_536];
-        while remaining != 0 {
-            active(deadline, cancel)?;
-            let count = remaining.min(block.len() as u64) as usize;
-            let mut filled = 0usize;
-            while filled < count {
-                active(deadline, cancel)?;
-                io_budget
-                    .charge_read((count - filled) as u64)
-                    .map_err(invalid)?;
-                match file.read(&mut block[filled..count]) {
-                    Ok(0) => return Err(invalid("V2 source artifact ended before its size")),
-                    Ok(read) => {
-                        io_budget
-                            .record_read_returned(read as u64)
-                            .map_err(invalid)?;
-                        hash.update(&block[filled..filled + read]);
-                        filled += read;
-                    }
-                    Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                    Err(error) => return Err(error),
-                }
-            }
-            remaining -= count as u64;
-        }
-        active(deadline, cancel)?;
-        io_budget.charge_read(1).map_err(invalid)?;
-        let mut tail = [0u8; 1];
-        let tail_read = file.read(&mut tail)?;
-        io_budget
-            .record_read_returned(tail_read as u64)
-            .map_err(invalid)?;
-        let after = file.metadata()?;
-        let selected =
-            tos_fd_open::open_regular_at(&directory, Path::new(filename)).map_err(invalid)?;
-        if tail_read != 0
-            || stamp(&after) != stamp(&before)
-            || stamp(&selected.metadata()?) != stamp(&before)
-            || hash.finalize() != artifact.sha256()
-        {
-            return Err(invalid("V2 source artifact digest, EOF or stamp differs"));
-        }
-        active(deadline, cancel)?;
-        self.verify_layout()?;
-        Ok(())
     }
 
     /// Compare-and-swap only after the native caller has completed the full
@@ -1976,7 +1549,7 @@ impl AdmissionStore {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> io::Result<()> {
-        use super::source_admission_segment_v2::{
+        use tos_source_store::native_v2::roots::{
             CompactCommitV2, SourceRevisionArtifactV2, decode_workspace_upper_bound,
         };
 
@@ -2075,7 +1648,7 @@ impl AdmissionStore {
                 .physical_root_identity()
                 .map_err(invalid)?
             || built.segment_store.custody_domain()
-                != super::source_admission_segment_v2::SOURCE_ADMISSION_V2_DOMAIN
+                != tos_source_store::native_v2::roots::SOURCE_ADMISSION_V2_DOMAIN
         {
             return Err(invalid("V2 successor physical store binding differs"));
         }
@@ -2437,7 +2010,7 @@ impl AdmissionStore {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> io::Result<()> {
-        use super::source_admission_segment_v2::{
+        use tos_source_store::native_v2::roots::{
             CompactCommitV2, SourceRevisionArtifactV2, decode_workspace_upper_bound,
         };
 
@@ -2527,7 +2100,7 @@ impl AdmissionStore {
                 .physical_root_identity()
                 .map_err(invalid)?
             || built.segment_store.custody_domain()
-                != super::source_admission_segment_v2::SOURCE_ADMISSION_V2_DOMAIN
+                != tos_source_store::native_v2::roots::SOURCE_ADMISSION_V2_DOMAIN
         {
             return Err(invalid("V2 prepared physical store binding differs"));
         }
@@ -3049,7 +2622,7 @@ impl AdmissionStore {
                     != rootset.bytes
                 || Digest256::of_bytes(&rootset.bytes) != rootset.sha256
                 || rootset.segment_store.custody_domain()
-                    != super::source_admission_segment_v2::SOURCE_ADMISSION_V2_DOMAIN
+                    != tos_source_store::native_v2::roots::SOURCE_ADMISSION_V2_DOMAIN
             {
                 return Err(invalid("V2 rootset or admission binding differs"));
             }
@@ -3737,16 +3310,18 @@ impl AdmissionStore {
             let staging = directory_new(&root, "staging")?;
             root.sync_all()?;
             let store = Self {
-                path: path.to_owned(),
-                root,
-                objects,
-                revisions,
-                staging,
-                v2_segments: RefCell::new(None),
+                custody: NativeSourceCustody {
+                    path: path.to_owned(),
+                    root,
+                    objects,
+                    revisions,
+                    staging,
+                    v2_segments: RefCell::new(None),
+                    v2_layout_io: RefCell::new(None),
+                },
                 streamed_manifest_custody: RefCell::new(None),
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
-                v2_layout_io: RefCell::new(None),
                 source_work_marker_accounting: RefCell::new(None),
             };
             store.verify_layout()?;
@@ -3896,16 +3471,18 @@ impl AdmissionStore {
             let staging = children.remove(0);
             let v2_segments = optional_directory(&root, "segments-v2")?;
             let store = Self {
-                path: path.to_owned(),
-                root: root.try_clone()?,
-                objects,
-                revisions,
-                staging,
-                v2_segments: RefCell::new(v2_segments),
+                custody: NativeSourceCustody {
+                    path: path.to_owned(),
+                    root: root.try_clone()?,
+                    objects,
+                    revisions,
+                    staging,
+                    v2_segments: RefCell::new(v2_segments),
+                    v2_layout_io: RefCell::new(Some(accountant.io_budget().clone())),
+                },
                 streamed_manifest_custody: RefCell::new(None),
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
-                v2_layout_io: RefCell::new(Some(accountant.io_budget().clone())),
                 source_work_marker_accounting: RefCell::new(None),
             };
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
@@ -3998,59 +3575,23 @@ impl AdmissionStore {
         let staging = directory(&root, "staging")?;
         let v2_segments = optional_directory(&root, "segments-v2")?;
         let store = Self {
-            path: path.to_owned(),
-            root,
-            objects,
-            revisions,
-            staging,
-            v2_segments: RefCell::new(v2_segments),
+            custody: NativeSourceCustody {
+                path: path.to_owned(),
+                root,
+                objects,
+                revisions,
+                staging,
+                v2_segments: RefCell::new(v2_segments),
+                v2_layout_io: RefCell::new(None),
+            },
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
-            v2_layout_io: RefCell::new(None),
             source_work_marker_accounting: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
         Ok(store)
-    }
-    pub(crate) fn verify_layout(&self) -> io::Result<()> {
-        if let Some(io) = self.v2_layout_io.borrow().as_ref() {
-            charge_v2_layout_guard(io, &self.path)?;
-        }
-        let root =
-            owned_directory(tos_fd_open::open_absolute_directory(&self.path).map_err(invalid)?)?;
-        if identity(&root)? != identity(&self.root)? {
-            return Err(invalid("corpus root replaced"));
-        }
-        for (name, held) in [
-            ("objects", &self.objects),
-            ("revisions", &self.revisions),
-            ("staging", &self.staging),
-        ] {
-            let selected = owned_directory(
-                tos_fd_open::open_directory_at(&root, Path::new(name)).map_err(invalid)?,
-            )?;
-            if identity(&selected)? != identity(held)? {
-                return Err(invalid("corpus namespace replaced"));
-            }
-        }
-        match self.v2_segments.borrow().as_ref() {
-            Some(held) => {
-                let selected = owned_directory(
-                    tos_fd_open::open_directory_at(&root, Path::new("segments-v2"))
-                        .map_err(invalid)?,
-                )?;
-                if identity(&selected)? != identity(held)? {
-                    return Err(invalid("corpus V2 segment namespace replaced"));
-                }
-            }
-            None if optional_directory(&root, "segments-v2")?.is_some() => {
-                return Err(invalid("unselected corpus V2 segment namespace exists"));
-            }
-            None => (),
-        }
-        Ok(())
     }
 
     /// Select the private authenticated V2 tree store below this exact held
@@ -5064,47 +4605,6 @@ mod tests {
     }
 
     #[test]
-    fn held_path_anchor_opens_readable_independent_store_directory() {
-        let temporary = tempfile::tempdir().unwrap();
-        let path = temporary.path().join("store");
-        let deadline = Instant::now() + Duration::from_secs(5);
-        let cancel = AtomicBool::new(false);
-        drop(AdmissionStore::create(&path, deadline, &cancel).unwrap());
-        let held = File::from(
-            rustix::fs::open(
-                &path,
-                OFlags::PATH | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-                Mode::empty(),
-            )
-            .unwrap(),
-        );
-        let first =
-            AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
-        let second =
-            AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
-        let collect = |store: &AdmissionStore| {
-            let (root, _, _) = store.backup_namespaces().unwrap();
-            assert_eq!(identity(root).unwrap(), identity(&held).unwrap());
-            let mut buffer = [std::mem::MaybeUninit::uninit(); 8192];
-            let mut entries = rustix::fs::RawDir::new(root, &mut buffer);
-            let mut names = std::collections::BTreeSet::new();
-            while let Some(entry) = entries.next() {
-                names.insert(entry.unwrap().file_name().to_str().unwrap().to_owned());
-            }
-            names
-        };
-        let names = collect(&first);
-        assert!(
-            names.contains("objects") && names.contains("revisions") && names.contains("staging")
-        );
-        assert_eq!(collect(&second), names);
-        // A held inode must still match the requested named store.
-        let other = temporary.path().join("other");
-        drop(AdmissionStore::create(&other, deadline, &cancel).unwrap());
-        assert!(AdmissionStore::open_existing_at_named(&other, &held, deadline, &cancel).is_err());
-    }
-
-    #[test]
     fn immutable_objects_and_cas_preserve_selected_reader_on_rejection() {
         let temporary = tempfile::tempdir().unwrap();
         let path = temporary.path().join("new-parent/store");
@@ -5190,36 +4690,6 @@ fn verify_file(
     cancel: &AtomicBool,
 ) -> io::Result<()> {
     stream_verified(file, size, digest, deadline, cancel, &mut io::sink())
-}
-
-fn verify_file_accounted(
-    file: &mut File,
-    size: u64,
-    digest: Digest256,
-    deadline: Instant,
-    cancel: &AtomicBool,
-    charge_read: &dyn Fn(u64) -> io::Result<()>,
-) -> io::Result<()> {
-    stream_verified_accounted(
-        file,
-        size,
-        digest,
-        deadline,
-        cancel,
-        &mut io::sink(),
-        charge_read,
-        &|_| Ok(()),
-    )
-}
-
-fn write_accounted(
-    sink: &mut (impl Write + ?Sized),
-    mut raw: &[u8],
-    deadline: Instant,
-    cancel: &AtomicBool,
-    charge: &dyn Fn(u64) -> io::Result<()>,
-) -> io::Result<()> {
-    write_recorded(sink, raw, deadline, cancel, charge, &|_| Ok(()))
 }
 
 fn verify_file_recorded(

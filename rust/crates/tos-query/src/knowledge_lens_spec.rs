@@ -990,12 +990,6 @@ pub fn normalize_lens_spec(
         ),
     ]))
 }
-pub(crate) fn bind_properties(
-    spec: &JsonValue,
-    vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
-    bind_property_definitions(spec, vocabulary, false)
-}
 pub(crate) fn bind_plan_properties(
     spec: &JsonValue,
     vocabulary: &LensVocabulary,
@@ -1360,15 +1354,6 @@ pub(crate) fn try_matches_group(
         } else {
             any
         })
-}
-pub(crate) fn matches_group(item: &JsonValue, group: &JsonValue) -> bool {
-    let filters = array(get(group, "filters"));
-    filters.is_empty()
-        || if string(get(group, "match")) == "all" {
-            filters.iter().all(|r| matches_filter(item, r))
-        } else {
-            filters.iter().any(|r| matches_filter(item, r))
-        }
 }
 pub(crate) fn sort_items(items: &mut [JsonValue], rules: &JsonValue) {
     // Compute each Python lower(str(value)) once, rather than allocating it

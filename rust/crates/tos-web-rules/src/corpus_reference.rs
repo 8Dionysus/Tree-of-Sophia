@@ -515,7 +515,8 @@ fn reference_key_value(reference: &JsonValue) -> Result<String, &'static str> {
     }
 }
 
-fn document_id_value(reference: &JsonValue, native: bool) -> Result<JsonValue, &'static str> {
+fn reference_document_id_value(reference: &JsonValue) -> Result<JsonValue, &'static str> {
+    let native = text(reference, "schemaVersion") == Some(NATIVE_REFERENCE_SCHEMA);
     let checked = if native {
         canonical_native_reference(reference)?
     } else {
@@ -534,14 +535,8 @@ fn document_id_value(reference: &JsonValue, native: bool) -> Result<JsonValue, &
         .ok_or("invalid_reference")
 }
 
-fn reference_document_id_value(reference: &JsonValue) -> Result<JsonValue, &'static str> {
-    document_id_value(
-        reference,
-        text(reference, "schemaVersion") == Some(NATIVE_REFERENCE_SCHEMA),
-    )
-}
-
-fn version_id_value(reference: &JsonValue, native: bool) -> Result<JsonValue, &'static str> {
+fn reference_version_id_value(reference: &JsonValue) -> Result<JsonValue, &'static str> {
+    let native = text(reference, "schemaVersion") == Some(NATIVE_REFERENCE_SCHEMA);
     let checked = if native {
         canonical_native_reference(reference)?
     } else {
@@ -565,13 +560,6 @@ fn version_id_value(reference: &JsonValue, native: bool) -> Result<JsonValue, &'
         field(layer, "version").unwrap().clone(),
     ]))
     .map(|value| string(&value))
-}
-
-fn reference_version_id_value(reference: &JsonValue) -> Result<JsonValue, &'static str> {
-    version_id_value(
-        reference,
-        text(reference, "schemaVersion") == Some(NATIVE_REFERENCE_SCHEMA),
-    )
 }
 
 fn create_corpus_reference(value: &JsonValue) -> Result<JsonValue, &'static str> {
@@ -1039,9 +1027,7 @@ fn dispatch(operation: &str, value: &JsonValue) -> Result<JsonValue, &'static st
         "reference_key" => reference_key_value(value).map(|value| string(&value)),
         "native_reference_key" => array_key(native_key_value(value)?).map(|value| string(&value)),
         "reference_document_id" => reference_document_id_value(value),
-        "native_reference_document_id" => document_id_value(value, true),
         "reference_version_id" => reference_version_id_value(value),
-        "native_reference_version_id" => version_id_value(value, true),
         "create_reference" => create_corpus_reference(value),
         "create_native_reference" => create_native_reference(value),
         "match_native_reference" => native_match(value),
@@ -1131,10 +1117,6 @@ mod tests {
             r#""tos.text-layer.fixture""#
         );
         let version_id = call("reference_version_id", &reference).unwrap();
-        assert_eq!(
-            call("native_reference_version_id", &reference).unwrap(),
-            version_id
-        );
         let version_id = parse_json(
             &version_id,
             JsonMode::PublishedStrict,

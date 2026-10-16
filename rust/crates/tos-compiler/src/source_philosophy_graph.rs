@@ -480,9 +480,6 @@ fn filter_layer<'a>(
     }
     Ok(out)
 }
-fn stable_items(items: &[&Value], key: &str) -> Result<Vec<Value>> {
-    stable_items_checked(items, key, &mut || Ok(()))
-}
 fn stable_items_checked(
     items: &[&Value],
     key: &str,

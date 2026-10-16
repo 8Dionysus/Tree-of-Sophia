@@ -57,6 +57,7 @@ fn builder_sha() -> String {
         include_bytes!("transfer_source_visible/templates.json").as_slice(),
         include_bytes!("research_html.rs").as_slice(),
         include_bytes!("research_html_entities.rs").as_slice(),
+        include_bytes!("html_entities.rs").as_slice(),
         include_bytes!("research_text_comparison.rs").as_slice(),
         include_bytes!("source_text_foundation.rs").as_slice(),
     ] {

@@ -394,7 +394,7 @@ pub fn run_if_requested(
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        return Some(if writeln!(stdout, "tos lexical-index validate-tracked --source-root ABS [--derived-input-root ABS] [--local-output-root ABS] [--max-seconds 1..600]\nRead-only lexical, usage-context and morphology source closure; optional local SQLite fixity. Missing inputs refuse; no corpus discovery or source admission.\nOther actions: build, validate, validate-legacy with explicit source cut, schema worker and limits.").is_ok() { 0 } else { 2 });
+        return Some(if writeln!(stdout, "tos-research lexical-index validate-tracked --source-root ABS [--derived-input-root ABS] [--local-output-root ABS] [--max-seconds 1..600]\nRead-only lexical, usage-context and morphology source closure; optional local SQLite fixity. Missing inputs refuse; no corpus discovery or source admission.\nOther actions: build, validate, validate-legacy with explicit source cut, schema worker and limits.").is_ok() { 0 } else { 2 });
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,

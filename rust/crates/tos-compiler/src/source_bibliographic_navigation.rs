@@ -474,35 +474,6 @@ pub(crate) fn project_managed_initial_agent(
     )
 }
 
-/// Opt-in initial-Agent rendering with the exact selected V2 catalog epoch.
-/// Source commit/schema/form admission remains with the producer caller.
-pub(crate) fn project_managed_initial_agent_with_epoch(
-    entry: &Value,
-    source: &Value,
-    raw: &[u8],
-    entities: &Value,
-    epoch: &crate::VersionsCatalogEpochV2,
-    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
-    deadline: std::time::Instant,
-    cancelled: &std::sync::atomic::AtomicBool,
-    forms: Option<(&str, &Value)>,
-    l: BibliographicLimits,
-) -> Result<NavigationRecordProjection> {
-    project_managed_initial_agent_with_epoch_and_work(
-        entry,
-        source,
-        raw,
-        entities,
-        epoch,
-        tree_limits,
-        deadline,
-        cancelled,
-        forms,
-        l,
-    )
-    .map(|(projection, _)| projection)
-}
-
 pub(crate) fn project_managed_initial_agent_with_epoch_and_work(
     entry: &Value,
     source: &Value,

@@ -716,24 +716,21 @@ fn install(args: &BTreeMap<String, String>, commit: bool, replace: bool) -> Resu
         }
         Ok(p)
     };
-    let root = get(
-        "application-root",
-        PathBuf::from("/srv/abyss-machine/storage/artifacts/tos-sophia-demo"),
-    )?;
-    let release = fs::canonicalize(get("release", root.join("releases/meaning-v2"))?)?;
+    let required = |key: &str| -> Result<PathBuf> {
+        let value = args
+            .get(key)
+            .ok_or_else(|| bad(format!("--{key} required")))?;
+        get(key, PathBuf::from(value))
+    };
+    let root = required("application-root")?;
+    let release = fs::canonicalize(required("release")?)?;
     let config = get("config", home.join(format!(".config/{APP}/config.json")))?;
     let bin = get("bin-dir", home.join(".local/bin"))?;
     let applications = get("applications-dir", home.join(".local/share/applications"))?;
     let units = get("systemd-dir", home.join(".config/systemd/user"))?;
-    let runtime = get(
-        "runtime-root",
-        PathBuf::from("/srv/abyss-machine/runtimes/tos-sophia-demo"),
-    )?;
-    let cache = get(
-        "cache-root",
-        PathBuf::from("/srv/abyss-machine/cache/tos-sophia-demo"),
-    )?;
-    let browser = fs::canonicalize(get("browser", PathBuf::from("/usr/bin/chromium-browser"))?)?;
+    let runtime = required("runtime-root")?;
+    let cache = required("cache-root")?;
+    let browser = fs::canonicalize(required("browser")?)?;
     let binary = root.join("desktop/tos-constructor-desktop");
     let icon = root.join("desktop/icon.svg");
     let wrapper = bin.join(APP);
@@ -758,8 +755,7 @@ fn install(args: &BTreeMap<String, String>, commit: bool, replace: bool) -> Resu
     let unit =
         include_str!("../../../../access/web/constructor/desktop/tos-sophia-demo.service.in")
             .replace("@START@", &command("--run-server")?)
-            .replace("@STOP@", &command("--stop-worker")?)
-            .replace("Environment=PYTHONUNBUFFERED=1\n", "");
+            .replace("@STOP@", &command("--stop-worker")?);
     let entry =
         include_str!("../../../../access/web/constructor/desktop/tos-sophia-demo.desktop.in")
             .replace("@EXEC@", &quoted(&wrapper.to_string_lossy(), true)?)
@@ -925,7 +921,7 @@ fn main_run() -> Result<i32> {
             return launch(&path, &mode);
         }
         "--help" | "-h" => println!(
-            "usage: tos-constructor-desktop serve --release DIR [--port N] [--release-digest SHA256] [--log PATH]\n       tos-constructor-desktop digest --release DIR\n       tos-constructor-desktop install [--release DIR] [--install] [--replace] [--config PATH]\n       tos-constructor-desktop launch [--config PATH] [--status|--dry-run|--ensure-server]"
+            "usage: tos-constructor-desktop serve --release DIR [--port N] [--release-digest SHA256] [--log PATH]\n       tos-constructor-desktop digest --release DIR\n       tos-constructor-desktop install --application-root DIR --release DIR --runtime-root DIR --cache-root DIR --browser PATH [--install] [--replace] [--config PATH]\n       tos-constructor-desktop launch [--config PATH] [--status|--dry-run|--ensure-server]"
         ),
         _ => return Err(bad("unknown desktop operation")),
     }

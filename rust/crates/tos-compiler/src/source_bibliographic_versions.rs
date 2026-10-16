@@ -2403,32 +2403,6 @@ pub(crate) fn initial_managed_agent_version(
     )
 }
 
-/// Genuine V2 epoch identity, never fabricated V1 ordinal or file SHA.
-pub(crate) fn initial_managed_agent_version_with_epoch(
-    entry: &Value,
-    record: &Value,
-    raw: &[u8],
-    entities: &Value,
-    epoch: &crate::VersionsCatalogEpochV2,
-    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
-    deadline: std::time::Instant,
-    cancelled: &std::sync::atomic::AtomicBool,
-    l: BibliographicLimits,
-) -> Result<Version> {
-    initial_managed_agent_version_with_epoch_and_work(
-        entry,
-        record,
-        raw,
-        entities,
-        epoch,
-        tree_limits,
-        deadline,
-        cancelled,
-        l,
-    )
-    .map(|(version, _)| version)
-}
-
 pub(crate) fn initial_managed_agent_version_with_epoch_and_work(
     entry: &Value,
     record: &Value,

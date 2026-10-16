@@ -862,63 +862,6 @@ pub(crate) enum PersistedCatalogEvaluationError {
     },
 }
 
-/// Apply the actual maintained tail's selected schema targets, preserving
-/// owner encounter positions. An incomplete worker result never yields issues
-/// suitable for a completed CLI verdict. The caller must recheck the returned
-/// generated-input ledger again at whole-operation EOF.
-pub(crate) fn evaluate_persisted_catalog(
-    parsed: PersistedCatalogReport,
-    schema_set: &tos_validation::source_foundation_schema::SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    limits: tos_validation::source_foundation_schema::SourceFoundationSchemaLimits,
-    deadline: std::time::Instant,
-    cancelled: &AtomicBool,
-    max_issues: usize,
-    max_output_bytes: usize,
-    workspace: usize,
-) -> std::result::Result<EvaluatedPersistedCatalog, PersistedCatalogEvaluationError> {
-    evaluate_persisted_catalog_inner(
-        parsed,
-        schema_set,
-        worker,
-        limits,
-        deadline,
-        cancelled,
-        max_issues,
-        max_output_bytes,
-        workspace,
-        None,
-        None,
-    )
-}
-
-pub(crate) fn evaluate_persisted_catalog_with_shared_quota(
-    parsed: PersistedCatalogReport,
-    schema_set: &tos_validation::source_foundation_schema::SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    limits: tos_validation::source_foundation_schema::SourceFoundationSchemaLimits,
-    deadline: std::time::Instant,
-    cancelled: &AtomicBool,
-    max_issues: usize,
-    max_output_bytes: usize,
-    workspace: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
-) -> std::result::Result<EvaluatedPersistedCatalog, PersistedCatalogEvaluationError> {
-    evaluate_persisted_catalog_inner(
-        parsed,
-        schema_set,
-        worker,
-        limits,
-        deadline,
-        cancelled,
-        max_issues,
-        max_output_bytes,
-        workspace,
-        Some(quota),
-        None,
-    )
-}
-
 pub(crate) fn evaluate_persisted_catalog_with_shared_quota_and_image(
     parsed: PersistedCatalogReport,
     schema_set: &tos_validation::source_foundation_schema::SourceFoundationSchemaSet,

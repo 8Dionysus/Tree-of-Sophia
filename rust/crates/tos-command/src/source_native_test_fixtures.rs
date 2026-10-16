@@ -9,7 +9,7 @@ use std::path::{Component, Path};
 use tos_foundation::Digest256;
 
 const FIXTURE_TREE: &str = "rust/crates/tos-command/tests/fixtures/source-native-python-v1";
-const MANIFEST_SHA256: &str = "06d9dc44671c508caaf69ab58a15fb1e0757eb2bf37c26b6bcbc8f94514c2b14";
+const MANIFEST_SHA256: &str = "d6680aa684dbcaf06366f7c4cf788160d2de4b9f2f001cdef655639d11a1dcef";
 const SOURCE_HEAD: &str = "5a51a1295ecc75f57e1f5565cc0d2429eabd46e6";
 
 fn digest(raw: &[u8]) -> String {
@@ -58,7 +58,11 @@ fn packet(repository: &Path, root: &Path, id: &str) -> Value {
             .as_str()
             .expect("fixture artifact path");
         assert!(safe_relative(artifact));
-        assert_eq!(artifact, format!("fixtures/{id}/{relative}"));
+        assert!(
+            artifact == format!("fixtures/{id}/{relative}")
+                || artifact == format!("shared/{relative}"),
+            "fixture artifact must be case-local or shared at its declared source path"
+        );
         let source = repository.join(FIXTURE_TREE).join(artifact);
         let metadata = fs::symlink_metadata(&source).expect("captured fixture file");
         assert!(metadata.is_file() && !metadata.file_type().is_symlink());

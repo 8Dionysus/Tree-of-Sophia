@@ -457,7 +457,7 @@ pub(crate) struct PreparedSpooledExecution {
         Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>,
     /// Numeric metadata-only reader profile selected before the native
     /// completion witness. It carries no publication or allocation authority.
-    pub(crate) v2_base_read_limits: Option<super::source_admission_v2_reader::V2PointReadLimits>,
+    pub(crate) v2_base_read_limits: Option<tos_source_store::native_v2::reader::V2PointReadLimits>,
 }
 
 pub(crate) struct PreparedV2StoreRoot {
@@ -879,6 +879,10 @@ impl<'c> NativeSourceValidator<'c> {
             max_state_bytes: remaining.state_bytes,
         };
         let validation_profile = launch.arguments.validation_profile;
+        validation_profile
+            .scope
+            .require_available()
+            .map_err(|_| invalid("full source-foundation audit requires the research feature"))?;
         if validation_profile.scope != tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit
             && !matches!(invocation.admission_representation(), foundation_entry::FoundationAdmissionRepresentation::NativeV4 | foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2) {
             return Err(invalid("selected-source validation requires native-v4 admission"));
@@ -2136,7 +2140,7 @@ impl<'c> NativeSourceValidator<'c> {
             .as_ref()
             .map(|profile| Arc::clone(&profile.allocation_accountant));
         let v2_base_read_limits = match self.segment_v2_profile.as_ref() {
-            Some(profile) => Some(super::source_admission_v2_reader::V2PointReadLimits {
+            Some(profile) => Some(tos_source_store::native_v2::reader::V2PointReadLimits {
                 pointer: candidate_limits.candidate.reader,
                 segment: SegmentLimits {
                     max_segment_bytes: profile.max_allocated_bytes,

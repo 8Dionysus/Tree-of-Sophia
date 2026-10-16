@@ -1,9 +1,11 @@
 //! Same-owner logical payload delivery for an explicitly verified selected ABI.
 //! Query owns authentic SQL-row binding and keeps borrowed physical/carrier
 //! bytes admitted until this synchronous delivery and final selection fences end.
+#[cfg(test)]
+use crate::DedicatedSessionSqliteHeap;
 use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::sqlite_budget::SharedVmWindow;
-use crate::{DedicatedSessionSqliteHeap, Error, Result, VerifiedKnowledgeModel};
+use crate::{Error, Result, VerifiedKnowledgeModel};
 use rusqlite::Connection;
 use std::{
     sync::{
@@ -20,6 +22,7 @@ use tos_foundation::{Digest256, Digest256Hasher, JsonLimits};
 /// The remainder callback includes every retained caller/model/SQL/input owner.
 /// Serial caller debits usage.json_visits on both success and failure and poisons
 /// the session on failure. Work/VM use the original atomics directly.
+#[cfg(test)]
 pub(crate) struct RuntimeKnowledgeOwnedBudget<'a> {
     pub(crate) remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
     pub(crate) original_work: &'a Arc<AtomicU64>,
@@ -33,6 +36,7 @@ pub(crate) struct RuntimeKnowledgeOwnedBudget<'a> {
     pub(crate) cancelled: &'a Arc<AtomicBool>,
 }
 #[derive(Default, Clone, Copy)]
+#[cfg(test)]
 pub(crate) struct RuntimeKnowledgeReadUsage {
     pub(crate) json_visits: usize,
 }
@@ -289,6 +293,7 @@ impl RuntimeKnowledgeSqlHook<'_, '_, '_> {
 /// factory supplies no model/source authority: the caller retains authentic
 /// input/SQL/custody owners and validates the expected ABI before disclosure.
 /// Usage is charged on both outcomes; any failure terminates the owner session.
+#[cfg(test)]
 pub(crate) fn with_runtime_knowledge_read_context<'budget, T>(
     budget: &'budget RuntimeKnowledgeOwnedBudget<'budget>,
     usage: &mut RuntimeKnowledgeReadUsage,
@@ -468,61 +473,4 @@ pub(crate) fn with_logical_payload_for_verified_layout<T>(
     };
     state.active()?;
     result
-}
-
-/// Authenticate exact logical bytes before any parser/output callback. This
-/// wrapper does not query a model path, reset SQL hooks or select a layout from
-/// table presence. Cold/Query callers supply rows from their held actual DB.
-/// Caller must debit reported visits even on Err and terminate, without retry.
-pub(crate) fn with_selected_logical_payload_owned<'budget, T>(
-    model: &VerifiedKnowledgeModel<'_>,
-    row: &SelectedPayloadRow<'_>,
-    budget: &'budget RuntimeKnowledgeOwnedBudget<'budget>,
-    usage: &mut RuntimeKnowledgeReadUsage,
-    stored_limits: JsonLimits,
-    source_limits: JsonLimits,
-    max_row_bytes: usize,
-    consume: impl FnOnce(&[u8], &RuntimeKnowledgeReadContext<'_, '_>) -> Result<T>,
-) -> Result<T> {
-    with_runtime_knowledge_read_context(budget, usage, |context| {
-        let state = context.state;
-        let fixed = std::mem::size_of::<(
-            &VerifiedKnowledgeModel<'_>,
-            &SelectedPayloadRow<'_>,
-            &RuntimeKnowledgeOwnedBudget<'_>,
-            &mut RuntimeKnowledgeReadUsage,
-            JsonLimits,
-            JsonLimits,
-            usize,
-        )>()
-        .checked_add(std::mem::size_of::<RuntimeKnowledgeReadContext<'_, '_>>())
-        .and_then(|n| n.checked_add(std::mem::size_of_val(&consume)))
-        .and_then(|n| n.checked_add(std::mem::size_of::<Digest256Hasher>()))
-        .and_then(|n| n.checked_add(std::mem::size_of::<Result<T>>()))
-        .and_then(|n| n.checked_add(std::mem::size_of::<Result<T>>()))
-        .ok_or(Error::Budget("selected payload controller state"))?;
-        let _fixed = state.hold(fixed)?;
-        state.active()?;
-        model.check_pin()?;
-        let abi = &model.selection().model_abi;
-        let layout = crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(abi);
-        if !layout.uses_carriers() && abi != crate::knowledge_selected::KNOWLEDGE_MODEL_ABI {
-            return Err(Error::Invalid("selected payload ABI unsupported"));
-        }
-        let result = with_logical_payload_for_verified_layout(
-            model.connection(),
-            context,
-            layout,
-            row,
-            stored_limits,
-            source_limits,
-            max_row_bytes,
-            consume,
-        );
-        // Scope buffers/context remain retained through both disclosure fences.
-        state.active()?;
-        model.check_pin()?;
-        state.active()?;
-        result
-    })
 }

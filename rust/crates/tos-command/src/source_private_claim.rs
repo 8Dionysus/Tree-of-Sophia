@@ -4126,29 +4126,6 @@ fn configuration_grammars(
     Ok(JsonValue::Object(grammars))
 }
 
-fn source_schema_fingerprints(
-    reads: &ExactReads,
-    route: &ClaimRoute,
-) -> SourceCommandResult<JsonValue> {
-    let mut refs = BTreeSet::new();
-    refs.extend([
-        RELATIONS,
-        ENTITIES,
-        CLAIM_REGISTRY_SCHEMA,
-        ENTITY_REGISTRY_SCHEMA,
-    ]);
-    refs.extend(CLAIM_SHARED_SCHEMAS.iter().copied());
-    refs.extend(route.schema_dependencies.iter().map(String::as_str));
-    refs.insert(route.schema_ref.as_str());
-    let mut digests = BTreeMap::new();
-    for reference in refs {
-        if let Some(raw) = reads.files.get(reference) {
-            digests.insert(reference.to_owned(), Digest256::of_bytes(raw).to_prefixed());
-        }
-    }
-    Ok(hash_map(digests))
-}
-
 fn resolve_native_selection(
     owner: &OwnerTextContext,
     cut: &dyn PrivateSelectedSourceInput,

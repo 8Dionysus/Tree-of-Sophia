@@ -1,5 +1,5 @@
 import {
-  DEFAULT_DB_NAME,DEFAULT_PAGE_SIZE,MAX_PAGE_SIZE,
+  DEFAULT_DB_NAME,
   ResearchShelfError,createShelfCollection,createShelfRecord,decodeShelfCursor,
   encodeShelfCursor,makeShelfExport,importSuppliedResearchPacket,sameShelfValue,
   updateShelfCollection,updateShelfRecord,validateCollection,validateListOptions,
@@ -168,9 +168,6 @@ export function createMemoryResearchShelfAdapter({memoryStore,state,now=timestam
   };
 }
 
-function requestResult(request,failRequest){
-  return new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>{const error=mapStorageError(request.error);failRequest?.(error);reject(error);};});
-}
 function transactionPromise(db,stores,mode,setup){
   return new Promise((resolve,reject)=>{
     let tx,result,failed=false;
@@ -468,5 +465,3 @@ export function createResearchShelfStore(options={}){
 }
 
 export const createMemoryResearchShelfStore=options=>createResearchShelfStore({...options,adapter:'memory'});
-export const createResearchShelf=createResearchShelfStore;
-export const createMemoryResearchShelf=createMemoryResearchShelfStore;

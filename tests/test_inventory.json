@@ -33,17 +33,17 @@
   ],
   "tests": [
     {
-      "path": "rust/crates/tos-command/src/source_assembly_normalization.rs",
+      "path": "rust/crates/tos-command/src/source_claim_publication_normalize_tests.rs",
       "home": "rust/crates/tos-command",
       "home_scope": "product-local",
       "family": "native_source_contract",
       "validation_lane": "source_witness_foundation",
       "owner_surface": "access/contracts/source-assembly-normalization.v1.md",
       "protects": "bounded multi-node source cohort normalization using full-builder Claim, literal-context, relation, inherited-view and readable-context kernels; source Agent correction parity beyond direct incidence, exact retained versions, missing input refusal, output isolation and budgets without closure or admission claims",
-      "coverage_authority": "Cargo test discovery and native source-assembly contract",
+      "coverage_authority": "Cargo test discovery and live Claim, Agent and metadata publication normalizer",
       "mode": "blocking",
       "runtime_cost": "fast",
-      "focused_target": "source_assembly_normalization::tests",
+      "focused_target": "source_claim_publication_normalize::tests",
       "failure_route": "Fix the native shared normalization or supplied closure contract; never infer omitted source dependencies, skip Claim reducers or silently fall back to a full graph build.",
       "disposition": "keep"
     },

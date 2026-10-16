@@ -1,8 +1,12 @@
 # Rust workspace
 
-This is the initial build and installation boundary for the Tree of Sophia
-Rust migration. `tos-foundation` owns shared codec and identity types;
-`tos-source-store` owns bounded exact v1 corpus reads. The independent
+This workspace owns the Rust build and installation boundary for Tree of Sophia.
+`tos-foundation` owns shared codec, identity and schema-execution binding types;
+`tos-source-store` owns bounded exact V1 and native V2 corpus reads, descriptor
+codecs and physical source custody. Admission and publication remain in
+`tos-command`. The read-only `tos-reader` depends on storage directly, so its
+build does not include command, compiler, query, validation or mechanics crates.
+The independent
 `tos-conformance` package consumes their public APIs and tiny synthetic
 fixtures. The `tos-reader` binary is a trusted-local, read-only adapter for an
 exact retained revision and source ID. It stages and verifies selected bytes

@@ -7402,32 +7402,6 @@ where
     Ok((resolved.record, resolved.source_path))
 }
 
-pub(crate) fn resolve_record_version_from_cut(
-    ctx: &CommandContext,
-    cut: &CorpusCutReader,
-    exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<(JsonValue, String)> {
-    if cut.current().revision() != ctx.base_revision {
-        return Err(SourceCommandError::Conflict(
-            "metadata resolver selected cut differs",
-        ));
-    }
-    let resolved = resolve_record_version_selected(
-        ctx,
-        Some(cut),
-        None,
-        None,
-        exact,
-        worker,
-        deadline,
-        cancelled,
-    )?;
-    Ok((resolved.record, resolved.source_path))
-}
-
 /// Evidence produced by the same exact-version read and retained archive
 /// verification. It describes a source version; it grants no current use.
 pub struct ResolvedRecordVersion {

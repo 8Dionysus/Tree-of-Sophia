@@ -1,6 +1,6 @@
 //! Native regeneration and checks for authored public synthetic laboratory fixtures.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos synthetic-foundation-lab --source-root ABS --laboratory source-text-unit-v1|translation-alignment-v1|semantic-annotation-v2 --build|--check [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nRegenerate the declared public synthetic A/B/C fixtures through the shared Rust schema and semantic validation rules. No private input, translation, human review, source admission or canon change. Build requires admitted bytes; check is read-only.\n";
+const HELP: &str = "tos-research synthetic-foundation-lab --source-root ABS --laboratory source-text-unit-v1|translation-alignment-v1|semantic-annotation-v2 --build|--check [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nRegenerate the declared public synthetic A/B/C fixtures through the shared Rust schema and semantic validation rules. No private input, translation, human review, source admission or canon change. Build requires admitted bytes; check is read-only.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("synthetic-foundation-lab") {
         return None;

@@ -63,13 +63,13 @@ enum SpooledExecutionOutcome {
         case: Option<io::Result<crate::source_admission_v2_case::V2CaseOutcome>>,
     },
     Recovered {
-        accepted: crate::source_admission_v2_reader::AcceptedV2Publication,
+        accepted: tos_source_store::native_v2::reader::AcceptedV2Publication,
         case: Option<io::Result<crate::source_admission_v2_case::V2CaseOutcome>>,
     },
 }
 
 fn recovered_publication_refusal(
-    accepted: &crate::source_admission_v2_reader::AcceptedV2Publication,
+    accepted: &tos_source_store::native_v2::reader::AcceptedV2Publication,
     phase: &'static str,
     cause: io::Error,
 ) -> io::Error {
@@ -95,7 +95,7 @@ pub(crate) struct PublicationCommittedRefusal {
     pub(crate) revision: Digest256,
     pub(crate) manifest_sha256: Option<Digest256>,
     pub(crate) source_artifact:
-        Option<crate::source_admission_segment_v2::SourceRevisionArtifactV2>,
+        Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) history_proof_rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
@@ -184,7 +184,7 @@ fn publication_committed_refusal_parts(
     phase: &'static str,
     revision: Digest256,
     manifest_sha256: Option<Digest256>,
-    source_artifact: Option<crate::source_admission_segment_v2::SourceRevisionArtifactV2>,
+    source_artifact: Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     rootset_sha256: Option<Digest256>,
     batch_sha256: Digest256,
     validator_sha256: Digest256,
@@ -1370,8 +1370,8 @@ fn run_selected_v2_case(
     use crate::source_admission_v2_case::{
         V2CaseLimits, cold_case_phase_overhead_bytes, read_backup_restore_case_with_cold_spill_at,
     };
-    use crate::source_admission_v2_reader::V2PointReadLimits;
     use crate::source_admission_v2_seen_pack::{V2SeenPackSpillRequest, V2SeenPackSpillRequests};
+    use tos_source_store::native_v2::reader::V2PointReadLimits;
     let source_root = resources
         .v2_source_root
         .as_ref()
@@ -1764,21 +1764,23 @@ fn run_spooled_inner(
         let work = crate::source_admission::AdmissionWorkBudget::new(
             resources.candidate_limits.candidate.max_read_bytes,
         )?;
-        let mut reader = crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_work(
-            store_path,
-            &source_root.held,
-            read_limits,
-            profile.io.clone(),
-            work.clone(),
-            deadline,
-            cancelled.clone(),
-        )?;
+        let mut reader =
+            tos_source_store::native_v2::reader::V2ReadSession::open_at_named_with_work(
+                store_path,
+                &source_root.held,
+                read_limits,
+                profile.io.clone(),
+                work.clone(),
+                deadline,
+                cancelled.clone(),
+            )?;
         if reader.selected_revision() != expected_revision {
             return Err(invalid("committed verification selected revision differs"));
         }
         // Require an existing native completion proof. The current executable
         // is only the reader; it never reissues the historical validator claim.
-        reader.selected_native_admission_root()?;
+        reader.selected_rootset_sha256()?;
+        crate::source_admission_index::validate_selected_native_completion(reader.current_roots())?;
         let roots = reader.current_roots();
         let original_batch = roots
             .batch_sha256
@@ -1803,7 +1805,7 @@ fn run_spooled_inner(
             expected_revision,
             deadline,
             cancelled,
-            std::mem::size_of::<crate::source_admission_v2_reader::AcceptedV2Publication>(),
+            std::mem::size_of::<tos_source_store::native_v2::reader::AcceptedV2Publication>(),
             work,
         ));
         return Ok(SpooledExecutionOutcome::Recovered { accepted, case });
@@ -1953,7 +1955,7 @@ fn run_spooled_inner(
                 ),
                 reader_limits: crate::source_admission_indexed_input::IndexedInputLimitsV1 {
                     member_tree,
-                    packed_objects: crate::source_admission_packed_objects::PackedObjectLimitsV2 {
+                    packed_objects: tos_source_store::native_v2::objects::PackedObjectLimitsV2 {
                         segment_limits: original.segment,
                         tree_limits: object_tree,
                         max_working_state_bytes,
@@ -1962,7 +1964,7 @@ fn run_spooled_inner(
                         max_objects,
                         max_delta_rows: max_objects,
                         max_pack_frames: original.segment.max_frames.min(
-                            crate::source_admission_packed_objects::MAX_PACKED_OBJECT_FRAMES_V2,
+                            tos_source_store::native_v2::objects::MAX_PACKED_OBJECT_FRAMES_V2,
                         ),
                     },
                     max_members,
@@ -2023,7 +2025,7 @@ fn run_spooled_inner(
         read_limits.max_state_bytes = read_limits
             .max_state_bytes
             .min(validator.candidate_limits()?.max_state_bytes);
-        let mut reader = crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+        let mut reader = tos_source_store::native_v2::reader::V2ReadSession::open_at_named_with_io(
             store_path,
             &source_root.held,
             read_limits,
@@ -2094,7 +2096,7 @@ fn run_spooled_inner(
         read_limits.max_state_bytes = read_limits
             .max_state_bytes
             .min(validator.candidate_limits()?.max_state_bytes);
-        let mut reader = crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+        let mut reader = tos_source_store::native_v2::reader::V2ReadSession::open_at_named_with_io(
             store_path,
             &source_root.held,
             read_limits,
@@ -2210,7 +2212,7 @@ fn run_spooled_inner(
         let preopened = transition_reader.take().or_else(|| fresh_reader.take());
         let mut reader = match preopened {
             Some(reader) => reader,
-            None => crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+            None => tos_source_store::native_v2::reader::V2ReadSession::open_at_named_with_io(
                 store_path,
                 &source_root.held,
                 read_limits,
@@ -2257,7 +2259,7 @@ fn run_spooled_inner(
                             deadline,
                             cancelled,
                             std::mem::size_of::<
-                                crate::source_admission_v2_reader::AcceptedV2Publication,
+                                tos_source_store::native_v2::reader::AcceptedV2Publication,
                             >(),
                             work,
                         )
@@ -2349,7 +2351,7 @@ fn run_spooled_inner(
         match probed_v2.take() {
             Some(reader) => Some(reader),
             None => Some(RefCell::new(
-                crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+                tos_source_store::native_v2::reader::V2ReadSession::open_at_named_with_io(
                     store_path,
                     &source_root.held,
                     read_limits,
@@ -2603,7 +2605,7 @@ fn case_receipt(case: &crate::source_admission_v2_case::V2CaseReceipt) -> serde_
 }
 
 fn recovered_receipt(
-    accepted: &crate::source_admission_v2_reader::AcceptedV2Publication,
+    accepted: &tos_source_store::native_v2::reader::AcceptedV2Publication,
 ) -> serde_json::Value {
     let artifact = &accepted.source_artifact;
     let mut source_record = json!({

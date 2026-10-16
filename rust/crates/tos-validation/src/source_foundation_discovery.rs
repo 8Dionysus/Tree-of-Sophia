@@ -524,10 +524,6 @@ pub trait CandidateArtifactCorrectionReplayEvidence<I: Copy + Eq> {
     fn returned_state_bytes(&self) -> usize;
 }
 
-/// Caller-owned map of candidate Artifact paths to their typed replay proof.
-pub type CandidateArtifactCorrectionReplayMap<'a, I> =
-    BTreeMap<String, &'a dyn CandidateArtifactCorrectionReplayEvidence<I>>;
-
 /// One authentic candidate-fenced Artifact evidence packet held only while
 /// Discovery checks its current record. The history comes from the maintained
 /// native-history reader and the optional replay from CMD's maintained replay
@@ -912,10 +908,8 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     paths: &'p dyn DiscoveryCurrentPaths,
     candidate_input: Option<&'p dyn SourceCutInput>,
     records_lookup: Option<&'p dyn SourceFoundationDefaultRecordsLookup>,
-    candidate_identity: Option<&'p I>,
-    candidate_membership: Option<SourceMembershipV1>,
-    native_histories: NativeHistorySet<'p, I>,
-    artifact_replays: ArtifactReplaySet<'p, I>,
+    native_histories: NativeHistorySet<'p>,
+    artifact_replays: ArtifactReplaySet<'p>,
     candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
     candidate_discovery_seen_ids: Option<&'p mut dyn DiscoverySeenIds>,
     candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
@@ -3170,12 +3164,6 @@ fn leaks_local_path(value: &Value) -> bool {
     })
 }
 
-fn string_values_set(value: &Value) -> BTreeSet<String> {
-    let mut strings = Vec::new();
-    string_values(value, &mut strings);
-    strings.into_iter().map(str::to_owned).collect()
-}
-
 fn private_handoff_semantic_issues(value: &Value, destination_exists: bool) -> Vec<String> {
     let Some(object) = value.as_object() else {
         return vec!["private-evidence handoff is not an object".into()];
@@ -4986,59 +4974,34 @@ impl<I: Copy + Eq> ArtifactReplayRef<'_, I> {
     }
 }
 
-enum NativeHistorySet<'a, I: Copy + Eq> {
+#[derive(Clone, Copy)]
+enum NativeHistorySet<'a> {
     Empty,
     Cut(&'a BTreeMap<String, NativeRecordHistoryReadObservation>),
-    Candidate(
-        &'a BTreeMap<
-            String,
-            crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
-        >,
-    ),
 }
 
-impl<I: Copy + Eq> Copy for NativeHistorySet<'_, I> {}
-
-impl<I: Copy + Eq> Clone for NativeHistorySet<'_, I> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<'a, I: Copy + Eq> NativeHistorySet<'a, I> {
-    fn get(&self, path: &str) -> Option<NativeHistoryRef<'a, I>> {
+impl<'a> NativeHistorySet<'a> {
+    fn get<I: Copy + Eq>(&self, path: &str) -> Option<NativeHistoryRef<'a, I>> {
         match *self {
             Self::Empty => None,
             Self::Cut(rows) => rows.get(path).map(NativeHistoryRef::Cut),
-            Self::Candidate(rows) => rows.get(path).map(NativeHistoryRef::Candidate),
         }
     }
 }
 
-enum ArtifactReplaySet<'a, I: Copy + Eq> {
+#[derive(Clone, Copy)]
+enum ArtifactReplaySet<'a> {
     Empty,
     Cut(&'a ArtifactCorrectionReplayMap<'a>),
-    Candidate(&'a CandidateArtifactCorrectionReplayMap<'a, I>),
 }
 
-impl<I: Copy + Eq> Copy for ArtifactReplaySet<'_, I> {}
-
-impl<I: Copy + Eq> Clone for ArtifactReplaySet<'_, I> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<'a, I: Copy + Eq> ArtifactReplaySet<'a, I> {
-    fn get(&self, path: &str) -> Option<ArtifactReplayRef<'a, I>> {
+impl<'a> ArtifactReplaySet<'a> {
+    fn get<I: Copy + Eq>(&self, path: &str) -> Option<ArtifactReplayRef<'a, I>> {
         match *self {
             Self::Empty => None,
             Self::Cut(rows) => rows
                 .get(path)
                 .map(|evidence| ArtifactReplayRef::Cut(*evidence)),
-            Self::Candidate(rows) => rows
-                .get(path)
-                .map(|evidence| ArtifactReplayRef::Candidate(*evidence)),
         }
     }
 
@@ -5049,12 +5012,6 @@ impl<'a, I: Copy + Eq> ArtifactReplaySet<'a, I> {
         match self {
             Self::Empty => Ok(()),
             Self::Cut(rows) => {
-                for path in rows.keys() {
-                    visit(path)?;
-                }
-                Ok(())
-            }
-            Self::Candidate(rows) => {
                 for path in rows.keys() {
                     visit(path)?;
                 }
@@ -7825,428 +7782,11 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
     .map(|output| output.report)
 }
 
-/// Inspect one already-completed candidate Records scope through the shared
-/// Discovery rules. Current paths are traversed through the bounded provider;
-/// point membership comes from that same provider and bytes are read from the
-/// exact identity-bearing input. The verified Records coverage is reused as
-/// the source fence, never translated into a `SourceRevision`.
+/// Inspect the exact candidate Records scope with CMD's held evidence, ID,
+/// run, event, schema and digest stores. The typed stores are required together;
+/// the shared kernel preserves the original input and membership fences.
 #[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    native_histories: &BTreeMap<
-        String,
-        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
-    >,
-    artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
-    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_replays_and_records_with_proofs_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        native_histories,
-        artifact_replays,
-        invalid_schema_proofs,
-        None,
-        require_local_payloads,
-    )
-}
-
-/// Direct candidate history/replay input with the same bounded exact-ID
-/// scratch index used by the lazy evidence-provider route. The old finite-map
-/// API remains available for callers that do not own that provider.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs_and_seen_ids<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    native_histories: &BTreeMap<
-        String,
-        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
-    >,
-    artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
-    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_replays_and_records_with_proofs_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        native_histories,
-        artifact_replays,
-        invalid_schema_proofs,
-        Some(discovery_seen_ids),
-        require_local_payloads,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn inspect_candidate_with_artifact_replays_and_records_with_proofs_impl<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    native_histories: &BTreeMap<
-        String,
-        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
-    >,
-    artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
-    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
-    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    source.checkpoint(limits.deadline)?;
-    let input_identity = *input.input_identity();
-    let membership = *records.source_membership();
-    if input_identity != *records.input_identity()
-        || coverage.membership() != membership
-        || invalid_schema_proofs.input_identity() != input_identity
-        || invalid_schema_proofs.current_membership() != membership
-    {
-        return Err(ItemRefusal::Source(
-            "source-foundation candidate Discovery input/report binding differs".into(),
-        ));
-    }
-    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
-    invalid_schema_proofs.validate_report_binding(
-        input,
-        records,
-        limits.deadline,
-        source.cancellation(),
-    )?;
-    for (path, observation) in native_histories {
-        if observation.input_identity() != &input_identity
-            || observation.current_membership() != membership
-            || observation.record_path() != path
-            || !paths.contains(path)?
-            || input.path_presence(path, limits.deadline, source.cancellation())?
-                != Some(SourcePresenceV1::File)
-        {
-            return Err(ItemRefusal::Source(
-                "source-foundation candidate native Artifact history binding differs".into(),
-            ));
-        }
-    }
-    for (path, replay) in artifact_replays {
-        if replay.input_identity() != &input_identity
-            || replay.current_membership() != membership
-            || replay.source_path() != path
-            || !paths.contains(path)?
-            || input.path_presence(path, limits.deadline, source.cancellation())?
-                != Some(SourcePresenceV1::File)
-        {
-            return Err(ItemRefusal::Source(
-                "source-foundation candidate Artifact replay binding differs".into(),
-            ));
-        }
-    }
-    let path_view = BorrowedDiscoveryPaths(paths);
-    let output = inspect_kernel::<S, I>(
-        source,
-        &path_view,
-        Some(input.source_input()),
-        Some(records_lookup),
-        Some(&input_identity),
-        Some(membership),
-        NativeHistorySet::Candidate(native_histories),
-        ArtifactReplaySet::Candidate(artifact_replays),
-        Some(invalid_schema_proofs),
-        prior_events,
-        limits,
-        Some(physical),
-        require_local_payloads,
-        None,
-        None,
-        None,
-        discovery_seen_ids,
-        None,
-        None,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )?;
-    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
-    Ok(SourceFoundationCandidateDiscoveryReport {
-        input_identity,
-        source_membership: membership,
-        candidate_direct_source_bytes: output.candidate_direct_source_bytes,
-        report: output.report,
-    })
-}
-
-/// Inspect a candidate source input while reconstructing one authentic
-/// Artifact history/replay packet at a time through CMD's provider. The held
-/// Records path index is consumed in the same Artifact traversal and checked
-/// for orphan rows at EOF.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_evidence_provider<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_evidence_provider_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        evidence_provider,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        require_local_payloads,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate variant that also uses CMD's bounded exact-ID scratch index to
-/// preserve first-path and duplicate laws without retaining every ID in RAM.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_evidence_provider_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        evidence_provider,
-        Some(discovery_seen_ids),
-        None,
-        None,
-        None,
-        None,
-        None,
-        require_local_payloads,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate variant that spills exact-path Discovery summaries beside the
-/// existing exact-ID scratch index in CMD's invocation-scoped auxiliary
-/// store. The summary projection is rebuilt from current source bytes on
-/// every invocation and carries no source-admission authority.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_evidence_provider_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        evidence_provider,
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        None,
-        None,
-        None,
-        None,
-        require_local_payloads,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate variant that also spills provenance event summaries and owner
-/// insertions to CMD's invocation-scoped event scratch store.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
-    max_event_json_bytes: usize,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_evidence_provider_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        evidence_provider,
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(max_event_json_bytes),
-        None,
-        None,
-        require_local_payloads,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate variant that streams each decoded Discovery document into the
-/// invocation-scoped schema-request store for the maintained CMD diagnostics
-/// worker to read back one request at a time.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
-    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
-    max_event_json_bytes: usize,
-    require_local_payloads: bool,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_evidence_provider_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        evidence_provider,
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(max_event_json_bytes),
-        Some(discovery_schema_requests),
-        None,
-        require_local_payloads,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate variant that also holds exact current-member digests in CMD's
-/// invocation-scoped cache, keeping the portable Discovery kernel's digest
-/// point facts out of its resident path map.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
+pub fn inspect_candidate_with_stores<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     source: &mut S,
     input: &dyn SourceCutInputWithIdentity<I>,
     coverage: &SourceCutInputCoverage,
@@ -8263,52 +7803,6 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
     discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
     discovery_digest_cache: &mut dyn DiscoveryDigestCache,
     max_event_json_bytes: usize,
-    require_local_payloads: bool,
-    scope: SourceFoundationDefaultRuleScope,
-) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
-    inspect_candidate_with_artifact_evidence_provider_impl(
-        source,
-        input,
-        coverage,
-        paths,
-        prior_events,
-        records_lookup,
-        records,
-        limits,
-        physical,
-        evidence_provider,
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(max_event_json_bytes),
-        Some(discovery_schema_requests),
-        Some(discovery_digest_cache),
-        require_local_payloads,
-        scope,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn inspect_candidate_with_artifact_evidence_provider_impl<
-    S: LayerFamilySource + ?Sized,
-    I: Copy + Eq,
->(
-    source: &mut S,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    coverage: &SourceCutInputCoverage,
-    paths: &dyn SourceFoundationDefaultPaths,
-    prior_events: &dyn SourceFoundationDefaultEventLookup,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    limits: ItemLimits,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
-    discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
-    discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
-    candidate_discovery_event_json_limit: Option<usize>,
-    discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
-    discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
     require_local_payloads: bool,
     scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
@@ -8346,12 +7840,12 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
         None,
         None,
         Some(evidence_provider),
-        discovery_seen_ids,
-        discovery_run_summaries,
-        discovery_event_summaries,
-        candidate_discovery_event_json_limit,
-        discovery_schema_requests,
-        discovery_digest_cache,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
+        Some(discovery_schema_requests),
+        Some(discovery_digest_cache),
         scope,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
@@ -8441,8 +7935,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     records_lookup: Option<&dyn SourceFoundationDefaultRecordsLookup>,
     candidate_identity: Option<&I>,
     candidate_membership: Option<SourceMembershipV1>,
-    native_histories: NativeHistorySet<'_, I>,
-    artifact_replays: ArtifactReplaySet<'_, I>,
+    native_histories: NativeHistorySet<'_>,
+    artifact_replays: ArtifactReplaySet<'_>,
     candidate_invalid_schema_proofs: Option<&dyn CandidateInvalidArtifactSchemaProof<I>>,
     prior_events: &dyn SourceFoundationDefaultEventLookup,
     limits: ItemLimits,
@@ -8487,8 +7981,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         paths,
         candidate_input,
         records_lookup,
-        candidate_identity,
-        candidate_membership,
         native_histories,
         artifact_replays,
         candidate_invalid_schema_proofs,

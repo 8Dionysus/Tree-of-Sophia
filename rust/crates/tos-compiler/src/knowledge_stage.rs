@@ -5708,13 +5708,6 @@ fn selected_table_closure_with_owned_state(
     selected_table_closure_with_layout_and_state(db, KnowledgePayloadLayout::InlineV1, state)
 }
 
-pub(crate) fn selected_table_closure_with_layout(
-    db: &Connection,
-    layout: KnowledgePayloadLayout,
-) -> Result<()> {
-    selected_table_closure_with_layout_and_state(db, layout, None)
-}
-
 fn selected_table_closure_with_layout_and_state(
     db: &Connection,
     layout: KnowledgePayloadLayout,
@@ -6804,9 +6797,6 @@ fn stage_root_owned(
     Ok((count, hash.finalize().to_hex()))
 }
 
-fn input_root(db: &Connection, entry: &InputCollectionReceipt) -> Result<(u64, String)> {
-    input_root_with_state(db, entry, None)
-}
 fn input_root_with_state(
     db: &Connection,
     entry: &InputCollectionReceipt,
@@ -6860,9 +6850,7 @@ fn input_root_with_state(
     }
     Ok((count, hash.finalize().to_hex()))
 }
-fn output_root(db: &Connection, table: &str) -> Result<(u64, String)> {
-    output_root_with_state(db, table, None)
-}
+
 fn output_root_with_state(
     db: &Connection,
     table: &str,

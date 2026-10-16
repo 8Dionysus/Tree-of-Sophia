@@ -35,8 +35,6 @@ pub(crate) mod reference_cursor;
 pub mod release_state;
 pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
-#[cfg(not(target_arch = "wasm32"))]
-pub use tos_command::source_assembly_normalization;
 mod common;
 pub mod http;
 #[cfg(not(target_arch = "wasm32"))]
@@ -79,14 +77,19 @@ pub mod source_cut_restore;
 
 pub mod evidence_projection;
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod lexical_index_command;
+#[cfg(feature = "research-tools")]
 pub mod structural_paragraph_command;
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod technical_markup_command;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod research_builders_command;
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod source_text_foundation_command;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -110,41 +113,59 @@ pub mod source_projection_coverage;
 pub(crate) mod controlled_reference_health;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod transfer_metadata_command;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod dta_technical_markup_command;
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod transfer_source_passages_command;
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod transfer_target_passages_command;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod transfer_candidates_command;
 
+#[cfg(feature = "research-tools")]
 pub mod transfer_source_visible_command;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research-tools")]
 pub mod german_triangulation_command;
 
+#[cfg(feature = "research-tools")]
 pub mod bounded_translation_input_command;
 
+#[cfg(feature = "research-tools")]
 pub mod antonovsky_collation_command;
 
+#[cfg(feature = "research-tools")]
 pub mod synthetic_foundation_lab_command;
 
+#[cfg(feature = "research-tools")]
 pub mod authored_canon_bridge_command;
 
+#[cfg(feature = "research-tools")]
 pub mod provenance_event_lab_command;
 
+#[cfg(feature = "research-tools")]
 pub mod jenseits_label_command;
 
+#[cfg(feature = "research-tools")]
 pub mod nietzsche_transfer_routes_command;
 
+#[cfg(feature = "research-tools")]
 pub mod jenseits_structure_command;
 
+#[cfg(feature = "research-tools")]
 pub mod lexical_derivatives_command;
 
+#[cfg(feature = "research-tools")]
 pub mod morphology_result_command;
 
+#[cfg(feature = "research-tools")]
 pub mod visual_result_command;

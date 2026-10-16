@@ -1,6 +1,6 @@
-import {createRouteCenterSession,routeRelationMember,createLensSortSession,createLensNodeSession,lensDegreeNext,lensSlotPosition} from './lens-projection-rules.mjs';
+import {lensPosition} from './lens-projection-rules.mjs';
 import {browserFocusSpec,browserRelationSpec} from './lens-spec-rules.mjs';
-import {createClientPacketSession,createClientMaterialSession,packetKindUnits,packetMissing,createClientJsonSession,createClientSelectorSession,packetSetKey,packetString} from './client-packet-rules.mjs';
+import {createClientPacketSession,createClientMaterialSession,packetKindUnits,packetSetKey} from './client-packet-rules.mjs';
 import {createSourceDossierSession,dossierTextUnits,dossierPredicate} from './source-dossier-rules.mjs';
 import {createClientInspectionSession,createClientItemsSession,inspectionRefInvalid,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
 import {t,uiLanguage} from './ui-i18n.mjs';
@@ -23,8 +23,6 @@ export function isSourceDossierRef(value){
   if(!dossierPredicate('reference_size',typeof value==='string',typeof value==='string'?value.length:0))return false;
   return dossierPredicate('reference_value',dossierTextUnits(value));
 }
-// Transport bounds are not a license to draw or retain every delivered page.
-export const EXPLORATION_BUDGET = Object.freeze({nodes:302,relations:101});
 const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
@@ -36,49 +34,29 @@ export class RequestError extends Error {
 }
 // JSON objects have no meaningful property order; array order remains exact.
 export function sameJson(left,right){
-  const session=createClientJsonSession();let keys,result;
-  try{while(true){switch(session.need()){
-    case 'identity':session.observe(left===right);break;
-    case 'left-null':session.observe(left===null);break;
-    case 'right-null':session.observe(right===null);break;
-    case 'left-object':session.observe(typeof left==='object');break;
-    case 'right-object':session.observe(typeof right==='object');break;
-    case 'left-array-first':case 'left-array-second':session.observe(Array.isArray(left));break;
-    case 'right-array-first':case 'right-array-second':session.observe(Array.isArray(right));break;
-    case 'array-length':session.observe(left.length===right.length);break;
-    case 'array-every':result=left.every((value,index)=>sameJson(value,right[index]));session.observe(Boolean(result));break;
-    case 'object-keys':keys=Object.keys(left);session.observe(true);break;
-    case 'object-key-count':session.observe(keys.length===Object.keys(right).length);break;
-    case 'object-every':result=keys.every(key=>{
-      if(packetMissing(Object.hasOwn(right,key)))return false;
-      return sameJson(left[key],right[key]);
-    });session.observe(Boolean(result));break;
-    case 'done':return session.result()===2?result:session.result()===1;
-    default:throw new Error('Invalid exact JSON Rust need');
-  }}}finally{session.free();}
+  if(left===right)return true;
+  if(left===null||right===null||typeof left!=='object'||typeof right!=='object')return false;
+  if(Array.isArray(left)||Array.isArray(right)){
+    return Array.isArray(left)&&Array.isArray(right)&&left.length===right.length
+      &&left.every((value,index)=>sameJson(value,right[index]));
+  }
+  const keys=Object.keys(left);
+  return keys.length===Object.keys(right).length
+    &&keys.every(key=>Object.hasOwn(right,key)&&sameJson(left[key],right[key]));
 }
 // The original request remains on the wire; only comparison treats the two
 // owner-normalized selector fields as sets.
 export function explorationRequestMatches(normalized,requested){
-  if(packetMissing(Boolean(normalized)))return false;
+  if(!normalized)return false;
   return Object.entries(requested).every(([key,value])=>{
-    if(packetMissing(packetSetKey(key)))return sameJson(normalized[key],value);
+    if(!packetSetKey(key))return sameJson(normalized[key],value);
     const actual=normalized[key];
-    return validateRequestSelectorSet(value,actual);
+    if(!Array.isArray(value)||!Array.isArray(actual))return false;
+    const strings=value.every(item=>typeof item==='string');
+    if(!strings)return strings;
+    return new Set(actual).size===actual.length&&new Set(value).size===actual.length
+      &&value.every(item=>actual.includes(item));
   });
-}
-function validateRequestSelectorSet(value,actual){
-  const session=createClientSelectorSession();let result;
-  try{while(true){switch(session.need()){
-    case 'requested-array':session.observe(Array.isArray(value));break;
-    case 'actual-array':session.observe(Array.isArray(actual));break;
-    case 'strings':result=value.every(packetString);session.observe(Boolean(result));break;
-    case 'actual-unique':session.observe(new Set(actual).size===actual.length);break;
-    case 'requested-count':session.observe(new Set(value).size===actual.length);break;
-    case 'members':result=value.every(item=>actual.includes(item));session.observe(Boolean(result));break;
-    case 'done':return session.result()===2?result:session.result()===1;
-    default:throw new Error('Invalid selector comparison Rust need');
-  }}}finally{session.free();}
 }
 // Durable reading stores selectors only. The backend must supply and validate
 // the complete current path again; saved IDs never stand in for source text.
@@ -182,38 +160,27 @@ export function relationSpec(relation){return browserRelationSpec(relation);}
 // network, permission, revision, or contract failure must remain visible and
 // must never be mistaken for a node route.
 export async function compileRouteCenter(client,id,signal,expected=null,{depth=1}={}) {
-  const session=createRouteCenterSession();let identity,packet,error,relationError=null;
-  const observe=value=>{try{session.observe(value);}catch(failure){
-    if(failure==='route-id')throw new ContractError(t("Не указан центр области."));
-    if(failure==='route-presence')throw new ContractError(t("Выбранное отношение отсутствует в области."));
-    throw failure;
-  }};
-  try{while(true){const phase=session.need();
-    try{switch(phase){
-      case 'id-type':observe(typeof id==='string');break;
-      case 'id-trim':observe(Boolean(id.trim()));break;
-      case 'relation-inspect':identity=await client.inspect('relation',id,signal,expected);observe(true);break;
-      case 'relation-compile':{const revision=identity.packet.source_revision;packet=await client.compile(relationSpec(identity.match),signal,revision);observe(true);break;}
-      case 'relation-presence':observe(Boolean(packet.relations.some(item=>routeRelationMember(item.id===id))));break;
-      case 'relation-return':return {packet,kind:'relation',relation:identity.match};
-      case 'relation-error-instance':observe(error instanceof RequestError);break;
-      case 'relation-error-status':observe(error.status===404);break;
-      case 'node-compile':packet=await client.compile(focusSpec(id,{depth}),signal,expected);observe(true);break;
-      case 'node-return':return {packet,kind:'node'};
-      case 'node-error-prior':observe(Boolean(relationError));break;
-      case 'node-error-instance':observe(error instanceof RequestError);break;
-      case 'node-error-status':observe(error.status===404);break;
-      case 'throw-current':throw error;
-      case 'throw-relation':throw relationError;
-      default:throw new Error('Invalid route center Rust need');
-    }}catch(failure){
-      if(phase==='relation-inspect'||phase==='relation-compile'||phase==='relation-presence'||phase==='relation-return'){
-        relationError=error=failure;session.failed();
-      }else if(phase==='node-compile'||phase==='node-return'){error=failure;session.failed();}
-      else throw failure;
-    }
-  }}finally{session.free();}
+  if(typeof id!=='string'||!id.trim())throw new ContractError(t("Не указан центр области."));
+  let relationError;
+  try{
+    const identity=await client.inspect('relation',id,signal,expected);
+    const revision=identity.packet.source_revision;
+    const packet=await client.compile(relationSpec(identity.match),signal,revision);
+    if(!packet.relations.some(item=>item.id===id))throw new ContractError(t("Выбранное отношение отсутствует в области."));
+    return {packet,kind:'relation',relation:identity.match};
+  }catch(error){
+    if(!(error instanceof RequestError)||error.status!==404)throw error;
+    relationError=error;
+  }
+  try{
+    const packet=await client.compile(focusSpec(id,{depth}),signal,expected);
+    return {packet,kind:'node'};
+  }catch(error){
+    if(error instanceof RequestError&&error.status===404)throw relationError;
+    throw error;
+  }
 }
+
 export function checkRevision(packet,expected){return validateClientPacket(packet,0,expected);}
 function dossierMethod(session,method,...values){
   try{return session[method](...values);}catch(error){
@@ -364,8 +331,8 @@ function validateClientPacket(packet,mode,expected=null,previous=null,options={}
         case 'node-items':ids=checkItems(packet.nodes,'node');run('observe',true);break;
         case 'relation-items':checkItems(packet.relations,'relation');run('observe',true);break;
         case 'area-endpoints':{const areaIds=ids;run('observe',Boolean(packet.relations.some(relation=>{
-          if(packetMissing(areaIds.has(relation.from_id)))return true;
-          return packetMissing(areaIds.has(relation.to_id));
+          if(!(areaIds.has(relation.from_id)))return true;
+          return !(areaIds.has(relation.to_id));
         })));break;}
         case 'area-focus':run('observe',Boolean(packet.focus));break;
         case 'area-focus-member':run('observe',ids.has(packet.focus.node_id));break;
@@ -391,7 +358,7 @@ function validateClientPacket(packet,mode,expected=null,previous=null,options={}
         case 'query-schema':text(query.schema_version);break;
         case 'query-revision':run('observe',query.source_revision===packet.source_revision);break;
         case 'query-origin':run('observe',Boolean(query.origin));break;
-        case 'query-origin-fields':run('observe',Boolean(['kind','id','content_revision'].some(key=>packetMissing(query.origin[key]===origin[key]))));break;
+        case 'query-origin-fields':run('observe',Boolean(['kind','id','content_revision'].some(key=>!(query.origin[key]===origin[key]))));break;
         case 'focus-own':run('observe',Object.hasOwn(packet,'focus'));break;
         case 'page-integer':{const value=page?.number;run('integer',typeof value==='number',typeof value==='number'?value:0);break;}
         case 'page-positive':run('number',Number(page.number));break;
@@ -405,7 +372,7 @@ function validateClientPacket(packet,mode,expected=null,previous=null,options={}
         case 'v1-context-array':run('observe',Array.isArray(page.context_node_ids));break;
         case 'v1-total':run('observe',page.primary_node_ids.length+page.context_node_ids.length===ids.size);break;
         case 'v1-unique':run('observe',new Set([...page.primary_node_ids,...page.context_node_ids]).size===ids.size);break;
-        case 'v1-members':run('observe',Boolean([...page.primary_node_ids,...page.context_node_ids].some(id=>packetMissing(ids.has(id)))));break;
+        case 'v1-members':run('observe',Boolean([...page.primary_node_ids,...page.context_node_ids].some(id=>!(ids.has(id)))));break;
         case 'counts-scope':text(packet.counts?.scope);break;
         case 'inclusion-authority':text(packet.inclusion?.authority);break;
         case 'cursor-status':run('observe',packet.status==='paused');break;
@@ -422,10 +389,10 @@ function validateClientPacket(packet,mode,expected=null,previous=null,options={}
         case 'context-array':run('observe',Array.isArray(context));break;
         case 'partition-total':run('observe',primary.length+context.length===items.size);break;
         case 'partition-unique':run('observe',new Set([...primary,...context]).size===items.size);break;
-        case 'partition-members':{const partitionItems=items;run('observe',Boolean([...primary,...context].some(id=>packetMissing(partitionItems.has(id)))));break;}
+        case 'partition-members':{const partitionItems=items;run('observe',Boolean([...primary,...context].some(id=>!(partitionItems.has(id)))));break;}
         case 'partition-inclusion':inclusion=packet.inclusion[session.relation_partition()?'relations':'nodes'];run('observe',Boolean(inclusion));break;
         case 'inclusion-count':run('observe',Object.keys(inclusion).length===items.size);break;
-        case 'inclusion-keys':{const partitionInclusion=inclusion;run('observe',Boolean([...items.keys()].some(id=>packetMissing(Object.hasOwn(partitionInclusion,id)))));break;}
+        case 'inclusion-keys':{const partitionInclusion=inclusion;run('observe',Boolean([...items.keys()].some(id=>!(Object.hasOwn(partitionInclusion,id)))));break;}
         case 'partition-next':run('observe',true);break;
         case 'origin-item':item=(origin.kind==='node'?nodes:relations).get(origin.id);run('observe',Boolean(item));break;
         case 'origin-item-revision':run('observe',item.content_revision===origin.content_revision);break;
@@ -695,7 +662,7 @@ export class KnowledgeClient {
       case 'content-equal':run('observe',match.content_revision===contentRevision);break;
       case 'allowed':allowed=new Set(session.relation()?[match.from_id,match.to_id]:[id]);run('observe',true);break;
       case 'scope-node-count':run('observe',packet.nodes.length===allowed.size);break;
-      case 'scope-node-members':run('observe',Boolean(packet.nodes.some(node=>packetMissing(allowed.has(node.id)))));break;
+      case 'scope-node-members':run('observe',Boolean(packet.nodes.some(node=>!(allowed.has(node.id)))));break;
       case 'scope-relation-count':run('observe',packet.relations.length===(session.relation()?1:0));break;
       case 'forms':for(const item of [...packet.nodes,...packet.relations]){validateHumanForms(item,language);await verifyReadableContext(item);}run('observe',true);break;
       case 'done':return {packet,match,endpoints:session.relation()?packet.nodes:[]};
@@ -758,23 +725,17 @@ export class KnowledgeClient {
 // Pure presentation mapping. Opaque IDs never merge through entity_id or title.
 // Existing positions survive replacement; they express UI layout, not meaning.
 function compareLensNodes(a,b,focus,degree){
-  const session=createLensSortSession();
-  try{while(true){switch(session.need()){
-    case 'b-focus':session.focus(b.id===focus);break;
-    case 'a-focus':session.focus(a.id===focus);break;
-    case 'b-degree':{const value=degree.get(b.id);session.degree(Boolean(value),typeof value==='number'?value:0);break;}
-    case 'a-degree':{const value=degree.get(a.id);session.degree(Boolean(value),typeof value==='number'?value:0);break;}
-    case 'locale':return a.id.localeCompare(b.id,'en');
-    case 'done':return session.result();
-    default:throw new Error('Invalid lens sort Rust need');
-  }}}finally{session.free();}
+  return Number(b.id===focus)-Number(a.id===focus)
+    ||(degree.get(b.id)||0)-(degree.get(a.id)||0)
+    ||a.id.localeCompare(b.id,'en');
 }
+
 export function projectLens(packet,previous=[]) {
   if(packet.schema==='tos_exploration_result_v1')validateExploration(packet);else validateLens(packet);
   const existing=new Map(previous.map(node=>[node.id,node])),degree=new Map();
   for(const relation of packet.relations){
-    const from=relation.from_id,fromCount=degree.get(relation.from_id);degree.set(from,lensDegreeNext(fromCount));
-    const to=relation.to_id,toCount=degree.get(relation.to_id);degree.set(to,lensDegreeNext(toCount));
+    const from=relation.from_id,fromCount=degree.get(relation.from_id);degree.set(from,(fromCount||0)+1);
+    const to=relation.to_id,toCount=degree.get(relation.to_id);degree.set(to,(toCount||0)+1);
   }
   const focus=packet.focus?.node_id;
   const ordered=packet.nodes.slice().sort((a,b)=>compareLensNodes(a,b,focus,degree));
@@ -782,40 +743,19 @@ export function projectLens(packet,previous=[]) {
   const occupied=new Set(previous.filter(node=>currentIds.has(node.id)).map(node=>node.slot));
   let nextSlot=0;
   return ordered.map((raw,index)=>{
-    const old=existing.get(raw.id),session=createLensNodeSession(nextSlot);
-    let slot,angle,position,x,y,prefix,main,above,pValue,sourcePosition,volumeZ,pos,target;
-    try{while(true){switch(session.need()){
-      case 'scan-slot':session.scan_slot(occupied.has(session.next_slot()));nextSlot=session.next_slot();break;
-      case 'old-slot':{
-        const value=old?.slot,allocated=session.old_slot(value===null,value===undefined);
-        nextSlot=session.next_slot();slot=allocated?session.allocated_slot():value;break;
-      }
-      case 'occupied-add':occupied.add(slot);session.advance();break;
-      case 'hash':for(const char of raw.id)session.hash_word(session.hash_value()^char.codePointAt(0));session.hash_done();break;
-      case 'angle':angle=slot*session.angle_multiplier();session.advance();break;
-      case 'table':position=lensSlotPosition(slot);session.table_candidate(Boolean(position));break;
-      case 'fallback-x':x=Math.cos(angle)*(session.x_base()+(slot%session.x_cycle())*session.x_spacing());session.advance();break;
-      case 'fallback-y':y=Math.sin(angle)*(session.y_base()+(slot%session.y_cycle())*session.y_spacing());session.advance();break;
-      case 'fallback-z':position=[x,y,session.fallback_z()];session.advance();break;
-      case 'prefix':prefix={id:raw.id,raw,...nodeLabels(raw)};session.advance();break;
-      case 'main':main=session.main_flag(Number(index));break;
-      case 'above':above=session.above_flag(index%session.above_cycle());break;
-      case 'group-id':session.group_focus(raw.id===focus);break;
-      case 'kind-agent':case 'kind-expression':{
-        const value=raw.kind_id;
-        if(session.kind_length(typeof value==='string',typeof value==='string'?value.length:0))session.kind(inspectionRevisionUnits(value));
-        else session.kind_mismatch();break;
-      }
-      case 'restore-p':{const value=old?.p?.slice();pValue=session.restore_candidate(Boolean(value))===0?value:position;break;}
-      case 'restore-source':{const value=old?.sourcePosition?.slice();if(session.restore_candidate(Boolean(value))===0)sourcePosition=value;break;}
-      case 'clone-source':sourcePosition=position.slice();session.advance();break;
-      case 'volume':{const value=old?.volumeZ;volumeZ=session.volume_candidate(value===null,value===undefined)?value:position[2];break;}
-      case 'restore-pos':{const value=old?.pos?.slice();if(session.restore_candidate(Boolean(value))===0)pos=value;break;}
-      case 'clone-pos':pos=position.slice();session.advance();break;
-      case 'restore-target':{const value=old?.target?.slice();if(session.restore_candidate(Boolean(value))===0)target=value;break;}
-      case 'clone-target':target=position.slice();session.advance();break;
-      case 'done':return {...prefix,main,above,group:session.group(),slot,p:pValue,sourcePosition,volumeZ,pos,target};
-      default:throw new Error('Invalid lens projection Rust need');
-    }}}finally{session.free();}
+    const old=existing.get(raw.id);
+    while(occupied.has(nextSlot))nextSlot++;
+    const slot=old?.slot??nextSlot++;
+    occupied.add(slot);
+    const position=lensPosition(raw.id,slot);
+    const prefix={id:raw.id,raw,...nodeLabels(raw)};
+    const main=index<8,above=index%3===1;
+    const group=raw.id===focus?1:raw.kind_id==='agent'?0:raw.kind_id==='expression'?2:1;
+    return {...prefix,main,above,group,slot,
+      p:old?.p?.slice()||position,
+      sourcePosition:old?.sourcePosition?.slice()||position.slice(),
+      volumeZ:old?.volumeZ??position[2],
+      pos:old?.pos?.slice()||position.slice(),
+      target:old?.target?.slice()||position.slice()};
   });
 }

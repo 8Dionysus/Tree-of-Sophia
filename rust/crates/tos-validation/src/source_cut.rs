@@ -598,22 +598,7 @@ pub struct CutExecutionBinding {
     pub worker_sha256: Digest256,
 }
 
-/// Actual prepared-worker binding for schema execution over candidate input.
-/// It deliberately omits the selected cut's `SourceRevision`; candidate
-/// identity is carried by the source adapter's own opaque fence.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CutPreparedSchemaExecutionBinding {
-    pub schema_profile: FormatProfile,
-    pub schema_set_sha256: Digest256,
-    pub worker_sha256: Digest256,
-    pub protocol: CutPreparedSchemaProtocol,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CutPreparedSchemaProtocol {
-    LegacyScalar,
-    DiagnosticsV2 { caps_sha256: Digest256 },
-}
+pub use tos_foundation::{CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol};
 
 /// Logical controller-workspace upper bound for preparing the exact schema
 /// resources selected from this cut. This reads authenticated member metadata

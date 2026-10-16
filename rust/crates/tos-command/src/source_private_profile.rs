@@ -527,34 +527,6 @@ pub(crate) fn candidate_record_binding_matches(
     Ok(())
 }
 
-fn candidate_record_worker_binding_matches(
-    ctx: &CommandContext,
-    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &dyn PrivateSelectedSchemaExecutor,
-) -> SourceCommandResult<()> {
-    selected.check()?;
-    let identity = selected.input_identity();
-    if worker.private_selection_identity() != PrivateSelectedSourceIdentity::PgRecord(identity)
-        || identity.bootstrap_revision != ctx.base_revision
-    {
-        return Err(SourceCommandError::Conflict(
-            "candidate private RecordRead and schema worker identities differ",
-        ));
-    }
-    for file in ctx
-        .files
-        .iter()
-        .filter(|file| file.path.as_str().starts_with("ToS/"))
-    {
-        if selected.file(&file.path)? != Some(file.raw.as_slice()) {
-            return Err(SourceCommandError::Conflict(
-                "candidate private command bytes differ from selected RecordRead",
-            ));
-        }
-    }
-    Ok(())
-}
-
 pub(crate) fn current_members_under(
     cut: &dyn PrivateSelectedSourceInput,
     directory: &str,
@@ -1606,17 +1578,6 @@ pub(crate) fn form_grammar_digests(
     }
     active(deadline, cancelled)?;
     Ok(hash_map(digests))
-}
-
-pub(crate) fn form_grammar_digests_pg(
-    ctx: &CommandContext,
-    selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<JsonValue> {
-    candidate_record_worker_binding_matches(ctx, selected, worker)?;
-    form_grammar_digests(ctx, worker, deadline, cancelled)
 }
 
 pub(crate) fn validate_form_set(

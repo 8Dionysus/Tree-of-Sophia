@@ -69,8 +69,3 @@ export function compileConditions(rules,context,kind,{reserveTypeSlot=true}={}){
   }
   return output;
 }
-export function conditionText(rule,entries){
-  const entry=entries.find(item=>conditionKey(item)===conditionKey(rule));
-  const value=rule.op==='exists'?(rule.value?t("да"):t("нет")):Array.isArray(rule.value)?rule.value.map(v=>JSON.stringify(v)).join(', '):JSON.stringify(rule.value);
-  return `${entry?.title||rule.id} ${operatorLabels[rule.op]||rule.op} ${value}`;
-}

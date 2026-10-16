@@ -472,11 +472,6 @@ fn pg_forms_historical_handler(schema: &str, operation: &str) -> &'static str {
     }
 }
 
-fn is_pg_historical_claim_revision_family(family_tag: &str) -> bool {
-    family_tag
-        == "tos-pg-historical-claim-v1:tos_local_historical_claim_revision_owner_v1:claim.revise"
-}
-
 fn revision_delta(
     proposal: &cmd::PreparedCommand,
     selection: &revision::SourceRevisionSelection,

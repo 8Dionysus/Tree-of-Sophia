@@ -273,10 +273,6 @@ fn invalid() -> SourceCommandError {
     SourceCommandError::Invalid("captured historical Claim owner input")
 }
 
-fn conflict() -> SourceCommandError {
-    SourceCommandError::Conflict("captured historical Claim package changed")
-}
-
 fn rel(value: &str) -> SourceCommandResult<RelativePath> {
     RelativePath::parse(value).map_err(|_| invalid())
 }
@@ -1296,50 +1292,6 @@ fn form_name(source_path: &str, id: &str) -> SourceCommandResult<String> {
 
 fn package_form_name(source_path: &str, id: &str) -> SourceCommandResult<String> {
     form_name(source_path, id)
-}
-
-fn decode_form_set(
-    current: &LegacyPackage,
-    source_path: &str,
-    id: &str,
-    claim: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
-    ctx: &CommandContext,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<(Option<JsonValue>, Option<String>)> {
-    let name = package_form_name(source_path, id)?;
-    let Some(raw) = current.get(&name) else {
-        return Ok((None, Some(name)));
-    };
-    let path = format!(
-        "{}/{}",
-        source_path.rsplit_once('/').ok_or(invalid())?.0,
-        name
-    );
-    schema(
-        &path,
-        ctx,
-        worker,
-        &cmd::parse(raw)?,
-        "ToS/contracts/human-form-set.schema.json",
-        &["ToS/contracts/human-form-set.schema.json"],
-        deadline,
-        cancelled,
-    )?;
-    let set = cmd::parse(raw)?;
-    let subject = source_forms::metadata_subject(claim)?;
-    // The source-owned kernel proves exact subject and retained form lineage.
-    let _ = source_forms::materialize_source_forms(claim, &set)?;
-    let lineage = tos_validation::source_forms::inspect_lineage_raw(raw)
-        .map_err(|_| SourceCommandError::Invalid("historical Claim HumanForm lineage"))?;
-    if lineage.subject_id != id {
-        return Err(SourceCommandError::Conflict(
-            "historical Claim form subject differs",
-        ));
-    }
-    let _ = (path, subject);
-    Ok((Some(set), Some(name)))
 }
 
 fn form_refs(set: Option<&JsonValue>) -> SourceCommandResult<Vec<JsonValue>> {
@@ -4327,37 +4279,6 @@ pub(crate) fn prepare(
     )
 }
 
-pub(crate) fn prepare_from_members(
-    ctx: &CommandContext,
-    source_revision: SourceRevision,
-    authored_members: &[SourceFile],
-    current: &LegacyPackage,
-    reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<LegacyClaimPlan> {
-    if source_revision != ctx.base_revision {
-        return Err(SourceCommandError::Conflict(
-            "historical Claim PG source revision differs",
-        ));
-    }
-    prepare_with_source(
-        ctx,
-        &MembersHistoricalCurrentSource {
-            revision: source_revision,
-            members: authored_members,
-            identity_index: None,
-        },
-        authored_members,
-        current,
-        reader,
-        worker,
-        deadline,
-        cancelled,
-    )
-}
-
 pub(crate) fn prepare_from_indexed_members(
     ctx: &CommandContext,
     source_revision: SourceRevision,
@@ -4404,28 +4325,6 @@ pub(crate) fn prepare_from_indexed_members(
         worker,
         deadline,
         cancelled,
-    )
-}
-
-/// Derive the digest-only historical Claim owner closure for the exact
-/// successor already prepared by this owner. This stays separate from the
-/// global Claim inventory contract: historical Claims have their own stream,
-/// creation receipt and retained archive protocol.
-pub(crate) fn pg_revision_owner_contribution(
-    ctx: &CommandContext,
-    proposal: &PreparedCommand,
-) -> SourceCommandResult<JsonValue> {
-    let request = cmd::parse(&ctx.request_raw)?;
-    let command_id = cmd::text(&request, "command_id")?.to_owned();
-    let request_canonical_digest = cmd::record_digest(&request)?;
-    pg_revision_owner_contribution_for_attempt(
-        ctx,
-        proposal,
-        &command_id,
-        request_canonical_digest,
-        proposal.configuration_raw_sha256,
-        proposal.configuration_canonical_sha256,
-        "tos-pg-historical-claim-v1:tos_local_historical_claim_revision_owner_v1:claim.revise",
     )
 }
 

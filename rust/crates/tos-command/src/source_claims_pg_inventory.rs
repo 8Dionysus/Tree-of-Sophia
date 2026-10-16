@@ -133,21 +133,6 @@ pub(crate) fn nonprojecting_custody_owner_contribution(
     ]))
 }
 
-/// Return the exact base-profile and recursively selected schema digests used
-/// by the mixed cold Claim projection. Streamed callers use this on their
-/// bounded selected context rather than approximating it from the records.
-pub(crate) fn claim_profile_sources(
-    ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<JsonValue> {
-    let grouped = crate::source_claims::agent_inventory_members_without_evidence(
-        ctx, worker, deadline, cancelled,
-    )?;
-    profile_sources(&grouped.profile)
-}
-
 /// Reuse the exact profile files already validated for the mixed inventory
 /// epoch when a streamed owner assembles a bounded per-package context.
 pub(crate) fn claim_profile_source_files(
@@ -865,29 +850,6 @@ pub(crate) fn historical_claim_inventory_contribution(
         grouped,
         field(&member, "form")?.clone(),
         JsonValue::Null,
-    )
-}
-
-/// Validate one selected Claim form with the same mixed-inventory schema
-/// profile used by the full and streamed owner readers, returning its
-/// digest-only form block.
-pub(crate) fn claim_form_contribution(
-    ctx: &CommandContext,
-    file: &SourceFile,
-    worker: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<JsonValue> {
-    let grouped = crate::source_claims::agent_inventory_members_without_evidence(
-        ctx, worker, deadline, cancelled,
-    )?;
-    claim_form_contribution_with_validated_profile(
-        ctx,
-        file,
-        &grouped.profile,
-        worker,
-        deadline,
-        cancelled,
     )
 }
 

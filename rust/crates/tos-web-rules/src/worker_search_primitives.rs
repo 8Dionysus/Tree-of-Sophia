@@ -5,9 +5,8 @@
 
 use tos_foundation::{
     FoundationError, JsonLimits, JsonMode, JsonString, JsonValue, emit_value_preserved_json,
-    parse_json, python_equals, python_float_text, python_lower, python_lower_json_string,
-    python_member, python_repr, python_search_rank_values, python_searchable_text, python_string,
-    python_truthy,
+    parse_json, python_lower_json_string, python_search_rank_values, python_searchable_text,
+    python_string,
 };
 
 const REQUEST_SCHEMA: &str = "tos_worker_python_value_request_v1";
@@ -86,7 +85,7 @@ fn positive_field(
             .filter(|value| {
                 let maximum = match key {
                     "max_utf16_units" => 4 * 1024 * 1024,
-                    "max_visits" | "max_values" => MAX_DOCUMENT_VISITS,
+                    "max_values" => MAX_DOCUMENT_VISITS,
                     _ => usize::MAX,
                 };
                 *value > 0 && *value <= maximum
@@ -119,63 +118,12 @@ fn run(request: &JsonValue) -> Result<JsonValue, FoundationError> {
     let operation = text_field(request, "operation")?;
     let left = parse_document(text_field(request, "left_json")?)?;
     let max_utf16 = positive_field(request, "max_utf16_units", 1_048_576)?;
-    let max_visits = positive_field(request, "max_visits", MAX_DOCUMENT_VISITS)?;
     match operation {
-        "truthy" => Ok(JsonValue::Bool(python_truthy(&left))),
-        "equals" => {
-            let right = parse_document(text_field(request, "right_json")?)?;
-            python_equals(&left, &right, max_visits).map(JsonValue::Bool)
-        }
-        "member" => {
-            let right = parse_document(text_field(request, "right_json")?)?;
-            python_member(&left, &right, max_visits).map(JsonValue::Bool)
-        }
-        "str" | "repr" => {
-            if operation == "str" {
-                if let JsonValue::String(value) = &left {
-                    return Ok(JsonValue::String(value.clone()));
-                }
-                python_string(&left, max_utf16).map(|value| string(&value))
-            } else {
-                python_repr(&left, max_utf16).map(|value| string(&value))
+        "str" => {
+            if let JsonValue::String(value) = &left {
+                return Ok(JsonValue::String(value.clone()));
             }
-        }
-        "sort_key" => {
-            if !python_truthy(&left) {
-                return Ok(string(""));
-            }
-            let value = match &left {
-                JsonValue::String(value) => python_lower_json_string(value, max_utf16)?,
-                _ => JsonString::from_utf8(&python_lower(
-                    &python_string(&left, max_utf16)?,
-                    max_utf16,
-                )?),
-            };
-            Ok(JsonValue::String(value))
-        }
-        "lower" => {
-            let JsonValue::String(value) = left else {
-                return Err(FoundationError::new(
-                    tos_foundation::FoundationErrorCode::UnsupportedFormat,
-                    "lower operation requires a string",
-                ));
-            };
-            python_lower_json_string(&value, max_utf16).map(JsonValue::String)
-        }
-        "float" => {
-            let JsonValue::Number(number) = left else {
-                return Err(FoundationError::new(
-                    tos_foundation::FoundationErrorCode::UnsupportedFormat,
-                    "float operation requires a number",
-                ));
-            };
-            let value = number.lexeme.parse::<f64>().map_err(|_| {
-                FoundationError::new(
-                    tos_foundation::FoundationErrorCode::InvalidJson,
-                    "invalid finite float",
-                )
-            })?;
-            python_float_text(value).map(|text| string(&text))
+            python_string(&left, max_utf16).map(|value| string(&value))
         }
         "searchable" => python_searchable_text(&left, max_utf16).map(|text| string(&text)),
         "rank_values" => {
@@ -266,20 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn worker_envelope_preserves_numeric_string_and_rank_contracts() {
-        let equal = worker_python_value_v1(
-            br#"{"schema_version":"tos_worker_python_value_request_v1","operation":"equals","left_json":"0","right_json":"-0.0","max_visits":32}"#,
-        );
-        let equal = response(&equal);
-        assert_eq!(
-            equal.object_get("ok").and_then(JsonValue::as_bool),
-            Some(true)
-        );
-        assert_eq!(
-            equal.object_get("value").and_then(JsonValue::as_bool),
-            Some(true)
-        );
-
+    fn worker_envelope_preserves_string_and_rank_contracts() {
         let lone = worker_python_value_v1(
             br#"{"schema_version":"tos_worker_python_value_request_v1","operation":"str","left_json":"\"\\ud800\"","max_utf16_units":16}"#,
         );

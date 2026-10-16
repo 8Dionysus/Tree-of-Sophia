@@ -1,4 +1,4 @@
-# Frozen former Python outcomes
+# Captured reference outcomes
 
 These two Brotli files preserve bounded outputs captured from the former
 Python fixture/reference calls used by selected Worker tests. They are test
@@ -13,8 +13,10 @@ execution overlay. SQLite-backed calls also bind the exact database and
 sidecar file sizes and SHA-256 digests. Ordered sequence records retain their
 index. `frozen-oracle-output.v1.br` is the shared output byte bank.
 
-The Worker test helper verifies compressed and decoded bank hashes, then
-selects an outcome by exact source, program, input, and SQLite-state identity.
+The Worker test helper `frozen-reference.mjs` verifies compressed and decoded
+bank hashes, then selects an outcome by source, a named reference, exact input
+and SQLite state. Historical program hashes remain provenance; tests no longer
+retain or emulate Python program text and subprocess options.
 It verifies the selected output digest before returning those bytes to the
 existing test assertions. Known reference refusals retain their exception
 outcomes with local runtime prefixes removed. Nine temporal mutation calls
@@ -28,8 +30,11 @@ are never treated as frozen expected packets. A missing, mismatched, exhausted, 
 record fails the test. Historical source and output provenance remain in the
 metadata; local capture-storage paths are intentionally omitted.
 
-Changing these fixtures requires a newly reviewed capture against the exact
-Worker test revision. A green fixture comparison proves only that the current
+Changing expected results requires a newly reviewed capture against the exact
+Worker test revision. Storage and lookup changes preserve the retained output
+bytes and capture provenance. Named temporal mutation cases retain their original
+canonical input hashes as `captured_canonical_input_sha256`; predecessor and
+final SQLite file checks remain unchanged. A green fixture comparison proves only that the current
 Worker test result matches the recorded output; it does not revalidate current
 source semantics or establish production acceptance.
 

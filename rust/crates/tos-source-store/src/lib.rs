@@ -115,3 +115,6 @@ pub use segment_member_v2::SegmentMemberReaderV2;
 
 mod segment_subtree_memo_v2;
 pub use segment_subtree_memo_v2::{SegmentSubtreeMemoLimitsV2, SegmentSubtreeMemoV2};
+
+#[cfg(target_os = "linux")]
+pub mod native_v2;

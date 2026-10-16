@@ -3884,12 +3884,6 @@ pub(crate) fn with_direct_repository_projection<T>(
     Ok((products, consumed))
 }
 
-pub(crate) fn compose_direct_repository_projection(
-    request: &DirectRepositoryProjectionRequest,
-) -> Result<crate::source_corpus_index_projection::NativeCorpusIndexProducts> {
-    with_direct_repository_projection(request, |_, _| Ok(())).map(|(products, ())| products)
-}
-
 pub(crate) fn check_direct_projection_products(
     request: &DirectRepositoryProjectionRequest,
     products: &crate::source_corpus_index_projection::NativeCorpusIndexProducts,

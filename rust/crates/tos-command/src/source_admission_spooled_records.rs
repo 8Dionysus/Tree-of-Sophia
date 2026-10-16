@@ -728,26 +728,6 @@ fn issue_from_value(value: &Value) -> io::Result<SourceFoundationRecordsIssue> {
     })
 }
 
-fn fact_value(fact: &SourceFoundationRecordFact) -> Value {
-    match fact {
-        SourceFoundationRecordFact::Observation(row) => {
-            json!({"v":FACT_CODEC_VERSION,"tag":"observation","ordinal":row.ordinal,"observation":observation_value(&row.observation)})
-        }
-        SourceFoundationRecordFact::GlobalId(row) => {
-            json!({"v":FACT_CODEC_VERSION,"tag":"global_id","ordinal":row.ordinal,"id":row.id,"kind":row.kind,"path":row.path,"carrier":match row.carrier { SourceFoundationRecordIdCarrier::Standalone=>"standalone",SourceFoundationRecordIdCarrier::NativePacket=>"native_packet" }})
-        }
-        SourceFoundationRecordFact::LinkUri(row) => {
-            json!({"v":FACT_CODEC_VERSION,"tag":"link_uri","ordinal":row.ordinal,"uri":row.uri,"id":row.id,"path":row.path})
-        }
-        SourceFoundationRecordFact::TypedIdRef(row) => {
-            json!({"v":FACT_CODEC_VERSION,"tag":"typed_id_ref","ordinal":row.ordinal,"target_id":row.target_id,"expected_kind":row.expected_kind,"from_path":row.from_path})
-        }
-        SourceFoundationRecordFact::PathReference(row) => {
-            json!({"v":FACT_CODEC_VERSION,"tag":"path_reference","ordinal":row.ordinal,"from_path":row.from_path,"target_path":row.target_path,"check":match row.check { PathReferenceCheck::RepoExistsIfToS=>"repo_exists_if_tos",PathReferenceCheck::FileIfToS=>"file_if_tos" }})
-        }
-    }
-}
-
 fn fact_from_value(
     value: &Value,
     collection: SourceFoundationRecordFactCollection,
@@ -1217,13 +1197,6 @@ fn stored_fact_from_value(
     })
 }
 
-fn input_state_for_value(value: &Value, strings: &[&str]) -> io::Result<usize> {
-    let data = strings
-        .iter()
-        .try_fold(512usize, |n, s| checked_add(n, s.len()))?;
-    checked_add(data, value_state(value)?)
-}
-
 fn table_preflight(
     db: &rusqlite::Connection,
     collection: i64,
@@ -1276,28 +1249,6 @@ fn cursor_tag_rows(collection: SourceFoundationRecordsCollection) -> u8 {
 }
 fn cursor_tag_facts(collection: SourceFoundationRecordFactCollection) -> u8 {
     0x80 | fact_collection_id(collection) as u8
-}
-
-fn collection_from_id(id: i64) -> io::Result<SourceFoundationRecordsCollection> {
-    Ok(match id {
-        0 => SourceFoundationRecordsCollection::CurrentRecords,
-        1 => SourceFoundationRecordsCollection::UsedDeclaredProfileKinds,
-        2 => SourceFoundationRecordsCollection::ItemRecordSelections,
-        3 => SourceFoundationRecordsCollection::RecordSchemaPositions,
-        4 => SourceFoundationRecordsCollection::FileDescriptors,
-        5 => SourceFoundationRecordsCollection::ItemFileMemberships,
-        6 => SourceFoundationRecordsCollection::LinkUriOwners,
-        7 => SourceFoundationRecordsCollection::RightsIds,
-        8 => SourceFoundationRecordsCollection::ItemEditions,
-        9 => SourceFoundationRecordsCollection::SourceEventInsertions,
-        10 => SourceFoundationRecordsCollection::OrderedIssues,
-        11 => SourceFoundationRecordsCollection::SchemaChecks,
-        12 => SourceFoundationRecordsCollection::ItemIssues,
-        13 => SourceFoundationRecordsCollection::ManifestItemIds,
-        14 => SourceFoundationRecordsCollection::RecordObservations,
-        15 => SourceFoundationRecordsCollection::RecordSchemaDiagnostics,
-        _ => return Err(invalid("source-foundation collection cursor invalid")),
-    })
 }
 
 #[derive(Clone, Copy)]

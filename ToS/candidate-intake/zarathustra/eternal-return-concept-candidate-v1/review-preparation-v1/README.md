@@ -27,11 +27,11 @@ All records remain `unreviewed` or `prepared_for_review`. This route issues no
 review IDs, writes nothing to `ToS/review-ledger/`, materializes no claims or
 relations, and has no graph or canon effect.
 
-The maintained entry is `tos zarathustra-eternal-return-review-preparation-v1`. Its implementation and
+The maintained entry is `tos-research zarathustra-eternal-return-review-preparation-v1`. Its implementation and
 focused native assertions live in `rust/crates/tos-compiler/src/research_eternal_return.rs`.
 Use the [ToS validation routes](../../../../VALIDATION.md) and explicit selected data for receipt checks.
 
-Invoke the matching installed `tos zarathustra-eternal-return-review-preparation-v1`
+Invoke the matching `tos-research zarathustra-eternal-return-review-preparation-v1`
 executable directly and pass
 `--source-root` for a separately owned source/carrier root. `--build` produces
 candidate files; `--check` regenerates them and compares the full product.

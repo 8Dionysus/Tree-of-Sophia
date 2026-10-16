@@ -289,9 +289,6 @@ export function pathDraftFromSpec(value){
   return validatePathDraft(paths);
 }
 
-export const validatePaths=validatePathDraft;
-export const draftPathsFromSpec=pathDraftFromSpec;
-
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node,text);node.className=className;return node;};
 const option=(value,text)=>{const node=el('option',text);node.value=value;return node;};
 const button=(text,action,className='sc-builder-link')=>{const node=el('button',text,className);node.type='button';node.addEventListener('click',action);return node;};
@@ -376,5 +373,3 @@ export function createLensPathEditor({draft,context,onChange=()=>{}}){
   }
   render();return section;
 }
-
-export const createPathEditor=createLensPathEditor;

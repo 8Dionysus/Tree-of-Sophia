@@ -34,11 +34,11 @@ gaps are retained explicitly; two central Russian III.13 formulas are visible
 in the witness but missed by the direct detector, so no silent correction is
 performed.
 
-The maintained entry is `tos zarathustra-eternal-return-concept-candidate-v1`. Its implementation and
+The maintained entry is `tos-research zarathustra-eternal-return-concept-candidate-v1`. Its implementation and
 focused native assertions live in `rust/crates/tos-compiler/src/research_eternal_return_concept.rs`.
 Use the [ToS validation routes](../../../VALIDATION.md) and explicit selected data for receipt checks.
 
-The native command `tos zarathustra-eternal-return-concept-candidate-v1`
+The native command `tos-research zarathustra-eternal-return-concept-candidate-v1`
 uses the original `plan.v1.json` by default. A reviewed technical input profile
 can be selected with `--plan-ref <repository-relative-ref>` in `--build`,
 `--check`, or `--preview`. The selected source root must be owned mode `0700`,
@@ -62,7 +62,7 @@ mechanical result; source-visible review and scoped admission retain their
 existing owners. Fresh profile validation is independent of the original
 plan's retained-input validation.
 
-Invoke the matching installed `tos zarathustra-eternal-return-concept-candidate-v1`
+Invoke the matching `tos-research zarathustra-eternal-return-concept-candidate-v1`
 executable directly and pass
 `--source-root` for a separately owned source/carrier root. `--build` produces
 candidate files; `--check` regenerates them and compares the full product.

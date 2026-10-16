@@ -16,11 +16,6 @@ export function derived(value: unknown): NativePacketValue {
   if (value && typeof value === 'object') return nativePacketObject(Object.entries(value).map(([k, v]) => [k, derived(v)]));
   throw new TypeError('derived lens field must be JSON');
 }
-export function objectWith(ref: NativeRef, replace: ReadonlyMap<string, NativePacketValue>, omit: ReadonlySet<string> = new Set()): NativePacket {
-  const entries: [string, NativePacketValue][] = nativeKeys(ref).filter(k => !omit.has(k)).map(k => [k, replace.has(k) ? replace.get(k)! : nativeChild(ref, k)]);
-  for (const [key, value] of replace) if (!nativeKeys(ref).includes(key) && !omit.has(key)) entries.push([key, value]);
-  return nativePacketObject(entries);
-}
 export function stringField(ref: NativeRef, path: string): string {
   const value = nativeField(ref, path).value;
   if (typeof value !== 'string') throw new Error('published lens structural field must be string: ' + path);

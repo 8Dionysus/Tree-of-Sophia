@@ -15,23 +15,19 @@ keeps exact compact packet text through checkpoint persistence and replay.
 | `parseNativeRequest(raw, limits?)` | Request/cursor JSON: Python's last-member-wins semantics, retaining first insertion order and the final value's numeric context. |
 | `nativeChild(ref, key)` | Obtain a child reference including its numeric context; accepts array positions or object keys. |
 | `nativeField(ref, dottedPath)` | Python `_field`-style dictionary traversal; absent/null both yield a null value. |
-| `nativeScalar(stringOrBooleanOrNull)` | Make an unambiguous literal reference. Numeric/container values require raw decoding. |
 | `nativeNumberInfo(ref)` | Inspect integer/float kind and exact lexical number; never infer an integer by `Number.isInteger` alone. |
-| `pythonTruthy`, `pythonEquals`, `pythonMember` | Python truthiness, recursive equality and membership, including exact int/float comparisons and false/zero equivalence. |
-| `pythonStr`, `pythonRepr`, `nativeSortKey` | Python-style value strings, repr and `str(value or '').lower()` keys using retained numeric kind and object order. |
+| `pythonStr` | Python-style value strings using retained numeric kind and object order. |
 | `nativeJson(ref)` | Reserialize that preserved reference with original numeric lexemes and object key order. |
 | `nativePacketObject(orderedEntries)`, `nativePacketArray(items)` | Construct immutable derived packet fragments with preserved source references. Object entry order is explicit. |
-| `nativeInteger(safeIntegerOrBigInt)`, `nativeFloat(finiteNumber)` | Explicit integer/float kinds for newly computed fields only; source fields retain their original reference. |
+| `nativeInteger(safeIntegerOrBigInt)` | Explicit integer kinds for newly computed fields only; source fields retain their original reference. |
 | `nativePacketJson(packet, limits?)` | Serialize a mixed packet directly, retaining source numeric lexemes/key order and charging aggregate UTF-8 bytes, value visits and depth. |
-| `nativeLower`, `nativeCasefold`, `codePointCompare` | Unicode-16 default lowercase with contextual final sigma, group casefold and code-point ordering. |
+| `nativeLower`, `codePointCompare` | Unicode-16 default lowercase with contextual final sigma and code-point ordering. |
 
 `NativeRef.value` is the ordinary JS parsed value and may contain rounded
 integers, float/int ambiguity, or an overflowing large integer represented by
 Infinity. Semantic operations consult the sidecar. **Do not serialize `.value`
 as a lossless source record or infer semantics from it.** `nativeJson` preserves
 even integer values beyond the Number range within the declared integer budget.
-Python integral-float comparisons convert that exact represented float to
-BigInt; an arbitrary integer is never rounded to Number to test equality.
 
 Reference context is non-enumerable, and container metadata lives in a private
 WeakMap reachable only from its document. Decoding freezes the newly parsed
@@ -97,10 +93,10 @@ Legacy count/selection is not charged against the native selected-payload
 200000 rows-read quota, and neither path claims SQLite VM-step preemption.
 
 Tests compare complete native legacy packets and every indexed page against
-`search_knowledge_graph` and actual `ToSAccessCore.knowledge_search_indexed` with
-`SQLiteKnowledgeSearchReadModel`, preserving ordered source members, integer/
-float kinds and float repr. Runtime-specific opaque tokens and work counters
-are excluded from that indexed comparison. Real D1 HTTP restart/replay, query
+named, hash-pinned captures from the retired `search_knowledge_graph` and
+`ToSAccessCore.knowledge_search_indexed` with `SQLiteKnowledgeSearchReadModel`,
+preserving ordered source members, integer/float kinds and float repr.
+Runtime-specific opaque tokens and work counters are excluded from that indexed comparison. Real D1 HTTP restart/replay, query
 plans, budgets and negative admission are separate checks. Compressed
 local-prepared search is outside this correction.
 
@@ -224,7 +220,6 @@ const packet = nativePacketObject([
   ['record', row],
   ['selected', nativePacketArray([nativeChild(row, 'attributes')])],
   ['count', nativeInteger(1)],
-  ['score', nativeFloat(1)],
   ['ok', true],
 ]);
 const wire = nativePacketJson(packet, {maxBytes: 1_048_576, maxVisits: 300_000, maxDepth: 64});
@@ -237,8 +232,9 @@ Reserved names such as `__proto__` are ordinary names; numeric-like names keep
 the caller's ordered-entry sequence. Constructors snapshot/freeze their owned
 entry/item lists, not the caller's input lists, with a local 300000-member limit
 that can be explicitly overridden. New derived integers reject unsafe Numbers
-and negative zero; use BigInt for exact large integers, or `nativeFloat(-0)` to
-retain float negative zero. Do not rebuild a source number from its lossy `.value`.
+and negative zero; use BigInt for exact large integers. Source floats, including
+negative zero, retain their original reference. Do not rebuild a source number
+from its lossy `.value`.
 
 Valid immutable construction cannot create cycles. Unmarked cyclic data is
 rejected at entry, mutation of fragments/source trees is rejected by freezing,

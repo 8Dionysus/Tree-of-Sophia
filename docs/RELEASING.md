@@ -176,6 +176,7 @@ use the full suite; a missing or failed selector fails the required gate.
 | `access/web/` or `access/e2e/` code/configuration | Software contracts, browser build/unit/types/behavior, isolated software package install |
 | `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
+| Rust source under `rust/crates/tos-reader/src/` | Rust workspace and isolated exact reader install; the independent browser/package job is omitted |
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install, and generated WEB.1 codec checks in Node WebAssembly |
 | Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
@@ -233,6 +234,10 @@ sha256sum "$owner_prefix/bin/tos-native-owner-command" "$owner_prefix/bin/tos-sc
 Preparation needs its own admitted storage/process budget. Keep the exact source,
 lock, toolchain and both resulting product identities with the owner receipt;
 an executable found on PATH is not an authorization or a matching worker proof.
+The complete historical `foundation` audit additionally requires building
+`tos-command` with `--features research`. Ordinary selected-source validation
+does not compile the laboratory and gold-set implementations; requesting a full
+audit from that build returns an explicit refusal before source capture.
 The owner supplies a protected, user-owned `0600` invocation file and protected
 owner config, with absolute `native_executable` and `schema_worker.absolute_path`
 from this prefix and their exact SHA digests. The existing invocation also binds

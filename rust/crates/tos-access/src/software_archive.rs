@@ -1778,7 +1778,8 @@ mod role_feature_tests {
     #[test]
     fn constructor_roles_use_the_standard_empty_feature_proof() {
         let empty = proof_with_features("[]");
-        let phi = proof_with_features(r#"["compiler-backed-validators","default"]"#);
+        let phi =
+            proof_with_features(r#"["compiler-backed-validators","default","philosophy-library"]"#);
         for role in ["tos-constructor-library", "tos-constructor-fragments"] {
             assert!(command_proof(role, &empty, &empty).is_ok());
             assert!(command_proof(role, &phi, &empty).is_err());
@@ -1788,7 +1789,8 @@ mod role_feature_tests {
     #[test]
     fn native_role_features_are_exact_and_do_not_widen_other_commands() {
         let empty = proof_with_features("[]");
-        let phi = proof_with_features(r#"["compiler-backed-validators","default"]"#);
+        let phi =
+            proof_with_features(r#"["compiler-backed-validators","default","philosophy-library"]"#);
         assert!(command_proof("tos-ops-mechanics-plan", &phi, &empty).is_ok());
         assert!(command_proof("tos-ops-mechanics-plan", &empty, &empty).is_err());
         for role in COMMANDS {
@@ -1809,6 +1811,7 @@ mod role_feature_tests {
             assert!(command_proof(role, &empty, &empty).is_err());
         }
         for features in [
+            r#"["compiler-backed-validators","default"]"#,
             r#"["compiler-backed-validators"]"#,
             r#"["default","compiler-backed-validators"]"#,
             r#"["compiler-backed-validators","default","wasm"]"#,

@@ -2340,54 +2340,6 @@ impl BoundedSchemaExecutor {
         }
     }
 
-    /// Evaluates an encounter-ordered finite/raw batch through one diagnostics-v2
-    /// worker and one request clock. Each unit carries a closed input mode inside
-    /// the existing extended frame; finite units retain the ordinary finite
-    /// parser/backend, while raw units use the FND LegacyPythonObserved decoder.
-    pub(crate) fn evaluate_batch_with_mixed_source_foundation_diagnostics_cancellable(
-        worker: &ExactWorkerIdentity,
-        resources: &[SchemaResource],
-        profile: FormatProfile,
-        units: impl IntoIterator<Item = MixedDiagnosticsBatchUnit>,
-        expected: BatchCoverageExpectation,
-        exceptional_remaining: ExceptionalSchemaUsage,
-        budget: BatchBudget,
-        cancelled: &AtomicBool,
-    ) -> SchemaDiagnosticsOutcome {
-        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-        {
-            native::evaluate_batch_with_mixed_source_foundation_diagnostics(
-                worker,
-                resources,
-                profile,
-                units,
-                expected,
-                exceptional_remaining,
-                budget,
-                None,
-                Some(cancelled),
-                None,
-            )
-        }
-        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-        {
-            let _ = (
-                resources,
-                units,
-                expected,
-                exceptional_remaining,
-                budget,
-                cancelled,
-            );
-            empty_diagnostics_outcome(
-                worker.sha256,
-                profile,
-                Digest256::of_bytes(b""),
-                ExecutorFailure::UnsupportedHost,
-            )
-        }
-    }
-
     /// Mixed source-foundation profile-2 variant consuming the same controller
     /// wire allowance as the finite and raw-only sibling paths.
     pub(crate) fn evaluate_batch_with_mixed_source_foundation_diagnostics_wire_limited_cancellable(
@@ -3030,18 +2982,6 @@ impl PreparedSchemaWorker {
         _: &[u8],
         _: LegacySelectedDiagnosticsLimits,
         _: usize,
-        _: ExecutorBudget,
-        _: Instant,
-        _: &AtomicBool,
-    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
-        Err(ExecutorFailure::UnsupportedHost)
-    }
-    pub(crate) fn evaluate_with_selected_finite_diagnostics(
-        &mut self,
-        _: &str,
-        _: &str,
-        _: &str,
-        _: &[u8],
         _: ExecutorBudget,
         _: Instant,
         _: &AtomicBool,
@@ -5289,53 +5229,6 @@ mod native {
             Ok((outcome, cost))
         }
 
-        pub(crate) fn evaluate_with_selected_finite_diagnostics(
-            &mut self,
-            member_id: &str,
-            location: &str,
-            root_uri: &str,
-            raw_instance: &[u8],
-            budget: ExecutorBudget,
-            deadline: Instant,
-            cancelled: &AtomicBool,
-        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
-        {
-            let encoded = self.diagnostic_resource_bytes(root_uri)?;
-            let execution_digest = self.diagnostic_schema_set_digest(root_uri)?;
-            let retained_resources = self
-                .encoded_resources
-                .capacity()
-                .checked_add(
-                    self.diagnostic_resource_metadata_state_bytes()
-                        .ok_or(ExecutorFailure::InputBudget)?,
-                )
-                .ok_or(ExecutorFailure::InputBudget)?;
-            let (outcome, mut cost) = self.image.evaluate_with_diagnostics_encoded(
-                &encoded,
-                retained_resources,
-                execution_digest,
-                self.profile,
-                DiagnosticsInputProfile::FiniteJsonSelected,
-                None,
-                None,
-                member_id,
-                location,
-                root_uri,
-                raw_instance,
-                budget,
-                deadline,
-                Instant::now(),
-                cancelled,
-            )?;
-            // The selected encoding exists only during this exchange; the
-            // complete authenticated catalog and dependency index remain owned.
-            cost.request_buffer_bytes = cost
-                .request_buffer_bytes
-                .checked_add(encoded.capacity())
-                .ok_or(ExecutorFailure::InputBudget)?;
-            Ok((outcome, cost))
-        }
-
         pub(crate) fn evaluate_with_selected_legacy_diagnostics(
             &mut self,
             member_id: &str,
@@ -5699,30 +5592,6 @@ mod native {
         output.extend_from_slice(&size.to_be_bytes());
         output.extend_from_slice(value);
         Ok(())
-    }
-
-    fn make_diagnostics_request_encoded<U: std::borrow::Borrow<BatchUnit>>(
-        worker_sha256: Digest256,
-        encoded_resources: &[u8],
-        schema_set_sha256: Digest256,
-        profile: FormatProfile,
-        input_profile: DiagnosticsInputProfile,
-        units: impl IntoIterator<Item = U>,
-        budget: BatchBudget,
-        caps: schema_diagnostics::Caps,
-    ) -> Result<DiagnosticsPrepared, ExecutorFailure> {
-        make_diagnostics_request_encoded_with_unit_modes(
-            worker_sha256,
-            encoded_resources,
-            schema_set_sha256,
-            profile,
-            input_profile,
-            units,
-            None,
-            None,
-            budget,
-            caps,
-        )
     }
 
     fn make_diagnostics_request_encoded_with_unit_modes<U: std::borrow::Borrow<BatchUnit>>(

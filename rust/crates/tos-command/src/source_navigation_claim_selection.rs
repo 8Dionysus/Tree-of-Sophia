@@ -3,10 +3,7 @@
 //! Each stage derives addresses only from exact selected bytes. It never walks
 //! the authored corpus or treats the returned path list as source authority.
 
-use crate::{
-    DurableError, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
-    DurableNavigationEventContextV1, DurableResult,
-};
+use crate::{DurableError, DurableNavigationEventContextV1, DurableResult};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
@@ -84,129 +81,6 @@ pub(crate) fn claim_event_mutation_claim_ids_v1(
     .map_err(|_| DurableError::Conflict("selected Claim mutation receipt shape differs"))
 }
 
-/// Parse every exact current Claim stream in a selected event cut. The sorted
-/// row list is the complete owner inventory used by the per-Claim renderer;
-/// only Claim bytes and stable IDs are retained.
-pub(crate) fn claim_event_owner_streams_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<ClaimEventOwnerStreamV1<'_>>> {
-    validate_event_context(context)?;
-    let mut streams = Vec::new();
-    for selected in context.selected_sources() {
-        if !is_claim_stream_path(&selected.source_path) {
-            continue;
-        }
-        let bytes = exact_selected_bytes(selected)?;
-        streams.push(parse_claim_stream(&selected.source_path, bytes)?);
-    }
-    streams.sort_by(|left, right| left.source_path.cmp(&right.source_path));
-    if streams
-        .windows(2)
-        .any(|pair| pair[0].source_path == pair[1].source_path)
-    {
-        return Err(DurableError::Corrupt("duplicate selected Claim stream"));
-    }
-    Ok(streams)
-}
-
-/// Complete current Claim streams committed by this event. Other selected
-/// Claim streams may be present only to resolve an exact endpoint reference
-/// and do not own rows in this event's replacement cohort.
-pub(crate) fn claim_event_changed_owner_streams_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<ClaimEventOwnerStreamV1<'_>>> {
-    validate_event_context(context)?;
-    let mut streams = Vec::new();
-    for member in context.members() {
-        if !is_claim_stream_path(&member.source_path) {
-            continue;
-        }
-        let selected = selected_source(context, &member.source_path).ok_or(
-            DurableError::Conflict("changed Claim stream is not selected"),
-        )?;
-        let bytes = exact_selected_bytes(selected)?;
-        if !member.is_source
-            || member.commit_sequence != Some(context.event_sequence())
-            || member.revision != selected.revision
-            || member.content_digest != selected.content_digest
-            || member.content_length != selected.content_length
-            || member.content_digest != Some(Digest256::of_bytes(bytes))
-            || member.content_length != Some(bytes.len() as u64)
-        {
-            return Err(DurableError::Conflict(
-                "changed Claim stream differs from exact event member",
-            ));
-        }
-        streams.push(parse_claim_stream(&member.source_path, bytes)?);
-    }
-    streams.sort_by(|left, right| left.source_path.cmp(&right.source_path));
-    if streams
-        .windows(2)
-        .any(|pair| pair[0].source_path == pair[1].source_path)
-    {
-        return Err(DurableError::Corrupt("duplicate changed Claim stream"));
-    }
-    Ok(streams)
-}
-
-/// First request for a directly changed Claim stream. It is justified by the
-/// exact committed stream bytes in the seed and requests only its bounded
-/// owner/form closure plus fixed semantic inputs.
-pub(crate) fn claim_event_required_paths_v1(
-    seed: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<String>> {
-    validate_event_context(seed)?;
-    let mut paths = BTreeSet::new();
-    let mut changed_claim_streams = 0usize;
-    for member in seed.members() {
-        if !is_claim_stream_path(&member.source_path) {
-            continue;
-        }
-        let selected = selected_source(seed, &member.source_path).ok_or(DurableError::Conflict(
-            "changed Claim stream is not selected",
-        ))?;
-        let bytes = exact_selected_bytes(selected)?;
-        if !member.is_source
-            || member.commit_sequence != Some(seed.event_sequence())
-            || member.revision != selected.revision
-            || member.content_digest != selected.content_digest
-            || member.content_length != selected.content_length
-            || member.content_digest != Some(Digest256::of_bytes(bytes))
-            || member.content_length != Some(bytes.len() as u64)
-        {
-            return Err(DurableError::Conflict(
-                "changed Claim stream differs from exact event member",
-            ));
-        }
-        changed_claim_streams = changed_claim_streams
-            .checked_add(1)
-            .ok_or(DurableError::Refused("Claim stream count overflow"))?;
-        add_path(&mut paths, &member.source_path)?;
-        add_stream_support_paths(&mut paths, &member.source_path)?;
-        let parsed = parse_claim_stream(&member.source_path, bytes)?;
-        for owner in parsed.owners {
-            add_claim_form_path(&mut paths, &member.source_path, &owner.claim_id)?;
-            add_direct_evidence_paths(&mut paths, owner.exact_row_bytes)?;
-        }
-    }
-    if changed_claim_streams == 0 {
-        return Ok(Vec::new());
-    }
-    add_static_paths(&mut paths)?;
-    paths_within_limit(paths)
-}
-
-/// Derive every historical archive manifest named by the selected current
-/// Claim history. Each manifest must be present in the exact selected cut in
-/// the next phase before blob addresses can be derived.
-pub(crate) fn claim_event_archive_manifest_paths_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<String>> {
-    validate_event_context(context)?;
-    let streams = claim_event_changed_owner_streams_v1(context)?;
-    claim_event_archive_manifest_paths_for_streams(context, &streams)
-}
-
 fn claim_event_archive_manifest_paths_for_streams(
     context: &DurableNavigationEventContextV1,
     streams: &[ClaimEventOwnerStreamV1<'_>],
@@ -258,53 +132,6 @@ fn claim_event_archive_manifest_paths_for_streams(
             add_path(&mut paths, &format!("{expected}/manifest.json"))?;
         }
     }
-    paths_within_limit(paths)
-}
-
-/// Derive the immutable archive blob references from selected archive
-/// manifests. Every output has an exact parent manifest member.
-pub(crate) fn claim_event_archive_blob_paths_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<String>> {
-    validate_event_context(context)?;
-    let manifests = claim_event_archive_manifest_paths_v1(context)?;
-    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
-}
-
-/// Derive archive blobs for the exact Claim and Collection identities returned
-/// by the PG identity index. Those owners are selected only to ground exact
-/// `membership_versions` references in a changed collection-order Claim.
-pub(crate) fn claim_event_identity_archive_blob_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let manifests = claim_event_identity_archive_manifest_paths_v1(context, owners)?;
-    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
-}
-
-/// Select archive manifests for exact retained Claim and Collection
-/// references used by collection-order Claims. The PG identity index provides
-/// only the current owner path; exact current rows and retained histories must
-/// still be present in the final event context.
-pub(crate) fn claim_event_identity_archive_manifest_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    validate_event_context(context)?;
-    let requests = claim_event_identity_requests_v1(context)?;
-    validate_identity_result_set(&requests, owners)?;
-    let (collection_refs, membership_refs) = claim_event_collection_order_refs_v1(context)?;
-    let mut paths = claim_event_identity_archive_paths_for_refs(
-        context,
-        owners,
-        &collection_refs,
-        &membership_refs,
-    )?
-    .into_iter()
-    .collect::<BTreeSet<_>>();
-    paths.extend(
-        claim_event_identity_owner_archive_manifest_paths_for_requests(context, &requests, owners)?,
-    );
     paths_within_limit(paths)
 }
 
@@ -377,66 +204,6 @@ fn claim_event_identity_archive_paths_for_refs(
         add_exact_record_history_archives(context, source_path, exact, &mut paths)?;
     }
     paths_within_limit(paths)
-}
-
-/// Derive Claim owner history archives for the complete, stream-bound reverse
-/// owner closure. The manifest is the PG identity result; exact source rows
-/// must still match its owner IDs and stream digests before archive addresses
-/// are derived.
-pub(crate) fn claim_event_affected_archive_manifest_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    claim_event_archive_manifest_paths_for_streams(context, &streams)
-}
-
-/// Derive immutable archive blobs named by the affected streams' current
-/// histories. The selected manifest set is validated against its blobs by the
-/// same bounded archive reader used by direct mutations.
-pub(crate) fn claim_event_affected_archive_blob_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-) -> DurableResult<Vec<String>> {
-    let manifests = claim_event_affected_archive_manifest_paths_v1(context, manifest)?;
-    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
-}
-
-/// Request every stable identity used by the exact Claims in a complete
-/// affected-owner stream closure. This is a follow-on lookup after the owner
-/// inventory has authenticated the exact selected stream bytes.
-pub(crate) fn claim_event_affected_identity_requests_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-) -> DurableResult<Vec<ClaimEventIdentityRequestV1>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    claim_event_identity_requests_for_streams(context, &streams)
-}
-
-/// Exact selected historical Claim streams referenced by the affected current
-/// owners. These streams are visibility endpoints only: they do not become
-/// current owners or affected replacement streams.
-pub(crate) fn claim_event_affected_historical_endpoint_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let requests = claim_event_affected_identity_requests_v1(context, manifest)?;
-    claim_event_historical_endpoint_paths_for_requests(context, &requests, owners)
-}
-
-/// Stage the bounded source-copy form and writer-lock witnesses that the
-/// selected historical Claim resolver checks while authenticating its
-/// captured creation request. The request itself is already selected by the
-/// preceding indexed-path phase.
-pub(crate) fn claim_event_affected_historical_capture_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let requests = claim_event_affected_identity_requests_v1(context, manifest)?;
-    let endpoints = claim_event_historical_endpoint_paths_for_requests(context, &requests, owners)?;
-    claim_event_historical_capture_paths_for_endpoints(context, &endpoints)
 }
 
 fn claim_event_historical_capture_paths_for_requests(
@@ -530,57 +297,6 @@ fn claim_event_historical_endpoint_paths_for_requests(
     paths_within_limit(paths)
 }
 
-/// Stage source/form/schema dependencies required by every Claim in the
-/// affected-owner manifest, using exact current rows and the exact full
-/// identity lookup result set supplied by the PG owner.
-pub(crate) fn claim_event_affected_indexed_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    let requests = claim_event_affected_identity_requests_v1(context, manifest)?;
-    claim_event_indexed_paths_for_requests(context, &streams, &requests, owners)
-}
-
-/// Derive metadata schema routes for the full affected-owner closure after its
-/// exact identity source bytes have been selected.
-pub(crate) fn claim_event_affected_schema_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
-    claim_event_indexed_schema_paths_for_requests(context, &requests, owners)
-}
-
-/// Exact Claim and Collection revision archives named by collection-order
-/// references in the affected owner closure.
-pub(crate) fn claim_event_affected_identity_archive_manifest_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
-    validate_identity_result_set(&requests, owners)?;
-    let (collection_refs, membership_refs) =
-        claim_event_collection_order_refs_for_streams(&streams)?;
-    let mut paths = claim_event_identity_archive_paths_for_refs(
-        context,
-        owners,
-        &collection_refs,
-        &membership_refs,
-    )?
-    .into_iter()
-    .collect::<BTreeSet<_>>();
-    paths.extend(
-        claim_event_identity_owner_archive_manifest_paths_for_requests(context, &requests, owners)?,
-    );
-    paths_within_limit(paths)
-}
-
 fn claim_event_identity_owner_archive_manifest_paths_for_requests(
     context: &DurableNavigationEventContextV1,
     requests: &[ClaimEventIdentityRequestV1],
@@ -612,91 +328,6 @@ fn claim_event_identity_owner_archive_manifest_paths_for_requests(
             .into_iter()
             .collect(),
     )
-}
-
-pub(crate) fn claim_event_affected_identity_archive_blob_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let manifests =
-        claim_event_affected_identity_archive_manifest_paths_v1(context, manifest, owners)?;
-    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
-}
-
-/// Extend an exact event cut with all current forms, direct path evidence and
-/// stream support files used by Claims in the affected-owner closure.
-pub(crate) fn claim_event_affected_current_owner_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    let mut paths = BTreeSet::new();
-    for stream in streams {
-        add_stream_support_paths(&mut paths, &stream.source_path)?;
-        for owner in stream.owners {
-            add_claim_form_path(&mut paths, &stream.source_path, &owner.claim_id)?;
-            add_direct_evidence_paths(&mut paths, owner.exact_row_bytes)?;
-        }
-    }
-    paths_within_limit(paths)
-}
-
-fn claim_event_streams_for_manifest_v1<'a>(
-    context: &'a DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-) -> DurableResult<Vec<ClaimEventOwnerStreamV1<'a>>> {
-    validate_event_context(context)?;
-    manifest
-        .verify_integrity()
-        .map_err(|_| DurableError::Conflict("Claim affected-owner manifest integrity differs"))?;
-    if !is_claim_stream_path(manifest.mutation_source_path()) {
-        return Err(DurableError::Conflict(
-            "Claim affected-owner mutation path differs",
-        ));
-    }
-    let changed = claim_event_changed_owner_streams_v1(context)?;
-    if !changed
-        .iter()
-        .any(|stream| stream.source_path == manifest.mutation_source_path())
-    {
-        return Err(DurableError::Conflict(
-            "Claim affected-owner mutation stream is not the committed event member",
-        ));
-    }
-
-    let mut streams = Vec::with_capacity(manifest.streams().len());
-    for expected in manifest.streams() {
-        let bytes = selected_bytes(context, expected.source_path())?;
-        if Digest256::of_bytes(bytes) != expected.stream_sha256() {
-            return Err(DurableError::Conflict(
-                "Claim affected-owner selected stream digest differs",
-            ));
-        }
-        let stream = parse_claim_stream(expected.source_path(), bytes)?;
-        let owner_ids = stream
-            .owners
-            .iter()
-            .map(|owner| owner.claim_id.clone())
-            .collect::<Vec<_>>();
-        if stream.owners.len() as u64 != expected.rows_scanned()
-            || owner_ids != expected.owner_ids()
-        {
-            return Err(DurableError::Conflict(
-                "Claim affected-owner selected stream inventory differs",
-            ));
-        }
-        streams.push(stream);
-    }
-    if streams
-        .windows(2)
-        .any(|pair| pair[0].source_path >= pair[1].source_path)
-    {
-        return Err(DurableError::Corrupt(
-            "Claim affected-owner stream order differs",
-        ));
-    }
-    Ok(streams)
 }
 
 fn claim_event_indexed_paths_for_requests(
@@ -826,213 +457,6 @@ fn claim_event_indexed_paths_for_requests(
     }
     add_static_paths(&mut paths)?;
     paths_within_limit(paths)
-}
-
-pub(crate) fn claim_event_affected_stream_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimEventAffectedOwnerManifestV1,
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_manifest_v1(context, manifest)?;
-    let mut paths = BTreeSet::new();
-    for stream in streams {
-        add_path(&mut paths, &stream.source_path)?;
-    }
-    paths_within_limit(paths)
-}
-
-/// Stage the complete Claim-stream set authenticated by a compound refresh
-/// manifest before its stream bytes are selected.
-pub(crate) fn claim_event_dependency_refresh_stream_paths_v1(
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-) -> DurableResult<Vec<String>> {
-    manifest
-        .verify_integrity()
-        .map_err(|_| DurableError::Conflict("Claim refresh-set manifest integrity differs"))?;
-    let mut paths = BTreeSet::new();
-    for cause in manifest.causes() {
-        add_path(&mut paths, cause.changed_dependency_path().as_str())?;
-    }
-    for stream in manifest.streams() {
-        add_path(&mut paths, stream.source_path())?;
-    }
-    paths_within_limit(paths)
-}
-
-/// Stage the bounded support files for all current Claim streams in a
-/// compound dependency-refresh closure.
-pub(crate) fn claim_event_dependency_refresh_current_owner_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_refresh_set_v1(context, manifest)?;
-    let mut paths = BTreeSet::new();
-    for stream in streams {
-        add_stream_support_paths(&mut paths, &stream.source_path)?;
-        for owner in stream.owners {
-            add_claim_form_path(&mut paths, &stream.source_path, &owner.claim_id)?;
-            add_direct_evidence_paths(&mut paths, owner.exact_row_bytes)?;
-        }
-    }
-    paths_within_limit(paths)
-}
-
-/// Request the exact stable identities referenced by every Claim in a
-/// compound refresh owner's complete current stream set.
-pub(crate) fn claim_event_dependency_refresh_identity_requests_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-) -> DurableResult<Vec<ClaimEventIdentityRequestV1>> {
-    let streams = claim_event_streams_for_refresh_set_v1(context, manifest)?;
-    claim_event_identity_requests_for_streams(context, &streams)
-}
-
-/// Stage identity source, form, history, and semantic-schema candidates for a
-/// compound refresh. Metadata schemas are derived in a second phase from the
-/// selected record bytes by `claim_event_dependency_refresh_schema_paths_v1`.
-pub(crate) fn claim_event_dependency_refresh_indexed_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_refresh_set_v1(context, manifest)?;
-    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
-    claim_event_indexed_paths_for_requests(context, &streams, &requests, owners)
-}
-
-/// Derive exact metadata schema routes after identity source bytes have been
-/// selected. This avoids reading generated catalog rows for ID-to-path or
-/// schema routing.
-pub(crate) fn claim_event_dependency_refresh_schema_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_refresh_set_v1(context, manifest)?;
-    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
-    claim_event_indexed_schema_paths_for_requests(context, &requests, owners)
-}
-
-/// Stage retained historical Claim endpoint streams needed by exact identity
-/// references in a compound refresh.
-pub(crate) fn claim_event_dependency_refresh_historical_endpoint_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let requests = claim_event_dependency_refresh_identity_requests_v1(context, manifest)?;
-    claim_event_historical_endpoint_paths_for_requests(context, &requests, owners)
-}
-
-/// Stage captured request/form lock witnesses for historical Claim endpoints
-/// in a compound refresh after the endpoint streams have been selected.
-pub(crate) fn claim_event_dependency_refresh_historical_capture_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let requests = claim_event_dependency_refresh_identity_requests_v1(context, manifest)?;
-    claim_event_historical_capture_paths_for_requests(context, &requests, owners)
-}
-
-/// Stage archive manifests retained by all Claim streams in a compound
-/// dependency refresh.
-pub(crate) fn claim_event_dependency_refresh_archive_manifest_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_refresh_set_v1(context, manifest)?;
-    claim_event_archive_manifest_paths_for_streams(context, &streams)
-}
-
-/// Stage archive blobs after the refresh stream manifests have been selected.
-pub(crate) fn claim_event_dependency_refresh_archive_blob_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-) -> DurableResult<Vec<String>> {
-    let manifests = claim_event_dependency_refresh_archive_manifest_paths_v1(context, manifest)?;
-    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
-}
-
-/// Stage exact Claim/Collection revision archive manifests required by the
-/// collection-order references in the compound refresh closure and by the
-/// selected Claim endpoint histories.
-pub(crate) fn claim_event_dependency_refresh_identity_archive_manifest_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let streams = claim_event_streams_for_refresh_set_v1(context, manifest)?;
-    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
-    validate_identity_result_set(&requests, owners)?;
-    let (collection_refs, membership_refs) =
-        claim_event_collection_order_refs_for_streams(&streams)?;
-    let mut paths = claim_event_identity_archive_paths_for_refs(
-        context,
-        owners,
-        &collection_refs,
-        &membership_refs,
-    )?
-    .into_iter()
-    .collect::<BTreeSet<_>>();
-    paths.extend(
-        claim_event_identity_owner_archive_manifest_paths_for_requests(context, &requests, owners)?,
-    );
-    paths_within_limit(paths)
-}
-
-/// Stage archive blobs named by the exact Claim/Collection revision histories
-/// in a compound refresh closure.
-pub(crate) fn claim_event_dependency_refresh_identity_archive_blob_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let manifests = claim_event_dependency_refresh_identity_archive_manifest_paths_v1(
-        context, manifest, owners,
-    )?;
-    claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
-}
-
-fn claim_event_streams_for_refresh_set_v1<'a>(
-    context: &'a DurableNavigationEventContextV1,
-    manifest: &tos_compiler::source_navigation_claim_event::NavigationClaimDependencyRefreshOwnerManifestSetV1,
-) -> DurableResult<Vec<ClaimEventOwnerStreamV1<'a>>> {
-    validate_event_context(context)?;
-    manifest
-        .verify_integrity()
-        .map_err(|_| DurableError::Conflict("Claim refresh-set manifest integrity differs"))?;
-    let mut streams = Vec::with_capacity(manifest.streams().len());
-    for expected in manifest.streams() {
-        let bytes = selected_bytes(context, expected.source_path())?;
-        if Digest256::of_bytes(bytes) != expected.stream_sha256() {
-            return Err(DurableError::Conflict(
-                "Claim refresh-set selected stream digest differs",
-            ));
-        }
-        let stream = parse_claim_stream(expected.source_path(), bytes)?;
-        let owner_ids = stream
-            .owners
-            .iter()
-            .map(|owner| owner.claim_id.clone())
-            .collect::<Vec<_>>();
-        if stream.owners.len() as u64 != expected.rows_scanned()
-            || owner_ids != expected.owner_ids()
-        {
-            return Err(DurableError::Conflict(
-                "Claim refresh-set selected stream inventory differs",
-            ));
-        }
-        streams.push(stream);
-    }
-    if streams
-        .windows(2)
-        .any(|pair| pair[0].source_path >= pair[1].source_path)
-    {
-        return Err(DurableError::Corrupt(
-            "Claim refresh-set stream order differs",
-        ));
-    }
-    Ok(streams)
 }
 
 /// Parse the exact terminal Claim streams selected by a multi-event range.
@@ -1222,16 +646,6 @@ fn claim_event_archive_blob_paths_for_manifests_v1(
     paths_within_limit(paths)
 }
 
-/// Enumerate the exact stable IDs used by every selected current Claim. This
-/// list drives addressed PG identity-index reads; it is not a source scan.
-pub(crate) fn claim_event_identity_requests_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<ClaimEventIdentityRequestV1>> {
-    validate_event_context(context)?;
-    let streams = claim_event_changed_owner_streams_v1(context)?;
-    claim_event_identity_requests_for_streams(context, &streams)
-}
-
 fn claim_event_identity_requests_for_streams(
     context: &DurableNavigationEventContextV1,
     streams: &[ClaimEventOwnerStreamV1<'_>],
@@ -1322,20 +736,6 @@ fn claim_event_identity_requests_for_streams(
         .collect::<Vec<_>>();
     requests.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(requests)
-}
-
-/// Exact Claim and Collection revisions named by current collection-order
-/// Claims. These stable IDs are separately requested from the PG point index;
-/// the revision digest remains bound to the selected source bytes and history.
-pub(crate) fn claim_event_collection_order_refs_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<(
-    BTreeMap<String, ExactSourceReferenceV1>,
-    BTreeMap<String, ExactSourceReferenceV1>,
-)> {
-    validate_event_context(context)?;
-    let streams = claim_event_changed_owner_streams_v1(context)?;
-    claim_event_collection_order_refs_for_streams(&streams)
 }
 
 fn claim_event_collection_order_refs_for_streams(
@@ -1709,28 +1109,6 @@ pub(crate) fn canonical_serde_source_record_v1(
     .map_err(|_| DurableError::Corrupt("selected exact canonical digest"))
 }
 
-/// Turn point-index results into exact staged source addresses. The index
-/// supplies only path discovery and never replaces exact-byte validation.
-pub(crate) fn claim_event_indexed_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    validate_event_context(context)?;
-    let streams = claim_event_changed_owner_streams_v1(context)?;
-    let requests = claim_event_identity_requests_v1(context)?;
-    claim_event_indexed_paths_for_requests(context, &streams, &requests, owners)
-}
-
-/// Derive exact current metadata schema routes after indexed identity source
-/// paths have been selected into the event context.
-pub(crate) fn claim_event_indexed_schema_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    owners: &[ClaimEventIdentityOwnerV1],
-) -> DurableResult<Vec<String>> {
-    let requests = claim_event_identity_requests_v1(context)?;
-    claim_event_indexed_schema_paths_for_requests(context, &requests, owners)
-}
-
 fn claim_event_indexed_schema_paths_for_requests(
     context: &DurableNavigationEventContextV1,
     requests: &[ClaimEventIdentityRequestV1],
@@ -1786,56 +1164,6 @@ fn claim_event_indexed_schema_paths_for_requests(
         )
         .map_err(|_| DurableError::Conflict("Claim metadata schema route differs"))?;
         add_path(&mut paths, &schema_path)?;
-    }
-    paths_within_limit(paths)
-}
-
-/// Expand Claim owners returned by the exact persisted reverse-dependency
-/// query. These rows are existing projected owners, not a corpus enumeration.
-pub(crate) fn claim_event_affected_owner_paths_v1(
-    context: &DurableNavigationEventContextV1,
-    owners: &[DurableNavigationEventAffectedOwnerV1],
-) -> DurableResult<Vec<String>> {
-    validate_event_context(context)?;
-    if owners.len() > MAX_CLAIM_OWNERS {
-        return Err(DurableError::Refused("Claim affected-owner count"));
-    }
-    let mut paths = BTreeSet::new();
-    for owner in owners {
-        if owner.kind() != DurableNavigationEventAffectedOwnerKindV1::Claim {
-            continue;
-        }
-        if !is_claim_stream_path(owner.source_path())
-            || owner.record_id().len() > MAX_PATH_BYTES
-            || !owner.record_id().starts_with("tos.claim.")
-        {
-            return Err(DurableError::Conflict(
-                "affected Claim owner address differs",
-            ));
-        }
-        add_path(&mut paths, owner.source_path())?;
-        add_stream_support_paths(&mut paths, owner.source_path())?;
-        add_claim_form_path(&mut paths, owner.source_path(), owner.record_id())?;
-    }
-    if !paths.is_empty() {
-        add_static_paths(&mut paths)?;
-    }
-    paths_within_limit(paths)
-}
-
-/// Extend any exact selected Claim stream with its full current form closure
-/// and direct repository-path evidence references.
-pub(crate) fn claim_event_current_owner_paths_v1(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<String>> {
-    validate_event_context(context)?;
-    let mut paths = BTreeSet::new();
-    for stream in claim_event_changed_owner_streams_v1(context)? {
-        add_stream_support_paths(&mut paths, &stream.source_path)?;
-        for owner in stream.owners {
-            add_claim_form_path(&mut paths, &stream.source_path, &owner.claim_id)?;
-            add_direct_evidence_paths(&mut paths, owner.exact_row_bytes)?;
-        }
     }
     paths_within_limit(paths)
 }

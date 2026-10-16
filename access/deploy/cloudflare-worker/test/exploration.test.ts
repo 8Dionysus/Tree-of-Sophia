@@ -1,10 +1,9 @@
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {explorationCapabilitiesD1} from '../src/exploration.ts';
 import {PUBLISHED_EXPLORATION_ADJACENCY_SQL as ADJACENCY_SQL,PUBLISHED_EXPLORATION_IDENTITY_SQL as IDENTITY_SQL} from '../src/native-exploration-store.ts';
@@ -14,11 +13,10 @@ import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 import type {Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
-const repo = fileURLToPath(new URL('../../../../', import.meta.url));
-const python = (code: string, input: unknown) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-  "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code], {cwd: repo, input: JSON.stringify(input), encoding: 'utf8'}));
+
+const reference = (referenceId: string, input: unknown) => JSON.parse(frozenReference(import.meta.url, referenceId, JSON.stringify(input)));
 function graph(size = 12, seed = 0) {
-  return python("from test_exploration import graph_for;p=json.load(sys.stdin);print(json.dumps(graph_for(p['size'],p['seed'])))", {size, seed});
+  return reference("exploration/graph", {size, seed});
 }
 async function init(db: D1Database, g: ReturnType<typeof graph>, migrated = true) {
   await db.batch([
@@ -202,7 +200,7 @@ test('compact value-member context requires the full set and preserves focused o
   shared.relations.push({...shared.relations[0], id: 'member-neighborhood', from_id: '4', to_id: '5',
     relation_type_id: 'tos.relation.related'});
   cases.push({name: 'shared member neighborhood', graph: shared, focus: null, reason: null});
-  const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['graph']['nodes'],c['graph']['relations'],c['focus']) for c in p]))", cases);
+  const expected = reference("scene/value-contexts", cases);
   for (const [index, c] of cases.entries()) {
     const before = structuredClone(c.graph);
     const scene = knowledgeScene(c.graph.nodes, c.graph.relations, c.focus), compact = scene.compact;
@@ -255,7 +253,7 @@ test('overview identity steps are resumable, zero distance, filtered and promote
       await init(db,g);
       for (const profile of ['overview','all']) for (const size of [1,3]) {
         const query = {focus_node_id:'0',max_depth:2,profile,page_nodes:size,page_relations:1};
-        const expected = python("from tos_access.exploration import ExplorationService;p=json.load(sys.stdin);s=ExplorationService(lambda:p['graph'],work_limit=2);r=s.explore(p['query']);out=[r]\nwhile r['page']['next_cursor']:\n r=s.explore({'cursor':r['page']['next_cursor']});out.append(r)\nprint(json.dumps(out))",{graph:g,query});
+        const expected = reference("exploration/identity-pages",{graph:g,query});
         const pages = await collect(db,query);
         assert.deepEqual(membership(pages),membership(expected));
         const found = new Set(pages.flatMap(p => (p.nodes as {id:string}[]).map(n => n.id)));
@@ -297,7 +295,7 @@ test('D1 continuation delivers the same qualified Claim scene as Python without 
       let count = 0;
       for (const page of pages) {
         const focus = (page.focus as {node_id:string}).node_id;
-        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps(knowledge_scene(p['nodes'],p['relations'],p['focus'])))",
+        const expected = reference("scene/claim-page",
           {nodes:page.nodes,relations:page.relations,focus});
         assert.deepEqual(page.scene,expected);
         const paths = (page.scene as {compact:{claim_paths:{reading:{wording_pointer:string;standalone:boolean}}[]}}).compact.claim_paths;
@@ -329,7 +327,7 @@ test('D1 motif value-member pages preserve the complete context and fail closed 
       await init(db, g);
       for (const focus of ['2', '0', '5']) for (const size of [1, 8]) {
         const pages = await collect(db, {focus_node_id: focus, max_depth: 3, page_nodes: size, page_relations: size});
-        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['nodes'],c['relations'],c['focus']['node_id']) for c in p]))", pages.map(page => ({nodes:page.nodes,relations:page.relations,focus:{node_id:(page.focus as {node_id:string}).node_id}})));
+        const expected = reference("scene/motif-pages", pages.map(page => ({nodes:page.nodes,relations:page.relations,focus:{node_id:(page.focus as {node_id:string}).node_id}})));
         let folded = 0;
         for (const [index, page] of pages.entries()) {
           assert.deepEqual(page.scene, expected[index]);
@@ -368,7 +366,7 @@ test('D1 exploration conserves Python BFS order across direction, depth, size an
     await init(db,g);
     for (const direction of ['either','incoming','outgoing']) for (const max_depth of [1,3]) for (const size of [1,7]) {
       const query = {focus_node_id:'0',direction,max_depth,page_nodes:size,page_relations:size};
-      const expected = python("from tos_access.exploration import ExplorationService;p=json.load(sys.stdin);s=ExplorationService(lambda:p['graph']);r=s.explore(p['query']);out=[r]\nwhile r['page']['next_cursor']:\n r=s.explore({'cursor':r['page']['next_cursor']});out.append(r)\nprint(json.dumps(out))",{graph:g,query});
+      const expected = reference("exploration/bfs-pages",{graph:g,query});
       const pages = await collect(db,query);
       assert.deepEqual(membership(pages),membership(expected));
       assert.equal(pages.at(-1)!.status,'complete');

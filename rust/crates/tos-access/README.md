@@ -9,7 +9,7 @@ selected, or the installed `tos` on PATH. Source-data validation is a separate
 operation and is not implied by this software result.
 
 The metadata-only lexical validation entry is
-`tos lexical-index validate-tracked --source-root ABS`. Use
+`tos-research lexical-index validate-tracked --source-root ABS`. Use
 `--derived-input-root ABS` when the declared lexical projection is in a data
 artifact, and `--local-output-root ABS` to additionally verify its private
 SQLite bytes and schema. All roots are explicit; missing data fails without
@@ -21,7 +21,7 @@ configurable with `--max-seconds 1..600`; existing lexical file, total-input,
 parser and database limits apply. No text, translation, rights or publication
 assessment is inferred from this mechanical check.
 
-`tos nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
+`tos-research nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
 checks the retained Nietzsche transfer maps and their candidate/provenance
 closure. Both commands are native steps of `source_witness_foundation` in the
 validation lane manifest. The lexical step expects its explicitly selected

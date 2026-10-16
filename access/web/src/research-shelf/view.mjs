@@ -3,7 +3,6 @@ import {rawDataDownload} from '../observatory/human-presentation.mjs';
 import {createResearchShelfStore} from './storage.mjs';
 import './research-shelf.css';
 
-const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const copy=value=>typeof structuredClone==='function'?structuredClone(value):JSON.parse(JSON.stringify(value));
 const typeNames={
   ru:{material:'Материал',form:'Фрагмент',text:'Текстовый фрагмент',lens:'Линза',route:'Маршрут'},

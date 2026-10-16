@@ -8,7 +8,9 @@ license.workspace = true
 
 [features]
 default = ["compiler-backed-validators"]
-compiler-backed-validators = ["dep:tos-compiler"]
+# CMD needs the philosophy producer library without standalone validator families.
+philosophy-library = ["dep:tos-compiler"]
+compiler-backed-validators = ["philosophy-library"]
 
 [dependencies]
 csv = "=1.4.0"

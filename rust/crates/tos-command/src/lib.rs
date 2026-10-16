@@ -15,7 +15,6 @@ mod source_admission_generated_selection;
 mod source_admission_index;
 mod source_admission_indexed_input;
 mod source_admission_initial_cut;
-mod source_admission_packed_objects;
 pub mod source_admission_restore;
 mod source_admission_segment_v2;
 pub(crate) mod source_admission_source_census;
@@ -27,7 +26,6 @@ mod source_admission_spooled_manifest;
 mod source_admission_store;
 pub mod source_admission_v2_backup_restore;
 pub mod source_admission_v2_case;
-pub mod source_admission_v2_reader;
 pub mod source_admission_v2_seen_pack;
 pub mod source_agent_publication;
 mod source_agent_publication_apply;
@@ -37,7 +35,6 @@ mod source_agent_publication_commit;
 mod source_agent_publication_profile;
 mod source_agent_publication_recovery;
 pub mod source_artifact_native;
-pub mod source_assembly_normalization;
 pub(crate) mod source_capacity_workload;
 pub mod source_capacity_workload_cli;
 pub mod source_claim_publication;
@@ -67,7 +64,6 @@ pub mod source_navigation_cli;
 pub mod source_navigation_policy;
 mod source_navigation_producer;
 pub mod source_navigation_query;
-mod source_navigation_record_adapter;
 mod source_navigation_record_input;
 pub mod source_projection_cli;
 pub mod source_search_projection;
@@ -131,6 +127,7 @@ mod source_text_unit_proposal;
 
 use tos_foundation::Digest256;
 
+pub(crate) use durable_adapter::durable_projection::DurableNavigationPublishedGenerationGuardV2;
 pub use durable_adapter::durable_projection::{
     DurableNavigationBootstrapApplyV1, DurableNavigationEventAdvanceV2,
     DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
@@ -144,9 +141,6 @@ pub use durable_adapter::durable_projection::{
     DurableProjectionProgress, DurableProjectionQueueAge, DurableProjectionQueueAgeStatus,
     DurableProjectionSearch, DurableProjectionSource, DurableProjectionStatus,
     DurableProjectionWork,
-};
-pub(crate) use durable_adapter::durable_projection::{
-    DurableNavigationHeldReadV2, DurableNavigationPublishedGenerationGuardV2,
 };
 pub use durable_adapter::{
     AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, ColdWorkspaceLimits,

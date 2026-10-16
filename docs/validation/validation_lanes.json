@@ -595,6 +595,8 @@
           "cargo",
           "test",
           "--workspace",
+          "--features",
+          "tos-access/research-tools",
           "--locked",
           "--no-fail-fast",
           "--exclude",
@@ -792,7 +794,7 @@
       {
         "label": "validate Nietzsche transfer source routes",
         "command": [
-          "tos",
+          "tos-research",
           "nietzsche-transfer-source-routes",
           "--source-root",
           "{repo_root}",
@@ -802,7 +804,7 @@
       {
         "label": "validate golden-kernel transfer target passages",
         "command": [
-          "tos",
+          "tos-research",
           "transfer-target-passages",
           "--source-root",
           "{repo_root}",
@@ -812,7 +814,7 @@
       {
         "label": "validate golden-kernel transfer source passages",
         "command": [
-          "tos",
+          "tos-research",
           "transfer-source-passages",
           "--source-root",
           "{repo_root}",
@@ -822,7 +824,7 @@
       {
         "label": "check golden-kernel transfer route readiness",
         "command": [
-          "tos",
+          "tos-research",
           "transfer-route-readiness",
           "--source-root",
           "{repo_root}",
@@ -832,7 +834,7 @@
       {
         "label": "validate Zarathustra lexical projection",
         "command": [
-          "tos",
+          "tos-research",
           "lexical-index",
           "validate-tracked",
           "--source-root",
@@ -842,7 +844,7 @@
       {
         "label": "check Zarathustra exact-form recurrence projection",
         "command": [
-          "tos",
+          "tos-research",
           "zarathustra-recurrence-projection",
           "--source-root",
           "{repo_root}",

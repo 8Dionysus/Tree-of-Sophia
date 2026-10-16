@@ -1329,7 +1329,7 @@ claiming content correctness.
 
 ## Witness structure correspondence
 
-The maintained producer is `tos witness-structure-correspondence`. Supply
+The maintained producer is `tos-research witness-structure-correspondence`. Supply
 `--source-root ABS --local-input-root ABS --check` to reconstruct the retained
 82 correspondence candidates and 246 proposed anchors without writes. The
 local input root is the repository-shaped payload custody root. A fresh run uses
@@ -1372,7 +1372,7 @@ printed `237.` on PDF page 189, retained locally as `237a`. The result is 299
 monotonic proposed start-page candidates for §§1–296 plus 65a, 73a, and 237a,
 with 299 whole-page proposed source anchors.
 
-`tos jenseits-numbered-structure --source-root ABS --local-input-root ABS --check`
+`tos-research jenseits-numbered-structure --source-root ABS --local-input-root ABS --check`
 reconstructs that retained map through the native bounded ABBYY reader. A new
 `--build` requires `--generation NAME --event-at RFC3339 --scratch-bytes BYTES`
 and writes a separate `structure/native-NAME/` map, anchors and Rust provenance.
@@ -1380,7 +1380,7 @@ The local input root names the corpus root containing `ToS/source-witnesses/`;
 original payloads and the historical generation remain unchanged.
 
 The Polilov/Mysl target uses
-`tos jenseits-polilov-numbered-structure --source-root ABS --local-input-root ABS --check`
+`tos-research jenseits-polilov-numbered-structure --source-root ABS --local-input-root ABS --check`
 with the exact held PDF and its metadata. `--check` verifies the retained
 298 proposed page anchors and their provenance. A fresh `--build` requires a
 writable selected source root, `--generation`, `--event-at` and an explicit
@@ -1421,7 +1421,7 @@ identities prevent repeated numerals from collapsing into a false flat unit
 namespace. The original target-only crosswalks narrow the twelve frozen pages
 to twenty possible target routes and remain unchanged as historical inputs.
 
-`tos mysl-transfer-target-structure --source-root ABS --local-input-root ABS --check`
+`tos-research mysl-transfer-target-structure --source-root ABS --local-input-root ABS --check`
 reconstructs both retained target maps, their anchors and frozen-page crosswalks.
 Historical events keep the input and output digests from their original revision,
 including events that predate later plan or rights changes. New `--build`
@@ -1439,7 +1439,7 @@ intersection pairs only identical `series:unit` keys, and a second composition
 gives all twelve frozen pages twenty possible German structural routes. These routes provide proposed German structural starts; passage ends and
 source-to-target correspondences remain unresolved.
 
-`tos nietzsche-transfer-source-structure --source-root ABS --local-input-root ABS --check`
+`tos-research nietzsche-transfer-source-structure --source-root ABS --local-input-root ABS --check`
 reconstructs the two retained German maps, anchors and provenance through Rust.
 It holds the PDF, DjVu and DjVuXML witnesses separately, verifies their fixity
 and keeps the declared page offset. The same explicit generation, timestamp

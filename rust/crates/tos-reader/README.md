@@ -7,7 +7,7 @@ V2. Both formats require an exact retained revision and one exact selector; V1 a
 public access or corpus admission.
 
 The V1 path remains the `tos-source-store::CorpusReader` snapshot reader. V2
-uses the maintained CMD `V2ReadSession`, which authenticates the selected
+uses `tos-source-store::native_v2::V2ReadSession`, which authenticates the selected
 current pointer and retained history, resolves either the typed identity or the canonical relative member path at
 the requested revision, and verifies the object before it is staged. A missing
 exact member path is a nonzero result with no selected bytes on stdout; it does
@@ -41,8 +41,3 @@ verification.
 This raw local reader has no rights, consent, publication or current-use
 policy adapter. Its input store must be a trusted local snapshot. Do not
 expose this binary as an HTTP, MCP or public corpus endpoint.
-
-## Exact member-path callsite
-
-For the authored E5 pair, the V2 member selector is the exact item member path
-`ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.human-forms.json`. Invoke the normal bounded V2 command with `--store STORE --revision REVISION --member-path 'PATH' --format v2 --stage-dir PRIVATE_STAGE` and the same explicit finite V2 limit arguments required by `--help`; omit `--source-id`. The same exact call at the afc87 revision returns status 2 and no stdout because that member is absent there. The source-owned `item.json` continues to be selected separately by its stable `record_id`; path lookup does not mint identity.

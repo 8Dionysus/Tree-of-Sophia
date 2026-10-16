@@ -1047,7 +1047,7 @@ mod tests {
         let mut different = reversed.clone();
         different["field.001"] = Value::Null;
         assert!(!equal_owned(&state, &value, &different, 0).unwrap());
-        different.as_object_mut().unwrap().swap_remove("field.001");
+        different.as_object_mut().unwrap().remove("field.001");
         assert!(!equal_owned(&state, &value, &different, 0).unwrap());
         let one: Value = serde_json::from_str("1.00").unwrap();
         let other: Value = serde_json::from_str("1.0").unwrap();

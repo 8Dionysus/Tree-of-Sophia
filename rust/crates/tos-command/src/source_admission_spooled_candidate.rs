@@ -2,14 +2,11 @@
 //! A completed metadata import is not validation or permission to publish.
 use super::source_admission::{AdmissionBatch, AdmissionWorkBudget, SourceUpdate, active, invalid};
 use super::source_admission_candidate::CandidateLimits;
-use super::source_admission_packed_objects::{
-    PackedObjectChangeV2, PackedObjectLocationV2, PackedObjectSourceV2,
-};
 use super::source_admission_spooled_index::cursor_argument_state;
 use super::source_admission_store::{AdmissionStore, CandidatePayloadPackV2};
-#[path = "source_admission_logical_membership.rs"]
-mod logical_membership;
-use super::source_admission_v2_reader::{V2ReadSession, V2RootKind};
+use tos_source_store::native_v2::objects::{
+    PackedObjectChangeV2, PackedObjectLocationV2, PackedObjectSourceV2,
+};
 use rusqlite::{OptionalExtension, params};
 use std::{
     cell::{Cell, RefCell},
@@ -21,6 +18,7 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
+use tos_source_store::native_v2::reader::{V2ReadSession, V2RootKind};
 use tos_source_store::{
     MemberMetadata, PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope,
     PinnedSqliteConnection, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, ReadLimits,
@@ -128,7 +126,7 @@ pub(crate) struct CandidateFence {
 pub(crate) struct SpooledPublicationReceipt {
     pub revision: SourceRevision,
     pub manifest_sha256: Option<Digest256>,
-    pub source_artifact: Option<super::source_admission_segment_v2::SourceRevisionArtifactV2>,
+    pub source_artifact: Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     pub rootset_sha256: Option<Digest256>,
     pub manifest_bytes: Option<u64>,
     pub fence: CandidateFence,
@@ -146,7 +144,7 @@ pub(crate) struct SpooledPublicationCommittedRefusal {
     pub(crate) revision: SourceRevision,
     pub(crate) manifest_sha256: Option<Digest256>,
     pub(crate) source_artifact:
-        Option<super::source_admission_segment_v2::SourceRevisionArtifactV2>,
+        Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
@@ -196,7 +194,7 @@ pub(crate) struct SpooledPublicationV2Refusal {
     pub(crate) revision: SourceRevision,
     pub(crate) manifest_sha256: Option<Digest256>,
     pub(crate) source_artifact:
-        Option<super::source_admission_segment_v2::SourceRevisionArtifactV2>,
+        Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
@@ -1241,7 +1239,7 @@ impl<'host> SpoolCandidate<'host> {
                     ));
                 }
                 source_artifact = Some(
-                    super::source_admission_segment_v2::SourceRevisionArtifactV2::SnapshotV1 {
+                    tos_source_store::native_v2::roots::SourceRevisionArtifactV2::SnapshotV1 {
                         sha256: manifest_sha256,
                         bytes: manifest_bytes,
                     },
@@ -1556,7 +1554,7 @@ impl<'host> SpoolCandidate<'host> {
         let result = (|| {
             if raw.is_empty()
                 || raw.len()
-                    > super::source_admission_segment_v2::SourceRevisionRootsV2::MAX_ENCODED_BYTES
+                    > tos_source_store::native_v2::roots::SourceRevisionRootsV2::MAX_ENCODED_BYTES
             {
                 return Err(invalid("V1 migration history row exceeds wire profile"));
             }
@@ -1603,7 +1601,7 @@ impl<'host> SpoolCandidate<'host> {
                 let raw_len = match row.get_ref(1)? {
                     rusqlite::types::ValueRef::Blob(bytes)
                         if !bytes.is_empty()
-                            && bytes.len() <= super::source_admission_segment_v2::SourceRevisionRootsV2::MAX_ENCODED_BYTES => bytes.len(),
+                            && bytes.len() <= tos_source_store::native_v2::roots::SourceRevisionRootsV2::MAX_ENCODED_BYTES => bytes.len(),
                     _ => return Err(rusqlite::Error::InvalidQuery),
                 };
                 let state = raw_len

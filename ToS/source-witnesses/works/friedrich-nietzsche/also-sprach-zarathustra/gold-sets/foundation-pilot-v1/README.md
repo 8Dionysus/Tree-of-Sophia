@@ -522,7 +522,7 @@ explicit run card; it must not write results into ToS canon or relabel review.
 
 ### Native morphology input
 
-`tos zarathustra-morphology-input` materializes the exact-form census through
+`tos-research zarathustra-morphology-input` materializes the exact-form census through
 Rust. Supply `--source-root ABS --local-input-root ABS --local-output-root ABS`
 and `--check` to verify a selected packet. A fresh `--build` requires
 `--generation NAME --scratch-bytes RESERVED_BYTES` and a separate output root;
@@ -539,9 +539,9 @@ receipt. Generation and packet equality do not accept morphology or grant rights
 
 ### Native result recording
 
-The maintained recorders are `tos zarathustra-morphology-census-result`,
-`tos zarathustra-morphology-context-result`, and
-`tos zarathustra-visual-retrieval-result`. All require an explicit
+The maintained recorders are `tos-research zarathustra-morphology-census-result`,
+`tos-research zarathustra-morphology-context-result`, and
+`tos-research zarathustra-visual-retrieval-result`. All require an explicit
 `--source-root`; their `--help` lists the exact artifact, runtime, source-packet,
 and admission inputs. The commands read retained provider evidence without
 executing a model or an external runtime.

@@ -1,4 +1,4 @@
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 /** Test-only v9 publication for legacy hand-built tiny D1 fixtures.
  * Numeric/Unicode production-emission parity is independently covered by
  * native-lens.test.mjs against frozen Python reference outcomes.
@@ -14,8 +14,8 @@ import type {NativeD1Limits} from '../src/native-d1-read.ts';
 import {parseNativeJson, type NativeRef} from '../src/native-lens.ts';
 import {HttpError} from '../src/common.ts';
 import {nativeLower, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-semantics.ts';
-import type {Item, KnowledgeNode, KnowledgeRelation, LensSpec} from '../src/knowledge.ts';
-type FixtureLensReply = Item & {nodes:KnowledgeNode[];relations:KnowledgeRelation[];presentation:LensSpec['presentation'];fingerprint:string;authority_boundary:Item};
+import type {Item, KnowledgeNode, KnowledgeRelation, LensPresentation} from '../src/knowledge.ts';
+type FixtureLensReply = Item & {nodes:KnowledgeNode[];relations:KnowledgeRelation[];presentation:LensPresentation;fingerprint:string;authority_boundary:Item};
 const initialized = new WeakSet<object>();
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
 
@@ -116,9 +116,7 @@ export async function executePublishedFixtureLens(db: D1Database, spec: unknown)
 
 /** Frozen Python reference outcome for mixed native D1 fixture controls. */
 export async function executeFixtureReferenceLens(graph:unknown,spec:unknown,sourceUrl:string):Promise<FixtureLensReply> {
-  return JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-    {cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify({graph,spec}),encoding:'utf8',maxBuffer:32*1024*1024}));
+  return JSON.parse(frozenReference(sourceUrl, "lens/execute", JSON.stringify({graph,spec})));
 }
 
 /** Frozen Python reference for publication-bound cursors, not in-memory cursors. */
@@ -126,16 +124,7 @@ export async function executePublishedFixtureReferenceLens(db: D1Database, graph
   const rows = await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top' ORDER BY part").all<{json_chunk:string}>();
   const clock = await db.prepare('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').first<{epoch:number}>();
   if (!clock) throw new Error('published fixture clock absent');
-  return JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',String.raw`
-import sys,json
-sys.path.insert(0,'access/src')
-from tos_access.knowledge import execute_knowledge_lens
-from tos_access.published_read_metadata import published_snapshot_binding
-p=json.load(sys.stdin)
-print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'],
-    publication_binding=published_snapshot_binding(p['top'],p['epoch']))))
-`],{cwd:fileURLToPath(new URL('../../../../',import.meta.url)),encoding:'utf8',
-    input:JSON.stringify({graph,spec,top:JSON.parse(rows.results.map(row=>row.json_chunk).join('')),epoch:clock.epoch})}));
+  return JSON.parse(frozenReference(sourceUrl, "lens/published-execute", JSON.stringify({graph,spec,top:JSON.parse(rows.results.map(row=>row.json_chunk).join('')),epoch:clock.epoch})));
 }
 
 /** Publish search rows from captured Python reference outcomes. */
@@ -143,17 +132,7 @@ export async function publishNativeSearchFixture(db:D1Database,sourceUrl:string)
   await publishNativeLensFixture(db);
   const raw:Record<string,string[]>={};
   for(const kind of ['nodes','relations'])raw[kind]=(await db.prepare(`SELECT json FROM knowledge_${kind} ORDER BY id`).all<{json:string}>()).results.map(row=>row.json);
-  const emitted=JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',String.raw`
-import sys,json,hashlib
-sys.path.insert(0,'access/src')
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-out=[]
-for kind,raws in json.load(sys.stdin).items():
- for position,raw in enumerate(raws):
-  n=json.loads(raw);text=S._searchable(n);rank=S._rank_fields(n,relation=kind=='relations')
-  out.append({'kind':kind,'id':n['id'],'text':text,'doc':[kind,position,n['id'],n['source_graph'],n.get('kind_id',''),n.get('predicate_id',''),*rank,len(text),hashlib.sha256(text.encode('utf-8')).hexdigest()],
-   'grams':list(dict.fromkeys(text[i:i+3] for i in range(len(text)-2)))})
-print(json.dumps(out))`],{cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify(raw),encoding:'utf8'})) as {kind:string;id:string;text:string;doc:(string|number)[];grams:string[]}[];
+  const emitted=JSON.parse(frozenReference(sourceUrl, "search/published-rows", JSON.stringify(raw))) as {kind:string;id:string;text:string;doc:(string|number)[];grams:string[]}[];
   await db.batch([
     'CREATE TABLE IF NOT EXISTS knowledge_search_documents(kind TEXT,position INTEGER,id TEXT,source_graph TEXT,kind_id TEXT,predicate_id TEXT,id_lower TEXT,native_id_lower TEXT,identity_values TEXT,visible_values TEXT,document_chars INTEGER,document_digest TEXT,PRIMARY KEY(kind,position))',
     'CREATE TABLE IF NOT EXISTS knowledge_search_grams(kind TEXT,n INTEGER,gram TEXT,position INTEGER,PRIMARY KEY(kind,n,gram,position))',

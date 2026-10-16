@@ -6,9 +6,7 @@
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use tos_foundation::{
-    JsonEmissionProfile, JsonLimits, JsonMode, emit_json_profile, parse_json_with_state_budget,
-};
+use tos_foundation::{JsonLimits, JsonMode, parse_json_with_state_budget};
 use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope;
 use tos_validation::source_foundation_labs::SourceFoundationLab;
 use tos_validation::source_foundation_schema::SourceFoundationSchemaReport;
@@ -106,61 +104,6 @@ pub(crate) fn interleave_schema_findings(
     }
     output.extend(direct);
     Ok(output)
-}
-
-/// Same foundation JSON visitor as other maintained sinks, selecting sorted
-/// Python pretty output for this actual CLI report. `workspace` is exclusive
-/// of the caller-owned Value and includes raw bytes, parser and output state.
-pub(crate) fn format_lab_report(
-    value: &serde_json::Value,
-    limits: JsonLimits,
-    workspace: usize,
-) -> Result<Vec<u8>, &'static str> {
-    struct Count(usize, usize);
-    impl Write for Count {
-        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-            self.0 = self
-                .0
-                .checked_add(bytes.len())
-                .filter(|n| *n <= self.1)
-                .ok_or_else(|| std::io::Error::other("foundation report byte limit"))?;
-            Ok(bytes.len())
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
-    }
-    let mut count = Count(0, limits.max_bytes);
-    serde_json::to_writer(&mut count, value).map_err(|_| "foundation report encoding limit")?;
-    // The visitor's object-reference vector and duplicate-key set are bounded
-    // by visits; allocator/RSS margins belong to the operation RAM envelope.
-    let reserved = count
-        .0
-        .checked_add(limits.max_bytes)
-        .and_then(|n| {
-            limits
-                .max_visits
-                .checked_mul(64)
-                .and_then(|v| n.checked_add(v))
-        })
-        .ok_or("foundation report workspace overflow")?;
-    let parser_workspace = workspace
-        .checked_sub(reserved)
-        .ok_or("foundation report workspace limit")?;
-    let raw = serde_json::to_vec(value).map_err(|_| "foundation report encoding")?;
-    if raw.len() != count.0 {
-        return Err("foundation report encoding changed");
-    }
-    let parsed =
-        parse_json_with_state_budget(&raw, JsonMode::PublishedStrict, limits, parser_workspace)
-            .map_err(|_| "foundation report parsing limit")?;
-    emit_json_profile(
-        parsed.root(),
-        JsonEmissionProfile::SourceFoundationLabReportV1,
-        limits,
-    )
-    .map(|encoded| encoded.bytes)
-    .map_err(|_| "foundation report output limit")
 }
 
 /// Software-owner declaration, independent of any immutable candidate grammar.
@@ -500,7 +443,7 @@ pub(crate) fn parse_arguments(
     Ok(parsed)
 }
 
-pub(crate) const HELP: &str = "usage: tos-native-owner-command foundation --repo-root PATH --invocation ABSOLUTE_PATH [--require-local-payloads] [--payload-source-root PATH]\n\nThe default route performs the complete source-witness foundation audit and checks generated catalog parity. The protected tos_local_native_foundation_invocation_v1 request selects the exact installed command and schema-worker digests plus finite source, CPU, private-stage, state and output budgets. Run inside the abyss-machine private-tmpfs owner launcher with its sealed ABYSS_STAGE_TICKET_FD and matching ABYSS_STAGE_ROOT. An explicit validation profile or lab-only option is not connected to this whole-operation route.\n";
+pub(crate) const HELP: &str = "usage: tos-native-owner-command foundation --repo-root PATH --invocation ABSOLUTE_PATH [--require-local-payloads] [--payload-source-root PATH]\n\nThe default route performs the complete source-witness foundation audit and checks generated catalog parity. Build this audit tool with the tos-command research feature. The protected tos_local_native_foundation_invocation_v1 request selects the exact installed command and schema-worker digests plus finite source, CPU, private-stage, state and output budgets. Run inside the abyss-machine private-tmpfs owner launcher with its sealed ABYSS_STAGE_TICKET_FD and matching ABYSS_STAGE_ROOT. An explicit validation profile or lab-only option is not connected to this whole-operation route.\n";
 
 fn lab_output(lab: SourceFoundationLab) -> Result<(&'static str, &'static str), &'static str> {
     Ok(match lab {

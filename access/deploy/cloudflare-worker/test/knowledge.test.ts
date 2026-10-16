@@ -1,10 +1,10 @@
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed } from "../src/knowledge-store.ts";
 import {nativeChild, nativeField, nativePacketJson, parseNativeJson} from '../src/native-lens.ts';
@@ -61,9 +61,7 @@ function hasHttpStatus(status: number) {
 }
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
-  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
+  return JSON.parse(frozenReference(import.meta.url, "knowledge/work-forms"));
 }
 
 function assessedFormNode(): KnowledgeGraph['nodes'][number] {
@@ -83,9 +81,7 @@ function assessedFormNode(): KnowledgeGraph['nodes'][number] {
 function claimFormNode(): KnowledgeGraph['nodes'][number] {
   // A disposable source-copy form of the real, unreviewed letter Claim;
   // not a new historical assertion or an assessed source form.
-  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-claim-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))",
-  ], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
+  return JSON.parse(frozenReference(import.meta.url, "knowledge/claim-forms"));
 }
 
 function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeGraph; fullScene: unknown;
@@ -93,107 +89,7 @@ function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeG
   // Build disposable navigation carriers from three real legacy Claims and
   // their exact public identity records. No source/form files are changed;
   // this transport fixture does not assert graph-wide source closure.
-  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
-import copy, json, pathlib, sys
-sys.path[:0] = ['access/src', 'scripts']
-from claim_navigation import build_claim_navigation_descriptor
-from tos_access.knowledge import (_entity_registry_indexes, _relation_registry_indexes,
-    _validate_claim_navigation_carriers, _normalize_node, _normalize_relation,
-    _source_claim_kind, _finalize_knowledge_node, _stable_digest, _exact_record_digest,
-    execute_knowledge_lens, knowledge_scene)
-root = pathlib.Path('.')
-fixture = json.loads((root / 'access/tests/fixtures/worker-claim-navigation.json').read_text())
-entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
-relations = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
-claim_ids = {
-    'tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani',
-    'tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments',
-    'tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments',
-}
-traces_by_ref = {trace['claim_ref']: trace for trace in fixture['claim_traces']}
-traces = [traces_by_ref[key] for key in sorted(claim_ids)]
-assert len(traces) == len(claim_ids)
-selected_ids = {trace[key] for trace in traces for key in ('claim_node_id', 'subject_node_id', 'object_node_id')}
-edges_by_id = {edge['edge_id']: edge for edge in fixture['edges']}
-incident_edges = [edges_by_id[key] for key in sorted({key for trace in traces for key in trace['edge_ids']})]
-full_ids = selected_ids | {edge[key] for edge in incident_edges for key in ('from_id', 'to_id')}
-nodes_by_id = {node['node_id']: node for node in fixture['nodes']}
-selected = [copy.deepcopy(nodes_by_id[key]) for key in sorted(full_ids)]
-by_native = {node['node_id']: node for node in selected}
-entity_entries, entity_mappings, entity_fallback = _entity_registry_indexes(entities)
-relation_entries, relation_mappings, relation_fallback = _relation_registry_indexes(relations)
-for trace in traces:
-    carrier = by_native[trace['claim_node_id']]
-    carrier['properties']['navigation_descriptor'] = build_claim_navigation_descriptor(
-        carrier['properties']['source_claim'], by_native[trace['subject_node_id']],
-        by_native[trace['object_node_id']], relations, entities)
-_validate_claim_navigation_carriers(selected, relations, entity_entries, entity_mappings)
-nodes = [_normalize_node(node, 'source-claims', source_kind_id=_source_claim_kind(node),
-    entity_type_entries=entity_entries, entity_type_mappings=entity_mappings,
-    fallback_type_id=entity_fallback) for node in selected]
-by_id = {node['id']: node for node in nodes}
-for trace in traces:
-    identifier = 'source-claims:' + trace['claim_node_id']
-    node = by_id[identifier]
-    claim = {**node['semantics']['claim'],
-        'subject_node_id': 'source-claims:' + trace['subject_node_id'],
-        'object_node_id': 'source-claims:' + trace['object_node_id'],
-        'relation_type_id': relation_mappings[('source-claims', trace['predicate'], 'claim-predicate')],
-        'predicate_mapping_status': 'mapped'}
-    by_id[identifier] = _finalize_knowledge_node(node, (claim, trace), [])
-# Synthetic exact-version transport controls, not a real historical judgment
-# or archive verification. The source-owner end-to-end tests cover that chain.
-record = copy.deepcopy(by_native[traces[0]['claim_node_id']]['properties']['source_claim'])
-record.update(claim_id='tos.claim.synthetic-exact-version-transport', claim_version=1)
-record['qualifiers'] = {'statement': 'Keine gesicherte Zuschreibung; synthetischer Transporttest.',
-    'statement_language': 'de', 'statement_script': 'Latn', 'polarity': 'negative',
-    'unknown_extension': {'false': False, 'zero': 0, 'null': None, 'empty': []}}
-derived_versions = []
-version_cases = [('claim', record)]
-for language in ('de', None):
-    metadata = {'record_id': 'tos.agent.synthetic-version-transport-' + str(language).lower(),
-        'record_type': 'agent', 'record_version': 4, 'preferred_label': 'Synthetic historical description',
-        'notes': 'Keine gesicherte Gleichsetzung; synthetischer Metadatentest.',
-        'field_languages': {'notes': {'language': language, 'script': 'Latn'}},
-        'unknown_extension': {'polarity': 'negative', 'false': False, 'zero': 0, 'null': None, 'empty': []}}
-    version_cases.append(('metadata', metadata))
-for record_kind, record, available in [(kind, value, state) for kind, value in version_cases for state in (True, False)]:
-    reference = {'id': record['claim_id'] if record_kind == 'claim' else record['record_id'],
-        'version': record['claim_version'] if record_kind == 'claim' else record['record_version'],
-        'digest': 'sha256:' + _exact_record_digest(record)}
-    ref = reference if available else {**reference, 'version': 2, 'digest': 'sha256:' + '0' * 64}
-    view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': ref, 'record_kind': record_kind,
-        'status': 'available' if available else 'missing', 'reason': 'synthetic-transport-only',
-        'version_status': 'historical' if available else None, 'record': record if available else None,
-        'provenance': {'fixture': 'not-an-archive-verification'} if available else {},
-        'grants_current_use': False, 'performs_assessment': False}
-    carrier = {'node_id': 'record-version:' + _exact_record_digest(ref), 'node_kind': 'record-version',
-        'source_ref': 'test:synthetic-exact-version-transport', 'properties': {'record_version_view': view}}
-    node = _normalize_node(carrier, 'source-navigation', entity_type_entries=entity_entries,
-        entity_type_mappings=entity_mappings, fallback_type_id=entity_fallback)
-    derived_versions.append(node)
-    by_id[node['id']] = node
-full_edges = [_normalize_relation({**edge, 'predicate_id': edge['edge_kind'],
-    'source_ref': edge['source_claim_file_ref'], 'graph_layers': ['bibliographic-claim']}, 'source-claims', by_id,
-    relation_type_entries=relation_entries, relation_type_mappings=relation_mappings,
-    fallback_relation_type_id=relation_fallback) for edge in incident_edges]
-full_graph = {'schema': 'tos_knowledge_graph_v1', 'source_revision': _stable_digest([selected, relations, entities, derived_versions]),
-    'nodes': list(by_id.values()), 'relations': full_edges,
-    'counts': {'nodes': len(by_id), 'relations': len(full_edges)},
-    'authority_boundary': {'source_owner': 'Tree-of-Sophia', 'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
-graph = {**full_graph, 'nodes': [node for node in by_id.values()
-    if node['native_id'] in selected_ids or node['type_id'] == 'tos.entity.record-version'],
-    'relations': [edge for edge in full_edges if edge['predicate_id'] in {'has_subject', 'has_object'}]}
-graph['counts'] = {'nodes': len(graph['nodes']), 'relations': len(graph['relations'])}
-specs = [{'schema_version': 'tos_lens_spec_v1', 'lens_id': 'claim-navigation-transport',
-    'sources': ['source-claims', 'source-navigation'], 'language': language, 'detail': detail}
-    for language in ('ru', 'en') for detail in ('compact', 'full')]
-print(json.dumps({'graph': graph, 'fullGraph': full_graph,
-    'fullScene': knowledge_scene(full_graph['nodes'], full_graph['relations']),
-    'claims': sorted('source-claims:claim:' + identity for identity in claim_ids),
-    'versions': sorted(node['id'] for node in derived_versions),
-    'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
+  return JSON.parse(frozenReference(import.meta.url, "knowledge/claim-navigation"));
 }
 
 const graph: KnowledgeGraph = {
@@ -438,7 +334,7 @@ test("knowledge reads require the publication clock and reject invalid or ABA sn
   }
 });
 
-test("indexed D1 path conditions and inclusion agree with the maintained Python oracle", async () => {
+test("indexed D1 path conditions and inclusion agree with captured reference results", async () => {
   const mf = new Miniflare(convertV4MiniflareOptions({ ...await publishedWorkerFixtureModules(), d1Databases: ["DB"] }));
   try {
     const db = await mf.getD1Database("DB");
@@ -492,9 +388,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
     }
     await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
       .bind(graph.relations[0]!.relation_type_id, JSON.stringify(graph.relations[0]), graph.relations[0]!.id).run();
-    const python = (spec: unknown, source = graph) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph:source,spec}), encoding:'utf8'}));
+    const python = (spec: unknown, source = graph) => JSON.parse(frozenReference(import.meta.url, "lens/execute", JSON.stringify({graph:source,spec})));
     const propertyGraph = structuredClone(graph);
     propertyGraph.query_properties = [{property_id: 'tos.property.fixture-score', field: 'attributes.score',
       value_type: 'number', applies_to: ['tos.entity.concept'], inherited: true, operators: ['eq', 'neq', 'gt', 'exists']}];
@@ -655,10 +549,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
         .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
       for (const r of rankingGraph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
         .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
-      const expectedSearch = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-        "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph;p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],limit=p['limit'])))"],
-        {cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
-          input: JSON.stringify({graph: rankingGraph, query: '4363', limit: 3}), encoding: 'utf8'}));
+      const expectedSearch = JSON.parse(frozenReference(import.meta.url, "search/graph", JSON.stringify({graph: rankingGraph, query: '4363', limit: 3})));
       await publishNativeSearchFixture(db);
       const actualSearch = await knowledgeSearchD1(db,{query:'4363',sources:null,kindIds:[],predicateIds:[],offset:0,limit:3});
       assert.deepEqual(actualSearch, expectedSearch);
@@ -684,9 +575,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       composition: {endpoint_policy: 'either'}};
     const languageResult = await executePublishedFixtureLens(db, languageSpec);
     assert.deepEqual(languageResult, await executeFixtureReferenceLens(scoped, languageSpec));
-    const pythonLanguage = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: languageSpec}), encoding:'utf8'}));
+    const pythonLanguage = JSON.parse(frozenReference(import.meta.url, "lens/execute", JSON.stringify({graph: scoped, spec: languageSpec})));
     assert.deepEqual(languageResult, pythonLanguage);
     assert.equal((languageResult.relations as KnowledgeGraph['relations'])[0]!.display.statement.fr, 'Attribution non établie.');
     const selected = (languageResult.relations as KnowledgeGraph['relations'])[0]!.display_selection as {
@@ -706,9 +595,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       seed: {focus_node_id: sourceFormNode.id}, node_query: {enabled: false}, relation_query: {enabled: false}};
     const formResult = await executePublishedFixtureLens(db, formSpec);
     assert.deepEqual(formResult, await executeFixtureReferenceLens(scoped, formSpec));
-    const pythonForms = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
+    const pythonForms = JSON.parse(frozenReference(import.meta.url, "lens/execute", JSON.stringify({graph: scoped, spec: formSpec})));
     assert.deepEqual(formResult, pythonForms);
     const delivered = (formResult.nodes as KnowledgeGraph['nodes'])[0]!;
     assert.deepEqual(delivered.attributes, {});
@@ -728,9 +615,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(candidate), candidate.id).run();
       const edge = await executePublishedFixtureLens(db, formSpec);
       assert.deepEqual(edge, await executeFixtureReferenceLens(scoped, formSpec));
-      const pythonAssessed = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-        "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-        {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
+      const pythonAssessed = JSON.parse(frozenReference(import.meta.url, "lens/execute", JSON.stringify({graph: scoped, spec: formSpec})));
       assert.deepEqual(edge, pythonAssessed);
       const forms = decodeDeliveredHumanForms((edge.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection);
       assert.equal(forms.roles.hover!.state === 'ready', state === 'ready');
@@ -747,9 +632,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
     const claimSpec = {...formSpec, seed: {focus_node_id: claimNode.id}};
     const claimResult = await executePublishedFixtureLens(db, claimSpec);
     assert.deepEqual(claimResult, await executeFixtureReferenceLens(scoped, claimSpec));
-    const pythonClaim = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: claimSpec}), encoding:'utf8'}));
+    const pythonClaim = JSON.parse(frozenReference(import.meta.url, "lens/execute", JSON.stringify({graph: scoped, spec: claimSpec})));
     assert.deepEqual(claimResult, pythonClaim);
     const claimPacket = decodeDeliveredHumanForms((claimResult.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection).roles.statement!.packet!;
     assert.equal(claimPacket.standalone_reading, false);
@@ -916,18 +799,11 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     assert.deepEqual((third.nodes as {id:string}[]).map(item => item.id), ["philosophy:alpha-extra-2"]);
     assert.equal((third.page as {next_cursor:string|null}).next_cursor, null);
 
-    // Compare the bounded packet semantics against the pure Python engine on
+    // Compare the bounded packet semantics against captured reference results on
     // this same synthetic graph. Indexed page/work counters and opaque cursor
     // carriers are backend mechanics, so the comparison intentionally omits
     // them while retaining source, filters, authority, and complete packets.
-    const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', [
-      "import json,sys;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph",
-      "p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],sources=p['sources'],kind_ids=p['kind_ids'],predicate_ids=p['predicate_ids'],limit=p['limit'])))",
-    ].join(';')], {
-      cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
-      input: JSON.stringify({graph: indexedGraph, query: "alpha", sources: null, kind_ids: [], predicate_ids: [], limit: 100}),
-      encoding: 'utf8',
-    }));
+    const python = JSON.parse(frozenReference(import.meta.url, "search/filtered-graph", JSON.stringify({graph: indexedGraph, query: "alpha", sources: null, kind_ids: [], predicate_ids: [], limit: 100})));
     const packet = (value: Record<string, unknown>) => ({
       source_revision: value.source_revision,
       query: value.query,
@@ -1094,9 +970,7 @@ test('assessed forms preserve snapshot limits and reject malformed authority acr
     else (admission.subject as Record<string, unknown>)[change === 'boolean-version' ? 'version' : 'id'] = change === 'boolean-version' ? true : 'tos.form.other';
     cases.push(broken);
   }
-  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const python = JSON.parse(frozenReference(import.meta.url, "forms/russian", JSON.stringify(cases)));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
   assert.deepEqual(results, python);
   assert.equal(results[0]!.roles.hover!.state, 'ready');
@@ -1159,9 +1033,7 @@ test('assessed source-copy and separate parent context have lossless bounded Pyt
   (((large.attributes.human_forms as Record<string, unknown>[])[0]!.subject_assessment as Record<string, unknown>).admission as Record<string, unknown>).limits = ['x'.repeat(20000)];
   cases.push(large);
   const before = structuredClone(cases);
-  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8', maxBuffer: 4194304}));
+  const python = JSON.parse(frozenReference(import.meta.url, "forms/russian", JSON.stringify(cases)));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
   assert.deepEqual(results, python);
   assert.deepEqual(cases, before);
@@ -1202,9 +1074,7 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   const missingNull = structuredClone(restricted);
   delete (missingNull.attributes.human_forms as Record<string, unknown>[])[0]!.display_text;
   cases.push({item: missingNull, language: 'ru'});
-  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;p=json.load(sys.stdin);print(json.dumps([select_human_forms(c['item'],c['language']) for c in p]))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const python = JSON.parse(frozenReference(import.meta.url, "forms/context-languages", JSON.stringify(cases)));
   const results = cases.map(({item, language}) => selectHumanForms(item, language));
   assert.deepEqual(results, python);
   assert.equal(results[0]!.roles.name!.state, 'ready');
@@ -1252,9 +1122,7 @@ test('form budget prioritizes requested language across roles in Python and Work
   statement.language = 'fr-CA';
   cases.push({item: structuredClone(node), language: 'fr-CA'});
   const before = structuredClone(cases);
-  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(c['item'],c['language']) for c in json.load(sys.stdin)]))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding: 'utf8'}));
+  const python = JSON.parse(frozenReference(import.meta.url, "forms/budget-languages", JSON.stringify(cases)));
   const results = cases.map(({item, language}) => selectHumanForms(item, language));
   assert.deepEqual(results, python);
   assert.deepEqual(cases, before);
@@ -1311,9 +1179,7 @@ test('native witness and canonical forms bind unchanged identities in Python and
         cases.push(changed);
       }
     }
-    const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-      "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
-      {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+    const python = JSON.parse(frozenReference(import.meta.url, "forms/russian", JSON.stringify(cases)));
     const results = cases.map(item => selectHumanForms(item, 'ru'));
     assert.deepEqual(results, python);
     assert.equal(results[0]!.roles.name!.state, 'ready');
@@ -1333,9 +1199,7 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   const missing = structuredClone(node);
   delete missing.attributes.source_claim;
   const cases = [node, conflicting, wrongIdentity, changed, missing];
-  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const python = JSON.parse(frozenReference(import.meta.url, "forms/russian", JSON.stringify(cases)));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
   assert.deepEqual(results, python);
   assert.equal(results[0]!.roles.statement!.state, 'ready');
@@ -1466,23 +1330,7 @@ test('V2 semantic identity proposals retain the whole frozen plan through Python
   // Use the real owner transaction and portable normalizer in a disposable
   // synthetic source fixture. No canonical subjects or deployed DB are touched.
   const fixture: {graph: KnowledgeGraph; claimId: string; plan: unknown; members: string[];
-    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
-import json, sys
-sys.path[:0] = ['mechanics/growth-cycle/tests', 'access/src']
-from test_identity_proposals import SemanticIdentityProposalCommandTests
-from tos_access.knowledge import execute_knowledge_lens
-test = SemanticIdentityProposalCommandTests()
-with test.identity_creation() as (root, owner, config, claim, request, rebuild, helper, paths):
-    test.create(owner, request)
-    graph, _, _ = helper.historical_knowledge(root, rebuild())
-    specs = [{'schema_version': 'tos_lens_spec_v1', 'lens_id': 'semantic-proposal-transport',
-        'sources': ['source-claims'], 'language': language, 'detail': detail}
-        for language in ('ru', 'en') for detail in ('compact', 'full')]
-    result = {'graph': graph, 'claimId': 'source-claims:claim:' + claim['claim_id'],
-        'plan': claim['object'], 'members': ['source-claims:identity:' + key for key in claim['object']['members']],
-        'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}
-print(json.dumps(result))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024}));
+    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(frozenReference(import.meta.url, "knowledge/semantic-proposals"));
   const source = fixture.graph, original = structuredClone(source);
   const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
     script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
@@ -1543,9 +1391,7 @@ test('source linguistic context controls original selection without an inferred 
   const missingDependency = structuredClone(node);
   (missingDependency.attributes.human_forms as Record<string, unknown>[])[0]!.dependencies = [];
   const cases = [node, absent, changed, multiple, missingDependency];
-  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
-    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'original') for n in json.load(sys.stdin)]))"],
-    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
+  const python = JSON.parse(frozenReference(import.meta.url, "forms/original", JSON.stringify(cases)));
   const results = cases.map(item => selectHumanForms(item, 'original'));
   assert.deepEqual(results, python);
   assert.equal(results[0]!.roles.name!.reason, 'original');
@@ -1630,31 +1476,7 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
     // Use the producer's bounded SQL append path for the serving row. The
     // native consumer reads this one complete row; payload-only legacy tables
     // above are intentionally not used as an unsupported fallback.
-    const rowSql = frozenPythonOracleExec(import.meta.url, ['-B', '-c', String.raw`
-import json, sys
-sys.path.insert(0, 'access/deploy/cloudflare-worker/scripts')
-from build_runtime import append_chunkable_insert, sql_text
-payload = json.load(sys.stdin)
-columns = ('id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id',
-           'title_text', 'summary_text', 'search_text', 'json')
-class Writer:
-    def __init__(self):
-        self.statements = []
-    def append(self, statement):
-        self.statements.append(statement)
-writer = Writer()
-append_chunkable_insert(
-    writer,
-    'knowledge_nodes',
-    columns,
-    tuple(sql_text(payload[column]) for column in columns),
-    selector_sql='id = ' + sql_text(payload['id']),
-    chunked_text={'json': payload['json']},
-)
-print('\n'.join(writer.statements))
-`], {
-      cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
-      input: JSON.stringify({
+    const rowSql = frozenReference(import.meta.url, "search/overflow-sql", JSON.stringify({
         id: full.id,
         entity_id: full.entity_id,
         native_id: full.native_id,
@@ -1665,10 +1487,7 @@ print('\n'.join(writer.statements))
         summary_text: '',
         search_text: '',
         json: fullJson,
-      }),
-      encoding: 'utf8',
-      maxBuffer: 4 * 1024 * 1024,
-    });
+      }));
     const statements = rowSql.trim().split(/\n+/);
     assert.ok(statements.length > 1, 'the bounded producer path must chunk this serving row');
     assert.ok(statements.every(statement => Buffer.byteLength(statement, 'utf8') <= 100_000),
@@ -1740,34 +1559,8 @@ test("v5 native overflow rows preserve exact packets and bounded payload search"
       JSON.stringify("x".repeat(fillerLength) + boundaryNeedle + "-suffix"),
       '}}}',
     ].join("");
-    const searchText = (raw: string): string => frozenPythonOracleExec(import.meta.url, ["-B", "-c", String.raw`
-import json, sys
-sys.path.insert(0, 'access/src')
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-print(S._searchable(json.loads(sys.stdin.read())))
-`], {
-      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
-      input: raw,
-      encoding: "utf8",
-      maxBuffer: 4 * 1024 * 1024,
-    }).trim();
-    const searchInfo = (raw: string) => JSON.parse(frozenPythonOracleExec(import.meta.url, ["-B", "-c", String.raw`
-import hashlib, json, sys
-sys.path.insert(0, 'access/src')
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-raw = sys.stdin.read()
-item = json.loads(raw)
-text = S._searchable(item)
-id_lower, native_id_lower, identity_values, visible_values = S._rank_fields(item, relation=False)
-print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_id_lower,
-    'identity_values': identity_values, 'visible_values': visible_values,
-    'document_chars': len(text), 'document_digest': hashlib.sha256(text.encode('utf-8')).hexdigest()}))
-`], {
-      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
-      input: raw,
-      encoding: "utf8",
-      maxBuffer: 4 * 1024 * 1024,
-    }));
+    const searchText = (raw: string): string => frozenReference(import.meta.url, "search/searchable-text", raw).trim();
+    const searchInfo = (raw: string) => JSON.parse(frozenReference(import.meta.url, "search/document-info", raw));
     const chunk = (value: string, size: number, overlap: number): string[] => {
       const result: string[] = [];
       for (let start = 0; start < value.length; start += size - overlap) {
@@ -1873,7 +1666,6 @@ print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_
     await mf.dispose();
   }
 });
-
 
 // Explicit classic D1 compatibility profile: tiny physical JSON rows, existing
 // bounded HTTP callers and the real generated Worker handler. No selected native

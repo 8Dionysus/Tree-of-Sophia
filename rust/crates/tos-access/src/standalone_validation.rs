@@ -401,14 +401,6 @@ impl Meter {
     }
 }
 
-fn strict_json_value(raw: &[u8], cap: usize) -> Result<Value, String> {
-    let limits = JsonLimits::new(cap, SOURCE_JSON_DEPTH, SOURCE_JSON_VISITS, 4_300)
-        .map_err(|_| "projection JSON limits invalid")?;
-    parse_json(raw, JsonMode::PublishedStrict, limits)
-        .map_err(|_| "projection contains invalid strict JSON")?;
-    serde_json::from_slice(raw).map_err(|_| "projection JSON representation unsupported".into())
-}
-
 fn safe_relative(value: &str) -> bool {
     !value.is_empty()
         && !Path::new(value).is_absolute()

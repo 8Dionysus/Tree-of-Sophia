@@ -28,7 +28,6 @@ use tos_validation::assessment::{
     AssessmentLayerQualityObservation, AssessmentLimits, AssessmentMechanicsReport,
     AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal, AssessmentSourceRoute,
     AssessmentSubmissionInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES, evaluate_current_assessment,
-    evaluate_current_assessment_selected,
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::source_cut::{
@@ -2737,64 +2736,6 @@ fn evaluate_selected_subject(
     )
 }
 
-/// Reuse the maintained v5/v6 assessment input projection for a PG-selected
-/// source epoch. The opaque identity and its digest are supplied by the
-/// readset owner; this adapter does not coerce that identity into a
-/// `SourceRevision`.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn evaluate_selected_subject_pg<I: Copy + Eq>(
-    config: &JsonValue,
-    subject_id: &str,
-    scope: &JsonValue,
-    source_records: &[JsonValue],
-    native_records: &[JsonValue],
-    record_rows: &[JsonValue],
-    required_refs: &[JsonValue],
-    required_admission_bases: &[AssessmentRecordInput],
-    trusted_history: &[AssessmentSubmissionInput],
-    reviews: &[AssessmentSubmissionInput],
-    source_route: AssessmentSourceRoute,
-    layer_quality: Option<AssessmentLayerQualityObservation>,
-    observed_now: &str,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
-    input_identity: &I,
-    input_identity_digest: Digest256,
-    budget: &mut OperationBudget,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<AssessmentMechanicsReport> {
-    evaluate_selected_subject_with_executor(
-        config,
-        subject_id,
-        scope,
-        source_records,
-        native_records,
-        record_rows,
-        required_refs,
-        required_admission_bases,
-        trusted_history,
-        reviews,
-        source_route,
-        layer_quality,
-        observed_now,
-        None,
-        input_identity_digest,
-        worker,
-        budget,
-        cancelled,
-        &mut |input, worker, limits, cancelled| {
-            evaluate_current_assessment_selected(
-                input,
-                input_identity,
-                input_identity_digest,
-                worker,
-                limits,
-                cancelled,
-            )
-            .map_err(map_assessment_refusal)
-        },
-    )
-}
-
 #[allow(clippy::too_many_arguments)]
 fn selected_assessment_input(
     config: &JsonValue,
@@ -2852,45 +2793,6 @@ fn selected_assessment_input(
     })
 }
 
-/// Construct the exact maintained Assessment input for a selected PG epoch.
-/// The source identity is preserved as its own digest, and the legacy cut
-/// revision field remains absent.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn selected_assessment_input_pg(
-    config: &JsonValue,
-    subject_id: &str,
-    scope: &JsonValue,
-    source_records: &[JsonValue],
-    native_records: &[JsonValue],
-    record_rows: &[JsonValue],
-    required_refs: &[JsonValue],
-    required_admission_bases: &[AssessmentRecordInput],
-    trusted_history: &[AssessmentSubmissionInput],
-    reviews: &[AssessmentSubmissionInput],
-    source_route: AssessmentSourceRoute,
-    layer_quality: Option<AssessmentLayerQualityObservation>,
-    observed_now: &str,
-    input_identity_digest: Digest256,
-) -> SourceCommandResult<AssessmentReadInput> {
-    selected_assessment_input(
-        config,
-        subject_id,
-        scope,
-        source_records,
-        native_records,
-        record_rows,
-        required_refs,
-        required_admission_bases,
-        trusted_history,
-        reviews,
-        source_route,
-        layer_quality,
-        observed_now,
-        None,
-        input_identity_digest,
-    )
-}
-
 /// Prepare the asserted candidate worker for a PG-selected Assessment source
 /// identity. Schema bytes are read through the caller's bounded readset, and
 /// the worker carries that opaque identity without claiming a SourceRevision.
@@ -2939,19 +2841,6 @@ pub(crate) fn selected_assessment_candidate_worker<I: Copy + Eq>(
         deadline,
         cancelled,
     )
-}
-
-fn evaluate_and_charge_assessment(
-    input: &AssessmentReadInput,
-    worker: &mut CutWorkerSchemaExecutor,
-    budget: &mut OperationBudget,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<AssessmentMechanicsReport> {
-    active(budget.deadline, cancelled)?;
-    let report = evaluate_current_assessment(&input, worker, evaluation_limits(budget)?, cancelled)
-        .map_err(map_assessment_refusal)?;
-    budget.charge_report(&report)?;
-    Ok(report)
 }
 
 pub(crate) fn map_assessment_refusal(error: AssessmentRefusal) -> SourceCommandError {

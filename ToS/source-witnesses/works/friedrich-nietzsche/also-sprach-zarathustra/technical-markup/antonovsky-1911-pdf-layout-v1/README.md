@@ -81,14 +81,14 @@ not authorized for publication or transfer.
 
 Initial identity issuance is an explicit one-time action:
 
-- `tos technical-markup --source-root /absolute/source --build --issue-identities --scratch-bytes N`
+- `tos-research technical-markup --source-root /absolute/source --build --issue-identities --scratch-bytes N`
 
 Normal operations:
 
-- rebuild: `tos technical-markup --source-root /absolute/source --build --scratch-bytes N`
-- full local parity: `tos technical-markup --source-root /absolute/source --check`
-- tracked-only validation: `tos technical-markup --source-root /absolute/source --validate-tracked`
-- focused native check: `tos technical-markup --source-root /absolute/source --check`
+- rebuild: `tos-research technical-markup --source-root /absolute/source --build --scratch-bytes N`
+- full local parity: `tos-research technical-markup --source-root /absolute/source --check`
+- tracked-only validation: `tos-research technical-markup --source-root /absolute/source --validate-tracked`
+- focused native check: `tos-research technical-markup --source-root /absolute/source --check`
 
 Any source-locator set, source digest, Poppler version, bbox digest, warning
 surface, region boundary, or expected count drift fails closed. A real-human
@@ -101,7 +101,7 @@ has been found.
 
 ## Native whole producer
 
-The installed native route is `tos technical-markup --source-root ABS` with
+The installed native route is `tos-research technical-markup --source-root ABS` with
 exactly one of `--build`, `--check`, or `--validate-tracked`.
 `--build --issue-identities` additionally requests initial issuance; an existing
 issuance is never replaced. Writing requires an explicitly admitted
@@ -141,7 +141,7 @@ bounded continuation passed initial issuance, tracked validation and root/privat
 symlink refusals. This composite mechanical acceptance preserves the original
 capture and never reclassifies outputs from interrupted issuance as parity data.
 
-The maintained executable route is the installed `tos technical-markup`
+The maintained executable route is the installed `tos-research technical-markup`
 owner, selected directly by the caller. The Python builder is retired; there is
 no Python producer or compatibility fallback. Writes require an explicit
 admitted `--scratch-bytes` budget. The maintained test caller consumes the

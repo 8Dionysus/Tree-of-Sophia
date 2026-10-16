@@ -1,8 +1,8 @@
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import {fileURLToPath} from "node:url";
+
 import { sourceDossierD1, sourceDescendD1, SOURCE_NAVIGATION_PAGE_SIZE } from "../src/source-navigation-store.ts";
 import type { Item } from "../src/common.ts";
 import {createHash} from 'node:crypto';
@@ -16,27 +16,10 @@ type Navigation = {
   rights: Item[];
 };
 
-// Same maintained Python oracle mechanism as knowledge.test.ts. Only finite
+// Same captured reference mechanism as knowledge.test.ts. Only finite
 // fixture data is supplied; the core owns indexing and query semantics.
 function sourceOracle(navigation:Navigation,operation:'descent'|'dossier',id:string,limit:number,maxDepth=8):Item {
-  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',String.raw`
-import json,sys
-sys.path.insert(0,'access/src')
-from tos_access.core import ToSAccessCore
-class FixtureCore(ToSAccessCore):
-    def __init__(self,navigation):
-        self.navigation=navigation
-        self._prepared_reader=None
-        self._data_guard=None
-    def _query_store(self): return None
-    def index(self): return {'source_navigation':self.navigation}
-request=json.load(sys.stdin)
-core=FixtureCore(request['navigation'])
-packet=(core.source_descend(request['id'],max_depth=request['max_depth'],limit=request['limit'])
-        if request['operation']=='descent' else core.source_dossier(request['id'],limit=request['limit']))
-print(json.dumps(packet,ensure_ascii=False,allow_nan=False))
-`],{cwd:fileURLToPath(new URL('../../../../',import.meta.url)),encoding:'utf8',
-    input:JSON.stringify({navigation,operation,id,limit,max_depth:maxDepth})}));
+  return JSON.parse(frozenReference(import.meta.url, "source/navigation", JSON.stringify({navigation,operation,id,limit,max_depth:maxDepth})));
 }
 
 const SCHEMA = `
@@ -315,7 +298,7 @@ function tracedDatabase(db: D1Database, limits: number[]): D1Database {
   } as D1Database;
 }
 
-test("D1 source descent matches the maintained Python packet and pages high-degree adjacency", async () => {
+test("D1 source descent matches the captured reference packet and pages high-degree adjacency", async () => {
   const { mf, db } = await database();
   try {
     const navigation = baseNavigation();

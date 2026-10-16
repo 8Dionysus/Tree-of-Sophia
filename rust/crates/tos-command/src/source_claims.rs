@@ -5971,26 +5971,6 @@ pub(crate) fn agent_inventory_members<'a>(
     )
 }
 
-/// Build the same per-member evidence and schema view from an explicit
-/// selected closure. This does not require or imply a complete corpus
-/// snapshot; callers must separately bind any global identity checks.
-pub(crate) fn agent_inventory_members_from_selected_closure<'a>(
-    ctx: &'a CommandContext,
-    closure: &'a SelectedIdentityClosure,
-    executor: &mut CutWorkerSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<AgentInventoryMembers<'a>> {
-    agent_inventory_members_from_evidence(
-        ctx,
-        &closure.events,
-        &closure.anchors,
-        executor,
-        deadline,
-        cancelled,
-    )
-}
-
 /// Build the ordinary profile portion for a source member that cannot own
 /// provenance events or anchors. This is deliberately not a complete
 /// inventory constructor; the caller must have selected the exact profile

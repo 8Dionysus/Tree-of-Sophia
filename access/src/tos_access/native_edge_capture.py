@@ -532,12 +532,3 @@ def capture(prefix: Path, request: dict, snapshots: dict, *, scratch: Path,
             raise CaptureCustodyError('; '.join(cleanup_errors))
     _active(deadline)
     return value
-
-
-def __getattr__(name):
-    # Retained receiving fixtures use these historical imports explicitly.
-    # This compatibility lookup is never a production capture fallback.
-    if name in {'_logical_write', '_logical_plan', '_logical_rows', '_D1_TABLES', '_snapshot'}:
-        from . import native_edge_capture_oracle
-        return getattr(native_edge_capture_oracle, name)
-    raise AttributeError(name)

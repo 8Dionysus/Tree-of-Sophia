@@ -30,9 +30,9 @@ pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
 pub mod local_contracts;
 pub mod mechanics_topology;
-#[cfg(feature = "compiler-backed-validators")]
+#[cfg(feature = "philosophy-library")]
 pub mod philosophy_graph_views;
-#[cfg(feature = "compiler-backed-validators")]
+#[cfg(feature = "philosophy-library")]
 pub mod philosophy_products;
 pub mod philosophy_topology;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
@@ -78,7 +78,6 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 const MAX_VISITED_ENTRIES: usize = 10_000;
-const MAX_COMMANDS: usize = 4_096;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Command {
@@ -90,7 +89,6 @@ pub struct Command {
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Plan {
     pub schema_version: &'static str,
-    pub test_file_count: usize,
     pub commands: Vec<Command>,
 }
 
@@ -240,9 +238,8 @@ fn native_mechanics_command(root: &Path, mode: &str, check: bool) -> io::Result<
     Ok(argv)
 }
 /// Discover source-owned native mechanics entries in deterministic home order.
-/// The legacy adapter argument is retained for Rust API callers and is never
-/// executed. Unexpected Python test/build/validation files fail discovery.
-pub fn discover(root: &Path, _legacy_adapter: &str) -> io::Result<Plan> {
+/// Unexpected Python test/build/validation files fail discovery.
+pub fn discover(root: &Path) -> io::Result<Plan> {
     if !root.is_absolute() || fs::canonicalize(root)? != root {
         return Err(invalid(
             "repository root must be an absolute path without symlinks",
@@ -251,7 +248,6 @@ pub fn discover(root: &Path, _legacy_adapter: &str) -> io::Result<Plan> {
     let mut visited = 0;
     let mut test_homes = BTreeSet::new();
     let mut script_homes = BTreeSet::new();
-    let test_file_count = 0;
     for home in homes(root, &mut visited)? {
         let tests = named_files(&home.join("tests"), "test", &mut visited)?;
         if !tests.is_empty() {
@@ -341,12 +337,8 @@ pub fn discover(root: &Path, _legacy_adapter: &str) -> io::Result<Plan> {
     }
     commands.extend(builders);
     commands.extend(validators);
-    if commands.len() > MAX_COMMANDS {
-        return Err(invalid("mechanics command plan bound exceeded"));
-    }
     Ok(Plan {
-        schema_version: "tos_mechanics_local_plan_v1",
-        test_file_count,
+        schema_version: "tos_mechanics_local_plan_v2",
         commands,
     })
 }
@@ -378,7 +370,6 @@ mod tests {
         let root = fixture();
         let mut generic = Plan {
             schema_version: "fixture",
-            test_file_count: 0,
             commands: Vec::new(),
         };
         assert!(!growth_coverage::uses_native_route(&root, &generic).unwrap());
@@ -386,9 +377,9 @@ mod tests {
         assert!(growth_coverage::uses_native_route(&root, &generic).unwrap());
         assert!(growth_coverage::require_whole_route(&root).is_err());
         generic.commands.push(Command {
-            kind: "unittest",
+            kind: "native_assertions",
             home: "mechanics/growth-cycle".into(),
-            argv: vec!["reference".into()],
+            argv: vec!["native-check".into()],
         });
         assert!(growth_coverage::uses_native_route(&root, &generic).unwrap());
         let path = root.join(growth_coverage::CONTRACT);
@@ -423,7 +414,7 @@ mod tests {
             "schema_version":"tos_growth_native_coverage_v1", "whole_route_status":"incomplete",
             "maintained_route":"native-pipeline", "bounded_native_route":"bounded",
             "reference_route":"reference", "assessment_route":"owner",
-            "native_execution_sequence":"rust_workspace", "reference_discovery":{"root":"mechanics/growth-cycle/tests"},
+            "native_execution_sequence":"rust_workspace",
             "native_test_routes":[{"cargo_manifest":"native/Cargo.toml", "target_kind":"lib", "module_routes":[["owner"]]}]
         })).unwrap()).unwrap();
         touch(&root, "native/src/lib.rs");
@@ -523,15 +514,9 @@ mod tests {
         .unwrap();
         let mechanics = Plan {
             schema_version: "fixture",
-            test_file_count: 42,
             commands: vec![
                 Command {
-                    kind: "unittest",
-                    home: "mechanics/growth-cycle".into(),
-                    argv: vec!["reference".into()],
-                },
-                Command {
-                    kind: "unittest",
+                    kind: "native_assertions",
                     home: "mechanics/other".into(),
                     argv: vec!["other-check".into()],
                 },
@@ -554,11 +539,6 @@ mod tests {
                 .any(|((_, argv), _)| argv.len() == 1 && argv[0] == "growth-validator")
         );
         assert!(
-            !whole
-                .iter()
-                .any(|((_, argv), _)| argv.len() == 1 && argv[0] == "reference")
-        );
-        assert!(
             whole
                 .iter()
                 .any(|((_, argv), _)| argv.len() == 1
@@ -578,7 +558,7 @@ mod tests {
             let root = fixture();
             touch(&root, path);
             assert!(
-                discover(&root, "/never-run")
+                discover(&root)
                     .unwrap_err()
                     .to_string()
                     .contains("unreviewed Python")
@@ -597,14 +577,13 @@ mod tests {
         ] {
             fs::create_dir_all(root.join(home)).unwrap();
         }
-        let plan = discover(&root, "").unwrap();
+        let plan = discover(&root).unwrap();
         let native = plan
             .commands
             .iter()
             .filter(|c| c.kind == "native_assertions")
             .collect::<Vec<_>>();
         assert_eq!(native.len(), 3);
-        assert_eq!(plan.test_file_count, 0);
         assert_eq!(
             native.iter().map(|c| c.home.as_str()).collect::<Vec<_>>(),
             [
@@ -619,7 +598,7 @@ mod tests {
         }
         touch(&root, "mechanics/growth-cycle/tests/test_unmapped.py");
         assert!(
-            discover(&root, "")
+            discover(&root)
                 .unwrap_err()
                 .to_string()
                 .contains("unreviewed Python tests")
@@ -640,8 +619,7 @@ mod tests {
         ] {
             fs::create_dir_all(root.join(home)).unwrap();
         }
-        let plan = discover(&root, "/no-interpreter").unwrap();
-        assert_eq!(plan.test_file_count, 0);
+        let plan = discover(&root).unwrap();
         assert_eq!(plan.commands.len(), 9);
         assert_eq!(
             plan.commands
@@ -657,11 +635,11 @@ mod tests {
                 .count(),
             5
         );
-        assert!(plan.commands.iter().all(|c| {
-            !c.argv
+        assert!(
+            plan.commands
                 .iter()
-                .any(|v| v == "/no-interpreter" || v.ends_with(".py"))
-        }));
+                .all(|c| { !c.argv.iter().any(|v| v.ends_with(".py")) })
+        );
         let artifact = plan
             .commands
             .iter()
@@ -671,7 +649,7 @@ mod tests {
         assert_eq!(artifact.argv[2], "--repo-root");
         touch(&root, "mechanics/questbook/scripts/validate_unreviewed.py");
         assert!(
-            discover(&root, "python")
+            discover(&root)
                 .unwrap_err()
                 .to_string()
                 .contains("unreviewed Python scripts")
@@ -684,7 +662,7 @@ mod tests {
         let root = fixture();
         fs::create_dir(root.join("mechanics")).unwrap();
         assert!(
-            discover(&root, "python")
+            discover(&root)
                 .unwrap_err()
                 .to_string()
                 .contains("contract homes")
@@ -700,7 +678,7 @@ mod tests {
         fs::create_dir(root.join("mechanics")).unwrap();
         symlink("/tmp", root.join("mechanics/foreign")).unwrap();
         assert!(
-            discover(&root, "python")
+            discover(&root)
                 .unwrap_err()
                 .to_string()
                 .contains("symlinks")

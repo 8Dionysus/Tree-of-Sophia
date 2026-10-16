@@ -1609,11 +1609,11 @@ dependencies = [
 name = "tos-compiler"
 version = "0.1.0"
 dependencies = [
- "quick-xml",
  "flate2",
  "fs2",
  "libc",
  "miniz_oxide",
+ "quick-xml",
  "regex",
  "rusqlite",
  "serde",
@@ -1631,11 +1631,11 @@ dependencies = [
 name = "tos-conformance"
 version = "0.0.0"
 dependencies = [
-	"flate2",
-	"rusqlite",
-	"serde_json",
-	"tar",
-	"tempfile",
+ "flate2",
+ "rusqlite",
+ "serde_json",
+ "tar",
+ "tempfile",
  "tos-access",
  "tos-command",
  "tos-compiler",
@@ -1710,7 +1710,6 @@ version = "0.1.0"
 dependencies = [
  "rustix",
  "tempfile",
- "tos-command",
  "tos-fd-open",
  "tos-foundation",
  "tos-segment-store",
@@ -1733,10 +1732,14 @@ version = "0.1.0"
 dependencies = [
  "flate2",
  "rusqlite",
+ "rustix",
+ "serde_json",
  "sha1",
  "tar",
+ "tempfile",
  "tos-fd-open",
  "tos-foundation",
+ "tos-segment-store",
 ]
 
 [[package]]

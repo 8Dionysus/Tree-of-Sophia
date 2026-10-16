@@ -1,7 +1,6 @@
 import {t} from './ui-i18n.mjs';
 import {normalizeInterfacePreferences} from './interface-model-rust.mjs';
 export const INTERFACE_KEY='tos-observatory-interface-v1';
-export const TOOL_IDS=['search','lenses','workspace','navigation','builder','evidence','sources','reader'];
 export const DEFAULT_INTERFACE={v:1,pinned:['search','lenses','workspace','navigation'],dock:'auto',text:'comfortable',labels:'normal',scrollAction:'auto',dragAction:'rotate',sensitivity:'normal',motion:'system',uiLanguage:'ru',theme:'dark',sizes:{},positions:{}};
 export function validateInterface(value){
   return normalizeInterfacePreferences(value);

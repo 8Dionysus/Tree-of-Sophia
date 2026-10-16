@@ -2274,9 +2274,7 @@ fn resource_snapshot(root: &Path) -> Result<ResourceSnapshot, String> {
         io_write_bytes: io_write,
     })
 }
-fn cgroup_json(s: &ResourceSnapshot) -> Value {
-    json!({"cpu_usage_usec":s.cpu_usec,"memory_current_bytes":s.memory_current,"memory_peak_bytes":s.memory_peak,"memory_limit_bytes":s.memory_limit,"memory_high_events":s.memory_high_events,"memory_max_events":s.memory_max_events,"memory_oom_events":s.memory_oom_events,"memory_oom_kill_events":s.memory_oom_kill_events,"io_read_bytes":s.io_read_bytes,"io_write_bytes":s.io_write_bytes})
-}
+
 fn write_lease(output: &Path, unit: &str, cap: usize) -> Result<String, String> {
     let canonical = fs::canonicalize(output).map_err(|e| format!("output directory: {e}"))?;
     let result = Command::new("abyss-machine")

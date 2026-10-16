@@ -1,7 +1,7 @@
-import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {fileURLToPath} from 'node:url';
+
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
@@ -16,20 +16,7 @@ const knowledgeExplorationMigration = readFileSync(
 ).replace(/^--.*$/gm, '').trim();
 
 test('native canonical contexts survive the frozen reference, Worker and addressed D1 delivery without entering compact packets', async () => {
-  const fixture = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
-import json,sys
-sys.path.insert(0,'access/tests')
-from test_readable_context import real_canonical_graph
-from tos_access.knowledge import execute_knowledge_lens
-graph,catalog=real_canonical_graph()
-cases=[]
-for language in ('ru','en'):
-    for detail in ('compact','full'):
-        spec={'schema_version':'tos_lens_spec_v1','lens_id':'native-canonical-context',
-              'sources':['canon'],'language':language,'detail':detail}
-        cases.append({'spec':spec,'expected':execute_knowledge_lens(graph,spec)})
-print(json.dumps({'graph':graph,'cases':cases}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8'}));
+  const fixture = JSON.parse(frozenReference(import.meta.url, "context/canonical"));
   const graph = fixture.graph as KnowledgeGraph, before = structuredClone(graph);
   const canonical = graph.nodes.filter(n => n.attributes.schema_version === 'tos_canonical_node_v1');
   assert.equal(canonical.length, 2, 'real support and departure source nodes');
@@ -91,23 +78,7 @@ async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void>
 }
 
 test('readable context preserves exact full packets and is absent from compact Python/Worker/D1 delivery', async () => {
-  const fixture = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
-import json,sys
-sys.path.insert(0,'access/tests')
-from test_readable_context import real_freedom_graph
-from tos_access.knowledge import execute_knowledge_lens
-g,catalog=real_freedom_graph()
-numeric,_=real_freedom_graph(numeric_control=True)
-cases=[]
-for language in ('ru','en'):
-    for detail in ('compact','full'):
-        spec={'schema_version':'tos_lens_spec_v1','lens_id':'readable-context-parity',
-              'sources':['source-navigation'],'language':language,'detail':detail}
-        cases.append({'spec':spec,'expected':execute_knowledge_lens(g,spec)})
-spec={'schema_version':'tos_lens_spec_v1','lens_id':'numeric-context-control','sources':['source-navigation'],'detail':'full'}
-print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_presentation']},'cases':cases,
-                 'numeric':{'graph':numeric,'spec':spec,'expected':execute_knowledge_lens(numeric,spec)}}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8'})) as {
+  const fixture = JSON.parse(frozenReference(import.meta.url, "context/full-packets")) as {
     graph: KnowledgeGraph; catalog: Record<string, unknown>;
     cases: {spec: {detail: 'compact' | 'full'; language: string}; expected: Record<string, unknown>}[];
     numeric: {graph: KnowledgeGraph; spec: Record<string, unknown>; expected: Record<string, unknown>};

@@ -65,7 +65,12 @@ pub fn select(paths: Vec<String>, force_full: bool) -> io::Result<Selection> {
         {
             continue;
         }
-        if matches!(
+        if path.starts_with("rust/crates/tos-reader/src/") && suffix == Some("rs") {
+            // This leaf binary depends only on storage/foundation crates and has
+            // no browser or access-service consumer. The Rust job retains its
+            // native tests and isolated install; shared inputs still select both.
+            rust = true;
+        } else if matches!(
             path.as_str(),
             "Cargo.toml" | "Cargo.lock" | "rust-toolchain.toml"
         ) || path.starts_with("rust/")
@@ -513,6 +518,27 @@ mod tests {
             ),
             (
                 vec!["rust/crates/tos-foundation/src/lib.rs"],
+                "browser",
+                false,
+                true,
+            ),
+            (
+                vec!["rust/crates/tos-reader/src/main.rs"],
+                "none",
+                false,
+                true,
+            ),
+            (
+                vec![
+                    "rust/crates/tos-reader/src/main.rs",
+                    "access/web/src/main.ts",
+                ],
+                "browser",
+                false,
+                true,
+            ),
+            (
+                vec!["rust/crates/tos-reader/Cargo.toml"],
                 "browser",
                 false,
                 true,

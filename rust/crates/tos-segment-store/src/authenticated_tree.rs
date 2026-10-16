@@ -3905,14 +3905,6 @@ fn validate_locator(locator: &AuthenticatedTreeLocatorV2) -> Result<()> {
     Ok(())
 }
 
-fn validate_locator_for_limits(
-    locator: &AuthenticatedTreeLocatorV2,
-    limits: AuthenticatedTreeLimitsV1,
-) -> Result<()> {
-    validate_locator(locator)?;
-    validate_frame_len_for_limits(locator.frame_len, limits)
-}
-
 fn validate_frame_len_for_limits(frame_len: u32, limits: AuthenticatedTreeLimitsV1) -> Result<()> {
     let max_frame = limits
         .max_node_bytes
@@ -5308,13 +5300,6 @@ fn validate_key_value(
         return Err(budget("authenticated key or value exceeds limit"));
     }
     Ok(())
-}
-
-fn key_starts_with_nibbles(key: &[u8], prefix: &[u8]) -> bool {
-    prefix
-        .iter()
-        .enumerate()
-        .all(|(index, nibble)| nibble_at(key, index) == Some(*nibble))
 }
 
 fn key_matches_prefix(key: &[u8], prefix_key: &[u8], nibbles: usize) -> bool {

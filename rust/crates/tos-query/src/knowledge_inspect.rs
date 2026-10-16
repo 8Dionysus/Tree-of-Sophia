@@ -1719,35 +1719,6 @@ where
     )
 }
 
-pub(crate) fn execute_selected_carrier_packet_metered<
-    'hold,
-    A: InspectCurrentAuthority<'hold> + ?Sized,
-    F,
->(
-    model: &mut VerifiedKnowledgeModel<'_>,
-    bound: &BoundCmpKnowledge<'_>,
-    authority: &mut A,
-    operation: &str,
-    intended_use: &str,
-    budget: InspectBudget,
-    meter: &mut InspectVisitMeter,
-    compute: F,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error>
-where
-    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
-{
-    execute_selected_carrier_packet_with_optional_meter(
-        model,
-        bound,
-        authority,
-        operation,
-        intended_use,
-        budget,
-        Some(meter),
-        compute,
-    )
-}
-
 pub(crate) fn execute_selected_carrier_packet_with_optional_meter<
     'hold,
     A: InspectCurrentAuthority<'hold> + ?Sized,

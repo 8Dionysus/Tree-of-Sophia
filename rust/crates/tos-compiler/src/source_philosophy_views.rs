@@ -144,9 +144,6 @@ fn markdown(raw: Vec<u8>, run: Option<ViewRun<'_>>) -> Result<String> {
     poll(run)?;
     Ok(normalized)
 }
-pub(crate) fn parse_card(raw: Vec<u8>) -> Result<Value> {
-    parse_card_with_run(raw, None)
-}
 fn parse_card_with_run(raw: Vec<u8>, run: Option<ViewRun<'_>>) -> Result<Value> {
     poll(run)?;
     let text = markdown(raw, run)?;

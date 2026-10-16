@@ -4,7 +4,7 @@ use tos_compiler::{
     german_triangulation::{self, Action, Options},
     research_execution::ResearchExecution,
 };
-const HELP: &str = "tos german-triangulation --source-root ABS --check|--build|--validate-tracked [--local-input-root ABS] [--generation NAME --prepared-at RFC3339] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nCompare the explicit local eKGWB HTML, DTA TEI and two Naumann EPUB members without publishing text. Historical v1 and its provenance remain immutable. A fresh generation writes its own packet and alignment event; retained discovery and acquisition are not repeated. Build requires an admitted output quota. The input root is a full repository root.\n";
+const HELP: &str = "tos-research german-triangulation --source-root ABS --check|--build|--validate-tracked [--local-input-root ABS] [--generation NAME --prepared-at RFC3339] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nCompare the explicit local eKGWB HTML, DTA TEI and two Naumann EPUB members without publishing text. Historical v1 and its provenance remain immutable. A fresh generation writes its own packet and alignment event; retained discovery and acquisition are not repeated. Build requires an admitted output quota. The input root is a full repository root.\n";
 
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("german-triangulation") {

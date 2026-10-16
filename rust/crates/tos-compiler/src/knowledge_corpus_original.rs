@@ -1020,27 +1020,6 @@ fn page_with_layout_and_work(
     })
 }
 
-/// One maintained Selector::All row without a growing page/parameter container.
-/// SQLite statement bookkeeping is outside logical owned buffers, as for the
-/// selected model; the borrowed blob is copied only after state admission.
-pub(crate) fn all_row_with_state_budget(
-    db: &Connection,
-    collection: CorpusOriginalCollection,
-    after: Option<u64>,
-    max_row_bytes: usize,
-    max_page_bytes: u64,
-    available: usize,
-) -> Result<Option<CorpusOriginalRow>> {
-    all_row_with_state_budget_and_layout(
-        db,
-        collection,
-        after,
-        max_row_bytes,
-        max_page_bytes,
-        available,
-        KnowledgePayloadLayout::InlineV1,
-    )
-}
 pub(crate) fn all_row_with_state_budget_and_layout(
     db: &Connection,
     collection: CorpusOriginalCollection,

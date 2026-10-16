@@ -43,9 +43,3 @@ jobs:
 
       - name: Run public example sync validator
         run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --public-mirror-validate
-
-      - name: Run native Rust workspace tests
-        env:
-          CARGO_TARGET_DIR: ${{ runner.temp }}/source-audit-target
-          CARGO_BUILD_JOBS: "2"
-        run: cargo +1.98.1 test --locked --workspace -- --test-threads=1

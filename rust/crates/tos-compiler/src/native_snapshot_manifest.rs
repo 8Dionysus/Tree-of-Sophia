@@ -602,20 +602,6 @@ fn git_object_id(value: &str, label: &'static str) -> Result<()> {
     Ok(())
 }
 
-fn absolute_normalized(value: &str, label: &'static str) -> Result<()> {
-    let path = Path::new(value);
-    if value.is_empty()
-        || value.len() > MAX_MEMBER_PATH_BYTES
-        || !path.is_absolute()
-        || path
-            .components()
-            .any(|part| matches!(part, Component::CurDir | Component::ParentDir))
-    {
-        return Err(Error::Invalid(label));
-    }
-    Ok(())
-}
-
 /// Explicit prior native data candidate selected only as a model cache. The
 /// manifest digest and revision bind the caller's chosen artifact; they do not
 /// grant source or release authority.
@@ -1742,109 +1728,6 @@ fn read_digest(path: &Path, cap: u64, deadline: Instant) -> Result<(u64, Digest2
         return Err(Error::Invalid("native producer file changed while hashing"));
     }
     Ok((count, hash.finalize()))
-}
-
-fn scan_native_source_tree(
-    root: &Path,
-    deadline: Instant,
-) -> Result<(BTreeMap<String, SourceTreeMember>, u64)> {
-    private_directory(root)?;
-    let root_metadata = fs::symlink_metadata(root)?;
-    let mut members = BTreeMap::new();
-    let mut entry_count = 0usize;
-    let mut total_bytes = 0u64;
-    scan_native_source_tree_at(
-        root,
-        root,
-        root_metadata.uid(),
-        &mut members,
-        &mut entry_count,
-        &mut total_bytes,
-        0,
-        deadline,
-    )?;
-    if members.is_empty() {
-        return Err(Error::Invalid("native source-only tree is empty"));
-    }
-    Ok((members, total_bytes))
-}
-
-#[allow(clippy::too_many_arguments)]
-fn scan_native_source_tree_at(
-    root: &Path,
-    directory: &Path,
-    uid: u32,
-    members: &mut BTreeMap<String, SourceTreeMember>,
-    entry_count: &mut usize,
-    total_bytes: &mut u64,
-    depth: usize,
-    deadline: Instant,
-) -> Result<()> {
-    active(deadline)?;
-    if depth > MAX_CACHE_TREE_DEPTH {
-        return Err(Error::Budget("native source-only tree depth"));
-    }
-    for entry in fs::read_dir(directory)? {
-        active(deadline)?;
-        *entry_count = (*entry_count)
-            .checked_add(1)
-            .filter(|count| *count <= MAX_CACHE_TREE_ENTRIES)
-            .ok_or(Error::Budget("native source-only tree entry count"))?;
-        let entry = entry?;
-        let path = entry.path();
-        let metadata = fs::symlink_metadata(&path)?;
-        if metadata.uid() != uid || metadata.file_type().is_symlink() {
-            return Err(Error::Invalid("native source-only tree custody"));
-        }
-        if metadata.is_dir() {
-            scan_native_source_tree_at(
-                root,
-                &path,
-                uid,
-                members,
-                entry_count,
-                total_bytes,
-                depth + 1,
-                deadline,
-            )?;
-            continue;
-        }
-        if !metadata.is_file() {
-            return Err(Error::Invalid("native source-only tree special file"));
-        }
-        if members.len() >= MAX_DATA_MEMBERS {
-            return Err(Error::Budget("native source-only tree member count"));
-        }
-        let relative_path = path
-            .strip_prefix(root)
-            .map_err(|_| Error::Invalid("native source-only tree escaped root"))?
-            .to_str()
-            .ok_or(Error::Invalid("native source-only path is not UTF8"))?
-            .replace(std::path::MAIN_SEPARATOR, "/");
-        if relative_path.len() > MAX_MEMBER_PATH_BYTES || !relative_path.is_ascii() {
-            return Err(Error::Budget("native source-only path bytes"));
-        }
-        relative(&relative_path, "native source-only relative path invalid")?;
-        let (size_bytes, digest) = read_digest(&path, MAX_CAPTURE_MEMBER_BYTES as u64, deadline)?;
-        *total_bytes = total_bytes
-            .checked_add(size_bytes)
-            .filter(|bytes| *bytes <= MAX_CAPTURE_CLOSURE_BYTES)
-            .ok_or(Error::Budget("native source-only tree byte ceiling"))?;
-        if members
-            .insert(
-                relative_path,
-                SourceTreeMember {
-                    mode: metadata.mode() & 0o777,
-                    size_bytes,
-                    sha256: digest.to_hex(),
-                },
-            )
-            .is_some()
-        {
-            return Err(Error::Invalid("native source-only duplicate member"));
-        }
-    }
-    Ok(())
 }
 
 fn validate_map(

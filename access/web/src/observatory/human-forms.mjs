@@ -9,7 +9,6 @@ export {contentLanguage,exactFormRef,sameFormRef};
 // Delivery validation only. ToS/contracts/human-form.schema.json owns the
 // materialization; access/contracts/knowledge-graph.v1.schema.json owns selection.
 export const FORM_ROLES=['name','caption','hover','statement','grounds','history','technical'];
-export const FORM_STATES=['ready','missing','unavailable','ambiguous','over-budget'];
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 export class FormContractError extends Error {constructor(){super(t('Пакет формы неполон или не соответствует версии материала.'));}}

@@ -335,25 +335,7 @@ pub struct SchemaResource {
     pub raw: Vec<u8>,
 }
 
-/// The observed legacy profile is evidence for migration comparison only.
-/// A normative profile is selected by the source owner, not by installed
-/// optional format packages on the host.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FormatProfile {
-    LegacyPythonObserved20260923,
-    AssertedSourceCandidateV1,
-}
-
-impl FormatProfile {
-    pub fn id(self) -> &'static str {
-        match self {
-            Self::LegacyPythonObserved20260923 => {
-                "tos.schema.format.legacy-python-observed-20260923"
-            }
-            Self::AssertedSourceCandidateV1 => "tos.schema.format.asserted-source-candidate-v1",
-        }
-    }
-}
+pub use tos_foundation::FormatProfile;
 
 /// FND owns decoded-member uniqueness and the raw JSON budget. Convert its
 /// strict tree directly so no second parser can erase a duplicate before the
@@ -562,12 +544,6 @@ impl SchemaBackendProbe {
             .build(schema.as_ref())
             .map_err(|error| SchemaProbeError::Backend(error.to_string()))?;
         Ok(validator.is_valid(instance))
-    }
-
-    /// Compatibility name for existing in-crate callers. New source routes
-    /// should use `is_valid_value` to make strict-decoding responsibility clear.
-    fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
-        self.is_valid_value(root_uri, instance)
     }
 
     /// Keep fragment resolution inside the original registry and its $id scopes.
@@ -914,15 +890,15 @@ mod tests {
             FormatProfile::AssertedSourceCandidateV1,
         )
         .unwrap();
-        assert_eq!(complete.is_valid(root, &instance), Ok(true));
-        assert_eq!(complete.is_valid(root, &json!({"kind":"historical-date", "source_wording":{"text":"1872", "language":"bad tag", "script":null}})), Ok(false));
-        assert_eq!(complete.is_valid(root, &json!({"kind":"historical-date", "source_wording":{"text":"1872", "language":"de\n", "script":null}})), Ok(false));
+        assert_eq!(complete.is_valid_value(root, &instance), Ok(true));
+        assert_eq!(complete.is_valid_value(root, &json!({"kind":"historical-date", "source_wording":{"text":"1872", "language":"bad tag", "script":null}})), Ok(false));
+        assert_eq!(complete.is_valid_value(root, &json!({"kind":"historical-date", "source_wording":{"text":"1872", "language":"de\n", "script":null}})), Ok(false));
         let missing = SchemaBackendProbe::new(
             [resource(root, source)],
             FormatProfile::AssertedSourceCandidateV1,
         )
         .unwrap();
-        assert!(missing.is_valid(root, &instance).is_err());
+        assert!(missing.is_valid_value(root, &instance).is_err());
     }
 
     #[test]
@@ -941,12 +917,12 @@ mod tests {
         .unwrap();
         let mut instance: Value =
             serde_json::from_str(include_str!("../fixtures/structured-value-source.json")).unwrap();
-        assert_eq!(backend.is_valid(root, &instance), Ok(true));
+        assert_eq!(backend.is_valid_value(root, &instance), Ok(true));
         instance["source_wording"]["language"] = json!("not a language tag");
-        assert_eq!(backend.is_valid(root, &instance), Ok(false));
+        assert_eq!(backend.is_valid_value(root, &instance), Ok(false));
         instance["source_wording"]["language"] = json!("en");
         instance["source_wording"]["text"] = json!("   ");
-        assert_eq!(backend.is_valid(root, &instance), Ok(false));
+        assert_eq!(backend.is_valid_value(root, &instance), Ok(false));
     }
 
     #[test]
@@ -1029,12 +1005,12 @@ mod tests {
             FormatProfile::LegacyPythonObserved20260923,
         )
         .unwrap();
-        assert_eq!(strict.is_valid(root, &instance), Ok(true));
-        assert_eq!(legacy.is_valid(root, &instance), Ok(true));
+        assert_eq!(strict.is_valid_value(root, &instance), Ok(true));
+        assert_eq!(legacy.is_valid_value(root, &instance), Ok(true));
         let mut invalid = instance.clone();
         invalid["ended_at"] = json!("not-a-date-time");
-        assert_eq!(strict.is_valid(root, &invalid), Ok(false));
-        assert_eq!(legacy.is_valid(root, &invalid), Ok(true));
+        assert_eq!(strict.is_valid_value(root, &invalid), Ok(false));
+        assert_eq!(legacy.is_valid_value(root, &invalid), Ok(true));
     }
 
     #[test]
@@ -1045,27 +1021,27 @@ mod tests {
         let backend = probe(&schema);
         let root = "https://tree-of-sophia.local/probe";
         assert_eq!(
-            backend.is_valid(root, &json!({"mode":"strict","items":[1,2],"seal":true})),
+            backend.is_valid_value(root, &json!({"mode":"strict","items":[1,2],"seal":true})),
             Ok(true)
         );
         assert_eq!(
-            backend.is_valid(root, &json!({"mode":"strict","items":[1,2]})),
+            backend.is_valid_value(root, &json!({"mode":"strict","items":[1,2]})),
             Ok(false)
         );
         assert_eq!(
-            backend.is_valid(root, &json!({"mode":"loose","items":[1,2],"seal":true})),
+            backend.is_valid_value(root, &json!({"mode":"loose","items":[1,2],"seal":true})),
             Ok(false)
         );
         assert_eq!(
-            backend.is_valid(root, &json!({"mode":"loose","items":[1,1]})),
+            backend.is_valid_value(root, &json!({"mode":"loose","items":[1,1]})),
             Ok(false)
         );
         assert_eq!(
-            backend.is_valid(root, &json!({"mode":"loose","items":[0,1]})),
+            backend.is_valid_value(root, &json!({"mode":"loose","items":[0,1]})),
             Ok(false)
         );
         assert_eq!(
-            backend.is_valid(root, &json!({"mode":"loose","items":[1,2,3]})),
+            backend.is_valid_value(root, &json!({"mode":"loose","items":[1,2,3]})),
             Ok(false)
         );
     }
@@ -1086,11 +1062,11 @@ mod tests {
         let high: Value =
             serde_json::from_str(r#"{"n":9007199254740995,"when":"2026-09-23T00:00:00Z"}"#)
                 .unwrap();
-        assert_eq!(backend.is_valid(root, &valid), Ok(true));
-        assert_eq!(backend.is_valid(root, &low), Ok(false));
-        assert_eq!(backend.is_valid(root, &high), Ok(false));
+        assert_eq!(backend.is_valid_value(root, &valid), Ok(true));
+        assert_eq!(backend.is_valid_value(root, &low), Ok(false));
+        assert_eq!(backend.is_valid_value(root, &high), Ok(false));
         assert_eq!(
-            backend.is_valid(root, &json!({"n":9007199254740993u64,"when":"not-a-date"})),
+            backend.is_valid_value(root, &json!({"n":9007199254740993u64,"when":"not-a-date"})),
             Ok(false)
         );
         let legacy = SchemaBackendProbe::new(
@@ -1099,7 +1075,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            legacy.is_valid(root, &json!({"n":9007199254740993u64,"when":"not-a-date"})),
+            legacy.is_valid_value(root, &json!({"n":9007199254740993u64,"when":"not-a-date"})),
             Ok(true)
         );
 
@@ -1110,18 +1086,18 @@ mod tests {
         let middle: Value = serde_json::from_str("18446744073709551617").unwrap();
         let below: Value = serde_json::from_str("18446744073709551615").unwrap();
         let above: Value = serde_json::from_str("18446744073709551619").unwrap();
-        assert_eq!(backend.is_valid(root, &middle), Ok(true));
-        assert_eq!(backend.is_valid(root, &below), Ok(false));
-        assert_eq!(backend.is_valid(root, &above), Ok(false));
+        assert_eq!(backend.is_valid_value(root, &middle), Ok(true));
+        assert_eq!(backend.is_valid_value(root, &below), Ok(false));
+        assert_eq!(backend.is_valid_value(root, &above), Ok(false));
 
         let integer = format!(r#"{{"$schema":"{DRAFT}","$id":"{root}","type":"integer"}}"#);
         let backend = probe(&integer);
         assert_eq!(
-            backend.is_valid(root, &serde_json::from_str("3.0").unwrap()),
+            backend.is_valid_value(root, &serde_json::from_str("3.0").unwrap()),
             Ok(true)
         );
         assert_eq!(
-            backend.is_valid(root, &serde_json::from_str("3.5").unwrap()),
+            backend.is_valid_value(root, &serde_json::from_str("3.5").unwrap()),
             Ok(false)
         );
     }
@@ -1143,14 +1119,14 @@ mod tests {
         )
         .unwrap();
         let good = json!({"day":"2026-09-23","moment":"2026-09-23T00:00:00Z","page":"https://example.org/x","relative":"/x"});
-        assert_eq!(strict.is_valid(root, &good), Ok(true));
-        assert_eq!(legacy.is_valid(root, &good), Ok(true));
+        assert_eq!(strict.is_valid_value(root, &good), Ok(true));
+        assert_eq!(legacy.is_valid_value(root, &good), Ok(true));
         let invalid_day = json!({"day":"2026-02-30","moment":"2026-09-23T00:00:00Z","page":"https://example.org/x","relative":"/x"});
-        assert_eq!(strict.is_valid(root, &invalid_day), Ok(false));
-        assert_eq!(legacy.is_valid(root, &invalid_day), Ok(false));
+        assert_eq!(strict.is_valid_value(root, &invalid_day), Ok(false));
+        assert_eq!(legacy.is_valid_value(root, &invalid_day), Ok(false));
         let other_invalid = json!({"day":"2026-09-23","moment":"not-a-date","page":"has space","relative":"bad space"});
-        assert_eq!(strict.is_valid(root, &other_invalid), Ok(false));
-        assert_eq!(legacy.is_valid(root, &other_invalid), Ok(true));
+        assert_eq!(strict.is_valid_value(root, &other_invalid), Ok(false));
+        assert_eq!(legacy.is_valid_value(root, &other_invalid), Ok(true));
     }
 
     #[test]
@@ -1162,8 +1138,11 @@ mod tests {
         );
         let annotation_probe = probe(&annotated);
         assert_eq!(annotation_probe.compile_all(), Ok(1));
-        assert_eq!(annotation_probe.is_valid(root, &json!("text")), Ok(true));
-        assert_eq!(annotation_probe.is_valid(root, &json!(1)), Ok(false));
+        assert_eq!(
+            annotation_probe.is_valid_value(root, &json!("text")),
+            Ok(true)
+        );
+        assert_eq!(annotation_probe.is_valid_value(root, &json!(1)), Ok(false));
         assert_eq!(
             SchemaBackendProbe::new(
                 [resource(root, &simple), resource(root, &simple)],
@@ -1192,13 +1171,13 @@ mod tests {
         let missing = format!(
             r#"{{"$schema":"{DRAFT}","$id":"{root}","$ref":"https://tree-of-sophia.local/unavailable"}}"#
         );
-        assert!(probe(&missing).is_valid(root, &json!("x")).is_err());
+        assert!(probe(&missing).is_valid_value(root, &json!("x")).is_err());
         let unavailable_format = format!(
             r#"{{"$schema":"{DRAFT}","$id":"{root}","type":"string","format":"unavailable-format"}}"#
         );
         assert!(
             probe(&unavailable_format)
-                .is_valid(root, &json!("x"))
+                .is_valid_value(root, &json!("x"))
                 .is_err()
         );
     }

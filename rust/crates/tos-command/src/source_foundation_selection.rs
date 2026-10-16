@@ -13,9 +13,6 @@ use tos_foundation::{Digest256, RelativePath};
 use tos_ops_mechanics_plan::route_cards::{RouteResolvedTarget, RouteSources};
 use tos_source_store::CorpusCutReader;
 use tos_validation::item_rules::ItemRefusal;
-use tos_validation::source_foundation_discovery::{
-    PhysicalResolvedTargetFacts, SourcePhysicalFacts,
-};
 use tos_validation::source_foundation_labs::foundation_lab_private_output_refs;
 
 const MAX_PATH_BYTES: usize = 4096;
@@ -1068,97 +1065,6 @@ pub(crate) fn read_auxiliary_query_documents_with_remaining_read(
     Err(ItemRefusal::Unsupported(
         "foundation auxiliary query source resolution requires Linux".into(),
     ))
-}
-
-/// Join every private retrieval document read against the actual final
-/// physical snapshot. A missing or unsupported binding is tolerated only
-/// when that snapshot does not report a regular file at the selected path.
-pub(crate) fn verify_query_content_bindings(
-    selection: &FoundationPhysicalSelection,
-    physical: &SourcePhysicalFacts,
-    cancelled: &AtomicBool,
-) -> Result<(), ItemRefusal> {
-    selection_checkpoint(selection.limits, cancelled)?;
-    if selection.auxiliary_query_documents.len() != selection.query_content_bindings.len() {
-        return Err(ItemRefusal::Source(
-            "foundation query bindings do not cover the selected documents".into(),
-        ));
-    }
-    for (requested, binding) in selection
-        .auxiliary_query_documents
-        .iter()
-        .zip(&selection.query_content_bindings)
-    {
-        selection_checkpoint(selection.limits, cancelled)?;
-        if requested != &binding.path {
-            return Err(ItemRefusal::Source(
-                "foundation query bindings do not cover the selected documents".into(),
-            ));
-        }
-        let root = gold_root(&binding.path).ok_or_else(|| {
-            ItemRefusal::Source("foundation query binding has no selected gold root".into())
-        })?;
-        let local_content = join_repo_path(root, "local-content")
-            .ok_or_else(|| ItemRefusal::Source("foundation query binding path refused".into()))?;
-        let facts = physical.private_paths.get(&binding.path).ok_or_else(|| {
-            ItemRefusal::Source("foundation query binding lacks final physical path facts".into())
-        })?;
-
-        match (binding.sha256.as_deref(), binding.byte_size) {
-            (Some(expected_sha256), Some(expected_size)) => {
-                let matches = if facts.symlink {
-                    matches!(
-                        facts.resolved_target.as_ref(),
-                        Some(PhysicalResolvedTargetFacts::InsideSelectedRoot {
-                            relative_target,
-                            exists: true,
-                            regular_file: true,
-                            byte_size: Some(actual_size),
-                            sha256: Some(actual_sha256),
-                            ..
-                        }) if path_within(relative_target, &local_content)
-                            && *actual_size == expected_size
-                            && actual_sha256.as_str() == expected_sha256
-                    )
-                } else {
-                    facts.exists
-                        && facts.regular_file
-                        && !facts.directory
-                        && facts.byte_size == Some(expected_size)
-                        && facts.sha256.as_deref() == Some(expected_sha256)
-                };
-                if !matches {
-                    return Err(ItemRefusal::Source(
-                        "foundation query binding differs from final physical content".into(),
-                    ));
-                }
-            }
-            (None, None) => {
-                let direct_regular =
-                    facts.exists && facts.regular_file && !facts.symlink && !facts.directory;
-                let resolved_regular = matches!(
-                    facts.resolved_target.as_ref(),
-                    Some(PhysicalResolvedTargetFacts::InsideSelectedRoot {
-                        relative_target,
-                        exists: true,
-                        regular_file: true,
-                        ..
-                    }) if path_within(relative_target, &local_content)
-                );
-                if direct_regular || resolved_regular {
-                    return Err(ItemRefusal::Source(
-                        "foundation query binding omitted a final regular file".into(),
-                    ));
-                }
-            }
-            _ => {
-                return Err(ItemRefusal::Source(
-                    "foundation query binding has incomplete content identity".into(),
-                ));
-            }
-        }
-    }
-    selection_checkpoint(selection.limits, cancelled)
 }
 
 fn selection_checkpoint(

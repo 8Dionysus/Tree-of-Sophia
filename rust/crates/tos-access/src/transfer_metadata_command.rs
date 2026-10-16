@@ -1,6 +1,6 @@
 //! Explicit-source adapters for text-free transfer projections.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos transfer-route-readiness --source-root ABS --build|--check [--output REPO_PATH] [--provenance REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nChecks exact candidate, projection and provenance closure without reading private text. New builds need a new event ID, fresh projection output and admitted scratch bytes. Earlier journal bytes are retained; a changed journal refuses the update. This projection grants no alignment, eligibility, gold, publication or canon admission.\n";
+const HELP: &str = "tos-research transfer-route-readiness --source-root ABS --build|--check [--output REPO_PATH] [--provenance REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nChecks exact candidate, projection and provenance closure without reading private text. New builds need a new event ID, fresh projection output and admitted scratch bytes. Earlier journal bytes are retained; a changed journal refuses the update. This projection grants no alignment, eligibility, gold, publication or canon admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("transfer-route-readiness") {
         return None;

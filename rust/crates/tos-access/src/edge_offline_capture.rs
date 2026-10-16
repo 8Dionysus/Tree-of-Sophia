@@ -1227,16 +1227,6 @@ fn project_navigation_exact(
     Ok(rows)
 }
 
-fn meta_transitions(
-    key: &str,
-    before: &[D1RowTransition],
-    value: &Value,
-    limits: Limits,
-) -> Result<Vec<D1RowTransition>, String> {
-    let raw = compact(value, limits.prepared.max_metadata_bytes)?;
-    meta_raw_transitions(key, before, &raw, limits)
-}
-
 fn meta_raw_transitions(
     key: &str,
     before: &[D1RowTransition],
@@ -1382,28 +1372,6 @@ fn row_key(table: D1Table, row: &[D1Cell]) -> Result<String, String> {
         })
         .collect::<Vec<_>>();
     Ok(parts.join("\0"))
-}
-
-fn insert_rows(
-    rows: &mut BTreeMap<(String, String), (D1Table, Vec<D1Cell>)>,
-    projected: Vec<D1RowTransition>,
-) -> Result<(), String> {
-    for transition in projected {
-        let row = transition
-            .after
-            .ok_or_else(|| invalid("projector returned no row"))?;
-        let key = row_key(transition.table, &row)?;
-        if rows
-            .insert(
-                (format!("{:?}", transition.table), key),
-                (transition.table, row),
-            )
-            .is_some()
-        {
-            return Err(invalid("duplicate projected D1 row"));
-        }
-    }
-    Ok(())
 }
 
 fn put_projected_rows(
@@ -1854,16 +1822,6 @@ fn read_search_indexes(db: &Transaction<'_>) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-fn search_position(db: &Transaction<'_>, plural: &str, id: &str) -> Result<Option<i64>, String> {
-    db.query_row(
-        "SELECT position FROM knowledge_search_documents WHERE kind=?1 AND id=?2 LIMIT 2",
-        params![plural, id],
-        |row| row.get(0),
-    )
-    .optional()
-    .map_err(|error| error.to_string())
 }
 
 fn private_manifest(

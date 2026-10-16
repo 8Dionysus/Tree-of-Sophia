@@ -99,31 +99,6 @@ fn read_optional_current_input(
     Ok(selected)
 }
 
-struct SelectedPgRecordFiles<'a, 'session, 'store> {
-    input: &'a PgGrowthCurrentInput<'session, 'store>,
-}
-
-impl ReadonlyRecordFiles for SelectedPgRecordFiles<'_, '_, '_> {
-    fn read(
-        &mut self,
-        path: &str,
-        max_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<Vec<u8>> {
-        read_current_input(self.input, path, max_bytes, deadline, cancelled)
-    }
-
-    fn list_directory(
-        &mut self,
-        path: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<Vec<(String, bool)>> {
-        self.input.list_directory(path, deadline, cancelled)
-    }
-}
-
 struct CandidateProfileRead<I: Copy + Eq> {
     identity: I,
     files: Vec<crate::source_command::SourceFile>,
@@ -703,20 +678,6 @@ pub(crate) fn candidate_id_from_current_bytes(
     Ok(candidate_id.to_owned())
 }
 
-/// Bind the two Sign-owned identity absences that ordinary metadata/form
-/// unique probes cannot establish: semantic annotation ownership of the new
-/// Sign ID and prior promotion by the selected Claim.
-pub(crate) fn validate_sign_creation_absences(
-    input: &PgGrowthCurrentInput<'_, '_>,
-    sign_id: &str,
-    candidate_id: &str,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> Result<()> {
-    let _ = observe_sign_creation_absences(input, sign_id, candidate_id, deadline, cancelled)?;
-    Ok(())
-}
-
 /// Exact bounded output-identity probes captured by the selected PG input.
 /// The source readset retains each queried index generation through commit.
 #[derive(Clone, Debug)]
@@ -1236,49 +1197,6 @@ pub(crate) fn candidate_schema_paths_from_config(
         .into_iter()
         .map(|file| file.path.as_str().to_owned())
         .collect())
-}
-
-/// Build the source-selected asserted-schema worker used by the PG Sign owner.
-pub(crate) fn candidate_schema_worker_from_config<I: Copy + Eq>(
-    readset: &mut impl crate::source_revisions::ReadonlyRecordFiles,
-    input_identity: I,
-    config: &JsonValue,
-    image: &tos_validation::executor::VerifiedWorkerImageHandle,
-    budget: tos_validation::executor::ExecutorBudget,
-    limits: tos_validation::source_cut::CutWorkerLimits,
-    deadline: std::time::Instant,
-    cancelled: &std::sync::atomic::AtomicBool,
-) -> SourceCommandResult<tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>> {
-    let paths = candidate_schema_paths_from_config(readset, config, deadline, cancelled)?;
-    let mut bytes = 0usize;
-    let mut selected = Vec::with_capacity(paths.len());
-    for path in paths {
-        let raw = readset.read(
-            &path,
-            tos_validation::SchemaBackendProbe::MAX_RESOURCE_BYTES,
-            deadline,
-            cancelled,
-        )?;
-        bytes = bytes
-            .checked_add(raw.len())
-            .filter(|total| *total <= tos_validation::SchemaBackendProbe::MAX_TOTAL_BYTES)
-            .ok_or(SourceCommandError::Unsupported(
-                "Sign selected schema byte budget",
-            ))?;
-        let parsed = cmd::parse(&raw)?;
-        let uri = cmd::text(&parsed, "$id")?.to_owned();
-        selected.push((path, tos_validation::SchemaResource { uri, raw }));
-    }
-    tos_validation::source_cut::CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
-        input_identity,
-        selected,
-        image,
-        budget,
-        limits,
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| SourceCommandError::Unsupported("Sign asserted candidate schema worker"))
 }
 
 fn record_read<I: Copy + Eq>(

@@ -4,7 +4,7 @@ use tos_compiler::{
     research_execution::ResearchExecution,
     transfer_target_passages::{self, Action, Options},
 };
-const HELP: &str = "tos transfer-target-passages --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--generation NAME --event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nExact private bbox slices for the frozen twenty-page / thirty-five-route transfer frame. Build and check require explicit private roots. Tracked validation reads no PDF. The default v1 retains historical provenance; a fresh generation requires a new event ID and fresh output paths. Build requires an admitted output quota. No text, alignment, gold, canon or publication admission.\n";
+const HELP: &str = "tos-research transfer-target-passages --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--generation NAME --event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nExact private bbox slices for the frozen twenty-page / thirty-five-route transfer frame. Build and check require explicit private roots. Tracked validation reads no PDF. The default v1 retains historical provenance; a fresh generation requires a new event ID and fresh output paths. Build requires an admitted output quota. No text, alignment, gold, canon or publication admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("transfer-target-passages") {
         return None;

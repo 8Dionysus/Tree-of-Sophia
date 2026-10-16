@@ -1887,7 +1887,7 @@ mod tests {
             let value =
                 serde_json::from_slice(raw).map_err(|_| ItemRefusal::Source("json".into()))?;
             self.schema
-                .is_valid(&format!("https://tree-of-sophia.local/{contract}"), &value)
+                .is_valid_value(&format!("https://tree-of-sophia.local/{contract}"), &value)
                 .map_err(|error| ItemRefusal::Unsupported(format!("{error:?}")))
         }
         fn payload(&mut self, _: &str, _: Instant) -> Result<ItemPayload, ItemRefusal> {

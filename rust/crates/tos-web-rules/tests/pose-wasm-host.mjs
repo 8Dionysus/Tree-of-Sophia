@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {validatePose} from '../../../../access/web/src/observatory/view-state.mjs';
-import {validatePoseLegacyOracle} from '../../../../access/web/src/observatory/view-state-legacy-oracle.test-support.mjs';
 import {capturePlace,readPlaces,savePlace,readResume,RESUME_KEY} from '../../../../access/web/src/observatory/place-model.mjs';
 
 const [bindingPath,wasmPath]=process.argv.slice(2);
@@ -26,21 +25,23 @@ const invalid=[
   {...pose(),vertices:[{...pose().vertices[0],target:[1,2,3,4]}]},
   {...pose(),selectedId:'😀'.repeat(513)},
 ];
-const oracle=valid.map(value=>validatePoseLegacyOracle(structuredClone(value)));
-for(const value of invalid)assert.throws(()=>validatePoseLegacyOracle(structuredClone(value)));
+const expectedPose={lens:'constellations',yaw:-0,pitch:-.1,zoom:1.3,pan:{x:-0,y:35},selectedId:'opaque:\ud800',relationId:null,
+  panelOpen:true,cardTab:'relations',vertices:[{id:'opaque:\ud800',slot:-0,p:[-0,1,2],sourcePosition:[0,-0,2],target:[0,1,-0],pos:[0,1,-0],volumeZ:-0}]};
+const expected=[expectedPose,{...expectedPose,lens:'plane',selectedId:'😀'.repeat(512),vertices:[]},
+  {...expectedPose,lens:'orbits',vertices:[]}];
 assert.throws(()=>validatePose(structuredClone(valid[0])),
   'the product adapter has no JavaScript fallback before the owner rule is installed');
 
 await import(pathToFileURL(bindingPath).href);
 await import('../../../../access/web/src/observatory/human-forms-wasm-test-runtime.mjs');
-for(let index=0;index<valid.length;index++)assert.deepEqual(validatePose(structuredClone(valid[index])),oracle[index],`pose ${index}`);
+for(let index=0;index<valid.length;index++)assert.deepEqual(validatePose(structuredClone(valid[index])),expected[index],`pose ${index}`);
 for(const value of invalid)assert.throws(()=>validatePose(structuredClone(value)));
 
 const boundary={is_source:false,is_canon:false,writes_to_tree:false};
 const source={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),authority_boundary:boundary,
   nodes:[{id:'opaque:a',source_refs:['ToS/example'],content_revision:'b'.repeat(64),display:{title:{ru:'A'}}}],relations:[]};
 const saved=capturePlace(source,pose(),{name:'Opaque view',id:'place:1',route:'?focus=opaque%3Aa',savedAt:1});
-assert.deepEqual(saved.pose,oracle[0]);
+assert.deepEqual(saved.pose,expected[0]);
 const values=new Map(),storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
 savePlace(storage,saved);const persisted=JSON.parse(JSON.stringify(saved));assert.deepEqual(readPlaces(storage),[persisted]);
 storage.setItem(RESUME_KEY,JSON.stringify(saved));assert.deepEqual(readResume(storage,saved.route),persisted);

@@ -18,7 +18,7 @@ use tos_foundation::{
 use unicode_normalization::{UnicodeNormalization, is_nfc, is_nfd};
 use xml::reader::{ParserConfig, XmlEvent};
 
-use tos_compiler::research_html::unescape;
+use tos_compiler::html_entities::unescape;
 
 #[path = "source_item_inventory_extended.rs"]
 mod extended;

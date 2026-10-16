@@ -1,7 +1,7 @@
 //! Source-first readiness for aggregate prepared-dossier planting.
 //!
-//! This module is a role draft for `tos-ops-mechanics-plan`. It reads the route map and master
-//! rows as source inputs, inventories local DOCX files, and delegates binary
+//! It reads the route map and master rows, inventories local DOCX files,
+//! and delegates binary
 //! DOCX parsing plus identity/header checks to the native planting owner.
 //! It never writes planting products and never grants semantic, rights, review,
 //! or canon admission.
@@ -17,13 +17,11 @@ use tos_foundation::{
 };
 
 pub const ROUTE_MAP_REF: &str = "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json";
-pub const DEFAULT_DOC_ROOT: &str = "/home/dionysus/Загрузки/ToS";
 pub const MAX_ROUTE_MAP_BYTES: u64 = 16_777_216;
 pub const MAX_MASTER_JSONL_BYTES: u64 = 268_435_456;
 pub const MAX_JSONL_RECORD_BYTES: usize = 1_048_576;
 pub const MAX_DOCX_BYTES: u64 = 268_435_456;
-/// The Python observatory exposes this fixed CLI choice list even though the
-/// aggregate readiness set is derived dynamically from the route map.
+/// The CLI exposes these table filters; aggregate readiness follows the route map.
 pub const OBSERVATORY_TABLE_CHOICES: [&str; 3] = ["table-i", "table-ii", "table-iii"];
 
 /// Source parsing must be selected by the owner/caller. Legacy is never a
@@ -144,21 +142,6 @@ pub struct ReadinessInputs {
     pub doc_root: PathBuf,
     pub source_profile: PreparedSourceProfile,
     pub selected_table_id: Option<String>,
-}
-
-impl ReadinessInputs {
-    pub fn with_defaults(
-        repository_root: PathBuf,
-        source_profile: PreparedSourceProfile,
-        selected_table_id: Option<String>,
-    ) -> Self {
-        Self {
-            repository_root,
-            doc_root: PathBuf::from(DEFAULT_DOC_ROOT),
-            source_profile,
-            selected_table_id,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

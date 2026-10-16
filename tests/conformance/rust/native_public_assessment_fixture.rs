@@ -1424,15 +1424,6 @@ fn serde_value(value: &tos_foundation::JsonValue) -> io::Result<Value> {
     serde_json::from_slice(&raw).map_err(invalid_data)
 }
 
-fn summary_record_ref(summaries: &[Value], record_id: &str) -> io::Result<Value> {
-    summaries
-        .iter()
-        .flat_map(|summary| summary["record_refs"].as_array().into_iter().flatten())
-        .find(|reference| reference["id"].as_str() == Some(record_id))
-        .cloned()
-        .ok_or_else(|| invalid_data("resolved native record reference is absent"))
-}
-
 fn native_record_ref(records: &[Value], record_id: &str) -> io::Result<Value> {
     let record = records
         .iter()

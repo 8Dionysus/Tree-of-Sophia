@@ -29,8 +29,6 @@ mod knowledge_envelope;
 #[cfg(feature = "wasm")]
 mod knowledge_scene;
 #[cfg(feature = "wasm")]
-mod lens_projection;
-#[cfg(feature = "wasm")]
 mod lens_session;
 mod live_resume;
 mod observatory_conditions;
@@ -86,13 +84,9 @@ pub use browser_lens_spec::{focus_spec_descriptor_wasm_v1, relation_spec_descrip
 #[cfg(feature = "wasm")]
 pub use client_inspection::ClientInspectionSession;
 #[cfg(feature = "wasm")]
-pub use client_packet::{
-    ClientJsonSession, ClientMaterialSession, ClientPacketSession, ClientSelectorSession,
-};
+pub use client_packet::{ClientMaterialSession, ClientPacketSession, client_request_set_key_v1};
 #[cfg(feature = "wasm")]
 pub use knowledge_scene::KnowledgeSceneSession;
-#[cfg(feature = "wasm")]
-pub use lens_projection::{LensNodeSession, LensSortSession};
 #[cfg(feature = "wasm")]
 pub use source_dossier::SourceDossierSession;
 
@@ -1066,11 +1060,6 @@ mod wasm {
         super::worker_search_controls::worker_knowledge_search_controls_wasm_v1(raw_request)
     }
 }
-
-#[cfg(feature = "wasm")]
-mod route_center;
-#[cfg(feature = "wasm")]
-pub use route_center::RouteCenterSession;
 
 #[cfg(feature = "wasm")]
 mod worker_source_navigation;

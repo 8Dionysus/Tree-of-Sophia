@@ -155,9 +155,6 @@ impl ClientPacketSession {
             Ok(())
         }
     }
-    pub fn member_missing(member: bool) -> bool {
-        !member
-    }
     pub fn observe(&mut self, value: bool) -> Result<(), JsValue> {
         let (valid, next) = match self.step {
             "initial-request" => {
@@ -445,175 +442,12 @@ impl ClientPacketSession {
     }
 }
 
-/// Exact browser JSON equality, retaining native every callback behavior.
-/// It compares observations only; it never parses or serializes source values.
+/// Request fields whose owner normalization treats values as sets.
+/// Native JavaScript collection equality remains in the browser host.
 #[wasm_bindgen]
-pub struct ClientJsonSession {
-    step: &'static str,
-    result: u8,
-}
-#[wasm_bindgen]
-impl ClientJsonSession {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self {
-            step: "identity",
-            result: 0,
-        }
-    }
-    pub fn need(&self) -> String {
-        self.step.into()
-    }
-    pub fn result(&self) -> u8 {
-        self.result
-    }
-    pub fn observe(&mut self, value: bool) -> Result<(), JsValue> {
-        let next = match self.step {
-            "identity" => {
-                if value {
-                    self.result = 1;
-                    "done"
-                } else {
-                    "left-null"
-                }
-            }
-            "left-null" => {
-                if value {
-                    "done"
-                } else {
-                    "right-null"
-                }
-            }
-            "right-null" => {
-                if value {
-                    "done"
-                } else {
-                    "left-object"
-                }
-            }
-            "left-object" => {
-                if value {
-                    "right-object"
-                } else {
-                    "done"
-                }
-            }
-            "right-object" => {
-                if value {
-                    "left-array-first"
-                } else {
-                    "done"
-                }
-            }
-            "left-array-first" => {
-                if value {
-                    "left-array-second"
-                } else {
-                    "right-array-first"
-                }
-            }
-            "right-array-first" => {
-                if value {
-                    "left-array-second"
-                } else {
-                    "object-keys"
-                }
-            }
-            "left-array-second" => {
-                if value {
-                    "right-array-second"
-                } else {
-                    "done"
-                }
-            }
-            "right-array-second" => {
-                if value {
-                    "array-length"
-                } else {
-                    "done"
-                }
-            }
-            "array-length" => {
-                if value {
-                    "array-every"
-                } else {
-                    "done"
-                }
-            }
-            "object-keys" => "object-key-count",
-            "object-key-count" => {
-                if value {
-                    "object-every"
-                } else {
-                    "done"
-                }
-            }
-            "array-every" | "object-every" => {
-                self.result = 2;
-                "done"
-            }
-            _ => return Err(refusal("invalid_json_comparison_progress")),
-        };
-        self.step = next;
-        Ok(())
-    }
-    /// The request normalizer treats exactly these two fields as sets.
-    pub fn request_set_key(units: &[u16]) -> bool {
-        units.iter().copied().eq("sources".encode_utf16())
-            || units.iter().copied().eq("predicate_ids".encode_utf16())
-    }
-    pub fn request_key_length(length: usize) -> bool {
-        length == 7 || length == 13
-    }
-    pub fn string_element(string: bool) -> bool {
-        string
-    }
-}
-#[wasm_bindgen]
-pub struct ClientSelectorSession {
-    step: &'static str,
-    result: u8,
-}
-#[wasm_bindgen]
-impl ClientSelectorSession {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self {
-            step: "requested-array",
-            result: 0,
-        }
-    }
-    pub fn need(&self) -> String {
-        self.step.into()
-    }
-    pub fn result(&self) -> u8 {
-        self.result
-    }
-    pub fn observe(&mut self, value: bool) -> Result<(), JsValue> {
-        let next = match self.step {
-            "requested-array" => "actual-array",
-            "actual-array" => "strings",
-            "strings" => {
-                if !value {
-                    self.result = 2;
-                }
-                "actual-unique"
-            }
-            "actual-unique" => "requested-count",
-            "requested-count" => "members",
-            "members" => {
-                self.result = 2;
-                "done"
-            }
-            _ => return Err(refusal("invalid_selector_comparison_progress")),
-        };
-        self.step = if value || self.step == "members" {
-            next
-        } else {
-            "done"
-        };
-        Ok(())
-    }
+pub fn client_request_set_key_v1(units: &[u16]) -> bool {
+    units.iter().copied().eq("sources".encode_utf16())
+        || units.iter().copied().eq("predicate_ids".encode_utf16())
 }
 
 #[wasm_bindgen]

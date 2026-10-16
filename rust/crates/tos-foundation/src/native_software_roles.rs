@@ -48,9 +48,11 @@ pub fn features(role: &str) -> Option<&'static [&'static str]> {
         return None;
     }
     Some(match role {
-        "tos-ops-mechanics-plan" | "tos-source-registry" | "tos-open-work-queue" => {
-            &["compiler-backed-validators", "default"]
-        }
+        "tos-ops-mechanics-plan" | "tos-source-registry" | "tos-open-work-queue" => &[
+            "compiler-backed-validators",
+            "default",
+            "philosophy-library",
+        ],
         "tos-schema-worker" => &["default", "native"],
         _ => &[],
     })

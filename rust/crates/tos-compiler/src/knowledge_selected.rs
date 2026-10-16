@@ -3806,27 +3806,6 @@ fn verify_core_and_scope(
     }
     Ok((node_root.finalize(), relation_root.finalize()))
 }
-fn hash_sql_row(
-    hash: &mut Digest256Hasher,
-    row: &rusqlite::Row<'_>,
-    work: &mut u64,
-    cap: u64,
-) -> Result<()> {
-    for col in 0..row.as_ref().column_count() {
-        match row.get_ref(col)? {
-            rusqlite::types::ValueRef::Text(bytes) | rusqlite::types::ValueRef::Blob(bytes) => {
-                charge(work, bytes.len() + 8, cap)?;
-                hash_bytes(hash, bytes);
-            }
-            rusqlite::types::ValueRef::Integer(value) => {
-                charge(work, 16, cap)?;
-                hash_bytes(hash, &value.to_be_bytes());
-            }
-            _ => return Err(Error::Invalid("knowledge search root value type")),
-        }
-    }
-    Ok(())
-}
 
 fn rank_array(raw: &str, limits: ColdOpenLimits) -> Result<()> {
     let json_limits = JsonLimits::new(limits.max_row_bytes, 96, 1_000_000, 4096)

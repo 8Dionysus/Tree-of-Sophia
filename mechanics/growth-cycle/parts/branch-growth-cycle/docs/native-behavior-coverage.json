@@ -5,10 +5,6 @@
   "bounded_native_route": "--native-contracts-only",
   "reference_route": "historical-evidence-only",
   "assessment_route": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md",
-  "reference_discovery": {
-    "root": "mechanics/growth-cycle/tests",
-    "pattern": "test*.py"
-  },
   "completion_rule": "Execute the source-owned native pipeline and native other-mechanics checks. Results attest declared assertions and installed consumer contracts; historical API counts remain evidence and semantic judgments keep their owners.",
   "native_test_routes": [
     {

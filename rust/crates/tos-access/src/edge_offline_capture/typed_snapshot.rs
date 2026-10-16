@@ -624,13 +624,6 @@ fn sqlite_record_length_limit(frame_bytes: u64, role: Role) -> Result<i32, Strin
         .map_err(|_| "typed snapshot SQLite record length".into())
 }
 
-fn role_label(role: Role) -> &'static str {
-    match role {
-        Role::D1 => "d1",
-        Role::Prepared => "prepared",
-    }
-}
-
 fn quote(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }

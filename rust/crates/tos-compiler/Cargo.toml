@@ -7,6 +7,8 @@ license = "Apache-2.0"
 publish = false
 
 [features]
+# Explicit source-selected research builders; excluded from ordinary readers.
+research = ["tos-validation/research"]
 # Selects the pinned IndexMap allocation envelope for cold raw normalization.
 preserve-order-workspace = ["serde_json/preserve_order"]
 test-fixture = []
@@ -36,3 +38,7 @@ tempfile = "=3.27.0"
 [lib]
 name = "tos_compiler"
 path = "src/lib.rs"
+
+[[test]]
+name = "zarathustra_lexical_unicode_contract"
+required-features = ["research"]

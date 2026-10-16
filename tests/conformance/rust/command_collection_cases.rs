@@ -5,7 +5,6 @@ use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
-use tos_foundation::Digest256;
 const FACTORY: &str = r#"
 import json,sys,tempfile
 from pathlib import Path
@@ -108,24 +107,7 @@ fn freeze_invocation(path: &Path, value: &Value) {
     fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
     fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
 }
-fn configured_digest(value: &Value) -> String {
-    let raw = serde_json::to_vec(value).unwrap();
-    let value = tos_foundation::parse_json(
-        &raw,
-        tos_foundation::JsonMode::PublishedStrict,
-        tos_foundation::JsonLimits::default(),
-    )
-    .unwrap();
-    Digest256::of_bytes(
-        &tos_foundation::canonical_bytes_v1(
-            value.root(),
-            tos_foundation::CanonicalProfile::SourceCommandInputV1,
-            tos_foundation::JsonLimits::default(),
-        )
-        .unwrap(),
-    )
-    .to_prefixed()
-}
+
 fn prepared_request(preview: &Value, id: &str) -> Value {
     let mut request = preview["prepared_request"].clone();
     request["command_id"] = json!(id);

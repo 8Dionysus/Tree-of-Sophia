@@ -4,10 +4,6 @@ import {createCorpusNotebook,readingSlot} from '../src/corpus-reader/notebook.mj
 
 const DEFAULT_TIMEOUT = 3000;
 
-function isRecord(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function errorShape(error) {
   return {
     code: typeof error?.code === 'string' ? error.code : (typeof error?.name === 'string' ? error.name : 'error'),

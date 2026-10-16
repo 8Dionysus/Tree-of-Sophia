@@ -68,17 +68,17 @@ The installed Rust entry takes explicit absolute roots. Full historical parity
 reads the exact private TEI inputs and existing extracted layers without writing:
 
 ```sh
-tos dta-technical-markup --source-root /absolute/source \
+tos-research dta-technical-markup --source-root /absolute/source \
   --local-input-root /absolute/private-input \
   --local-output-root /absolute/private-output --check
-tos dta-technical-markup --source-root /absolute/source --validate-tracked
+tos-research dta-technical-markup --source-root /absolute/source --validate-tracked
 ```
 
 For a new segmentation event, provide a reviewed plan selecting fresh output
 and issuance paths, a new event ID, and the admitted output quota:
 
 ```sh
-tos dta-technical-markup --source-root /absolute/source \
+tos-research dta-technical-markup --source-root /absolute/source \
   --local-input-root /absolute/private-input \
   --local-output-root /absolute/private-output \
   --plan ToS/source-witnesses/path/to/new-plan.json \

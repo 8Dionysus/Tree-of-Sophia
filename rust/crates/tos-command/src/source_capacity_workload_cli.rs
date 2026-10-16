@@ -6,7 +6,6 @@
 //! indexed input independently.
 
 use crate::source_admission::AdmissionWorkBudget;
-use crate::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2};
 use crate::source_capacity_workload::{
     PackedScaleInputReceiptV1, WeightedScaleAuthoredAuxMemberV1,
     WeightedScaleAuthoredAuxSelectionV1, WeightedScaleProducerRequestV1, WeightedScaleProfileV1,
@@ -35,6 +34,7 @@ use std::sync::{
 };
 use std::time::Instant;
 use tos_foundation::Digest256;
+use tos_source_store::native_v2::objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2};
 
 pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] [--record-selection-manifest ABS] [--fixture-recipe ABS --fixture-recipe-sha256 LOWERHEX64] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private scale input for the declared weighted record count (default 100000) under the protected artifact root. A declared recipe with authored selection produces packed-only input; the legacy route also emits a standalone raw mirror. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the explicit validation profile and printed indexed input. Recipe selection does not itself validate semantics. This fixture does not grant source, review, rights, canon, or admission authority.\n";
 

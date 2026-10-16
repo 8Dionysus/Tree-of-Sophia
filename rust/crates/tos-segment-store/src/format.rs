@@ -432,10 +432,6 @@ pub(crate) fn read_selected_accounted(
     Ok(verified)
 }
 
-fn read_hashed(file: &mut File, buffer: &mut [u8], hasher: &mut Digest256Hasher) -> Result<()> {
-    read_hashed_metered(file, buffer, hasher, &mut None)
-}
-
 fn read_hashed_metered(
     file: &mut File,
     buffer: &mut [u8],
