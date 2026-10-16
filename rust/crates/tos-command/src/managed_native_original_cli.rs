@@ -3656,7 +3656,7 @@ pub(crate) fn with_direct_repository_projection<T>(
         final_fence_workspace_upper_bound_bytes: limits.final_fence_workspace_upper_bound_bytes,
     };
     let worker_image_digest = worker.sha256;
-    let ((products, consumed), _) =
+    let (products, consumed) =
         crate::source_current_cut::foundation_capture::with_authored_diagnostic_capture(
             &mut sources,
             &isolated,

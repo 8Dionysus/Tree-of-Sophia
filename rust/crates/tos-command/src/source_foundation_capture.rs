@@ -96,97 +96,9 @@ pub struct AuthoredDiagnosticCaptureLimits {
     pub final_fence_workspace_upper_bound_bytes: usize,
 }
 
-/// Mechanical read accounting, never admission, an Original outcome or a
-/// completed native-session receipt. Capture control reads remain an explicit
-/// upper bound because the existing capture cost reports raw members only.
-#[derive(Clone, Copy, Debug)]
-pub struct AuthoredDiagnosticCaptureCost {
-    pub capture: FoundationCaptureCost,
-    pub callback_recheck_read_bytes: usize,
-    pub final_recheck_read_bytes: usize,
-    pub capture_control_read_upper_bound_bytes: usize,
-    /// Reserved source-level state accounting, never measured process memory.
-    pub callback_inline_value_bytes: usize,
-    pub callback_owned_heap_state_upper_bound_bytes: usize,
-    pub final_fence_workspace_upper_bound_bytes: usize,
-    pub final_fence_workspace_lower_bound_bytes: usize,
-    pub current_traversal_workspace_upper_bound_bytes: usize,
-    pub callback_and_fence_state_upper_bound_bytes: usize,
-}
 
-/// Explicit comparison allowances charged inside the callback's independently
-/// admitted retained-state budget. The owner enforces cumulative generated reads.
-#[derive(Clone, Copy, Debug)]
-pub struct AuthoredDiagnosticCatalogueComparisonLimits {
-    pub max_file_bytes: usize,
-    pub max_total_read_bytes: usize,
-    pub max_files: usize,
-    pub max_retained_state_bytes: usize,
-    pub renderer_owned_state_upper_bound_bytes: usize,
-    pub max_overlap_state_bytes: usize,
-}
 
-#[derive(Clone, Copy, Debug)]
-pub struct AuthoredDiagnosticCatalogueComparisonCost {
-    pub generated_read_bytes: usize,
-    pub observation_retained_state_bytes: usize,
-    pub issue_retained_state_bytes: usize,
-    pub overlap_state_upper_bound_bytes: usize,
-}
 
-/// Real owner comparison selections retained within the borrowed capture.
-/// Construction is private; it exposes no mutable RouteSources or authority.
-pub struct AuthoredDiagnosticCatalogueComparison<'guard, 'source> {
-    capture: &'guard AuthoredDiagnosticCapture<'source>,
-    observation: RefCell<super::foundation_catalog::GeneratedCatalogObservation>,
-    issues: Vec<(String, String)>,
-    issue_state_bytes: usize,
-    overlap_state_upper_bound_bytes: usize,
-}
-impl AuthoredDiagnosticCatalogueComparison<'_, '_> {
-    pub fn issues(&self) -> &[(String, String)] {
-        &self.issues
-    }
-    pub fn cost(&self) -> Result<AuthoredDiagnosticCatalogueComparisonCost> {
-        let observation = self
-            .observation
-            .try_borrow()
-            .map_err(|_| Error::Conflict("authored catalogue observation already borrowed"))?;
-        Ok(AuthoredDiagnosticCatalogueComparisonCost {
-            generated_read_bytes: observation.read_bytes(),
-            observation_retained_state_bytes: observation.retained_state_bytes(),
-            issue_retained_state_bytes: self.issue_state_bytes,
-            overlap_state_upper_bound_bytes: self.overlap_state_upper_bound_bytes,
-        })
-    }
-    /// Recheck the owner's exact generated selections after later callbacks.
-    /// Uses the same cumulative cap/clock/cancel; a refusal poisons outer capture.
-    pub fn recheck(&self) -> Result<()> {
-        let result =
-            (|| {
-                active(self.capture.deadline, self.capture.cancelled)?;
-                if self.capture.poisoned.get() {
-                    return Err(Error::Conflict(
-                        "authored diagnostic capture previously refused",
-                    ));
-                }
-                let mut observation = self.observation.try_borrow_mut().map_err(|_| {
-                    Error::Conflict("authored catalogue observation already borrowed")
-                })?;
-                let mut sources =
-                    self.capture.sources.try_borrow_mut().map_err(|_| {
-                        Error::Conflict("authored diagnostic source already borrowed")
-                    })?;
-                observation
-                    .recheck(&mut sources, self.capture.deadline, self.capture.cancelled)
-                    .map_err(catalogue_error)
-            })();
-        if result.is_err() {
-            self.capture.poisoned.set(true);
-        }
-        result
-    }
-}
 
 /// Borrowed access to one real capture. Its private construction retains the
 /// exact mutable RouteSources, actual isolated root and original operation
@@ -202,145 +114,11 @@ pub struct AuthoredDiagnosticCapture<'a> {
     observed_recheck_bytes: Cell<usize>,
     poisoned: Cell<bool>,
     pass_upper_bound_bytes: usize,
-    callback_owned_heap_state_upper_bound_bytes: usize,
 }
 
 impl<'source> AuthoredDiagnosticCapture<'source> {
     pub fn cut(&self) -> &CorpusCutReader {
         self.captured.cut()
-    }
-    pub fn revision(&self) -> SourceRevision {
-        self.captured.revision()
-    }
-    pub fn membership(&self) -> SourceMembershipV1 {
-        self.captured.membership()
-    }
-    pub fn epoch(&self) -> &MetadataPublicationEpoch {
-        self.captured.epoch()
-    }
-    pub fn capture_cost(&self) -> FoundationCaptureCost {
-        self.captured.cost()
-    }
-    /// Reuse the COMMAND-owned persisted catalogue manifest format after
-    /// checking its cold binding against this actual cut and protected epoch.
-    /// The caller still verifies the real catalog/stage receipt before using
-    /// this pure formatter; formatting grants no source or semantic admission.
-    pub fn published_catalogue_manifest(
-        &self,
-        receipt: &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
-        limits: JsonLimits,
-    ) -> Result<Vec<u8>> {
-        active(self.deadline, self.cancelled)?;
-        if self.poisoned.get() {
-            return Err(Error::Conflict(
-                "authored diagnostic capture recheck previously refused",
-            ));
-        }
-        let binding = &receipt.input_binding;
-        let epoch = self.captured.epoch();
-        if binding.revision() != self.captured.revision()
-            || binding.membership() != self.captured.membership()
-            || binding.epoch_token() != epoch.token()
-            || binding.epoch_generation() != epoch.generation()
-            || binding.epoch_member()
-                != epoch
-                    .member_binding()
-                    .map_err(|_| Error::Invalid("authored diagnostic protected epoch binding"))?
-        {
-            return Err(Error::Conflict(
-                "authored diagnostic cold catalogue receipt binding",
-            ));
-        }
-        super::foundation_catalog::published_manifest(epoch.token(), receipt, limits)
-            .map_err(catalogue_error)
-    }
-    /// Invoke only after finishing the real cold stage and collecting bounded
-    /// expected bytes. Reuses COMMAND's live CompareCatalog and protected-epoch
-    /// formatter. The returned handle must be rechecked after later callbacks.
-    pub fn compare_catalogue_outputs<'guard>(
-        &'guard self,
-        receipt: &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
-        json: JsonLimits,
-        limits: AuthoredDiagnosticCatalogueComparisonLimits,
-        render: impl FnOnce(
-            &mut dyn tos_compiler::source_witness_catalog::SourceCatalogSink,
-        ) -> Result<()>,
-    ) -> Result<AuthoredDiagnosticCatalogueComparison<'guard, 'source>> {
-        let result = (|| {
-            for cap in [
-                limits.max_file_bytes,
-                limits.max_total_read_bytes,
-                limits.max_files,
-                limits.max_retained_state_bytes,
-                limits.max_overlap_state_bytes,
-            ] {
-                if cap == 0 || cap == usize::MAX {
-                    return Err(Error::Invalid(
-                        "authored catalogue finite comparison limits",
-                    ));
-                }
-            }
-            // Reserve manifest Vec capacity, current raw Vec, owner observations/
-            // issues and renderer-owned state BEFORE formatting or comparison.
-            let overlap = json
-                .max_bytes
-                .checked_mul(2)
-                .and_then(|n| n.checked_add(limits.max_file_bytes))
-                .and_then(|n| n.checked_add(limits.max_retained_state_bytes))
-                .and_then(|n| n.checked_add(limits.renderer_owned_state_upper_bound_bytes))
-                .and_then(|n| {
-                    n.checked_add(
-                        super::foundation_catalog::catalogue_comparison_controller_state_bytes(),
-                    )
-                })
-                .and_then(|n| {
-                    n.checked_add(size_of::<AuthoredDiagnosticCatalogueComparison<'_, '_>>())
-                })
-                .filter(|n| {
-                    *n <= limits.max_overlap_state_bytes
-                        && limits.max_overlap_state_bytes
-                            <= self.callback_owned_heap_state_upper_bound_bytes
-                })
-                .ok_or(Error::Unsupported(
-                    "authored catalogue comparison overlap reservation",
-                ))?;
-            let manifest = self.published_catalogue_manifest(receipt, json)?;
-            // Retain the callback's exact command-owned refusal instead of
-            // erasing it when crossing the compiler-owned sink interface.
-            let mut render_error = None;
-            let (issues, observation, issue_state_bytes) =
-                super::foundation_catalog::compare_catalogue_outputs(
-                    &self.sources,
-                    manifest,
-                    limits.max_file_bytes,
-                    limits.max_total_read_bytes,
-                    limits.max_files,
-                    limits.max_retained_state_bytes,
-                    self.deadline,
-                    self.cancelled,
-                    |sink| match render(sink) {
-                        Ok(()) => Ok(()),
-                        Err(error) => {
-                            render_error = Some(error);
-                            Err(tos_compiler::Error::Invalid(
-                                "authored catalogue render refused",
-                            ))
-                        }
-                    },
-                )
-                .map_err(|error| render_error.unwrap_or_else(|| catalogue_error(error)))?;
-            Ok(AuthoredDiagnosticCatalogueComparison {
-                capture: self,
-                observation: RefCell::new(observation),
-                issues,
-                issue_state_bytes,
-                overlap_state_upper_bound_bytes: overlap,
-            })
-        })();
-        if result.is_err() {
-            self.poisoned.set(true);
-        }
-        result
     }
     /// Reuse the exact live/epoch fence under a monotone local allowance.
     /// One final pass remains reserved even when the callback invokes this
@@ -418,7 +196,7 @@ pub fn with_authored_diagnostic_capture<T>(
     deadline: Instant,
     cancelled: &AtomicBool,
     diagnostic: impl for<'capture> FnOnce(&AuthoredDiagnosticCapture<'capture>) -> Result<T>,
-) -> Result<(T, AuthoredDiagnosticCaptureCost)> {
+) -> Result<T> {
     let deadline = deadline.min(sources.deadline());
     active(deadline, cancelled)?;
     for cap in [
@@ -434,7 +212,7 @@ pub fn with_authored_diagnostic_capture<T>(
     }
     // Reserve the callback value and declared opaque heap BEFORE running its
     // producer. The caller's actual heap/stage quotas remain a separate owner.
-    let callback_state_upper_bound_bytes = size_of::<T>()
+    size_of::<T>()
         .checked_add(limits.callback_owned_heap_state_upper_bound_bytes)
         .and_then(|bytes| bytes.checked_add(limits.final_fence_workspace_upper_bound_bytes))
         .filter(|bytes| *bytes <= limits.max_callback_and_fence_state_bytes)
@@ -502,7 +280,7 @@ pub fn with_authored_diagnostic_capture<T>(
         candidate_capture_retained_state_upper_bound(metadata.len(), file_name_bytes).ok_or(
             Error::Unsupported("authored diagnostic held capture/control reservation"),
         )?;
-    let fence_state_lower_bound_bytes = current_traversal_workspace_upper_bound_bytes
+    current_traversal_workspace_upper_bound_bytes
         .checked_add(largest_member_bytes)
         .and_then(|bytes| bytes.checked_add(held_capture_control_state))
         .and_then(|bytes| bytes.checked_add(size_of::<AuthoredDiagnosticCapture<'_>>()))
@@ -529,53 +307,12 @@ pub fn with_authored_diagnostic_capture<T>(
         observed_recheck_bytes: Cell::new(0),
         poisoned: Cell::new(false),
         pass_upper_bound_bytes,
-        callback_owned_heap_state_upper_bound_bytes: limits
-            .callback_owned_heap_state_upper_bound_bytes,
     };
     let value = diagnostic(&guard)?;
-    let callback_recheck_read_bytes = guard.observed_recheck_bytes.get();
-    let final_recheck_read_bytes = guard.recheck_pass(true)?;
-    Ok((
-        value,
-        AuthoredDiagnosticCaptureCost {
-            capture: captured.cost(),
-            callback_recheck_read_bytes,
-            final_recheck_read_bytes,
-            capture_control_read_upper_bound_bytes: CONTROL_READ_RESERVATION * 2,
-            callback_inline_value_bytes: size_of::<T>(),
-            callback_owned_heap_state_upper_bound_bytes: limits
-                .callback_owned_heap_state_upper_bound_bytes,
-            final_fence_workspace_upper_bound_bytes: limits.final_fence_workspace_upper_bound_bytes,
-            final_fence_workspace_lower_bound_bytes: fence_state_lower_bound_bytes,
-            current_traversal_workspace_upper_bound_bytes,
-            callback_and_fence_state_upper_bound_bytes: callback_state_upper_bound_bytes,
-        },
-    ))
+    guard.recheck_pass(true)?;
+    Ok(value)
 }
 
-/// The public capture API retains COMMAND's refusal vocabulary. Compiler
-/// mechanics supply no new admission; callback-owned errors are kept separately.
-fn catalogue_error(error: tos_compiler::Error) -> Error {
-    match error {
-        tos_compiler::Error::Invalid(message) => Error::Invalid(message),
-        tos_compiler::Error::Budget(message)
-        | tos_compiler::Error::PreparedUnsupported(message)
-        | tos_compiler::Error::ManagedSourceUnsupported(message) => Error::Unsupported(message),
-        tos_compiler::Error::FoundationJson {
-            code: tos_foundation::FoundationErrorCode::BudgetExceeded,
-            ..
-        } => Error::Unsupported("authored catalogue Foundation JSON budget"),
-        tos_compiler::Error::FoundationJson { .. } => {
-            Error::Invalid("authored catalogue Foundation JSON refused")
-        }
-        tos_compiler::Error::Io(_) => Error::Denied("authored catalogue descriptor custody"),
-        tos_compiler::Error::Sql(_)
-        | tos_compiler::Error::SqlitePhase { .. }
-        | tos_compiler::Error::SqliteVmBudget { .. }
-        | tos_compiler::Error::ControlledColdClose { .. }
-        | tos_compiler::Error::Source(_) => Error::Invalid("authored catalogue owner refused"),
-    }
-}
 fn source_error(_: std::io::Error) -> Error {
     Error::Denied("foundation source descriptor custody")
 }
