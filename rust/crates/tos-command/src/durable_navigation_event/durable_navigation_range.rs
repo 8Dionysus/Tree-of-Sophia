@@ -2699,7 +2699,10 @@ fn verify_empty_claim_manifest_evidence(
                     "stored Claim source-closure lookups are empty",
                 ));
             }
-            let mut prior_lookup: Option<(String, String)> = None;
+            use tos_compiler::source_navigation_claim_event::NavigationClaimEventRangeLookupKindV1 as LookupKind;
+            // The compiler commits typed lookup order (TosId before SourcePath),
+            // which differs from lexical order of the serialized kind names.
+            let mut prior_lookup: Option<(LookupKind, String)> = None;
             let mut source_path_lookups = BTreeSet::new();
             for lookup in lookup_keys {
                 if lookup.as_object().is_none_or(|object| object.len() != 2) {
@@ -2707,13 +2710,15 @@ fn verify_empty_claim_manifest_evidence(
                         "stored Claim source-closure lookup shape",
                     ));
                 }
-                let kind = lookup
-                    .get("kind")
-                    .and_then(Value::as_str)
-                    .filter(|kind| matches!(*kind, "source-path" | "tos-id"))
-                    .ok_or(DurableError::Corrupt(
-                        "stored Claim source-closure lookup kind",
-                    ))?;
+                let kind = match lookup.get("kind").and_then(Value::as_str) {
+                    Some("tos-id") => LookupKind::TosId,
+                    Some("source-path") => LookupKind::SourcePath,
+                    _ => {
+                        return Err(DurableError::Corrupt(
+                            "stored Claim source-closure lookup kind",
+                        ));
+                    }
+                };
                 let key = lookup
                     .get("key")
                     .and_then(Value::as_str)
@@ -2722,7 +2727,7 @@ fn verify_empty_claim_manifest_evidence(
                         "stored Claim source-closure lookup key",
                     ))?;
                 match kind {
-                    "source-path" => {
+                    LookupKind::SourcePath => {
                         validate_relative_path(key).map_err(|_| {
                             DurableError::Corrupt("stored Claim source-closure path lookup invalid")
                         })?;
@@ -2732,14 +2737,13 @@ fn verify_empty_claim_manifest_evidence(
                             ));
                         }
                     }
-                    "tos-id" => validate_identifier(
+                    LookupKind::TosId => validate_identifier(
                         key,
                         MAX_NAVIGATION_RECORD_ID_BYTES,
                         "stored Claim source-closure ID lookup",
                     )?,
-                    _ => unreachable!(),
                 }
-                let key = (kind.to_owned(), key.to_owned());
+                let key = (kind, key.to_owned());
                 if prior_lookup
                     .as_ref()
                     .is_some_and(|previous| previous >= &key)
@@ -4738,6 +4742,68 @@ fn range_manifest_value(
 #[cfg(test)]
 mod range_manifest_tests {
     use super::*;
+
+    #[test]
+    fn empty_claim_source_closure_reopens_in_compiler_lookup_order() {
+        use tos_compiler::source_navigation_claim_event::{
+            NavigationClaimEventRangeLookupKeyV1 as LookupKey,
+            NavigationClaimEventRangeLookupKindV1 as LookupKind,
+        };
+        let source = "ToS/source-witnesses/agents/new/agent.json";
+        let forms = "ToS/source-witnesses/agents/new/agent.human-forms.json";
+        let range = json!({"events":[{"event_kind":"command","members":[
+            {"is_source":true,"source_path":source},
+            {"is_source":true,"source_path":forms},
+        ]}]});
+        let keys = BTreeSet::from([
+            LookupKey {
+                kind: LookupKind::SourcePath,
+                key: source.into(),
+            },
+            LookupKey {
+                kind: LookupKind::TosId,
+                key: "tos.agent.new".into(),
+            },
+            LookupKey {
+                kind: LookupKind::SourcePath,
+                key: forms.into(),
+            },
+        ]);
+        let manifest = json!({"empty_owner_evidence":{
+            "kind":"source-closure", "closure_root":Digest256::of_bytes(b"closure").to_hex(),
+            "lookup_keys":keys.iter().map(|key| json!({
+                "kind":key.kind.as_str(), "key":key.key,
+            })).collect::<Vec<_>>(),
+        }});
+        assert!(verify_empty_claim_manifest_evidence(&manifest, &range, true).is_ok());
+        let mut lexical = manifest.clone();
+        lexical["empty_owner_evidence"]["lookup_keys"]
+            .as_array_mut()
+            .unwrap()
+            .sort_by_key(|key| {
+                (
+                    key["kind"].as_str().unwrap().to_owned(),
+                    key["key"].as_str().unwrap().to_owned(),
+                )
+            });
+        assert!(verify_empty_claim_manifest_evidence(&lexical, &range, true).is_err());
+        let mut duplicate = manifest.clone();
+        let keys = duplicate["empty_owner_evidence"]["lookup_keys"]
+            .as_array_mut()
+            .unwrap();
+        keys.insert(1, keys[0].clone());
+        assert!(verify_empty_claim_manifest_evidence(&duplicate, &range, true).is_err());
+        let mut missing = manifest.clone();
+        missing["empty_owner_evidence"]["lookup_keys"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(verify_empty_claim_manifest_evidence(&missing, &range, true).is_err());
+        let mut unknown = manifest.clone();
+        unknown["empty_owner_evidence"]["lookup_keys"][0]["kind"] = json!("other");
+        assert!(verify_empty_claim_manifest_evidence(&unknown, &range, true).is_err());
+        assert!(verify_empty_claim_manifest_evidence(&manifest, &range, false).is_err());
+    }
 
     #[test]
     fn claim_stream_predecessor_extension_preserves_legacy_and_rejects_unbound_rows() {
