@@ -34,14 +34,14 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5942,
+    "excluded_tracked_path_count": 5944,
     "human_scope": {
-      "bytes": 7337738,
+      "bytes": 7342308,
       "count": 1071,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 620195,
+          "bytes": 620219,
           "count": 44,
           "lines": 9869
         },
@@ -51,9 +51,9 @@
           "lines": 152
         },
         "docs": {
-          "bytes": 712069,
+          "bytes": 712245,
           "count": 89,
-          "lines": 11136
+          "lines": 11138
         },
         "evals": {
           "bytes": 18262,
@@ -96,9 +96,9 @@
           "lines": 3095
         },
         "rust": {
-          "bytes": 155440,
+          "bytes": 159579,
           "count": 14,
-          "lines": 2301
+          "lines": 2361
         },
         "scripts": {
           "bytes": 9116,
@@ -116,19 +116,19 @@
           "lines": 1271
         },
         "tos": {
-          "bytes": 5003470,
+          "bytes": 5003701,
           "count": 726,
-          "lines": 82522
+          "lines": 82527
         }
       },
-      "lines": 120984
+      "lines": 121051
     },
     "surface_kind_counts": {
       "executable": 78,
       "human": 1071,
       "structured": 4885
     },
-    "tracked_path_count": 11976,
+    "tracked_path_count": 11978,
     "tracked_surface_count": 6034,
     "unhandled_family_count": 0,
     "unhandled_paths": []
@@ -154,7 +154,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 123482,
+      "tracked_surface_bytes": 123279,
       "tracked_surface_count": 6
     },
     {
@@ -173,7 +173,7 @@
         "human": 726,
         "structured": 4440
       },
-      "tracked_surface_bytes": 99880771,
+      "tracked_surface_bytes": 99881002,
       "tracked_surface_count": 5211
     },
     {
@@ -183,7 +183,7 @@
         "human": 44,
         "structured": 49
       },
-      "tracked_surface_bytes": 1539415,
+      "tracked_surface_bytes": 1539439,
       "tracked_surface_count": 124
     },
     {
@@ -192,7 +192,7 @@
         "human": 89,
         "structured": 6
       },
-      "tracked_surface_bytes": 941505,
+      "tracked_surface_bytes": 941681,
       "tracked_surface_count": 95
     },
     {
@@ -245,7 +245,7 @@
         "human": 14,
         "structured": 276
       },
-      "tracked_surface_bytes": 4599584,
+      "tracked_surface_bytes": 4603723,
       "tracked_surface_count": 290
     },
     {
@@ -290,7 +290,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f4077addc8932c422991f5e7fb950928b62471934e04a6b276dc47585e2675fc",
+  "tracked_surface_digest": "ea0b145f4c15f18346ada0e62d9d7f6587e7b4b196af0efcb8c5cb5ce6814114",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -333,11 +333,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 84797,
+      "bytes": 84594,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "8e790ed189dd899db670f10f447a2381de78ca00e13afa0fd56c085e5758d6a3",
+      "sha256": "4ae1ea94cfba0bc66244fc891ea8b30ce4ae18efc803620dfa4c0126904c8596",
       "surface_kind": "structured"
     },
     {
@@ -17693,11 +17693,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 7322,
+      "bytes": 7553,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/retained-builder-inputs/README.md",
-      "sha256": "32fb1f3739a6e50dc28fc3bdebeecd565fb75583b047b276110944da7a128346",
+      "sha256": "b3add2992ec4ea03a55384c4fd07641ea5a1babadbceb887994d67fcea7aa292",
       "surface_kind": "human"
     },
     {
@@ -43061,11 +43061,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 18641,
+      "bytes": 18665,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/constructor/README.md",
-      "sha256": "fed5729f096eed54007f2a6a7f8f5591e6eec97b8681fd52d3da0351c04af598",
+      "sha256": "8b450ac3a4aa6e4b442372d4cb3bacf24912e4dc53736048175851adcd999bee",
       "surface_kind": "human"
     },
     {
@@ -43189,11 +43189,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 24701,
+      "bytes": 24877,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/RELEASING.md",
-      "sha256": "ed5197bd59f6564dc0c93a7d4158b34f0268af890458aef05f82a8465ee47569",
+      "sha256": "72e028485faef5f6c54aecc935b6f33edf3457e6cbfafb652d3cf0da68353bc4",
       "surface_kind": "human"
     },
     {
@@ -45453,11 +45453,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7868,
+      "bytes": 8159,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/README.md",
-      "sha256": "03edfd0093b9fe775cc0c3a621353d2a511c312861be73cdea58dee897e6a7f8",
+      "sha256": "fd429e257edd0ee2d612d92736018116e570ba9553c98e548b062db3fa39bd04",
       "surface_kind": "human"
     },
     {
@@ -45485,11 +45485,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 55854,
+      "bytes": 58534,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-command/README.md",
-      "sha256": "0c9e06ecbf14947b34930bcf26d7e6e5313538f9f7bebc6333ac1e76dec25e2a",
+      "sha256": "9872206a78a7e5141b416f34ebd80737615fb4dca9345b4780f77cd646e25390",
       "surface_kind": "human"
     },
     {
@@ -47349,11 +47349,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 34939,
+      "bytes": 35391,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-ops-mechanics-plan/README.md",
-      "sha256": "0d2f6d7994a9ff6a3ac5e000e8f42e8815770680e58e2484026b39c5da7aedb1",
+      "sha256": "8bec65b931407f1c6be89935d01bb3e6425b3bcdac7fe84c31c310c4b3c21c44",
       "surface_kind": "human"
     },
     {
@@ -47765,11 +47765,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 16473,
+      "bytes": 17189,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-web-rules/README.md",
-      "sha256": "57b9e8611252e05e2109dca1c722194607e8dfb7a71709e012b0b2875770b119",
+      "sha256": "50a2781b3fa6514c499499264123610c6be5ad51cc0088f922762c2584d87d69",
       "surface_kind": "human"
     },
     {
