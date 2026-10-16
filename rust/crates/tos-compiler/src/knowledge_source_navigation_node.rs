@@ -6,9 +6,7 @@
 //! so this module never writes a final graph row. Exact historical records
 //! with floating JSON numbers refuse until their canonical encoding is pinned.
 
-use crate::knowledge_normalization::{
-    SourceRow, stable_digest, stamp_addressed_candidate_content_revision, stamp_content_revision,
-};
+use crate::knowledge_normalization::{SourceRow, stable_digest, stamp_content_revision};
 use crate::knowledge_philosophy_display::source_navigation_node_display;
 use crate::knowledge_source_navigation_prepare::NavigationPrepareReceipt;
 use crate::knowledge_stage::SeekRow;
@@ -1278,30 +1276,6 @@ impl<'a> NavigationNodeNormalizer<'a> {
             processing_run: None,
         })
     }
-    pub(crate) fn new_for_addressed_candidate(
-        registry: &'a KnowledgeRegistry,
-        entity_bytes: &[u8],
-        vocabulary: &QueryVocabulary,
-        descriptor_bytes: &[u8],
-        limits: NavigationNodeLimits,
-    ) -> Result<Self> {
-        if limits.max_raw_bytes == 0 || limits.max_output_bytes == 0 {
-            return Err(Error::Budget("navigation addressed candidate limits"));
-        }
-        let mut ordinary_limits = limits;
-        ordinary_limits.max_raw_bytes = ordinary_limits.max_raw_bytes.min(8 * 1024 * 1024);
-        ordinary_limits.max_output_bytes = ordinary_limits.max_output_bytes.min(8 * 1024 * 1024);
-        let mut normalizer = Self::new(
-            registry,
-            entity_bytes,
-            vocabulary,
-            descriptor_bytes,
-            ordinary_limits,
-        )?;
-        normalizer.limits = limits;
-        Ok(normalizer)
-    }
-
     /// Opt into exact-source Rust processing reuse for this native producer.
     pub fn with_processing_run(
         mut self,
@@ -1429,19 +1403,6 @@ impl<'a> NavigationNodeNormalizer<'a> {
     /// Normalize an explicitly supplied source-navigation carrier without
     /// asserting sealed-cut membership or complete dependency admission.
     pub fn normalize_supplied_node(&mut self, raw: &SeekRow) -> Result<NavigationBaseNode> {
-        self.normalize_supplied_node_with_candidate_cap(raw, false)
-    }
-    pub(crate) fn normalize_addressed_candidate_node(
-        &mut self,
-        raw: &SeekRow,
-    ) -> Result<NavigationBaseNode> {
-        self.normalize_supplied_node_with_candidate_cap(raw, true)
-    }
-    fn normalize_supplied_node_with_candidate_cap(
-        &mut self,
-        raw: &SeekRow,
-        addressed_candidate: bool,
-    ) -> Result<NavigationBaseNode> {
         if raw.source_graph != self.source_graph_id
             || raw.source_order.is_some()
             || raw.id.is_empty()
@@ -1455,15 +1416,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
         if Digest256::of_bytes(&raw.payload).to_hex() != raw.payload_sha256 {
             return Err(Error::Invalid("navigation raw node digest"));
         }
-        let source = if addressed_candidate {
-            SourceRow::parse_addressed_candidate(
-                &raw.payload,
-                self.limits.max_raw_bytes,
-                self.limits.max_output_bytes,
-            )?
-        } else {
-            SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?
-        };
+        let source = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
         let item = source.value();
         let native = required(item, "node_id")?;
         if native != raw.id || native.trim() != native {
@@ -1545,11 +1498,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
         if let Some(view) = view {
             apply_record_view(&mut output, view)?;
         }
-        if addressed_candidate {
-            stamp_addressed_candidate_content_revision(&mut output, self.limits.max_output_bytes)?;
-        } else {
-            stamp_content_revision(&mut output, self.limits.max_output_bytes)?;
-        }
+        stamp_content_revision(&mut output, self.limits.max_output_bytes)?;
         let content_revision = required(&output, "content_revision")?.to_owned();
         Ok(NavigationBaseNode {
             value: output,

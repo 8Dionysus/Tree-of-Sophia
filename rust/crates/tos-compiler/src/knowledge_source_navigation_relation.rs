@@ -968,24 +968,7 @@ pub fn direct_assertion_context(
     row: &SourceRow,
     max_context_bytes: usize,
 ) -> Result<Option<Value>> {
-    direct_assertion_context_with_cap(row, max_context_bytes, 8 * 1024 * 1024)
-}
-
-/// Candidate-only assertion-context path retaining the removed route's 16 MiB
-/// row ceiling while ordinary normalization remains at 8 MiB.
-pub(crate) fn direct_assertion_context_addressed_candidate(
-    row: &SourceRow,
-    max_context_bytes: usize,
-) -> Result<Option<Value>> {
-    direct_assertion_context_with_cap(row, max_context_bytes, 16 * 1024 * 1024)
-}
-
-fn direct_assertion_context_with_cap(
-    row: &SourceRow,
-    max_context_bytes: usize,
-    maximum: usize,
-) -> Result<Option<Value>> {
-    if max_context_bytes == 0 || max_context_bytes > maximum {
+    if max_context_bytes == 0 || max_context_bytes > 8 * 1024 * 1024 {
         return Err(Error::Budget("navigation assertion context bytes"));
     }
     let item = row.value();

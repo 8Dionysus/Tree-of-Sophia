@@ -36,9 +36,7 @@ pub(crate) fn frozen_legacy_python_oracle_provenance(id: &str) -> Value {
         | "corpus-query-cases"
         | "object-link-artifact"
         | "object-link-work"
-        | "repository-topology"
-        | "whole-authored-philosophy-graph"
-        | "whole-authored-philosophy-summary" => id,
+        | "repository-topology" => id,
         _ => panic!("unknown frozen legacy Python oracle {id}"),
     };
     let directory = fixtures().join("legacy-python-oracles-v1");

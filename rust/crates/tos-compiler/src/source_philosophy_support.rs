@@ -226,7 +226,8 @@ fn instance_with_check(
     check()?;
     Ok(raw)
 }
-pub(crate) fn parse(raw: &[u8], max: usize) -> Result<Value> {
+#[cfg(test)]
+fn parse(raw: &[u8], max: usize) -> Result<Value> {
     parse_with_profile(raw, max, PhilosophySourceReadProfile::PublishedStrict)
 }
 pub(crate) fn parse_with_profile(
@@ -272,13 +273,6 @@ pub(crate) fn parse_with_profile_and_check(
     check()?;
     Ok(v)
 }
-pub(crate) fn object(raw: &[u8], max: usize) -> Result<Value> {
-    let v = parse(raw, max)?;
-    if !v.is_object() {
-        return Err(Error::Invalid("philosophy source object"));
-    }
-    Ok(v)
-}
 pub(crate) fn object_with_profile(
     raw: &[u8],
     max: usize,
@@ -313,18 +307,6 @@ pub(crate) fn array<'a>(v: &'a Value, key: &str) -> Result<&'a [Value]> {
         .and_then(Value::as_array)
         .map(Vec::as_slice)
         .ok_or(Error::Invalid("philosophy required array"))
-}
-pub(crate) fn strings(v: &Value) -> Result<Vec<String>> {
-    v.as_array()
-        .ok_or(Error::Invalid("philosophy string array"))?
-        .iter()
-        .map(|v| {
-            v.as_str()
-                .filter(|s| !s.is_empty())
-                .map(str::to_owned)
-                .ok_or(Error::Invalid("philosophy string array item"))
-        })
-        .collect()
 }
 pub(crate) fn string_set(v: &Value) -> BTreeSet<String> {
     v.as_array()
