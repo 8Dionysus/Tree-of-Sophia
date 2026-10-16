@@ -3,11 +3,11 @@
 //! carried forward and consumed by the existing finalizer/output assembler.
 
 use super::foundation_artifact_replay::{
-    ArtifactReplayFailure, CandidateArtifactSchemaExecutor, prepare_artifact_replay,
+    CandidateArtifactSchemaExecutor, prepare_artifact_replay,
 };
 use super::foundation_bootstrap::{FoundationBootstrapError, FoundationBootstrapView};
 use super::foundation_catalog::{
-    self, EvaluatedPersistedCatalog, FoundationCatalogOutcome, PersistedCatalogEvaluationError,
+    self, EvaluatedPersistedCatalog, FoundationCatalogOutcome,
 };
 use super::foundation_execution_limits::FoundationCutWorkerShape;
 use super::foundation_execution_limits::{
@@ -57,9 +57,7 @@ pub(crate) enum FoundationOrchestratorError {
     OwnerAt(&'static str, ItemRefusal),
     Default(FoundationDefaultStage, FoundationDefaultReadError),
     Final(FoundationFinalInputError),
-    Replay(ArtifactReplayFailure),
     Catalog(tos_compiler::Error),
-    Persisted(PersistedCatalogEvaluationError),
     Admission(io::Error),
     Incomplete(&'static str),
 }
@@ -401,9 +399,7 @@ impl FoundationOrchestratorError {
                 ) => "source-foundation default evaluate default: diagnostics incomplete schema",
             },
             Self::Final(_) => "source-foundation final custody refused",
-            Self::Replay(_) => "source-foundation artifact replay refused",
             Self::Catalog(_) => "source-foundation catalog comparison refused",
-            Self::Persisted(_) => "source-foundation persisted catalog refused",
             Self::Admission(error) => {
                 // Return only known owner-authored static diagnostics. Unknown
                 // errors may contain private paths or payloads and remain opaque.

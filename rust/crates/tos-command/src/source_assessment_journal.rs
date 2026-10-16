@@ -96,11 +96,6 @@ pub(crate) struct ProtectedAssessmentPgGrant {
     uid: u32,
 }
 
-pub(crate) struct AssessmentPgHistoryTarget {
-    pub(crate) scope: PrivateOwnerScopeV1,
-    pub(crate) target_ref: String,
-    pub(crate) owner_context_binding: Digest256,
-}
 
 impl ProtectedAssessmentPgGrant {
     /// Read the selected context path from a protected v5/v6 grant so its
@@ -1278,7 +1273,7 @@ pub(crate) struct AssessmentHistory {
 
 /// Assessment's PG package writer. The only package members are the current
 /// head and the newest immutable batch; older batches remain in broker-owned
-/// immutable package history and are reconstructed by `from_private_package_history`.
+/// immutable package history and are reconstructed by `from_private_package_history_selected_schema`.
 pub(crate) struct AssessmentPrivatePackageCapabilityV1 {
     write: PrivateOwnerPackageWriteV1,
     package_digest: Digest256,
@@ -1718,38 +1713,6 @@ impl AssessmentHistory {
         Ok(true)
     }
 
-    /// Reconstruct the same immutable assessment batch chain from the private
-    /// package broker. Each package-history row contains exactly one batch and
-    /// the head that selected it; the caller retains the broker snapshot for
-    /// its currentness/CAS fence.
-    pub(crate) fn from_private_package_history(
-        package_history: &PrivateOwnerPackageHistoryV1,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        subject: &str,
-        ctx: &CommandContext,
-        worker: &mut CutWorkerSchemaExecutor,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Self> {
-        let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
-        let batch_schema = ctx
-            .file(&schema_path)?
-            .ok_or(SourceCommandError::Unsupported(
-                "selected assessment batch schema absent",
-            ))?;
-        Self::from_private_package_history_with_worker(
-            package_history,
-            scope,
-            target_ref,
-            subject,
-            batch_schema,
-            worker,
-            Some(ctx.base_revision),
-            deadline,
-            cancelled,
-        )
-    }
 
     /// Selected-input counterpart that authenticates the exact schema bytes
     /// without requiring the legacy `CommandContext` revision field.

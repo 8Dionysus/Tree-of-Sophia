@@ -120,24 +120,6 @@ inventory-overlay=immutable-history-base;effective-seq-at-committed-log-cut;late
 selected-publication=separate-current-pointer;truthful-legacy-v1-v4-import-at-bootstrap-completion;imported-transition-generations-and-tokens-preserved;no-synthetic-pg-sequence;canonical-chain-receipt-and-exact-terminal-parent
 "#;
 
-/// PostgreSQL 16 durable coordinator schema ABI and persisted audit IDs.
-/// `durable_schema.sql` remains the DDL initializer; this version is advanced
-/// by the owner when that physical/semantic contract changes.
-pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V2: &[u8] = br#"cmd2-coordinator-schema-abi-v2
-postgres-major=16
-durable-tables=cmd2_domain,cmd2_audit_fence,cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_source_index,cmd2_source_text_identity,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_source_inventory_projection,cmd2_outbox,cmd2_source_navigation_policy_current,cmd2_source_navigation_policy_history
-audited-metadata-tables=cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_outbox,cmd2_source_index,cmd2_source_inventory_projection,cmd2_source_text_identity
-audited-table-triggers=cmd2_audit_<table>:after-insert-update-delete;cmd2_refuse_<table>_truncate:before-truncate;cmd2_audit_domain_insert;cmd2_audit_domain_update;cmd2_refuse_domain_truncate;cmd2_fence_maintenance_transition;cmd2_invalidate_source_maintenance
-audited-trigger-functions=cmd2_register_audit_domain,cmd2_bump_audit_fence,cmd2_refuse_audited_truncate,cmd2_fence_maintenance_transition,cmd2_invalidate_source_maintenance
-source-seeks=current-cold-domain-prepare-id-member-slot;current-subject-domain-subject-C;history-primary-key-domain-subject-revision;source-index-unique-domain-kind-token;source-index-seek-domain-path-C-kind-C-token-C;predicate-primary-key-domain-kind-owner-scope-token;predicate-seek-domain-owner-kind-C-scope-C-token-C
-lab-carrier=cmd2.lab.embedded-revision:1:CMD2LAB1
-cold-membership=cmd2-history-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject,u64be-revision;cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject
-cold-namespaces=cmd2.history.v1,cmd2.current.v1
-source-navigation-policy=explicit-public-metadata-carrier-and-use;owner-receipt-bound-export-model-profile-epoch-withdrawal-generation;current-row-for-share;versioned-install-revoke-history;writer-lock-order=audit-fence-domain-policy-current;owner-fence-rechecked-before-commit;dedicated-truncate-refusal;does-not-advance-source-audit-generation;separate-from-cmd-rights
-source-text-identity=typed-public-text-token-set;multivalued-token-to-path;public-candidate-paths-only;exclude-ToS/source-witnesses/owner-local-subtree;C-collated-token-path-indexes;generation-bound-by-source-predicate
-outbox-enqueue-clock=cmd2_outbox.enqueued_at;nullable-timestamptz;server-clock_timestamp-default;legacy-null-age-unknown;exact-replay-preserves-original;utc-cold-row-encoding
-outbox-oldest-event-seek=cmd2_outbox-unique-domain-commit-seq;query-domain-and-seq-range;ORDER-BY-commit_seq;LIMIT-1;verify-exact-next-seq
-"#;
 
 /// Adds typed public HumanForms and Historical Claim revision packages to the
 /// mixed source writer. V6 remains byte-stable so existing V6 cohorts refuse
@@ -188,81 +170,9 @@ inventory-overlay=immutable-history-base;effective-seq-at-committed-log-cut;late
 selected-publication=separate-current-pointer;truthful-legacy-v1-v4-import-at-bootstrap-completion;imported-transition-generations-and-tokens-preserved;no-synthetic-pg-sequence;canonical-chain-receipt-and-exact-terminal-parent
 "#;
 
-pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V3: &[u8] = br#"cmd2-coordinator-schema-abi-v3
-postgres-major=16
-durable-tables=cmd2_domain,cmd2_audit_fence,cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_source_index,cmd2_source_text_identity,cmd2_source_claim_dependency,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_source_inventory_projection,cmd2_outbox,cmd2_source_navigation_policy_current,cmd2_source_navigation_policy_history
-audited-metadata-tables=cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_outbox,cmd2_source_index,cmd2_source_inventory_projection,cmd2_source_text_identity,cmd2_source_claim_dependency
-audited-table-triggers=cmd2_audit_<table>:after-insert-update-delete;cmd2_refuse_<table>_truncate:before-truncate;cmd2_audit_domain_insert;cmd2_audit_domain_update;cmd2_refuse_domain_truncate;cmd2_fence_maintenance_transition;cmd2_invalidate_source_maintenance
-audited-trigger-functions=cmd2_register_audit_domain,cmd2_bump_audit_fence,cmd2_refuse_audited_truncate,cmd2_fence_maintenance_transition,cmd2_invalidate_source_maintenance
-source-seeks=current-cold-domain-prepare-id-member-slot;current-subject-domain-subject-C;history-primary-key-domain-subject-revision;source-index-unique-domain-kind-token;source-index-seek-domain-path-C-kind-C-token-C;predicate-primary-key-domain-kind-owner-scope-token;predicate-seek-domain-owner-kind-C-scope-C-token-C;claim-dependency-primary-domain-claim-id;claim-dependency-subject-domain-predicate-subject-claim;claim-dependency-object-domain-predicate-object-claim;claim-dependency-path-domain-path-claim
-lab-carrier=cmd2.lab.embedded-revision:1:CMD2LAB1
-cold-membership=cmd2-history-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject,u64be-revision;cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject
-cold-namespaces=cmd2.history.v1,cmd2.current.v1
-source-navigation-policy=explicit-public-metadata-carrier-and-use;owner-receipt-bound-export-model-profile-epoch-withdrawal-generation;current-row-for-share;versioned-install-revoke-history;writer-lock-order=audit-fence-domain-policy-current;owner-fence-rechecked-before-commit;does-not-advance-source-audit-generation;separate-from-cmd-rights
-source-text-identity=typed-public-text-token-set;multivalued-token-to-path;public-candidate-paths-only;exclude-ToS/source-witnesses/owner-local-subtree;C-collated-token-path-indexes;generation-bound-by-source-predicate
-source-claim-dependency=typed-embodied_by-and-exemplified_by-current-Claim-rows;both-subject-and-object-seek-paths;exact-current-member-and-Claim-identity-bound;Range-generation-fenced;audited-and-cold-verified
-outbox-enqueue-clock=cmd2_outbox.enqueued_at;nullable-timestamptz;server-clock_timestamp-default;legacy-null-age-unknown;exact-replay-preserves-original;utc-cold-row-encoding
-outbox-oldest-event-seek=cmd2_outbox-unique-domain-commit-seq;query-domain-and-seq-range;ORDER-BY-commit_seq;LIMIT-1;verify-exact-next-seq
-"#;
 
-pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V4: &[u8] = br#"cmd2-coordinator-schema-abi-v4
-postgres-major=16
-durable-tables=cmd2_domain,cmd2_audit_fence,cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_source_index,cmd2_source_text_identity,cmd2_source_claim_dependency,cmd2_source_item_file_assignment,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_source_inventory_projection,cmd2_outbox,cmd2_source_navigation_policy_current,cmd2_source_navigation_policy_history
-audited-metadata-tables=cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_outbox,cmd2_source_index,cmd2_source_inventory_projection,cmd2_source_text_identity,cmd2_source_claim_dependency,cmd2_source_item_file_assignment
-audited-table-triggers=cmd2_audit_<table>:after-insert-update-delete;cmd2_refuse_<table>_truncate:before-truncate;cmd2_audit_domain_insert;cmd2_audit_domain_update;cmd2_refuse_domain_truncate;cmd2_fence_maintenance_transition;cmd2_invalidate_source_maintenance
-audited-trigger-functions=cmd2_register_audit_domain,cmd2_bump_audit_fence,cmd2_refuse_audited_truncate,cmd2_fence_maintenance_transition,cmd2_invalidate_source_maintenance
-source-seeks=current-cold-domain-prepare-id-member-slot;current-subject-domain-subject-C;history-primary-key-domain-subject-revision;source-index-unique-domain-kind-token;source-index-seek-domain-path-C-kind-C-token-C;predicate-primary-key-domain-kind-owner-scope-token;predicate-seek-domain-owner-kind-C-scope-C-token-C;claim-dependency-primary-domain-claim-id;claim-dependency-subject-domain-predicate-subject-claim;claim-dependency-object-domain-predicate-object-claim;claim-dependency-path-domain-path-claim;item-file-assignment-primary-domain-manifest-ordinal;item-file-assignment-file-domain-file-manifest-ordinal;item-file-assignment-manifest-domain-manifest-ordinal;item-file-assignment-item-domain-item-manifest-ordinal;item-file-assignment-rights-domain-rights-manifest-ordinal
-lab-carrier=cmd2.lab.embedded-revision:1:CMD2LAB1
-cold-membership=cmd2-history-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject,u64be-revision;cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject
-cold-namespaces=cmd2.history.v1,cmd2.current.v1
-source-navigation-policy=explicit-public-metadata-carrier-and-use;owner-receipt-bound-export-model-profile-epoch-withdrawal-generation;current-row-for-share;versioned-install-revoke-history;writer-lock-order=audit-fence-domain-policy-current;owner-fence-rechecked-before-commit;does-not-advance-source-audit-generation;separate-from-cmd-rights
-source-text-identity=typed-public-text-token-set;multivalued-token-to-path;public-candidate-paths-only;exclude-ToS/source-witnesses/owner-local-subtree;C-collated-token-path-indexes;generation-bound-by-source-predicate
-source-claim-dependency=typed-embodied_by-and-exemplified_by-current-Claim-rows;both-subject-and-object-seek-paths;exact-current-member-and-Claim-identity-bound;Range-generation-fenced;audited-and-cold-verified
-source-item-file-assignment=typed-current-Item-manifest-File-assignments;path-and-payload-ordinal-preserve-multiplicity;rights-ID-assignment-is-current-and-manifest-bound;exact-current-manifest-rights-and-Item-identity-bound;File-ID-and-rights-ID-Range-generation-fenced;audited-and-cold-verified
-outbox-enqueue-clock=cmd2_outbox.enqueued_at;nullable-timestamptz;server-clock_timestamp-default;legacy-null-age-unknown;exact-replay-preserves-original;utc-cold-row-encoding
-outbox-oldest-event-seek=cmd2_outbox-unique-domain-commit-seq;query-domain-and-seq-range;ORDER-BY-commit_seq;LIMIT-1;verify-exact-next-seq
-"#;
 
-pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V5: &[u8] = br#"cmd2-coordinator-schema-abi-v5
-postgres-major=16
-durable-tables=cmd2_domain,cmd2_audit_fence,cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_source_index,cmd2_source_text_identity,cmd2_source_claim_dependency,cmd2_source_item_file_assignment,cmd2_source_publication_current,cmd2_source_publication_history,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_source_inventory_projection,cmd2_outbox,cmd2_source_navigation_policy_current,cmd2_source_navigation_policy_history
-audited-metadata-tables=cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_outbox,cmd2_source_index,cmd2_source_inventory_projection,cmd2_source_text_identity,cmd2_source_claim_dependency,cmd2_source_item_file_assignment,cmd2_source_publication_current,cmd2_source_publication_history
-audited-table-triggers=cmd2_audit_<table>:after-insert-update-delete;cmd2_refuse_<table>_truncate:before-truncate;cmd2_audit_domain_insert;cmd2_audit_domain_update;cmd2_refuse_domain_truncate;cmd2_fence_maintenance_transition;cmd2_invalidate_source_maintenance
-audited-trigger-functions=cmd2_register_audit_domain,cmd2_bump_audit_fence,cmd2_refuse_audited_truncate,cmd2_fence_maintenance_transition,cmd2_invalidate_source_maintenance
-source-seeks=current-cold-domain-prepare-id-member-slot;current-subject-domain-subject-C;history-primary-key-domain-subject-revision;source-index-unique-domain-kind-token;source-index-seek-domain-path-C-kind-C-token-C;predicate-primary-key-domain-kind-owner-scope-token;predicate-seek-domain-owner-kind-C-scope-C-token-C;claim-dependency-primary-domain-claim-id;claim-dependency-subject-domain-predicate-subject-claim;claim-dependency-object-domain-predicate-object-claim;claim-dependency-path-domain-path-claim;item-file-assignment-primary-domain-manifest-ordinal;item-file-assignment-file-domain-file-manifest-ordinal;item-file-assignment-manifest-domain-manifest-ordinal;item-file-assignment-item-domain-item-manifest-ordinal;item-file-assignment-rights-domain-rights-manifest-ordinal;item-file-assignment-edition-domain-edition-manifest-ordinal;source-publication-history-domain-transaction-generation
-lab-carrier=cmd2.lab.embedded-revision:1:CMD2LAB1
-cold-membership=cmd2-history-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject,u64be-revision;cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject
-cold-namespaces=cmd2.history.v1,cmd2.current.v1
-source-navigation-policy=explicit-public-metadata-carrier-and-use;owner-receipt-bound-export-model-profile-epoch-withdrawal-generation;current-row-for-share;versioned-install-revoke-history;writer-lock-order=audit-fence-domain-policy-current;owner-fence-rechecked-before-commit;does-not-advance-source-audit-generation;separate-from-cmd-rights
-source-text-identity=typed-public-text-token-set;multivalued-token-to-path;public-candidate-paths-only;exclude-ToS/source-witnesses/owner-local-subtree;C-collated-token-path-indexes;generation-bound-by-source-predicate
-source-claim-dependency=typed-embodied_by-and-exemplified_by-current-Claim-rows;both-subject-and-object-seek-paths;exact-current-member-and-Claim-identity-bound;Range-generation-fenced;audited-and-cold-verified
-source-item-file-assignment=typed-current-Item-manifest-File-assignments;path-and-payload-ordinal-preserve-multiplicity;rights-ID-assignment-is-current-and-manifest-bound;exact-current-manifest-and-Item-identity-bound;File-ID-and-rights-ID-Range-generation-fenced;audited-and-cold-verified
-source-publication=independent-selected-source-control-current-and-history;full-bootstrap-cut-establishes-absent-generation-zero-before-source_complete;publication-generation-advances-by-two;metadata-only-canonical-package-max-1048576-bytes;source-refs-bind-exact-predecessor-and-successor;unrelated-source-commits-do-not-move-publication-state
-outbox-enqueue-clock=cmd2_outbox.enqueued_at;nullable-timestamptz;server-clock_timestamp-default;legacy-null-age-unknown;exact-replay-preserves-original;utc-cold-row-encoding
-outbox-oldest-event-seek=cmd2_outbox-unique-domain-commit-seq;query-domain-and-seq-range;ORDER-BY-commit_seq;LIMIT-1;verify-exact-next-seq
-"#;
 
-pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V6: &[u8] = br#"cmd2-coordinator-schema-abi-v6
-postgres-major=16
-durable-tables=cmd2_domain,cmd2_audit_fence,cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_source_index,cmd2_source_text_identity,cmd2_source_annotation_identity,cmd2_source_claim_dependency,cmd2_source_claim_navigation_reference,cmd2_source_item_file_assignment,cmd2_source_publication_current,cmd2_source_publication_history,cmd2_source_publication_import,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_source_inventory_projection,cmd2_outbox,cmd2_source_navigation_policy_current,cmd2_source_navigation_policy_history
-audited-metadata-tables=cmd2_job,cmd2_predicate,cmd2_attempt,cmd2_member,cmd2_current,cmd2_history,cmd2_receipt,cmd2_log,cmd2_outbox,cmd2_source_index,cmd2_source_inventory_projection,cmd2_source_text_identity,cmd2_source_annotation_identity,cmd2_source_claim_dependency,cmd2_source_claim_navigation_reference,cmd2_source_item_file_assignment,cmd2_source_publication_current,cmd2_source_publication_history,cmd2_source_publication_import
-audited-table-triggers=cmd2_audit_<table>:after-insert-update-delete;cmd2_refuse_<table>_truncate:before-truncate;cmd2_audit_domain_insert;cmd2_audit_domain_update;cmd2_refuse_domain_truncate;cmd2_fence_maintenance_transition;cmd2_invalidate_source_maintenance
-audited-trigger-functions=cmd2_register_audit_domain,cmd2_bump_audit_fence,cmd2_refuse_audited_truncate,cmd2_fence_maintenance_transition,cmd2_invalidate_source_maintenance
-source-seeks=current-cold-domain-prepare-id-member-slot;current-subject-domain-subject-C;history-primary-key-domain-subject-revision;source-index-unique-domain-kind-token;source-index-seek-domain-path-C-kind-C-token-C;predicate-primary-key-domain-kind-owner-scope-token;predicate-seek-domain-owner-kind-C-scope-C-token-C;annotation-identity-primary-domain-token-C-path-C;annotation-identity-path-domain-path-C-token-C;claim-dependency-primary-domain-claim-id;claim-dependency-subject-domain-predicate-subject-claim;claim-dependency-object-domain-predicate-object-claim;claim-dependency-path-domain-path-claim;claim-navigation-reference-primary-domain-path-claim-kind-endpoint-basis;claim-navigation-reference-endpoint-domain-kind-endpoint-path-claim;claim-navigation-reference-path-domain-path-claim;item-file-assignment-primary-domain-manifest-ordinal;item-file-assignment-file-domain-file-manifest-ordinal;item-file-assignment-manifest-domain-manifest-ordinal;item-file-assignment-item-domain-item-manifest-ordinal;item-file-assignment-rights-domain-rights-manifest-ordinal;item-file-assignment-edition-domain-edition-manifest-ordinal;source-publication-history-domain-transaction-generation
-lab-carrier=cmd2.lab.embedded-revision:1:CMD2LAB1
-cold-membership=cmd2-history-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject,u64be-revision;cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject
-cold-namespaces=cmd2.history.v1,cmd2.current.v1
-source-navigation-policy=explicit-public-metadata-carrier-and-use;owner-receipt-bound-export-model-profile-epoch-withdrawal-generation;current-row-for-share;versioned-install-revoke-history;writer-lock-order=audit-fence-domain-policy-current;owner-fence-rechecked-before-commit;does-not-advance-source-audit-generation;separate-from-cmd-rights
-source-text-identity=typed-public-text-token-set;multivalued-token-to-path;public-candidate-paths-only;exclude-ToS/source-witnesses/owner-local-subtree;C-collated-token-path-indexes;generation-bound-by-source-predicate
-source-annotation-identity=typed-semantic-annotation-entity-IDs;multivalued-token-to-exact-packet-path;packet-member-and-definition-digests;owner-local-excluded;per-token-generation-fenced
-source-claim-dependency=typed-embodied_by-and-exemplified_by-current-Claim-rows;both-subject-and-object-seek-paths;exact-current-member-and-Claim-identity-bound;Range-generation-fenced;audited-and-cold-verified
-source-claim-navigation-reference=typed-current-Claim-value-owner-input-and-shared-schema-references;multivalued-claim-and-endpoint-rows;exact-current-member-and-definition-bound;public-ToS-paths-only;audited-and-cold-verified
-source-item-file-assignment=typed-current-Item-manifest-File-assignments;path-and-payload-ordinal-preserve-multiplicity;rights-ID-assignment-is-current-and-manifest-bound;exact-current-manifest-and-Item-identity-bound;File-ID-and-rights-ID-Range-generation-fenced;audited-and-cold-verified
-source-publication=independent-selected-source-control-current-and-history;full-bootstrap-cut-establishes-absent-generation-zero-before-source_complete;publication-generation-advances-by-two;metadata-only-canonical-package-max-1048576-bytes;source-refs-bind-exact-predecessor-and-successor;unrelated-source-commits-do-not-move-publication-state
-source-publication-import=legacy-v1-v4-ordered-chain-only;bootstrap-completion-is-the-import-event;original-generation-and-token-preserved;imported-source-commit-sequence-is-null;canonical-receipt-binds-bootstrap-cut-store-held-head-and-chain-root;first-pg-commit-extends-exact-import-terminal
-outbox-enqueue-clock=cmd2_outbox.enqueued_at;nullable-timestamptz;server-clock_timestamp-default;legacy-null-age-unknown;exact-replay-preserves-original;utc-cold-row-encoding
-outbox-oldest-event-seek=cmd2_outbox-unique-domain-commit-seq;query-domain-and-seq-range;ORDER-BY-commit_seq;LIMIT-1;verify-exact-next-seq
-"#;
 
 /// Claim-navigation interval table key, indexes, and baseline schema successor.
 pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V7: &[u8] = br#"cmd2-coordinator-schema-abi-v7

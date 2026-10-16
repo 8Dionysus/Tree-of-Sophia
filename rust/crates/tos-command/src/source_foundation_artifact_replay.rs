@@ -92,7 +92,6 @@ pub(crate) enum ArtifactReplayFailureStage {
     CurrentRecord,
     NativeHistory,
     ReadonlyCollection,
-    SourceFileMerge,
     CorrectionReplay,
 }
 

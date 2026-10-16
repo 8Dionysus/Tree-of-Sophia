@@ -621,7 +621,6 @@ pub enum DurableNavigationCurrentIndexNotReadyReasonV1 {
     BootstrapCoverageMismatch,
     AdjacencyCoverageMismatch,
     CoverageChainMismatch,
-    IndexRootMismatch,
     BudgetExceeded,
 }
 

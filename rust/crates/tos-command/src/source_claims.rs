@@ -5287,7 +5287,6 @@ struct RetainedProfileRead {
     read_bytes: u64,
     state_bytes: usize,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
-    selected_context_digest: Option<Digest256>,
 }
 
 struct RetainedGroundingInput {
@@ -5295,26 +5294,6 @@ struct RetainedGroundingInput {
     budget: RetainedProfileRead,
 }
 
-fn selected_claim_context_digest(ctx: &CommandContext) -> SourceCommandResult<Digest256> {
-    let members = ctx
-        .files
-        .iter()
-        .filter(|file| file.path.as_str().starts_with("ToS/"))
-        .map(|file| {
-            object(vec![
-                ("path", string(file.path.as_str())),
-                (
-                    "sha256",
-                    string(&Digest256::of_bytes(&file.raw).to_prefixed()),
-                ),
-            ])
-        })
-        .collect::<Vec<_>>();
-    record_digest(&object(vec![
-        ("schema_version", string("tos_claim_selected_context_v1")),
-        ("members", JsonValue::Array(members)),
-    ]))
-}
 
 fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
     canonical_count_v1(
@@ -5488,30 +5467,9 @@ impl RetainedProfileRead {
             read_bytes,
             state_bytes,
             whole_call,
-            selected_context_digest: None,
         })
     }
 
-    fn new_with_selected_members(
-        ctx: &CommandContext,
-        executor: &mut CutWorkerSchemaExecutor,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
-        whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
-    ) -> SourceCommandResult<Self> {
-        let mut retained = Self::new_with_complete_members(
-            ctx,
-            executor,
-            deadline,
-            cancelled,
-            catalog_capture,
-            whole_call,
-            None,
-        )?;
-        retained.selected_context_digest = Some(selected_claim_context_digest(ctx)?);
-        Ok(retained)
-    }
 
     fn debit(&mut self, bytes_read: u64, state_bytes: usize) -> SourceCommandResult<()> {
         if let Some(budget) = &self.whole_call {
@@ -5663,7 +5621,7 @@ impl RetainedProfileRead {
                         "retained Claim PG complete cut changed",
                     ));
                 }
-            } else if self.selected_context_digest != Some(selected_claim_context_digest(ctx)?) {
+            } else {
                 return Err(SourceCommandError::Conflict(
                     "retained Claim selected dependency closure changed",
                 ));

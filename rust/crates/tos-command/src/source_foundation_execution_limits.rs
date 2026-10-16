@@ -697,7 +697,6 @@ pub(crate) enum FoundationWindowKind {
     DefaultRules,
     CatalogAndPersisted,
     Schema,
-    Diagnostics,
     FinalCustodyAndOutput,
 }
 
@@ -964,7 +963,6 @@ impl FoundationExecutionLimits {
                 reservations.catalog_and_persisted = limits
             }
             FoundationWindowKind::Schema => reservations.schema = limits,
-            FoundationWindowKind::Diagnostics => reservations.diagnostics = limits,
             FoundationWindowKind::FinalCustodyAndOutput => {
                 reservations.final_custody_and_output = limits
             }

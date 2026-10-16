@@ -525,7 +525,7 @@ pub(super) fn run(
                             .map_err(DurableError::Source)?;
                         let prepared = PreparedPgClaimCommand::from_creation(
                             &serialized,
-                            crate::source_cohort::claims::PgClaimSourceProof::Complete(cut),
+                            cut,
                             owner_contributions,
                         )?;
                         (Some(prepared), result, context, catalog_capture)

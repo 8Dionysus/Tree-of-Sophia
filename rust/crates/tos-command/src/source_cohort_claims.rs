@@ -30,167 +30,9 @@ pub(crate) struct PgCompleteClaimCut {
     total_bytes: u64,
 }
 
-/// Current Global Claims inputs are either an explicitly requested full cut
-/// (bootstrap/reindex tooling) or a selected, owner-specific dependency
-/// closure sealed by exact source reads and point-identity generations.
-#[derive(Clone, Debug)]
-pub(crate) enum PgClaimSourceProof {
-    Complete(PgCompleteClaimCut),
-    Selected(PgSelectedClaimCut),
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct PgSelectedClaimCut {
-    base_revision: SourceRevision,
-    identity: super::revision::PgRecordRevisionIdentity,
-    members: Vec<SourceFile>,
-    directories: BTreeSet<String>,
-    identities: Vec<super::revision::SourceRevisionIdentityClosure>,
-    total_bytes: u64,
-}
-
-impl PgSelectedClaimCut {
-    pub(crate) fn seal(
-        session: &SourceRevisionReadSession<'_>,
-        mut members: Vec<SourceFile>,
-        directories: BTreeSet<String>,
-        identities: Vec<super::revision::SourceRevisionIdentityClosure>,
-    ) -> DurableResult<PgClaimSourceProof> {
-        members.sort_by(|left, right| left.path.cmp(&right.path));
-        if members
-            .iter()
-            .any(|file| !file.path.as_str().starts_with("ToS/"))
-            || members.windows(2).any(|pair| pair[0].path == pair[1].path)
-            || directories
-                .iter()
-                .any(|path| path != "ToS" && !path.starts_with("ToS/"))
-            || identities
-                .iter()
-                .any(|closure| closure.selection_identity() != session.selection().identity())
-        {
-            return Err(DurableError::Invalid(
-                "selected Global Claims closure shape",
-            ));
-        }
-        let total_bytes = members.iter().try_fold(0u64, |sum, file| {
-            sum.checked_add(file.raw.len() as u64)
-                .filter(|bytes| *bytes <= SELECTED_SOURCE_MAX_BYTES as u64)
-                .ok_or(DurableError::Refused(
-                    "selected Global Claims byte budget exceeded",
-                ))
-        })?;
-        if members.len() > SELECTED_SOURCE_MAX_FILES {
-            return Err(DurableError::Refused(
-                "selected Global Claims member budget exceeded",
-            ));
-        }
-        Ok(PgClaimSourceProof::Selected(Self {
-            base_revision: session.selection().cohort.initial_revision,
-            identity: session.selection().identity(),
-            members,
-            directories,
-            identities,
-            total_bytes,
-        }))
-    }
-
-    fn members(&self) -> &[SourceFile] {
-        &self.members
-    }
-
-    fn total_bytes(&self) -> u64 {
-        self.total_bytes
-    }
-
-    fn identity(&self) -> super::revision::PgRecordRevisionIdentity {
-        self.identity
-    }
-
-    fn verify_context(&self, revision: SourceRevision, files: &[SourceFile]) -> DurableResult<()> {
-        let authored = files
-            .iter()
-            .filter(|file| file.path.as_str().starts_with("ToS/"))
-            .cloned()
-            .collect::<Vec<_>>();
-        if revision != self.base_revision || authored != self.members {
-            return Err(DurableError::Conflict(
-                "Global Claims context differs from selected dependency closure",
-            ));
-        }
-        Ok(())
-    }
-
-    fn verify_readset(&self, readset: &SourceRevisionReadSet) -> DurableResult<()> {
-        if readset.selection.identity() != self.identity
-            || readset.selection.cohort.initial_revision != self.base_revision
-            || readset.observations.len() != self.members.len()
-        {
-            return Err(DurableError::Conflict(
-                "Global Claims selected readset identity differs",
-            ));
-        }
-        for closure in &self.identities {
-            closure.verify_readset(readset)?;
-        }
-        for member in &self.members {
-            let Some(observation) = readset.observations.get(member.path.as_str()) else {
-                return Err(DurableError::Conflict(
-                    "Global Claims selected member was not read in source session",
-                ));
-            };
-            if observation.member.raw != member.raw || observation.member.path != member.path {
-                return Err(DurableError::Conflict(
-                    "Global Claims selected member observation differs",
-                ));
-            }
-        }
-        for directory in &self.directories {
-            let observed = readset.reads.reads.iter().any(|read| {
-                matches!(read, crate::PredicateRead::Generation { predicate, .. }
-                    if predicate.kind == crate::PredicateKind::Range
-                        && predicate.owner == super::OWNER
-                        && predicate.scope == "source-home"
-                        && predicate.token == *directory
-                        && predicate.definition_version == readset.selection.cohort.definition.to_hex())
-            });
-            if !observed {
-                return Err(DurableError::Conflict(
-                    "Global Claims selected source-home generation was not observed",
-                ));
-            }
-        }
-        Ok(())
-    }
-}
-
-impl PgClaimSourceProof {
 
 
-    pub(crate) fn identity(&self) -> super::revision::PgRecordRevisionIdentity {
-        match self {
-            Self::Complete(cut) => cut.identity(),
-            Self::Selected(cut) => cut.identity(),
-        }
-    }
 
-    pub(crate) fn verify_context(
-        &self,
-        revision: SourceRevision,
-        files: &[SourceFile],
-    ) -> DurableResult<()> {
-        match self {
-            Self::Complete(cut) => cut.verify_context(revision, files),
-            Self::Selected(cut) => cut.verify_context(revision, files),
-        }
-    }
-
-    pub(crate) fn verify_readset(&self, readset: &SourceRevisionReadSet) -> DurableResult<()> {
-        match self {
-            Self::Complete(cut) => cut.verify_readset(readset),
-            Self::Selected(cut) => cut.verify_readset(readset),
-        }
-    }
-}
 
 impl PgCompleteClaimCut {
     pub(crate) fn members(&self) -> &[SourceFile] {
@@ -395,7 +237,7 @@ pub(crate) fn read_pg_complete_claim_cut(
 pub(crate) struct PreparedPgClaimCommand {
     context: CommandContext,
     proposal: PreparedCommand,
-    cut: PgClaimSourceProof,
+    cut: PgCompleteClaimCut,
     family_tag: String,
     semantic_indexes: IndexRows,
     owner_contributions: BTreeMap<String, tos_foundation::JsonValue>,
@@ -411,7 +253,7 @@ impl PreparedPgClaimCommand {
         Self::new(
             context,
             proposal,
-            PgClaimSourceProof::Complete(cut),
+            cut,
             IndexRows::new(),
             owner_contributions,
         )
@@ -419,7 +261,7 @@ impl PreparedPgClaimCommand {
 
     pub(crate) fn from_creation(
         serialized: &source_claims::SerializedClaimCreation,
-        cut: PgClaimSourceProof,
+        cut: PgCompleteClaimCut,
         owner_contributions: BTreeMap<String, tos_foundation::JsonValue>,
     ) -> DurableResult<Self> {
         let context = serialized.context().clone();
@@ -480,7 +322,7 @@ impl PreparedPgClaimCommand {
     fn new(
         context: CommandContext,
         proposal: PreparedCommand,
-        cut: PgClaimSourceProof,
+        cut: PgCompleteClaimCut,
         semantic_indexes: IndexRows,
         owner_contributions: BTreeMap<String, tos_foundation::JsonValue>,
     ) -> DurableResult<Self> {
