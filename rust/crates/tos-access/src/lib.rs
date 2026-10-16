@@ -35,8 +35,6 @@ pub(crate) mod reference_cursor;
 pub mod release_state;
 pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
-#[cfg(not(target_arch = "wasm32"))]
-pub use tos_command::source_assembly_normalization;
 mod common;
 pub mod http;
 #[cfg(not(target_arch = "wasm32"))]

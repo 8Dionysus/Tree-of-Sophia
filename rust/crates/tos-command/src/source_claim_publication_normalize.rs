@@ -984,3 +984,7 @@ pub fn normalize_claim_candidate(
         output_bytes,
     })
 }
+
+#[cfg(test)]
+#[path = "source_claim_publication_normalize_tests.rs"]
+mod tests;
