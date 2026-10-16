@@ -17,7 +17,6 @@ pub(crate) mod durable_source_text_search;
 
 #[path = "durable_navigation_event.rs"]
 mod durable_navigation_event;
-pub(crate) use durable_navigation_event::DurableNavigationOriginalRightWitnessV1;
 pub(crate) use durable_navigation_event::{
     DurableNavigationAdjacencyCertificateReadV1, DurableNavigationCurrentnessGuardV1,
     DurableNavigationCurrentnessV1, DurableNavigationPublishedGenerationGuardV2,

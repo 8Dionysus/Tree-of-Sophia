@@ -10,94 +10,11 @@ use crate::{DurableError, DurableResult};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
 
-const MAX_BOOTSTRAP_ROWS: usize = 65_536;
-const MAX_BOOTSTRAP_ROW_BYTES: usize = 4 * 1024 * 1024;
-const MAX_BOOTSTRAP_TOTAL_BYTES: u64 = 128 * 1024 * 1024;
 const MAX_BOOTSTRAP_PATH_BYTES: usize = 4096;
 const MAX_BOOTSTRAP_ID_BYTES: usize = 256;
 // A relation identifier can compose two record identities and a predicate.
 // Its byte contract is separate from the identities of its owner/endpoints.
 pub(crate) const MAX_NAVIGATION_EDGE_ID_BYTES: usize = 512;
-
-pub(crate) fn projected_original_rights(
-    original_rights: &[(u64, Vec<u8>)],
-    limits: DurableNavigationEventLimits,
-) -> DurableResult<BTreeMap<String, Vec<u8>>> {
-    let mut projected = BTreeMap::<String, Vec<u8>>::new();
-    for (_, raw) in original_rights {
-        let value = parse_carrier(raw, limits)?;
-        let id = value
-            .object_get("rights_id")
-            .and_then(|v| v.as_str())
-            .filter(|id| !id.is_empty() && id.len() <= MAX_BOOTSTRAP_ID_BYTES)
-            .ok_or(DurableError::Corrupt("selected original rights identity"))?
-            .to_owned();
-        if projected
-            .insert(id, raw.clone())
-            .is_some_and(|prior| prior != *raw)
-        {
-            return Err(DurableError::Conflict(
-                "selected original rights ID bytes differ",
-            ));
-        }
-    }
-    Ok(projected)
-}
-
-fn navigation_input_root(
-    rows: &[DurableNavigationBootstrapRowV1],
-    kind: DurableNavigationBootstrapRowKindV1,
-) -> DurableResult<Digest256> {
-    let mut carriers = std::collections::BTreeMap::<String, Digest256>::new();
-    for row in rows.iter().filter(|row| row.kind == kind) {
-        let digest = Digest256::of_bytes(&row.raw);
-        if carriers
-            .insert(row.id.clone(), digest)
-            .is_some_and(|previous| previous != digest)
-        {
-            return Err(DurableError::Conflict(
-                "shared navigation carrier input differs",
-            ));
-        }
-    }
-    let mut hasher = Digest256Hasher::new();
-    for (id, digest) in carriers {
-        hasher.update(&(id.len() as u64).to_be_bytes());
-        hasher.update(id.as_bytes());
-        hasher.update(digest.as_bytes());
-    }
-    Ok(hasher.finalize())
-}
-
-fn checked_limits(
-    limits: DurableNavigationEventLimits,
-) -> DurableResult<DurableNavigationEventLimits> {
-    if limits.max_current_rows == 0
-        || limits.max_current_rows > MAX_BOOTSTRAP_ROWS
-        || limits.max_dependencies == 0
-        || limits.max_row_bytes == 0
-        || limits.max_row_bytes > MAX_BOOTSTRAP_ROW_BYTES
-        || limits.max_total_bytes == 0
-        || limits.max_total_bytes > MAX_BOOTSTRAP_TOTAL_BYTES
-    {
-        return Err(DurableError::Refused("navigation bootstrap capture limits"));
-    }
-    Ok(limits)
-}
-
-fn require_source_navigation_profile(
-    model_abi: &str,
-    selection_profile: &str,
-) -> DurableResult<()> {
-    if !tos_foundation::is_managed_knowledge_model_abi(model_abi)
-        || selection_profile != tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE
-    {
-        return Err(DurableError::Refused(
-            "selected navigation model profile unsupported",
-        ));
-    }
-    Ok(())
-}
 
 fn parse_carrier(
     raw: &[u8],
@@ -115,57 +32,6 @@ fn parse_carrier(
     )
     .map(|document| document.into_root())
     .map_err(|_| DurableError::Corrupt("selected navigation carrier JSON"))
-}
-
-#[allow(clippy::too_many_arguments)]
-fn capture_original_carrier(
-    kind: DurableNavigationBootstrapRowKindV1,
-    id: String,
-    raw: Vec<u8>,
-    limits: DurableNavigationEventLimits,
-    output: &mut Vec<DurableNavigationBootstrapRowV1>,
-    owner_source_paths: &mut BTreeSet<String>,
-    charged_bytes: &mut u64,
-    node_visibility: &mut BTreeMap<String, bool>,
-) -> DurableResult<()> {
-    if kind == DurableNavigationBootstrapRowKindV1::Node && node_visibility.contains_key(&id) {
-        return Err(DurableError::Corrupt("duplicate original navigation node"));
-    }
-    let (row, refs) = decode_original_carrier(
-        kind,
-        id,
-        raw,
-        limits,
-        |id| Ok(node_visibility.get(id).copied()),
-        |id| {
-            Ok(output
-                .iter()
-                .find(|row| {
-                    row.kind == DurableNavigationBootstrapRowKindV1::Node
-                        && row.id == id
-                        && row.owner_record_id == id
-                })
-                .map(|row| row.owner_source_path.clone()))
-        },
-    )?;
-    if kind == DurableNavigationBootstrapRowKindV1::Node {
-        node_visibility.insert(row.id.clone(), row.visible.unwrap());
-    }
-    owner_source_paths.extend(refs);
-    if owner_source_paths.len() > limits.max_dependencies {
-        return Err(DurableError::Refused(
-            "navigation bootstrap dependency source budget",
-        ));
-    }
-    *charged_bytes = charged_bytes
-        .checked_add(row.raw.len() as u64)
-        .filter(|bytes| *bytes <= limits.max_total_bytes)
-        .ok_or(DurableError::Refused("navigation bootstrap byte budget"))?;
-    if output.len() >= limits.max_current_rows {
-        return Err(DurableError::Refused("navigation bootstrap row budget"));
-    }
-    output.push(row);
-    Ok(())
 }
 
 /// Decode one exact carrier using indexed metadata lookups. The in-memory
@@ -361,30 +227,6 @@ pub(crate) fn decode_original_carrier(
     ))
 }
 
-/// A version node keeps its exact archived source reference, but its view also
-/// contains the current record/history provenance. It must therefore be
-/// replaced with that record. Resolve ownership after all original nodes are
-/// captured: historical node IDs may sort before the current record ID.
-fn bind_historical_record_owners(
-    rows: &mut [DurableNavigationBootstrapRowV1],
-    limits: DurableNavigationEventLimits,
-) -> DurableResult<()> {
-    let current_owners = rows
-        .iter()
-        .filter(|row| {
-            row.kind == DurableNavigationBootstrapRowKindV1::Node && row.id == row.owner_record_id
-        })
-        .map(|row| (row.id.clone(), row.owner_source_path.clone()))
-        .collect::<BTreeMap<_, _>>();
-    for row in rows
-        .iter_mut()
-        .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Node)
-    {
-        bind_historical_record_owner(row, limits, |id| Ok(current_owners.get(id).cloned()))?;
-    }
-    Ok(())
-}
-
 pub(crate) fn bind_historical_record_owner(
     row: &mut DurableNavigationBootstrapRowV1,
     limits: DurableNavigationEventLimits,
@@ -486,89 +328,6 @@ pub(crate) fn maker_identity(
     )
 }
 
-/// Restore each reified Claim's contribution to shared carriers. PostgreSQL's
-/// existing bootstrap key includes the owner pair; selecting one arbitrary
-/// owner would lose surviving contributions when another Claim is replaced.
-fn expand_claim_contributions(
-    rows: &mut Vec<DurableNavigationBootstrapRowV1>,
-    limits: DurableNavigationEventLimits,
-    charged_bytes: &mut u64,
-) -> DurableResult<()> {
-    type Owner = (String, String);
-    let mut owners = BTreeMap::<String, BTreeSet<Owner>>::new();
-    let mut linked = BTreeMap::<String, String>::new();
-    let mut claim_edges = BTreeMap::<String, Owner>::new();
-    let local_nodes = rows
-        .iter()
-        .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Node)
-        .map(|row| row.id.clone())
-        .collect::<BTreeSet<_>>();
-    for row in rows.iter() {
-        if let Some(identity) = maker_identity(row, limits)? {
-            linked.insert(row.id.clone(), identity);
-        }
-        if let Some((owner, targets)) = claim_contribution(row, limits)? {
-            for target in targets {
-                owners.entry(target).or_default().insert(owner.clone());
-            }
-            claim_edges.insert(row.id.clone(), owner);
-        }
-    }
-    for (node, identity) in linked {
-        if local_nodes.contains(&identity)
-            && let Some(contributors) = owners.get(&node).cloned()
-        {
-            owners.entry(identity).or_default().extend(contributors);
-        }
-    }
-    let mut expanded = Vec::new();
-    for row in std::mem::take(rows) {
-        let contributions = match row.kind {
-            DurableNavigationBootstrapRowKindV1::Node => owners.remove(&row.id),
-            DurableNavigationBootstrapRowKindV1::Edge => claim_edges
-                .remove(&row.id)
-                .map(|owner| BTreeSet::from([owner])),
-            _ => None,
-        };
-        if let Some(contributions) = contributions {
-            for (index, (path, id)) in contributions.into_iter().enumerate() {
-                if index > 0 {
-                    *charged_bytes = charged_bytes
-                        .checked_add(row.raw.len() as u64)
-                        .filter(|n| *n <= limits.max_total_bytes)
-                        .ok_or(DurableError::Refused("navigation Claim contribution bytes"))?;
-                }
-                if expanded.len() >= limits.max_current_rows {
-                    return Err(DurableError::Refused("navigation Claim contribution rows"));
-                }
-                expanded.push(DurableNavigationBootstrapRowV1 {
-                    kind: row.kind,
-                    id: row.id.clone(),
-                    owner_source_path: path,
-                    owner_record_id: id,
-                    visible: row.visible,
-                    raw: row.raw.clone(),
-                });
-            }
-        } else {
-            if expanded.len() >= limits.max_current_rows {
-                return Err(DurableError::Refused(
-                    "navigation bootstrap contribution rows",
-                ));
-            }
-            expanded.push(row);
-        }
-    }
-    // A maker's identity may already be represented by the same subject/object,
-    // but every retained ownership target must be an actual selected carrier.
-    if !owners.is_empty() || !claim_edges.is_empty() {
-        return Err(DurableError::Corrupt(
-            "navigation Claim contribution carrier absent",
-        ));
-    }
-    *rows = expanded;
-    Ok(())
-}
 fn checked_path(value: &str) -> DurableResult<RelativePath> {
     if value.len() > MAX_BOOTSTRAP_PATH_BYTES {
         return Err(DurableError::Refused(
@@ -971,4 +730,166 @@ mod tests {
         );
         assert_eq!(rows.len(), 1);
     }
+}
+
+#[cfg(test)]
+#[allow(clippy::too_many_arguments)]
+fn capture_original_carrier(
+    kind: DurableNavigationBootstrapRowKindV1,
+    id: String,
+    raw: Vec<u8>,
+    limits: DurableNavigationEventLimits,
+    output: &mut Vec<DurableNavigationBootstrapRowV1>,
+    owner_source_paths: &mut BTreeSet<String>,
+    charged_bytes: &mut u64,
+    node_visibility: &mut BTreeMap<String, bool>,
+) -> DurableResult<()> {
+    if kind == DurableNavigationBootstrapRowKindV1::Node && node_visibility.contains_key(&id) {
+        return Err(DurableError::Corrupt("duplicate original navigation node"));
+    }
+    let (row, refs) = decode_original_carrier(
+        kind,
+        id,
+        raw,
+        limits,
+        |id| Ok(node_visibility.get(id).copied()),
+        |id| {
+            Ok(output
+                .iter()
+                .find(|row| {
+                    row.kind == DurableNavigationBootstrapRowKindV1::Node
+                        && row.id == id
+                        && row.owner_record_id == id
+                })
+                .map(|row| row.owner_source_path.clone()))
+        },
+    )?;
+    if kind == DurableNavigationBootstrapRowKindV1::Node {
+        node_visibility.insert(row.id.clone(), row.visible.unwrap());
+    }
+    owner_source_paths.extend(refs);
+    if owner_source_paths.len() > limits.max_dependencies {
+        return Err(DurableError::Refused(
+            "navigation bootstrap dependency source budget",
+        ));
+    }
+    *charged_bytes = charged_bytes
+        .checked_add(row.raw.len() as u64)
+        .filter(|bytes| *bytes <= limits.max_total_bytes)
+        .ok_or(DurableError::Refused("navigation bootstrap byte budget"))?;
+    if output.len() >= limits.max_current_rows {
+        return Err(DurableError::Refused("navigation bootstrap row budget"));
+    }
+    output.push(row);
+    Ok(())
+}
+
+#[cfg(test)]
+/// A version node keeps its exact archived source reference, but its view also
+/// contains the current record/history provenance. It must therefore be
+/// replaced with that record. Resolve ownership after all original nodes are
+/// captured: historical node IDs may sort before the current record ID.
+fn bind_historical_record_owners(
+    rows: &mut [DurableNavigationBootstrapRowV1],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<()> {
+    let current_owners = rows
+        .iter()
+        .filter(|row| {
+            row.kind == DurableNavigationBootstrapRowKindV1::Node && row.id == row.owner_record_id
+        })
+        .map(|row| (row.id.clone(), row.owner_source_path.clone()))
+        .collect::<BTreeMap<_, _>>();
+    for row in rows
+        .iter_mut()
+        .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Node)
+    {
+        bind_historical_record_owner(row, limits, |id| Ok(current_owners.get(id).cloned()))?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+/// Restore each reified Claim's contribution to shared carriers. PostgreSQL's
+/// existing bootstrap key includes the owner pair; selecting one arbitrary
+/// owner would lose surviving contributions when another Claim is replaced.
+fn expand_claim_contributions(
+    rows: &mut Vec<DurableNavigationBootstrapRowV1>,
+    limits: DurableNavigationEventLimits,
+    charged_bytes: &mut u64,
+) -> DurableResult<()> {
+    type Owner = (String, String);
+    let mut owners = BTreeMap::<String, BTreeSet<Owner>>::new();
+    let mut linked = BTreeMap::<String, String>::new();
+    let mut claim_edges = BTreeMap::<String, Owner>::new();
+    let local_nodes = rows
+        .iter()
+        .filter(|row| row.kind == DurableNavigationBootstrapRowKindV1::Node)
+        .map(|row| row.id.clone())
+        .collect::<BTreeSet<_>>();
+    for row in rows.iter() {
+        if let Some(identity) = maker_identity(row, limits)? {
+            linked.insert(row.id.clone(), identity);
+        }
+        if let Some((owner, targets)) = claim_contribution(row, limits)? {
+            for target in targets {
+                owners.entry(target).or_default().insert(owner.clone());
+            }
+            claim_edges.insert(row.id.clone(), owner);
+        }
+    }
+    for (node, identity) in linked {
+        if local_nodes.contains(&identity)
+            && let Some(contributors) = owners.get(&node).cloned()
+        {
+            owners.entry(identity).or_default().extend(contributors);
+        }
+    }
+    let mut expanded = Vec::new();
+    for row in std::mem::take(rows) {
+        let contributions = match row.kind {
+            DurableNavigationBootstrapRowKindV1::Node => owners.remove(&row.id),
+            DurableNavigationBootstrapRowKindV1::Edge => claim_edges
+                .remove(&row.id)
+                .map(|owner| BTreeSet::from([owner])),
+            _ => None,
+        };
+        if let Some(contributions) = contributions {
+            for (index, (path, id)) in contributions.into_iter().enumerate() {
+                if index > 0 {
+                    *charged_bytes = charged_bytes
+                        .checked_add(row.raw.len() as u64)
+                        .filter(|n| *n <= limits.max_total_bytes)
+                        .ok_or(DurableError::Refused("navigation Claim contribution bytes"))?;
+                }
+                if expanded.len() >= limits.max_current_rows {
+                    return Err(DurableError::Refused("navigation Claim contribution rows"));
+                }
+                expanded.push(DurableNavigationBootstrapRowV1 {
+                    kind: row.kind,
+                    id: row.id.clone(),
+                    owner_source_path: path,
+                    owner_record_id: id,
+                    visible: row.visible,
+                    raw: row.raw.clone(),
+                });
+            }
+        } else {
+            if expanded.len() >= limits.max_current_rows {
+                return Err(DurableError::Refused(
+                    "navigation bootstrap contribution rows",
+                ));
+            }
+            expanded.push(row);
+        }
+    }
+    // A maker's identity may already be represented by the same subject/object,
+    // but every retained ownership target must be an actual selected carrier.
+    if !owners.is_empty() || !claim_edges.is_empty() {
+        return Err(DurableError::Corrupt(
+            "navigation Claim contribution carrier absent",
+        ));
+    }
+    *rows = expanded;
+    Ok(())
 }

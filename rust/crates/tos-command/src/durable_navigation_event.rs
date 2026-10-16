@@ -431,14 +431,6 @@ pub struct DurableNavigationBootstrapOwnerSourceV1 {
     pub size_bytes: u64,
 }
 
-/// Exact original rights row retained with its source-order ordinal. This is
-/// a seal witness only; query-facing rights carriers remain their own rows.
-#[derive(Clone, Debug)]
-pub struct DurableNavigationOriginalRightWitnessV1 {
-    pub ordinal: u64,
-    pub raw: Vec<u8>,
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum DurableNavigationBootstrapRowKindV1 {
     Node,
