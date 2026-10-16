@@ -28,7 +28,11 @@ use crate::{
     source_command::{self as cmd, SourceCommandError, SourceCommandResult},
     source_creation_store::active,
 };
-use tos_validation::executor::ExactWorkerIdentity;
+use tos_validation::{
+    FormatProfile,
+    executor::{ExactWorkerIdentity, ExecutorBudget},
+    source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor},
+};
 
 const HOST_FINALIZATION_RESERVE_MS: u64 = 60_000;
 
@@ -1198,6 +1202,37 @@ fn prepare_initial(
             "source-navigation producer worker differs",
         ));
     }
+    // Recheck the same source schemas and exact worker using the selected
+    // navigation profile. The retained bootstrap invocation has independent
+    // budgets; the generic short-command profile cannot validate this operation.
+    let recheck_schema = || {
+        CutWorkerSchemaExecutor::from_cut(
+            original_cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            schema_worker_identity.clone(),
+            ExecutorBudget {
+                execution_wall: Duration::from_millis(schema_wall_ms),
+                cleanup_grace: Duration::from_millis(
+                    schema_cleanup_ms.min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
+                ),
+                cpu_seconds: schema_cpu_seconds,
+                address_space_bytes: schema_address_space,
+            },
+            CutWorkerLimits {
+                max_receipts: schema_max_receipts as usize,
+                max_receipt_bytes: schema_max_receipt_bytes as usize,
+            },
+            deadline,
+            cancelled,
+        )
+        .map_err(|error| {
+            SourceCommandError::DeniedWithReason(format!(
+                "selected initial schema worker verification failed: {error:?}"
+            ))
+        })
+    };
+    // Exercise publication prerequisites before exporting or compiling the cut.
+    drop(recheck_schema()?);
     selection
         .process_limits
         .verify_current()
@@ -1657,7 +1692,7 @@ fn prepare_initial(
                 if executable != expected_native_executable {
                     return Err(crate::DurableError::Conflict("native executable changed before publication"));
                 }
-                let selected_schema = super::selected_schema(invocation, original_cut, deadline, cancelled)
+                let selected_schema = recheck_schema()
                     .map_err(|_| crate::DurableError::Conflict("selected schema worker changed before publication"))?;
                 drop(selected_schema);
                 let normalization_now = original_software.read_selected_component(
