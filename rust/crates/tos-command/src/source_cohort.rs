@@ -6694,47 +6694,6 @@ impl DurablePgCoordinator {
         Ok(root)
     }
 
-    /// Same managed owner/source fences, with the exact repeatable-read
-    /// transaction made available to a bounded read-model adapter. The
-    /// callback runs before the coordinator commits and releases its locks.
-    pub(crate) fn with_current_managed_model_and_tx_source_navigation<
-        T,
-        P: crate::source_managed_selection::ManagedSelectedProof,
-    >(
-        &mut self,
-        store: &SegmentStore,
-        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
-        proof: &P,
-        filesystem: &CreationFilesystem,
-        contract: Digest256,
-        rule_version: u64,
-        rights_version: u64,
-        job_id: &str,
-        job_fence: u64,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        seek: impl for<'lease, 'tx> FnOnce(
-            &crate::source_managed_selection::ManagedCurrentModelLease<'lease, P>,
-            &mut Transaction<'tx>,
-        ) -> T,
-    ) -> DurableResult<T> {
-        self.with_current_managed_model_and_tx_owner(
-            store,
-            generation,
-            proof,
-            filesystem,
-            None,
-            contract,
-            rule_version,
-            rights_version,
-            job_id,
-            job_fence,
-            deadline,
-            cancelled,
-            seek,
-        )
-    }
-
     /// Hold the exact source-navigation owner boundary while distinguishing an
     /// immutable V2 bootstrap anchor from the live PG source generation. This
     /// reuses the same owner mutex, audit/domain/job lock order, schema profile,

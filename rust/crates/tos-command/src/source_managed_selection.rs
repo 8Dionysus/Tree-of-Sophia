@@ -134,12 +134,6 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
         self.source_catalog_root_sha256.as_deref().unwrap_or("")
     }
 
-    /// Whether the selected model retains the complete producer capability
-    /// required by successor and overlay construction.
-    pub(crate) fn has_completed_producer(&self) -> bool {
-        self.completed.is_some()
-    }
-
     /// Admit a persisted native model and retained V2 proof for read-only
     /// navigation. The immutable artifact is independently re-opened under
     /// fs-verity; current owner and PG fences are repeated for each delivery.
@@ -232,96 +226,6 @@ impl<P: ManagedSelectedProof> ManagedAgentSelectedParent<P> {
             cancelled,
             seek,
         )
-    }
-    /// Execute a bounded native read and its delivery callback while the
-    /// owner, selected source generation, rights/job row and repeatable-read
-    /// transaction remain held. The transaction and packet cannot escape.
-    #[allow(clippy::too_many_arguments)]
-    pub fn with_current_model_and_tx<T>(
-        &self,
-        coordinator: &mut DurablePgCoordinator,
-        store: &SegmentStore,
-        filesystem: &CreationFilesystem,
-        package: &ManagedSerializedCreation,
-        contract: Digest256,
-        rule_version: u64,
-        rights_version: u64,
-        job_id: &str,
-        job_fence: u64,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        seek: impl for<'model, 'lease, 'tx> FnOnce(
-            &'model VerifiedKnowledgeModel<'static>,
-            &'lease ManagedCurrentModelLease<'lease, P>,
-            &mut postgres::Transaction<'tx>,
-        ) -> ManagedSelectionResult<T>,
-    ) -> ManagedSelectionResult<T> {
-        self.with_current_package_and_tx(
-            coordinator,
-            store,
-            filesystem,
-            CreationPackage::Managed(package),
-            contract,
-            rule_version,
-            rights_version,
-            job_id,
-            job_fence,
-            deadline,
-            cancelled,
-            seek,
-        )
-    }
-    /// Read under the selected, package-free source owner fence. This is
-    /// reserved for source navigation: it shares the actual corpus mutex and
-    /// holds current source, rights/job rows, and the RR transaction through
-    /// the callback, without creating a source command package.
-    #[allow(clippy::too_many_arguments)]
-    pub fn with_current_model_and_tx_source_navigation<T>(
-        &self,
-        coordinator: &mut DurablePgCoordinator,
-        store: &SegmentStore,
-        filesystem: &CreationFilesystem,
-        contract: Digest256,
-        rule_version: u64,
-        rights_version: u64,
-        job_id: &str,
-        job_fence: u64,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        seek: impl for<'model, 'lease, 'tx> FnOnce(
-            &'model VerifiedKnowledgeModel<'static>,
-            &'lease ManagedCurrentModelLease<'lease, P>,
-            &mut postgres::Transaction<'tx>,
-        ) -> ManagedSelectionResult<T>,
-    ) -> ManagedSelectionResult<T> {
-        coordinator
-            .with_current_managed_model_and_tx_source_navigation(
-                store,
-                &self.generation,
-                &self.proof,
-                filesystem,
-                contract,
-                rule_version,
-                rights_version,
-                job_id,
-                job_fence,
-                deadline,
-                cancelled,
-                |lease, tx| {
-                    let result = (|| {
-                        self.model
-                            .check_pin()
-                            .map_err(ManagedSelectionError::Compiler)?;
-                        let result = seek(&self.model, lease, tx);
-                        self.model
-                            .check_pin()
-                            .map_err(ManagedSelectionError::Compiler)?;
-                        result
-                    })();
-                    result
-                },
-            )
-            .map_err(ManagedSelectionError::Durable)?
     }
 
     fn with_current_package<T>(
@@ -568,49 +472,6 @@ fn bind_completed_managed_agent_parent<P: ManagedSelectedProof>(
         },
     )?;
     Ok(parent)
-}
-
-/// Run the compiler's actual full invocation on this private-issued export.
-/// The callback can return only its non-constructible completed outcome; the
-/// descriptive proof passed to it is rechecked against current owner state.
-pub fn prepare_managed_agent_selected_parent<P: ManagedSelectedProof>(
-    coordinator: &mut DurablePgCoordinator,
-    store: &SegmentStore,
-    export: ManagedCurrentSourceCut,
-    filesystem: &CreationFilesystem,
-    package: &SerializedCreation,
-    contract: Digest256,
-    rule_version: u64,
-    rights_version: u64,
-    job_id: &str,
-    job_fence: u64,
-    process_limits: NativeProcessLimits,
-    cold_limits: ColdOpenLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    build: impl FnOnce(
-        &ManagedCurrentSourceCut,
-        P,
-    ) -> tos_compiler::Result<CompletedManagedAgentProducer<P>>,
-) -> ManagedSelectionResult<ManagedAgentSelectedParent<P>> {
-    prepare_managed_agent_selected_parent_with_work(
-        coordinator,
-        store,
-        export,
-        filesystem,
-        package,
-        contract,
-        rule_version,
-        rights_version,
-        job_id,
-        job_fence,
-        process_limits,
-        cold_limits,
-        deadline,
-        cancelled,
-        &mut crate::ManagedSourceWorkV1::default(),
-        build,
-    )
 }
 
 pub fn prepare_managed_agent_selected_parent_with_work<P: ManagedSelectedProof>(
@@ -1124,54 +985,6 @@ pub fn recover_managed_agent_overlay_parent_v2(
     ))
 }
 
-/// Rebind a genuinely restored immutable model to the actual new PG source
-/// selection. The successful existing restore issues the opaque witness;
-/// historical proof/base and tree roots are retained, not retagged. A failed
-/// equality or changed source state refuses rather than cold-scanning silently.
-#[allow(clippy::too_many_arguments)]
-pub fn rebind_restored_managed_agent_overlay_v2(
-    coordinator: &mut DurablePgCoordinator,
-    store: &SegmentStore,
-    generation: ManagedCurrentSourceGeneration,
-    base: VerifiedKnowledgeModel<'static>,
-    old_manifest_digest: Digest256,
-    witness: &crate::backup_recovery::VerifiedManagedModelRestoreV2,
-    filesystem: &CreationFilesystem,
-    package: &ManagedSerializedCreation,
-    contract: Digest256,
-    rule_version: u64,
-    rights_version: u64,
-    job_id: &str,
-    job_fence: u64,
-    manifest_limits: tos_compiler::ManagedManifestLimitsV2,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> ManagedSelectionResult<(
-    ManagedAgentOverlayParentV2,
-    tos_compiler::CompletedManagedOverlayRecoveryV2,
-    tos_segment_store::AuthenticatedTreeWorkV1,
-)> {
-    rebind_restored_managed_agent_overlay_v2_with_work(
-        coordinator,
-        store,
-        generation,
-        base,
-        old_manifest_digest,
-        witness,
-        filesystem,
-        package,
-        contract,
-        rule_version,
-        rights_version,
-        job_id,
-        job_fence,
-        manifest_limits,
-        deadline,
-        cancelled,
-        &mut crate::AuditDeltaWork::default(),
-    )
-}
-
 pub fn rebind_restored_managed_agent_overlay_v2_with_work(
     coordinator: &mut DurablePgCoordinator,
     store: &SegmentStore,
@@ -1285,64 +1098,6 @@ pub fn rebind_restored_managed_agent_overlay_v2_with_work(
         selected,
     };
     Ok((parent, prepared, read_work))
-}
-
-/// Genuine committed package + exact addressed source projection replace the
-/// full catalogue visitor. A gap, deletion or unsupported member closure
-/// refuses rather than scanning the old full representation invisibly.
-#[allow(clippy::too_many_arguments)]
-pub fn prepare_managed_agent_overlay_successor_v2(
-    coordinator: &mut DurablePgCoordinator,
-    store: &SegmentStore,
-    parent: &ManagedAgentOverlayParentV2,
-    generation: ManagedCurrentSourceGeneration,
-    prepare_id: &[u8],
-    package: &ManagedSerializedCreation,
-    filesystem: &CreationFilesystem,
-    contract: Digest256,
-    rule_version: u64,
-    rights_version: u64,
-    job_id: &str,
-    job_fence: u64,
-    manifest_limits: tos_compiler::ManagedManifestLimitsV2,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    build: impl FnOnce(
-        &tos_compiler::ManagedManifestV2,
-        Digest256,
-        &VerifiedKnowledgeModel<'_>,
-        tos_compiler::ManagedOverlaySourceBindingV2,
-        tos_compiler::ManagedManifestDeltaV2,
-        &[tos_compiler::ManagedOverlayChangedMemberV2<'_>],
-        &serde_json::Value,
-        &str,
-        &[u8],
-        Option<&[u8]>,
-    ) -> tos_compiler::Result<tos_compiler::CompletedManagedOverlaySuccessorV2>,
-) -> ManagedSelectionResult<(
-    ManagedAgentOverlayParentV2,
-    tos_compiler::CompletedManagedOverlaySuccessorV2,
-    tos_segment_store::AuthenticatedTreeWorkV1,
-)> {
-    prepare_managed_agent_overlay_successor_v2_with_work(
-        coordinator,
-        store,
-        parent,
-        generation,
-        prepare_id,
-        package,
-        filesystem,
-        contract,
-        rule_version,
-        rights_version,
-        job_id,
-        job_fence,
-        manifest_limits,
-        deadline,
-        cancelled,
-        &mut crate::ManagedSourceWorkV1::default(),
-        build,
-    )
 }
 
 pub fn prepare_managed_agent_overlay_successor_v2_with_work(
@@ -1716,10 +1471,6 @@ impl<'a> SourceNavigationCurrentLeaseV1<'a> {
             ));
         }
         active(self.deadline, self.cancelled)
-    }
-
-    pub(crate) fn recheck_current(&self) -> SourceCommandResult<()> {
-        self.check_current()
     }
 
     pub(crate) fn require_managed_v2_basis(
