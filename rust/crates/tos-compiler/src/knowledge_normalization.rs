@@ -13,7 +13,6 @@ use tos_foundation::{Digest256Hasher, JsonLimits, JsonMode, parse_json};
 const MAX_SOURCE_ROW_BYTES: usize = 8 * 1024 * 1024;
 const MAX_JSON_VISITS: usize = 1_000_000;
 const MAX_JSON_DEPTH: usize = 96;
-const MAX_ADDRESSED_CANDIDATE_JSON_DEPTH: usize = 64;
 const MAX_INTEGER_DIGITS: usize = 4096;
 const DEFAULT_SOURCE_REF: &str = "ToS/source_home.manifest.json";
 
@@ -429,27 +428,6 @@ impl SourceRow {
         }
         Self::parse_inner(raw, max_bytes, false)
     }
-    /// Candidate-only parser with independent caller-supplied row input and
-    /// output ceilings. Ordinary normalizers retain their established 8 MiB
-    /// ceiling; the candidate route defaults to 16 MiB.
-    pub(crate) fn parse_addressed_candidate(
-        raw: &[u8],
-        max_input_bytes: usize,
-        max_output_bytes: usize,
-    ) -> Result<Self> {
-        if max_input_bytes == 0 || max_output_bytes == 0 || raw.len() > max_input_bytes {
-            return Err(Error::Budget("addressed candidate source row bytes"));
-        }
-        let mut row = Self::parse_inner_with_profile(
-            raw,
-            max_input_bytes,
-            true,
-            MAX_ADDRESSED_CANDIDATE_JSON_DEPTH,
-            max_input_bytes,
-        )?;
-        row.max_output_bytes = max_output_bytes;
-        Ok(row)
-    }
     /// Computational raw input only; does not widen normalized row semantics.
     pub(crate) fn parse_raw_input(raw: &[u8], max_bytes: usize) -> Result<Self> {
         if max_bytes == 0 || max_bytes > 64 * 1024 * 1024 || raw.len() > max_bytes {
@@ -507,23 +485,13 @@ impl SourceRow {
         ))
     }
     fn parse_inner(raw: &[u8], max_bytes: usize, classify_budget: bool) -> Result<Self> {
-        Self::parse_inner_with_profile(
-            raw,
+        let limits = JsonLimits::new(
             max_bytes,
-            classify_budget,
             MAX_JSON_DEPTH,
             MAX_JSON_VISITS,
+            MAX_INTEGER_DIGITS,
         )
-    }
-    fn parse_inner_with_profile(
-        raw: &[u8],
-        max_bytes: usize,
-        classify_budget: bool,
-        max_depth: usize,
-        max_visits: usize,
-    ) -> Result<Self> {
-        let limits = JsonLimits::new(max_bytes, max_depth, max_visits, MAX_INTEGER_DIGITS)
-            .map_err(|_| Error::Budget("normalization JSON limits"))?;
+        .map_err(|_| Error::Budget("normalization JSON limits"))?;
         parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|error| {
             if classify_budget && error.code == tos_foundation::FoundationErrorCode::BudgetExceeded
             {
@@ -615,17 +583,6 @@ impl SourceRow {
 pub fn stamp_content_revision(value: &mut Value, max_bytes: usize) -> Result<()> {
     if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES {
         return Err(Error::Budget("normalization content revision bytes"));
-    }
-    stamp_content_revision_inner(value, max_bytes)
-}
-
-/// Candidate-only content revision path with its separately documented row cap.
-pub(crate) fn stamp_addressed_candidate_content_revision(
-    value: &mut Value,
-    max_bytes: usize,
-) -> Result<()> {
-    if max_bytes == 0 {
-        return Err(Error::Budget("addressed candidate content revision bytes"));
     }
     stamp_content_revision_inner(value, max_bytes)
 }

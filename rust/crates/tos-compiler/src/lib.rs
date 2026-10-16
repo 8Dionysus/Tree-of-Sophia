@@ -1,7 +1,6 @@
 //! Bounded compilation of derived knowledge, catalog and publication models.
 //! This crate writes private candidates; admission, rights and selection remain owner routes.
 
-pub mod addressed_replacement;
 pub mod catalog;
 pub mod d1;
 pub mod d1_prepared_pair;
@@ -86,7 +85,6 @@ mod knowledge_indexed;
 mod knowledge_inherited_views;
 mod knowledge_native;
 mod knowledge_native_finalize;
-mod knowledge_navigation_finalize;
 mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
@@ -186,7 +184,6 @@ pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
 mod source_navigation_storage;
-pub mod source_philosophy;
 pub mod source_philosophy_atlas;
 pub mod source_philosophy_dossier_docx;
 pub mod source_philosophy_dossier_extract;
@@ -201,7 +198,6 @@ pub mod source_witness_catalog;
 mod sqlite_budget;
 pub use sqlite_budget::{DedicatedSessionSqliteHeap, dedicated_session_heap_bytes};
 mod vocabulary;
-pub use addressed_replacement::{AddressedReplacementLimits, replace_direct_carrier_candidate};
 pub use knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
 pub use knowledge_full::{
@@ -227,9 +223,6 @@ pub use knowledge_native::{
 pub use knowledge_native_finalize::{
     NativeFinalizeLimits, NativeFinalizeReceipt, finalize_native_graph_rows,
     finalize_native_graph_rows_with_witnesses,
-};
-pub use knowledge_navigation_finalize::{
-    NavigationFinalizeLimits, NavigationInheritedReceipt, apply_navigation_inherited_views,
 };
 pub use knowledge_navigation_materialize::{
     NavigationMaterializeLimits, NavigationNodeMaterializeReceipt, NavigationPlaceholderReceipt,

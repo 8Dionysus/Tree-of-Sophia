@@ -42,11 +42,8 @@ pub struct ReadableContextLimits {
 }
 impl ReadableContextLimits {
     fn validate(self) -> Result<()> {
-        self.validate_with_max_input(MAX_INPUT_BYTES)
-    }
-    fn validate_with_max_input(self, max_input_bytes: usize) -> Result<()> {
         if self.max_input_bytes == 0
-            || self.max_input_bytes > max_input_bytes
+            || self.max_input_bytes > MAX_INPUT_BYTES
             || self.max_work_bytes == 0
         {
             return Err(Error::Budget("readable context limits"));
@@ -967,30 +964,7 @@ impl ReadableContextCompiler {
         expected_sha256: &str,
         limits: ReadableContextLimits,
     ) -> Result<Option<Self>> {
-        Self::from_selected_registry_bytes_with_max_input(
-            raw,
-            expected_sha256,
-            limits,
-            MAX_INPUT_BYTES,
-        )
-    }
-
-    /// Candidate-only context compiler using the caller's row byte budget.
-    pub(crate) fn from_selected_registry_bytes_for_addressed_candidate(
-        raw: &[u8],
-        expected_sha256: &str,
-        limits: ReadableContextLimits,
-    ) -> Result<Option<Self>> {
-        Self::from_selected_registry_bytes_with_max_input(raw, expected_sha256, limits, usize::MAX)
-    }
-
-    fn from_selected_registry_bytes_with_max_input(
-        raw: &[u8],
-        expected_sha256: &str,
-        limits: ReadableContextLimits,
-        max_input_bytes: usize,
-    ) -> Result<Option<Self>> {
-        limits.validate_with_max_input(max_input_bytes)?;
+        limits.validate()?;
         if raw.is_empty() || raw.len() > MAX_REGISTRY_BYTES {
             return Err(Error::Budget("context registry bytes"));
         }

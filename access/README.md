@@ -40,7 +40,6 @@ operation and software builds never claim corpus data.
 Rust compiler checks replace the retired Python full/incremental query-store
 builder suite: [full-model seal, cold read and restore](../rust/crates/tos-compiler/src/knowledge_full.rs),
 [staged-input atomicity, quotas and private-candidate refusal](../rust/crates/tos-compiler/src/knowledge_stage.rs),
-[partitioned navigation custody and publication](../rust/crates/tos-compiler/tests/navigation.rs),
 and [compressed-search bootstrap and rollback](../rust/crates/tos-compiler/tests/compressed_search_writer.rs).
 The old Python cache/delta scheduler and its test harness are not active runtime
 contracts; the native compiler publishes its owned full candidate and native

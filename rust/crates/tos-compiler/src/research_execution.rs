@@ -22,6 +22,7 @@ const FILE_CAP: u64 = 256 * 1024 * 1024;
 const READ_CAP: u64 = 2 * 1024 * 1024 * 1024;
 const WRITE_CAP: u64 = 1024 * 1024 * 1024;
 const WORK_CAP: u64 = 100_000_000;
+const PHILOSOPHY_WORK_CAP: u64 = 1024 * 1024 * 1024;
 const STRUCTURAL_READ_ALLOWANCE: u64 = 512 * 1024 * 1024;
 const DIRECTORY_RESERVATION: u64 = 64 * 1024;
 use tos_source_store::{
@@ -205,9 +206,8 @@ impl ResearchExecution {
             PinnedSqliteIoBudget::new(selected.read_cap, WRITE_CAP).map_err(|e| e.to_string())?;
         Ok(selected)
     }
-    /// Explicit philosophy consumer envelope. The earned f650 whole-authored
-    /// producer uses PhilosophySourceLimits::default().max_work_bytes (1 GiB)
-    /// and one OPS-selected original window up to 3600 seconds. This keeps
+    /// Explicit philosophy consumer envelope: 1 GiB of work and one
+    /// OPS-selected original window up to 3600 seconds. This keeps
     /// generic and Reading producers at their existing 100M work/600s limits;
     /// selecting another directory cannot renew either allowance. It does not
     /// admit memory, storage, capacity, source meaning, or a runtime result.
@@ -221,7 +221,7 @@ impl ResearchExecution {
             max_seconds,
             Some(available_bytes),
             3600,
-            crate::source_philosophy::PhilosophySourceLimits::default().max_work_bytes,
+            PHILOSOPHY_WORK_CAP,
             Arc::new(AtomicBool::new(false)),
         )
     }
@@ -239,7 +239,7 @@ impl ResearchExecution {
             max_seconds,
             Some(available_bytes),
             3600,
-            crate::source_philosophy::PhilosophySourceLimits::default().max_work_bytes,
+            PHILOSOPHY_WORK_CAP,
             cancelled,
         )
     }
