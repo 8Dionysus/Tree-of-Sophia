@@ -1026,7 +1026,8 @@ mod tests {
             serde_json::to_writer(&mut software_stream, &event).unwrap();
             software_stream.push(b'\n');
         }
-        for _ in 0..8 {
+        // Thin executors and the five mechanics commands are separate builds.
+        for _ in 0..9 {
             software_stream
                 .extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         }
