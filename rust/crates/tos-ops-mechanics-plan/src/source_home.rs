@@ -356,6 +356,16 @@ pub fn run(root: &Path, cancel: &AtomicI32) -> io::Result<i32> {
 
 #[cfg(test)]
 mod tests {
+    fn assert_schema(schema: &serde_json::Value, value: &serde_json::Value) {
+        let validator = jsonschema::options()
+            .with_draft(jsonschema::Draft::Draft202012)
+            .should_validate_formats(false)
+            .offline()
+            .build(schema)
+            .unwrap();
+        assert!(validator.is_valid(value));
+    }
+
     #[test]
     fn source_home_manifest_matches_its_declared_schema() {
         let schema: serde_json::Value = serde_json::from_slice(include_bytes!(
@@ -369,12 +379,27 @@ mod tests {
             manifest["$schema"],
             "https://tree-of-sophia.local/ToS/contracts/tos-source-home.schema.json"
         );
-        let validator = jsonschema::options()
-            .with_draft(jsonschema::Draft::Draft202012)
-            .should_validate_formats(false)
-            .offline()
-            .build(&schema)
-            .unwrap();
-        assert!(validator.is_valid(&manifest));
+        assert_schema(&schema, &manifest);
+    }
+
+    #[test]
+    fn retained_record_history_has_a_binding_without_raw_checkout_copies() {
+        let schema = serde_json::from_slice(include_bytes!(
+            "../../../../ToS/contracts/retained-corpus-binding.schema.json"
+        ))
+        .unwrap();
+        let binding: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../../../../ToS/source-witnesses/record-revisions.storage.json"
+        ))
+        .unwrap();
+        assert_schema(&schema, &binding);
+        assert_eq!(binding["scope"], "ToS/source-witnesses/.record-revisions");
+        // Repository custody stays distinct from a materialized corpus view.
+        let archive = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../ToS/source-witnesses/.record-revisions");
+        assert!(
+            !archive.exists(),
+            "raw history belongs to the selected corpus cut"
+        );
     }
 }
