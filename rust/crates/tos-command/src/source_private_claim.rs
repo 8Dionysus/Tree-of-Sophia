@@ -188,12 +188,6 @@ const NATIVE_CORPUS_KINDS: &[&str] = &[
     "collection",
     "item",
 ];
-const FORM_SCHEMAS: &[&str] = &[
-    "ToS/contracts/knowledge-assessment.schema.json",
-    "ToS/contracts/human-form.schema.json",
-    "ToS/contracts/human-form-set.schema.json",
-    "ToS/contracts/human-form-template.schema.json",
-];
 
 /// Semantic output only. The private owner store compares `before`, publishes
 /// `files`, and atomically retains `archive`; these bytes are proposals.
@@ -1809,7 +1803,6 @@ impl ClaimGrammar {
         result.schema_dependencies = field_texts(selected, "schema_dependencies", 128)?;
         Ok(result)
     }
-
 }
 
 fn validate_allowed_predicates(grant: &Grant, grammar: &ClaimGrammar) -> SourceCommandResult<()> {
@@ -4457,15 +4450,13 @@ fn ground_claims(
                 native_by_claim
                     .entry(identity.to_owned())
                     .or_default()
-                    .push(
-                        NativeSelection {
-                            key: binding_key,
-                            binding: bound.clone(),
-                            origin_id: cmd::text(selector, "origin_id")?.to_owned(),
-                            source_access: cmd::field(selector, "source_access")?.clone(),
-                            source_ids: BTreeSet::from([source_id.to_owned()]),
-                        },
-                    );
+                    .push(NativeSelection {
+                        key: binding_key,
+                        binding: bound.clone(),
+                        origin_id: cmd::text(selector, "origin_id")?.to_owned(),
+                        source_access: cmd::field(selector, "source_access")?.clone(),
+                        source_ids: BTreeSet::from([source_id.to_owned()]),
+                    });
             }
             records.insert(source_id.to_owned(), source);
         }

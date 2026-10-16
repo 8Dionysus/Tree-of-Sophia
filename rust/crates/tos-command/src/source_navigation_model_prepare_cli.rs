@@ -442,9 +442,6 @@ const FINAL_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
 const MAX_OWNER_BYTES: usize = 1_048_576;
 const NORMALIZATION_PROCESSOR_PATH: &str =
     "rust/crates/tos-compiler/src/knowledge_normalization.rs";
-const ENTITY_REGISTRY_PATH: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
-const RELATION_REGISTRY_PATH: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
-const QUERY_VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

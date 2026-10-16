@@ -25,7 +25,7 @@ use tos_source_store::native_v2::custody::{
 
 const ADMISSION_IO_BLOCK_BYTES: usize = 65_536;
 const SOURCE_WORK_MARKER: &str = ".source-work-intent.v1";
-const SOURCE_WORK_MARKER_MAGIC: &[u8; 8] = b"TOSSWI01";
+
 const SOURCE_WORK_MARKER_MAX_BYTES: usize = 512;
 // `ingest_accounted` retains its copy block while final fixity verification
 // calls `verify_file_recorded`, which owns a second block.
@@ -71,16 +71,6 @@ pub(crate) struct PreparedV2SuccessorLocatorV2 {
 pub(crate) struct PreparedV2SuccessorV2 {
     pub(crate) locator: PreparedV2SuccessorLocatorV2,
     built: super::source_admission_segment_v2::BuiltSuccessorRootSetV2,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PreparedV2SuccessorSelectionV2 {
-    BaseSelected,
-    TargetSelected,
-    Advanced(Option<tos_source_store::CorpusCurrentSelection>),
-}
-
-impl PreparedV2SuccessorV2 {
 }
 
 #[derive(Debug)]
@@ -487,7 +477,6 @@ fn allocated_bytes(file: &File, reason: &'static str) -> io::Result<u64> {
         .ok_or_else(|| invalid(reason))
 }
 
-
 fn partial_v2_existing_root_allocation(
     root: &File,
     root_before: u64,
@@ -524,9 +513,6 @@ impl Drop for AdmissionLock {
         let _ = rustix::fs::flock(&self.0, FlockOperation::Unlock);
     }
 }
-
-
-
 
 fn lock_at_root(
     root: &File,

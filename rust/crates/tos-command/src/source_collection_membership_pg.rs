@@ -21,8 +21,6 @@ use tos_validation::record_biblio_cut::{
 };
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
-pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:native-collection-membership";
-
 const COLLECTION_CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",

@@ -1239,6 +1239,7 @@ fn build_full_inventory_optional(
 
 /// Complete native successor for one standalone source inventory item. The
 /// wrapper is returned for the caller to publish; this function never writes.
+#[cfg(test)]
 pub(crate) fn build_full_inventory(
     repo_root: &Path,
     item_manifest_ref: &str,

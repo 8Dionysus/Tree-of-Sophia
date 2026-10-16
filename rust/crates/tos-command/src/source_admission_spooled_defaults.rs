@@ -53,9 +53,6 @@ use tos_validation::{
     },
 };
 
-const EVENT_CODEC_VERSION: i64 = 1;
-const CLAIM_CODEC_VERSION: i64 = 1;
-
 #[track_caller]
 fn source_refusal() -> ItemRefusal {
     // Own invariant failures retain their source site without exporting paths.
@@ -5993,7 +5990,6 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             returned_state,
         ))
     }
-
 
     fn derivation_count(
         &mut self,

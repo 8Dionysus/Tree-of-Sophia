@@ -17,7 +17,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 #[path = "source_expression_responsibility_pg.rs"]
 mod pg;
 pub(crate) use pg::{
-    PG_FAMILY_TAG, PgExpressionResponsibilityOwnerPackage,
+    PgExpressionResponsibilityOwnerPackage,
     current_result_fields_from_selected_pg as pg_current_result_fields,
     expected_inventory_contributions_from_writes, expected_revision_indexes_from_writes,
     prepare_pg_expression_responsibility, prepare_pg_expression_responsibility_preview,

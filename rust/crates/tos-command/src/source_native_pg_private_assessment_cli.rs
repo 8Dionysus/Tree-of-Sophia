@@ -43,9 +43,7 @@ use tos_validation::assessment::{
     AssessmentMechanicsReport, AssessmentReadInput, AssessmentRecordInput,
     evaluate_current_assessment_selected,
 };
-use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor,
-};
+use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const ENTITY_REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -53,7 +51,7 @@ const RELATION_REGISTRY: &str = "ToS/doctrine/semantic-interchange/relation-type
 const MAX_SCHEMA_FILES: usize = 128;
 const MAX_SCHEMA_BYTES: u64 = 33_554_432;
 const MAX_SCHEMA_MEMBER_BYTES: u64 = 1_048_576;
-const MAX_REQUEST: usize = 1_048_576;
+
 const MAX_PG_ASSESSMENT_MEMBERS: u64 = 4_096;
 const MAX_PG_ASSESSMENT_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_PG_ASSESSMENT_MEMBER_BYTES: u64 = 32 * 1024 * 1024;

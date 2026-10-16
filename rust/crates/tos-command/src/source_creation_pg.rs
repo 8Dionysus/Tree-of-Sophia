@@ -60,7 +60,6 @@ pub(crate) struct PgCorpusCreationRequirements {
 
 // Retained for the existing parent-module wrapper while callers move to the
 // family-aware requirement type.
-pub(crate) type PgAgentCreationRequirements = PgCorpusCreationRequirements;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PgCorpusCreationObservations {

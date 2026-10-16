@@ -17,7 +17,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 #[path = "source_collection_membership_pg.rs"]
 mod pg;
 pub(crate) use pg::{
-    PG_FAMILY_TAG as COLLECTION_MEMBERSHIP_PG_FAMILY_TAG, PgCollectionMembershipOwnerPackage,
+    PgCollectionMembershipOwnerPackage,
     current_result_fields_from_selected_pg as pg_current_result_fields,
     expected_collection_inventory_contributions, expected_collection_membership_revision_indexes,
     prepare_pg_collection_membership, prepare_pg_collection_membership_preview,

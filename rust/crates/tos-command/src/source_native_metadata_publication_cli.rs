@@ -31,7 +31,7 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-const META: usize = 1_048_576;
+
 fn failure(e: impl std::fmt::Debug + 'static) -> SourceCommandError {
     // Preserve bounded, source-authored diagnostics. Dynamic errors can carry
     // protected paths and remain behind the transport's generic boundary.

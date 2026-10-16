@@ -37,17 +37,7 @@ use tos_validation::source_cut::{
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const QUALITY_BASIS_SCHEMA: &str = "ToS/contracts/native-text-layer-quality-basis.schema.json";
-pub(crate) const PG_ASSESSMENT_EVALUATION_SCHEMAS: &[&str] = &[
-    "ToS/contracts/knowledge-assessment-policy.schema.json",
-    "ToS/contracts/knowledge-assessment-authority.schema.json",
-    "ToS/contracts/knowledge-assessment-competence.schema.json",
-    "ToS/contracts/knowledge-assessment.schema.json",
-    BATCH_SCHEMA,
-    "ToS/contracts/human-form.schema.json",
-    "ToS/contracts/human-form-set.schema.json",
-    "ToS/contracts/human-form-template.schema.json",
-    QUALITY_BASIS_SCHEMA,
-];
+
 const MAX_OPERATION_BYTES: usize = 234_881_024;
 const MAX_RESOLVED_BYTES: usize = 33_554_432;
 const MAX_REQUEST_BYTES: usize = 1_048_576;

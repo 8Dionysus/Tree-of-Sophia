@@ -1218,6 +1218,7 @@ fn load_registry_unlocked(path: &Path) -> Result<Value> {
     Ok(value)
 }
 
+#[cfg(test)]
 fn load_registry(path: &Path) -> Result<Value> {
     let (registry, _guard) = load_registry_with_guard(path)?;
     Ok(registry)

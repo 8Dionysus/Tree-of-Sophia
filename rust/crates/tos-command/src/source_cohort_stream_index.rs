@@ -20,7 +20,7 @@ use super::cold_membership_spool::PrivateGenerationWorkspace;
 use super::{DurableError, DurableResult};
 
 const SQLITE_PAGE_BYTES: u64 = 4096;
-const SQLITE_CACHE_KIB: i64 = -1024;
+
 const MAX_SOURCE_PATH_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug)]
@@ -797,7 +797,6 @@ impl SourceAssessmentIndex {
             Ok(count)
         })
     }
-
 
     pub(crate) fn observe_index_row(
         &mut self,

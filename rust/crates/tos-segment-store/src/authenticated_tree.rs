@@ -2810,91 +2810,8 @@ impl SegmentStore {
         })
     }
 
-    /// Full cold closure using an operation-local exact inventory spill.
-    /// The spill only orders observed pack digests; every pending row is
-    /// reopened and physically validated here by this SegmentStore.
-    pub fn verify_authenticated_tree_v2_with_pack_set(
-        &self,
-        descriptor: &AuthenticatedTreeDescriptorV2,
-        limits: AuthenticatedTreeLimitsV1,
-        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
-        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
-        closure_binding: Digest256,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<AuthenticatedTreeCoverageV1> {
-        check(deadline, cancelled)?;
-        pack_set.check_binding(
-            self.physical_root_identity()?,
-            self.store_id(),
-            self.domain_digest(),
-            closure_binding,
-        )?;
-        let mut stream = self.stream_authenticated_tree_v2_with_capture(
-            descriptor,
-            limits,
-            io_ledger.clone(),
-            PackCaptureV2::External(pack_set.clone()),
-            None,
-        )?;
-        while stream.next_row(deadline, cancelled)?.is_some() {}
-        let mut verify = |digest: Digest256| {
-            check(deadline, cancelled)?;
-            let remaining = remaining_bytes(stream.work, stream.limits)?;
-            if remaining == 0 {
-                return Err(budget("authenticated tree byte budget exceeded"));
-            }
-            let raw = self.read_authenticated_blob_with_io(
-                digest,
-                AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
-                io_ledger.as_deref(),
-                deadline,
-                cancelled,
-            )?;
-            let frame_count = scan_packed_chunk(&raw)?;
-            stream
-                .work
-                .charge_pack_read(raw.len(), frame_count, stream.limits)
-        };
-        pack_set.verify_pending(&mut verify)?;
-        drop(verify);
-        check(deadline, cancelled)?;
-        stream.coverage().ok_or_else(|| {
-            SegmentError::new(
-                Code::InvalidReceipt,
-                "packed authenticated tree coverage unavailable",
-            )
-        })
-    }
-
-    /// Full cold closure with the caller's existing cumulative work meter.
-    /// The callback is charged before each traversed authenticated node and
-    /// once before each distinct immutable pack is physically verified.
-    pub fn verify_authenticated_tree_v2_with_pack_set_and_work_callback(
-        &self,
-        descriptor: &AuthenticatedTreeDescriptorV2,
-        limits: AuthenticatedTreeLimitsV1,
-        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
-        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
-        closure_binding: Digest256,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        shared_work: &mut dyn FnMut() -> bool,
-    ) -> Result<AuthenticatedTreeCoverageV1> {
-        self.verify_authenticated_tree_v2_with_pack_set_controlled(
-            descriptor,
-            limits,
-            io_ledger,
-            pack_set,
-            closure_binding,
-            deadline,
-            cancelled,
-            shared_work,
-            None,
-        )
-    }
-
-    /// Same full closure with preallocation admission for the live traversal
+    /// Full cold closure with the caller's existing cumulative work meter and
+    /// preallocation admission for the live traversal
     /// stack and decoder, under a caller-selected slice of its original state.
     pub fn verify_authenticated_tree_v2_with_pack_set_and_work_and_state(
         &self,
@@ -2908,31 +2825,6 @@ impl SegmentStore {
         shared_work: &mut dyn FnMut() -> bool,
         max_state_bytes: usize,
     ) -> Result<AuthenticatedTreeCoverageV1> {
-        self.verify_authenticated_tree_v2_with_pack_set_controlled(
-            descriptor,
-            limits,
-            io_ledger,
-            pack_set,
-            closure_binding,
-            deadline,
-            cancelled,
-            shared_work,
-            Some(max_state_bytes),
-        )
-    }
-
-    fn verify_authenticated_tree_v2_with_pack_set_controlled(
-        &self,
-        descriptor: &AuthenticatedTreeDescriptorV2,
-        limits: AuthenticatedTreeLimitsV1,
-        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
-        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
-        closure_binding: Digest256,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        shared_work: &mut dyn FnMut() -> bool,
-        state_limit: Option<usize>,
-    ) -> Result<AuthenticatedTreeCoverageV1> {
         check(deadline, cancelled)?;
         pack_set.check_binding(
             self.physical_root_identity()?,
@@ -2945,7 +2837,7 @@ impl SegmentStore {
             limits,
             io_ledger.clone(),
             PackCaptureV2::External(pack_set.clone()),
-            state_limit,
+            Some(max_state_bytes),
         )?;
         while stream
             .next_row_with_work_callback(deadline, cancelled, shared_work)?

@@ -38,7 +38,7 @@ use tos_source_store::{CutReadLimits, ReadLimits};
 use tos_validation::item_rules::ItemRefusal;
 
 const PUBLICATION_CONTROL_READ_CAP_BYTES: usize = 8192;
-const CAPTURE_CONTROL_READS: usize = 2;
+
 const CAPTURE_MEMBER_READ_PASSES: usize = 3;
 const CAPTURE_TMPFS_FIXED_INODES: usize = 8;
 const PAYLOAD_SOURCE_SUFFIX: &str = "ToS/source-witnesses";
@@ -416,9 +416,8 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
             )
             .map_err(FoundationBootstrapError::RouteRoot)?,
         };
-        let payload_sources =
-            RouteSources::new_until_related(&payload_root, deadline, &sources)
-                .map_err(FoundationBootstrapError::RouteRoot)?;
+        let payload_sources = RouteSources::new_until_related(&payload_root, deadline, &sources)
+            .map_err(FoundationBootstrapError::RouteRoot)?;
         let artifact_sources = selected_roots
             .artifact_root
             .as_deref()
