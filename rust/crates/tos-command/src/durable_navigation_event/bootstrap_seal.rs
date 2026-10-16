@@ -69,6 +69,7 @@ fn read_row_batch(
          JOIN cmd2_projection_navigation_bootstrap_row r
            ON r.domain=$1 AND r.consumer_id=$2 AND r.row_kind=k.kind
           AND r.row_id=k.id AND r.owner_source_path=k.path AND r.owner_record_id=k.owner
+         WHERE r.row_kind=ANY($3::text[]) AND r.row_id=ANY($4::text[])
          ORDER BY k.ord",
         &[&domain, &consumer, &kinds, &ids, &paths, &owners, &sizes],
     )?;
