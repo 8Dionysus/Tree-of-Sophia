@@ -1563,8 +1563,18 @@ fn selected_files_and_dependencies<'a>(
     Vec<NavigationDependencyV1>,
 )> {
     let mut paths = BTreeSet::new();
-    for source in context.selected_sources() {
-        paths.insert(source.source_path.as_str());
+    // Bind only this stream's complete selected closure. A batch may hold
+    // unrelated streams and metadata; they remain fenced by the range owner
+    // without being hashed and persisted again in every Claim contribution.
+    for path in files.observed_paths() {
+        paths.insert(path);
+        let source = context
+            .selected_sources()
+            .iter()
+            .find(|source| source.source_path == path)
+            .ok_or(DurableError::Conflict(
+                "Claim dependency left selected event context",
+            ))?;
         let selected = files
             .optional(&source.source_path)
             .map_err(|_| DurableError::Invalid("selected Claim file observation is incomplete"))?;
@@ -1592,9 +1602,6 @@ fn selected_files_and_dependencies<'a>(
                 ));
             }
         }
-    }
-    for path in files.observed_paths() {
-        paths.insert(path);
     }
     if paths.len() > MAX_PATHS {
         return Err(DurableError::Refused(

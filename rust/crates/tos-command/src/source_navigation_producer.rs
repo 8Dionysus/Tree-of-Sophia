@@ -1544,6 +1544,39 @@ fn process_ready_range(
             "Claim range has no selected source files",
         ))?;
         let mut contributions = Vec::new();
+        let schema_resources = selection
+            .schema_paths
+            .iter()
+            .map(|path| {
+                let raw = files.required(path).map_err(compiler_refusal)?.to_vec();
+                let value: Value = serde_json::from_slice(&raw)
+                    .map_err(|_| DurableError::Invalid("selected Claim schema JSON"))?;
+                let uri = value
+                    .get("$id")
+                    .and_then(Value::as_str)
+                    .ok_or(DurableError::Invalid("selected Claim schema identifier"))?
+                    .to_owned();
+                Ok(SchemaResource { uri, raw })
+            })
+            .collect::<DurableResult<Vec<_>>>()?;
+        let schema_dependencies = tos_validation::source_foundation_schema::source_foundation_schema_resource_dependencies(
+            &schema_resources, deadline, cancelled,
+        ).map_err(|_| DurableError::Refused("selected Claim schema dependency closure"))?;
+        let schema_closures = selection
+            .schema_paths
+            .iter()
+            .zip(schema_dependencies)
+            .map(|(path, indices)| {
+                (
+                    path.as_str(),
+                    indices
+                        .into_iter()
+                        .map(|index| selection.schema_paths[index].clone())
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        drop(schema_resources);
         with_range_schema_validator(
             owner,
             selection,
@@ -1554,6 +1587,69 @@ fn process_ready_range(
             cancelled,
             |validator| {
                 for stream in claim_manifest.terminal_streams() {
+                    let mut stream_paths = crate::source_navigation_claim_selection::claim_event_range_stream_paths_v1(
+                        &context, stream.source_path(), &claim_identity_owners,
+                    )?.into_iter().collect::<BTreeSet<_>>();
+                    // Keep all exact range causes and the shared inventory
+                    // proof. Schema dependencies follow the same transitive
+                    // URI resolver as the prepared worker, never all contracts
+                    // merely because another stream uses them.
+                    for paths in [
+                        changed_source_paths.clone(),
+                        claim_inventory
+                            .scan_costs()
+                            .iter()
+                            .map(|cost| cost.source_path.clone())
+                            .collect(),
+                    ] {
+                        extend_event_paths(
+                            &mut stream_paths,
+                            paths,
+                            selection.event_limits.max_dependencies,
+                        )?;
+                    }
+                    let schema_roots = stream_paths
+                        .iter()
+                        .filter(|path| {
+                            path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
+                        })
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    for path in schema_roots {
+                        let closure =
+                            schema_closures
+                                .get(path.as_str())
+                                .ok_or(DurableError::Conflict(
+                                    "Claim stream schema is outside configured worker closure",
+                                ))?;
+                        extend_event_paths(
+                            &mut stream_paths,
+                            closure.iter().cloned(),
+                            selection.event_limits.max_dependencies,
+                        )?;
+                    }
+                    let mut stream_present = BTreeMap::new();
+                    let mut stream_absent = BTreeSet::new();
+                    for path in stream_paths {
+                        match files.optional(&path).map_err(compiler_refusal)? {
+                            Some(bytes) => {
+                                stream_present.insert(path, bytes.to_vec());
+                            }
+                            None => {
+                                stream_absent.insert(path);
+                            }
+                        }
+                    }
+                    let stream_files = tos_compiler::SelectedBibliographicFilesV1::new(
+                        stream_present,
+                        stream_absent,
+                        selection.event_limits.max_dependencies.min(4_096),
+                        usize::try_from(
+                            selection.event_limits.max_total_bytes.min(64 * 1024 * 1024),
+                        )
+                        .map_err(|_| DurableError::Refused("Claim stream selected byte budget"))?,
+                    )
+                    .map_err(compiler_refusal)?;
                     for claim_id in stream.owner_ids() {
                         let predecessor = claim_manifest
                             .stream_predecessors()
@@ -1574,7 +1670,7 @@ fn process_ready_range(
                         &context,
                         identity,
                         validator,
-                        files,
+                        &stream_files,
                         &claim_inventory,
                         &claim_manifest,
                         &claim_identity_owners,

@@ -603,6 +603,59 @@ pub(crate) fn claim_event_range_identity_archive_blob_paths_v1(
     claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
 }
 
+/// Reuse the staged selectors for one terminal stream within an already
+/// selected range. Other streams' identity/form/archive closures do not become
+/// dependencies of this stream merely because they share one producer batch.
+/// The caller separately retains the range and shared inventory witnesses.
+pub(crate) fn claim_event_range_stream_paths_v1(
+    context: &DurableNavigationEventContextV1,
+    source_path: &str,
+    range_identity_owners: &[ClaimEventIdentityOwnerV1],
+) -> DurableResult<Vec<String>> {
+    let streams = [source_path.to_owned()];
+    let requests = claim_event_range_identity_requests_v1(context, &streams)?;
+    let owners = requests
+        .iter()
+        .map(|request| {
+            range_identity_owners
+                .iter()
+                .find(|owner| owner.id == request.id)
+                .cloned()
+                .ok_or(DurableError::Conflict(
+                    "Claim stream identity left selected range closure",
+                ))
+        })
+        .collect::<DurableResult<Vec<_>>>()?;
+    let mut paths = claim_event_range_current_owner_paths_v1(context, &streams)?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    paths.insert(source_path.to_owned());
+    paths.extend(claim_event_range_indexed_paths_v1(
+        context, &streams, &owners,
+    )?);
+    paths.extend(claim_event_range_schema_paths_v1(
+        context, &streams, &owners,
+    )?);
+    paths.extend(claim_event_range_historical_endpoint_paths_v1(
+        context, &streams, &owners,
+    )?);
+    paths.extend(claim_event_range_historical_capture_paths_v1(
+        context, &streams, &owners,
+    )?);
+    let manifests = claim_event_range_archive_manifest_paths_v1(context, &streams)?;
+    paths.extend(claim_event_range_archive_blob_paths_v1(
+        context, &manifests,
+    )?);
+    paths.extend(manifests);
+    paths.extend(claim_event_range_identity_archive_manifest_paths_v1(
+        context, &streams, &owners,
+    )?);
+    paths.extend(claim_event_range_identity_archive_blob_paths_v1(
+        context, &streams, &owners,
+    )?);
+    paths_within_limit(paths)
+}
+
 fn claim_event_archive_blob_paths_for_manifests_v1(
     context: &DurableNavigationEventContextV1,
     manifests: &[String],

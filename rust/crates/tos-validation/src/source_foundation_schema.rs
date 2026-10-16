@@ -2275,7 +2275,11 @@ pub(crate) fn source_foundation_schema_resource_uri(value: &Value) -> Option<&st
 /// the root pointer. URI resolution uses the same draft resolver as the worker.
 /// Dynamic scopes or annotation-shaped references conservatively retain the
 /// complete supplied set rather than risk omitting a dependency.
-pub(crate) fn source_foundation_schema_resource_dependencies(
+/// Resolve each selected schema resource's transitive resource indices using
+/// the same URI scopes as worker preparation. Dynamic, ambiguous or unresolved
+/// references conservatively retain the complete supplied resource set. This
+/// selects dependencies only; it does not accept a schema or source document.
+pub fn source_foundation_schema_resource_dependencies(
     resources: &[SchemaResource],
     deadline: Instant,
     cancelled: &AtomicBool,

@@ -89,6 +89,13 @@ the exact earlier 13-field shape and the 14-field shape with a validated stream
 inventory; older readers reject the latter and must be upgraded with the
 producer. New publication requires the complete inventory. Subsequent events recognize both Record and
 Claim range-reconciliation cohorts as predecessor owners.
+Each selected stream carries its own complete forms, identity, evidence and
+history closure, plus the exact range causes and shared inventory witnesses.
+It does not acquire other selected streams' support files as dependencies.
+Schema dependencies use the validation owner's transitive URI closure; ambiguous
+or dynamic references conservatively retain the configured schema set. The
+producer reports aggregate logical work separately from selected source bytes,
+and a refusal names its phase and limiting counters without exposing payloads.
 Historical record nodes retain their archived source references and exact
 carrier bytes, while bootstrap groups them with the current record that owns
 their history view. A prior bootstrap with archive-file ownership requires the
