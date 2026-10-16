@@ -1897,14 +1897,21 @@ fn verify_range_member(
     coverage: &NavigationEventRangeCoverageV1,
     sequence: u64,
     path: &str,
-    is_source: bool,
+    require_source: bool,
     raw: &[u8],
 ) -> Result<()> {
     let member = coverage
         .member(sequence, path)
         .ok_or(Error::Invalid("navigation Record range member absent"))?;
-    if member.is_source != is_source
-        || raw.is_empty()
+    // Source records/forms require a source member. Supporting receipts may
+    // themselves be source members, as in the native creation package; their
+    // exact declaration and bytes remain authenticated by range coverage.
+    if require_source && !member.is_source {
+        return Err(Error::Invalid(
+            "navigation Record range member is not a source",
+        ));
+    }
+    if raw.is_empty()
         || raw.len() > MAX_RANGE_BYTES
         || member.size_bytes != raw.len() as u64
         || member.sha256 != Digest256::of_bytes(raw)
@@ -2330,4 +2337,130 @@ fn canonical_value_bytes(value: &Value) -> Result<Vec<u8>> {
     )
     .map_err(|_| Error::Budget("navigation Record range canonical bytes"))?;
     Ok(canonical)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::source_navigation_event::{
+        NavigationEventRangeCoverageInputV1, NavigationEventRangeEventV1,
+        NavigationEventRangeMemberV1, seal_navigation_event_range_coverage_v1,
+    };
+
+    fn creation_coverage(files: &[(&str, &[u8], bool)]) -> NavigationEventRangeCoverageV1 {
+        let mut members = files
+            .iter()
+            .map(|(path, raw, is_source)| NavigationEventRangeMemberV1 {
+                source_path: (*path).into(),
+                revision: 1,
+                is_source: *is_source,
+                size_bytes: raw.len() as u64,
+                sha256: Digest256::of_bytes(raw),
+            })
+            .collect::<Vec<_>>();
+        members.sort_by(|a, b| a.source_path.cmp(&b.source_path));
+        let event = NavigationEventRangeEventV1 {
+            sequence: 1,
+            event_id: "event-1".into(),
+            command_id: Some("command-1".into()),
+            event_kind: "command".into(),
+            member_root: Digest256::of_bytes(b"creation-members"),
+            members,
+        };
+        let raw = canonical_value_bytes(&json!({
+            "schema_version":"tos_source_navigation_event_range_coverage_v1",
+            "cursor_before":0,"through_sequence":1,"terminal_event_id":"event-1",
+            "events":[{
+                "sequence":1,"event_id":"event-1","command_id":"command-1",
+                "event_kind":"command","member_root":event.member_root.to_hex(),
+                "members":event.members.iter().map(|member| json!({
+                    "source_path":member.source_path,"revision":member.revision,
+                    "is_source":member.is_source,"size_bytes":member.size_bytes,
+                    "sha256":member.sha256.to_hex(),
+                })).collect::<Vec<_>>(),
+            }],
+        }))
+        .unwrap();
+        seal_navigation_event_range_coverage_v1(NavigationEventRangeCoverageInputV1 {
+            cursor_before: 0,
+            through_sequence: 1,
+            terminal_event_id: "event-1",
+            events: &[event],
+            coverage_root: Digest256::of_bytes(&raw),
+            manifest_raw: &raw,
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn creation_receipt_preserves_subject_identity_and_exact_source_members() {
+        let source_path = "ToS/source-witnesses/agents/range-created/agent.json";
+        let receipt_path = adjacent(source_path, "source-create-receipt.json").unwrap();
+        let event_path = adjacent(source_path, "source-create-provenance.jsonl").unwrap();
+        let record = json!({"record_id":"tos.agent.range-created","record_version":1,
+            "preferred_label":"Création"});
+        let mut raw = serde_json::to_vec_pretty(&record).unwrap();
+        raw.push(b'\n');
+        let canonical_digest = record_digest(&record, MAX_RANGE_BYTES).unwrap();
+        assert_ne!(canonical_digest, Digest256::of_bytes(&raw).to_hex());
+        let event = serde_json::to_vec(&json!({
+            "record_binding":{"manifest_ref":receipt_path,"digest_scope":"exact_event_record_bytes"},
+            "entities":{"outputs":[{"entity_ref":source_path,
+                "sha256":Digest256::of_bytes(&raw).to_hex(),"size_bytes":raw.len()}]},
+        })).unwrap();
+        let file_binding = |bytes: &[u8]| {
+            json!({
+                "sha256":format!("sha256:{}",Digest256::of_bytes(bytes).to_hex()),"bytes":bytes.len(),
+            })
+        };
+        let receipt = json!({
+            "schema_version":"tos_local_source_create_receipt_v1","command_id":"command-1",
+            "source_path":source_path,"source":{"id":"tos.agent.range-created","version":1,
+                "digest":format!("sha256:{canonical_digest}")},
+            "files":{"agent.json":file_binding(&raw),"source-create-provenance.jsonl":file_binding(&event)},
+        });
+        let owner = owner_key(source_path, "tos.agent.range-created");
+        let check = |receipt: &Value, source_flag, receipt_flag, supplied: &[u8]| {
+            let receipt_raw = serde_json::to_vec(receipt).unwrap();
+            let coverage = creation_coverage(&[
+                (source_path, &raw, source_flag),
+                (&receipt_path, &receipt_raw, receipt_flag),
+                (&event_path, &event, true),
+            ]);
+            seal_record_mutation_cause(
+                &NavigationRecordEventRangeMutationCauseInputV1 {
+                    event_sequence: 1,
+                    event_id: "event-1",
+                    command_id: "command-1",
+                    kind: NavigationRecordEventRangeMutationKindInputV1::DirectCreate {
+                        source_path,
+                        source_bytes: supplied,
+                        receipt_path: &receipt_path,
+                        receipt_bytes: &receipt_raw,
+                        provenance_event_path: &event_path,
+                        provenance_event_bytes: &event,
+                        origin_forms_path: None,
+                        origin_forms_bytes: None,
+                    },
+                },
+                &owner,
+                &coverage,
+                None,
+            )
+        };
+        for receipt_flag in [true, false] {
+            assert!(check(&receipt, true, receipt_flag, &raw).is_ok());
+        }
+        assert!(check(&receipt, false, true, &raw).is_err());
+        let mut changed_bytes = raw.clone();
+        changed_bytes.push(b' ');
+        assert!(check(&receipt, true, true, &changed_bytes).is_err());
+        let mut wrong_subject = receipt.clone();
+        wrong_subject["source"]["digest"] =
+            json!(format!("sha256:{}", Digest256::of_bytes(&raw).to_hex()));
+        assert!(check(&wrong_subject, true, true, &raw).is_err());
+        let mut wrong_file = receipt.clone();
+        wrong_file["files"]["agent.json"]["bytes"] = json!(raw.len() + 1);
+        assert!(check(&wrong_file, true, true, &raw).is_err());
+    }
 }
