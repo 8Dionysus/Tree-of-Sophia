@@ -215,9 +215,11 @@ jobs:
           cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
             --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci \
+            --bin tos-unicode-tables --bin tos-constructor-desktop \
+            --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked --no-default-features --features mechanics -p tos-ops-mechanics-plan \
             --bin tos-kag-release --bin tos-kag-provider-controls --bin tos-stats-release \
             --bin tos-route-cards --bin tos-agents-route-harness \
-            --bin tos-unicode-tables --bin tos-constructor-desktop \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-ops-mechanics-plan \
             --bin tos-ops-mechanics-plan --bin tos-source-registry --bin tos-open-work-queue \

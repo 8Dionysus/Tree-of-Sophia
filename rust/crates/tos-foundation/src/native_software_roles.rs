@@ -53,6 +53,7 @@ pub fn features(role: &str) -> Option<&'static [&'static str]> {
         "tos-ops-mechanics-plan" | "tos-source-registry" | "tos-open-work-queue" => &[
             "compiler-backed-validators",
             "default",
+            "mechanics",
             "philosophy-library",
         ],
         "tos-schema-worker" => &["default", "native"],
@@ -65,6 +66,11 @@ pub fn explicit_features(role: &str) -> &'static [&'static str] {
     match role {
         "tos-research" => &["research-tools"],
         "tos-constructor-library" | "tos-constructor-fragments" => &["source-tools"],
+        "tos-route-cards"
+        | "tos-agents-route-harness"
+        | "tos-kag-provider-controls"
+        | "tos-kag-release"
+        | "tos-stats-release" => &["mechanics"],
         _ => &[],
     }
 }

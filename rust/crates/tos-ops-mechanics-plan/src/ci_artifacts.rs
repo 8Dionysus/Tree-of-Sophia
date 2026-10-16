@@ -1059,6 +1059,16 @@ mod tests {
         assert!(products["tos-access"].features.is_empty());
         assert_eq!(products["tos-research"].features, ["research-tools"]);
         assert!(products["tos-validation-lanes"].features.is_empty());
+        assert_eq!(products["tos-route-cards"].features, ["mechanics"]);
+        assert_eq!(
+            products["tos-ops-mechanics-plan"].features,
+            [
+                "compiler-backed-validators",
+                "default",
+                "mechanics",
+                "philosophy-library"
+            ]
+        );
         assert!(
             cargo_products(
                 &root,
