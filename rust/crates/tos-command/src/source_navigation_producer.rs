@@ -1093,6 +1093,7 @@ fn process_ready_range(
             }
         }
         meter.admit(
+            "claim_inventory",
             inventory_rows,
             0,
             inventory_bytes,
@@ -1320,6 +1321,7 @@ fn process_ready_range(
                     limits,
                 )?;
                     meter.admit(
+                        "record_dependency_preview",
                         cost.rows,
                         cost.encoded_bytes,
                         cost.dependency_bytes,
@@ -1583,6 +1585,7 @@ fn process_ready_range(
                         limits,
                     )?;
                         meter.admit(
+                            "claim_projection",
                             cost.rows,
                             cost.encoded_bytes,
                             cost.dependency_bytes,
@@ -1660,7 +1663,7 @@ fn process_ready_range(
                         limits,
                     ) {
                         Ok((cohort, cost)) => {
-                            if let Err(error) = meter.admit(cost.rows, cost.encoded_bytes, cost.dependency_bytes, cost.dependency_count, selection, &selection.event_limits) {
+                            if let Err(error) = meter.admit("record_projection", cost.rows, cost.encoded_bytes, cost.dependency_bytes, cost.dependency_count, selection, &selection.event_limits) {
                                 project_error = Some(error);
                                 return Err(tos_compiler::Error::Invalid("Record range aggregate budget"));
                             }
@@ -1765,6 +1768,10 @@ fn process_ready_range(
             "record_rows": record_range_set.rows().len(),
             "claim_streams": claim_manifest.terminal_streams().len(),
             "claim_rows": claim_range_owner_set.cohorts().len(),
+            "aggregate_rows": meter.rows,
+            "aggregate_encoded_bytes": meter.encoded_bytes,
+            "aggregate_dependency_bytes": meter.dependency_bytes,
+            "aggregate_work_units": meter.work_units,
             "max_events": selection.max_events,
         }),
     ))
@@ -3022,6 +3029,7 @@ pub(crate) struct NavigationEventBudgetMeterV1 {
 impl NavigationEventBudgetMeterV1 {
     pub(crate) fn admit(
         &mut self,
+        phase: &'static str,
         rows: u64,
         encoded_bytes: u64,
         dependency_bytes: u64,
@@ -3053,8 +3061,17 @@ impl NavigationEventBudgetMeterV1 {
             || dependency_bytes > selection.max_total_dependency_bytes
             || work_units > selection.max_total_work_units
         {
-            return Err(DurableError::Refused(
-                "navigation aggregate event budget exceeded",
+            // Numeric work counters and a static phase expose the limiting
+            // dimension without returning selected paths or source payloads.
+            return Err(DurableError::Source(
+                crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                    "navigation aggregate event budget exceeded: phase={phase} rows={rows}/{} encoded_bytes={encoded_bytes}/{} event_encoded_bytes={encoded_bytes}/{} dependency_bytes={dependency_bytes}/{} work_units={work_units}/{}",
+                    selection.max_total_rows,
+                    selection.max_total_encoded_bytes,
+                    limits.max_total_bytes,
+                    selection.max_total_dependency_bytes,
+                    selection.max_total_work_units,
+                )),
             ));
         }
         self.rows = rows;
