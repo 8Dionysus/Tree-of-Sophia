@@ -4344,7 +4344,26 @@ fn validate_fresh_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
     Ok(true)
 }
 
-fn validate_existing_pg_stage(plan: &Plan, args: &Args) -> Result<(), String> {
+// Only the path returned by successful private staging may be inside output.
+// Initial caller-selected baselines must remain outside that directory.
+fn existing_pg_baseline_location_valid(
+    baseline: &Path,
+    output: &Path,
+    prepared_owner_root: Option<&Path>,
+) -> bool {
+    match prepared_owner_root {
+        Some(prepared) => {
+            baseline == prepared && baseline.starts_with(output) && baseline != output
+        }
+        None => !output.starts_with(baseline) && !baseline.starts_with(output),
+    }
+}
+
+fn validate_existing_pg_stage(
+    plan: &Plan,
+    args: &Args,
+    prepared_owner_root: Option<&Path>,
+) -> Result<(), String> {
     if std::env::var_os("TOS_SOURCE_PG_URL").is_none_or(|value| value.is_empty()) {
         return Err(
             "existing native PG stage requires TOS_SOURCE_PG_URL; its value is never reported"
@@ -4363,8 +4382,7 @@ fn validate_existing_pg_stage(plan: &Plan, args: &Args) -> Result<(), String> {
         || !baseline_metadata.is_dir()
         || baseline_metadata.uid() != unsafe { libc::geteuid() }
         || baseline_metadata.mode() & 0o077 != 0
-        || args.output.starts_with(&baseline)
-        || baseline.starts_with(&args.output)
+        || !existing_pg_baseline_location_valid(&baseline, &args.output, prepared_owner_root)
     {
         return Err(
             "existing native PG baseline must be a separate private owned directory".into(),
@@ -4701,11 +4719,15 @@ fn validate_existing_pg_stage(plan: &Plan, args: &Args) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_pg_stage(plan: &Plan, args: &Args) -> Result<bool, String> {
+fn validate_pg_stage(
+    plan: &Plan,
+    args: &Args,
+    prepared_owner_root: Option<&Path>,
+) -> Result<bool, String> {
     match args.pg_stage_mode {
         PgStageMode::Fresh => validate_fresh_pg_stage(plan, args),
         PgStageMode::Existing => {
-            validate_existing_pg_stage(plan, args)?;
+            validate_existing_pg_stage(plan, args, prepared_owner_root)?;
             Ok(true)
         }
     }
@@ -4869,7 +4891,11 @@ fn outcome_summary(value: &ExpectedOutcome) -> Value {
     })
 }
 
-fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String> {
+fn validate_plan(
+    plan: &Plan,
+    args: &Args,
+    prepared_owner_root: Option<&Path>,
+) -> Result<(usize, bool, bool), String> {
     if plan.schema != SCHEDULE_SCHEMA
         || plan.sessions.len() < args.sessions
         || plan.sessions.len() > MAX_SESSIONS
@@ -4878,7 +4904,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
     {
         return Err("schedule schema/session count mismatch".into());
     }
-    let native_pg_stage = validate_pg_stage(plan, args)?;
+    let native_pg_stage = validate_pg_stage(plan, args, prepared_owner_root)?;
     let fresh_pg_stage = native_pg_stage && args.pg_stage_mode == PgStageMode::Fresh;
     let mut ids = BTreeSet::new();
     let mut total = plan.setup.len() + plan.postload.len();
@@ -8009,16 +8035,16 @@ fn main_result() -> Result<i32, String> {
     let schedule_sha256 = sha(&schedule_bytes);
     let mut plan: Plan =
         serde_json::from_slice(&schedule_bytes).map_err(|_| "invalid bounded workload schedule")?;
-    let native_pg_stage = validate_pg_stage(&plan, &args)?;
+    let native_pg_stage = validate_pg_stage(&plan, &args, None)?;
     let fresh_pg_stage = native_pg_stage && args.pg_stage_mode == PgStageMode::Fresh;
-    validate_plan(&plan, &args)?;
+    validate_plan(&plan, &args, None)?;
     limit_plan_operations(
         &mut plan,
         args.sessions,
         args.operation_count,
         args.channel_mix.as_ref(),
     )?;
-    let (_, needs_mcp, needs_owner) = validate_plan(&plan, &args)?;
+    let (_, needs_mcp, needs_owner) = validate_plan(&plan, &args, None)?;
     let cgroup = cgroup_path(&args.unit)?;
     let lease_execution = write_lease(&args.output, &args.unit, args.output_cap)?;
     let owner_stage = prepare_owner_stage(&mut args, &mut plan, needs_owner, deadline)?;
@@ -8060,7 +8086,8 @@ fn main_result() -> Result<i32, String> {
     if !stamp_equal(&input_stamps[schedule_index], &schedule_initial_stamp) {
         return Err("schedule path identity changed while preparing owner stage".into());
     }
-    let (total_ops, needs_mcp, needs_owner) = validate_plan(&plan, &args)?;
+    let prepared_owner_root = owner_stage.as_ref().map(|stage| stage.1.as_path());
+    let (total_ops, needs_mcp, needs_owner) = validate_plan(&plan, &args, prepared_owner_root)?;
     let logical_mcp_sessions = plan
         .sessions
         .iter()
@@ -9892,6 +9919,42 @@ mod tests {
         ));
         fs::remove_dir_all(root).expect("remove replay fixture");
     }
+}
+
+#[test]
+fn existing_pg_baseline_requires_explicit_successful_staging() {
+    let baseline = Path::new("/private/baseline");
+    let output = Path::new("/private/output");
+    let staged = output.join("owner-stage");
+    let unrelated = output.join("unrelated");
+    assert!(existing_pg_baseline_location_valid(baseline, output, None));
+    assert!(!existing_pg_baseline_location_valid(&staged, output, None));
+    assert!(!existing_pg_baseline_location_valid(output, output, None));
+    assert!(!existing_pg_baseline_location_valid(
+        Path::new("/private"),
+        output,
+        None
+    ));
+    assert!(existing_pg_baseline_location_valid(
+        &staged,
+        output,
+        Some(&staged)
+    ));
+    assert!(!existing_pg_baseline_location_valid(
+        &unrelated,
+        output,
+        Some(&staged)
+    ));
+    assert!(!existing_pg_baseline_location_valid(
+        output,
+        output,
+        Some(output)
+    ));
+    assert!(!existing_pg_baseline_location_valid(
+        baseline,
+        output,
+        Some(baseline)
+    ));
 }
 
 fn main() {
