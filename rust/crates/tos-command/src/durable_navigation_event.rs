@@ -66,6 +66,9 @@ mod bootstrap_capture;
 /// Independent resource ceilings for one event-local cohort or selected cut.
 #[derive(Clone, Copy, Debug)]
 pub struct DurableNavigationEventLimits {
+    /// Dependencies in one owner cohort or exact source-path selection.
+    /// A batch can contain many such owners; all old/new dependency rows are
+    /// charged to its aggregate max_current_rows and max_total_bytes ceilings.
     pub max_dependencies: usize,
     pub max_cohort_rows: usize,
     pub max_current_cohorts: usize,
@@ -4704,7 +4707,7 @@ fn verify_navigation_batch_final_budget<C: GenericClient>(
                   (SELECT COALESCE(sum(bytes),0)::bigint FROM dependencies) AS dependency_bytes",
         &[&domain,&consumer_id,&target_paths,&target_ids,
           &i64::try_from(limits.max_current_rows.saturating_add(1)).map_err(|_| DurableError::Refused("navigation batch row cap"))?,
-          &i64::try_from(limits.max_dependencies.saturating_add(1)).map_err(|_| DurableError::Refused("navigation batch dependency cap"))?],
+          &i64::try_from(limits.max_current_rows.saturating_add(1)).map_err(|_| DurableError::Refused("navigation batch dependency row cap"))?],
     )?;
     let new_carrier_count = replacements.iter().try_fold(0u64, |total, rows| {
         total
@@ -4772,14 +4775,30 @@ fn verify_navigation_batch_final_budget<C: GenericClient>(
             "navigation batch selected byte count",
         ))?;
     if selected_rows > limits.max_current_rows as u64
-        || as_u64(selected.get("dependency_count"))?.saturating_add(new_dependency_count)
-            > limits.max_dependencies as u64
+        || replacements
+            .iter()
+            .any(|rows| rows.dependencies.len() > limits.max_dependencies)
         || target_owners.len() > limits.max_current_cohorts
         || replacements.len() > limits.max_current_cohorts
         || selected_bytes > limits.max_total_bytes
     {
-        return Err(DurableError::Refused(
-            "navigation batch selected mutation budget",
+        return Err(DurableError::Source(
+            crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                "navigation batch selected mutation budget: rows={selected_rows}/{} bytes={selected_bytes}/{} old_dependency_rows={} new_dependency_rows={new_dependency_count} max_owner_dependencies={}/{} target_owners={}/{} replacements={}/{}",
+                limits.max_current_rows,
+                limits.max_total_bytes,
+                as_u64(selected.get("dependency_count"))?,
+                replacements
+                    .iter()
+                    .map(|rows| rows.dependencies.len())
+                    .max()
+                    .unwrap_or(0),
+                limits.max_dependencies,
+                target_owners.len(),
+                limits.max_current_cohorts,
+                replacements.len(),
+                limits.max_current_cohorts,
+            )),
         ));
     }
     Ok(())

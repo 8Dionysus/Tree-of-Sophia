@@ -89,6 +89,12 @@ the exact earlier 13-field shape and the 14-field shape with a validated stream
 inventory; older readers reject the latter and must be upgraded with the
 producer. New publication requires the complete inventory. Subsequent events recognize both Record and
 Claim range-reconciliation cohorts as predecessor owners.
+`max_dependencies` bounds each owner closure and exact source-path selection.
+Batch publication charges every old and new dependency row to
+`max_current_rows` and its metadata bytes to `max_total_bytes`; shared paths
+across different owners do not turn the per-owner ceiling into an aggregate
+row limit. All limits remain enforced before mutation.
+
 Event schema checks reuse actual scalar receipts for repeated exact documents
 within the same prepared candidate executor. Path, raw bytes and full schema
 selector (including fragments) must match; cancellation, deadlines, selected

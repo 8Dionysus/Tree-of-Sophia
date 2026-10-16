@@ -165,6 +165,89 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
         limits,
     )
     .unwrap();
+    // Each owner has one dependency, repeated across owners and across the
+    // old/new publication. The per-owner ceiling is not a batch row ceiling.
+    tx.batch_execute(
+        "INSERT INTO cmd2_projection_navigation_dependency
+         VALUES ('lab','navigation','changed','changed','common.json','additional',NULL,'absent'),
+                ('lab','navigation','shared','shared','common.json','additional',NULL,'absent');",
+    )
+    .unwrap();
+    let mut shared_replacement = replacement.clone();
+    shared_replacement.dependencies = vec![NavigationDependencyV1 {
+        path: RelativePath::parse("common.json").unwrap(),
+        role: NavigationDependencyRoleV1::Additional,
+        state: NavigationDependencyStateV1::Absent {
+            reason: "absent".into(),
+        },
+    }];
+    let shared_owners = BTreeSet::from([
+        ("changed".into(), "changed".into()),
+        ("shared".into(), "shared".into()),
+    ]);
+    let shared_replacements = [shared_replacement.clone(), shared_replacement.clone()];
+    let shared_limits = DurableNavigationEventLimits {
+        max_dependencies: 1,
+        ..limits
+    };
+    verify_navigation_batch_final_budget(
+        &mut tx,
+        "lab",
+        "navigation",
+        &shared_owners,
+        &shared_replacements,
+        64,
+        shared_limits,
+    )
+    .unwrap();
+    // Both predecessor and replacement dependency rows still count toward the
+    // aggregate transaction ceiling, and each owner retains its own ceiling.
+    for refused_limits in [
+        DurableNavigationEventLimits {
+            max_current_rows: 10,
+            ..shared_limits
+        },
+        DurableNavigationEventLimits {
+            max_total_bytes: 64,
+            ..shared_limits
+        },
+    ] {
+        assert!(
+            verify_navigation_batch_final_budget(
+                &mut tx,
+                "lab",
+                "navigation",
+                &shared_owners,
+                &shared_replacements,
+                64,
+                refused_limits,
+            )
+            .is_err()
+        );
+    }
+    shared_replacement
+        .dependencies
+        .push(NavigationDependencyV1 {
+            path: RelativePath::parse("second.json").unwrap(),
+            role: NavigationDependencyRoleV1::Additional,
+            state: NavigationDependencyStateV1::Absent {
+                reason: "absent".into(),
+            },
+        });
+    assert!(
+        verify_navigation_batch_final_budget(
+            &mut tx,
+            "lab",
+            "navigation",
+            &shared_owners,
+            &[shared_replacement, shared_replacements[1].clone()],
+            64,
+            shared_limits,
+        )
+        .is_err()
+    );
+    tx.batch_execute("DELETE FROM cmd2_projection_navigation_dependency")
+        .unwrap();
     let (nodes, edges, affected) = load_navigation_batch_neighborhood(
         &mut tx,
         "lab",
