@@ -106,7 +106,10 @@ its exact complete stream and range causes. The immutable parsed inventory and
 range manifest bind the complete stream membership once. Each contribution
 checks its own and referenced streams; unrelated stream payloads are not copied.
 The full interleaved history chain remains checked, while each revision archive
-is verified by the Claim that owns it. Every terminal owner must succeed before
+is verified by the Claim that owns it. Persisted dependencies support exact
+empty files only with the SHA-256 of empty bytes. The projection initializer
+migrates the old positive-length constraint without changing source rows.
+Every terminal owner must succeed before
 the complete range can seal, so a bad archive still refuses publication. Other
 owners' support files are not copied into its contribution. The producer computes
 the complete dependency-byte forecast before rendering any Claim; actual

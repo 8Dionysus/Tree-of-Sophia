@@ -358,3 +358,105 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
     );
     tx.rollback().unwrap();
 }
+
+#[test]
+#[ignore = "requires explicit isolated TOS_CMD_POSTGRES_URL"]
+fn navigation_dependency_schema_preserves_exact_empty_source() {
+    let url = std::env::var("TOS_CMD_POSTGRES_URL").expect("explicit private PG lab URL");
+    let mut client = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+    let mut tx = client.transaction().unwrap();
+    tx.batch_execute(
+        "CREATE SCHEMA navigation_dependency_schema_probe;
+         SET LOCAL search_path TO navigation_dependency_schema_probe;
+         CREATE TABLE cmd2_projection_navigation_cohort (
+           domain text,consumer_id text,source_path text,record_id text,
+           PRIMARY KEY(domain,consumer_id,source_path,record_id));
+         INSERT INTO cmd2_projection_navigation_cohort VALUES('lab','nav','fixture','fixture');",
+    )
+    .unwrap();
+    let schema = include_str!("../durable_projection.sql");
+    let start = schema
+        .find("CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_dependency (")
+        .unwrap();
+    let end = schema[start..]
+        .find("CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_dependency_path_seek")
+        .unwrap()
+        + start;
+    let ddl = &schema[start..end];
+    tx.batch_execute(ddl).unwrap();
+    let retained_digest = Digest256::of_bytes(b"x").to_hex();
+    tx.execute(
+        "INSERT INTO cmd2_projection_navigation_dependency
+         VALUES('lab','nav','fixture','fixture','retained','version-source','present',$1,1,NULL)",
+        &[&retained_digest],
+    )
+    .unwrap();
+    // Both fresh installation and a prior positive-length-only constraint use
+    // this same idempotent initializer; no data row is rewritten by migration.
+    for legacy in [false, true] {
+        if legacy {
+            tx.batch_execute(
+                "ALTER TABLE cmd2_projection_navigation_dependency
+                 DROP CONSTRAINT cmd2_projection_navigation_dependency_state_check;
+                 ALTER TABLE cmd2_projection_navigation_dependency ADD CONSTRAINT
+                 cmd2_projection_navigation_dependency_state_check CHECK(size_bytes > 0);",
+            )
+            .unwrap();
+        }
+        tx.batch_execute(ddl).unwrap();
+        let retained = tx.query_one(
+            "SELECT sha256,size_bytes FROM cmd2_projection_navigation_dependency WHERE dependency_path='retained'",
+            &[],
+        ).unwrap();
+        assert_eq!(retained.get::<_, String>(0), retained_digest);
+        assert_eq!(retained.get::<_, i64>(1), 1);
+        let empty = Digest256::of_bytes(&[]).to_hex();
+        let other = Digest256::of_bytes(b"x").to_hex();
+        for (state, digest, size, reason, allowed) in [
+            ("present", Some(empty.as_str()), Some(0_i64), None, true),
+            ("present", Some(other.as_str()), Some(1), None, true),
+            ("absent", None, None, Some("not_present"), true),
+            ("present", Some(other.as_str()), Some(0), None, false),
+            ("present", Some(empty.as_str()), Some(-1), None, false),
+            ("present", None, Some(1), None, false),
+            ("present", Some(other.as_str()), None, None, false),
+            (
+                "present",
+                Some(other.as_str()),
+                Some(1),
+                Some("not_present"),
+                false,
+            ),
+            (
+                "absent",
+                Some(empty.as_str()),
+                None,
+                Some("not_present"),
+                false,
+            ),
+            ("absent", None, Some(0), Some("not_present"), false),
+            ("absent", None, None, Some(""), false),
+            ("absent", None, None, None, false),
+        ] {
+            tx.batch_execute("SAVEPOINT dependency_case").unwrap();
+            let inserted = tx.execute(
+                "INSERT INTO cmd2_projection_navigation_dependency
+                 VALUES('lab','nav','fixture','fixture','dependency','version-source',$1,$2,$3,$4)",
+                &[&state, &digest, &size, &reason],
+            );
+            assert_eq!(
+                inserted.is_ok(),
+                allowed,
+                "state={state} size={size:?} legacy={legacy}"
+            );
+            if !allowed {
+                assert_eq!(inserted.unwrap_err().code().unwrap().code(), "23514");
+            }
+            tx.batch_execute(
+                "ROLLBACK TO SAVEPOINT dependency_case; RELEASE SAVEPOINT dependency_case",
+            )
+            .unwrap();
+        }
+    }
+    tx.rollback().unwrap();
+}

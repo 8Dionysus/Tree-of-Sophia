@@ -726,14 +726,21 @@ CREATE TABLE IF NOT EXISTS cmd2_projection_navigation_dependency (
   PRIMARY KEY (domain,consumer_id,source_path,record_id,dependency_path),
   FOREIGN KEY (domain,consumer_id,source_path,record_id)
     REFERENCES cmd2_projection_navigation_cohort(domain,consumer_id,source_path,record_id)
-    ON DELETE CASCADE,
-  CONSTRAINT cmd2_projection_navigation_dependency_state_check CHECK (
-    (observation_state='present' AND sha256 ~ '^[0-9a-f]{64}$' AND
-      size_bytes > 0 AND absent_reason IS NULL) OR
-    (observation_state='absent' AND sha256 IS NULL AND size_bytes IS NULL AND
-      octet_length(absent_reason) BETWEEN 1 AND 128)
-  )
+    ON DELETE CASCADE
 );
+-- Existing installations must admit the same exact empty dependency state as
+-- the compiler and persisted envelope validator (for example archived locks).
+ALTER TABLE cmd2_projection_navigation_dependency
+  DROP CONSTRAINT IF EXISTS cmd2_projection_navigation_dependency_state_check;
+ALTER TABLE cmd2_projection_navigation_dependency
+  ADD CONSTRAINT cmd2_projection_navigation_dependency_state_check CHECK (
+    (observation_state='present' AND sha256 IS NOT NULL AND
+      sha256 ~ '^[0-9a-f]{64}$' AND size_bytes IS NOT NULL AND size_bytes >= 0 AND
+      (size_bytes > 0 OR sha256='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') AND
+      absent_reason IS NULL) OR
+    (observation_state='absent' AND sha256 IS NULL AND size_bytes IS NULL AND
+      absent_reason IS NOT NULL AND octet_length(absent_reason) BETWEEN 1 AND 128)
+  );
 
 CREATE INDEX IF NOT EXISTS cmd2_projection_navigation_dependency_path_seek
   ON cmd2_projection_navigation_dependency(domain,consumer_id,dependency_path COLLATE "C");

@@ -69,8 +69,11 @@ fn producer_refusal(error: crate::source_navigation_cli::SourceNavigationSelecti
                 .is_some_and(|cause| cause.is::<postgres::types::WrongType>())
             {
                 "navigation database parameter type mismatch".into()
-            } else if error.as_db_error().is_some() {
-                "navigation database statement refused".into()
+            } else if let Some(database_error) = error.as_db_error() {
+                format!(
+                    "navigation database statement refused: sqlstate={}",
+                    database_error.code().code()
+                )
             } else {
                 "navigation database client operation failed".into()
             }
