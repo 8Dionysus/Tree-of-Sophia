@@ -2,6 +2,18 @@
 //! Only bounded metadata is retained; each body is released after its callback.
 use super::*;
 
+// Source delivery needs custody and file metadata. Inventory projections have
+// their own verified catalogue visitor; including their bytea JSON encoding
+// here can reject a valid source row before any exact bytes are exported.
+const CURRENT_EXPORT_ROWS: &str = "SELECT domain,subject,revision,commit_seq,
+    prepare_id,member_slot,profile_id,profile_version,content_digest,content_length,
+    store_id,custody_domain_digest,custody_domain,pin_id,pin_fence,segment_digest,
+    segment_size,frame_index,frame_header_offset,frame_digest,frame_length,
+    sto_receipt_id,durability_class,source_mode,source_dependencies
+    FROM cmd2_current WHERE domain=$1";
+const INDEX_EXPORT_ROWS: &str = "SELECT kind,token,path,definition_digest
+    FROM cmd2_source_index WHERE domain=$1 AND kind<>'path'";
+
 pub(crate) struct SelectedSourceExportMetadata {
     pub metadata: BTreeMap<String, MemberMetadata>,
     pub dependencies: BTreeMap<String, Option<Vec<RelativePath>>>,
@@ -44,11 +56,13 @@ impl DurablePgCoordinator {
         held_generation_metadata(&mut tx, store, generation)?;
         let domain = generation.cohort().domain();
         let admitted = tx.query_one(
-            "SELECT count(*),coalesce(sum(content_length),0)::bigint,
+            &format!(
+                "SELECT count(*),coalesce(sum(content_length),0)::bigint,
                     coalesce(max(content_length),0),
                     coalesce(sum(octet_length(row_to_json(c)::text)),0)::bigint,
                     coalesce(max(octet_length(row_to_json(c)::text)),0)
-             FROM cmd2_current c WHERE domain=$1",
+             FROM ({CURRENT_EXPORT_ROWS}) c"
+            ),
             &[&domain],
         )?;
         let count = as_u64(admitted.get(0))?;
@@ -66,8 +80,10 @@ impl DurablePgCoordinator {
             ));
         }
         let indexed = tx.query_one(
-            "SELECT count(*),coalesce(sum(octet_length(row_to_json(i)::text)),0)::bigint
-             FROM cmd2_source_index i WHERE domain=$1 AND kind<>'path'",
+            &format!(
+                "SELECT count(*),coalesce(sum(octet_length(row_to_json(i)::text)),0)::bigint
+             FROM ({INDEX_EXPORT_ROWS}) i"
+            ),
             &[&domain],
         )?;
         if as_u64(indexed.get(0))? > max_manifest_entries as u64
@@ -92,11 +108,13 @@ impl DurablePgCoordinator {
         loop {
             active(deadline, cancelled)?;
             let page = tx.query(
-                "SELECT c.*,a.attempt_fence AS source_attempt_fence,
+                &format!(
+                    "SELECT c.*,a.attempt_fence AS source_attempt_fence,
                         a.state AS source_attempt_state,a.commit_seq AS source_attempt_seq
-                 FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id)
-                 WHERE c.domain=$1 AND c.subject COLLATE \"C\">$2 COLLATE \"C\"
-                 ORDER BY c.subject COLLATE \"C\" LIMIT 8",
+                 FROM ({CURRENT_EXPORT_ROWS}) c JOIN cmd2_attempt a USING(domain,prepare_id)
+                 WHERE c.subject COLLATE \"C\">$2 COLLATE \"C\"
+                 ORDER BY c.subject COLLATE \"C\" LIMIT 8"
+                ),
                 &[&domain, &after],
             )?;
             if page.is_empty() {
@@ -179,8 +197,7 @@ impl DurablePgCoordinator {
         }
         let mut indexes = Vec::new();
         let mut rows = tx.query_raw(
-            "SELECT kind,token,path,definition_digest FROM cmd2_source_index
-             WHERE domain=$1 AND kind<>'path' ORDER BY kind,token",
+            &format!("{INDEX_EXPORT_ROWS} ORDER BY kind,token"),
             &[&domain],
         )?;
         while let Some(row) = rows.next()? {
