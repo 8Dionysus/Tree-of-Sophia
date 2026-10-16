@@ -7,9 +7,10 @@ use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_selected::{
     owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
 };
+#[cfg(feature = "source-tools")]
+use crate::knowledge_stage::KnowledgeStage;
 use crate::knowledge_stage::{
-    InputCollectionReceipt, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout,
-    KnowledgeStage, WritePhase,
+    InputCollectionReceipt, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout, WritePhase,
 };
 use crate::{Error, NavigationOriginalLimits, QueryVocabulary, Result};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -690,6 +691,7 @@ fn verify_rows(
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,

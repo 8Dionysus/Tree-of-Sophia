@@ -763,7 +763,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         self.source_basis
     }
     pub fn search_index_profile(&self) -> &'static str {
-        crate::knowledge_search::SEARCH_PROFILE
+        crate::knowledge_search_rank::SEARCH_PROFILE
     }
     pub fn navigation_original_receipt(&self) -> Option<&crate::NavigationOriginalReceipt> {
         self.navigation_original

@@ -145,7 +145,7 @@ pub use temporal_comparison::{
     TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands, validate_temporal_request,
 };
 
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "reading-source"))]
 pub mod reading_search;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]

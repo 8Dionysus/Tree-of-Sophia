@@ -5,8 +5,11 @@ by readers. Source preparation, full catalog/model and native snapshot productio
 D1 emission, managed-source tools, prepared deltas and optional index installation
 require `source-tools`. This also selects DOCX/source-registry parsing,
 philosophy atlas/dossier preparation, navigation event producers, managed overlays,
-constructor commands and external producer I/O. Native query consumers do not
-enable this feature or its XML parser. Shared receipts, model ABI/schema checks,
+constructor commands, Knowledge Stage writes and external producer I/O. Native
+model readers do not enable this feature, its schema engine, regex, file locking
+or XML parser. The query crate's separate `reading-source` capability selects the
+schema and Unicode profiles for local source/analysis search; access selects it
+explicitly. Shared receipts, model ABI/schema checks,
 exact-carrier reads, context rules and custody retain one existing implementation.
 
 The source-owning command, access and mechanics packages select `source-tools`
@@ -19,8 +22,8 @@ cargo build -p tos-compiler --features source-tools --bin tos-constructor-librar
 Specialized research recipes require `research`, which includes `source-tools`.
 Their access handlers live in the separate `tos-research` executable.
 
-Knowledge Stage and some prepared publication internals still share model and
-custody contracts with readers. This feature boundary does not
+Some prepared publication internals still share model and custody contracts
+with readers. This feature boundary does not
 make the default crate a fully separate reader implementation or remove any
 live storage format.
 

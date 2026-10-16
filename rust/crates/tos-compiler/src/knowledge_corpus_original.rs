@@ -5,8 +5,10 @@ use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_selected::{
     owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
 };
+#[cfg(feature = "source-tools")]
+use crate::knowledge_stage::KnowledgeStage;
 use crate::knowledge_stage::{
-    KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout, KnowledgeStage, WritePhase,
+    KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout, WritePhase,
 };
 use crate::{Error, QueryVocabulary, Result, SourceBinding};
 use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
@@ -608,6 +610,7 @@ pub(crate) fn insert_original_row_with_layout(
 /// Caller precharges the two parsing passes here, two insertion parsing passes
 /// and insertion digest pass before this planning traversal (carrier hash and
 /// collision comparison are charged separately by the carrier primitive).
+#[cfg(feature = "source-tools")]
 pub(crate) fn preload_original_carrier(
     stage: &mut KnowledgeStage<'_>,
     collection: CorpusOriginalCollection,
@@ -639,6 +642,7 @@ pub(crate) const INSERT_ROW: &str =
 
 /// The opaque capture plan's original authority stays separate from the stage.
 /// This comparison is release composition, not a fabricated source ancestry.
+#[cfg(feature = "source-tools")]
 pub fn retain_corpus_original(
     stage: &mut KnowledgeStage<'_>,
     vocab: &QueryVocabulary,
@@ -1297,6 +1301,7 @@ fn sealed_root(db: &Connection, r: &CorpusOriginalReceipt) -> Result<()> {
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,
@@ -1411,6 +1416,7 @@ pub(crate) fn verify(
 }
 
 // Existing captured source API is retained without a second implementation.
+#[cfg(feature = "source-tools")]
 pub use retain_corpus_original as retain_captured_corpus_original;
 
 // Owned cold verification path; reused selected-state SQL authority.

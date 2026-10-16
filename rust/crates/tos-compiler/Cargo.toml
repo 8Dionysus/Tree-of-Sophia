@@ -8,7 +8,7 @@ publish = false
 
 [features]
 # Source preparation and managed-source tools are opt-in for reader consumers.
-source-tools = ["dep:quick-xml"]
+source-tools = ["dep:quick-xml", "dep:tos-validation", "dep:unicode-normalization", "dep:regex", "dep:fs2"]
 # Explicit source-selected research builders; excluded from ordinary readers.
 research = ["source-tools", "tos-validation/research"]
 # Selects the pinned IndexMap allocation envelope for cold raw normalization.
@@ -19,19 +19,19 @@ test-fixture = ["source-tools"]
 quick-xml = { version = "=0.41.0", optional = true }
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
-tos-validation = { path = "../tos-validation" }
+tos-validation = { path = "../tos-validation", optional = true }
 tos-source-store = { path = "../tos-source-store" }
 tos-segment-store = { path = "../tos-segment-store" }
 rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "raw_value"] }
-unicode-normalization = "0.1.24"
-regex = "1"
+unicode-normalization = { version = "0.1.24", optional = true }
+regex = { version = "1", optional = true }
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 # Same pinned decoder backend; its public state geometry admits hidden heap
 # before the existing flate2 decoder, without a second decoding implementation.
 miniz_oxide = "=0.9.1"
-fs2 = "0.4"
+fs2 = { version = "0.4", optional = true }
 libc = "0.2"
 
 [dev-dependencies]

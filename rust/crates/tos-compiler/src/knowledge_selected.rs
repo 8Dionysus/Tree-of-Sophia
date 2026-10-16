@@ -443,7 +443,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     /// distinct from the authored query primitive profile in the descriptor.
     pub fn search_index_profile(&self) -> &'static str {
         if self.selection.search_index_root_sha256.is_some() {
-            crate::knowledge_search::SEARCH_PROFILE
+            crate::knowledge_search_rank::SEARCH_PROFILE
         } else {
             "unavailable-native-navigation-v1"
         }

@@ -155,3 +155,5 @@ pub(crate) fn decode_pair_owned(
     state.active()?;
     Ok((identity, visible))
 }
+
+pub const SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";

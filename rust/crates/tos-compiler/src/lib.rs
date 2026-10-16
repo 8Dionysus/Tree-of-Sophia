@@ -98,9 +98,10 @@ pub use knowledge_corpus_original::{
     CorpusOriginalOrigin, CorpusOriginalPage, CorpusOriginalPlan, CorpusOriginalReceipt,
     CorpusOriginalRow, CorpusOriginalSelector, CorpusOriginalViewIdentity,
     CorpusOriginalViewIdentityPage, KNOWLEDGE_CORPUS_MODEL_ABI, NATIVE_CORPUS_ORIGINAL_PROFILE,
-    captured_runtime_input_manifest_digest, retain_captured_corpus_original,
-    retain_corpus_original,
+    captured_runtime_input_manifest_digest,
 };
+#[cfg(feature = "source-tools")]
+pub use knowledge_corpus_original::{retain_captured_corpus_original, retain_corpus_original};
 #[cfg(feature = "source-tools")]
 pub use knowledge_corpus_source::{
     CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,
@@ -122,8 +123,11 @@ mod knowledge_full;
     any(test, feature = "test-fixture")
 ))]
 pub mod knowledge_full_fixture;
+#[cfg(feature = "source-tools")]
 mod knowledge_global_titles;
+#[cfg(feature = "source-tools")]
 mod knowledge_indexed;
+#[cfg(feature = "source-tools")]
 mod knowledge_inherited_views;
 #[cfg(feature = "source-tools")]
 mod knowledge_native;
@@ -180,9 +184,11 @@ mod knowledge_registry;
 mod knowledge_repository;
 #[cfg(feature = "source-tools")]
 pub mod knowledge_repository_source;
+#[cfg(feature = "source-tools")]
 mod knowledge_scope;
 #[cfg(feature = "source-tools")]
 mod knowledge_seal;
+#[cfg(feature = "source-tools")]
 mod knowledge_search;
 mod knowledge_search_rank;
 pub use knowledge_search_rank::{
@@ -228,14 +234,23 @@ mod managed_model_manifest;
 pub use legacy::decode_partition_part;
 mod native_knowledge_selection;
 mod safe_open;
+#[cfg(feature = "source-tools")]
 pub mod source_bibliographic;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_native_text;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_navigation;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_render;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_selected_files;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_source;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_unicode;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_values;
+#[cfg(feature = "source-tools")]
 mod source_bibliographic_versions;
 #[cfg(feature = "source-tools")]
 pub mod source_navigation_claim_event;
@@ -248,11 +263,15 @@ pub use managed_model_manifest::{
     ManagedManifestDeltaV2, ManagedManifestLimitsV2, ManagedManifestRecoveryRebindV2,
     ManagedManifestV2, ManagedOverlaySourceBindingV2,
 };
+#[cfg(feature = "source-tools")]
 mod versions_catalog_epoch;
+#[cfg(feature = "source-tools")]
 pub use versions_catalog_epoch::VersionsCatalogEpochV2;
 #[cfg(feature = "source-tools")]
 pub mod source_corpus;
+#[cfg(feature = "source-tools")]
 mod source_navigation_packets;
+#[cfg(feature = "source-tools")]
 pub mod source_navigation_source;
 #[cfg(feature = "source-tools")]
 pub mod source_philosophy_atlas;
@@ -272,6 +291,7 @@ pub mod source_registry;
 pub use source_philosophy_support::PhilosophySourceReadProfile;
 #[cfg(feature = "source-tools")]
 pub mod source_philosophy_views;
+#[cfg(feature = "source-tools")]
 pub mod source_witness_catalog;
 mod sqlite_budget;
 pub use sqlite_budget::{DedicatedSessionSqliteHeap, dedicated_session_heap_bytes};
@@ -285,14 +305,17 @@ pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
     managed_navigation_header_with_binding,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_global_titles::{
     CompleteBaseNodes, GlobalTitleLimits, GlobalTitleReceipt, clear_global_titles, endpoint_title,
     order_native_graph_rows, prepare_global_titles, verify_global_titles,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_indexed::{
     IndexedLimits, IndexedReceipt, materialize_indexed_sources,
     materialize_registered_indexed_nodes, materialize_registered_indexed_relations,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_inherited_views::{
     CompleteRelationSeal, InheritedViewLimits, InheritedViewReceipt, clear_inherited_views,
     endpoint_inherited_views, prepare_global_inherited_views,
@@ -336,9 +359,11 @@ pub use knowledge_repository::{
     materialize_repository_nodes, materialize_repository_relations, prepare_repository_topology,
     repository_material_witness, scan_repository_relation_sources,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
 #[cfg(feature = "source-tools")]
 pub use knowledge_seal::{SealLimits, seal_knowledge_model};
+#[cfg(feature = "source-tools")]
 pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index};
 pub use knowledge_selected::{
     ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KNOWLEDGE_MODEL_ABI,
@@ -376,7 +401,9 @@ pub use native_knowledge_selection::{
     NativeSelectionPaths, NativeSelectionProducer,
     measure_existing_native_knowledge_artifact_custody, prepare_native_knowledge_artifact,
 };
+#[cfg(feature = "source-tools")]
 pub use source_bibliographic_selected_files::SelectedBibliographicFilesV1;
+#[cfg(feature = "source-tools")]
 pub use source_bibliographic_source::{
     CandidateSourceCatalogInputPlan, ColdSourceCatalogInputPlan, ColdSourceCatalogSpoolLimits,
     SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
@@ -387,7 +414,9 @@ pub use source_bibliographic_source::{
     prepare_cold_source_catalog_plan_observed, prepare_source_catalog_plan,
     render_source_bibliographic_plan, render_source_bibliographic_plan_with_work,
 };
+#[cfg(feature = "source-tools")]
 pub use source_bibliographic_versions::StreamedBibliographicReadLedger;
+#[cfg(feature = "source-tools")]
 pub use source_bibliographic_versions::{
     SelectedClaimVersionV1, SelectedMetadataHistoryV1, SelectedMetadataVersionSourceV1,
     resolve_selected_claim_version_v1, resolve_selected_metadata_archive_forms_v1,

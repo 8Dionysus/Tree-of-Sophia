@@ -1,7 +1,9 @@
 //! Exact navigation originals retained inside the selected immutable model.
 //! This component binds projection custody, never current rights authority.
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
-use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+#[cfg(feature = "source-tools")]
+use crate::knowledge_stage::KnowledgeStage;
+use crate::knowledge_stage::WritePhase;
 use crate::{Error, QueryVocabulary, Result};
 #[cfg(feature = "source-tools")]
 use crate::{NavigationHeaderClaim, NavigationPrepareReceipt};
@@ -1076,6 +1078,7 @@ fn verify_rows(
     Ok(())
 }
 /// Recheck original component before seal and again before selected vacuum.
+#[cfg(feature = "source-tools")]
 pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,

@@ -42,6 +42,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_full::FullKnowledgeReceipt {
     search,
     seal
 });
+#[cfg(feature = "source-tools")]
 tos_foundation::impl_owned_state!(crate::knowledge_scope::ScopeReceipt {
     source_count,
     node_count,
@@ -59,6 +60,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_catalog_index::CatalogIndexRe
     route_count,
     packet_bytes
 });
+#[cfg(feature = "source-tools")]
 tos_foundation::impl_owned_state!(crate::knowledge_search::SearchIndexReceipt {
     profile,
     node_documents,

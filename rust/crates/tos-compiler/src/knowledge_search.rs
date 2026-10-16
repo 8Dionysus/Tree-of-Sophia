@@ -27,7 +27,7 @@ use tos_foundation::{
     canonical_bytes_v1, parse_json, python_lower_unicode16_v1,
 };
 
-pub const SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";
+pub use crate::knowledge_search_rank::SEARCH_PROFILE;
 const GRAM_N: i64 = 3;
 const MAX_GRAM_BATCH_ROWS: usize = 1024;
 const SEARCH_PROGRESS_DOCUMENTS: u64 = 4096;

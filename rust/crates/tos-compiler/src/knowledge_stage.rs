@@ -4,6 +4,7 @@
 use crate::{
     Error, Limits, Result, SourceBinding, file_digest, safe_open, sqlite_budget, stream_digest,
 };
+#[cfg(feature = "source-tools")]
 use fs2::FileExt;
 use rusqlite::{Connection, OptionalExtension, params};
 use std::{
@@ -56,6 +57,7 @@ pub enum WritePhase {
 /// stage path or write the retained inodes. `verify` must reject absent or
 /// exhausted kernel-enforced quotas; a before/after size sample alone cannot
 /// cap a single SQLite statement's spill. There is no permissive implementation.
+#[cfg(feature = "source-tools")]
 pub trait StageIsolation {
     fn verify(&self, candidate: &Path, limits: StageLimits, phase: WritePhase) -> Result<()>;
 }
@@ -63,18 +65,21 @@ pub trait StageIsolation {
 /// A source-owner implementation checks the selected registration and retains
 /// the immutable sealed cut until the final recheck. Stage hashes alone do not
 /// establish source completeness or admission.
+#[cfg(feature = "source-tools")]
 pub trait StageOwner {
     fn verify_receipt(&self, receipt: &ExactInputReceipt) -> Result<()>;
     fn recheck_sealed_cut(&self, receipt: &ExactInputReceipt) -> Result<()>;
 }
 
 #[derive(Clone, Copy, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct StageLimits {
     pub sqlite: Limits,
     pub max_temp_bytes: u64,
     pub max_seek_rows: usize,
     pub max_seek_bytes: u64,
 }
+#[cfg(feature = "source-tools")]
 impl StageLimits {
     pub fn validate(self) -> Result<()> {
         self.sqlite.validate()?;
@@ -92,7 +97,9 @@ impl StageLimits {
 
 // Existing stage page ceilings; callers still pass their narrower actual
 // normalization/finalization page limits to with_write_page.
+#[cfg(feature = "source-tools")]
 const MAX_STAGE_PAGE_ROWS: usize = 1024;
+#[cfg(feature = "source-tools")]
 const MAX_STAGE_PAGE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -147,6 +154,7 @@ fn validate_input_collections(collections: &[InputCollectionReceipt]) -> Result<
 
 /// A cold authored manifest is a source carrier, never a projected index.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(feature = "source-tools")]
 pub struct ColdAuthoredBinding {
     revision: SourceRevision,
     membership: SourceMembershipV1,
@@ -155,6 +163,7 @@ pub struct ColdAuthoredBinding {
     epoch_generation: u64,
     epoch_member: Option<(Digest256, u64)>,
 }
+#[cfg(feature = "source-tools")]
 impl ColdAuthoredBinding {
     pub fn from_cut(
         cut: &CorpusCutReader,
@@ -237,15 +246,18 @@ impl ColdAuthoredBinding {
     }
 }
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct ColdExactInputReceipt {
     pub binding: ColdAuthoredBinding,
     pub collections: Vec<InputCollectionReceipt>,
 }
+#[cfg(feature = "source-tools")]
 impl ColdExactInputReceipt {
     fn validate(&self) -> Result<()> {
         validate_input_collections(&self.collections)
     }
 }
+#[cfg(feature = "source-tools")]
 pub trait ColdStageOwner {
     fn verify_receipt(&self, receipt: &ColdExactInputReceipt) -> Result<()>;
     fn recheck_sealed_cut(&self, receipt: &ColdExactInputReceipt) -> Result<()>;
@@ -253,10 +265,12 @@ pub trait ColdStageOwner {
 /// Actual candidate input identity and adapter-reported complete EOF coverage.
 /// This carrier creates no revision, publication epoch or source admission.
 #[derive(Clone)]
+#[cfg(feature = "source-tools")]
 pub struct CandidateValidationBinding<I: Copy + Eq + 'static> {
     identity: I,
     coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
 }
+#[cfg(feature = "source-tools")]
 impl<I: Copy + Eq + 'static> CandidateValidationBinding<I> {
     pub fn from_verified_input(
         input: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<I>,
@@ -317,10 +331,12 @@ impl<I: Copy + Eq + 'static> CandidateValidationBinding<I> {
     }
 }
 #[derive(Clone)]
+#[cfg(feature = "source-tools")]
 pub struct CandidateExactInputReceipt<I: Copy + Eq + 'static> {
     pub binding: CandidateValidationBinding<I>,
     pub collections: Vec<InputCollectionReceipt>,
 }
+#[cfg(feature = "source-tools")]
 impl<I: Copy + Eq + 'static> CandidateExactInputReceipt<I> {
     fn validate(&self) -> Result<()> {
         self.binding.validate()?;
@@ -328,16 +344,19 @@ impl<I: Copy + Eq + 'static> CandidateExactInputReceipt<I> {
     }
 }
 /// The actual adapter retains its source fence through computational completion.
+#[cfg(feature = "source-tools")]
 pub trait CandidateStageOwner<I: Copy + Eq + 'static> {
     fn verify_receipt(&self, receipt: &CandidateExactInputReceipt<I>) -> Result<()>;
     fn recheck_current_input(&self, receipt: &CandidateExactInputReceipt<I>) -> Result<()>;
 }
 #[derive(Clone)]
+#[cfg(feature = "source-tools")]
 struct ErasedCandidateReceipt {
     actual: Rc<dyn Any>,
     validate: fn(&dyn Any) -> Result<()>,
     collections: fn(&dyn Any) -> &[InputCollectionReceipt],
 }
+#[cfg(feature = "source-tools")]
 impl ErasedCandidateReceipt {
     fn new<I: Copy + Eq + 'static>(receipt: CandidateExactInputReceipt<I>) -> Self {
         Self {
@@ -360,11 +379,14 @@ impl ErasedCandidateReceipt {
             .ok_or(Error::Invalid("candidate receipt identity type"))
     }
 }
+#[cfg(feature = "source-tools")]
 trait ErasedCandidateOwner {
     fn verify(&self, receipt: &ErasedCandidateReceipt) -> Result<()>;
     fn recheck(&self, receipt: &ErasedCandidateReceipt) -> Result<()>;
 }
+#[cfg(feature = "source-tools")]
 struct CandidateOwnerAdapter<'a, I: Copy + Eq + 'static>(&'a dyn CandidateStageOwner<I>);
+#[cfg(feature = "source-tools")]
 impl<I: Copy + Eq + 'static> ErasedCandidateOwner for CandidateOwnerAdapter<'_, I> {
     fn verify(&self, receipt: &ErasedCandidateReceipt) -> Result<()> {
         self.0.verify_receipt(receipt.typed::<I>()?)
@@ -374,11 +396,13 @@ impl<I: Copy + Eq + 'static> ErasedCandidateOwner for CandidateOwnerAdapter<'_, 
     }
 }
 #[derive(Clone)]
+#[cfg(feature = "source-tools")]
 enum StageInputReceipt {
     Projection(ExactInputReceipt),
     Cold(ColdExactInputReceipt),
     Candidate(ErasedCandidateReceipt),
 }
+#[cfg(feature = "source-tools")]
 impl StageInputReceipt {
     fn validate(&self) -> Result<()> {
         match self {
@@ -395,11 +419,13 @@ impl StageInputReceipt {
         }
     }
 }
+#[cfg(feature = "source-tools")]
 enum StageInputOwner<'a> {
     Projection(&'a dyn StageOwner),
     Cold(&'a dyn ColdStageOwner),
     Candidate(Box<dyn ErasedCandidateOwner + 'a>),
 }
+#[cfg(feature = "source-tools")]
 impl StageInputOwner<'_> {
     fn verify_receipt(&self, receipt: &StageInputReceipt) -> Result<()> {
         match (self, receipt) {
@@ -419,18 +445,21 @@ impl StageInputOwner<'_> {
     }
 }
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct ColdStageReceipt {
     pub binding: ColdAuthoredBinding,
     pub verified_inputs: Vec<InputCollectionReceipt>,
     pub input_rows: u64,
 }
 
+#[cfg(feature = "source-tools")]
 pub struct InputRow<'a> {
     pub source_graph: &'a str,
     pub collection: &'a str,
     pub id: &'a str,
     pub payload: &'a [u8],
 }
+#[cfg(feature = "source-tools")]
 pub struct NodeRow<'a> {
     pub id: &'a str,
     pub source_graph: &'a str,
@@ -441,6 +470,7 @@ pub struct NodeRow<'a> {
     pub source_order: i64,
     pub payload: &'a [u8],
 }
+#[cfg(feature = "source-tools")]
 pub struct RelationRow<'a> {
     pub id: &'a str,
     pub source_graph: &'a str,
@@ -473,6 +503,7 @@ pub struct StageReceipt {
 /// Provisional derived row roots for the full-model seal. `finish` repeats
 /// these scans after its owner cut recheck; this is not source admission.
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub(crate) struct CoreRoots {
     pub nodes: u64,
     pub relations: u64,
@@ -481,6 +512,7 @@ pub(crate) struct CoreRoots {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct SeekRow {
     pub id: String,
     pub source_graph: String,
@@ -490,6 +522,7 @@ pub struct SeekRow {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct ScanPage {
     pub rows: Vec<SeekRow>,
     /// Pass this as `after_id` for the next page. `None` means exhausted.
@@ -499,6 +532,7 @@ pub struct ScanPage {
 // Field order is intentional: row/page payloads drop before their admission
 // guards on success, error or unwind. This is a temporary page, not a refund
 // of any independently retained normalized output created by its consumer.
+#[cfg(feature = "source-tools")]
 struct OwnedInputPage<'a> {
     page: ScanPage,
     row_holds: Vec<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
@@ -508,11 +542,13 @@ struct OwnedInputPage<'a> {
 /// Input bytes remain admitted until the entire borrowed page is consumed.
 /// Only the next cursor survives page retirement; retained consumer output
 /// has its own accounting and is never refunded by this reader.
+#[cfg(feature = "source-tools")]
 pub(crate) struct ScopedInputPage<'a> {
     owned: Option<OwnedInputPage<'a>>,
     legacy: Option<ScanPage>,
     state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
 }
+#[cfg(feature = "source-tools")]
 impl std::ops::Deref for ScopedInputPage<'_> {
     type Target = ScanPage;
     fn deref(&self) -> &ScanPage {
@@ -522,6 +558,7 @@ impl std::ops::Deref for ScopedInputPage<'_> {
         }
     }
 }
+#[cfg(feature = "source-tools")]
 impl<'a> ScopedInputPage<'a> {
     pub(crate) fn into_next_id(mut self) -> Result<Option<ScopedInputCursor<'a>>> {
         let next = match &mut self.owned {
@@ -543,10 +580,12 @@ impl<'a> ScopedInputPage<'a> {
         .transpose()
     }
 }
+#[cfg(feature = "source-tools")]
 pub(crate) struct ScopedInputCursor<'a> {
     id: String,
     _hold: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
 }
+#[cfg(feature = "source-tools")]
 impl std::ops::Deref for ScopedInputCursor<'_> {
     type Target = str;
     fn deref(&self) -> &str {
@@ -557,10 +596,12 @@ impl std::ops::Deref for ScopedInputCursor<'_> {
 /// An exact source row whose input admission follows the borrowed row's actual
 /// lifetime. Dropping this reader releases only its own input, never output
 /// retained independently by the consumer.
+#[cfg(feature = "source-tools")]
 pub(crate) struct ScopedRawRow<'a> {
     owned: Option<OwnedInputPage<'a>>,
     legacy: Option<SeekRow>,
 }
+#[cfg(feature = "source-tools")]
 impl ScopedRawRow<'_> {
     pub(crate) fn as_ref(&self) -> Option<&SeekRow> {
         match &self.owned {
@@ -574,6 +615,7 @@ impl ScopedRawRow<'_> {
 /// query callback share an atomic ledger so the same held capture can be lent
 /// across a Send disclosure lease and by disposable public D1 staging.
 #[derive(Clone)]
+#[cfg(feature = "source-tools")]
 enum PublicWorkLedger {
     Shared {
         used: Arc<AtomicU64>,
@@ -584,6 +626,7 @@ enum PublicWorkLedger {
 /// Existing snapshot phase owner: the callback already includes capture,
 /// original SQLite pool and every other live model/session owner. This holder
 /// admits only Stage Rust allocations; it is not a separate state grant.
+#[cfg(feature = "source-tools")]
 pub(crate) struct NativeStageOwnedBudget<'a> {
     pub remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
     pub heap: &'a Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
@@ -592,6 +635,7 @@ pub(crate) struct NativeStageOwnedBudget<'a> {
     pub original_sql_limit: u64,
     retained_rust_bytes: usize,
 }
+#[cfg(feature = "source-tools")]
 impl NativeStageOwnedBudget<'_> {
     fn admit(&self, extra: usize) -> Result<usize> {
         self.heap.verify_current()?;
@@ -821,6 +865,7 @@ impl KnowledgePayloadLayout {
     }
 }
 
+#[cfg(feature = "source-tools")]
 pub(crate) const CARRIER_NORMALIZED_COLUMNS_DDL: &str = r#"
 ALTER TABLE knowledge_nodes ADD COLUMN payload_codec INTEGER NOT NULL DEFAULT 0 CHECK(payload_codec IN (0,1));
 ALTER TABLE knowledge_nodes ADD COLUMN source_packet_sha256 BLOB CHECK((payload_codec=0 AND source_packet_sha256 IS NULL) OR (payload_codec=1 AND typeof(source_packet_sha256)='blob' AND length(source_packet_sha256)=32));
@@ -926,6 +971,7 @@ struct NormalizedCursorRow<'s, 'budget> {
     _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
 }
 
+#[cfg(feature = "source-tools")]
 fn read_normalized_cursor_row<'s, 'budget>(
     state: &'s crate::d1_public_capture::CreationState<'budget>,
     row: &rusqlite::Row<'_>,
@@ -997,10 +1043,12 @@ fn read_normalized_cursor_row<'s, 'budget>(
 /// Physical staging is selected by the factory, independently of provenance
 /// and the normalized payload ABI. Both profiles retain the caller's byte caps.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(feature = "source-tools")]
 enum StageStorageProfile {
     Persistent,
     NativeProjection,
 }
+#[cfg(feature = "source-tools")]
 impl StageStorageProfile {
     fn geometry(self) -> (&'static std::ffi::CStr, i64, i64) {
         match self {
@@ -1047,6 +1095,7 @@ macro_rules! preparation_schema {
 }
 pub(crate) use preparation_schema;
 
+#[cfg(feature = "source-tools")]
 pub struct KnowledgeStage<'a> {
     candidate: PathBuf,
     inode: (u64, u64),
@@ -1080,6 +1129,7 @@ pub struct KnowledgeStage<'a> {
 }
 
 #[derive(Debug)]
+#[cfg(feature = "source-tools")]
 struct WritePageCharge {
     rows: u64,
     bytes: u64,
@@ -1091,6 +1141,7 @@ struct WritePageCharge {
     max_representation_bytes: u64,
 }
 
+#[cfg(feature = "source-tools")]
 impl<'a> KnowledgeStage<'a> {
     pub(crate) fn owned_creation_state(
         &self,
@@ -5193,6 +5244,7 @@ impl<'a> KnowledgeStage<'a> {
     }
 }
 
+#[cfg(feature = "source-tools")]
 pub(crate) fn configure_stage_temp_reclamation(db: &Connection) -> Result<()> {
     db.execute_batch("PRAGMA temp.auto_vacuum=INCREMENTAL")?;
     let mode: i64 = db.query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))?;
@@ -5208,6 +5260,7 @@ pub(crate) fn configure_stage_temp_reclamation(db: &Connection) -> Result<()> {
 /// guard remains responsible for enforcing the actual peak across temp,
 /// rollback, fallback paths and output files; this arithmetic is an early
 /// refusal, not a filesystem quota implementation.
+#[cfg(feature = "source-tools")]
 fn preflight_selected_vacuum_with_state(
     db: &Connection,
     candidate: &Path,
@@ -5256,6 +5309,7 @@ fn preflight_selected_vacuum_with_state(
     state.active()
 }
 
+#[cfg(feature = "source-tools")]
 fn preflight_selected_vacuum(
     db: &Connection,
     candidate: &Path,
@@ -5702,6 +5756,7 @@ fn selected_table_closure_with_layout_and_state(
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 fn verify_fresh_selected(
     path: &Path,
     pinned: &fs::File,
@@ -5844,6 +5899,7 @@ fn verify_fresh_selected(
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 impl Drop for KnowledgeStage<'_> {
     fn drop(&mut self) {
         self.db.take();
@@ -5874,6 +5930,7 @@ impl Drop for KnowledgeStage<'_> {
     }
 }
 
+#[cfg(feature = "source-tools")]
 impl KnowledgeStage<'_> {
     fn mark_replacement(&mut self, replacement: (u64, u64)) -> Result<()> {
         let metadata = fs::symlink_metadata(&self.lease_path)?;
@@ -5914,6 +5971,7 @@ impl KnowledgeStage<'_> {
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn lease_path(candidate: &Path) -> Result<PathBuf> {
     let name = candidate
         .file_name()
@@ -5923,12 +5981,14 @@ fn lease_path(candidate: &Path) -> Result<PathBuf> {
     Ok(candidate.with_file_name(name))
 }
 
+#[cfg(feature = "source-tools")]
 fn fresh_selected_path(candidate: &Path) -> PathBuf {
     let mut path = candidate.as_os_str().to_os_string();
     path.push(".fresh-selected");
     PathBuf::from(path)
 }
 
+#[cfg(feature = "source-tools")]
 fn sqlite_sidecar_paths(candidate: &Path) -> [PathBuf; 3] {
     ["-journal", "-wal", "-shm"].map(|suffix| {
         let mut path = candidate.as_os_str().to_os_string();
@@ -5936,6 +5996,7 @@ fn sqlite_sidecar_paths(candidate: &Path) -> [PathBuf; 3] {
         PathBuf::from(path)
     })
 }
+#[cfg(feature = "source-tools")]
 fn cleanup_sqlite_sidecars(candidate: &Path, uid: u32) -> Result<()> {
     for path in sqlite_sidecar_paths(candidate) {
         match fs::symlink_metadata(&path) {
@@ -5955,6 +6016,7 @@ fn cleanup_sqlite_sidecars(candidate: &Path, uid: u32) -> Result<()> {
 /// Recover one abandoned private candidate after the owner has established
 /// that its producer process is gone. An active lock or changed inode refuses;
 /// this never touches selected models or arbitrary neighboring files.
+#[cfg(feature = "source-tools")]
 pub fn reap_abandoned_private_stage(candidate: &Path) -> Result<bool> {
     let lease_path = lease_path(candidate)?;
     if !lease_path.exists() && !lease_path.is_symlink() {
@@ -6065,6 +6127,7 @@ pub(crate) fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(digest);
 }
 #[track_caller]
+#[cfg(feature = "source-tools")]
 fn owned_stage_sql_error(error: tos_source_store::StoreError) -> Error {
     // StoreError.detail is a code-owned static literal, never SQLite's native
     // message or a bound value. Preserve the failing operation and source site.
@@ -6083,6 +6146,7 @@ fn owned_stage_sql_error(error: tos_source_store::StoreError) -> Error {
     }
 }
 #[track_caller]
+#[cfg(feature = "source-tools")]
 fn owned_stage_connection_sql_error(db: &Connection, error: tos_source_store::StoreError) -> Error {
     // The connection is still borrowed by this operation. Read only SQLite's
     // numeric extended status; private SQL, paths and row values stay private.
@@ -6093,6 +6157,7 @@ fn owned_stage_connection_sql_error(db: &Connection, error: tos_source_store::St
 
 // Fixed SQL spelling workspace is admitted before initialization/formatting.
 // The installed prepaid hook and process pool remain the original Stage owners.
+#[cfg(feature = "source-tools")]
 fn configure_stage_temp_cap_owned(
     db: &Connection,
     max_temp_bytes: u64,
@@ -6143,6 +6208,7 @@ fn configure_stage_temp_cap_owned(
     state.active()
 }
 
+#[cfg(feature = "source-tools")]
 fn verify_fresh_sidecars_owned(
     path: &Path,
     state: &crate::d1_public_capture::CreationState<'_>,
@@ -6187,6 +6253,7 @@ fn verify_fresh_sidecars_owned(
     state.active()
 }
 
+#[cfg(feature = "source-tools")]
 fn configure_fresh_readonly_owned(
     db: &Connection,
     cache_kib: u64,
@@ -6245,6 +6312,7 @@ fn configure_fresh_readonly_owned(
     state.active()
 }
 
+#[cfg(feature = "source-tools")]
 fn verify_fresh_integrity_owned(
     db: &Connection,
     state: &crate::d1_public_capture::CreationState<'_>,
@@ -6295,6 +6363,7 @@ fn verify_fresh_integrity_owned(
     state.active()
 }
 
+#[cfg(feature = "source-tools")]
 fn stage_stream_digest_owned(
     file: &mut fs::File,
     max_bytes: u64,
@@ -6336,6 +6405,7 @@ fn stage_stream_digest_owned(
     crate::stream_digest_with_check(file, callback)
 }
 
+#[cfg(feature = "source-tools")]
 fn stage_integrity_first_row_owned(
     db: &Connection,
     state: &crate::d1_public_capture::CreationState<'_>,
@@ -6375,6 +6445,7 @@ fn stage_integrity_first_row_owned(
     Ok(valid)
 }
 
+#[cfg(feature = "source-tools")]
 fn stage_integer_owned(
     db: &Connection,
     sql: &std::ffi::CStr,
@@ -6409,6 +6480,7 @@ fn stage_integer_owned(
     Ok(value)
 }
 
+#[cfg(feature = "source-tools")]
 fn stage_batch_owned(
     db: &Connection,
     sql: &'static std::ffi::CStr,
@@ -6434,6 +6506,7 @@ fn stage_batch_owned(
 
 // These are borrowed values on the existing fixed row frame, not a heap or
 // a new SQL/domain representation. SQLite copies remain in the shared heap pool.
+#[cfg(feature = "source-tools")]
 enum StageSqlBinding<'a> {
     Text(&'a str),
     OptionalText(Option<&'a str>),
@@ -6441,6 +6514,7 @@ enum StageSqlBinding<'a> {
     Blob(&'a [u8]),
 }
 #[track_caller]
+#[cfg(feature = "source-tools")]
 fn stage_insert_owned(
     db: &Connection,
     sql: &std::ffi::CStr,
@@ -6523,6 +6597,7 @@ fn stage_insert_owned(
     state.active()
 }
 
+#[cfg(feature = "source-tools")]
 fn stage_root_owned(
     db: &Connection,
     sql: &std::ffi::CStr,
@@ -6600,6 +6675,7 @@ fn stage_root_owned(
     Ok((count, hash.finalize().to_hex()))
 }
 
+#[cfg(feature = "source-tools")]
 fn input_root_with_state(
     db: &Connection,
     entry: &InputCollectionReceipt,
@@ -6654,6 +6730,7 @@ fn input_root_with_state(
     Ok((count, hash.finalize().to_hex()))
 }
 
+#[cfg(feature = "source-tools")]
 fn output_root_with_state(
     db: &Connection,
     table: &str,
@@ -6721,6 +6798,7 @@ fn output_root_with_state(
     }
     Ok((count, hash.finalize().to_hex()))
 }
+#[cfg(feature = "source-tools")]
 fn read_seek_row_bounded(
     statement: &tos_source_store::PinnedBoundedStatement<'_>,
     state: &crate::d1_public_capture::CreationState<'_>,
@@ -6804,6 +6882,7 @@ fn read_seek_row_bounded(
     })
 }
 
+#[cfg(feature = "source-tools")]
 fn read_seek_row_with_state(
     row: &rusqlite::Row<'_>,
     state: Option<&crate::d1_public_capture::CreationState<'_>>,
@@ -6874,6 +6953,7 @@ fn read_seek_row_with_state(
         payload_sha256: Digest256::from_bytes(digest).to_hex(),
     })
 }
+#[cfg(feature = "source-tools")]
 fn read_seek_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SeekRow> {
     let digest: Vec<u8> = row.get(4)?;
     Ok(SeekRow {
@@ -6884,6 +6964,7 @@ fn read_seek_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SeekRow> {
         payload_sha256: digest.iter().map(|b| format!("{b:02x}")).collect(),
     })
 }
+#[cfg(feature = "source-tools")]
 fn verify_seek_row(row: SeekRow, max_row_bytes: usize) -> Result<SeekRow> {
     if row.payload.len() > max_row_bytes {
         return Err(Error::Budget("stage seek row bytes"));
@@ -6897,6 +6978,7 @@ fn verify_seek_row(row: SeekRow, max_row_bytes: usize) -> Result<SeekRow> {
 // One normalized schema literal preserves exact SQL for both physical layouts.
 // Native construction starts with the established Inline ABI. Only the explicit
 // pristine CarrierOnce transition replaces these empty tables with rowid storage.
+#[cfg(feature = "source-tools")]
 macro_rules! normalized_schema_literal { ($id_null:literal, $normalized_storage:literal) => { concat!(r#"
 CREATE TABLE knowledge_nodes(
  id TEXT PRIMARY KEY"#, $id_null, r#",source_graph TEXT NOT NULL,native_id TEXT,entity_id TEXT,
@@ -6920,6 +7002,7 @@ CREATE INDEX knowledge_relations_from_id ON knowledge_relations(from_id,id);
 CREATE INDEX knowledge_relations_to_id ON knowledge_relations(to_id,id);
 CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order);
 "#) }; }
+#[cfg(feature = "source-tools")]
 macro_rules! stage_schema_literal {
     ($raw_location:literal, $raw_storage:literal) => {
         concat!(
@@ -6935,7 +7018,9 @@ macro_rules! stage_schema_literal {
         )
     };
 }
+#[cfg(feature = "source-tools")]
 const SCHEMA: &str = stage_schema_literal!("", " WITHOUT ROWID");
+#[cfg(feature = "source-tools")]
 const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
     concat!(stage_schema_literal!("", " WITHOUT ROWID"), "\0").as_bytes(),
 ) {
@@ -6948,13 +7033,16 @@ const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
 // spill these bytes at its much smaller index-cell threshold. All raw readers
 // retain the same composite unique key and explicit ordering. This physical
 // choice does not alter the normalized payload ABI or either byte ceiling.
+#[cfg(feature = "source-tools")]
 const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ", "");
+#[cfg(feature = "source-tools")]
 const NATIVE_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
     concat!(stage_schema_literal!("TEMP ", ""), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("native stage static schema contains interior NUL"),
 };
+#[cfg(feature = "source-tools")]
 const CARRIER_NORMALIZED_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
     concat!(
         "DROP TABLE knowledge_relations; DROP TABLE knowledge_nodes;",

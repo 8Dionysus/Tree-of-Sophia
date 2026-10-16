@@ -10,10 +10,14 @@ license.workspace = true
 # Explicit owner-opened native models; the shared rules do not need this stack.
 native-models = [
     "dep:rusqlite", "dep:tos-compiler", "dep:tos-fd-open", "dep:tos-source-store",
-    "dep:tos-validation", "dep:serde_json", "dep:unicode-normalization",
+    "dep:serde_json",
+]
+# Local source/analysis files additionally need their exact schema and Unicode profiles.
+reading-source = [
+    "native-models", "dep:tos-validation", "dep:unicode-normalization",
     "dep:unicode-general-category",
 ]
-test-fixture = ["native-models", "tos-compiler/test-fixture", "tos-source-store/capture", "dep:flate2"]
+test-fixture = ["reading-source", "tos-compiler/test-fixture", "tos-source-store/capture", "dep:flate2"]
 
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
