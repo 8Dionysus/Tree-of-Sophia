@@ -4,6 +4,7 @@
 //! Historical event-cohort readers retain their exact integrity checks.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
 use postgres::{GenericClient, IsolationLevel};
@@ -35,9 +36,10 @@ pub use durable_navigation_range::{
 };
 
 use super::{
-    DurableError, DurablePgCoordinator, DurableProjectionLimits, DurableProjectionProfile,
-    DurableResult, EventMember, ProjectionEvent, as_i64, as_u64, lock_domain_snapshot,
-    read_domain_snapshot, set_local_timeouts, validate_identifier, validate_relative_path,
+    DomainSnapshot, DurableError, DurablePgCoordinator, DurableProjectionLimits,
+    DurableProjectionProfile, DurableResult, EventMember, ProjectionEvent, as_i64, as_u64,
+    lock_domain_snapshot, read_domain_snapshot, set_local_timeouts, validate_identifier,
+    validate_relative_path,
 };
 
 const MAX_NAVIGATION_DEPENDENCIES: usize = 4096;
