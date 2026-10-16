@@ -2774,8 +2774,16 @@ fn postload_projection_rights_denial(op: &Operation) -> bool {
         && op.expected_sha256.is_none()
         && op.expected_body.is_none()
         && op.ignored_json_paths.is_empty()
-        && op.expected_stderr_prefix.as_deref()
-            == Some("source-projection refused: current rights revoked")
+        && match op.expected_stderr_prefix.as_deref() {
+            Some("source-projection refused: current rights revoked") => true,
+            // The fenced text writer deliberately exposes a generic refusal.
+            // Postload admission separately requires enabled -> revoke ->
+            // disabled owner observations; the process must disclose no bytes.
+            Some("source-projection refused: source-text search refused") => {
+                op.request["operation"] == "search-text"
+            }
+            _ => false,
+        }
 }
 
 fn postload_read_only_operation(op: &Operation) -> bool {
@@ -10041,6 +10049,25 @@ fn existing_pg_baseline_requires_explicit_successful_staging() {
         output,
         Some(baseline)
     ));
+}
+
+#[test]
+fn text_rights_denial_uses_the_fenced_writer_refusal() {
+    let mut op: Operation = serde_json::from_value(json!({
+        "channel":"projection", "label":"revoked text search",
+        "request":{"operation":"search-text", "query":"Ницше", "limit":1},
+        "expected_status":2,
+        "expected_stderr_prefix":"source-projection refused: source-text search refused"
+    }))
+    .unwrap();
+    assert!(postload_projection_rights_denial(&op));
+    op.request["operation"] = json!("exact-source");
+    assert!(!postload_projection_rights_denial(&op));
+    op.expected_stderr_prefix = Some("source-projection refused: current rights revoked".into());
+    assert!(postload_projection_rights_denial(&op));
+    op.expected_stderr_prefix =
+        Some("source-projection refused: selected PostgreSQL unavailable".into());
+    assert!(!postload_projection_rights_denial(&op));
 }
 
 #[test]
