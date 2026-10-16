@@ -2798,49 +2798,6 @@ impl NavigationEventSourceCutIdentityV1 {
     }
 }
 
-/// Compute the event-only source identity after confirming that the protected
-/// owner and selected PG event describe the same current source head. Every
-/// source member is reopened by the caller into `selected_sources`; this check
-/// verifies its exact bytes against the committed member digest and length.
-pub(crate) fn event_source_cut_identity(
-    owner: &NavigationProducerHeldOwnerIdentity,
-    selection: &NavigationProducerOwnerSelection<'_>,
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<NavigationEventSourceCutIdentityV1> {
-    if context.event_kind() != "command"
-        || context.event_sequence() == 0
-        || context.event_sequence() != context.source_head_sequence()
-        || context.source_head_sequence() != owner.source_head_sequence
-        || context.source_head_sequence() != owner.source_generation
-        || owner.domain != selection.domain
-        || owner.domain_sha256 != Digest256::of_bytes(selection.domain.as_bytes())
-        || owner.source_contract != selection.source_contract
-        || owner.owner_configuration_sha256 != selection.owner_configuration_sha256
-    {
-        return Err(DurableError::Conflict(
-            "navigation event differs from the held current source owner",
-        ));
-    }
-
-    let owner_binding = owner_identity_digest(owner);
-    let event_member_binding = event_member_digest(context)?;
-    let mut hasher = Digest256Hasher::new();
-    hash_part(&mut hasher, b"tos-navigation-event-source-cut-v1");
-    hash_part(&mut hasher, owner_binding.as_bytes());
-    hash_part(&mut hasher, event_member_binding.as_bytes());
-    hash_part(&mut hasher, context.event_id().as_bytes());
-    hash_part(&mut hasher, &context.event_sequence().to_be_bytes());
-    hash_part(&mut hasher, &context.source_head_sequence().to_be_bytes());
-    Ok(NavigationEventSourceCutIdentityV1 {
-        owner_binding,
-        event_member_binding,
-        range_coverage_binding: None,
-        event_source_revision: hasher.finalize(),
-        source_head_sequence: context.source_head_sequence(),
-        event_sequence: context.event_sequence(),
-    })
-}
-
 /// Build the schema-worker identity for a terminal source cut backed by a
 /// complete event range. The digest remains an event-source identity, never a
 /// claim that the V2 source owner has a current `SourceRevision`.
@@ -2939,71 +2896,6 @@ pub(crate) fn extend_event_paths(
         }
     }
     Ok(())
-}
-
-/// Seed the first addressed reread with the event source, all exact members,
-/// owner-requested addresses, and schema-worker inputs. This list is bounded
-/// before the PG reader retains bytes and forms the base for later owner
-/// closure stages.
-pub(crate) fn initial_event_paths(
-    selection: &NavigationProducerOwnerSelection<'_>,
-    seed: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<String>> {
-    let maximum = selection.event_limits.max_dependencies;
-    let mut paths = BTreeSet::new();
-    extend_event_paths(&mut paths, [selection.event_path.to_owned()], maximum)?;
-    extend_event_paths(
-        &mut paths,
-        selection.requested_paths.iter().cloned(),
-        maximum,
-    )?;
-    extend_event_paths(&mut paths, selection.schema_paths.iter().cloned(), maximum)?;
-    extend_event_paths(
-        &mut paths,
-        seed.members()
-            .iter()
-            .map(|member| member.source_path.clone()),
-        maximum,
-    )?;
-    Ok(paths.into_iter().collect())
-}
-
-/// Extract and authenticate every source member introduced by this exact
-/// command. These paths drive both persisted owner lookup and reverse Claim
-/// lookup; historical or unchanged members are never treated as causes.
-pub(crate) fn changed_event_source_paths(
-    context: &DurableNavigationEventContextV1,
-) -> DurableResult<Vec<String>> {
-    if context.event_kind() != "command"
-        || context.event_sequence() == 0
-        || context.event_sequence() != context.source_head_sequence()
-    {
-        return Err(DurableError::Conflict(
-            "navigation changed-source event is not the current command head",
-        ));
-    }
-    let mut paths = Vec::new();
-    for member in context.members().iter().filter(|member| {
-        member.is_source && member.commit_sequence == Some(context.event_sequence())
-    }) {
-        let bytes = selected_source_bytes(context, &member.source_path)?;
-        if member.content_digest != Some(Digest256::of_bytes(bytes))
-            || member.content_length != Some(bytes.len() as u64)
-        {
-            return Err(DurableError::Conflict(
-                "navigation changed-source bytes differ from event member",
-            ));
-        }
-        paths.push(member.source_path.clone());
-    }
-    paths.sort();
-    paths.dedup();
-    if paths.is_empty() {
-        return Err(DurableError::Refused(
-            "navigation event has no source-change proof",
-        ));
-    }
-    Ok(paths)
 }
 
 /// Materialize the final event reader's exact presence/absence observations
@@ -3301,26 +3193,6 @@ fn selected_source_bytes<'a>(
         ));
     }
     Ok(bytes)
-}
-
-/// Build one candidate schema worker from exact configured schema paths in
-/// the final event context, run the owner compiler callback, then close the
-/// worker before the caller returns a publishable cohort set.
-pub(crate) fn with_event_schema_validator<T>(
-    owner_identity: &NavigationProducerHeldOwnerIdentity,
-    selection: &NavigationProducerOwnerSelection<'_>,
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    consume: impl FnOnce(&SourceCatalogValidator<'_>) -> DurableResult<T>,
-) -> DurableResult<T> {
-    if event_source_cut_identity(owner_identity, selection, context)? != identity {
-        return Err(DurableError::Conflict(
-            "navigation event schema validator source identity changed",
-        ));
-    }
-    with_selected_schema_validator(selection, context, identity, deadline, cancelled, consume)
 }
 
 fn with_range_schema_validator<T>(

@@ -1,5 +1,10 @@
 # Mechanics-local command planning and execution
 
+The `philosophy-library` feature exposes the bounded philosophy producers to native
+command owners. `tos-command` selects that library subset. Standalone OPS binaries keep
+the default `compiler-backed-validators` feature, which includes it together with the
+dossier, source-registry, artifact and tree-node validators.
+
 `tos-ops-mechanics-plan` discovers native package-local and part-local mechanics
 assertions, builders and validators. The default CLI emits one
 `tos_mechanics_local_plan_v2` JSON line with commands containing `kind`, `home`

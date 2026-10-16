@@ -70,10 +70,6 @@ fn python_raw_str(value: &JsonValue) -> Result<String> {
     crate::local_prepared::python_value_string(value)
 }
 
-fn python_raw_repr(value: &JsonValue) -> Result<String> {
-    python_repr_raw(value)
-}
-
 fn python_iter_values(value: &JsonValue) -> Result<Vec<JsonValue>> {
     match value {
         JsonValue::Array(values) => Ok(values.clone()),
@@ -2501,53 +2497,6 @@ fn allowed_field(field: &str, kind: &str) -> bool {
 
 fn form_key(key: &str) -> bool {
     key == "default" || key == "original" || language_key(key)
-}
-
-pub(crate) fn semantic_cardinality_violation(
-    endpoint: &str,
-    relation_type: &str,
-    maximum_key: &str,
-    peak: i64,
-    relation_entry: &Value,
-) -> Result<Option<String>> {
-    let maximum = relation_entry
-        .get("cardinality")
-        .and_then(|value| value.get(maximum_key));
-    if let Some(maximum) = maximum {
-        let Some(order) = compare_python_number(peak, maximum) else {
-            return Err(Error::Invalid("semantic cardinality maximum"));
-        };
-        if order == std::cmp::Ordering::Greater {
-            return Ok(Some(format!(
-                "{endpoint} violates {relation_type} {maximum_key}={}",
-                python_str(maximum)?
-            )));
-        }
-        Ok(None)
-    } else {
-        Ok(None)
-    }
-}
-
-fn compare_python_number(left: i64, right: &Value) -> Option<std::cmp::Ordering> {
-    let left = left.to_string();
-    if let Some(right) = python_integer_text(right) {
-        return Some(compare_integer_text(&left, &right));
-    }
-    let right = match right {
-        Value::Number(number) => number.as_f64()?,
-        _ => return None,
-    };
-    if !right.is_finite() {
-        return None;
-    }
-    let floor = format!("{:.0}", right.floor());
-    let comparison = compare_integer_text(&left, &floor);
-    if comparison == std::cmp::Ordering::Equal && right.fract() != 0.0 {
-        Some(std::cmp::Ordering::Less)
-    } else {
-        Some(comparison)
-    }
 }
 
 fn exact_form_ref(value: Option<&Value>) -> bool {

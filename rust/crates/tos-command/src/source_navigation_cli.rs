@@ -112,39 +112,6 @@ fn read_selected_owner_configuration(
     Ok((filesystem, owner, owner_digest))
 }
 
-/// Run one bounded producer callback under the same protected source-owner
-/// configuration and corpus mutex used by source writers and navigation reads.
-/// The callback receives only parsed, validated settings and cannot retain the
-/// owner fence beyond its call.
-pub(crate) fn with_selected_navigation_producer_owner<T>(
-    selected: &SelectedSourceNavigation,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    consume: impl FnOnce(
-        &crate::source_creation_store::CreationFilesystem,
-        &crate::source_creation_store::CreationOwnerFence<'_>,
-        &NavigationProducerOwnerSelection<'_>,
-    ) -> crate::DurableResult<T>,
-) -> Result<T, SourceNavigationSelectionError> {
-    let (filesystem, owner, owner_configuration_sha256) =
-        read_selected_owner_configuration(&selected.owner_configuration, deadline, cancelled)?;
-    let view = navigation_producer_owner_selection(&owner, owner_configuration_sha256)?;
-    let owner_fence = filesystem
-        .hold_source_navigation_owner(deadline, cancelled)
-        .map_err(|error| {
-            SourceNavigationSelectionError::Managed(ManagedSelectionError::Source(error))
-        })?;
-    let result = consume(&filesystem, &owner_fence, &view).map_err(|error| {
-        SourceNavigationSelectionError::Managed(ManagedSelectionError::Durable(error))
-    })?;
-    owner_fence
-        .verify_current(deadline, cancelled)
-        .map_err(|error| {
-            SourceNavigationSelectionError::Managed(ManagedSelectionError::Source(error))
-        })?;
-    Ok(result)
-}
-
 /// Run a policy-owner mutation under the protected source-navigation owner
 /// configuration and filesystem owner fence. This deliberately does not
 /// require the optional event-producer configuration, open the model, or

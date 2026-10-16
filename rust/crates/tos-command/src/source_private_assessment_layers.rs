@@ -540,45 +540,6 @@ pub(crate) fn select_owner_local_layers(
     )
 }
 
-/// PG-selected variant of the maintained v5/v6 layer comparison resolver.
-/// The caller supplies the exact contract bytes retained from the selected
-/// source revision; absent members fail closed and never fall back to the
-/// checkout filesystem.
-pub(crate) fn select_owner_local_layers_pg(
-    owner: &mut OwnerTextContext,
-    selected_context: &JsonValue,
-    config: &JsonValue,
-    source_records: &[AssessmentRecordInput],
-    source_revision: &SourceRevision,
-    contract_members: &BTreeMap<String, Vec<u8>>,
-    worker: &mut dyn CutSchemaExecutor,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<PrivateAssessmentLayers> {
-    if worker.selected_source_revision() != Some(*source_revision) {
-        return Err(SourceCommandError::Conflict(
-            "private assessment layer worker and source revision differ",
-        ));
-    }
-    select_owner_local_layers_with_contract_reader(
-        owner,
-        selected_context,
-        config,
-        source_records,
-        worker,
-        |name| {
-            contract_members
-                .get(name)
-                .cloned()
-                .ok_or(SourceCommandError::Conflict(
-                    "private assessment selected PG contract absent",
-                ))
-        },
-        deadline,
-        cancelled,
-    )
-}
-
 /// Indexed selected-input variant of the maintained v5/v6 layer resolver.
 /// The opaque PG identity remains separate from any source revision claim.
 pub(crate) fn select_owner_local_layers_selected_pg<I: Copy + Eq>(

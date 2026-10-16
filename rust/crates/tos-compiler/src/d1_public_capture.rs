@@ -589,6 +589,7 @@ impl<'budget> CreationState<'budget> {
     /// Borrow the dedicated runtime's original owners for one operation.
     /// The caller owns simultaneous model/transport/DTO state and records JSON
     /// usage on both outcomes before terminating on error; no counter resets.
+    #[cfg(test)]
     pub(crate) fn from_runtime_owned_budget<'a>(
         budget: &'a crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget<'a>,
     ) -> Result<CreationState<'a>> {

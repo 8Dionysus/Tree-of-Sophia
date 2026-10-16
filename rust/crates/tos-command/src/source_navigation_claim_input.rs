@@ -21,17 +21,11 @@ use tos_compiler::{
         validate_supplied_catalogue_attribution,
     },
     source_navigation_claim_event::{
-        NavigationClaimDependencyRefreshCohortV1,
-        NavigationClaimDependencyRefreshOwnerManifestSetV1,
-        NavigationClaimDependencyRefreshSetInputV1, NavigationClaimEventAffectedOwnerManifestV1,
-        NavigationClaimEventBudgetCostV1, NavigationClaimEventCohortV1,
-        NavigationClaimEventCommonInputV1, NavigationClaimEventInputV1,
+        NavigationClaimEventBudgetCostV1, NavigationClaimEventCommonInputV1,
         NavigationClaimEventOwnerInventoryV1, NavigationClaimEventRangeManifestV1,
         NavigationClaimEventRangeOwnerCohortV1, NavigationClaimEventRangeOwnerInputV1,
         NavigationClaimEventSourceFileV1, NavigationClaimIdentitySourceV1,
-        project_navigation_claim_dependency_refresh_set_with_inventory_v1,
         project_navigation_claim_event_range_owner_with_inventory_v1,
-        project_navigation_claim_event_with_inventory_v1,
     },
     source_navigation_event::{
         NavigationDependencyRoleV1, NavigationDependencyStateV1, NavigationDependencyV1,
@@ -65,173 +59,6 @@ const FORMS_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
 const ANCHOR_SCHEMA: &str = "ToS/contracts/source-anchor.schema.json";
 const CLAIM_DISPLAY_FIELDS_SCHEMA: &str = "ToS/contracts/claim-display-fields.schema.json";
 
-#[derive(Clone, Copy)]
-enum Cause<'a> {
-    Mutation {
-        manifest: &'a NavigationClaimEventAffectedOwnerManifestV1,
-        mutation_receipt_path: &'a str,
-    },
-    RefreshSet {
-        manifest: &'a NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    },
-    Range {
-        manifest: &'a NavigationClaimEventRangeManifestV1,
-    },
-}
-
-/// Assemble and render one current Claim changed by the exact committed CMD
-/// mutation receipt. The caller supplies an inventory and complete owner
-/// manifest shared by the event loop.
-pub(crate) fn assemble_selected_claim_event_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    manifest: &NavigationClaimEventAffectedOwnerManifestV1,
-    identity_owners: &[ClaimEventIdentityOwnerV1],
-    mutation_receipt_path: &str,
-    owner_stream_path: &str,
-    claim_id: &str,
-    predecessor_cohort_root: Option<Digest256>,
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    NavigationClaimEventCohortV1,
-    NavigationClaimEventBudgetCostV1,
-)> {
-    manifest
-        .verify_integrity()
-        .map_err(|_| DurableError::Conflict("Claim affected-owner manifest differs"))?;
-    match assemble_owner(
-        context,
-        identity,
-        validator,
-        files,
-        inventory,
-        identity_owners,
-        owner_stream_path,
-        claim_id,
-        predecessor_cohort_root,
-        Cause::Mutation {
-            manifest,
-            mutation_receipt_path,
-        },
-        forms_materializer,
-        limits,
-    )? {
-        Contribution::Mutation(cohort, cost) => Ok((cohort, cost)),
-        Contribution::Refresh(_, _) => {
-            Err(DurableError::Corrupt("Claim mutation returned refresh"))
-        }
-        Contribution::Range(_, _) => Err(DurableError::Corrupt("Claim mutation returned range")),
-    }
-}
-
-/// Assemble and render one existing Claim owner for a compound non-Claim
-/// source event. The manifest set carries the sorted cause union once.
-pub(crate) fn assemble_selected_claim_dependency_refresh_set_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    manifest: &NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    identity_owners: &[ClaimEventIdentityOwnerV1],
-    owner_stream_path: &str,
-    claim_id: &str,
-    predecessor_cohort_root: Option<Digest256>,
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    NavigationClaimDependencyRefreshCohortV1,
-    NavigationClaimEventBudgetCostV1,
-)> {
-    manifest
-        .verify_integrity()
-        .map_err(|_| DurableError::Conflict("Claim refresh manifest differs"))?;
-    match assemble_owner(
-        context,
-        identity,
-        validator,
-        files,
-        inventory,
-        identity_owners,
-        owner_stream_path,
-        claim_id,
-        predecessor_cohort_root,
-        Cause::RefreshSet { manifest },
-        forms_materializer,
-        limits,
-    )? {
-        Contribution::Refresh(cohort, cost) => Ok((cohort, cost)),
-        Contribution::Mutation(_, _) => {
-            Err(DurableError::Corrupt("Claim refresh returned mutation"))
-        }
-        Contribution::Range(_, _) => Err(DurableError::Corrupt("Claim refresh returned range")),
-    }
-}
-
-enum Contribution {
-    Mutation(
-        NavigationClaimEventCohortV1,
-        NavigationClaimEventBudgetCostV1,
-    ),
-    Refresh(
-        NavigationClaimDependencyRefreshCohortV1,
-        NavigationClaimEventBudgetCostV1,
-    ),
-    Range(
-        NavigationClaimEventRangeOwnerCohortV1,
-        NavigationClaimEventBudgetCostV1,
-    ),
-}
-
-/// Assemble one terminal Claim owner for a complete committed event range.
-/// The selected Claim bytes come from the terminal source cut; the manifest
-/// retains each historical mutation and dependency cause separately.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn assemble_selected_claim_event_range_owner_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    manifest: &NavigationClaimEventRangeManifestV1,
-    identity_owners: &[ClaimEventIdentityOwnerV1],
-    owner_stream_path: &str,
-    claim_id: &str,
-    predecessor_cohort_root: Option<Digest256>,
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    NavigationClaimEventRangeOwnerCohortV1,
-    NavigationClaimEventBudgetCostV1,
-)> {
-    manifest
-        .verify_integrity()
-        .map_err(|_| DurableError::Conflict("Claim range manifest differs"))?;
-    match assemble_owner(
-        context,
-        identity,
-        validator,
-        files,
-        inventory,
-        identity_owners,
-        owner_stream_path,
-        claim_id,
-        predecessor_cohort_root,
-        Cause::Range { manifest },
-        forms_materializer,
-        limits,
-    )? {
-        Contribution::Range(cohort, cost) => Ok((cohort, cost)),
-        _ => Err(DurableError::Corrupt(
-            "Claim range renderer returned another basis",
-        )),
-    }
-}
-
 struct OwnedIdentitySource<'a> {
     path: String,
     schema_path: String,
@@ -243,34 +70,32 @@ struct OwnedIdentitySource<'a> {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn assemble_owner<'a, 'validator>(
+pub(crate) fn assemble_selected_claim_event_range_owner_v1<'a, 'validator>(
     context: &'a DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
     validator: &'a SourceCatalogValidator<'validator>,
     files: &'a SelectedBibliographicFilesV1,
     inventory: &'a NavigationClaimEventOwnerInventoryV1,
+    manifest: &'a NavigationClaimEventRangeManifestV1,
     identity_owners: &'a [ClaimEventIdentityOwnerV1],
     owner_stream_path: &'a str,
     claim_id: &'a str,
     predecessor_cohort_root: Option<Digest256>,
-    cause: Cause<'a>,
     forms_materializer: &'a mut dyn BibliographicForms,
     limits: BibliographicLimits,
-) -> DurableResult<Contribution> {
-    let range_manifest = match cause {
-        Cause::Range { manifest } => Some(manifest),
-        _ => None,
-    };
-    if (range_manifest.is_none() && context.event_kind() != "command")
-        || context.event_sequence() != identity.event_sequence()
+) -> DurableResult<(
+    NavigationClaimEventRangeOwnerCohortV1,
+    NavigationClaimEventBudgetCostV1,
+)> {
+    manifest
+        .verify_integrity()
+        .map_err(|_| DurableError::Conflict("Claim range manifest differs"))?;
+    if context.event_sequence() != identity.event_sequence()
         || context.source_head_sequence() != identity.source_head_sequence()
-        || (range_manifest.is_none() && context.event_sequence() != context.source_head_sequence())
-        || range_manifest.is_some_and(|manifest| {
-            manifest.coverage().through_sequence() != context.event_sequence()
-                || manifest.coverage().terminal_event_id() != context.event_id()
-                || manifest.coverage().cursor_before() != context.consumer_cursor().sequence
-                || identity.range_coverage_binding() != Some(manifest.coverage().coverage_root())
-        })
+        || manifest.coverage().through_sequence() != context.event_sequence()
+        || manifest.coverage().terminal_event_id() != context.event_id()
+        || manifest.coverage().cursor_before() != context.consumer_cursor().sequence
+        || identity.range_coverage_binding() != Some(manifest.coverage().coverage_root())
     {
         return Err(DurableError::Conflict(
             "selected Claim event identity differs",
@@ -755,7 +580,6 @@ fn assemble_owner<'a, 'validator>(
         &provenance_receipt_path,
         &claim_forms_path,
         history_path.as_str(),
-        mutation_path(cause),
         identity_owners,
     )?;
     let common = NavigationClaimEventCommonInputV1 {
@@ -764,11 +588,7 @@ fn assemble_owner<'a, 'validator>(
         event_sequence: context.event_sequence(),
         // The range renderer validates its event-cut input at the prefix;
         // `identity` still binds the distinct held current source head.
-        source_head_sequence: if range_manifest.is_some() {
-            context.event_sequence()
-        } else {
-            context.source_head_sequence()
-        },
+        source_head_sequence: context.event_sequence(),
         predecessor_source_revision,
         predecessor_cohort_root,
         source_path,
@@ -804,96 +624,13 @@ fn assemble_owner<'a, 'validator>(
         forms_materializer,
         claim_inputs,
     };
-    match cause {
-        Cause::Mutation {
-            manifest,
-            mutation_receipt_path,
-        } => {
-            let mutation_receipt_bytes = files
-                .required(mutation_receipt_path)
-                .map_err(|_| DurableError::Invalid("selected Claim mutation receipt absent"))?;
-            let input = NavigationClaimEventInputV1 {
-                validator: common.validator,
-                event_id: common.event_id,
-                event_sequence: common.event_sequence,
-                source_head_sequence: common.source_head_sequence,
-                predecessor_source_revision: common.predecessor_source_revision,
-                predecessor_cohort_root: common.predecessor_cohort_root,
-                mutation_source_path: manifest.mutation_source_path(),
-                affected_owner_manifest: manifest,
-                source_path: common.source_path,
-                source_line: common.source_line,
-                source_bytes: common.source_bytes,
-                owner_claim_ids: common.owner_claim_ids,
-                claim_schema_path: common.claim_schema_path,
-                claim_schema_bytes: common.claim_schema_bytes,
-                forms_path: common.forms_path,
-                forms_schema_path: common.forms_schema_path,
-                forms_schema_bytes: common.forms_schema_bytes,
-                forms_bytes: common.forms_bytes,
-                history_path: common.history_path,
-                history_bytes: common.history_bytes,
-                provenance_event_path: common.provenance_event_path,
-                provenance_event_bytes: common.provenance_event_bytes,
-                provenance_event_schema_path: common.provenance_event_schema_path,
-                provenance_event_schema_bytes: common.provenance_event_schema_bytes,
-                provenance_receipt_path: common.provenance_receipt_path,
-                provenance_receipt_bytes: common.provenance_receipt_bytes,
-                entity_registry_path: common.entity_registry_path,
-                entity_registry_bytes: common.entity_registry_bytes,
-                entity_registry_schema_path: common.entity_registry_schema_path,
-                entity_registry_schema_bytes: common.entity_registry_schema_bytes,
-                relation_registry_path: common.relation_registry_path,
-                relation_registry_bytes: common.relation_registry_bytes,
-                relation_registry_schema_path: common.relation_registry_schema_path,
-                relation_registry_schema_bytes: common.relation_registry_schema_bytes,
-                mutation_receipt_path,
-                mutation_receipt_bytes,
-                identity_sources: common.identity_sources,
-                source_files: common.source_files,
-                dependencies: common.dependencies,
-                selected_files: common.selected_files,
-                forms_materializer: common.forms_materializer,
-                claim_inputs: common.claim_inputs,
-            };
-            let cohort = project_navigation_claim_event_with_inventory_v1(input, inventory, limits)
-                .map_err(compiler_refusal)?;
-            let cost = cohort.budget_cost().map_err(compiler_refusal)?;
-            Ok(Contribution::Mutation(cohort, cost))
-        }
-        Cause::RefreshSet { manifest } => {
-            let input = NavigationClaimDependencyRefreshSetInputV1 {
-                common,
-                affected_owner_manifest_set: manifest,
-            };
-            let cohort = project_navigation_claim_dependency_refresh_set_with_inventory_v1(
-                input, inventory, limits,
-            )
-            .map_err(compiler_refusal)?;
-            let cost = cohort.budget_cost().map_err(compiler_refusal)?;
-            Ok(Contribution::Refresh(cohort, cost))
-        }
-        Cause::Range { manifest } => {
-            let input = NavigationClaimEventRangeOwnerInputV1 { common };
-            let cohort = project_navigation_claim_event_range_owner_with_inventory_v1(
-                input, manifest, inventory, limits,
-            )
-            .map_err(compiler_refusal)?;
-            let cost = cohort.budget_cost().map_err(compiler_refusal)?;
-            Ok(Contribution::Range(cohort, cost))
-        }
-    }
-}
-
-fn mutation_path(cause: Cause<'_>) -> Option<&str> {
-    match cause {
-        Cause::Mutation {
-            mutation_receipt_path,
-            ..
-        } => Some(mutation_receipt_path),
-        Cause::RefreshSet { .. } => None,
-        Cause::Range { .. } => None,
-    }
+    let input = NavigationClaimEventRangeOwnerInputV1 { common };
+    let cohort = project_navigation_claim_event_range_owner_with_inventory_v1(
+        input, manifest, inventory, limits,
+    )
+    .map_err(compiler_refusal)?;
+    let cost = cohort.budget_cost().map_err(compiler_refusal)?;
+    Ok((cohort, cost))
 }
 
 fn resolve_metadata_identity<'a>(
@@ -1820,7 +1557,6 @@ fn selected_files_and_dependencies<'a>(
     provenance_receipt_path: &str,
     forms_path: &str,
     history_path: &str,
-    mutation_receipt_path: Option<&str>,
     _identity_owners: &[ClaimEventIdentityOwnerV1],
 ) -> DurableResult<(
     Vec<NavigationClaimEventSourceFileV1<'a>>,
@@ -1898,7 +1634,6 @@ fn selected_files_and_dependencies<'a>(
             provenance_receipt_path,
             forms_path,
             history_path,
-            mutation_receipt_path,
         );
         dependencies.push(NavigationDependencyV1 {
             path: RelativePath::parse(path)
@@ -1919,7 +1654,6 @@ fn dependency_role(
     provenance_receipt_path: &str,
     forms_path: &str,
     history_path: &str,
-    mutation_receipt_path: Option<&str>,
 ) -> NavigationDependencyRoleV1 {
     if path == owner_source_path || is_current_claim_stream(path) {
         return NavigationDependencyRoleV1::Record;
@@ -1959,14 +1693,6 @@ fn dependency_role(
     }
     if path.contains("/.record-revisions/") {
         return NavigationDependencyRoleV1::VersionSource;
-    }
-    if mutation_receipt_path == Some(path) {
-        if path == history_path {
-            return NavigationDependencyRoleV1::RecordHistory;
-        }
-        if path == provenance_receipt_path {
-            return NavigationDependencyRoleV1::EventReceipt;
-        }
     }
     NavigationDependencyRoleV1::Additional
 }

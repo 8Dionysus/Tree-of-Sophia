@@ -126,8 +126,6 @@ mod source_navigation_model_compile;
 mod source_navigation_model_prepare;
 #[path = "source_navigation_model_process.rs"]
 mod source_navigation_model_process;
-#[path = "source_native_source_session.rs"]
-mod source_session;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
 #[path = "source_native_work_cli.rs"]

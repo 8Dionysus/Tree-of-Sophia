@@ -30,9 +30,9 @@ pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
 pub mod local_contracts;
 pub mod mechanics_topology;
-#[cfg(feature = "compiler-backed-validators")]
+#[cfg(feature = "philosophy-library")]
 pub mod philosophy_graph_views;
-#[cfg(feature = "compiler-backed-validators")]
+#[cfg(feature = "philosophy-library")]
 pub mod philosophy_products;
 pub mod philosophy_topology;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]

@@ -12,7 +12,7 @@ use crate::source_text_layer_xml::{extract_xhtml_text, validate_extraction_profi
 use crate::source_text_owner::{OwnerTextContext, OwnerTextInitialLayerSelection};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::Digest256;
 use tos_validation::source_cut::CutSchemaExecutor;
 
 const MAX_METADATA_BYTES: usize = 8_388_608;
@@ -80,19 +80,4 @@ pub(crate) fn prepare_initial_text(
         member,
         source,
     })
-}
-
-pub(crate) fn selected_initial_inputs(prepared: &PreparedInitialLayerText) -> Vec<JsonValue> {
-    prepared
-        .source
-        .inputs
-        .iter()
-        .map(|input| {
-            JsonValue::Array(vec![
-                cmd::string(&input.reference),
-                cmd::string(input.category),
-                cmd::string(&input.raw_sha256.to_hex()),
-            ])
-        })
-        .collect()
 }

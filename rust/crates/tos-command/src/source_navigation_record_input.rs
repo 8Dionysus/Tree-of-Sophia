@@ -14,11 +14,9 @@ use tos_compiler::{
     selected_metadata_archive_manifest_paths_v1, selected_metadata_archive_record_blob_path_v1,
     selected_metadata_record_schema_path_v1,
     source_bibliographic::{BibliographicForms, BibliographicLimits},
-    source_navigation_claim_event::NavigationClaimRevisionProofV1,
     source_navigation_event::{
         NavigationDependencyRoleV1, NavigationDependencyStateV1, NavigationDependencyV1,
-        NavigationRecordDependencyRefreshCauseV1, NavigationRecordEventInputV1,
-        NavigationVersionSourceInputV1,
+        NavigationRecordEventInputV1, NavigationVersionSourceInputV1,
     },
     source_witness_catalog::{
         CandidateEventSourceIdentityV1, SourceCatalogValidator, render_catalog_record,
@@ -27,10 +25,8 @@ use tos_compiler::{
 use tos_foundation::{Digest256, RelativePath};
 
 use crate::{
-    DurableError, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
-    DurableNavigationEventContextV1, DurableNavigationEventSourceV1, DurableResult,
+    DurableError, DurableNavigationEventContextV1, DurableResult,
     source_navigation_producer::{NavigationEventSourceCutIdentityV1, compiler_refusal},
-    source_navigation_record_adapter::project_record_event_cohort_v1,
 };
 
 const MAX_PATHS: usize = 4096;
@@ -513,165 +509,6 @@ fn verify_range_member_bytes(
     Ok(())
 }
 
-fn direct_source_create_owners(
-    seed: &DurableNavigationEventContextV1,
-    maximum: usize,
-) -> DurableResult<Vec<RecordOwnerV1>> {
-    let mut source_members = BTreeMap::<&str, &DurableNavigationEventSourceV1>::new();
-    for member in seed.members().iter().filter(|member| member.is_source) {
-        if source_members.insert(&member.source_path, member).is_some() {
-            return Err(DurableError::Corrupt(
-                "navigation CMD source member path repeated",
-            ));
-        }
-    }
-    let mut owners = BTreeMap::<String, RecordOwnerV1>::new();
-    for receipt_member in source_members.values().filter(|member| {
-        member
-            .source_path
-            .ends_with(&format!("/{RECEIPT_HOME_FILE}"))
-    }) {
-        let receipt_path = canonical_path(&receipt_member.source_path)?;
-        let receipt_bytes = exact_member_bytes(receipt_member)?;
-        let receipt = parse_value(receipt_bytes, MAX_RECORD_BYTES)?;
-        match receipt.get("schema_version").and_then(Value::as_str) {
-            Some("tos_local_source_create_receipt_v1") => {}
-            Some("tos_local_claim_create_receipt_v1")
-                if receipt_path.starts_with("ToS/source-witnesses/relations/") =>
-            {
-                // The Claim selector validates this receipt together with its
-                // exact changed stream; it does not create a Record owner.
-                continue;
-            }
-            _ => {
-                return Err(DurableError::Invalid(
-                    "direct Record creation receipt profile",
-                ));
-            }
-        }
-        let source_path = receipt
-            .get("source_path")
-            .and_then(Value::as_str)
-            .ok_or(DurableError::Invalid("direct Record creation source path"))?;
-        let source_path = canonical_path(source_path)?.to_owned();
-        let home = receipt_path
-            .rsplit_once('/')
-            .map(|(home, _)| home)
-            .ok_or(DurableError::Invalid("direct Record receipt home"))?;
-        if source_path
-            .rsplit_once('/')
-            .map(|(source_home, _)| source_home)
-            != Some(home)
-        {
-            return Err(DurableError::Conflict(
-                "direct Record receipt source is outside its home",
-            ));
-        }
-        let source_member =
-            source_members
-                .get(source_path.as_str())
-                .copied()
-                .ok_or(DurableError::Invalid(
-                    "direct Record source is not a command member",
-                ))?;
-        let source_bytes = exact_member_bytes(source_member)?;
-        if source_bytes.len() > MAX_RECORD_BYTES {
-            return Err(DurableError::Refused("direct Record source byte budget"));
-        }
-        let record = parse_value(source_bytes, MAX_RECORD_BYTES)?;
-        let id = receipt
-            .pointer("/source/id")
-            .and_then(Value::as_str)
-            .ok_or(DurableError::Invalid("direct Record receipt identity"))?;
-        let source_version = receipt.pointer("/source/version").and_then(Value::as_u64);
-        let source_digest = receipt
-            .pointer("/source/digest")
-            .and_then(Value::as_str)
-            .and_then(|value| value.strip_prefix("sha256:"));
-        let record_id = record
-            .get("record_id")
-            .or_else(|| record.get("artifact_id"))
-            .or_else(|| record.get("composite_id"))
-            .and_then(Value::as_str);
-        if source_version != Some(1)
-            || !id.starts_with("tos.")
-            || id.len() > 256
-            || record_id != Some(id)
-            || source_digest != Some(Digest256::of_bytes(source_bytes).to_hex().as_str())
-        {
-            return Err(DurableError::Conflict(
-                "direct Record source bytes differ from creation receipt",
-            ));
-        }
-        let basename = source_path
-            .rsplit('/')
-            .next()
-            .ok_or(DurableError::Invalid("direct Record source basename"))?;
-        let receipt_file = receipt
-            .get("files")
-            .and_then(|value| value.get(basename))
-            .ok_or(DurableError::Invalid(
-                "direct Record source receipt member absent",
-            ))?;
-        verify_receipt_file(receipt_file, source_bytes)?;
-
-        let event_path = format!("{home}/{EVENT_HOME_FILE}");
-        let event_member =
-            source_members
-                .get(event_path.as_str())
-                .copied()
-                .ok_or(DurableError::Invalid(
-                    "direct Record creation event is not a command member",
-                ))?;
-        let event_bytes = exact_member_bytes(event_member)?;
-        let event_basename = EVENT_HOME_FILE;
-        let event_receipt_file = receipt
-            .get("files")
-            .and_then(|value| value.get(event_basename))
-            .ok_or(DurableError::Invalid(
-                "direct Record event receipt member absent",
-            ))?;
-        verify_receipt_file(event_receipt_file, event_bytes)?;
-        validate_creation_event_output(
-            event_bytes,
-            receipt_path,
-            source_path.as_str(),
-            source_bytes,
-            receipt_file,
-        )?;
-
-        let owner = RecordOwnerV1 {
-            source_path,
-            record_id: id.to_owned(),
-            origin: RecordOwnerOriginV1::DirectSourceCreate,
-        };
-        insert_record_owner(&mut owners, owner, maximum)?;
-    }
-    Ok(owners.into_values().collect())
-}
-
-fn exact_member_bytes(member: &DurableNavigationEventSourceV1) -> DurableResult<&[u8]> {
-    if !member.is_source {
-        return Err(DurableError::Invalid(
-            "navigation CMD member is not a source",
-        ));
-    }
-    let raw = member
-        .exact_source_bytes
-        .as_deref()
-        .ok_or(DurableError::Invalid(
-            "navigation CMD source member bytes absent",
-        ))?;
-    if member.content_digest != Some(Digest256::of_bytes(raw))
-        || member.content_length != Some(raw.len() as u64)
-    {
-        return Err(DurableError::Conflict(
-            "navigation CMD source member byte pin differs",
-        ));
-    }
-    Ok(raw)
-}
-
 fn verify_receipt_file(binding: &Value, raw: &[u8]) -> DurableResult<()> {
     let expected_digest = format!("sha256:{}", Digest256::of_bytes(raw).to_hex());
     if binding.get("sha256").and_then(Value::as_str) != Some(expected_digest.as_str())
@@ -814,56 +651,6 @@ fn add_owner_paths(
         add_path(paths, &path, maximum)?;
     }
     Ok(())
-}
-
-/// Derive the first Record-specific read stage from the exact selected seed
-/// context. Optional current form/history files are included as addressed
-/// paths so the final context can distinguish witnessed absence from omission.
-pub(crate) fn required_paths(
-    seed: &DurableNavigationEventContextV1,
-    affected: &[DurableNavigationEventAffectedOwnerV1],
-    configured_event_path: &str,
-    schema_paths: &[String],
-    max_dependencies: usize,
-) -> DurableResult<RecordEventPathPlanV1> {
-    if seed.event_kind() != "command"
-        || seed.event_id().is_empty()
-        || seed.event_sequence() == 0
-        || seed.event_sequence() != seed.source_head_sequence()
-        || max_dependencies == 0
-        || max_dependencies > MAX_PATHS
-    {
-        return Err(DurableError::Invalid(
-            "navigation Record path plan context or limits",
-        ));
-    }
-
-    let mut by_path = BTreeMap::<String, RecordOwnerV1>::new();
-    for owner in direct_source_create_owners(seed, max_dependencies)? {
-        insert_record_owner(&mut by_path, owner, max_dependencies)?;
-    }
-    for owner in affected {
-        if owner.kind() != DurableNavigationEventAffectedOwnerKindV1::Record {
-            continue;
-        }
-        let source_path = canonical_path(owner.source_path())?.to_owned();
-        insert_record_owner(
-            &mut by_path,
-            RecordOwnerV1 {
-                source_path,
-                record_id: owner.record_id().to_owned(),
-                origin: RecordOwnerOriginV1::PersistedAffected,
-            },
-            max_dependencies,
-        )?;
-    }
-    required_paths_for_owners_v1(
-        seed,
-        &by_path.into_values().collect::<Vec<_>>(),
-        configured_event_path,
-        schema_paths,
-        max_dependencies,
-    )
 }
 
 /// Derive the terminal current-source closure for an already receipt-checked
@@ -1027,161 +814,6 @@ fn baseline_archive_manifest_path(
     Ok(Some(format!("{archive}/manifest.json")))
 }
 
-/// Assemble, validate, and project one Record from the final exact PG-selected
-/// context. The compiler resolver owns current/history/archive semantics; this
-/// layer only binds the result to the event context and constructs dependencies.
-pub(crate) fn assemble_record_event_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    owner: &RecordOwnerV1,
-    predecessor_cohort_root: Option<Digest256>,
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
-    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
-)> {
-    assemble_record_event_cohort_with_basis(
-        context,
-        identity,
-        validator,
-        files,
-        owner,
-        predecessor_cohort_root,
-        RecordProjectionBasisV1::Mutation,
-        forms_materializer,
-        limits,
-    )
-}
-
-pub(crate) fn assemble_record_dependency_refresh_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    owner: &RecordOwnerV1,
-    predecessor_cohort_root: Option<Digest256>,
-    changed_dependency_path: &str,
-    changed_dependency_bytes: &[u8],
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
-    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
-)> {
-    assemble_record_event_cohort_with_basis(
-        context,
-        identity,
-        validator,
-        files,
-        owner,
-        predecessor_cohort_root,
-        RecordProjectionBasisV1::DependencyRefresh {
-            changed_dependency_path,
-            changed_dependency_bytes,
-        },
-        forms_materializer,
-        limits,
-    )
-}
-
-/// Assemble one event-local Record refresh for the sorted subset of compound
-/// source causes that appears in this owner's exact dependency manifest.
-pub(crate) fn assemble_record_dependency_refresh_set_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    owner: &RecordOwnerV1,
-    predecessor_cohort_root: Option<Digest256>,
-    changed_dependencies: &[NavigationRecordDependencyRefreshCauseV1],
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
-    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
-)> {
-    assemble_record_event_cohort_with_basis(
-        context,
-        identity,
-        validator,
-        files,
-        owner,
-        predecessor_cohort_root,
-        RecordProjectionBasisV1::DependencyRefreshSet {
-            changed_dependencies,
-        },
-        forms_materializer,
-        limits,
-    )
-}
-
-pub(crate) fn assemble_record_claim_revision_refresh_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    owner: &RecordOwnerV1,
-    predecessor_cohort_root: Option<Digest256>,
-    proof: &NavigationClaimRevisionProofV1,
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
-    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
-)> {
-    assemble_record_event_cohort_with_basis(
-        context,
-        identity,
-        validator,
-        files,
-        owner,
-        predecessor_cohort_root,
-        RecordProjectionBasisV1::ClaimRevisionRefresh { proof },
-        forms_materializer,
-        limits,
-    )
-}
-
-/// Assemble one terminal Record row for a complete committed source-event
-/// range. The compiler's range coordinator supplies the owner-specific cause
-/// root after sealing the exact predecessor/current owner closures.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn assemble_record_range_terminal_cohort_v1(
-    context: &DurableNavigationEventContextV1,
-    identity: NavigationEventSourceCutIdentityV1,
-    validator: &SourceCatalogValidator<'_>,
-    files: &SelectedBibliographicFilesV1,
-    owner: &RecordOwnerV1,
-    predecessor_cohort_root: Option<Digest256>,
-    coverage: &tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1,
-    cause_root: Digest256,
-    origin_forms_bytes: Option<&[u8]>,
-    forms_materializer: &mut dyn BibliographicForms,
-    limits: BibliographicLimits,
-) -> DurableResult<(
-    tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
-    tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
-)> {
-    assemble_record_event_cohort_with_basis(
-        context,
-        identity,
-        validator,
-        files,
-        owner,
-        predecessor_cohort_root,
-        RecordProjectionBasisV1::Range {
-            coverage,
-            cause_root,
-            origin_forms_bytes,
-        },
-        forms_materializer,
-        limits,
-    )
-}
-
 /// Preview only the exact selected terminal dependency rows needed to derive
 /// complete Record reverse-owner sets. The temporary cohort is discarded in
 /// this function; its placeholder basis never reaches the range coordinator
@@ -1222,42 +854,25 @@ pub(crate) fn preview_record_range_terminal_dependencies_v1(
     Ok((cohort.dependencies().to_vec(), cost))
 }
 
-enum RecordProjectionBasisV1<'a> {
-    Mutation,
-    Range {
-        coverage: &'a tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1,
-        cause_root: Digest256,
-        origin_forms_bytes: Option<&'a [u8]>,
-    },
-    DependencyRefresh {
-        changed_dependency_path: &'a str,
-        changed_dependency_bytes: &'a [u8],
-    },
-    DependencyRefreshSet {
-        changed_dependencies: &'a [NavigationRecordDependencyRefreshCauseV1],
-    },
-    ClaimRevisionRefresh {
-        proof: &'a NavigationClaimRevisionProofV1,
-    },
-}
-
-fn assemble_record_event_cohort_with_basis<'a, 'validator>(
+/// Assemble the terminal Record cohort for the compiler-issued event range.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn assemble_record_range_terminal_cohort_v1<'a, 'validator>(
     context: &'a DurableNavigationEventContextV1,
     identity: NavigationEventSourceCutIdentityV1,
     validator: &'a SourceCatalogValidator<'validator>,
     files: &'a SelectedBibliographicFilesV1,
     owner: &'a RecordOwnerV1,
     predecessor_cohort_root: Option<Digest256>,
-    basis: RecordProjectionBasisV1<'a>,
+    coverage: &'a tos_compiler::source_navigation_event::NavigationEventRangeCoverageV1,
+    cause_root: Digest256,
+    origin_forms_bytes: Option<&'a [u8]>,
     forms_materializer: &'a mut dyn BibliographicForms,
     limits: BibliographicLimits,
 ) -> DurableResult<(
     tos_compiler::source_navigation_event::NavigationRecordEventCohortV1,
     tos_compiler::source_navigation_event::NavigationRecordEventBudgetCostV1,
 )> {
-    let range_basis = matches!(&basis, RecordProjectionBasisV1::Range { .. });
-    if (!range_basis && context.event_kind() != "command")
-        || context.event_sequence() != identity.event_sequence()
+    if context.event_sequence() != identity.event_sequence()
         || context.source_head_sequence() != identity.source_head_sequence()
     {
         return Err(DurableError::Conflict(
@@ -1487,10 +1102,7 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
     // typed source-cut identity separately retains the held current head.
     // Preserve the historical prefix here instead of relabeling it as the
     // later held head.
-    let source_head_sequence = match &basis {
-        RecordProjectionBasisV1::Range { coverage, .. } => coverage.through_sequence(),
-        _ => context.source_head_sequence(),
-    };
+    let source_head_sequence = coverage.through_sequence();
     let predecessor_source_revision =
         context
             .consumer_cursor()
@@ -1500,13 +1112,7 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
             ))?;
     // Existing owners are absent from the range's creation list. Bind their
     // original forms to the first retained archive, never to revised forms.
-    let retained_origin_forms = if matches!(
-        &basis,
-        RecordProjectionBasisV1::Range {
-            origin_forms_bytes: None,
-            ..
-        }
-    ) {
+    let retained_origin_forms = if origin_forms_bytes.is_none() {
         if let Some(manifest_path) = baseline_archive_manifest_path(owner, files, limits)? {
             match resolve_selected_metadata_archive_forms_v1(&manifest_path, files, limits)
                 .map_err(compiler_refusal)?
@@ -1566,106 +1172,17 @@ fn assemble_record_event_cohort_with_basis<'a, 'validator>(
         version_sources: &version_sources,
         dependencies: &dependency_rows,
     };
-    match basis {
-        RecordProjectionBasisV1::Mutation => {
-            project_record_event_cohort_v1(context, identity, input, limits)
-        }
-        RecordProjectionBasisV1::Range {
+    let cohort = tos_compiler::source_navigation_event::
+        project_navigation_record_range_terminal_event_from_event_cut_v1(
+            input,
             coverage,
             cause_root,
-            origin_forms_bytes,
-        } => tos_compiler::source_navigation_event::
-            project_navigation_record_range_terminal_event_from_event_cut_v1(
-                input,
-                coverage,
-                cause_root,
-                origin_forms_bytes.or(retained_origin_forms),
-                limits,
-            )
-            .map_err(compiler_refusal)
-            .and_then(|cohort| {
-                let cost = cohort
-                    .budget_cost()
-                    .map_err(compiler_refusal)?;
-                Ok((cohort, cost))
-            }),
-        RecordProjectionBasisV1::DependencyRefresh {
-            changed_dependency_path,
-            changed_dependency_bytes,
-        } => {
-            if owner.origin == RecordOwnerOriginV1::DirectSourceCreate
-                || files.required(changed_dependency_path).ok() != Some(changed_dependency_bytes)
-            {
-                return Err(DurableError::Conflict(
-                    "Record dependency refresh bytes differ from selected event cut",
-                ));
-            }
-            crate::source_navigation_record_adapter::project_record_dependency_refresh_cohort_v1(
-                context,
-                identity,
-                input,
-                changed_dependency_path,
-                changed_dependency_bytes,
-                limits,
-            )
-        }
-        RecordProjectionBasisV1::DependencyRefreshSet {
-            changed_dependencies,
-        } => {
-            if owner.origin == RecordOwnerOriginV1::DirectSourceCreate {
-                return Err(DurableError::Conflict(
-                    "new Record cannot be a dependency refresh owner",
-                ));
-            }
-            let record_path = tos_foundation::RelativePath::parse(&owner.source_path)
-                .map_err(|_| DurableError::Invalid("navigation Record source path"))?;
-            let mut selected_causes = Vec::new();
-            for cause in changed_dependencies {
-                if cause.path == record_path {
-                    continue;
-                }
-                let Some(dependency) = dependency_rows
-                    .iter()
-                    .find(|dependency| dependency.path == cause.path)
-                else {
-                    continue;
-                };
-                let matches_selected = matches!(
-                    dependency.state,
-                    NavigationDependencyStateV1::Present { sha256, .. }
-                        if sha256 == cause.sha256
-                );
-                if !matches_selected {
-                    return Err(DurableError::Conflict(
-                        "Record dependency cause bytes differ from selected event cut",
-                    ));
-                }
-                selected_causes.push(cause.clone());
-            }
-            if selected_causes.is_empty() {
-                return Err(DurableError::Conflict(
-                    "Record dependency refresh has no applicable event causes",
-                ));
-            }
-            crate::source_navigation_record_adapter::project_record_dependency_refresh_set_cohort_v1(
-                context,
-                identity,
-                input,
-                &selected_causes,
-                limits,
-            )
-        }
-        RecordProjectionBasisV1::ClaimRevisionRefresh { proof } => {
-            if owner.origin == RecordOwnerOriginV1::DirectSourceCreate {
-                return Err(DurableError::Conflict(
-                    "new Record cannot be a Claim revision refresh owner",
-                ));
-            }
-            crate::source_navigation_record_adapter::project_record_claim_revision_refresh_cohort_v1(
-                context, identity, input, proof, limits,
-            )
-        }
-    }
+            origin_forms_bytes.or(retained_origin_forms),
+            limits,
+        )
+        .map_err(compiler_refusal)?;
+    let cost = cohort.budget_cost().map_err(compiler_refusal)?;
+    Ok((cohort, cost))
 }
 
 fn selected_record_entry(

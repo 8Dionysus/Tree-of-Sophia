@@ -560,10 +560,6 @@ fn source_refs(inputs: &PreparedDossierPlantingInputs, field: &str) -> Result<Ve
         .collect()
 }
 
-fn repo_ref(reference: &str) -> String {
-    reference.to_owned()
-}
-
 fn intake_fingerprint(rows: &[Value]) -> Result<String, String> {
     let mut sorted = rows.iter().collect::<Vec<_>>();
     sorted.sort_by_key(|row| text(row.get("relative_path")));

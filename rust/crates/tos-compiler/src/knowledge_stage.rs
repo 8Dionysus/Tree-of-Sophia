@@ -5683,13 +5683,6 @@ fn selected_table_closure_with_owned_state(
     selected_table_closure_with_layout_and_state(db, KnowledgePayloadLayout::InlineV1, state)
 }
 
-pub(crate) fn selected_table_closure_with_layout(
-    db: &Connection,
-    layout: KnowledgePayloadLayout,
-) -> Result<()> {
-    selected_table_closure_with_layout_and_state(db, layout, None)
-}
-
 fn selected_table_closure_with_layout_and_state(
     db: &Connection,
     layout: KnowledgePayloadLayout,

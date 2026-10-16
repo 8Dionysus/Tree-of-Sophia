@@ -476,39 +476,6 @@ fn candidate_companions_present<I: Eq>(
     Ok(present)
 }
 
-fn candidate_artifact_member<I: Eq>(
-    input: &dyn SourceCutInputWithIdentity<I>,
-    path: &str,
-    expected_size_bytes: u64,
-    max_member_bytes: usize,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> Result<(Option<serde_json::Value>, Digest256, u64), ItemRefusal> {
-    let mut observed = None;
-    input.with_current_member(
-        path,
-        max_member_bytes,
-        deadline,
-        cancelled,
-        &mut |meta, raw| {
-            if meta.path != path
-                || meta.size_bytes != expected_size_bytes
-                || raw.len() as u64 != expected_size_bytes
-            {
-                return Err(ItemRefusal::Source(
-                    "candidate Artifact member metadata changed during read".into(),
-                ));
-            }
-            let value = serde_json::from_slice::<serde_json::Value>(raw).ok();
-            observed = Some((value, Digest256::of_bytes(raw), meta.size_bytes));
-            Ok(())
-        },
-    )?;
-    observed.ok_or_else(|| {
-        ItemRefusal::Source("candidate Artifact member reader omitted its callback".into())
-    })
-}
-
 fn refusal_failure(
     refusal: &ItemRefusal,
     stage: ArtifactReplayFailureStage,

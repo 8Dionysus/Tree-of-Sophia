@@ -23,8 +23,7 @@ use super::foundation_rule_diagnostics::{
     SourceFoundationRuleDiagnosticsLimits,
 };
 use super::foundation_run::{
-    self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
-    FoundationDefaultReadError, FoundationFinalInputError,
+    self, FoundationBiblioEvidence, FoundationDefaultReadError, FoundationFinalInputError,
 };
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::DisposableCatalogTreeLimits;
@@ -1072,10 +1071,6 @@ fn records_read_bytes(
     checked_add_u64(record, cost.item_observed_read_bytes)
 }
 
-fn default_issue_count(evaluated: &EvaluatedFoundationDefault<'_>) -> usize {
-    evaluated.rules.cost.issue_count
-}
-
 fn catalog_issue_count<B>(
     outcome: &FoundationCatalogOutcome<B>,
 ) -> Result<usize, FoundationOrchestratorError> {
@@ -1136,18 +1131,6 @@ fn catalog_retained_state<B, D>(
                 .as_ref()
                 .map_or(0, |inputs| inputs.retained_state_bytes()),
         ),
-    }
-}
-
-fn outcome_schema_execution_cost<B, D>(
-    outcome: &FoundationCatalogOutcome<B, D>,
-) -> tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost {
-    match outcome {
-        FoundationCatalogOutcome::Complete(result) => result.schema_execution_cost,
-        FoundationCatalogOutcome::SchemaRejected {
-            schema_execution_cost,
-            ..
-        } => *schema_execution_cost,
     }
 }
 
@@ -4017,8 +4000,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .ok_or_else(|| incomplete("candidate final write cap exceeded"))?;
     Ok((index, verified_records))
 }
-
-struct NativeAdmissionStateHeader;
 
 fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     view: FoundationBootstrapView<'work, 'cancel, 'signal>,

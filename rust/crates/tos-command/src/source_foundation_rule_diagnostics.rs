@@ -2550,33 +2550,6 @@ pub(crate) fn evaluate(
     )
 }
 
-/// Evaluate the same ordered diagnostic kernel while forwarding the caller's
-/// invocation-wide quota to the diagnostics-v2 worker. The handle is cloned
-/// once; no quota is constructed or reset in this district.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn evaluate_with_shared_quota(
-    owner_report: SourceFoundationDefaultRulesReport,
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    schema_limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    limits: SourceFoundationRuleDiagnosticsLimits,
-    quota: &SharedSchemaWorkerQuota,
-) -> Result<EvaluatedSourceFoundationRules, SourceFoundationRuleDiagnosticsError> {
-    evaluate_inner(
-        owner_report,
-        schema_set,
-        worker,
-        schema_limits,
-        deadline,
-        cancelled,
-        limits,
-        Some(quota.clone()),
-        None,
-    )
-}
-
 /// Evaluate the same ordered diagnostics kernel with the caller's already
 /// verified worker image. The handle remains borrowed across the exchange so
 /// all foundation districts can share one sealed executable.

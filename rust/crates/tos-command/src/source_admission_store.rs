@@ -97,12 +97,6 @@ impl std::fmt::Display for V2SuccessorBaseAdvanced {
 
 impl std::error::Error for V2SuccessorBaseAdvanced {}
 
-pub(crate) fn is_v2_successor_base_advanced(error: &io::Error) -> bool {
-    error
-        .get_ref()
-        .is_some_and(|source| source.is::<V2SuccessorBaseAdvanced>())
-}
-
 fn v2_base_advanced() -> io::Error {
     io::Error::new(io::ErrorKind::WouldBlock, V2SuccessorBaseAdvanced)
 }
@@ -4696,36 +4690,6 @@ fn verify_file(
     cancel: &AtomicBool,
 ) -> io::Result<()> {
     stream_verified(file, size, digest, deadline, cancel, &mut io::sink())
-}
-
-fn verify_file_accounted(
-    file: &mut File,
-    size: u64,
-    digest: Digest256,
-    deadline: Instant,
-    cancel: &AtomicBool,
-    charge_read: &dyn Fn(u64) -> io::Result<()>,
-) -> io::Result<()> {
-    stream_verified_accounted(
-        file,
-        size,
-        digest,
-        deadline,
-        cancel,
-        &mut io::sink(),
-        charge_read,
-        &|_| Ok(()),
-    )
-}
-
-fn write_accounted(
-    sink: &mut (impl Write + ?Sized),
-    mut raw: &[u8],
-    deadline: Instant,
-    cancel: &AtomicBool,
-    charge: &dyn Fn(u64) -> io::Result<()>,
-) -> io::Result<()> {
-    write_recorded(sink, raw, deadline, cancel, charge, &|_| Ok(()))
 }
 
 fn verify_file_recorded(

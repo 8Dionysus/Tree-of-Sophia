@@ -20,13 +20,11 @@ mod durable_navigation_event;
 pub(crate) use durable_navigation_event::DurableNavigationOriginalRightWitnessV1;
 pub(crate) use durable_navigation_event::{
     DurableNavigationAdjacencyCertificateReadV1, DurableNavigationCurrentnessGuardV1,
-    DurableNavigationCurrentnessV1, DurableNavigationHeldReadV2,
-    DurableNavigationPublishedGenerationGuardV2, DurableNavigationPublishedGenerationV2,
-    navigation_owner_binding, navigation_owner_binding_with_verified_model,
-    read_navigation_adjacency_certificate_v1, read_navigation_currentness_guard_with_client_v1,
-    read_navigation_currentness_guard_with_tx_v1, read_navigation_published_guard_with_tx_v2,
-    with_published_navigation_generation_v2,
-    with_published_navigation_generation_v2_selected_owner,
+    DurableNavigationCurrentnessV1, DurableNavigationPublishedGenerationGuardV2,
+    DurableNavigationPublishedGenerationV2, navigation_owner_binding,
+    navigation_owner_binding_with_verified_model, read_navigation_adjacency_certificate_v1,
+    read_navigation_currentness_guard_with_client_v1, read_navigation_currentness_guard_with_tx_v1,
+    read_navigation_published_guard_with_tx_v2,
 };
 pub use durable_navigation_event::{
     DurableNavigationBaseRowReadV1, DurableNavigationBootstrapApplyV1,

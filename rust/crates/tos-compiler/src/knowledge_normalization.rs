@@ -172,65 +172,6 @@ pub(crate) fn serde_array_slots_upper(n: usize) -> Result<usize> {
 // value plus hashbrown indices/control. Eight slots include geometric old/new
 // overlap; non-preserve_order uses the existing sixteen-slot BTree envelope.
 // This remains a logical admission estimate, not measured allocator/RSS.
-/// Preadmit one normalizer output while its consumer encodes/inserts it.
-/// The family owner supplies a documented maximum of actual source/subtree
-/// copies and the exact additional key/string/nested-container geometry.
-/// The same original work/check precedes each forecast source-copy traversal;
-/// this is an accounting bound, not a measured allocator/RSS assertion.
-pub(crate) fn hold_owned_normalized_output<'s, 'budget>(
-    state: &'s crate::d1_public_capture::CreationState<'budget>,
-    source_values: &[&Value],
-    full_source_copies: usize,
-    root_object_fields: usize,
-    extra_heap_bytes: usize,
-) -> Result<crate::d1_public_capture::CreationStateHold<'s, 'budget>> {
-    state.active()?;
-    let mut total = serde_object_slots_upper(root_object_fields)?
-        .checked_add(
-            root_object_fields
-                .checked_mul(std::mem::size_of::<Value>())
-                .ok_or(Error::Budget("owned normalized root slots"))?,
-        )
-        .and_then(|n| n.checked_add(extra_heap_bytes))
-        .ok_or(Error::Budget("owned normalized additional state"))?;
-    for value in source_values {
-        for _ in 0..full_source_copies {
-            state.active()?;
-            total = total
-                .checked_add(state.value_clone_state_upper_bound(value)?)
-                .ok_or(Error::Budget("owned normalized source copies"))?;
-        }
-    }
-    state.hold(total)
-}
-
-/// Admit separately documented copy destinations for each actual input tree.
-/// Each planning traversal consumes the same original work/check ledger.
-pub(crate) fn hold_owned_normalized_output_with_copy_counts<'s, 'budget>(
-    state: &'s crate::d1_public_capture::CreationState<'budget>,
-    source_values: &[(&Value, usize)],
-    root_object_fields: usize,
-    extra_heap_bytes: usize,
-) -> Result<crate::d1_public_capture::CreationStateHold<'s, 'budget>> {
-    state.active()?;
-    let mut total = serde_object_slots_upper(root_object_fields)?
-        .checked_add(
-            root_object_fields
-                .checked_mul(std::mem::size_of::<Value>())
-                .ok_or(Error::Budget("owned normalized root slots"))?,
-        )
-        .and_then(|n| n.checked_add(extra_heap_bytes))
-        .ok_or(Error::Budget("owned normalized additional state"))?;
-    for (value, copies) in source_values {
-        for _ in 0..*copies {
-            state.active()?;
-            total = total
-                .checked_add(state.value_clone_state_upper_bound(value)?)
-                .ok_or(Error::Budget("owned normalized source copies"))?;
-        }
-    }
-    state.hold(total)
-}
 
 pub(crate) fn serde_object_slots_upper(n: usize) -> Result<usize> {
     let entry = std::mem::size_of::<(String, Value)>() + 2 * std::mem::size_of::<usize>() + 1;

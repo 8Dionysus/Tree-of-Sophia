@@ -3105,43 +3105,6 @@ pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
     Ok(result)
 }
 
-/// Resolve one exact binding through the owner-local Text transport under an
-/// explicitly selected read scope. The v4-v6 confidential assessment adapter
-/// uses this to derive the same packet/layer/schema closure as other native
-/// owner consumers; it does not route through Sign or infer a positive review.
-pub(crate) fn resolve_owner_binding<R: SignNativeRead + ?Sized>(
-    reader: &mut R,
-    worker: &mut dyn CutSchemaExecutor,
-    binding: &JsonValue,
-    scope: NativeReadScope,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<ResolvedSignBinding> {
-    reader.verify_current(deadline, cancelled)?;
-    let mut native = Native {
-        reader,
-        worker,
-        deadline,
-        cancelled,
-        cache: BTreeMap::new(),
-        schemas: BTreeMap::new(),
-        remaining_metadata: MAX_METADATA_BYTES,
-        remaining_content: MAX_CONTENT_BYTES,
-        route_profile: NativeRoute::OwnerText,
-    };
-    let (packet, layer, summary) = native.resolve(binding, scope)?;
-    let input_snapshot = native.snapshot()?;
-    let inputs = selected_inputs(&native);
-    Ok(ResolvedSignBinding {
-        packet,
-        layer,
-        summary,
-        inputs,
-        input_snapshot,
-        schema_digests: native.schemas,
-    })
-}
-
 fn disclosed_spans(
     packet: &JsonValue,
     binding: &JsonValue,

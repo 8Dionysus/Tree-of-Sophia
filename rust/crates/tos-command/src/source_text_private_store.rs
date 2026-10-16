@@ -369,21 +369,6 @@ fn decode_plan_bounded(
     Ok(files)
 }
 
-pub(crate) fn encode_plan(
-    t: &str,
-    r: &JsonValue,
-    f: &BTreeMap<String, Vec<u8>>,
-) -> SourceCommandResult<Vec<u8>> {
-    encode_plan_bounded(t, MAX_PACKAGE, MAX_CONTROL, |_| MAX_FILE, r, f)
-}
-pub(crate) fn decode_plan(
-    b: &[u8],
-    t: &str,
-    r: &JsonValue,
-) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
-    decode_plan_bounded(b, t, MAX_PACKAGE, MAX_CONTROL, |_| MAX_FILE, r)
-}
-
 fn stamp(meta: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
     (
         meta.dev(),

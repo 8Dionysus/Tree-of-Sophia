@@ -483,15 +483,6 @@ pub struct SourceCatalogValidator<'a> {
     event_source_revision: Option<Digest256>,
 }
 
-/// One exact selected-contract check for an authored source instance. The
-/// schema bytes are supplied as a binding witness and compared with the
-/// selected stage before the maintained executor runs.
-pub(crate) struct CatalogSchemaInstanceV1<'a> {
-    pub schema_path: &'a str,
-    pub schema_bytes: &'a [u8],
-    pub instance_bytes: &'a [u8],
-}
-
 #[derive(Clone)]
 struct Profile {
     descriptor: Value,
@@ -3413,39 +3404,6 @@ pub(crate) fn check_catalog_schema_with_contracts(
     raw: &[u8],
 ) -> Result<()> {
     validator.check(contracts, schema, fragment, raw)
-}
-
-/// Verify several exact schema/instance pairs against one selected source
-/// stage. This is used by event-local replacement producers so historical
-/// versions use their own schema routes without rescanning or trusting a
-/// caller-provided schema precondition.
-pub(crate) fn check_catalog_schema_instances(
-    stage: &KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    instances: &[CatalogSchemaInstanceV1<'_>],
-) -> Result<()> {
-    if instances.is_empty() {
-        return Ok(());
-    }
-    let contracts = prepare_catalog_contracts(stage, validator, l)?;
-    for instance in instances {
-        if contracts
-            .source_bytes
-            .get(instance.schema_path)
-            .map(Vec::as_slice)
-            != Some(instance.schema_bytes)
-        {
-            return Err(Error::Invalid("catalog selected schema exact bytes differ"));
-        }
-        validator.check(
-            &contracts,
-            instance.schema_path,
-            "",
-            instance.instance_bytes,
-        )?;
-    }
-    Ok(())
 }
 
 /// Pure catalog projection after the caller has verified exact owner grammar,

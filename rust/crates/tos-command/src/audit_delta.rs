@@ -589,28 +589,6 @@ fn require_repeatable_snapshot(tx: &mut Transaction<'_>) -> Result<(), AuditDelt
     Ok(())
 }
 
-/// Load `from_generation..=current_generation` under a stable PostgreSQL
-/// snapshot. There must be exactly one journal row for every generation.
-pub fn load_interval(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-    from_generation: u64,
-    limits: AuditDeltaLimits,
-) -> Result<VerifiedAuditInterval, AuditDeltaError> {
-    load_interval_controlled(tx, domain, from_generation, limits, None)
-}
-
-pub fn load_interval_controlled(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-    from_generation: u64,
-    limits: AuditDeltaLimits,
-    control: Option<AuditDeltaControl<'_>>,
-) -> Result<VerifiedAuditInterval, AuditDeltaError> {
-    let mut work = AuditDeltaWork::default();
-    load_interval_controlled_with_work(tx, domain, from_generation, limits, control, &mut work)
-}
-
 pub fn load_interval_controlled_with_work(
     tx: &mut Transaction<'_>,
     domain: &str,
@@ -907,30 +885,6 @@ fn transition(
     }
     state.insert(key.clone(), after);
     Ok(())
-}
-
-/// Query final row commitments for bounded, unique stable keys. This uses
-/// table-specific primary-key joins and the exact same SQL commitment
-/// function as the journal; rows and bytes are bounded before any result set
-/// is materialized.
-pub fn fetch_final_commitments(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-    keys: BTreeSet<StableRowKey>,
-    limits: AuditDeltaLimits,
-) -> Result<BTreeMap<StableRowKey, Option<RowCommitment>>, AuditDeltaError> {
-    fetch_final_commitments_controlled(tx, domain, keys, limits, None)
-}
-
-pub fn fetch_final_commitments_controlled(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-    keys: BTreeSet<StableRowKey>,
-    limits: AuditDeltaLimits,
-    control: Option<AuditDeltaControl<'_>>,
-) -> Result<BTreeMap<StableRowKey, Option<RowCommitment>>, AuditDeltaError> {
-    let mut work = AuditDeltaWork::default();
-    fetch_final_commitments_controlled_with_work(tx, domain, keys, limits, control, &mut work)
 }
 
 pub fn fetch_final_commitments_controlled_with_work(
@@ -1492,16 +1446,6 @@ pub fn activate_domain_controlled(
 fn profile_part(hasher: &mut Digest256Hasher, value: &[u8]) {
     hasher.update(&(value.len() as u64).to_be_bytes());
     hasher.update(value);
-}
-
-/// Read selection/publication fields independently from the semantic domain
-/// header. Invoke this in the same RR transaction as `load_interval` and
-/// `fetch_final_commitments`.
-pub fn read_final_selector(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-) -> Result<FinalSelector, AuditDeltaError> {
-    read_final_selector_controlled(tx, domain, None)
 }
 
 pub fn read_final_selector_controlled(

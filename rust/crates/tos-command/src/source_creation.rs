@@ -228,12 +228,6 @@ pub(crate) mod artifact_pg;
 #[path = "source_creation_pg_family.rs"]
 pub(crate) mod pg_family;
 
-pub(crate) fn pg_agent_creation_requirements(
-    context: &CommandContext,
-) -> SourceCommandResult<pg::PgAgentCreationRequirements> {
-    pg::requirements(context)
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CreationFamily {
     HistoricalV1,

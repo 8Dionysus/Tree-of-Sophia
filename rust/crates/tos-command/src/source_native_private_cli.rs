@@ -60,52 +60,6 @@ struct SelectedPrivateInvocation {
     worker: CutWorkerSchemaExecutor,
 }
 
-/// A private semantic input over one exact selected source revision. The
-/// underlying adapter is deliberately restricted to exact reads and one
-/// bounded owner prefix; it cannot certify or materialize a complete corpus.
-struct SelectedPrivateSourceInput<'a> {
-    revision: SourceRevision,
-    input: &'a dyn SourceCutInput,
-}
-
-impl profile::PrivateSelectedSourceInput for SelectedPrivateSourceInput<'_> {
-    fn private_selection_identity(&self) -> profile::PrivateSelectedSourceIdentity {
-        profile::PrivateSelectedSourceIdentity::BootstrapRevision(self.revision)
-    }
-
-    fn for_each_current_member_path_under(
-        &self,
-        directory: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
-    ) -> Result<SourceCutPrefixCoverage, ItemRefusal> {
-        self.input.for_each_current_member_meta_under(
-            directory,
-            deadline,
-            cancelled,
-            &mut |member| visit(member.path),
-        )
-    }
-
-    fn with_current_member(
-        &self,
-        path: &str,
-        max_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        visit: &mut dyn FnMut(&str, &[u8]) -> Result<(), ItemRefusal>,
-    ) -> Result<(), ItemRefusal> {
-        self.input.with_current_member(
-            path,
-            max_bytes,
-            deadline,
-            cancelled,
-            &mut |member, bytes| visit(member.path, bytes),
-        )
-    }
-}
-
 pub(super) fn run(
     invocation: &Value,
     request_raw: &[u8],

@@ -602,20 +602,6 @@ fn git_object_id(value: &str, label: &'static str) -> Result<()> {
     Ok(())
 }
 
-fn absolute_normalized(value: &str, label: &'static str) -> Result<()> {
-    let path = Path::new(value);
-    if value.is_empty()
-        || value.len() > MAX_MEMBER_PATH_BYTES
-        || !path.is_absolute()
-        || path
-            .components()
-            .any(|part| matches!(part, Component::CurDir | Component::ParentDir))
-    {
-        return Err(Error::Invalid(label));
-    }
-    Ok(())
-}
-
 /// Explicit prior native data candidate selected only as a model cache. The
 /// manifest digest and revision bind the caller's chosen artifact; they do not
 /// grant source or release authority.
@@ -1742,31 +1728,6 @@ fn read_digest(path: &Path, cap: u64, deadline: Instant) -> Result<(u64, Digest2
         return Err(Error::Invalid("native producer file changed while hashing"));
     }
     Ok((count, hash.finalize()))
-}
-
-fn scan_native_source_tree(
-    root: &Path,
-    deadline: Instant,
-) -> Result<(BTreeMap<String, SourceTreeMember>, u64)> {
-    private_directory(root)?;
-    let root_metadata = fs::symlink_metadata(root)?;
-    let mut members = BTreeMap::new();
-    let mut entry_count = 0usize;
-    let mut total_bytes = 0u64;
-    scan_native_source_tree_at(
-        root,
-        root,
-        root_metadata.uid(),
-        &mut members,
-        &mut entry_count,
-        &mut total_bytes,
-        0,
-        deadline,
-    )?;
-    if members.is_empty() {
-        return Err(Error::Invalid("native source-only tree is empty"));
-    }
-    Ok((members, total_bytes))
 }
 
 #[allow(clippy::too_many_arguments)]

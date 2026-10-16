@@ -1571,30 +1571,6 @@ fn open_selection_from_held_declaration_inner_v1(
     })
 }
 
-fn parse_scale_input_manifest_v1(
-    raw: &[u8],
-    max_bytes: usize,
-) -> io::Result<ParsedScaleInputManifestV1> {
-    parse_scale_input_manifest_selected_v1(raw, max_bytes, None, 0)
-}
-
-fn parse_scale_input_manifest_selected_v1(
-    raw: &[u8],
-    max_bytes: usize,
-    expected_composition: Option<IndexedInputCompositionV1>,
-    state_bytes: usize,
-) -> io::Result<ParsedScaleInputManifestV1> {
-    parse_scale_input_manifest_selected_inner_v1(
-        raw,
-        max_bytes,
-        expected_composition.map_or(
-            CompositionSelectionV1::Unselected,
-            CompositionSelectionV1::Exact,
-        ),
-        state_bytes,
-    )
-}
-
 fn parse_scale_input_manifest_selected_inner_v1(
     raw: &[u8],
     max_bytes: usize,

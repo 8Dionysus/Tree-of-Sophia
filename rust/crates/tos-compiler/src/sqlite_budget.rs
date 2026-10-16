@@ -75,10 +75,6 @@ pub(crate) fn configure_with_counter_until(
     configure_limits(db, limits)
 }
 
-pub(crate) fn configure_prepaid_limits(db: &Connection, limits: Limits) -> Result<()> {
-    configure_limits(db, limits)
-}
-
 /// Same maintained settings under the existing serial VM hook and original
 /// state/work owner. Dynamic PRAGMA spelling uses a held fixed stack buffer.
 pub(crate) fn configure_prepaid_limits_with_owned_state(
