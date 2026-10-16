@@ -2226,10 +2226,6 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
             max_locator_bytes: max_sqlite_bytes,
             max_sqlite_bytes,
             max_work_bytes: source_limits.max_work_bytes,
-            // Existing native connection/cache/VM policy remains in custody;
-            // these cold-only installation fields do not create extra caps.
-            sqlite_cache_kib: 0,
-            max_sql_vm_steps: 0,
             max_workspace_bytes: max_generated_state_bytes - owner_inline,
         };
         tos_compiler::plan_candidate_source_catalog_inputs_spooled(

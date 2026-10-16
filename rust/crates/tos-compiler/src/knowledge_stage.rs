@@ -8509,14 +8509,6 @@ mod tests {
                     &["corpus_capture_pending"][..],
                     &[][..],
                 ),
-                (
-                    crate::knowledge_ordered::PREPARATION_SCHEMA,
-                    &["knowledge_node_candidates", "knowledge_relation_candidates"][..],
-                    &[
-                        "knowledge_node_candidates_order",
-                        "knowledge_relation_candidates_order",
-                    ][..],
-                ),
             ] {
                 stage.create_preparation_tables(schema).unwrap();
                 for (location, present) in [("main", !native), ("temp", native)] {

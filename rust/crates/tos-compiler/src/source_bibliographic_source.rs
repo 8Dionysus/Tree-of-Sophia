@@ -233,50 +233,16 @@ fn public_path(path: &str) -> bool {
                 )
         })
 }
-/// Host-held kernel quota/custody for the selected locator database, including
-/// its connection/cache lifetime. There is no default permissive owner.
-#[derive(Clone, Copy, Debug)]
-pub enum ColdSourceCatalogSpoolPhase {
-    Create,
-    Grow,
-    Read,
-    Finish,
-}
-pub trait ColdSourceCatalogSpoolIsolation {
-    fn verify(
-        &self,
-        file: &std::fs::File,
-        limits: ColdSourceCatalogSpoolLimits,
-        phase: ColdSourceCatalogSpoolPhase,
-    ) -> Result<()>;
-}
 #[derive(Clone, Copy, Debug)]
 pub struct ColdSourceCatalogSpoolLimits {
     pub max_selected_members: u64,
     pub max_locator_bytes: u64,
     pub max_sqlite_bytes: u64,
     pub max_work_bytes: u64,
-    pub sqlite_cache_kib: u32,
-    pub max_sql_vm_steps: u64,
     pub max_workspace_bytes: usize,
 }
-enum PlanningDatabase {
-    Owned(tos_source_store::PinnedSqliteConnection),
-    Shared(std::rc::Rc<tos_source_store::PinnedSqliteConnection>),
-}
-impl std::ops::Deref for PlanningDatabase {
-    type Target = tos_source_store::PinnedSqliteConnection;
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Self::Owned(db) => db,
-            Self::Shared(db) => db,
-        }
-    }
-}
 struct DiskEntries<'a> {
-    db: PlanningDatabase,
-    file: Option<std::fs::File>,
-    isolation: Option<&'a dyn ColdSourceCatalogSpoolIsolation>,
+    db: std::rc::Rc<tos_source_store::PinnedSqliteConnection>,
     limits: ColdSourceCatalogSpoolLimits,
     rows: u64,
     logical_bytes: u64,
@@ -285,29 +251,24 @@ struct DiskEntries<'a> {
     cleanup_complete: std::cell::Cell<bool>,
 }
 impl DiskEntries<'_> {
-    fn guard(&self, phase: ColdSourceCatalogSpoolPhase) -> Result<()> {
+    fn guard(&self) -> Result<()> {
         check(self.deadline, self.cancelled)?;
-        if let (Some(file), Some(isolation)) = (&self.file, self.isolation) {
-            isolation.verify(file, self.limits, phase)?;
-        } else {
-            // SAME pinned native connection: its VFS owns prewrite whole IO,
-            // original allocation, deadline/cancellation and auxiliary caps.
-            let page: u64 = self.db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
-            let count: u64 = self.db.query_row("PRAGMA page_count", [], |r| r.get(0))?;
-            if page
-                .checked_mul(count)
-                .is_none_or(|bytes| bytes > self.limits.max_sqlite_bytes)
-            {
-                return Err(Error::Budget("candidate catalog shared SQLite ceiling"));
-            }
+        // The existing pinned connection owns IO, allocation and cancellation.
+        let page: u64 = self.db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
+        let count: u64 = self.db.query_row("PRAGMA page_count", [], |r| r.get(0))?;
+        if page
+            .checked_mul(count)
+            .is_none_or(|bytes| bytes > self.limits.max_sqlite_bytes)
+        {
+            return Err(Error::Budget("candidate catalog shared SQLite ceiling"));
         }
         check(self.deadline, self.cancelled)
     }
     fn finish_candidate_cleanup(&self) -> Result<()> {
-        if !matches!(self.db, PlanningDatabase::Shared(_)) || self.cleanup_complete.get() {
+        if self.cleanup_complete.get() {
             return Ok(());
         }
-        self.guard(ColdSourceCatalogSpoolPhase::Finish)?;
+        self.guard()?;
         let selected: u64 = self
             .db
             .query_row("SELECT COUNT(*) FROM selected", [], |r| r.get(0))?;
@@ -323,14 +284,14 @@ impl DiskEntries<'_> {
         if remaining != 0 {
             return Err(Error::Invalid("candidate catalog planner cleanup closure"));
         }
-        self.guard(ColdSourceCatalogSpoolPhase::Finish)?;
+        self.guard()?;
         self.cleanup_complete.set(true);
         Ok(())
     }
 }
 impl Drop for DiskEntries<'_> {
     fn drop(&mut self) {
-        if matches!(self.db, PlanningDatabase::Shared(_)) && !self.cleanup_complete.get() {
+        if !self.cleanup_complete.get() {
             // Failure remains in the original pinned VFS/IO owner; this does
             // not refund a cumulative byte or physical reservation.
             let _ = self.db.execute_batch("DROP TABLE IF EXISTS selected; DROP TABLE IF EXISTS pending; DROP TABLE IF EXISTS scanned;");
@@ -358,7 +319,7 @@ impl PlanningEntries<'_> {
         match self {
             Self::Resident { members, .. } => Ok(members.get(path).cloned()),
             Self::Disk(d) => {
-                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                d.guard()?;
                 let row =
                     d.db.query_row(
                         "SELECT size,sha,flags FROM selected WHERE path=?1",
@@ -372,7 +333,7 @@ impl PlanningEntries<'_> {
                         },
                     )
                     .optional()?;
-                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                d.guard()?;
                 row.map(|(size, sha, flags)| {
                     let size = u64::from_be_bytes(
                         size.try_into()
@@ -406,9 +367,9 @@ impl PlanningEntries<'_> {
                 }
             }
             Self::Disk(d) => {
-                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                d.guard()?;
                 d.db.execute("INSERT OR IGNORE INTO pending SELECT ?1 WHERE NOT EXISTS(SELECT 1 FROM scanned WHERE path=?1)",[path])?;
-                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                d.guard()?;
             }
         }
         Ok(())
@@ -419,9 +380,9 @@ impl PlanningEntries<'_> {
                 pending, scanned, ..
             } => Ok(pending.contains(path) || scanned.contains(path)),
             Self::Disk(d) => {
-                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                d.guard()?;
                 let result = d.db.query_row("SELECT EXISTS(SELECT 1 FROM pending WHERE path=?1) OR EXISTS(SELECT 1 FROM scanned WHERE path=?1)", [path], |r| r.get(0));
-                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                d.guard()?;
                 Ok(result?)
             }
         }
@@ -439,18 +400,18 @@ impl PlanningEntries<'_> {
                 Ok(path)
             }
             Self::Disk(d) => {
-                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                d.guard()?;
                 let path: Option<String> =
                     d.db.query_row("SELECT path FROM pending ORDER BY path LIMIT 1", [], |r| {
                         r.get(0)
                     })
                     .optional()?;
-                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                d.guard()?;
                 if let Some(path) = &path {
-                    d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                    d.guard()?;
                     d.db.execute("INSERT INTO scanned VALUES (?1)", [path])?;
                     d.db.execute("DELETE FROM pending WHERE path=?1", [path])?;
-                    d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                    d.guard()?;
                 }
                 Ok(path)
             }
@@ -468,14 +429,14 @@ impl PlanningEntries<'_> {
                 members.insert(path.to_owned(), member);
             }
             Self::Disk(d) => {
-                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                d.guard()?;
                 let mut flags = 0u32;
                 for c in &member.collections {
                     flags |= collection_flag(c)?;
                 }
                 let added=d.db.execute("INSERT INTO selected VALUES (?1,?2,?3,?4) ON CONFLICT(path) DO UPDATE SET flags=excluded.flags",rusqlite::params![path,member.size.to_be_bytes().as_slice(),member.sha.as_bytes().as_slice(),flags])?;
                 let _ = added;
-                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                d.guard()?;
             }
         }
         Ok(())
@@ -487,14 +448,14 @@ impl PlanningEntries<'_> {
                 .checked_add(bytes as u64)
                 .filter(|n| *n <= d.limits.max_locator_bytes)
                 .ok_or(Error::Budget("cold spool locator bytes"))?;
-            d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+            d.guard()?;
         }
         Ok(())
     }
     fn next(&self, after: Option<&str>) -> Result<Option<(String, Member)>> {
         use rusqlite::OptionalExtension;
         if let Self::Disk(d) = self {
-            d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+            d.guard()?;
         }
         let path = match self {
             Self::Resident { members, .. } => members
@@ -519,7 +480,7 @@ impl PlanningEntries<'_> {
             },
         };
         if let Self::Disk(d) = self {
-            d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+            d.guard()?;
         }
         path.map(|p| {
             self.get(&p)?
@@ -543,7 +504,6 @@ impl PlanningEntries<'_> {
 enum PlanningCut<'a> {
     Candidate(&'a dyn SourceCutInput),
     Resident(&'a CorpusCutReader),
-    Streamed(&'a tos_source_store::StreamedCorpusCutReaderV1),
 }
 impl PlanningCut<'_> {
     fn record_selection(
@@ -601,7 +561,7 @@ impl PlanningCut<'_> {
     }
     fn file_present(
         &self,
-        revision: Option<SourceRevision>,
+        _revision: Option<SourceRevision>,
         path: &str,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -615,18 +575,11 @@ impl PlanningCut<'_> {
                 .map(|presence| presence == Some(tos_source_store::SourcePresenceV1::File))
                 .map_err(|error| candidate_input_refusal(error)),
             Self::Resident(cut) => Ok(cut.current().member(&relative).is_some()),
-            Self::Streamed(cut) => cut
-                .member(
-                    revision.ok_or(Error::Invalid("streamed plan revision missing"))?,
-                    &relative,
-                )
-                .map(|member| member.is_some())
-                .map_err(|error| Error::Source(error.to_string())),
         }
     }
     fn member(
         &self,
-        revision: Option<SourceRevision>,
+        _revision: Option<SourceRevision>,
         path: &RelativePath,
         cap: usize,
         deadline: Instant,
@@ -673,13 +626,6 @@ impl PlanningCut<'_> {
                 Ok(facts)
             }
             Self::Resident(cut) => Ok(cut.current().member(path).map(|m| (m.size_bytes, m.sha256))),
-            Self::Streamed(cut) => cut
-                .member(
-                    revision.ok_or(Error::Invalid("streamed plan revision missing"))?,
-                    path,
-                )
-                .map(|m| m.map(|m| (m.size_bytes, m.sha256)))
-                .map_err(|e| Error::Source(e.to_string())),
         }
     }
     fn read(
@@ -719,15 +665,6 @@ impl PlanningCut<'_> {
                 return result.ok_or(Error::Invalid("candidate source member absent"));
             }
             Self::Resident(cut) => cut
-                .read_member(
-                    revision.ok_or(Error::Invalid("resident plan revision missing"))?,
-                    path,
-                    cap,
-                    deadline,
-                    cancelled,
-                )
-                .map(|m| m.raw),
-            Self::Streamed(cut) => cut
                 .read_member(
                     revision.ok_or(Error::Invalid("resident plan revision missing"))?,
                     path,
@@ -1181,240 +1118,6 @@ fn collection_receipts(
     }
     Ok(result)
 }
-/// A private selected-member spool, never an arbitrary caller-supplied iterator.
-/// The host reservation and source reader must outlive its transfer/final fence.
-pub struct ColdSourceCatalogInputSpool<'a> {
-    entries: PlanningEntries<'a>,
-    receipt: ColdExactInputReceipt,
-    revision: SourceRevision,
-    membership: SourceMembershipV1,
-    raw_input_max_bytes: usize,
-    work_bytes: u64,
-    consumed: bool,
-}
-impl ColdSourceCatalogInputSpool<'_> {
-    pub fn input_receipt(&self) -> ColdExactInputReceipt {
-        self.receipt.clone()
-    }
-    pub fn selected_member_count(&self) -> u64 {
-        self.entries.len()
-    }
-    pub fn observed_work_bytes(&self) -> u64 {
-        self.work_bytes
-    }
-}
-/// Actual catalog→bibliographic preparation over the same selected spool and
-/// authenticated current/history reader. The sink renderer remains unchanged.
-pub fn render_streamed_source_bibliographic_spool(
-    plan: &mut ColdSourceCatalogInputSpool<'_>,
-    cut: &tos_source_store::StreamedCorpusCutReaderV1,
-    target: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    forms: &mut dyn BibliographicForms,
-    mut l: BibliographicLimits,
-    observer: &mut impl catalog::SourceCatalogProfileObserver,
-    observed: &mut SourceCatalogRenderWorkV1,
-    read_ledger: &std::cell::RefCell<
-        crate::source_bibliographic_versions::StreamedBibliographicReadLedger,
-    >,
-    max_workspace_bytes: usize,
-) -> Result<SourceBibliographicCandidate<ColdAuthoredBinding>> {
-    if let PlanningEntries::Disk(d) = &plan.entries {
-        l.deadline = l.deadline.min(d.deadline);
-    }
-    let result = (|| {
-        let catalog = prepare_streamed_cold_source_catalog_spool(
-            plan, cut, target, validator, l, observer, observed,
-        )?;
-        let source = crate::source_bibliographic_versions::StreamedBibliographicSourceCut {
-            cut,
-            expected_revision: plan.revision,
-            expected_membership: plan.membership,
-            stage_source_cut: plan.receipt.binding.source_cut(),
-            read_ledger,
-            max_workspace_bytes,
-        };
-        let bibliographic = graph::prepare_streamed_cold_bibliographic_graph_from_cut(
-            target, &catalog, validator, forms, l, &source,
-        )?;
-        streamed_selection(
-            cut,
-            plan.revision,
-            plan.membership,
-            l.deadline,
-            validator.cancelled,
-        )?;
-        if let PlanningEntries::Disk(d) = &plan.entries {
-            d.guard(ColdSourceCatalogSpoolPhase::Finish)?;
-        }
-        check(l.deadline, validator.cancelled)?;
-        Ok(SourceBibliographicCandidate {
-            catalog,
-            bibliographic,
-        })
-    })();
-    if result.is_err() {
-        target.poison();
-    }
-    result
-}
-pub fn prepare_streamed_cold_source_catalog_spool(
-    plan: &mut ColdSourceCatalogInputSpool<'_>,
-    cut: &tos_source_store::StreamedCorpusCutReaderV1,
-    target: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    mut l: BibliographicLimits,
-    observer: &mut impl catalog::SourceCatalogProfileObserver,
-    observed: &mut SourceCatalogRenderWorkV1,
-) -> Result<SourceCatalogReceipt<ColdAuthoredBinding>> {
-    if plan.consumed {
-        target.poison();
-        return Err(Error::Invalid("streamed catalog spool already consumed"));
-    }
-    plan.consumed = true;
-    if let PlanningEntries::Disk(d) = &plan.entries {
-        if !std::ptr::eq(d.cancelled, validator.cancelled) {
-            target.poison();
-            return Err(Error::Invalid(
-                "streamed catalog cancellation owner differs",
-            ));
-        }
-        l.deadline = l.deadline.min(d.deadline);
-    }
-    let result = (|| {
-        streamed_selection(
-            cut,
-            plan.revision,
-            plan.membership,
-            l.deadline,
-            validator.cancelled,
-        )?;
-        validator.verify_schema_binding(plan.revision)?;
-        if plan.receipt.binding.value() != target.cold_receipt()?.binding.value() {
-            return Err(Error::Invalid("streamed catalog target binding"));
-        }
-        let actual = spool_receipts(&plan.entries, l, validator.cancelled)?;
-        let expected = target.input_collections();
-        if actual.len() != expected.len() {
-            return Err(Error::Invalid("streamed catalog collection closure"));
-        }
-        for a in &actual {
-            if !expected.iter().any(|e| {
-                e.source_graph == a.source_graph
-                    && e.collection == a.collection
-                    && e.input_role == a.input_role
-                    && e.adapter_profile == a.adapter_profile
-                    && e.expected_count == a.expected_count
-                    && e.expected_root_sha256 == a.expected_root_sha256
-            }) {
-                return Err(Error::Invalid("streamed catalog independent target roots"));
-            }
-        }
-        let mut after = None;
-
-        while let Some((path, member)) =
-            next_spool_member(&plan.entries, after.as_deref(), l, validator.cancelled)?
-        {
-            check(l.deadline, validator.cancelled)?;
-            if let PlanningEntries::Disk(d) = &plan.entries {
-                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
-                plan.work_bytes = plan
-                    .work_bytes
-                    .checked_add(member.size)
-                    .filter(|n| *n <= d.limits.max_work_bytes)
-                    .ok_or(Error::Budget("streamed catalog cumulative work"))?;
-            }
-            let relative = RelativePath::parse(&path)
-                .map_err(|_| Error::Invalid("streamed catalog transfer path"))?;
-            let current = cut
-                .member(plan.revision, &relative)
-                .map_err(|e| Error::Source(e.to_string()))?
-                .ok_or(Error::Invalid("streamed catalog transfer member absent"))?;
-            if current.size_bytes != member.size || current.sha256 != member.sha {
-                return Err(Error::Invalid("streamed catalog transfer metadata changed"));
-            }
-            if let PlanningEntries::Disk(d) = &plan.entries {
-                let buffer_upper = usize::try_from(member.size)
-                    .ok()
-                    .and_then(|n| n.max(8).checked_mul(4))
-                    .and_then(|n| n.checked_add(128 * 1024))
-                    .and_then(|n| {
-                        n.checked_add((d.limits.sqlite_cache_kib as usize) * 1024 + 64 * 1024)
-                    })
-                    .filter(|n| *n <= d.limits.max_workspace_bytes)
-                    .ok_or(Error::Budget("streamed catalog transfer workspace"))?;
-                let _ = buffer_upper;
-            }
-            let raw = cut
-                .read_member(
-                    plan.revision,
-                    &relative,
-                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
-                    l.deadline,
-                    validator.cancelled,
-                )
-                .map_err(|e| Error::Source(e.to_string()))?
-                .raw;
-            charge_render_work(&mut observed.source_members_returned, 1)?;
-            charge_render_work(
-                &mut observed.source_payload_bytes_returned,
-                raw.len() as u64,
-            )?;
-            if raw.len() as u64 != member.size || Digest256::of_bytes(&raw) != member.sha {
-                return Err(Error::Invalid("streamed catalog transfer exact bytes"));
-            }
-            for collection in &member.collections {
-                check(l.deadline, validator.cancelled)?;
-                target.ingest_input(InputRow {
-                    source_graph: CATALOG_SOURCE,
-                    collection,
-                    id: &path,
-                    payload: &raw,
-                })?;
-                charge_render_work(&mut observed.input_rows_staged, 1)?;
-                charge_render_work(&mut observed.input_payload_bytes_staged, raw.len() as u64)?;
-            }
-            after = Some(path);
-        }
-        let receipt =
-            catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)?;
-        streamed_selection(
-            cut,
-            plan.revision,
-            plan.membership,
-            l.deadline,
-            validator.cancelled,
-        )?;
-        if let PlanningEntries::Disk(d) = &plan.entries {
-            d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
-        }
-        check(l.deadline, validator.cancelled)?;
-        Ok(receipt)
-    })();
-    if result.is_err() {
-        target.poison();
-    }
-    result
-}
-fn streamed_selection(
-    cut: &tos_source_store::StreamedCorpusCutReaderV1,
-    revision: SourceRevision,
-    membership: SourceMembershipV1,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> Result<()> {
-    check(deadline, cancelled)?;
-    let actual = cut
-        .revision(revision)
-        .map_err(|e| Error::Source(e.to_string()))?
-        .ok_or(Error::Invalid("streamed catalog revision absent"))?;
-    if cut.current_revision() != revision || actual.membership != membership {
-        return Err(Error::Invalid(
-            "streamed catalog independently selected cut",
-        ));
-    }
-    Ok(())
-}
 fn next_spool_member(
     entries: &PlanningEntries<'_>,
     after: Option<&str>,
@@ -1474,179 +1177,7 @@ fn spool_receipts(
     }
     Ok(receipts)
 }
-/// Plan the same source/dependency law into a quota-owned disk locator index.
-/// No manifest/member Vec or caller-authored receipt grants source membership.
-pub fn plan_streamed_cold_source_catalog_inputs<'a>(
-    cut: &tos_source_store::StreamedCorpusCutReaderV1,
-    revision: SourceRevision,
-    membership: SourceMembershipV1,
-    epoch: &tos_source_store::MetadataPublicationEpoch,
-    file: std::fs::File,
-    isolation: &'a dyn ColdSourceCatalogSpoolIsolation,
-    limits: ColdSourceCatalogSpoolLimits,
-    l: BibliographicLimits,
-    cancelled: &'a AtomicBool,
-) -> Result<ColdSourceCatalogInputSpool<'a>> {
-    l.validate()?;
-    l.catalog.validate()?;
-    if limits.max_selected_members == 0
-        || limits.max_selected_members == u64::MAX
-        || limits.max_locator_bytes == 0
-        || limits.max_locator_bytes == u64::MAX
-        || limits.max_sqlite_bytes < 4096
-        || limits.max_sqlite_bytes == u64::MAX
-        || limits.max_work_bytes == 0
-        || limits.max_work_bytes == u64::MAX
-        || limits.sqlite_cache_kib == 0
-        || limits.sqlite_cache_kib > 64 * 1024
-        || limits.max_sql_vm_steps == 0
-        || limits.max_workspace_bytes == 0
-    {
-        return Err(Error::Budget("streamed catalog spool limits"));
-    }
-    streamed_selection(cut, revision, membership, l.deadline, cancelled)?;
-    let binding = ColdAuthoredBinding::from_streamed_cut(cut, revision, membership, epoch)?;
-    let baseline = (limits.sqlite_cache_kib as usize)
-        .checked_mul(1024)
-        .and_then(|n| n.checked_add(64 * 1024))
-        .filter(|n| *n <= limits.max_workspace_bytes)
-        .ok_or(Error::Budget("streamed catalog spool workspace"))?;
-    isolation.verify(&file, limits, ColdSourceCatalogSpoolPhase::Create)?;
-    let db = tos_source_store::PinnedSqliteConnection::open_private_derived(&file)
-        .map_err(|e| Error::Source(e.to_string()))?;
-    let sql_limits = crate::Limits {
-        max_rows: limits.max_selected_members,
-        max_row_bytes: 4096,
-        max_output_bytes: limits.max_sqlite_bytes,
-        max_work_bytes: limits.max_work_bytes,
-        sqlite_cache_kib: limits.sqlite_cache_kib,
-        max_sql_vm_steps: limits.max_sql_vm_steps,
-    };
-    crate::sqlite_budget::install_progress_until(
-        &db,
-        sql_limits,
-        std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
-        l.deadline,
-    );
-    db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
-    let page: u64 = db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
-    if page == 0 || page > limits.max_sqlite_bytes {
-        return Err(Error::Budget("streamed catalog spool page"));
-    }
-    db.pragma_update(None, "max_page_count", limits.max_sqlite_bytes / page)?;
-    let effective: u64 = db.query_row("PRAGMA max_page_count", [], |r| r.get(0))?;
-    if effective > limits.max_sqlite_bytes / page {
-        return Err(Error::Invalid("streamed catalog spool page cap"));
-    }
-    db.execute_batch("CREATE TABLE selected(path TEXT PRIMARY KEY,size BLOB NOT NULL,sha BLOB NOT NULL,flags INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE pending(path TEXT PRIMARY KEY) WITHOUT ROWID; CREATE TABLE scanned(path TEXT PRIMARY KEY) WITHOUT ROWID;")?;
-    isolation.verify(&file, limits, ColdSourceCatalogSpoolPhase::Grow)?;
-    let mut plan = Planning {
-        cut: PlanningCut::Streamed(cut),
-        revision: Some(revision),
-        limits: SourceCatalogInputLimits {
-            max_manifest_members: membership.count,
-            max_selected_members: 4096,
-            max_plan_bytes: 64 * 1024 * 1024,
-            max_work_bytes: limits.max_work_bytes,
-        },
-        graph_limits: l,
-        cancelled,
-        entries: PlanningEntries::Disk(DiskEntries {
-            db: PlanningDatabase::Owned(db),
-            file: Some(file),
-            isolation: Some(isolation),
-            limits,
-            rows: 0,
-            cleanup_complete: std::cell::Cell::new(false),
-            logical_bytes: 0,
-            deadline: l.deadline,
-            cancelled,
-        }),
-        plan_bytes: baseline,
-        work_bytes: 0,
-        raw_input_max_bytes: l.catalog.max_file_bytes.min(64 * 1024 * 1024),
-        json_input_max_bytes: l.catalog.max_file_bytes.min(64 * 1024 * 1024),
-        cold_raw_parser: true,
-        workspace_limit: Some(limits.max_workspace_bytes),
-        live_raw_bytes: 0,
-        live_parser_upper: 0,
-    };
-    for registry in [ENTITY, RELATION] {
-        if !plan.select(registry, CONTRACT_FILES)? {
-            return Err(Error::Invalid("cold catalog source registry absent"));
-        }
-    }
-    let raw = plan.raw(ENTITY)?;
-    let entities = plan.parse_packet(&raw, l.catalog.max_row_bytes)?;
-    plan.live_parser_upper = plan
-        .live_parser_upper
-        .checked_mul(2)
-        .ok_or(Error::Budget("cold catalog registry workspace"))?;
-    plan.check_workspace()?;
-    let basenames = catalog::source_basenames(entities.value())?;
-    let mut after = None;
-    let mut membership_hash = Digest256Hasher::new();
-    membership_hash.update(b"tos-val-full-membership-v1\0");
-    let mut member_count = 0u64;
-    loop {
-        check(l.deadline, cancelled)?;
-        let Some(member) = cut
-            .member_after(revision, after.as_ref())
-            .map_err(|e| Error::Source(e.to_string()))?
-        else {
-            break;
-        };
-        check(l.deadline, cancelled)?;
-        let reference = member.path.as_str();
-        membership_hash.update(&(reference.len() as u64).to_be_bytes());
-        membership_hash.update(reference.as_bytes());
-        membership_hash.update(&member.size_bytes.to_be_bytes());
-        membership_hash.update(member.sha256.as_bytes());
-        member_count = member_count
-            .checked_add(1)
-            .filter(|n| *n <= membership.count)
-            .ok_or(Error::Budget("streamed catalog full membership"))?;
-        plan.initial(member.path.as_str(), &basenames)?;
-        after = Some(member.path);
-    }
-    if (SourceMembershipV1 {
-        count: member_count,
-        digest: membership_hash.finalize(),
-    }) != membership
-    {
-        return Err(Error::Invalid("streamed catalog full membership EOF"));
-    }
-    drop(basenames);
-    drop(entities);
-    drop(raw);
-    plan.live_raw_bytes = 0;
-    plan.live_parser_upper = 0;
-    while let Some(path) = plan.entries.pop()? {
-        check(l.deadline, cancelled)?;
-        let raw = plan.raw(&path)?;
-        plan.packet(&path, &raw)?;
-        drop(raw);
-        plan.live_raw_bytes = 0;
-        plan.live_parser_upper = 0;
-    }
-    let collections = spool_receipts(&plan.entries, l, cancelled)?;
-    if let PlanningEntries::Disk(d) = &plan.entries {
-        d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
-    }
-    streamed_selection(cut, revision, membership, l.deadline, cancelled)?;
-    Ok(ColdSourceCatalogInputSpool {
-        entries: plan.entries,
-        receipt: ColdExactInputReceipt {
-            binding,
-            collections,
-        },
-        revision,
-        membership,
-        raw_input_max_bytes: plan.raw_input_max_bytes,
-        work_bytes: plan.work_bytes,
-        consumed: false,
-    })
-}
+
 /// Discover maintained current source families, complete native identities and
 /// their actual public metadata dependency closure. No callback or worker can
 /// turn this observation plan into catalog/schema/semantic acceptance.
@@ -1848,7 +1379,6 @@ fn plan_inputs_kernel<B: catalog::CatalogInputBinding>(
                 .map_err(|error| candidate_input_refusal(error))?;
             check(l.deadline, cancelled)?;
         }
-        PlanningCut::Streamed(_) => return Err(Error::Invalid("resident recipe storage kind")),
     }
     drop(basenames);
     drop(entities);
@@ -2720,9 +2250,7 @@ pub fn plan_candidate_source_catalog_inputs_spooled<'a, I: Copy + Eq + 'static>(
         graph_limits: l,
         cancelled,
         entries: PlanningEntries::Disk(DiskEntries {
-            db: PlanningDatabase::Shared(storage),
-            file: None,
-            isolation: None,
+            db: storage,
             limits: disk_limits,
             rows: 0,
             cleanup_complete: std::cell::Cell::new(false),

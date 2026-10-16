@@ -52,15 +52,7 @@ impl StreamedBibliographicReadLedger {
     fn charge(&mut self, bytes: u64) -> Result<()> {
         self.charge_observed(1, bytes)
     }
-    pub(crate) fn remaining(&self) -> Result<(u64, u64)> {
-        if self.poisoned {
-            return Err(Error::Invalid(
-                "streamed bibliographic read ledger poisoned",
-            ));
-        }
-        Ok((self.max_files - self.files, self.max_bytes - self.bytes))
-    }
-    pub(crate) fn charge_observed(&mut self, files: u64, bytes: u64) -> Result<()> {
+    fn charge_observed(&mut self, files: u64, bytes: u64) -> Result<()> {
         if self.poisoned {
             return Err(Error::Invalid(
                 "streamed bibliographic read ledger poisoned",
@@ -83,14 +75,6 @@ impl StreamedBibliographicReadLedger {
     pub fn observed_reads(&self) -> (u64, u64) {
         (self.files, self.bytes)
     }
-}
-pub struct StreamedBibliographicSourceCut<'a> {
-    pub cut: &'a tos_source_store::StreamedCorpusCutReaderV1,
-    pub expected_revision: SourceRevision,
-    pub expected_membership: SourceMembershipV1,
-    pub stage_source_cut: &'a str,
-    pub read_ledger: &'a std::cell::RefCell<StreamedBibliographicReadLedger>,
-    pub max_workspace_bytes: usize,
 }
 // This erased view is private to the selected-source kernel. Its sole generic
 // implementation retains the adapter-owned identity and typed stage receipt.
@@ -178,7 +162,6 @@ impl<I: Eq + Copy + 'static> ErasedCandidateSource for CandidateBibliographicSou
 #[derive(Clone, Copy)]
 pub(crate) enum SelectedBibliographicSourceCut<'a, 'b> {
     Resident(&'a BibliographicSourceCut<'b>),
-    Streamed(&'a StreamedBibliographicSourceCut<'b>),
     Candidate(&'a dyn ErasedCandidateSource),
 }
 impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
@@ -193,15 +176,6 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                     ));
                 }
             }
-            Self::Streamed(i) => {
-                if i.cut.current_revision() != i.expected_revision
-                    || stage.input_source_cut()? != i.stage_source_cut
-                {
-                    return Err(Error::Invalid(
-                        "bibliographic independently selected source cut",
-                    ));
-                }
-            }
             Self::Candidate(i) => i.verify(stage, l)?,
         }
         Ok(())
@@ -209,16 +183,12 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
     pub(crate) fn membership(self) -> SourceMembershipV1 {
         match self {
             Self::Resident(i) => i.expected_membership,
-            Self::Streamed(i) => i.expected_membership,
             Self::Candidate(i) => i.coverage().membership(),
         }
     }
     fn binding(self) -> Value {
         match self {
             Self::Resident(i) => {
-                json!({"source_revision":i.expected_revision.0.to_hex(), "membership_count":i.expected_membership.count, "membership_sha256":i.expected_membership.digest.to_hex(), "stage_source_cut":i.stage_source_cut})
-            }
-            Self::Streamed(i) => {
                 json!({"source_revision":i.expected_revision.0.to_hex(), "membership_count":i.expected_membership.count, "membership_sha256":i.expected_membership.digest.to_hex(), "stage_source_cut":i.stage_source_cut})
             }
             Self::Candidate(i) => {
@@ -238,11 +208,6 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 .current()
                 .member(path)
                 .map(|m| (m.size_bytes, m.sha256))),
-            Self::Streamed(i) => i
-                .cut
-                .member(i.expected_revision, path)
-                .map(|m| m.map(|m| (m.size_bytes, m.sha256)))
-                .map_err(|e| Error::Source(e.to_string())),
             Self::Candidate(_) => {
                 if !self.present(path, validator, l)? {
                     return Ok(None);
@@ -260,11 +225,6 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
     ) -> Result<bool> {
         match self {
             Self::Resident(i) => Ok(i.cut.current().member(path).is_some()),
-            Self::Streamed(i) => i
-                .cut
-                .member(i.expected_revision, path)
-                .map(|m| m.is_some())
-                .map_err(|e| Error::Source(e.to_string())),
             Self::Candidate(i) => i
                 .source()
                 .path_presence(path.as_str(), i.deadline(l), i.cancelled())
@@ -284,22 +244,6 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
             Self::Resident(i) => {
                 for m in i.cut.current().members() {
                     visit(m.path.as_str(), m.size_bytes, m.sha256)?;
-                }
-            }
-            Self::Streamed(i) => {
-                let mut after = None;
-                loop {
-                    check(validator, l)?;
-                    let Some(m) = i
-                        .cut
-                        .member_after(i.expected_revision, after.as_ref())
-                        .map_err(|e| Error::Source(e.to_string()))?
-                    else {
-                        break;
-                    };
-                    check(validator, l)?;
-                    visit(m.path.as_str(), m.size_bytes, m.sha256)?;
-                    after = Some(m.path);
                 }
             }
             Self::Candidate(i) => {
@@ -379,31 +323,6 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 }
                 Ok(())
             }),
-            Self::Streamed(i) => {
-                let mut after = Some(path(base)?);
-                loop {
-                    check(validator, l)?;
-                    let Some(member) = i
-                        .cut
-                        .member_after(i.expected_revision, after.as_ref())
-                        .map_err(|e| Error::Source(e.to_string()))?
-                    else {
-                        break;
-                    };
-                    check(validator, l)?;
-                    let reference = member.path.as_str();
-                    if reference < prefix.as_str() {
-                        after = Some(member.path);
-                        continue;
-                    }
-                    let Some(name) = reference.strip_prefix(&prefix) else {
-                        break;
-                    };
-                    visit(name)?;
-                    after = Some(member.path);
-                }
-                Ok(())
-            }
             Self::Candidate(i) => i
                 .source()
                 .for_each_current_member_meta(i.deadline(l), i.cancelled(), &mut |meta| {
@@ -441,40 +360,6 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 )
                 .map(|m| m.raw)
                 .map_err(|_| Error::Invalid("bibliographic exact current source member read")),
-            Self::Streamed(i) => {
-                check(validator, l)?;
-                let m = i
-                    .cut
-                    .member(i.expected_revision, path)
-                    .map_err(|e| Error::Source(e.to_string()))?
-                    .ok_or(Error::Invalid("streamed bibliographic member absent"))?;
-                usize::try_from(m.size_bytes)
-                    .ok()
-                    .and_then(|n| n.max(8).checked_mul(4))
-                    .and_then(|n| n.checked_add(128 * 1024))
-                    .filter(|n| *n <= i.max_workspace_bytes)
-                    .ok_or(Error::Budget("streamed bibliographic raw workspace"))?;
-                i.read_ledger
-                    .try_borrow_mut()
-                    .map_err(|_| Error::Invalid("streamed bibliographic read ledger in use"))?
-                    .charge(m.size_bytes)?;
-                let raw = i
-                    .cut
-                    .read_member(
-                        i.expected_revision,
-                        path,
-                        l.catalog.max_file_bytes as u64,
-                        l.deadline,
-                        validator.cancelled,
-                    )
-                    .map_err(|e| Error::Source(e.to_string()))?
-                    .raw;
-                if raw.len() as u64 != m.size_bytes || Digest256::of_bytes(&raw) != m.sha256 {
-                    return Err(Error::Invalid("streamed bibliographic raw binding"));
-                }
-                check(validator, l)?;
-                Ok(raw)
-            }
             Self::Candidate(i) => {
                 let mut result = None;
                 i.source()
@@ -702,21 +587,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             l,
         )
     }
-    pub(crate) fn new_streamed<B: catalog::CatalogInputBinding>(
-        input: &'a StreamedBibliographicSourceCut<'b>,
-        stage: &mut KnowledgeStage<'_>,
-        validator: &SourceCatalogValidator<'_>,
-        receipt: &catalog::SourceCatalogReceipt<B>,
-        l: BibliographicLimits,
-    ) -> Result<Self> {
-        Self::new_selected(
-            SelectedBibliographicSourceCut::Streamed(input),
-            stage,
-            validator,
-            receipt,
-            l,
-        )
-    }
+
     pub(crate) fn new_selected<B: catalog::CatalogInputBinding>(
         input: SelectedBibliographicSourceCut<'a, 'b>,
         stage: &mut KnowledgeStage<'_>,
@@ -745,18 +616,6 @@ impl<'a, 'b> Versions<'a, 'b> {
                 {
                     return Err(Error::Invalid(
                         "bibliographic independent membership expectation",
-                    ));
-                }
-            }
-            SelectedBibliographicSourceCut::Streamed(i) => {
-                if i.max_workspace_bytes == 0
-                    || i.cut
-                        .revision(i.expected_revision)
-                        .map_err(|e| Error::Source(e.to_string()))?
-                        .is_none_or(|r| r.membership != i.expected_membership)
-                {
-                    return Err(Error::Invalid(
-                        "streamed bibliographic independently selected cut",
                     ));
                 }
             }

@@ -233,6 +233,11 @@ fn enabled_features(
         if feature.starts_with("dep:") || feature.contains('/') {
             continue;
         }
+        if feature.contains('?') {
+            return Err(bad(
+                "unsupported Cargo feature expression in selected profile",
+            ));
+        }
         let Some(references) = features.get(&feature) else {
             return Err(bad("Cargo role references an undeclared package feature"));
         };
@@ -395,7 +400,7 @@ fn cargo_products(
             root,
             package,
             !no_default_features.contains(&name),
-            native_software_roles::features(name).unwrap_or(&[]),
+            native_software_roles::explicit_features(name),
             b,
         )?;
         let actual_features = value["features"]
@@ -991,7 +996,12 @@ mod tests {
             "tos-ops-mechanics-plan",
             include_str!("../Cargo.toml"),
         );
-        for package in ["tos-compiler", "tos-reader"] {
+        package_manifest(
+            &root,
+            "tos-compiler",
+            include_str!("../../tos-compiler/Cargo.toml"),
+        );
+        for package in ["tos-reader"] {
             package_manifest(
                 &root,
                 package,
@@ -1009,7 +1019,7 @@ mod tests {
             } else if ["tos-source-registry", "tos-open-work-queue"].contains(n) {
                 json!(["compiler-backed-validators"])
             } else {
-                json!([])
+                json!(native_software_roles::explicit_features(n))
             };
             let opt_level = if *n == "tos-access" { "1" } else { "0" };
             let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/{package}#0.1.0",root.display()),"manifest_path":root.join(format!("rust/crates/{package}/Cargo.toml")),"target":{"name":n,"kind":["bin"],"required-features":required_features},"features":features,"profile":{"opt_level":opt_level,"debuginfo":0,"debug_assertions":true,"test":false},"executable":images.join(n)});
@@ -1036,6 +1046,14 @@ mod tests {
         assert_eq!(
             products["tos-schema-worker"].features,
             ["default", "native"]
+        );
+        assert_eq!(
+            products["tos-constructor-library"].features,
+            ["source-tools"]
+        );
+        assert_eq!(
+            products["tos-constructor-fragments"].features,
+            ["source-tools"]
         );
         assert_eq!(products["tos-access"].opt_level, "1");
         assert!(products["tos-access"].features.is_empty());

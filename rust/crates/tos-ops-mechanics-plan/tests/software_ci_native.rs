@@ -313,64 +313,17 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
 }
 
 #[test]
-fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
-    use std::collections::BTreeSet;
-    let root = repository();
+fn sparse_checkout_excludes_whole_corpus_and_private_payloads() {
     let w = workflow("repo-validation.yml");
     let jobs = &w["jobs"];
     let rust = sparse(jobs, "rust");
     let software = sparse(jobs, "software");
     let worker = sparse(jobs, "worker");
-    let fixture_root = "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/";
-    let include = regex::Regex::new(r#"include_(?:bytes|str)!\s*\(\s*"([^"]+)"\s*\)"#).unwrap();
-    let mut inputs = BTreeSet::new();
-    for relative in [
-        "rust/crates/tos-compiler/tests/generic_xml_uxlc_lab.rs",
-        "rust/crates/tos-compiler/tests/generic_xml_uxlc_lab/inputs.rs",
-    ] {
-        let source = root.join(relative);
-        let text = std::fs::read_to_string(&source).unwrap();
-        for capture in include.captures_iter(&text) {
-            if !capture[1].contains("generic-xml-resource-inventory-uxlc-abc-v1") {
-                continue;
-            }
-            let target = source
-                .parent()
-                .unwrap()
-                .join(&capture[1])
-                .canonicalize()
-                .unwrap();
-            assert!(target.is_file());
-            let path = target
-                .strip_prefix(&root)
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned();
-            assert!(path.starts_with(fixture_root));
-            inputs.insert(path);
-        }
-    }
-    assert!(
-        !inputs.is_empty(),
-        "embedded fixture discovery must not be empty"
-    );
-    for path in inputs {
-        for checkout in [&rust, &software] {
-            assert!(
-                checkout.contains(&format!("/{path}")),
-                "embedded fixture missing: {path}"
-            );
-        }
-    }
     assert!(rust.contains("!/ToS/source-witnesses/**/payload/"));
     for checkout in [&rust, &software, &worker] {
         for path in ["/ToS/source-witnesses/", "/ToS/", "/ToS/candidate-intake/"] {
             assert!(!checkout.contains(path));
         }
-    }
-    for checkout in [&rust, &software] {
-        assert!(!checkout.contains(&format!("/{fixture_root}")));
     }
 }
 
