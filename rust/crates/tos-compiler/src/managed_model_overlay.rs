@@ -491,7 +491,6 @@ fn verify_initial_agent_changed_members(
     forms_raw: Option<&[u8]>,
     record_projection: &Value,
     record: &Value,
-    entity_registry_sha256: &str,
     max_bytes: usize,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -507,30 +506,6 @@ fn verify_initial_agent_changed_members(
             .find(|member| member.path == format!("{home}/{name}"))
             .ok_or(Error::Invalid("overlay Agent capture role absent"))
     };
-    // The supported Agent registry currently contributes these exact two
-    // source-owned baseline profiles to every member. New profile consumers
-    // require the complete route; auxiliary files cannot introduce them.
-    let profiles = record_projection["source_profiles"]
-        .as_object()
-        .ok_or(Error::Invalid("overlay source profile map"))?;
-    let registry_schema = profiles
-        .get("ToS/contracts/semantic-entity-type-registry.schema.json")
-        .and_then(Value::as_str)
-        .and_then(|digest| Digest256::from_hex(digest).ok());
-    if profiles.len() != 2
-        || profiles
-            .get("ToS/doctrine/semantic-interchange/entity-types.v1.json")
-            .and_then(Value::as_str)
-            != Some(entity_registry_sha256)
-        || registry_schema.is_none()
-        || members.iter().any(|member| {
-            member.projection["source_profiles"] != record_projection["source_profiles"]
-        })
-    {
-        return Err(Error::ManagedSourceUnsupported(
-            "overlay changed source profile contribution; FullOnly required",
-        ));
-    }
     let request_member = get("source-create-request.json")?;
     let environment_member = get("source-create-environment.json")?;
     let event_member = get("source-create-provenance.jsonl")?;
@@ -901,15 +876,43 @@ pub fn prepare_managed_overlay_initial_agent_v2(
         forms_raw,
         record_projection,
         &record,
-        &previous.base.entity_registry_sha256,
         l.catalog.max_row_bytes,
         deadline,
         cancelled,
     )?;
     let materialized = {
         let mut schemas = validator.schemas(schema_revision)?;
-        if schemas.execution_binding().schema_set_sha256.to_hex() != previous.schema_set_sha256
-            || !schemas
+        if schemas.execution_binding().schema_set_sha256.to_hex() != previous.schema_set_sha256 {
+            return Err(Error::Invalid("overlay Agent exact schema closure"));
+        }
+        // V2 gives each member its actual contributing schema profile. The
+        // complete prior worker schema set remains the only allowed closure;
+        // an additional member cannot select new software or registry bytes.
+        for member in committed_changed_members {
+            if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(Error::Budget("overlay changed profiles deadline/cancellation"));
+            }
+            let profiles = member.projection["source_profiles"]
+                .as_object().ok_or(Error::Invalid("overlay source profile map"))?;
+            if profiles.get("ToS/doctrine/semantic-interchange/entity-types.v1.json")
+                .and_then(Value::as_str) != Some(previous.base.entity_registry_sha256.as_str())
+                || !profiles.contains_key("ToS/contracts/semantic-entity-type-registry.schema.json")
+            {
+                return Err(Error::ManagedSourceUnsupported(
+                    "overlay changed source profile contribution; FullOnly required",
+                ));
+            }
+            for (path, digest) in profiles {
+                if path == "ToS/doctrine/semantic-interchange/entity-types.v1.json" { continue; }
+                let digest = digest.as_str().and_then(|value| Digest256::from_hex(value).ok());
+                if digest.is_none() || schemas.contract_digest(path) != digest {
+                    return Err(Error::ManagedSourceUnsupported(
+                        "overlay changed source profile contribution; FullOnly required",
+                    ));
+                }
+            }
+        }
+        if !schemas
                 .check(
                     record_path,
                     record_raw,
