@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5944,
     "human_scope": {
-      "bytes": 7345159,
+      "bytes": 7345666,
       "count": 1071,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -51,9 +51,9 @@
           "lines": 152
         },
         "docs": {
-          "bytes": 712245,
+          "bytes": 712556,
           "count": 89,
-          "lines": 11138
+          "lines": 11143
         },
         "evals": {
           "bytes": 18262,
@@ -61,9 +61,9 @@
           "lines": 315
         },
         "github": {
-          "bytes": 83276,
+          "bytes": 83472,
           "count": 5,
-          "lines": 1177
+          "lines": 1180
         },
         "kag": {
           "bytes": 8834,
@@ -121,7 +121,7 @@
           "lines": 82527
         }
       },
-      "lines": 121087
+      "lines": 121095
     },
     "surface_kind_counts": {
       "executable": 78,
@@ -163,7 +163,7 @@
         "executable": 1,
         "human": 5
       },
-      "tracked_surface_bytes": 88052,
+      "tracked_surface_bytes": 88248,
       "tracked_surface_count": 6
     },
     {
@@ -192,7 +192,7 @@
         "human": 89,
         "structured": 6
       },
-      "tracked_surface_bytes": 941681,
+      "tracked_surface_bytes": 939729,
       "tracked_surface_count": 95
     },
     {
@@ -290,7 +290,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4d5c32eb3f8c859b69b7972eac435a4c6f226268f5dcf0cb843263a3d1a783d1",
+  "tracked_surface_digest": "45c713688f76538b00b0460d3082d559940749a289f3662a50c0b4617dbc4bf0",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -373,11 +373,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 74063,
+      "bytes": 74259,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "e767b4b30855f01eb88ec079b5efd7dcd3d0b506a08979f482bf8bddfe7b2067",
+      "sha256": "99dadf4f1091cee19b718710b7e264e25c1f1180610724c6e49287bfdadfe8e5",
       "surface_kind": "human"
     },
     {
@@ -43869,11 +43869,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6249,
+      "bytes": 6560,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/README.md",
-      "sha256": "009ff1cd90bc191be6e3bf59e75a82cb9679439c70a6796b4fa00c3fec6fa7a1",
+      "sha256": "7d0bb73e0525141b64d823b80b7946edae701220814b1cc74656068b5bd10a83",
       "surface_kind": "human"
     },
     {
@@ -43925,11 +43925,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 44205,
+      "bytes": 41942,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/validation_lanes.json",
-      "sha256": "3db453eb64adda44de31ef193f16b4091521f8a4f0f1e5a511b188f638b9c66c",
+      "sha256": "a7f95c28d3996ce42b8765f0b59fb4d9c884cea40c6fea37482ebbcacb8469c7",
       "surface_kind": "structured"
     },
     {
