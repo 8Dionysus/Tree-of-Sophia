@@ -10,6 +10,8 @@ description = "Owner-declared ToS validation contracts and bounded schema backen
 default = ["native"]
 native = ["dep:rusqlite", "dep:tos-source-store"]
 wasm = []
+# Explicit historical laboratories and dossier audits, separate from selected-source validation.
+research = ["native"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

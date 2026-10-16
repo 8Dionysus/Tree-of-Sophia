@@ -256,6 +256,14 @@ fn run_selected(
             .map_err(|_| Error::Denied("foundation stdout failed"))?;
         return Ok(0);
     }
+    launch
+        .arguments
+        .validation_profile
+        .scope
+        .require_available()
+        .map_err(|_| {
+            Error::Unsupported("full source-foundation audit requires the research feature")
+        })?;
     let mut invocation = read_invocation(&clock, &launch, cancelled)?;
     if invocation.catalogue_representation()
         == super::foundation_entry::FoundationCatalogueRepresentation::OwnedCold

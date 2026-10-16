@@ -1175,6 +1175,11 @@ selected-release deployment check.
 Source-selected research builders use `tos-research COMMAND [OPTIONS]`.
 Build the separate executable with
 `cargo build --locked -p tos-access --features research-tools --bin tos-research`.
+This also enables the historical laboratory and gold-set validation implementations.
+Ordinary source readers and selected-source validation omit them. For the complete
+protected foundation audit, build the owner command explicitly with
+`cargo build --locked -p tos-command --features research --bin tos-native-owner-command`.
+A build without that feature refuses `FullAudit`; it never reports skipped districts as valid.
 Ordinary `tos-access` builds exclude these recipe modules and their command
 handlers. Select this binary for data validation lanes with
 `TOS_RESEARCH_EXECUTOR=/absolute/path/to/tos-research`.

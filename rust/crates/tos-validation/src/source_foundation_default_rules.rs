@@ -10,30 +10,34 @@ use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::{DiscoveryEventLookup, LayerFamilySource, LayerPayload};
 use crate::native_compound::NativeRecordHistoryReadObservation;
 use crate::record_rules::RecordObservation;
-use crate::source_foundation_closure::{
-    SourceFoundationClosureReport, inspect_source_foundation_closure,
-};
+use crate::source_foundation_closure::SourceFoundationClosureReport;
+#[cfg(feature = "research")]
+use crate::source_foundation_closure::inspect_source_foundation_closure;
 use crate::source_foundation_discovery::{
     ArtifactCorrectionReplayMap, CandidateArtifactEvidenceProvider, Cost as DiscoveryCost,
     CurrentArtifactInvalidSchemaProofs, DiscoveryDigestCache, DiscoveryEventSummaryStore,
     DiscoveryRunSummaryStore, DiscoverySchemaRequestStore, DiscoverySeenIds,
     Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest, SourcePhysicalFacts,
-    UnsupportedScope as DiscoveryUnsupported, inspect_with_cut_and_artifact_replays,
-    inspect_with_cut_and_artifact_replays_and_records,
+    UnsupportedScope as DiscoveryUnsupported,
+};
+#[cfg(feature = "research")]
+use crate::source_foundation_discovery::{
+    inspect_with_cut_and_artifact_replays, inspect_with_cut_and_artifact_replays_and_records,
     inspect_with_cut_and_artifact_replays_and_records_with_proofs,
 };
-use crate::source_foundation_goldsets::{
-    SourceFoundationGoldsetsReport, inspect_source_foundation_goldsets,
-};
-use crate::source_foundation_labs::{
-    SourceFoundationLabsReport, inspect_source_foundation_labs_with_physical,
-};
-use crate::source_foundation_records::{
-    SourceFoundationRecordKernelOutcome, SourceFoundationRecordsReport,
-};
+use crate::source_foundation_goldsets::SourceFoundationGoldsetsReport;
+#[cfg(feature = "research")]
+use crate::source_foundation_goldsets::inspect_source_foundation_goldsets;
+use crate::source_foundation_labs::SourceFoundationLabsReport;
+#[cfg(feature = "research")]
+use crate::source_foundation_labs::inspect_source_foundation_labs_with_physical;
+#[cfg(feature = "research")]
+use crate::source_foundation_records::SourceFoundationRecordKernelOutcome;
+use crate::source_foundation_records::SourceFoundationRecordsReport;
 use serde_json::Value;
 use std::cell::Cell;
 use std::collections::BTreeMap;
+#[cfg(feature = "research")]
 use std::io::{self, Write};
 use std::mem::size_of;
 use std::sync::atomic::AtomicBool;
@@ -568,8 +572,40 @@ pub enum SourceFoundationDefaultRuleScope {
 }
 
 impl SourceFoundationDefaultRuleScope {
+    /// Refuse a historical audit when its implementation was not selected at build time.
+    /// A reduced build must never turn an unavailable district into an empty verdict.
+    pub fn require_available(self) -> Result<(), ItemRefusal> {
+        if self == Self::FullAudit && !cfg!(feature = "research") {
+            Err(ItemRefusal::Unsupported(
+                "full source-foundation audit requires the research feature".into(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn is_scoped(self) -> bool {
         self != Self::FullAudit
+    }
+}
+
+#[cfg(test)]
+mod scope_availability_tests {
+    use super::SourceFoundationDefaultRuleScope::*;
+
+    #[test]
+    fn historical_audit_requires_its_implementation_and_selected_scopes_remain_available() {
+        assert_eq!(
+            FullAudit.require_available().is_ok(),
+            cfg!(feature = "research")
+        );
+        for scope in [
+            SelectedSourceClosure,
+            SelectedRecordClosure,
+            SelectedGeneratedRecordClosure,
+        ] {
+            assert!(scope.require_available().is_ok());
+        }
     }
 }
 
@@ -868,6 +904,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
     cancelled: &AtomicBool,
     scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
+    scope.require_available()?;
     let operation = limits.operation;
     source.checkpoint(operation.deadline)?;
     let generated_scope = scope == SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure;
@@ -935,6 +972,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         read_bytes: 0,
     };
     let mut direct_owner_issue_count = summary.direct_issue_count;
+    #[cfg(feature = "research")]
     let labs = if scope == SourceFoundationDefaultRuleScope::FullAudit {
         let labs =
             crate::source_foundation_labs::inspect_source_foundation_labs_with_physical_from_paths(
@@ -962,6 +1000,9 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
     } else {
         None
     };
+    #[cfg(not(feature = "research"))]
+    let labs: Option<SourceFoundationLabsReport> = None;
+    #[cfg(feature = "research")]
     let goldsets = if scope == SourceFoundationDefaultRuleScope::FullAudit {
         let gold_limits = remaining_limits(
             operation,
@@ -1003,6 +1044,8 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
     } else {
         None
     };
+    #[cfg(not(feature = "research"))]
+    let goldsets: Option<SourceFoundationGoldsetsReport> = None;
     let discovery_limits = remaining_limits(
         operation,
         records_read_reservation_bytes,
@@ -1247,6 +1290,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
 /// Default districts with the shared exact-cut Artifact invalid-schema proof
 /// prepared by CMD from this same completed Records report.
 #[allow(clippy::too_many_arguments)]
+#[cfg_attr(not(feature = "research"), allow(unused_variables))]
 pub fn inspect_source_foundation_default_rules_with_invalid_artifact_proofs<
     S: LayerFamilySource + ?Sized,
 >(
@@ -1262,22 +1306,32 @@ pub fn inspect_source_foundation_default_rules_with_invalid_artifact_proofs<
     require_local_payloads: bool,
     limits: SourceFoundationDefaultRulesLimits,
 ) -> Result<SourceFoundationDefaultRulesReport, ItemRefusal> {
-    inspect_source_foundation_default_rules_internal(
-        source,
-        cut,
-        current_paths,
-        records,
-        native_histories,
-        bibliographic_claims,
-        physical,
-        artifact_replays,
-        Some(invalid_artifact_proofs),
-        require_local_payloads,
-        limits,
-    )
+    #[cfg(not(feature = "research"))]
+    {
+        Err(ItemRefusal::Unsupported(
+            "full source-foundation audit requires the research feature".into(),
+        ))
+    }
+    #[cfg(feature = "research")]
+    {
+        inspect_source_foundation_default_rules_internal(
+            source,
+            cut,
+            current_paths,
+            records,
+            native_histories,
+            bibliographic_claims,
+            physical,
+            artifact_replays,
+            Some(invalid_artifact_proofs),
+            require_local_payloads,
+            limits,
+        )
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(feature = "research")]
 fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     cut: &CorpusCutReader,
@@ -1935,6 +1989,7 @@ impl<S: LayerFamilySource + ?Sized> LayerFamilySource for AggregateLayerFamilySo
 }
 
 #[derive(Default)]
+#[cfg(feature = "research")]
 struct EventLedger {
     by_id: BTreeMap<String, Value>,
     order: Vec<String>,
@@ -1942,6 +1997,7 @@ struct EventLedger {
     json_bytes: usize,
 }
 
+#[cfg(feature = "research")]
 impl EventLedger {
     fn new() -> Self {
         Self {
@@ -1951,6 +2007,7 @@ impl EventLedger {
     }
 }
 
+#[cfg(feature = "research")]
 fn merge_event_rows(
     ledger: &mut EventLedger,
     rows: &[(String, Value)],
@@ -2077,6 +2134,7 @@ fn merge_event_rows(
     Ok(())
 }
 
+#[cfg(feature = "research")]
 fn records_read_reservation(records: &SourceFoundationRecordsReport) -> Result<u64, ItemRefusal> {
     let record_bytes = records
         .cost
@@ -2088,6 +2146,7 @@ fn records_read_reservation(records: &SourceFoundationRecordsReport) -> Result<u
         .ok_or(ItemRefusal::Budget)
 }
 
+#[cfg(feature = "research")]
 fn check_current_paths(
     cut: &CorpusCutReader,
     current_paths: &[String],
@@ -2117,6 +2176,7 @@ fn check_current_paths(
     Ok(())
 }
 
+#[cfg(feature = "research")]
 fn records_direct_issue_count(
     records: &SourceFoundationRecordsReport,
 ) -> Result<usize, ItemRefusal> {
@@ -2192,6 +2252,7 @@ fn add_state(current: usize, additional: usize, limit: usize) -> Result<usize, I
     Ok(used)
 }
 
+#[cfg(feature = "research")]
 fn owner_issue_bytes(
     labs: &SourceFoundationLabsReport,
     records: &SourceFoundationRecordsReport,
@@ -2222,6 +2283,7 @@ fn owner_issue_bytes(
     Ok(bytes)
 }
 
+#[cfg(feature = "research")]
 fn schema_document_count(
     labs: &SourceFoundationLabsReport,
     records: &SourceFoundationRecordsReport,
@@ -2322,11 +2384,13 @@ pub(crate) fn estimate_value_storage(value: &Value) -> Result<usize, ItemRefusal
     walk(value, 0)
 }
 
+#[cfg(feature = "research")]
 struct JsonSizeCounter {
     written: usize,
     limit: usize,
 }
 
+#[cfg(feature = "research")]
 impl Write for JsonSizeCounter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         let next = self
@@ -2343,6 +2407,7 @@ impl Write for JsonSizeCounter {
     }
 }
 
+#[cfg(feature = "research")]
 fn bounded_json_len<T: serde::Serialize + ?Sized>(
     value: &T,
     limit: usize,

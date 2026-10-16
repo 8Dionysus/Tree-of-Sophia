@@ -233,6 +233,10 @@ sha256sum "$owner_prefix/bin/tos-native-owner-command" "$owner_prefix/bin/tos-sc
 Preparation needs its own admitted storage/process budget. Keep the exact source,
 lock, toolchain and both resulting product identities with the owner receipt;
 an executable found on PATH is not an authorization or a matching worker proof.
+The complete historical `foundation` audit additionally requires building
+`tos-command` with `--features research`. Ordinary selected-source validation
+does not compile the laboratory and gold-set implementations; requesting a full
+audit from that build returns an explicit refusal before source capture.
 The owner supplies a protected, user-owned `0600` invocation file and protected
 owner config, with absolute `native_executable` and `schema_worker.absolute_path`
 from this prefix and their exact SHA digests. The existing invocation also binds

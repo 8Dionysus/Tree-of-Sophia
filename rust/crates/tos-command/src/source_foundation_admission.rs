@@ -879,6 +879,10 @@ impl<'c> NativeSourceValidator<'c> {
             max_state_bytes: remaining.state_bytes,
         };
         let validation_profile = launch.arguments.validation_profile;
+        validation_profile
+            .scope
+            .require_available()
+            .map_err(|_| invalid("full source-foundation audit requires the research feature"))?;
         if validation_profile.scope != tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit
             && !matches!(invocation.admission_representation(), foundation_entry::FoundationAdmissionRepresentation::NativeV4 | foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2) {
             return Err(invalid("selected-source validation requires native-v4 admission"));
