@@ -89,7 +89,8 @@ pub use client_inspection::validate_client_inspection_v1;
 pub use client_packet::{
     client_request_set_key_v1, validate_client_claim_path_v1, validate_client_claim_scope_v1,
     validate_client_exploration_request_v1, validate_client_material_packet_v1,
-    validate_client_material_request_v1, validate_client_packet_v1, validate_client_search_request_v1,
+    validate_client_material_request_v1, validate_client_packet_v1,
+    validate_client_search_request_v1,
 };
 #[cfg(feature = "wasm")]
 pub use knowledge_scene::KnowledgeSceneSession;
