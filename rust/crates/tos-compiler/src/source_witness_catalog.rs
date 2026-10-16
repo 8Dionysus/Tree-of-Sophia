@@ -1421,9 +1421,6 @@ impl<'a> SourceCatalogValidator<'a> {
         self.guard()
     }
 
-
-
-
     fn guard(&self) -> Result<()> {
         if self.worker.sha256 != self.worker_pin.sha256
             || self.worker.absolute_path != self.worker_pin.absolute_path
@@ -3014,7 +3011,6 @@ pub(crate) fn prepare_catalog_contracts(
 ) -> Result<Contracts> {
     contracts(stage, validator, l, &mut IgnoreCatalogProfiles)
 }
-
 
 pub(crate) fn check_catalog_schema_with_contracts(
     contracts: &Contracts,

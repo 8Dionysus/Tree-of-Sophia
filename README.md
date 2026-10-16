@@ -35,8 +35,7 @@ Open [http://127.0.0.1:8080](http://127.0.0.1:8080), or use
 `/absolute/fresh-prefix/bin/tos mcp`. Without a selected owner, data capabilities
 report unavailable. Select admitted managed data explicitly with `--release-root`;
 software installation does not grant data access. Exact archive budgets, native
-receipt verification, rollback and the retained `tos-legacy` Python reference
-route are documented in
+receipt verification and rollback are documented in
 [`access/README.md`](access/README.md#native-fresh-prefix-installation).
 
 For source development, use the [release and validation route](docs/RELEASING.md).

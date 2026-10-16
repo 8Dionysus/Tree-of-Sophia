@@ -679,7 +679,6 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
         Self { store }
     }
 
-
     pub fn lookup_current_record(
         &self,
         id: &str,

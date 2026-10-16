@@ -1222,7 +1222,6 @@ impl DurablePgCoordinator {
         Ok(generation)
     }
 
-
     /// Reuse an already assessed current V2 generation for explicit export.
     /// This reads the authenticated descriptor under the same live fences as
     /// persisted proof reopening; it neither reassesses source bodies nor

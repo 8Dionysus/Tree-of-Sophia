@@ -361,7 +361,6 @@ fn member(row: (String, Vec<u8>, Vec<u8>, u32)) -> io::Result<MemberMetadata> {
     })
 }
 impl<'host> SpoolCandidate<'host> {
-
     /// Additive authenticated V2 base route. A V2 reader and its exact pointer
     /// IO ledger are borrowed from the protected invocation; the candidate
     /// builds its existing bounded SQL base indexes from held authenticated

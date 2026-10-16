@@ -1194,7 +1194,8 @@ fn parse_mixed_projection(
         subject,
         raw_digest,
     )?;
-    if cmd::text(&value, "schema_version").map_err(source_error)? != tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
+    if cmd::text(&value, "schema_version").map_err(source_error)?
+        != tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
         || cmd::text(&value, "path").map_err(source_error)? != subject
         || expected_content_digest.is_some_and(|expected| expected != parsed_digest.to_hex())
         || cmd::canonical(&value).map_err(source_error)? != raw
@@ -3898,7 +3899,10 @@ mod tests {
                 .collect(),
         );
         let projection = cmd::object(vec![
-            ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
+            (
+                "schema_version",
+                cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2),
+            ),
             ("path", cmd::string(&path)),
             (
                 "raw_sha256",
@@ -4035,7 +4039,12 @@ mod tests {
             let source = b"{}\n".to_vec();
             let digest = Digest256::of_bytes(&source).to_hex();
             let projection = cmd::object(vec![
-                ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
+                (
+                    "schema_version",
+                    cmd::string(
+                        tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2,
+                    ),
+                ),
                 ("path", cmd::string(&path)),
                 ("raw_sha256", cmd::string(&digest)),
                 (
@@ -4089,7 +4098,12 @@ mod tests {
         let digest = Digest256::of_bytes(source).to_hex();
         let envelope = |path: &str, owner| {
             cmd::canonical(&cmd::object(vec![
-                ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
+                (
+                    "schema_version",
+                    cmd::string(
+                        tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2,
+                    ),
+                ),
                 ("path", cmd::string(path)),
                 ("raw_sha256", cmd::string(&digest)),
                 (
@@ -4178,7 +4192,12 @@ mod tests {
         };
         let envelope = |records| {
             cmd::object(vec![
-                ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
+                (
+                    "schema_version",
+                    cmd::string(
+                        tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2,
+                    ),
+                ),
                 ("path", cmd::string(path)),
                 (
                     "raw_sha256",

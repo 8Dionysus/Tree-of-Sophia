@@ -95,7 +95,6 @@ impl SegmentIndexReaderV2 {
         })
     }
 
-
     fn walk_selected_pages_and_leaves(
         &self,
         max_workspace_bytes: usize,
@@ -671,7 +670,6 @@ fn add_leaf_v2(control: &mut WalkControlV2, leaf: SegmentIndexLeafEntryV2<'_>) -
     }
     Ok(())
 }
-
 
 fn refusal(detail: &'static str) -> StoreError {
     StoreError::new(StoreErrorCode::BudgetExceeded, detail)

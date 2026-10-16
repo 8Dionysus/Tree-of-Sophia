@@ -586,10 +586,12 @@ fn verify_initial_agent_changed_members(
             ));
         }
         if member.raw.len() > max_bytes
-            || member.projection["schema_version"] != crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
+            || member.projection["schema_version"]
+                != crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
             || member.projection.as_object().is_none_or(|fields| {
                 let expected = crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_FIELDS_V2;
-                fields.len() != expected.len() || expected.iter().any(|name| !fields.contains_key(*name))
+                fields.len() != expected.len()
+                    || expected.iter().any(|name| !fields.contains_key(*name))
             })
             || !member.projection["claim_owner"].is_null()
             || !member.projection["public_text_owner"].is_null()
@@ -808,7 +810,8 @@ pub fn prepare_managed_overlay_initial_agent_v2(
             "overlay requires only initial Agent projection; FullOnly required",
         ));
     }
-    if record_projection["schema_version"] != crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
+    if record_projection["schema_version"]
+        != crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
         || record_projection["path"] != record_path
         || record_projection["raw_sha256"] != Digest256::of_bytes(record_raw).to_hex()
         || entries.len() != 1
@@ -890,12 +893,17 @@ pub fn prepare_managed_overlay_initial_agent_v2(
         // an additional member cannot select new software or registry bytes.
         for member in committed_changed_members {
             if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
-                return Err(Error::Budget("overlay changed profiles deadline/cancellation"));
+                return Err(Error::Budget(
+                    "overlay changed profiles deadline/cancellation",
+                ));
             }
             let profiles = member.projection["source_profiles"]
-                .as_object().ok_or(Error::Invalid("overlay source profile map"))?;
-            if profiles.get("ToS/doctrine/semantic-interchange/entity-types.v1.json")
-                .and_then(Value::as_str) != Some(previous.base.entity_registry_sha256.as_str())
+                .as_object()
+                .ok_or(Error::Invalid("overlay source profile map"))?;
+            if profiles
+                .get("ToS/doctrine/semantic-interchange/entity-types.v1.json")
+                .and_then(Value::as_str)
+                != Some(previous.base.entity_registry_sha256.as_str())
                 || !profiles.contains_key("ToS/contracts/semantic-entity-type-registry.schema.json")
             {
                 return Err(Error::ManagedSourceUnsupported(
@@ -903,8 +911,12 @@ pub fn prepare_managed_overlay_initial_agent_v2(
                 ));
             }
             for (path, digest) in profiles {
-                if path == "ToS/doctrine/semantic-interchange/entity-types.v1.json" { continue; }
-                let digest = digest.as_str().and_then(|value| Digest256::from_hex(value).ok());
+                if path == "ToS/doctrine/semantic-interchange/entity-types.v1.json" {
+                    continue;
+                }
+                let digest = digest
+                    .as_str()
+                    .and_then(|value| Digest256::from_hex(value).ok());
                 if digest.is_none() || schemas.contract_digest(path) != digest {
                     return Err(Error::ManagedSourceUnsupported(
                         "overlay changed source profile contribution; FullOnly required",
@@ -913,14 +925,14 @@ pub fn prepare_managed_overlay_initial_agent_v2(
             }
         }
         if !schemas
-                .check(
-                    record_path,
-                    record_raw,
-                    "ToS/contracts/corpus-record.schema.json",
-                    deadline,
-                    cancelled,
-                )
-                .map_err(|e| Error::Source(format!("overlay Agent schema:{e:?}")))?
+            .check(
+                record_path,
+                record_raw,
+                "ToS/contracts/corpus-record.schema.json",
+                deadline,
+                cancelled,
+            )
+            .map_err(|e| Error::Source(format!("overlay Agent schema:{e:?}")))?
         {
             return Err(Error::Invalid("overlay Agent exact schema closure"));
         }

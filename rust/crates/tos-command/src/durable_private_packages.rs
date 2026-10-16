@@ -2521,7 +2521,6 @@ impl DurablePgCoordinator {
         Ok(snapshot)
     }
 
-
     /// Read one bounded set of immutable package histories under a single
     /// owner-scope lock and repeatable-read snapshot. The aggregate row and
     /// byte caps are applied while selecting each target, before the next

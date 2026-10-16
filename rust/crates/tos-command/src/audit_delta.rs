@@ -520,7 +520,6 @@ impl VerifiedAuditInterval {
         &self.expected_final_commitments
     }
 
-
     pub fn verify_final_rows_controlled_with_work(
         &self,
         tx: &mut Transaction<'_>,

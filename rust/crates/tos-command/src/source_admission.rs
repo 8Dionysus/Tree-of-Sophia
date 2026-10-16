@@ -860,7 +860,6 @@ impl AdmissionBatch {
         )
     }
 
-
     pub(crate) fn is_census_backed(&self) -> bool {
         self.initial_updates.is_some()
     }
