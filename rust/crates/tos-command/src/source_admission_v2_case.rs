@@ -4,8 +4,7 @@
 use super::source_admission::{AdmissionWorkBudget, active, invalid};
 use super::source_admission_v2_backup_restore::{
     V2HeldImageRoots, V2HeldSourceRoot, V2HeldTargetRoot, V2ImageLimits, V2ImageReceipt,
-    open_selected_target, transfer_image, transfer_image_with_cold_spill,
-    transfer_image_with_cold_spill_at, verify_named_root,
+    open_selected_target, transfer_image_with_cold_spill_at, verify_named_root,
 };
 use super::source_admission_v2_seen_pack::V2SeenPackSpillRequests;
 use std::{
@@ -95,7 +94,7 @@ impl V2CaseLimits {
 }
 
 pub const fn cold_case_phase_overhead_bytes() -> usize {
-    8192 + std::mem::size_of::<ImageMode<'static>>()
+    8192 + std::mem::size_of::<ColdCaseResources<'static>>()
         + std::mem::size_of::<super::source_admission_v2_backup_restore::V2ImageOutcome>()
         + std::mem::size_of::<V2CaseReceipt>()
         + std::mem::size_of::<V2CaseOutcome>()
@@ -116,23 +115,11 @@ pub struct V2CaseOutcome {
     pub custody: Arc<PinnedSqliteSpaceReservation>,
 }
 
-enum ImageMode<'a> {
-    Compatibility,
-    ColdSpill {
-        auxiliary_space: &'a PinnedSqliteSpaceBudget,
-        requests: V2SeenPackSpillRequests,
-        held_roots: Option<V2HeldImageRoots<'a>>,
-        shared_work: Option<AdmissionWorkBudget>,
-    },
-}
-
-impl<'a> ImageMode<'a> {
-    fn held_roots(&self) -> Option<V2HeldImageRoots<'a>> {
-        match self {
-            Self::Compatibility => None,
-            Self::ColdSpill { held_roots, .. } => *held_roots,
-        }
-    }
+struct ColdCaseResources<'a> {
+    auxiliary_space: &'a PinnedSqliteSpaceBudget,
+    requests: V2SeenPackSpillRequests,
+    held_roots: V2HeldImageRoots<'a>,
+    shared_work: AdmissionWorkBudget,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -201,11 +188,11 @@ pub fn read_backup_restore_case_with_cold_spill_at(
         persistent_space,
         deadline,
         cancel,
-        ImageMode::ColdSpill {
+        ColdCaseResources {
             auxiliary_space: original_auxiliary_space,
             requests,
-            held_roots: Some(roots),
-            shared_work: Some(shared_work),
+            held_roots: roots,
+            shared_work,
         },
     )
 }
@@ -221,57 +208,34 @@ fn read_backup_restore_case_inner(
     persistent_space: &PinnedSqliteSpaceBudget,
     deadline: Instant,
     cancel: Arc<AtomicBool>,
-    image_mode: ImageMode<'_>,
+    resources: ColdCaseResources<'_>,
 ) -> io::Result<V2CaseOutcome> {
-    let limits = match &image_mode {
-        ImageMode::Compatibility => limits.validate()?,
-        ImageMode::ColdSpill { .. } => limits.validate_cold_spill()?,
-    };
+    let limits = limits.validate_cold_spill()?;
     active(deadline, &cancel)?;
-    let held_roots = image_mode.held_roots();
-    let shared_work = match &image_mode {
-        ImageMode::ColdSpill { shared_work, .. } => shared_work.clone(),
-        ImageMode::Compatibility => None,
-    };
+    let ColdCaseResources {
+        auxiliary_space,
+        requests,
+        held_roots: roots,
+        shared_work,
+    } = resources;
     let (digest, bytes, mode) = {
-        let mut session = if let Some(roots) = held_roots {
-            verify_named_root(
-                roots.source.path,
-                roots.source.held,
-                roots.source.identity,
-                &original_io,
-                deadline,
-                &cancel,
-            )?;
-            if let Some(work) = shared_work.clone() {
-                V2ReadSession::open_at_named_with_work(
-                    source,
-                    roots.source.held,
-                    limits.point,
-                    original_io.clone(),
-                    work,
-                    deadline,
-                    cancel.clone(),
-                )?
-            } else {
-                V2ReadSession::open_at_named_with_io(
-                    source,
-                    roots.source.held,
-                    limits.point,
-                    original_io.clone(),
-                    deadline,
-                    cancel.clone(),
-                )?
-            }
-        } else {
-            V2ReadSession::open(
-                source,
-                limits.point,
-                original_io.clone(),
-                deadline,
-                cancel.clone(),
-            )?
-        };
+        verify_named_root(
+            roots.source.path,
+            roots.source.held,
+            roots.source.identity,
+            &original_io,
+            deadline,
+            &cancel,
+        )?;
+        let mut session = V2ReadSession::open_at_named_with_work(
+            source,
+            roots.source.held,
+            limits.point,
+            original_io.clone(),
+            shared_work.clone(),
+            deadline,
+            cancel.clone(),
+        )?;
         if session.selected_revision() != expected_revision {
             return Err(invalid("V2 case writer revision differs"));
         }
@@ -285,65 +249,29 @@ fn read_backup_restore_case_inner(
         session.verify_current_fence()?;
         tuple
     }; // Drop the actual source buffer/session before cold closure/copy.
-    if let Some(roots) = held_roots {
-        verify_named_root(
-            roots.source.path,
-            roots.source.held,
-            roots.source.identity,
-            &original_io,
-            deadline,
-            &cancel,
-        )?;
-    }
-    let image = match image_mode {
-        ImageMode::Compatibility => transfer_image(
-            source,
-            fresh_target,
-            limits.image,
-            &original_io,
-            persistent_space,
-            deadline,
-            &cancel,
-        )?,
-        ImageMode::ColdSpill {
-            auxiliary_space,
-            requests,
-            held_roots,
-            ..
-        } => {
-            if let Some(roots) = held_roots {
-                transfer_image_with_cold_spill_at(
-                    source,
-                    roots.source.held,
-                    roots.source.identity,
-                    roots.target,
-                    roots.target_store_identity,
-                    limits.image,
-                    &original_io,
-                    persistent_space,
-                    auxiliary_space,
-                    requests,
-                    shared_work.clone().ok_or_else(|| {
-                        invalid("V2 cold held case lacks original shared work meter")
-                    })?,
-                    deadline,
-                    &cancel,
-                )?
-            } else {
-                transfer_image_with_cold_spill(
-                    source,
-                    fresh_target,
-                    limits.image,
-                    &original_io,
-                    persistent_space,
-                    auxiliary_space,
-                    requests,
-                    deadline,
-                    &cancel,
-                )?
-            }
-        }
-    };
+    verify_named_root(
+        roots.source.path,
+        roots.source.held,
+        roots.source.identity,
+        &original_io,
+        deadline,
+        &cancel,
+    )?;
+    let image = transfer_image_with_cold_spill_at(
+        source,
+        roots.source.held,
+        roots.source.identity,
+        roots.target,
+        roots.target_store_identity,
+        limits.image,
+        &original_io,
+        persistent_space,
+        auxiliary_space,
+        requests,
+        shared_work.clone(),
+        deadline,
+        &cancel,
+    )?;
     let image_result = image.result;
     let custody = image.custody;
     let held_target_root = image.held_target_root;
@@ -352,46 +280,25 @@ fn read_backup_restore_case_inner(
         if image_receipt.selection.revision != expected_revision {
             return Err(invalid("V2 case source advanced before cold image"));
         }
-        let mut restored = if let Some(roots) = held_roots {
-            let target_root = held_target_root
-                .as_ref()
-                .ok_or_else(|| invalid("V2 restored held target descriptor absent"))?;
-            let _current_target = open_selected_target(
-                roots.target,
-                Some(roots.target_store_identity),
-                &original_io,
-                deadline,
-                &cancel,
-            )?;
-            if let Some(work) = shared_work.clone() {
-                V2ReadSession::open_at_named_with_work(
-                    fresh_target,
-                    target_root,
-                    limits.point,
-                    original_io.clone(),
-                    work,
-                    deadline,
-                    cancel.clone(),
-                )?
-            } else {
-                V2ReadSession::open_at_named_with_io(
-                    fresh_target,
-                    target_root,
-                    limits.point,
-                    original_io.clone(),
-                    deadline,
-                    cancel.clone(),
-                )?
-            }
-        } else {
-            V2ReadSession::open(
-                fresh_target,
-                limits.point,
-                original_io.clone(),
-                deadline,
-                cancel.clone(),
-            )?
-        };
+        let target_root = held_target_root
+            .as_ref()
+            .ok_or_else(|| invalid("V2 restored held target descriptor absent"))?;
+        let _current_target = open_selected_target(
+            roots.target,
+            Some(roots.target_store_identity),
+            &original_io,
+            deadline,
+            &cancel,
+        )?;
+        let mut restored = V2ReadSession::open_at_named_with_work(
+            fresh_target,
+            target_root,
+            limits.point,
+            original_io.clone(),
+            shared_work.clone(),
+            deadline,
+            cancel.clone(),
+        )?;
         if restored.selected_revision() != expected_revision {
             return Err(invalid("V2 case fresh restored revision differs"));
         }
@@ -416,7 +323,7 @@ fn read_backup_restore_case_inner(
             observed_bytes: bytes,
         })
     })();
-    let result = if let (Some(roots), Some(target_root)) = (held_roots, held_target_root.as_ref()) {
+    let result = if held_target_root.is_some() {
         let source_fence = verify_named_root(
             roots.source.path,
             roots.source.held,
