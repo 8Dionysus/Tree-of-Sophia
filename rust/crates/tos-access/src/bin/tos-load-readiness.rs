@@ -2498,10 +2498,19 @@ fn interrupted_projection_apply_response_matches(
     let Some(before_interrupt) = cursor_observation.get("before_interrupt") else {
         return false;
     };
-    let Some(before_through_seq) = before_interrupt["through_seq"].as_u64() else {
+    let Some(before_prefix) = cursor_observation.get("before_prefix") else {
         return false;
     };
-    let Some(before_head_seq) = before_interrupt["head_seq"].as_u64() else {
+    let Some(before_through_seq) = before_prefix["through_seq"].as_u64() else {
+        return false;
+    };
+    let Some(before_head_seq) = before_prefix["head_seq"].as_u64() else {
+        return false;
+    };
+    let Some(prefix_through_seq) = before_interrupt["through_seq"].as_u64() else {
+        return false;
+    };
+    let Some(prefix_head_seq) = before_interrupt["head_seq"].as_u64() else {
         return false;
     };
     let Some(after_interrupt) = cursor_observation.get("after_interrupt") else {
@@ -2518,8 +2527,13 @@ fn interrupted_projection_apply_response_matches(
     };
     if applied_events == 0
         || applied_events > max_events
+        || before_prefix["status"] != "Pending"
         || before_interrupt["status"] != "Pending"
         || before_head_seq.saturating_sub(before_through_seq) < 2
+        || prefix_through_seq <= before_through_seq
+        || prefix_through_seq >= prefix_head_seq
+        || prefix_head_seq < before_head_seq
+        || partial_through_seq < prefix_through_seq
         || cursor_observation["partial_cursor_persisted"] != true
         || after_interrupt["status"] != "Pending"
         || partial_through_seq <= before_through_seq
@@ -6784,9 +6798,16 @@ fn projection_status(
     if response["schema_version"] != "tos_source_projection_status_v1" {
         return Err("projection cursor status response schema changed".into());
     }
-    let status = response
-        .get("result")
-        .and_then(Value::as_object)
+    parse_projection_cursor(
+        response
+            .get("result")
+            .ok_or("projection cursor status result absent")?,
+    )
+}
+
+fn parse_projection_cursor(value: &Value) -> Result<ProjectionCursor, String> {
+    let status = value
+        .as_object()
         .ok_or("projection cursor status result absent")?;
     if status.len() != 1 {
         return Err("projection cursor status variant changed".into());
@@ -6848,6 +6869,10 @@ fn projection_queue_age(
         .ok_or("projection queue-age response absent")?;
     let response: Value =
         serde_json::from_slice(body).map_err(|_| "projection queue-age response is not JSON")?;
+    projection_queue_age_observation(&response)
+}
+
+fn projection_queue_age_observation(response: &Value) -> Result<Value, String> {
     if response["schema_version"] != "tos_source_projection_queue_age_v1"
         || response.get("profile").is_none()
     {
@@ -6857,13 +6882,15 @@ fn projection_queue_age(
         .get("result")
         .and_then(Value::as_object)
         .ok_or("projection queue-age result absent")?;
-    let status = result
-        .get("status")
-        .and_then(Value::as_str)
-        .ok_or("projection queue-age status absent")?;
-    if !matches!(status, "Current" | "Pending" | "Stale") {
-        return Err("projection queue-age cursor status changed".into());
-    }
+    let cursor = parse_projection_cursor(
+        result
+            .get("status")
+            .ok_or("projection queue-age status absent")?,
+    )?;
+    let cursor_observation = cursor.observation();
+    let status = cursor_observation["status"]
+        .as_str()
+        .ok_or("projection queue-age cursor status absent")?;
     result
         .get("head_seq")
         .and_then(Value::as_u64)
@@ -6893,6 +6920,16 @@ fn projection_queue_age(
         }
     };
     let through_seq = nullable_u64("through_seq")?;
+    if cursor_observation["through_seq"] != result["through_seq"]
+        || cursor_observation["head_seq"] != result["head_seq"]
+        || result["head_seq"]
+            .as_u64()
+            .unwrap()
+            .checked_sub(through_seq.unwrap_or(0))
+            != result["sequence_lag"].as_u64()
+    {
+        return Err("projection queue-age cursor and lag disagree".into());
+    }
     let oldest_seq = nullable_u64("oldest_unprocessed_seq")?;
     let enqueued_at = nullable_u64("oldest_unprocessed_enqueued_at_unix_micros")?;
     let age_millis = nullable_u64("oldest_unprocessed_age_millis")?;
@@ -7562,54 +7599,57 @@ fn run_operation(
                     Some((before_through, before_head))
                         if before_head.saturating_sub(before_through) >= 2 =>
                     {
-                        let mut progress_error = None;
-                        projection_cursor_observation = json!({
-                            "before_interrupt":before.observation(),
-                            "after_interrupt":Value::Null,
-                            "after_resume":Value::Null,
-                            "partial_cursor_persisted":false
-                        });
-                        match projection_process(
-                            op,
-                            &args.output,
-                            deadline,
-                            args.request_cap,
-                            args.response_cap,
-                            pids,
-                            Some(Duration::from_millis(interrupt_after_ms)),
-                        ) {
-                            Ok(interrupted) if interrupted.interrupted => {
-                                attempts.push(interrupted);
-                                projection_interruptions = 1;
-                                projection_status_checks += 1;
-                                let partial_cursor_persisted = match projection_status(
-                                    op,
-                                    &args.output,
-                                    deadline,
-                                    args.request_cap,
-                                    args.response_cap,
-                                    pids,
-                                ) {
-                                    Ok(after_interrupt) => {
-                                        projection_cursor_observation["after_interrupt"] =
-                                            after_interrupt.observation();
-                                        after_interrupt.pending().is_some_and(
-                                            |(through_seq, head_seq)| {
-                                                through_seq > before_through
-                                                    && through_seq < head_seq
-                                                    && head_seq >= before_head
-                                            },
-                                        )
-                                    }
-                                    Err(e) => {
-                                        progress_error = Some(e);
-                                        false
-                                    }
-                                };
-                                projection_cursor_observation["partial_cursor_persisted"] =
-                                    json!(partial_cursor_persisted);
-                                // Resume even when the interruption did not leave a provable
-                                // partial cursor, so this disposable stage is not left pending.
+                        // First persist one bounded batch, then interrupt the next child.
+                        // This proves retained work without depending on the delay landing
+                        // between two commits inside one variable-duration invocation.
+                        let prefix = (|| -> Result<ProjectionCursor, String> {
+                            let mut prefix_op = op.clone();
+                            prefix_op.request["max_events"] = json!(1);
+                            prefix_op.interrupt_resume_after_ms = None;
+                            let completed = projection_process(
+                                &prefix_op,
+                                &args.output,
+                                deadline,
+                                args.request_cap,
+                                args.response_cap,
+                                pids,
+                                None,
+                            )?;
+                            let succeeded = completed.status == 0 && !completed.interrupted;
+                            attempts.push(completed);
+                            if !succeeded {
+                                return Err("projection prefix batch failed".into());
+                            }
+                            projection_status_checks += 1;
+                            let prefix = projection_status(
+                                op,
+                                &args.output,
+                                deadline,
+                                args.request_cap,
+                                args.response_cap,
+                                pids,
+                            )?;
+                            if !prefix.pending().is_some_and(|(through, head)| {
+                                through > before_through && through < head && head >= before_head
+                            }) {
+                                return Err(
+                                    "projection prefix did not persist a bounded partial cursor"
+                                        .into(),
+                                );
+                            }
+                            Ok(prefix)
+                        })();
+                        match prefix {
+                            Err(reason) => error = Some(reason),
+                            Ok(prefix) => {
+                                let mut progress_error = None;
+                                projection_cursor_observation = json!({
+                                    "before_prefix":before.observation(),
+                                    "before_interrupt":prefix.observation(),
+                                    "after_interrupt":Value::Null,
+                                    "after_resume":Value::Null,
+                                    "partial_cursor_persisted":false
+                                });
                                 match projection_process(
                                     op,
                                     &args.output,
@@ -7617,13 +7657,13 @@ fn run_operation(
                                     args.request_cap,
                                     args.response_cap,
                                     pids,
-                                    None,
+                                    Some(Duration::from_millis(interrupt_after_ms)),
                                 ) {
-                                    Ok(resumed) if !resumed.interrupted => {
-                                        attempts.push(resumed);
-                                        projection_resumes = 1;
+                                    Ok(interrupted) if interrupted.interrupted => {
+                                        attempts.push(interrupted);
+                                        projection_interruptions = 1;
                                         projection_status_checks += 1;
-                                        match projection_status(
+                                        let partial_cursor_persisted = match projection_status(
                                             op,
                                             &args.output,
                                             deadline,
@@ -7631,34 +7671,80 @@ fn run_operation(
                                             args.response_cap,
                                             pids,
                                         ) {
-                                            Ok(after_resume) => {
-                                                projection_cursor_observation["after_resume"] =
-                                                    after_resume.observation();
-                                                if after_resume.current().is_none() {
-                                                    progress_error.get_or_insert_with(|| {
-                                                        "projection resume did not reach a current durable cursor".into()
-                                                    });
+                                            Ok(after_interrupt) => {
+                                                projection_cursor_observation["after_interrupt"] =
+                                                    after_interrupt.observation();
+                                                after_interrupt.pending().is_some_and(
+                                                    |(through_seq, head_seq)| {
+                                                        through_seq >= prefix.pending().unwrap().0
+                                                            && through_seq > before_through
+                                                            && through_seq < head_seq
+                                                            && head_seq >= before_head
+                                                    },
+                                                )
+                                            }
+                                            Err(e) => {
+                                                progress_error = Some(e);
+                                                false
+                                            }
+                                        };
+                                        projection_cursor_observation["partial_cursor_persisted"] =
+                                            json!(partial_cursor_persisted);
+                                        // Resume even when the interruption did not leave a provable
+                                        // partial cursor, so this disposable stage is not left pending.
+                                        match projection_process(
+                                            op,
+                                            &args.output,
+                                            deadline,
+                                            args.request_cap,
+                                            args.response_cap,
+                                            pids,
+                                            None,
+                                        ) {
+                                            Ok(resumed) if !resumed.interrupted => {
+                                                attempts.push(resumed);
+                                                projection_resumes = 1;
+                                                projection_status_checks += 1;
+                                                match projection_status(
+                                                    op,
+                                                    &args.output,
+                                                    deadline,
+                                                    args.request_cap,
+                                                    args.response_cap,
+                                                    pids,
+                                                ) {
+                                                    Ok(after_resume) => {
+                                                        projection_cursor_observation["after_resume"] =
+                                                            after_resume.observation();
+                                                        if after_resume.current().is_none() {
+                                                            progress_error.get_or_insert(
+                                                                "projection resume did not reach a current durable cursor".into(),
+                                                            );
+                                                        }
+                                                    }
+                                                    Err(e) => progress_error = Some(e),
                                                 }
                                             }
+                                            Ok(_) => progress_error = Some(
+                                                "projection resume was unexpectedly interrupted"
+                                                    .into(),
+                                            ),
                                             Err(e) => progress_error = Some(e),
                                         }
+                                        if !partial_cursor_persisted {
+                                            progress_error.get_or_insert(
+                                                "interrupted projection did not persist a partial durable cursor".into(),
+                                            );
+                                        }
+                                        error = progress_error;
                                     }
                                     Ok(_) => {
-                                        progress_error = Some(
-                                            "projection resume was unexpectedly interrupted".into(),
-                                        )
+                                        error =
+                                            Some("projection process was not interrupted".into())
                                     }
-                                    Err(e) => progress_error = Some(e),
+                                    Err(e) => error = Some(e),
                                 }
-                                if !partial_cursor_persisted {
-                                    progress_error.get_or_insert_with(|| {
-                                        "interrupted projection did not persist a partial durable cursor".into()
-                                    });
-                                }
-                                error = progress_error;
                             }
-                            Ok(_) => error = Some("projection process was not interrupted".into()),
-                            Err(e) => error = Some(e),
                         }
                     }
                     Some(_) => {
@@ -9955,6 +10041,61 @@ fn existing_pg_baseline_requires_explicit_successful_staging() {
         output,
         Some(baseline)
     ));
+}
+
+#[test]
+fn projection_queue_age_accepts_the_native_owner_serialization() {
+    use tos_command::{
+        DurableProjectionQueueAge, DurableProjectionQueueAgeStatus, DurableProjectionStatus,
+    };
+    let variants = [
+        (
+            DurableProjectionStatus::Current { through_seq: 154 },
+            Some(154),
+            "Current",
+        ),
+        (
+            DurableProjectionStatus::Pending {
+                through_seq: 152,
+                head_seq: 154,
+            },
+            Some(152),
+            "Pending",
+        ),
+        (
+            DurableProjectionStatus::Stale {
+                through_seq: None,
+                head_seq: 154,
+                reason: "uninitialized",
+            },
+            None,
+            "Stale",
+        ),
+    ];
+    for (status, through_seq, label) in variants {
+        let pending = through_seq != Some(154);
+        let wire = json!({
+            "schema_version":"tos_source_projection_queue_age_v1", "profile":"selected",
+            "result":DurableProjectionQueueAge {
+                status, through_seq, head_seq:154, sequence_lag:154-through_seq.unwrap_or(0),
+                oldest_unprocessed_seq:pending.then_some(through_seq.unwrap_or(0)+1),
+                oldest_unprocessed_enqueued_at_unix_micros:None,
+                oldest_unprocessed_age_millis:None,
+                oldest_unprocessed_age_status:if pending { DurableProjectionQueueAgeStatus::UnknownHistorical } else { DurableProjectionQueueAgeStatus::Empty },
+            }
+        });
+        let parsed = projection_queue_age_observation(&wire).unwrap();
+        assert_eq!(parsed["status"], label);
+        assert_eq!(parsed["head_seq"], 154);
+        let mut malformed = wire.clone();
+        malformed["result"]["status"] = json!(label);
+        assert!(projection_queue_age_observation(&malformed).is_err());
+        let mut drifted = wire.clone();
+        drifted["result"]["sequence_lag"] = json!(155);
+        assert!(projection_queue_age_observation(&drifted).is_err());
+    }
+    assert!(parse_projection_cursor(&json!({"Current":{"through_seq":"154"}})).is_err());
+    assert!(parse_projection_cursor(&json!({"Current":{"through_seq":154},"Pending":{}})).is_err());
 }
 
 fn main() {
