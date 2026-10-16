@@ -9,9 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Value, json};
-use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, RelativePath, SourceRevision, canonical_bytes_v1,
-};
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_bytes_v1};
 
 use crate::{
     Error, Result,
@@ -22,7 +20,6 @@ use crate::{
         supplied_metadata_descriptor,
     },
     source_bibliographic_render::digest as source_record_digest,
-    source_navigation_claim_event::NavigationClaimRevisionProofV1,
     source_witness_catalog::render_catalog_record,
 };
 
@@ -565,40 +562,6 @@ impl NavigationRecordEventCohortV1 {
     }
 }
 
-/// Render one exact metadata record event into a bounded, deterministic
-/// replacement cohort. The authenticated source owner remains responsible
-/// for proving event-cut membership and dependency observations.
-pub fn project_navigation_record_event_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        NavigationRecordEventBasisV1::Mutation,
-        None,
-        None,
-        NavigationEventSourceBinding::FullCut,
-    )
-}
-
-/// Render one PG-selected event without manufacturing a whole-corpus
-/// `SourceRevision`. The validator and caller-owned event identity remain
-/// bound to the exact addressed source set.
-pub fn project_navigation_record_event_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        NavigationRecordEventBasisV1::Mutation,
-        None,
-        None,
-        NavigationEventSourceBinding::EventCut,
-    )
-}
-
 /// Render one terminal Record contribution for an exact contiguous event
 /// range. `input.event_id` and sequence remain the real final event in the
 /// coverage; the basis commits the range root and this owner's cause root.
@@ -629,293 +592,30 @@ pub fn project_navigation_record_range_terminal_event_from_event_cut_v1(
             coverage_root: coverage.coverage_root(),
             cause_root,
         },
-        None,
         origin_forms_bytes,
-        NavigationEventSourceBinding::EventCut,
     )
-}
-
-/// Reproject an unchanged current record after a committed change to one of
-/// its authenticated dependencies. The changed dependency must be present in
-/// the supplied exact source cut and in the provenance output/receipt; this
-/// path does not require or invent a write to the record itself.
-pub fn project_navigation_record_dependency_refresh_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    changed_dependency_path: &str,
-    changed_dependency_bytes: &[u8],
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    let changed_dependency_path = checked_path(changed_dependency_path)?;
-    if changed_dependency_bytes.is_empty() {
-        return Err(Error::Invalid("navigation refresh dependency bytes absent"));
-    }
-    let basis = NavigationRecordEventBasisV1::DependencyRefresh {
-        changed_dependency_path,
-        changed_dependency_sha256: Digest256::of_bytes(changed_dependency_bytes),
-    };
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        basis,
-        Some(changed_dependency_bytes),
-        None,
-        NavigationEventSourceBinding::FullCut,
-    )
-}
-
-/// PG event-cut variant of the bounded dependency refresh route.
-pub fn project_navigation_record_dependency_refresh_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    changed_dependency_path: &str,
-    changed_dependency_bytes: &[u8],
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    let changed_dependency_path = checked_path(changed_dependency_path)?;
-    if changed_dependency_bytes.is_empty() {
-        return Err(Error::Invalid("navigation refresh dependency bytes absent"));
-    }
-    let basis = NavigationRecordEventBasisV1::DependencyRefresh {
-        changed_dependency_path,
-        changed_dependency_sha256: Digest256::of_bytes(changed_dependency_bytes),
-    };
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        basis,
-        Some(changed_dependency_bytes),
-        None,
-        NavigationEventSourceBinding::EventCut,
-    )
-}
-
-/// Reproject one unchanged Record for a compound CMD event. Unlike repeated
-/// single-path cohorts, the sealed basis names the full canonical set of
-/// changed dependencies relevant to this owner.
-pub fn project_navigation_record_dependency_refresh_set_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    changed_dependencies: &[NavigationRecordDependencyRefreshCauseV1],
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    if changed_dependencies.is_empty() {
-        return Err(Error::Invalid(
-            "navigation refresh dependency cause set is empty",
-        ));
-    }
-    let mut causes = changed_dependencies.to_vec();
-    causes.sort_by(|left, right| left.path.as_str().cmp(right.path.as_str()));
-    if causes.windows(2).any(|pair| pair[0].path == pair[1].path) {
-        return Err(Error::Invalid(
-            "navigation refresh dependency cause path repeated",
-        ));
-    }
-    if causes
-        .iter()
-        .any(|cause| !cause.path.as_str().starts_with("ToS/"))
-    {
-        return Err(Error::Invalid(
-            "navigation refresh dependency cause is outside ToS",
-        ));
-    }
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        NavigationRecordEventBasisV1::DependencyRefreshSet {
-            changed_dependencies: causes,
-        },
-        None,
-        None,
-        NavigationEventSourceBinding::EventCut,
-    )
-}
-
-/// Reproject an unchanged Record after a Claim revision whose exact retained
-/// history, archived predecessor, and current stream were sealed by the
-/// Claim owner. The Record's own creation provenance remains its provenance;
-/// the proof separately binds the current CMD event that changed its Claim
-/// dependency.
-pub fn project_navigation_record_claim_revision_refresh_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    proof: &NavigationClaimRevisionProofV1,
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    if proof.event_id() != input.event_id
-        || proof.event_sequence() != input.event_sequence
-        || proof.claim_id().is_empty()
-        || proof.mutation_claim_ids() != [proof.claim_id()]
-        || proof.claim_stream_path() == proof.history_path()
-    {
-        return Err(Error::Invalid(
-            "navigation Claim revision proof identity differs",
-        ));
-    }
-    let require_dependency = |path: &RelativePath, sha256: Digest256| -> Result<()> {
-        let dependency = input
-            .dependencies
-            .iter()
-            .find(|dependency| dependency.path == *path)
-            .ok_or(Error::Invalid(
-                "navigation Claim revision dependency absent",
-            ))?;
-        if dependency.role != NavigationDependencyRoleV1::Additional
-            || !matches!(
-                dependency.state,
-                NavigationDependencyStateV1::Present { sha256: observed, .. }
-                    if observed == sha256
-            )
-        {
-            return Err(Error::Invalid(
-                "navigation Claim revision dependency binding differs",
-            ));
-        }
-        Ok(())
-    };
-    require_dependency(proof.claim_stream_path(), proof.claim_stream_sha256())?;
-    require_dependency(proof.history_path(), proof.history_sha256())?;
-    if proof.claim_stream_path().as_str() == input.source_path
-        || proof.history_path().as_str() == input.source_path
-    {
-        return Err(Error::Invalid(
-            "navigation Claim revision dependency aliases Record source",
-        ));
-    }
-    let basis = NavigationRecordEventBasisV1::ClaimRevisionRefresh {
-        changed_dependency_path: proof.claim_stream_path().clone(),
-        changed_dependency_sha256: proof.claim_stream_sha256(),
-        history_path: proof.history_path().clone(),
-        history_sha256: proof.history_sha256(),
-        claim_id: proof.claim_id().to_owned(),
-        revision_proof_root: proof.binding_root(),
-    };
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        basis,
-        None,
-        None,
-        NavigationEventSourceBinding::FullCut,
-    )
-}
-
-/// PG event-cut variant of the Claim revision refresh route.
-pub fn project_navigation_record_claim_revision_refresh_from_event_cut_v1(
-    input: NavigationRecordEventInputV1<'_, '_>,
-    proof: &NavigationClaimRevisionProofV1,
-    limits: BibliographicLimits,
-) -> Result<NavigationRecordEventCohortV1> {
-    if proof.event_id() != input.event_id
-        || proof.event_sequence() != input.event_sequence
-        || proof.claim_id().is_empty()
-        || proof.mutation_claim_ids() != [proof.claim_id()]
-        || proof.claim_stream_path() == proof.history_path()
-    {
-        return Err(Error::Invalid(
-            "navigation Claim revision proof identity differs",
-        ));
-    }
-    let require_dependency = |path: &RelativePath, sha256: Digest256| -> Result<()> {
-        let dependency = input
-            .dependencies
-            .iter()
-            .find(|dependency| dependency.path == *path)
-            .ok_or(Error::Invalid(
-                "navigation Claim revision dependency absent",
-            ))?;
-        if dependency.role != NavigationDependencyRoleV1::Additional
-            || !matches!(
-                dependency.state,
-                NavigationDependencyStateV1::Present { sha256: observed, .. }
-                    if observed == sha256
-            )
-        {
-            return Err(Error::Invalid(
-                "navigation Claim revision dependency binding differs",
-            ));
-        }
-        Ok(())
-    };
-    require_dependency(proof.claim_stream_path(), proof.claim_stream_sha256())?;
-    require_dependency(proof.history_path(), proof.history_sha256())?;
-    if proof.claim_stream_path().as_str() == input.source_path
-        || proof.history_path().as_str() == input.source_path
-    {
-        return Err(Error::Invalid(
-            "navigation Claim revision dependency aliases Record source",
-        ));
-    }
-    let basis = NavigationRecordEventBasisV1::ClaimRevisionRefresh {
-        changed_dependency_path: proof.claim_stream_path().clone(),
-        changed_dependency_sha256: proof.claim_stream_sha256(),
-        history_path: proof.history_path().clone(),
-        history_sha256: proof.history_sha256(),
-        claim_id: proof.claim_id().to_owned(),
-        revision_proof_root: proof.binding_root(),
-    };
-    project_navigation_record_event_with_basis(
-        input,
-        limits,
-        basis,
-        None,
-        None,
-        NavigationEventSourceBinding::EventCut,
-    )
-}
-
-#[derive(Clone, Copy)]
-enum NavigationEventSourceBinding {
-    FullCut,
-    EventCut,
-}
-
-#[derive(Clone, Copy)]
-enum NavigationEventSelectedBinding {
-    FullCut(SourceRevision),
-    EventCut(Digest256),
-}
-
-impl NavigationEventSelectedBinding {
-    fn digest(self) -> Digest256 {
-        match self {
-            Self::FullCut(revision) => revision.0,
-            Self::EventCut(revision) => revision,
-        }
-    }
 }
 
 fn check_selected_navigation_document(
     validator: &crate::source_witness_catalog::SourceCatalogValidator<'_>,
-    binding: NavigationEventSelectedBinding,
+    binding: Digest256,
     path: &str,
     schema_path: &str,
     schema_bytes: &[u8],
     raw: &[u8],
 ) -> Result<()> {
-    match binding {
-        NavigationEventSelectedBinding::FullCut(revision) => {
-            validator.check_selected_document_exact(revision, path, schema_path, schema_bytes, raw)
-        }
-        NavigationEventSelectedBinding::EventCut(revision) => validator
-            .check_selected_event_document_exact(revision, path, schema_path, schema_bytes, raw),
-    }
+    validator.check_selected_event_document_exact(binding, path, schema_path, schema_bytes, raw)
 }
 
 fn project_navigation_record_event_with_basis(
     input: NavigationRecordEventInputV1<'_, '_>,
     limits: BibliographicLimits,
     basis: NavigationRecordEventBasisV1,
-    changed_dependency_bytes: Option<&[u8]>,
     origin_forms_bytes: Option<&[u8]>,
-    source_binding: NavigationEventSourceBinding,
 ) -> Result<NavigationRecordEventCohortV1> {
     limits.validate()?;
-    let selected_source_binding = match source_binding {
-        NavigationEventSourceBinding::FullCut => {
-            NavigationEventSelectedBinding::FullCut(input.validator.selected_source_revision()?)
-        }
-        NavigationEventSourceBinding::EventCut => NavigationEventSelectedBinding::EventCut(
-            input.validator.selected_event_source_revision()?,
-        ),
-    };
-    let source_revision = selected_source_binding.digest();
+    let selected_source_binding = input.validator.selected_event_source_revision()?;
+    let source_revision = selected_source_binding;
     if input.event_id.is_empty()
         || input.event_id.len() > EVENT_ID_BYTES
         || input.event_id.bytes().any(|byte| byte.is_ascii_control())
@@ -1014,105 +714,46 @@ fn project_navigation_record_event_with_basis(
     )? {
         return Err(Error::Invalid("navigation event parsed source differs"));
     }
-    match &basis {
-        NavigationRecordEventBasisV1::Mutation => validate_event_record_binding(
-            &event_value,
-            &event_receipt,
-            &event_path,
-            &source_path,
-            input.source_record_bytes,
-            input.forms_bytes,
-            &forms_path,
-            input.event_file_bytes,
-            input.source_record,
-        )?,
-        NavigationRecordEventBasisV1::DependencyRefresh {
-            changed_dependency_path,
-            changed_dependency_sha256,
-        } => {
-            let changed_bytes = changed_dependency_bytes
-                .ok_or(Error::Invalid("navigation refresh dependency bytes absent"))?;
-            if Digest256::of_bytes(changed_bytes) != *changed_dependency_sha256 {
+    let (origin_record_bytes, origin_record) =
+        match (input.versions.first(), input.version_sources.first()) {
+            (Some((_, resolution)), Some(Some(version_source)))
+                if resolution.get("status").and_then(Value::as_str) == Some("available") =>
+            {
+                let record = resolution
+                    .get("record")
+                    .filter(|record| record.is_object())
+                    .ok_or(Error::Invalid(
+                        "navigation Record range origin version record absent",
+                    ))?;
+                let raw = version_source.source_record_bytes;
+                let parsed = strict_value(raw, limits.catalog.max_row_bytes)?;
+                if !same_canonical(&parsed, record, limits.catalog.max_row_bytes)? {
+                    return Err(Error::Invalid(
+                        "navigation Record range origin version bytes differ",
+                    ));
+                }
+                (raw, record)
+            }
+            (None, None) if input.history.is_none() && input.history_bytes.is_none() => {
+                (input.source_record_bytes, input.source_record)
+            }
+            _ => {
                 return Err(Error::Invalid(
-                    "navigation refresh dependency digest differs",
+                    "navigation Record range origin version is not retained",
                 ));
             }
-            validate_dependency_refresh_binding(
-                &event_value,
-                &event_receipt,
-                &event_path,
-                &source_path,
-                changed_dependency_path,
-                changed_bytes,
-                input.event_file_bytes,
-            )?
-        }
-        NavigationRecordEventBasisV1::DependencyRefreshSet { .. } => validate_event_record_binding(
-            &event_value,
-            &event_receipt,
-            &event_path,
-            &source_path,
-            input.source_record_bytes,
-            input.forms_bytes,
-            &forms_path,
-            input.event_file_bytes,
-            input.source_record,
-        )?,
-        NavigationRecordEventBasisV1::ClaimRevisionRefresh { .. } => validate_event_record_binding(
-            &event_value,
-            &event_receipt,
-            &event_path,
-            &source_path,
-            input.source_record_bytes,
-            input.forms_bytes,
-            &forms_path,
-            input.event_file_bytes,
-            input.source_record,
-        )?,
-        NavigationRecordEventBasisV1::RangeReconciliation { .. } => {
-            let (origin_record_bytes, origin_record) =
-                match (input.versions.first(), input.version_sources.first()) {
-                    (Some((_, resolution)), Some(Some(version_source)))
-                        if resolution.get("status").and_then(Value::as_str)
-                            == Some("available") =>
-                    {
-                        let record = resolution
-                            .get("record")
-                            .filter(|record| record.is_object())
-                            .ok_or(Error::Invalid(
-                                "navigation Record range origin version record absent",
-                            ))?;
-                        let raw = version_source.source_record_bytes;
-                        let parsed = strict_value(raw, limits.catalog.max_row_bytes)?;
-                        if !same_canonical(&parsed, record, limits.catalog.max_row_bytes)? {
-                            return Err(Error::Invalid(
-                                "navigation Record range origin version bytes differ",
-                            ));
-                        }
-                        (raw, record)
-                    }
-                    (None, None) if input.history.is_none() && input.history_bytes.is_none() => {
-                        (input.source_record_bytes, input.source_record)
-                    }
-                    _ => {
-                        return Err(Error::Invalid(
-                            "navigation Record range origin version is not retained",
-                        ));
-                    }
-                };
-            validate_event_record_binding(
-                &event_value,
-                &event_receipt,
-                &event_path,
-                &source_path,
-                origin_record_bytes,
-                origin_forms_bytes,
-                &forms_path,
-                input.event_file_bytes,
-                origin_record,
-            )?;
-        }
-    }
+        };
+    validate_event_record_binding(
+        &event_value,
+        &event_receipt,
+        &event_path,
+        &source_path,
+        origin_record_bytes,
+        origin_forms_bytes,
+        &forms_path,
+        input.event_file_bytes,
+        origin_record,
+    )?;
     check_selected_navigation_document(
         input.validator,
         selected_source_binding,
@@ -1244,101 +885,6 @@ fn project_navigation_record_event_with_basis(
         selected_source_binding,
         limits,
     )?;
-    if let NavigationRecordEventBasisV1::DependencyRefresh {
-        changed_dependency_path,
-        changed_dependency_sha256,
-    } = &basis
-    {
-        let dependency = dependencies
-            .iter()
-            .find(|dependency| dependency.path == *changed_dependency_path)
-            .ok_or(Error::Invalid(
-                "navigation refresh dependency absent from manifest",
-            ))?;
-        if dependency.role != NavigationDependencyRoleV1::Additional
-            || !matches!(
-                dependency.state,
-                NavigationDependencyStateV1::Present { sha256, .. }
-                    if sha256 == *changed_dependency_sha256
-            )
-            || *changed_dependency_path == source_path
-        {
-            return Err(Error::Invalid("navigation refresh dependency binding"));
-        }
-    }
-    if let NavigationRecordEventBasisV1::DependencyRefreshSet {
-        changed_dependencies,
-    } = &basis
-    {
-        if changed_dependencies.is_empty()
-            || changed_dependencies
-                .windows(2)
-                .any(|pair| pair[0].path >= pair[1].path)
-        {
-            return Err(Error::Invalid(
-                "navigation refresh dependency cause set is not canonical",
-            ));
-        }
-        for cause in changed_dependencies {
-            let dependency = dependencies
-                .iter()
-                .find(|dependency| dependency.path == cause.path)
-                .ok_or(Error::Invalid(
-                    "navigation refresh dependency absent from manifest",
-                ))?;
-            if cause.path == source_path
-                || !matches!(
-                    dependency.state,
-                    NavigationDependencyStateV1::Present { sha256, .. }
-                        if sha256 == cause.sha256
-                )
-            {
-                return Err(Error::Invalid(
-                    "navigation refresh dependency cause binding",
-                ));
-            }
-        }
-    }
-    if let NavigationRecordEventBasisV1::ClaimRevisionRefresh {
-        changed_dependency_path,
-        changed_dependency_sha256,
-        history_path,
-        history_sha256,
-        claim_id,
-        ..
-    } = &basis
-    {
-        for (path, digest) in [
-            (changed_dependency_path, changed_dependency_sha256),
-            (history_path, history_sha256),
-        ] {
-            let dependency = dependencies
-                .iter()
-                .find(|dependency| dependency.path == *path)
-                .ok_or(Error::Invalid(
-                    "navigation Claim revision dependency absent from manifest",
-                ))?;
-            if dependency.role != NavigationDependencyRoleV1::Additional
-                || !matches!(
-                    dependency.state,
-                    NavigationDependencyStateV1::Present { sha256, .. } if sha256 == *digest
-                )
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim revision dependency manifest differs",
-                ));
-            }
-        }
-        if *changed_dependency_path == source_path
-            || *history_path == source_path
-            || claim_id.is_empty()
-            || input.event_id.is_empty()
-        {
-            return Err(Error::Invalid(
-                "navigation Claim revision basis owner binding differs",
-            ));
-        }
-    }
     validate_version_pairs(input.versions, limits)?;
 
     let kind = input
@@ -1488,46 +1034,6 @@ fn validate_event_record_binding(
     if let Some(bytes) = forms_bytes {
         verify_receipt_file(files, forms_path, bytes)?;
     }
-    Ok(())
-}
-
-fn validate_dependency_refresh_binding(
-    event: &Value,
-    receipt: &Value,
-    event_path: &RelativePath,
-    record_path: &RelativePath,
-    changed_path: &RelativePath,
-    changed_bytes: &[u8],
-    event_file_bytes: &[u8],
-) -> Result<()> {
-    if changed_path == record_path
-        || event
-            .pointer("/record_binding/digest_algorithm")
-            .and_then(Value::as_str)
-            != Some("sha256")
-        || event
-            .pointer("/record_binding/digest_scope")
-            .and_then(Value::as_str)
-            != Some("exact_event_record_bytes")
-        || receipt.get("schema_version").and_then(Value::as_str)
-            != Some("tos_local_claim_create_receipt_v1")
-        || receipt.get("source_path").and_then(Value::as_str) != Some(changed_path.as_str())
-    {
-        return Err(Error::Invalid(
-            "navigation dependency refresh event or receipt binding",
-        ));
-    }
-    let outputs = event
-        .pointer("/entities/outputs")
-        .and_then(Value::as_array)
-        .ok_or(Error::Invalid("navigation refresh event outputs absent"))?;
-    verify_event_output(outputs, changed_path, changed_bytes)?;
-    let files = receipt
-        .get("files")
-        .and_then(Value::as_object)
-        .ok_or(Error::Invalid("navigation refresh receipt files absent"))?;
-    verify_receipt_file(files, event_path, event_file_bytes)?;
-    verify_receipt_file(files, changed_path, changed_bytes)?;
     Ok(())
 }
 
@@ -1790,7 +1296,7 @@ fn validate_dependencies(
     schema_path: &RelativePath,
     forms_path: &RelativePath,
     history_path: &RelativePath,
-    selected_source_binding: NavigationEventSelectedBinding,
+    selected_source_binding: Digest256,
     limits: BibliographicLimits,
 ) -> Result<Vec<NavigationDependencyV1>> {
     let supplied = input.dependencies;

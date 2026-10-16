@@ -129,12 +129,9 @@ use tos_foundation::Digest256;
 
 pub(crate) use durable_adapter::durable_projection::DurableNavigationPublishedGenerationGuardV2;
 pub use durable_adapter::durable_projection::{
-    DurableNavigationBootstrapApplyV1, DurableNavigationEventAdvanceV2,
-    DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
-    DurableNavigationEventApply, DurableNavigationEventCohortReadV1,
-    DurableNavigationEventCohortSetV2, DurableNavigationEventContextV1,
-    DurableNavigationEventDependencyReadV1, DurableNavigationEventLimits,
-    DurableNavigationEventPendingReasonV2, DurableNavigationEventSeedV1,
+    DurableNavigationBootstrapApplyV1, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
+    DurableNavigationEventContextV1,
+    DurableNavigationEventLimits,
     DurableNavigationEventSourceV1, DurableProjectionBootstrapLimits,
     DurableProjectionBootstrapProgress, DurableProjectionDocument, DurableProjectionExtractor,
     DurableProjectionHit, DurableProjectionLimits, DurableProjectionProfile,

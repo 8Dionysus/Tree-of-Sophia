@@ -829,153 +829,6 @@ impl NavigationClaimEventAffectedOwnerStreamV1 {
     }
 }
 
-/// Sealed stream-complete Claim owner closure for one mutation event.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationClaimEventAffectedOwnerManifestV1 {
-    inventory_root: Digest256,
-    mutation_source_path: String,
-    mutation_claim_ids: Vec<String>,
-    reverse_claim_ids: Vec<String>,
-    streams: Vec<NavigationClaimEventAffectedOwnerStreamV1>,
-    root: Digest256,
-}
-
-impl NavigationClaimEventAffectedOwnerManifestV1 {
-    pub fn inventory_root(&self) -> Digest256 {
-        self.inventory_root
-    }
-
-    pub fn mutation_source_path(&self) -> &str {
-        &self.mutation_source_path
-    }
-
-    pub fn mutation_claim_ids(&self) -> &[String] {
-        &self.mutation_claim_ids
-    }
-
-    pub fn reverse_claim_ids(&self) -> &[String] {
-        &self.reverse_claim_ids
-    }
-
-    pub fn streams(&self) -> &[NavigationClaimEventAffectedOwnerStreamV1] {
-        &self.streams
-    }
-
-    pub fn root(&self) -> Digest256 {
-        self.root
-    }
-
-    /// Verify the exact stream-complete affected-owner manifest before a
-    /// publisher binds it into its atomic event set.
-    pub fn verify_integrity(&self) -> Result<()> {
-        if !sorted_unique(&self.mutation_claim_ids)
-            || self.mutation_claim_ids.is_empty()
-            || self.mutation_claim_ids.len() > 32
-            || !sorted_unique(&self.reverse_claim_ids)
-            || self.reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-            || self
-                .mutation_claim_ids
-                .iter()
-                .chain(&self.reverse_claim_ids)
-                .any(|id| !id.starts_with("tos.claim.") || id.len() > PATH_BYTES)
-            || self.streams.is_empty()
-            || self.streams.len() > MAX_CLAIM_EVENT_STREAMS
-            || self
-                .streams
-                .windows(2)
-                .any(|pair| pair[0].source_path >= pair[1].source_path)
-        {
-            return Err(Error::Invalid(
-                "navigation Claim affected-owner manifest shape",
-            ));
-        }
-        let mut all_ids = BTreeSet::new();
-        let mut mutation_stream_found = false;
-        for stream in &self.streams {
-            checked_path(&stream.source_path)?;
-            if !is_claim_stream_path(&stream.source_path)
-                || !sorted_unique(&stream.owner_ids)
-                || stream.owner_ids.is_empty()
-                || stream.owner_ids.len() > MAX_CLAIM_EVENT_OWNERS
-                || stream.rows_scanned != stream.owner_ids.len() as u64
-                || stream
-                    .owner_ids
-                    .iter()
-                    .any(|id| !id.starts_with("tos.claim.") || id.len() > PATH_BYTES)
-                || stream
-                    .owner_ids
-                    .iter()
-                    .any(|id| !id.starts_with("tos.claim.") || id.len() > PATH_BYTES)
-                || stream
-                    .owner_ids
-                    .iter()
-                    .any(|id| !all_ids.insert(id.as_str()))
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim affected-owner stream shape",
-                ));
-            }
-            if stream.source_path == self.mutation_source_path {
-                mutation_stream_found = true;
-                if self
-                    .mutation_claim_ids
-                    .iter()
-                    .any(|id| stream.owner_ids.binary_search(id).is_err())
-                {
-                    return Err(Error::Invalid(
-                        "navigation Claim affected-owner mutation members",
-                    ));
-                }
-            }
-        }
-        if !mutation_stream_found
-            || self
-                .reverse_claim_ids
-                .iter()
-                .any(|id| !all_ids.contains(id.as_str()))
-        {
-            return Err(Error::Invalid(
-                "navigation Claim affected-owner closure incomplete",
-            ));
-        }
-        let root = affected_owner_manifest_root(
-            self.inventory_root,
-            &self.mutation_source_path,
-            &self.mutation_claim_ids,
-            &self.reverse_claim_ids,
-            &self.streams,
-        )?;
-        if root != self.root {
-            return Err(Error::Invalid(
-                "navigation Claim affected-owner manifest root",
-            ));
-        }
-        Ok(())
-    }
-}
-
-/// Sealed current Claim-stream closure for a non-Claim dependency event.
-/// Unlike a mutation manifest, it has no mutation stream or receipt members.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationClaimDependencyRefreshOwnerManifestV1 {
-    inventory_root: Digest256,
-    changed_dependency_path: RelativePath,
-    changed_dependency_sha256: Digest256,
-    closure_root: Digest256,
-    reverse_claim_ids: Vec<String>,
-    streams: Vec<NavigationClaimEventAffectedOwnerStreamV1>,
-    root: Digest256,
-}
-
-/// One exact non-Claim dependency changed by a committed source event, with
-/// that dependency's sorted reverse-Claim result.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationClaimDependencyRefreshCauseInputV1<'a> {
-    pub changed_dependency_path: &'a str,
-    pub changed_dependency_sha256: Digest256,
-    pub reverse_claim_ids: &'a [String],
-}
-
 /// Canonical cause retained by a sealed multi-path refresh manifest.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NavigationClaimDependencyRefreshCauseV1 {
@@ -995,223 +848,6 @@ impl NavigationClaimDependencyRefreshCauseV1 {
 
     pub fn reverse_claim_ids(&self) -> &[String] {
         &self.reverse_claim_ids
-    }
-}
-
-/// Complete deduplicated current-owner replacement closure for a compound
-/// non-Claim event. Every dependency cause retains its own reverse result;
-/// `reverse_claim_ids` is their sorted union and `streams` contains every
-/// current owner in each affected Claim stream.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationClaimDependencyRefreshOwnerManifestSetV1 {
-    inventory_root: Digest256,
-    closure_root: Digest256,
-    causes: Vec<NavigationClaimDependencyRefreshCauseV1>,
-    reverse_claim_ids: Vec<String>,
-    streams: Vec<NavigationClaimEventAffectedOwnerStreamV1>,
-    root: Digest256,
-}
-
-impl NavigationClaimDependencyRefreshOwnerManifestSetV1 {
-    pub fn inventory_root(&self) -> Digest256 {
-        self.inventory_root
-    }
-
-    pub fn closure_root(&self) -> Digest256 {
-        self.closure_root
-    }
-
-    pub fn causes(&self) -> &[NavigationClaimDependencyRefreshCauseV1] {
-        &self.causes
-    }
-
-    pub fn reverse_claim_ids(&self) -> &[String] {
-        &self.reverse_claim_ids
-    }
-
-    pub fn streams(&self) -> &[NavigationClaimEventAffectedOwnerStreamV1] {
-        &self.streams
-    }
-
-    pub fn root(&self) -> Digest256 {
-        self.root
-    }
-
-    pub fn verify_integrity(&self) -> Result<()> {
-        if self.causes.is_empty()
-            || self.causes.len() > MAX_CLAIM_REFRESH_CAUSES
-            || self
-                .causes
-                .windows(2)
-                .any(|pair| pair[0].changed_dependency_path >= pair[1].changed_dependency_path)
-            || !sorted_unique(&self.reverse_claim_ids)
-            || self.reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-            || self.streams.len() > MAX_CLAIM_EVENT_STREAMS
-            || self
-                .streams
-                .windows(2)
-                .any(|pair| pair[0].source_path >= pair[1].source_path)
-        {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh set shape",
-            ));
-        }
-        let mut union = BTreeSet::new();
-        for cause in &self.causes {
-            checked_path(cause.changed_dependency_path.as_str())?;
-            if is_claim_stream_path(cause.changed_dependency_path.as_str())
-                || !sorted_unique(&cause.reverse_claim_ids)
-                || cause.reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-                || cause
-                    .reverse_claim_ids
-                    .iter()
-                    .any(|id| !id.starts_with("tos.claim.") || id.len() > PATH_BYTES)
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim dependency-refresh cause shape",
-                ));
-            }
-            for id in &cause.reverse_claim_ids {
-                union.insert(id.as_str());
-            }
-        }
-        let expected_union = union.into_iter().map(str::to_owned).collect::<Vec<_>>();
-        if expected_union != self.reverse_claim_ids {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh reverse union",
-            ));
-        }
-        let mut all_ids = BTreeSet::new();
-        for stream in &self.streams {
-            checked_path(&stream.source_path)?;
-            if !is_claim_stream_path(&stream.source_path)
-                || !sorted_unique(&stream.owner_ids)
-                || stream.owner_ids.is_empty()
-                || stream.owner_ids.len() > MAX_CLAIM_EVENT_OWNERS
-                || stream.rows_scanned != stream.owner_ids.len() as u64
-                || stream.owner_ids.iter().any(|id| {
-                    !id.starts_with("tos.claim.")
-                        || id.len() > PATH_BYTES
-                        || !all_ids.insert(id.as_str())
-                })
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim dependency-refresh affected stream shape",
-                ));
-            }
-        }
-        if self.reverse_claim_ids.is_empty() != self.streams.is_empty()
-            || self
-                .reverse_claim_ids
-                .iter()
-                .any(|id| !all_ids.contains(id.as_str()))
-        {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh affected closure incomplete",
-            ));
-        }
-        let root = dependency_refresh_owner_manifest_set_root(
-            self.inventory_root,
-            self.closure_root,
-            &self.causes,
-            &self.reverse_claim_ids,
-            &self.streams,
-        )?;
-        if root != self.root {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh set root",
-            ));
-        }
-        Ok(())
-    }
-}
-
-impl NavigationClaimDependencyRefreshOwnerManifestV1 {
-    pub fn inventory_root(&self) -> Digest256 {
-        self.inventory_root
-    }
-
-    pub fn changed_dependency_path(&self) -> &RelativePath {
-        &self.changed_dependency_path
-    }
-
-    pub fn changed_dependency_sha256(&self) -> Digest256 {
-        self.changed_dependency_sha256
-    }
-
-    pub fn closure_root(&self) -> Digest256 {
-        self.closure_root
-    }
-
-    pub fn reverse_claim_ids(&self) -> &[String] {
-        &self.reverse_claim_ids
-    }
-
-    pub fn streams(&self) -> &[NavigationClaimEventAffectedOwnerStreamV1] {
-        &self.streams
-    }
-
-    pub fn root(&self) -> Digest256 {
-        self.root
-    }
-
-    pub fn verify_integrity(&self) -> Result<()> {
-        if is_claim_stream_path(self.changed_dependency_path.as_str())
-            || !sorted_unique(&self.reverse_claim_ids)
-            || self.reverse_claim_ids.is_empty()
-            || self.reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-            || self.streams.is_empty()
-            || self.streams.len() > MAX_CLAIM_EVENT_STREAMS
-            || self
-                .streams
-                .windows(2)
-                .any(|pair| pair[0].source_path >= pair[1].source_path)
-        {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh manifest shape",
-            ));
-        }
-        let mut all_ids = BTreeSet::new();
-        for stream in &self.streams {
-            checked_path(&stream.source_path)?;
-            if !is_claim_stream_path(&stream.source_path)
-                || !sorted_unique(&stream.owner_ids)
-                || stream.owner_ids.is_empty()
-                || stream.owner_ids.len() > MAX_CLAIM_EVENT_OWNERS
-                || stream.rows_scanned != stream.owner_ids.len() as u64
-                || stream
-                    .owner_ids
-                    .iter()
-                    .any(|id| !all_ids.insert(id.as_str()))
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim dependency-refresh stream shape",
-                ));
-            }
-        }
-        if self
-            .reverse_claim_ids
-            .iter()
-            .any(|id| !all_ids.contains(id.as_str()))
-        {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh closure incomplete",
-            ));
-        }
-        let root = dependency_refresh_owner_manifest_root(
-            self.inventory_root,
-            &self.changed_dependency_path,
-            self.changed_dependency_sha256,
-            self.closure_root,
-            &self.reverse_claim_ids,
-            &self.streams,
-        )?;
-        if root != self.root {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh manifest root",
-            ));
-        }
-        Ok(())
     }
 }
 
@@ -1302,222 +938,6 @@ impl NavigationClaimEventOwnerInventoryV1 {
         })
     }
 
-    /// Expand exact reverse-index Claim IDs into complete, deduplicated stream
-    /// owners, always including the stream changed by the mutation receipt.
-    pub fn affected_owner_streams(
-        &self,
-        reverse_claim_ids: &[String],
-        mutation_source_path: &str,
-        mutation_claim_ids: &[String],
-    ) -> Result<NavigationClaimEventAffectedOwnerManifestV1> {
-        if !sorted_unique(reverse_claim_ids)
-            || reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-            || !sorted_unique(mutation_claim_ids)
-            || mutation_claim_ids.is_empty()
-            || mutation_claim_ids.len() > 32
-        {
-            return Err(Error::Invalid(
-                "navigation Claim affected-owner input shape",
-            ));
-        }
-        let mutation_source_path = checked_path(mutation_source_path)?;
-        let mutation_stream = self
-            .stream(mutation_source_path.as_str())
-            .ok_or(Error::Invalid(
-                "navigation Claim mutation stream absent from inventory",
-            ))?;
-        if mutation_claim_ids
-            .iter()
-            .any(|id| !mutation_stream.rows.contains_key(id))
-        {
-            return Err(Error::Invalid(
-                "navigation Claim mutation members absent from stream",
-            ));
-        }
-        let mut paths = BTreeSet::from([mutation_source_path.as_str().to_owned()]);
-        for claim_id in reverse_claim_ids {
-            let path = self.owner_paths.get(claim_id).ok_or(Error::Invalid(
-                "navigation Claim reverse owner absent from inventory",
-            ))?;
-            paths.insert(path.clone());
-        }
-        let streams = paths
-            .iter()
-            .map(|path| {
-                let inventory_stream = self
-                    .stream(path)
-                    .ok_or(Error::Invalid("navigation Claim affected stream absent"))?;
-                Ok(NavigationClaimEventAffectedOwnerStreamV1 {
-                    source_path: path.clone(),
-                    stream_sha256: inventory_stream.stream_sha256,
-                    rows_scanned: inventory_stream.rows.len() as u64,
-                    owner_ids: inventory_stream.rows.keys().cloned().collect(),
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let root = affected_owner_manifest_root(
-            self.root,
-            mutation_source_path.as_str(),
-            mutation_claim_ids,
-            reverse_claim_ids,
-            &streams,
-        )?;
-        let manifest = NavigationClaimEventAffectedOwnerManifestV1 {
-            inventory_root: self.root,
-            mutation_source_path: mutation_source_path.as_str().to_owned(),
-            mutation_claim_ids: mutation_claim_ids.to_vec(),
-            reverse_claim_ids: reverse_claim_ids.to_vec(),
-            streams,
-            root,
-        };
-        manifest.verify_integrity()?;
-        Ok(manifest)
-    }
-
-    /// Expand exact reverse-index Claim IDs into complete current Claim
-    /// streams for a non-Claim dependency refresh. No changed Claim stream or
-    /// mutation receipt is invented for this cause.
-    pub fn affected_dependency_streams(
-        &self,
-        reverse_claim_ids: &[String],
-        changed_dependency_path: &str,
-        changed_dependency_sha256: Digest256,
-        closure_root: Digest256,
-    ) -> Result<NavigationClaimDependencyRefreshOwnerManifestV1> {
-        let changed_dependency_path = checked_path(changed_dependency_path)?;
-        if is_claim_stream_path(changed_dependency_path.as_str())
-            || !sorted_unique(reverse_claim_ids)
-            || reverse_claim_ids.is_empty()
-            || reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-        {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh input shape",
-            ));
-        }
-        let mut paths = BTreeSet::new();
-        for claim_id in reverse_claim_ids {
-            let path = self.owner_paths.get(claim_id).ok_or(Error::Invalid(
-                "navigation Claim dependency-refresh owner absent",
-            ))?;
-            paths.insert(path.clone());
-        }
-        let streams = paths
-            .iter()
-            .map(|path| {
-                let stream = self
-                    .stream(path)
-                    .ok_or(Error::Invalid("navigation Claim refresh stream absent"))?;
-                Ok(NavigationClaimEventAffectedOwnerStreamV1 {
-                    source_path: path.clone(),
-                    stream_sha256: stream.stream_sha256,
-                    rows_scanned: stream.rows.len() as u64,
-                    owner_ids: stream.rows.keys().cloned().collect(),
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let root = dependency_refresh_owner_manifest_root(
-            self.root,
-            &changed_dependency_path,
-            changed_dependency_sha256,
-            closure_root,
-            reverse_claim_ids,
-            &streams,
-        )?;
-        let manifest = NavigationClaimDependencyRefreshOwnerManifestV1 {
-            inventory_root: self.root,
-            changed_dependency_path,
-            changed_dependency_sha256,
-            closure_root,
-            reverse_claim_ids: reverse_claim_ids.to_vec(),
-            streams,
-            root,
-        };
-        manifest.verify_integrity()?;
-        Ok(manifest)
-    }
-
-    /// Build one complete owner-set manifest for a compound dependency event.
-    /// Causes are path-sorted and preserve each reverse-ID set independently;
-    /// affected streams are the deduplicated union of every reverse owner.
-    /// Empty per-cause reverse sets are valid, and an event with no reverse
-    /// Claim owners returns an authenticated manifest with no streams.
-    pub fn affected_dependency_stream_set(
-        &self,
-        causes: &[NavigationClaimDependencyRefreshCauseInputV1<'_>],
-        closure_root: Digest256,
-    ) -> Result<NavigationClaimDependencyRefreshOwnerManifestSetV1> {
-        if causes.is_empty() || causes.len() > MAX_CLAIM_REFRESH_CAUSES {
-            return Err(Error::Invalid(
-                "navigation Claim dependency-refresh cause count",
-            ));
-        }
-        let mut sealed_causes = Vec::with_capacity(causes.len());
-        let mut reverse_union = BTreeSet::new();
-        let mut stream_paths = BTreeSet::new();
-        let mut prior_path: Option<RelativePath> = None;
-        for cause in causes {
-            let path = checked_path(cause.changed_dependency_path)?;
-            if is_claim_stream_path(path.as_str())
-                || prior_path.as_ref().is_some_and(|prior| prior >= &path)
-                || !sorted_unique(cause.reverse_claim_ids)
-                || cause.reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-                || cause
-                    .reverse_claim_ids
-                    .iter()
-                    .any(|id| !id.starts_with("tos.claim.") || id.len() > PATH_BYTES)
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim dependency-refresh cause input shape",
-                ));
-            }
-            for claim_id in cause.reverse_claim_ids {
-                let owner_path = self.owner_paths.get(claim_id).ok_or(Error::Invalid(
-                    "navigation Claim dependency-refresh owner absent from inventory",
-                ))?;
-                reverse_union.insert(claim_id.clone());
-                stream_paths.insert(owner_path.clone());
-            }
-            prior_path = Some(path.clone());
-            sealed_causes.push(NavigationClaimDependencyRefreshCauseV1 {
-                changed_dependency_path: path,
-                changed_dependency_sha256: cause.changed_dependency_sha256,
-                reverse_claim_ids: cause.reverse_claim_ids.to_vec(),
-            });
-        }
-        let reverse_claim_ids = reverse_union.into_iter().collect::<Vec<_>>();
-        let streams = stream_paths
-            .iter()
-            .map(|path| {
-                let stream = self
-                    .stream(path)
-                    .ok_or(Error::Invalid("navigation Claim refresh stream absent"))?;
-                Ok(NavigationClaimEventAffectedOwnerStreamV1 {
-                    source_path: path.clone(),
-                    stream_sha256: stream.stream_sha256,
-                    rows_scanned: stream.rows.len() as u64,
-                    owner_ids: stream.rows.keys().cloned().collect(),
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let root = dependency_refresh_owner_manifest_set_root(
-            self.root,
-            closure_root,
-            &sealed_causes,
-            &reverse_claim_ids,
-            &streams,
-        )?;
-        let manifest = NavigationClaimDependencyRefreshOwnerManifestSetV1 {
-            inventory_root: self.root,
-            closure_root,
-            causes: sealed_causes,
-            reverse_claim_ids,
-            streams,
-            root,
-        };
-        manifest.verify_integrity()?;
-        Ok(manifest)
-    }
-
     fn row(&self, source_path: &str, claim_id: &str) -> Option<&NavigationClaimEventOwnerRowV1> {
         self.streams.get(source_path)?.rows.get(claim_id)
     }
@@ -1549,69 +969,6 @@ pub struct NavigationClaimIdentitySourceV1<'a> {
     pub forms_schema_path: Option<&'a str>,
     pub forms_schema_bytes: Option<&'a [u8]>,
     pub forms_bytes: Option<&'a [u8]>,
-}
-
-/// Checked per-Claim source-owner envelope for one committed event.
-///
-/// The producer supplies the resolved inputs used by the existing
-/// bibliographic Claim renderer. This function re-derives the Claim source
-/// entry from the exact stream line, materializes the exact form set, verifies
-/// current identity records against their selected bytes, and binds every
-/// selected byte to the dependency manifest before sealing the projection.
-pub struct NavigationClaimEventInputV1<'a, 'validator> {
-    pub validator: &'a SourceCatalogValidator<'validator>,
-    pub event_id: &'a str,
-    pub event_sequence: u64,
-    pub source_head_sequence: u64,
-    pub predecessor_source_revision: Digest256,
-    pub predecessor_cohort_root: Option<Digest256>,
-    /// Exact Claim stream named by the event's mutation receipt. `source_path`
-    /// may name another stream in the reverse-dependent replacement closure.
-    pub mutation_source_path: &'a str,
-    pub affected_owner_manifest: &'a NavigationClaimEventAffectedOwnerManifestV1,
-    pub source_path: &'a str,
-    pub source_line: u64,
-    pub source_bytes: &'a [u8],
-    /// Complete sorted Claim ID set produced by the owner readset's scan of
-    /// this exact current stream. The renderer re-parses `source_bytes` and
-    /// requires this set to match every current stream member.
-    pub owner_claim_ids: &'a [String],
-    pub claim_schema_path: &'a str,
-    pub claim_schema_bytes: &'a [u8],
-    pub forms_path: &'a str,
-    pub forms_schema_path: &'a str,
-    pub forms_schema_bytes: Option<&'a [u8]>,
-    pub forms_bytes: Option<&'a [u8]>,
-    pub history_path: &'a str,
-    pub history_bytes: Option<&'a [u8]>,
-    pub provenance_event_path: &'a str,
-    pub provenance_event_bytes: &'a [u8],
-    pub provenance_event_schema_path: &'a str,
-    pub provenance_event_schema_bytes: &'a [u8],
-    pub provenance_receipt_path: &'a str,
-    pub provenance_receipt_bytes: &'a [u8],
-    pub entity_registry_path: &'a str,
-    pub entity_registry_bytes: &'a [u8],
-    pub entity_registry_schema_path: &'a str,
-    pub entity_registry_schema_bytes: &'a [u8],
-    pub relation_registry_path: &'a str,
-    pub relation_registry_bytes: &'a [u8],
-    pub relation_registry_schema_path: &'a str,
-    pub relation_registry_schema_bytes: &'a [u8],
-    /// Exact mutation receipt from the CMD event payload. Its create claims or
-    /// revise source identity derives only the IDs directly changed by this
-    /// event; full reverse-dependent closure is resolved through the shared
-    /// owner inventory before these per-stream cohorts are produced.
-    pub mutation_receipt_path: &'a str,
-    pub mutation_receipt_bytes: &'a [u8],
-    pub identity_sources: &'a [NavigationClaimIdentitySourceV1<'a>],
-    pub source_files: &'a [NavigationClaimEventSourceFileV1<'a>],
-    pub dependencies: &'a [NavigationDependencyV1],
-    /// Exact selected current/history/archive/form files and explicit
-    /// absence observations used to resolve every external Claim endpoint.
-    pub selected_files: &'a SelectedBibliographicFilesV1,
-    pub forms_materializer: &'a mut dyn BibliographicForms,
-    pub claim_inputs: SuppliedBibliographicClaimInputs<'a>,
 }
 
 /// Semantic source closure shared by Claim mutation and dependency refresh.
@@ -1655,85 +1012,6 @@ pub struct NavigationClaimEventCommonInputV1<'a, 'validator> {
     pub selected_files: &'a SelectedBibliographicFilesV1,
     pub forms_materializer: &'a mut dyn BibliographicForms,
     pub claim_inputs: SuppliedBibliographicClaimInputs<'a>,
-}
-
-/// Exact cause and reverse-closure binding for a non-Claim source event.
-pub struct NavigationClaimDependencyRefreshInputV1<'a, 'validator> {
-    pub common: NavigationClaimEventCommonInputV1<'a, 'validator>,
-    pub changed_dependency_path: &'a str,
-    pub changed_dependency_sha256: Digest256,
-    /// Opaque root from the exact selected CMD event's
-    /// SourceRevisionClaimNavigationClosure.
-    pub closure_root: Digest256,
-    pub affected_owner_manifest: &'a NavigationClaimDependencyRefreshOwnerManifestV1,
-}
-
-/// Refresh cause for a compound event. The owner manifest set carries all
-/// changed paths, their individual reverse results, and the complete stream
-/// union, so the producer supplies it once for every Claim contribution.
-pub struct NavigationClaimDependencyRefreshSetInputV1<'a, 'validator> {
-    pub common: NavigationClaimEventCommonInputV1<'a, 'validator>,
-    pub affected_owner_manifest_set: &'a NavigationClaimDependencyRefreshOwnerManifestSetV1,
-}
-
-enum NavigationClaimEventCauseInputV1<'a> {
-    Mutation {
-        mutation_source_path: &'a str,
-        mutation_receipt_path: &'a str,
-        mutation_receipt_bytes: &'a [u8],
-        affected_owner_manifest: &'a NavigationClaimEventAffectedOwnerManifestV1,
-    },
-    DependencyRefresh {
-        affected_owner_manifest_set: &'a NavigationClaimDependencyRefreshOwnerManifestSetV1,
-    },
-    Range {
-        manifest: &'a NavigationClaimEventRangeManifestV1,
-    },
-}
-
-impl<'a, 'validator> NavigationClaimEventInputV1<'a, 'validator> {
-    fn into_common(self) -> NavigationClaimEventCommonInputV1<'a, 'validator> {
-        NavigationClaimEventCommonInputV1 {
-            validator: self.validator,
-            event_id: self.event_id,
-            event_sequence: self.event_sequence,
-            source_head_sequence: self.source_head_sequence,
-            predecessor_source_revision: self.predecessor_source_revision,
-            predecessor_cohort_root: self.predecessor_cohort_root,
-            source_path: self.source_path,
-            source_line: self.source_line,
-            source_bytes: self.source_bytes,
-            owner_claim_ids: self.owner_claim_ids,
-            claim_schema_path: self.claim_schema_path,
-            claim_schema_bytes: self.claim_schema_bytes,
-            forms_path: self.forms_path,
-            forms_schema_path: self.forms_schema_path,
-            forms_schema_bytes: self.forms_schema_bytes,
-            forms_bytes: self.forms_bytes,
-            history_path: self.history_path,
-            history_bytes: self.history_bytes,
-            provenance_event_path: self.provenance_event_path,
-            provenance_event_bytes: self.provenance_event_bytes,
-            provenance_event_schema_path: self.provenance_event_schema_path,
-            provenance_event_schema_bytes: self.provenance_event_schema_bytes,
-            provenance_receipt_path: self.provenance_receipt_path,
-            provenance_receipt_bytes: self.provenance_receipt_bytes,
-            entity_registry_path: self.entity_registry_path,
-            entity_registry_bytes: self.entity_registry_bytes,
-            entity_registry_schema_path: self.entity_registry_schema_path,
-            entity_registry_schema_bytes: self.entity_registry_schema_bytes,
-            relation_registry_path: self.relation_registry_path,
-            relation_registry_bytes: self.relation_registry_bytes,
-            relation_registry_schema_path: self.relation_registry_schema_path,
-            relation_registry_schema_bytes: self.relation_registry_schema_bytes,
-            identity_sources: self.identity_sources,
-            source_files: self.source_files,
-            dependencies: self.dependencies,
-            selected_files: self.selected_files,
-            forms_materializer: self.forms_materializer,
-            claim_inputs: self.claim_inputs,
-        }
-    }
 }
 
 impl NavigationClaimDependencyRefreshCohortV1 {
@@ -2190,80 +1468,6 @@ impl NavigationClaimEventRangeOwnerSetV1 {
     }
 }
 
-impl NavigationClaimEventContributionV1 {
-    pub fn basis(&self) -> NavigationClaimEventBasisV1 {
-        match self {
-            Self::Mutation(_) => NavigationClaimEventBasisV1::Mutation,
-            Self::DependencyRefresh(_) => NavigationClaimEventBasisV1::DependencyRefresh,
-            Self::Range(_) => NavigationClaimEventBasisV1::Range,
-        }
-    }
-    pub fn event_id(&self) -> &str {
-        match self {
-            Self::Mutation(cohort) => cohort.event_id(),
-            Self::DependencyRefresh(cohort) => cohort.event_id(),
-            Self::Range(cohort) => cohort.event_id(),
-        }
-    }
-    pub fn event_sequence(&self) -> u64 {
-        match self {
-            Self::Mutation(cohort) => cohort.event_sequence(),
-            Self::DependencyRefresh(cohort) => cohort.event_sequence(),
-            Self::Range(cohort) => cohort.event_sequence(),
-        }
-    }
-    pub fn source_revision(&self) -> Digest256 {
-        match self {
-            Self::Mutation(cohort) => cohort.source_revision(),
-            Self::DependencyRefresh(cohort) => cohort.source_revision(),
-            Self::Range(cohort) => cohort.source_revision(),
-        }
-    }
-    pub fn predecessor_source_revision(&self) -> Digest256 {
-        match self {
-            Self::Mutation(cohort) => cohort.predecessor_source_revision(),
-            Self::DependencyRefresh(cohort) => cohort.predecessor_source_revision(),
-            Self::Range(cohort) => cohort.predecessor_source_revision(),
-        }
-    }
-    pub fn source_path(&self) -> &RelativePath {
-        match self {
-            Self::Mutation(cohort) => cohort.source_path(),
-            Self::DependencyRefresh(cohort) => cohort.source_path(),
-            Self::Range(cohort) => cohort.source_path(),
-        }
-    }
-    pub fn record_id(&self) -> &str {
-        match self {
-            Self::Mutation(cohort) => cohort.record_id(),
-            Self::DependencyRefresh(cohort) => cohort.record_id(),
-            Self::Range(cohort) => cohort.record_id(),
-        }
-    }
-    pub fn verify_integrity(&self) -> Result<NavigationClaimEventContributionIntegrityV1<'_>> {
-        match self {
-            Self::Mutation(cohort) => Ok(NavigationClaimEventContributionIntegrityV1::Mutation(
-                cohort.verify_integrity()?,
-            )),
-            Self::DependencyRefresh(cohort) => Ok(
-                NavigationClaimEventContributionIntegrityV1::DependencyRefresh(
-                    cohort.verify_integrity()?,
-                ),
-            ),
-            Self::Range(cohort) => Ok(NavigationClaimEventContributionIntegrityV1::Range(
-                cohort.verify_integrity()?,
-            )),
-        }
-    }
-    pub fn budget_cost(&self) -> Result<NavigationClaimEventBudgetCostV1> {
-        match self {
-            Self::Mutation(cohort) => cohort.budget_cost(),
-            Self::DependencyRefresh(cohort) => cohort.budget_cost(),
-            Self::Range(cohort) => cohort.budget_cost(),
-        }
-    }
-}
-
 /// Prepare every exact selected Claim stream once for a multi-owner event.
 /// The input is normally the final event context's present Claim stream
 /// members; it may also contain addressed Claim streams used as edge targets.
@@ -2625,185 +1829,6 @@ fn owner_inventory_root(costs: &[NavigationClaimEventStreamInventoryCostV1]) -> 
     )
 }
 
-fn affected_owner_manifest_root(
-    inventory_root: Digest256,
-    mutation_source_path: &str,
-    mutation_claim_ids: &[String],
-    reverse_claim_ids: &[String],
-    streams: &[NavigationClaimEventAffectedOwnerStreamV1],
-) -> Result<Digest256> {
-    if !sorted_unique(mutation_claim_ids)
-        || mutation_claim_ids.is_empty()
-        || mutation_claim_ids.len() > 32
-        || !sorted_unique(reverse_claim_ids)
-        || reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-        || streams.is_empty()
-        || streams.len() > MAX_CLAIM_EVENT_STREAMS
-        || streams
-            .windows(2)
-            .any(|pair| pair[0].source_path >= pair[1].source_path)
-    {
-        return Err(Error::Invalid(
-            "navigation Claim affected-owner manifest root shape",
-        ));
-    }
-    let stream_rows = streams
-        .iter()
-        .map(|stream| {
-            json!({
-                "source_path":stream.source_path,
-                "stream_sha256":stream.stream_sha256.to_hex(),
-                "rows_scanned":stream.rows_scanned,
-                "owner_ids":stream.owner_ids
-            })
-        })
-        .collect::<Vec<_>>();
-    digest_json(
-        &json!({
-            "schema":"tos_source_navigation_claim_affected_owner_manifest_v1",
-            "inventory_root":inventory_root.to_hex(),
-            "mutation_source_path":mutation_source_path,
-            "mutation_claim_ids":mutation_claim_ids,
-            "reverse_claim_ids":reverse_claim_ids,
-            "streams":stream_rows
-        }),
-        TOTAL_DEPENDENCY_BYTES,
-    )
-}
-
-fn dependency_refresh_owner_manifest_root(
-    inventory_root: Digest256,
-    changed_dependency_path: &RelativePath,
-    changed_dependency_sha256: Digest256,
-    closure_root: Digest256,
-    reverse_claim_ids: &[String],
-    streams: &[NavigationClaimEventAffectedOwnerStreamV1],
-) -> Result<Digest256> {
-    if is_claim_stream_path(changed_dependency_path.as_str())
-        || !sorted_unique(reverse_claim_ids)
-        || reverse_claim_ids.is_empty()
-        || reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-        || streams.is_empty()
-        || streams.len() > MAX_CLAIM_EVENT_STREAMS
-        || streams
-            .windows(2)
-            .any(|pair| pair[0].source_path >= pair[1].source_path)
-    {
-        return Err(Error::Invalid(
-            "navigation Claim dependency-refresh manifest root shape",
-        ));
-    }
-    let stream_rows = streams
-        .iter()
-        .map(|stream| {
-            json!({
-                "source_path":stream.source_path,
-                "stream_sha256":stream.stream_sha256.to_hex(),
-                "rows_scanned":stream.rows_scanned,
-                "owner_ids":stream.owner_ids
-            })
-        })
-        .collect::<Vec<_>>();
-    digest_json(
-        &json!({
-            "schema":"tos_source_navigation_claim_dependency_refresh_owner_manifest_v1",
-            "inventory_root":inventory_root.to_hex(),
-            "changed_dependency_path":changed_dependency_path.as_str(),
-            "changed_dependency_sha256":changed_dependency_sha256.to_hex(),
-            "closure_root":closure_root.to_hex(),
-            "reverse_claim_ids":reverse_claim_ids,
-            "streams":stream_rows
-        }),
-        TOTAL_DEPENDENCY_BYTES,
-    )
-}
-
-fn dependency_refresh_owner_manifest_set_root(
-    inventory_root: Digest256,
-    closure_root: Digest256,
-    causes: &[NavigationClaimDependencyRefreshCauseV1],
-    reverse_claim_ids: &[String],
-    streams: &[NavigationClaimEventAffectedOwnerStreamV1],
-) -> Result<Digest256> {
-    if causes.is_empty()
-        || causes.len() > MAX_CLAIM_REFRESH_CAUSES
-        || causes
-            .windows(2)
-            .any(|pair| pair[0].changed_dependency_path >= pair[1].changed_dependency_path)
-        || !sorted_unique(reverse_claim_ids)
-        || reverse_claim_ids.len() > MAX_CLAIM_EVENT_TOTAL_OWNERS
-        || streams.len() > MAX_CLAIM_EVENT_STREAMS
-        || streams
-            .windows(2)
-            .any(|pair| pair[0].source_path >= pair[1].source_path)
-    {
-        return Err(Error::Invalid(
-            "navigation Claim dependency-refresh set root shape",
-        ));
-    }
-    let cause_rows = causes
-        .iter()
-        .map(|cause| {
-            json!({
-                "changed_dependency_path":cause.changed_dependency_path.as_str(),
-                "changed_dependency_sha256":cause.changed_dependency_sha256.to_hex(),
-                "reverse_claim_ids":cause.reverse_claim_ids
-            })
-        })
-        .collect::<Vec<_>>();
-    let stream_rows = streams
-        .iter()
-        .map(|stream| {
-            json!({
-                "source_path":stream.source_path,
-                "stream_sha256":stream.stream_sha256.to_hex(),
-                "rows_scanned":stream.rows_scanned,
-                "owner_ids":stream.owner_ids
-            })
-        })
-        .collect::<Vec<_>>();
-    digest_json(
-        &json!({
-            "schema":"tos_source_navigation_claim_dependency_refresh_owner_manifest_set_v1",
-            "inventory_root":inventory_root.to_hex(),
-            "closure_root":closure_root.to_hex(),
-            "causes":cause_rows,
-            "reverse_claim_ids":reverse_claim_ids,
-            "streams":stream_rows
-        }),
-        TOTAL_DEPENDENCY_BYTES,
-    )
-}
-
-fn dependency_refresh_manifest_set_from_single(
-    manifest: &NavigationClaimDependencyRefreshOwnerManifestV1,
-    closure_root: Digest256,
-) -> Result<NavigationClaimDependencyRefreshOwnerManifestSetV1> {
-    manifest.verify_integrity()?;
-    let set = NavigationClaimDependencyRefreshOwnerManifestSetV1 {
-        inventory_root: manifest.inventory_root,
-        closure_root,
-        causes: vec![NavigationClaimDependencyRefreshCauseV1 {
-            changed_dependency_path: manifest.changed_dependency_path.clone(),
-            changed_dependency_sha256: manifest.changed_dependency_sha256,
-            reverse_claim_ids: manifest.reverse_claim_ids.clone(),
-        }],
-        reverse_claim_ids: manifest.reverse_claim_ids.clone(),
-        streams: manifest.streams.clone(),
-        root: Digest256::of_bytes(&[]),
-    };
-    let root = dependency_refresh_owner_manifest_set_root(
-        set.inventory_root,
-        set.closure_root,
-        &set.causes,
-        &set.reverse_claim_ids,
-        &set.streams,
-    )?;
-    let set = NavigationClaimDependencyRefreshOwnerManifestSetV1 { root, ..set };
-    set.verify_integrity()?;
-    Ok(set)
-}
-
 /// Canonical graph rows owned by one stable Claim ID.
 #[derive(Clone, Debug)]
 pub struct NavigationClaimEventProjectionV1 {
@@ -2815,47 +1840,6 @@ pub struct NavigationClaimEventProjectionV1 {
 #[derive(Clone, Copy, Debug)]
 struct NavigationClaimEventCohortSeal;
 
-/// Sealed event-local Claim replacement. Only the checked renderer can create
-/// a value accepted by the PG batch publisher.
-#[derive(Clone, Debug)]
-pub struct NavigationClaimEventCohortV1 {
-    event_id: String,
-    event_sequence: u64,
-    source_event_id: String,
-    source_event_version: u64,
-    predecessor_source_revision: Digest256,
-    source_revision: Digest256,
-    mutation_source_path: RelativePath,
-    source_path: RelativePath,
-    record_id: String,
-    source_line: u64,
-    predecessor_cohort_root: Option<Digest256>,
-    dependency_root: Digest256,
-    input_root: Digest256,
-    output_root: Digest256,
-    event_mutation_claim_ids: Vec<String>,
-    event_claim_owner_ids: Vec<String>,
-    claim_stream_sha256: Digest256,
-    claim_stream_rows_scanned: u64,
-    // Actual additional archive scans; the shared current inventory is charged once.
-    history_stream_rows_scanned: u64,
-    mutation_receipt_path: RelativePath,
-    mutation_receipt_role: NavigationDependencyRoleV1,
-    event_claim_set_binding: Digest256,
-    event_claim_set_root: Digest256,
-    affected_owner_manifest_root: Digest256,
-    owner_inventory_root: Digest256,
-    owner_inventory_scan_costs: Vec<NavigationClaimEventStreamInventoryCostV1>,
-    revision_proof: Option<NavigationClaimRevisionProofV1>,
-    trace_sha256: Digest256,
-    dependencies: Vec<NavigationDependencyV1>,
-    projection: NavigationClaimEventProjectionV1,
-    external_endpoint_ids: Vec<String>,
-    node_visibility: Vec<bool>,
-    edge_visibility: Vec<bool>,
-    _sealed: NavigationClaimEventCohortSeal,
-}
-
 /// Row commitment returned after recomputing the entire sealed cohort.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NavigationClaimEventRowV1 {
@@ -2863,62 +1847,6 @@ pub struct NavigationClaimEventRowV1 {
     pub id: String,
     pub sha256: Digest256,
     pub visible: bool,
-}
-
-/// Recomputed integrity view for publisher-side event-context binding.
-pub struct NavigationClaimEventIntegrityV1<'a> {
-    pub dependency_root: Digest256,
-    pub input_root: Digest256,
-    pub output_root: Digest256,
-    pub mutation_source_path: &'a str,
-    pub mutation_receipt_role: NavigationDependencyRoleV1,
-    /// Compatibility alias for mutation IDs. New publishers should use the
-    /// two explicit sets below.
-    pub event_claim_ids: &'a [String],
-    pub event_mutation_claim_ids: &'a [String],
-    pub event_claim_owner_ids: &'a [String],
-    pub claim_stream_sha256: Digest256,
-    pub claim_stream_rows_scanned: u64,
-    pub event_claim_set_binding: Digest256,
-    pub event_claim_set_root: Digest256,
-    pub affected_owner_manifest_root: Digest256,
-    pub owner_inventory_root: Digest256,
-    pub owner_inventory_scan_costs: &'a [NavigationClaimEventStreamInventoryCostV1],
-    pub revision_proof_root: Option<Digest256>,
-    pub external_endpoint_ids: &'a [String],
-    pub rows: Vec<NavigationClaimEventRowV1>,
-    pub node_visibility: &'a [bool],
-    pub edge_visibility: &'a [bool],
-}
-
-/// Exact, checked proof that a Claim revision history appended one mutation
-/// and retained its predecessor package and original creation evidence.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NavigationClaimRevisionProofV1 {
-    event_id: String,
-    event_sequence: u64,
-    command_id: String,
-    claim_id: String,
-    claim_stream_path: RelativePath,
-    claim_stream_sha256: Digest256,
-    history_path: RelativePath,
-    history_sha256: Digest256,
-    revision_receipt_sha256: Digest256,
-    previous_source_sha256: Digest256,
-    successor_source_sha256: Digest256,
-    previous_source_ref: Value,
-    successor_source_ref: Value,
-    archive_path: RelativePath,
-    archive_manifest_sha256: Digest256,
-    archive_package_root: Digest256,
-    provenance_event_path: RelativePath,
-    provenance_event_id: String,
-    provenance_event_version: u64,
-    provenance_event_sha256: Digest256,
-    provenance_receipt_path: RelativePath,
-    provenance_receipt_sha256: Digest256,
-    mutation_claim_ids: Vec<String>,
-    binding_root: Digest256,
 }
 
 /// Authenticated refresh cause and the exact current Claim evidence retained
@@ -3093,107 +2021,6 @@ pub struct NavigationClaimDependencyRefreshIntegrityV1<'a> {
     pub edge_visibility: &'a [bool],
 }
 
-#[derive(Clone, Debug)]
-pub enum NavigationClaimEventContributionV1 {
-    Mutation(NavigationClaimEventCohortV1),
-    DependencyRefresh(NavigationClaimDependencyRefreshCohortV1),
-    Range(NavigationClaimEventRangeOwnerCohortV1),
-}
-
-pub enum NavigationClaimEventContributionIntegrityV1<'a> {
-    Mutation(NavigationClaimEventIntegrityV1<'a>),
-    DependencyRefresh(NavigationClaimDependencyRefreshIntegrityV1<'a>),
-    Range(NavigationClaimEventRangeOwnerIntegrityV1<'a>),
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum NavigationClaimEventBasisV1 {
-    Mutation,
-    DependencyRefresh,
-    Range,
-}
-
-impl NavigationClaimRevisionProofV1 {
-    pub fn event_id(&self) -> &str {
-        &self.event_id
-    }
-    pub fn event_sequence(&self) -> u64 {
-        self.event_sequence
-    }
-    pub fn command_id(&self) -> &str {
-        &self.command_id
-    }
-    pub fn claim_id(&self) -> &str {
-        &self.claim_id
-    }
-    pub fn claim_stream_path(&self) -> &RelativePath {
-        &self.claim_stream_path
-    }
-    pub fn claim_stream_sha256(&self) -> Digest256 {
-        self.claim_stream_sha256
-    }
-    pub fn history_path(&self) -> &RelativePath {
-        &self.history_path
-    }
-    pub fn history_sha256(&self) -> Digest256 {
-        self.history_sha256
-    }
-    pub fn mutation_receipt_path(&self) -> &RelativePath {
-        &self.history_path
-    }
-    pub fn mutation_receipt_sha256(&self) -> Digest256 {
-        self.history_sha256
-    }
-    pub fn revision_receipt_sha256(&self) -> Digest256 {
-        self.revision_receipt_sha256
-    }
-    pub fn previous_source_sha256(&self) -> Digest256 {
-        self.previous_source_sha256
-    }
-    pub fn successor_source_sha256(&self) -> Digest256 {
-        self.successor_source_sha256
-    }
-    pub fn previous_source_ref(&self) -> &Value {
-        &self.previous_source_ref
-    }
-    pub fn successor_source_ref(&self) -> &Value {
-        &self.successor_source_ref
-    }
-    pub fn archive_path(&self) -> &RelativePath {
-        &self.archive_path
-    }
-    pub fn archive_manifest_sha256(&self) -> Digest256 {
-        self.archive_manifest_sha256
-    }
-    pub fn archive_package_root(&self) -> Digest256 {
-        self.archive_package_root
-    }
-    pub fn provenance_event_path(&self) -> &RelativePath {
-        &self.provenance_event_path
-    }
-    pub fn provenance_event_id(&self) -> &str {
-        &self.provenance_event_id
-    }
-    pub fn provenance_event_version(&self) -> u64 {
-        self.provenance_event_version
-    }
-    pub fn provenance_event_sha256(&self) -> Digest256 {
-        self.provenance_event_sha256
-    }
-    pub fn provenance_receipt_path(&self) -> &RelativePath {
-        &self.provenance_receipt_path
-    }
-    pub fn provenance_receipt_sha256(&self) -> Digest256 {
-        self.provenance_receipt_sha256
-    }
-    pub fn mutation_claim_ids(&self) -> &[String] {
-        &self.mutation_claim_ids
-    }
-    pub fn binding_root(&self) -> Digest256 {
-        self.binding_root
-    }
-}
-
 struct NavigationClaimCreationBindingV1 {
     event_path: RelativePath,
     event_id: String,
@@ -3202,11 +2029,6 @@ struct NavigationClaimCreationBindingV1 {
     event_file_sha256: Digest256,
     receipt_path: RelativePath,
     receipt_sha256: Digest256,
-}
-
-struct NavigationClaimArchiveBindingV1 {
-    manifest_sha256: Digest256,
-    package_root: Digest256,
 }
 
 /// Deterministic incremental admission cost for one sealed Claim cohort.
@@ -3222,368 +2044,6 @@ pub struct NavigationClaimEventBudgetCostV1 {
     pub claim_stream_rows_scanned: u64,
 }
 
-impl NavigationClaimEventCohortV1 {
-    pub fn event_id(&self) -> &str {
-        &self.event_id
-    }
-    pub fn event_sequence(&self) -> u64 {
-        self.event_sequence
-    }
-    pub fn source_event_id(&self) -> &str {
-        &self.source_event_id
-    }
-    pub fn source_event_version(&self) -> u64 {
-        self.source_event_version
-    }
-    pub fn predecessor_source_revision(&self) -> Digest256 {
-        self.predecessor_source_revision
-    }
-    pub fn source_revision(&self) -> Digest256 {
-        self.source_revision
-    }
-    pub fn mutation_source_path(&self) -> &RelativePath {
-        &self.mutation_source_path
-    }
-    pub fn source_path(&self) -> &RelativePath {
-        &self.source_path
-    }
-    pub fn record_id(&self) -> &str {
-        &self.record_id
-    }
-    pub fn source_line(&self) -> u64 {
-        self.source_line
-    }
-    pub fn predecessor_cohort_root(&self) -> Option<Digest256> {
-        self.predecessor_cohort_root
-    }
-    pub fn dependency_root(&self) -> Digest256 {
-        self.dependency_root
-    }
-    pub fn input_root(&self) -> Digest256 {
-        self.input_root
-    }
-    pub fn output_root(&self) -> Digest256 {
-        self.output_root
-    }
-    pub fn event_claim_ids(&self) -> &[String] {
-        &self.event_mutation_claim_ids
-    }
-    pub fn event_mutation_claim_ids(&self) -> &[String] {
-        &self.event_mutation_claim_ids
-    }
-    pub fn event_claim_owner_ids(&self) -> &[String] {
-        &self.event_claim_owner_ids
-    }
-    pub fn claim_stream_sha256(&self) -> Digest256 {
-        self.claim_stream_sha256
-    }
-    pub fn mutation_receipt_path(&self) -> &RelativePath {
-        &self.mutation_receipt_path
-    }
-    pub fn mutation_receipt_role(&self) -> NavigationDependencyRoleV1 {
-        self.mutation_receipt_role
-    }
-    pub fn event_claim_set_binding(&self) -> Digest256 {
-        self.event_claim_set_binding
-    }
-    pub fn event_claim_set_root(&self) -> Digest256 {
-        self.event_claim_set_root
-    }
-    pub fn affected_owner_manifest_root(&self) -> Digest256 {
-        self.affected_owner_manifest_root
-    }
-    pub fn owner_inventory_root(&self) -> Digest256 {
-        self.owner_inventory_root
-    }
-    pub fn owner_inventory_scan_costs(&self) -> &[NavigationClaimEventStreamInventoryCostV1] {
-        &self.owner_inventory_scan_costs
-    }
-    pub fn revision_proof(&self) -> Option<&NavigationClaimRevisionProofV1> {
-        self.revision_proof.as_ref()
-    }
-    pub fn trace_sha256(&self) -> Digest256 {
-        self.trace_sha256
-    }
-    pub fn dependencies(&self) -> &[NavigationDependencyV1] {
-        &self.dependencies
-    }
-    pub fn projection(&self) -> &NavigationClaimEventProjectionV1 {
-        &self.projection
-    }
-    pub fn external_endpoint_ids(&self) -> &[String] {
-        &self.external_endpoint_ids
-    }
-    pub fn node_visibility(&self) -> &[bool] {
-        &self.node_visibility
-    }
-    pub fn edge_visibility(&self) -> &[bool] {
-        &self.edge_visibility
-    }
-
-    /// Recheck roots, row identities, Claim-set completeness and visibility
-    /// alignment before a batch publisher binds the cohort to a CMD event.
-    pub fn verify_integrity(&self) -> Result<NavigationClaimEventIntegrityV1<'_>> {
-        if !sorted_unique(&self.event_mutation_claim_ids)
-            || !sorted_unique(&self.event_claim_owner_ids)
-            || self.event_claim_owner_ids.is_empty()
-            || self.event_claim_owner_ids.len() > MAX_CLAIM_EVENT_OWNERS
-            || self
-                .event_claim_owner_ids
-                .binary_search(&self.record_id)
-                .is_err()
-            || self.node_visibility.len() != self.projection.nodes.len()
-            || self.edge_visibility.len() != self.projection.edges.len()
-        {
-            return Err(Error::Invalid("navigation Claim cohort integrity shape"));
-        }
-        let owner_inventory_root = owner_inventory_root(&self.owner_inventory_scan_costs)?;
-        if owner_inventory_root != self.owner_inventory_root
-            || !self.owner_inventory_scan_costs.iter().any(|cost| {
-                cost.source_path == self.source_path.as_str()
-                    && cost.stream_sha256 == self.claim_stream_sha256
-                    && cost.owner_ids == self.event_claim_owner_ids
-                    && cost.rows_scanned == self.claim_stream_rows_scanned
-            })
-            || !self.owner_inventory_scan_costs.iter().any(|cost| {
-                cost.source_path == self.mutation_source_path.as_str()
-                    && self
-                        .event_mutation_claim_ids
-                        .iter()
-                        .all(|id| cost.owner_ids.binary_search(id).is_ok())
-            })
-            || self.source_path == self.mutation_source_path
-                && self
-                    .event_mutation_claim_ids
-                    .iter()
-                    .any(|id| self.event_claim_owner_ids.binary_search(id).is_err())
-        {
-            return Err(Error::Invalid("navigation Claim owner inventory binding"));
-        }
-        let revision_proof_root = self
-            .revision_proof
-            .as_ref()
-            .map(revision_proof_binding_root)
-            .transpose()?;
-        if let Some(proof) = &self.revision_proof {
-            let archive_manifest_path =
-                checked_path(&format!("{}/manifest.json", proof.archive_path.as_str()))?;
-            if proof.event_id != self.event_id
-                || proof.event_sequence != self.event_sequence
-                || proof.claim_id != self.record_id
-                || proof.claim_stream_path != self.mutation_source_path
-                || proof.claim_stream_path != self.source_path
-                || proof.claim_stream_sha256 != self.claim_stream_sha256
-                || proof.history_path != self.mutation_receipt_path
-                || proof.history_sha256 != self.event_claim_set_binding
-                || proof.mutation_claim_ids != self.event_mutation_claim_ids
-                || proof.binding_root != revision_proof_root.expect("proof root present")
-                || proof.mutation_claim_ids.len() != 1
-                || proof.mutation_claim_ids.first().map(String::as_str)
-                    != Some(proof.claim_id.as_str())
-                || proof.previous_source_ref.get("id").and_then(Value::as_str)
-                    != Some(proof.claim_id.as_str())
-                || proof.successor_source_ref.get("id").and_then(Value::as_str)
-                    != Some(proof.claim_id.as_str())
-                || claim_reference_digest(&proof.previous_source_ref)?
-                    != proof.previous_source_sha256
-                || claim_reference_digest(&proof.successor_source_ref)?
-                    != proof.successor_source_sha256
-                || dependency_present_digest(
-                    &self.dependencies,
-                    &proof.history_path,
-                    self.mutation_receipt_role,
-                )? != proof.history_sha256
-                || dependency_present_digest(
-                    &self.dependencies,
-                    &archive_manifest_path,
-                    NavigationDependencyRoleV1::VersionSource,
-                )? != proof.archive_manifest_sha256
-                || dependency_present_digest(
-                    &self.dependencies,
-                    &proof.provenance_receipt_path,
-                    NavigationDependencyRoleV1::EventReceipt,
-                )? != proof.provenance_receipt_sha256
-            {
-                return Err(Error::Invalid("navigation Claim revision proof binding"));
-            }
-        }
-        let dependency_root = dependency_root(&self.dependencies)?;
-        if dependency_present_digest(
-            &self.dependencies,
-            &self.source_path,
-            NavigationDependencyRoleV1::Record,
-        )? != self.claim_stream_sha256
-            || dependency_present_digest(
-                &self.dependencies,
-                &self.mutation_receipt_path,
-                self.mutation_receipt_role,
-            )? != self.event_claim_set_binding
-        {
-            return Err(Error::Invalid(
-                "navigation Claim stream or receipt dependency binding",
-            ));
-        }
-        let (rows, external) = output_rows(
-            &self.projection,
-            &self.node_visibility,
-            &self.edge_visibility,
-        )?;
-        if external != self.external_endpoint_ids {
-            return Err(Error::Invalid("navigation Claim external endpoint set"));
-        }
-        let output_root = output_root(
-            &rows,
-            &self.projection.diagnostics,
-            self.trace_sha256,
-            &self.external_endpoint_ids,
-        )?;
-        let event_claim_set_root = claim_set_root(
-            &self.event_id,
-            self.event_sequence,
-            &self.mutation_receipt_path,
-            self.event_claim_set_binding,
-            self.affected_owner_manifest_root,
-        )?;
-        let input_root = input_root(
-            &self.event_id,
-            self.event_sequence,
-            &self.source_event_id,
-            self.source_event_version,
-            self.predecessor_source_revision,
-            self.source_revision,
-            self.predecessor_cohort_root,
-            &self.source_path,
-            self.source_line,
-            &self.record_id,
-            &self.mutation_receipt_path,
-            &self.mutation_source_path,
-            dependency_root,
-            output_root,
-            event_claim_set_root,
-            owner_inventory_root,
-            revision_proof_root,
-            self.claim_stream_rows_scanned,
-        )?;
-        if dependency_root != self.dependency_root
-            || output_root != self.output_root
-            || input_root != self.input_root
-            || event_claim_set_root != self.event_claim_set_root
-        {
-            return Err(Error::Invalid("navigation Claim cohort root mismatch"));
-        }
-        Ok(NavigationClaimEventIntegrityV1 {
-            dependency_root,
-            input_root,
-            output_root,
-            mutation_source_path: self.mutation_source_path.as_str(),
-            mutation_receipt_role: self.mutation_receipt_role,
-            event_claim_ids: &self.event_mutation_claim_ids,
-            event_mutation_claim_ids: &self.event_mutation_claim_ids,
-            event_claim_owner_ids: &self.event_claim_owner_ids,
-            claim_stream_sha256: self.claim_stream_sha256,
-            claim_stream_rows_scanned: self.claim_stream_rows_scanned,
-            event_claim_set_binding: self.event_claim_set_binding,
-            event_claim_set_root,
-            affected_owner_manifest_root: self.affected_owner_manifest_root,
-            owner_inventory_root,
-            owner_inventory_scan_costs: &self.owner_inventory_scan_costs,
-            revision_proof_root,
-            external_endpoint_ids: &self.external_endpoint_ids,
-            rows,
-            node_visibility: &self.node_visibility,
-            edge_visibility: &self.edge_visibility,
-        })
-    }
-
-    /// Return a stable per-cohort cost so a producer can enforce aggregate
-    /// row, encoded-byte, and work ceilings before retaining this cohort.
-    /// Publishers can recompute the same values before accepting the set.
-    pub fn budget_cost(&self) -> Result<NavigationClaimEventBudgetCostV1> {
-        self.verify_integrity()?;
-        navigation_claim_event_budget_cost(
-            &self.projection,
-            &self.dependencies,
-            &self.source_path,
-            self.claim_stream_sha256,
-            self.history_stream_rows_scanned,
-        )
-    }
-}
-
-/// Resolve one exact current Claim into its complete graph replacement
-/// contribution. The caller remains responsible for the owner-side source
-/// selection and for binding the mutation receipt to the committed event.
-pub fn project_navigation_claim_event_v1(
-    input: NavigationClaimEventInputV1<'_, '_>,
-    limits: BibliographicLimits,
-) -> Result<NavigationClaimEventCohortV1> {
-    let inventory = prepare_navigation_claim_event_owner_inventory_v1(input.source_files, limits)?;
-    project_navigation_claim_event_with_inventory_v1(input, &inventory, limits)
-}
-
-/// Resolve one exact current Claim using an inventory shared across all
-/// owners in the selected event cut. Full-stream parsing is charged once in
-/// the inventory; this call accounts only owner-specific historical scans.
-pub fn project_navigation_claim_event_with_inventory_v1(
-    input: NavigationClaimEventInputV1<'_, '_>,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    limits: BibliographicLimits,
-) -> Result<NavigationClaimEventCohortV1> {
-    let cause = NavigationClaimEventCauseInputV1::Mutation {
-        mutation_source_path: input.mutation_source_path,
-        mutation_receipt_path: input.mutation_receipt_path,
-        mutation_receipt_bytes: input.mutation_receipt_bytes,
-        affected_owner_manifest: input.affected_owner_manifest,
-    };
-    match project_navigation_claim_event_core_v1(input.into_common(), cause, inventory, limits)? {
-        NavigationClaimEventContributionV1::Mutation(cohort) => Ok(cohort),
-        _ => Err(Error::Invalid(
-            "navigation Claim mutation renderer returned refresh cohort",
-        )),
-    }
-}
-
-/// Resolve one Claim owner for a non-Claim event whose exact source dependency
-/// changed. The event cause is a separately sealed reverse-closure basis and
-/// carries no Claim mutation receipt.
-pub fn project_navigation_claim_dependency_refresh_with_inventory_v1(
-    input: NavigationClaimDependencyRefreshInputV1<'_, '_>,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    limits: BibliographicLimits,
-) -> Result<NavigationClaimDependencyRefreshCohortV1> {
-    let manifest_set = dependency_refresh_manifest_set_from_single(
-        input.affected_owner_manifest,
-        input.closure_root,
-    )?;
-    let cause = NavigationClaimEventCauseInputV1::DependencyRefresh {
-        affected_owner_manifest_set: &manifest_set,
-    };
-    match project_navigation_claim_event_core_v1(input.common, cause, inventory, limits)? {
-        NavigationClaimEventContributionV1::DependencyRefresh(cohort) => Ok(cohort),
-        _ => Err(Error::Invalid(
-            "navigation Claim refresh renderer returned mutation cohort",
-        )),
-    }
-}
-
-/// Resolve one Claim owner for a compound non-Claim event. All changed
-/// dependency causes and reverse closures are supplied by one sealed set.
-pub fn project_navigation_claim_dependency_refresh_set_with_inventory_v1(
-    input: NavigationClaimDependencyRefreshSetInputV1<'_, '_>,
-    inventory: &NavigationClaimEventOwnerInventoryV1,
-    limits: BibliographicLimits,
-) -> Result<NavigationClaimDependencyRefreshCohortV1> {
-    let cause = NavigationClaimEventCauseInputV1::DependencyRefresh {
-        affected_owner_manifest_set: input.affected_owner_manifest_set,
-    };
-    match project_navigation_claim_event_core_v1(input.common, cause, inventory, limits)? {
-        NavigationClaimEventContributionV1::DependencyRefresh(cohort) => Ok(cohort),
-        _ => Err(Error::Invalid(
-            "navigation Claim refresh renderer returned mutation cohort",
-        )),
-    }
-}
-
 /// Render one terminal Claim owner for a complete, contiguous committed
 /// event range. The manifest retains event-by-event causes; the resulting
 /// cohort is owned by the range and terminal source head, not by a synthetic
@@ -3595,21 +2055,15 @@ pub fn project_navigation_claim_event_range_owner_with_inventory_v1(
     limits: BibliographicLimits,
 ) -> Result<NavigationClaimEventRangeOwnerCohortV1> {
     manifest.verify_integrity()?;
-    let cause = NavigationClaimEventCauseInputV1::Range { manifest };
-    match project_navigation_claim_event_core_v1(input.common, cause, inventory, limits)? {
-        NavigationClaimEventContributionV1::Range(cohort) => Ok(cohort),
-        _ => Err(Error::Invalid(
-            "navigation Claim range renderer returned a non-range cohort",
-        )),
-    }
+    project_navigation_claim_event_core_v1(input.common, manifest, inventory, limits)
 }
 
 fn project_navigation_claim_event_core_v1(
     mut input: NavigationClaimEventCommonInputV1<'_, '_>,
-    cause: NavigationClaimEventCauseInputV1<'_>,
+    range_manifest: &NavigationClaimEventRangeManifestV1,
     inventory: &NavigationClaimEventOwnerInventoryV1,
     limits: BibliographicLimits,
-) -> Result<NavigationClaimEventContributionV1> {
+) -> Result<NavigationClaimEventRangeOwnerCohortV1> {
     limits.validate()?;
     let selected_source_revision = input.validator.selected_event_source_revision()?;
     let source_revision = selected_source_revision;
@@ -3621,101 +2075,16 @@ fn project_navigation_claim_event_core_v1(
         return Err(Error::Invalid("navigation Claim event identity"));
     }
     let source_path = checked_path(input.source_path)?;
-    let (
-        mutation_source_path,
-        mutation_receipt_path,
-        mutation_receipt_bytes,
-        event_mutation_claim_ids,
-        event_claim_set_binding,
-        affected_owner_manifest_root,
-        refresh_manifest,
-        range_manifest,
-    ) = match &cause {
-        NavigationClaimEventCauseInputV1::Mutation {
-            mutation_source_path,
-            mutation_receipt_path,
-            mutation_receipt_bytes,
-            affected_owner_manifest,
-        } => {
-            let mutation_source_path = checked_path(mutation_source_path)?;
-            let mutation_receipt_path = checked_path(mutation_receipt_path)?;
-            let (ids, binding) =
-                mutation_claim_ids(mutation_receipt_bytes, limits.catalog.max_row_bytes)?;
-            if ids.is_empty() || ids.len() > 32 {
-                return Err(Error::Invalid("navigation Claim mutation receipt members"));
-            }
-            affected_owner_manifest.verify_integrity()?;
-            let source_stream = affected_owner_manifest
-                .streams()
-                .iter()
-                .find(|stream| stream.source_path() == input.source_path)
-                .ok_or(Error::Invalid(
-                    "navigation Claim mutation affected stream absent",
-                ))?;
-            if affected_owner_manifest.inventory_root() != inventory.root()
-                || affected_owner_manifest.mutation_source_path() != mutation_source_path.as_str()
-                || affected_owner_manifest.mutation_claim_ids() != ids
-                || source_stream.owner_ids() != input.owner_claim_ids
-                || source_stream.stream_sha256() != Digest256::of_bytes(input.source_bytes)
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim mutation affected-owner manifest binding",
-                ));
-            }
-            (
-                Some(mutation_source_path),
-                Some(mutation_receipt_path),
-                Some(*mutation_receipt_bytes),
-                ids,
-                Some(binding),
-                Some(affected_owner_manifest.root()),
-                None,
-                None,
-            )
-        }
-        NavigationClaimEventCauseInputV1::DependencyRefresh {
-            affected_owner_manifest_set,
-        } => {
-            affected_owner_manifest_set.verify_integrity()?;
-            if affected_owner_manifest_set.inventory_root() != inventory.root() {
-                return Err(Error::Invalid(
-                    "navigation Claim dependency-refresh closure binding",
-                ));
-            }
-            (
-                None,
-                None,
-                None,
-                Vec::new(),
-                None,
-                None,
-                Some(affected_owner_manifest_set),
-                None,
-            )
-        }
-        NavigationClaimEventCauseInputV1::Range { manifest } => {
-            manifest.verify_integrity()?;
-            if manifest.terminal_inventory_root != inventory.root()
-                || manifest.coverage.through_sequence() != input.event_sequence
-                || manifest.coverage.terminal_event_id() != input.event_id
-                || input.source_head_sequence != manifest.coverage.through_sequence()
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim range terminal source binding",
-                ));
-            }
-            (
-                None,
-                None,
-                None,
-                Vec::new(),
-                None,
-                None,
-                None,
-                Some(manifest),
-            )
-        }
-    };
+    range_manifest.verify_integrity()?;
+    if range_manifest.terminal_inventory_root != inventory.root()
+        || range_manifest.coverage.through_sequence() != input.event_sequence
+        || range_manifest.coverage.terminal_event_id() != input.event_id
+        || input.source_head_sequence != range_manifest.coverage.through_sequence()
+    {
+        return Err(Error::Invalid(
+            "navigation Claim range terminal source binding",
+        ));
+    }
     if !source_path
         .as_str()
         .starts_with("ToS/source-witnesses/relations/")
@@ -3724,41 +2093,6 @@ fn project_navigation_claim_event_core_v1(
         || source_path.as_str().contains("/private/")
     {
         return Err(Error::Invalid("navigation Claim owner path"));
-    }
-    if let Some(mutation_source_path) = mutation_source_path.as_ref() {
-        if !is_claim_stream_path(mutation_source_path.as_str()) {
-            return Err(Error::Invalid("navigation Claim mutation owner path"));
-        }
-        let mutation_stream =
-            inventory
-                .stream(mutation_source_path.as_str())
-                .ok_or(Error::Invalid(
-                    "navigation Claim mutation stream missing from inventory",
-                ))?;
-        if event_mutation_claim_ids
-            .iter()
-            .any(|candidate| !mutation_stream.rows.contains_key(candidate))
-        {
-            return Err(Error::Invalid(
-                "navigation Claim mutation members absent from exact stream",
-            ));
-        }
-    }
-    if let Some(refresh_manifest) = refresh_manifest {
-        let stream = refresh_manifest
-            .streams()
-            .iter()
-            .find(|stream| stream.source_path() == source_path.as_str())
-            .ok_or(Error::Invalid(
-                "navigation Claim refresh owner stream absent",
-            ))?;
-        if stream.owner_ids() != input.owner_claim_ids
-            || stream.stream_sha256() != Digest256::of_bytes(input.source_bytes)
-        {
-            return Err(Error::Invalid(
-                "navigation Claim refresh complete owner stream differs",
-            ));
-        }
     }
     let mut history_stream_rows_scanned = 0u64;
     let claim_schema_path = checked_path(input.claim_schema_path)?;
@@ -3796,7 +2130,7 @@ fn project_navigation_claim_event_core_v1(
         .to_owned();
     let claim_stream_sha256 = owner_stream.stream_sha256;
     let event_claim_owner_ids = input.owner_claim_ids.to_vec();
-    if let Some(range_manifest) = range_manifest {
+    {
         let terminal_stream = range_manifest
             .terminal_streams()
             .iter()
@@ -3840,11 +2174,7 @@ fn project_navigation_claim_event_core_v1(
             input.history_bytes,
         )?;
     }
-    if mutation_source_path.as_ref() == Some(&source_path)
-        && event_mutation_claim_ids
-            .iter()
-            .any(|candidate| !owner_stream.rows.contains_key(candidate))
-        || owner_stream.rows.get(&id).map(|row| &row.claim) != Some(&claim)
+    if owner_stream.rows.get(&id).map(|row| &row.claim) != Some(&claim)
         || owner_stream.rows.get(&id).map(|row| row.source_line) != Some(input.source_line)
     {
         return Err(Error::Invalid(
@@ -3923,7 +2253,7 @@ fn project_navigation_claim_event_core_v1(
         limits.catalog.max_files,
         limits.max_claim_cohort_bytes,
     )?;
-    if let Some(range_manifest) = range_manifest {
+    {
         validate_range_current_dependencies(range_manifest, &dependencies, &source_files)?;
     }
     validate_selected_files_match_dependencies(input.selected_files, &dependencies, &source_files)?;
@@ -3972,26 +2302,7 @@ fn project_navigation_claim_event_core_v1(
             )?;
         }
     }
-    if let Some(manifest_set) = refresh_manifest {
-        for cause in manifest_set.causes() {
-            let path = cause.changed_dependency_path();
-            let bytes = source_files
-                .get(path.as_str())
-                .copied()
-                .ok_or(Error::Invalid(
-                    "navigation Claim refresh dependency bytes absent",
-                ))?;
-            let dependency_sha256 = dependency_present_sha256_any_role(&dependencies, path)?;
-            if bytes.is_empty()
-                || Digest256::of_bytes(bytes) != cause.changed_dependency_sha256()
-                || dependency_sha256 != cause.changed_dependency_sha256()
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim refresh dependency digest differs",
-                ));
-            }
-        }
-    }
+
     validate_required_dependency(
         &dependencies,
         &source_path,
@@ -4025,29 +2336,12 @@ fn project_navigation_claim_event_core_v1(
         _ => return Err(Error::Invalid("navigation Claim forms schema state")),
     }
     let history_path = checked_path(input.history_path)?;
-    if mutation_receipt_path.as_ref() == Some(&history_path) {
-        let receipt_bytes = mutation_receipt_bytes.ok_or(Error::Invalid(
-            "navigation Claim mutation receipt bytes absent",
-        ))?;
-        if input.history_bytes != Some(receipt_bytes) {
-            return Err(Error::Invalid(
-                "navigation Claim mutation member is not exact history bytes",
-            ));
-        }
-        validate_required_dependency(
-            &dependencies,
-            &history_path,
-            NavigationDependencyRoleV1::RecordHistory,
-            receipt_bytes,
-        )?;
-    } else {
-        validate_optional_dependency(
-            &dependencies,
-            &history_path,
-            NavigationDependencyRoleV1::RecordHistory,
-            input.history_bytes,
-        )?;
-    }
+    validate_optional_dependency(
+        &dependencies,
+        &history_path,
+        NavigationDependencyRoleV1::RecordHistory,
+        input.history_bytes,
+    )?;
     let provenance_event_path = checked_path(input.provenance_event_path)?;
     let provenance_event_schema_path = checked_path(input.provenance_event_schema_path)?;
     let provenance_receipt_path = checked_path(input.provenance_receipt_path)?;
@@ -4056,19 +2350,6 @@ fn project_navigation_claim_event_core_v1(
             "navigation Claim history aliases creation receipt",
         ));
     }
-    let mutation_receipt_role = match mutation_receipt_path.as_ref() {
-        Some(path) if path == &history_path => Some(NavigationDependencyRoleV1::RecordHistory),
-        Some(path) if path == &provenance_receipt_path => {
-            if mutation_receipt_bytes != Some(input.provenance_receipt_bytes) {
-                return Err(Error::Invalid(
-                    "navigation Claim mutation member differs from creation receipt",
-                ));
-            }
-            Some(NavigationDependencyRoleV1::EventReceipt)
-        }
-        Some(_) => Some(NavigationDependencyRoleV1::Additional),
-        None => None,
-    };
     let entity_registry_path = checked_path(input.entity_registry_path)?;
     let entity_registry_schema_path = checked_path(input.entity_registry_schema_path)?;
     let relation_registry_path = checked_path(input.relation_registry_path)?;
@@ -4091,15 +2372,6 @@ fn project_navigation_claim_event_core_v1(
             != "ToS/contracts/semantic-relation-type-registry.schema.json"
     {
         return Err(Error::Invalid("navigation Claim owner dependency path"));
-    }
-    if let (Some(path), Some(role), Some(bytes)) = (
-        mutation_receipt_path.as_ref(),
-        mutation_receipt_role,
-        mutation_receipt_bytes,
-    ) {
-        if role == NavigationDependencyRoleV1::Additional {
-            validate_required_dependency(&dependencies, path, role, bytes)?;
-        }
     }
     for (path, role, bytes) in [
         (
@@ -4180,12 +2452,6 @@ fn project_navigation_claim_event_core_v1(
         owner_stream,
         &id,
         &claim,
-        mutation_receipt_path.as_ref(),
-        event_claim_set_binding,
-        &event_mutation_claim_ids,
-        input.event_id,
-        input.event_sequence,
-        &creation_binding,
         &dependencies,
         &source_files,
         limits,
@@ -4194,7 +2460,6 @@ fn project_navigation_claim_event_core_v1(
     let history_sha256 = history_validation.history_sha256;
     let latest_revision_receipt_sha256 = history_validation.latest_revision_receipt_sha256;
     let current_source_ref_sha256 = history_validation.current_source_ref_sha256;
-    let revision_proof = history_validation.revision_proof;
     let descriptor = supplied_claim_navigation_descriptor(
         &claim,
         &input.claim_inputs.subject,
@@ -4264,293 +2529,103 @@ fn project_navigation_claim_event_core_v1(
         &input.provenance_receipt_path,
         limits,
     )?;
-    match cause {
-        NavigationClaimEventCauseInputV1::Mutation { .. } => {
-            let mutation_source_path = mutation_source_path.ok_or(Error::Invalid(
-                "navigation Claim mutation source path absent",
-            ))?;
-            let mutation_receipt_path = mutation_receipt_path.ok_or(Error::Invalid(
-                "navigation Claim mutation receipt path absent",
-            ))?;
-            let mutation_receipt_role = mutation_receipt_role.ok_or(Error::Invalid(
-                "navigation Claim mutation receipt role absent",
-            ))?;
-            let event_claim_set_binding = event_claim_set_binding.ok_or(Error::Invalid(
-                "navigation Claim mutation receipt binding absent",
-            ))?;
-            let affected_owner_manifest_root = affected_owner_manifest_root.ok_or(
-                Error::Invalid("navigation Claim affected-owner manifest root absent"),
-            )?;
-            let event_claim_set_root = claim_set_root(
-                input.event_id,
-                input.event_sequence,
-                &mutation_receipt_path,
-                event_claim_set_binding,
-                affected_owner_manifest_root,
-            )?;
-            let input_root = input_root(
-                input.event_id,
-                input.event_sequence,
-                &source_event_id,
-                source_event_version,
-                input.predecessor_source_revision,
-                source_revision,
-                input.predecessor_cohort_root,
-                &source_path,
-                input.source_line,
-                &id,
-                &mutation_receipt_path,
-                &mutation_source_path,
-                dependency_root,
-                output_root,
-                event_claim_set_root,
-                owner_inventory_root,
-                revision_proof.as_ref().map(|proof| proof.binding_root),
-                claim_stream_rows_scanned,
-            )?;
-            let cohort = NavigationClaimEventCohortV1 {
-                event_id: input.event_id.to_owned(),
-                event_sequence: input.event_sequence,
-                source_event_id,
-                source_event_version,
-                predecessor_source_revision: input.predecessor_source_revision,
-                source_revision,
-                mutation_source_path,
-                source_path,
-                record_id: id,
-                source_line: input.source_line,
-                mutation_receipt_path,
-                mutation_receipt_role,
-                predecessor_cohort_root: input.predecessor_cohort_root,
-                dependency_root,
-                input_root,
-                output_root,
-                event_mutation_claim_ids,
-                event_claim_owner_ids,
-                claim_stream_sha256,
-                claim_stream_rows_scanned,
-                history_stream_rows_scanned,
-                event_claim_set_binding,
-                event_claim_set_root,
-                affected_owner_manifest_root,
-                owner_inventory_root,
-                owner_inventory_scan_costs,
-                revision_proof,
-                trace_sha256,
-                dependencies,
-                projection,
-                external_endpoint_ids,
-                node_visibility,
-                edge_visibility,
-                _sealed: NavigationClaimEventCohortSeal,
-            };
-            cohort.verify_integrity()?;
-            Ok(NavigationClaimEventContributionV1::Mutation(cohort))
-        }
-        NavigationClaimEventCauseInputV1::DependencyRefresh { .. } => {
-            let affected_owner_manifest_set = refresh_manifest.ok_or(Error::Invalid(
-                "navigation Claim refresh owner manifest absent",
-            ))?;
-            let claim_version = claim
-                .get("claim_version")
-                .and_then(Value::as_u64)
-                .filter(|version| *version > 0)
-                .ok_or(Error::Invalid(
-                    "navigation Claim refresh current version absent",
-                ))?;
-            let mut proof = NavigationClaimDependencyRefreshProofV1 {
-                event_id: input.event_id.to_owned(),
-                event_sequence: input.event_sequence,
-                changed_dependencies: affected_owner_manifest_set.causes().to_vec(),
-                closure_root: affected_owner_manifest_set.closure_root(),
-                affected_owner_manifest_root: affected_owner_manifest_set.root(),
-                reverse_claim_ids: affected_owner_manifest_set.reverse_claim_ids().to_vec(),
-                range_root: None,
-                range_owner_ids: Vec::new(),
-                claim_stream_path: source_path.clone(),
-                claim_stream_sha256,
-                claim_id: id.clone(),
-                claim_version,
-                claim_source_line: input.source_line,
-                claim_row_sha256: Digest256::of_bytes(&claim_bytes),
-                current_source_ref_sha256,
-                provenance_event_path: creation_binding.event_path,
-                provenance_event_id: creation_binding.event_id,
-                provenance_event_version: creation_binding.event_version,
-                provenance_event_sha256: creation_binding.event_sha256,
-                provenance_receipt_path: creation_binding.receipt_path,
-                provenance_receipt_sha256: creation_binding.receipt_sha256,
-                history_path: input.history_bytes.map(|_| history_path.clone()),
-                history_sha256,
-                latest_revision_receipt_sha256,
-                binding_root: Digest256::of_bytes(&[]),
-            };
-            proof.binding_root = dependency_refresh_proof_root(&proof)?;
-            let event_basis_root = proof.binding_root;
-            let input_root = dependency_refresh_input_root(
-                input.event_id,
-                input.event_sequence,
-                &source_event_id,
-                source_event_version,
-                input.predecessor_source_revision,
-                source_revision,
-                input.predecessor_cohort_root,
-                &source_path,
-                input.source_line,
-                &id,
-                dependency_root,
-                output_root,
-                event_basis_root,
-                owner_inventory_root,
-                claim_stream_rows_scanned,
-            )?;
-            let cohort = NavigationClaimDependencyRefreshCohortV1 {
-                event_id: input.event_id.to_owned(),
-                event_sequence: input.event_sequence,
-                source_event_id,
-                source_event_version,
-                predecessor_source_revision: input.predecessor_source_revision,
-                source_revision,
-                predecessor_cohort_root: input.predecessor_cohort_root,
-                source_path,
-                record_id: id,
-                source_line: input.source_line,
-                dependency_root,
-                input_root,
-                output_root,
-                event_basis_root,
-                owner_inventory_root,
-                owner_inventory_scan_costs,
-                event_claim_owner_ids,
-                claim_stream_sha256,
-                claim_stream_rows_scanned,
-                history_stream_rows_scanned,
-                proof,
-                provenance_event_file_sha256: creation_binding.event_file_sha256,
-                trace_sha256,
-                dependencies,
-                projection,
-                external_endpoint_ids,
-                node_visibility,
-                edge_visibility,
-                _sealed: NavigationClaimEventCohortSeal,
-            };
-            cohort.verify_integrity()?;
-            Ok(NavigationClaimEventContributionV1::DependencyRefresh(
-                cohort,
-            ))
-        }
-        NavigationClaimEventCauseInputV1::Range { manifest } => {
-            let range_manifest =
-                range_manifest.ok_or(Error::Invalid("navigation Claim range manifest absent"))?;
-            if range_manifest.root() != manifest.root()
-                || manifest.coverage().through_sequence() != input.event_sequence
-                || manifest.coverage().terminal_event_id() != input.event_id
-                || input.source_head_sequence != manifest.coverage().through_sequence()
-            {
-                return Err(Error::Invalid(
-                    "navigation Claim range cause binding differs",
-                ));
-            }
-            let claim_version = claim
-                .get("claim_version")
-                .and_then(Value::as_u64)
-                .filter(|version| *version > 0)
-                .ok_or(Error::Invalid(
-                    "navigation Claim range current version absent",
-                ))?;
-            let mut proof = NavigationClaimDependencyRefreshProofV1 {
-                event_id: input.event_id.to_owned(),
-                event_sequence: input.event_sequence,
-                changed_dependencies: Vec::new(),
-                closure_root: manifest.coverage().coverage_root(),
-                affected_owner_manifest_root: manifest.root(),
-                reverse_claim_ids: Vec::new(),
-                range_root: Some(manifest.root()),
-                range_owner_ids: manifest.terminal_owner_ids().to_vec(),
-                claim_stream_path: source_path.clone(),
-                claim_stream_sha256,
-                claim_id: id.clone(),
-                claim_version,
-                claim_source_line: input.source_line,
-                claim_row_sha256: Digest256::of_bytes(&claim_bytes),
-                current_source_ref_sha256,
-                provenance_event_path: creation_binding.event_path,
-                provenance_event_id: creation_binding.event_id,
-                provenance_event_version: creation_binding.event_version,
-                provenance_event_sha256: creation_binding.event_sha256,
-                provenance_receipt_path: creation_binding.receipt_path,
-                provenance_receipt_sha256: creation_binding.receipt_sha256,
-                history_path: input.history_bytes.map(|_| history_path.clone()),
-                history_sha256,
-                latest_revision_receipt_sha256,
-                binding_root: Digest256::of_bytes(&[]),
-            };
-            proof.binding_root = dependency_refresh_proof_root(&proof)?;
-            let event_basis_root = proof.binding_root;
-            let input_root = dependency_refresh_input_root(
-                input.event_id,
-                input.event_sequence,
-                &source_event_id,
-                source_event_version,
-                input.predecessor_source_revision,
-                source_revision,
-                input.predecessor_cohort_root,
-                &source_path,
-                input.source_line,
-                &id,
-                dependency_root,
-                output_root,
-                event_basis_root,
-                owner_inventory_root,
-                claim_stream_rows_scanned,
-            )?;
-            let terminal = NavigationClaimDependencyRefreshCohortV1 {
-                event_id: input.event_id.to_owned(),
-                event_sequence: input.event_sequence,
-                source_event_id,
-                source_event_version,
-                predecessor_source_revision: input.predecessor_source_revision,
-                source_revision,
-                predecessor_cohort_root: input.predecessor_cohort_root,
-                source_path,
-                record_id: id,
-                source_line: input.source_line,
-                dependency_root,
-                input_root,
-                output_root,
-                event_basis_root,
-                owner_inventory_root,
-                owner_inventory_scan_costs,
-                event_claim_owner_ids,
-                claim_stream_sha256,
-                claim_stream_rows_scanned,
-                history_stream_rows_scanned,
-                proof,
-                provenance_event_file_sha256: creation_binding.event_file_sha256,
-                trace_sha256,
-                dependencies,
-                projection,
-                external_endpoint_ids,
-                node_visibility,
-                edge_visibility,
-                _sealed: NavigationClaimEventCohortSeal,
-            };
-            terminal.verify_integrity()?;
-            let cohort = NavigationClaimEventRangeOwnerCohortV1 {
-                cursor_before: manifest.coverage().cursor_before(),
-                through_sequence: manifest.coverage().through_sequence(),
-                terminal_event_id: manifest.coverage().terminal_event_id().to_owned(),
-                coverage_root: manifest.coverage().coverage_root(),
-                range_manifest_root: manifest.root(),
-                terminal_owner_ids: manifest.terminal_owner_ids().to_vec(),
-                inner: terminal,
-                _sealed: NavigationClaimEventCohortSeal,
-            };
-            cohort.verify_integrity()?;
-            Ok(NavigationClaimEventContributionV1::Range(cohort))
-        }
-    }
+    let claim_version = claim
+        .get("claim_version")
+        .and_then(Value::as_u64)
+        .filter(|version| *version > 0)
+        .ok_or(Error::Invalid(
+            "navigation Claim range current version absent",
+        ))?;
+    let mut proof = NavigationClaimDependencyRefreshProofV1 {
+        event_id: input.event_id.to_owned(),
+        event_sequence: input.event_sequence,
+        changed_dependencies: Vec::new(),
+        closure_root: range_manifest.coverage().coverage_root(),
+        affected_owner_manifest_root: range_manifest.root(),
+        reverse_claim_ids: Vec::new(),
+        range_root: Some(range_manifest.root()),
+        range_owner_ids: range_manifest.terminal_owner_ids().to_vec(),
+        claim_stream_path: source_path.clone(),
+        claim_stream_sha256,
+        claim_id: id.clone(),
+        claim_version,
+        claim_source_line: input.source_line,
+        claim_row_sha256: Digest256::of_bytes(&claim_bytes),
+        current_source_ref_sha256,
+        provenance_event_path: creation_binding.event_path,
+        provenance_event_id: creation_binding.event_id,
+        provenance_event_version: creation_binding.event_version,
+        provenance_event_sha256: creation_binding.event_sha256,
+        provenance_receipt_path: creation_binding.receipt_path,
+        provenance_receipt_sha256: creation_binding.receipt_sha256,
+        history_path: input.history_bytes.map(|_| history_path.clone()),
+        history_sha256,
+        latest_revision_receipt_sha256,
+        binding_root: Digest256::of_bytes(&[]),
+    };
+    proof.binding_root = dependency_refresh_proof_root(&proof)?;
+    let event_basis_root = proof.binding_root;
+    let input_root = dependency_refresh_input_root(
+        input.event_id,
+        input.event_sequence,
+        &source_event_id,
+        source_event_version,
+        input.predecessor_source_revision,
+        source_revision,
+        input.predecessor_cohort_root,
+        &source_path,
+        input.source_line,
+        &id,
+        dependency_root,
+        output_root,
+        event_basis_root,
+        owner_inventory_root,
+        claim_stream_rows_scanned,
+    )?;
+    let terminal = NavigationClaimDependencyRefreshCohortV1 {
+        event_id: input.event_id.to_owned(),
+        event_sequence: input.event_sequence,
+        source_event_id,
+        source_event_version,
+        predecessor_source_revision: input.predecessor_source_revision,
+        source_revision,
+        predecessor_cohort_root: input.predecessor_cohort_root,
+        source_path,
+        record_id: id,
+        source_line: input.source_line,
+        dependency_root,
+        input_root,
+        output_root,
+        event_basis_root,
+        owner_inventory_root,
+        owner_inventory_scan_costs,
+        event_claim_owner_ids,
+        claim_stream_sha256,
+        claim_stream_rows_scanned,
+        history_stream_rows_scanned,
+        proof,
+        provenance_event_file_sha256: creation_binding.event_file_sha256,
+        trace_sha256,
+        dependencies,
+        projection,
+        external_endpoint_ids,
+        node_visibility,
+        edge_visibility,
+        _sealed: NavigationClaimEventCohortSeal,
+    };
+    terminal.verify_integrity()?;
+    let cohort = NavigationClaimEventRangeOwnerCohortV1 {
+        cursor_before: range_manifest.coverage().cursor_before(),
+        through_sequence: range_manifest.coverage().through_sequence(),
+        terminal_event_id: range_manifest.coverage().terminal_event_id().to_owned(),
+        coverage_root: range_manifest.coverage().coverage_root(),
+        range_manifest_root: range_manifest.root(),
+        terminal_owner_ids: range_manifest.terminal_owner_ids().to_vec(),
+        inner: terminal,
+        _sealed: NavigationClaimEventCohortSeal,
+    };
+    cohort.verify_integrity()?;
+    Ok(cohort)
 }
 
 fn valid_event_id(value: &str) -> bool {
@@ -6400,7 +4475,7 @@ fn verify_claim_archive(
     source_files: &BTreeMap<String, &[u8]>,
     limits: BibliographicLimits,
     claim_stream_rows_scanned: &mut u64,
-) -> Result<NavigationClaimArchiveBindingV1> {
+) -> Result<()> {
     let previous_id = previous_ref
         .get("id")
         .and_then(Value::as_str)
@@ -6417,7 +4492,7 @@ fn verify_claim_archive(
     if archive_path != expected_archive {
         return Err(Error::Invalid("navigation Claim archive source locator"));
     }
-    let archive = checked_path(archive_path)?;
+    checked_path(archive_path)?;
     let manifest_path = checked_path(&format!("{archive_path}/manifest.json"))?;
     let manifest_bytes = source_files
         .get(manifest_path.as_str())
@@ -6576,20 +4651,16 @@ fn verify_claim_archive(
             "navigation Claim unreferenced archive member",
         ));
     }
-    let package_root = Digest256::from_hex(
+    Digest256::from_hex(
         previous_revision
             .strip_prefix("sha256:")
             .ok_or(Error::Invalid("navigation Claim archive revision"))?,
     )
     .map_err(|_| Error::Invalid("navigation Claim archive revision"))?;
-    Ok(NavigationClaimArchiveBindingV1 {
-        manifest_sha256: Digest256::of_bytes(manifest_bytes),
-        package_root,
-    })
+    Ok(())
 }
 
 struct NavigationClaimHistoryValidationV1 {
-    revision_proof: Option<NavigationClaimRevisionProofV1>,
     history_sha256: Option<Digest256>,
     latest_revision_receipt_sha256: Option<Digest256>,
     current_source_ref_sha256: Digest256,
@@ -6602,12 +4673,6 @@ fn validate_claim_history(
     current_stream: &NavigationClaimEventOwnerStreamV1,
     claim_id: &str,
     current_claim: &Value,
-    mutation_receipt_path: Option<&RelativePath>,
-    mutation_receipt_sha256: Option<Digest256>,
-    mutation_claim_ids: &[String],
-    event_id: &str,
-    event_sequence: u64,
-    creation_binding: &NavigationClaimCreationBindingV1,
     dependencies: &[NavigationDependencyV1],
     source_files: &BTreeMap<String, &[u8]>,
     limits: BibliographicLimits,
@@ -6629,7 +4694,6 @@ fn validate_claim_history(
             return Err(Error::Invalid("navigation Claim revision history absent"));
         }
         return Ok(NavigationClaimHistoryValidationV1 {
-            revision_proof: None,
             history_sha256: None,
             latest_revision_receipt_sha256: None,
             current_source_ref_sha256: claim_reference_digest(&claim_reference(
@@ -6652,7 +4716,6 @@ fn validate_claim_history(
         .ok_or(Error::Invalid("navigation Claim history receipt bounds"))?;
     let mut latest = BTreeMap::<String, Value>::new();
     let mut commands = BTreeSet::new();
-    let mut final_archive_binding = None;
     for (index, receipt) in receipts.iter().enumerate() {
         let previous = receipt
             .get("previous_source")
@@ -6715,7 +4778,7 @@ fn validate_claim_history(
         } else if previous_version != 1 {
             return Err(Error::Invalid("navigation Claim history initial revision"));
         }
-        let archive_binding = verify_claim_archive(
+        verify_claim_archive(
             archive_path,
             source_path,
             previous,
@@ -6726,9 +4789,6 @@ fn validate_claim_history(
             limits,
             claim_stream_rows_scanned,
         )?;
-        if index + 1 == receipts.len() {
-            final_archive_binding = Some((archive_path.to_owned(), archive_binding));
-        }
         latest.insert(id, successor.clone());
     }
     let target_ref = claim_reference(current_claim, limits.catalog.max_row_bytes)?;
@@ -6757,13 +4817,6 @@ fn validate_claim_history(
         ));
     }
     let history_sha256 = Digest256::of_bytes(history_bytes);
-    if Some(history_path) == mutation_receipt_path
-        && Some(history_sha256) != mutation_receipt_sha256
-    {
-        return Err(Error::Invalid(
-            "navigation Claim revision receipt does not bind exact history",
-        ));
-    }
     let current_source_ref = claim_reference(current_claim, limits.catalog.max_row_bytes)?;
     let current_source_ref_sha256 = claim_reference_digest(&current_source_ref)?;
     // A stream shares its history across Claims. Bind this owner's latest
@@ -6774,82 +4827,7 @@ fn validate_claim_history(
         .find(|receipt| receipt.pointer("/source/id").and_then(Value::as_str) == Some(claim_id))
         .map(|receipt| source_digest256(receipt, limits.catalog.max_row_bytes))
         .transpose()?;
-    if Some(history_path) != mutation_receipt_path
-        || Some(history_sha256) != mutation_receipt_sha256
-        || current_claim.get("claim_version").and_then(Value::as_u64) == Some(1)
-        || mutation_claim_ids.len() != 1
-        || mutation_claim_ids[0] != claim_id
-    {
-        return Ok(NavigationClaimHistoryValidationV1 {
-            revision_proof: None,
-            history_sha256: Some(history_sha256),
-            latest_revision_receipt_sha256,
-            current_source_ref_sha256,
-        });
-    }
-    let last = receipts
-        .last()
-        .ok_or(Error::Invalid("navigation Claim revision receipt absent"))?;
-    let previous_source_ref = last
-        .get("previous_source")
-        .filter(|source| source.get("id").and_then(Value::as_str) == Some(claim_id))
-        .cloned()
-        .ok_or(Error::Invalid(
-            "navigation Claim revision predecessor binding",
-        ))?;
-    let successor_source_ref = last
-        .get("source")
-        .filter(|source| source.get("id").and_then(Value::as_str) == Some(claim_id))
-        .cloned()
-        .ok_or(Error::Invalid(
-            "navigation Claim revision successor binding",
-        ))?;
-    if claim_reference(current_claim, limits.catalog.max_row_bytes)? != successor_source_ref {
-        return Err(Error::Invalid(
-            "navigation Claim revision current source differs",
-        ));
-    }
-    let (archive_path, archive_binding) = final_archive_binding.ok_or(Error::Invalid(
-        "navigation Claim revision archive proof absent",
-    ))?;
-    let revision_receipt_sha256 = source_digest256(last, limits.catalog.max_row_bytes)?;
-    let command_id = last
-        .get("command_id")
-        .and_then(Value::as_str)
-        .filter(|command_id| valid_event_id(command_id))
-        .ok_or(Error::Invalid("navigation Claim revision command identity"))?
-        .to_owned();
-    let previous_source_sha256 = claim_reference_digest(&previous_source_ref)?;
-    let successor_source_sha256 = claim_reference_digest(&successor_source_ref)?;
-    let mut proof = NavigationClaimRevisionProofV1 {
-        event_id: event_id.to_owned(),
-        event_sequence,
-        command_id,
-        claim_id: claim_id.to_owned(),
-        claim_stream_path: source_path.clone(),
-        claim_stream_sha256: current_stream.stream_sha256,
-        history_path: history_path.clone(),
-        history_sha256,
-        revision_receipt_sha256,
-        previous_source_sha256,
-        successor_source_sha256,
-        previous_source_ref,
-        successor_source_ref,
-        archive_path: checked_path(&archive_path)?,
-        archive_manifest_sha256: archive_binding.manifest_sha256,
-        archive_package_root: archive_binding.package_root,
-        provenance_event_path: creation_binding.event_path.clone(),
-        provenance_event_id: creation_binding.event_id.clone(),
-        provenance_event_version: creation_binding.event_version,
-        provenance_event_sha256: creation_binding.event_sha256,
-        provenance_receipt_path: creation_binding.receipt_path.clone(),
-        provenance_receipt_sha256: creation_binding.receipt_sha256,
-        mutation_claim_ids: mutation_claim_ids.to_vec(),
-        binding_root: Digest256::of_bytes(&[]),
-    };
-    proof.binding_root = revision_proof_binding_root(&proof)?;
     Ok(NavigationClaimHistoryValidationV1 {
-        revision_proof: Some(proof),
         history_sha256: Some(history_sha256),
         latest_revision_receipt_sha256,
         current_source_ref_sha256,
@@ -7629,61 +5607,6 @@ fn output_root(
     )
 }
 
-fn claim_set_root(
-    event_id: &str,
-    event_sequence: u64,
-    mutation_receipt_path: &RelativePath,
-    receipt_sha256: Digest256,
-    affected_owner_manifest_root: Digest256,
-) -> Result<Digest256> {
-    if !valid_event_id(event_id) || event_sequence == 0 {
-        return Err(Error::Invalid("navigation Claim event set identity"));
-    }
-    digest_json(
-        &json!({
-            "schema":"tos_source_navigation_claim_event_members_v4",
-            "event_id":event_id,
-            "event_sequence":event_sequence,
-            "mutation_receipt_path":mutation_receipt_path.as_str(),
-            "mutation_receipt_sha256":receipt_sha256.to_hex(),
-            "affected_owner_manifest_root":affected_owner_manifest_root.to_hex()
-        }),
-        TOTAL_DEPENDENCY_BYTES,
-    )
-}
-
-fn revision_proof_binding_root(proof: &NavigationClaimRevisionProofV1) -> Result<Digest256> {
-    digest_json(
-        &json!({
-            "schema":"tos_source_navigation_claim_revision_proof_v1",
-            "event_id":proof.event_id,
-            "event_sequence":proof.event_sequence,
-            "command_id":proof.command_id,
-            "claim_id":proof.claim_id,
-            "claim_stream_path":proof.claim_stream_path.as_str(),
-            "claim_stream_sha256":proof.claim_stream_sha256.to_hex(),
-            "history_path":proof.history_path.as_str(),
-            "history_sha256":proof.history_sha256.to_hex(),
-            "revision_receipt_sha256":proof.revision_receipt_sha256.to_hex(),
-            "previous_source_sha256":proof.previous_source_sha256.to_hex(),
-            "successor_source_sha256":proof.successor_source_sha256.to_hex(),
-            "previous_source_ref":proof.previous_source_ref,
-            "successor_source_ref":proof.successor_source_ref,
-            "archive_path":proof.archive_path.as_str(),
-            "archive_manifest_sha256":proof.archive_manifest_sha256.to_hex(),
-            "archive_package_root":proof.archive_package_root.to_hex(),
-            "provenance_event_path":proof.provenance_event_path.as_str(),
-            "provenance_event_id":proof.provenance_event_id,
-            "provenance_event_version":proof.provenance_event_version,
-            "provenance_event_sha256":proof.provenance_event_sha256.to_hex(),
-            "provenance_receipt_path":proof.provenance_receipt_path.as_str(),
-            "provenance_receipt_sha256":proof.provenance_receipt_sha256.to_hex(),
-            "mutation_claim_ids":proof.mutation_claim_ids,
-        }),
-        TOTAL_DEPENDENCY_BYTES,
-    )
-}
-
 fn dependency_refresh_proof_root(
     proof: &NavigationClaimDependencyRefreshProofV1,
 ) -> Result<Digest256> {
@@ -7852,117 +5775,6 @@ fn claim_reference_digest(reference: &Value) -> Result<Digest256> {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn input_root(
-    event_id: &str,
-    event_sequence: u64,
-    source_event_id: &str,
-    source_event_version: u64,
-    predecessor_source_revision: Digest256,
-    source_revision: Digest256,
-    predecessor_cohort_root: Option<Digest256>,
-    source_path: &RelativePath,
-    source_line: u64,
-    record_id: &str,
-    mutation_receipt_path: &RelativePath,
-    mutation_source_path: &RelativePath,
-    dependency_root: Digest256,
-    output_root: Digest256,
-    event_claim_set_root: Digest256,
-    owner_inventory_root: Digest256,
-    revision_proof_root: Option<Digest256>,
-    claim_stream_rows_scanned: u64,
-) -> Result<Digest256> {
-    digest_json(
-        &json!({
-            "schema":"tos_source_navigation_claim_event_input_v4",
-            "event_id":event_id,
-            "event_sequence":event_sequence,
-            "source_event_id":source_event_id,
-            "source_event_version":source_event_version,
-            "predecessor_source_revision":predecessor_source_revision.to_hex(),
-            "source_revision":source_revision.to_hex(),
-            "predecessor_cohort_root":predecessor_cohort_root.map(Digest256::to_hex),
-            "source_path":source_path.as_str(),
-            "source_line":source_line,
-            "record_id":record_id,
-            "mutation_receipt_path":mutation_receipt_path.as_str(),
-            "mutation_source_path":mutation_source_path.as_str(),
-            "dependency_root":dependency_root.to_hex(),
-            "output_root":output_root.to_hex(),
-            "event_claim_set_root":event_claim_set_root.to_hex(),
-            "owner_inventory_root":owner_inventory_root.to_hex(),
-            "revision_proof_root":revision_proof_root.map(Digest256::to_hex),
-            "claim_stream_rows_scanned":claim_stream_rows_scanned
-        }),
-        TOTAL_DEPENDENCY_BYTES,
-    )
-}
-
-fn navigation_claim_event_budget_cost(
-    projection: &NavigationClaimEventProjectionV1,
-    dependencies: &[NavigationDependencyV1],
-    source_path: &RelativePath,
-    claim_stream_sha256: Digest256,
-    claim_stream_rows_scanned: u64,
-) -> Result<NavigationClaimEventBudgetCostV1> {
-    let output_rows = projection
-        .nodes
-        .len()
-        .checked_add(projection.edges.len())
-        .and_then(|count| count.checked_add(projection.diagnostics.len()))
-        .ok_or(Error::Budget("navigation Claim aggregate row count"))?;
-    let rows = output_rows
-        .checked_add(dependencies.len())
-        .ok_or(Error::Budget("navigation Claim aggregate row count"))?;
-    let mut dependency_bytes = 0u64;
-    let mut encoded_bytes = 0u64;
-    let mut claim_stream_size = None;
-    for dependency in dependencies {
-        encoded_bytes = encoded_bytes
-            .checked_add(dependency.path.as_str().len() as u64)
-            .ok_or(Error::Budget("navigation Claim aggregate encoded bytes"))?;
-        if let NavigationDependencyStateV1::Present { sha256, size_bytes } = &dependency.state {
-            dependency_bytes = dependency_bytes
-                .checked_add(*size_bytes)
-                .ok_or(Error::Budget("navigation Claim aggregate dependency bytes"))?;
-            if dependency.path == *source_path
-                && dependency.role == NavigationDependencyRoleV1::Record
-            {
-                if *sha256 != claim_stream_sha256
-                    || claim_stream_size.replace(*size_bytes).is_some()
-                {
-                    return Err(Error::Invalid(
-                        "navigation Claim aggregate stream dependency binding",
-                    ));
-                }
-            }
-        }
-    }
-    if claim_stream_size.is_none() {
-        return Err(Error::Invalid(
-            "navigation Claim aggregate stream dependency absent",
-        ));
-    }
-    for row in projection
-        .nodes
-        .iter()
-        .chain(&projection.edges)
-        .chain(&projection.diagnostics)
-    {
-        let row_bytes = canonical(row, TOTAL_DEPENDENCY_BYTES)?.len() as u64;
-        encoded_bytes = encoded_bytes
-            .checked_add(row_bytes)
-            .ok_or(Error::Budget("navigation Claim aggregate encoded bytes"))?;
-    }
-    Ok(NavigationClaimEventBudgetCostV1 {
-        rows: u64::try_from(rows)
-            .map_err(|_| Error::Budget("navigation Claim aggregate row count"))?,
-        encoded_bytes,
-        dependency_bytes,
-        claim_stream_rows_scanned,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -8269,65 +6081,69 @@ mod tests {
         let stale = vec!["tos.claim.a".to_owned(), "tos.claim.c".to_owned()];
         assert!(claim_stream_inventory(source, &stale, CLAIM_LINE_BYTES, &mut scanned).is_err());
     }
+}
 
-    #[test]
-    fn affected_owner_closure_replaces_complete_streams_and_keeps_mutation_stream() {
-        let mutation_path = "ToS/source-witnesses/relations/a/source-claims.jsonl";
-        let reverse_path = "ToS/source-witnesses/relations/b/source-claims.jsonl";
-        let mutation_bytes = br#"{"claim_id":"tos.claim.changed","claim_version":2}"#;
-        let reverse_bytes = br#"{"claim_id":"tos.claim.referrer-a","claim_version":1}
-{"claim_id":"tos.claim.referrer-b","claim_version":1}
-"#;
-        let inventory = prepare_navigation_claim_event_owner_streams_v1(
-            &[
-                NavigationClaimEventOwnerStreamInputV1 {
-                    source_path: mutation_path,
-                    source_bytes: mutation_bytes,
-                },
-                NavigationClaimEventOwnerStreamInputV1 {
-                    source_path: reverse_path,
-                    source_bytes: reverse_bytes,
-                },
-            ],
-            CLAIM_LINE_BYTES,
-        )
-        .expect("complete selected stream inventory");
-        let manifest = inventory
-            .affected_owner_streams(
-                &["tos.claim.referrer-a".to_owned()],
-                mutation_path,
-                &["tos.claim.changed".to_owned()],
-            )
-            .expect("stream-complete affected owner manifest");
-        assert_eq!(manifest.streams().len(), 2);
-        assert_eq!(
-            manifest.streams()[0].owner_ids(),
-            &["tos.claim.changed".to_owned()]
-        );
-        assert_eq!(
-            manifest.streams()[1].owner_ids(),
-            &[
-                "tos.claim.referrer-a".to_owned(),
-                "tos.claim.referrer-b".to_owned()
-            ]
-        );
-        assert_eq!(
-            manifest.reverse_claim_ids(),
-            &["tos.claim.referrer-a".to_owned()]
-        );
-        assert_eq!(manifest.mutation_source_path(), mutation_path);
-        assert_eq!(manifest.inventory_root(), inventory.root());
-        manifest
-            .verify_integrity()
-            .expect("sealed manifest integrity");
-        assert!(
-            inventory
-                .affected_owner_streams(
-                    &["tos.claim.missing".to_owned()],
-                    mutation_path,
-                    &["tos.claim.changed".to_owned()],
-                )
-                .is_err()
-        );
+fn navigation_claim_event_budget_cost(
+    projection: &NavigationClaimEventProjectionV1,
+    dependencies: &[NavigationDependencyV1],
+    source_path: &RelativePath,
+    claim_stream_sha256: Digest256,
+    claim_stream_rows_scanned: u64,
+) -> Result<NavigationClaimEventBudgetCostV1> {
+    let output_rows = projection
+        .nodes
+        .len()
+        .checked_add(projection.edges.len())
+        .and_then(|count| count.checked_add(projection.diagnostics.len()))
+        .ok_or(Error::Budget("navigation Claim aggregate row count"))?;
+    let rows = output_rows
+        .checked_add(dependencies.len())
+        .ok_or(Error::Budget("navigation Claim aggregate row count"))?;
+    let mut dependency_bytes = 0u64;
+    let mut encoded_bytes = 0u64;
+    let mut claim_stream_size = None;
+    for dependency in dependencies {
+        encoded_bytes = encoded_bytes
+            .checked_add(dependency.path.as_str().len() as u64)
+            .ok_or(Error::Budget("navigation Claim aggregate encoded bytes"))?;
+        if let NavigationDependencyStateV1::Present { sha256, size_bytes } = &dependency.state {
+            dependency_bytes = dependency_bytes
+                .checked_add(*size_bytes)
+                .ok_or(Error::Budget("navigation Claim aggregate dependency bytes"))?;
+            if dependency.path == *source_path
+                && dependency.role == NavigationDependencyRoleV1::Record
+            {
+                if *sha256 != claim_stream_sha256
+                    || claim_stream_size.replace(*size_bytes).is_some()
+                {
+                    return Err(Error::Invalid(
+                        "navigation Claim aggregate stream dependency binding",
+                    ));
+                }
+            }
+        }
     }
+    if claim_stream_size.is_none() {
+        return Err(Error::Invalid(
+            "navigation Claim aggregate stream dependency absent",
+        ));
+    }
+    for row in projection
+        .nodes
+        .iter()
+        .chain(&projection.edges)
+        .chain(&projection.diagnostics)
+    {
+        let row_bytes = canonical(row, TOTAL_DEPENDENCY_BYTES)?.len() as u64;
+        encoded_bytes = encoded_bytes
+            .checked_add(row_bytes)
+            .ok_or(Error::Budget("navigation Claim aggregate encoded bytes"))?;
+    }
+    Ok(NavigationClaimEventBudgetCostV1 {
+        rows: u64::try_from(rows)
+            .map_err(|_| Error::Budget("navigation Claim aggregate row count"))?,
+        encoded_bytes,
+        dependency_bytes,
+        claim_stream_rows_scanned,
+    })
 }
