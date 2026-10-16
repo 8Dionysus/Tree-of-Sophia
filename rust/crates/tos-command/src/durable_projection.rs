@@ -28,12 +28,11 @@ pub(crate) use durable_navigation_event::{
 };
 pub use durable_navigation_event::{
     DurableNavigationBaseRowReadV1, DurableNavigationBootstrapApplyV1,
-    DurableNavigationBootstrapOwnerSourceV1, DurableNavigationBootstrapPackageV1,
-    DurableNavigationBootstrapRowKindV1, DurableNavigationBootstrapRowV1,
-    DurableNavigationCurrentIndexNotReadyReasonV1, DurableNavigationCurrentIndexNotReadyV1,
-    DurableNavigationCurrentIndexOwnerBindingV1, DurableNavigationEventAffectedOwnerKindV1,
-    DurableNavigationEventAffectedOwnerV1, DurableNavigationEventContextV1,
-    DurableNavigationEventCursorV1, DurableNavigationEventLimits,
+    DurableNavigationBootstrapOwnerSourceV1, DurableNavigationBootstrapRowKindV1,
+    DurableNavigationBootstrapRowV1, DurableNavigationCurrentIndexNotReadyReasonV1,
+    DurableNavigationCurrentIndexNotReadyV1, DurableNavigationCurrentIndexOwnerBindingV1,
+    DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
+    DurableNavigationEventContextV1, DurableNavigationEventCursorV1, DurableNavigationEventLimits,
     DurableNavigationEventRangeApplyV1, DurableNavigationEventRangeClaimMutationV1,
     DurableNavigationEventRangeCoverageV1, DurableNavigationEventRangeDependencyCauseV1,
     DurableNavigationEventRangeEventV1, DurableNavigationEventRangeMemberV1,
