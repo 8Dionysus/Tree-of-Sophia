@@ -3914,10 +3914,37 @@ fn revision_mutation_predicates(indexes: &IndexRows) -> BTreeSet<(String, String
     }
 }
 
+// A completed import keeps the source cut at which it actually entered PG.
+// Reassessment verifies the same exact legacy bytes after later native commits;
+// it must not manufacture a new import event at the current source head.
+fn publication_import_origin_head(
+    tx: &mut postgres::Transaction<'_>,
+    domain: &str,
+    current_head: u64,
+) -> DurableResult<u64> {
+    let row = tx.query_opt(
+        "SELECT import_source_head FROM cmd2_source_publication_import WHERE domain=$1 FOR SHARE",
+        &[&domain],
+    )?;
+    let head = match row {
+        Some(row) => as_u64(row.get("import_source_head"))?,
+        None => current_head,
+    };
+    if head > current_head {
+        return Err(DurableError::Corrupt(
+            "publication import is ahead of source cut",
+        ));
+    }
+    // ensure_source_publication_bootstrap_state subsequently checks this head
+    // against the exact stored receipt and verifies every other binding.
+    Ok(head)
+}
+
 /// Build an ordered legacy publication import from the exact complete source
 /// cut. Only the selected control and transaction-directory members enter the
 /// codec; unrelated source members never become import evidence.
 pub(super) fn legacy_selected_publication_import_from_members(
+    tx: &mut postgres::Transaction<'_>,
     members: &BTreeMap<String, Vec<u8>>,
     domain: &str,
     store_id: [u8; 16],
@@ -3935,6 +3962,7 @@ pub(super) fn legacy_selected_publication_import_from_members(
     if exact_members.is_empty() {
         return Ok(None);
     }
+    let source_head = publication_import_origin_head(tx, domain, source_head)?;
     let control = exact_members
         .get(CONTROL)
         .ok_or(DurableError::Corrupt("legacy publication control absent"))?;
@@ -11783,6 +11811,7 @@ impl DurablePgCoordinator {
             .as_ref()
             .map(|rows| projection_root(rows).to_hex());
         let publication_import = legacy_selected_publication_import_from_members(
+            &mut tx,
             &files,
             domain,
             store.store_id(),
@@ -14587,4 +14616,42 @@ pub(crate) fn read_generation_source_metadata_in_tx(
     };
     active(deadline, cancelled)?;
     Ok(result)
+}
+
+#[cfg(test)]
+mod publication_import_reassessment_tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires explicitly selected disposable PostgreSQL"]
+    fn postgres_contract_publication_reassessment_keeps_import_head() {
+        let url = std::env::var("TOS_METADATA_TEST_PG_URL").expect("disposable PG URL required");
+        let mut client = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+        let mut tx = client.transaction().unwrap();
+        tx.batch_execute("CREATE TEMP TABLE cmd2_source_publication_import (domain text PRIMARY KEY, import_source_head bigint) ON COMMIT DROP").unwrap();
+        assert_eq!(
+            publication_import_origin_head(&mut tx, "selected", 152).unwrap(),
+            152
+        );
+        tx.execute(
+            "INSERT INTO cmd2_source_publication_import VALUES ('selected',152)",
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            publication_import_origin_head(&mut tx, "selected", 156).unwrap(),
+            152
+        );
+        assert_eq!(
+            publication_import_origin_head(&mut tx, "other", 156).unwrap(),
+            156
+        );
+        assert!(publication_import_origin_head(&mut tx, "selected", 151).is_err());
+        tx.execute(
+            "UPDATE cmd2_source_publication_import SET import_source_head=-1",
+            &[],
+        )
+        .unwrap();
+        assert!(publication_import_origin_head(&mut tx, "selected", 156).is_err());
+    }
 }

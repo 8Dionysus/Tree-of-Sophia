@@ -2954,6 +2954,7 @@ fn assess_held_current_source(
         cancelled,
     )?;
     assessment.publication_import = super::legacy_selected_publication_import_from_members(
+        tx,
         &projected.legacy_publication_members,
         domain,
         store.store_id(),
