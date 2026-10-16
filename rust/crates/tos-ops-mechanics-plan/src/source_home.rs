@@ -383,23 +383,36 @@ mod tests {
     }
 
     #[test]
-    fn retained_record_history_has_a_binding_without_raw_checkout_copies() {
+    fn retained_history_has_bindings_without_raw_checkout_copies() {
         let schema = serde_json::from_slice(include_bytes!(
             "../../../../ToS/contracts/retained-corpus-binding.schema.json"
         ))
         .unwrap();
-        let binding: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../../../../ToS/source-witnesses/record-revisions.storage.json"
-        ))
-        .unwrap();
-        assert_schema(&schema, &binding);
-        assert_eq!(binding["scope"], "ToS/source-witnesses/.record-revisions");
-        // Repository custody stays distinct from a materialized corpus view.
-        let archive = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../ToS/source-witnesses/.record-revisions");
-        assert!(
-            !archive.exists(),
-            "raw history belongs to the selected corpus cut"
-        );
+        for (raw, scope) in [
+            (
+                include_bytes!("../../../../ToS/source-witnesses/record-revisions.storage.json")
+                    .as_slice(),
+                "ToS/source-witnesses/.record-revisions",
+            ),
+            (
+                include_bytes!(
+                    "../../../../ToS/source-witnesses/metadata-transactions.storage.json"
+                )
+                .as_slice(),
+                "ToS/source-witnesses/.metadata-transactions",
+            ),
+        ] {
+            let binding: serde_json::Value = serde_json::from_slice(raw).unwrap();
+            assert_schema(&schema, &binding);
+            assert_eq!(binding["scope"], scope);
+            // Repository custody stays distinct from a materialized corpus view.
+            let archive = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../../")
+                .join(scope);
+            assert!(
+                !archive.exists(),
+                "raw history belongs to the selected corpus cut"
+            );
+        }
     }
 }

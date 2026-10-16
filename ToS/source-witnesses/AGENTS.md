@@ -28,9 +28,9 @@ evidence.
 - Open `README.md` when its human provenance or usage explanation is relevant;
   use `ToS/doctrine/CORPUS_FOUNDATION.md` for corpus law before adding or
   moving corpus material.
-- `record-revisions.storage.json` binds the logical `.record-revisions/`
-  archive subtree. Historical package reads and restoration select that exact
-  immutable corpus cut.
+- `record-revisions.storage.json` and `metadata-transactions.storage.json`
+  bind the logical historical subtrees. Package/transaction reads and
+  restoration select their exact immutable corpus cuts.
 - Use the identity ladder `work -> expression -> edition -> item -> file`.
   Route multi-work publications through `collections/` and evidence-bearing
   membership claims.
