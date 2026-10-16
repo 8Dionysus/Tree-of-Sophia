@@ -2732,32 +2732,6 @@ fn outputs(
     Ok((manifest, file_sha, record_count, claim_count))
 }
 
-pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-) -> Result<SourceCatalogReceipt<B>> {
-    prepare_catalog_receipt_observed_with_selection(stage, validator, l, observer, None, None)
-}
-pub(crate) fn prepare_catalog_receipt_observed_with_selection<B: CatalogInputBinding>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
-    verification_workspace: Option<usize>,
-) -> Result<SourceCatalogReceipt<B>> {
-    prepare_catalog_receipt_observed_with_selections(
-        stage,
-        validator,
-        l,
-        observer,
-        selection,
-        None,
-        verification_workspace,
-    )
-}
 pub(crate) fn prepare_catalog_receipt_observed_with_selections<B: CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,

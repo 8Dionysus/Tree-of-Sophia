@@ -778,22 +778,6 @@ fn navigation_owner_binding_json(binding: &DurableNavigationCurrentIndexOwnerBin
     value
 }
 
-fn navigation_bootstrap_root(
-    binding: &DurableNavigationCurrentIndexOwnerBindingV1,
-    header_raw: &[u8],
-    rows: &[DurableNavigationBaseRowReadV1],
-    owner_sources: &BTreeMap<String, DurableNavigationBootstrapOwnerSourceV1>,
-    max_bytes: usize,
-) -> DurableResult<Digest256> {
-    let mut hash = NavigationBootstrapRootHasher::new(binding, header_raw, max_bytes)?;
-    for source in owner_sources.values() {
-        hash.source(source)?;
-    }
-    for row in rows {
-        hash.row(row)?;
-    }
-    Ok(hash.finish())
-}
 
 /// V1 framing over a source-ordered then row-ordered stream. Retain only the
 /// previous keys, so an explicit initial seal need not materialize all bytes.
@@ -3851,6 +3835,7 @@ pub(crate) fn read_navigation_adjacency_certificate_v1(
     }))
 }
 
+#[cfg(test)]
 fn navigation_adjacency_root_initial(
     bootstrap_root: Digest256,
     certificates: &[NavigationAdjacencyCertificate],
@@ -3917,6 +3902,7 @@ fn make_navigation_adjacency_certificate(
     }
 }
 
+#[cfg(test)]
 fn bootstrap_adjacency_certificates(
     bootstrap_root: Digest256,
     rows: &[DurableNavigationBaseRowReadV1],

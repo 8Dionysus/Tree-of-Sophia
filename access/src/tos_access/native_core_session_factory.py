@@ -17,9 +17,6 @@ from .native_core_session_startup import ordinary_startup_bytes
 from .native_core_snapshot import NativeCoreSnapshotSelection
 
 
-        # All successful public dictionaries remain charged in the original
-        # state owner. Session close performs ACK/EOF/terminal custody; parent
-        # verified_image remains held through that exact final lifetime.
 
 
 @contextmanager

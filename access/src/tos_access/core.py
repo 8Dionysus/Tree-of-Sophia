@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .locations import data_root, source_carrier_paths
+from .locations import _SOURCE_SELECTORS, data_root, source_carrier_paths
 from .native_access_core import (
     NativeAccessCore as _NativeAccessCore,
     SEARCH_READ_MODEL_MAX_POSTINGS, SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
@@ -26,22 +26,9 @@ class NativeToSAccessCore(_NativeAccessCore):
     checks to the native product. It contains no query implementation.
     """
 
-    _CARRIER_FIELDS = (
-        'index_path', 'philosophy_graph_projection_path',
-        'bibliographic_graph_path', 'entity_type_registry_path',
-        'relation_type_registry_path', 'philosophy_post_planting_audit_path',
-        'evidence_projection_path',
-    )
-    _CARRIER_ENV = (
-        'TOS_CORPUS_INDEX_PATH', 'TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH',
-        'TOS_BIBLIOGRAPHIC_GRAPH_PATH', 'TOS_ENTITY_TYPE_REGISTRY_PATH',
-        'TOS_RELATION_TYPE_REGISTRY_PATH', 'TOS_PHILOSOPHY_POST_PLANTING_AUDIT_PATH',
-        'TOS_EVIDENCE_PROJECTION_PATH',
-    )
-
     @classmethod
     def _has_nondefault_carrier_override(cls, root: Path, selectors: dict[str, Any]) -> bool:
-        if any(os.environ.get(name) for name in cls._CARRIER_ENV):
+        if any(os.environ.get(env) for _, env, _ in _SOURCE_SELECTORS):
             return True
         defaults = source_carrier_paths(root)
         for name, value in selectors.items():

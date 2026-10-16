@@ -238,49 +238,6 @@ pub const RUNTIME_DATA_DECLARATION_PATH: &str = "access/contracts/runtime-data.v
 pub const RUNTIME_DATA_DECLARATION: &[u8] =
     include_bytes!("../../../../access/contracts/runtime-data.v1.json");
 
-/// Root-relative source subjects the existing runtime-data owner exposes to a
-/// query-capable consumer. A path remains a declaration, not a source grant.
-fn declared_query_source_paths() -> Result<BTreeSet<String>> {
-    let document = parse_json(
-        RUNTIME_DATA_DECLARATION,
-        JsonMode::PublishedStrict,
-        METADATA_LIMITS,
-    )
-    .map_err(|_| unavailable("runtime-data declaration invalid"))?;
-    let root = document.root();
-    if text(root, "schema_version")? != "tos_access_runtime_data_allowlist_v1"
-        || text(root, "publication_posture")? != "allowlist-only"
-    {
-        return Err(unavailable("runtime-data declaration profile invalid"));
-    }
-    let mut all_paths = BTreeSet::new();
-    let mut query_paths = BTreeSet::new();
-    for subject in root
-        .object_get("subjects")
-        .and_then(JsonValue::as_array)
-        .ok_or_else(|| unavailable("runtime-data subjects absent"))?
-    {
-        let path = text(subject, "source_path")?;
-        RelativePath::parse(path).map_err(|_| unavailable("runtime-data source path invalid"))?;
-        if !all_paths.insert(path.to_owned()) {
-            return Err(unavailable("runtime-data source path duplicated"));
-        }
-        let roles = subject
-            .object_get("consumer_roles")
-            .and_then(JsonValue::as_array)
-            .ok_or_else(|| unavailable("runtime-data consumer roles absent"))?;
-        if ["query-core", "http-reader", "native-mcp"]
-            .iter()
-            .any(|role| roles.iter().any(|value| value.as_str() == Some(*role)))
-        {
-            query_paths.insert(path.to_owned());
-        }
-    }
-    if query_paths.is_empty() {
-        return Err(unavailable("runtime-data query subjects absent"));
-    }
-    Ok(query_paths)
-}
 
 /// Producer layout for the existing allowlisted public query/http ledger subset.
 /// Paths are derived from the owner declaration; identities/counts are not rules.
@@ -1142,50 +1099,6 @@ fn corpus_source_plan(
         return Err(unavailable("complete corpus index source member absent"));
     }
     Ok((path.to_owned(), planned))
-}
-fn query_source_plan(
-    release: CorpusMetadata<'_>,
-    source_paths: &[&str],
-    max_bytes: usize,
-) -> Result<Vec<(String, u64)>> {
-    if source_paths.is_empty() || source_paths.len() > 7 || max_bytes == 0 {
-        return Err(unavailable("query source member admission bounds invalid"));
-    }
-    if release.source_bindings.get(RUNTIME_DATA_DECLARATION_PATH)
-        != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
-    {
-        return Err(unavailable("runtime-data declaration binding differs"));
-    }
-    let declared = declared_query_source_paths()?;
-    let max_bytes =
-        u64::try_from(max_bytes).map_err(|_| unavailable("query source byte budget invalid"))?;
-    let mut seen = BTreeSet::new();
-    let mut planned = Vec::with_capacity(source_paths.len());
-    let mut total = 0u64;
-    for source_path in source_paths {
-        RelativePath::parse(source_path)
-            .map_err(|_| unavailable("query source member path invalid"))?;
-        if !declared.contains(*source_path) || !seen.insert((*source_path).to_owned()) {
-            return Err(unavailable(
-                "query source member is undeclared or duplicated",
-            ));
-        }
-        let member_path = format!("data/{source_path}");
-        let member = release
-            .members
-            .get(&member_path)
-            .ok_or_else(|| unavailable("selection path is not a declared snapshot member"))?;
-        let (size, sha) = (member.size, member.digest);
-        if release.source_bindings.get(*source_path) != Some(&sha) {
-            return Err(unavailable("query source input binding differs"));
-        }
-        total = total
-            .checked_add(size)
-            .filter(|bytes| *bytes <= max_bytes)
-            .ok_or_else(|| unavailable("query source member byte budget exceeded"))?;
-        planned.push((member_path, size));
-    }
-    Ok(planned)
 }
 impl ReleaseLease {
     /// Full raw closure is verified once at cold admission; subsequent addressed
