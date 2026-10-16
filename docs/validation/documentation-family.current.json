@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5944,
     "human_scope": {
-      "bytes": 7344221,
+      "bytes": 7344750,
       "count": 1071,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -61,9 +61,9 @@
           "lines": 315
         },
         "github": {
-          "bytes": 82750,
+          "bytes": 83082,
           "count": 5,
-          "lines": 1171
+          "lines": 1175
         },
         "kag": {
           "bytes": 8834,
@@ -96,9 +96,9 @@
           "lines": 3095
         },
         "rust": {
-          "bytes": 160595,
+          "bytes": 160792,
           "count": 14,
-          "lines": 2375
+          "lines": 2378
         },
         "scripts": {
           "bytes": 9116,
@@ -121,7 +121,7 @@
           "lines": 82527
         }
       },
-      "lines": 121076
+      "lines": 121083
     },
     "surface_kind_counts": {
       "executable": 78,
@@ -163,7 +163,7 @@
         "executable": 1,
         "human": 5
       },
-      "tracked_surface_bytes": 87526,
+      "tracked_surface_bytes": 87858,
       "tracked_surface_count": 6
     },
     {
@@ -245,7 +245,7 @@
         "human": 14,
         "structured": 276
       },
-      "tracked_surface_bytes": 4604739,
+      "tracked_surface_bytes": 4604936,
       "tracked_surface_count": 290
     },
     {
@@ -290,7 +290,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "9abb0de5370735e180acfef0d0ba070d7b0ec46056b2a24e580116781429fca0",
+  "tracked_surface_digest": "a9005e84baad38771acde0176124329414265f127404191cdf2ae4addae3d8a7",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -373,11 +373,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 73537,
+      "bytes": 73869,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "e71495b62db513bbd444e2d7f2113581237be59bdf096ac575048cfaebfc7f9e",
+      "sha256": "2cc42ddaa59f302426bbd780ee627873749729b822a7a781363ef85fef2d09fd",
       "surface_kind": "human"
     },
     {
@@ -47053,11 +47053,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 14455,
+      "bytes": 14652,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-compiler/README.md",
-      "sha256": "4fe4c7ea0119b9b2c4c3acaabdff37066ba9a78d8f8dffca4b347b0b088fb473",
+      "sha256": "7d3e9c72239709470bb22ffc9ca2cd4a65b024d63daaf0fe1f08a010cdf2bf5a",
       "surface_kind": "human"
     },
     {
