@@ -1,8 +1,9 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
-import {createSourceFormSession} from './source-form-session.mjs';
+import {createSourceFormSession} from './source-form-session-rust.mjs';
 
-const context={schema_version:'tos_local_source_command_result_v1',command_operations:['describe','prepare','apply'],
+const context={schema_version:'tos_local_source_command_result_v1',grants_admission:false,command_operations:['describe','prepare','apply'],
   source_fields:[{field_id:'metadata.preferred-name'}],allowed_form_ids:['tos.form.example'],
   source:{id:'tos.work.example',version:2,digest:'sha256:'+'a'.repeat(64)},revision:'sha256:before',owner_configuration:'sha256:grant'};
 const prepared={...context,revision:'sha256:prepared',prepared_change:{operation:'form.revise',
@@ -16,7 +17,7 @@ test('owner preparation supplies exact expectations and apply preserves its rece
   await session.describe();await session.prepare({formId:'tos.form.example',fieldId:'metadata.preferred-name'});
   const result=await session.commit();assert.equal(result.result.grants_admission,false);
   assert.equal(calls[2].expected_revision,'sha256:prepared');assert.deepEqual(calls[2].expected_source,context.source);
-  assert.equal(calls[2].command_id,'stable-command');assert.deepEqual(calls[2].changes,[prepared.prepared_change]);
+  assert.equal(calls[2].command_id,'stable-command');assert.equal('expected_dependencies' in calls[2],false);assert.deepEqual(calls[2].changes,[prepared.prepared_change]);
 });
 
 test('unknown delivery retains exact ID and bytes for explicit replay, never creates another command',async()=>{
@@ -37,4 +38,23 @@ test('unsupported owner and guessed field/form cannot create a write',async()=>{
   let calls=0;const session=createSourceFormSession({execute:async()=>{calls++;return context;}});
   await session.describe();await assert.rejects(session.prepare({formId:'guessed',fieldId:'metadata.preferred-name'}));
   await assert.rejects(session.commit());assert.equal(calls,1);
+});
+
+
+test('native execution wrapper retains owner-issued dependency guards through uncertain replay',async()=>{
+  const dependencies='sha256:'+'b'.repeat(64);
+  const native=value=>({schema_version:'tos_local_native_source_result_v1',grants_admission:false,result:value});
+  let fail=true;const sent=[];
+  const session=createSourceFormSession({execute:async request=>{
+    if(request.operation==='describe')return native(context);
+    if(request.operation==='prepare')return native({...prepared,expected_dependencies:dependencies});
+    sent.push(request);if(fail)throw new Error('uncertain native delivery');
+    return native({schema_version:context.schema_version,receipt:{command_id:request.command_id},grants_admission:false,replayed:true});
+  }},{commandId:()=> 'native-exact-form'});
+  await session.describe();await session.prepare({formId:'tos.form.example',fieldId:'metadata.preferred-name'});
+  await assert.rejects(session.commit());assert.equal(session.state().uncertain,true);
+  assert.deepEqual(session.retainedCommand().expected_dependencies,dependencies);
+  fail=false;const result=await session.commit();assert.deepEqual(sent[0],sent[1]);
+  assert.deepEqual(sent[0].expected_dependencies,dependencies);assert.equal(result.result.grants_admission,false);
+  session.dispose();
 });

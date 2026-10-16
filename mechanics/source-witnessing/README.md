@@ -12,7 +12,7 @@
 | owner | `mechanics/source-witnessing/` |
 | stronger route | `ToS/source-witnesses/` owns witness material |
 | next route | [Witness Route](parts/witness-route/README.md) |
-| validation | `python scripts/validate_tos_source_home.py` |
+| validation | `tos-ops-mechanics-plan --repo-root ABS --source-home` |
 
 ## Active Route
 

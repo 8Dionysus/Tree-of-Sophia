@@ -57,7 +57,7 @@ not treat the old `ToS/doctrine/` pile as a truth source.
 `scripts/validate_tos_source_home.py` now recognizes `ToS/zarathustra/` as a
 source-home branch.
 
-`scripts/validate_tiny_entry_route.py`, `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`,
+`scripts/validate_tiny_entry_route.py`, `rust/crates/tos-ops-mechanics-plan/src/derived_kag.rs`,
 `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`, and root-entry map generation now point to
 the Zarathustra route branch instead of `ToS/doctrine/`.
 

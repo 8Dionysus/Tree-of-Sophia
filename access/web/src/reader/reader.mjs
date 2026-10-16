@@ -1,6 +1,6 @@
 import './reader.css';
 import {readerAnchorKey,readerVersionKey} from './notebook.mjs';
-import {findInParagraphs} from './search.mjs';
+import {findInParagraphs} from './occurrences-rust.mjs';
 import {readerVersionCodes,readerComparisonVersion,readerDisplayVersions} from './version-options.mjs';
 
 const wording={

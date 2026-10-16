@@ -44,7 +44,7 @@
       "const": "generated_from_private_contextual_provider_run"
     },
     "receipt_id": {
-      "const": "morphology-contextual-result:zarathustra-selected-form-b.zdl-4.0.0.v1"
+      "type": "string", "pattern": "^morphology\\-contextual\\-result:zarathustra\\-selected\\-form\\-b\\.zdl\\-4\\.0\\.0\\.v1(?:\\.native-[a-z0-9][a-z0-9-]{0,47})?$"
     },
     "recorded_at_utc": {"type": "string", "format": "date-time"},
     "status": {"const": "b-executed-machine-proposal-awaiting-real-trigger"},
@@ -68,7 +68,7 @@
     "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
     "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
     "provenance_event_ref": {
-      "const": "tos.event.annotation.zarathustra-morphology-context-b-result.2026-08-12"
+      "type": "string", "pattern": "^tos\\.event\\.annotation\\.zarathustra\\-morphology\\-context\\-b\\-result\\.2026\\-08\\-12(?:\\.native-[a-z0-9][a-z0-9-]{0,47})?$"
     },
     "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },

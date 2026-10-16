@@ -1,24 +1,11 @@
+import {frozenReference} from './frozen-reference.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 
 test("D1 publishes a staged delta atomically and rejects an incomplete stage", async () => {
-  const fixture = JSON.parse(execFileSync("python", ["-c", `
-import json, tempfile
-from pathlib import Path
-from access.tests.test_incremental_runtime import IncrementalRuntimeTests
-t = IncrementalRuntimeTests()
-db = t.database()
-initial = [s for s in db.iterdump() if s not in ('BEGIN TRANSACTION;', 'COMMIT;')]
-db.close()
-with tempfile.TemporaryDirectory() as root:
-    p = Path(root)/'delta.sql'
-    base, _ = t.build(p, 'a'*64, [('one','old'), ('two','stable'), ('three','removed')])
-    _, counts = t.build(p, 'b'*64, [('one','new'), ('two','stable')], base)
-    print(json.dumps({'initial': initial, 'delta': p.read_text().splitlines(), 'counts': counts}))
-`], { cwd: fileURLToPath(new URL("../../../../", import.meta.url)), encoding: "utf8" }));
+  const fixture = JSON.parse(frozenReference(import.meta.url, "incremental/staged-delta"));
   const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: "export default {fetch(){return new Response('fixture')}}", d1Databases: ["DB"] }));
   try {
     const db = await mf.getD1Database("DB");

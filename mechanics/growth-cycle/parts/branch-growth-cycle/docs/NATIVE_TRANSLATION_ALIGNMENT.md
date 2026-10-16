@@ -99,7 +99,8 @@ publication and canon each require the corresponding owner decision.
 
 The common source front door selects
 `tos_local_native_alignment_owner_v1` through
-`source_alignment_commands.py`; discovery advertises
+the native `owner-local-native-translation-alignment` handler in
+`rust/crates/tos-command/src/source_text_alignment_entry.rs`; discovery advertises
 `owner-local-native-translation-alignment` without reading any grant or source.
 The protected mode-0600 configuration contains exactly:
 
@@ -123,26 +124,55 @@ The protected mode-0600 configuration contains exactly:
   material without impersonating its alleged upstream producer.
 
 The existing mode-0700 private parent and source context are prerequisites.
-The request uses the existing `tos_local_source_command_v1` envelope:
+The request uses the existing `tos_local_source_command_v1` envelope. The
+following is shape-only pseudocode: angle-bracket values are declared
+placeholders and must be replaced with values valid under
+`native-translation-alignment-record-v1.schema.json` before transport. The
+prepare operation is `prepare-create` for an initial/competing record and
+`prepare-revise` for a describe/remap successor.
 
-```python
-prepared = run_local_command(owner_config, {
-    "schema_version": "tos_local_source_command_v1",
-    "operation": "prepare-create",  # prepare-revise for an exact successor
-    "mapping": mapping,
-    "qualifications": qualifications,
-})
-result = run_local_command(owner_config, {
-    "schema_version": "tos_local_source_command_v1",
-    "operation": "alignment.create",  # alignment.revise for a successor
-    "mapping": mapping,
-    "qualifications": qualifications,
-    "command_id": command_id,
-    "expected_configuration": prepared["owner_configuration"],
-    "expected_dependencies": prepared["expected_dependencies"],
-    "expected_source": None,
-    "expected_revision": None,
-})
+```text
+{
+  "schema_version": "tos_local_source_command_v1",
+  "operation": <"prepare-create" | "prepare-revise">,
+  "mapping": {
+    "direction": <"source_to_target">,
+    "correspondence_shape": <"one_to_one" | "one_to_many" | "many_to_one" | "many_to_many" | "source_omission" | "target_addition" | "unresolved">,
+    "order_posture": <"monotonic" | "reordered" | "not_applicable" | "unresolved">,
+    "ordered_source_anchor_refs": [<schema-valid anchor id>],
+    "ordered_target_anchor_refs": [<schema-valid anchor id>]
+  },
+  "qualifications": {
+    "translation_techniques": [<schema-valid technique>],
+    "epistemic_status": <schema-valid epistemic status>,
+    "certainty": {
+      "value": <number from 0 through 1>,
+      "meaning": "maker_declared_uncertainty_not_truth_probability"
+    },
+    "status_reason": <non-empty string>,
+    "evidence": [<schema-valid evidence object>]
+  }
+}
+```
+
+Submit the prepared request through the native selected invocation:
+`tos-native-owner-command source-commands --invocation /absolute/native-invocation.json`.
+The apply request uses the same envelope. Its `mapping` and `qualifications`
+values are the same schema-valid objects shown above. This block is likewise
+shape-only pseudocode, rather than executable JSON:
+
+```text
+{
+  "schema_version": "tos_local_source_command_v1",
+  "operation": <"alignment.create" | "alignment.revise">,
+  "mapping": <the schema-valid mapping object above>,
+  "qualifications": <the schema-valid qualifications object above>,
+  "command_id": <fresh command id>,
+  "expected_configuration": <prepared owner configuration digest>,
+  "expected_dependencies": <prepared dependency digest>,
+  "expected_source": null,
+  "expected_revision": null
+}
 ```
 
 The absent source/revision precondition describes the **new immutable version

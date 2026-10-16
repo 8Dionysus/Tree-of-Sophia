@@ -691,8 +691,96 @@
         },
         "properties": {
           "$ref": "#/$defs/sourceNavigationEdgeProperties"
+        },
+        "claim_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "maker_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance_event_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_claim_file_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_claim_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "claim_sha256"
+                ]
+              },
+              {
+                "required": [
+                  "evidence_node_ids"
+                ]
+              },
+              {
+                "required": [
+                  "maker_node_id"
+                ]
+              },
+              {
+                "required": [
+                  "provenance_event_node_id"
+                ]
+              },
+              {
+                "required": [
+                  "source_claim_file_ref"
+                ]
+              },
+              {
+                "required": [
+                  "source_claim_line"
+                ]
+              },
+              {
+                "required": [
+                  "source_ref"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "claim_ref",
+              "claim_sha256",
+              "evidence_node_ids",
+              "maker_node_id",
+              "provenance_event_node_id",
+              "source_claim_file_ref",
+              "source_claim_line",
+              "source_ref"
+            ]
+          }
+        }
+      ]
     },
     "sourceNavigationEdgeProperties": {
       "oneOf": [

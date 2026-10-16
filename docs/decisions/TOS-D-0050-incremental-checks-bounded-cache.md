@@ -51,7 +51,8 @@ SQL comparison remain linear. This choice does not claim fully incremental
 source acquisition, OCR, translation, alignment or review. Those belong to their
 source owners. No UI rendering or public query contract changes here.
 
-Current behavior and limits belong to the
-[access builder](../../access/deploy/cloudflare-worker/README.md#incremental-checks-and-cache-retention).
+The Worker Python builder/cache references in this historical decision were
+retired with that runtime. The independent local processing-cache route is
+documented in [Access knowledge construction](../../access/README.md#backend-defined-knowledge-construction).
 `access/tests/test_processing.py` checks full/cached parity, dependency changes,
 missing references, partial scans, pagination, failure, corruption and eviction.

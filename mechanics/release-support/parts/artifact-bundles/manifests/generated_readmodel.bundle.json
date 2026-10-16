@@ -65,7 +65,7 @@
     ]
   },
   "consumer_contract": {
-    "stable_interface": "python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+    "stable_interface": "tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT",
     "consumer_expectation": "Downstream consumers select a tree_of_sophia_generated_readmodel_bundle from the registry latest read-model only after ABI verification, durable evidence promotion, materialized subject-store verification, source/trust-root matching, and ToS source-first export validators pass; generated exports remain subordinate to authored ToS meaning.",
     "registry_required": true,
     "subject_store_required": true,

@@ -1,0 +1,170 @@
+{
+  "pages": [
+    {
+      "page": 1,
+      "width": 300.0,
+      "height": 600.0,
+      "lines": [
+        {
+          "source_order": 0,
+          "x_min": 150.0,
+          "y_min": 10.0,
+          "x_max": 153.0,
+          "y_max": 15.0,
+          "words": [
+            "7."
+          ],
+          "text": "7."
+        },
+        {
+          "source_order": 1,
+          "x_min": 20.0,
+          "y_min": 20.0,
+          "x_max": 210.0,
+          "y_max": 30.0,
+          "words": [
+            "A😀",
+            "ß"
+          ],
+          "text": "A😀 ß"
+        },
+        {
+          "source_order": 2,
+          "x_min": 150.0,
+          "y_min": 510.0,
+          "x_max": 156.0,
+          "y_max": 515.0,
+          "words": [
+            "1"
+          ],
+          "text": "1"
+        }
+      ]
+    },
+    {
+      "page": 2,
+      "width": 300.0,
+      "height": 600.0,
+      "lines": [
+        {
+          "source_order": 0,
+          "x_min": 20.0,
+          "y_min": 10.0,
+          "x_max": 200.0,
+          "y_max": 20.0,
+          "words": [
+            "tail"
+          ],
+          "text": "tail"
+        },
+        {
+          "source_order": 1,
+          "x_min": 150.0,
+          "y_min": 30.0,
+          "x_max": 153.0,
+          "y_max": 35.0,
+          "words": [
+            "8"
+          ],
+          "text": "8"
+        }
+      ]
+    }
+  ],
+  "frozen": {
+    "unit_id": "tos-target-candidate-jenseits-p0001-random",
+    "page": 1,
+    "work_ref": "tos.work.fixture",
+    "expression_ref": "tos.expression.fixture",
+    "item_ref": "tos.item.fixture",
+    "file_ref": "tos.file.sha256.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "private": {
+    "schema_version": "tos_private_transfer_target_passage_candidate_v1",
+    "passage_candidate_id": "fixture",
+    "frozen_page_candidate_id": "tos-target-candidate-jenseits-p0001-random",
+    "frozen_candidate_page": 1,
+    "work_ref": "tos.work.fixture",
+    "expression_ref": "tos.expression.fixture",
+    "item_ref": "tos.item.fixture",
+    "file_ref": "tos.file.sha256.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "file_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "qualified_unit_key": "7",
+    "source_layer": "embedded-pdf-bbox-pdftotext-automatic-candidate",
+    "start": {
+      "page": 1,
+      "x_min_points": 150.0,
+      "y_min_points": 10.0,
+      "x_max_points": 153.0,
+      "y_max_points": 15.0,
+      "marker_basis": "exact-expected-single-line-number-label-in-pdf-bbox-layer"
+    },
+    "end_exclusive": {
+      "page": 2,
+      "x_min_points": 150.0,
+      "y_min_points": 30.0,
+      "x_max_points": 153.0,
+      "y_max_points": 35.0,
+      "marker_basis": "exact-expected-single-line-number-label-in-pdf-bbox-layer"
+    },
+    "lines": [
+      {
+        "page": 1,
+        "x_min_points": 150.0,
+        "y_min_points": 10.0,
+        "x_max_points": 153.0,
+        "y_max_points": 15.0,
+        "words": [
+          "7."
+        ],
+        "text": "7."
+      },
+      {
+        "page": 1,
+        "x_min_points": 20.0,
+        "y_min_points": 20.0,
+        "x_max_points": 210.0,
+        "y_max_points": 30.0,
+        "words": [
+          "A😀",
+          "ß"
+        ],
+        "text": "A😀 ß"
+      },
+      {
+        "page": 2,
+        "x_min_points": 20.0,
+        "y_min_points": 10.0,
+        "x_max_points": 200.0,
+        "y_max_points": 20.0,
+        "words": [
+          "tail"
+        ],
+        "text": "tail"
+      }
+    ],
+    "automatic_candidate_text": "7.\nA😀 ß\ntail\n",
+    "authority_boundary": "Private passage slice from the named automatic bbox layer, retained under its recorded rights and proposal status."
+  },
+  "private_sha256": "9b8e31fa7e45762f3667180bff3cbff9dd8b11fa314dc67d9f5da274cdc4d7c8",
+  "regions": [
+    {
+      "type": "page_region",
+      "page": 1,
+      "x": 0.06666667,
+      "y": 0.01666667,
+      "width": 0.63333333,
+      "height": 0.03333333,
+      "coordinate_space": "normalized_0_1"
+    },
+    {
+      "type": "page_region",
+      "page": 2,
+      "x": 0.06666667,
+      "y": 0.01666667,
+      "width": 0.6,
+      "height": 0.01666667,
+      "coordinate_space": "normalized_0_1"
+    }
+  ]
+}

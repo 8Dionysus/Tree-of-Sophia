@@ -3,6 +3,22 @@
 ToS publishes KAG independently from its software and corpus admission. This directory owns the bounded provider template and operator route.
 Published provider data lives in the selected immutable integration release.
 
+The installed `tos-kag-release` command owns export and publication. Provider
+controls use the same native module in publication; direct checks select
+`tos-kag-provider-controls`. Both commands are part of the native software
+package. Retained Python fixtures are historical compatibility evidence only.
+
+The native local contour refuses exports over 8 MiB, V1 revision manifests over
+64 MiB, generated releases over 1 GiB or 100,000 members, and manifests over
+16 MiB. Publication shares a 600-second deadline; each selected owner child is
+limited to 300 seconds and 16 MiB combined output. Status lock waits are bounded
+to five seconds. Filesystem operations poll cancellation between bounded reads;
+kernel calls retain the host execution envelope. Pre-cleanup failures retain
+their staging bytes; a failure during polled cleanup retains only remaining
+bytes, and a status failure after full cleanup can leave no staging directory.
+Cleanup enumerates at most 100,000 members, unlinks regular files individually,
+then removes directories deepest first, checking the whole clock throughout.
+
 `provider-template.json` describes the portable node, edge, index, projection
 and receipt routes. The publisher combines these declarations with one exact
 corpus export in a new external directory. The selected aoa-kag producer builds

@@ -1,0 +1,109 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.sumerian.adab.oim-a00645",
+    "version": 1,
+    "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.oim-a00645-name",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.artifact.sumerian.adab.oim-a00645",
+        "version": 1,
+        "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": "/custody/inventory_numbers/0"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": "/custody"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": "/layer_separation"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": "/authority"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": "/rights_ref"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.oim-a00645-source-note",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.artifact.sumerian.adab.oim-a00645",
+        "version": 1,
+        "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": "/path_identity/note"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.artifact.sumerian.adab.oim-a00645",
+            "version": 1,
+            "digest": "sha256:d905dc9f84d038e641c1910ce4f67929498dd6738fc4d109ccdbc8b38796352a"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

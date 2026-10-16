@@ -1,9 +1,10 @@
 # Native Expression / Edition growth
 
-`source_edition_commands.py` implements the separately delegated
-`expression.edition.create` and `expression.edition.recover` operations through
-the existing `source_commands.py` front door and shared
-`source_compound_commands.py` publication lifecycle.
+The native handler `native-expression-edition`, implemented by
+`rust/crates/tos-command/src/source_native_edition_cli.rs` and
+`rust/crates/tos-command/src/source_expression_edition.rs`, owns the separately
+delegated `expression.edition.create` and `expression.edition.recover`
+operations through the `tos-native-owner-command source-commands` front door.
 
 ## Source boundary
 
@@ -63,6 +64,9 @@ Requests use `tos_local_expression_edition_command_v1`:
 4. `expression.edition.recover` names the pending `transaction_id`, explicit
    `decision` (`resume` or `rollback`), and current `expected_configuration`.
    A recovery-only renewal never authorizes a new creation.
+
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
 
 All current Expression source-copy forms must be explicitly rebound. New
 Edition name and Claim statement forms are explicit source copies; each

@@ -1,0 +1,2835 @@
+{
+  "schema_version": "tos_legacy_python_oracle_capture_v1",
+  "oracle_id": "corpus-query-cases",
+  "repository_head": "cd5f3bc841cef964a9c13a7a800ba777d4e8b7ca",
+  "python_executable": "<captured-maintained-python>",
+  "owner_sources": [
+    {
+      "path": "access/src/tos_access/__init__.py",
+      "bytes": 757,
+      "sha256": "22a52fe6a2b75ecbb5f3aeb2d3d994eccb7883656862b8221b8f43729ba0bfdc"
+    },
+    {
+      "path": "access/src/tos_access/__main__.py",
+      "bytes": 1395,
+      "sha256": "26b1739003a711273a4abaaf7a2b0e2dd6384b67960ca72554b68db762feb439"
+    },
+    {
+      "path": "access/src/tos_access/addressed_replacement.py",
+      "bytes": 7287,
+      "sha256": "8f8625a83a1f20664f4488fefd57384668aa0ab36cd74a326df6f7b9d2b24b4f"
+    },
+    {
+      "path": "access/src/tos_access/catalog_index.py",
+      "bytes": 30250,
+      "sha256": "76b394efd007752b9ba3f0fac3c96dd8152f8b4b0b736d8ef51e373d26b04848"
+    },
+    {
+      "path": "access/src/tos_access/catalog_semantics.py",
+      "bytes": 32877,
+      "sha256": "889680cc4f1146f6a11e1df11e5f91eef8a150bbde5fb7538be772d5d90378df"
+    },
+    {
+      "path": "access/src/tos_access/cli.py",
+      "bytes": 14908,
+      "sha256": "a6d134a7b07317ebd3d861744496a7c3315d9bd4dbcde2f57020ee9bed27c47f"
+    },
+    {
+      "path": "access/src/tos_access/compact_lens_carrier.py",
+      "bytes": 4383,
+      "sha256": "b1d176d2d97f712429f2c802e7c5c301c0646a720e976449e943aa12bd761898"
+    },
+    {
+      "path": "access/src/tos_access/compact_lens_store.py",
+      "bytes": 7226,
+      "sha256": "01c06890aaca34961ed07dfd52f251c0650e8b1e54f105582f90c47ddb089105"
+    },
+    {
+      "path": "access/src/tos_access/compressed_search_bootstrap.py",
+      "bytes": 17972,
+      "sha256": "0b582dd56de26d43ee76d1201b8110a76db6019354fc64c19d29bdcc1e4ab154"
+    },
+    {
+      "path": "access/src/tos_access/compressed_search_store.py",
+      "bytes": 56822,
+      "sha256": "bfcb86cd208acd22e249fc8d1e1885b18ec074bc3cb5a0e0adcdfb71bbc7f0d1"
+    },
+    {
+      "path": "access/src/tos_access/core.py",
+      "bytes": 195484,
+      "sha256": "3dc63a817df986783051746f0e737d3ff7a4098eb20bf9aa5c48ab700db452f3"
+    },
+    {
+      "path": "access/src/tos_access/coverage.py",
+      "bytes": 5149,
+      "sha256": "03972bec42451c1d981616fdb16f6989e2ec421a834dbb1f29b47169bdc74a7f"
+    },
+    {
+      "path": "access/src/tos_access/data_access.py",
+      "bytes": 5972,
+      "sha256": "1b0fa98e4a87d9d88596dd3b2b669a98f01ec85ce206b2940572767d49a0ccee"
+    },
+    {
+      "path": "access/src/tos_access/data_snapshot.py",
+      "bytes": 18650,
+      "sha256": "2e25f6eb8594db38f2bc09d96baf28d9bb4770598fe704f9c60b4671050e99fd"
+    },
+    {
+      "path": "access/src/tos_access/disk_collections.py",
+      "bytes": 16615,
+      "sha256": "26d8f3f6307f5f724eacc909bd19e0b3da2bd2752ebb853d98677db0d34cd22b"
+    },
+    {
+      "path": "access/src/tos_access/doctor.py",
+      "bytes": 2707,
+      "sha256": "9455c0aea63d37981ead4f8a88e1e765211a4c9c38d2c85eedd0b0920b2c92e8"
+    },
+    {
+      "path": "access/src/tos_access/exploration.py",
+      "bytes": 22019,
+      "sha256": "2a921ac90334df647331e94af93ca99b634791da25f1e1023e4625a96fb123b7"
+    },
+    {
+      "path": "access/src/tos_access/exploration_origin.py",
+      "bytes": 5614,
+      "sha256": "d03838596f08fe98b1ccf2ba3110872920a40e7b1c7fe2e0831120ccf51dd173"
+    },
+    {
+      "path": "access/src/tos_access/http_server.py",
+      "bytes": 31428,
+      "sha256": "d74bf18e35e169c7b8377889842d2dc78a6fe7ca5ad9acfedd72975a99e6831b"
+    },
+    {
+      "path": "access/src/tos_access/human_form_codec.py",
+      "bytes": 9636,
+      "sha256": "b303d43b4c2d54223291a3280bab9c0f7b492b5f9291d382c663af2dfdc8d29b"
+    },
+    {
+      "path": "access/src/tos_access/knowledge.py",
+      "bytes": 325414,
+      "sha256": "97f49ddf7ae92dd2fca867b53afd2c64e8e9b89d224897a30ac4ff0914eb9d15"
+    },
+    {
+      "path": "access/src/tos_access/knowledge_compile.py",
+      "bytes": 18057,
+      "sha256": "fe2ef22e4d689ceaa362f2d6099f35727322ff41048b321814a50379c845c37a"
+    },
+    {
+      "path": "access/src/tos_access/lens_membership_index.py",
+      "bytes": 10160,
+      "sha256": "39824bc3ea5d641699a69faa2b41c9f6ed34d53964332f36fd586d3f0779151c"
+    },
+    {
+      "path": "access/src/tos_access/lens_pagination.py",
+      "bytes": 4908,
+      "sha256": "7b68c5ded511b7608af5b82a9bbbb775488f4e8a0ea72353d39c0e6e0cc4c0aa"
+    },
+    {
+      "path": "access/src/tos_access/locations.py",
+      "bytes": 4966,
+      "sha256": "2126ca666b89df8dcae468ad8277896f55863a54689d59e6a5694fa143c1f477"
+    },
+    {
+      "path": "access/src/tos_access/mcp_server.py",
+      "bytes": 28654,
+      "sha256": "016fc8e67782f90a2110e8366a117e2e7917ba437312fe5faa3313360b634e04"
+    },
+    {
+      "path": "access/src/tos_access/native_access_core.py",
+      "bytes": 44512,
+      "sha256": "7145766f1f5c4e8b13f2a1fef020ecec79e46f2cda43eda4b71d433ed7c068d5"
+    },
+    {
+      "path": "access/src/tos_access/native_core.py",
+      "bytes": 21591,
+      "sha256": "297964d1fc7a9d32f0fa3fbe21619e6022ae5ed6e7cbfbe7d027c9eeb3db01e8"
+    },
+    {
+      "path": "access/src/tos_access/native_core_lazy_session_result.py",
+      "bytes": 33435,
+      "sha256": "cd7aab93924218b2343c26471cfa918532509c10763c63958073a21933dc55e1"
+    },
+    {
+      "path": "access/src/tos_access/native_core_probe_session_result.py",
+      "bytes": 5033,
+      "sha256": "c05ffe8faaa69f0f9dc939285681b46f3636220e2d30daf794968e20679d2ff9"
+    },
+    {
+      "path": "access/src/tos_access/native_core_search_request.py",
+      "bytes": 6097,
+      "sha256": "0d3d643fa83a5d15b149e31f1667a9b45407c64323a90d6f11a0d99073874dd2"
+    },
+    {
+      "path": "access/src/tos_access/native_core_selection_paths.py",
+      "bytes": 22059,
+      "sha256": "d3b7a94e1678d5282615934feea9a82e07e2abd55d47f7317128db0f69da2d57"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session.py",
+      "bytes": 36890,
+      "sha256": "b84dfec2398bdcd8aadd5d4e9d7d75f37b0128abd94dcd430e5a4278c84c13d8"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_admission.py",
+      "bytes": 4677,
+      "sha256": "2349f5c917c88089cdaa9bd3e77f9e2de76f70349c7b8d0dfb4f6941cdd250ac"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_census.py",
+      "bytes": 9198,
+      "sha256": "c811f371cd6e6d3857077735607fb4196eb95e89a3e1968f2a3ea8f899e6fa74"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_control.py",
+      "bytes": 11528,
+      "sha256": "d8c7116b4c3607237a164aceebedc498e2ca38165f7983a982460c6c46f04b6a"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_factory.py",
+      "bytes": 12967,
+      "sha256": "16d8b012e1d03b21dc9fbcf577374239a1ffbc9f4bf414a35961e2d9f8f422ba"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_launch_state.py",
+      "bytes": 10233,
+      "sha256": "18920466d3ddd433f22b235d3dcdf20276d567eebf8ef21d237f87e19946e25a"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_metadata.py",
+      "bytes": 7513,
+      "sha256": "15a7111566e30b415caf40855f848259e99c3450aadaf1beb5512411f4c21d09"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_receiver.py",
+      "bytes": 31192,
+      "sha256": "85f4ddbbf3d1d1658e5504ee474d8eaf9afcff6f2fd14dcb70cd1c321fbd5745"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_result.py",
+      "bytes": 7736,
+      "sha256": "4ac7e876af4b0bcf8d846afc831d7054854447ffd4ad65b439b404a35bb0e970"
+    },
+    {
+      "path": "access/src/tos_access/native_core_session_startup.py",
+      "bytes": 11896,
+      "sha256": "a9c32b24215b9a73d0463bae1b9e4016598295605b081f382ed5d4412f73905d"
+    },
+    {
+      "path": "access/src/tos_access/native_core_snapshot.py",
+      "bytes": 49488,
+      "sha256": "477746bb64550426755894faa5825a391ac9145d838d03b981868e95d79a943b"
+    },
+    {
+      "path": "access/src/tos_access/native_dispatch.py",
+      "bytes": 15731,
+      "sha256": "f5910c46786c4a13ae1aa8fe58266e85983ffc16eaafd6ce4079b3751b5875e0"
+    },
+    {
+      "path": "access/src/tos_access/native_edge_borrowed.py",
+      "bytes": 17801,
+      "sha256": "5438e264559fb3eb09a4ebf08e0b3e48fd4bb3f881c6662e1128524c2b111eab"
+    },
+    {
+      "path": "access/src/tos_access/native_edge_capture.py",
+      "bytes": 26412,
+      "sha256": "2a25ff2f4a64a4ab0f23213b8e92c862e50fbf9d32306b64c44e4be8f7d13307"
+    },
+    {
+      "path": "access/src/tos_access/native_edge_capture_oracle.py",
+      "bytes": 23533,
+      "sha256": "f8c85c0228de960030e99b6db3dac7ccc6f39b4ed2e7389bc9fb8378f5141143"
+    },
+    {
+      "path": "access/src/tos_access/native_io.py",
+      "bytes": 36553,
+      "sha256": "a0753c97c5d25c8b65741149f7a9fda23053d44486305410652b59d3449ae053"
+    },
+    {
+      "path": "access/src/tos_access/native_mcp.py",
+      "bytes": 14537,
+      "sha256": "c0a555254634dc7ec4bbc2e4e81905732c2d3bf4fe840a9add6959292e2c1d27"
+    },
+    {
+      "path": "access/src/tos_access/native_selected_source.py",
+      "bytes": 7829,
+      "sha256": "23d7d8ffb3e61b16e79e7fc22d3473be2be7c56d18ccf2e955c58b55c4270ff1"
+    },
+    {
+      "path": "access/src/tos_access/native_source_provider.py",
+      "bytes": 26406,
+      "sha256": "e9910955479b6593b78ca394e07a67a86a9113748c7feb78db02e34a0bf6a57b"
+    },
+    {
+      "path": "access/src/tos_access/normalization_cache.py",
+      "bytes": 10993,
+      "sha256": "b7c1b30647dac035a1636ae644c01ffeadbe82330e320a27ad27157cb2c78f7d"
+    },
+    {
+      "path": "access/src/tos_access/portable_paths.py",
+      "bytes": 706,
+      "sha256": "dc5d114b8e4ab0bc68258760a06f3d774826b16e8be07f74a3e31ba50cb73512"
+    },
+    {
+      "path": "access/src/tos_access/prepare.py",
+      "bytes": 21339,
+      "sha256": "3e217c4b7a4d1157612fd919b75b1e6a87cbdad6d8900eea04e1fb3486569b49"
+    },
+    {
+      "path": "access/src/tos_access/prepared_catalog.py",
+      "bytes": 11152,
+      "sha256": "a10834ba1ef0876d50efc80dde6e712d9a9a3a9addf5b911aa9f5b131961c197"
+    },
+    {
+      "path": "access/src/tos_access/prepared_native.py",
+      "bytes": 12440,
+      "sha256": "0223c15bf5b23a118f6db6a42cacf52bf5014e237681c147eb6cd631353c1689"
+    },
+    {
+      "path": "access/src/tos_access/prepared_native_maintenance.py",
+      "bytes": 6978,
+      "sha256": "555900434ea5a800c117c4f65bdaa220448f9edca6ee1439a4e158d426984f2c"
+    },
+    {
+      "path": "access/src/tos_access/prepared_neighborhood.py",
+      "bytes": 8349,
+      "sha256": "f218dafd47f49bd9186e103d8786c43095f61f67bee06bc38de20bce6a56fc91"
+    },
+    {
+      "path": "access/src/tos_access/prepared_publication.py",
+      "bytes": 37968,
+      "sha256": "4824b10d5935f7087a0333be09d03876339f25d89fc16988f92949f275cfd608"
+    },
+    {
+      "path": "access/src/tos_access/prepared_search_reuse.py",
+      "bytes": 22403,
+      "sha256": "40deb49b238b2b3217ee1a61a547ffc38e6da2bf8e510713e63d74073cc7c525"
+    },
+    {
+      "path": "access/src/tos_access/prepared_semantics.py",
+      "bytes": 7142,
+      "sha256": "b5a8c10763b9e1cbebeb5cc6a0c1eae282fc9fba0eb731bc72521930dc00d44e"
+    },
+    {
+      "path": "access/src/tos_access/prepared_source_binding.py",
+      "bytes": 16832,
+      "sha256": "9d5d69c4a553d9c6611fae372f01f96e81a0eb4fff0c7fb39852f67795971615"
+    },
+    {
+      "path": "access/src/tos_access/prepared_source_dependencies.py",
+      "bytes": 36077,
+      "sha256": "6266237aa04458151a1b31a6ae9eb25fc1559521a9afa555cc7f1d1c2bbbfb03"
+    },
+    {
+      "path": "access/src/tos_access/prepared_source_publication.py",
+      "bytes": 7541,
+      "sha256": "5fe48c42af225578d21e436d3722280ff88dd156287355ee3183719e3a23ee2f"
+    },
+    {
+      "path": "access/src/tos_access/processing.py",
+      "bytes": 17643,
+      "sha256": "babd6ab225f44afee07467ce995415c45ed2d05657f39d098838eed42f11505b"
+    },
+    {
+      "path": "access/src/tos_access/processing_closure.py",
+      "bytes": 7783,
+      "sha256": "007b86f38cf36e4baec938a21899e12ffb0486c165c2258acb4d2f43a3c1f946"
+    },
+    {
+      "path": "access/src/tos_access/projection_diff.py",
+      "bytes": 17712,
+      "sha256": "840af1ff2e8c4f29434d0f0c686793b0a9e88222502325cbb3f31b677512c930"
+    },
+    {
+      "path": "access/src/tos_access/projection_mutation.py",
+      "bytes": 24173,
+      "sha256": "0edf84fff7093f0e0652c95c27492f37d51292005a1f555aab3d067d8f035aa3"
+    },
+    {
+      "path": "access/src/tos_access/projection_store.py",
+      "bytes": 29760,
+      "sha256": "92ab0066bc2e0b936b68f7b253fd86765789a37550ef29a4aec062c1338fb4d6"
+    },
+    {
+      "path": "access/src/tos_access/published_checkpoints.py",
+      "bytes": 9272,
+      "sha256": "343f655a79790511d6dc38f6faa9135f0ec23ee7f1b2e4e24fb221a95a386fa9"
+    },
+    {
+      "path": "access/src/tos_access/published_exploration.py",
+      "bytes": 24489,
+      "sha256": "4639397d48d24da0cd757632ed4da6c642dff1587565cce55ab309e9a9e2f55e"
+    },
+    {
+      "path": "access/src/tos_access/published_lens.py",
+      "bytes": 40663,
+      "sha256": "23c4673e91bed73613780c437bd7ec31a508a903d33a9a8a860776d96dcb8f0d"
+    },
+    {
+      "path": "access/src/tos_access/published_read_metadata.py",
+      "bytes": 11410,
+      "sha256": "c57e4add9dfc0650dc07041fcf6d6b9dcd9325a8bbd38c8e5912aa16ed37076d"
+    },
+    {
+      "path": "access/src/tos_access/published_read_model.py",
+      "bytes": 22235,
+      "sha256": "0f2df59e7678f3a9f7ef79d157f40ebed3901e2c096fef175cf362a6ef236ef1"
+    },
+    {
+      "path": "access/src/tos_access/published_search.py",
+      "bytes": 19466,
+      "sha256": "00a3fbacfa583d00e3ccf61b09dd128f0539d8d293bb408134ccd21310463efd"
+    },
+    {
+      "path": "access/src/tos_access/published_source_navigation.py",
+      "bytes": 8033,
+      "sha256": "c789dc4024d0276a2bb68627b5ad41c9633848e5d7f30724ef74755f42cde816"
+    },
+    {
+      "path": "access/src/tos_access/query_store.py",
+      "bytes": 40203,
+      "sha256": "683fe8e82dd18f1975ad701494af788783ba9c8c85d09a18c7d2b58f9b2d025e"
+    },
+    {
+      "path": "access/src/tos_access/readable_context.py",
+      "bytes": 30727,
+      "sha256": "d573d4e5071217de6e6eb20bfbf30085fabb36404196de95a930bc6e3cbc252b"
+    },
+    {
+      "path": "access/src/tos_access/reference_doctor.py",
+      "bytes": 11510,
+      "sha256": "688eaded2002a55e8d66ab2bb0d05a523c0fe4bb963574027693495a192d8244"
+    },
+    {
+      "path": "access/src/tos_access/release_state.py",
+      "bytes": 29667,
+      "sha256": "907c196eb544607de84b49818869f0125510b120e4da426f28c1c634450b5453"
+    },
+    {
+      "path": "access/src/tos_access/search_read_model.py",
+      "bytes": 51342,
+      "sha256": "15e8bed6c81199b26eb3814ccf261f148e9e1a8c339830de5db44dc512672128"
+    },
+    {
+      "path": "access/src/tos_access/search_reverse_codec.py",
+      "bytes": 3130,
+      "sha256": "ad9600a8df9e9ba742a5493c2301023cf7664574eb584f3990fdd7b2f1696005"
+    },
+    {
+      "path": "access/src/tos_access/semantic_index.py",
+      "bytes": 38060,
+      "sha256": "41f60f11819f255c6f04f8cde6413ca18557f58d462306efb89b917b8ef57dff"
+    },
+    {
+      "path": "access/src/tos_access/source_assembly_normalization.py",
+      "bytes": 13102,
+      "sha256": "e8612986db360f03dad9268205297053ba608332c1f742ccfc71a138b805cb94"
+    },
+    {
+      "path": "access/src/tos_access/source_navigation_query.py",
+      "bytes": 32147,
+      "sha256": "e933b2e4de298d7e5718908d7c388a756af2eba4583145fd19b6c1a2e7b9ae69"
+    },
+    {
+      "path": "access/src/tos_access/source_read.py",
+      "bytes": 73273,
+      "sha256": "f81d9be15534a9622c2056ec47a22e160ddd29f6a0d54e3c4aee07e73672decb"
+    },
+    {
+      "path": "access/src/tos_access/source_read_errors.py",
+      "bytes": 290,
+      "sha256": "cfdcbba3a184a3ad26e7d139f6da898c551efc068d6aab61c5c241f41f4ca968"
+    },
+    {
+      "path": "access/src/tos_access/source_read_owner.py",
+      "bytes": 11964,
+      "sha256": "a8e291b67c5b67f4d9dced592a2237d83239286231dac26f293f2f8a8cb39282"
+    },
+    {
+      "path": "access/src/tos_access/source_read_projection.py",
+      "bytes": 3641,
+      "sha256": "20593bfcea2aeb76557b203fc143fac6e2b729538a43d402cbf429a6c97d90f1"
+    },
+    {
+      "path": "access/src/tos_access/temporal_comparison.py",
+      "bytes": 17033,
+      "sha256": "0d2b553a81c759f33bd886d9b8dd855c622b89da81d22d88dd224bccd065ed17"
+    },
+    {
+      "path": "scripts/acquire_registry_sources.py",
+      "bytes": 11343,
+      "sha256": "f78240e67bb7e6ca485bc553a2e6aee971af3f4ccbb20a25542f6ef27be21ad3"
+    },
+    {
+      "path": "scripts/acquisition_batch.py",
+      "bytes": 7051,
+      "sha256": "e6b9f7467814e9368f21cb1d4c86635f638970935c4421a15d55abcbd3f34c3c"
+    },
+    {
+      "path": "scripts/acquisition_handoff_adapter.py",
+      "bytes": 5973,
+      "sha256": "1e4f1325756b81a8d15eca39c4c211fc04a345e63d8d29eb7c839a329ca4e0db"
+    },
+    {
+      "path": "scripts/acquisition_native.py",
+      "bytes": 6267,
+      "sha256": "53b98ef7372d342aaad76982e17da370232ad7d36347928629a2de7d273f0ee4"
+    },
+    {
+      "path": "scripts/authored_corpus_source_read.py",
+      "bytes": 19499,
+      "sha256": "12e58742fdc49a38fc1722b0c6fafeba9c0e0b407daa4aa96ae703697a320410"
+    },
+    {
+      "path": "scripts/bibliographic_claim_assembler.py",
+      "bytes": 29269,
+      "sha256": "171e70b2d77585135e9069571534d6abe7950a6f1f3adc91f5ed4827edb0a886"
+    },
+    {
+      "path": "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
+      "bytes": 32099,
+      "sha256": "529927110affd9a6059c85867ad8a66e8db0c438e3327239a430261efd7f5283"
+    },
+    {
+      "path": "scripts/build_antonovsky_1911_technical_markup.py",
+      "bytes": 90825,
+      "sha256": "277e8464dc8a8f124e5863d126592115b8ba6a71f26d545d4ce43f9fd1733671"
+    },
+    {
+      "path": "scripts/build_source_resource_inventories.py",
+      "bytes": 6193,
+      "sha256": "31988286af420be8524230b0bd5618665ecc1de3e17e580cc8a4a126d2412023"
+    },
+    {
+      "path": "scripts/build_source_witness_bibliographic_graph.py",
+      "bytes": 2491,
+      "sha256": "00dea8d023f60c3bf66c5c1ef614b331e02e346e479bd88afc92a9ccce342e1f"
+    },
+    {
+      "path": "scripts/build_source_witness_catalog.py",
+      "bytes": 30121,
+      "sha256": "cf46896daa378930fc666727606836ceb7aa2a8a7be95b4eb3f22ad1255bacfd"
+    },
+    {
+      "path": "scripts/build_tos_corpus_index.py",
+      "bytes": 2608,
+      "sha256": "6af57424771575ba0e55f2d8359282e3b618684ab249a14025693e0e079847fb"
+    },
+    {
+      "path": "scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "bytes": 1504,
+      "sha256": "b54ee0d9056efb22dc3d1618e9e7ac925c3dd6d33887742505f49c32fcb1d832"
+    },
+    {
+      "path": "scripts/claim_navigation.py",
+      "bytes": 12336,
+      "sha256": "2c87ecfba5e93892cdab9ed5f698393e390f6fe7246cb3ff992b6dea2f5b1afc"
+    },
+    {
+      "path": "scripts/corpus_admit.py",
+      "bytes": 5850,
+      "sha256": "6a6312bd00070aa92be5211209f509b84d817a94dba8f65f281620e75503fd47"
+    },
+    {
+      "path": "scripts/corpus_archive.py",
+      "bytes": 46387,
+      "sha256": "58503c14ba1da445ae2547485ce5e559053e397d8967bf81fc029eb1b7c2c619"
+    },
+    {
+      "path": "scripts/corpus_build_worker.py",
+      "bytes": 8064,
+      "sha256": "d5af16048749e0e2a63a460a162b3aab9aed14aa2ffcd84c3f6e0e68ca998ed2"
+    },
+    {
+      "path": "scripts/corpus_locator.py",
+      "bytes": 26282,
+      "sha256": "fd28ad5ec1298448e46b29bbd32f68962eda36f4953eed1eadeee388ac1597db"
+    },
+    {
+      "path": "scripts/corpus_r2.py",
+      "bytes": 26037,
+      "sha256": "67c16019ce985b4ae7f8c63ed2d353e0ed105f4169a54be5b7c675c423be682a"
+    },
+    {
+      "path": "scripts/corpus_source_retirement.py",
+      "bytes": 8442,
+      "sha256": "f1dd386487582fe69a3d4abc85b475447e89ea2a94c36d03491bbee9ea106fe6"
+    },
+    {
+      "path": "scripts/corpus_source_validation.py",
+      "bytes": 19615,
+      "sha256": "0150ec3b9bdff01d8a84cb9e0754d7935c3a8888d1b5348d8041a002abde8cd9"
+    },
+    {
+      "path": "scripts/corpus_store.py",
+      "bytes": 34119,
+      "sha256": "aba53fe86b4726505b481c92e6caa8eb1809601e4f9bfcc92278359e4e0cedf4"
+    },
+    {
+      "path": "scripts/downstream_status.py",
+      "bytes": 21089,
+      "sha256": "80e55d6c0a836ef73c61fdfc2dd0d23da96cf71ddf4850cdac2576c62d7e5b3e"
+    },
+    {
+      "path": "scripts/material_discovery_semantics.py",
+      "bytes": 4614,
+      "sha256": "d3e7afafeceb187d411b1cdd8b101c7a87b02383ef3d3fad7c698ee546c35659"
+    },
+    {
+      "path": "scripts/native_text_binding.py",
+      "bytes": 47568,
+      "sha256": "84113ed2ea0334cb9b5ce44baa940b7199893ab5389cabb78659cdcd1b2d058a"
+    },
+    {
+      "path": "scripts/native_text_return.py",
+      "bytes": 15872,
+      "sha256": "ccec680659bb339ccf3edd452a7aa21ffea29ea9d93a38c551274575a9c253e6"
+    },
+    {
+      "path": "scripts/partitioned_projection_common.py",
+      "bytes": 7108,
+      "sha256": "fd1f3a55e3b0c10f2d60490d605abcd221725107ce8a029010f68e62bcfc5010"
+    },
+    {
+      "path": "scripts/philosophy_atlas_projection_common.py",
+      "bytes": 47739,
+      "sha256": "b5182a7e290cace1406d882007278e1400e2015cfa61d94173917c75e1509927"
+    },
+    {
+      "path": "scripts/philosophy_graph_projection_common.py",
+      "bytes": 50655,
+      "sha256": "d736568e31b090f6460daafc60a56f6693aba3e131f621fde690095e2aed25a2"
+    },
+    {
+      "path": "scripts/philosophy_graph_views_common.py",
+      "bytes": 18623,
+      "sha256": "bbd9e20c52ff82ac39da0ad8ea675789711d61887136e012d916172281ff19ca"
+    },
+    {
+      "path": "scripts/philosophy_multilingual_common.py",
+      "bytes": 14815,
+      "sha256": "0a145b6781ba2f170aafe804daf92d017bd42c3eaf719485e09ab354b1c216ce"
+    },
+    {
+      "path": "scripts/philosophy_native_command.py",
+      "bytes": 2951,
+      "sha256": "86dccbd2cd88726a86cf54215bfbf1835b87f6b833beef82dbddfe65c7759cc4"
+    },
+    {
+      "path": "scripts/philosophy_post_planting_audit_common.py",
+      "bytes": 16867,
+      "sha256": "9a3243ae4b5addea901c3e5393ef516ee8303c7f5abc523c2ffcdc0c8a1a361e"
+    },
+    {
+      "path": "scripts/plant_prepared_dossiers.py",
+      "bytes": 13224,
+      "sha256": "639a7be22ee013f0692d66dd86ae4461dcbe9652f7410dd46da14ca7b9ab9dea"
+    },
+    {
+      "path": "scripts/plant_table_i_prepared_dossiers.py",
+      "bytes": 116568,
+      "sha256": "37dae5ec990beba8b60fc5fb597c8ac496b54ea50912327fb7f5304bf4214e57"
+    },
+    {
+      "path": "scripts/query_source_witness_bibliographic_graph.py",
+      "bytes": 2820,
+      "sha256": "ba41eed7f12b2b0b0f123aaabf32d4e705e8bc1c32224122f3d92cc6c7d2a71a"
+    },
+    {
+      "path": "scripts/source_agent_publication.py",
+      "bytes": 57530,
+      "sha256": "2300799af91eaf9db1443bffb5b305b2fd0c9bfab594a9bd5257c52619ece2a9"
+    },
+    {
+      "path": "scripts/source_bibliographic_responsibility.py",
+      "bytes": 4407,
+      "sha256": "5d81df0aee99385c5af5def6ab455f75ac957dec8076c07cf535e9fb631524fc"
+    },
+    {
+      "path": "scripts/source_bibliographic_topology.py",
+      "bytes": 27636,
+      "sha256": "a0317de42284ab3e5111d79d08f5a4504877a62a8fe389c6615f680f9327359c"
+    },
+    {
+      "path": "scripts/source_catalog_projection.py",
+      "bytes": 57182,
+      "sha256": "aa5bf934932f6a02d6a184ebeab68263eea1e553e5257789dfd147938d706f21"
+    },
+    {
+      "path": "scripts/source_claim_catalog.py",
+      "bytes": 14211,
+      "sha256": "23fcdb0c9f2a377e7966dcf970361b3ca440455296f92cc2082bdd9743bac75c"
+    },
+    {
+      "path": "scripts/source_claim_publication.py",
+      "bytes": 23836,
+      "sha256": "0fa51c931312f1ec420153bea436afed906a1b16f5ca29e63cb1ad738dabdbd2"
+    },
+    {
+      "path": "scripts/source_document_catalogue.py",
+      "bytes": 1639,
+      "sha256": "ec109209caf59f299c185ecd7de1089e31610b77eb3cda604f083151bade2670"
+    },
+    {
+      "path": "scripts/source_identity_proposals.py",
+      "bytes": 13224,
+      "sha256": "96539b59a4c86175b868bb8ff6a0ee2d7d9663ff9987ca4e378d0d0a995a813a"
+    },
+    {
+      "path": "scripts/source_metadata_catalog.py",
+      "bytes": 16433,
+      "sha256": "7bfcb3445ed59e288dd60f8ee0f4b436d4958d3ab73da804288f6f74c0ef8acf"
+    },
+    {
+      "path": "scripts/source_metadata_publication.py",
+      "bytes": 18498,
+      "sha256": "43b188428694b487bae45414aa88b7e407a55267ae23d523a9152ed661f2d755"
+    },
+    {
+      "path": "scripts/source_metadata_snapshot.py",
+      "bytes": 7995,
+      "sha256": "3632d442f3fda3dcd4c29598597852f84e2edbd2ad9171c4352de73ebabd4f1b"
+    },
+    {
+      "path": "scripts/source_object_link_read.py",
+      "bytes": 7047,
+      "sha256": "e7421c9882f2c4bc198176a0c768109af6d61e3a5f351bbe8086a205706902e5"
+    },
+    {
+      "path": "scripts/source_owner_claim_profiles.py",
+      "bytes": 31364,
+      "sha256": "4cec627126f35cc3975efe965ea1177be3d63d32055bb6779172b7030930469b"
+    },
+    {
+      "path": "scripts/source_owner_context.py",
+      "bytes": 11761,
+      "sha256": "0bb984830b5bc234f97b9e17b17a3f94d5360e17889a32ea1e10a1ffc60e2b2d"
+    },
+    {
+      "path": "scripts/source_owner_record_profiles.py",
+      "bytes": 12396,
+      "sha256": "29e920f3c172bfc55310ad79a5669787d015e05cf33497853fc4aae2ac3ee7da"
+    },
+    {
+      "path": "scripts/source_payload_batch.py",
+      "bytes": 17075,
+      "sha256": "5a099145120b876eb89da6fafe2e2a50f33e7a744ac4d38b7b553335340b5825"
+    },
+    {
+      "path": "scripts/source_payload_custody.py",
+      "bytes": 12694,
+      "sha256": "0705384b2982be92b6074bfd122491613bb861da8653bf3a8dbc423c7bcdc77d"
+    },
+    {
+      "path": "scripts/source_payload_import.py",
+      "bytes": 79720,
+      "sha256": "096961bf2deacb99bf6db6f47b2f3782614145c3939b7ccccff2661c52cc729a"
+    },
+    {
+      "path": "scripts/source_payload_r2.py",
+      "bytes": 27025,
+      "sha256": "c3e93d1c53347312a63723a2686b711e0d425249328219dfcd836ea78ec38cae"
+    },
+    {
+      "path": "scripts/source_record_profiles.py",
+      "bytes": 56546,
+      "sha256": "87703622c296bf1d5b87775f2b4a9ec2c70d7083aca62b2500475dcec341e2a9"
+    },
+    {
+      "path": "scripts/source_text_layer_proposal.py",
+      "bytes": 42607,
+      "sha256": "f1a6687874269a1b6aa96cdedf263be2a421c7ecd92bbb8715532e0d82fc1c0c"
+    },
+    {
+      "path": "scripts/source_text_unit_proposal.py",
+      "bytes": 25768,
+      "sha256": "4dde53fbdccc07b47b1fb048736ec7ee1383a82cba18d44de15e6e220599e87b"
+    },
+    {
+      "path": "scripts/source_witness_bibliographic_graph_common.py",
+      "bytes": 103130,
+      "sha256": "00b09e31a53d3f17d318be353ac7a3a06061c0e6a16cca5810514dbd0ed5bb23"
+    },
+    {
+      "path": "scripts/source_witness_human_forms.py",
+      "bytes": 46829,
+      "sha256": "59f6bb4c09fed4c5b2649b9ff71aa3fd66e5f131a806b2481fd44e84b57c880b"
+    },
+    {
+      "path": "scripts/source_witness_projection_coverage.py",
+      "bytes": 8150,
+      "sha256": "32d22b5f09bef5267baf4931d183bb74fff36a3139ae38bd4c352395929e8d3c"
+    },
+    {
+      "path": "scripts/text_packet_projection.py",
+      "bytes": 9805,
+      "sha256": "814271787ce72971d58d83fca25d7d431e6742a1fa4c310dbbf15c4e76d8a78c"
+    },
+    {
+      "path": "scripts/tos_corpus_index_common.py",
+      "bytes": 69483,
+      "sha256": "c1c08b9a2fd19f955c17d986ca063076defe4d4daf89f17437a5de9bb8a46f37"
+    },
+    {
+      "path": "scripts/validate_source_witness_bibliographic_graph.py",
+      "bytes": 4538,
+      "sha256": "dbf6e176f47b55c7c9ebef1bcd02f7adce860d736f5400ce66269a5c4f4f228f"
+    },
+    {
+      "path": "scripts/validate_source_witness_foundation.py",
+      "bytes": 727049,
+      "sha256": "effd2ee4341e9b8b640c251adff39a4aed2533f17afb640eecde11b5917d7ef0"
+    },
+    {
+      "path": "scripts/validate_tos_corpus_index.py",
+      "bytes": 4554,
+      "sha256": "6298d7b1fcdca26490de02f2eca2a21f598f4b7526c82e72ab2adc69ddf08e71"
+    },
+    {
+      "path": "tests/conformance/rust/compiler_source_cases.rs",
+      "bytes": 95954,
+      "sha256": "754e9640ff558f5c79ad94d7c79ceba8405638d886c9bedad46a4b4471aa039f"
+    },
+    {
+      "path": "tests/conformance/rust/native_corpus_query.rs",
+      "bytes": 13781,
+      "sha256": "dab95dbccbc9b296e948176452ca0a1b8d69cb5c5b07659f3337d3d792a8262c"
+    }
+  ],
+  "input_witness": {
+    "selected_source_inputs": {
+      "entry_count": 337,
+      "total_bytes": 2670721,
+      "files": [
+        {
+          "path": "ToS/candidate-intake/AGENTS.md",
+          "bytes": 1831,
+          "sha256": "d3a8aee27a1bc13d241b01de8f50ed350cc721b0a98072f8c64f9b1676bc0649"
+        },
+        {
+          "path": "ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv",
+          "bytes": 21900,
+          "sha256": "81e3b365e70c86896d7e6e47ece3f08fc5ac18546f8eef593ae3e6804fdd392a"
+        },
+        {
+          "path": "ToS/canon/AGENTS.md",
+          "bytes": 1825,
+          "sha256": "4749e265ec08138582f56af1cf8027268afa6cd234b919aa1678b9029c4d577f"
+        },
+        {
+          "path": "ToS/canon/analogy/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bee-honey-analogy/node.json",
+          "bytes": 1073,
+          "sha256": "7689445d40ef74e525f726b027b5e3d817b700ca52105cb1122c8d4febaa58dd"
+        },
+        {
+          "path": "ToS/canon/concept/becoming/node.json",
+          "bytes": 1026,
+          "sha256": "8856e76b6e3365dec3a9b762aad992a7787a29cce49c3374913ec901756461f2"
+        },
+        {
+          "path": "ToS/canon/concept/overcoming/node.json",
+          "bytes": 956,
+          "sha256": "1276b2ee26f504226cd989dc47ab472d94d148c95cc871fcb31e0d8d9a3c8b21"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/beginning-of-zarathustra-going-under/node.json",
+          "bytes": 1098,
+          "sha256": "af66585f77b5671f5ea64aee7764a26526cf2b6ebc2c41ac65654669a66e4649"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bestow-and-distribute/node.json",
+          "bytes": 1171,
+          "sha256": "40ef0b1e5da9ccb8b5a452ad54c8dc9845466eaa2894f3e174042b0fcc0b582a"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bless-sun-for-overflow/node.json",
+          "bytes": 1017,
+          "sha256": "66e6cf7e323cf3268a78cb400dfee37930ac71b3bccb3c06202d98cab05629a5"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/dawn-address-to-sun/node.json",
+          "bytes": 911,
+          "sha256": "0f0eb00cccf1f3df87f777008bcd8bc9138e11695666c530775ba2385fadfb35"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.human-forms.json",
+          "bytes": 5658,
+          "sha256": "ad4e8fa5ba371c6e1a8f9fd14a3bb0170d3d670dc564573c0fa87d894d1842f0"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.json",
+          "bytes": 1384,
+          "sha256": "653fe8cdae3984bf762162db90737a6507533497274cda971b389180dee03dea"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/descend-into-depth/node.json",
+          "bytes": 1051,
+          "sha256": "45f1bc560d23f4af3bf6d34bc1e71fd8e96547cf577b7694191f9a9501187f09"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/descent-named-as-go-under/node.json",
+          "bytes": 1164,
+          "sha256": "512fb8e0a2a4000325fd2404d893eed310c1eaeb6b1b63b19b93fac0dcbe5a97"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/go-under-to-humans/node.json",
+          "bytes": 1364,
+          "sha256": "add11efb35eaf9e5538990d0915380a26b299d4b276f6f2f18a138cf0a6bd860"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/golden-water-flows/node.json",
+          "bytes": 1039,
+          "sha256": "7581a472dbcfb628949d1394e2018a6ae33244c89c238703a659cfda4fb4623c"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/heart-transformation/node.json",
+          "bytes": 1062,
+          "sha256": "5f9231a734e3cae57a1f333946ab8ed4969df8f1d05ec6f2bd5c3d67849afa6a"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/morning-wait-for-sun/node.json",
+          "bytes": 895,
+          "sha256": "7ae5d05fe9591864fd2b337051551f00f4e153ce032095aebbd93fe9626655dc"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/need-hands-for-giving/node.json",
+          "bytes": 1041,
+          "sha256": "80eaf8658051b2c5c4a8b90c13e3184bc1d9165b5db0a9128761ee8e48883fec"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/receive-overflow-from-sun/node.json",
+          "bytes": 1186,
+          "sha256": "46c832f96f739c546aeefc95c7ac607bc2d12e11ddbb3fd8ab76bc07cf8852c4"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/reflection-of-bliss-is-carried/node.json",
+          "bytes": 1048,
+          "sha256": "697412430103c48d4733277aa8cc84e46a46a069e61e9c02352f055bdbb4b647"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/request-blessing-from-tranquil-eye/node.json",
+          "bytes": 1065,
+          "sha256": "fd9b6212e31843fa2d2a9aed0f3320b30294cecfa7c820638d4d224babe181e6"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/request-blessing-of-cup/node.json",
+          "bytes": 1043,
+          "sha256": "5c30b95eaafb9192823f849d5f0cfd3f415c32e1f78aadce3c90a797c12706df"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun-ascends-to-cave-10y/node.json",
+          "bytes": 908,
+          "sha256": "a995478d806ccfc86b8366cd539134582c198c1bbcaf531dfbfd2ce3d21ddca5"
+        },
+        {
+          "path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun-evening-underworld-light/node.json",
+          "bytes": 922,
+          "sha256": "a3084071bf760ec4279ff107527b1cd8502264d188973c31443b28bba62190f5"
+        },
+        {
+          "path": "ToS/canon/lineage/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/becoming-to-overcoming/node.json",
+          "bytes": 2966,
+          "sha256": "aa6f89075a0e11cc5f90998a9b1e8b5ec0df5dc850b83fabd07158457c7f7875"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/beginning-through-going-under/node.json",
+          "bytes": 968,
+          "sha256": "f9578ccd17db48207b635c3c0a8182aee3441c27581211cf09f0549545056221"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/blessing-is-reciprocal/node.json",
+          "bytes": 1062,
+          "sha256": "544608d03e3a5cb1de8f754bf35198b781274b71262c62a104bd435ae8f6551e"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/descent-is-required-by-gift/node.json",
+          "bytes": 1160,
+          "sha256": "662a3c281abe97c19a0293a6e6a9a6b85268c72ecf9004d90ea1bcf82031e85e"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/excess-seeks-recipients/node.json",
+          "bytes": 1150,
+          "sha256": "750b372f980034945e67ae1958ed5a6d91e8ff258644099c9406064df4eda478"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/gift-has-dual-mode/node.json",
+          "bytes": 1069,
+          "sha256": "ed7ebf9425c75ef4d1d2fe866a2302f7a1a7591b658f8db6655b781c0ac9fe10"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/go-under-is-human-name/node.json",
+          "bytes": 1157,
+          "sha256": "ea327203e84552f3fdcad2f7cfce453a642d927a52e3d721723b7a02998a6a87"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/happiness-is-relational/node.json",
+          "bytes": 1048,
+          "sha256": "8ca02b715a6a65f6a91933316021c41d94e41130a7e851ab2b424c7413f7a32f"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/overflow-can-be-received/node.json",
+          "bytes": 1097,
+          "sha256": "770b2751dc71b090d8d8cf007da318d779d8366882e89d1169f496066108c361"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/reflected-light-can-be-carried/node.json",
+          "bytes": 1102,
+          "sha256": "6e3f0e5c327f7a4f9464dac0d7cdf446c32552b4baf3acea91ad5cdf1c37950e"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/return-as-action/node.json",
+          "bytes": 1160,
+          "sha256": "a82d26c150a88648cb103f7045fe6fa6c2643e5c4a62a789b8408c35aabae548"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitude-as-ripening/node.json",
+          "bytes": 1156,
+          "sha256": "6ad2998dd90499f670f7861a748153354d655b39a855f35d41bd573443c759b5"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/tranquil-vision-without-envy/node.json",
+          "bytes": 1109,
+          "sha256": "f7a098e3f7bf81a5c59960c95478a12aebfd098e893436aa6be7a522ac0a6630"
+        },
+        {
+          "path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wisdom-can-overfill/node.json",
+          "bytes": 1156,
+          "sha256": "b52d17b9a675d9883d5b165d4ccb340640468b171c0161dbf9cf6ebd7d2a463f"
+        },
+        {
+          "path": "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+          "bytes": 30069,
+          "sha256": "08039b49130f36a2ed4869421d5123885ee69e06f514807e14b656e8cff53d0f"
+        },
+        {
+          "path": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+          "bytes": 14135,
+          "sha256": "951067db45d8cad8fad485adbbc3294dda7c824647dc820dd2529716b8317ed8"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cup-wants-to-empty-again/node.json",
+          "bytes": 895,
+          "sha256": "74c88f02c1bc8586a3a51ea04a39442aa16856954dc693a8651b594216ee6866"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cup-wants-to-overflow/node.json",
+          "bytes": 873,
+          "sha256": "6235b873219b06678c7d62b6a0b82a8a641ce819ae55bc42adc27ae33e68adf0"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/overfull-wisdom/node.json",
+          "bytes": 1166,
+          "sha256": "a6283832ec07232ff49c107b495ced9b03175b39f935544d6d518181cd654127"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/revaluation-of-joy/node.json",
+          "bytes": 894,
+          "sha256": "d9cdfb8c12dfa0fb21dcc7fd91b7ca98c3bcad42460913186fd90923e40d6940"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solar-happiness-requires-recipients/node.json",
+          "bytes": 1055,
+          "sha256": "d326bf3e8b1fe4af0d4eb4f08417b4c4e817781663eead669ee0b83f17f7d735"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitary-ripening-10y/node.json",
+          "bytes": 1162,
+          "sha256": "047bacf31e4724223cb3261699e133ea05dfc788c5a2e68152b16029e7b8fdcb"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun-would-grow-sated-without-triad/node.json",
+          "bytes": 924,
+          "sha256": "d2a0f9df84c46e0c8b231bb92042d0074c07b5ca762257f1efd27748f0c7ce8b"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/tranquil-eye-without-envy/node.json",
+          "bytes": 1032,
+          "sha256": "56a78ab30de95899f13dc2d937ed556f0dbd5b500c5c691b4824c5d708e479e4"
+        },
+        {
+          "path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra-wants-to-become-human-again/node.json",
+          "bytes": 1373,
+          "sha256": "d3c92a0664959e96d038d73db6644d1e48e4df9555734f525eb129fba94b5c1b"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/all-too-great-happiness/node.json",
+          "bytes": 890,
+          "sha256": "0eace379735fb4d728f73840ef71d12a472178c2f99b6a83cfadc0757afa3f69"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bee/node.json",
+          "bytes": 914,
+          "sha256": "8b172532198745dc6213a4d4b10ec38d5764f0929e04d94441384798177b9981"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bestowal/node.json",
+          "bytes": 860,
+          "sha256": "de8d9978e4698b34c45fc6667b337030dd4e5b8736759cefe36053127ef8b9dd"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/blessing/node.json",
+          "bytes": 887,
+          "sha256": "391d0c149f8a6d73205890a8ca59e93667acf55b691fcc46b5521eba84401fc8"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bliss/node.json",
+          "bytes": 848,
+          "sha256": "3c8fd4cc51177ba4396bec20bad02003fbb3f466186c7a19064516579e4e546e"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cave/node.json",
+          "bytes": 875,
+          "sha256": "1fb86341fcc5a9486dbf32ff4de8104669ba9ece4d690dab06654a09b599e5d6"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cup/node.json",
+          "bytes": 874,
+          "sha256": "09c07aa6e0e9f19131bfde3b0da35b0096907788c1805829f2ed6ec33855c8cc"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/dawn/node.json",
+          "bytes": 846,
+          "sha256": "64971a33bebb7f1025b3a571dd6bde4bc8b853ea315b0371395265dce0c4d958"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/depth/node.json",
+          "bytes": 860,
+          "sha256": "0c749552ebca4a07c489870688cc19314e8bd477a45a55e2b4663ccde5dbc18f"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/distribution/node.json",
+          "bytes": 886,
+          "sha256": "b4a2c6145f56aacc8ff008199d4981120bd545337416422348c5fb4b1343e9ff"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/eagle/node.json",
+          "bytes": 862,
+          "sha256": "f969d471249b737e970d36fd89990a8e05a70bb0b7cb5198b513ec15dcb1a5e7"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/emptiness/node.json",
+          "bytes": 864,
+          "sha256": "45a545b5daea0f7819c1ac0f6baa7396945c97796a454ec8cffb5d5c7f517536"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/envy/node.json",
+          "bytes": 851,
+          "sha256": "649de3b54c16f84411480515dede998b1c6ef5f705c50f6eaa5e0950d4113e09"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/evening/node.json",
+          "bytes": 856,
+          "sha256": "00653e67ef94f55cddb246b141da8fe63b097adf24a1430cba21451f3015390c"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/folly/node.json",
+          "bytes": 875,
+          "sha256": "04b96bf9fcd501f114e4e396f8cda29d194483628af824b4a184a49232515c26"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/go-under/node.json",
+          "bytes": 885,
+          "sha256": "e8e1e1461401b7f442d946608e333633fc043991be952d3a8af91281204490ec"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/gold/node.json",
+          "bytes": 857,
+          "sha256": "cf9c7d228b594ea45897ada2aeb66937d03f112d99f8de21a0a0dc3d7b012a70"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/happiness/node.json",
+          "bytes": 891,
+          "sha256": "fd78885be60be530550c822c00b24a0e3ea1e3b061621419382e92030ac53c8e"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/heart/node.json",
+          "bytes": 868,
+          "sha256": "32d86169ea950af7ac20d89cf2a8ddf8f3851b23f04cf05fb57648434c47d316"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/homeland/node.json",
+          "bytes": 908,
+          "sha256": "7020fba9e16e84f4e208d50c31e0ea6d7030819debd30421e2832158c6a94904"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/honey/node.json",
+          "bytes": 899,
+          "sha256": "6aeb1cd77895d57c5dbb4702ec7fc422a3ab9d250c6b3216f523c0130d87ca41"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/human/node.json",
+          "bytes": 927,
+          "sha256": "54466605844cc3debd3cf150f94962b3f3d007b2f5fc0081d19910f22940f332"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/humans/node.json",
+          "bytes": 895,
+          "sha256": "edfc25a9acc2fa45cdc6e6746b1600f69bb5f2f174f7103d7685f3fff3c9c594"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/lake-of-homeland/node.json",
+          "bytes": 905,
+          "sha256": "888fe726a49afbdfecc1ec730b8435b7b267b6d6346c963ac19ed23f27ab7ad6"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/light/node.json",
+          "bytes": 889,
+          "sha256": "99b12b0bbb847b80b6fe252a82a00cb8047962824ea9b0721538bf060a9f1b63"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/morning/node.json",
+          "bytes": 837,
+          "sha256": "3dc4315ae6c83a33d68cbaab394be9ecb57b9b8b9aa52377b22c174a40d18f91"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/mountains/node.json",
+          "bytes": 888,
+          "sha256": "d9419d7004a94b9f6a3f42495b0eff8a68aa8f694b23ee7d56312cdd77435fda"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/outstretched-hands/node.json",
+          "bytes": 897,
+          "sha256": "b0d1ff6fcda42572c5f32624901da2d4b92c1fbb2cb2f2f2f4a9fcf65f329d3e"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/overflow/node.json",
+          "bytes": 871,
+          "sha256": "e31a7ffb1930f0a8b2f7d76ddeced6511039b4d51c8bcbc75d030be48df7a49f"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/path/node.json",
+          "bytes": 873,
+          "sha256": "721a752cf6a656981619c7861e68a161160ee66f755615d1aaf5dd772c0412f6"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/poor-among-humans/node.json",
+          "bytes": 894,
+          "sha256": "a411c8c1b02ddd0f6f86224bd50abde395f25a700f6b75dcd22da868fff56e5d"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/recipients-of-light/node.json",
+          "bytes": 891,
+          "sha256": "1bcf2de04cd7b9ab583c6261279a977dde5d34788addd63fcbe9792399952c76"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/reflection/node.json",
+          "bytes": 893,
+          "sha256": "0cc86db5de8473011bbd27df42538360823a554f39644a95e037cbc085569454"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sea/node.json",
+          "bytes": 863,
+          "sha256": "8cd80bd9246f4f611f17a53de701912c0cdefa415682b821d1126796f90ea0a6"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/serpent/node.json",
+          "bytes": 868,
+          "sha256": "d3c7450e0063620136e2ce75694a9d8472c57b654f6cf5a984b017bfb88db4f9"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitude/node.json",
+          "bytes": 915,
+          "sha256": "87d079cf000916c62ff44641366076ff38b90752105415c147c566319564805e"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/spirit/node.json",
+          "bytes": 886,
+          "sha256": "54678e8b9e3227bb70089f15e3fca578441f54798f1209c7042e1059c1544326"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun/node.json",
+          "bytes": 912,
+          "sha256": "a8397e3adfff7a1c49308447dce4de770dabb1c256fc95a840d4e9a50ac54be6"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/tranquil-eye/node.json",
+          "bytes": 904,
+          "sha256": "faca3dbfdee81666b44f1b547aea28dc5deb2b2bbfa2e260de162d23aca206bd"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/triad-zarathustra-eagle-serpent/node.json",
+          "bytes": 931,
+          "sha256": "dcc83fc24f1a22eb33a25a1bf4eac07b6f1b0529db2aa2a89eeb916f8273b76a"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/underworld/node.json",
+          "bytes": 887,
+          "sha256": "5bdae33b3ad067cbce4245fd1dcde99f0b7de0947413e2865663fd601148901d"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/water/node.json",
+          "bytes": 862,
+          "sha256": "0bfce1068fa404dc524ebebb9b45411a4949c20204d45b70fef69f8661a6aab7"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wealth/node.json",
+          "bytes": 874,
+          "sha256": "0f21a1fbaccfb48a3808d77a599502847e6f4547d6fc96fc332a53375d8d4667"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wisdom/node.json",
+          "bytes": 860,
+          "sha256": "1d217b36430701454e0a84ae3d92ea82d459e97b1255477844114b952ad58818"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wise-among-humans/node.json",
+          "bytes": 895,
+          "sha256": "1686ae795a472bc5eabbad44d6c465f78ed0d9c9c132cf7a2d004def9bbad562"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.human-forms.json",
+          "bytes": 6931,
+          "sha256": "20778c5c592a3c49ab5c509b5d918123621e9c0f2324c7557d2040fad20495c2"
+        },
+        {
+          "path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.json",
+          "bytes": 1656,
+          "sha256": "853cb3e29de20be8398e006e71630a0dd1696fea3878e3a1e94971b52c5b4f4f"
+        },
+        {
+          "path": "ToS/canon/synthesis/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-reflective-origin/node.json",
+          "bytes": 1010,
+          "sha256": "ba3e258dacbb7a625f018fb44712a5ef33a5e17c6912f93f36b7fba0ac38b2ec"
+        },
+        {
+          "path": "ToS/contracts/AGENTS.md",
+          "bytes": 2341,
+          "sha256": "ddb06f5c855fb5c7aff7722ec90642d2b316210e976c7dae83d342ed8c34023a"
+        },
+        {
+          "path": "ToS/contracts/access-request.schema.json",
+          "bytes": 9346,
+          "sha256": "885c0be76e1ef44a6809945eda395e3830fd429ef81ca0eb7a9ab5712ae2bc4d"
+        },
+        {
+          "path": "ToS/contracts/acquisition-batch.schema.json",
+          "bytes": 6800,
+          "sha256": "43445c580399ec5aa3013254fdc04143c945666ba8c874d2c137f24e6b8799a9"
+        },
+        {
+          "path": "ToS/contracts/acquisition-provenance-delta.schema.json",
+          "bytes": 2400,
+          "sha256": "9a8ab57ceb87c299ecae69e8275613625d19684c30070f1c83a57eab1b4bda7a"
+        },
+        {
+          "path": "ToS/contracts/artifact-source-witness-v2.schema.json",
+          "bytes": 11257,
+          "sha256": "bdedd892c9cce4120dd77fb78d4bb953127919149ba2a7583b7934dec7f15215"
+        },
+        {
+          "path": "ToS/contracts/artifact-source-witness.schema.json",
+          "bytes": 11046,
+          "sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+        },
+        {
+          "path": "ToS/contracts/artifact-visual-representation.schema.json",
+          "bytes": 6972,
+          "sha256": "2317c4671aee44730c9b4176511853a01e4729714fbfedf1fcb0c01b9cc3c506"
+        },
+        {
+          "path": "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+          "bytes": 8828,
+          "sha256": "358fb2effe1393e77cbaabca5cd3da659c006bbf78870548890661b9d07545ad"
+        },
+        {
+          "path": "ToS/contracts/bounded-translation-research-input.schema.json",
+          "bytes": 13020,
+          "sha256": "25c93ac6f1f1c557e720742a1aa11bf961c937e92b8e2d69445404b16592a522"
+        },
+        {
+          "path": "ToS/contracts/claim-display-fields.schema.json",
+          "bytes": 2445,
+          "sha256": "b1cec0d2104822e74a522847eae9bc65b4ce89db61d8d339de1aed6c973a80f7"
+        },
+        {
+          "path": "ToS/contracts/claim-packet.schema.json",
+          "bytes": 5632,
+          "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd"
+        },
+        {
+          "path": "ToS/contracts/collection-work-boundary-map.schema.json",
+          "bytes": 6591,
+          "sha256": "edfdd60bdc77dbf75e59bc2b420912d2b62363a46c8e42f3c95a4e5db08d4e38"
+        },
+        {
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "bytes": 8744,
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+        },
+        {
+          "path": "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+          "bytes": 11874,
+          "sha256": "e203e6c10eab31ff7d6d87cae56b6accc77f31b1fd66f6a5c2b0933ea5beae70"
+        },
+        {
+          "path": "ToS/contracts/critical-edition-witness-admission.schema.json",
+          "bytes": 14037,
+          "sha256": "976489b0088a0d6e943781a9e00a8dfe6bc7c3da34fd6244e1686e30bb0b18e7"
+        },
+        {
+          "path": "ToS/contracts/document-catalogue-claim.schema.json",
+          "bytes": 7527,
+          "sha256": "1e3d42da65403eaefff1da668c31843dbe8b7f0c3420cda0a82356e7de085be6"
+        },
+        {
+          "path": "ToS/contracts/document-record.schema.json",
+          "bytes": 1602,
+          "sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef"
+        },
+        {
+          "path": "ToS/contracts/edition-reading-admission.schema.json",
+          "bytes": 8871,
+          "sha256": "a62d3f5e9182d557c35070d9d18b32a8c1685b998c4d837feb2da34a291d8ade"
+        },
+        {
+          "path": "ToS/contracts/epistemic-evidence-projection.schema.json",
+          "bytes": 4883,
+          "sha256": "0baf90f7966714d4ce4141d61552416186050f97d7a9b391b077c399b8c43459"
+        },
+        {
+          "path": "ToS/contracts/experimental-translation-candidate.schema.json",
+          "bytes": 9533,
+          "sha256": "a9c8a1c7d6266515ad5cdbc70376f08e7adcdfa8919ebc4e69dfe6c20b34caa0"
+        },
+        {
+          "path": "ToS/contracts/experimental-translation-episode.schema.json",
+          "bytes": 32739,
+          "sha256": "388a5008add385eb528cea843c72250e7148cc54e88f248f392df83fa93ccc7b"
+        },
+        {
+          "path": "ToS/contracts/expression-derivation.schema.json",
+          "bytes": 1621,
+          "sha256": "6f78998c37b54beef3822688fcd9985186c21621e8e61ef1a23b1e92abfc237e"
+        },
+        {
+          "path": "ToS/contracts/first-publication-chronology.schema.json",
+          "bytes": 4580,
+          "sha256": "84ad73a011a1bc951d31401d0872da17d6f031270f4a8a047b675e32bd3812e8"
+        },
+        {
+          "path": "ToS/contracts/formation-relation-claim.schema.json",
+          "bytes": 2468,
+          "sha256": "85a67de9cae49ba5771efde9d8569b675c0aa0cbfa2f5c101316135571282ba1"
+        },
+        {
+          "path": "ToS/contracts/german-assisted-source-review.schema.json",
+          "bytes": 8856,
+          "sha256": "491c85ffc0837c2c1d1248ae6ca9973b1e1d888f8e43725016ef55ffa4bfd529"
+        },
+        {
+          "path": "ToS/contracts/german-source-triangulation.schema.json",
+          "bytes": 16586,
+          "sha256": "522e94f24eacc4404c0ca26cf506e80894b312b468921f1317dda9263aa0455f"
+        },
+        {
+          "path": "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+          "bytes": 25666,
+          "sha256": "7ef08d7840c40ffe7342c6356b1df8dd19c577a5d4eb95845bc8ab49441c81ca"
+        },
+        {
+          "path": "ToS/contracts/graph-query-plan.schema.json",
+          "bytes": 3445,
+          "sha256": "2ee33b77c496e732e22932e8fc24b1c0fe4087745eac434946d9580edf9e3afd"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+          "bytes": 6117,
+          "sha256": "9173ee5c2bb9349be004ae39f57204c34840d604f96e387d04f09d9778e11e17"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+          "bytes": 12796,
+          "sha256": "126dd8d448581b976062ff58bd2064b3de3b9d8c505b387bd2fbf90712b0d1ae"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+          "bytes": 11506,
+          "sha256": "db229136190729a8f6648c12c3a5ed3a1c00c79b460593e73d80c8fc1a5ef877"
+        },
+        {
+          "path": "ToS/contracts/historical-claim.schema.json",
+          "bytes": 10780,
+          "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+        },
+        {
+          "path": "ToS/contracts/historical-context-claim.schema.json",
+          "bytes": 3187,
+          "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+        },
+        {
+          "path": "ToS/contracts/historical-context-record.schema.json",
+          "bytes": 10879,
+          "sha256": "6f025746a87ffc2a7be8d7a745bcd6cd9438fa9d04e0add43fb1a9854d44efef"
+        },
+        {
+          "path": "ToS/contracts/historical-record.schema.json",
+          "bytes": 3705,
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2"
+        },
+        {
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "bytes": 2486,
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2"
+        },
+        {
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "bytes": 1527,
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e"
+        },
+        {
+          "path": "ToS/contracts/human-form.schema.json",
+          "bytes": 16342,
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980"
+        },
+        {
+          "path": "ToS/contracts/intellectual-formation-record.schema.json",
+          "bytes": 4412,
+          "sha256": "8228e76df5b471e334c952918bb23928f4eede10b3e57657e2456d056b61aa09"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-authority.schema.json",
+          "bytes": 2011,
+          "sha256": "8ae72f8e24ffba3bec8c7f4ff0d3c56d90e9e4f33b4795aabe217df3dd5e50cd"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-batch.schema.json",
+          "bytes": 3566,
+          "sha256": "66144d009da2268001b356ba4ef39da09dc408e43b1edceee9c6a3c17ea924ea"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-competence.schema.json",
+          "bytes": 1586,
+          "sha256": "b0f6466b7eb175b9c9b4f1e5f4df0f93c853d0ebc9acb5f3606fe052ede19cb1"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-policy.schema.json",
+          "bytes": 2094,
+          "sha256": "77d4956a4d9f6f5ea8a78a338a655d39957c9cbe0a5d425bab77ca3ad301b511"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "bytes": 5043,
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298"
+        },
+        {
+          "path": "ToS/contracts/knowledge-query-vocabulary.schema.json",
+          "bytes": 6064,
+          "sha256": "aac63ec709e34679539d96c523bc86df3d77a8d2f4315155586e8a8fc4d466df"
+        },
+        {
+          "path": "ToS/contracts/laboratory-sample-plan.schema.json",
+          "bytes": 5659,
+          "sha256": "0c7019f06ee5159610d83244543cb89f6ae55f4eea3738db57c23b97619d17af"
+        },
+        {
+          "path": "ToS/contracts/lexical-comparison-claim.schema.json",
+          "bytes": 3976,
+          "sha256": "0720a6a93c4c9e671ac875100ba6afc0e0f34cf3aef5a4b93b43f6cacb2a9fbe"
+        },
+        {
+          "path": "ToS/contracts/lexical-description-record.schema.json",
+          "bytes": 5835,
+          "sha256": "268b1d163386dc408a02ad27c353e0ba46cad22c580caaf8219af9657b264adc"
+        },
+        {
+          "path": "ToS/contracts/lexical-index-plan.schema.json",
+          "bytes": 10202,
+          "sha256": "b7348fc25e1954a043bcc8e30579d70ee93949bbd1717bf993b4080600e1a717"
+        },
+        {
+          "path": "ToS/contracts/lexical-index-projection.schema.json",
+          "bytes": 14424,
+          "sha256": "80a327913f6ea61c62f303577b5799be396db506089e6fb92ed8e3fdc5ca562c"
+        },
+        {
+          "path": "ToS/contracts/lexical-recurrence-plan.schema.json",
+          "bytes": 8002,
+          "sha256": "524d93c61b9d28a2a7281dc97d3f31a4aa0732d442bb7beba75872cac0197982"
+        },
+        {
+          "path": "ToS/contracts/lexical-recurrence-projection.schema.json",
+          "bytes": 8579,
+          "sha256": "661a53ddc3153fa98b973fec87676d8f8b04614669f9e7bb707ca1b2d16f3fde"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-plan.schema.json",
+          "bytes": 12160,
+          "sha256": "41cb2c56edb259994ef073ef4d4c2965d7e0bf5ecaf313b9a416e03169b3def3"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-receipt.schema.json",
+          "bytes": 13317,
+          "sha256": "5120eb7a26263c392d9011182ac3172f42665be4ce9b1bad10c70b421ed30194"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-row.schema.json",
+          "bytes": 3050,
+          "sha256": "7e21f763d5826680eb4b0dc2bb2ff5f82ecbbf88211e66eabcf4cc7992f7befb"
+        },
+        {
+          "path": "ToS/contracts/linguistic-description-record.schema.json",
+          "bytes": 5764,
+          "sha256": "c6cb0872541eebdb10c22b80bc15d7037e58d0070f594509167967d767b65d36"
+        },
+        {
+          "path": "ToS/contracts/linguistic-relation-claim.schema.json",
+          "bytes": 1003,
+          "sha256": "0ab386046f113d6c16fc6e627153e37baa38231383cd7bee51ced3f0d3cfd73e"
+        },
+        {
+          "path": "ToS/contracts/lived-witness-packet.schema.json",
+          "bytes": 18822,
+          "sha256": "0f9a9a3aa8f8ddc406a7a11b23dcbc3934b317a6be1201d285efa4ef0f09ce79"
+        },
+        {
+          "path": "ToS/contracts/manual-error-ledger-record.schema.json",
+          "bytes": 6574,
+          "sha256": "9d4dbe5455b705bba2f6f123176eb9b4afe850c47c05da30b78a24122491b162"
+        },
+        {
+          "path": "ToS/contracts/manual-gold-assurance.schema.json",
+          "bytes": 14738,
+          "sha256": "3bcad7751309658ba2c38f020f50558a8c6bd40179b3da31b7b50f65b9baa943"
+        },
+        {
+          "path": "ToS/contracts/manual-gold-status.schema.json",
+          "bytes": 4030,
+          "sha256": "26f56b8e8bbe343c0ca1cdce7357453a7ff2a3b96aaf79073b7ce0d27167b2e7"
+        },
+        {
+          "path": "ToS/contracts/material-discovery-record.schema.json",
+          "bytes": 12974,
+          "sha256": "0e8093dc2ccb0410c455a875f746b2202e852051455ac26444ceb10aea948a07"
+        },
+        {
+          "path": "ToS/contracts/morphology-census-result-receipt.schema.json",
+          "bytes": 21174,
+          "sha256": "1228c378de944fb361cb0725be56d6cfeebf6f2a83564845e14802c41c003fbd"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+          "bytes": 10977,
+          "sha256": "7433b21c9a5eb9d405d54cc472c5671a2d7ce770f829ae0b8c9a9c3519907110"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+          "bytes": 11816,
+          "sha256": "80372c7521f13f7026dcb13bd203c6189366b91f6ccda6527654d9f5f2d4d396"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+          "bytes": 7287,
+          "sha256": "16a4b86d8051af2aa62766dfcb6b59a78a6632e94c79e4a571339b5eb256bab7"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-row.schema.json",
+          "bytes": 2782,
+          "sha256": "1a7734a4a20c05268fe8cb1a724405bf88ed138f8d936f7c775dd0dc3123af39"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+          "bytes": 18462,
+          "sha256": "328be01e9dc71f3cbe1148c78630d4fcef3dfe42e44a91d28c0fea689a684c2a"
+        },
+        {
+          "path": "ToS/contracts/morphology-evaluation-plan.schema.json",
+          "bytes": 11648,
+          "sha256": "7efc8eeb49380cda387387898432666b7add0188b12a9558a70916c3ab1a83d6"
+        },
+        {
+          "path": "ToS/contracts/morphology-input-receipt.schema.json",
+          "bytes": 5533,
+          "sha256": "fa0f95170ad727cee670df2793d2dc34a7b026bd499092a33058b355029ac25d"
+        },
+        {
+          "path": "ToS/contracts/native-local-text-read.schema.json",
+          "bytes": 4034,
+          "sha256": "fce62db90ff0224e70980b54b4123141c575f21182054f56cc0bfb7c320cb921"
+        },
+        {
+          "path": "ToS/contracts/native-page-ocr-comparison.schema.json",
+          "bytes": 12056,
+          "sha256": "e3c656b790c00be278ea36e9ebae8d8469529e63470d70a0a4b5cec75312e7a7"
+        },
+        {
+          "path": "ToS/contracts/native-private-text-read.schema.json",
+          "bytes": 3589,
+          "sha256": "b8654549c2a0f4803cb69e0b2807be6ba010df05c3b58022bacaece30c3eda52"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-binding.schema.json",
+          "bytes": 1885,
+          "sha256": "da7fa3c3cb42ba0e83f632034daf024f826dc73926d0c09f1878c13ecc7d629d"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-comparison.schema.json",
+          "bytes": 7194,
+          "sha256": "80e3e14673eb1f782980700d86efa9cc3a4a183f7bd818f963d3d4498140351b"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-derivation-comparison.schema.json",
+          "bytes": 6984,
+          "sha256": "c73f2b147da964325d244c5d3feb5c9e60bf1fe4d4d3d320ee6403443b6ac6ae"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-quality-basis.schema.json",
+          "bytes": 3828,
+          "sha256": "152f7b0aee8fee47603b8fc9aa283a7776b8c09f34415226523c68150d95c929"
+        },
+        {
+          "path": "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+          "bytes": 1781,
+          "sha256": "36dcdc9b41f91360950a99f1678afef6626a620a314a38108f39353cce64e5b4"
+        },
+        {
+          "path": "ToS/contracts/native-text-unit-binding.schema.json",
+          "bytes": 3255,
+          "sha256": "957dbe7d4309068b7d4c19ccf0a4c5a65f0ec0c39a829e0aaf3e4ea6732ed3a2"
+        },
+        {
+          "path": "ToS/contracts/native-translation-alignment-record-v1.schema.json",
+          "bytes": 10767,
+          "sha256": "5fa732463078756c9ac511ea9c57e00c02e4ff77948465375b1271f3d30726a4"
+        },
+        {
+          "path": "ToS/contracts/numbered-unit-page-map.schema.json",
+          "bytes": 8874,
+          "sha256": "43ecb437771e8b13b64159630776c232a6b2c778c63b8691043c8f3c70374da0"
+        },
+        {
+          "path": "ToS/contracts/object-link-claim-v2.schema.json",
+          "bytes": 1462,
+          "sha256": "ff0046e2e05dd67c68a75af02429d609baae75dba8db3aa4147ac0297cd50e92"
+        },
+        {
+          "path": "ToS/contracts/object-link-claim.schema.json",
+          "bytes": 2303,
+          "sha256": "fbc77bdc6c756daf5f26c4474b59b3f8c79e8cfb8e8f12b12052ec0802da8de8"
+        },
+        {
+          "path": "ToS/contracts/occurrence-description-record.schema.json",
+          "bytes": 2418,
+          "sha256": "a63e24545410c7f6da351cd14af6f219902e2f9fdcb39a2b472105b3b1cdf86a"
+        },
+        {
+          "path": "ToS/contracts/ocr-visual-sample-plan.schema.json",
+          "bytes": 9423,
+          "sha256": "efc5af081de74da05360644e23455527214b8e836ebc37c8aa95a6a38f729324"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate-queue.schema.json",
+          "bytes": 4892,
+          "sha256": "4dfae12cde9388b9f97a28d1afbf6d753d2a9d119f487c00e033700fe0fcdb36"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate-receipt.schema.json",
+          "bytes": 8288,
+          "sha256": "c8c7d5f1a7e88d300fa2d5853f19187a1a3d6f5208cbbb1f4f489c68edf438ed"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate.schema.json",
+          "bytes": 6549,
+          "sha256": "bfccc41d462838019d29a78c8868155441d980025fde13c7f8c092479dc06c8b"
+        },
+        {
+          "path": "ToS/contracts/open-work-channel-timing-receipt.schema.json",
+          "bytes": 2857,
+          "sha256": "bed2e70d8b92844aeecdcda37ece41426711dfee1ba5bea896e8afd355a2feaf"
+        },
+        {
+          "path": "ToS/contracts/open-work-readiness-plan.schema.json",
+          "bytes": 8484,
+          "sha256": "12343a5e5db2579b51eec4b0479512fa2cafae7c93ae27c0413f3e3b814fced1"
+        },
+        {
+          "path": "ToS/contracts/owner-local-source-context.schema.json",
+          "bytes": 1353,
+          "sha256": "4261950c0f2f48001498b0bee0cbe1ff4e702af45688090e8123f080b5c17127"
+        },
+        {
+          "path": "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+          "bytes": 7416,
+          "sha256": "8ced68903506d323be129d84c4e40093ed153ad01f6962063d59e7e767d575e8"
+        },
+        {
+          "path": "ToS/contracts/parallel-witness-structure-map.schema.json",
+          "bytes": 10847,
+          "sha256": "19d9847a7ee3091a6869f5907009ceab6662712c6dc3e2984e62cd5d48ba7a02"
+        },
+        {
+          "path": "ToS/contracts/partitioned-projection.schema.json",
+          "bytes": 3950,
+          "sha256": "55969fd4b048f93a73b6a6740ea7392ac7b475baa9520bf75352ed6be283ea3c"
+        },
+        {
+          "path": "ToS/contracts/philosophy-atlas-projection.schema.json",
+          "bytes": 13662,
+          "sha256": "e65ce0cdad3661bbb35a5d8d07134c587e684ef19a83dd920575974e70468373"
+        },
+        {
+          "path": "ToS/contracts/philosophy-graph-projection.schema.json",
+          "bytes": 31123,
+          "sha256": "49a3f59da10cf8823c45446c52c9237f4d2f96d28af4e068a8a36acac9814b19"
+        },
+        {
+          "path": "ToS/contracts/philosophy-graph-views.schema.json",
+          "bytes": 9208,
+          "sha256": "cd5d10561ba2c692b9766294d82ecf8b5e60a9b76428ebe8695e68bb2c43b601"
+        },
+        {
+          "path": "ToS/contracts/philosophy-source-planting.schema.json",
+          "bytes": 6106,
+          "sha256": "749f55fb4b54474e06259b63bf5f99f4074dcb17ba2c3110c49e54f2e09721fd"
+        },
+        {
+          "path": "ToS/contracts/private-laboratory-evidence-handoff.schema.json",
+          "bytes": 12373,
+          "sha256": "1b65ff635b5a12c5957eab87c7de336ad68fc0017b5f9ab2b6ea83a525495fec"
+        },
+        {
+          "path": "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+          "bytes": 8742,
+          "sha256": "eecf83a707f6588412032c0dbc570744634e5eb45bb5aad7abe2c3e1116add59"
+        },
+        {
+          "path": "ToS/contracts/provenance-event-v2.schema.json",
+          "bytes": 34901,
+          "sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0"
+        },
+        {
+          "path": "ToS/contracts/provenance-event.schema.json",
+          "bytes": 4253,
+          "sha256": "d4f9a09f65c91c478dfc93d4b26feca70e8204b2b946c9eee6bac4c8c872d0a2"
+        },
+        {
+          "path": "ToS/contracts/provision-activity.schema.json",
+          "bytes": 8607,
+          "sha256": "27d53ef0f739b4e640311d625b9abd6a6cab0c21e808a9872776d1f660c0451b"
+        },
+        {
+          "path": "ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+          "bytes": 10806,
+          "sha256": "b0594f9064b132b2654722919ebea8ed6ef4aafc7a940d8c4779fe41e9fc9bdf"
+        },
+        {
+          "path": "ToS/contracts/public-native-text-authority.schema.json",
+          "bytes": 3566,
+          "sha256": "8ca983cc9347c044f2f1b0b58fdf70e933d73f5d54b168f3b8d7f173c4f66f55"
+        },
+        {
+          "path": "ToS/contracts/public-native-text-create-owner.schema.json",
+          "bytes": 10668,
+          "sha256": "a71a29e30d3279e9d20367ea665acc3d495f37b9097c28cada5dde2709df260b"
+        },
+        {
+          "path": "ToS/contracts/reception-record.schema.json",
+          "bytes": 7303,
+          "sha256": "f7bb253ac378449b29eaa46464136cb3c75892bc735a41df9e978a38b0fb8923"
+        },
+        {
+          "path": "ToS/contracts/record-version-view.schema.json",
+          "bytes": 7514,
+          "sha256": "e543b1b235302ec547128564f1e0792ecbc091eec9acca8b1d789c2ea2ff3cf0"
+        },
+        {
+          "path": "ToS/contracts/research-corpus-record.schema.json",
+          "bytes": 1841,
+          "sha256": "a8828699d4b8ad0bc24853c68474ee4a2fa7f061a24228585eeee0ce73a06de8"
+        },
+        {
+          "path": "ToS/contracts/retrieval-query-plan.schema.json",
+          "bytes": 4193,
+          "sha256": "bdf3b6ac181da9db91feb7358b9dbf925bdddfb46ae3978bb6e1062e0d87cbf9"
+        },
+        {
+          "path": "ToS/contracts/rights-record.schema.json",
+          "bytes": 8264,
+          "sha256": "a8b4e440a9cbb8053653d310e70a1f5405b621e258277d8e76ac7f6bac7d864f"
+        },
+        {
+          "path": "ToS/contracts/root-entry-map.schema.json",
+          "bytes": 4333,
+          "sha256": "476f2135fa4b049480a7282cbe014f61f1c4072268d53f09e9dd72d5316c28f5"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-claim.schema.json",
+          "bytes": 1844,
+          "sha256": "bfeb29b1e654fae5bae6bc6d4c73fb1ee3de0da3dd7120ee2d31f2573306935e"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-file-representation.schema.json",
+          "bytes": 10212,
+          "sha256": "8bd1149a13cd8f330ed428a55bf5a4f8048d65423c1da8c39dd3b7230bdcc2da"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-record.schema.json",
+          "bytes": 2417,
+          "sha256": "7531fe0f32247a87991e42fa8eb6f8d93efe70dda3e4d299b6c339d4dc698a81"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-witness.schema.json",
+          "bytes": 9755,
+          "sha256": "d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+        },
+        {
+          "path": "ToS/contracts/scoped-member-structure.schema.json",
+          "bytes": 3509,
+          "sha256": "e6ffd025d1905de1f19acbda575aa82b60050e6754b0433cd0148f1ec81ef2b3"
+        },
+        {
+          "path": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+          "bytes": 26114,
+          "sha256": "1a3e8bf71f47c8c655c00cc9b7401cb621b5136ee52567ab3c34c2022c2b65d8"
+        },
+        {
+          "path": "ToS/contracts/semantic-description-record.schema.json",
+          "bytes": 4643,
+          "sha256": "4fa3fda61509be3740911e7c8422ba2b68117a81d7c5abc61b5f02d1e18b271b"
+        },
+        {
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "bytes": 16948,
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29"
+        },
+        {
+          "path": "ToS/contracts/semantic-ladder-packet.schema.json",
+          "bytes": 54667,
+          "sha256": "b4e06f0599ae52c0df4dbf4b13d6a3b3b68d17064957553fce392f626e3ed8b7"
+        },
+        {
+          "path": "ToS/contracts/semantic-relation-claim.schema.json",
+          "bytes": 1997,
+          "sha256": "8c0f0c80c58c6196d197e36fab79259d09d36ff41b529dfa983af5c35a25856f"
+        },
+        {
+          "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
+          "bytes": 19804,
+          "sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894"
+        },
+        {
+          "path": "ToS/contracts/server-import-contract.schema.json",
+          "bytes": 11091,
+          "sha256": "817e7f1c163f250d37a30f531c1f2de1a52d23cb8f0a6b1e23f91cd39885afe1"
+        },
+        {
+          "path": "ToS/contracts/server-import-receipt.schema.json",
+          "bytes": 4296,
+          "sha256": "efd8946b0eba1a76503e232ed27e3fcec43e1b429e39304d9d02d4251ecadd70"
+        },
+        {
+          "path": "ToS/contracts/sign-annotation.schema.json",
+          "bytes": 3924,
+          "sha256": "823cd06541a8ac4dd79f21428d0351fdff3b4802b93d6621254b39f93efa4427"
+        },
+        {
+          "path": "ToS/contracts/sign-description-record.schema.json",
+          "bytes": 4844,
+          "sha256": "04646f22a48ff306d47513505080e5fe4c03cd52a07d968ac8bf7991af274dfe"
+        },
+        {
+          "path": "ToS/contracts/social-body-record.schema.json",
+          "bytes": 4722,
+          "sha256": "e95527b594aad14214b6a7b73feef54bf7fbb848e83e7d6a1925c4e79642fb9f"
+        },
+        {
+          "path": "ToS/contracts/social-relation-claim.schema.json",
+          "bytes": 2528,
+          "sha256": "befabc307e1591c3ed0f7cbe381900fb3b849ca1628b051b8705139df982e500"
+        },
+        {
+          "path": "ToS/contracts/source-anchor-v2.schema.json",
+          "bytes": 14126,
+          "sha256": "99e60f433a8545495706216bb66dfbae241cadf44086b59100af87464f5d8235"
+        },
+        {
+          "path": "ToS/contracts/source-anchor.schema.json",
+          "bytes": 4864,
+          "sha256": "6b493f99d06aa76e3254eb2cd3f46907969a3ad43416e100333ead20f6244e8c"
+        },
+        {
+          "path": "ToS/contracts/source-catalog-projection-v2.schema.json",
+          "bytes": 12417,
+          "sha256": "56831635e4a21ad6e97bfe96855d5b32257b462627b0d6ae18f9c17bbf7d2db8"
+        },
+        {
+          "path": "ToS/contracts/source-claim-record.schema.json",
+          "bytes": 4297,
+          "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+        },
+        {
+          "path": "ToS/contracts/source-classification-claim.schema.json",
+          "bytes": 3136,
+          "sha256": "8dccdd325290c0ef8b98ad2acb9d3c7d59b3d0e0fe4e9886472417bb716c14ba"
+        },
+        {
+          "path": "ToS/contracts/source-gated-evaluation-plan.schema.json",
+          "bytes": 13172,
+          "sha256": "10874bb36b6cdb91366f298373d80872fd782ca727fa829a2c52c396675dc0c9"
+        },
+        {
+          "path": "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+          "bytes": 20735,
+          "sha256": "6ffd85230ac3d9e49642d61ae82d59e300ba6c9c5429cd75459d0b41fb6fad83"
+        },
+        {
+          "path": "ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
+          "bytes": 26657,
+          "sha256": "a59831e51ddf2a19d79000d81ce276a9bb09734e6470a420283181403a911288"
+        },
+        {
+          "path": "ToS/contracts/source-identity-transition-claim.schema.json",
+          "bytes": 3670,
+          "sha256": "4fda26cff3b9373647c090ffed3ee48b8ca81b9a25851fbc2a73647be75c7b94"
+        },
+        {
+          "path": "ToS/contracts/source-item-manifest.schema.json",
+          "bytes": 3431,
+          "sha256": "fc768e6245bbfcc16bc004abffc28bb7dca25239b3eb1b68ed7260fa9e0af18b"
+        },
+        {
+          "path": "ToS/contracts/source-lexical-translatability-claim.schema.json",
+          "bytes": 6265,
+          "sha256": "bb71e78d2b0a5cd8b6baec105d04fe6ab681daa086c99772ddf66a6316e50feb"
+        },
+        {
+          "path": "ToS/contracts/source-link.schema.json",
+          "bytes": 2618,
+          "sha256": "0c2ca8b65823e69bf80417b029149f392e934b41c02dcbcfae0a198a4f2867b3"
+        },
+        {
+          "path": "ToS/contracts/source-member-structure-claim.schema.json",
+          "bytes": 2070,
+          "sha256": "a24a423ffbdb36ea18474edd38ba267e91e98f868e72b031b334b996639ef123"
+        },
+        {
+          "path": "ToS/contracts/source-metadata-record.schema.json",
+          "bytes": 2779,
+          "sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4"
+        },
+        {
+          "path": "ToS/contracts/source-occurrence-motif-claim.schema.json",
+          "bytes": 4004,
+          "sha256": "eb79f3b3c9467a21bab13bb9981c8b45782bd75ed2e67d1cb48326a387631ec3"
+        },
+        {
+          "path": "ToS/contracts/source-payload-rights-review.schema.json",
+          "bytes": 4543,
+          "sha256": "fbc75f9adbf508e0c90770eabd4be58f54ef1b1447576f62c91d42bc772b6e06"
+        },
+        {
+          "path": "ToS/contracts/source-record-closure-selection.schema.json",
+          "bytes": 2096,
+          "sha256": "26ef7d0fc255018a002905922c09d845b5933d1626d796e3a84aae394ddd6867"
+        },
+        {
+          "path": "ToS/contracts/source-registry-normalization.schema.json",
+          "bytes": 4156,
+          "sha256": "22778baf9bec309709ecd59c9c50e68b44a0edf52b6cddccad4d7b42e7021eaf"
+        },
+        {
+          "path": "ToS/contracts/source-relation-claim.schema.json",
+          "bytes": 604,
+          "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe"
+        },
+        {
+          "path": "ToS/contracts/source-resource-inventory.schema.json",
+          "bytes": 13926,
+          "sha256": "71b5ae06f827a0bfcbe2063cae808e59a6803265af0a8e5943f1afaa6d137910"
+        },
+        {
+          "path": "ToS/contracts/source-structured-value.schema.json",
+          "bytes": 1289,
+          "sha256": "d0392d43c8e45671894174fc09bc930fa696766d1a803494096ad04cd6f2fcf8"
+        },
+        {
+          "path": "ToS/contracts/source-temporal-claim.schema.json",
+          "bytes": 1820,
+          "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+        },
+        {
+          "path": "ToS/contracts/source-text-layer.schema.json",
+          "bytes": 23349,
+          "sha256": "019b223d7f2449979d0671f3e4e46dc443a4c9f71097874db5fca904e05b4b95"
+        },
+        {
+          "path": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+          "bytes": 28409,
+          "sha256": "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab"
+        },
+        {
+          "path": "ToS/contracts/source-textual-survival-claim.schema.json",
+          "bytes": 2653,
+          "sha256": "4422d5f94055523a34029b26360adcccec320e6ebee1e486db6e595ea2242f38"
+        },
+        {
+          "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+          "bytes": 18615,
+          "sha256": "e1b3237b9ff29c30504b28ed662959848a1724bc0eb169015324618ccd063b1f"
+        },
+        {
+          "path": "ToS/contracts/source-witness-catalog.schema.json",
+          "bytes": 16261,
+          "sha256": "678c1f2f0ab01085d5e90d3d85fcea307023e3a44ada064a3eaae70fd6a32d40"
+        },
+        {
+          "path": "ToS/contracts/subject-identity-transition-claim.schema.json",
+          "bytes": 3736,
+          "sha256": "024bb9459f2ecba2986552dfba2cd2fdef6a3a95a20e63c6e16a2174b7fbcc33"
+        },
+        {
+          "path": "ToS/contracts/target-numbered-unit-page-map.schema.json",
+          "bytes": 11540,
+          "sha256": "531cc5674180a864d25ba3246110e560503417880731aa8ebd923719a6ea1d7a"
+        },
+        {
+          "path": "ToS/contracts/textual-passage-claim.schema.json",
+          "bytes": 1834,
+          "sha256": "d56a151d3c76ae01200945b3755ae243506213e705be18444ce6ed0f34c8375e"
+        },
+        {
+          "path": "ToS/contracts/textual-passage-record.schema.json",
+          "bytes": 3643,
+          "sha256": "fee443fc946283732e937ba60c603066aa52e65fe5b66eccdd9d7012e8fc5cc8"
+        },
+        {
+          "path": "ToS/contracts/thought-description-record.schema.json",
+          "bytes": 5888,
+          "sha256": "c1071eea9c5a58fb3dc2339094d76d74fb49a22e9c5d48569d16b48ba3f91edd"
+        },
+        {
+          "path": "ToS/contracts/thought-practice-record.schema.json",
+          "bytes": 14518,
+          "sha256": "2d42c171b2f01d9ae4963860d1473724d7958f7c6e67b29012c269716826b702"
+        },
+        {
+          "path": "ToS/contracts/thought-relation-claim.schema.json",
+          "bytes": 1046,
+          "sha256": "fbe86b15696550317f20cf5526ae96af1d514b0cc7c48ebd9ba04b1e3a975016"
+        },
+        {
+          "path": "ToS/contracts/thought-topic-record.schema.json",
+          "bytes": 9117,
+          "sha256": "41291684c19b66e6ab2041e2cd48adb5c42cb02f841d8b5c333754feeb2c2cf4"
+        },
+        {
+          "path": "ToS/contracts/tos-corpus-index.schema.json",
+          "bytes": 21026,
+          "sha256": "2dfd8d0a8076e8c7d7a93c1c23dc727bcbbf599e53641e95c888e3cde492d411"
+        },
+        {
+          "path": "ToS/contracts/tos-node-contract.schema.json",
+          "bytes": 11754,
+          "sha256": "738dac1048745056ac1710d30ad38fa3b636dc8307f0f4c8ce7775c814861daa"
+        },
+        {
+          "path": "ToS/contracts/tos-source-home.schema.json",
+          "bytes": 2549,
+          "sha256": "1d0676db1088240200f4d98323af04197d05153587724971be12502cd6f67dfa"
+        },
+        {
+          "path": "ToS/contracts/tos-tiny-entry-route.schema.json",
+          "bytes": 2207,
+          "sha256": "aafb6f5c79981ee87f4b6dfd2c7866ba51146d5eb8f264bc9b66438b64551507"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+          "bytes": 6087,
+          "sha256": "977998fc42f869a28cbc7dc7011e62c820a8146a88df1720055c46c9de4c8a84"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-structural-crosswalk.schema.json",
+          "bytes": 8229,
+          "sha256": "adbcfd47146cf1149e5fe5a20ecfa408983083d10c406130ac0344f237cdd922"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+          "bytes": 8366,
+          "sha256": "d42c611b518390b133efd0bea877791e1c4425a0eb50c09ad17546d416fe4850"
+        },
+        {
+          "path": "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+          "bytes": 9723,
+          "sha256": "7de355ab3338f84d8380d30f76cafd2aa4d59f0efba2566695a37996d7cd5b18"
+        },
+        {
+          "path": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+          "bytes": 7936,
+          "sha256": "6e5ab096f2f901805b93bfc15d5903f9644891a32b6020270450e624377c4a2d"
+        },
+        {
+          "path": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+          "bytes": 18121,
+          "sha256": "23c616725cd98f7e4477b26fd07703531f7fe86df480af428870ddf6cafbde41"
+        },
+        {
+          "path": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+          "bytes": 12467,
+          "sha256": "af388db349c40dfc8e5ac5604dfa1db90c3e77839c4332ec9df9e0f48b869f65"
+        },
+        {
+          "path": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+          "bytes": 10528,
+          "sha256": "91365cd5f4f75cc7340ff17b5cceb74657d7e3f13e6d6dfeee06cb33d81c7345"
+        },
+        {
+          "path": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+          "bytes": 23228,
+          "sha256": "69be2c70d9eac1cd1ccef165d99b5c7709cd2e52f8ec8022548ce33eb7cca130"
+        },
+        {
+          "path": "ToS/contracts/translation-exposure-aware-plan.schema.json",
+          "bytes": 20024,
+          "sha256": "fc5bbf611f88034d0222d44abea827b566d43b362c7bca8b34b66295f6db1539"
+        },
+        {
+          "path": "ToS/contracts/translation-laboratory-plan.schema.json",
+          "bytes": 17079,
+          "sha256": "930f3282ebb53a340d0432f8c8020f900cdc2788084b0fa975d06091fdc10649"
+        },
+        {
+          "path": "ToS/contracts/translation-packet.schema.json",
+          "bytes": 38562,
+          "sha256": "5ba678a45af75398b64a2411a545d054213848b251c413f84e6f5176f9db1517"
+        },
+        {
+          "path": "ToS/contracts/translation-pre-draft-analysis.schema.json",
+          "bytes": 17377,
+          "sha256": "f3f5d8fd72c74bb8e0d7f132651823f20d02efe97edcac3d058a3616df087d5c"
+        },
+        {
+          "path": "ToS/contracts/translation-reference-register.schema.json",
+          "bytes": 13720,
+          "sha256": "f0cec14021dbb5f84639cabc2bba5ab118c8a150a1ca238aeeb25337aa2f6dbf"
+        },
+        {
+          "path": "ToS/contracts/translation-sample-plan.schema.json",
+          "bytes": 5566,
+          "sha256": "a4f98c74e0c33dd89c0151679608fd1b9f19f3f1fce5843a2676400bb888a157"
+        },
+        {
+          "path": "ToS/contracts/translation-source-review-plan.schema.json",
+          "bytes": 8342,
+          "sha256": "fd79297ab1c4ff0ac60e17206e046d97362af14a8ab93d5c100194dabe500341"
+        },
+        {
+          "path": "ToS/contracts/visual-retrieval-plan.schema.json",
+          "bytes": 13550,
+          "sha256": "24194109f9d6003268fd5ab9542cea56d7765edc9a6a286032ffeb037b07026b"
+        },
+        {
+          "path": "ToS/contracts/visual-retrieval-result-receipt.schema.json",
+          "bytes": 18851,
+          "sha256": "932254b4a85327cee032b77b613678fa5c0c138591d5192752e682e323ca3028"
+        },
+        {
+          "path": "ToS/contracts/witness-structure-anchor-set.schema.json",
+          "bytes": 5179,
+          "sha256": "f44e4830dd5f1ed55aac798846f783da4f189eb94f13fb7e9a2a7c5280c7e98b"
+        },
+        {
+          "path": "ToS/contracts/witness-structure-correspondence.schema.json",
+          "bytes": 12697,
+          "sha256": "c34c26c11b45eaa1310f0be3b9044d805a318a340c6032df99ca99485142c2e2"
+        },
+        {
+          "path": "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+          "bytes": 20584,
+          "sha256": "492e0976d2f93d266b84a2916f8269e1e7f5c8dafda2f1921cc0ac9a023687cf"
+        },
+        {
+          "path": "ToS/derived-exports/AGENTS.md",
+          "bytes": 3692,
+          "sha256": "f4474c63196080a8a62cedcd92263717fe6d7cb3edd4e901bbf904da2e28439f"
+        },
+        {
+          "path": "ToS/doctrine/AGENTS.md",
+          "bytes": 1765,
+          "sha256": "86bb0407c807b8f750d6e459068ea006073b98c4272a6c162be39f655ee82449"
+        },
+        {
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "bytes": 264272,
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465"
+        },
+        {
+          "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+          "bytes": 335626,
+          "sha256": "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c"
+        },
+        {
+          "path": "ToS/philosophy/AGENTS.md",
+          "bytes": 2859,
+          "sha256": "76fa170ee5fecd2f2aa987eaa8a05399690ad6fc4b978aebd21485d4a39593c4"
+        },
+        {
+          "path": "ToS/public-compatibility/AGENTS.md",
+          "bytes": 1669,
+          "sha256": "e5ca6cf4cc02f52f20d7cc30b6694b76e78ff1f03a50d508fe791ecd851e2df4"
+        },
+        {
+          "path": "ToS/research-packets/AGENTS.md",
+          "bytes": 1640,
+          "sha256": "4dcc276b93136e5bab8b18565716e7694487d21bdecd8aee8e83adac26a53883"
+        },
+        {
+          "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+          "bytes": 3758,
+          "sha256": "1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+        },
+        {
+          "path": "ToS/review-ledger/AGENTS.md",
+          "bytes": 1323,
+          "sha256": "9bc72ad16d89ebd1942bfa330f58501ae961b08fb25f06ac6de69a4f7fbf165e"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3.blob",
+          "bytes": 244,
+          "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/0ba05d3d406fef6722de39cbb40654278754fe0c786edaca766e12a0d80989d8.blob",
+          "bytes": 1687,
+          "sha256": "0ba05d3d406fef6722de39cbb40654278754fe0c786edaca766e12a0d80989d8"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/637fbeb41a4cd470dd174c7da35e09a34ddd53f86db5ccaa11c81ea89bdb5d50.blob",
+          "bytes": 3501,
+          "sha256": "637fbeb41a4cd470dd174c7da35e09a34ddd53f86db5ccaa11c81ea89bdb5d50"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/bb764130a9423a83771bc8616c76c92ceae1713e8cce45a7195736ab832cf11b.blob",
+          "bytes": 6710,
+          "sha256": "bb764130a9423a83771bc8616c76c92ceae1713e8cce45a7195736ab832cf11b"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/bd62648fbb1831560ac96452247cb89df4f3a746b2d4aa90dd72e118f6c58b72.blob",
+          "bytes": 3210,
+          "sha256": "bd62648fbb1831560ac96452247cb89df4f3a746b2d4aa90dd72e118f6c58b72"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/fcbc3d80dd0a10d09cd8d150603928d2699dd6b887cc4ca5a12e87af3d3d68ed.blob",
+          "bytes": 2473,
+          "sha256": "fcbc3d80dd0a10d09cd8d150603928d2699dd6b887cc4ca5a12e87af3d3d68ed"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/manifest.json",
+          "bytes": 1958,
+          "sha256": "51eb9d225373ac2c5cadf13f37ce6f54023fc61fd4647e53f73cbcc2efdbd914"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3.blob",
+          "bytes": 244,
+          "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/1d7d2f6a4a34dcf2bb7984af181bdd92171e99bc9394b876013164d78adc76ee.blob",
+          "bytes": 1490,
+          "sha256": "1d7d2f6a4a34dcf2bb7984af181bdd92171e99bc9394b876013164d78adc76ee"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e.blob",
+          "bytes": 2762,
+          "sha256": "7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/813b70713039f44915db81644d1994f1bd22d380ed422d0bcdf829eaac4f2256.blob",
+          "bytes": 6426,
+          "sha256": "813b70713039f44915db81644d1994f1bd22d380ed422d0bcdf829eaac4f2256"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/8394a1a4945d58518d5e3e039d0dfe0a3161e505b11766c41b4da702d0fc8c0a.blob",
+          "bytes": 3234,
+          "sha256": "8394a1a4945d58518d5e3e039d0dfe0a3161e505b11766c41b4da702d0fc8c0a"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/ddfbaefee0a04dd83ba2c95fb2a758b7a6650e0e830e3aa624c36719510383e5.blob",
+          "bytes": 7318,
+          "sha256": "ddfbaefee0a04dd83ba2c95fb2a758b7a6650e0e830e3aa624c36719510383e5"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/manifest.json",
+          "bytes": 1875,
+          "sha256": "8ca364436b50f110dcd9d21b807af5f60c9381e34ad44c8eef02f9932c02bd26"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/4609772a94ce97afc0abc54990cb542b6054617afd6f4a4336a01f38cc8fdd45.blob",
+          "bytes": 3716,
+          "sha256": "4609772a94ce97afc0abc54990cb542b6054617afd6f4a4336a01f38cc8fdd45"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/679a76196ee51d2077e010059ae7fd59ddd407d4ea9d979460ffe3d70244d2be.blob",
+          "bytes": 1545,
+          "sha256": "679a76196ee51d2077e010059ae7fd59ddd407d4ea9d979460ffe3d70244d2be"
+        },
+        {
+          "path": "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/manifest.json",
+          "bytes": 942,
+          "sha256": "dac3c147cb23b120a3e1e2760bca2c9b01b7cbe9df48117f2c4bf82cf6b056eb"
+        },
+        {
+          "path": "ToS/source-witnesses/AGENTS.md",
+          "bytes": 7760,
+          "sha256": "d3f2e4d7de8bb7e03794abd559225f07167c54cf660150e6efd9658ed30a3509"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/agent.human-forms.json",
+          "bytes": 7591,
+          "sha256": "acb970111534dbed0cac2ce42ad3b4433f05d0dfa4aeba24bbe79b1fa859d8af"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/agent.json",
+          "bytes": 1186,
+          "sha256": "f74cff165b701a8a57d4b8ae00dd166221ba1d41b2df2e1b6646efc56fea4fca"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-environment.json",
+          "bytes": 244,
+          "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-provenance.jsonl",
+          "bytes": 7103,
+          "sha256": "3cd310960345d605b557e1316866e1f9301020203540340da957a50f458b4d66"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-receipt.json",
+          "bytes": 1414,
+          "sha256": "374d14f5deb551c5d2dc43172b6106d0b4eb8ec52ac9d8a3a828c0e83882c052"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-request.json",
+          "bytes": 2012,
+          "sha256": "fe3cd8e30cd8935cc1ce30407af1ca61769ef44e78d3212e22541a88472f0f51"
+        },
+        {
+          "path": "ToS/source-witnesses/agents/constantin-georg-naumann/source-revision-history.json",
+          "bytes": 4445,
+          "sha256": "3da68c2228803c98cf58a63eb95dfeeb0a526103aa315d4e52654d9785f8e5df"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.human-forms.json",
+          "bytes": 13236,
+          "sha256": "cfc0a0a044d6c3773047deb72b3024d7ffef8c565c1653e7dce163046759655e"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+          "bytes": 2232,
+          "sha256": "d3cca21948fe6d634486d09207e8c6964f00dd1427ce74dcb8915a9442224ab5"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-environment.json",
+          "bytes": 244,
+          "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-provenance.jsonl",
+          "bytes": 7318,
+          "sha256": "ddfbaefee0a04dd83ba2c95fb2a758b7a6650e0e830e3aa624c36719510383e5"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-receipt.json",
+          "bytes": 1490,
+          "sha256": "1d7d2f6a4a34dcf2bb7984af181bdd92171e99bc9394b876013164d78adc76ee"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-request.json",
+          "bytes": 3234,
+          "sha256": "8394a1a4945d58518d5e3e039d0dfe0a3161e505b11766c41b4da702d0fc8c0a"
+        },
+        {
+          "path": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-revision-history.json",
+          "bytes": 4905,
+          "sha256": "a3b0a3990312129666c1db00cdfe3dc271e92522b6f5520c6736c742efe20f58"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/claim-revision-history.json",
+          "bytes": 8607,
+          "sha256": "e9031585649493a34ce0091b17c93d7bc667e2c79330ddc9a304cd1d21121482"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25.human-forms.json",
+          "bytes": 8404,
+          "sha256": "3f5a0dac1b7781e3c5ecc1ec6b742402ab9e422cb4500bc75a9f999258054b84"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.jsonl",
+          "bytes": 2393,
+          "sha256": "97c8af473ecd35841f7541b6f68ef76a7a8f09c6a90bdbf9da3b3955380e5cd2"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-environment.json",
+          "bytes": 244,
+          "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-provenance.jsonl",
+          "bytes": 6710,
+          "sha256": "bb764130a9423a83771bc8616c76c92ceae1713e8cce45a7195736ab832cf11b"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-receipt.json",
+          "bytes": 2473,
+          "sha256": "fcbc3d80dd0a10d09cd8d150603928d2699dd6b887cc4ca5a12e87af3d3d68ed"
+        },
+        {
+          "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-request.json",
+          "bytes": 3210,
+          "sha256": "bd62648fbb1831560ac96452247cb89df4f3a746b2d4aa90dd72e118f6c58b72"
+        },
+        {
+          "path": "ToS/source_home.manifest.json",
+          "bytes": 5683,
+          "sha256": "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c"
+        },
+        {
+          "path": "ToS/zarathustra/AGENTS.md",
+          "bytes": 3896,
+          "sha256": "9ef6b57edd3ebdb632a3d0537d421be71211b6052457000721a4ad7b52910acb"
+        }
+      ]
+    },
+    "selected_source_paths": [
+      "ToS/candidate-intake/AGENTS.md",
+      "ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv",
+      "ToS/canon/AGENTS.md",
+      "ToS/canon/analogy/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bee-honey-analogy/node.json",
+      "ToS/canon/concept/becoming/node.json",
+      "ToS/canon/concept/overcoming/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/beginning-of-zarathustra-going-under/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bestow-and-distribute/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bless-sun-for-overflow/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/dawn-address-to-sun/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.human-forms.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/descend-into-depth/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/descent-named-as-go-under/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/go-under-to-humans/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/golden-water-flows/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/heart-transformation/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/morning-wait-for-sun/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/need-hands-for-giving/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/receive-overflow-from-sun/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/reflection-of-bliss-is-carried/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/request-blessing-from-tranquil-eye/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/request-blessing-of-cup/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun-ascends-to-cave-10y/node.json",
+      "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun-evening-underworld-light/node.json",
+      "ToS/canon/lineage/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/becoming-to-overcoming/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/beginning-through-going-under/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/blessing-is-reciprocal/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/descent-is-required-by-gift/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/excess-seeks-recipients/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/gift-has-dual-mode/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/go-under-is-human-name/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/happiness-is-relational/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/overflow-can-be-received/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/reflected-light-can-be-carried/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/return-as-action/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitude-as-ripening/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/tranquil-vision-without-envy/node.json",
+      "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wisdom-can-overfill/node.json",
+      "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+      "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cup-wants-to-empty-again/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cup-wants-to-overflow/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/overfull-wisdom/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/revaluation-of-joy/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solar-happiness-requires-recipients/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitary-ripening-10y/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun-would-grow-sated-without-triad/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/tranquil-eye-without-envy/node.json",
+      "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra-wants-to-become-human-again/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/all-too-great-happiness/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bee/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bestowal/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/blessing/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bliss/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cave/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/cup/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/dawn/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/depth/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/distribution/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/eagle/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/emptiness/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/envy/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/evening/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/folly/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/go-under/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/gold/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/happiness/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/heart/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/homeland/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/honey/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/human/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/humans/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/lake-of-homeland/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/light/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/morning/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/mountains/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/outstretched-hands/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/overflow/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/path/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/poor-among-humans/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/recipients-of-light/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/reflection/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sea/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/serpent/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitude/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/spirit/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/sun/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/tranquil-eye/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/triad-zarathustra-eagle-serpent/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/underworld/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/water/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wealth/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wisdom/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/wise-among-humans/node.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.human-forms.json",
+      "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.json",
+      "ToS/canon/synthesis/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-reflective-origin/node.json",
+      "ToS/contracts/AGENTS.md",
+      "ToS/contracts/access-request.schema.json",
+      "ToS/contracts/acquisition-batch.schema.json",
+      "ToS/contracts/acquisition-provenance-delta.schema.json",
+      "ToS/contracts/artifact-source-witness-v2.schema.json",
+      "ToS/contracts/artifact-source-witness.schema.json",
+      "ToS/contracts/artifact-visual-representation.schema.json",
+      "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+      "ToS/contracts/bounded-translation-research-input.schema.json",
+      "ToS/contracts/claim-display-fields.schema.json",
+      "ToS/contracts/claim-packet.schema.json",
+      "ToS/contracts/collection-work-boundary-map.schema.json",
+      "ToS/contracts/corpus-record.schema.json",
+      "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+      "ToS/contracts/critical-edition-witness-admission.schema.json",
+      "ToS/contracts/document-catalogue-claim.schema.json",
+      "ToS/contracts/document-record.schema.json",
+      "ToS/contracts/edition-reading-admission.schema.json",
+      "ToS/contracts/epistemic-evidence-projection.schema.json",
+      "ToS/contracts/experimental-translation-candidate.schema.json",
+      "ToS/contracts/experimental-translation-episode.schema.json",
+      "ToS/contracts/expression-derivation.schema.json",
+      "ToS/contracts/first-publication-chronology.schema.json",
+      "ToS/contracts/formation-relation-claim.schema.json",
+      "ToS/contracts/german-assisted-source-review.schema.json",
+      "ToS/contracts/german-source-triangulation.schema.json",
+      "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+      "ToS/contracts/graph-query-plan.schema.json",
+      "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+      "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+      "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+      "ToS/contracts/historical-claim.schema.json",
+      "ToS/contracts/historical-context-claim.schema.json",
+      "ToS/contracts/historical-context-record.schema.json",
+      "ToS/contracts/historical-record.schema.json",
+      "ToS/contracts/human-form-set.schema.json",
+      "ToS/contracts/human-form-template.schema.json",
+      "ToS/contracts/human-form.schema.json",
+      "ToS/contracts/intellectual-formation-record.schema.json",
+      "ToS/contracts/knowledge-assessment-authority.schema.json",
+      "ToS/contracts/knowledge-assessment-batch.schema.json",
+      "ToS/contracts/knowledge-assessment-competence.schema.json",
+      "ToS/contracts/knowledge-assessment-policy.schema.json",
+      "ToS/contracts/knowledge-assessment.schema.json",
+      "ToS/contracts/knowledge-query-vocabulary.schema.json",
+      "ToS/contracts/laboratory-sample-plan.schema.json",
+      "ToS/contracts/lexical-comparison-claim.schema.json",
+      "ToS/contracts/lexical-description-record.schema.json",
+      "ToS/contracts/lexical-index-plan.schema.json",
+      "ToS/contracts/lexical-index-projection.schema.json",
+      "ToS/contracts/lexical-recurrence-plan.schema.json",
+      "ToS/contracts/lexical-recurrence-projection.schema.json",
+      "ToS/contracts/lexical-usage-context-plan.schema.json",
+      "ToS/contracts/lexical-usage-context-receipt.schema.json",
+      "ToS/contracts/lexical-usage-context-row.schema.json",
+      "ToS/contracts/linguistic-description-record.schema.json",
+      "ToS/contracts/linguistic-relation-claim.schema.json",
+      "ToS/contracts/lived-witness-packet.schema.json",
+      "ToS/contracts/manual-error-ledger-record.schema.json",
+      "ToS/contracts/manual-gold-assurance.schema.json",
+      "ToS/contracts/manual-gold-status.schema.json",
+      "ToS/contracts/material-discovery-record.schema.json",
+      "ToS/contracts/morphology-census-result-receipt.schema.json",
+      "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+      "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+      "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+      "ToS/contracts/morphology-contextual-episode-row.schema.json",
+      "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+      "ToS/contracts/morphology-evaluation-plan.schema.json",
+      "ToS/contracts/morphology-input-receipt.schema.json",
+      "ToS/contracts/native-local-text-read.schema.json",
+      "ToS/contracts/native-page-ocr-comparison.schema.json",
+      "ToS/contracts/native-private-text-read.schema.json",
+      "ToS/contracts/native-text-layer-binding.schema.json",
+      "ToS/contracts/native-text-layer-comparison.schema.json",
+      "ToS/contracts/native-text-layer-derivation-comparison.schema.json",
+      "ToS/contracts/native-text-layer-quality-basis.schema.json",
+      "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+      "ToS/contracts/native-text-unit-binding.schema.json",
+      "ToS/contracts/native-translation-alignment-record-v1.schema.json",
+      "ToS/contracts/numbered-unit-page-map.schema.json",
+      "ToS/contracts/object-link-claim-v2.schema.json",
+      "ToS/contracts/object-link-claim.schema.json",
+      "ToS/contracts/occurrence-description-record.schema.json",
+      "ToS/contracts/ocr-visual-sample-plan.schema.json",
+      "ToS/contracts/open-work-candidate-queue.schema.json",
+      "ToS/contracts/open-work-candidate-receipt.schema.json",
+      "ToS/contracts/open-work-candidate.schema.json",
+      "ToS/contracts/open-work-channel-timing-receipt.schema.json",
+      "ToS/contracts/open-work-readiness-plan.schema.json",
+      "ToS/contracts/owner-local-source-context.schema.json",
+      "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+      "ToS/contracts/parallel-witness-structure-map.schema.json",
+      "ToS/contracts/partitioned-projection.schema.json",
+      "ToS/contracts/philosophy-atlas-projection.schema.json",
+      "ToS/contracts/philosophy-graph-projection.schema.json",
+      "ToS/contracts/philosophy-graph-views.schema.json",
+      "ToS/contracts/philosophy-source-planting.schema.json",
+      "ToS/contracts/private-laboratory-evidence-handoff.schema.json",
+      "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+      "ToS/contracts/provenance-event-v2.schema.json",
+      "ToS/contracts/provenance-event.schema.json",
+      "ToS/contracts/provision-activity.schema.json",
+      "ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+      "ToS/contracts/public-native-text-authority.schema.json",
+      "ToS/contracts/public-native-text-create-owner.schema.json",
+      "ToS/contracts/reception-record.schema.json",
+      "ToS/contracts/record-version-view.schema.json",
+      "ToS/contracts/research-corpus-record.schema.json",
+      "ToS/contracts/retrieval-query-plan.schema.json",
+      "ToS/contracts/rights-record.schema.json",
+      "ToS/contracts/root-entry-map.schema.json",
+      "ToS/contracts/scholarly-composite-claim.schema.json",
+      "ToS/contracts/scholarly-composite-file-representation.schema.json",
+      "ToS/contracts/scholarly-composite-record.schema.json",
+      "ToS/contracts/scholarly-composite-witness.schema.json",
+      "ToS/contracts/scoped-member-structure.schema.json",
+      "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+      "ToS/contracts/semantic-description-record.schema.json",
+      "ToS/contracts/semantic-entity-type-registry.schema.json",
+      "ToS/contracts/semantic-ladder-packet.schema.json",
+      "ToS/contracts/semantic-relation-claim.schema.json",
+      "ToS/contracts/semantic-relation-type-registry.schema.json",
+      "ToS/contracts/server-import-contract.schema.json",
+      "ToS/contracts/server-import-receipt.schema.json",
+      "ToS/contracts/sign-annotation.schema.json",
+      "ToS/contracts/sign-description-record.schema.json",
+      "ToS/contracts/social-body-record.schema.json",
+      "ToS/contracts/social-relation-claim.schema.json",
+      "ToS/contracts/source-anchor-v2.schema.json",
+      "ToS/contracts/source-anchor.schema.json",
+      "ToS/contracts/source-catalog-projection-v2.schema.json",
+      "ToS/contracts/source-claim-record.schema.json",
+      "ToS/contracts/source-classification-claim.schema.json",
+      "ToS/contracts/source-gated-evaluation-plan.schema.json",
+      "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+      "ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
+      "ToS/contracts/source-identity-transition-claim.schema.json",
+      "ToS/contracts/source-item-manifest.schema.json",
+      "ToS/contracts/source-lexical-translatability-claim.schema.json",
+      "ToS/contracts/source-link.schema.json",
+      "ToS/contracts/source-member-structure-claim.schema.json",
+      "ToS/contracts/source-metadata-record.schema.json",
+      "ToS/contracts/source-occurrence-motif-claim.schema.json",
+      "ToS/contracts/source-payload-rights-review.schema.json",
+      "ToS/contracts/source-record-closure-selection.schema.json",
+      "ToS/contracts/source-registry-normalization.schema.json",
+      "ToS/contracts/source-relation-claim.schema.json",
+      "ToS/contracts/source-resource-inventory.schema.json",
+      "ToS/contracts/source-structured-value.schema.json",
+      "ToS/contracts/source-temporal-claim.schema.json",
+      "ToS/contracts/source-text-layer.schema.json",
+      "ToS/contracts/source-text-unit-packet-v1.schema.json",
+      "ToS/contracts/source-textual-survival-claim.schema.json",
+      "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "ToS/contracts/source-witness-catalog.schema.json",
+      "ToS/contracts/subject-identity-transition-claim.schema.json",
+      "ToS/contracts/target-numbered-unit-page-map.schema.json",
+      "ToS/contracts/textual-passage-claim.schema.json",
+      "ToS/contracts/textual-passage-record.schema.json",
+      "ToS/contracts/thought-description-record.schema.json",
+      "ToS/contracts/thought-practice-record.schema.json",
+      "ToS/contracts/thought-relation-claim.schema.json",
+      "ToS/contracts/thought-topic-record.schema.json",
+      "ToS/contracts/tos-corpus-index.schema.json",
+      "ToS/contracts/tos-node-contract.schema.json",
+      "ToS/contracts/tos-source-home.schema.json",
+      "ToS/contracts/tos-tiny-entry-route.schema.json",
+      "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "ToS/contracts/transfer-candidate-structural-crosswalk.schema.json",
+      "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+      "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+      "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+      "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+      "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "ToS/contracts/translation-alignment-packet-v1.schema.json",
+      "ToS/contracts/translation-exposure-aware-plan.schema.json",
+      "ToS/contracts/translation-laboratory-plan.schema.json",
+      "ToS/contracts/translation-packet.schema.json",
+      "ToS/contracts/translation-pre-draft-analysis.schema.json",
+      "ToS/contracts/translation-reference-register.schema.json",
+      "ToS/contracts/translation-sample-plan.schema.json",
+      "ToS/contracts/translation-source-review-plan.schema.json",
+      "ToS/contracts/visual-retrieval-plan.schema.json",
+      "ToS/contracts/visual-retrieval-result-receipt.schema.json",
+      "ToS/contracts/witness-structure-anchor-set.schema.json",
+      "ToS/contracts/witness-structure-correspondence.schema.json",
+      "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+      "ToS/derived-exports/AGENTS.md",
+      "ToS/doctrine/AGENTS.md",
+      "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+      "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+      "ToS/philosophy/AGENTS.md",
+      "ToS/public-compatibility/AGENTS.md",
+      "ToS/research-packets/AGENTS.md",
+      "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+      "ToS/review-ledger/AGENTS.md",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3.blob",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/0ba05d3d406fef6722de39cbb40654278754fe0c786edaca766e12a0d80989d8.blob",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/637fbeb41a4cd470dd174c7da35e09a34ddd53f86db5ccaa11c81ea89bdb5d50.blob",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/bb764130a9423a83771bc8616c76c92ceae1713e8cce45a7195736ab832cf11b.blob",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/bd62648fbb1831560ac96452247cb89df4f3a746b2d4aa90dd72e118f6c58b72.blob",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/fcbc3d80dd0a10d09cd8d150603928d2699dd6b887cc4ca5a12e87af3d3d68ed.blob",
+      "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/manifest.json",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3.blob",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/1d7d2f6a4a34dcf2bb7984af181bdd92171e99bc9394b876013164d78adc76ee.blob",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e.blob",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/813b70713039f44915db81644d1994f1bd22d380ed422d0bcdf829eaac4f2256.blob",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/8394a1a4945d58518d5e3e039d0dfe0a3161e505b11766c41b4da702d0fc8c0a.blob",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/ddfbaefee0a04dd83ba2c95fb2a758b7a6650e0e830e3aa624c36719510383e5.blob",
+      "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/manifest.json",
+      "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/4609772a94ce97afc0abc54990cb542b6054617afd6f4a4336a01f38cc8fdd45.blob",
+      "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/679a76196ee51d2077e010059ae7fd59ddd407d4ea9d979460ffe3d70244d2be.blob",
+      "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/manifest.json",
+      "ToS/source-witnesses/AGENTS.md",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/agent.human-forms.json",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/agent.json",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-environment.json",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-provenance.jsonl",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-receipt.json",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/source-create-request.json",
+      "ToS/source-witnesses/agents/constantin-georg-naumann/source-revision-history.json",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.human-forms.json",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-environment.json",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-provenance.jsonl",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-receipt.json",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-create-request.json",
+      "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/source-revision-history.json",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/claim-revision-history.json",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25.human-forms.json",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.jsonl",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-environment.json",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-provenance.jsonl",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-receipt.json",
+      "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-create-request.json",
+      "ToS/source_home.manifest.json",
+      "ToS/zarathustra/AGENTS.md"
+    ],
+    "projection_output_bytes": 525312,
+    "projection_output_sha256": "5f109ac72cdfd242cd28510de5e9484233f5f2e060e1350a2ec4a19593224870",
+    "index_output_path": "ToS/derived-exports/tos_corpus_index.min.json"
+  },
+  "output_bytes": 226106,
+  "output_sha256": "daa12992c03e3a5130115c862ed2040da80426c74ef854ae5ac1b2f748b40699"
+}

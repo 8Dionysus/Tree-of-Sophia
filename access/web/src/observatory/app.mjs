@@ -67,7 +67,7 @@ function sync(){
   reader?.selectionChanged();
   travel?.observe();
 }
-const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
+const commit=action=>{const previous=syncing;syncing=true;try{return action();}finally{try{sync();}finally{syncing=previous;}}};
 scene=mountScene(root,{client,autoStart:false,initialFocus:new URLSearchParams(initialRoute).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(initialRoute).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
 const panels=createPanelHost(root,scene,{onUserAction:()=>registry?.notifyStateChange()});
 tools=createTools(root,scene,{data,selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
@@ -98,7 +98,6 @@ research=mountResearchShelfEntry({root,client,corpus,locale:()=>document.documen
 root.querySelector('[data-native-notes]')?.remove();
 const space=document.createElement('a');space.className='sc-control';space.href=new URL('/static/research.html',location.href).href;
 space.textContent=document.documentElement.lang==='en'?'Research space':'Пространство исследования';root.querySelector('.sc-header-actions').prepend(space);
-window.addEventListener('pagehide',event=>{if(!event.persisted)research.destroy();});
 studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});
 travel=createTravelPanel(root,scene,panels,{client,onUserAction:userAction});
 createWorkspaceCopyPanel(root,scene,panels,{workspace:tools.workspace,reader,travel,studio,onUserAction:userAction});
@@ -166,7 +165,11 @@ root.querySelector('#sc-query').addEventListener('input',()=>registry.notifyStat
 const webmcp=createWebMCPAdapter(registry,document,allowed);
 webmcp.subscribeStatus(status=>tools.agentStatus(status));
 void webmcp.start();
-window.addEventListener('pagehide',()=>webmcp.stop());
+// Stop page integrations before disposing the workspace their commands use.
+window.addEventListener('pagehide',event=>{
+  webmcp.stop();
+  if(!event.persisted){research.destroy();tools.disposeWorkspace();}
+});
 window.addEventListener('pageshow',event=>{if(event.persisted)void webmcp.start();});
 // A saved local pose takes precedence only for its matching route (or home).
 void studio.start().then(restored=>{

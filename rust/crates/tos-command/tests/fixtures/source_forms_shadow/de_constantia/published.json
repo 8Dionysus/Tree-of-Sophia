@@ -1,0 +1,470 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.name-ru",
+      "form_version": 2,
+      "language": "ru",
+      "revises": {
+        "digest": "sha256:9edb8de72c895d9d943a680532bc084bbffd889964a99408f2da2ca75747669c",
+        "id": "tos.form.work.justus-lipsius.de-constantia.name-ru",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-3": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.name-alt",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:e1fed489ddd795791c1d0bf62360780c9914f87697c9992dc5fc7b5e6c5f38d8",
+        "id": "tos.form.work.justus-lipsius.de-constantia.name-alt",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:cmd2-de-constantia-oracle",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+      "form_version": 3,
+      "language": "ru",
+      "revises": {
+        "digest": "sha256:888eb2d6ed9a8954003279debc68b0be255483618e183e7975cafafda0e05d32",
+        "id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+        "version": 2
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 2
+      }
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.name-alt",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+            "id": "tos.work.justus-lipsius.de-constantia",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "form_id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+      "form_version": 2,
+      "language": "ru",
+      "revises": {
+        "digest": "sha256:a80b021074aa7f435c4afc078299d2e0f0ad7ed267af8a9a26a494c157f89cb9",
+        "id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283",
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.justus-lipsius.de-constantia",
+    "version": 2,
+    "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283"
+  },
+  "growth_history": [
+    {
+      "command_id": "cmd2:oracle:de-constantia:1",
+      "request_digest": "sha256:9f338d896924a681c97fd9344424edd5b4fec82886d6f35ab626a0a20f94a3b2",
+      "principal_id": "agent:cmd2-de-constantia-oracle",
+      "authority_ref": "synthetic:cmd2-de-constantia-no-assessment",
+      "owner_configuration": "sha256:d0568344ac8c3457b7a596044b75b1d432f8c763ca5050952f06aa293bdd2e2d",
+      "recorded_at": "2026-01-01T12:34:56+00:00",
+      "source": {
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 2,
+        "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283"
+      },
+      "previous_revision": "sha256:29f1e0d7f8a73d565238753bcd90f01a6b883a605a45b799f5f9f411f7c6dfce",
+      "results": [
+        {
+          "id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+          "version": 3,
+          "digest": "sha256:06d0fb4b0adbb2bf68ffa7ffd3648c771bfc95157a84e797172c0c1dc553666d"
+        }
+      ]
+    }
+  ]
+}

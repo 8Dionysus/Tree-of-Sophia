@@ -1,3 +1,4 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {createNativeReference,validateNativeReference,nativeReferenceKey,matchNativeReference,nativeSelectedText} from './native-reference.mjs';
@@ -34,7 +35,9 @@ test('native references retain exact segmentation, span and code-point positions
   const read=result(),reference=createNativeReference(read,0,{start:21,end:24});
   assert.equal(nativeSelectedText(reference,read.native_unit.spans[0].text),'😀e\u0301');
   assert.equal(referenceKey(reference),nativeReferenceKey(reference));
+  assert.equal(nativeReferenceKey(reference),`["tos.corpus.reader.native-reference.v1",{"record":{"id":"tos.text-unit.fixture","version":1,"digest":"sha256:${H}"},"packet":{"id":"tos.source-text-unit-packet.fixture","version":1,"sha256":"${H}"},"segmentation":{"id":"tos.text-segmentation.fixture","version":1},"unit":{"id":"tos.text-unit.fixture","version":1},"textLayer":{"id":"tos.text-layer.fixture","version":1,"recordSha256":"${H}"},"representationSha256":"${B}","span":{"anchorRef":"tos.anchor.one","start":20,"end":27,"exactSha256":"${H}"}},{"type":"text_position","start":21,"end":24,"positionUnit":"unicode_code_point","interval":"half_open"}]`);
   assert.equal(referenceDocumentId(reference),'tos.text-layer.fixture');
+  assert.equal(referenceVersionId(reference),`["tos.source-text-unit-packet.fixture",1,"${H}","tos.text-segmentation.fixture",1,1]`);
   assert.deepEqual(matchNativeReference(reference,read),{status:'exact',spanIndex:0});
   for(const selector of [{start:19,end:21},{start:26,end:43},{start:21.5,end:22},{start:20,end:Number.MAX_SAFE_INTEGER+1}]){
     assert.throws(()=>createNativeReference(read,0,selector),TypeError);
@@ -52,6 +55,14 @@ test('unrelated corpus growth preserves a reference; any pinned text identity ch
     const changed=structuredClone(read);mutate(changed);assert.equal(matchNativeReference(reference,changed).status,'stale');
   }
   assert.equal(JSON.stringify(reference),old);
+});
+
+test('native bounds count UTF-16 units while selected positions count code points',()=>{
+  const reference=createNativeReference(result(),0,{start:21,end:24});
+  assert.equal(nativeSelectedText(reference,'A\uD800e\u0301אבZ'),'\uD800e\u0301');
+  assert.doesNotThrow(()=>validateNativeReference({...reference,origin:{...reference.origin,id:'x'.repeat(2048)}}));
+  assert.throws(()=>validateNativeReference({...reference,origin:{...reference.origin,id:'x'.repeat(2049)}}),TypeError);
+  assert.throws(()=>validateNativeReference({...reference,origin:{...reference.origin,id:'\uD800'}}),TypeError);
 });
 
 test('native note, exact position, CAS conflict and additive export/import use the existing notebook',async()=>{

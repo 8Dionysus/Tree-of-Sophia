@@ -1,3 +1,5 @@
+import './human-forms-wasm-test-runtime.mjs';
+import {resolveClaimReading,claimPathClosure,FormContractError} from './human-forms.mjs';
 import {test,expect} from 'vitest';
 import {KnowledgeClient,RevisionError,RequestSlots} from './knowledge-client.mjs';
 import * as inspector from './knowledge-ui.mjs';
@@ -124,4 +126,16 @@ test('member node and member edge revisions remain pinned to the displayed scene
     const scene=memberFormLens(),fresh=memberFormLens('en');fresh[kind].at(-1).content_revision='e'.repeat(64);const {client}=clientFor(fresh);
     await expect(client.readClaimMaterial(scene,path(scene),undefined,{language:'en'})).rejects.toBeInstanceOf(RevisionError);
   }
+});
+
+
+test('malformed reading and an unowned path refuse before scanning source records',()=>{
+  const packet=compactFormLens();let scans=0;
+  const guarded={...packet};
+  Object.defineProperty(guarded,'nodes',{get(){scans++;return packet.nodes;}});
+  const reading={...path(packet).reading,standalone:true};
+  expect(()=>resolveClaimReading(guarded,reading)).toThrow(FormContractError);
+  expect(scans).toBe(0);
+  expect(()=>claimPathClosure(guarded,structuredClone(path(packet)))).toThrow(FormContractError);
+  expect(scans).toBe(0);
 });

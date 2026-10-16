@@ -1,5 +1,5 @@
 [Unit]
-Description=Tree of Sophia standalone access origin
+Description=Tree of Sophia installed native access origin
 Documentation=file://%h/.config/tree-of-sophia/site.env
 Wants=network-online.target
 After=network-online.target
@@ -7,7 +7,7 @@ After=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=%h/.config/tree-of-sophia/site.env
-ExecStart=/usr/bin/env ${TOS_SITE_ROOT}/access/deploy/cloudflare-tunnel/run-origin.sh
+ExecStart=/usr/bin/env sh -c 'if [ -n "$$TOS_ACCESS_ORIGIN_LAUNCHER" ]; then case "$$TOS_ACCESS_ORIGIN_LAUNCHER" in /*) exec "$$TOS_ACCESS_ORIGIN_LAUNCHER" ;; *) echo "TOS_ACCESS_ORIGIN_LAUNCHER must be an absolute path" >&2; exit 2 ;; esac; fi; if [ -n "$$TOS_SITE_ROOT" ]; then exec "$$TOS_SITE_ROOT/access/deploy/cloudflare-tunnel/run-origin.sh"; fi; echo "set TOS_ACCESS_ORIGIN_LAUNCHER or TOS_SITE_ROOT to locate the origin launcher" >&2; exit 2'
 Restart=on-failure
 RestartSec=3s
 NoNewPrivileges=yes

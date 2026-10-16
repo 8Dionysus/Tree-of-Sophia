@@ -1,3 +1,4 @@
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from "vitest";
 import { createPageCommandRegistry, type PageContextSnapshot } from "./page-commands";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
@@ -24,6 +25,16 @@ const workspaceNoopHandlers = {
   "tos.page.workspace-import": () => ({}),
 };
 
+function deferred() {
+  let resolve!: () => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 function workspaceSummary() {
   return {
     schema: "tos_research_workspace_summary_v1" as const,
@@ -41,6 +52,41 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("preserves lazy mode reads, cursor identity, UTF16 clipping and retained native callbacks", async () => {
+    let modeReads=0,cursorReads=0,pageReads=0;
+    let retained:((value:unknown)=>unknown)|undefined;
+    const mappedRefs=['source'];
+    Object.defineProperty(mappedRefs,'map',{value(callback:(value:unknown)=>unknown){
+      retained=callback;return Array.prototype.map.call(this,callback);
+    }});
+    const refs=['source'];
+    Object.defineProperty(refs,'slice',{value(start:number,end:number){
+      expect([start,end]).toEqual([0,3]);return mappedRefs;
+    }});
+    const cursor='c'.repeat(65535)+'\ud800';
+    const page={has_more:true};
+    Object.defineProperty(page,'next_cursor',{get(){
+      return ++cursorReads===3?cursor:'probe';
+    }});
+    const value={schema:'tos_knowledge_search_compressed_v3',query:'query',result_count:1,
+      nodes:[{id:'node',label:'x'.repeat(118)+'😀tail',source_refs:refs}],relations:[],counts:{},source_revision:'revision'};
+    Object.defineProperty(value,'page',{get(){pageReads++;return page;}});
+    const context={revision:0,selected:{id:'selected',kind:'node',evidence_available:false},view_id:'observatory',deep_link:'http://tos.local/'};
+    Object.defineProperty(context,'mode',{get(){return ++modeReads===1?'philosophy':'corpus';}});
+    Object.defineProperty(context,'active_layers',{get(){throw new Error('fresh corpus mode must stop before layers');}});
+    const registry={context:()=>context,subscribe:()=>()=>{},invoke:async()=>({value,context,context_revision:0})} as unknown as import('./page-commands').PageCommandRegistry;
+    const tools=new Map<string,RegisteredTool>();
+    const adapter=createWebMCPAdapter(registry,{modelContext:{registerTool:async(tool:RegisteredTool)=>{tools.set(tool.name,tool);}}} as unknown as WebMCPDocument);
+    await adapter.start();
+    expect(modeReads).toBe(2);expect(tools.has('tos.page.show-neighborhood')).toBe(false);
+    const reply=await tools.get('tos.page.knowledge-search')!.execute({}, {signal:new AbortController().signal}) as {content:Array<{text:string}>};
+    const compact=JSON.parse(reply.content[0].text);
+    expect(pageReads).toBe(3);expect(cursorReads).toBe(3);expect(compact.next_cursor).toBe(cursor);
+    expect(compact.nodes[0].label).toBe('x'.repeat(118)+'\ud83d…');
+    expect(retained!('opaque\ud800')).toBe('opaque\ud800');
+    adapter.stop();
+  });
+
   it("gates Observatory paths by explicit capability and preserves full route identities", async () => {
     const id = "opaque/" + "long-id:".repeat(35);
     const current: PageContextSnapshot = {
@@ -276,6 +322,7 @@ describe("WebMCP page-command binding", () => {
       research_workspace: workspaceSummary(),
     };
     const notes: Record<string, unknown>[] = [];
+    const proposals: Record<string, unknown>[] = [];
     const noop = vi.fn();
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.open-view": noop,
@@ -290,6 +337,7 @@ describe("WebMCP page-command binding", () => {
       ...workspaceNoopHandlers,
       "tos.page.inspect-selection": () => current.selected,
       "tos.page.add-research-note": (input) => { notes.push(input); return { added: true }; },
+      "tos.page.stage-proposal": (input) => { proposals.push(input); return { changed: true }; },
     });
     const tools = new Map<string, RegisteredTool>();
     const modelContext = {
@@ -302,13 +350,20 @@ describe("WebMCP page-command binding", () => {
     await adapter.start();
     expect(tools.has("tos.page.inspect-selection")).toBe(true);
     expect(tools.has("tos.page.stage-proposal")).toBe(true);
+    expect([...tools.keys()].filter((name) => ["tos.page.inspect-selection", "tos.page.add-note-to-selection", "tos.page.stage-proposal"].includes(name)))
+      .toEqual(["tos.page.inspect-selection", "tos.page.add-note-to-selection", "tos.page.stage-proposal"]);
+    const inspected = await tools.get("tos.page.inspect-selection")!.execute({}, { signal: new AbortController().signal }) as { content: Array<{ text: string }> };
+    expect(JSON.parse(inspected.content[0].text).selection.id).toBe("work:a");
+    await tools.get("tos.page.stage-proposal")!.execute({ kind: "interpretation", statement: "Bound proposal" }, { signal: new AbortController().signal });
+    expect(proposals[0]).toMatchObject({ target_id: "work:a", actor_origin: "agent", context_revision: 0 });
+    await adapter.refresh();
     const noteForA = tools.get("tos.page.add-note-to-selection");
 
     await noteForA?.execute({ text: "Bound to A" }, { signal: new AbortController().signal });
-    expect(notes[0]).toMatchObject({ text: "Bound to A", target_id: "work:a", context_revision: 0 });
+    expect(notes[0]).toMatchObject({ text: "Bound to A", target_id: "work:a", context_revision: 1 });
     await adapter.refresh();
     const refreshedNoteForA = tools.get("tos.page.add-note-to-selection");
-    await registry.invoke("tos.page.select", { item_id: "work:b", context_revision: 1 });
+    await registry.invoke("tos.page.select", { item_id: "work:b", context_revision: 2 });
     await expect(refreshedNoteForA?.execute({ text: "Must not follow" }, { signal: new AbortController().signal })).rejects.toThrow("stale page context revision");
     expect(notes).toHaveLength(1);
     adapter.stop();
@@ -330,7 +385,7 @@ describe("WebMCP page-command binding", () => {
     const prepare = vi.fn((_input: Record<string, unknown>) => ({
       schema: "tos_zarathustra_word_analysis_capability_v1",
       available: true,
-      task: { source: { language: "de", surface: "Schicksal" } },
+      task: { source: { language: "de", surface: "Schicksal", occurrence_candidate_ref: "candidate-0", existing_occurrence_ref: "old-0", context_unit_ref: "ctx", anchor_refs: ["source-anchor"], reading_ref: "r1" } },
     }));
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.open-view": noop,
@@ -363,6 +418,11 @@ describe("WebMCP page-command binding", () => {
     ) as { content: Array<{ text: string }> };
     expect(prepare).toHaveBeenCalled();
     expect(result.content[0].text).toContain("Schicksal");
+    expect(JSON.parse(result.content[0].text).source).toEqual({
+      occurrence_candidate_ref: "candidate-0", existing_occurrence_ref: "old-0",
+      context_unit_ref: "ctx", anchor_refs: ["source-anchor"], reading_ref: "r1",
+      language: "de", surface: "Schicksal",
+    });
     adapter.stop();
   });
 
@@ -427,6 +487,95 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
     expect(adapter.status()).toMatchObject({ registered: false, tool_count: 0 });
   });
+
+  it.each(["resolve", "reject"] as const)(
+    "cancels pending stable and selection registration after stop (%s), then restarts",
+    async (lateResult) => {
+      const current: PageContextSnapshot = {
+        mode: "philosophy", view_id: "observatory", graph_mode: "nodes",
+        selected: { id: "node:test", kind: "node", evidence_available: false, path_available: false },
+        path_start_node_id: null, active_layers: ["knowledge"], active_predicates: ["overview"],
+        deep_link: "http://tos.local/", research_workspace: workspaceSummary(),
+      };
+      let contextDisposed = false;
+      const readContext = vi.fn(() => {
+        if (contextDisposed) throw new Error("read page context after stop");
+        return current;
+      });
+      const registry = createPageCommandRegistry(readContext, {});
+      const tools = new Map<string, RegisteredTool>();
+      const calls: string[] = [];
+      let heldTool: string | null = null;
+      let gate = deferred();
+      let pendingStarted = Promise.resolve();
+      let notifyPending = () => {};
+      const holdNext = (name: string) => {
+        heldTool = name;
+        gate = deferred();
+        pendingStarted = new Promise<void>((resolve) => { notifyPending = resolve; });
+      };
+      const modelContext = {
+        registerTool: vi.fn(async (tool: RegisteredTool, options?: { signal?: AbortSignal }) => {
+          calls.push(tool.name);
+          if (tool.name === heldTool) {
+            heldTool = null;
+            notifyPending();
+            await gate.promise;
+            if (lateResult === "reject") throw new Error("late registerTool rejection");
+          }
+          if (!options?.signal?.aborted) {
+            tools.set(tool.name, tool);
+            options?.signal?.addEventListener("abort", () => {
+              if (tools.get(tool.name) === tool) tools.delete(tool.name);
+            }, { once: true });
+          }
+        }),
+      };
+      const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+
+      holdNext("tos.page.context");
+      const firstStart = adapter.start();
+      await pendingStarted;
+      registry.notifyStateChange();
+      expect(adapter.status().context_revision).toBe(1);
+      adapter.stop();
+      const contextReadsAfterStop = readContext.mock.calls.length;
+      contextDisposed = true;
+      adapter.stop();
+      expect(readContext).toHaveBeenCalledTimes(contextReadsAfterStop);
+      if (lateResult === "resolve") gate.resolve();
+      else gate.reject(new Error("late registerTool rejection"));
+      await expect(firstStart).resolves.toBeUndefined();
+      expect(calls).toEqual(["tos.page.context"]);
+      expect(readContext).toHaveBeenCalledTimes(contextReadsAfterStop);
+      await expect(adapter.refresh()).resolves.toBeUndefined();
+      expect(() => adapter.status()).not.toThrow();
+      expect(adapter.status()).toMatchObject({ registered: false, tool_count: 0, context_revision: 1 });
+
+      contextDisposed = false;
+      await adapter.start();
+      expect(adapter.status()).toMatchObject({ registered: true, context_revision: 1 });
+
+      const callsBeforeSelectionRefresh = calls.length;
+      holdNext("tos.page.inspect-selection");
+      const selectionRefresh = adapter.refresh();
+      await pendingStarted;
+      adapter.stop();
+      const contextReadsAfterSelectionStop = readContext.mock.calls.length;
+      contextDisposed = true;
+      if (lateResult === "resolve") gate.resolve();
+      else gate.reject(new Error("late registerTool rejection"));
+      await expect(selectionRefresh).resolves.toBeUndefined();
+      expect(calls.slice(callsBeforeSelectionRefresh)).toEqual(["tos.page.inspect-selection"]);
+      expect(readContext).toHaveBeenCalledTimes(contextReadsAfterSelectionStop);
+      expect(() => adapter.status()).not.toThrow();
+
+      contextDisposed = false;
+      await adapter.start();
+      expect(adapter.status()).toMatchObject({ registered: true, context_revision: 1 });
+      adapter.stop();
+    },
+  );
 
   it("reports an immediately usable no-WebMCP fallback state", async () => {
     const current: PageContextSnapshot = {

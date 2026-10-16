@@ -1,6 +1,7 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -9,55 +10,11 @@ import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {knowledgeNodeD1, knowledgeRelationD1} from '../src/knowledge-store.ts';
-import {nativePacketResponse} from '../src/native-lens-response.ts';
+import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 
-const repo = fileURLToPath(new URL('../../../../',import.meta.url));
 const sha = raw => createHash('sha256').update(raw).digest('hex');
-const python = (code,input) => JSON.parse(execFileSync('python3',['-B','-c',
-  "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
-  {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
-const fixture = python(String.raw`
-from tos_access.knowledge import _normalize_node,_normalize_relation
-from tos_access.published_read_metadata import published_reader_metadata,published_lens_metadata,emitted_row_digest,published_row_digest_key
-from build_runtime import compact_json
-values={'10':9007199254740993,'2':1.0,'01':-0.0,'x':[9007199254740992,False,None,1e-7],
-        '__proto__':{'constructor':1.0,'10':-0.0,'2':9007199254740993}}
-metadata_record={'record_id':'tos.record.numeric','record_type':'document','record_version':1,
-                 'numbers':values,'unicode':'Δ😀\\"\\\\\\n'}
-claim_record={'claim_id':'tos.claim.numeric','claim_version':1,
-              'numbers':values,'unicode':'Δ😀\\"\\\\\\n'}
-composite_record={'schema_version':'tos_scholarly_composite_witness_v1','composite_id':'tos.composite.numeric','record_version':1,'numbers':values}
-artifact_record={'schema_version':'tos_artifact_source_witness_v2','artifact_id':'tos.artifact.numeric','record_version':1,'numbers':values}
-nodes=[]
-for source,name,native,entity in [('philosophy','a','shared-native','tos.entity.a'),('canon','b','shared-native','tos.entity.b'),
- ('philosophy','c','c','tos.entity.shared'),('source-navigation','d','d','tos.entity.shared'),
- ('philosophy','e','tos.entity.shared','tos.entity.e'),('philosophy','z','philosophy:a','tos.entity.z'),
- ('philosophy','\ue000','unicode','tos.entity.private'),('philosophy','😀','unicode','tos.entity.astral')]:
- properties=dict(values)
- if name=='a': properties['source_record']=metadata_record
- elif name=='b': properties['source_record']=composite_record
- elif name=='c': properties['source_record']=artifact_record
- elif name=='d': properties.update(source_record=metadata_record,source_claim=claim_record)
- n=_normalize_node({'node_id':name,'label':name,'properties':properties,'source_ref':'test:inspection'},source)
- n['native_id']=native;n['entity_id']=entity;n['source_refs']=['test:inspection','',7,'😀','\ue000','test:inspection']
- n['unknown']={'10':1.0,'2':9007199254740993,'01':-0.0};nodes.append(n)
-relations=[]
-for source,name,a,b in [('philosophy','r',0,1),('canon','s',1,0),('philosophy','self',0,0),('philosophy','t',2,3)]:
- properties={'source_claim':claim_record} if name=='r' else {}
- r=_normalize_relation({'edge_id':name,'from_id':nodes[a]['id'],'to_id':nodes[b]['id'],'predicate_id':'links','properties':properties,'source_ref':'test:inspection'},source,{n['id']:n for n in nodes})
- r['from_id']=nodes[a]['id'];r['to_id']=nodes[b]['id'];r['native_id']='relation-alias' if name in ('r','s') else name
- r['unknown']=values;r['source_refs']=['test:relation','',False,'😀'];relations.append(r)
-graph={'schema':'tos_knowledge_graph_v1','source_revision':'a'*64,'nodes':nodes,'relations':relations,
- 'normalization_binding':{'schema':'tos_knowledge_graph_normalization_binding_v1',**{k:'0'*64 for k in ('processor_digest','entity_registry_digest','relation_registry_digest','configuration_digest')}},
- 'authority_boundary':{'source_owner':'Tree-of-Sophia','is_source':False,'is_canon':False,'writes_to_tree':False,'unknown':values}}
-metadata=published_reader_metadata(graph,{'schema':'tos_knowledge_catalog_v1','source_revision':graph['source_revision']},'tos_cloudflare_edge_read_model_v9','d'*64,lens_metadata=published_lens_metadata(graph))
-metadata['data_revision']={'sha256':'d'*64}
-raws={kind:[compact_json(item) for item in graph[key]] for kind,key in [('node','nodes'),('relation','relations')]}
-for kind,key in [('node','nodes'),('relation','relations')]:
- for item,raw in zip(graph[key],raws[kind]):metadata[published_row_digest_key(kind,item['id'])]=emitted_row_digest(raw)
-print(json.dumps({'nodes':raws['node'],'relations':raws['relation'],'metadata':{k:compact_json(v) for k,v in metadata.items()}}))
-`);
+const reference = (referenceId, input) => JSON.parse(frozenReference(import.meta.url, referenceId, input===undefined?undefined:JSON.stringify(input)));
+const fixture = reference("inspection/fixture");
 const schema = `CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
  CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,entity_id TEXT,native_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,title_text TEXT,search_text TEXT,json TEXT);
  CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,source_graph TEXT,from_id TEXT,to_id TEXT,predicate_id TEXT,relation_type_id TEXT,label_text TEXT,search_text TEXT,json TEXT);
@@ -79,7 +36,7 @@ function rowBindings(kind,raw) {
 }
 function database() {
   const directory=mkdtempSync(join(tmpdir(),'tos-native-inspection-')), path=join(directory,'published.sqlite');
-  const sqlite=new DatabaseSync(path);sqlite.exec(schema);sqlite.exec(migration);
+  const sqlite=new DatabaseSync(path);sqlite.exec('PRAGMA secure_delete=ON');sqlite.exec(schema);sqlite.exec(migration);
   for(const [key,raw] of Object.entries(fixture.metadata))sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key,raw);
   for(const kind of ['node','relation'])for(const raw of fixture[kind+'s'])sqlite.prepare(`INSERT INTO knowledge_${kind}s VALUES (${rowBindings(kind,raw).map(()=>'?').join(',')})`).run(...rowBindings(kind,raw));
   const statements=[], hook={after:null};
@@ -92,37 +49,19 @@ function database() {
   return {sqlite,db,statements,hook,path,binding,close(){sqlite.close();rmSync(directory,{recursive:true,force:true});}};
 }
 function oracle(database,kind,id,limit=200,binding=database.binding()) {
-  return python(String.raw`
-from tos_access.published_read_model import PublishedKnowledgeReadModel,PublishedReadBudgetExceeded,PublishedSnapshotConflict,PublishedReadModelError
-p=json.load(sys.stdin)
-try:
- reader=PublishedKnowledgeReadModel(p['path'],p['binding'])
- packet=reader.node(p['id'],p['limit']) if p['kind']=='node' else reader.relation(p['id'])
- print(json.dumps({'status':200,'raw':json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False)}))
-except Exception as e:
- status=413 if isinstance(e,PublishedReadBudgetExceeded) else 409 if isinstance(e,PublishedSnapshotConflict) else 503 if isinstance(e,PublishedReadModelError) else 404 if isinstance(e,KeyError) else 400 if isinstance(e,ValueError) else 500
- print(json.dumps({'status':status,'error':str(e)}))
-`,{path:database.path,binding,kind,id,limit});
+  return reference("inspection/read",{path:database.path,binding,kind,id,limit});
 }
 function assertPackets(actual,expected,lens=false) {
-  const diff=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': kind '+type(a).__name__+' != '+type(b).__name__]
- if isinstance(a,dict):
-  if set(a)!=set(b):return [path+': keys differ']
-  if list(a)!=list(b) and not any(path==root or path.startswith(root+'.') or path.startswith(root+'[') for root in unordered):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);unordered=['$.lens','$.counts','$.scene'] if p['lens'] else [];print(json.dumps(diff(json.loads(p['actual']),json.loads(p['expected']))))
-`,{actual,expected,lens});assert.deepEqual(diff,[]);
+  const roots=lens?['$.lens','$.counts','$.scene']:[];
+  assert.deepEqual(compareLosslessJson(actual,expected,{
+    unordered:path=>roots.some(root=>path===root||path.startsWith(root+'.')||path.startsWith(root+'[')),
+  }),[]);
 }
 let workerPromise;
 async function worker() {
-  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'})
+  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
     .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default);
   return workerPromise;
 }
@@ -142,7 +81,7 @@ function replaceRow(database,kind,id,change) {
 // lenses, without making inspection invoke the lens adapter or its histograms.
 // Inspection deliberately tests mixed-type source_refs; native lens requires
 // string refs. Emit a valid lens publication, preserving all other native JSON.
-const lensRows=python("p=json.load(sys.stdin);result={}\nfor kind,rows in p.items():\n result[kind]=[]\n for raw in rows:\n  item=json.loads(raw);item['source_refs']=[v for v in item['source_refs'] if isinstance(v,str) and v];result[kind].append(json.dumps(item,ensure_ascii=False,separators=(',',':')))\nprint(json.dumps(result))",
+const lensRows=reference("inspection/lens-rows",
   {node:fixture.nodes,relation:fixture.relations});
 function lensDatabase() {
   const data=database();
@@ -161,19 +100,7 @@ function lensDatabase() {
 const lensSpec={schema_version:'tos_lens_spec_v1',lens_id:'header-probe',sources:['philosophy','canon','source-navigation'],detail:'full',
   node_query:{enabled:true},relation_query:{enabled:false},pagination:{nodes:2,relations:1}};
 function lensOracle(data,spec=lensSpec,focus=false,binding=data.binding()) {
-  return python(String.raw`
-from tos_access.published_lens import PublishedLensService
-from tos_access.published_read_model import PublishedKnowledgeReadModel,PublishedReadBudgetExceeded,PublishedSnapshotConflict,PublishedReadModelError
-from tos_access.lens_pagination import KnowledgeRevisionConflict
-p=json.load(sys.stdin)
-try:
- service=PublishedLensService(PublishedKnowledgeReadModel(p['path'],p['binding']))
- packet=service.focus('philosophy:a',depth=0,profile='all') if p['focus'] else service.execute(p['spec'])
- print(json.dumps({'status':200,'raw':json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False)}))
-except Exception as e:
- status=413 if isinstance(e,PublishedReadBudgetExceeded) else 409 if isinstance(e,(PublishedSnapshotConflict,KnowledgeRevisionConflict)) else 503 if isinstance(e,PublishedReadModelError) else 400 if isinstance(e,ValueError) else 500
- print(json.dumps({'status':status,'error':str(e)}))
-`,{path:data.path,binding,spec,focus});
+  return reference("inspection/lens-read",{path:data.path,binding,spec,focus});
 }
 async function lensResponse(data,route='compile',spec=lensSpec,method='GET') {
   const path=route==='compile'?'/api/knowledge/lenses/compile':route==='focus'?'/api/knowledge/focus/philosophy%3Aa?depth=0&profile=all':'/api/knowledge/lenses/header-probe';
@@ -268,12 +195,7 @@ test('lens source-size checks remain selected-only and lens-metadata chunk bound
 });
 
 test('full producer bounds short posting INSERTs for the real D1 compiler without losing rows',async()=>{
-  const statements=python(String.raw`
-from build_runtime import append_batched_inserts,sql_text
-rows=[("'nodes'",'3',sql_text(str(i)),str(i)) for i in range(4901)]
-output=[]
-append_batched_inserts(output,'knowledge_search_gram_stats_next',('kind','n','gram','postings'),rows)
-print(json.dumps(output))`);
+  const statements=reference("inspection/posting-sql");
   const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("fixture")}}',compatibilityDate:'2026-09-03',d1Databases:['DB']}));
   try{
     await mf.ready;const db=await mf.getD1Database('DB');
@@ -285,8 +207,7 @@ print(json.dumps(output))`);
 });
 
 test('real Miniflare D1 lens uses the shared header/status guard before first HTTP serialization',async()=>{
-  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...await publishedWorkerFixtureModules(),d1Databases:['DB']}));
   const data=lensDatabase();try {
     const db=await mf.getD1Database('DB');
     await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -348,9 +269,6 @@ test('inspection exact source targets match Python native witness identities and
 });
 
 test('authored CSV target preserves string/null cells and rejects malformed or ambiguous exact bindings',async()=>{
-  const {parseNativeJson,nativeChild}=await import('../../../shared/native-semantics.ts');
-  const {nativeSourceReadTargets}=await import('../src/native-source-target.ts');
-  const {nativePacketJson}=await import('../src/native-lens.ts');
   const row={id:'canon:fixture:m001',source_record:{digest:'a'.repeat(64),transform_version:'tos-knowledge-normalization-v2',field_map:{},
     payload:{pack_id:'canon/relations/fixture',edge_id:'m001',properties:{source_row:1,source_file_sha256:'b'.repeat(64),
       source_record:{edge_id:'m001','10':'ten','2':'two',missing:null,note:'строка\nещё','😀':'astral','\ue000':'bmp'}}}}};
@@ -366,17 +284,27 @@ test('authored CSV target preserves string/null cells and rejects malformed or a
     const wrong=structuredClone(row);mutate(wrong);inputs.push(wrong);
   }
   for(let i=0;i<inputs.length;i++){
-    const item=inputs[i],native=parseNativeJson(JSON.stringify({item,revision:'c'.repeat(64)}));
-    const actual=JSON.parse(nativePacketJson(await nativeSourceReadTargets([nativeChild(native,'item')],nativeChild(native,'revision'))));
-    const expected=python("from tos_access.source_read_projection import source_read_targets;p=json.load(sys.stdin);print(json.dumps(source_read_targets([p['item']],p['revision'])))",{item,revision:'c'.repeat(64)});
-    assert.deepEqual(actual,expected);
-    assert.equal(Object.keys(actual).length,i===0?1:0);
+    const data=database();try {
+      replaceRow(data,'node','philosophy:a',raw=>{const item=JSON.parse(raw);item.source_record=inputs[i].source_record;return JSON.stringify(item);});
+      const expected=oracle(data,'node','philosophy:a',0),actual=await response(data,'node','philosophy:a',0);
+      assert.equal(actual.status,expected.status,expected.error);
+      if(expected.status===200) {
+        const raw=await actual.text();assertPackets(raw,expected.raw);
+        assert.equal(Object.keys(JSON.parse(raw).source_read_targets).length,i===0?1:0);
+      }
+    }finally{data.close();}
   }
 });
 
 test('inspection identifier Unicode stripping, unknown IDs and HEAD status agree with published Python',async()=>{
+  for(const kind of ['node','relation'])for(const id of ['', ' '.repeat(8), 'x'.repeat(4097)]) {
+    let reads=0;
+    const unavailable=new Proxy({}, {get(){reads++;throw new Error('malformed inspection must precede ANY D1');}});
+    const actual=await response({db:unavailable},kind,id);
+    assert.equal(actual.status,400);assert.equal(reads,0);
+  }
   const data=database();try {
-    for(const kind of ['node','relation'])for(const id of ['', 'not-found','x'.repeat(4097), '\u0085'+(kind==='node'?'philosophy:a':'philosophy:r')+'\u001c', '\ufeff'+(kind==='node'?'philosophy:a':'philosophy:r')+'\ufeff']) {
+    for(const kind of ['node','relation'])for(const id of ['', 'not-found','x'.repeat(4097), ' '.repeat(5000)+(kind==='node'?'philosophy:a':'philosophy:r'), '\u0085'+(kind==='node'?'philosophy:a':'philosophy:r')+'\u001c', '\ufeff'+(kind==='node'?'philosophy:a':'philosophy:r')+'\ufeff']) {
       const expected=oracle(data,kind,id), result=await response(data,kind,id);
       assert.equal(result.status,expected.status,`${kind}/${JSON.stringify(id.slice(0,30))}`);
       if(expected.status===200)assertPackets(await result.text(),expected.raw);
@@ -416,7 +344,7 @@ test('inspection 129 alias matches refuse before full rows, while 128 matches st
 test('inspection v8 is independent of lens metadata, and v9 does not read lens histograms or order rows',async()=>{
   for(const version of [8,9]) {const data=database();try {
     data.sqlite.exec("DELETE FROM edge_meta WHERE key='knowledge_lens_top'");
-    if(version===8) {const raw=python("p=json.loads(json.load(sys.stdin));p['schema']='tos_published_knowledge_reader_v1';p['read_model_schema']='tos_cloudflare_edge_read_model_v8';p.pop('lens_sha256');print(json.dumps(json.dumps(p,ensure_ascii=False,separators=(',',':'))))",fixture.metadata.knowledge_reader_top);
+    if(version===8) {const raw=reference("inspection/v8-metadata",fixture.metadata.knowledge_reader_top);
       data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(raw);
       data.sqlite.exec('DROP TABLE knowledge_lens_order;DROP INDEX knowledge_nodes_identity_seek');}
     const expected=oracle(data,'relation','relation-alias'),actual=await response(data,'relation','relation-alias');
@@ -491,8 +419,7 @@ test('inspection actual repeated source-ref response budget is 413 after bounded
 });
 
 test('real Miniflare D1 inspection preserves raw first HTTP serialization and ABA rejection',async()=>{
-  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...await publishedWorkerFixtureModules(),d1Databases:['DB']}));
   const data=database();try {
     const db=await mf.getD1Database('DB');
     await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -513,7 +440,8 @@ test('real Miniflare D1 inspection preserves raw first HTTP serialization and AB
           db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(JSON.stringify({sha256:'e'.repeat(64)})),
           db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(fixture.metadata.data_revision)]);}
         return result;}};}};
-      await assert.rejects(kind==='node'?knowledgeNodeD1(guarded,'philosophy:a',200):knowledgeRelationD1(guarded,'philosophy:r'),error=>error.status===409);assert.equal(changed,true);
+      const actual=await response({db:guarded},kind,kind==='node'?'philosophy:a':'philosophy:r');
+      assert.equal(actual.status,409);assert.equal(changed,true);
     }
   }finally{data.close();await mf.dispose();}
 });

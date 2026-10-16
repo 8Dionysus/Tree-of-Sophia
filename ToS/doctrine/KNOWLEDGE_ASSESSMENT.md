@@ -186,8 +186,8 @@ needs.
 - `ToS/doctrine/semantic-interchange/assessment-policy.v3.json`
 - `ToS/contracts/native-text-layer-comparison.schema.json`
 - `ToS/contracts/native-text-layer-quality-basis.schema.json`
-- `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py`
-- `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py`
+- `rust/crates/tos-validation/src/assessment.rs`
+- `rust/crates/tos-command/src/source_assessment_journal.rs`
 
 The source-owner journal preserves immutable qualified events and an atomic
 current-head selection. It supplies committed history separately from new

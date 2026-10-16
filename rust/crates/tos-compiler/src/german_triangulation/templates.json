@@ -1,0 +1,407 @@
+{
+  "packet": {
+    "$schema": "https://tree-of-sophia.local/ToS/contracts/german-source-triangulation.schema.json",
+    "schema_version": "tos_german_source_triangulation_v1",
+    "packet_id": "tos.german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1",
+    "status": "machine_triangulated_candidate",
+    "prepared_at": "2026-07-29T08:02:25Z",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "target": {
+      "review_unit_id": "tos-translation-source-review-v2-001",
+      "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+      "critical_locator_siglum": "Za-I-Vorrede-1",
+      "critical_locator_scope": "Zarathustra's Vorrede, section 1"
+    },
+    "bindings": {
+      "assisted_review_plan": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-assisted-source-review.v1.json",
+        "sha256": "882aaf20f81116b4d7a66ef1f8e72d8e3489c762cc5f1c42856fd06b2a837638"
+      },
+      "source_review_plan": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+        "sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25"
+      },
+      "metadata_critical_witness_packet": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+        "sha256": "494a1a69ea9bdbd8c7038c9644d3dd1bfe6e073f22c40bdb0826f1a5207ac0d0"
+      }
+    },
+    "inputs": {
+      "ekgwb": {
+        "source_role": "critical_edition_candidate_local_copy",
+        "local_payload_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+        "payload_sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061",
+        "byte_size": 180138,
+        "retrieval": {
+          "official_endpoint": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+          "fetched_at": "2026-07-29T08:02:25Z",
+          "http_status": 200,
+          "media_type": "text/html; charset=UTF-8",
+          "transport": "unencrypted_http",
+          "tls_authenticity_established": false,
+          "response_persisted_local_only": true,
+          "bounded_repeat_fetches": 2,
+          "repeat_fetches_byte_identical": true
+        },
+        "selector": {
+          "kind": "html_element_id",
+          "value": "eKGWB/Za-I-Vorrede-1"
+        },
+        "rights": {
+          "declared_license": "CC-BY-NC-ND-4.0",
+          "license_uri": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+          "official_rights_ref": "https://doc.nietzschesource.org/en/rights",
+          "human_rights_review": false,
+          "local_research_only": true,
+          "redistribution_authorized": false,
+          "derivative_publication_authorized": false
+        },
+        "source_text_tracked": false
+      },
+      "dta_tei": {
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "payload_relative_path": "works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+        "item_manifest": {
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "sha256": "b030e789d9c15dc2fed621e81e091927243883f7d577438162fc6be4e7b3d55b"
+        },
+        "rights_record": {
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+          "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+        },
+        "source_text_tracked": false
+      },
+      "naumann_auto_epub": {
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "file_sha256": "adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "payload_relative_path": "works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/payload/Nietzsche_Also_sprach_Zarathustra_1893.epub",
+        "item_manifest": {
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.manifest.json",
+          "sha256": "e67ec084b9537a30932aa9ac93bf27e4a440e5ac5d24efd4affd041f5b38e596"
+        },
+        "rights_record": {
+          "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/rights.json",
+          "sha256": "2eefad7531e4d872ad9f1c92909d7eff5c82064f11bd25a044bd28965c5ea4fd"
+        },
+        "source_text_tracked": false
+      }
+    },
+    "method": {
+      "implementation": "python-standard-library",
+      "normalization": [
+        "unicode_nfkc",
+        "unicode_casefold",
+        "unicode_alpha_token_sequence"
+      ],
+      "dta_dehyphenation": "remove_dta_printed_hyphen_marker_u00ac_and_following_whitespace_before_tokenization",
+      "comparison": "python_stdlib_difflib_sequence_matcher_autojunk_false",
+      "model_used_for_text_decision": false,
+      "translation_performed": false,
+      "source_text_emitted": false
+    },
+    "results": {
+      "ekgwb_reference": {
+        "paragraphs": 12,
+        "normalized_tokens": 261,
+        "normalized_sequence_sha256": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16"
+      },
+      "dta_exact_comparison": {
+        "section_selector": "TEI/text[1]/body[1]/div[1]/div[1]",
+        "paragraphs": 12,
+        "normalized_tokens": 261,
+        "normalized_sequence_sha256": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16",
+        "equal_paragraphs": 12,
+        "equal_tokens": 261,
+        "exact_after_source_aware_normalization": true
+      },
+      "normalization_failure_control": {
+        "naive_generic_whitespace_join_false_token_splits": 3,
+        "source_aware_dehyphenation_required": true,
+        "false_discrepancy_preserved": true
+      },
+      "naumann_ocr_comparison": {
+        "epub_members": [
+          {
+            "path": "EPUB/page_55.html",
+            "sha256": "0e29c6e4e9c29756a1014530c1f5d4a9140a6fbb3ca613a296a174f3e296fa5c"
+          },
+          {
+            "path": "EPUB/page_56.html",
+            "sha256": "0aec8864adf973d300fa4e1a4e923c492199ca9d8ccc0726cafd0200992d62c7"
+          }
+        ],
+        "candidate_tokens": 392,
+        "equal_reference_tokens": 260,
+        "single_token_replacements": 1,
+        "page_furniture_insertions": 15,
+        "trailing_next_section_tokens": 116,
+        "equal_run_lengths": [
+          111,
+          53,
+          96
+        ],
+        "exact_textual_identity": false,
+        "translation_claimed": false
+      }
+    },
+    "source_posture": "machine_triangulated_candidate",
+    "rights_and_transport_boundary": {
+      "unencrypted_transport_is_authenticity_risk": true,
+      "all_payloads_remain_local": true,
+      "tracked_packet_contains_source_text": false,
+      "rights_clearance_claimed": false,
+      "critical_edition_admission_authorized": false
+    },
+    "gate_effects": {
+      "machine_triangulated_units": 1,
+      "human_task_created": false,
+      "human_debt_units": 0,
+      "source_unit_selected_for_human_review": false,
+      "accepted_german_units": 0,
+      "critical_edition_units_admitted": 0,
+      "translation_lanes_opened": [],
+      "semantic_tasks_opened": 0,
+      "promotion_authorized": false
+    },
+    "authority_boundary": "machine-only text-free triangulation evidence over one local critical-edition candidate, one DTA TEI witness, and one automatic-OCR EPUB witness; not accepted German, critical-edition admission, translation evidence, semantics, rights clearance, or canon authority",
+    "does_not_establish": [
+      "source_authenticity_over_http",
+      "bibliographic_acceptance",
+      "rights_clearance",
+      "accepted_german_text",
+      "german_orthographic_correctness",
+      "german_grammatical_correctness",
+      "german_semantics",
+      "critical_edition_admission",
+      "translation_correspondence",
+      "translation_equivalence",
+      "translation_quality",
+      "semantic_annotation",
+      "canon_promotion"
+    ]
+  },
+  "discovery": {
+    "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+    "schema_version": "tos_material_discovery_record_v1",
+    "discovery_id": "tos.discovery.ekgwb-za-i-vorrede-1-http-fallback.2026-07-29",
+    "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+    "target": {
+      "target_kind": "critical-edition",
+      "known_tos_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
+      ],
+      "description": "A directly inspectable official Nietzsche Source response containing eKGWB Za-I-Vorrede-1, with transport and rights limits kept explicit.",
+      "required_properties": [
+        "critical-edition identity",
+        "exact stable section locator",
+        "directly inspectable current passage",
+        "originating scholarly record",
+        "declared rights evidence separated from ToS rights judgment"
+      ],
+      "acceptable_substitutions": [
+        "an authenticated HTTPS or institutionally supplied copy of the same exact eKGWB section",
+        "another scholarly critical edition with exact passage-level addressability and a reviewable rights route"
+      ],
+      "languages": [
+        "de"
+      ],
+      "formats": [
+        "metadata",
+        "HTML",
+        "TEI"
+      ],
+      "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/GERMAN_ASSISTED_REVIEW_RESEARCH.md"
+    },
+    "channels": [
+      {
+        "channel_id": "channel-nietzsche-source-https",
+        "sequence": 1,
+        "channel_type": "specialized-scholarly-project",
+        "role": "digital-object-record",
+        "source_name": "Nietzsche Source",
+        "endpoint_url": "https://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+        "interface_type": "web",
+        "interface_version": null,
+        "exact_query": "Two bounded curl 8.18.0 GET requests with redirects and 20-second timeout to the exact HTTPS static include endpoint; both failed to connect to port 443 before any HTTP response.",
+        "queried_at": "2026-07-29T08:02:21Z",
+        "elapsed_seconds": 0.903357,
+        "result_order_preserved": true,
+        "results": []
+      },
+      {
+        "channel_id": "channel-nietzsche-source-http-spa",
+        "sequence": 2,
+        "channel_type": "specialized-scholarly-project",
+        "role": "digital-object-record",
+        "source_name": "Nietzsche Source",
+        "endpoint_url": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+        "interface_type": "web",
+        "interface_version": "public SPA static include route observed 2026-07-29",
+        "exact_query": "Two bounded curl 8.18.0 GET requests with redirects and 20-second timeout to the exact HTTP static include endpoint discovered from the public Nietzsche Source SPA.",
+        "queried_at": "2026-07-29T08:02:23Z",
+        "elapsed_seconds": 1.943764,
+        "result_order_preserved": true,
+        "results": [
+          {
+            "result_id": "tos-discovery-result.ekgwb-official-http-static-za-i",
+            "rank": 1,
+            "title_as_displayed": "Nietzsche Source eKGWB, Also sprach Zarathustra I",
+            "result_url": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+            "originating_record_url": "http://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+            "identifiers": [
+              {
+                "scheme": "eKGWB",
+                "value": "Za-I-Vorrede-1"
+              }
+            ],
+            "available_formats": [
+              "HTML"
+            ],
+            "declared_rights": {
+              "statement": "CC BY-NC-ND 4.0",
+              "scope": "content",
+              "evidence_url": "https://doc.nietzschesource.org/en/rights",
+              "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+            },
+            "availability": "open-view",
+            "machine_interface": "html",
+            "decision": "select",
+            "rationale": "The official public SPA route returned the exact part containing the named section twice with identical bytes. Selection is local research evidence only: unencrypted transport prevents an authenticity claim, and rights remain unreviewed.",
+            "acquisition": {
+              "downloaded": true,
+              "acquired_at": "2026-07-29T08:02:23Z",
+              "byte_size": 180138,
+              "sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061",
+              "event_ref": "tos.event.acquisition.ekgwb-za-i-static-html.2026-07-29"
+            },
+            "snapshot": {
+              "state": "captured",
+              "format": "static-snapshot",
+              "sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061",
+              "reason": "The exact response is preserved only in the gitignored local-content lane and is not a publication payload."
+            }
+          }
+        ]
+      }
+    ],
+    "channel_comparison": [
+      {
+        "channel_id": "channel-nietzsche-source-https",
+        "completeness": "unknown",
+        "metadata_precision": "unknown",
+        "rights_clarity": "limited",
+        "machine_interface_quality": "poor",
+        "human_minutes": 0,
+        "machine_seconds": 0.903357,
+        "notes": "Both HTTPS requests failed before an HTTP response; this does not show that the resource is absent."
+      },
+      {
+        "channel_id": "channel-nietzsche-source-http-spa",
+        "completeness": "strong",
+        "metadata_precision": "strong",
+        "rights_clarity": "limited",
+        "machine_interface_quality": "adequate",
+        "human_minutes": 0,
+        "machine_seconds": 1.943764,
+        "notes": "Both public-route responses were 180138 bytes with the same SHA-256. HTTP is unencrypted, and the declared BY-NC-ND posture is evidence rather than ToS clearance."
+      }
+    ],
+    "selected_result_ids": [
+      "tos-discovery-result.ekgwb-official-http-static-za-i"
+    ],
+    "rejected_result_ids": [],
+    "rights_inference_from_availability_prohibited": true,
+    "general_web_search_is_last_resort": true,
+    "technical_access_bypass_used": false,
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "model:codex"
+    },
+    "started_at": "2026-07-29T08:02:21Z",
+    "ended_at": "2026-07-29T08:02:25Z",
+    "status": "reconciled",
+    "provenance_event_refs": [
+      "tos.event.discovery.ekgwb-za-i-vorrede-1-http-fallback.2026-07-29",
+      "tos.event.acquisition.ekgwb-za-i-static-html.2026-07-29"
+    ],
+    "record_version": 2,
+    "supersedes_discovery_ref": "tos.discovery.ekgwb-za-i-vorrede-1.2026-07-28"
+  },
+  "alignment_event": {
+    "schema_version": "tos_provenance_event_v1",
+    "event_id": "tos.event.alignment.zarathustra-german-source-triangulation.za-i-vorrede-1.2026-07-29",
+    "event_type": "alignment",
+    "started_at": "2026-07-29T08:02:25Z",
+    "ended_at": "2026-07-29T08:02:25Z",
+    "agent_refs": [
+      "model:codex",
+      "software:python-stdlib"
+    ],
+    "inputs": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+        "role": "local-only-unencrypted-http-critical-candidate",
+        "sha256": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061"
+      },
+      {
+        "ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "role": "fixity-verified-dta-tei-witness",
+        "sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b"
+      },
+      {
+        "ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "role": "fixity-verified-automatic-ocr-epub-witness",
+        "sha256": "adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de"
+      },
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-assisted-source-review.v1.json",
+        "role": "solo-human-plus-ai-competence-boundary",
+        "sha256": "14f5b903590212ba0ed704a8a53abf23ef020bddff41350b6b77b3cec650aa6c"
+      }
+    ],
+    "outputs": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
+        "role": "text-free-machine-triangulation-candidate",
+        "sha256": "c56cf915c3433b339d1e4bb59f3feed81b06def5434fc18763b1f36136bb6eb4"
+      }
+    ],
+    "method": {
+      "maker_type": "mixed",
+      "name": "source-aware-german-witness-triangulation",
+      "version": "1",
+      "artifact_digest": "e473b6a60f8e305d66bf11a54b6c2874a96bbc366c8b0456f64523353165c4aa",
+      "runtime": "Python standard library",
+      "device": "abyss-machine",
+      "configuration": {
+        "network_fetch_performed_by_builder": false,
+        "source_text_emitted": false,
+        "source_aware_dta_dehyphenation": true,
+        "comparison": "difflib.SequenceMatcher(autojunk=False)",
+        "human_review_performed": false,
+        "accepted_german_units": 0,
+        "translation_lanes_opened": 0
+      },
+      "prompt_or_instruction_ref": "ToS/research-packets/foundation-laboratory-2026-07/GERMAN_ASSISTED_REVIEW_RESEARCH.md"
+    },
+    "status": "completed_with_warnings",
+    "warnings": [
+      "the Nietzsche Source response was acquired over unencrypted HTTP, so transport authenticity is not established",
+      "naive generic normalization created three false DTA token splits before source-aware dehyphenation",
+      "the Naumann EPUB is automatic OCR and differs by one token plus page furniture in the bounded comparison",
+      "human German-language, bibliographic, and rights review remain absent",
+      "no critical edition, German source unit, translation lane, semantic task, or promotion was admitted"
+    ],
+    "receipt_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json"
+    ],
+    "rights_basis_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+    "event_version": 1,
+    "supersedes_event_ref": null
+  },
+  "historical_provenance_sha256": "c208ef326cf3de4252e15ed869e7534defab351d47eaf4379ba8f0752577d251"
+}

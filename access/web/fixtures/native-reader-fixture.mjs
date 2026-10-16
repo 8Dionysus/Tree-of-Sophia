@@ -1,3 +1,4 @@
+import './reader-rules.mjs';
 import {KnowledgeClient} from '../src/observatory/knowledge-client.mjs';
 import {createCorpusNotebook} from '../src/corpus-reader/notebook.mjs';
 import {mountNativeReader} from '../src/corpus-reader/native-reader.mjs';

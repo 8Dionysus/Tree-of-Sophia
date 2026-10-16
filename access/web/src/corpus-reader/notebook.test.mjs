@@ -1,3 +1,4 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {createReference} from './model.mjs';
 import {

@@ -1,7 +1,9 @@
 # Native local Item adoption
 
-`source_item_commands.py` adds `item.adopt` and `item.adoption.recover` to the
-existing `source_commands.py` front door. It adopts one **already obtained
+The native handler `native-item-adoption` uses
+`rust/crates/tos-command/src/source_item_adoption.rs` through the
+`tos-native-owner-command source-commands` front door. It adds `item.adopt` and
+`item.adoption.recover` and adopts one **already obtained
 local file**, creates one provisional acquired Item and distinct
 `exemplified_by` Claim, and appends the existing Edition's
 `exemplar_claim_refs` with one version/form successor. Acquisition, text
@@ -158,7 +160,14 @@ receipts detect mismatches, not malicious self-forgery by that account. The comm
 assessment, payload resolution, legacy migration, publication and source
 review follow their respective owner routes.
 Catalog/derived regeneration, wider validation, checkpoint review and landing
-remain separate owner steps. Before source-foundation closure, create the
+remain separate owner steps. A first Item adoption may target an Edition whose
+predecessor has no `source-revision-history.json`; the first `item.adopt`
+transition creates that history. Any history already present is checked before
+the adoption proceeds. PG recovery accepts exactly the two-member record/forms
+predecessor or the three-member record/forms/history predecessor; fixity and
+receipt checks remain exact, and committed successors still require history.
+
+Before source-foundation closure, create the
 new Item's exact future-server plan under
 `ToS/source-witnesses/server-import/plans/` and its provenance in the existing
 `server-import/provenance.jsonl`, following `SERVER_IMPORT_PROTOCOL.md`.
@@ -166,3 +175,27 @@ The plan covers the committed manifest and rights digests; current local
 Items remain metadata-only with payload transfer and content-bearing server
 derivatives prohibited. This owner companion is not part of the adoption
 transaction and must not alter its committed bytes or imply server upload.
+
+## Current Claim projection after revisions
+
+The retained `edition-item-receipt.json` and the original adoption transaction
+remain immutable evidence for the Item's first Edition backlink. A current
+read-only Claim projection must not reinterpret that historical 3-member
+Edition and 15-member Item package as the current package after later record
+revisions.
+
+The V2 current projection verifies the complete retained Edition and Item
+history with the record-revision owner, including each predecessor archive,
+its exact prefix and selected bytes. It locates the one Edition `item.adopt`
+transition bound by the compound receipt, then reconstructs the adopted
+Edition output from the next transition's predecessor archive (or the current
+tip when adoption is still the tip) and the adopted Item v1 from its first
+ordinary-revision archive (or the current Item when it remains v1). The strict
+V1 adoption contribution is derived from those original packages without
+rewriting the receipt.
+
+Current Edition and Item tips are carried separately, with exact member
+digests and their full revision chains. The current Item history member is
+optional only for an unrevised Item v1. This keeps the historical transaction
+closure and present-day source binding independently reviewable in both full
+and streamed inventory routes.

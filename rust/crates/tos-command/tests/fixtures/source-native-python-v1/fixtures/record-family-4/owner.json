@@ -1,0 +1,23 @@
+{
+  "schema_version": "tos_local_corpus_revision_owner_v2",
+  "uid": 1000,
+  "principal_id": "test:reviser",
+  "source_root": "$TOS_FIXTURE_ROOT",
+  "source_path": "ToS/source-witnesses/history/synthetic/episode/work.json",
+  "record_id": "tos.work.selected-fixture",
+  "authority_ref": "test:explicit-source-correction",
+  "allowed_form_ids": [
+    "tos.form.revision-name",
+    "tos.form.revision-note"
+  ],
+  "allowed_fields": [
+    "notes",
+    "field_languages"
+  ],
+  "allowed_operations": [
+    "record.revise",
+    "record.recover"
+  ],
+  "expires_at": "2099-01-01T00:00:00Z",
+  "record_type": "work"
+}

@@ -1,0 +1,254 @@
+{
+  "alignment": {
+    "alignment_id": null,
+    "alignment_version": 1,
+    "certainty": {
+      "meaning": "maker_declared_uncertainty_not_truth_probability",
+      "value": null
+    },
+    "claim_id": null,
+    "claim_version": 1,
+    "competing_alignment_refs": [],
+    "correspondence_shape": null,
+    "direction": "source_to_target",
+    "epistemic_status": null,
+    "evidence": [
+      {
+        "description": null,
+        "evidence_ref": null,
+        "role": null,
+        "source_anchor_refs": null,
+        "target_anchor_refs": null
+      }
+    ],
+    "identity_policy": "opaque-id-independent-of-text-label-translation-and-current-mapping",
+    "maker": {
+      "agent_ref": "codex-internal-agents.alignment-v1",
+      "configuration_sha256": null,
+      "made_at": "2026-09-01T23:30:00-06:00",
+      "maker_kind": "software",
+      "method": "bounded structural anchors plus deterministic length-profile proposals and independent mixed-content challenger",
+      "method_output_posture": "proposal_not_truth",
+      "provenance_event_ref": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.build",
+      "software_ref": "scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "software_version": "1"
+    },
+    "order_posture": null,
+    "ordered_source_anchor_refs": null,
+    "ordered_target_anchor_refs": null,
+    "review_refs": [],
+    "status": null,
+    "status_reason": null,
+    "supersedes_alignment_ref": null,
+    "supersedes_claim_ref": null,
+    "translation_techniques": [
+      "unresolved"
+    ]
+  },
+  "coverage": {
+    "accepted_alignment_count": 0,
+    "alignment_count": null,
+    "canon_effect": false,
+    "conflict_ledger_count": null,
+    "correspondence_shape_counts": null,
+    "cross_kind_out_of_paragraph_scope_candidate_count": 11,
+    "independent_challenger_disagreement_by_part": null,
+    "independent_challenger_disagreement_count": 112,
+    "independent_challenger_disagreement_paragraph_unit_count": null,
+    "independent_challenger_same_group_count": 3311,
+    "internal_null_side_transition_count": 12,
+    "lexical_equivalence_inferred": false,
+    "machine_risk_union_count": null,
+    "packet_count": 4,
+    "preserved_ambiguous_count": null,
+    "preserved_deferred_count": null,
+    "primary_only_machine_risk_count": null,
+    "primary_profile_and_independent_disagreement_overlap_count": null,
+    "primary_profile_disagreement_count": null,
+    "projections_count": 0,
+    "reading_pair_count": null,
+    "reading_pairs_by_part": null,
+    "reviews_count": 0,
+    "schema_valid_packet_count": 4,
+    "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_coverage_receipt_v1",
+    "semantic_equivalence_asserted": false,
+    "source_only_outside_81_reading_scope_count": 9,
+    "source_paragraph_covered": null,
+    "source_paragraph_duplicate_count": 0,
+    "source_paragraph_expected": null,
+    "source_paragraph_uncovered_count": 0,
+    "source_text_included": false,
+    "source_verse_group_exclusion_count": null,
+    "source_verse_line_exclusion_count": null,
+    "status": "complete_machine_proposal_coverage",
+    "status_counts": null,
+    "structural_role_mismatch_candidate_count": 1,
+    "target_paragraph_covered": null,
+    "target_paragraph_duplicate_count": 0,
+    "target_paragraph_expected": null,
+    "target_paragraph_uncovered_count": 0,
+    "target_verse_group_exclusion_count": null,
+    "target_verse_line_exclusion_count": null,
+    "unaccounted_machine_risk_count": 0
+  },
+  "manifest": {
+    "accepted_alignment_count": 0,
+    "canon_effect": false,
+    "generated_outputs": null,
+    "private_outputs": null,
+    "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_manifest_v1",
+    "semantic_equivalence_asserted": false,
+    "source_text_included": false,
+    "static_inputs": null
+  },
+  "packet": {
+    "$schema": null,
+    "alignments": null,
+    "authority_boundary": {
+      "alignment_is_claim_not_translation_truth": true,
+      "canon_effect": false,
+      "exports_are_not_owner_truth": true,
+      "graph_role": "relation",
+      "lexical_equivalence_not_inferred": true,
+      "machine_or_model_may_propose_not_accept": true,
+      "source_role": "authority",
+      "tree_role": "orientation",
+      "unaligned_members_are_first_class": true,
+      "validators_prove_mechanics_not_truth": true
+    },
+    "content_posture": "source_bound",
+    "granularity": "paragraph",
+    "packet_id": null,
+    "packet_version": 1,
+    "projections": [],
+    "reviews": [],
+    "rights_and_visibility": {
+      "effective_visibility": "local_only",
+      "inheritance_policy": "most_restrictive_side_or_packet_wins",
+      "packet_visibility": "public_metadata_only",
+      "private_source_used": true,
+      "publication_authorized": false,
+      "rights_record_refs": [
+        null,
+        null
+      ],
+      "source_visibility": "local_only",
+      "target_visibility": "local_only"
+    },
+    "schema_version": "tos_translation_alignment_packet_v1",
+    "source_side": {
+      "anchors": null,
+      "edition_ref": null,
+      "expression_ref": null,
+      "file_ref": null,
+      "file_sha256": null,
+      "item_ref": null,
+      "language": "de",
+      "publication_authorized": false,
+      "rights_refs": [
+        null
+      ],
+      "segmentation": {
+        "artifact_ref": null,
+        "sha256": null,
+        "state": "frozen"
+      },
+      "side_role": "source",
+      "text_layer_ref": null,
+      "text_layer_sha256": null,
+      "tokenization": null,
+      "visibility": "local_only",
+      "work_ref": null
+    },
+    "supersedes_packet_ref": null,
+    "target_side": {
+      "anchors": null,
+      "edition_ref": null,
+      "expression_ref": null,
+      "file_ref": null,
+      "file_sha256": null,
+      "item_ref": null,
+      "language": "ru",
+      "publication_authorized": false,
+      "rights_refs": [
+        null
+      ],
+      "segmentation": {
+        "artifact_ref": null,
+        "sha256": null,
+        "state": "frozen"
+      },
+      "side_role": "target",
+      "text_layer_ref": null,
+      "text_layer_sha256": null,
+      "tokenization": null,
+      "visibility": "local_only",
+      "work_ref": null
+    }
+  },
+  "summary": {
+    "accepted_alignment_count": 0,
+    "alignment_count": null,
+    "canon_effect": false,
+    "independent_challenger_comparison": {
+      "affected_paragraph_units": null,
+      "disagreement": 112,
+      "disagreement_by_part": null,
+      "same_group": 3311
+    },
+    "machine_risk_union": {
+      "independent_disagreement_count": 112,
+      "mapping_count": null,
+      "primary_only_risk_count": null,
+      "primary_profile_and_independent_overlap_count": null,
+      "primary_profile_disagreement_count": null
+    },
+    "packet_count": 4,
+    "projections_count": 0,
+    "reading_pair_count": 81,
+    "reviews_count": 0,
+    "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_summary_v1",
+    "scope_exclusions": {
+      "source_verse_groups": 39,
+      "source_verse_lines": 368,
+      "target_verse_groups": 13,
+      "target_verse_lines": 359
+    },
+    "semantic_equivalence_asserted": false,
+    "source_paragraph_count": null,
+    "source_text_included": false,
+    "status": "complete_machine_proposal_not_accepted_alignment",
+    "status_counts": null,
+    "target_paragraph_count": null
+  },
+  "verification": {
+    "authority_boundary": "mechanical packet and proposal coverage only",
+    "canon_effect": false,
+    "checks": {
+      "accepted_alignment_count_zero": true,
+      "all_81_reading_pairs_present": true,
+      "all_independent_disagreements_ambiguous_or_deferred": true,
+      "four_packets_schema_valid": true,
+      "independent_challenger_3311_112_denominator_preserved": true,
+      "internal_null_transitions_not_called_translator_omissions": true,
+      "machine_risk_union_fully_accounted_in_conflict_ledger": true,
+      "opaque_identity_issuance_closed": true,
+      "outside_reading_source_units_first_class_deferred": true,
+      "projections_empty": true,
+      "reviews_empty": true,
+      "source_paragraphs_exact_once_3447": true,
+      "source_verse_groups_and_lines_explicitly_excluded": true,
+      "target_paragraphs_exact_once_3569": true,
+      "target_verse_groups_and_lines_explicitly_excluded": true,
+      "tracked_outputs_text_free": true
+    },
+    "graph_projection_created": false,
+    "human_acceptance": false,
+    "lexical_equivalence_inferred": false,
+    "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_agent_verification_v1",
+    "semantic_equivalence_asserted": false,
+    "source_text_included": false,
+    "status": "complete_machine_proposal_materialization",
+    "translation_truth_verified": false
+  }
+}

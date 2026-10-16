@@ -1,0 +1,1012 @@
+//! Ordered full-model component build over an already normalized private
+//! stage. This is a FullOnly job; adapters and owner semantic admission are
+//! prerequisites, not hidden fallback behavior.
+
+use crate::{
+    Error, KnowledgeRegistry, QueryVocabulary, Result,
+    catalog::{CatalogLimits, compile_catalog_with_state},
+    knowledge_catalog_index::{
+        CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog, materialize_catalog_packet,
+    },
+    knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope},
+    knowledge_seal::{KnowledgeSealReceipt, SealLimits},
+    knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index},
+    knowledge_stage::{KnowledgeStage, WritePhase},
+    managed_source::{KnowledgeSourceBasis, ManagedProducerProof, ManagedSourceProofV2},
+};
+use serde_json::Value;
+use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
+
+/// Build the normalized native graph header for a managed current-source
+/// producer. The source basis is always derived from the validated retained
+/// proof, while processor and configuration digests remain explicit inputs.
+pub fn managed_navigation_header_with_binding(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    proof: &ManagedSourceProofV2,
+    processor_digest: Digest256,
+    configuration_digest: Digest256,
+) -> Result<Value> {
+    proof.validate()?;
+    native_navigation_header_with_basis(
+        stage,
+        registry,
+        entity_bytes,
+        &proof.basis(),
+        processor_digest,
+        configuration_digest,
+    )
+}
+
+pub(crate) fn native_navigation_header_with_basis(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    source_basis: &KnowledgeSourceBasis,
+    processor_digest: Digest256,
+    configuration_digest: Digest256,
+) -> Result<Value> {
+    source_basis.validate()?;
+    if Digest256::of_bytes(entity_bytes).to_hex() != registry.entity_sha256 {
+        return Err(Error::Invalid("native header exact entity registry bytes"));
+    }
+    let roots = stage.core_roots()?;
+    let (
+        sources,
+        node_states,
+        relation_states,
+        mapped_nodes,
+        mapped_relations,
+        missing_node_summary,
+        missing_relation_explanation,
+    ) = stage.with_connection(WritePhase::Finalize, |db| {
+        let mut sources = std::collections::BTreeMap::<String, u64>::new();
+        let mut states = [
+            std::collections::BTreeMap::<String, u64>::new(),
+            std::collections::BTreeMap::<String, u64>::new(),
+        ];
+        let mut mapped = [0u64; 2];
+        let mut missing = [0u64; 2];
+        for (i, table) in ["knowledge_nodes", "knowledge_relations"]
+            .iter()
+            .enumerate()
+        {
+            let mut statement = db.prepare(&format!(
+                "SELECT source_graph,payload FROM {table} ORDER BY source_order"
+            ))?;
+            let mut rows = statement.query([])?;
+            while let Some(row) = rows.next()? {
+                let source: String = row.get(0)?;
+                let raw: Vec<u8> = row.get(1)?;
+                let value: Value = serde_json::from_slice(&raw)
+                    .map_err(|_| Error::Invalid("native header normalized row JSON"))?;
+                if i == 0 {
+                    *sources.entry(source).or_default() += 1;
+                }
+                let state = if i == 0 {
+                    "summary_state"
+                } else {
+                    "explanation_state"
+                };
+                *states[i]
+                    .entry(
+                        value["display"][state]
+                            .as_str()
+                            .ok_or(Error::Invalid("native header display state"))?
+                            .into(),
+                    )
+                    .or_default() += 1;
+                let mapping = if i == 0 {
+                    "type_mapping"
+                } else {
+                    "predicate_mapping"
+                };
+                if value[mapping]["status"] == "mapped" {
+                    mapped[i] += 1;
+                }
+                let source = if i == 0 {
+                    "source_summary_available"
+                } else {
+                    "source_explanation_available"
+                };
+                if value["display"]["provenance"][source] == false {
+                    missing[i] += 1;
+                }
+            }
+        }
+        let [nodes, relations] = states;
+        Ok((
+            sources, nodes, relations, mapped[0], mapped[1], missing[0], missing[1],
+        ))
+    })?;
+    let entity: Value = serde_json::from_slice(entity_bytes)
+        .map_err(|_| Error::Invalid("native header registry JSON"))?;
+    let query_properties = entity["property_definitions"]
+        .as_array()
+        .ok_or(Error::Invalid(
+            "native header registry property definitions",
+        ))?
+        .iter()
+        .map(|definition| {
+            let mut packet = serde_json::Map::new();
+            for field in [
+                "property_id",
+                "field",
+                "value_type",
+                "applies_to",
+                "inherited",
+                "operators",
+            ] {
+                if let Some(value) = definition.get(field) {
+                    packet.insert(field.into(), value.clone());
+                }
+            }
+            Value::Object(packet)
+        })
+        .collect::<Vec<_>>();
+    let mut header = serde_json::json!({"schema":"tos_knowledge_graph_v1",
+        "normalization_binding":{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":processor_digest.to_hex(),
+            "entity_registry_digest":registry.entity_semantic_digest,"relation_registry_digest":registry.relation_semantic_digest,"configuration_digest":configuration_digest.to_hex()},
+        "query_properties":query_properties,"counts":{"nodes":roots.nodes,"relations":roots.relations,"sources":sources,
+            "display_coverage":{"node_titles":roots.nodes,"node_summaries":roots.nodes,"node_summary_states":node_states,"nodes_without_source_summary":missing_node_summary,
+                "relation_labels":roots.relations,"relation_statements":roots.relations,"relation_explanations":roots.relations,"relation_explanation_states":relation_states,
+                "relations_without_source_explanation":missing_relation_explanation},
+            "semantic_mapping":{"mapped_nodes":mapped_nodes,"unmapped_nodes":roots.nodes-mapped_nodes,"mapped_relations":mapped_relations,
+                "unmapped_relations":roots.relations-mapped_relations,"cross_layer_relations":0}},
+        "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}});
+    match source_basis {
+        KnowledgeSourceBasis::V1Cut { source_revision } => {
+            header["source_revision"] = serde_json::json!(source_revision);
+        }
+        KnowledgeSourceBasis::ManagedCurrent { .. }
+        | KnowledgeSourceBasis::ManagedCurrentV2 { .. } => {
+            header["schema"] = serde_json::json!(crate::managed_source::MANAGED_GRAPH_SCHEMA);
+            header["source_basis"] =
+                serde_json::to_value(source_basis).map_err(|e| Error::Source(e.to_string()))?;
+        }
+    }
+    Ok(header)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct FullKnowledgeLimits {
+    pub scope: ScopeLimits,
+    pub catalog: CatalogLimits,
+    pub catalog_index: CatalogIndexLimits,
+    pub search: SearchBuildLimits,
+    pub seal: SealLimits,
+    pub max_registry_bytes: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct FullKnowledgeReceipt {
+    pub source_scope: ScopeReceipt,
+    pub catalog: CatalogIndexReceipt,
+    pub search: SearchIndexReceipt,
+    pub seal: KnowledgeSealReceipt,
+}
+
+pub(crate) struct SelectedKnowledgeComponents {
+    pub source_scope: ScopeReceipt,
+    pub catalog: CatalogIndexReceipt,
+    pub search: Option<SearchIndexReceipt>,
+    pub seal: KnowledgeSealReceipt,
+}
+
+impl From<FullKnowledgeReceipt> for SelectedKnowledgeComponents {
+    fn from(full: FullKnowledgeReceipt) -> Self {
+        Self {
+            source_scope: full.source_scope,
+            catalog: full.catalog,
+            search: Some(full.search),
+            seal: full.seal,
+        }
+    }
+}
+
+pub(crate) fn registry_value(
+    raw: &[u8],
+    expected_sha256: &str,
+    cap: usize,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<Value> {
+    let limits = registry_limits(raw, expected_sha256, cap, state)?;
+    if let Some(state) = state {
+        return state.serde_owned_with_limits(raw, limits);
+    }
+    parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|e| Error::Source(e.to_string()))?;
+    serde_json::from_slice(raw).map_err(|_| Error::Invalid("full knowledge registry JSON"))
+}
+
+pub(crate) fn registry_value_scoped<'state, 'budget>(
+    raw: &[u8],
+    expected_sha256: &str,
+    cap: usize,
+    state: &'state crate::d1_public_capture::CreationState<'budget>,
+) -> Result<(
+    Value,
+    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+)> {
+    let limits = registry_limits(raw, expected_sha256, cap, Some(state))?;
+    state.serde_scoped_with_limits(raw, limits)
+}
+
+fn registry_limits(
+    raw: &[u8],
+    expected_sha256: &str,
+    cap: usize,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<JsonLimits> {
+    if cap == 0 || cap > 4 * 1024 * 1024 || raw.is_empty() || raw.len() > cap {
+        return Err(Error::Budget("full knowledge registry bytes"));
+    }
+    let _digest_hold = state.map(|owner| owner.hold(64)).transpose()?;
+    if let Some(state) = state {
+        state.charge_work(raw.len())?;
+    }
+    if Digest256::of_bytes(raw).to_hex() != expected_sha256 {
+        return Err(Error::Invalid("full knowledge registry byte root"));
+    }
+    JsonLimits::new(cap, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("full knowledge registry JSON limits"))
+}
+
+/// Materialize all local read components in dependency order, then seal their
+/// roots. The caller must provide complete final normalized rows and owner
+/// semantic validation before this call; it must call `stage.finish` and use
+/// a separate selected-publication authority afterward. Any failure poisons
+/// the stage and prevents `finish` from yielding a candidate receipt.
+pub fn compile_full_knowledge_components(
+    stage: &mut KnowledgeStage<'_>,
+    graph_header: &Value,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    relation_registry_bytes: &[u8],
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    limits: FullKnowledgeLimits,
+) -> Result<FullKnowledgeReceipt> {
+    compile_full_knowledge_components_prepared(
+        stage,
+        graph_header,
+        registry,
+        entity_registry_bytes,
+        relation_registry_bytes,
+        saved_lenses,
+        vocabulary,
+        descriptor_bytes,
+        limits,
+        None,
+    )
+}
+
+pub(crate) fn compile_full_knowledge_components_prepared(
+    stage: &mut KnowledgeStage<'_>,
+    graph_header: &Value,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    relation_registry_bytes: &[u8],
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    limits: FullKnowledgeLimits,
+    prepared: Option<crate::catalog::PreparedCatalog<'_, '_>>,
+) -> Result<FullKnowledgeReceipt> {
+    if stage.public_build() {
+        return Err(Error::Invalid(
+            "public D1 stage cannot compile selected full model",
+        ));
+    }
+    let result = compile_inner(
+        stage,
+        graph_header,
+        registry,
+        entity_registry_bytes,
+        relation_registry_bytes,
+        saved_lenses,
+        vocabulary,
+        descriptor_bytes,
+        limits,
+        prepared,
+        true,
+    )
+    .and_then(|parts| {
+        Ok(FullKnowledgeReceipt {
+            source_scope: parts.source_scope,
+            catalog: parts.catalog,
+            search: parts
+                .search
+                .ok_or(Error::Invalid("full model search component absent"))?,
+            seal: parts.seal,
+        })
+    });
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+/// Initial native navigation anchor. Full portable producers never enter this
+/// route; the seal requires managed source proof and authentic Original rows.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn compile_managed_navigation_components(
+    stage: &mut KnowledgeStage<'_>,
+    graph_header: &Value,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    relation_registry_bytes: &[u8],
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    limits: FullKnowledgeLimits,
+) -> Result<SelectedKnowledgeComponents> {
+    if stage.public_build() || stage.payload_layout().uses_carriers() {
+        return Err(Error::Invalid("native navigation stage required"));
+    }
+    if stage.exact_receipt()?.binding.reader_abi
+        == tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
+    {
+        let core = stage.core_roots()?;
+        if core.nodes != 0 || core.relations != 0 {
+            return Err(Error::Invalid("Original anchor contains normalized graph"));
+        }
+    }
+    let result = compile_inner(
+        stage,
+        graph_header,
+        registry,
+        entity_registry_bytes,
+        relation_registry_bytes,
+        saved_lenses,
+        vocabulary,
+        descriptor_bytes,
+        limits,
+        None,
+        false,
+    );
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn compile_inner(
+    stage: &mut KnowledgeStage<'_>,
+    graph_header: &Value,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    relation_registry_bytes: &[u8],
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    limits: FullKnowledgeLimits,
+    prepared: Option<crate::catalog::PreparedCatalog<'_, '_>>,
+    include_search: bool,
+) -> Result<SelectedKnowledgeComponents> {
+    if let Some(creation) = stage.owned_creation_state() {
+        vocabulary.verify_authored_bytes_with_owned_state(descriptor_bytes, creation)?;
+    } else {
+        vocabulary.verify_authored_bytes(descriptor_bytes)?;
+    }
+    // All native normalization, readable joins and original capture precede
+    // this full-component transition. These components use final core rows.
+    stage.close_inputs_for_full_components()?;
+    // This borrow points at the original invocation state, not a phase-local
+    // copy. Capture it before taking the mutable SQLite connection.
+    let creation = stage.owned_creation_state();
+    let source_scope = full_component_stage("source-scope", creation, || {
+        write_source_scope(stage, vocabulary, limits.scope)
+    })?;
+    let payload_layout = stage.payload_layout();
+    let catalog = match prepared {
+        Some(prepared) => {
+            // The token binds the already parsed registries. Still verify the
+            // caller's actual bytes and caps before using that prepared result.
+            registry_limits(
+                entity_registry_bytes,
+                &registry.entity_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
+            registry_limits(
+                relation_registry_bytes,
+                &registry.relation_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
+            let packet = full_component_stage("catalog", creation, || {
+                prepared.packet(stage, graph_header, vocabulary, registry)
+            })?;
+            full_component_stage("catalog-index", creation, || {
+                materialize_catalog_packet(stage, &packet, vocabulary, limits.catalog_index)
+            })?
+        }
+        None => {
+            let entity = registry_value(
+                entity_registry_bytes,
+                &registry.entity_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
+            let relation = registry_value(
+                relation_registry_bytes,
+                &registry.relation_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
+            let packet = full_component_stage("catalog", creation, || {
+                stage.with_connection(WritePhase::Catalog, |db| {
+                    compile_catalog_with_state(
+                        db,
+                        graph_header,
+                        &entity,
+                        &relation,
+                        saved_lenses,
+                        vocabulary,
+                        descriptor_bytes,
+                        limits.catalog,
+                        creation,
+                        payload_layout,
+                    )
+                })
+            })?;
+            full_component_stage("catalog-index", creation, || {
+                materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)
+            })?
+        }
+    };
+    let search = if include_search {
+        Some(full_component_stage("search", creation, || {
+            build_search_index(stage, limits.search)
+        })?)
+    } else {
+        None
+    };
+    let seal = full_component_stage("seal", creation, || {
+        crate::knowledge_seal::seal_selected_knowledge_model(
+            stage,
+            graph_header,
+            vocabulary,
+            registry,
+            &source_scope,
+            &catalog,
+            search.as_ref(),
+            limits.seal,
+        )
+    })?;
+    Ok(SelectedKnowledgeComponents {
+        source_scope,
+        catalog,
+        search,
+        seal,
+    })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn full_component_stage<T>(
+    name: &'static str,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    run: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    let retained = || state.map(|s| s.observed_retained_state_bytes());
+    let persistent = || state.map(|s| s.observed_persistent_state_bytes());
+    eprintln!(
+        "Native full-components stage={name} status=start retained={:?} persistent={:?}",
+        retained(),
+        persistent()
+    );
+    let started = std::time::Instant::now();
+    let result = run();
+    eprintln!(
+        "Native full-components stage={name} status={} elapsed_ms={} retained={:?} persistent={:?}",
+        if result.is_ok() { "ok" } else { "refused" },
+        started.elapsed().as_millis(),
+        retained(),
+        persistent(),
+    );
+    result
+}
+
+#[cfg(target_arch = "wasm32")]
+fn full_component_stage<T>(
+    _: &'static str,
+    _: Option<&crate::d1_public_capture::CreationState<'_>>,
+    run: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    run()
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use crate::knowledge_full_fixture::build_fixture;
+
+    #[test]
+    fn final_row_semantics_and_catalog_match_separate_scan_and_cold_read() {
+        let separate = crate::knowledge_full_fixture::build_fixture_with_final_semantics(false);
+        let fused = crate::knowledge_full_fixture::build_fixture_with_final_semantics(true);
+        assert_eq!(
+            separate.expectation.graph_root_sha256,
+            fused.expectation.graph_root_sha256
+        );
+        assert_eq!(
+            separate.expectation.catalog_packet_sha256,
+            fused.expectation.catalog_packet_sha256
+        );
+        assert_eq!(
+            separate.expectation.catalog_index_root_sha256,
+            fused.expectation.catalog_index_root_sha256
+        );
+        assert_eq!(
+            separate.expectation.search_index_root_sha256,
+            fused.expectation.search_index_root_sha256
+        );
+        fused.open().unwrap();
+    }
+
+    #[test]
+    fn prepared_catalog_keeps_full_seal_and_cold_packets_identical() {
+        let regular = crate::knowledge_full_fixture::build_fixture();
+        let reduced = crate::knowledge_full_fixture::build_fixture_with_prepared_catalog(None);
+        assert_eq!(
+            regular.expectation.graph_root_sha256,
+            reduced.expectation.graph_root_sha256
+        );
+        assert_eq!(
+            regular.expectation.catalog_packet_sha256,
+            reduced.expectation.catalog_packet_sha256
+        );
+        assert_eq!(
+            regular.expectation.catalog_index_root_sha256,
+            reduced.expectation.catalog_index_root_sha256
+        );
+        assert_eq!(
+            regular.expectation.search_index_root_sha256,
+            reduced.expectation.search_index_root_sha256
+        );
+        reduced.open().unwrap();
+    }
+
+    #[test]
+    fn complete_large_semantic_report_survives_seal_cold_read_and_restore() {
+        use serde_json::json;
+        let gaps = (0..11_692)
+            .map(|i| {
+                json!({
+                    "id":format!("philosophy:edge:candidate-relation:table-i-a001-relation-{i:05}"),
+                    "kind":"review-not-recorded"
+                })
+            })
+            .collect::<Vec<_>>();
+        let report = json!({"valid":true,"violations":[],"gaps":gaps});
+        let mut fixture =
+            crate::knowledge_full_fixture::build_fixture_with_semantic_report(Some(report.clone()));
+        let prepared = crate::knowledge_full_fixture::build_fixture_with_prepared_catalog(Some(
+            report.clone(),
+        ));
+        assert_eq!(
+            fixture.expectation.catalog_packet_sha256,
+            prepared.expectation.catalog_packet_sha256
+        );
+        assert_eq!(
+            fixture.expectation.catalog_index_root_sha256,
+            prepared.expectation.catalog_index_root_sha256
+        );
+        assert_eq!(
+            fixture.expectation.graph_root_sha256,
+            prepared.expectation.graph_root_sha256
+        );
+        let read = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
+            let selected = fixture.open().unwrap();
+            let raw: Vec<u8> = selected
+                .connection()
+                .query_row(
+                    "SELECT packet FROM graph_header WHERE singleton=1",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert!(raw.len() > 1024 * 1024);
+            assert!(raw.len() < crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);
+            let header: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+            assert_eq!(header["counts"]["semantic_validation"], report);
+            assert!(crate::knowledge_seal::canonical(&header, 1024 * 1024).is_err());
+            raw
+        };
+        let before = read(&fixture);
+        assert_eq!(read(&prepared), before);
+        let catalog = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
+            let selected = fixture.open().unwrap();
+            selected
+                .connection()
+                .query_row("SELECT packet FROM catalog_index_meta", [], |r| {
+                    r.get::<_, Vec<u8>>(0)
+                })
+                .unwrap()
+        };
+        assert_eq!(catalog(&fixture), catalog(&prepared));
+        let restored = fixture.path.with_file_name("restored.sqlite3");
+        std::fs::copy(&fixture.path, &restored).unwrap();
+        fixture.path = restored;
+        assert_eq!(read(&fixture), before);
+    }
+
+    #[test]
+    fn eighth_source_private_producer_opens_one_complete_selected_model() {
+        let fixture = build_fixture();
+        let mut selected = fixture.open().unwrap();
+        assert_eq!(selected.selection().node_count, 4);
+        assert_eq!(selected.source_revision(), Some("2".repeat(64).as_str()));
+        assert!(selected.open_vm_steps() > 0);
+        let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
+        assert_eq!(fork.source_revision(), selected.source_revision());
+        assert_eq!(
+            selected
+                .connection()
+                .query_row("SELECT count(*) FROM search_documents", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            5
+        );
+        assert_eq!(
+            selected
+                .connection()
+                .query_row(
+                    "SELECT postings FROM search_gram_stats WHERE kind='nodes' AND n=3 AND gram=?1",
+                    [b"alp".as_slice()],
+                    |row| row.get::<_, i64>(0)
+                )
+                .unwrap(),
+            3
+        );
+        assert_eq!(
+            selected
+                .connection()
+                .query_row(
+                    "SELECT expected_node_count FROM source_scope WHERE source_graph='zero'",
+                    [],
+                    |row| row.get::<_, i64>(0)
+                )
+                .unwrap(),
+            0
+        );
+        selected.check_pin().unwrap();
+    }
+
+    #[test]
+    fn navigation_original_selected_custody_preserves_bytes_and_refuses_tamper() {
+        use crate::knowledge_full_fixture::{
+            build_fixture, build_native_fixture_with_navigation_original,
+        };
+        use tos_foundation::Digest256;
+        let mut fixture = build_native_fixture_with_navigation_original();
+        {
+            let mut model = fixture.open().unwrap();
+            let receipt = model.navigation_original_receipt().unwrap().clone();
+            assert_eq!(
+                model.selection().model_abi,
+                crate::KNOWLEDGE_NAVIGATION_MODEL_ABI
+            );
+            assert_eq!(
+                receipt.descriptor_sha256,
+                fixture.vocabulary.descriptor_sha256
+            );
+            assert_eq!(receipt.source_cut, model.selection().source_cut);
+            assert_eq!(receipt.membership_root, model.selection().membership_root);
+            assert_eq!(receipt.rights, 1);
+            let first = model
+                .navigation_original_page(None, 100_000, 1, 65536, 65536)
+                .unwrap();
+            assert_eq!(first.rows.len(), 1);
+            assert_eq!(first.rows[0].0, -1);
+            assert_eq!(
+                Digest256::of_bytes(&first.rows[0].1).to_hex(),
+                receipt.header_sha256
+            );
+            let second = model
+                .navigation_original_page(first.next_ordinal, 100_000, 1, 65536, 65536)
+                .unwrap();
+            assert_eq!(second.rows[0].0, 0);
+            assert_eq!(second.rows[0].1.as_slice(),br#"{ "rights_id":"fixture-original-declaration", "visibility":"public_metadata_only", "assessment_status":"unknown", "restrictions":[] }"#);
+            let tail = model
+                .navigation_original_page(second.next_ordinal, 100_000, 1, 65536, 65536)
+                .unwrap();
+            assert!(tail.rows.is_empty());
+            assert!(tail.next_ordinal.is_none());
+            assert!(first.vm_steps > 0 && second.vm_steps > 0);
+            assert_eq!(
+                first.decoded_bytes + second.decoded_bytes,
+                receipt.total_bytes
+            );
+            assert_eq!(
+                crate::navigation_original_rights_root(&[&second.rows[0].1]),
+                receipt.rights_root_sha256
+            );
+            // Caller hook remains installed across both original accessors.
+            let calls = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+            let counter = calls.clone();
+            model.connection().progress_handler(
+                1,
+                Some(move || {
+                    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    false
+                }),
+            );
+            let owned = model
+                .navigation_original_page_under_caller_budget(None, 1, 65536, 65536)
+                .unwrap();
+            assert_eq!(owned.vm_steps, 0);
+            let before = calls.load(std::sync::atomic::Ordering::Relaxed);
+            let mut members = Vec::new();
+            for collection in ["edges", "nodes"] {
+                let page = model
+                    .navigation_original_members_under_caller_budget(collection, None, 2, 16384)
+                    .unwrap();
+                assert_eq!(page.rows.len(), 1);
+                assert_eq!(page.vm_steps, 0);
+                assert!(page.next_id.is_none());
+                members.extend(page.rows);
+            }
+            assert!(calls.load(std::sync::atomic::Ordering::Relaxed) > before);
+            model.connection().progress_handler(0, None::<fn() -> bool>);
+            assert_eq!(members.len() as u64, receipt.nodes + receipt.edges);
+            assert_eq!(
+                members
+                    .iter()
+                    .map(|m| (m.collection.len() + m.id.len() + 192 + 8) as u64)
+                    .sum::<u64>(),
+                receipt.member_index_bytes
+            );
+            for member in &members {
+                assert_eq!(member.raw_sha256.len(), 64);
+                assert_eq!(member.semantic_sha256.len(), 64);
+                assert_eq!(member.canonical_original_sha256.len(), 64);
+                assert!(member.raw_bytes > 0);
+            }
+            let mut fork = model.fork_reader_with_vm_budget(100_000).unwrap();
+            assert_eq!(
+                fork.navigation_original_receipt()
+                    .unwrap()
+                    .component_root_sha256,
+                receipt.component_root_sha256
+            );
+            assert_eq!(
+                fork.navigation_original_page(Some(-1), 100_000, 1, 65536, 65536)
+                    .unwrap()
+                    .rows[0]
+                    .1,
+                second.rows[0].1
+            );
+            assert!(
+                model
+                    .navigation_original_page(None, 1, 1, 65536, 65536)
+                    .is_err()
+            );
+            assert!(
+                model
+                    .navigation_original_page(None, 100_000, 2, 65536, 65536)
+                    .is_err()
+            );
+        }
+        // Deliberately rehash the synthetic expected carrier after tampering:
+        // refusal must come from the inner component, not only whole-file SHA.
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        let (collection,id,canonical):(String,String,Vec<u8>)=db.query_row("SELECT collection,id,canonical_original_sha256 FROM navigation_original_members ORDER BY collection,id LIMIT 1",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+        db.execute("UPDATE navigation_original_members SET canonical_original_sha256=?1 WHERE collection=?2 AND id=?3",rusqlite::params![vec![0u8;32],collection,id]).unwrap();
+        drop(db);
+        let raw = std::fs::read(&fixture.path).unwrap();
+        fixture.expectation.model_sha256 = Digest256::of_bytes(&raw).to_hex();
+        fixture.expectation.model_size_bytes = raw.len() as u64;
+        assert!(fixture.open().is_err());
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        db.execute("UPDATE navigation_original_members SET canonical_original_sha256=?1 WHERE collection=?2 AND id=?3",rusqlite::params![canonical,collection,id]).unwrap();
+        drop(db);
+        let changed = br#"{"rights_id":"fixture-original-declaration","visibility":"private"}"#;
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        db.execute("UPDATE navigation_original_rows SET packet_len=?1,packet_sha256=?2,packet=?3 WHERE ordinal=0",rusqlite::params![changed.len() as i64,Digest256::of_bytes(changed).as_bytes().as_slice(),changed.as_slice()]).unwrap();
+        drop(db);
+        let raw = std::fs::read(&fixture.path).unwrap();
+        fixture.expectation.model_sha256 = Digest256::of_bytes(&raw).to_hex();
+        fixture.expectation.model_size_bytes = raw.len() as u64;
+        assert!(fixture.open().is_err());
+        let legacy = build_fixture();
+        let mut old = legacy.open().unwrap();
+        assert_eq!(old.selection().model_abi, crate::KNOWLEDGE_MODEL_ABI);
+        assert!(old.navigation_original_receipt().is_err());
+        assert!(
+            old.navigation_original_page(None, 100_000, 1, 65536, 65536)
+                .is_err()
+        );
+        assert!(!old.philosophy_original_available());
+        assert!(old.philosophy_original_receipt().is_err());
+        // The same cold-custody boundary now retains phi originals and their
+        // encounter order; expected roots remain independent after outer rehash.
+        let mut phi =
+            crate::knowledge_full_fixture::build_native_fixture_with_philosophy_original();
+        {
+            let selected = phi.open().unwrap();
+            assert_eq!(
+                selected.selection().model_abi,
+                crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI
+            );
+            assert!(selected.philosophy_original_available());
+            assert!(!selected.navigation_original_available());
+            let r = selected.philosophy_original_receipt().unwrap();
+            assert_eq!(
+                r.component_root_sha256,
+                phi.philosophy_original
+                    .as_ref()
+                    .unwrap()
+                    .component_root_sha256
+            );
+            let page = selected
+                .philosophy_original_page_under_caller_budget(
+                    crate::PhilosophyOriginalCollection::Nodes,
+                    None,
+                    2,
+                    65536,
+                    131072,
+                )
+                .unwrap();
+            assert_eq!(page.rows.len() as u64, r.nodes);
+            assert_eq!(page.rows[0].ordinal, 0);
+            assert_eq!(
+                page.rows[0].raw.as_slice(),
+                crate::knowledge_philosophy_prepare::PHILOSOPHY_FIXTURE_0.as_bytes()
+            );
+            assert_eq!(
+                page.rows[1].raw.as_slice(),
+                crate::knowledge_philosophy_prepare::PHILOSOPHY_FIXTURE_1.as_bytes()
+            );
+            assert!(
+                selected
+                    .philosophy_original_page_under_caller_budget(
+                        crate::PhilosophyOriginalCollection::Nodes,
+                        page.next_ordinal,
+                        2,
+                        65536,
+                        131072
+                    )
+                    .unwrap()
+                    .rows
+                    .is_empty()
+            );
+            let header = selected
+                .philosophy_original_page_under_caller_budget(
+                    crate::PhilosophyOriginalCollection::Header,
+                    None,
+                    1,
+                    65536,
+                    65536,
+                )
+                .unwrap();
+            assert_eq!(header.rows[0].raw_sha256, r.header_sha256);
+            assert!(
+                selected
+                    .philosophy_original_page_under_caller_budget(
+                        crate::PhilosophyOriginalCollection::Header,
+                        None,
+                        1,
+                        1,
+                        1
+                    )
+                    .is_err()
+            );
+            let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
+            assert_eq!(
+                fork.philosophy_original_receipt()
+                    .unwrap()
+                    .component_root_sha256,
+                r.component_root_sha256
+            );
+        }
+        let db = rusqlite::Connection::open(&phi.path).unwrap();
+        db.execute(
+            "UPDATE philosophy_original_rows SET ordinal=ordinal+100 WHERE collection='nodes'",
+            [],
+        )
+        .unwrap();
+        drop(db);
+        let raw = std::fs::read(&phi.path).unwrap();
+        phi.expectation.model_sha256 = Digest256::of_bytes(&raw).to_hex();
+        phi.expectation.model_size_bytes = raw.len() as u64;
+        assert!(phi.open().is_err());
+    }
+
+    #[test]
+    fn native_synthesized_grounding_keeps_prepared_context_through_cold_open() {
+        let fixture = crate::knowledge_full_fixture::build_native_fixture_with_semantic_joins();
+        let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();
+        let relation = graph["relations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| {
+                row["source_graph"] == "semantic-interchange"
+                    && row["predicate_id"] == "grounded_in"
+            })
+            .expect("declared source reference produces an actual grounding edge");
+        assert_eq!(
+            relation
+                .pointer("/source_record/payload/properties/review_status")
+                .unwrap(),
+            "source-recorded"
+        );
+        assert_eq!(
+            relation
+                .pointer("/semantics/assertion_contexts/0/fields/review_status/value")
+                .unwrap(),
+            "source-recorded"
+        );
+        assert!(relation.get("readable_context").is_some());
+        let mut selected = fixture.open().unwrap();
+        selected.check_pin().unwrap();
+        assert_eq!(
+            selected.selection().relation_count,
+            graph["relations"].as_array().unwrap().len() as u64
+        );
+    }
+
+    #[test]
+    fn native_raw_claim_navigation_produces_complete_selected_graph() {
+        let fixture = crate::knowledge_full_fixture::build_native_fixture();
+        let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();
+        assert_eq!(graph["counts"]["nodes"], 7);
+        assert_eq!(graph["counts"]["relations"], 6);
+        let source: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+        ))
+        .unwrap();
+        let trace = &source["claim_traces"][0];
+        let source_claim = source["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["node_id"] == trace["claim_node_id"])
+            .unwrap();
+        let source_graph = &fixture
+            .vocabulary
+            .sources
+            .iter()
+            .find(|source| source.adapter_profile == "reified-bibliographic-claims-v1")
+            .unwrap()
+            .source_graph_id;
+        let claim = graph["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| {
+                node["source_graph"] == source_graph.as_str()
+                    && node["native_id"] == trace["claim_node_id"]
+            })
+            .unwrap();
+        assert_eq!(
+            claim.pointer("/attributes/source_claim"),
+            source_claim.pointer("/properties/source_claim")
+        );
+        assert_eq!(claim.pointer("/attributes/claim_trace"), Some(trace));
+        // Frozen maintained Python _normalize_node +
+        // _claim_finalization_value oracle over this historical transport.
+        // Its registry reader is historical-temporal-v1; the two source
+        // fields below belong only to document-catalogue-temporal-v1.
+        let contract = claim.pointer("/semantics/claim").unwrap();
+        assert_eq!(
+            crate::knowledge_normalization::stable_digest(contract).unwrap(),
+            "e1482ee857ecf29770bd002ab31a699ad1ac711549730e8a42eea486eff2f4b9"
+        );
+        assert!(contract.get("source_claim_profile").is_none());
+        assert!(contract.get("source_canonical_json").is_none());
+        assert_eq!(claim["view_ids"], serde_json::json!(["native-fixture"]));
+        assert!(claim.get("readable_context").is_some());
+        let mut selected = fixture.open().unwrap();
+        assert_eq!(selected.selection().node_count, 7);
+        assert_eq!(selected.selection().relation_count, 6);
+        assert_eq!(selected.selection().model_abi, crate::KNOWLEDGE_MODEL_ABI);
+        selected.check_pin().unwrap();
+        if let Some(path) = std::env::var_os("TOS_CMP_NATIVE_GRAPH_EXPORT") {
+            std::fs::write(path, &fixture.graph_input_bytes).unwrap();
+        }
+    }
+}

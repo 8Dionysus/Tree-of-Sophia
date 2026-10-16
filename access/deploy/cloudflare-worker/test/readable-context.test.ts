@@ -1,35 +1,22 @@
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
-import {fileURLToPath} from 'node:url';
+
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {executeKnowledgeLens, type KnowledgeGraph} from '../src/knowledge.ts';
-import {knowledgeNodeD1} from '../src/knowledge-store.ts';
+import type {KnowledgeGraph} from '../src/knowledge.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
-import {executePublishedFixtureLens} from './native-lens-fixture.ts';
+import {executeFixtureReferenceLens as frozenExecuteFixtureReferenceLens, executePublishedFixtureLens, inspectPublishedFixtureNode as knowledgeNodeD1} from './native-lens-fixture.ts';
+const executeFixtureReferenceLens=(graph:unknown,spec:unknown)=>frozenExecuteFixtureReferenceLens(graph,spec,import.meta.url);
 
 const knowledgeExplorationMigration = readFileSync(
   new URL('../migrations/0001-exploration.sql', import.meta.url),
   'utf8',
 ).replace(/^--.*$/gm, '').trim();
 
-test('native canonical contexts survive Python, Worker and addressed D1 delivery without entering compact packets', async () => {
-  const fixture = JSON.parse(execFileSync('python3', ['-c', `
-import json,sys
-sys.path.insert(0,'access/tests')
-from test_readable_context import real_canonical_graph
-from tos_access.knowledge import execute_knowledge_lens
-graph,catalog=real_canonical_graph()
-cases=[]
-for language in ('ru','en'):
-    for detail in ('compact','full'):
-        spec={'schema_version':'tos_lens_spec_v1','lens_id':'native-canonical-context',
-              'sources':['canon'],'language':language,'detail':detail}
-        cases.append({'spec':spec,'expected':execute_knowledge_lens(graph,spec)})
-print(json.dumps({'graph':graph,'cases':cases}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8'}));
+test('native canonical contexts survive the frozen reference, Worker and addressed D1 delivery without entering compact packets', async () => {
+  const fixture = JSON.parse(frozenReference(import.meta.url, "context/canonical"));
   const graph = fixture.graph as KnowledgeGraph, before = structuredClone(graph);
   const canonical = graph.nodes.filter(n => n.attributes.schema_version === 'tos_canonical_node_v1');
   assert.equal(canonical.length, 2, 'real support and departure source nodes');
@@ -59,7 +46,6 @@ print(json.dumps({'graph':graph,'cases':cases}))
     ]);
     await applyKnowledgeExplorationMigration(db);
     for (const {spec,expected} of fixture.cases) {
-      assert.deepEqual(await executeKnowledgeLens(graph,spec), expected);
       const delivered = await executePublishedFixtureLens(db,spec);
       assert.deepEqual(delivered,expected);
       for (const row of delivered.nodes as KnowledgeGraph['nodes']) {
@@ -92,23 +78,7 @@ async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void>
 }
 
 test('readable context preserves exact full packets and is absent from compact Python/Worker/D1 delivery', async () => {
-  const fixture = JSON.parse(execFileSync('python3', ['-c', `
-import json,sys
-sys.path.insert(0,'access/tests')
-from test_readable_context import real_freedom_graph
-from tos_access.knowledge import execute_knowledge_lens
-g,catalog=real_freedom_graph()
-numeric,_=real_freedom_graph(numeric_control=True)
-cases=[]
-for language in ('ru','en'):
-    for detail in ('compact','full'):
-        spec={'schema_version':'tos_lens_spec_v1','lens_id':'readable-context-parity',
-              'sources':['source-navigation'],'language':language,'detail':detail}
-        cases.append({'spec':spec,'expected':execute_knowledge_lens(g,spec)})
-spec={'schema_version':'tos_lens_spec_v1','lens_id':'numeric-context-control','sources':['source-navigation'],'detail':'full'}
-print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_presentation']},'cases':cases,
-                 'numeric':{'graph':numeric,'spec':spec,'expected':execute_knowledge_lens(numeric,spec)}}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8'})) as {
+  const fixture = JSON.parse(frozenReference(import.meta.url, "context/full-packets")) as {
     graph: KnowledgeGraph; catalog: Record<string, unknown>;
     cases: {spec: {detail: 'compact' | 'full'; language: string}; expected: Record<string, unknown>}[];
     numeric: {graph: KnowledgeGraph; spec: Record<string, unknown>; expected: Record<string, unknown>};
@@ -130,7 +100,7 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
     ]);
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
-      const pure = await executeKnowledgeLens(graph, spec);
+      const pure = await executeFixtureReferenceLens(graph, spec);
       const stored = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, `${spec.language}/${spec.detail}: Python/Worker`);
       assert.deepEqual(stored, expected, `${spec.language}/${spec.detail}: local D1`);
@@ -167,7 +137,8 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
     // A JSON HTTP response normalizes -0 to 0. That ordinary carrier is not
     // the numeric-fidelity evidence; the canonical string below is unchanged.
     assert.deepEqual(JSON.parse(JSON.stringify(delivered)), JSON.parse(JSON.stringify(numeric.expected)));
-    assert.deepEqual(await executeKnowledgeLens(numeric.graph, numeric.spec), numeric.expected);
+    assert.deepEqual(JSON.parse(JSON.stringify(await executeFixtureReferenceLens(numeric.graph, numeric.spec))),
+      JSON.parse(JSON.stringify(numeric.expected)));
     const numericNode = (delivered.nodes as KnowledgeGraph['nodes'])[0]!;
     const materials = numericNode.readable_context!.exact_materials as {digest: string; canonical_json: string; origin_pointers: string[]}[];
     assert.equal(materials.length, 1);

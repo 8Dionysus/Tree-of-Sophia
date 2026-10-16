@@ -8,7 +8,9 @@ use std::path::PathBuf;
 use serde_json::Value;
 use tempfile::TempDir;
 use tos_foundation::Digest256;
-use tos_segment_store::{FrameInput, OwnerBinding, SegmentErrorCode, SegmentLimits, SegmentStore};
+use tos_segment_store::{
+    FrameInput, OwnerBinding, PlacementV1, SegmentErrorCode, SegmentLimits, SegmentStore,
+};
 
 fn fixture_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("segment-v1")
@@ -262,4 +264,110 @@ fn maximum_declared_domain_reopens_and_oversized_frame_preflights() {
         SegmentErrorCode::UnsupportedOversized
     );
     assert_eq!(fs::read_dir(root.join("pins")).unwrap().count(), 0);
+}
+
+#[test]
+fn placement_wire_requires_cold_pin_and_exact_physical_member() {
+    let (_temporary, root) = empty_root();
+    let store = SegmentStore::initialize_empty(&root, b"ass-private-domain", limits()).unwrap();
+    let bytes = b"same bytes, different owner".to_vec();
+    let mut first = Cursor::new(bytes.clone());
+    let mut second = Cursor::new(bytes.clone());
+    let mut inputs = [
+        FrameInput {
+            binding: binding(0),
+            declared_size: bytes.len() as u64,
+            declared_sha256: Digest256::of_bytes(&bytes),
+            reader: &mut first,
+        },
+        FrameInput {
+            binding: binding(1),
+            declared_size: bytes.len() as u64,
+            declared_sha256: Digest256::of_bytes(&bytes),
+            reader: &mut second,
+        },
+    ];
+    let receipts = store.seal_segment(b"ass-placement", &mut inputs).unwrap();
+    let wire = receipts[1].placement().encode();
+    assert_eq!(wire.len(), 208);
+    let cold = SegmentStore::open_existing(&root, limits()).unwrap();
+    let recovered = cold
+        .recover_placement(&PlacementV1::decode(&wire).unwrap())
+        .unwrap();
+    assert_eq!(recovered.binding(), &binding(1));
+    assert_ne!(recovered.receipt_id(), receipts[0].receipt_id());
+
+    for bad in [wire[..207].to_vec(), [wire.as_slice(), &[0]].concat(), {
+        let mut v = wire.to_vec();
+        v[8] ^= 1; // wire version
+        v
+    }] {
+        assert_eq!(
+            PlacementV1::decode(&bad).unwrap_err().code,
+            SegmentErrorCode::InvalidFormat
+        );
+    }
+    for offset in [84usize, 116, 156, 160, 176] {
+        let mut altered = wire;
+        altered[offset] ^= 1; // receipt, segment, frame index, coordinate, member digest
+        let decoded = PlacementV1::decode(&altered).unwrap();
+        assert_eq!(
+            cold.recover_placement(&decoded).unwrap_err().code,
+            SegmentErrorCode::InvalidReceipt,
+            "altered placement byte {offset} acquired a receipt"
+        );
+    }
+
+    let segment = root
+        .join("segments")
+        .join(receipts[1].segment_digest().to_hex());
+    let mut damaged = fs::read(&segment).unwrap();
+    damaged[receipts[1].coordinate().header_offset as usize + 40] ^= 1;
+    fs::write(&segment, damaged).unwrap();
+    assert_eq!(
+        cold.recover_placement(&PlacementV1::decode(&wire).unwrap())
+            .unwrap_err()
+            .code,
+        SegmentErrorCode::CorruptBytes
+    );
+    let mut unpublished = Vec::new();
+    assert_eq!(
+        cold.read_selected(&recovered, 64, &mut unpublished)
+            .unwrap_err()
+            .code,
+        SegmentErrorCode::CorruptBytes
+    );
+    assert!(unpublished.is_empty());
+}
+
+#[test]
+fn placement_wire_is_exact_little_endian_v1() {
+    // Independently assembled with Python struct.pack, not the Rust encoder.
+    let wire = hex_bytes(concat!(
+        "544f53504c43563101000000",
+        "000102030405060708090a0b0c0d0e0f",
+        "101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+        "303132333435363738393a3b3c3d3e3f",
+        "0700000000000000",
+        "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+        "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+        "c8000000000000000200000064000000000000001400000000000000",
+        "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+    ));
+    assert_eq!(wire.len(), PlacementV1::ENCODED_BYTES);
+    assert_eq!(
+        Digest256::of_bytes(&wire).to_hex(),
+        "42478dde48195a3b9c4e6292c63ca2a7d7e5a2a942b83456d6cd0e2437c18fc7"
+    );
+    let placement = PlacementV1::decode(&wire).unwrap();
+    assert_eq!(
+        placement.store_id(),
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    );
+    assert_eq!(placement.fence_epoch(), 7);
+    assert_eq!(placement.segment_size(), 200);
+    assert_eq!(placement.frame_index(), 2);
+    assert_eq!(placement.coordinate().header_offset, 100);
+    assert_eq!(placement.coordinate().size_bytes, 20);
+    assert_eq!(placement.encode().as_slice(), wire.as_slice());
 }

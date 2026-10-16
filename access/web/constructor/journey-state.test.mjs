@@ -1,3 +1,4 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import {describe,it,expect} from 'vitest';
 import {bindResearchRoutes,routeGraphInput,routePath,createJourneyNavigator} from './journey-state.mjs';
 const bi = text => ({ru:text,en:text});

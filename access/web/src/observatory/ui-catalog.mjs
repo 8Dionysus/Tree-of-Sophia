@@ -1,5 +1,10 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Проверьте тип значения.":{"en":"Check the value type.","es":"Compruebe el tipo de valor."},
+  "Неверная схема или каталог условий пути.":{"en":"Invalid path condition schema or catalog.","es":"Esquema o catálogo de condiciones de ruta no válido."},
+  "Одно из условий шага больше не поддерживается.":{"en":"One of the step conditions is no longer supported.","es":"Una de las condiciones del paso ya no es compatible."},
+  "Проверьте тип значения в условии шага.":{"en":"Check the value type in the step condition.","es":"Compruebe el tipo de valor en la condición del paso."},
+  "Условия пути не соответствуют текущей схеме и каталогу.":{"en":"The path conditions do not match the current schema and catalog.","es":"Las condiciones de ruta no coinciden con el esquema y el catálogo actuales."},
   "Вариант текста не определён.":{"en":"The text variant is unresolved.","es":"La variante del texto no está determinada."},
   "Текст недоступен.":{"en":"Text unavailable.","es":"Texto no disponible."},
   "Текст пока не предоставлен.":{"en":"Text has not been supplied yet.","es":"El texto aún no se ha proporcionado."},
@@ -760,6 +765,10 @@ export const UI_CATALOG={
   "Для этого объекта маршрут Evidence Lens сейчас недоступен.": {
     "en": "The Evidence Lens route is currently unavailable for this object.",
     "es": "La ruta de Evidence Lens no está disponible para este objeto."
+  },
+  "Правила интерфейса недоступны.": {
+    "en": "Interface rules are unavailable.",
+    "es": "Las reglas de interfaz no están disponibles."
   },
   "Связь": {
     "en": "Relationship",

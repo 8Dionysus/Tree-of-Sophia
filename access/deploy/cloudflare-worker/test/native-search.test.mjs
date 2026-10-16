@@ -1,62 +1,21 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
-import {createHash} from 'node:crypto';
-import {build} from 'esbuild';
+import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {knowledgeSearchD1,knowledgeSearchD1Indexed} from '../src/knowledge-store.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
+import {sourceTextGatewayCapability,sourceTextSearchGatewayResponse} from '../src/source-text-gateway.ts';
+import {publishedNodeFixtureWorker,publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
 
-const repo=fileURLToPath(new URL('../../../../',import.meta.url));
-const python=(code,input)=>JSON.parse(execFileSync('python3',['-B','-c',
-  "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
-  {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
+const reference=(referenceId, input) => JSON.parse(frozenReference(import.meta.url, referenceId, input===undefined?undefined:JSON.stringify(input)));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
-const fixture=python(String.raw`
-import hashlib
-from tos_access.knowledge import _normalize_node,_normalize_relation
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-from tos_access.published_read_metadata import published_reader_metadata,published_lens_metadata,emitted_row_digest,published_row_digest_key
-from build_runtime import compact_json
-unknown={'10':9007199254740993,'2':1.0,'01':-0.0,'x':[False,None,1e-7], '__proto__':{'constructor':1.0,'2':-0.0}}
-nodes=[]
-for name,title in [('z','ΑΒΓ'),('a','Other'),('scalar','Scalar αβγ'),('tie','Common alpha'),('TIE','Common alpha'),
- ('straße','Straße'),('strasse','STRASSE'),('nfc','école'),('nfd','e\u0301cole'),('astral','😀'*256),('A','Common alpha')]:
- n=_normalize_node({'node_id':name,'label':title,'source_ref':'test:search'},'philosophy')
- n['display']['title']=title if name=='scalar' else {'default':title,'grc-Grek':title}
- n['unknown']=unknown;n['attributes']['match']='αβγ metadata' if name=='a' else 'common alpha metadata'
- nodes.append(n)
-relations=[]
-for name,title in [('r','ΑΒΓ'),('R','Alpha relation')]:
- r=_normalize_relation({'edge_id':name,'from_id':nodes[0]['id'],'to_id':nodes[1]['id'],'predicate_id':'links','source_ref':'test:search'},'philosophy',{n['id']:n for n in nodes})
- r['from_id']=nodes[0]['id'];r['to_id']=nodes[1]['id'];r['display']['label']={'default':title};r['unknown']=unknown;relations.append(r)
-graph={'schema':'tos_knowledge_graph_v1','source_revision':'a'*64,'nodes':nodes,'relations':relations,
- 'normalization_binding':{'schema':'tos_knowledge_graph_normalization_binding_v1',**{k:'0'*64 for k in ('processor_digest','entity_registry_digest','relation_registry_digest','configuration_digest')}},
- 'authority_boundary':{'source_owner':'Tree-of-Sophia','is_source':False,'is_canon':False,'writes_to_tree':False,'unknown':unknown}}
-out={'graph':compact_json(graph),'rows':{},'documents':[],'grams':[],'stats':[],'metadata':{}}
-counts={}
-for kind in ('nodes','relations'):
- out['rows'][kind]=[]
- for position,n in enumerate(graph[kind]):
-  text=S._searchable(n);raw=compact_json(n);out['rows'][kind].append({'raw':raw,'text':text})
-  out['documents'].append([kind,position,n['id'],n['source_graph'],n.get('kind_id',''),n.get('predicate_id',''),*S._rank_fields(n,relation=kind=='relations'),len(text),hashlib.sha256(text.encode('utf-8')).hexdigest()])
-  for gram in dict.fromkeys(text[i:i+3] for i in range(len(text)-2)):
-   out['grams'].append([kind,3,gram,position]);counts[(kind,gram)]=counts.get((kind,gram),0)+1
-out['stats']=[[kind,3,gram,count] for (kind,gram),count in counts.items()]
-for version in (8,9):
- m=published_reader_metadata(graph,{'schema':'tos_knowledge_catalog_v1','source_revision':graph['source_revision']},'tos_cloudflare_edge_read_model_v'+str(version),'d'*64,**({'lens_metadata':published_lens_metadata(graph)} if version==9 else {}))
- m['data_revision']={'sha256':'d'*64}
- for kind in ('nodes','relations'):
-  for row in out['rows'][kind]:
-   n=json.loads(row['raw']);m[published_row_digest_key(kind[:-1],n['id'])]=emitted_row_digest(row['raw'])
- out['metadata'][str(version)]={k:compact_json(v) for k,v in m.items() if k!='knowledge_lens_top'}
-print(json.dumps(out))
-`);
+const fixture=reference("search/fixture");
 const schema=`CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
 CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,entity_id TEXT,native_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,title_text TEXT,search_text TEXT,json TEXT);
 CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,source_graph TEXT,from_id TEXT,to_id TEXT,predicate_id TEXT,relation_type_id TEXT,label_text TEXT,search_text TEXT,json TEXT);
@@ -82,51 +41,310 @@ function database(version=9){
  const db={prepare(sql){let args=[];return {bind(...values){args=values;return this;},async all(){const results=sqlite.prepare(sql).all(...args);statements.push({sql,args,results});hook.after?.(sql,args);return {results,meta:{rows_read:0}};},async first(){const result=sqlite.prepare(sql).get(...args)??null;statements.push({sql,args,results:result?[result]:[]});hook.after?.(sql,args);return result;}};}};
  return {db,sqlite,statements,hook,close(){sqlite.close();}};
 }
-let workerPromise;
-async function worker(){workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'}).then(async result=>(await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'))).default);return workerPromise;}
+const worker=publishedNodeFixtureWorker;
 async function response(database,mode='legacy',query='',extra={},method='GET'){
  const params=new URLSearchParams({mode,query,...extra});
  return (await worker()).fetch(new Request('https://tos.test/api/knowledge/search?'+params,{method}),{DB:database.db,ASSETS:{fetch(){throw new Error('search must not fetch static or full-graph fallback');}}},{});
 }
 const options=(query='',extra={})=>({query,sources:null,kindIds:[],predicateIds:[],offset:0,limit:100,...extra});
-async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra)));}
-function oracle(mode,query,extra={},graph=fixture.graph){return python(String.raw`
-import tempfile
-from pathlib import Path
-from types import SimpleNamespace
-from tos_access.knowledge import search_knowledge_graph
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel
-from tos_access.core import ToSAccessCore
-p=json.load(sys.stdin);graph=json.loads(p['graph']);options=p['extra'];out=[]
-if p['mode']=='legacy':out=[search_knowledge_graph(graph,p['query'],**options)]
-else:
- with tempfile.TemporaryDirectory(prefix='tos-native-search-oracle-') as temporary:
-  model=SQLiteKnowledgeSearchReadModel.build(graph,Path(temporary)/'search.sqlite',max_bytes=8*1024*1024)
-  try:
-   core=SimpleNamespace(_data_guard=None,knowledge_graph=lambda:graph,_query_store=lambda:None,_search_read_model_for_snapshot=lambda graph:model,search_read_model_max_verify_chars=16000000)
-   cursor=None
-   while True:
-    page=ToSAccessCore.knowledge_search_indexed(core,p['query'],cursor=cursor,**options);out.append(page);cursor=page['page']['next_cursor']
-    if cursor is None:break
-  finally:model.close()
-print(json.dumps([json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False) for packet in out]))
-`,{graph,mode,query,extra});}
-function assertPackets(actual,expected,indexed=false){const differences=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': type differs']
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);a=json.loads(p['actual']);b=json.loads(p['expected'])
-if p['indexed']:
- for packet in (a,b):
-  packet.pop('work');packet['page']['cursor']=packet['page']['cursor'] is not None;packet['page']['next_cursor']=packet['page']['next_cursor'] is not None
-print(json.dumps(diff(a,b)))`,{actual,expected,indexed});assert.deepEqual(differences,[]);}
+async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra),publishedFixtureSearchControlsRuntime));}
+function oracle(mode,query,extra={},graph=fixture.graph){return reference("search/indexed-pages",{graph,mode,query,extra});}
+function assertPackets(actual, expected, indexed = false) {
+  assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
+}
+
+test('Cloudflare explicitly refuses source-text search without a selected durable PostgreSQL consumer',async()=>{
+ const response=await (await worker()).fetch(new Request('https://tos.test/api/source-text/search',{
+  method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:'alpha',limit:5}),
+ }),{},{});
+ assert.equal(response.status,501);
+ assert.deepEqual(await response.json(),{
+  error:'source-text search unavailable: an explicitly selected durable PostgreSQL consumer is required',
+ });
+});
+
+const callerAccessIssuer='https://tos-example.cloudflareaccess.com';
+const callerAccessAudience='tos-private-source-text-test-audience';
+const callerAccessKeys=generateKeyPairSync('rsa',{modulusLength:2048,publicExponent:0x10001});
+const callerAccessJwk={...callerAccessKeys.publicKey.export({format:'jwk'}),kid:'test-access-kid',kty:'RSA',alg:'RS256',use:'sig'};
+const base64url=value=>Buffer.from(typeof value==='string'?value:JSON.stringify(value)).toString('base64url');
+function callerAccessToken(claimOverrides={},headerOverrides={}){
+ const now=Math.floor(Date.now()/1000);
+ const header=base64url({alg:'RS256',kid:'test-access-kid',typ:'JWT',...headerOverrides});
+ const claims=base64url({iss:callerAccessIssuer,aud:[callerAccessAudience],iat:now,exp:now+3600,type:'app',...claimOverrides});
+ const signingInput=`${header}.${claims}`;
+ return `${signingInput}.${sign('RSA-SHA256',Buffer.from(signingInput),callerAccessKeys.privateKey).toString('base64url')}`;
+}
+const validCallerAccessToken=callerAccessToken();
+const callerJwksUrl=`${callerAccessIssuer}/cdn-cgi/access/certs`;
+const callerJwksResponse=()=>new Response(JSON.stringify({keys:[callerAccessJwk]}),{
+ status:200,headers:{'content-type':'application/json'},
+});
+const gatewayFetcher=nativeFetcher=>async(input,init)=>String(input)===callerJwksUrl
+ ? callerJwksResponse()
+ : nativeFetcher(input,init);
+
+const gatewayEnv=(overrides={})=>({
+ TOS_SOURCE_TEXT_GATEWAY_URL:'https://native-source.example.net',
+ TOS_SOURCE_TEXT_GATEWAY_ACCESS_CLIENT_ID:'test-access-id',
+ TOS_SOURCE_TEXT_GATEWAY_ACCESS_CLIENT_SECRET:'test-access-secret',
+ TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_ISSUER:callerAccessIssuer,
+ TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_AUDIENCE:callerAccessAudience,
+ ...overrides,
+});
+const sourceTextRequest=(body='{"query":"α","limit":5}',{url='https://tos.test/api/source-text/search?destination=ignored',token=validCallerAccessToken}={})=>new Request(url,{
+ method:'POST',headers:{'content-type':'application/json','cookie':'caller=private','authorization':'Bearer caller-private',...(token?{'cf-access-jwt-assertion':token}:{})},body,
+});
+
+test('source-text gateway requires a cryptographically valid Access app token on alternate Worker hosts',async()=>{
+ let nativeCalls=0,jwksCalls=0;
+ const fetcher=async(input)=>{
+  if(String(input)===callerJwksUrl){jwksCalls++;return callerJwksResponse();}
+  nativeCalls++;return new Response('{"hits":[]}',{headers:{'content-type':'application/json'}});
+ };
+ const anonymous=await sourceTextSearchGatewayResponse(sourceTextRequest(undefined,{token:null}),gatewayEnv(),fetcher);
+ assert.equal(anonymous.status,401);
+ assert.equal(jwksCalls,0,'a missing assertion must fail before any key lookup');
+ assert.equal(nativeCalls,0);
+
+ const forgedParts=validCallerAccessToken.split('.');
+ const forgedSignature=Buffer.from(forgedParts[2],'base64url');forgedSignature[0]^=1;
+ const alternateHost=sourceTextRequest(undefined,{
+  url:'https://tree-of-sophia.account.workers.dev/api/source-text/search',
+  token:`${forgedParts[0]}.${forgedParts[1]}.${forgedSignature.toString('base64url')}`,
+ });
+ const forged=await sourceTextSearchGatewayResponse(alternateHost,gatewayEnv(),fetcher);
+ assert.equal(forged.status,401);
+ assert.equal(jwksCalls,1,'the alternate host must still perform signature validation');
+ assert.equal(nativeCalls,0,'a caller-supplied assertion header cannot reach the native owner');
+});
+
+test('source-text gateway rejects invalid issuer, audience, expiry, token type, algorithm, and key id',async()=>{
+ const rejected=[
+  callerAccessToken({aud:['wrong-audience']}),
+  callerAccessToken({iss:'https://other.cloudflareaccess.com'}),
+  callerAccessToken({exp:Math.floor(Date.now()/1000)-1}),
+  callerAccessToken({iat:undefined}),
+  callerAccessToken({iat:Math.floor(Date.now()/1000)+120}),
+  callerAccessToken({nbf:Math.floor(Date.now()/1000)+30}),
+  callerAccessToken({type:'service'}),
+  callerAccessToken({}, {alg:'HS256'}),
+  callerAccessToken({}, {kid:'unknown-kid'}),
+ ];
+ let jwksCalls=0,nativeCalls=0;
+ for(const token of rejected){
+  const response=await sourceTextSearchGatewayResponse(sourceTextRequest(undefined,{token}),gatewayEnv(),async(input)=>{
+   if(String(input)===callerJwksUrl){jwksCalls++;return callerJwksResponse();}
+   nativeCalls++;return new Response('{"hits":[]}');
+  });
+  assert.equal(response.status,401);
+ }
+ assert.equal(jwksCalls,1,'only the unknown-key token needs a bounded JWKS lookup');
+ assert.equal(nativeCalls,0,'claim/header rejection must precede native access');
+});
+
+test('source-text gateway fails closed when fixed Access JWKS is invalid or unavailable',async()=>{
+ let nativeCalls=0;
+ const malformed=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response('{"keys":"invalid"}',{headers:{'content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(malformed.status,503);
+ assert.equal(nativeCalls,0);
+
+ const redirected=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response('',{status:302,headers:{location:'https://elsewhere.example.net/jwks','content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(redirected.status,503);
+ assert.equal(nativeCalls,0);
+
+ const excessiveKeys=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response(JSON.stringify({keys:Array(9).fill(callerAccessJwk)}),{headers:{'content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(excessiveKeys.status,503);
+
+ const oversizedKeys=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response(' '.repeat(16*1024+1),{headers:{'content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(oversizedKeys.status,503);
+ assert.equal(nativeCalls,0);
+});
+
+test('source-text gateway binds the fixed native route, requires Access, and preserves only the native JSON response',async()=>{
+ const caller=sourceTextRequest(),rawBody=await caller.clone().text();let captured,jwksInit;
+ const response=await sourceTextSearchGatewayResponse(caller,gatewayEnv(),async(input,init)=>{
+  if(String(input)===callerJwksUrl){jwksInit=init;return callerJwksResponse();}
+  captured={url:String(input),init};
+  return new Response('{"operation_profile":"tos_source_text_search_v1","query":"α","hits":[]}',{
+   status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=300','set-cookie':'native=private'},
+  });
+ });
+ assert.equal(response.status,200);
+ assert.equal(await response.text(),'{"operation_profile":"tos_source_text_search_v1","query":"α","hits":[]}');
+ assert.equal(captured.url,'https://native-source.example.net/api/source-text/search');
+ assert.equal(captured.init.method,'POST');
+ assert.equal(captured.init.redirect,'manual');
+ assert.ok(captured.init.signal instanceof AbortSignal);
+ assert.notEqual(captured.init.signal,caller.signal,'the operation signal also enforces the gateway deadline');
+ assert.deepEqual([...new Headers(captured.init.headers).keys()].sort(),[
+  'accept','cf-access-client-id','cf-access-client-secret','content-type',
+ ]);
+ assert.equal(new Headers(captured.init.headers).get('cf-access-client-id'),'test-access-id');
+ assert.equal(new Headers(captured.init.headers).get('cf-access-client-secret'),'test-access-secret');
+ assert.equal(new Headers(captured.init.headers).get('cf-access-jwt-assertion'),null);
+ assert.equal(new Headers(captured.init.headers).get('authorization'),null);
+ assert.equal(new Headers(captured.init.headers).get('cookie'),null);
+ assert.deepEqual([...new Headers(jwksInit.headers).keys()],['accept'],'caller JWKS fetch sends no caller or native service credentials');
+ assert.equal(jwksInit.signal,captured.init.signal,'JWKS and native transport share one deadline signal');
+ assert.equal(new TextDecoder().decode(captured.init.body),rawBody);
+ assert.equal(response.headers.get('cache-control'),'no-store');
+ assert.equal(response.headers.get('set-cookie'),null);
+ assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+
+ const capability=sourceTextGatewayCapability(gatewayEnv(),caller.url);
+ assert.equal(capability.status,'selected');
+ assert.equal(capability.selected,true);
+ assert.equal(capability.runtime_readiness,'not-probed');
+ assert.equal(capability.endpoint_origin_exposed,false);
+ assert.equal(JSON.stringify(capability).includes('native-source.example.net'),false);
+ assert.equal(JSON.stringify(capability).includes(callerAccessAudience),false);
+});
+
+test('source-text gateway deadline covers stalled request body, origin headers, and native response body',async()=>{
+ let jwksSignal;
+ const jwksTimeout=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),(input,init)=>{
+  jwksSignal=init.signal;
+  return new Promise((_,reject)=>init.signal.addEventListener('abort',()=>reject(init.signal.reason),{once:true}));
+ },100);
+ assert.equal(jwksTimeout.status,504);
+ assert.equal(jwksSignal.aborted,true,'the shared deadline includes Access JWKS lookup');
+
+ let requestBodyCancelled=false;
+ const stalledRequestBody=new ReadableStream({
+  start(){},
+  cancel(){requestBodyCancelled=true;},
+ });
+ const request=new Request('https://tos.test/api/source-text/search',{
+  method:'POST',headers:{'content-type':'application/json','cf-access-jwt-assertion':validCallerAccessToken},body:stalledRequestBody,duplex:'half',
+ });
+ const bodyTimeout=await sourceTextSearchGatewayResponse(request,gatewayEnv(),gatewayFetcher(async()=>{
+  throw new Error('request body must time out before fetch');
+ }),100);
+ assert.equal(bodyTimeout.status,504);
+ assert.equal(requestBodyCancelled,true,'deadline cancels the active inbound reader');
+
+ let fetchSignal,fetchCancelled=false;
+ const fetchTimeout=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher((_input,init)=>{
+  fetchSignal=init.signal;
+  return new Promise((_,reject)=>init.signal.addEventListener('abort',()=>{
+   fetchCancelled=true;reject(init.signal.reason);
+  },{once:true}));
+ }),100);
+ assert.equal(fetchTimeout.status,504);
+ assert.equal(fetchSignal.aborted,true,'deadline aborts the native fetch');
+ assert.equal(fetchCancelled,true,'stalled native fetch observes cancellation');
+
+ let responseBodyCancelled=false;
+ const stalledResponseBody=new ReadableStream({
+  start(){},
+  cancel(){responseBodyCancelled=true;},
+ });
+ const responseTimeout=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response(
+  stalledResponseBody,{status:200,headers:{'content-type':'application/json'}},
+ )),100);
+ assert.equal(responseTimeout.status,504);
+ assert.equal(responseBodyCancelled,true,'deadline cancels the active native response reader');
+});
+
+test('source-text gateway client cancellation stops an active native request and clears its deadline',async()=>{
+ const clientController=new AbortController();
+ const clientRequest=new Request('https://tos.test/api/source-text/search',{
+  method:'POST',headers:{'content-type':'application/json','cf-access-jwt-assertion':validCallerAccessToken},body:'{"query":"α","limit":5}',signal:clientController.signal,
+ });
+ let fetchSignal,fetchCancelled=false,markFetchStarted;
+ const fetchStarted=new Promise(resolve=>{markFetchStarted=resolve;});
+ const responsePromise=sourceTextSearchGatewayResponse(clientRequest,gatewayEnv(),gatewayFetcher((_input,init)=>{
+  fetchSignal=init.signal;
+  markFetchStarted();
+  return new Promise((_,reject)=>init.signal.addEventListener('abort',()=>{
+   fetchCancelled=true;reject(init.signal.reason);
+  },{once:true}));
+ }),100);
+ await new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(new Error('native fetch did not start')),1000);
+  fetchStarted.then(()=>{clearTimeout(timer);resolve();});
+ });
+ clientController.abort();
+ const cancelled=await responsePromise;
+ assert.equal(cancelled.status,499);
+ assert.equal(fetchSignal.aborted,true);
+ assert.equal(fetchCancelled,true);
+
+ let completedSignal;
+ const completed=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async(_input,init)=>{
+  completedSignal=init.signal;
+  return new Response('{"hits":[]}',{headers:{'content-type':'application/json'}});
+ }),100);
+ assert.equal(completed.status,200);
+ await new Promise(resolve=>setTimeout(resolve,120));
+ assert.equal(completedSignal.aborted,false,'successful completion clears the deadline timer');
+});
+
+test('source-text gateway fails closed on partial, looping, oversized, and redirected routes',async()=>{
+ const partial=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_ACCESS_CLIENT_SECRET:undefined,
+ }),async()=>{throw new Error('must not fetch');});
+ assert.equal(partial.status,503);
+
+ const missingCaller=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_AUDIENCE:undefined,
+ }),async()=>{throw new Error('must not fetch');});
+ assert.equal(missingCaller.status,503);
+
+ const invalidIssuer=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_ISSUER:'https://attacker.example/path',
+ }),async()=>{throw new Error('must not fetch');});
+ assert.equal(invalidIssuer.status,503);
+
+ let called=false;
+ const loop=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_URL:'https://tos.test',
+ }),async()=>{called=true;throw new Error('must not fetch');});
+ assert.equal(loop.status,503);
+ assert.equal(called,false);
+
+ const pathBinding=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_URL:'https://native-source.example.net/search?database=wrong',
+ }),async()=>{called=true;throw new Error('must not fetch');});
+ assert.equal(pathBinding.status,503);
+ assert.equal(called,false);
+
+ const oversized=await sourceTextSearchGatewayResponse(sourceTextRequest('x'.repeat(65*1024)),gatewayEnv(),gatewayFetcher(async()=>{
+  throw new Error('must not fetch');
+ }));
+ assert.equal(oversized.status,413);
+
+ const redirect=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response('redirect',{
+  status:302,headers:{location:'https://elsewhere.example.net/api/source-text/search','content-type':'application/json'},
+ })));
+ assert.equal(redirect.status,502);
+ assert.match((await redirect.json()).error,/invalid response/);
+
+ const staleBody='{"error":"selected source-text consumer is stale"}';
+ const stale=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response(staleBody,{
+  status:503,headers:{'content-type':'application/json'},
+ })));
+ assert.equal(stale.status,503);
+ assert.equal(await stale.text(),staleBody);
+
+ const oversizedNative=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response(
+  ' '.repeat(1024*1024+1),{status:200,headers:{'content-type':'application/json'}},
+ )));
+ assert.equal(oversizedNative.status,502);
+});
 
 function intersectionGrams(query){
  const needle=query.toLowerCase(),grams=[];
@@ -168,15 +386,7 @@ function prefixVerificationFixture(){
  for(const gram of grams)assert.ok(d.sqlite.prepare('SELECT postings FROM knowledge_search_gram_stats WHERE kind=? AND n=3 AND gram=?').get('nodes',gram),`missing fixture stats for ${JSON.stringify(gram)}`);
  const source=JSON.parse(fixture.rows.nodes.find(row=>JSON.parse(row.raw).id==='philosophy:A').raw);
  source.display.title={default:'False positive'};source.display.provenance.summary='synthetic';source.display.summary_state='synthetic';
- const searchableDocument=raw=>python(String.raw`
-import hashlib,json
-from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
-p=json.load(sys.stdin);n=json.loads(p['raw']);text=S._searchable(n)
-id_lower,native_id_lower,identity_values,visible_values=S._rank_fields(n,relation=False)
-print(json.dumps({'raw':json.dumps(n,ensure_ascii=False,separators=(',',':')),'text':text,
- 'document':['nodes',100003,n['id'],n.get('source_graph',''),n.get('kind_id',''),n.get('predicate_id',''),id_lower,native_id_lower,identity_values,visible_values,len(text),hashlib.sha256(text.encode('utf-8','surrogatepass')).hexdigest()],
- 'grams':list(dict.fromkeys(text[i:i+3] for i in range(len(text)-2)))},ensure_ascii=False,separators=(',',':')))
- `,{raw});
+ const searchableDocument=raw=>reference("search/prefix-fixture",{raw});
  for(const [suffix,position] of [[1,100000],[2,100001],[3,100002]]){
   const wide=JSON.parse(JSON.stringify(source));wide.id=`philosophy:aa-prefix-false-positive-${suffix}`;wide.entity_id=wide.id;wide.native_id=`aa-prefix-false-positive-${suffix}`;wide.source_ref='test:prefix-false-positive';
   wide.attributes.match='metXetaXtadXadaXdatXata'+'x'.repeat(7_999_000);
@@ -324,22 +534,7 @@ test('indexed candidate budgets and ranking start from the rare gram before sour
 });
 
 test('addressed case-tie relocation preserves Worker search and continuation source order',async()=>{
- const change=python(String.raw`
-import sqlite3
-from incremental_runtime import prepare_search_address_indexes_transaction,plan_search_addresses_transaction
-p=json.load(sys.stdin);graph=json.loads(p['graph']);db=sqlite3.connect(':memory:')
-db.execute('CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part))')
-db.execute('INSERT INTO edge_meta VALUES (?,0,?)',('data_revision',json.dumps({'sha256':'d'*64})))
-db.execute('CREATE TABLE knowledge_search_documents(kind TEXT,position INTEGER,id TEXT,id_lower TEXT,PRIMARY KEY(kind,position))')
-db.executemany('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)',[(r[0],r[1],r[2],r[2].lower()) for r in p['documents']])
-prepare_search_address_indexes_transaction(db,expected_revision='d'*64)
-group=[n for n in graph['nodes'] if n['id'].lower()=='philosophy:tie'];assert len(group)==2
-ids=[n['id'] for n in reversed(group)]
-positions=[i for i,n in enumerate(graph['nodes']) if n['id'].lower()=='philosophy:tie']
-for i,n in zip(positions,reversed(group)):graph['nodes'][i]=n
-plan=plan_search_addresses_transaction(db,expected_revision='d'*64,kind='nodes',successor_groups={'philosophy:tie':ids})
-print(json.dumps({'plan':plan,'graph':json.dumps(graph,ensure_ascii=False,separators=(',',':'))}))
-`,{graph:fixture.graph,documents:fixture.documents});
+ const change=reference("search/tie-relocation",{graph:fixture.graph,documents:fixture.documents});
  const d=database();try{
   const unrelated=d.sqlite.prepare("SELECT * FROM knowledge_search_grams WHERE kind='nodes' AND position NOT IN (?,?) ORDER BY gram,position")
    .all(...Object.values(change.plan.before));
@@ -368,7 +563,7 @@ for(const version of [8,9])test(`v${version} full search rows retain Python kind
   assert.equal(d.statements.some(row=>row.sql.includes('SELECT json FROM knowledge_')),false);
  }finally{d.close();}
 });
-test('indexed native first and continuation packets match actual Python core/read-model without restarting exhausted kinds',async()=>{
+test('indexed native first and continuation packets match captured core/read-model packets without restarting exhausted kinds',async()=>{
  const d=database();try{
   for(const query of ['alpha','αβγ','\u0085ΑΒΓ\u0085','straße','STRASSE','😀'.repeat(256)]){
    const expected=oracle('indexed',query,{limit:2});let cursor=null;
@@ -404,7 +599,7 @@ test('Python mode-specific whitespace, code-point lengths and bounded filters fa
 test('search HTTP numeric parsing follows Python whole integers, Unicode decimal digits and default/clamp',async()=>{
  const d=database();try{
   const values=['1','1.0','1suffix','1_0','١٢','\u00852\u0085','\u001c2','\ufeff2','-100','999999999999999999999','9'.repeat(4301)];
-  const expected=python("from tos_access.http_server import _integer;p=json.load(sys.stdin);print(json.dumps([_integer({'limit':[v]},'limit',40,1,100) for v in p]))",values);
+  const expected=reference("search/http-integers",values);
   for(const mode of ['legacy','indexed'])for(const [at,value]of values.entries()){
    const result=await response(d,mode,'alpha',{limit:value});assert.equal(result.status,200);assert.equal((await result.json()).page.limit_per_kind,expected[at],mode+': '+value.slice(0,20));
   }
@@ -419,7 +614,7 @@ test('search HTTP blank/repeated parameters follow Python parse_qs before first-
 test('private native cursor migration, integer kinds, filters and epochs never silently coerce or restart',async()=>{
  const d=database();try{
   const first=JSON.parse(await direct(d,'indexed','alpha',{limit:1})),cursor=first.page.next_cursor;
-  await assert.rejects(()=>knowledgeSearchD1Indexed(d.db,options('alpha',{cursor:''})),error=>error.status===400);
+  await assert.rejects(()=>knowledgeSearchD1Indexed(d.db,options('alpha',{cursor:''}),publishedFixtureSearchControlsRuntime),error=>error.status===400);
   const decode=value=>JSON.parse(Buffer.from(value,'base64url').toString('utf8')),encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
   const outer=decode(cursor);
   const reordered={...outer,filters:{predicate_ids:outer.filters.predicate_ids,kind_ids:outer.filters.kind_ids,sources:outer.filters.sources}};
@@ -486,7 +681,7 @@ test('retained invalid Unicode strings and keys refuse the Python UTF-8 response
   d.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(row.json_chunk.replace('"unknown":',malformed+'"unknown":'));
   const result=await response(d,mode,'alpha');assert.equal(result.status,503);assert.match(await result.text(),/invalid Unicode/);
  }finally{d.close();}}
- assert.equal(python("p={'x':'\\ud800'};\ntry: json.dumps(p,ensure_ascii=False).encode('utf-8');print('false')\nexcept UnicodeEncodeError: print('true')"),true);
+ assert.equal(reference("search/invalid-utf8"),true);
 });
 test('aggregate selected ID budget masks oversized headers in SQL before source bodies are read',async()=>{
  const d=database();try{
@@ -523,11 +718,11 @@ test('selection plans retain linear legacy carrier scan plus primary-key lookup 
  }finally{d.close();}
 });
 test('real D1 Worker first/continuation native bytes survive isolate restart without cache or schema writes',async()=>{
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+ const workerModules=await publishedWorkerFixtureModules();
  const directory=mkdtempSync(join(tmpdir(),'tos-native-search-d1-'));let firstRaw,cursor;
  const expected=oracle('indexed','αβγ',{limit:1});
  try{for(let launch=0;launch<2;launch++){
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,d1Databases:['DB'],resourcePersistencePath:directory}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...workerModules,d1Databases:['DB'],resourcePersistencePath:directory}));
   try{const db=await mf.getD1Database('DB');
    if(launch===0){const statements=[...schema.split(';').filter(value=>value.trim()).map(sql=>db.prepare(sql)),
     ...migration.replace(/^--.*$/gm,'').trim().split(/\n(?=CREATE |INSERT )/).map(sql=>db.prepare(sql)),

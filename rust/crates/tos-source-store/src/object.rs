@@ -16,7 +16,20 @@ pub(crate) fn verify_selected_object(
     max_bytes: u64,
     sink: &mut impl Write,
 ) -> Result<u64> {
-    if expected_size > max_bytes {
+    verify_digest_object(root, sha256, Some(expected_size), max_bytes, sink)
+}
+
+/// The v1 retirement ledger omits retired object length. Use the opened
+/// object's observed length only as a bounded read target, never as identity;
+/// the exact ledger digest still authenticates every returned byte.
+pub(crate) fn verify_digest_object(
+    root: &StoreRoot,
+    sha256: Digest256,
+    expected_size: Option<u64>,
+    max_bytes: u64,
+    sink: &mut impl Write,
+) -> Result<u64> {
+    if expected_size.is_some_and(|size| size > max_bytes) {
         return Err(StoreError::new(
             StoreErrorCode::BudgetExceeded,
             "selected object exceeds read limit",
@@ -40,10 +53,17 @@ pub(crate) fn verify_selected_object(
     let metadata = file
         .metadata()
         .map_err(|error| StoreError::io("cannot stat opened selected object", error))?;
-    if metadata.len() != expected_size {
+    if expected_size.is_some_and(|size| metadata.len() != size) {
         return Err(StoreError::new(
             StoreErrorCode::CorruptSelectedObject,
             "selected object size differs",
+        ));
+    }
+    let expected_size = expected_size.unwrap_or(metadata.len());
+    if expected_size > max_bytes {
+        return Err(StoreError::new(
+            StoreErrorCode::BudgetExceeded,
+            "retained object exceeds read limit",
         ));
     }
     let mut digest = Digest256Hasher::new();

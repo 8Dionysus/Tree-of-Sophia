@@ -1,0 +1,216 @@
+[
+  {
+    "a": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "b": "baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "opcodes": [
+      [
+        "insert",
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        "equal",
+        0,
+        198,
+        1,
+        199
+      ],
+      [
+        "delete",
+        198,
+        199,
+        199,
+        199
+      ]
+    ]
+  },
+  {
+    "a": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "b": "baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "opcodes": [
+      [
+        "replace",
+        0,
+        200,
+        0,
+        200
+      ]
+    ]
+  },
+  {
+    "a": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaXaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "b": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaYaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        210,
+        0,
+        210
+      ],
+      [
+        "replace",
+        210,
+        411,
+        210,
+        411
+      ]
+    ]
+  },
+  {
+    "a": "A                                                                                                                                                                                                                            B",
+    "b": "A                                                                                                                                                                                                                  B",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        211,
+        0,
+        211
+      ],
+      [
+        "delete",
+        211,
+        221,
+        211,
+        211
+      ],
+      [
+        "equal",
+        221,
+        222,
+        211,
+        212
+      ]
+    ]
+  },
+  {
+    "a": "у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро у¬\nтро ",
+    "b": "утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро утро ",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        1,
+        0,
+        1
+      ],
+      [
+        "replace",
+        1,
+        280,
+        1,
+        200
+      ]
+    ]
+  },
+  {
+    "a": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX",
+    "b": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        201,
+        0,
+        201
+      ]
+    ]
+  },
+  {
+    "a": "aabaaabab babba cbaaabcbabaabaa bba a abcbbbbbabacb bab  abaccbabbababbcab aabbabcbbabbb abbabbbbcaaaab abaa aaababacaaacaabaabbabaaab cab abbbbba abbbbaab abaac bbabbabaabaa b cca abcbaba bbbaabaabb",
+    "b": "aabaaabab babba cbaaabcbabaabaa bba a abcbbbbbabacb bab  abaccbabbZbbcab aabbabcbbabbb abbabbbbcaaaab abaa aaababacaaacaabaabbabaaab cab abbbbba abbbbaab abaac bbabbabaabaa b cca abcbaba bbbaabaabb",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        66,
+        0,
+        66
+      ],
+      [
+        "replace",
+        66,
+        69,
+        66,
+        67
+      ],
+      [
+        "equal",
+        69,
+        199,
+        67,
+        197
+      ]
+    ]
+  },
+  {
+    "a": "aababababbbcac bbababbb aababaa a bb b bbbcc aaabbaa b  abcbabbcbbbacba baab b aaabaacc aa  ba b cabaabaaaa b aaa bbbbaaacaaacaaacabcaabccba aaa baababbbaaaabcabbbc aacaabbaaaababbab  bbab caaa bbacba",
+    "b": "aababababbbcac bbababbb aababaa a bb b bbbcc aaabbaa b  abcbabbcbbZba baab b aaabaacc aa  ba b cabaabaaaa b aaa bbbbaaacaaacaaacabcaabccba aaa baababbbaaaabcabbbc aacaabbaaaababbab  bbab caaa bbacba",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        66,
+        0,
+        66
+      ],
+      [
+        "replace",
+        66,
+        69,
+        66,
+        67
+      ],
+      [
+        "equal",
+        69,
+        200,
+        67,
+        198
+      ]
+    ]
+  },
+  {
+    "a": "bbaaabbbaaabbacaba cbc bb bcabaaaacab aba abbcabbcacaa  aabbaaaabababbba bbbbabbbabbaaaa    ba bacbbcbaabaca babaaa aab bbbcacababbbbbababbbbabbb aaaabbaaaabaabaa bcb baabcbccaabbabbcaaabbaaacbbbcabca aababaabaabaaabababacaabb aaa cbaabaaaa",
+    "b": "bbaaabbbaaabbacaba cbc bb bcabaaaacab aba abbcabbcacaa  aabbaaaabababbba bbbbabbZbaaaa    ba bacbbcbaabaca babaaa aab bbbcacababbbbbababbbbabbb aaaabbaaaabaabaa bcb baabcbccaabbabbcaaabbaaacbbbcabca aababaabaabaaabababacaabb aaa cbaabaaaa",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        80,
+        0,
+        80
+      ],
+      [
+        "replace",
+        80,
+        240,
+        80,
+        238
+      ]
+    ]
+  },
+  {
+    "a": "abb aaaabcaaacb abba baacaacaaacabcb aaca bab caaaaaba aababab cbcbbbbbbacabbaa ababacaa abaa bab abbba aacaabaaabbcabbaaab bbcabbcabcbabbca bb b baabbaba ba b ba cabc baaaaccbaaa ab a bbcc a bbbabcca ba ababb cbbbaaabcabaabbbca bcbbbbabb b cbbbababbabbcbabbbcbcabbbbaabcccbcacbba acaaaabaa abbca ba bcbbaabbbabccabbaab cbababbbabbbcbabcbbaabaabbbbbaaaabbcbaa a aacbaa bbabba bb cbbbacbbbaaaaa bbaaaababababaa a abaca acbaccbaabaab abbbbabbaabaabbaccbba aa abcacabaacbaab cbababba",
+    "b": "abb aaaabcaaacb abba baacaacaaacabcb aaca bab caaaaaba aababab cbcbbbbbbacabbaa ababacaa abaa bab abbba aacaabaaabbcabbaaab bbcabbcabcbabbca bb b baabbaba ba b Zcabc baaaaccbaaa ab a bbcc a bbbabcca ba ababb cbbbaaabcabaabbbca bcbbbbabb b cbbbababbabbcbabbbcbcabbbbaabcccbcacbba acaaaabaa abbca ba bcbbaabbbabccabbaab cbababbbabbbcbabcbbaabaabbbbbaaaabbcbaa a aacbaa bbabba bb cbbbacbbbaaaaa bbaaaababababaa a abaca acbaccbaabaab abbbbabbaabaabbaccbba aa abcacabaacbaab cbababba",
+    "opcodes": [
+      [
+        "equal",
+        0,
+        160,
+        0,
+        160
+      ],
+      [
+        "replace",
+        160,
+        480,
+        160,
+        478
+      ]
+    ]
+  }
+]

@@ -1,0 +1,285 @@
+# Managed local native access v1
+
+The native Rust owner implements the managed release lifecycle and holder
+checks. It selects an already admitted projection. It does not
+admit a source, grant rights to source records or payloads, or issue a public
+service credential. The first execution candidate is an isolated software
+fixture; this contract does not activate an installed/public release.
+
+The native entrypoint accepts a leading `--release-root ABSOLUTE_DIRECTORY`
+(or `--release-root=ABSOLUTE_DIRECTORY`), overriding `TOS_RELEASE_ROOT` when
+both are present. With neither selection it retains `NoOwner`. A selected
+root that cannot be admitted produces an explicit unavailable refusal, exit
+3. Invalid command/serve options are refused with exit 2 before cold opening.
+Missing data never discovers another checkout.
+
+The root reuses `tos_access_release_pointer_v1`,
+`tos_access_release_pair_v1`, immutable pair and binding records, the existing
+three data/corpus/software revocation directories, and `.release.lock`.
+Metadata uses the existing sorted compact UTF-8 JSON with one final LF and
+strict duplicate-member rejection. Pair identity is SHA-256 of those complete
+canonical bytes. Existing normalized absolute path and no-symlink rules apply.
+The bootstrap parser uses the shared foundation metadata profile (1 MiB,
+64 levels, 300,000 visits, 4,300 integer digits); that cap supplies neither
+model nor query nor process admission.
+
+The native data manifest schema is `tos_access_native_data_snapshot_v1`.
+Its exact field set is the existing snapshot fields `schema_version`,
+`corpus_revision`, `input_bindings`, `compiler`, `members`, `data_revision`,
+plus `native_selection`. The selection names one declared relative member.
+Members remain sorted and unique, under `data/`, with exact `path`,
+`size_bytes`, `sha256`. The manifest is paired by its complete SHA-256;
+`data_revision` is SHA-256 of canonical manifest bytes excluding that field.
+The compiler schema equals the selected model ABI; compiler version equals
+the installed native producer version. In this native profile, compiler fingerprint
+inputs name the code-owned native program members and their actual digests; they
+do not relabel the produced model as a compiler input. The old Python manifest and eight-field
+prepared-binding formats keep their existing meanings and are not ABI3.
+
+The producer companion uses `tos_access_native_knowledge_selection_v1` for
+ABI2/3 and `tos_access_native_knowledge_selection_v2` for ABI4, with the same
+`managed-local-linux-fsverity-v1` profile. The compiler decoder owns both versioned
+shapes. It persists actual stage/seal, optional navigation-original and
+philosophy-original receipts, the independently
+produced `KnowledgeSelectedExpectation`, exact model/descriptor/entity-registry/
+relation-registry member paths, fs-verity measurement, `ColdOpenLimits`, and
+process limits. It is decoded by the compiler against the exact selected
+metadata bytes and actual supported native adapters. Consumers never recover
+expected roots from checked SQLite or infer supported adapters from a selected
+descriptor. The model manifest member size/SHA must equal the independent
+expectation; descriptor/registries must match their declared member digests.
+Whole snapshot compilation and publication remain the release builder's job.
+
+The existing public-ledger query/http subset in `runtime-data.v1.json` can be
+included as sorted declared `data/<source_path>` members. The original
+`source_path` SHA and the exact runtime-data declaration SHA are retained in
+manifest `input_bindings`. All owner-declared public members, their order,
+SHA/size and original source bindings must match under the same release hold;
+missing, extra or changed ledger members refuse the read. The producer derives
+identities and paths from the authored declaration, not a copied name/count list.
+This layout adds no corpus payload or ambient tree access. The maintained
+`/api/source-gaps` GET/HEAD route passes the verified bytes to the shared QRY
+string-only public-safe projection and retains the same hold through flush.
+No source-gap CLI or MCP tool is introduced. The managed entrypoint retains its
+existing cold-admission and kernel custody prerequisites for the whole selected
+profile; this additional public projection does not bypass them.
+
+Kernel custody requires fs-verity on the selected artifact, a retained FD and
+matching fs-verity measurement. Chmod/stat or a one-time hash is insufficient.
+Cold resource admission checks finite live soft `RLIMIT_AS` and `RLIMIT_FSIZE`
+bounds no greater than the selected producer profile. AS bounds address space;
+FSIZE bounds each written file, not aggregate SQLite temporary storage. The
+compiler's existing bounded private working-set checks remain necessary. Missing
+or unsupported custody/enforcement refuses cold admission; the consumer never
+enables fs-verity or changes host limits itself.
+
+Every query obtains a fresh shared `.release.lock` on the selected holder.
+The retained lock serializes publication changes/withdrawal through final
+transport flush. Root, data-root and lock inode identities, exact current
+pointer, immutable pair/binding/manifest and all three revocation states are
+checked under that hold, before query use and final disclosure. A changed
+selection refuses; this profile does not silently follow a new pair. A busy
+or absent holder is unavailable, not authority. The current-policy identity
+names this real local holder and release pair; it is not a raw-source rights
+receipt. The model is cold-admitted once, then bounded readers retain the same
+kernel custody. No global cache or issuer is introduced.
+
+Native CLI, loopback HTTP and MCP reuse the existing operation descriptor and
+QRY engine. Catalog/inspect, temporal, lens/focus/stored lens, exploration,
+legacy search, capabilities and contracts use this held projection authority.
+Dossier GET/HEAD `/api/source/dossiers/{object_id}` and MCP
+`tos_dossier_inspect` require the exact persisted original component receipt;
+there is no dossier CLI command. Its original component only computes the
+maintained admitted dossier fields. ABI4 philosophy GET/HEAD and the existing
+`tos_philosophy_graph_*` MCP tools require the independently persisted philosophy
+original component receipt. Node, edge, neighborhood, path, view, views, layers,
+clusters, review packet, snapshot and unresolved reads use the common QRY kernel
+and its bounded ordered original rows. The same release hold covers every
+consulted header/node/edge grant through final flush. Missing phi originals
+leave those tools unavailable; the consumer does not derive them from normalized
+knowledge rows. No philosophy one-shot CLI is added. It does not expose a new raw header/rights
+or source-byte operation. Exact source record/text remains the separate opt-in native source-owner
+contract in `source-read.v1.schema.json`. Indexed transport
+continuations and compressed publication require their respective real owner
+seams; readiness is not inferred from an engine capability packet.
+
+The binary retains the 1 MiB query-packet and 64 KiB request/line caps. Its
+explicit MCP frame allowance is the checked bound from those declared caps,
+including text escaping, structured copy, request ID, envelope and final LF.
+A frame still exceeding its declared allowance receives the existing bounded
+JSON-RPC refusal before packet disclosure. Library defaults retain equal packet/
+frame caps. Cancellation, deadline and current-release refusal remain independent.
+Disposable exploration retains the maintained 900-second TTL, 128 checkpoints,
+32 MiB checkpoint cap, 512 work units per page, 10,000 session nodes and 20,000
+session relations; selected cold work caps additionally bound these allocations.
+
+Source implementation, isolated filesystem/process admission, actual installed
+entrypoint execution, public activation, Worker response-body lease and TS
+retirement are separate claims. This profile closes none of those later gates
+merely by declaring the format.
+
+
+Corpus projection uses the CMP ABI5 original component and versioned native selection companion v3. The captured-public origin records software Git commit/tree/capture manifest identity separately from the authored source cut; their joint selected release does not assert native builder ancestry. The original index source path must be the corpus-index subject declared by runtime-data.v1.json, with its existing query-core/http-reader/native-mcp roles. The data snapshot declares `data/<source_path>` and every original captured member in the receipt, with exact size/SHA and the original source SHA in input_bindings; input_bindings also binds the exact runtime-data declaration. Missing or differing members refuse admission and availability. Corpus payloads and ambient source reads are not admitted.
+
+Under the same ReleaseLease, cold admission checks the complete raw original member closure once. Each later addressed corpus query keeps DataGuard identity `(device,inode,size,mtime,ctime)` for these members and checks it under the held release lock through final flush. The retained immutable selected model owns original row bytes; ordinary addressed reads do not reread the entire corpus. Status display paths identify the actual declared index member and its selected data root. SQL component presence alone cannot assert index_exists. The eight maintained MCP tools and six existing HTTP GET/HEAD routes call the same QRY corpus kernel; resources and packet remain MCP-only, and no corpus one-shot CLI is introduced. This profile still requires the managed native cold custody/resource prerequisites before its installed entrypoint serves data.
+
+
+## Native pair publication
+
+On Linux, `native-release-promote --request ABS --request-sha256 HEX
+--work-deadline-ns ORIGINAL_NS` publishes the existing NativeData pair format.
+The request is independently pinned canonical JSON. It selects the exact
+candidate pair, bindings, candidate manifest and producer selection digests,
+installed software prefix, expected current pair (or null for first publication)
+and finite resource profile. It neither discovers a root nor accepts a
+caller-supplied verification boolean or Python callback.
+
+Before taking the exclusive release lock, the native owner verifies the
+complete declared candidate closure, shared manifest and Original provenance
+law, exact producer selection, immutable selected model cold admission, accepted
+software archive and both installed Access and Owner command roles. Archive,
+installed manifest and build proofs must describe the same software. The
+candidate remains independent of `current.json`; first publication does not
+open a fabricated current release. Verification retains file identities and
+rechecks them around publication. Source, rights, canon and semantic acceptance
+are not issued by these mechanical checks.
+
+The filesystem owner takes the existing process-owned exclusive lock and
+revalidates layout, current pointer, immutable pair and bindings, all three
+revocation kinds and expected-current CAS. Identical immutable records may be
+reused; differing records refuse without overwrite. Same-current publication
+still verifies bindings and revocations. Immutable records use a fsynced
+exclusive temporary, atomic Linux `renameat2(RENAME_NOREPLACE)` and parent
+directory fsync. This preserves immutable no-clobber publication without a
+hard-link/unlink crash interval that would leave link count two. A host or
+filesystem lacking the atomic no-replace operation refuses; it does not fall
+back to overwrite. The
+current pointer uses a fsynced temporary, atomic replacement, root fsync and
+canonical readback. A failure after replacement preserves the committed state
+and reports durability separately; it does not roll back another publication.
+
+The promotion scope accepts at most 3600 seconds remaining. A longer admitted
+Site attempt narrows this scope to `min(site_deadline, scope_entry + 3600s)`
+and pins that same monotonic value in the request and CLI. This narrows the
+existing attempt; it does not renew its overall clock.
+
+All stages consume the original monotonic deadline and declared metadata,
+state, IO, descriptor, archive, candidate and model bounds. Explicit
+`max_installed_io_bytes` and `max_installed_state_bytes` reserve slices of the
+same aggregate budgets before installed verification; both roles and their
+post-publication rechecks consume those same slices. Filesystem reads, writes
+and bounded metadata decoding charge the remaining shared budget. Installed software
+checks and publication checkpoints observe that deadline directly. Existing
+archive and selected-model cold owners additionally enforce finite member,
+byte, row and SQLite-work limits, but their current public scan APIs have no
+inner cancellation hook. Their external admitted process/unit remains the hard
+wall-time owner; a completed scan must pass the same original deadline before
+publication. These structural counters do not certify allocator RSS or host
+memory. Publication, durable readback and subsequent installed cold reopen are
+separate evidence claims.
+
+### PostgreSQL navigation anchor
+
+The managed source-navigation preparation route uses
+`tos_knowledge_managed_navigation_v2`, with the existing managed producer
+companion schema and source proof. It retains complete Navigation Original,
+including rights witnesses and an exact rowid carrier table keyed by collection
+and stable ID. Raw, semantic and canonical commitments independently bind each
+carrier. Native preparation does not materialize normalized graph answers.
+The retained graph/catalog/source-scope metadata describes zero normalized rows;
+the Original receipt carries the complete node and edge counts. Those zero
+normalized counts do not describe an empty source corpus. PostgreSQL owns the
+published graph, and this anchor has no standalone normalized-graph capability.
+`search_index_root_sha256` is absent from its seal, expectation and
+SQLite metadata; the three `search_*` tables and `search_document_filter` index
+are absent. Cold admission checks that physical closure against the explicit ABI.
+V1 anchors retain their complete normalized graph and remain readable under V1;
+their format cannot contain the V2 carrier table. Older postings ABIs require their complete search root and tables, and continue
+to decode the same string-valued JSON field. Older consumers reject the new ABI.
+
+Initial PostgreSQL bootstrap persists the complete Navigation Original receipt
+and the complete selected-expectation digest in its owner binding. Routine queries and event advances verify the receipt's
+component root against the protected selection and verify all publication,
+source, rights, job and audit fences. They do not reopen the cold model or issue
+a `VerifiedKnowledgeModel` from persisted JSON. Publication metadata without the
+receipt requires explicit rebuild into a new consumer and selection switch;
+existing source history and publication are preserved. This metadata addition
+changes new private bootstrap roots, not Original roots or model bytes.
+
+Navigation publication checkpoints use format 3. The current event-cohort map
+is a compressed radix tree over owner-key digests in PostgreSQL; leaves retain
+the exact owner tuple and canonical metadata digest. The map root, exact row
+changes and cursor commit atomically. Changing one owner touches only its tree
+paths and actual graph dependencies. Ordinary reads authenticate the published
+root and selected owner paths, including absence, within their query budgets;
+they do not audit unrelated table rows. Explicit full-index audit verifies every
+current cohort and exact map cardinality. Restoring identical current metadata
+restores the identical map root, independently of update history. Existing
+format 1/2 publications need explicit source-backed bootstrap; a cursor or stored
+row cannot manufacture format 3 admission. Backup format 11 includes both map
+tables and the private initial-capture position, Original carriers, node facts
+and Claim contributor relation; restore
+retains older backup-format readers and their declared checks.
+
+The private initial-capture adapter commits exact Original rows and keyset
+position together in bounded pages. Its selected source, audit, rights, job and
+model binding must match on resume. Capturing or verifying Original roots does
+not publish a consumer: its cursor stays zero until a complete derived baseline
+is sealed. Ordinary event writers reject an unfinished initial construction.
+Node facts, Claim contributors, ordered maker propagation and normalized rows
+use resumable pages. A carrier's contribution fanout and an owner's dependency
+set must fit their declared transaction bounds; the complete model is not
+limited to one page. Historical ownership, Claim ownership, source-reference
+bindings and visibility use the same rules as the sealed-package writer.
+Identical repeated Original rights rows retain their ordinals in staging and
+collapse only in the query-facing projection; conflicting bytes fail closed.
+The final seal independently rebuilds node facts, contributors and dependency
+sets from Original and compares every normalized key, field and exact carrier.
+It resolves every source witness against the held managed placement generation.
+The seal streams the existing bootstrap hash framing, then builds adjacency
+certificates in bounded committed pages. Publication repeats the closure,
+checks all adjacency certificates and atomically installs the format-3 prefix.
+Only after this publication may bounded cleanup retire initial Original and
+contributor staging; the exact selected cold source and completion provenance
+remain. Replay verifies the published prefix without recapturing deleted staging.
+The public `bootstrap-navigation` command uses this adapter and returns
+`tos_source_navigation_bootstrap_result_v2`. Each call commits at most the
+optional `max_batches` (default 256, range 1..256). Repeat the exact request and
+selection until `completed` and `cleanup_complete` are true. Unfinished results
+have null `through_sequence` and `bootstrap_root`; captured/verified progress
+does not grant publication. Each full seal starts in a fresh invocation so
+its deadline is not consumed by earlier capture/normalization pages.
+The load-readiness consumer resumes these calls under its operation deadline
+and records their count separately from controlled event-interruption evidence.
+Installation and upgrade explicitly run `source-projection` with the existing
+source-text projection selection and `{"operation":"init"}` before bootstrap.
+This derived-schema migration preserves older prefix markers and replaces both
+historical PostgreSQL constraint names before accepting format 3; it does not
+upgrade an existing publication's evidence or modify source state.
+
+Relation carrier IDs have a 512-byte ceiling. Node, record, owner and endpoint
+IDs retain their 256-byte ceiling. Neither adapter truncates an identity.
+
+This anchor supports PostgreSQL source-navigation publication and exact retained
+Original reads. It does not support offline indexed search or claim a complete
+portable Site profile. PostgreSQL text search has its own model and cursor.
+Initial native preparation selects this component set explicitly; complete
+portable builders continue to produce their full search component. Live source
+and policy holds remain necessary for publication and disclosure with either
+managed ABI.
+
+At the same published source cut, initial and addressed navigation preserve
+identities, records, HumanForms, version histories, relations and visibility.
+Metadata version views use `exact-current-version` or
+`exact-historical-version`; the history enumeration uses
+`verified-record-references`. Compare decoded values, not JSON object key order.
+The catalog provenance describes the actual preparation route: a full catalog
+records its file digest, line, source record path and current reference; an
+addressed entry records `selection=event-derived-entry-v1`, its projection path,
+entry digest and selected event source revision. These provenance carriers remain
+visible and are verified against their respective inputs. They are not equal
+byte strings and must not be replaced with invented full-catalog evidence.
+Equivalence requires every other field to agree and both provenance claims to
+resolve to the same selected record; it does not discard provenance or reduce
+the comparison to IDs. Source-byte fixity and current disclosure policy remain
+separate mandatory checks.

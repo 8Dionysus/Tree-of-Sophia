@@ -1,6 +1,7 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {ContractError} from './knowledge-client.mjs';
-import {compileConditions,validateConditions} from './lens-conditions.mjs';
+import {compileConditions} from './lens-conditions.mjs';
+import {attachConditionValues,compilePathRules,conditionRequest,importPathDraftRules,normalizePathRule,observatoryPathLimits} from './lens-conditions-rust.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
 import {createConditionEditor} from './lens-condition-editor.mjs';
 
@@ -8,186 +9,285 @@ export const MAX_PATH_CONDITIONS=4;
 export const MAX_PATH_STEPS=4;
 export const MAX_PATH_FILTERS=32;
 
-const PATH_ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$(?![\s\S])/;
-const PROPERTY_ID=/^tos\.property\.[a-z0-9-]+$(?![\s\S])/;
-const OPERATORS=new Set(['eq','neq','in','contains','prefix','exists','gt','gte','lt','lte']);
-const DIRECTIONS=['outgoing','incoming','either'];
-const MATCHES=['all','any'];
-const QUANTIFIERS=['exists','not_exists'];
 const fail=message=>{throw new ContractError(message);};
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const ownKeys=(value,allowed)=>Object.keys(value).some(key=>!allowed.includes(key));
-const strings=(value,max,length=1024)=>Array.isArray(value)&&value.length<=max&&new Set(value).size===value.length
-  &&value.every(item=>typeof item==='string'&&item.length>0&&item.length<=length);
-const finiteScalar=value=>value===null||typeof value==='boolean'||typeof value==='string'&&value.length<=1024
-  ||typeof value==='number'&&Number.isFinite(value);
+const keys=(value,allowed)=>Object.keys(value).slice(0,allowed.length+1);
 const defaultQuery=()=>({enabled:true,match:'all',conditions:[]});
 const clone=value=>structuredClone(value);
 
 export function defaultPathStep(){return {direction:'outgoing',kinds:[],predicates:[],nodeQuery:defaultQuery(),relationQuery:defaultQuery()};}
 export function defaultPath(pathId='path-1'){return {pathId,quantifier:'exists',steps:[defaultPathStep()]};}
 
-function normalizeQuery(value,kind,maxConditions=MAX_PATH_FILTERS){
-  if(value===undefined)return defaultQuery();
-  if(!record(value)||ownKeys(value,['enabled','match','conditions']))fail(ui("Условие шага имеет неподдерживаемую форму."));
-  const enabled=value.enabled===undefined?true:value.enabled;
-  const match=value.match===undefined?'all':value.match;
-  if(typeof enabled!=='boolean'||!MATCHES.includes(match))fail(ui("Условие шага имеет неподдерживаемые параметры."));
-  const conditions=value.conditions===undefined?[]:value.conditions;
-  if(!Array.isArray(conditions)||conditions.length>maxConditions)fail(ui("В одной группе шага можно сохранить до {0} условий.",[maxConditions]));
-  const checked=validateConditions(kind==='nodes'?{nodes:conditions,relations:[]}:{nodes:[],relations:conditions},{maxConditions})[kind];
-  return {enabled,match,conditions:checked};
+const valueDescriptor=value=>{
+  if(value===undefined)return {kind:'undefined'};
+  if(typeof value==='string')return {kind:'string',value:value.slice(0,129)};
+  if(typeof value==='boolean')return {kind:'boolean',value};
+  return {kind:'invalid'};
+};
+const mappedItems=(value,mapper)=>Array.from({length:value.length},(_,index)=>index in value?mapper(value[index]):{hole:true});
+function typeListDescriptor(value){
+  if(value===undefined)return {kind:'array',length:0,items:[]};
+  if(!Array.isArray(value))return {kind:'invalid'};
+  const length=value.length;
+  if(length>100)return {kind:'array',length,items:[]};
+  return {kind:'array',length,items:mappedItems(value,item=>
+    typeof item==='string'?{kind:'string',value:item}:{kind:'invalid'})};
 }
-
-function normalizeStep(value){
-  if(!record(value)||ownKeys(value,['direction','kinds','predicates','nodeQuery','relationQuery']))fail(ui("Шаг пути имеет неподдерживаемую форму."));
-  const direction=value.direction===undefined?'outgoing':value.direction;
-  if(!DIRECTIONS.includes(direction))fail(ui("Направление шага больше не поддерживается."));
-  const kinds=value.kinds===undefined?[]:value.kinds;
-  const predicates=value.predicates===undefined?[]:value.predicates;
-  if(!strings(kinds,100)||!strings(predicates,100))fail(ui("Типы шага неполны или превышают допустимый размер."));
-  return {direction,kinds:[...kinds],predicates:[...predicates],nodeQuery:normalizeQuery(value.nodeQuery,'nodes'),relationQuery:normalizeQuery(value.relationQuery,'relations')};
+function queryDescriptor(value,kind){
+  if(value===undefined)return {kind:'undefined'};
+  if(!record(value))return {kind:'invalid'};
+  const keyList=keys(value,['enabled','match','conditions']);
+  const enabled=value.enabled,match=value.match,conditions=value.conditions;
+  const groups=kind==='nodes'?{nodes:Array.isArray(conditions)?conditions:[],relations:[]}:{nodes:[],relations:Array.isArray(conditions)?conditions:[]};
+  const descriptor=conditionRequest(groups,MAX_PATH_FILTERS);
+  return {kind:'object',keys:keyList,
+    enabled:valueDescriptor(enabled),match:valueDescriptor(match),
+    conditions_kind:conditions===undefined?'undefined':Array.isArray(conditions)?'array':'invalid',
+    conditions_length:Array.isArray(conditions)?conditions.length:null,condition_kind:kind,condition_request:descriptor};
 }
+function stepDescriptor(value){
+  if(!record(value))return {kind:'invalid'};
+  const keyList=keys(value,['direction','kinds','predicates','nodeQuery','relationQuery']);
+  const direction=value.direction,kinds=value.kinds,predicates=value.predicates,nodeQuery=value.nodeQuery,relationQuery=value.relationQuery;
+  return {kind:'object',keys:keyList,
+    direction:valueDescriptor(direction),kinds:typeListDescriptor(kinds),predicates:typeListDescriptor(predicates),
+    node_query:queryDescriptor(nodeQuery,'nodes'),relation_query:queryDescriptor(relationQuery,'relations')};
+}
+function stepListDescriptor(value){
+  if(!Array.isArray(value))return {kind:'invalid'};
+  return {kind:'array',length:value.length,items:value.length>0&&value.length<=MAX_PATH_STEPS?mappedItems(value,stepDescriptor):[]};
+}
+function pathDescriptor(value){
+  if(!record(value))return {kind:'invalid'};
+  const keyList=keys(value,['pathId','quantifier','steps']);
+  const pathId=value.pathId,quantifier=value.quantifier,steps=value.steps;
+  return {kind:'object',keys:keyList,path_id:valueDescriptor(pathId),
+    quantifier:valueDescriptor(quantifier),steps:stepListDescriptor(steps)};
+}
+function pathListDescriptor(value){
+  if(value===undefined)return {kind:'undefined'};
+  if(!Array.isArray(value))return {kind:'invalid'};
+  return {kind:'array',length:value.length,items:value.length<=MAX_PATH_CONDITIONS?mappedItems(value,pathDescriptor):[]};
+}
+const isHole=value=>value?.hole===true;
+function normalizedQuery(original,normalized,kind){
+  const source=original?.conditions===undefined?[]:original.conditions;
+  const value=kind==='nodes'?{nodes:source,relations:[]}:{nodes:[],relations:source};
+  const metadata=kind==='nodes'?{nodes:normalized.conditions,relations:[]}:{nodes:[],relations:normalized.conditions};
+  return {...normalized,conditions:attachConditionValues(value,metadata)[kind]};
+}
+function restoreSteps(original,normalized){
+  const output=new Array(normalized.length);
+  for(let index=0;index<normalized.length;index++){
+    if(!(index in original)||isHole(normalized[index]))continue;
+    const source=original[index],step=normalized[index];
+    output[index]={direction:step.direction,kinds:source.kinds===undefined?[]:[...source.kinds],
+      predicates:source.predicates===undefined?[]:[...source.predicates],
+      nodeQuery:normalizedQuery(source.nodeQuery,step.nodeQuery,'nodes'),
+      relationQuery:normalizedQuery(source.relationQuery,step.relationQuery,'relations')};
+  }
+  return output;
+}
+function restorePaths(original,normalized){
+  const output=new Array(normalized.length);
+  for(let index=0;index<normalized.length;index++){
+    if(!(index in original)||isHole(normalized[index]))continue;
+    const source=original[index],path=normalized[index];
+    output[index]={pathId:path.pathId,quantifier:path.quantifier,steps:restoreSteps(source.steps,path.steps)};
+  }
+  return output;
+}
+const pathError=error=>{
+  const code=String(error).match(/invalid_path_list|invalid_path_shape|invalid_path_id|invalid_path_quantifier|invalid_path_steps|invalid_path_step|invalid_path_direction|invalid_path_types|invalid_path_query_shape|invalid_path_query_values|invalid_path_conditions|invalid_conditions_shape|invalid_conditions_limit|invalid_conditions_rule|invalid_conditions_output/u)?.[0];
+  if(code==='invalid_path_list')return ui("Можно добавить до {0} условий пути.",[MAX_PATH_CONDITIONS]);
+  if(code==='invalid_path_shape')return ui("Условие пути имеет неподдерживаемую форму.");
+  if(code==='invalid_path_id')return ui("Идентификаторы условий пути должны быть уникальными и безопасными.");
+  if(code==='invalid_path_quantifier')return ui("Квантификатор пути больше не поддерживается.");
+  if(code==='invalid_path_steps')return ui("Путь должен содержать от 1 до {0} шагов.",[MAX_PATH_STEPS]);
+  if(code==='invalid_path_step')return ui("Шаг пути имеет неподдерживаемую форму.");
+  if(code==='invalid_path_direction')return ui("Направление шага больше не поддерживается.");
+  if(code==='invalid_path_types')return ui("Типы шага неполны или превышают допустимый размер.");
+  if(code==='invalid_path_query_shape')return ui("Условие шага имеет неподдерживаемую форму.");
+  if(code==='invalid_path_query_values')return ui("Условие шага имеет неподдерживаемые параметры.");
+  if(code==='invalid_path_conditions')return ui("В одной группе шага можно сохранить до {0} условий.",[MAX_PATH_FILTERS]);
+  if(code==='invalid_conditions_limit')return ui("Можно добавить до {0} условий в каждый раздел.",[MAX_PATH_FILTERS]);
+  if(code==='invalid_conditions_rule')return ui("Условие неполно или имеет неподдерживаемое значение.");
+  return ui("Неверный набор условий.");
+};
 
 export function validatePathDraft(value){
-  if(value===undefined)return [];
-  if(!Array.isArray(value)||value.length>MAX_PATH_CONDITIONS)fail(ui("Можно добавить до {0} условий пути.",[MAX_PATH_CONDITIONS]));
-  const ids=new Set();
-  return value.map(path=>{
-    if(!record(path)||ownKeys(path,['pathId','quantifier','steps']))fail(ui("Условие пути имеет неподдерживаемую форму."));
-    const pathId=path.pathId;
-    if(typeof pathId!=='string'||!PATH_ID.test(pathId)||ids.has(pathId))fail(ui("Идентификаторы условий пути должны быть уникальными и безопасными."));
-    ids.add(pathId);
-    const quantifier=path.quantifier===undefined?'exists':path.quantifier;
-    if(!QUANTIFIERS.includes(quantifier))fail(ui("Квантификатор пути больше не поддерживается."));
-    if(!Array.isArray(path.steps)||path.steps.length<1||path.steps.length>MAX_PATH_STEPS)fail(ui("Путь должен содержать от 1 до {0} шагов.",[MAX_PATH_STEPS]));
-    return {pathId,quantifier,steps:path.steps.map(normalizeStep)};
-  });
+  let normalized;
+  try{normalized=normalizePathRule(pathListDescriptor(value));}
+  catch(error){fail(pathError(error));}
+  return restorePaths(Array.isArray(value)?value:[],normalized);
 }
-
-function integer(value){return Number.isInteger(value)&&value>=1;}
-function minimum(values){return Math.min(...values.filter(integer));}
-
 export function pathLimits(context){
-  const schema=context?.schema,properties=schema?.properties?.path_query,path=schema?.$defs?.pathCondition;
-  const stepItems=path?.properties?.steps?.items,nodeQuery=schema?.$defs?.nodeQuery,relationQuery=schema?.$defs?.relationQuery;
-  const pathMax=properties?.maxItems,stepMax=path?.properties?.steps?.maxItems;
-  const nodeFilterMax=nodeQuery?.properties?.filters?.maxItems,relationFilterMax=relationQuery?.properties?.filters?.maxItems;
-  const nodeMatches=nodeQuery?.properties?.match?.enum,relationMatches=relationQuery?.properties?.match?.enum;
-  if(!integer(pathMax)||!integer(stepMax)||!integer(nodeFilterMax)||!integer(relationFilterMax)
-    ||!Array.isArray(path?.properties?.quantifier?.enum)||!Array.isArray(stepItems?.properties?.direction?.enum)
-    ||!Array.isArray(nodeMatches)||!Array.isArray(relationMatches))
-    fail(ui("Схема линз не объявляет границы условий пути."));
-  const advertised=context?.catalog?.capabilities?.path_query;
-  if(advertised!==undefined&&(!record(advertised)
-    ||!integer(advertised.conditions)||!integer(advertised.steps_per_condition)
-    ||!Array.isArray(advertised.quantifiers)||!advertised.quantifiers.every(value=>typeof value==='string')
-    ||advertised.combination!=='all'||advertised.scope!=='node-selector-roots-and-selected-sources'))
-    fail(ui("Каталог объявляет неподдерживаемые границы условий пути."));
-  const conditions=minimum([MAX_PATH_CONDITIONS,pathMax,advertised?.conditions]);
-  const steps=minimum([MAX_PATH_STEPS,stepMax,advertised?.steps_per_condition]);
-  const quantifiers=path.properties.quantifier.enum.filter(value=>QUANTIFIERS.includes(value)
-    &&(!advertised||advertised.quantifiers.includes(value)));
-  const directions=stepItems.properties.direction.enum.filter(value=>DIRECTIONS.includes(value));
-  const allowedMatches=matches=>matches.filter(value=>MATCHES.includes(value));
-  const nodeMatchValues=allowedMatches(nodeMatches),relationMatchValues=allowedMatches(relationMatches);
-  if(!integer(conditions)||!integer(steps)||!quantifiers.length||!directions.length||!nodeMatchValues.length||!relationMatchValues.length)
-    fail(ui("Схема линз не объявляет совместимые условия пути."));
-  return {conditions,steps,nodeFilters:nodeFilterMax,relationFilters:relationFilterMax,quantifiers,directions,
-    nodeMatches:nodeMatchValues,relationMatches:relationMatchValues};
-}
-
-function catalogIds(catalog,key){
-  const values=key==='kinds'?catalog?.node_kinds:catalog?.predicates;
-  return new Set((Array.isArray(values)?values:[]).map(item=>item?.[key==='kinds'?'kind_id':'predicate_id']).filter(item=>typeof item==='string'));
+  try{return observatoryPathLimits(context);}
+  catch(error){
+    const code=String(error);
+    if(code.includes('path_schema_limits'))fail(ui("Схема линз не объявляет границы условий пути."));
+    if(code.includes('path_catalog_limits'))fail(ui("Каталог объявляет неподдерживаемые границы условий пути."));
+    if(code.includes('path_schema_compat'))fail(ui("Схема линз не объявляет совместимые условия пути."));
+    fail(ui("Неверная схема или каталог условий пути."));
+  }
 }
 
 export function compilePathQuery(value,context){
-  const paths=validatePathDraft(value);
+  return compileValidatedPathQuery(validatePathDraft(value),context);
+}
+
+// `compileDraft` already validated this newly normalized path list in the
+// same synchronous call. Direct callers enter through `compilePathQuery`.
+export function compileValidatedPathQuery(paths,context){
   // An empty path list is the legacy request: it must remain executable even
   // when an older catalog/schema has no path extension yet.
   if(!paths.length)return [];
-  const limits=pathLimits(context),catalog=context?.catalog;
-  const supportsNodeIn=catalog?.capabilities?.filter_operators?.includes('in')
-    &&context?.schema?.$defs?.nodeFilter?.properties?.op?.enum?.includes('in');
-  const supportsRelationIn=catalog?.capabilities?.filter_operators?.includes('in')
-    &&context?.schema?.$defs?.relationFilter?.properties?.op?.enum?.includes('in');
-  if(paths.length>limits.conditions)fail(ui("Сервер допускает меньше условий пути."));
-  const kinds=catalogIds(catalog,'kinds'),predicates=catalogIds(catalog,'predicates');
-  for(const path of paths){
-    if(!limits.quantifiers.includes(path.quantifier))fail(ui("Сервер не поддерживает этот квантификатор пути."));
-    if(path.steps.length>limits.steps)fail(ui("Сервер допускает меньше шагов в условии пути."));
-    for(const step of path.steps){
-      if(!limits.directions.includes(step.direction))fail(ui("Сервер не поддерживает это направление шага."));
-      if(!limits.nodeMatches.includes(step.nodeQuery.match)||!limits.relationMatches.includes(step.relationQuery.match))fail(ui("Сервер не поддерживает это сочетание условий шага."));
-      if((step.kinds.length&&!supportsNodeIn)||(step.predicates.length&&!supportsRelationIn))fail(ui("Сервер не объявляет операцию выбора типов для условий пути."));
-      if(step.kinds.some(id=>!kinds.has(id))||step.predicates.some(id=>!predicates.has(id)))fail(ui("Словарь типов шага изменился. Обновите каталог."));
+  let wire;
+  try{wire=compilePathRules(pathListDescriptor(paths),context);}
+  catch(error){
+    const code=String(error);
+    if(code.includes('condition_')){
+      for(const path of paths){
+        if(!path)continue;
+        for(const step of path.steps||[]){
+          if(!step)continue;
+          for(const [kind,query,selected] of [
+            ['nodes',step.nodeQuery,step.kinds],['relations',step.relationQuery,step.predicates],
+          ]){
+            try{compileConditions(query.conditions,context,kind,{reserveTypeSlot:selected.length>0});}
+            catch(conditionError){if(conditionError instanceof ContractError)throw conditionError;}
+          }
+        }
+      }
     }
+    if(code.includes('path_server_condition_count'))fail(ui("Сервер допускает меньше условий пути."));
+    if(code.includes('path_server_quantifier'))fail(ui("Сервер не поддерживает этот квантификатор пути."));
+    if(code.includes('path_server_step_count'))fail(ui("Сервер допускает меньше шагов в условии пути."));
+    if(code.includes('path_server_direction'))fail(ui("Сервер не поддерживает это направление шага."));
+    if(code.includes('path_server_match'))fail(ui("Сервер не поддерживает это сочетание условий шага."));
+    if(code.includes('path_server_type_operation'))fail(ui("Сервер не объявляет операцию выбора типов для условий пути."));
+    if(code.includes('path_type_catalog_changed'))fail(ui("Словарь типов шага изменился. Обновите каталог."));
+    if(code.includes('condition_limit'))fail(ui("Сервер допускает меньше условий в этом разделе."));
+    if(code.includes('path_filter_limit'))fail(ui("Условия шага превышают границу схемы."));
+    if(code.includes('condition_not_supported'))fail(ui("Одно из условий шага больше не поддерживается."));
+    if(code.includes('condition_exists_value'))fail(ui("Для наличия значения выберите «да» или «нет»."));
+    if(code.includes('condition_single_value'))fail(ui("Эта операция принимает одно значение."));
+    if(code.includes('condition_contains_value'))fail(ui("Для поиска внутри текста нужно одно значение."));
+    if(code.includes('condition_value_type'))fail(ui("Проверьте тип значения в условии шага."));
+    fail(ui("Условия пути не соответствуют текущей схеме и каталогу."));
   }
-  return paths.map(path=>({path_id:path.pathId,quantifier:path.quantifier,steps:path.steps.map(step=>{
-    const nodeFilters=step.kinds.length?[{field:'kind_id',op:'in',value:[...step.kinds]}]:[];
-    nodeFilters.push(...compileConditions(step.nodeQuery.conditions,context,'nodes',{reserveTypeSlot:step.kinds.length>0}));
-    const relationFilters=step.predicates.length?[{field:'predicate_id',op:'in',value:[...step.predicates]}]:[];
-    relationFilters.push(...compileConditions(step.relationQuery.conditions,context,'relations',{reserveTypeSlot:step.predicates.length>0}));
-    if(nodeFilters.length>limits.nodeFilters||relationFilters.length>limits.relationFilters)fail(ui("Условия шага превышают границу схемы."));
-    return {direction:step.direction,
-      node_query:{enabled:step.nodeQuery.enabled,match:step.nodeQuery.match,filters:nodeFilters},
-      relation_query:{enabled:step.relationQuery.enabled,match:step.relationQuery.match,filters:relationFilters}};
-  })}));
-}
-
-function filterDraft(raw,kind){
-  if(!record(raw)||ownKeys(raw,['field','property_id','op','value'])
-    ||(('field' in raw)===('property_id' in raw))||typeof raw.op!=='string'||!OPERATORS.has(raw.op)
-    ||!Object.hasOwn(raw,'value')||(kind==='relations'&&'property_id' in raw)
-    ||('property_id' in raw&& (typeof raw.property_id!=='string'||!PROPERTY_ID.test(raw.property_id)))
-    ||('field' in raw&&typeof raw.field!=='string')
-    ||(Array.isArray(raw.value)?raw.value.length>100||raw.value.some(item=>!finiteScalar(item)):!finiteScalar(raw.value)))
-    fail(ui("Фильтр шага не соответствует схеме."));
-  return {selector:'property_id' in raw?'property_id':'field',id:'property_id' in raw?raw.property_id:raw.field,op:raw.op,value:clone(raw.value)};
-}
-
-function queryFromSpec(value,kind){
-  if(value===undefined)return {query:defaultQuery(),kinds:[],predicates:[]};
-  if(!record(value)||ownKeys(value,['enabled','match','filters']))fail(ui("Запрос шага не соответствует схеме."));
-  const enabled=value.enabled===undefined?true:value.enabled,match=value.match===undefined?'all':value.match;
-  if(typeof enabled!=='boolean'||!MATCHES.includes(match))fail(ui("Запрос шага имеет неподдерживаемые параметры."));
-  const filters=value.filters===undefined?[]:value.filters;
-  if(!Array.isArray(filters)||filters.length>32)fail(ui("Условия шага превышают границу схемы."));
-  const conditions=[];let selectedFilter=null;
-  for(const raw of filters){
-    const rule=filterDraft(raw,kind);
-    const typeField=kind==='nodes'?'kind_id':'predicate_id';
-    const selectable=rule.selector==='field'&&rule.id===typeField&&rule.op==='in'
-      &&Array.isArray(rule.value)&&rule.value.length>0&&strings(rule.value,100)&&new Set(rule.value).size===rule.value.length;
-    if(selectable&&!selectedFilter)selectedFilter=rule;
-    else conditions.push(rule);
+  const attachFilters=(filters,conditions)=>{
+    const output=new Array(filters.length);
+    for(let index=0;index<filters.length;index++){
+      const filter=filters[index];
+      if(filter===null){output[index]=undefined;continue;}
+      if(!Object.hasOwn(filter,'value_index')){output[index]=filter;continue;}
+      const {value_index:valueIndex,...rest}=filter;
+      output[index]={...rest,value:clone(conditions[valueIndex].value)};
+    }
+    return output;
+  };
+  const result=new Array(wire.length);
+  for(let pathIndex=0;pathIndex<wire.length;pathIndex++){
+    if(!(pathIndex in paths))continue;
+    const path=wire[pathIndex];if(path===null)continue;
+    const source=paths[pathIndex],steps=new Array(path.steps.length);
+    for(let stepIndex=0;stepIndex<path.steps.length;stepIndex++){
+      if(!(stepIndex in source.steps))continue;
+      const step=path.steps[stepIndex];if(step===null)continue;
+      const original=source.steps[stepIndex];
+      steps[stepIndex]={direction:step.direction,
+        node_query:{...step.node_query,filters:attachFilters(step.node_query.filters,original.nodeQuery.conditions)},
+        relation_query:{...step.relation_query,filters:attachFilters(step.relation_query.filters,original.relationQuery.conditions)}};
+    }
+    result[pathIndex]={path_id:path.path_id,quantifier:path.quantifier,steps};
   }
-  const draftQuery=normalizeQuery({enabled,match,conditions},kind);
-  const selected=selectedFilter?.value||[];
-  return {query:draftQuery,kinds:kind==='nodes'?selected:[],predicates:kind==='relations'?selected:[]};
+  return result;
 }
 
-export function pathDraftFromSpec(value){
-  if(value===undefined)return [];
-  if(!Array.isArray(value)||value.length>MAX_PATH_CONDITIONS)fail(ui("Условия пути превышают границу схемы."));
-  const paths=value.map(path=>{
-    if(!record(path)||ownKeys(path,['path_id','quantifier','steps'])||typeof path.path_id!=='string'||!PATH_ID.test(path.path_id)
-      ||path.quantifier!==undefined&&!QUANTIFIERS.includes(path.quantifier)||!Array.isArray(path.steps)||path.steps.length<1||path.steps.length>MAX_PATH_STEPS)
-      fail(ui("Условие пути не соответствует схеме."));
-    return {pathId:path.path_id,quantifier:path.quantifier===undefined?'exists':path.quantifier,steps:path.steps.map(step=>{
-      if(!record(step)||ownKeys(step,['direction','node_query','relation_query'])
-        ||step.direction!==undefined&&!DIRECTIONS.includes(step.direction))fail(ui("Шаг пути не соответствует схеме."));
-      const node=queryFromSpec(step.node_query,'nodes'),relation=queryFromSpec(step.relation_query,'relations');
-      return {direction:step.direction===undefined?'outgoing':step.direction,kinds:node.kinds,predicates:relation.predicates,
-        nodeQuery:node.query,relationQuery:relation.query};
-    })};
+const importString=value=>typeof value==='string'?{kind:'string',value:value.slice(0,257)}:{kind:'invalid'};
+const importScalar=value=>value===null?{kind:'null'}:typeof value==='boolean'?{kind:'boolean'}:
+  typeof value==='string'?{kind:'string',units:value.length}:typeof value==='number'?{kind:'number',finite:Number.isFinite(value)}:{kind:'invalid'};
+const importValueShape=value=>Array.isArray(value)?{kind:'array',length:value.length,
+  items:value.length<=100?Array.from({length:value.length},(_,index)=>index in value?importScalar(value[index]):{kind:'hole'}):[]}:importScalar(value);
+const importTypeValues=value=>Array.isArray(value)?{kind:'array',length:value.length,
+  items:value.length<=100?Array.from({length:value.length},(_,index)=>index in value
+    ?typeof value[index]==='string'?{kind:'string',value:value[index].slice(0,1025)}:{kind:'invalid'}:{kind:'hole'}):[]}:{kind:'invalid'};
+function importFilterDescriptor(raw,kind){
+  if(!record(raw))return {kind:'invalid'};
+  const typeField=kind==='nodes'?'kind_id':'predicate_id',isTypeCandidate=raw.field===typeField&&raw.op==='in'&&Array.isArray(raw.value);
+  return {kind:'object',keys:keys(raw,['field','property_id','op','value']),
+    field_present:'field' in raw,field:importString(raw.field),property_id_present:'property_id' in raw,property_id:importString(raw.property_id),
+    op:importString(raw.op),value_present:Object.hasOwn(raw,'value'),value_shape:importValueShape(raw.value),
+    type_values:isTypeCandidate?importTypeValues(raw.value):{kind:'invalid'}};
+}
+function importQueryDescriptor(value,kind){
+  if(value===undefined)return {kind:'undefined'};
+  if(!record(value))return {kind:'invalid'};
+  const filters=value.filters;
+  return {kind:'object',keys:keys(value,['enabled','match','filters']),enabled:valueDescriptor(value.enabled),match:valueDescriptor(value.match),
+    filters_kind:filters===undefined?'undefined':Array.isArray(filters)?'array':'invalid',
+    filters_length:Array.isArray(filters)?filters.length:null,
+    filters:Array.isArray(filters)&&filters.length<=MAX_PATH_FILTERS
+      ?mappedItems(filters,item=>importFilterDescriptor(item,kind)):[]};
+}
+function importStepDescriptor(value){
+  if(!record(value))return {kind:'invalid'};
+  return {kind:'object',keys:keys(value,['direction','node_query','relation_query']),direction:valueDescriptor(value.direction),
+    node_query:importQueryDescriptor(value.node_query,'nodes'),relation_query:importQueryDescriptor(value.relation_query,'relations')};
+}
+function importPathDescriptor(value){
+  if(!record(value))return {kind:'invalid'};
+  return {kind:'object',keys:keys(value,['path_id','quantifier','steps']),path_id:importString(value.path_id),
+    quantifier:valueDescriptor(value.quantifier),steps:Array.isArray(value.steps)?{kind:'array',length:value.steps.length,
+      items:value.steps.length<=MAX_PATH_STEPS?mappedItems(value.steps,importStepDescriptor):[]}:{kind:'invalid'}};
+}
+function importPathListDescriptor(value){
+  if(value===undefined)return {kind:'undefined'};
+  if(!Array.isArray(value))return {kind:'invalid'};
+  return {kind:'array',length:value.length,items:value.length<=MAX_PATH_CONDITIONS?mappedItems(value,importPathDescriptor):[]};
+}
+function importQueryDraft(normalized,source,kind){
+  const filters=source?.filters||[];
+  const conditions=normalized.conditions.map(condition=>{
+    const {value_index:valueIndex,...rule}=condition;
+    return {...rule,value:clone(filters[valueIndex].value)};
   });
+  const selectedIndex=kind==='nodes'?normalized.kinds_index:normalized.predicates_index;
+  const selected=selectedIndex===null?[]:filters[selectedIndex].value;
+  return {query:{enabled:normalized.enabled,match:normalized.match,conditions},selected};
+}
+const importPathError=error=>{
+  const code=String(error);
+  if(code.includes('invalid_path_spec_list'))return ui("Условия пути превышают границу схемы.");
+  if(code.includes('invalid_path_spec_shape'))return ui("Условие пути не соответствует схеме.");
+  if(code.includes('invalid_path_spec_step'))return ui("Шаг пути не соответствует схеме.");
+  if(code.includes('invalid_path_spec_query_shape'))return ui("Запрос шага не соответствует схеме.");
+  if(code.includes('invalid_path_spec_query_values'))return ui("Запрос шага имеет неподдерживаемые параметры.");
+  if(code.includes('invalid_path_spec_filter_limit'))return ui("Условия шага превышают границу схемы.");
+  if(code.includes('invalid_path_spec_filter'))return ui("Фильтр шага не соответствует схеме.");
+  return pathError(error);
+};
+export function pathDraftFromSpec(value){
+  let imported;
+  try{imported=importPathDraftRules(importPathListDescriptor(value));}
+  catch(error){fail(importPathError(error));}
+  const paths=new Array(imported.length);
+  for(let pathIndex=0;pathIndex<imported.length;pathIndex++){
+    if(!(pathIndex in value)||imported[pathIndex]===null)continue;
+    const source=value[pathIndex],path=imported[pathIndex],steps=new Array(path.steps.length);
+    for(let stepIndex=0;stepIndex<path.steps.length;stepIndex++){
+      if(!(stepIndex in source.steps)||path.steps[stepIndex]===null)continue;
+      const sourceStep=source.steps[stepIndex],step=path.steps[stepIndex];
+      const node=importQueryDraft(step.nodeQuery,sourceStep.node_query,'nodes');
+      const relation=importQueryDraft(step.relationQuery,sourceStep.relation_query,'relations');
+      steps[stepIndex]={direction:step.direction,kinds:node.selected,predicates:relation.selected,
+        nodeQuery:node.query,relationQuery:relation.query};
+    }
+    paths[pathIndex]={pathId:path.pathId,quantifier:path.quantifier,steps};
+  }
   return validatePathDraft(paths);
 }
-
-export const validatePaths=validatePathDraft;
-export const draftPathsFromSpec=pathDraftFromSpec;
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node,text);node.className=className;return node;};
 const option=(value,text)=>{const node=el('option',text);node.value=value;return node;};
@@ -273,5 +373,3 @@ export function createLensPathEditor({draft,context,onChange=()=>{}}){
   }
   render();return section;
 }
-
-export const createPathEditor=createLensPathEditor;

@@ -46,14 +46,14 @@ decision route.
 | output | bounded artifact, parity result, route diagnostic, or validation signal |
 | owner | exact source surface; inventory entries provide optional navigation |
 | next route | source owner -> script -> generated companion/validator -> review or release lane |
-| tools | local Python, schema, manifest, unittest, and generated-parity checks |
-| check | nearest lane first; use `scripts/release_check.py` for release-visible changes |
+| tools | native command, schema, manifest, focused test, and generated-parity checks |
+| check | nearest lane first; use `tos-release-check` for release-visible changes |
 
 ## Route by pressure
 
 | Pressure | Stronger owner and script route |
 | --- | --- |
-| corpus identity, provenance, rights, or source witness | `ToS/source-witnesses/` and `ToS/doctrine/CORPUS_FOUNDATION.md`; use the source-witness builder/validator pair named by the source-foundation lane |
+| corpus identity, provenance, rights, or source witness | `ToS/source-witnesses/` and `ToS/doctrine/CORPUS_FOUNDATION.md`; use the native `source_witness_foundation` lane and native source-catalog command |
 | text units, segmentation, translation alignment, or semantic proposals | `ToS/contracts/`, research packets, candidate intake, review ledger, and canon; use the corresponding contract validator or laboratory route |
 | philosophy tree or graph workbench | `ToS/philosophy/`; use the topology, graph-view, projection, and review routes in the validation manifest |
 | Zarathustra public entry or golden kernel | `ToS/zarathustra/`; use tiny-entry, source-home, lived-witness, and KAG-export checks as applicable |
@@ -71,7 +71,8 @@ in the owner-controlled storage route; tracked companions must state their
 fixity, provenance, rights posture, uncertainty, and semantic ceiling when
 those facts affect admission.
 
-Do not hide command order in Python. `scripts/release_check.py` runs the
+Keep command order in the lane manifest. `tos-release-check`, implemented in
+`rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs`, runs the
 `release_check` sequence from `docs/validation/validation_lanes.json`.
 `docs/validation/script_inventory.json` describes owner routes and side effects.
 Under TOS-D-0062, software validation follows executable code and tests.

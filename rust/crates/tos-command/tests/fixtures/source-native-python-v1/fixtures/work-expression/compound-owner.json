@@ -1,0 +1,29 @@
+{
+  "schema_version": "tos_local_work_expression_owner_v1",
+  "uid": 1000,
+  "principal_id": "model:synthetic",
+  "maker_type": "model",
+  "source_root": "$TOS_FIXTURE_ROOT",
+  "authority_ref": "test-only:bounded-native-compound-not-assessment",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "allowed_operations": [
+    "work.expression.create",
+    "work.expression.recover"
+  ],
+  "work_id": "tos.work.synthetic.parent",
+  "work_source_path": "ToS/source-witnesses/works/synthetic/parent/work.json",
+  "allowed_work_form_ids": [
+    "tos.form.synthetic.parent.name",
+    "tos.form.synthetic.parent.note"
+  ],
+  "expression_id": "tos.expression.synthetic.first",
+  "expression_source_path": "ToS/source-witnesses/works/synthetic/parent/expressions/first/expression.json",
+  "claim_id": "tos.claim.synthetic.first",
+  "provenance_event_id": "tos.event.synthetic.first",
+  "allowed_expression_form_ids": [
+    "tos.form.synthetic.first.name"
+  ],
+  "allowed_claim_form_ids": [
+    "tos.form.synthetic.first.statement"
+  ]
+}

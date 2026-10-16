@@ -27,6 +27,9 @@ provenance streams must be selected explicitly when the parent already contains
 legacy membership assertions. Native current closure is verified against its
 committed compound capture; old batch bytes are never rewritten.
 
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+
 ## Qualified membership assertion
 
 The source caller supplies the membership statement, statement
@@ -45,7 +48,7 @@ historical Collection versions remain available to exact metadata readers.
 
 ## Verification
 
-Run `mechanics/growth-cycle/tests/test_source_collection_commands.py`, the
-Collection creation cases in `test_source_commands.py`, metadata reader and
-discovery tests, then source-foundation and registry checks when their owner
+Run `tests/conformance/rust/command_collection_cases.rs`, which checks the
+native `source_collection_membership.rs` and `source_native_collection_cli.rs`
+implementations, then source-foundation and registry checks when their owner
 inputs change. Synthetic fixtures test mechanisms, never historical membership.

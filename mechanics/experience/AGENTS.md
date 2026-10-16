@@ -21,8 +21,8 @@ candidate, and write-guard boundary packets reviewable and owner-routed.
 
 - ToS owns authored philosophical meaning and canon.
 - Experience here owns boundary operation payload only.
-- Former `ToS/` paths route through `PROVENANCE.md` and package-local
-  `legacy/`.
+- Former `ToS/` paths route through `PROVENANCE.md` to immutable Git
+  history.
 - Runtime, office, service, governance, proof, memory, SDK, and canon authority
   route to stronger owners before ToS widens.
 

@@ -27,7 +27,7 @@
   "properties": {
     "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-episode-receipt.schema.json"},
     "schema_version": {"const": "tos_morphology_contextual_episode_receipt_v1"},
-    "receipt_id": {"const": "morphology-contextual-episode-receipt:zarathustra-selected-form-b-v1"},
+    "receipt_id": {"type": "string", "pattern": "^morphology-contextual-episode-receipt:zarathustra-selected-form-b-v1(?:\\.native-[a-z0-9][a-z0-9-]{0,47})?$"},
     "status": {"const": "context-packet-materialized-b-unacquired"},
     "plan": {"$ref": "#/$defs/refDigest"},
     "generator": {"$ref": "#/$defs/refDigest"},
@@ -145,7 +145,7 @@
     "rights_and_visibility": {"type": "object"},
     "competence_boundary": {"type": "object"},
     "semantic_boundary": {"type": "object"},
-    "provenance_event_ref": {"const": "tos.event.annotation.zarathustra-morphology-context-b-v1.2026-08-10"},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.annotation\\.zarathustra-morphology-context-b-v1\\.2026-08-10(?:\\.native-[a-z0-9][a-z0-9-]{0,47})?$"},
     "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {

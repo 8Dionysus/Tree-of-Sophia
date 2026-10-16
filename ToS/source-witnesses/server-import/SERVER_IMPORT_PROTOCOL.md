@@ -2,8 +2,12 @@
 
 ## Stop line
 
-This protocol prepares a future boundary. It does not authorize deployment,
-network transfer, publication, or widening access to any current payload.
+This protocol describes the future source-owned server payload boundary. The
+native `tos-native-owner-command source-payload` route exposes local
+verification, explicit import, receipt, read, and publication-registry
+mechanics, but does not authorize use of any current payload. Deployment,
+network transfer, publication, or widened access still require a specific
+current plan and the approvals it names.
 
 ## Import order
 
@@ -79,6 +83,32 @@ The future importer must:
 
 Repository checkout, generated catalog, graph export, or future site build may
 never silently discover and upload gitignored payload bytes.
+
+## Native command
+
+The native owner accepts one bounded JSON request on stdin through
+`tos-native-owner-command source-payload`; its request schema identifier is
+`tos_source_payload_import_request_v1`. The acquisition command also routes
+requests carrying `family: "payload-import"` to this owner. Available
+operations are `verify-local`, `import`, `read-local`, `read-remote`,
+`registry-enable`, `registry-disable`, and `batch`. See the adjacent README for
+the operation boundaries. `verify-local` is read-only; `import` additionally
+requires `confirm_transfer: true` and a frozen plan whose explicit operator
+approval and rights evidence pass current checks. Uploads and readbacks use
+the shared native R2 transport. A transfer receipt remains separate from
+publication registry state, and registry-protected reads revalidate the
+current plan before returning bytes. Every remote read requires both the
+current plan and an enabled registry entry. The current command implements
+local registry disable/revoke only. The plan's delete_supported flag declares
+provider capability; it does not indicate that this command performs physical
+deletion. Step 7 remains a future owner capability.
+Read operations retain a shared registry lock through local output publication;
+disable/revoke takes the exclusive lock and therefore waits for an admitted
+read before returning. A remote read only orders the local registry decision
+and verified output publication: it cannot cancel a fetch already in progress,
+delete provider bytes, or recall an already published local copy.
+The registry lock does not serialize concurrent edits to authored plan or
+rights files.
 
 For the current operator-supplied local corpus, the future public-site route is
 metadata/provenance only: the source files remain local even if another

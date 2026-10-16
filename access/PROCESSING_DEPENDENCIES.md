@@ -1,43 +1,65 @@
 # Retained processing dependency navigation
 
-The offline `ProcessingScheduler` records a DAG of evaluated `Input` and `Task`
-identities. `tos_access.processing_closure.processing_dependency_closure`
-provides read-only reverse navigation of **one explicitly named completed run**.
-The scheduler's explicit cache initialization installs the reverse index; an
-older cache without that index is refused by the reader, never migrated during
-a query.
+The native Rust source compiler can opt into `tos_compiler::processing_cache`
+for deterministic normalization and finalization work. `ProcessingCache::open`
+creates or opens its explicitly selected database and owns the
+`tos_rust_processing_*` namespace; it ignores the retired Python scheduler
+tables, which are never migrated or reused. Each `ProcessingRun` records its
+inputs, completed tasks, exact dependency edges, and durable pure outputs.
+Publication of that run's dependency snapshot uses compare-and-swap against
+the active baseline. A failed or superseded run does not replace the active
+snapshot. The cache is optional and does not change source, review, rights,
+canon, or publication authorities.
 
-```python
-import sqlite3
-from pathlib import Path
-from tos_access.processing_closure import processing_dependency_closure
+Rust `processing_dependency_closure` and `processing_input_changes` provide
+bounded reads. The caller opens the exact cache file read-only and owns a live
+SQLite transaction; the read functions do not initialize or migrate schema,
+or begin, commit, or roll back the caller's transaction. Closure reads require
+one explicitly named completed run. Input-delta reads accept one explicitly
+named retained run in running, complete, failed, skipped, superseded, or
+interrupted state; they report added and changed inputs from that run, but
+report removed inputs only when the run completed. Both fail closed when
+required retained evidence is absent.
 
-cache = Path("/explicit/offline/normalization.sqlite")
-db = sqlite3.connect(cache.resolve().as_uri() + "?mode=ro", uri=True)
-try:
-    db.execute("BEGIN")
-    impact = processing_dependency_closure(db, exact_completed_run_id,
-                                          ["source-node:philosophy:example"])
-finally:
-    db.close()
+```rust
+let db = rusqlite::Connection::open_with_flags(
+    cache_path,
+    rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+)?;
+let tx = db.unchecked_transaction()?;
+let impact = tos_compiler::processing_cache::processing_dependency_closure(
+    &tx,
+    exact_completed_run_id,
+    &["source-node:philosophy:example".to_owned()],
+    Default::default(),
+)?;
+tx.rollback()?;
 ```
 
-The caller owns the read transaction and its lifetime. The function neither
-commits nor rolls it back. The packet names the run, changed identities,
-reachable task/input identities with output digests, and reverse dependency
-edges. Multiple paths or seeds do not duplicate a reachable node. Unrelated
-inputs are not read or reported as removed. A retained historical run remains
-historical even if a newer publication exists.
+The caller owns the read transaction and its lifetime. The result names the
+run, changed identities, reachable task/input identities with output digests,
+and reverse dependency edges. Multiple paths do not duplicate a reachable
+node. Unrelated inputs are not read or reported as removed. A retained
+historical run remains historical even if a newer publication exists.
+Duplicate changed seeds are rejected, matching the former bounded reader
+contract.
 
 Default refusal limits are 4096 visited identities, 16384 dependency edges,
 4096 UTF-8 bytes per identity, and 1 MiB for the compact UTF-8 result. Each reverse
 lookup is an indexed seek with a remaining-budget limit; overlarge identifiers
-and digests are excluded by SQL projections before delivery to Python. Work is
+and digests are excluded by SQL projections before delivery to Rust. Work is
 bounded by the selected closure, not a count/diff of all tasks. Malformed or
 cyclic retained evidence, missing seed identities, retired/incomplete runs and
-exhausted budgets raise an exception. **No partial result is a complete closure.**
+exhausted budgets return an error. **No partial result is a complete closure.**
 
-The normalizer retains these concrete producer links within the same run:
+The source compiler opts in only when its caller supplies a
+`ProcessingRunHandle` through `NativeFamilyInputs.processing_run`; the default
+build and installed CLI do not create a cache. The native source producers for
+Navigation, Philosophy, Canon, Candidate Intake, Claims, Repository and the
+shared semantic-join base use the same DAG. Canon and Philosophy family
+normalizers keep their source-record decoration inside the cached result;
+Candidate Intake contributes relations but no node producer. These producers
+record the following concrete links within the same run:
 
 - `source-node` -> `node` -> `final-node` -> `readable-node`;
 - `source-relation` -> `relation` -> `readable-relation`;
@@ -45,11 +67,12 @@ The normalizer retains these concrete producer links within the same run:
 - `relation` -> `relation-views` -> endpoint `inherited-views` -> `final-node`;
 - reified claim `node` -> `claim-context-source` -> ordered
   `claim-context-group` -> referenced `relation` and literal-context reducers;
-- `source-claim-trace`, base claim/endpoint nodes, `claim-association` and
-  registry-backed `claim-policy` -> `claim-update` -> `claim-finalization` ->
-  `final-node`;
-- source trace/association, raw literal-kind envelope and shared claim-context
-  group -> `literal-claim-contribution` -> `literal-claim-contexts` -> `final-node`.
+- source trace and versioned `claim-association`, base claim/endpoint nodes,
+  and `source-registry:relations` -> registry-backed `claim-policy` ->
+  `claim-update` -> `final-node` -> `readable-node`;
+- source trace/association, raw literal `node_kind`, current object and shared
+  claim-context group -> ordered `literal-claim-contribution` ->
+  `final-node` -> `readable-node`.
 
 The readable stage exists only when the existing context hook needs it; without
 that stage, `final-node` or `relation` is the terminal carrier. A hook links only
@@ -93,48 +116,16 @@ empty source impact set. A baseline DAG cannot discover new membership.
 
 The result does not evaluate tasks, authorize partial execution, publish a
 prepared snapshot, certify global semantic invariants, or confer acceptance.
-`ProcessingScheduler.finish()` still describes a complete visited graph, not a
-partial-update API. Source change detection, dependency completion, normalization,
-validation and publication remain separate obligations.
+`ProcessingRun::finish()` completes the graph the producer recorded; it is not a
+partial-update API and does not prove source dependency completeness. Source
+change detection, dependency completion, normalization, validation and
+publication remain separate obligations.
 
-## Bounded direct-carrier computation
+The maintained `build_native_addressed_knowledge_snapshot_from_capture` route
+validates a complete source transition and rebuilds the snapshot. Source-owner
+paired before/after membership and source-to-COW-to-prepared publication remain
+unimplemented.
 
-`tos_access.addressed_replacement.replace_direct_carrier_candidate` accepts one
-exact prior normalized direct carrier, its complete replacement source record,
-supplied incident relation rows, all their other endpoint rows, and the exact
-normalization binding and registries. It uses the same local implementation as
-`addressed_update_knowledge_graph`: direct-source/claim/dossier/reference-context
-guards, endpoint statements, inherited views, readable context and content
-revisions remain shared. It does not discover source records or relations.
-
-The candidate entry checks normalized identities, source-envelope digests and
-content revisions. These are self-consistency checks, not independently admitted
-baseline provenance. Endpoints exclude the prior carrier; missing required
-endpoints, duplicate rows and nonincident supplied relations fail. Empty supplied
-incidence is permitted but **never verified complete**. Identity/type changes
-retain the local computation's previous behavior; a candidate cannot authorize
-them or replace the full wrapper's global semantic validation.
-
-`ReplacementLimits` defaults to 1024 relations, 2048 other endpoints, 16 MiB of
-compact UTF-8 JSON input (including both registries and binding), and 16 MiB of
-output rows. Counts and input bytes are checked before cloning or normalization;
-output bytes are checked after each computed row before it joins the result.
-Only exact JSON types, finite numbers and at most 64 container levels qualify.
-Limits refuse work; they are not a process RSS bound. No partial result escapes.
-
-The result contains detached candidate node/relation rows, accounting and an
-explicit `supplied-neighborhood-local-only` scope. It provides no source revision,
-catalog, global semantic validation, incidence completeness or current publication
-claim. Ambient normalization-cache writes are disabled and restored on exit; no
-partial processing run is published. The full wrapper still extracts incidence
-from complete arrays and performs its original global scans/validation, without
-acquiring this new public entry's refusal caps. It shares the computation, not
-the narrower admission profile. Source-owner paired before/after membership and
-source-to-COW-to-prepared publication remain unimplemented.
-
-Focused tiny-fixture checks: `PYTHONPATH=access/src:access/tests python -m unittest
-test_addressed_replacement test_processing test_builder_ownership`.
-
-Focused checks: `PYTHONPATH=access/src:access/tests python -m unittest
-test_processing_closure`. Existing processing tests retain ownership of full-run
-evaluation, cache reuse, failure recovery and publication conflict behavior.
+Focused Rust check: `cd rust && cargo test -p tos-compiler processing_cache::tests`.
+The cache tests cover bounded closure, cache reuse, failure recovery and
+publication conflict behavior.

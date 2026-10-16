@@ -83,8 +83,8 @@ arbiter of philosophical terminology, corpus semantics, or laboratory quality.
 
 ## Source Surfaces
 
-- `scripts/validate_active_naming.py`
-- `tests/test_validate_active_naming.py`
+- `rust/crates/tos-ops-mechanics-plan/src/active_naming.rs` (current implementation; replaces `scripts/validate_active_naming.py`)
+- `rust/crates/tos-ops-mechanics-plan/src/active_naming_cache.rs` and `tests/active_naming_native.rs` in the same crate (current regressions; replace `tests/test_validate_active_naming.py`)
 - `docs/decisions/TOS-D-0008-root-validation-route-unloading.md`
 - `ToS/contracts/ocr-visual-sample-plan.schema.json`
 - `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/graph-queries.json`

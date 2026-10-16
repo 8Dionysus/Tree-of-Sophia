@@ -1,3 +1,4 @@
+import {installSourceNavigationRules} from "./source-navigation-rules.ts";
 import { boundedInt, HttpError, jsonResponse, listParam, withSecurity, type Item } from "./common";
 import {
   buildHealth,
@@ -17,27 +18,45 @@ import {
 } from "./queries";
 import { scaleExportResponse } from "./scale";
 import {
-  executeKnowledgeLensD1,
-  focusKnowledgeNodeD1,
-  knowledgeNodeD1,
-  knowledgeRelationD1,
+  lensSnapshotResponseD1,
+  inspectionSnapshotResponseD1,
   knowledgeSearchD1,
   knowledgeSearchCapabilitiesD1,
   knowledgeSearchD1Indexed,
-  knowledgeTemporalCompareD1,
+  temporalSnapshotResponseD1,
   knowledgeCatalogD1,
-  storedKnowledgeLensD1,
 } from "./knowledge-store";
-import { SourceNavigationError } from "./source-navigation";
-import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
-import { metaItem } from "./store";
-import { KnowledgeRevisionConflict } from "./lens-pagination";
-import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
-import {parseNativeRequest, type NativeRef} from './native-lens.ts';
-import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
-import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
+import { SourceNavigationError, sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
+import { meta, metaItem, requirePublicD1ProducerProfile } from "./store";
+import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
+import {nativePacketResponse} from './native-lens-response.ts';
+import {codePointCompare, installNativePythonRuntime, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
+import {nativeSha256} from './native-d1-read.ts';
 import { withWebAnalytics } from "./web-analytics";
+import {SelectedTemporalError} from './selected-temporal-runtime.ts';
+import {sourceTextGatewayCapability, sourceTextSearchGatewayResponse} from './source-text-gateway.ts';
+import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
+import {initSync, KnowledgeSceneSession, TemporalReplaySession, validate_temporal_request_wasm_v1,
+  InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1,
+  ExplorationSession,validate_exploration_request_wasm_v1,validate_exploration_replay_wasm_v1,
+  exploration_cache_version_wasm_v1,worker_knowledge_search_controls_wasm_v1} from '../generated/tos_web_rules.js';
+import * as classicRuntime from "../generated/tos_web_rules.js";
+import {installWorkerClassicRules} from "./worker-classic.ts";
+import temporalWasm from '../generated/tos_web_rules_bg.wasm';
+
+// wasm-bindgen owns module initialization; no second host cache or fetch.
+initSync({module: temporalWasm});
+installWorkerClassicRules(classicRuntime);
+installNativePythonRuntime(classicRuntime);
+installSourceNavigationRules(classicRuntime);
+installKnowledgeSceneRules({KnowledgeSceneSession});
+const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
+const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};
+const lensRuntime={LensSession,validate_lens_request_wasm_v1};
+const explorationRuntime={ExplorationSession,validate_exploration_request_wasm_v1,
+  validate_exploration_replay_wasm_v1,exploration_cache_version_wasm_v1};
+const workerSearchControlsRuntime={worker_knowledge_search_controls_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -80,21 +99,135 @@ async function staticItem(env: Env, request: Request, relativePath: string): Pro
   return payload as Item;
 }
 
-async function sourceGapResponse(request: Request, env: Env, search: URLSearchParams): Promise<Response> {
-  const query = (search.get("query") ?? "").trim();
-  if (query.length > 256) throw new HttpError(400, "source-gap query exceeds 256 characters");
-  const limit = boundedInt(search.get("limit"), 20, 1, 100);
-  const assetUrl = new URL("/__edge/source-gaps/all.json", request.url);
-  const asset = await env.ASSETS.fetch(new Request(assetUrl));
-  if (!asset.ok) throw new Error("generated source-gap asset is missing");
-  const packet = await asset.json() as Record<string, unknown>;
-  const needle = query.toLocaleLowerCase();
-  const all = Array.isArray(packet.gaps) ? packet.gaps as Array<Record<string, unknown>> : [];
-  const gaps = all.filter((gap) => !needle || JSON.stringify(gap).toLocaleLowerCase().includes(needle)).slice(0, limit);
-  return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
+type SourceGapManifestRecord = { source_ref: string; sha256: string; size_bytes: number };
+type SourceGapManifest = {
+  schema: string;
+  source_owner: string;
+  selection: string;
+  max_records: number;
+  max_record_bytes: number;
+  records: SourceGapManifestRecord[];
+};
+type SourceGapChunkRow = { key: string; part: number; json_chunk: string | null };
+const SOURCE_GAP_MAX_CHUNKS = 100 * Math.ceil(256_000 / (32_000 - 3));
+
+async function selectedSourceGapRecords(db: D1Database): Promise<Array<SourceGapManifestRecord & {raw: string}>> {
+  await requirePublicD1ProducerProfile(db);
+  const manifest = await meta<SourceGapManifest>(db, "source_gap_records_v1");
+  if (!manifest || manifest.schema !== "tos_public_source_gap_records_v1"
+    || manifest.source_owner !== "Tree-of-Sophia"
+    || manifest.selection !== "captured-public-ledger-members-v1"
+    || manifest.max_records !== 100 || manifest.max_record_bytes !== 256_000
+    || !Array.isArray(manifest.records) || manifest.records.length > manifest.max_records) {
+    throw new HttpError(503, "source-gap selected source manifest is unavailable");
+  }
+  const entries = manifest.records;
+  const keys: string[] = [];
+  const keyByPath = new Map<string, string>();
+  let expectedTotal = 0;
+  let previous = "";
+  for (const entry of entries) {
+    const path = entry?.source_ref;
+    const prefix = "ToS/source-witnesses/access-requests/public-ledger/";
+    const filename = typeof path === "string" && path.startsWith(prefix) ? path.slice(prefix.length) : "";
+    if (!filename || filename.includes("/") || filename === "." || filename === ".."
+      || !filename.endsWith(".access-request.json") || path.includes("\\") || path.includes("\0")
+      || (previous && codePointCompare(previous, path) >= 0)
+      || typeof entry.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(entry.sha256)
+      || !Number.isSafeInteger(entry.size_bytes) || entry.size_bytes < 1
+      || entry.size_bytes > manifest.max_record_bytes) {
+      throw new HttpError(503, "source-gap selected source manifest is invalid");
+    }
+    previous = path;
+    expectedTotal += entry.size_bytes;
+    if (expectedTotal > 64 * 1024 * 1024) {
+      throw new HttpError(503, "source-gap selected input exceeds its source budget");
+    }
+    const key = `source_gap_record:${await nativeSha256(path)}`;
+    keys.push(key);
+    keyByPath.set(path, key);
+  }
+  if (keys.length === 0) return [];
+  if (new Set(keys).size !== keys.length) {
+    throw new HttpError(503, "source-gap selected source identities are duplicated");
+  }
+  const selected = await db.prepare(
+    `SELECT key, part,
+            CASE WHEN typeof(json_chunk)='text' THEN json_chunk ELSE NULL END AS json_chunk
+       FROM edge_meta WHERE key IN (SELECT value FROM json_each(?)) ORDER BY key, part LIMIT ?`,
+  ).bind(JSON.stringify(keys), SOURCE_GAP_MAX_CHUNKS + 1).all<SourceGapChunkRow>();
+  if (selected.results.length > SOURCE_GAP_MAX_CHUNKS) {
+    throw new HttpError(503, "source-gap selected source chunk count exceeds its profile");
+  }
+  const keySet = new Set(keys);
+  const byKey = new Map<string, SourceGapChunkRow[]>();
+  for (const row of selected.results) {
+    if (!keySet.has(row.key) || !Number.isSafeInteger(row.part) || row.part < 0
+      || typeof row.json_chunk !== "string") {
+      throw new HttpError(503, "source-gap selected source chunks are invalid");
+    }
+    const rows = byKey.get(row.key) ?? [];
+    rows.push(row);
+    byKey.set(row.key, rows);
+  }
+  const hydrated: Array<SourceGapManifestRecord & {raw: string}> = [];
+  const encoder = new TextEncoder();
+  for (const entry of entries) {
+    const key = keyByPath.get(entry.source_ref)!;
+    const chunks = byKey.get(key);
+    const maximumChunks = Math.ceil(entry.size_bytes / (32_000 - 3));
+    if (!chunks?.length || chunks.length > maximumChunks) {
+      throw new HttpError(503, "source-gap selected source member is missing or oversized");
+    }
+    let bytes = 0;
+    for (let index = 0; index < chunks.length; index += 1) {
+      const row = chunks[index]!;
+      const chunkBytes = encoder.encode(row.json_chunk!).length;
+      if (row.part !== index || chunkBytes > 32_000) {
+        throw new HttpError(503, "source-gap selected source chunk order is invalid");
+      }
+      bytes += chunkBytes;
+    }
+    const raw = chunks.map((row) => row.json_chunk!).join("");
+    if (bytes !== entry.size_bytes || await nativeSha256(raw) !== entry.sha256) {
+      throw new HttpError(503, "source-gap selected source digest differs");
+    }
+    hydrated.push({...entry, raw});
+  }
+  return hydrated;
 }
 
-async function lensCompileResponse(request: Request, env: Env, operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
+async function sourceGapResponse(request: Request, env: Env, search: URLSearchParams): Promise<Response> {
+  const query = search.get("query") ?? "";
+  const limit = boundedInt(search.get("limit"), 20, 1, 100);
+  let packetBytes: Uint8Array;
+  try {
+    const worker = new classicRuntime.WorkerSourceGapSearch(query, limit);
+    const records = await selectedSourceGapRecords(env.DB);
+    for (const record of records) worker.add_record(record.source_ref, record.sha256, record.raw);
+    packetBytes = worker.finish();
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    const detail = String(error);
+    if (detail.includes("InvalidRequest") || detail.includes("must be 1..100")) {
+      throw new HttpError(400, "source-gap query is invalid");
+    }
+    if (detail.includes("BudgetExceeded") || detail.includes("budget")) {
+      throw new HttpError(413, "source-gap query exceeds its bounded profile");
+    }
+    throw new HttpError(503, "source-gap selected source set is unavailable");
+  }
+  let packet: Item;
+  try {
+    packet = JSON.parse(new TextDecoder().decode(packetBytes)) as Item;
+  } catch {
+    throw new HttpError(503, "source-gap query response is invalid");
+  }
+  return jsonResponse(packet, 200, request.method);
+}
+
+async function lensCompileResponse(request: Request, env: Env,
+  operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
   const contentType = ((request.headers.get("Content-Type") ?? "").split(";").at(0) ?? "").trim().toLowerCase();
   if (contentType !== "application/json") throw new HttpError(415, "lens request must use application/json");
   const declaredLength = request.headers.get("Content-Length");
@@ -126,27 +259,24 @@ async function lensCompileResponse(request: Request, env: Env, operation: 'lens'
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  let spec: unknown, nativeSpec: NativeRef | null = null;
-  try {
-    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-    if (operation === 'lens' || operation === 'exploration') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
-    else spec = JSON.parse(raw);
-  } catch (error) {
-    throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
+  // The maintained temporal route passes its generated shared Rust module.
+  // Publication selection and exact retained bytes stay with the D1 reader.
+  if (operation === 'temporal') {
+    try { return withSecurity(await temporalSnapshotResponseD1(env.DB, temporalRuntime, bytes, request.signal)); }
+    catch (error) {
+      if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
+      if (error instanceof SelectedTemporalError) {
+        const status = error.code === 'UnknownIdentifier' ? 404
+          : error.code === 'StaleSelection' ? 409
+          : error.code === 'BudgetExceeded' ? 413
+          : error.code === 'InvalidRequest' || error.code === 'InvalidJson' ? 400 : 503;
+        throw new HttpError(status, error.message);
+      }
+      throw error;
+    }
   }
-  if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
-  try {
-    if (nativeSpec && operation === 'lens') return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
-    if (operation === 'temporal') return nativePacketResponse(await knowledgeTemporalCompareD1(env.DB,spec),200,request.method);
-    return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
-      headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
-  } catch (error) {
-    if (error instanceof KnowledgeRevisionConflict) throw error;
-    if (error instanceof HttpError) throw error;
-    if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
-    if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
-    throw error;
-  }
+  if(operation==='lens')return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,bytes,'compile',request.signal,request.method));
+  return withSecurity(await explorationSnapshotResponseD1(env.DB,explorationRuntime,bytes,request.signal,request.method));
 }
 
 async function apiResponse(request: Request, env: Env, url: URL): Promise<Response> {
@@ -154,14 +284,15 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const search = url.searchParams;
   const method = request.method;
 
-  if (path === "/api/knowledge/search/capabilities") return jsonResponse(await knowledgeSearchCapabilitiesD1(env.DB), 200, method);
+  if (path === "/api/knowledge/search/capabilities") return jsonResponse(await knowledgeSearchCapabilitiesD1(env.DB,workerSearchControlsRuntime), 200, method);
   if (path === "/api/source/capabilities") return jsonResponse({
     schema_version: 'tos_source_read_capabilities_v1', available: false,
     issuer: 'Tree-of-Sophia/source-witnesses',
     layers: {metadata_record: [], claim_record: false, source_slot: false, authored_csv_record: false},
     source_epoch: null, representations: [],
     authority: {is_source: false, writes_to_source: false, grants_current_use: false, native_text_payload: false,
-      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader.'},
+      note: 'D1 exposes derived source navigation only; a separately configured native PostgreSQL source-text gateway is reported below and does not make D1 a source reader.'},
+    source_text_search: sourceTextGatewayCapability(env, request.url),
     status: 'unsupported', reason: 'source-owner-reader-not-configured',
   }, 200, method);
   if (path === "/api/knowledge/explore/capabilities") return jsonResponse(await explorationCapabilitiesD1(env.DB), 200, method);
@@ -204,6 +335,9 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   if (path === "/api/source-gaps") return sourceGapResponse(request, env, search);
   const sourceNavigationPrefix = "/api/source/navigation/";
   if (path.startsWith(sourceNavigationPrefix)) {
+    if (search.has("at_least_commit_seq")) {
+      throw new HttpError(503, "unavailable: this D1 export has no comparable command sequence");
+    }
     return jsonResponse(
       await sourceDescendD1(
         env.DB,
@@ -266,7 +400,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
         predicateIds: searchList('predicate_ids'),
         cursor: searchValue("cursor"),
         limit: searchInteger('limit',40,1,100),
-      }), 200, method);
+      },workerSearchControlsRuntime), 200, method);
     }
     if (mode !== "legacy") throw new HttpError(400, "knowledge search mode must be legacy or indexed");
     return nativePacketResponse(await knowledgeSearchD1(env.DB, {
@@ -276,43 +410,35 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
       predicateIds: searchList('predicate_ids'),
       offset: searchInteger('offset',0,0,100_000),
       limit: searchInteger('limit',40,1,100),
-    }), 200, method);
+    },workerSearchControlsRuntime), 200, method);
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
   if (path.startsWith(knowledgeNodePrefix)) {
-    return nativePacketResponse(
-      await knowledgeNodeD1(env.DB, segment(path, knowledgeNodePrefix), boundedInt(search.get("relation_limit"), 200, 0, 1000)),
-      200,
-      method,
-    );
+    return withSecurity(await inspectionSnapshotResponseD1(env.DB,inspectionRuntime,'node',
+      segment(path,knowledgeNodePrefix),boundedInt(search.get("relation_limit"),200,0,1000),request.signal,method));
   }
   const knowledgeRelationPrefix = "/api/knowledge/relations/";
   if (path.startsWith(knowledgeRelationPrefix)) {
-    return nativePacketResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
+    return withSecurity(await inspectionSnapshotResponseD1(env.DB,inspectionRuntime,'relation',
+      segment(path,knowledgeRelationPrefix),200,request.signal,method));
   }
   const knowledgeFocusPrefix = "/api/knowledge/focus/";
   if (path.startsWith(knowledgeFocusPrefix)) {
     const profile = search.get("profile") || "overview";
-    if (profile !== "overview" && profile !== "all") throw new HttpError(400, "profile must be overview or all");
     const direction = (search.get("direction") || "either").trim().toLowerCase();
-    if (direction !== "outgoing" && direction !== "incoming" && direction !== "either") {
-      throw new HttpError(400, "direction must be outgoing, incoming, or either");
-    }
     const sources = listParam(search, "sources");
-    return nativeLensResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
-      ...(sources.length ? { sources } : {}),
-      depth: boundedInt(search.get("depth"), 1, 0, 5),
-      direction,
-      profile,
-      predicateIds: listParam(search, "predicates"),
-      nodeLimit: boundedInt(search.get("node_limit"), 200, 1, 1000),
-      relationLimit: boundedInt(search.get("relation_limit"), 400, 0, 2000),
-    }), 200, method);
+    const focus={node_id:segment(path,knowledgeFocusPrefix),
+      ...(sources.length?{sources}:{}),depth:boundedInt(search.get("depth"),1,0,5),direction,profile,
+      predicate_ids:listParam(search,"predicates"),node_limit:boundedInt(search.get("node_limit"),200,1,1000),
+      relation_limit:boundedInt(search.get("relation_limit"),400,0,2000)};
+    return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,new TextEncoder().encode(JSON.stringify(focus)),
+      'focus',request.signal,method));
   }
   const knowledgeLensPrefix = "/api/knowledge/lenses/";
   if (path.startsWith(knowledgeLensPrefix)) {
     const lensId = segment(path, knowledgeLensPrefix);
-    return nativeLensResponse(await storedKnowledgeLensD1(env.DB, lensId), 200, method);
+    return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,new TextEncoder().encode(JSON.stringify(lensId)),
+      'stored',request.signal,method));
   }
 
 
@@ -350,7 +476,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
 
   if (path === "/api/corpus/search") {
-    return jsonResponse(await corpusSearch(env.DB, search.get("query") ?? "", boundedInt(search.get("limit"), 20, 1, 100)), 200, method);
+    return jsonResponse(await corpusSearch(env.DB, search.get("query") ?? "", boundedInt(search.get("limit"), 20, 1, 100), search.get("resource_kind")), 200, method);
   }
   if (path === "/api/philosophy/search") {
     return jsonResponse(await philosophySearch(env.DB, search.get("query") ?? "", boundedInt(search.get("limit"), 40, 1, 100)), 200, method);
@@ -474,11 +600,13 @@ export default {
           : url.pathname === '/api/knowledge/temporal/compare' ? 'temporal' : 'lens';
         return await lensCompileResponse(request, env, operation);
       } catch (error) {
-        if (error instanceof KnowledgeRevisionConflict) return jsonResponse({ error: error.message }, 409, request.method);
         if (error instanceof HttpError) return jsonResponse({ error: error.message }, error.status, request.method);
         console.error("Cloudflare edge lens request failed", error);
         return jsonResponse({ error: "Cloudflare edge lens request failed" }, 500, request.method);
       }
+    }
+    if (request.method === "POST" && url.pathname === "/api/source-text/search") {
+      return sourceTextSearchGatewayResponse(request, env);
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return jsonResponse({ error: "standalone access is read-only" }, 405, request.method);

@@ -31,8 +31,8 @@
   },
   "authority_posture": "public_synthetic_contract_mechanics_only",
   "builder": {
-    "ref": "scripts/build_translation_alignment_v1_lab.py",
-    "sha256": "4faf54fcae1dd7d891caccb88404d3f852f54a7c2c3ff26c937861cff5a3f166"
+    "ref": "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs",
+    "sha256": "bd9f4f3ef4af30e1c2b1eb5b3a0106863d40be3ff2cfe8b199c2d7f876502928"
   },
   "contract": {
     "ref": "ToS/contracts/translation-alignment-packet-v1.schema.json",

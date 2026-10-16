@@ -20,7 +20,7 @@ semantic truth, and canon.
 | owner | `ToS/zarathustra/lived-witness/AGENTS.md` |
 | next route | author review -> optional separate permission -> separate claim/review route |
 | tools | `CAPTURE_PROTOCOL.md`, `CAPTURE_FORM.md`, `ToS/contracts/lived-witness-packet.schema.json` |
-| check | `scripts/validate_lived_witness_route.py` plus direct author review of the exact body and every permission |
+| check | `rust/crates/tos-ops-mechanics-plan/src/lived_witness.rs` plus direct author review of the exact body and every permission |
 
 ## Boundary Routes
 

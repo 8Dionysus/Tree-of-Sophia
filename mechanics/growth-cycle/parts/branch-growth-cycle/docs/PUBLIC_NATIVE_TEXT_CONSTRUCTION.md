@@ -1,7 +1,9 @@
 # Public project-text native construction
 
 This independent adapter implements bounded public source construction through
-`source_commands.py`. Its closed, source-owned input contracts are
+the `public-project-native-text-create` handler in
+`rust/crates/tos-command/src/source_native_public_text_cli.rs` and the native
+`source-commands` front door. Its closed, source-owned input contracts are
 `ToS/contracts/public-native-text-create-owner.schema.json` and
 `ToS/contracts/public-native-text-authority.schema.json`. Request discovery
 uses the common grant-free handler grammar; the adapter requires its dedicated
@@ -61,6 +63,45 @@ an installed package with its retained plan before reporting committed. An
 interrupted exact plan can resume through the same create request; torn or
 foreign evidence is preserved and refused, never automatically deleted or
 overwritten. The shared installer preserves original private writer controls.
+
+## Bounded PostgreSQL route
+
+The ordinary `tos-native-owner-command source-commands --invocation ABS`
+front door also accepts `tos_local_pg_public_text_invocation_v1`. Its exact
+top-level fields are `schema_version`, `owner_config`, `native_executable`,
+`native_executable_sha256`, `source_selection`, `software_capture`,
+`software_restored_root`, `software_selection`, `software_components`,
+`schema_worker`, and `budgets`. The invocation and create-request shapes are
+captured in
+[`rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1`](../../../../../rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1/).
+The zero digests and absolute paths in those examples are placeholders; select
+the actual executable, capture, worker, source contract, store and current job
+lease. Keep the invocation and protected owner configuration readable only by
+the local owner account, and supply PostgreSQL 16 credentials privately via
+`TOS_SOURCE_PG_URL`.
+
+`source_selection` repeats the existing CMD `domain`, source contract digest,
+private STO root and limits, plus an existing `job_id` and positive
+`job_fence`. The route reads authored `ToS/` inputs from that selected PG/STO
+epoch. A `docs/` source reference is selected separately through the exact
+software capture and is rechecked before commit; it does not widen the CMD
+readset. `software_selection` binds the exact capture commit, tree and manifest
+digest, and `software_components` selects the implementation closure. The
+schema worker and finite `budgets` use the ordinary PG source-owner profile.
+`describe` selects only the three owner-grant schemas; construction and recovery
+select the ten schemas consumed by public authority, endpoint, binding, and
+provenance validation. Delegated Text IDs use batched point observations in the
+PG Text identity index, with one fenced absence or exact-owner generation per
+requested ID; the route does not walk the whole Text metadata namespace.
+
+Send a `tos_local_source_command_v1` request on stdin. `describe` and
+`prepare-create` are non-mutating. Then send `native-text.create` with a fresh
+`command_id`, the exact `expected_configuration` and `expected_dependencies`
+returned by `prepare-create`, and null `expected_source` and
+`expected_revision`. `inspect-recovery` accepts only an exact retained command
+ID. The PG writer commits all twelve package members as one source revision;
+it does not grant semantic admission, alter rights, or authorize publication.
+See the `tos-command` crate README for the CLI entry and fixture test.
 
 ## Verification boundary
 

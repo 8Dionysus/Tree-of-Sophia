@@ -5,8 +5,8 @@
   "schema_ref": "docs/validation/documentation-family-map.schema.json",
   "currentness_schema_ref": "docs/validation/documentation-family-currentness.schema.json",
   "generated_currentness": "docs/validation/documentation-family.current.json",
-  "builder": "scripts/build_documentation_family_currentness.py",
-  "validator": "scripts/validate_documentation_cross_corpus.py",
+  "builder": "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs",
+  "validator": "rust/crates/tos-ops-mechanics-plan/src/documentation_cross_corpus.rs",
   "atlas_method": {
     "tracked_source": "git ls-files -z",
     "human_extensions": [
@@ -153,8 +153,8 @@
       "currentness_inputs": [
         ".agents/agent-surface.manifest.json",
         ".agents/README.md",
-        "scripts/build_agent_surface_currentness.py",
-        "scripts/validate_agent_surface.py"
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs"
       ],
       "next_organ": [
         "selected profile package",
@@ -213,7 +213,7 @@
         ".agents/AGENTS.md",
         ".agents/VALIDATION.md",
         "docs/validation/agents_route_inventory.json",
-        "scripts/validate_nested_agents.py"
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"
       ],
       "next_organ": [
         "nearest owner card",
@@ -557,7 +557,7 @@
         "stats/AGENTS.md",
         "stats/VALIDATION.md",
         "stats/port.manifest.json",
-        "scripts/validate_local_stats_port.py"
+        "rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs"
       ],
       "next_organ": [
         "aoa-stats shared grammar",
@@ -611,9 +611,8 @@
         "kag/AGENTS.md",
         "kag/VALIDATION.md",
         "kag/provider-template.json",
-        "scripts/validate_local_kag_provider.py",
-        "scripts/build_kag_export.py",
-        "scripts/publish_kag_release.py",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
         "ToS/derived-exports/"
       ],
       "next_organ": [
@@ -627,7 +626,7 @@
         "max_tokens": 1600,
         "surfaces": [
           "kag/AGENTS.md",
-          "kag/manifest.json"
+          "kag/provider-template.json"
         ]
       },
       "public_safety": {
@@ -672,7 +671,7 @@
         "mechanics/README.md",
         "mechanics/VALIDATION.md",
         "mechanics/topology.json",
-        "scripts/validate_mechanics_topology.py"
+        "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs"
       ],
       "next_organ": [
         "nearest package/part card",
@@ -755,7 +754,63 @@
       },
       "validation_lane": "validation_authority",
       "authority_keys": [
-        "script_contract",
+        "script_contract"
+      ]
+    },
+    {
+      "id": "rust",
+      "label": "maintained Rust execution and synthetic compatibility",
+      "match": {
+        "prefix": "rust/"
+      },
+      "consumer": [
+        "contributor",
+        "CI",
+        "native/WASM integration owner"
+      ],
+      "load_moment": "when a native/WASM contract, crate route, or synthetic compatibility fixture is changed",
+      "owner": "rust/README.md and the exact crate or source-contract owner",
+      "roles": {
+        "authored": "workspace and crate explanations; executable contract intent, not ToS corpus meaning",
+        "generated": "derived synthetic fixtures and oracle carriers, weaker than their selected source and generator",
+        "executable": "bounded fixture/oracle generators and maintained native/WASM rules",
+        "runtime": "external installed/runtime state only",
+        "tool": "crate operation and adapter contracts",
+        "receipt": "bounded synthetic comparison evidence, not source admission or release acceptance"
+      },
+      "currentness_inputs": [
+        "rust/README.md",
+        "Cargo.toml",
+        "Cargo.lock",
+        "rust-toolchain.toml",
+        "tests/conformance/rust/README.md",
+        "docs/validation/validation_lanes.json"
+      ],
+      "next_organ": [
+        "exact crate or source-contract owner",
+        "tests/conformance/rust/",
+        "rust_workspace validation lane"
+      ],
+      "context": {
+        "posture": "on_demand",
+        "metric": "whitespace_tokens_v1",
+        "max_tokens": 1400,
+        "surfaces": [
+          "rust/README.md"
+        ]
+      },
+      "public_safety": {
+        "posture": "repository_internal",
+        "forbidden": [
+          "secrets",
+          "private or production corpus payloads",
+          "ambient host state claims"
+        ],
+        "boundary": "synthetic fixtures and executable checks do not grant rights, source admission, canon, production activation or capacity acceptance"
+      },
+      "validation_lane": "rust_workspace",
+      "authority_keys": [
+        "rust_executable_contract",
         "generator_contract"
       ]
     },
@@ -944,7 +999,7 @@
       "currentness_inputs": [
         "mechanics/questbook/AGENTS.md",
         "mechanics/questbook/README.md",
-        "mechanics/questbook/scripts/validate_questbook_surface.py"
+        "rust/crates/tos-ops-mechanics-plan/src/questbook.rs"
       ],
       "next_organ": [
         "mechanics/questbook/",
@@ -1116,17 +1171,17 @@
     },
     {
       "id": "kag_provider_route",
-      "owner": "kag/manifest.json",
+      "owner": "kag/provider-template.json",
       "strength": "tool",
       "family_id": "kag",
-      "family_owner": "kag/AGENTS.md, kag/manifest.json, and aoa-kag"
+      "family_owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag"
     },
     {
       "id": "kag_source_return",
       "owner": "ToS/derived-exports/",
       "strength": "authored",
       "family_id": "kag",
-      "family_owner": "kag/AGENTS.md, kag/manifest.json, and aoa-kag"
+      "family_owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag"
     },
     {
       "id": "mechanics_operation",
@@ -1151,10 +1206,10 @@
     },
     {
       "id": "generator_contract",
-      "owner": "scripts/build_documentation_family_currentness.py",
+      "owner": "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs",
       "strength": "generated",
-      "family_id": "scripts",
-      "family_owner": "scripts/AGENTS.md, validation_lanes.json, and the exact source owner"
+      "family_id": "rust",
+      "family_owner": "rust/README.md and the exact crate or source-contract owner"
     },
     {
       "id": "test_coverage_contract",
@@ -1162,6 +1217,13 @@
       "strength": "executable",
       "family_id": "tests",
       "family_owner": "tests/AGENTS.md, docs/testing/TEST_TOPOLOGY.md, and the exact owner surface"
+    },
+    {
+      "id": "rust_executable_contract",
+      "owner": "rust/README.md",
+      "strength": "executable",
+      "family_id": "rust",
+      "family_owner": "rust/README.md and the exact crate or source-contract owner"
     },
     {
       "id": "artifact_declaration",
@@ -1213,7 +1275,7 @@
     {
       "id": "aoa-kag",
       "owner": "aoa-kag",
-      "handle": "kag/manifest.json",
+      "handle": "kag/provider-template.json",
       "role": "registry/composition and MCP consumer",
       "authority": "stronger external owner"
     },
@@ -1299,8 +1361,7 @@
     {
       "id": "public_entry",
       "surfaces": [
-        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-        "ToS/derived-exports/root_entry_map.min.json"
+        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
       ],
       "measure": "sum",
       "max_tokens": 1200
@@ -1319,16 +1380,16 @@
       "id": "broken_markdown_route",
       "kind": "link_and_fragment",
       "reuses": [
-        "scripts/validate_mechanics_topology.py",
-        "scripts/validate_tiny_entry_route.py"
+        "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs"
       ]
     },
     {
       "id": "stale_executable_route",
       "kind": "command_and_script_reference",
       "reuses": [
-        "scripts/validate_nested_agents.py",
-        "scripts/validate_mechanics_topology.py",
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs",
         "docs/validation/script_inventory.json"
       ]
     },
@@ -1345,9 +1406,9 @@
       "id": "generated_projection_mismatch",
       "kind": "source_builder_currentness",
       "reuses": [
-        "scripts/build_agents_route_currentness.py",
-        "scripts/build_agent_surface_currentness.py",
-        "scripts/generate_decision_indexes.py"
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
       ]
     },
     {
@@ -1362,7 +1423,7 @@
       "id": "public_safety",
       "kind": "authored_surface_marker_scan",
       "reuses": [
-        "scripts/validate_agent_surface.py",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
         "ToS/zarathustra/public-entry/"
       ]
     },
@@ -1370,7 +1431,7 @@
       "id": "context_budget",
       "kind": "progressive_disclosure_budget",
       "reuses": [
-        "scripts/agents_route_harness.py",
+        "rust/crates/tos-ops-mechanics-plan/src/route_harness.rs",
         "mechanics/topology.json",
         ".agents/agent-surface.manifest.json"
       ]

@@ -15,7 +15,7 @@ Ordinary implementation notes, generated output, runtime logs, private evidence,
 | output | canonical decision note, generated lookup indexes, and route back to the source surface |
 | owner | `docs/decisions/AGENTS.md` for lane law; decision notes for rationale; generated indexes for lookup only |
 | next route | source surface first, then nearest route card, `CHARTER.md`, `BOUNDARIES.md`, `ROADMAP.md`, generated lookup indexes, or the affected sibling owner |
-| validation | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`, plus the owning validator for the changed surface |
+| validation | `tos-ops-mechanics-plan --repo-root ABS --decision-index-build --check` and `tos-ops-mechanics-plan --repo-root ABS --decision-records-validate`, plus the owning validator for the changed surface |
 
 ## Authority
 
@@ -54,7 +54,7 @@ The lookup indexes under [indexes](indexes/README.md) are generated from that me
 
 Regenerate the read models after decision metadata changes:
 
-Regeneration routes through `scripts/generate_decision_indexes.py` under the
+Regeneration routes through `tos-ops-mechanics-plan --repo-root ABS --decision-index-build` under the
 operator guidance in `docs/decisions/AGENTS.md`.
 
 Check generated parity before closeout:

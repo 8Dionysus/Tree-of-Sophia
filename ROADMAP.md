@@ -84,7 +84,7 @@ family, and graph-review tree without widening canon:
 | graph review and source-returning projection | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
 | multilingual planting | `ToS/philosophy/atlas/multilingual/`, `ToS/philosophy/graph-workbench/language-packets/` |
 | bounded export and downstream trust | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `mechanics/release-support/parts/artifact-bundles/`, `kag/` |
-| owner-local reference measurement | `stats/`, `scripts/validate_local_stats_port.py` |
+| owner-local reference measurement | `stats/`, `rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs` |
 | source-first corpus foundation | `ToS/source-witnesses/`, `ToS/contracts/`, `ToS/derived-exports/`, `ToS/research-packets/` |
 | portable provider and routing boundary | `kag/`, `aoa-sdk` consumer route, `aoa-kag` owner-family validation |
 

@@ -56,4 +56,6 @@ outputs and metadata, independent UI/SQL invalidation, failure/restart and
 competing builders. Real builder fixture SQL is loaded into SQLite to check
 that changed source labels actually reach the generated read model.
 
-Current behavior belongs to the [edge builder](../../access/deploy/cloudflare-worker/README.md#resumable-build-stages).
+The Worker Python stage-cache implementation described here was retired with
+that runtime. The maintained native producer's entry and revision behavior are
+described in its [production flow](../../access/deploy/cloudflare-worker/README.md#production-flow).

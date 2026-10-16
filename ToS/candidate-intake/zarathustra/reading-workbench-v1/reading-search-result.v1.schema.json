@@ -20,7 +20,7 @@
       "required": ["concept_predecessor", "reading_layer", "adapter_ref", "adapter_sha256", "result_schema_ref", "result_schema_sha256", "method_version"],
       "properties": {
         "concept_predecessor": {"type": "object"}, "reading_layer": {"type": "object"},
-        "adapter_ref": {"const": "scripts/query_zarathustra_reading_workbench_v1.py"},
+        "adapter_ref": {"enum": ["scripts/query_zarathustra_reading_workbench_v1.py", "rust/crates/tos-query/src/reading_search.rs"]},
         "adapter_sha256": {"$ref": "#/$defs/hash"},
         "result_schema_ref": {"const": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json"},
         "result_schema_sha256": {"$ref": "#/$defs/hash"},

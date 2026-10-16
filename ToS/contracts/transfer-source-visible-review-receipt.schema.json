@@ -28,7 +28,7 @@
     "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/transfer-source-visible-review-receipt.schema.json"},
     "schema_version": {"const": "tos_transfer_source_visible_review_receipt_v1"},
     "generated_or_authored": {"const": "generated_from_private_model_source_visible_review_bundle"},
-    "receipt_id": {"const": "tos.transfer-source-visible-review.jenseits-187.v1"},
+    "receipt_id": {"type": "string", "pattern": "^tos\\.transfer-source-visible-review\\.jenseits-187\\.[A-Za-z0-9-]{1,64}$"},
     "recorded_at_utc": {"type": "string", "format": "date-time"},
     "status": {"const": "machine-triangulated-candidate-not-admitted"},
     "route_readiness_id": {"const": "tos-transfer-route-readiness-jenseits-p0308-random-unit-187"},
@@ -69,7 +69,7 @@
       "additionalProperties": false,
       "required": ["ref", "sha256"],
       "properties": {
-        "ref": {"const": "scripts/record_golden_kernel_transfer_source_visible_review.py"},
+        "ref": {"enum": ["scripts/record_golden_kernel_transfer_source_visible_review.py", "rust/crates/tos-compiler/src/transfer_source_visible.rs"]},
         "sha256": {"$ref": "#/$defs/sha256"}
       }
     },

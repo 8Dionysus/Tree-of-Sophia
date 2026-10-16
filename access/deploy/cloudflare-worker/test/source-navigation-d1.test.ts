@@ -1,7 +1,8 @@
+import {frozenReference} from './frozen-reference.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { sourceDossier, sourceDescend } from "../src/source-navigation.ts";
+
 import { sourceDossierD1, sourceDescendD1, SOURCE_NAVIGATION_PAGE_SIZE } from "../src/source-navigation-store.ts";
 import type { Item } from "../src/common.ts";
 import {createHash} from 'node:crypto';
@@ -14,6 +15,12 @@ type Navigation = {
   edges: Item[];
   rights: Item[];
 };
+
+// Same captured reference mechanism as knowledge.test.ts. Only finite
+// fixture data is supplied; the core owns indexing and query semantics.
+function sourceOracle(navigation:Navigation,operation:'descent'|'dossier',id:string,limit:number,maxDepth=8):Item {
+  return JSON.parse(frozenReference(import.meta.url, "source/navigation", JSON.stringify({navigation,operation,id,limit,max_depth:maxDepth})));
+}
 
 const SCHEMA = `
 CREATE TABLE edge_meta(key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY(key, part));
@@ -291,7 +298,7 @@ function tracedDatabase(db: D1Database, limits: number[]): D1Database {
   } as D1Database;
 }
 
-test("D1 source descent matches the pure packet and pages high-degree adjacency", async () => {
+test("D1 source descent matches the captured reference packet and pages high-degree adjacency", async () => {
   const { mf, db } = await database();
   try {
     const navigation = baseNavigation();
@@ -304,7 +311,7 @@ test("D1 source descent matches the pure packet and pages high-degree adjacency"
     await populate(db, navigation, new Set(["target-007"]));
     const limits: number[] = [];
     const traced = tracedDatabase(db, limits);
-    const expected = sourceDescend(navigation, "work", 1, 300);
+    const expected = sourceOracle(navigation, 'descent', "work", 300, 1);
     const actual = await sourceDescendD1(traced, "work", 1, 300);
     assert.deepEqual(actual, expected);
     assert.ok(limits.length >= 3, "the high-degree adjacency should require several pages");
@@ -325,12 +332,12 @@ test("D1 Work and Link dossiers preserve closure, rights, truncation, and chunk 
     navigation.counts.rights = navigation.rights.length;
     await populate(db, navigation, new Set(["link", "r-101"]));
 
-    const expectedWork = sourceDossier(navigation, "work", 300);
+    const expectedWork = sourceOracle(navigation,'dossier',"work",300);
     const actualWork = await sourceDossierD1(db, "work", 300);
     assert.deepEqual(actualWork, expectedWork);
     assert.equal((actualWork.rights as Item[]).length, navigation.rights.length);
 
-    const expectedLink = sourceDossier(navigation, "link", 3);
+    const expectedLink = sourceOracle(navigation,'dossier',"link",3);
     const actualLink = await sourceDossierD1(db, "link", 3);
     assert.deepEqual(actualLink, expectedLink);
     assert.equal(actualLink.truncated, true);
@@ -401,7 +408,7 @@ test("D1 Work dossiers bind File-scoped rights to reachable Item membership cont
     const { mf, db } = await database();
     try {
       await populate(db, navigation);
-      const expected = sourceDossier(navigation, "work-a", 20);
+      const expected = sourceOracle(navigation,'dossier',"work-a",20);
       const actual = await sourceDossierD1(db, "work-a", 20);
       assert.deepEqual(actual, expected);
       const rights = actual.rights as Item[];
@@ -449,8 +456,8 @@ test("D1 hydrates empty selection sentinels for nodes, edges and rights", async 
     await db.prepare("UPDATE source_navigation_nodes SET properties_json = ''").run();
     await db.prepare("UPDATE source_navigation_edges SET source_refs_json = ''").run();
     await db.prepare("UPDATE source_navigation_rights SET scope_refs_json = ''").run();
-    assert.deepEqual(await sourceDossierD1(db, "work", 30), sourceDossier(navigation, "work", 30));
-    assert.deepEqual(await sourceDossierD1(db, "link", 30), sourceDossier(navigation, "link", 30));
+    assert.deepEqual(await sourceDossierD1(db, "work", 30), sourceOracle(navigation,'dossier',"work",30));
+    assert.deepEqual(await sourceDossierD1(db, "link", 30), sourceOracle(navigation,'dossier',"link",30));
     await assert.rejects(sourceDescendD1(db, "packet-member", 1, 3), /unknown ToS source-navigation node/);
   } finally {
     await mf.dispose();
@@ -464,7 +471,7 @@ test('D1 rejects full-row drift and missing checksums before deriving rights pos
       const navigation=baseNavigation();
       navigation.rights[0].review_status='unreviewed';
       await populate(db,navigation,chunked?new Set(['work','e3','r1']):new Set());
-      const expected=sourceDossier(navigation,'work',300);
+      const expected=sourceOracle(navigation,'dossier','work',300);
       assert.deepEqual(await sourceDossierD1(db,'work',300),expected);
       for (const [kind,id,delta] of [
         ['nodes','work',{research_note:'altered'}],
@@ -486,4 +493,29 @@ test('D1 rejects full-row drift and missing checksums before deriving rights pos
       await assert.rejects(sourceDossierD1(db,'work',300),/explicit product migration required/);
     } finally { await mf.dispose(); }
   }
+});
+
+test('source closure checks a candidate original row before an exhausted admission limit',async()=>{
+  const {mf,db}=await database();
+  try{
+    const navigation=baseNavigation();await populate(db,navigation);
+    const link=navigation.nodes.find(node=>node.node_id==='link')!;
+    await db.prepare("UPDATE source_navigation_nodes SET json=? WHERE node_id='link'")
+      .bind(JSON.stringify({...link,research_note:'unverified change'})).run();
+    for(const operation of [()=>sourceDescendD1(db,'work',1,1),()=>sourceDossierD1(db,'work',1)])
+      await assert.rejects(operation(),/emitted source-navigation row checksum differs/);
+  }finally{await mf.dispose();}
+});
+
+test('legacy aggregate ID body named layer is a root, not a layer finding',async()=>{
+  const {mf,db}=await database();
+  try{
+    const navigation=baseNavigation();navigation.rights=[
+      {...navigation.rights[0],rights_id:'tos.rights.layer.x',assessment_kind:undefined},
+      {...navigation.rights[0],rights_id:'tos.rights.layer.x.layer.ocr',assessment_kind:undefined,redistribution_posture:'not_authorized'},
+    ];navigation.counts.rights=2;await populate(db,navigation);
+    const packet=await sourceDossierD1(db,'work',30);
+    assert.equal((packet.agent_summary as Item).can_conclude_legal_openness,true);
+    assert.deepEqual((packet.rights as Item[]).map(record=>record.rights_id),['tos.rights.layer.x','tos.rights.layer.x.layer.ocr']);
+  }finally{await mf.dispose();}
 });

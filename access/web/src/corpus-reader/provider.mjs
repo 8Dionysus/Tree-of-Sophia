@@ -1,6 +1,5 @@
 import {referenceKey, validateReference} from './model.mjs';
 
-export const CORPUS_PROVIDER_VERSION = 'tos.corpus.provider.v1';
 export const CORPUS_OPERATIONS = Object.freeze([
   'catalog',
   'document',
@@ -56,13 +55,6 @@ function requiredString(value, name) {
 function optionalString(value, name) {
   if (value === undefined || value === null) return null;
   return requiredString(value, name);
-}
-
-function nonNegativeInteger(value, name) {
-  if (!Number.isInteger(value) || value < 0) {
-    throw new CorpusProviderError('invalid_request', `${name} must be a non-negative integer`);
-  }
-  return value;
 }
 
 function pageLimit(value, operation) {
@@ -572,8 +564,6 @@ export function createCorpusProvider({provider = null, transport = null} = {}) {
   if (transport !== null) return createTransportProvider(transport);
   return createUnavailableProvider();
 }
-
-export const createProvider = createCorpusProvider;
 
 export function validateOperationArgs(operation, args = {}) {
   if (!CORPUS_ALL_OPERATIONS.includes(operation)) throw new TypeError(`unknown corpus operation ${operation}`);

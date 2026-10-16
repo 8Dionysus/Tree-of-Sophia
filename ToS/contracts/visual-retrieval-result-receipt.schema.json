@@ -40,7 +40,7 @@
       "const": "generated_from_private_direct_visual_retrieval_run"
     },
     "receipt_id": {
-      "const": "visual-retrieval-result:zarathustra-foundation-pilot-v1.c.qwen3-vl-embedding-2b.v1"
+      "type": "string", "pattern": "^visual-retrieval-result:zarathustra-foundation-pilot-v1\\.c\\.qwen3-vl-embedding-2b\\.v1(?:\\.native-[A-Za-z0-9](?:[A-Za-z0-9-]{0,46}[A-Za-z0-9])?)?$"
     },
     "recorded_at_utc": {"type": "string", "format": "date-time"},
     "status": {
@@ -121,7 +121,7 @@
       "required": ["ref", "sha256"],
       "properties": {
         "ref": {
-          "const": "scripts/record_zarathustra_visual_retrieval_result.py"
+          "enum": ["scripts/record_zarathustra_visual_retrieval_result.py", "rust/crates/tos-compiler/src/research_visual_result.rs"]
         },
         "sha256": {"$ref": "#/$defs/digest"}
       }
@@ -341,7 +341,7 @@
       ],
       "properties": {
         "status": {"const": "completed-without-unresolved-mechanical-issue"},
-        "performed_by": {"const": "model:codex-independent-reconstruction"},
+        "performed_by": {"enum": ["model:codex-independent-reconstruction", "software:tos-native-rust"]},
         "frozen_digest_checks": {"const": 7},
         "png_fixity_checks": {"const": 36},
         "control_fixity_checks": {"const": 42},

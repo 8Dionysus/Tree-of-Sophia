@@ -1,0 +1,80 @@
+{
+  "schema_version": "tos_native_item_recovery_fixture_v1",
+  "source": {
+    "capture_run": "tos-combined-factory-capture-r2",
+    "capture_run_result_sha256": "5eaa9acc0fc932894c9ab06da085ac39a3926f679fe4ab54bd9990fbdd679fc9",
+    "capture_source_manifest_sha256": "b33552bb59152bc5f2740ab22200bb3edace621feb25a5a1b1fb8a087b56750b",
+    "repository_head": "1d33e8f3dcc360c7e39a3b72db13d97a0d188f23",
+    "factory_id": "item-base",
+    "factory_source_path": "tests/conformance/rust/command_item_cases.rs",
+    "factory_source_sha256": "30e1edd3e8a9eea9b69c4f1846bb7cab80f9dc00491f1526c620caa11cc3d365",
+    "factory_script_sha256": "5aa2102d4243a0b186fb10b3bfded58b6ccd3e8961ea85e73d8e1950b9fee41c"
+  },
+  "archive": {
+    "path": "item-base.tar.gz",
+    "sha256": "bc472cbb1c7f05010f9d96993efa478778d8e11c78a8a34b4f9c633e07899ef6",
+    "size_bytes": 305714,
+    "packet_sha256": "0b71f38319730055a1c2d6d21c3903bb381f971d49578cfa995766914bc4a277",
+    "derived_from_capture_archive_sha256": "9889b8ec3db04d79338d91d956623fe76ecd14dd1b5949ff7c7f108735359247",
+    "format": "gzip-compressed ustar",
+    "derivation": "Repacked from captured first item-base root to remove only unselected .record-revisions history and root a single selected source tree for native in-crate setup."
+  },
+  "setup": {
+    "rebased_only": [
+      "source_root",
+      "payload_root",
+      "input_path",
+      "recovery_root",
+      "uid"
+    ],
+    "captured_authoring_and_metadata_bytes_preserved": true,
+    "unselected_record_revision_history_omitted": false,
+    "record_revision_history_companion_restored": true
+  },
+  "record_revision_history": {
+    "path": "item-record-history.tar.gz",
+    "sha256": "90d5435db47b2ba10abeb9a63b512b9cc3efe9e279613f35b803ed0a20bb1f2e",
+    "size_bytes": 1834,
+    "file_count": 6,
+    "root_prefix": "ToS/source-witnesses/.record-revisions",
+    "source": "Same authenticated item-base/call-00 capture as archive; restores exact history referenced by captured Work and Expression receipts. Archive names are relative to root_prefix to fit USTAR.",
+    "files": [
+      {
+        "bytes": 1969,
+        "mode": 384,
+        "path": "ToS/source-witnesses/.record-revisions/627fb546e99aa1f68eec1d7cc6da8b4381a88224bbe2b04ac450e3f68c8f5407-cb998cd6c003daa086de79f0eada2df4bf6e236d81dff8d2216abcd5cb2e45b7/26fea22d3b9ca8dc20edfd032abeed58161537cf393c686b003be3570ad5d88f.blob",
+        "sha256": "26fea22d3b9ca8dc20edfd032abeed58161537cf393c686b003be3570ad5d88f"
+      },
+      {
+        "bytes": 914,
+        "mode": 384,
+        "path": "ToS/source-witnesses/.record-revisions/627fb546e99aa1f68eec1d7cc6da8b4381a88224bbe2b04ac450e3f68c8f5407-cb998cd6c003daa086de79f0eada2df4bf6e236d81dff8d2216abcd5cb2e45b7/735f796afd489a1ffba7c48c62e6b8c88a096b45ad1e5b4e7dd8aa40a3793c15.blob",
+        "sha256": "735f796afd489a1ffba7c48c62e6b8c88a096b45ad1e5b4e7dd8aa40a3793c15"
+      },
+      {
+        "bytes": 961,
+        "mode": 384,
+        "path": "ToS/source-witnesses/.record-revisions/627fb546e99aa1f68eec1d7cc6da8b4381a88224bbe2b04ac450e3f68c8f5407-cb998cd6c003daa086de79f0eada2df4bf6e236d81dff8d2216abcd5cb2e45b7/manifest.json",
+        "sha256": "ba43fae5df2fb587e7e29ecc181553097d608554977a0227202702662ebc2191"
+      },
+      {
+        "bytes": 831,
+        "mode": 384,
+        "path": "ToS/source-witnesses/.record-revisions/a7a864e4842b32d1afcd5f5c1d846185c20ea4851227bf70a4e646e9ca839fab-ba285c9dd4fecec5e120cdd7cd6a45d2bb30d9c24de8b89aae0481d5aff64a26/29c373cc76aed2112230ab03661f72ef1cd44cdeed6eb8f95ddb1e8e6b69b145.blob",
+        "sha256": "29c373cc76aed2112230ab03661f72ef1cd44cdeed6eb8f95ddb1e8e6b69b145"
+      },
+      {
+        "bytes": 3610,
+        "mode": 384,
+        "path": "ToS/source-witnesses/.record-revisions/a7a864e4842b32d1afcd5f5c1d846185c20ea4851227bf70a4e646e9ca839fab-ba285c9dd4fecec5e120cdd7cd6a45d2bb30d9c24de8b89aae0481d5aff64a26/d233fd9bb26f787ff3619a4809bd1c598f20735d911f4ef71dde1867a5669d61.blob",
+        "sha256": "d233fd9bb26f787ff3619a4809bd1c598f20735d911f4ef71dde1867a5669d61"
+      },
+      {
+        "bytes": 920,
+        "mode": 384,
+        "path": "ToS/source-witnesses/.record-revisions/a7a864e4842b32d1afcd5f5c1d846185c20ea4851227bf70a4e646e9ca839fab-ba285c9dd4fecec5e120cdd7cd6a45d2bb30d9c24de8b89aae0481d5aff64a26/manifest.json",
+        "sha256": "1c88ed12b04eebe913291ab174aa35aca08042a777b052b1318c05138695b800"
+      }
+    ]
+  }
+}

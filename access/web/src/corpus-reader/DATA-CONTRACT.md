@@ -133,7 +133,10 @@ absent; a contents UI should handle that unsupported state explicitly.
 ## Durable reference
 
 `model.mjs` exports `validateReference`, `referenceKey`, and `createReference`.
-A reference contains no text or excerpt:
+The shared `tos-web-rules::corpus_reference_rule_v1` owns normalization, key
+ordering, version/document IDs, and the native-reference code-point rules;
+the browser modules marshal values through its initialized WASM binding. A
+reference contains no text or excerpt:
 
 ```js
 {

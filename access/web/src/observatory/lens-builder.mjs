@@ -160,8 +160,6 @@ function queryLines(draft,context){
   return lines;
 }
 
-export const lensBuilderQueryLines=queryLines;
-
 function choicePicker({draft,context,key,title,onChange,stateStore}){
   const state=stateStore.get(key)||{query:'',sort:'alphabet',limits:new Map(),expanded:new Map()};stateStore.set(key,state);
   const details=el('details','','lens-builder-choices'),summary=el('summary'),controls=el('div','','lens-builder-choice-controls'),search=el('input'),sort=el('select'),list=el('div','','lens-builder-options');

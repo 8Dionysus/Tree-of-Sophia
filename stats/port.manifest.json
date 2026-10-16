@@ -108,8 +108,8 @@
       "evidence_refs": [
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
         "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-        "scripts/validate_philosophy_topology.py",
-        "scripts/validate_philosophy_post_planting_audit.py"
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs"
       ]
     }
   ]

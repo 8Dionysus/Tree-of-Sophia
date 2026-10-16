@@ -1,4 +1,6 @@
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it } from "vitest";
+import {chooseKnowledgeSearchMode} from "./knowledge-search";
 import { createToSQueryOperations } from "./query-operations";
 
 const searchCapabilities = (indexed: boolean, compressed: boolean, indexedMinimum = 1, compressedMinimum = 1) => ({
@@ -21,6 +23,21 @@ describe("ToS query operations", () => {
 
     expect(requestedUrl).toBe("/api/philosophy/snapshot");
     expect(result).toMatchObject({ snapshot_review: { current_snapshot: { projection_fingerprint: "abc" } } });
+  });
+
+  it("forwards the exact resource-kind filter through corpus search only", async () => {
+    let requestedUrl = "";
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requestedUrl = url;
+      return { schema: "tos_corpus_mcp_search_v2" } as T;
+    });
+
+    await operations.invoke("tos.search", { mode: "corpus", query: "Alpha", limit: 7, resource_kind: "work" });
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(url.pathname).toBe("/api/corpus/search");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ query: "Alpha", limit: "7", resource_kind: "work" });
+    await expect(operations.invoke("tos.search", { mode: "philosophy", query: "Alpha", limit: 7, resource_kind: "work" }))
+      .rejects.toThrow("resource_kind must be a non-empty string for corpus search");
   });
 
   it("forwards cancellation and all path constraints to the HTTP seam", async () => {
@@ -53,6 +70,14 @@ describe("ToS query operations", () => {
       alternatives: "3",
       max_depth: "7",
     });
+    await expect(operations.invoke("tos.path.find", {
+      from_id: "  ", get to_id() { throw new Error("to must remain unread"); },
+    })).rejects.toThrow("from_id is required");
+    await expect(operations.invoke("tos.path.find", {
+      from_id: "a", to_id: "b", direction: " sideways ",
+      get view_id() { throw new Error("view must remain unread"); },
+    })).rejects.toThrow("unsupported value: sideways");
+    expect(calls).toHaveLength(1);
   });
 
   it("preserves explicit empty filters as a no-match request", async () => {
@@ -135,6 +160,20 @@ describe("ToS query operations", () => {
       rank: "2",
       include_semantic_neighbors: "true",
     });
+    const reads: string[] = [];
+    await expect(operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      get query() { reads.push("query"); return "  "; },
+      get language() { throw new Error("language must remain unread"); },
+    })).rejects.toThrow("query is required");
+    expect(reads).toEqual(["query"]);
+    await expect(operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: "x", language: " FR ",
+      get rank() { throw new Error("rank must remain unread"); },
+    })).rejects.toThrow("unsupported value: fr");
+    await operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: " x ", language: " RU ", rank: {valueOf: () => 101.9},
+    }, {signal: controller.signal});
+    expect(new URL(requestedUrl, "http://tos.local").searchParams.get("rank")).toBe("100");
   });
 
   it("routes source descent and dossiers through their backend surfaces", async () => {
@@ -148,6 +187,7 @@ describe("ToS query operations", () => {
       node_id: "philosophy.eras.bronze-age",
       max_depth: 7,
       limit: 250,
+      at_least_commit_seq: "9007199254740993",
     });
     await operations.invoke("tos.dossier.inspect", {
       object_id: "tos.link.cdli.cdlb-2006-1.pdf",
@@ -156,7 +196,9 @@ describe("ToS query operations", () => {
 
     const descent = new URL(requested[0], "http://tos.local");
     expect(descent.pathname).toBe("/api/source/navigation/philosophy.eras.bronze-age");
-    expect(Object.fromEntries(descent.searchParams)).toEqual({ max_depth: "7", limit: "250" });
+    expect(Object.fromEntries(descent.searchParams)).toEqual({
+      max_depth: "7", limit: "250", at_least_commit_seq: "9007199254740993",
+    });
     const dossier = new URL(requested[1], "http://tos.local");
     expect(dossier.pathname).toBe("/api/source/dossiers/tos.link.cdli.cdlb-2006-1.pdf");
     expect(Object.fromEntries(dossier.searchParams)).toEqual({ limit: "80" });
@@ -193,6 +235,42 @@ describe("ToS query operations", () => {
       kind_ids: "concept",
       predicate_ids: "relates",
     });
+  });
+
+  it("posts only the source-text query envelope and preserves the selected PG page", async () => {
+    const calls: Array<{url: string; options?: RequestInit}> = [];
+    const response = {
+      operation_profile: "tos_source_text_search_v1",
+      selection: {
+        consumer_id: "reader-a",
+        profile_id: "selected-text-v2",
+        profile_sha256: "abc",
+        selection_seq: 7,
+      },
+      hits: [{ document_id: "doc-a" }],
+      next_cursor: "opaque-next",
+    };
+    const controller = new AbortController();
+    const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {
+      calls.push({url, options});
+      return response as T;
+    });
+
+    const result = await operations.invoke("tos.source-text.search", {
+      query: "  Über  ", document_types: ["agent"], source_paths: ["ToS/source-witnesses/agents"],
+      limit: 12, cursor: "opaque-before", ignored: "not forwarded",
+    }, {signal: controller.signal});
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe("/api/source-text/search");
+    expect(calls[0].options?.method).toBe("POST");
+    expect(calls[0].options?.signal).toBe(controller.signal);
+    expect(calls[0].options?.headers).toMatchObject({"content-type": "application/json"});
+    expect(JSON.parse(String(calls[0].options?.body))).toEqual({
+      query: "  Über  ", document_types: ["agent"], source_paths: ["ToS/source-witnesses/agents"],
+      limit: 12, cursor: "opaque-before",
+    });
+    expect(result).toBe(response);
   });
 
   it("selects compressed when indexed is unavailable and preserves opaque cursor, filters and page data", async () => {
@@ -354,4 +432,24 @@ describe("ToS query operations", () => {
     await expect(operations.invoke("tos.knowledge.search", { query: "fate" })).rejects.toBe(backendError);
     expect(requested).toEqual(["/api/knowledge/search/capabilities", "/api/knowledge/search?mode=indexed&query=fate&limit=40"]);
   });
+});
+
+// The public selector observes inherited descriptors and accessors lazily;
+// transport must not snapshot them or reinterpret opaque UTF-16 query units.
+it("preserves demand-driven capability reads and opaque UTF16 query counting", () => {
+  const reads: string[] = [];
+  let indexReads = 0;
+  const capabilities = { get modes() {
+    reads.push("modes");
+    return {get indexed() {
+      reads.push("indexed"); indexReads++;
+      return Object.create({available:true,min_normalized_query_code_points:indexReads===3?4:3});
+    },get compressed() { throw new Error("compressed must remain unread"); }};
+  }};
+  expect(() => chooseKnowledgeSearchMode(capabilities,"indexed","a")).toThrow("requires at least 4 normalized query characters");
+  expect(reads).toEqual(["modes","indexed","indexed","indexed"]);
+  const scalarCaps = {modes:{indexed:{available:true,min_normalized_query_code_points:3}}};
+  expect(chooseKnowledgeSearchMode(scalarCaps,undefined,"\ud800İ")).toBe("indexed");
+  expect(() => chooseKnowledgeSearchMode(scalarCaps,undefined,"\ud800😀")).toThrow("shorter than the minimum");
+  expect(() => chooseKnowledgeSearchMode({get modes(){throw new Error("not read");}},"invalid","a")).toThrow("must be indexed or compressed");
 });

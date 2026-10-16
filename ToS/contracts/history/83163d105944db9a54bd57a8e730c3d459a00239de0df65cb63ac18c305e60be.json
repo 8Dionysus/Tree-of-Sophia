@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json",
+  "title": "Source-owned knowledge assessment event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "assessment_id", "subject", "policy", "profile_id", "authority", "competence", "reviewer", "decision", "rationale", "language", "evidence", "counterevidence_search", "limits", "method", "issued_at", "supersedes"],
+  "properties": {
+    "schema_version": {"const": "tos_knowledge_assessment_v1"},
+    "assessment_id": {"type": "string", "pattern": "^tos\\.review\\.[a-z0-9][a-z0-9._-]*$"},
+    "subject": {"$ref": "#/$defs/exactRef"},
+    "policy": {"$ref": "#/$defs/exactRef"},
+    "profile_id": {"type": "string", "minLength": 1},
+    "authority": {"$ref": "#/$defs/exactRef"},
+    "competence": {"$ref": "#/$defs/exactRef"},
+    "reviewer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["actor_id", "kind"],
+      "properties": {
+        "actor_id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["human", "agent", "mixed"]}
+      }
+    },
+    "decision": {"enum": ["admit", "admit-with-limits", "reject", "dispute", "defer", "withdraw"]},
+    "rationale": {"type": "string", "minLength": 1},
+    "language": {"type": "string", "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"},
+    "evidence": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["record", "stance", "locator"],
+        "properties": {
+          "record": {"$ref": "#/$defs/exactRef"},
+          "stance": {"enum": ["supports", "challenges", "context"]},
+          "locator": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "counterevidence_search": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "note"],
+      "properties": {
+        "status": {"enum": ["searched", "not-searched", "not-applicable"]},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
+    "limits": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "method": {
+      "type": "object", "additionalProperties": false,
+      "required": ["procedure_ref", "invocation_ref", "model_ref", "execution_profile"],
+      "properties": {
+        "procedure_ref": {"type": "string", "minLength": 1},
+        "invocation_ref": {"type": "string", "minLength": 1},
+        "model_ref": {"type": ["string", "null"], "minLength": 1},
+        "execution_profile": {"$ref": "#/$defs/exactRef"}
+      }
+    },
+    "issued_at": {"type": "string", "format": "date-time"},
+    "supersedes": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/exactRef"}}
+  },
+  "allOf": [
+    {"if": {"properties": {"decision": {"const": "admit-with-limits"}}}, "then": {"properties": {"limits": {"minItems": 1}}}},
+    {"if": {"properties": {"decision": {"const": "withdraw"}}}, "then": {"properties": {"supersedes": {"minItems": 1}}}}
+  ],
+  "$defs": {
+    "exactRef": {
+      "description": "Versioned record identity and canonical-json SHA-256, not byte fixity or authorization.",
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "version": {"type": "integer", "minimum": 1},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

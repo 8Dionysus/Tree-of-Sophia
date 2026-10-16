@@ -10,8 +10,12 @@
 | owner | `mechanics/questbook/parts/obligation-boundary/` |
 | next route | root `QUESTBOOK.md` or root `quests/` when public records change |
 | tools | boundary doc and questbook route card |
-| check | `python mechanics/questbook/scripts/validate_questbook_surface.py`; `python scripts/validate_mechanics_topology.py` |
+| check | `tos-ops-mechanics-plan --repo-root . --questbook-validate`; `tos-ops-mechanics-plan --repo-root . --mechanics-topology-validate` |
 
 ## Payload
 
 - `docs/QUESTBOOK_TOS_INTEGRATION.md`
+
+Reading progress stays a reflection owned by the selected ToS branch. When it
+creates a tracked obligation, use root `QUESTBOOK.md` and `quests/`. Progress
+reflection grants no score, rank, gameplay or canon authority.

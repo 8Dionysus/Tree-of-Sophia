@@ -158,7 +158,7 @@ canon retain their respective owner routes.
 
 `ToS/contracts/human-form.schema.json` and `human-form-template.schema.json`
 define the source records. The pure owner mechanic is
-`mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py`.
+`rust/crates/tos-validation/src/source_forms.rs`.
 It returns `ready`, `invalid`, `unavailable`, `stale`, `restricted`,
 `needs-assessment` or `over-budget`. `ready` reports successful rendering. Acceptance of the represented assertion
 is recorded by its own assessment. Rejections and disputes remain in the separate
@@ -260,7 +260,7 @@ the common reader and focus operation; access performs no assessment command.
 When these two carriers represent the same subject, the common reader requires
 identical source bodies and selected assessed packets. Mixing ordinary and
 assessed carriers, different journal observations or different wording fails
-assembly. Python and Worker consumers reject malformed snapshot annotations;
+assembly. Native access and Worker compatibility consumers reject malformed snapshot annotations;
 these checks validate transport; fresh grants and substantive review remain
 with the assessment owner.
 The optional `assessment_snapshot` field extends the closed materialization
@@ -270,7 +270,7 @@ local packets, preserving the complete annotation.
 Assessed source-copy and freeform packets use the same snapshot transport.
 When a packet contains the separate parent `subject_assessment`, the observation
 also declares `subject_assessment_required=true`. Losing either side fails the
-reader instead of producing a standalone positive form. Python and Worker check
+reader instead of producing a standalone positive form. Native access and Worker check
 the exact parent subject, policy/use agreement, journal shape, withdrawal refs,
 limits and non-endorsement boundary without re-evaluating a policy or treating a
 parent rejection as rejection of its attributed wording. Unknown admission
@@ -282,7 +282,7 @@ This optional input produces a **local research candidate**. Context and assessm
 and artifact-consumer clearance before publication or runtime connection. The
 ordinary deterministic builders and source-parity checks use no private owner
 configuration and keep their existing output. See the
-[local builder commands](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-builds).
+[local builder commands](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-candidates).
 The local CLI requires a separate new JSON target outside repository sources
 (or within private `.git` state), atomically creates it with mode `0600`, and
 never replaces an existing file. `--check` compares that candidate with current
@@ -320,7 +320,7 @@ and publication have their own owner commands.
 The corpus index retains the original node unchanged in `properties` and
 attaches the derived form collection separately. Normalized readers bind it
 to the exact canonical source digest; byte fixity of the original file remains
-separate. Python and Worker use the same native identity check. Stale source or
+separate. Native access and Worker use the same native identity check. Stale source or
 form references remain stale, with no fallback to ID-derived wording. This is
 an additive schema/adapter transition: older closed readers must update or
 refuse it, not silently strip the source fields or form context. Full source
@@ -335,7 +335,7 @@ the exact bibliographic record. The subject retains its own record and identity.
 graph objects until the source owner rebinds successor forms; older wording and exact dependencies remain in
 `prior_forms`. The adjacent set stores wording and its exact source bindings.
 
-`scripts/source_witness_human_forms.py` provides the first metadata-only
+`rust/crates/tos-command/src/source_forms.rs` provides the first metadata-only
 adapter: whole `preferred_label` and `variant_labels/*/value` names, and whole
 `notes` hover text. Identity status and equivalence posture remain mandatory;
 a variant also retains all its source metadata, including unknown members.
@@ -468,7 +468,7 @@ separately.
 
 The graph builder validates the declared Claim profile, carries the forms on
 the Claim node itself, and binds the adjacent file digest.
-Python and Worker/D1 choose forms from `source_claim.claim_id/claim_version`
+Native access and Worker/D1 choose forms from `source_claim.claim_id/claim_version`
 and the source digest. A carrier exposing both metadata and Claim bindings is
 ambiguous and refused. This does not alter the stronger source Claim or create
 a direct fact edge. Legacy Claim streams still need an explicit family adapter,
@@ -625,7 +625,7 @@ grammar. The independently chosen owner configuration binds the local account,
 creator, exact source route, authority reference, allowed operations/IDs and
 expiry; submitted prose cannot supply or widen that scope.
 
-`mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py`
+`rust/crates/tos-command/src/source_command.rs`
 implements this first Growth adapter. Discovery names semantic metadata fields;
 preparation constructs complete source-copy bindings from the same field and
 context rules as the existing bibliographic reader. Preparation writes nothing.

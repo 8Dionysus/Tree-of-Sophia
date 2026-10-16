@@ -1,3 +1,4 @@
+import {requireKnownView,reloadableFocus} from './page-view-rules';
 export type PageSelection = {
   id: string;
   kind: "node" | "edge" | "cluster" | "item";
@@ -99,21 +100,11 @@ export function isPageCommandCancellation(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
-export function requireKnownViewId(viewId: string, knownViewIds: Iterable<string>): void {
-  if (!viewId || !new Set(knownViewIds).has(viewId)) {
-    throw new Error(`unknown Tree of Sophia view: ${viewId || "(empty)"}`);
-  }
+export function requireKnownViewId(viewId:string,knownViewIds:Iterable<string>):void {
+  requireKnownView(viewId,knownViewIds);
 }
-
-export function reloadableFocusId(
-  selected: PageSelection | null,
-  selectedGraphId: string | null,
-  reloadableIds: Iterable<string>,
-): string {
-  const allowed = new Set(reloadableIds);
-  const selectedId = selected?.id || "";
-  if (selectedId && allowed.has(selectedId)) return selectedId;
-  return selectedGraphId && allowed.has(selectedGraphId) ? selectedGraphId : "";
+export function reloadableFocusId(selected:PageSelection|null,selectedGraphId:string|null,reloadableIds:Iterable<string>):string {
+  return reloadableFocus(selected,selectedGraphId,reloadableIds);
 }
 
 export function createPageCommandRegistry(

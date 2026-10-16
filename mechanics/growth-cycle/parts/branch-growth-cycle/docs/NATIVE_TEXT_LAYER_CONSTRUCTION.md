@@ -20,9 +20,11 @@ grant.
 
 ## Separately selected extraction grant
 
-The common `source_commands.py` front door dispatches the protected mode-0600
-`tos_local_text_layer_create_owner_v1` configuration to
-`source_text_layer_commands.py`. Its exact top-level fields are:
+The native `tos-native-owner-command source-commands` front door dispatches the
+protected mode-0600 `tos_local_text_layer_create_owner_v1` configuration to
+the `owner-local-text-layer-create` handler in
+`rust/crates/tos-command/src/source_native_text_cli.rs`, backed by
+`source_text_layer_entry.rs`. Its exact top-level fields are:
 
 - `schema_version`, current local `uid`, `principal_id`, `authority_ref`,
   `expires_at`, and `allowed_operations: ["text-layer.create"]`;
@@ -68,8 +70,8 @@ selected owner rights, not a legal assessment or a way to create those rights.
 
 ## Narrow, versioned extraction profile
 
-`scripts/source_text_layer_proposal.py` owns the pure implementation and exact
-`DEFAULT_POLICY` object, tagged `tos_xhtml_text_extraction_policy_v1`. Passing
+`rust/crates/tos-command/src/source_text_layer_xml.rs` owns the pure extractor;
+`source_text_layer_proposal.rs` owns its versioned policy and layer constructor, tagged `tos_xhtml_text_extraction_policy_v1`. Passing
 a different policy object is unsupported; the retained policy's raw bytes and
 digest are bound by the layer. The command selects no caller-supplied code.
 
@@ -95,7 +97,7 @@ use their dedicated routes.
 Resource ceilings are explicit: original File 512 MiB; ordinary non-ZIP64,
 single-disk ZIP with at most 2,048 members, 1 MiB central directory, 1,024-byte
 names, 16 MiB per expanded ZIP member and 64 MiB declared aggregate expansion.
-Actual directory counts are checked before `ZipInfo` allocation. Selected
+Actual directory counts are checked before native ZIP entry allocation. Selected
 stored/deflated member data is streamed with bounded expansion, local/central
 name checks, exact size, CRC and raw SHA-256; encrypted, duplicate, escaping or
 symlink members fail. The stricter XHTML profile accepts at most 8 MiB, 65,536
@@ -164,14 +166,15 @@ compatible.
 
 ## Additive correction, normalization and supplied-result recording
 
-`owner-local-text-layer-derive` is a separate discoverable handler in the same
-`source_text_layer_commands.py` module. Its protected mode-0600 grant is
+`owner-local-text-layer-derive` is a separate discoverable native handler in
+`rust/crates/tos-command/src/source_native_text_cli.rs`, backed by
+`source_text_layer_derived_entry.rs`. Its protected mode-0600 grant is
 `tos_local_text_layer_derive_owner_v1`. It selects exactly one operation:
 
 - `text-layer.correct`: apply explicitly supplied ordered code-point edit
   proposals to one exact predecessor, preserving everything outside them;
 - `text-layer.normalize`: actually execute one declared NFC, NFD, NFKC or NFKD
-  transformation under the named Python Unicode database version;
+  transformation under the named declared Unicode database version;
 - `text-layer.record-transcription`: record supplied manual or model
   transcription bytes, without executing the reported upstream transcription;
 - `text-layer.record-ocr`: record supplied OCR bytes, without launching an OCR
@@ -308,7 +311,21 @@ owner OCR route, plus exact `material.input_representation` binding to the
 retained image, one-based page, frozen render manifest/sample plan and unsigned
 historical receipt. The fixed `abyss-stack` retained-page verifier authenticates
 the new OCR execution and honest current input-verification capture. ToS never
-runs a renderer or OCR provider through this recording operation.
+runs a renderer or OCR provider through this recording operation. This profile
+is served only by the native Rust command; Python layer construction and
+metadata readers do not accept owner-OCR configurations.
+
+These selected owner-OCR handlers have an optional external-verifier runtime
+prerequisite. Their protected grant selects an `abyss-stack` source root and
+commit, exact adapter digest, and receipt/signature/public-key digests. The
+native command invokes only the selected adapter's `verify` or `verify-record`
+mode via `/usr/bin/python3`; it never invokes OCR execution. The adapter imports
+Pillow and checks the signed receipt with machine-managed Cosign and its trusted
+root. These requirements apply only when one of the owner-OCR handlers is
+selected; ordinary ToS native use and the installed default client do not gain
+a Python dependency. Discovery remains static and does not probe verifier
+availability; missing dependencies and verification failures refuse the
+selected operation.
 
 The immutable 12-file package includes copied signed receipt, signature and
 public key. Metadata-only source resolution authenticates these three files

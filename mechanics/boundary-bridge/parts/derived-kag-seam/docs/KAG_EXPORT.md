@@ -35,24 +35,28 @@ supporting ToS surfaces; the public entry remains a compatibility mirror.
 
 ## Tooling
 
-`scripts/build_kag_export.py` is the explicit export builder and verifier:
+The standard installed `tos-ops-mechanics-plan` entry exposes the explicit
+accepted-corpus export builder and verifier, owned by
+`rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`:
 
 ```text
-python scripts/build_kag_export.py build --store STORE --revision REVISION --output EXPORT
-python scripts/build_kag_export.py verify EXPORT
+tos-ops-mechanics-plan --repo-root REPO --kag-source-export-build --store STORE --revision REVISION --output EXPORT
+tos-ops-mechanics-plan --repo-root REPO --kag-source-export-verify --kag-export EXPORT
 ```
 
-The builder reads the selected CorpusStore revision and calls the pure renderer
-`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
-with the staged source root. The renderer has no ambient repository or output
-paths and only returns deterministic payload data.
+The installed native builder reads the selected CorpusStore revision and calls
+`derived_kag::build_payload` with the staged source root. This renderer has no
+ambient repository or output paths and only returns deterministic payload data.
+The old checkout-writing `--derived-kag-generate` and `--derived-kag-validate`
+flags are compatibility controls, not accepted-corpus export or publication.
 
-`scripts/publish_kag_release.py` owns the local handoff to an explicitly
-selected downstream KAG consumer and its release status:
+`rust/crates/tos-ops-mechanics-plan/src/kag_release.rs` owns the local handoff to an explicitly
+selected downstream KAG consumer and its release status. The foreign interpreter
+is explicit; ToS calls the aoa-kag validation CLI and contains no Python probe:
 
 ```text
-python scripts/publish_kag_release.py build --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
-python scripts/publish_kag_release.py status --release-root RELEASE_ROOT --expected-revision REVISION
+tos-kag-release build --repo-root REPO --python KAG_PYTHON --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
+tos-kag-release status --release-root RELEASE_ROOT --expected-revision REVISION
 ```
 
 The selected KAG owner supplies the actual consumer and records consumer
@@ -61,8 +65,8 @@ admission, public deployment, or the consumer's semantic validation.
 
 ## Current verification
 
-For an already built export, run `python scripts/build_kag_export.py verify
-EXPORT`. Verification checks the exact source membership, bytes, manifest
+For an already built export, run the native `--kag-source-export-verify
+--kag-export EXPORT` operation above. Verification checks the exact source membership, bytes, manifest
 identity, source return, capsule structure, and bounded relation targets.
 
 For a published downstream result, use the `status` command above. The release
@@ -78,7 +82,6 @@ fresh export with the explicit `build` command above. No in-checkout Git parity
 step or software merge gate is part of this export route; the selected revision
 and its verified source objects are the input boundary.
 
-If the downstream owner needs a release, invoke `scripts/publish_kag_release.py
-build` with explicit store, revision, KAG root, and release root paths. Keep
+If the downstream owner needs a release, invoke `tos-kag-release build` with explicit store, revision, KAG root, and release root paths. Keep
 consumer semantics, status, lag, admission, and deployment with their actual
 owners.

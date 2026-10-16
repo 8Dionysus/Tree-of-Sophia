@@ -1,0 +1,22 @@
+[package]
+name = "tos-web-rules"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen", "dep:js-sys", "tos-foundation/wasm"]
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+tos-query = { path = "../tos-query", default-features = false }
+wasm-bindgen = { version = "0.2.128", optional = true }
+js-sys = { version = "=0.3.105", optional = true }
+
+[lib]
+name = "tos_web_rules"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]

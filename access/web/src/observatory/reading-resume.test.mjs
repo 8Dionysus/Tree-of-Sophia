@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {emptyReading,validateReading,readReading} from './reading-resume.mjs';
 import {createReadingMemory} from './reading-state.mjs';

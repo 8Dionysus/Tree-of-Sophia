@@ -56,7 +56,7 @@
       ],
       "properties": {
         "method": {"const": "monotonic-http-request-v1"},
-        "clock": {"const": "python.time.perf_counter_ns"},
+        "clock": {"enum": ["python.time.perf_counter_ns", "rust.std.time.Instant"]},
         "timing_scope": {"const": "request-through-first-16384-response-bytes"},
         "probe_url": {"type": "string", "format": "uri"},
         "started_at": {"type": "string", "format": "date-time"},

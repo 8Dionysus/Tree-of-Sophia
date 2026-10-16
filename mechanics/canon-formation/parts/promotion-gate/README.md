@@ -10,4 +10,4 @@
 | owner | `mechanics/canon-formation/parts/promotion-gate/` |
 | next route | `ToS/canon/` only after review and validators pass |
 | tools | `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`, canon validators |
-| check | `python scripts/validate_tree_node_contracts.py` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --tree-node-validate` |

@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_local_object_link_command_v1",
+  "operation": "prepare-create",
+  "subject": {
+    "schema_version": "tos_corpus_record_v1",
+    "record_type": "work",
+    "record_id": "tos.work.synthetic.link-subject",
+    "record_version": 1,
+    "preferred_label": "Synthetic source object",
+    "variant_labels": [],
+    "identity_status": "provisional",
+    "source_refs": [
+      "https://example.invalid/observation"
+    ],
+    "external_identifiers": [],
+    "same_as_posture": "no_equivalence_claim",
+    "expression_claim_refs": [],
+    "supersedes_ref": null,
+    "notes": "Synthetic source object; no historical truth asserted."
+  },
+  "link": {
+    "schema_version": "tos_source_link_v1",
+    "record_type": "link",
+    "record_id": "tos.link.synthetic.object",
+    "record_version": 1,
+    "preferred_label": "Synthetic reported address",
+    "variant_labels": [],
+    "identity_status": "provisional",
+    "source_refs": [
+      "https://example.invalid/observation"
+    ],
+    "external_identifiers": [],
+    "same_as_posture": "no_equivalence_claim",
+    "link_kind": "landing_page",
+    "uri": "https://example.invalid/object",
+    "provider_label": "Synthetic provider",
+    "interface_type": "web",
+    "access_status": "unknown",
+    "observed_at": "2026-09-09T00:00:00Z",
+    "observation_ref": "https://example.invalid/observation",
+    "mutable": true,
+    "association_claim_refs": [
+      "tos.claim.synthetic.object-link"
+    ],
+    "provenance_event_ref": "tos.event.synthetic.object-link",
+    "supersedes_ref": null
+  },
+  "claim": {
+    "schema_version": "tos_object_link_claim_v2",
+    "claim_id": "tos.claim.synthetic.object-link",
+    "claim_type": "relation",
+    "claim_version": 1,
+    "assertion_layer": "forensic_observation",
+    "subject_ref": "tos.work.synthetic.link-subject",
+    "predicate": "described_by",
+    "object": "tos.link.synthetic.object",
+    "evidence_refs": [
+      "https://example.invalid/observation"
+    ],
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "model:synthetic"
+    },
+    "provenance_event_ref": "tos.event.synthetic.object-link",
+    "epistemic_status": "reported",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "qualifiers": {
+      "statement": "A synthetic record reports this address for the selected object.",
+      "statement_language": "en",
+      "statement_script": "Latn",
+      "link_role": "Reported descriptive address only.",
+      "availability_is_rights_conclusion": false,
+      "unknown_context": {
+        "flag": false,
+        "missing": null
+      }
+    },
+    "assessment_refs": []
+  },
+  "forms": [
+    {
+      "form_id": "tos.form.synthetic.link-name",
+      "field_id": "metadata.preferred-name"
+    }
+  ],
+  "claim_forms": [
+    {
+      "form_id": "tos.form.synthetic.link-statement",
+      "field_id": "claim.statement"
+    }
+  ],
+  "reason": "Synthetic association, no rights or source content admitted."
+}

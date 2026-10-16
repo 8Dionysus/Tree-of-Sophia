@@ -1,8 +1,14 @@
+import {lensPosition} from './lens-projection-rules.mjs';
+import {browserFocusSpec,browserRelationSpec} from './lens-spec-rules.mjs';
+import {checkClientPacket,checkClientSearchRequest,checkClientExplorationRequest,checkClientMaterialRequest,checkClientMaterialPacket,checkClientClaimScope,checkClientClaimPath,packetSetKey} from './client-packet-rules.mjs';
+import {sourceDossierReference,sourceDossierRequest,sourceDossierCheck} from './source-dossier-rules.mjs';
+import {checkClientInspection} from './client-inspection-rules.mjs';
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
+import {normalizeClaimReference} from './claim-reference-rust.mjs';
 import {verifyReadableContext} from './readable-context.mjs';
 import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 import {DEFAULT_RESPONSE_BYTES,validateResponseLimit,ResponseLimitError,withAbort,cancelResponseBody,readBoundedJSON} from './bounded-response.mjs';
@@ -13,11 +19,7 @@ export const BUDGET = Object.freeze({nodes:40,relations:80});
 // owner-provided bibliographic route.  Keep the browser window narrower than
 // the backend contract; truncation remains an honest dossier field.
 export const SOURCE_DOSSIER_LIMIT = 64;
-const SOURCE_DOSSIER_KINDS=new Set(['work','expression','edition','item','file','link']);
-const SOURCE_DOSSIER_REF=/^tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-export const isSourceDossierRef=value=>typeof value==='string'&&value.length>0&&value.length<=2048&&SOURCE_DOSSIER_REF.test(value);
-// Transport bounds are not a license to draw or retain every delivered page.
-export const EXPLORATION_BUDGET = Object.freeze({nodes:302,relations:101});
+export const isSourceDossierRef=sourceDossierReference;
 const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
@@ -31,38 +33,33 @@ export class RequestError extends Error {
 export function sameJson(left,right){
   if(left===right)return true;
   if(left===null||right===null||typeof left!=='object'||typeof right!=='object')return false;
-  if(Array.isArray(left)||Array.isArray(right))return Array.isArray(left)&&Array.isArray(right)
-    &&left.length===right.length&&left.every((value,index)=>sameJson(value,right[index]));
+  if(Array.isArray(left)||Array.isArray(right)){
+    return Array.isArray(left)&&Array.isArray(right)&&left.length===right.length
+      &&left.every((value,index)=>sameJson(value,right[index]));
+  }
   const keys=Object.keys(left);
-  return keys.length===Object.keys(right).length&&keys.every(key=>Object.hasOwn(right,key)&&sameJson(left[key],right[key]));
+  return keys.length===Object.keys(right).length
+    &&keys.every(key=>Object.hasOwn(right,key)&&sameJson(left[key],right[key]));
 }
-// Only these two exploration fields are sets in the owner's normalizer.
-// Keep the original request on the wire so invalid input is not repaired into
-// a valid command by client-side deduplication; compare its accepted meaning.
+// The original request remains on the wire; only comparison treats the two
+// owner-normalized selector fields as sets.
 export function explorationRequestMatches(normalized,requested){
-  return !!normalized&&Object.entries(requested).every(([key,value])=>{
-    if(!['sources','predicate_ids'].includes(key))return sameJson(normalized[key],value);
+  if(!normalized)return false;
+  return Object.entries(requested).every(([key,value])=>{
+    if(!packetSetKey(key))return sameJson(normalized[key],value);
     const actual=normalized[key];
-    return Array.isArray(value)&&Array.isArray(actual)&&value.every(item=>typeof item==='string')
-      &&new Set(actual).size===actual.length&&new Set(value).size===actual.length&&value.every(item=>actual.includes(item));
+    if(!Array.isArray(value)||!Array.isArray(actual))return false;
+    const strings=value.every(item=>typeof item==='string');
+    if(!strings)return strings;
+    return new Set(actual).size===actual.length&&new Set(value).size===actual.length
+      &&value.every(item=>actual.includes(item));
   });
 }
 // Durable reading stores selectors only. The backend must supply and validate
 // the complete current path again; saved IDs never stand in for source text.
 export function validateClaimReference(value,claimId){
-  const id=value=>typeof value==='string'&&value.length>0&&value.length<=2048;
-  const ids=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(id);
-  if(!value||value.claimId!==claimId||!id(claimId)||!id(value.pathId)||!id(value.relationType)
-    ||!ids(value.nodeIds,3)||value.nodeIds.length!==3||value.nodeIds[1]!==claimId
-    ||!ids(value.relationIds,2)||value.relationIds.length!==2
-    ||!ids(value.detailRelationIds,BUDGET.relations-2)
-    ||!ids(value.closureNodeIds,BUDGET.nodes)||!value.closureNodeIds.length
-    ||new Set(value.closureNodeIds).size!==value.closureNodeIds.length
-    ||!value.nodeIds.every(nodeId=>value.closureNodeIds.includes(nodeId))
-    ||new Set([...value.relationIds,...value.detailRelationIds]).size!==value.relationIds.length+value.detailRelationIds.length)
-    throw new FormContractError();
-  return Object.fromEntries(['claimId','pathId','relationType','nodeIds','relationIds','detailRelationIds','closureNodeIds']
-    .map(key=>[key,structuredClone(value[key])]));
+  try{return normalizeClaimReference(value,claimId);}
+  catch{throw new FormContractError();}
 }
 export function claimMaterialReference(packet,path){
   const closure=claimPathClosure(packet,path);
@@ -151,19 +148,8 @@ export function nodeLabels(raw,preferred=uiLanguage()){
     fullName,original:sourceOriginalTitle(raw),labelLanguage:form?.lang||null,
     kind:localized(raw.display.kind_label,raw.kind_id,preferred),description:localized(raw.display.summary,'',preferred)};
 }
-export function focusSpec(id,{depth=1}={}) {
-  return {schema_version:'tos_lens_spec_v1',lens_id:'sophia-observatory-focus',language:'ru',detail:'compact',explain:true,
-    seed:{focus_node_id:id},node_query:{enabled:false},
-    traversal:{depth,direction:'either',profile:'overview'},limits:{...BUDGET,groups:8}};
-}
-export function relationSpec(relation){
-  const spec=focusSpec(relation.from_id,{depth:0});
-  spec.node_query={enabled:true,filters:[{field:'id',op:'in',value:[relation.from_id,relation.to_id]}]};
-  // An explicitly selected relation is not subject to overview omissions.
-  spec.traversal.profile='all';
-  spec.relation_query={filters:[{field:'id',op:'eq',value:relation.id}]};
-  spec.limits={nodes:2,relations:1,groups:2};return spec;
-}
+export function focusSpec(id,{depth=1}={}){return browserFocusSpec(id,depth);}
+export function relationSpec(relation){return browserRelationSpec(relation);}
 
 // A public route may name either a node or a relation.  Relation identities
 // are intentionally opaque, so the route resolver asks the owner relation
@@ -172,168 +158,77 @@ export function relationSpec(relation){
 // must never be mistaken for a node route.
 export async function compileRouteCenter(client,id,signal,expected=null,{depth=1}={}) {
   if(typeof id!=='string'||!id.trim())throw new ContractError(t("Не указан центр области."));
-  let relationError=null;
-  try {
+  let relationError;
+  try{
     const identity=await client.inspect('relation',id,signal,expected);
     const revision=identity.packet.source_revision;
     const packet=await client.compile(relationSpec(identity.match),signal,revision);
     if(!packet.relations.some(item=>item.id===id))throw new ContractError(t("Выбранное отношение отсутствует в области."));
     return {packet,kind:'relation',relation:identity.match};
-  } catch(error) {
-    relationError=error;
+  }catch(error){
     if(!(error instanceof RequestError)||error.status!==404)throw error;
+    relationError=error;
   }
-  try {
+  try{
     const packet=await client.compile(focusSpec(id,{depth}),signal,expected);
     return {packet,kind:'node'};
-  } catch(error) {
-    // Preserve the node error: it describes the requested route more
-    // accurately than the probing relation 404.
-    if(relationError&&error instanceof RequestError&&error.status===404)throw relationError;
+  }catch(error){
+    if(error instanceof RequestError&&error.status===404)throw relationError;
     throw error;
   }
 }
-export function checkRevision(packet,expected) {
-  if(!/^[a-f0-9]{64}$/.test(packet?.source_revision||''))throw new ContractError(t("Ответ не содержит версию данных."));
-  if(expected&&packet.source_revision!==expected)throw new RevisionError();
+
+export function checkRevision(packet,expected){return validateClientPacket(packet,0,expected);}
+function validateDossierRequest(objectId,limit){
+  if(!sourceDossierRequest(objectId,limit))throw new ContractError(t('Неверная ссылка на досье источника.'));
+}
+export function validateSourceDossier(packet,expected){
+  const code=sourceDossierCheck(packet,expected);
+  if(code)throw new ContractError(t(code==='chain'?'Неполная цепочка источника.':'Неподдерживаемое досье источника.'));
   return packet;
 }
-const boundedStrings=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(item=>typeof item==='string'&&item.length>0&&item.length<=2048);
-const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const boundedRecords=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(record);
-export function validateSourceDossier(packet,expected) {
-  const summary=packet?.agent_summary,object=packet?.object;
-  if(packet?.schema!=='tos_source_dossier_v1'||!isSourceDossierRef(expected)||packet.object_id!==expected
-    ||!record(object)||object.node_id!==expected
-    ||!SOURCE_DOSSIER_KINDS.has(object.node_kind)
-    ||!summary||typeof summary.technical_access!=='string'||!summary.technical_access
-    ||typeof summary.rights_posture!=='string'||!summary.rights_posture
-    ||typeof summary.human_review_required!=='boolean'||typeof summary.can_conclude_legal_openness!=='boolean'
-    ||summary.availability_is_license!==false
-    ||!boundedStrings(summary.rights_scope_refs,SOURCE_DOSSIER_LIMIT)
-    ||!boundedStrings(summary.gaps,SOURCE_DOSSIER_LIMIT)
-    ||!boundedRecords(packet.relations,SOURCE_DOSSIER_LIMIT)
-    ||!boundedRecords(packet.rights,SOURCE_DOSSIER_LIMIT)
-    ||!boundedRecords(packet.tree_paths,SOURCE_DOSSIER_LIMIT)
-    ||!boundedStrings(packet.source_refs,SOURCE_DOSSIER_LIMIT*16)
-    ||typeof packet.truncated!=='boolean'
-    ||!(typeof packet.authority_note==='string'&&packet.authority_note.length>0
-      ||record(packet.authority_note)))
-    throw new ContractError(t("Неподдерживаемое досье источника."));
-  if(!packet.chain||typeof packet.chain!=='object'||Array.isArray(packet.chain)
-    ||Object.values(packet.chain).some(value=>!boundedRecords(value,SOURCE_DOSSIER_LIMIT)))
-    throw new ContractError(t("Неполная цепочка источника."));
+function packetRefusal(code){
+  if(code==='revision')throw new RevisionError();
+  if(code==='items'||code==='item')inspectionRefusal(code);
+  const messages={missing_revision:'Ответ не содержит версию данных.',lens:'Неподдерживаемый контракт линзы.',
+    area:'Неподдерживаемый контракт области.',budget:'Область превышает бюджет отображения.',
+    endpoints:'Связь не содержит оба конца в области.',focus:'Центр отсутствует в области.',
+    exploration:'Неполная страница раскрытия связей.',request_area:'Сервер вернул другую область раскрытия.',search:'Неподдерживаемый ответ поиска.'};
+  throw new ContractError(t(messages[code]));
+}
+function inspectionRefusal(code){
+  if(code==='revision')throw new RevisionError();
+  const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
+    items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
+    match:'Не найден точный идентификатор карточки.',endpoints:'Неполные концы связи.'};
+  throw new ContractError(t(messages[code]));
+}
+const packetHost={localized,sameJson,scene:knowledgeScene,add:(left,right)=>left+right,requestMatches:explorationRequestMatches,claimPathFor,claimPathClosure};
+function validateClientPacket(packet,mode,expected=null,previous=null,options={}){
+  const code=checkClientPacket(packet,mode,expected,previous,options,packetHost);
+  if(code)packetRefusal(code);
   return packet;
 }
-function checkItems(items,kind) {
-  if(!Array.isArray(items))throw new ContractError(t("Неверный список объектов."));
-  const ids=new Set();
-  for(const item of items) {
-    if(!item||typeof item.id!=='string'||!item.id||ids.has(item.id)||!item.display
-      ||!localized(kind==='node'?item.display.title:item.display.label)
-      ||!/^[a-f0-9]{64}$/.test(item.content_revision||'')
-      ||!Array.isArray(item.source_refs)||!item.source_refs.length
-      ||item.source_refs.some(ref=>typeof ref!=='string'||!ref))throw new ContractError(t("Неполный или повторяющийся объект."));
-    ids.add(item.id);
-  }
-  return ids;
-}
-function validateArea(packet,expected=null,limits=BUDGET) {
-  checkRevision(packet,expected);
-  if(packet.authority_boundary?.is_source!==false
-    ||packet.authority_boundary?.is_canon!==false
-    ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый контракт области."));
-  if(!Array.isArray(packet.nodes)||!Array.isArray(packet.relations)
-    ||packet.nodes.length>limits.nodes||packet.relations.length>limits.relations)throw new ContractError(t("Область превышает бюджет отображения."));
-  const ids=checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');
-  if(packet.relations.some(r=>!ids.has(r.from_id)||!ids.has(r.to_id)))throw new ContractError(t("Связь не содержит оба конца в области."));
-  if(packet.focus&&!ids.has(packet.focus.node_id))throw new ContractError(t("Центр отсутствует в области."));
+function validateArea(packet,expected=null){return validateClientPacket(packet,1,expected);}
+export function validateLens(packet,expected=null){return validateClientPacket(packet,2,expected);}
+export function validateExploration(packet,expected=null,previous=null){return validateClientPacket(packet,3,expected,previous);}
+function validateExplorationRequestPacket(packet,query,previous){
+  const code=checkClientExplorationRequest(packet,query,previous,packetHost);
+  if(code)packetRefusal(code);
   return packet;
 }
-export function validateLens(packet,expected=null) {
-  if(packet?.schema!=='tos_lens_result_v1')throw new ContractError(t("Неподдерживаемый контракт линзы."));
-  return validateArea(packet,expected);
+function materialResult(result){
+  if(typeof result!=='string')return result;
+  if(result==='revision')throw new RevisionError();
+  if(result==='form')throw new FormContractError();
+  const messages={material_request:'Неверный запрос материала.',match:'Не найден точный идентификатор карточки.',material_scope:'Ответ вышел за границы выбранного материала.'};
+  throw new ContractError(t(messages[result]));
 }
-// Exploration pages remain exploration packets; they are never relabelled as a LensResult.
-export function validateExploration(packet,expected=null,previous=null) {
-  if(packet?.schema==='tos_exploration_result_v2')return validateOriginExploration(packet,expected,previous);
-  validateArea(packet,expected);
-  const page=packet.page,ids=new Set(packet.nodes.map(n=>n.id));
-  if(packet.schema!=='tos_exploration_result_v1'||packet.writes_to_tree!==false
-    ||!/^[a-f0-9]{64}$/.test(packet.snapshot_revision||'')
-    ||!['paused','complete','limit_reached'].includes(packet.status)
-    ||!packet.focus||!Number.isInteger(page?.number)||page.number<1
-    ||page.scope!=='resumable-neighborhood'||page.returned_nodes!==packet.nodes.length
-    ||page.returned_relations!==packet.relations.length
-    ||!Array.isArray(page.primary_node_ids)||!Array.isArray(page.context_node_ids)
-    ||page.primary_node_ids.length+page.context_node_ids.length!==ids.size
-    ||new Set([...page.primary_node_ids,...page.context_node_ids]).size!==ids.size
-    ||[...page.primary_node_ids,...page.context_node_ids].some(id=>!ids.has(id))
-    ||packet.counts?.scope!=='cumulative-discovered-not-global-total'
-    ||packet.inclusion?.authority!=='query-execution-not-semantic-proof'
-    ||(packet.status==='paused'?!/^[a-f0-9]{64}$/.test(page.next_cursor||''):page.next_cursor!==null))throw new ContractError(t("Неполная страница раскрытия связей."));
-  if(previous&&(packet.snapshot_revision!==previous.snapshot_revision
-    ||packet.focus.node_id!==previous.focus.node_id
-    ||page.number!==previous.page.number+1
-    ||JSON.stringify(packet.query)!==JSON.stringify(previous.query)))throw new RevisionError();
-  return packet;
+function validateSearchRequest(cursor,search_mode,limit){
+  const code=checkClientSearchRequest(cursor,search_mode,limit);
+  if(code)packetRefusal(code);
 }
 
-// Exact packet-local origin closure. A relation origin retains its own ID and
-// both version-bound endpoints; it is not rewritten into a node focus.
-function validateOriginExploration(packet,expected,previous){
-  validateArea(packet,expected,EXPLORATION_BUDGET);
-  const fail=()=>{throw new ContractError(t("Неполная страница раскрытия связей."));};
-  const revision=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
-  const nodes=new Map(packet.nodes.map(item=>[item.id,item])),relations=new Map(packet.relations.map(item=>[item.id,item]));
-  const origin=packet.origin,page=packet.page,query=packet.query;
-  if(packet.writes_to_tree!==false||!revision(packet.snapshot_revision)
-    ||!['tos-exploration-execution-v6','tos-exploration-d1-execution-v6'].includes(packet.execution_version)
-    ||!['paused','complete','limit_reached'].includes(packet.status)
-    ||!origin||!['node','relation'].includes(origin.kind)||!revision(origin.content_revision)
-    ||typeof origin.id!=='string'||!origin.id||!query||query.schema_version!=='tos_exploration_request_v2'
-    ||query.source_revision!==packet.source_revision||!query.origin
-    ||['kind','id','content_revision'].some(key=>query.origin[key]!==origin[key])
-    ||Object.hasOwn(packet,'focus')||!Number.isSafeInteger(page?.number)||page.number<1
-    ||page.scope!=='resumable-neighborhood'||page.returned_nodes!==nodes.size||page.returned_relations!==relations.size
-    ||!Number.isSafeInteger(page.work_units)||page.work_units<0||page.work_units>512
-    ||packet.counts?.scope!=='cumulative-discovered-not-global-total'
-    ||packet.inclusion?.authority!=='query-execution-not-semantic-proof'
-    ||(packet.status==='paused'?!revision(page.next_cursor):page.next_cursor!==null)
-    ||(packet.status==='limit_reached'?!['session_nodes','session_relations'].includes(packet.limit_reason):packet.limit_reason!==null))fail();
-  for(const [kind,items] of [['node',nodes],['relation',relations]]){
-    const primary=page[`primary_${kind}_ids`],context=page[`context_${kind}_ids`];
-    if(!Array.isArray(primary)||!Array.isArray(context)||primary.length+context.length!==items.size
-      ||new Set([...primary,...context]).size!==items.size||[...primary,...context].some(id=>!items.has(id)))fail();
-    const inclusion=packet.inclusion[`${kind}s`];
-    if(!inclusion||Object.keys(inclusion).length!==items.size||[...items.keys()].some(id=>!Object.hasOwn(inclusion,id)))fail();
-  }
-  const item=(origin.kind==='node'?nodes:relations).get(origin.id);
-  if(!item||item.content_revision!==origin.content_revision)fail();
-  if(origin.kind==='node'){
-    if(Object.hasOwn(origin,'endpoints')||page.context_relation_ids.length
-      ||!page.context_node_ids.includes(origin.id)||packet.inclusion.nodes[origin.id]?.kind!=='origin')fail();
-  }else{
-    if(page.context_relation_ids.length!==1||page.context_relation_ids[0]!==origin.id
-      ||packet.inclusion.relations[origin.id]?.kind!=='origin')fail();
-    for(const side of ['from','to']){
-      const endpoint=origin.endpoints?.[side],node=nodes.get(item[`${side}_id`]);
-      if(!endpoint||!node||endpoint.node_id!==node.id||endpoint.content_revision!==node.content_revision
-        ||endpoint.entity_id!==node.entity_id||!page.context_node_ids.includes(node.id)
-        ||packet.inclusion.nodes[node.id]?.kind!=='origin-endpoint')fail();
-    }
-  }
-  if(previous&&(previous.schema!==packet.schema||previous.status!=='paused'
-    ||packet.source_revision!==previous.source_revision||packet.snapshot_revision!==previous.snapshot_revision
-    ||packet.execution_version!==previous.execution_version||page.number!==previous.page.number+1
-    ||(packet.status==='paused'&&page.next_cursor===previous.page.next_cursor)
-    ||!sameJson(packet.origin,previous.origin)||!sameJson(packet.query,previous.query)))throw new RevisionError();
-  // Reuse the producer's rule. No client-specific identity or Claim folding.
-  const focusNode=origin.kind==='node'?origin.id:null;
-  let scene;try{scene=knowledgeScene(packet.nodes,packet.relations,focusNode,origin.kind==='relation'?origin.id:null);}catch{fail();}
-  if(!sameJson(packet.scene,scene))fail();
-  return packet;
-}
 // Abort and generation checking are both needed: a completed response can race
 // cancellation, and transports used in tests or future caches may ignore abort.
 export class RequestSlots {
@@ -350,6 +245,11 @@ export class RequestSlots {
       throw error;
     } finally {if(this.slots.get(name)===controller)this.slots.delete(name);}
   }
+}
+function validateClientInspection(packet,kind,id,expected,contentRevision){
+  const result=checkClientInspection(packet,kind,id,expected,contentRevision,localized);
+  if(typeof result==='string')inspectionRefusal(result);
+  return result.match;
 }
 export class KnowledgeClient {
   constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000,maxResponseBytes=DEFAULT_RESPONSE_BYTES}={}){
@@ -395,69 +295,44 @@ export class KnowledgeClient {
     } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
   }
   async search(query,signal,{cursor=null,search_mode,source_revision,limit=6}={}) {
-    if(cursor!==null&&(typeof cursor!=='string'||cursor.length>65536)
-      ||cursor!==null&&!search_mode||!Number.isSafeInteger(limit)||limit<1||limit>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
+    validateSearchRequest(cursor,search_mode,limit);
     const capabilities=await this.request('/search/capabilities',{signal});
     const mode=chooseKnowledgeSearchMode(capabilities,search_mode,query);
-    const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit,mode,...(cursor!==null?{cursor}:{})}),{signal}),source_revision);
-    if(packet.schema!==(mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3')
-      ||packet.nodes?.length>limit||packet.relations?.length>limit||packet.page?.cursor!==cursor
-      ||packet.page.limit_per_kind!==limit||typeof packet.page.has_more!=='boolean'
-      ||(packet.page.has_more?typeof packet.page.next_cursor!=='string'||!packet.page.next_cursor:packet.page.next_cursor!==null)
-      ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый ответ поиска."));
-    checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return {...packet,search_mode:mode};
+    const packet=validateClientPacket(await this.request('/search?'+new URLSearchParams({query,limit,mode,...(cursor!==null?{cursor}:{})}),{signal}),5,source_revision,null,{mode,cursor,limit});
+    return {...packet,search_mode:mode};
   }
   async compile(spec,signal,expected=null){const owned=structuredClone(spec),packet=validateLens(await this.request('/lenses/compile',{signal,body:owned}),expected);executedSpecs.set(packet,owned);return packet;}
   async explore(query,signal,expected,previous=null){
     const packet=validateExploration(await this.request('/explore',{signal,body:query}),expected,previous);
-    if(!previous&&!explorationRequestMatches(packet.query,query))throw new ContractError(t("Сервер вернул другую область раскрытия."));
+    validateExplorationRequestPacket(packet,query,previous);
     return packet;
   }
   async inspect(kind,id,signal,expected,contentRevision) {
-    const packet=checkRevision(await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal}),expected);
-    if(packet.schema!==(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'))throw new ContractError(t("Неверная карточка."));
-    checkItems(packet.matches,kind);
-    const match=packet.matches.find(item=>item.id===id);
-    if(!match)throw new ContractError(t("Не найден точный идентификатор карточки."));
-    if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
-    if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError(t("Неполные концы связи."));}
+    const packet=await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal});
+    const match=validateClientInspection(packet,kind,id,expected,contentRevision);
     return {packet,match};
   }
   async sourceDossier(objectId,signal,{limit=SOURCE_DOSSIER_LIMIT}={}) {
-    if(!isSourceDossierRef(objectId)||!Number.isSafeInteger(limit)||limit<1||limit>SOURCE_DOSSIER_LIMIT)
-      throw new ContractError(t("Неверная ссылка на досье источника."));
+    validateDossierRequest(objectId,limit);
     // This is the fixed same-origin source-navigation route.  It is not a
     // configurable endpoint and never becomes an arbitrary filesystem URL.
     const packet=await this.request('/api/source/dossiers/'+encodeURIComponent(objectId)+'?'+new URLSearchParams({limit:String(limit)}),{signal});
     return validateSourceDossier(packet,objectId);
   }
   async readMaterial(kind,id,signal,expected,contentRevision,{language='ru',relation=null}={}) {
-    if(!['node','relation'].includes(kind)||typeof id!=='string'||!id||!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
-    let spec,revision=expected;
-    if(kind==='relation'){
-      // Restore stores only identities. Inspect discovers the endpoints, then
-      // one real full LensResult supplies every displayed field at that version.
-      if(!relation||relation.id!==id||!expected){
-        const identity=await this.inspect(kind,id,signal,expected,contentRevision);
-        relation=identity.match;revision=identity.packet.source_revision;
-      }
-      spec=relationSpec(relation);
-    }else{
-      spec=focusSpec(id,{depth:0});spec.traversal.profile='all';spec.limits={nodes:1,relations:0,groups:1};
+    const inspect=materialResult(checkClientMaterialRequest(kind,id,language,relation,expected));
+    let revision=expected;
+    if(inspect){
+      const identity=await this.inspect(kind,id,signal,expected,contentRevision);
+      relation=identity.match;revision=identity.packet.source_revision;
     }
+    let spec;
+    if(kind==='relation')spec=relationSpec(relation);
+    else{spec=focusSpec(id,{depth:0});spec.traversal.profile='all';spec.limits={nodes:1,relations:0,groups:1};}
     spec={...spec,lens_id:'sophia-observatory-material',language,detail:'full',explain:false};
     const packet=await this.compile(spec,signal,revision);
-    const match=packet[kind==='node'?'nodes':'relations'].find(item=>item.id===id);
-    if(!match)throw new ContractError(t('Не найден точный идентификатор карточки.'));
-    if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
-    const allowed=new Set(kind==='node'?[id]:[match.from_id,match.to_id]);
-    if(packet.nodes.length!==allowed.size||packet.nodes.some(node=>!allowed.has(node.id))
-      ||packet.relations.length!==(kind==='node'?0:1))throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
-    for(const item of [...packet.nodes,...packet.relations]){
-      validateHumanForms(item,language);await verifyReadableContext(item);
-    }
-    // This UI envelope is not an invented inspect packet. Keep the original
-    // LensResult and its schema intact for validation, revision and provenance.
+    const {match}=materialResult(checkClientMaterialPacket(packet,kind,id,contentRevision));
+    for(const item of [...packet.nodes,...packet.relations]){validateHumanForms(item,language);await verifyReadableContext(item);}
     return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
   }
   async readClaimMaterial(scene,path,signal,{language='ru'}={}){
@@ -466,32 +341,21 @@ export class KnowledgeClient {
       {language,expected:scene.source_revision,versions:materialVersions(scene)});
   }
   async readClaimReference(reference,signal,{language='ru',expected=null,versions=null}={}){
-    if(!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
+    if(!contentLanguage(language))materialResult('material_request');
     const ref=validateClaimReference(reference,reference?.claimId);
     const closure={nodeIds:ref.closureNodeIds,relationIds:[...ref.relationIds,...ref.detailRelationIds]};
-    // Exact selectors supply the closure. A focus can suppress a valid compact
-    // path when that node is the Claim or is also referenced as its grounds.
     const spec={...focusSpec(ref.nodeIds[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
       node_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.nodeIds}]},
       relation_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.relationIds}]},
       traversal:{depth:0,direction:'either',profile:'all'},
       limits:{nodes:closure.nodeIds.length,relations:closure.relationIds.length,groups:closure.nodeIds.length}};
     const packet=await this.compile(spec,signal,expected);
-    const exact=(items,ids)=>items.length===ids.length&&items.every(item=>ids.includes(item.id));
-    if(!exact(packet.nodes,closure.nodeIds)||!exact(packet.relations,closure.relationIds))
-      throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
+    materialResult(checkClientClaimScope(packet,closure));
     for(const kind of ['nodes','relations'])for(const item of packet[kind]){
       if(versions&&item.content_revision!==versions[kind]?.[item.id])throw new RevisionError();
-      validateHumanForms(item,language);
-      await verifyReadableContext(item);
+      validateHumanForms(item,language);await verifyReadableContext(item);
     }
-    const selected=claimPathFor(packet,ref.claimId);if(!selected)throw new FormContractError();
-    const returned=claimPathClosure(packet,selected);
-    if(selected.id!==ref.pathId||selected.relation_type_id!==ref.relationType
-      ||JSON.stringify(selected.node_ids)!==JSON.stringify(ref.nodeIds)
-      ||JSON.stringify(selected.relation_ids)!==JSON.stringify(ref.relationIds)
-      ||!exact(returned.nodeIds.map(id=>({id})),closure.nodeIds)
-      ||!exact(returned.relationIds.map(id=>({id})),closure.relationIds))throw new FormContractError();
+    const {selected,returned}=materialResult(checkClientClaimPath(packet,ref,closure,packetHost));
     return {packet,match:returned.node,endpoints:[],path:selected};
   }
   capabilities(signal){return this.request('/explore/capabilities',{signal});}
@@ -499,26 +363,38 @@ export class KnowledgeClient {
 
 // Pure presentation mapping. Opaque IDs never merge through entity_id or title.
 // Existing positions survive replacement; they express UI layout, not meaning.
-const slots=[[0,5,70],[-124,-134,-190],[143,-97,210],[151,91,-45],[-106,135,185],[-230,-47,95],[-54,-70,300],[63,157,245],[-29,74,-225],[-403,100,-460],[-474,-2,-335],[-309,184,-350],[-506,141,-560],[-365,-18,-420],[346,17,-140],[412,-98,-315],[490,65,-275],[344,157,120],[470,202,-410]];
-function hash(id){let value=2166136261;for(const c of id)value=Math.imul(value^c.codePointAt(0),16777619);return value>>>0;}
+function compareLensNodes(a,b,focus,degree){
+  return Number(b.id===focus)-Number(a.id===focus)
+    ||(degree.get(b.id)||0)-(degree.get(a.id)||0)
+    ||a.id.localeCompare(b.id,'en');
+}
+
 export function projectLens(packet,previous=[]) {
   if(packet.schema==='tos_exploration_result_v1')validateExploration(packet);else validateLens(packet);
-  const existing=new Map(previous.map(n=>[n.id,n])),degree=new Map();
-  for(const r of packet.relations){degree.set(r.from_id,(degree.get(r.from_id)||0)+1);degree.set(r.to_id,(degree.get(r.to_id)||0)+1);}
+  const existing=new Map(previous.map(node=>[node.id,node])),degree=new Map();
+  for(const relation of packet.relations){
+    const from=relation.from_id,fromCount=degree.get(relation.from_id);degree.set(from,(fromCount||0)+1);
+    const to=relation.to_id,toCount=degree.get(relation.to_id);degree.set(to,(toCount||0)+1);
+  }
   const focus=packet.focus?.node_id;
-  const ordered=packet.nodes.slice().sort((a,b)=>(b.id===focus)-(a.id===focus)
-    ||(degree.get(b.id)||0)-(degree.get(a.id)||0)||a.id.localeCompare(b.id,'en'));
-  const currentIds=new Set(packet.nodes.map(n=>n.id));
-  const occupied=new Set(previous.filter(n=>currentIds.has(n.id)).map(n=>n.slot));
+  const ordered=packet.nodes.slice().sort((a,b)=>compareLensNodes(a,b,focus,degree));
+  const currentIds=new Set(packet.nodes.map(node=>node.id));
+  const occupied=new Set(previous.filter(node=>currentIds.has(node.id)).map(node=>node.slot));
   let nextSlot=0;
   return ordered.map((raw,index)=>{
-    const old=existing.get(raw.id);while(occupied.has(nextSlot))nextSlot++;
-    const slot=old?.slot??nextSlot++;occupied.add(slot);
-    const h=hash(raw.id),angle=slot*2.399963229728653;
-    const p=slots[slot]?.slice()||[Math.cos(angle)*(260+(slot%4)*58),Math.sin(angle)*(160+(slot%3)*47),-480+(h%740)];
-    return {id:raw.id,raw,...nodeLabels(raw),
-      main:index<8,above:index%3===1,group:raw.id===focus?1:raw.kind_id==='agent'?0:raw.kind_id==='expression'?2:1,
-      slot,p:old?.p?.slice()||p,sourcePosition:old?.sourcePosition?.slice()||p.slice(),volumeZ:old?.volumeZ??p[2],
-      pos:old?.pos?.slice()||p.slice(),target:old?.target?.slice()||p.slice()};
+    const old=existing.get(raw.id);
+    while(occupied.has(nextSlot))nextSlot++;
+    const slot=old?.slot??nextSlot++;
+    occupied.add(slot);
+    const position=lensPosition(raw.id,slot);
+    const prefix={id:raw.id,raw,...nodeLabels(raw)};
+    const main=index<8,above=index%3===1;
+    const group=raw.id===focus?1:raw.kind_id==='agent'?0:raw.kind_id==='expression'?2:1;
+    return {...prefix,main,above,group,slot,
+      p:old?.p?.slice()||position,
+      sourcePosition:old?.sourcePosition?.slice()||position.slice(),
+      volumeZ:old?.volumeZ??position[2],
+      pos:old?.pos?.slice()||position.slice(),
+      target:old?.target?.slice()||position.slice()};
   });
 }

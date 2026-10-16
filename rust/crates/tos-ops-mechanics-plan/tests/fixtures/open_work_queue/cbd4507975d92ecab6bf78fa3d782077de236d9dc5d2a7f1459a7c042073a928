@@ -1,0 +1,40 @@
+{
+  "discovery_id": "tos.discovery.earliest",
+  "status": "reconciled",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [],
+    "description": "Resolve Earliest without manufacturing later source layers.",
+    "required_properties": [
+      "work identity",
+      "earliest exact witness route"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "und"
+    ],
+    "formats": [
+      "bibliographic metadata"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/candidates/README.md"
+  },
+  "started_at": "2026-08-29T12:00:00Z",
+  "ended_at": "2026-08-29T12:00:00.125000Z",
+  "channels": [
+    {
+      "channel_id": "channel-originating-record",
+      "endpoint_url": "https://example.test/source",
+      "queried_at": "2026-08-29T12:00:00Z",
+      "elapsed_seconds": 0.125,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-originating-record",
+      "human_minutes": 0,
+      "machine_seconds": 0.125,
+      "notes": "Measured automatically; no real-human review was performed."
+    }
+  ]
+}

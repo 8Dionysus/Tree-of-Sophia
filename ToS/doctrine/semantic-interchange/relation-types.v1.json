@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 45,
+  "registry_version": 46,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -11,8 +11,7 @@
     "ToS/contracts/first-publication-chronology.schema.json",
     "ToS/contracts/provision-activity.schema.json",
     "ToS/canon/registries/predicates.csv",
-    "ToS/philosophy/trunk/relation-kinds/README.md",
-    "scripts/philosophy_graph_projection_common.py"
+    "ToS/philosophy/trunk/relation-kinds/README.md"
   ],
   "fallback_relation_type_id": "tos.relation.unmapped",
   "claim_navigation_template": {
@@ -357,7 +356,7 @@
       "inverse_labels": null,
       "definition": "Stable interchange family for historical placement while retaining the exact source-native predicate_id.",
       "lifecycle": "stable",
-      "owner_ref": "scripts/philosophy_graph_projection_common.py",
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
       "domain_type_ids": ["tos.entity.thing"],
       "range_type_ids": ["tos.entity.thing"],
       "directionality": "directed",
@@ -409,7 +408,7 @@
       "inverse_labels": null,
       "definition": "The interchange family for contestation and uncertain source relations, preserving their declared evidence and assessment status.",
       "lifecycle": "stable",
-      "owner_ref": "scripts/philosophy_graph_projection_common.py",
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
       "domain_type_ids": ["tos.entity.thing"],
       "range_type_ids": ["tos.entity.thing"],
       "directionality": "directed",
@@ -457,7 +456,7 @@
       "inverse_labels": null,
       "definition": "A derived workbench relation counting requested node or relation vocabulary for planning.",
       "lifecycle": "stable",
-      "owner_ref": "scripts/philosophy_atlas_projection_common.py",
+      "owner_ref": "ToS/philosophy/atlas/README.md",
       "domain_type_ids": ["tos.entity.philosophy-meta"],
       "range_type_ids": ["tos.entity.philosophy-meta"],
       "directionality": "directed",
@@ -481,7 +480,7 @@
       "inverse_labels": null,
       "definition": "A derived atlas or workbench containment and preparation route supporting navigation.",
       "lifecycle": "stable",
-      "owner_ref": "scripts/philosophy_atlas_projection_common.py",
+      "owner_ref": "ToS/philosophy/graph-workbench/README.md",
       "domain_type_ids": ["tos.entity.philosophy-meta"],
       "range_type_ids": ["tos.entity.philosophy-meta"],
       "directionality": "directed",

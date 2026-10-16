@@ -10,7 +10,7 @@
 | owner | `mechanics/experience/parts/governance-boundary/` |
 | next route | governance owner, not ToS canon mutation |
 | tools | docs, schemas, examples |
-| check | `python scripts/validate_mechanics_topology.py` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Payload
 

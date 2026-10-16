@@ -26,6 +26,9 @@ Commands use `tos_local_object_link_command_v1`:
   Renewal does not rewrite the original maker or capture. Changed dependencies,
   a mismatched scope or foreign third-state bytes prevent either action.
 
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+
 New homes are exactly `ToS/source-witnesses/links/<home>/link.json` and
 `ToS/source-witnesses/relations/<home>/source-claims.jsonl`. Each has its own
 source-copy Forms. The Claim home retains immutable request, runtime,
@@ -65,7 +68,7 @@ Historical retry returns the exact original receipt. Indexing and graph
 projection consume the resulting source metadata through their own builders.
 
 Focused validation:
-`mechanics/growth-cycle/tests/test_source_link_commands.py`, shared discovery,
+`tests/conformance/rust/command_object_link_cases.rs`, shared discovery,
 Claim/metadata history tests, source-witness foundation and the explicit
 semantic-registry transition baseline. All fixtures are synthetic; green
 mechanics never constitutes a real source assessment or rights acceptance.

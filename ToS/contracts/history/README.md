@@ -10,8 +10,8 @@ edit it. A changed byte sequence has another digest and another file. The
 historical `$id` still identifies its original schema path; it does not make
 this snapshot an active schema or overwrite that path.
 
-`validate_source_witness_foundation.py` can resolve a recorded schema input
-through this directory only when the active schema exists, the retained
+The native `tos-native-owner-command foundation` route can resolve a recorded
+schema input through this directory only when the active schema exists, the retained
 bytes match the exact recorded digest and their `$id` matches that active
 schema's ToS URI. The historical file is bounded to 1 MiB; symlinks, path
 escapes, wrong identities, missing bytes and malformed JSON are refused.

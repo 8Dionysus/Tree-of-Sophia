@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/semantic-relation-claim.schema.json",
+  "title": "Grounded relation involving a source-described semantic subject",
+  "description": "The registered predicate constrains endpoints. An explicit relation basis explains this particular assertion rather than inferring it from shared names or graph proximity. The exact source posture, qualifications and alternatives remain mandatory reading context; this schema does not assess the explanation.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_semantic_relation_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "object": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script", "relation_basis"],
+        "properties": {
+          "statement": {"type": "string", "pattern": "\\S"},
+          "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+          "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"},
+          "relation_basis": {"type": "string", "pattern": "\\S"}
+        }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

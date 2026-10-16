@@ -28,7 +28,10 @@
       "const": "ToS/source-witnesses"
     },
     "generated_by": {
-      "const": "scripts/build_source_witness_catalog.py"
+      "enum": [
+        "scripts/build_source_witness_catalog.py",
+        "tos-native-owner-command source-catalog build"
+      ]
     },
     "record_schema_ref": {
       "const": "ToS/contracts/corpus-record.schema.json"

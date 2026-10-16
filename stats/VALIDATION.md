@@ -3,14 +3,16 @@
 Select the exact compatible `aoa-stats` program and the exported port explicitly:
 
 ```bash
-python scripts/validate_local_stats_port.py --stats-root /path/to/aoa-stats --port /path/to/export/stats/port.manifest.json
-python -m pytest -q tests/test_local_stats_port.py
+tos-stats-release validate --stats-root /path/to/aoa-stats --port /path/to/export/stats/port.manifest.json --python /absolute/path/to/selected-owner-python
+cargo test -p tos-ops-mechanics-plan --no-default-features --test stats_release_native
 ```
 
 The reference packet is not live state, and a green validator does not make a
 measurement authoritative beyond its declared population and evidence ref.
-The wrapper does not search siblings, `.deps`, environment variables or the
-working directory for either input. A failed integration keeps its prior
+The Rust adapter does not search siblings, `.deps`, environment variables or the
+working directory for either input. The selected Python interpreter belongs to
+the external `aoa-stats` validator; ToS staging, publication and status run in Rust.
+The direct `validate` operation preserves the owner's stdout, stderr and exit code. A failed integration keeps its prior
 verified artifact and is reported separately from software release status.
 
 The bounded local tests protect this explicit invocation and failure behavior.
@@ -21,8 +23,8 @@ domain-owner derivation; changing the corpus never rewrites that old observation
 Publish the port as a separate local integration:
 
 ```sh
-python scripts/publish_stats_release.py build --source-root /path/to/selected-source --stats-root /path/to/aoa-stats --release-root /path/to/stats-releases
-python scripts/publish_stats_release.py status --release-root /path/to/stats-releases --expected-revision PORT_EXPORT_SHA256
+tos-stats-release build --source-root /path/to/selected-source --stats-root /path/to/aoa-stats --release-root /path/to/stats-releases --python /absolute/path/to/selected-owner-python
+tos-stats-release status --release-root /path/to/stats-releases --expected-revision PORT_EXPORT_SHA256
 ```
 
 The source revision returned by this command identifies the five exact port

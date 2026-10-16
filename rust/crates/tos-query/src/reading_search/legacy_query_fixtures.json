@@ -1,0 +1,3930 @@
+{
+  "schema": "tos_retained_reading_query_fixtures_v1",
+  "source_commit": "a8075cbd7f3aa9134198a494faf088fa129ad02d",
+  "source_files": [
+    {
+      "path": "scripts/query_zarathustra_reading_workbench_v1.py",
+      "sha256": "973e7f9d3b98e416cf418633fa326f7fcc563b97ddc0da2ee55af00e0b45d438"
+    },
+    {
+      "path": "scripts/query_zarathustra_concept_workbench_v1.py",
+      "sha256": "ca9bb4c046f306acfcbbdd06d1bf95306d3fad1444babfc4cba735276e9832ec"
+    },
+    {
+      "path": "scripts/build_zarathustra_concept_workbench_v1.py",
+      "sha256": "c075b5f88f664b0563cc8050478051dbc1f4e4d704c88da730ebcbdb71e8a39e"
+    },
+    {
+      "path": "scripts/build_zarathustra_morphology_theme_candidates_v1.py",
+      "sha256": "9245c7a830d5fc98fa3cb9ac923945ae5b694098b003a69090d64ca99d23e7c5"
+    },
+    {
+      "path": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
+      "sha256": "7c461b19feae5608734cbb7ca555df4772d93da38f1ec482251f02c5bd206de7"
+    }
+  ],
+  "unicode_version": "16.0.0",
+  "scope": "Entire original synthetic query responses; only current implementation references/digests are excluded. Captured after the original provider and native result compared equal. These are test data, not source assessment or runtime authority.",
+  "cases": [
+    {
+      "expected": {
+        "additional_source_candidates": [
+          {
+            "accepted": false,
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "candidate_id": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "normalization_operations": [
+                {
+                  "end_offset": 37,
+                  "exact_removed_text": "¬\n",
+                  "offset_scope": "context_local_half_open",
+                  "operation": "remove_explicit_linebreak_hyphen_mark",
+                  "start_offset": 35
+                }
+              ],
+              "source_language": "de",
+              "source_normalization_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "normalization_candidate",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "legacy_occurrence_id_asserted": false,
+            "normalization_operations": [
+              {
+                "end_offset": 37,
+                "exact_removed_text": "¬\n",
+                "offset_scope": "context_local_half_open",
+                "operation": "remove_explicit_linebreak_hyphen_mark",
+                "start_offset": 35
+              }
+            ],
+            "part": 1,
+            "rank": 1,
+            "reading_ref": "r1",
+            "russian_comparators": [
+              {
+                "alignment_id": "align",
+                "exact_text": "Русское сравнение",
+                "granularity": "sentence_candidate",
+                "role": "historical_translation_comparator_not_source_authority",
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ]
+              }
+            ],
+            "selection_reason": "explicit_linebreak_normalization_matches_selected_german_form",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "Schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": null,
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 40,
+                "exact_sha256": "b6b04637235aedf3a958a193789bbc55962f07b0f4309846af075ea81c6495ec",
+                "exact_text": "Schick¬\nsal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 29,
+                "status": "normalization_candidate",
+                "surface_unit_ref": null
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schick¬\nsal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "not_applicable",
+              "role": "not_applicable",
+              "scope": "no_legacy_occurrence",
+              "status": "not_applicable"
+            },
+            "translation_truth_asserted": false,
+            "witness_order": 1
+          }
+        ],
+        "authority_boundary": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance",
+        "concept_candidate_ref": "candidate-concept",
+        "concept_search_route": {
+          "accepted_concept_ref": null,
+          "aliases": [
+            {
+              "display": "Schicksal",
+              "language": "de",
+              "normalized": "schicksal",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "fate",
+              "language": "en",
+              "normalized": "fate",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "судьба",
+              "language": "ru",
+              "normalized": "судьба",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "Aufgabe",
+              "language": "de",
+              "normalized": "aufgabe",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Bestimmung",
+              "language": "de",
+              "normalized": "bestimmung",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Nothwendigkeit",
+              "language": "de",
+              "normalized": "nothwendigkeit",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Verhängniss",
+              "language": "de",
+              "normalized": "verhängniss",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Zufall",
+              "language": "de",
+              "normalized": "zufall",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "жребий",
+              "language": "ru",
+              "normalized": "жребий",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "задача",
+              "language": "ru",
+              "normalized": "задача",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "назначение",
+              "language": "ru",
+              "normalized": "назначение",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "необходимость",
+              "language": "ru",
+              "normalized": "необходимость",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "рок",
+              "language": "ru",
+              "normalized": "рок",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "случай",
+              "language": "ru",
+              "normalized": "случай",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "удел",
+              "language": "ru",
+              "normalized": "удел",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            }
+          ],
+          "current_request_id": "request-two",
+          "current_request_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+          "identity_basis_ref": "tos.concept-request-key.sid-74d83c95057d4a91a7b72cce7493020a",
+          "identity_posture": "stable_navigation_identity_not_semantic_concept_identity",
+          "labels": {
+            "de": "Schicksal",
+            "en": "fate",
+            "ru": "судьба"
+          },
+          "route_id": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+        },
+        "content_posture": "local_runtime_exact_source_return_not_tracked",
+        "coverage": {
+          "additional_source_candidate_count": 1,
+          "grouping_excludes_additional_candidates": true,
+          "grouping_scope": "all_matching_source_occurrences_before_limit",
+          "limit": 1,
+          "occurrence_anchor_status_counts": {
+            "exact": 2
+          },
+          "occurrences_with_formula_membership": 1,
+          "original_language": "de",
+          "primary_result_scope": "verified_predecessor_concept_request_occurrences",
+          "returned_additional_source_candidates": 1,
+          "returned_source_results": 1,
+          "russian_query_is_source_authority": false,
+          "semantic_neighbors_included": false,
+          "source_evidence_tier_counts": {
+            "direct_or_morphological": 2
+          },
+          "speaker_status_counts": {
+            "proposed": 2
+          },
+          "total_source_results": 2,
+          "whole_book_semantic_recall_asserted": false
+        },
+        "groups": {
+          "by_formula": [
+            {
+              "formula_id": "member",
+              "matching_count": 1,
+              "normalized_text": "😀 „schicksal!",
+              "returned_occurrence_refs": [
+                "candidate-0"
+              ],
+              "whole_book_occurrence_count": 3
+            }
+          ],
+          "by_speaker": [
+            {
+              "matching_count": 1,
+              "modality": null,
+              "performed_role": null,
+              "returned_occurrence_refs": [
+                "candidate-0"
+              ],
+              "role": "dwarf",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            {
+              "matching_count": 1,
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "returned_occurrence_refs": [],
+              "role": "narrator",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            }
+          ],
+          "formula_group_posture": "overlapping_exact_normalized_formulas_not_semantic_equivalence",
+          "no_formula_membership_count": 1,
+          "scope": "all_matching_source_occurrences_before_limit"
+        },
+        "limitations": [
+          "Speaker attribution and sentence/clause alignment remain reviewable candidates, not accepted interpretation.",
+          "Morphology and dependencies are inherited heuristic candidates; this layer does not repair full contextual syntax.",
+          "Counts cover the selected concept request, not every possible semantic mention of a concept.",
+          "Additional explicit line-break normalization candidates have separate IDs/counts and are not hidden in predecessor result groups.",
+          "Formula membership is exact after declared normalization; nearby formulas are not membership.",
+          "English translation and etymological research are on-demand agent work and have not been executed by this query."
+        ],
+        "provenance": {
+          "concept_predecessor": {
+            "result_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
+            "result_schema_sha256": "c19b5b9d7d5d31fd26b1cd3f5aba317104068bed73e18de9bc6b7d0242a56667",
+            "source_manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+            "source_manifest_sha256": "5785910325a4194edaed459d628ca9f07a9b4888bcf54af7e2ef339a2b555e92"
+          },
+          "method_version": "synthetic-original-v1",
+          "reading_layer": {
+            "manifest_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/manifest.v1.json",
+            "manifest_sha256": "ada96fc1abe2c74b27092a40c20ff06fb0292746c1fd6c83b81460b220b3dd53",
+            "private_database_ref": "reading #db.sqlite3",
+            "private_database_sha256": "57d3962e39a43acfe906ed278930597b7311875cc29ff3f16b49b5fb9fdb6432"
+          },
+          "result_schema_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json",
+          "result_schema_sha256": "77469a03683e71e3c08ba72cf1b436a837d6fc766c925ecb13e9f851e9e8734c"
+        },
+        "query_analysis": {
+          "input": "судьбы",
+          "language": "ru",
+          "match_method": "morphology_alias_candidate",
+          "matched_alias": "судьба",
+          "matched_alias_language": "ru",
+          "matched_alias_role": "preferred_label",
+          "normalized": "судьбы",
+          "resolution_status": "ambiguous",
+          "resolution_tier": "direct"
+        },
+        "reading_search_result_id": "tos.navigation.reading-search-result.sid-03a8b5bd6faa27b83b90e21d27bc3ea3",
+        "results": [
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "dwarf"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": null,
+                "performed_role": null,
+                "quote_depth": 1,
+                "role": "dwarf",
+                "segment_id": "quoted",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [
+                "member"
+              ],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "quoted",
+              "task_ref": "task-0"
+            },
+            "english_on_demand_task_ref": "task-0",
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "contains_occurrence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 1,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:судьбы",
+                "status": "ambiguous",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-0"
+              },
+              {
+                "from_ref": "candidate-0",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-0"
+              }
+            ],
+            "rank": 1,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-0",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "ambiguous",
+                "unit_ref": "clause"
+              }
+            ],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-0",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-0",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 12,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 3,
+                "status": "proposed",
+                "surface_unit_ref": "surface-0"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "dwarf"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": null,
+              "performed_role": null,
+              "role": "dwarf",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "quoted",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 1,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          }
+        ],
+        "schema_version": "tos_zarathustra_reading_search_result_v1",
+        "search_result_id": "tos.navigation.concept-search-result.sid-93242fa6474622a4aa79b8bbca045d32",
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "group_by": [
+        "speaker",
+        "formula"
+      ],
+      "include_semantic_neighbors": false,
+      "language": "ru",
+      "limit": 1,
+      "query": "судьбы"
+    },
+    {
+      "expected": {
+        "additional_source_candidates": [],
+        "authority_boundary": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance",
+        "concept_candidate_ref": "candidate-concept",
+        "concept_search_route": {
+          "accepted_concept_ref": null,
+          "aliases": [
+            {
+              "display": "Schicksal",
+              "language": "de",
+              "normalized": "schicksal",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "fate",
+              "language": "en",
+              "normalized": "fate",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "судьба",
+              "language": "ru",
+              "normalized": "судьба",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "Aufgabe",
+              "language": "de",
+              "normalized": "aufgabe",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Bestimmung",
+              "language": "de",
+              "normalized": "bestimmung",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Nothwendigkeit",
+              "language": "de",
+              "normalized": "nothwendigkeit",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Verhängniss",
+              "language": "de",
+              "normalized": "verhängniss",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Zufall",
+              "language": "de",
+              "normalized": "zufall",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "жребий",
+              "language": "ru",
+              "normalized": "жребий",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "задача",
+              "language": "ru",
+              "normalized": "задача",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "назначение",
+              "language": "ru",
+              "normalized": "назначение",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "необходимость",
+              "language": "ru",
+              "normalized": "необходимость",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "рок",
+              "language": "ru",
+              "normalized": "рок",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "случай",
+              "language": "ru",
+              "normalized": "случай",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "удел",
+              "language": "ru",
+              "normalized": "удел",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            }
+          ],
+          "current_request_id": "request-two",
+          "current_request_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+          "identity_basis_ref": "tos.concept-request-key.sid-74d83c95057d4a91a7b72cce7493020a",
+          "identity_posture": "stable_navigation_identity_not_semantic_concept_identity",
+          "labels": {
+            "de": "Schicksal",
+            "en": "fate",
+            "ru": "судьба"
+          },
+          "route_id": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+        },
+        "content_posture": "local_runtime_exact_source_return_not_tracked",
+        "coverage": {
+          "additional_source_candidate_count": 1,
+          "grouping_excludes_additional_candidates": true,
+          "grouping_scope": "all_matching_source_occurrences_before_limit",
+          "limit": 0,
+          "occurrence_anchor_status_counts": {
+            "exact": 2
+          },
+          "occurrences_with_formula_membership": 1,
+          "original_language": "de",
+          "primary_result_scope": "verified_predecessor_concept_request_occurrences",
+          "returned_additional_source_candidates": 0,
+          "returned_source_results": 0,
+          "russian_query_is_source_authority": false,
+          "semantic_neighbors_included": false,
+          "source_evidence_tier_counts": {
+            "direct_or_morphological": 2
+          },
+          "speaker_status_counts": {
+            "proposed": 2
+          },
+          "total_source_results": 2,
+          "whole_book_semantic_recall_asserted": false
+        },
+        "groups": {
+          "scope": "all_matching_source_occurrences_before_limit"
+        },
+        "limitations": [
+          "Speaker attribution and sentence/clause alignment remain reviewable candidates, not accepted interpretation.",
+          "Morphology and dependencies are inherited heuristic candidates; this layer does not repair full contextual syntax.",
+          "Counts cover the selected concept request, not every possible semantic mention of a concept.",
+          "Additional explicit line-break normalization candidates have separate IDs/counts and are not hidden in predecessor result groups.",
+          "Formula membership is exact after declared normalization; nearby formulas are not membership.",
+          "English translation and etymological research are on-demand agent work and have not been executed by this query."
+        ],
+        "provenance": {
+          "concept_predecessor": {
+            "result_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
+            "result_schema_sha256": "c19b5b9d7d5d31fd26b1cd3f5aba317104068bed73e18de9bc6b7d0242a56667",
+            "source_manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+            "source_manifest_sha256": "5785910325a4194edaed459d628ca9f07a9b4888bcf54af7e2ef339a2b555e92"
+          },
+          "method_version": "synthetic-original-v1",
+          "reading_layer": {
+            "manifest_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/manifest.v1.json",
+            "manifest_sha256": "ada96fc1abe2c74b27092a40c20ff06fb0292746c1fd6c83b81460b220b3dd53",
+            "private_database_ref": "reading #db.sqlite3",
+            "private_database_sha256": "57d3962e39a43acfe906ed278930597b7311875cc29ff3f16b49b5fb9fdb6432"
+          },
+          "result_schema_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json",
+          "result_schema_sha256": "77469a03683e71e3c08ba72cf1b436a837d6fc766c925ecb13e9f851e9e8734c"
+        },
+        "query_analysis": {
+          "input": "Schicksal",
+          "language": "de",
+          "match_method": "exact_alias",
+          "matched_alias": "Schicksal",
+          "matched_alias_language": "de",
+          "matched_alias_role": "preferred_label",
+          "normalized": "schicksal",
+          "resolution_status": "proposed",
+          "resolution_tier": "direct"
+        },
+        "reading_search_result_id": "tos.navigation.reading-search-result.sid-559d92c704c9419f66866c2191f207e4",
+        "results": [],
+        "schema_version": "tos_zarathustra_reading_search_result_v1",
+        "search_result_id": "tos.navigation.concept-search-result.sid-68f62787d8cbd17e8c32abb5f31f4937",
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "group_by": [],
+      "include_semantic_neighbors": false,
+      "language": "de",
+      "limit": 0,
+      "query": "Schicksal"
+    },
+    {
+      "expected": {
+        "additional_source_candidates": [
+          {
+            "accepted": false,
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "candidate_id": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "normalization_operations": [
+                {
+                  "end_offset": 37,
+                  "exact_removed_text": "¬\n",
+                  "offset_scope": "context_local_half_open",
+                  "operation": "remove_explicit_linebreak_hyphen_mark",
+                  "start_offset": 35
+                }
+              ],
+              "source_language": "de",
+              "source_normalization_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "normalization_candidate",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "legacy_occurrence_id_asserted": false,
+            "normalization_operations": [
+              {
+                "end_offset": 37,
+                "exact_removed_text": "¬\n",
+                "offset_scope": "context_local_half_open",
+                "operation": "remove_explicit_linebreak_hyphen_mark",
+                "start_offset": 35
+              }
+            ],
+            "part": 1,
+            "rank": 1,
+            "reading_ref": "r1",
+            "russian_comparators": [
+              {
+                "alignment_id": "align",
+                "exact_text": "Русское сравнение",
+                "granularity": "sentence_candidate",
+                "role": "historical_translation_comparator_not_source_authority",
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ]
+              }
+            ],
+            "selection_reason": "explicit_linebreak_normalization_matches_selected_german_form",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "Schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": null,
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 40,
+                "exact_sha256": "b6b04637235aedf3a958a193789bbc55962f07b0f4309846af075ea81c6495ec",
+                "exact_text": "Schick¬\nsal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 29,
+                "status": "normalization_candidate",
+                "surface_unit_ref": null
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schick¬\nsal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "not_applicable",
+              "role": "not_applicable",
+              "scope": "no_legacy_occurrence",
+              "status": "not_applicable"
+            },
+            "translation_truth_asserted": false,
+            "witness_order": 1
+          }
+        ],
+        "authority_boundary": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance",
+        "concept_candidate_ref": "candidate-concept",
+        "concept_search_route": {
+          "accepted_concept_ref": null,
+          "aliases": [
+            {
+              "display": "Schicksal",
+              "language": "de",
+              "normalized": "schicksal",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "fate",
+              "language": "en",
+              "normalized": "fate",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "судьба",
+              "language": "ru",
+              "normalized": "судьба",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "Aufgabe",
+              "language": "de",
+              "normalized": "aufgabe",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Bestimmung",
+              "language": "de",
+              "normalized": "bestimmung",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Nothwendigkeit",
+              "language": "de",
+              "normalized": "nothwendigkeit",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Verhängniss",
+              "language": "de",
+              "normalized": "verhängniss",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Zufall",
+              "language": "de",
+              "normalized": "zufall",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "жребий",
+              "language": "ru",
+              "normalized": "жребий",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "задача",
+              "language": "ru",
+              "normalized": "задача",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "назначение",
+              "language": "ru",
+              "normalized": "назначение",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "необходимость",
+              "language": "ru",
+              "normalized": "необходимость",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "рок",
+              "language": "ru",
+              "normalized": "рок",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "случай",
+              "language": "ru",
+              "normalized": "случай",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "удел",
+              "language": "ru",
+              "normalized": "удел",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            }
+          ],
+          "current_request_id": "request-two",
+          "current_request_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+          "identity_basis_ref": "tos.concept-request-key.sid-74d83c95057d4a91a7b72cce7493020a",
+          "identity_posture": "stable_navigation_identity_not_semantic_concept_identity",
+          "labels": {
+            "de": "Schicksal",
+            "en": "fate",
+            "ru": "судьба"
+          },
+          "route_id": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+        },
+        "content_posture": "local_runtime_exact_source_return_not_tracked",
+        "coverage": {
+          "additional_source_candidate_count": 1,
+          "grouping_excludes_additional_candidates": true,
+          "grouping_scope": "all_matching_source_occurrences_before_limit",
+          "limit": 2,
+          "occurrence_anchor_status_counts": {
+            "exact": 2
+          },
+          "occurrences_with_formula_membership": 1,
+          "original_language": "de",
+          "primary_result_scope": "verified_predecessor_concept_request_occurrences",
+          "returned_additional_source_candidates": 1,
+          "returned_source_results": 2,
+          "russian_query_is_source_authority": false,
+          "semantic_neighbors_included": false,
+          "source_evidence_tier_counts": {
+            "direct_or_morphological": 2
+          },
+          "speaker_status_counts": {
+            "proposed": 2
+          },
+          "total_source_results": 2,
+          "whole_book_semantic_recall_asserted": false
+        },
+        "groups": {
+          "by_formula": [
+            {
+              "formula_id": "member",
+              "matching_count": 1,
+              "normalized_text": "😀 „schicksal!",
+              "returned_occurrence_refs": [
+                "candidate-0"
+              ],
+              "whole_book_occurrence_count": 3
+            }
+          ],
+          "formula_group_posture": "overlapping_exact_normalized_formulas_not_semantic_equivalence",
+          "no_formula_membership_count": 1,
+          "scope": "all_matching_source_occurrences_before_limit"
+        },
+        "limitations": [
+          "Speaker attribution and sentence/clause alignment remain reviewable candidates, not accepted interpretation.",
+          "Morphology and dependencies are inherited heuristic candidates; this layer does not repair full contextual syntax.",
+          "Counts cover the selected concept request, not every possible semantic mention of a concept.",
+          "Additional explicit line-break normalization candidates have separate IDs/counts and are not hidden in predecessor result groups.",
+          "Formula membership is exact after declared normalization; nearby formulas are not membership.",
+          "English translation and etymological research are on-demand agent work and have not been executed by this query."
+        ],
+        "provenance": {
+          "concept_predecessor": {
+            "result_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
+            "result_schema_sha256": "c19b5b9d7d5d31fd26b1cd3f5aba317104068bed73e18de9bc6b7d0242a56667",
+            "source_manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+            "source_manifest_sha256": "5785910325a4194edaed459d628ca9f07a9b4888bcf54af7e2ef339a2b555e92"
+          },
+          "method_version": "synthetic-original-v1",
+          "reading_layer": {
+            "manifest_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/manifest.v1.json",
+            "manifest_sha256": "ada96fc1abe2c74b27092a40c20ff06fb0292746c1fd6c83b81460b220b3dd53",
+            "private_database_ref": "reading #db.sqlite3",
+            "private_database_sha256": "57d3962e39a43acfe906ed278930597b7311875cc29ff3f16b49b5fb9fdb6432"
+          },
+          "result_schema_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json",
+          "result_schema_sha256": "77469a03683e71e3c08ba72cf1b436a837d6fc766c925ecb13e9f851e9e8734c"
+        },
+        "query_analysis": {
+          "input": "Ｆａｔｅ",
+          "language": "en",
+          "match_method": "exact_alias",
+          "matched_alias": "fate",
+          "matched_alias_language": "en",
+          "matched_alias_role": "preferred_label",
+          "normalized": "fate",
+          "resolution_status": "proposed",
+          "resolution_tier": "direct"
+        },
+        "reading_search_result_id": "tos.navigation.reading-search-result.sid-9b0fafb9d195c93406c837d2e1403a6f",
+        "results": [
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "dwarf"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": null,
+                "performed_role": null,
+                "quote_depth": 1,
+                "role": "dwarf",
+                "segment_id": "quoted",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [
+                "member"
+              ],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "quoted",
+              "task_ref": "task-0"
+            },
+            "english_on_demand_task_ref": "task-0",
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "contains_occurrence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 1,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:en:fate",
+                "status": "proposed",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-0"
+              },
+              {
+                "from_ref": "candidate-0",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-0"
+              }
+            ],
+            "rank": 1,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-0",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "ambiguous",
+                "unit_ref": "clause"
+              }
+            ],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-0",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-0",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 12,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 3,
+                "status": "proposed",
+                "surface_unit_ref": "surface-0"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "dwarf"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": null,
+              "performed_role": null,
+              "role": "dwarf",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "quoted",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 1,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          },
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 2,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:en:fate",
+                "status": "proposed",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-1"
+              },
+              {
+                "from_ref": "candidate-1",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-1"
+              }
+            ],
+            "rank": 2,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-1",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-1",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-1",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 27,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 18,
+                "status": "proposed",
+                "surface_unit_ref": "surface-1"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 2,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          }
+        ],
+        "schema_version": "tos_zarathustra_reading_search_result_v1",
+        "search_result_id": "tos.navigation.concept-search-result.sid-6c4f5414079b5c5ebb157e85717036e7",
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "group_by": [
+        "formula"
+      ],
+      "include_semantic_neighbors": false,
+      "language": "en",
+      "limit": 2,
+      "query": "Ｆａｔｅ"
+    },
+    {
+      "expected": {
+        "additional_source_candidates": [
+          {
+            "accepted": false,
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "candidate_id": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "normalization_operations": [
+                {
+                  "end_offset": 37,
+                  "exact_removed_text": "¬\n",
+                  "offset_scope": "context_local_half_open",
+                  "operation": "remove_explicit_linebreak_hyphen_mark",
+                  "start_offset": 35
+                }
+              ],
+              "source_language": "de",
+              "source_normalization_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "normalization_candidate",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "legacy_occurrence_id_asserted": false,
+            "normalization_operations": [
+              {
+                "end_offset": 37,
+                "exact_removed_text": "¬\n",
+                "offset_scope": "context_local_half_open",
+                "operation": "remove_explicit_linebreak_hyphen_mark",
+                "start_offset": 35
+              }
+            ],
+            "part": 1,
+            "rank": 1,
+            "reading_ref": "r1",
+            "russian_comparators": [
+              {
+                "alignment_id": "align",
+                "exact_text": "Русское сравнение",
+                "granularity": "sentence_candidate",
+                "role": "historical_translation_comparator_not_source_authority",
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ]
+              }
+            ],
+            "selection_reason": "explicit_linebreak_normalization_matches_selected_german_form",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "Schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": null,
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 40,
+                "exact_sha256": "b6b04637235aedf3a958a193789bbc55962f07b0f4309846af075ea81c6495ec",
+                "exact_text": "Schick¬\nsal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 29,
+                "status": "normalization_candidate",
+                "surface_unit_ref": null
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schick¬\nsal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "not_applicable",
+              "role": "not_applicable",
+              "scope": "no_legacy_occurrence",
+              "status": "not_applicable"
+            },
+            "translation_truth_asserted": false,
+            "witness_order": 1
+          }
+        ],
+        "authority_boundary": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance",
+        "concept_candidate_ref": "candidate-concept",
+        "concept_search_route": {
+          "accepted_concept_ref": null,
+          "aliases": [
+            {
+              "display": "Schicksal",
+              "language": "de",
+              "normalized": "schicksal",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "fate",
+              "language": "en",
+              "normalized": "fate",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "судьба",
+              "language": "ru",
+              "normalized": "судьба",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "Aufgabe",
+              "language": "de",
+              "normalized": "aufgabe",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Bestimmung",
+              "language": "de",
+              "normalized": "bestimmung",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Nothwendigkeit",
+              "language": "de",
+              "normalized": "nothwendigkeit",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Verhängniss",
+              "language": "de",
+              "normalized": "verhängniss",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Zufall",
+              "language": "de",
+              "normalized": "zufall",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "жребий",
+              "language": "ru",
+              "normalized": "жребий",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "задача",
+              "language": "ru",
+              "normalized": "задача",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "назначение",
+              "language": "ru",
+              "normalized": "назначение",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "необходимость",
+              "language": "ru",
+              "normalized": "необходимость",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "рок",
+              "language": "ru",
+              "normalized": "рок",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "случай",
+              "language": "ru",
+              "normalized": "случай",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "удел",
+              "language": "ru",
+              "normalized": "удел",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            }
+          ],
+          "current_request_id": "request-two",
+          "current_request_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+          "identity_basis_ref": "tos.concept-request-key.sid-74d83c95057d4a91a7b72cce7493020a",
+          "identity_posture": "stable_navigation_identity_not_semantic_concept_identity",
+          "labels": {
+            "de": "Schicksal",
+            "en": "fate",
+            "ru": "судьба"
+          },
+          "route_id": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+        },
+        "content_posture": "local_runtime_exact_source_return_not_tracked",
+        "coverage": {
+          "additional_source_candidate_count": 1,
+          "grouping_excludes_additional_candidates": true,
+          "grouping_scope": "all_matching_source_occurrences_before_limit",
+          "limit": 3,
+          "occurrence_anchor_status_counts": {
+            "deferred": 1,
+            "exact": 2
+          },
+          "occurrences_with_formula_membership": 1,
+          "original_language": "de",
+          "primary_result_scope": "verified_predecessor_concept_request_occurrences",
+          "returned_additional_source_candidates": 1,
+          "returned_source_results": 3,
+          "russian_query_is_source_authority": false,
+          "semantic_neighbors_included": true,
+          "source_evidence_tier_counts": {
+            "direct_or_morphological": 2,
+            "semantic_neighbor": 1
+          },
+          "speaker_status_counts": {
+            "deferred": 1,
+            "proposed": 2
+          },
+          "total_source_results": 3,
+          "whole_book_semantic_recall_asserted": false
+        },
+        "groups": {
+          "by_speaker": [
+            {
+              "matching_count": 1,
+              "modality": null,
+              "performed_role": null,
+              "returned_occurrence_refs": [
+                "candidate-0"
+              ],
+              "role": "dwarf",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            {
+              "matching_count": 1,
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "returned_occurrence_refs": [
+                "candidate-1"
+              ],
+              "role": "narrator",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            {
+              "matching_count": 1,
+              "modality": null,
+              "performed_role": null,
+              "returned_occurrence_refs": [
+                "candidate-2"
+              ],
+              "role": "unresolved",
+              "status": "deferred",
+              "utterer_role": null
+            }
+          ],
+          "scope": "all_matching_source_occurrences_before_limit"
+        },
+        "limitations": [
+          "Speaker attribution and sentence/clause alignment remain reviewable candidates, not accepted interpretation.",
+          "Morphology and dependencies are inherited heuristic candidates; this layer does not repair full contextual syntax.",
+          "Counts cover the selected concept request, not every possible semantic mention of a concept.",
+          "Additional explicit line-break normalization candidates have separate IDs/counts and are not hidden in predecessor result groups.",
+          "Formula membership is exact after declared normalization; nearby formulas are not membership.",
+          "English translation and etymological research are on-demand agent work and have not been executed by this query."
+        ],
+        "provenance": {
+          "concept_predecessor": {
+            "result_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
+            "result_schema_sha256": "c19b5b9d7d5d31fd26b1cd3f5aba317104068bed73e18de9bc6b7d0242a56667",
+            "source_manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+            "source_manifest_sha256": "5785910325a4194edaed459d628ca9f07a9b4888bcf54af7e2ef339a2b555e92"
+          },
+          "method_version": "synthetic-original-v1",
+          "reading_layer": {
+            "manifest_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/manifest.v1.json",
+            "manifest_sha256": "ada96fc1abe2c74b27092a40c20ff06fb0292746c1fd6c83b81460b220b3dd53",
+            "private_database_ref": "reading #db.sqlite3",
+            "private_database_sha256": "57d3962e39a43acfe906ed278930597b7311875cc29ff3f16b49b5fb9fdb6432"
+          },
+          "result_schema_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json",
+          "result_schema_sha256": "77469a03683e71e3c08ba72cf1b436a837d6fc766c925ecb13e9f851e9e8734c"
+        },
+        "query_analysis": {
+          "input": "случай",
+          "language": "ru",
+          "match_method": "exact_alias",
+          "matched_alias": "случай",
+          "matched_alias_language": "ru",
+          "matched_alias_role": "semantic_neighbor_probe",
+          "normalized": "случай",
+          "resolution_status": "ambiguous",
+          "resolution_tier": "semantic_neighbor"
+        },
+        "reading_search_result_id": "tos.navigation.reading-search-result.sid-b30c014528957a049243c6b39f8f55fe",
+        "results": [
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "dwarf"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": null,
+                "performed_role": null,
+                "quote_depth": 1,
+                "role": "dwarf",
+                "segment_id": "quoted",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [
+                "member"
+              ],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "quoted",
+              "task_ref": "task-0"
+            },
+            "english_on_demand_task_ref": "task-0",
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "contains_occurrence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 1,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:случай",
+                "status": "ambiguous",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-0"
+              },
+              {
+                "from_ref": "candidate-0",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-0"
+              }
+            ],
+            "rank": 1,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-0",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "ambiguous",
+                "unit_ref": "clause"
+              }
+            ],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-0",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-0",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 12,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 3,
+                "status": "proposed",
+                "surface_unit_ref": "surface-0"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "dwarf"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": null,
+              "performed_role": null,
+              "role": "dwarf",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "quoted",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 1,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          },
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 2,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:случай",
+                "status": "ambiguous",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-1"
+              },
+              {
+                "from_ref": "candidate-1",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-1"
+              }
+            ],
+            "rank": 2,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-1",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-1",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-1",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 27,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 18,
+                "status": "proposed",
+                "surface_unit_ref": "surface-1"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 2,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          },
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "paragraph_comparator_only_or_explicit_alignment_gap",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [],
+              "speaker_segment_ref": null,
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "semantic_neighbor",
+            "fine_alignment_candidates": [],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 3,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:случай",
+                "status": "ambiguous",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-2"
+              },
+              {
+                "from_ref": "candidate-2",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-2"
+              }
+            ],
+            "rank": 3,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-2",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "semantic_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-2",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "deferred",
+            "source_occurrence_candidate_ref": "candidate-2",
+            "source_occurrence_spans": [],
+            "source_sentences": [],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "no_unique_containing_segment",
+              "candidates": [],
+              "evidence_refs": [],
+              "modality": null,
+              "performed_role": null,
+              "role": "unresolved",
+              "scope": "occurrence_not_resolved",
+              "segment_id": null,
+              "status": "deferred",
+              "utterer_role": null
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 3,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          }
+        ],
+        "schema_version": "tos_zarathustra_reading_search_result_v1",
+        "search_result_id": "tos.navigation.concept-search-result.sid-b3d6ee9a68248a20c60374399cf3069f",
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "group_by": [
+        "speaker"
+      ],
+      "include_semantic_neighbors": false,
+      "language": "ru",
+      "limit": 3,
+      "query": "случай"
+    },
+    {
+      "expected": {
+        "additional_source_candidates": [
+          {
+            "accepted": false,
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "candidate_id": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "normalization_operations": [
+                {
+                  "end_offset": 37,
+                  "exact_removed_text": "¬\n",
+                  "offset_scope": "context_local_half_open",
+                  "operation": "remove_explicit_linebreak_hyphen_mark",
+                  "start_offset": 35
+                }
+              ],
+              "source_language": "de",
+              "source_normalization_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "normalization_candidate",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "legacy_occurrence_id_asserted": false,
+            "normalization_operations": [
+              {
+                "end_offset": 37,
+                "exact_removed_text": "¬\n",
+                "offset_scope": "context_local_half_open",
+                "operation": "remove_explicit_linebreak_hyphen_mark",
+                "start_offset": 35
+              }
+            ],
+            "part": 1,
+            "rank": 1,
+            "reading_ref": "r1",
+            "russian_comparators": [
+              {
+                "alignment_id": "align",
+                "exact_text": "Русское сравнение",
+                "granularity": "sentence_candidate",
+                "role": "historical_translation_comparator_not_source_authority",
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ]
+              }
+            ],
+            "selection_reason": "explicit_linebreak_normalization_matches_selected_german_form",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "Schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": null,
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "tos.annotation.normalization-search-candidate.sid-c99b9e8d08db7b6d5c67d82520a4cccd",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 40,
+                "exact_sha256": "b6b04637235aedf3a958a193789bbc55962f07b0f4309846af075ea81c6495ec",
+                "exact_text": "Schick¬\nsal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 29,
+                "status": "normalization_candidate",
+                "surface_unit_ref": null
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schick¬\nsal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "not_applicable",
+              "role": "not_applicable",
+              "scope": "no_legacy_occurrence",
+              "status": "not_applicable"
+            },
+            "translation_truth_asserted": false,
+            "witness_order": 1
+          }
+        ],
+        "authority_boundary": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance",
+        "concept_candidate_ref": "candidate-concept",
+        "concept_search_route": {
+          "accepted_concept_ref": null,
+          "aliases": [
+            {
+              "display": "Schicksal",
+              "language": "de",
+              "normalized": "schicksal",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "fate",
+              "language": "en",
+              "normalized": "fate",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "судьба",
+              "language": "ru",
+              "normalized": "судьба",
+              "role": "preferred_label",
+              "tier": "direct"
+            },
+            {
+              "display": "Aufgabe",
+              "language": "de",
+              "normalized": "aufgabe",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Bestimmung",
+              "language": "de",
+              "normalized": "bestimmung",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Nothwendigkeit",
+              "language": "de",
+              "normalized": "nothwendigkeit",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Verhängniss",
+              "language": "de",
+              "normalized": "verhängniss",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "Zufall",
+              "language": "de",
+              "normalized": "zufall",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "жребий",
+              "language": "ru",
+              "normalized": "жребий",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "задача",
+              "language": "ru",
+              "normalized": "задача",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "назначение",
+              "language": "ru",
+              "normalized": "назначение",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "необходимость",
+              "language": "ru",
+              "normalized": "необходимость",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "рок",
+              "language": "ru",
+              "normalized": "рок",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "случай",
+              "language": "ru",
+              "normalized": "случай",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            },
+            {
+              "display": "удел",
+              "language": "ru",
+              "normalized": "удел",
+              "role": "semantic_neighbor_probe",
+              "tier": "semantic_neighbor"
+            }
+          ],
+          "current_request_id": "request-two",
+          "current_request_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+          "identity_basis_ref": "tos.concept-request-key.sid-74d83c95057d4a91a7b72cce7493020a",
+          "identity_posture": "stable_navigation_identity_not_semantic_concept_identity",
+          "labels": {
+            "de": "Schicksal",
+            "en": "fate",
+            "ru": "судьба"
+          },
+          "route_id": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+        },
+        "content_posture": "local_runtime_exact_source_return_not_tracked",
+        "coverage": {
+          "additional_source_candidate_count": 1,
+          "grouping_excludes_additional_candidates": true,
+          "grouping_scope": "all_matching_source_occurrences_before_limit",
+          "limit": 3,
+          "occurrence_anchor_status_counts": {
+            "deferred": 1,
+            "exact": 2
+          },
+          "occurrences_with_formula_membership": 1,
+          "original_language": "de",
+          "primary_result_scope": "verified_predecessor_concept_request_occurrences",
+          "returned_additional_source_candidates": 1,
+          "returned_source_results": 3,
+          "russian_query_is_source_authority": false,
+          "semantic_neighbors_included": true,
+          "source_evidence_tier_counts": {
+            "direct_or_morphological": 2,
+            "semantic_neighbor": 1
+          },
+          "speaker_status_counts": {
+            "deferred": 1,
+            "proposed": 2
+          },
+          "total_source_results": 3,
+          "whole_book_semantic_recall_asserted": false
+        },
+        "groups": {
+          "by_formula": [
+            {
+              "formula_id": "member",
+              "matching_count": 1,
+              "normalized_text": "😀 „schicksal!",
+              "returned_occurrence_refs": [
+                "candidate-0"
+              ],
+              "whole_book_occurrence_count": 3
+            }
+          ],
+          "by_speaker": [
+            {
+              "matching_count": 1,
+              "modality": null,
+              "performed_role": null,
+              "returned_occurrence_refs": [
+                "candidate-0"
+              ],
+              "role": "dwarf",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            {
+              "matching_count": 1,
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "returned_occurrence_refs": [
+                "candidate-1"
+              ],
+              "role": "narrator",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            {
+              "matching_count": 1,
+              "modality": null,
+              "performed_role": null,
+              "returned_occurrence_refs": [
+                "candidate-2"
+              ],
+              "role": "unresolved",
+              "status": "deferred",
+              "utterer_role": null
+            }
+          ],
+          "formula_group_posture": "overlapping_exact_normalized_formulas_not_semantic_equivalence",
+          "no_formula_membership_count": 2,
+          "scope": "all_matching_source_occurrences_before_limit"
+        },
+        "limitations": [
+          "Speaker attribution and sentence/clause alignment remain reviewable candidates, not accepted interpretation.",
+          "Morphology and dependencies are inherited heuristic candidates; this layer does not repair full contextual syntax.",
+          "Counts cover the selected concept request, not every possible semantic mention of a concept.",
+          "Additional explicit line-break normalization candidates have separate IDs/counts and are not hidden in predecessor result groups.",
+          "Formula membership is exact after declared normalization; nearby formulas are not membership.",
+          "English translation and etymological research are on-demand agent work and have not been executed by this query."
+        ],
+        "provenance": {
+          "concept_predecessor": {
+            "result_schema_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json",
+            "result_schema_sha256": "c19b5b9d7d5d31fd26b1cd3f5aba317104068bed73e18de9bc6b7d0242a56667",
+            "source_manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+            "source_manifest_sha256": "5785910325a4194edaed459d628ca9f07a9b4888bcf54af7e2ef339a2b555e92"
+          },
+          "method_version": "synthetic-original-v1",
+          "reading_layer": {
+            "manifest_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/manifest.v1.json",
+            "manifest_sha256": "ada96fc1abe2c74b27092a40c20ff06fb0292746c1fd6c83b81460b220b3dd53",
+            "private_database_ref": "reading #db.sqlite3",
+            "private_database_sha256": "57d3962e39a43acfe906ed278930597b7311875cc29ff3f16b49b5fb9fdb6432"
+          },
+          "result_schema_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json",
+          "result_schema_sha256": "77469a03683e71e3c08ba72cf1b436a837d6fc766c925ecb13e9f851e9e8734c"
+        },
+        "query_analysis": {
+          "input": "судьба",
+          "language": "ru",
+          "match_method": "exact_alias",
+          "matched_alias": "судьба",
+          "matched_alias_language": "ru",
+          "matched_alias_role": "preferred_label",
+          "normalized": "судьба",
+          "resolution_status": "proposed",
+          "resolution_tier": "direct"
+        },
+        "reading_search_result_id": "tos.navigation.reading-search-result.sid-92158e4c6d31d225478b6c349a15748b",
+        "results": [
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "dwarf"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": null,
+                "performed_role": null,
+                "quote_depth": 1,
+                "role": "dwarf",
+                "segment_id": "quoted",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [
+                "member"
+              ],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "quoted",
+              "task_ref": "task-0"
+            },
+            "english_on_demand_task_ref": "task-0",
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "contains_occurrence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 1,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:судьба",
+                "status": "proposed",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-0"
+              },
+              {
+                "from_ref": "candidate-0",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-0"
+              }
+            ],
+            "rank": 1,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-0",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "ambiguous",
+                "unit_ref": "clause"
+              }
+            ],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-0",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-0",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 12,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 3,
+                "status": "proposed",
+                "surface_unit_ref": "surface-0"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "dwarf"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": null,
+              "performed_role": null,
+              "role": "dwarf",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "quoted",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 1,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          },
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "sentence_and_clause_candidates_not_word_alignment",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [
+              {
+                "attribution_basis": "reporting_clause",
+                "candidates": [
+                  "narrator"
+                ],
+                "contains_occurrence": true,
+                "evidence_refs": [
+                  "cue-source"
+                ],
+                "kind": "quoted_speech",
+                "modality": "hypothetical",
+                "performed_role": "evil_spirit",
+                "quote_depth": 1,
+                "role": "narrator",
+                "segment_id": "narrated",
+                "sentence_unit_ref": "sentence",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "62dca32bb4edf1ee86fbd57b66f2dce752e16b17f7336098fc09e171eafb8044",
+                  "exact_text": "“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 13
+                },
+                "speech_turn_id": "turn",
+                "status": "proposed",
+                "utterer_role": "zarathustra"
+              }
+            ],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [
+                "sentence"
+              ],
+              "speaker_segment_ref": "narrated",
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "direct_or_morphological",
+            "fine_alignment_candidates": [
+              {
+                "alignment_id": "align",
+                "candidate_role": "primary",
+                "competing_alignment_refs": [],
+                "exact_source_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                "exact_target_text": "Русское сравнение",
+                "granularity": "sentence",
+                "parent_paragraph_alignment_ref": "paragraph-align",
+                "reason_codes": [],
+                "shape": "1:1",
+                "source_unit_refs": [
+                  "sentence"
+                ],
+                "status": "proposed",
+                "target_unit_refs": [
+                  "ru-sentence"
+                ],
+                "translation_truth_asserted": false,
+                "word_correspondence_asserted": false
+              }
+            ],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 2,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:судьба",
+                "status": "proposed",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-1"
+              },
+              {
+                "from_ref": "candidate-1",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-1"
+              }
+            ],
+            "rank": 2,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-1",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "direct_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-1",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "exact",
+            "source_occurrence_candidate_ref": "candidate-1",
+            "source_occurrence_spans": [
+              {
+                "context_unit_ref": "ctx",
+                "end_offset": 27,
+                "exact_sha256": "d1672133346a1dcc9a4b3ec39e05afc4993a8dd8ac34bdae700fea9b3532f188",
+                "exact_text": "Schicksal",
+                "offset_scope": "context_local_half_open",
+                "offset_unit": "unicode_codepoint",
+                "start_offset": 18,
+                "status": "proposed",
+                "surface_unit_ref": "surface-1"
+              }
+            ],
+            "source_sentences": [
+              {
+                "contains_occurrence": true,
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "2bf31a1ddeea0619cd0ec2842b67070bef2204d2681e2b703706a629220c81cf",
+                  "exact_text": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "unit_ref": "sentence"
+              }
+            ],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "reporting_clause",
+              "candidates": [
+                "narrator"
+              ],
+              "evidence_refs": [
+                "cue-source"
+              ],
+              "modality": "hypothetical",
+              "performed_role": "evil_spirit",
+              "role": "narrator",
+              "scope": "occurrence_containing_segment",
+              "segment_id": "narrated",
+              "status": "proposed",
+              "utterer_role": "zarathustra"
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 2,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          },
+          {
+            "accepted": false,
+            "alignment_candidates": [],
+            "alignment_granularity_note": "paragraph_comparator_only_or_explicit_alignment_gap",
+            "anchor_refs": [
+              "source-anchor"
+            ],
+            "canon_effect": false,
+            "context_formula_memberships": [
+              {
+                "formula_id": "member",
+                "normalized_text": "😀 „schicksal!",
+                "occurrence_count": 3,
+                "occurrence_id": "member-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 13,
+                  "exact_sha256": "19c0abb7cc9b9ce66b663e5eb349e71efc97c5e91ab2fe01cdc72f037914a022",
+                  "exact_text": "😀 „Schicksal!",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 0
+                },
+                "status": "proposed",
+                "token_count": 4
+              },
+              {
+                "formula_id": "nearby",
+                "normalized_text": "chick\nsal.",
+                "occurrence_count": 3,
+                "occurrence_id": "nearby-occ",
+                "reading_count": 2,
+                "relation": "same_context_only",
+                "source_anchor": {
+                  "context_unit_ref": "ctx",
+                  "end_offset": 64,
+                  "exact_sha256": "88ef851d969159464de3002530a66f2ee11b2e200d88162c2be7ecd7de4606f6",
+                  "exact_text": "chick\nsal.",
+                  "offset_scope": "context_local_half_open",
+                  "offset_unit": "unicode_codepoint",
+                  "start_offset": 54
+                },
+                "status": "proposed",
+                "token_count": 4
+              }
+            ],
+            "discourse_segments": [],
+            "english_analysis_context": {
+              "english_is_generated_candidate_not_witness": true,
+              "execution_status": "not_executed",
+              "formula_refs": [],
+              "historical_etymology_requires_cited_evidence": true,
+              "source_language": "de",
+              "source_sentence_refs": [],
+              "speaker_segment_ref": null,
+              "task_ref": null
+            },
+            "english_on_demand_task_ref": null,
+            "evidence_tier": "semantic_neighbor",
+            "fine_alignment_candidates": [],
+            "formula_memberships": [],
+            "graph_effect": false,
+            "occurrence_ordinal_within_context": 3,
+            "part": 1,
+            "query_to_source_path": [
+              {
+                "from_ref": "query:ru:судьба",
+                "status": "proposed",
+                "step": "query_alias_match",
+                "to_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0"
+              },
+              {
+                "from_ref": "tos.navigation.concept-search-route.sid-9f3e72a6c37bc0c29c2f34819f7dbff0",
+                "status": "navigation_only",
+                "step": "routes_to_concept_candidate",
+                "to_ref": "candidate-concept"
+              },
+              {
+                "from_ref": "candidate-concept",
+                "status": "reverse_navigation_over_proposed_lexical_realization",
+                "step": "candidate_realization",
+                "to_ref": "candidate-2"
+              },
+              {
+                "from_ref": "candidate-2",
+                "status": "exact_witness_return",
+                "step": "source_return",
+                "to_ref": "old-2"
+              }
+            ],
+            "rank": 3,
+            "reading_ref": "r1",
+            "realization_relation_candidate_ref": "relation-2",
+            "review_status": "unreviewed",
+            "russian_comparators": [],
+            "selection_kind": "semantic_exact",
+            "semantic_fact_asserted": false,
+            "source_analysis_form": "schicksal",
+            "source_clauses": [],
+            "source_context": "😀 „Schicksal!“ So Schicksal. Schick¬\nsal Schick-\nsal Schick\nsal.",
+            "source_context_unit_ref": "ctx",
+            "source_existing_occurrence_ref": "old-2",
+            "source_headword_candidate": "Schicksal",
+            "source_headword_status": "request_probe_not_accepted_lemma",
+            "source_language": "de",
+            "source_occurrence_anchor_status": "deferred",
+            "source_occurrence_candidate_ref": "candidate-2",
+            "source_occurrence_spans": [],
+            "source_sentences": [],
+            "source_surface": "Schicksal",
+            "speaker": {
+              "attribution_basis": "no_unique_containing_segment",
+              "candidates": [],
+              "evidence_refs": [],
+              "modality": null,
+              "performed_role": null,
+              "role": "unresolved",
+              "scope": "occurrence_not_resolved",
+              "segment_id": null,
+              "status": "deferred",
+              "utterer_role": null
+            },
+            "speaker_predecessor": {
+              "layer": "concept-workbench-v1",
+              "role": "narrator",
+              "scope": "paragraph_candidate_not_occurrence_attribution",
+              "status": "proposed"
+            },
+            "token_ordinal": 3,
+            "translation_parallel_candidate_refs": [],
+            "translation_truth_asserted": false,
+            "unit_kind": "paragraph",
+            "witness_order": 1
+          }
+        ],
+        "schema_version": "tos_zarathustra_reading_search_result_v1",
+        "search_result_id": "tos.navigation.concept-search-result.sid-39ba7162c11a51c12e5fe7f48eb69004",
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "group_by": [
+        "speaker",
+        "formula"
+      ],
+      "include_semantic_neighbors": true,
+      "language": "ru",
+      "limit": 3,
+      "query": "судьба"
+    }
+  ]
+}

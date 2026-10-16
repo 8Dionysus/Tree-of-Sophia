@@ -1,4 +1,5 @@
-import type { Graph as CosmosGraph, GraphConfig } from "@cosmos.gl/graph";
+import {buildInterpretationComparison as projectInterpretationComparison} from './interpretation-comparison.mjs';
+import {pageCommandInteger as commandInteger, pageCommandOpaqueString as commandOpaqueString, pageCommandDirection as commandDirection} from "./page-input";
 import Graphology from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
@@ -15,12 +16,12 @@ import {
 import { createToSQueryOperations } from "./query-operations";
 import {
   createLocalStoragePersistence,
-  createResearchWorkspace,
   type ResearchHypothesis,
   type ResearchProposal,
   type ResearchProposalKind,
   type RouteSnapshot,
 } from "./research-workspace";
+import {createBrowserResearchWorkspace} from './research-workspace-rust';
 import { agentSurfaceState, PRODUCT_DEMO_PROMPTS } from "./product-shell";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
@@ -30,7 +31,7 @@ import "./styles.css";
 type Mode = "philosophy" | "corpus";
 type GraphMode = "clusters" | "nodes";
 type DensityMode = "overview" | "focused" | "dense";
-type RendererMode = "cosmos" | "sigma";
+
 type LayoutFamily = "timeline" | "flow" | "evidence" | "semantic" | "infrastructure" | "organic";
 type Language = "en" | "ru";
 
@@ -251,7 +252,6 @@ type AppState = {
   language: Language;
   mode: Mode;
   graphMode: GraphMode;
-  rendererMode: RendererMode;
   currentViewId: string;
   activeLayers: Set<string>;
   activePredicates: Set<string>;
@@ -856,18 +856,21 @@ function readInitialRoute(): InitialRoute {
 
 const initialRoute = readInitialRoute();
 
-function createBrowserResearchWorkspace() {
+function createPageResearchWorkspace() {
   try {
-    return createResearchWorkspace({
+    return createBrowserResearchWorkspace({
       sessionId: "tos-local-research",
       persistence: createLocalStoragePersistence(window.localStorage, "tos-research-workspace-v1"),
     });
   } catch {
-    return createResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
+    return createBrowserResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
   }
 }
 
-const researchWorkspace = createBrowserResearchWorkspace();
+const researchWorkspace = createPageResearchWorkspace();
+window.addEventListener('pagehide',(event)=>{
+  if(!event.persisted&&'dispose' in researchWorkspace)researchWorkspace.dispose();
+});
 
 function initialLanguage(): Language {
   if (initialRoute.language) return initialRoute.language;
@@ -880,7 +883,6 @@ const state: AppState = {
   language: initialLanguage(),
   mode: initialRoute.mode,
   graphMode: initialRoute.graphMode,
-  rendererMode: "sigma",
   currentViewId: "",
   activeLayers: new Set(),
   activePredicates: new Set(),
@@ -916,17 +918,12 @@ document.documentElement.lang = state.language;
 
 let graph = new Graphology({ multi: true, type: "directed" });
 let renderer: Sigma | null = null;
-let cosmosRenderer: CosmosGraph | null = null;
-let cosmosModulePromise: Promise<typeof import("@cosmos.gl/graph")> | null = null;
 let graphContainer: HTMLDivElement | null = null;
 let nodeTooltip: HTMLDivElement | null = null;
 let lastGraphItems = new Map<string, AnyItem>();
-let cosmosPointItems: AnyItem[] = [];
-let cosmosLinkItems: AnyItem[] = [];
 let hoveredNodeId: string | null = null;
 let ignoreGraphClicksUntil = 0;
 let ignoreInspectorSelectionsUntil = 0;
-let graphRenderVersion = 0;
 let viewLoadRevision = 0;
 let modeLoadRevision = 0;
 let searchRevision = 0;
@@ -1496,43 +1493,26 @@ function relationAllowed(item: AnyItem): boolean {
 }
 
 function relationLimit(): number {
-  if (state.rendererMode === "cosmos") {
-    if (state.densityMode === "dense") return 12000;
-    if (state.densityMode === "focused") return 6000;
-    return 2200;
-  }
   if (state.densityMode === "dense") return 520;
   if (state.densityMode === "focused") return 280;
   return 150;
 }
 
 function edgeLimit(): number {
-  if (state.rendererMode === "cosmos") {
-    if (state.densityMode === "dense") return 60000;
-    if (state.densityMode === "focused") return 30000;
-    return 12000;
-  }
   if (state.densityMode === "dense") return 3200;
   if (state.densityMode === "focused") return 1800;
   return 900;
 }
 
 function nodeLimit(): number {
-  if (state.rendererMode === "cosmos") {
-    if (state.densityMode === "dense") return 50000;
-    if (state.densityMode === "focused") return 22000;
-    return 9000;
-  }
   return 1200;
 }
 
 function clusterLimit(): number {
-  if (state.rendererMode === "cosmos") return 8000;
   return 360;
 }
 
 function corpusItemLimit(): number {
-  if (state.rendererMode === "cosmos") return 12000;
   return 700;
 }
 
@@ -2714,33 +2694,17 @@ function renderGraph(): void {
   }
 
   setGraphEmpty(false);
-  const renderVersion = graphRenderVersion;
-  if (state.rendererMode === "cosmos") void renderCosmosGraph(renderVersion);
-  else renderSigmaGraph();
+  renderSigmaGraph();
 }
 
 function destroyGraphRenderers(): void {
-  graphRenderVersion += 1;
   renderer?.kill();
   renderer = null;
-  cosmosRenderer?.destroy();
-  cosmosRenderer = null;
-  cosmosPointItems = [];
-  cosmosLinkItems = [];
   if (graphContainer) graphContainer.innerHTML = "";
 }
 
 function fitActiveGraph(): void {
-  if (state.rendererMode === "cosmos") {
-    cosmosRenderer?.fitView(260, 0.18, false);
-    return;
-  }
   renderer?.getCamera().animatedReset({ duration: 260 });
-}
-
-function loadCosmosModule(): Promise<typeof import("@cosmos.gl/graph")> {
-  cosmosModulePromise ||= import("@cosmos.gl/graph");
-  return cosmosModulePromise;
 }
 
 function renderSigmaGraph(): void {
@@ -2830,235 +2794,6 @@ function renderSigmaGraph(): void {
   renderer.getCamera().animatedReset({ duration: 220 });
 }
 
-type CosmosPayload = {
-  nodeIds: string[];
-  edgeIds: string[];
-  pointPositions: Float32Array;
-  pointColors: Float32Array;
-  pointSizes: Float32Array;
-  links: Float32Array;
-  linkColors: Float32Array;
-  linkWidths: Float32Array;
-  linkArrows: boolean[];
-  focusedPointIndex?: number;
-  focusedLinkIndex?: number;
-  highlightedPointIndices?: number[];
-  highlightedLinkIndices?: number[];
-  outlinedPointIndices?: number[];
-};
-
-async function renderCosmosGraph(renderVersion: number): Promise<void> {
-  if (!graphContainer) return;
-  const payload = cosmosPayloadFromGraph();
-  const { Graph: CosmosGraphClass } = await loadCosmosModule();
-  if (renderVersion !== graphRenderVersion || state.rendererMode !== "cosmos" || !graphContainer) return;
-  const family = layoutFamily();
-  const simulationEnabled = cosmosSimulationEnabled(family);
-  const config: GraphConfig = {
-    backgroundColor: [1, 1, 1, 0],
-    spaceSize: 4096,
-    randomSeed: 41,
-    rescalePositions: true,
-    fitViewOnInit: true,
-    fitViewDelay: 140,
-    fitViewDuration: 260,
-    fitViewPadding: family === "timeline" || family === "flow" ? 0.06 : 0.1,
-    pointDefaultColor: palette.blue,
-    pointDefaultSize: 5,
-    pointSizeScale: state.graphMode === "clusters" ? 0.86 : 1.22,
-    pointGreyoutOpacity: 0.32,
-    renderHoveredPointRing: true,
-    hoveredPointRingColor: [1, 1, 1, 0.96],
-    focusedPointRingColor: [0.09, 0.13, 0.12, 0.9],
-    outlinedPointRingColor: [0.09, 0.13, 0.12, 0.72],
-    focusedPointIndex: payload.focusedPointIndex,
-    highlightedPointIndices: payload.highlightedPointIndices,
-    outlinedPointIndices: payload.outlinedPointIndices,
-    renderLinks: payload.links.length > 0,
-    linkDefaultColor: [0.09, 0.13, 0.12, 0.22],
-    linkOpacity: linkOpacityForLayout(family),
-    linkGreyoutOpacity: 0.08,
-    linkDefaultWidth: 0.7,
-    linkWidthScale: linkWidthScaleForLayout(family),
-    linkVisibilityDistanceRange: [8000, 12000],
-    linkVisibilityMinTransparency: state.densityMode === "dense" ? 0.32 : 0.86,
-    scaleLinksOnZoom: true,
-    linkBlending: state.densityMode !== "dense",
-    curvedLinks: family === "semantic" || family === "infrastructure",
-    linkDefaultArrows: family === "flow" || family === "evidence",
-    focusedLinkIndex: payload.focusedLinkIndex,
-    highlightedLinkIndices: payload.highlightedLinkIndices,
-    hoveredLinkWidthIncrease: 2,
-    focusedLinkWidthIncrease: 3,
-    enableDrag: true,
-    enableSimulation: simulationEnabled,
-    simulationGravity: family === "organic" ? 0.12 : 0.04,
-    simulationCenter: simulationEnabled ? 0.05 : 0,
-    simulationRepulsion: simulationEnabled ? (state.densityMode === "dense" ? 0.36 : 0.62) : 0,
-    simulationLinkSpring: simulationEnabled ? 0.58 : 0,
-    simulationLinkDistance: state.graphMode === "clusters" ? 26 : 18,
-    simulationFriction: 0.84,
-    transitionDuration: 420,
-    hoveredPointCursor: "pointer",
-    hoveredLinkCursor: "pointer",
-    onPointClick: (index, _pointPosition, _event) => {
-      if (Date.now() < ignoreGraphClicksUntil) return;
-      const item = cosmosPointItems[index];
-      if (item) selectItem(item);
-    },
-    onLinkClick: (index, _event) => {
-      if (Date.now() < ignoreGraphClicksUntil) return;
-      const item = cosmosLinkItems[index];
-      if (item) selectItem(item);
-    },
-    onMouseMove: (_index, _pointPosition, event) => {
-      lastPointer.x = event.clientX;
-      lastPointer.y = event.clientY;
-      if (hoveredNodeId) positionNodeTooltip();
-    },
-    onPointMouseOver: (index, _pointPosition, event) => {
-      if (event && "clientX" in event) {
-        lastPointer.x = event.clientX;
-        lastPointer.y = event.clientY;
-      }
-      const nodeId = payload.nodeIds[index];
-      if (nodeId) showNodeTooltip(nodeId);
-    },
-    onPointMouseOut: (_event) => hideNodeTooltip(),
-    onLinkMouseOver: (index) => {
-      const edgeId = payload.edgeIds[index];
-      if (edgeId) showNodeTooltip(edgeId);
-    },
-    onLinkMouseOut: (_event) => hideNodeTooltip(),
-  };
-  cosmosRenderer = new CosmosGraphClass(graphContainer, config);
-  cosmosPointItems = payload.nodeIds.map((nodeId) => lastGraphItems.get(nodeId) || { node_id: nodeId, label: nodeId });
-  cosmosLinkItems = payload.edgeIds.map((edgeId) => lastGraphItems.get(edgeId) || { edge_id: edgeId, label: edgeId });
-  cosmosRenderer.setPointPositions(payload.pointPositions);
-  cosmosRenderer.setPointColors(payload.pointColors);
-  cosmosRenderer.setPointSizes(payload.pointSizes);
-  cosmosRenderer.setLinks(payload.links);
-  cosmosRenderer.setLinkColors(payload.linkColors);
-  cosmosRenderer.setLinkWidths(payload.linkWidths);
-  cosmosRenderer.setLinkArrows(payload.linkArrows);
-  cosmosRenderer.render(simulationEnabled ? undefined : 0);
-}
-
-function cosmosSimulationEnabled(family: LayoutFamily): boolean {
-  if (state.graphMode === "nodes" && state.densityMode !== "overview") return true;
-  return family === "semantic" || family === "organic";
-}
-
-function linkOpacityForLayout(family: LayoutFamily): number {
-  if (state.densityMode === "dense") return 0.28;
-  if (family === "timeline" || family === "flow") return 0.42;
-  if (family === "evidence") return 0.5;
-  return 0.62;
-}
-
-function linkWidthScaleForLayout(family: LayoutFamily): number {
-  if (state.densityMode === "dense") return 0.72;
-  if (family === "timeline" || family === "flow") return 0.82;
-  if (family === "evidence") return 0.94;
-  return 1.22;
-}
-
-function cosmosPayloadFromGraph(): CosmosPayload {
-  const family = layoutFamily();
-  const nodeIds = graph.nodes();
-  const nodeIndex = new Map(nodeIds.map((nodeId, index) => [nodeId, index]));
-  const pointPositions = new Float32Array(nodeIds.length * 2);
-  const pointColors = new Float32Array(nodeIds.length * 4);
-  const pointSizes = new Float32Array(nodeIds.length);
-  nodeIds.forEach((nodeId, index) => {
-    const x = numberAttr(graph.getNodeAttribute(nodeId, "x"));
-    const y = numberAttr(graph.getNodeAttribute(nodeId, "y"));
-    pointPositions[index * 2] = x;
-    pointPositions[index * 2 + 1] = y;
-    writeRgba(pointColors, index, colorToRgba(text(graph.getNodeAttribute(nodeId, "color") || palette.default)));
-    const sizeMultiplier = state.graphMode === "clusters" ? 0.94 : 1.42;
-    const maxSize = state.graphMode === "clusters" ? 28 : 38;
-    pointSizes[index] = Math.max(4.5, Math.min(maxSize, numberAttr(graph.getNodeAttribute(nodeId, "size"), 7) * sizeMultiplier));
-  });
-
-  const edgeIds: string[] = [];
-  const links: number[] = [];
-  const linkColors: number[] = [];
-  const linkWidths: number[] = [];
-  const linkArrows: boolean[] = [];
-  graph.edges().forEach((edgeId) => {
-    const [source, target] = graph.extremities(edgeId);
-    const sourceIndex = nodeIndex.get(source);
-    const targetIndex = nodeIndex.get(target);
-    if (sourceIndex === undefined || targetIndex === undefined) return;
-    edgeIds.push(edgeId);
-    links.push(sourceIndex, targetIndex);
-    linkColors.push(...colorToRgba(text(graph.getEdgeAttribute(edgeId, "color") || palette.line)));
-    const minWidth = state.densityMode === "dense" ? 0.9 : family === "timeline" || family === "flow" ? 1.15 : 1.6;
-    linkWidths.push(Math.max(minWidth, Math.min(9, numberAttr(graph.getEdgeAttribute(edgeId, "size"), 1))));
-    linkArrows.push(state.mode === "philosophy" && state.densityMode !== "dense");
-  });
-
-  const focus = graphFocus();
-  const focusPointIndices = focus
-    ? nodeIds.map((nodeId, index) => (focus.nodes.has(nodeId) ? index : -1)).filter((index) => index >= 0)
-    : undefined;
-  const focusLinkIndices = focus
-    ? edgeIds.map((edgeId, index) => (focus.edges.has(edgeId) ? index : -1)).filter((index) => index >= 0)
-    : undefined;
-  const hardHighlight = Boolean(state.pathPacket?.found);
-  const focusedPointIndex =
-    state.selectedGraphId && nodeIndex.has(state.selectedGraphId) ? nodeIndex.get(state.selectedGraphId) : undefined;
-  const focusedLinkIndex = state.selectedGraphId ? edgeIds.indexOf(state.selectedGraphId) : -1;
-  return {
-    nodeIds,
-    edgeIds,
-    pointPositions,
-    pointColors,
-    pointSizes,
-    links: new Float32Array(links),
-    linkColors: new Float32Array(linkColors),
-    linkWidths: new Float32Array(linkWidths),
-    linkArrows,
-    focusedPointIndex,
-    focusedLinkIndex: focusedLinkIndex >= 0 ? focusedLinkIndex : undefined,
-    highlightedPointIndices: hardHighlight ? focusPointIndices : undefined,
-    highlightedLinkIndices: hardHighlight ? focusLinkIndices : undefined,
-    outlinedPointIndices: focusPointIndices,
-  };
-}
-
-function numberAttr(value: unknown, fallback = 0): number {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : fallback;
-}
-
-function colorToRgba(value: string): [number, number, number, number] {
-  const color = value.trim();
-  if (color.startsWith("#")) {
-    const hex = color.slice(1);
-    if (hex.length === 6) {
-      const red = parseInt(hex.slice(0, 2), 16) / 255;
-      const green = parseInt(hex.slice(2, 4), 16) / 255;
-      const blue = parseInt(hex.slice(4, 6), 16) / 255;
-      return [red, green, blue, 1];
-    }
-  }
-  const rgba = color.match(/rgba?\\(([^)]+)\\)/i);
-  if (rgba) {
-    const parts = rgba[1].split(",").map((part) => Number(part.trim()));
-    const [red = 36, green = 120, blue = 101, alpha = 1] = parts;
-    return [red / 255, green / 255, blue / 255, alpha > 1 ? alpha / 255 : alpha];
-  }
-  return [0.14, 0.47, 0.4, 1];
-}
-
-function writeRgba(target: Float32Array, index: number, rgba: [number, number, number, number]): void {
-  target[index * 4] = rgba[0];
-  target[index * 4 + 1] = rgba[1];
-  target[index * 4 + 2] = rgba[2];
-  target[index * 4 + 3] = rgba[3];
-}
 
 function setGraphEmpty(empty: boolean, message = ""): void {
   const emptyNode = byId("graph-empty");
@@ -3454,7 +3189,6 @@ function branchRegionLane(item: AnyItem, fallback: number): number {
 function layoutForceIterations(family: LayoutFamily): number {
   if (state.graphMode === "clusters") return 0;
   if (graph.order > 160) return 0;
-  if (state.rendererMode === "cosmos" && family !== "organic" && family !== "semantic") return 0;
   if (family === "timeline" || family === "flow" || family === "evidence") return 10;
   if (family === "semantic") return 20;
   return 26;
@@ -3764,26 +3498,6 @@ function interpretationComparisonCards(itemIdValue: string): string[] {
   return cards;
 }
 
-function buildInterpretationComparison(packet: EpistemicPayload, selection: PageSelection): InterpretationComparisonPayload {
-  const challengeReadings = (packet.challenge_relations || []).map(readingSummary);
-  const contextReadings = (packet.context_relations || []).map(readingSummary);
-  const posture = challengeReadings.length
-    ? "contested_review_required"
-    : packet.posture || packet.selection_posture?.review_posture || "review_status_unresolved";
-  const localizedGaps = state.language === "ru" ? packet.gaps_ru || packet.gaps : packet.gaps;
-  return {
-    schema: "tos_interpretation_comparison_v1",
-    selection,
-    posture,
-    can_conclude: packet.conclusion?.can_conclude === true,
-    competing_reading_count: challengeReadings.length,
-    competing_readings: challengeReadings.slice(0, 8),
-    contextual_readings: contextReadings.slice(0, 8),
-    gaps: (localizedGaps || []).slice(0, 12),
-    authority_note: packet.authority_note || "Projected challenge relations are review leads, not adjudicated counterevidence or canon decisions.",
-  };
-}
-
 async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSignal): Promise<InterpretationComparisonPayload> {
   const selected = pageSelection();
   if (!selected || selected.id !== itemIdValue || !["node", "edge"].includes(selected.kind)) {
@@ -3794,7 +3508,7 @@ async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSi
     : await showEpistemic(itemIdValue, limit, signal);
   signal?.throwIfAborted();
   if (pageSelection()?.id !== itemIdValue) throw new DOMException("superseded comparison request", "AbortError");
-  const comparison = buildInterpretationComparison(packet, selected);
+  const comparison = projectInterpretationComparison(packet, selected, () => state.language, readingSummary) as InterpretationComparisonPayload;
   state.interpretationComparison = comparison;
   state.inspectorOpen = true;
   renderInspector();
@@ -4512,24 +4226,6 @@ function commandString(input: Record<string, unknown>, key: string, fallback = "
   return text(input[key] ?? fallback).trim();
 }
 
-function commandOpaqueString(input: Record<string, unknown>, key: string): string | undefined {
-  const value = input[key];
-  if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") throw new Error(`${key} must be a string`);
-  return value || undefined;
-}
-
-function commandInteger(input: Record<string, unknown>, key: string, fallback: number, low: number, high: number): number {
-  const parsed = Number(input[key]);
-  return Number.isFinite(parsed) ? Math.max(low, Math.min(high, Math.trunc(parsed))) : fallback;
-}
-
-function commandDirection(input: Record<string, unknown>): "outgoing" | "incoming" | "either" {
-  const direction = commandString(input, "direction", "outgoing");
-  if (direction === "outgoing" || direction === "incoming" || direction === "either") return direction;
-  throw new Error("direction must be outgoing, incoming, or either");
-}
-
 function selectedNodeId(): string {
   return state.selected ? selectedNodeIdFor(state.selected) : "";
 }
@@ -4587,14 +4283,14 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     commandString(input, "query"),
     commandOpaqueString(input, "cursor"),
     execution.signal,
-    commandInteger(input, "limit", 40, 1, 40),
+    commandInteger(input, "limit", "page-knowledge-limit"),
     commandString(input, "search_mode") || undefined,
   ),
   "tos.page.find-source-gaps": async (input, execution) => {
     const query = commandString(input, "query");
     const payload = await queryOperations.invoke("tos.source-gaps.search", {
       query,
-      limit: commandInteger(input, "limit", 20, 1, 100),
+      limit: commandInteger(input, "limit", "gaps-limit"),
     }, { signal: execution.signal }) as { gaps?: AnyItem[]; authority_note?: string };
     execution.signal.throwIfAborted();
     state.epistemicPacket = null;
@@ -4621,33 +4317,12 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const query = commandString(input, "query");
     if (!query) throw new Error("query is required");
     const language = commandString(input, "language", "ru");
-    let result: Record<string, unknown>;
-    try {
-      result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
-        query,
-        language,
-        rank: commandInteger(input, "rank", 1, 1, 100),
-        include_semantic_neighbors: input.include_semantic_neighbors === true,
-      }, { signal: execution.signal });
-    } catch {
-      execution.signal.throwIfAborted();
-      result = {
-        schema: "tos_zarathustra_word_analysis_capability_v1",
-        available: false,
-        reason: "the local source-bound word-analysis capability failed its integrity check",
-        provider_ref: "scripts/prepare_zarathustra_word_analysis_v1.py",
-        publication_posture: "excluded_from_public_bundle",
-        task: null,
-        authority: {
-          source_owner: "Tree-of-Sophia",
-          access_plane_is_source: false,
-          is_semantic_truth: false,
-          writes_to_tree: false,
-          reviewed: false,
-          canon: false,
-        },
-      };
-    }
+    const result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query,
+      language,
+      rank: commandInteger(input, "rank", "page-word-rank"),
+      include_semantic_neighbors: input.include_semantic_neighbors === true,
+    }, { signal: execution.signal });
     execution.signal.throwIfAborted();
     const task = result.task && typeof result.task === "object" ? result.task as Record<string, unknown> : null;
     const source = task?.source && typeof task.source === "object" ? task.source as Record<string, unknown> : null;
@@ -4687,7 +4362,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
   "tos.page.show-neighborhood": async (input, execution) => {
     const nodeId = commandString(input, "node_id", selectedNodeId());
-    return showNeighborhood(nodeId, commandInteger(input, "depth", 1, 1, 3), execution.signal);
+    return showNeighborhood(nodeId, commandInteger(input, "depth", "neighborhood-depth"), execution.signal);
   },
   "tos.page.start-path": (input) => {
     assertPhilosophyRouteAvailable();
@@ -4702,8 +4377,8 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const constrainToView = input.constrain_to_view !== false;
     return showPath(fromId, toId, {
       direction: commandDirection(input),
-      maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
-      alternativeLimit: commandInteger(input, "alternative_limit", 1, 1, 5),
+      maxDepth: commandInteger(input, "max_depth", "page-path-depth"),
+      alternativeLimit: commandInteger(input, "alternative_limit", "page-path-alternatives"),
       excludedEdgeIds: workspaceExcludedEdgeIds(stringList(input.excluded_edge_ids)),
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
@@ -4723,8 +4398,8 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const constrainToView = input.constrain_to_view !== false;
     return showPath(selected.from_id, selected.to_id, {
       direction: commandDirection(input),
-      maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
-      alternativeLimit: commandInteger(input, "alternative_limit", 3, 1, 5),
+      maxDepth: commandInteger(input, "max_depth", "page-path-depth"),
+      alternativeLimit: commandInteger(input, "alternative_limit", "page-reroute-alternatives"),
       excludedEdgeIds: workspaceExcludedEdgeIds([selected.id]),
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
@@ -4734,7 +4409,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const itemIdValue = commandString(input, "item_id", pageSelection()?.id || "");
     const result = await showEpistemic(
       itemIdValue,
-      commandInteger(input, "limit", 80, 1, 200),
+      commandInteger(input, "limit", "epistemic-limit"),
       execution.signal,
     );
     const selected = pageSelection();
@@ -4746,7 +4421,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
   "tos.page.compare-readings": async (input, execution) => compareReadings(
     commandString(input, "item_id", pageSelection()?.id || ""),
-    commandInteger(input, "limit", 60, 1, 80),
+    commandInteger(input, "limit", "page-compare-limit"),
     execution.signal,
   ),
   "tos.page.research-workspace": () => ({

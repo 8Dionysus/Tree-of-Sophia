@@ -1,0 +1,67 @@
+{
+  "$schema": "https://treeofsophia.local/ToS/contracts/knowledge-query-vocabulary.schema.json",
+  "schema_version": "tos_knowledge_query_vocabulary_v1",
+  "descriptor_id": "tos.knowledge.query-vocabulary",
+  "descriptor_version": 1,
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "purpose": "Versioned source-owned query vocabulary for derived knowledge graph, catalog, search and lenses; no source, rights, review or canon admission",
+  "semantic_registry_refs": {
+    "entity": {"registry_id": "tos.semantic.entity-types", "source_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json", "fallback_id_field": "fallback_type_id", "property_field": "property_definitions"},
+    "relation": {"registry_id": "tos.semantic.relation-types", "source_ref": "ToS/doctrine/semantic-interchange/relation-types.v1.json", "fallback_id_field": "fallback_relation_type_id"}
+  },
+  "query_profile": {
+    "profile_id": "tos.knowledge.query-profile",
+    "profile_version": 1,
+    "semantic_primitive_profile": "tos-query-primitives-v1",
+    "normalized_carrier_id_profile": "source-graph-colon-opaque-id-v1",
+    "source_dossier_profile": "source-navigation-exact-owner-handle-v1"
+  },
+  "sources": [
+    {"source_graph_id": "philosophy", "owner_ref": "ToS/philosophy/AGENTS.md", "input_role": "philosophy-graph", "adapter_profile": "philosophy-node-edge-v1", "representative_priority": 3},
+    {"source_graph_id": "canon", "owner_ref": "ToS/canon/AGENTS.md", "input_role": "corpus-index", "adapter_profile": "canon-node-relation-v1", "representative_priority": 1},
+    {"source_graph_id": "candidate-intake", "owner_ref": "ToS/candidate-intake/AGENTS.md", "input_role": "corpus-index", "adapter_profile": "candidate-relation-v1", "representative_priority": 4},
+    {"source_graph_id": "source-navigation", "owner_ref": "ToS/source-witnesses/AGENTS.md", "input_role": "corpus-source-navigation", "adapter_profile": "source-navigation-node-edge-v1", "representative_priority": 0},
+    {"source_graph_id": "source-claims", "owner_ref": "ToS/source-witnesses/AGENTS.md", "input_role": "bibliographic-claims", "adapter_profile": "reified-bibliographic-claims-v1", "representative_priority": 2},
+    {"source_graph_id": "semantic-interchange", "owner_ref": "ToS/doctrine/semantic-interchange/README.md", "input_role": "derived-cross-source-join", "adapter_profile": "declared-identity-and-source-ref-joins-v1", "representative_priority": 6},
+    {"source_graph_id": "repository", "owner_ref": "ToS/source_home.manifest.json", "input_role": "corpus-topology", "adapter_profile": "repository-topology-v1", "representative_priority": 5}
+  ],
+  "extension_adapter_profile": "indexed-node-edge-v1",
+  "source_coverage": "all-registered-sources-exactly-once; unknown-or-unsupported-adapter-refuses",
+  "mapping_policy": "exact-source-graph-and-native-id; unknown-retains-native-id-with-registry-fallback; no-name-inference",
+  "identity": {
+    "shared_entity_id_grammars": ["^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"],
+    "carrier_group_profile": "exact-declared-entity-id-v1",
+    "focus_resolution_order": ["id", "entity_id", "unique_native_id"],
+    "native_id_collision": "ambiguous-refuse",
+    "source_dossier_graph_id": "source-navigation",
+    "source_dossier_kinds": ["work", "expression", "edition", "item", "file", "link"],
+    "source_dossier_ref_profile": "exact-owner-issued-handle-only",
+    "same_as_relation_effect": "retained-relation-only"
+  },
+  "overview": {
+    "excluded_predicate_ids": ["anchored_in", "annotation_member", "has_anchor", "has_text_unit"],
+    "excluded_relation_type_ids": ["tos.relation.generated-by", "tos.relation.made-by"],
+    "routes": [
+      {"route_id": "concept", "candidate_kind_ids": ["concept", "principle"], "confirming_predicate_ids": [], "candidate_type_ids": ["tos.entity.concept", "tos.entity.principle"], "confirming_relation_type_ids": []},
+      {"route_id": "author", "candidate_kind_ids": ["agent"], "confirming_predicate_ids": ["authored_by"], "candidate_type_ids": ["tos.entity.agent"], "confirming_relation_type_ids": ["tos.relation.authored-by"]},
+      {"route_id": "work", "candidate_kind_ids": ["work"], "confirming_predicate_ids": ["authored_by", "has_expression"], "candidate_type_ids": ["tos.entity.work"], "confirming_relation_type_ids": ["tos.relation.authored-by", "tos.relation.has-expression"]},
+      {"route_id": "word", "candidate_kind_ids": ["lexeme", "word", "token", "word-occurrence"], "confirming_predicate_ids": ["occurs_in", "expresses_concept"], "candidate_type_ids": [], "confirming_relation_type_ids": []},
+      {"route_id": "tradition", "candidate_kind_ids": ["tradition", "school_tradition"], "confirming_predicate_ids": [], "candidate_type_ids": ["tos.entity.tradition", "tos.entity.school-tradition"], "confirming_relation_type_ids": []},
+      {"route_id": "place", "candidate_kind_ids": ["place", "region"], "confirming_predicate_ids": [], "candidate_type_ids": ["tos.entity.place"], "confirming_relation_type_ids": ["tos.relation.has-normalized-place"]},
+      {"route_id": "source-object", "candidate_kind_ids": ["work", "expression", "edition", "item", "file", "source_witness"], "confirming_predicate_ids": [], "candidate_type_ids": ["tos.entity.intellectual-object", "tos.entity.source-witness"], "confirming_relation_type_ids": []}
+    ]
+  },
+  "filters": {
+    "operators": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"],
+    "dotted_field_profile": "safe-attributes-and-semantics-v1",
+    "node_fields": ["id", "entity_id", "native_id", "source_dossier_ref", "source_graph", "kind_id", "type_id", "type_mapping.status", "type_mapping.source_kind_id", "display.title.default", "display.title.ru", "display.title.en", "display.kind_label.default", "display.summary.default", "display.summary.ru", "display.summary.en", "display.summary_state", "epistemic.authority_layer", "epistemic.canon_status", "epistemic.review_posture", "epistemic.confidence", "graph_layers", "view_ids", "source_refs"],
+    "relation_fields": ["id", "native_id", "source_graph", "from_id", "to_id", "predicate_id", "relation_type_id", "predicate_mapping.status", "predicate_mapping.source_predicate_id", "display.label.default", "display.label.ru", "display.label.en", "display.statement.default", "display.explanation.default", "display.explanation_state", "epistemic.authority_layer", "epistemic.canon_status", "epistemic.review_posture", "epistemic.confidence", "graph_layers", "view_ids", "source_refs"],
+    "property_definitions": "selected-entity-registry-property-definitions; preserve-applies-to-inherited-value-type-operators",
+    "unknown_field": "reject",
+    "unknown_property_id": "reject"
+  },
+  "catalog": {
+    "canonical_order": "source-graph-id-v1",
+    "facets": ["source_graph", "kind_id", "type_id", "type_mapping.status", "epistemic.authority_layer", "epistemic.canon_status", "epistemic.review_posture", "graph_layers", "view_ids"]
+  }
+}

@@ -1,10 +1,13 @@
 # Native Work / Expression growth
 
-`source_expression_commands.py` is the separately delegated owner adapter for
-one current native Work, one newly named child Expression and one explicit
-`has_expression` Claim. Its command is dispatched through `source_commands.py`.
-Shared catalog/form/dependency and publication lifecycle mechanics live in
-`source_compound_commands.py`; typed scope and retained reconstruction remain
+The native handler `native-work-expression` is implemented by
+`rust/crates/tos-command/src/source_native_work_cli.rs` and
+`rust/crates/tos-command/src/source_work_expression.rs`. It is the separately
+delegated owner adapter for one current native Work, one newly named child
+Expression and one explicit `has_expression` Claim. Its command is dispatched
+through the `tos-native-owner-command source-commands` front door. Shared
+catalog/form/dependency and publication lifecycle mechanics live in the native
+selected-publication modules; typed scope and retained reconstruction remain
 with this adapter. [Expression responsibility attachment](NATIVE_EXPRESSION_RESPONSIBILITY.md)
 uses that same transport with its own separate delegation and attribution law.
 The `has_expression` source reader profile is not a standalone creation or
@@ -59,6 +62,9 @@ Requests use `tos_local_work_expression_command_v1`:
    `resume` or `rollback` decision and current `expected_configuration`.
    A recovery-only renewal does not authorize new creation.
 
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+
 Configuration is not embedded in public evidence. The immutable request and
 receipt do retain the bounded public authority reference and principal; private
 owner paths, credentials and private source content must not be placed there.
@@ -106,8 +112,8 @@ including duplicate pairs and one-Work-per-Expression.
 ## Verification and limits
 
 The synthetic tests live in
-`mechanics/growth-cycle/tests/test_source_expression_commands.py` and the pure
-closure boundary in `tests/test_source_bibliographic_topology.py`. They exercise
+`tests/conformance/rust/command_work_cases.rs` and the pure
+closure boundary in `rust/crates/tos-compiler/src/source_bibliographic.rs`. They exercise
 the actual command, transaction transport, protected reader, restart and
 recovery on bounded temporary metadata, never historical source mutation.
 

@@ -1,52 +1,96 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, copyFileSync, mkdtempSync, rmSync, statSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createInterface } from "node:readline";
+import * as deploymentRuntime from '../generated/tos_web_rules.js';
+deploymentRuntime.initSync({module: new WebAssembly.Module(readFileSync(new URL('../generated/tos_web_rules_bg.wasm', import.meta.url)))});
 
 export const REVISION_QUERY = "SELECT GROUP_CONCAT(json_chunk, '') AS json FROM (SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part);";
 export const LEGACY_REVISION_QUERY = "SELECT json FROM edge_meta WHERE key = 'data_revision';";
 const TABLE_QUERY = "PRAGMA table_info(edge_meta);";
 
+// The installed native access product owns SQL algorithms. Node remains the
+// platform process adapter for Wrangler; Cargo is never invoked during import.
+function edgeSql(args, options = {}) {
+  return spawnSync(process.env.TOS_ACCESS_BIN || 'tos', args, options);
+}
+
 export function revisionQueryForColumns(columns) {
   const names = new Set(columns);
-  if (names.has("json_chunk") && names.has("part")) return REVISION_QUERY;
-  if (names.has("json")) return LEGACY_REVISION_QUERY;
-  return null;
+  const session = new deploymentRuntime.DeployRevisionSession(0);
+  try {
+    for (;;) switch (session.need()) {
+      case 'chunk-column': session.flag(names.has('json_chunk')); break;
+      case 'part-column': session.flag(names.has('part')); break;
+      case 'legacy-column': session.flag(names.has('json')); break;
+      case 'query-return': return {chunk: REVISION_QUERY, legacy: LEGACY_REVISION_QUERY, none: null}[session.choice()];
+    }
+  } finally { session.free(); }
 }
 
 export function resultRows(stdout) {
   const payload = JSON.parse(stdout);
-  if (!Array.isArray(payload) || payload.some((item) => item?.success !== true)) {
-    throw new Error("Cloudflare D1 revision query did not succeed");
-  }
-  return payload.flatMap((item) => (Array.isArray(item.results) ? item.results : []));
+  const session = new deploymentRuntime.DeployRevisionSession(1);
+  const rules = deploymentRuntime.DeployRevisionSession;
+  try {
+    for (;;) switch (session.need()) {
+      case 'payload-array': session.flag(Array.isArray(payload)); break;
+      case 'failed-results': session.flag(Boolean(payload.some(item => rules.failed_success(item?.success === true)))); break;
+      case 'query-error': throw new Error('Cloudflare D1 revision query did not succeed');
+      case 'rows-return': return payload.flatMap(item => rules.results_array(Array.isArray(item.results)) ? item.results : []);
+    }
+  } finally { session.free(); }
 }
 
 export function revisionFromRows(rows) {
-  const raw = rows[0]?.json;
-  if (typeof raw !== "string") return null;
-  const value = JSON.parse(raw);
-  return typeof value?.sha256 === "string" && value.sha256 ? value.sha256 : null;
+  const session = new deploymentRuntime.DeployRevisionSession(2);
+  let raw, value;
+  try {
+    for (;;) switch (session.need()) {
+      case 'raw-read': raw = rows[0]?.json; session.flag(false); break;
+      case 'raw-string': session.flag(typeof raw === 'string'); break;
+      case 'parse-revision': value = JSON.parse(raw); session.flag(false); break;
+      case 'digest-string': session.flag(typeof value?.sha256 === 'string'); break;
+      case 'digest-truthy': session.flag(Boolean(value.sha256)); break;
+      case 'digest-return': return value.sha256;
+      case 'null-return': return null;
+    }
+  } finally { session.free(); }
 }
 
 export function syncDecision(localRevision, remoteRevision, statementCount, maximum = null) {
-  if (!Number.isSafeInteger(statementCount) || statementCount < 1) {
-    throw new Error("generated D1 statement count is missing or invalid");
-  }
-  if (maximum !== null && (!Number.isSafeInteger(maximum) || maximum < 1 || statementCount > maximum)) {
-    throw new Error(`generated D1 read model has ${statementCount} statements; safety ceiling is ${maximum}`);
-  }
-  if (localRevision === remoteRevision) return { required: false, reason: "revision-match" };
-  return { required: true, reason: remoteRevision ? "revision-changed" : "database-empty" };
+  const session = new deploymentRuntime.DeploySyncSession(false);
+  try {
+    for (;;) switch (session.need()) {
+      case 'count': session.number(typeof statementCount === 'number', typeof statementCount === 'number' ? statementCount : 0); break;
+      case 'maximum-null': session.flag(maximum === null); break;
+      case 'maximum': session.number(typeof maximum === 'number', typeof maximum === 'number' ? maximum : 0); break;
+      case 'revision': session.flag(localRevision === remoteRevision); break;
+      case 'remote-truthy': session.flag(Boolean(remoteRevision)); break;
+      case 'count-error': throw new Error('generated D1 statement count is missing or invalid');
+      case 'ceiling-error': throw new Error(`generated D1 read model has ${statementCount} statements; safety ceiling is ${maximum}`);
+      case 'decision-return': return {required: session.required(), reason: session.reason()};
+    }
+  } finally { session.free(); }
 }
 
 export function syncFile(manifest, currentRevision) {
-  const delta = manifest.counts?.delta;
-  return delta?.available === true && delta.base_revision === currentRevision && delta.target_revision === manifest.data_revision
-    ? { file: "runtime/read-model.delta.sql", statements: delta.sql_statements, mode: "delta" }
-    : { file: "runtime/read-model.sql", statements: manifest.counts?.sql_statements, mode: "full" };
+  const session = new deploymentRuntime.DeploySyncSession(true);
+  let delta, statements;
+  try {
+    for (;;) switch (session.need()) {
+      case 'delta-read': delta = manifest.counts?.delta; session.flag(false); break;
+      case 'available': session.flag(delta?.available === true); break;
+      case 'base': session.flag(delta.base_revision === currentRevision); break;
+      case 'target': session.flag(delta.target_revision === manifest.data_revision); break;
+      case 'full-count': statements = manifest.counts?.sql_statements; session.flag(false); break;
+      case 'delta-count': statements = delta.sql_statements; session.flag(false); break;
+      case 'file-return': return {file: session.file(), statements, mode: session.mode()};
+    }
+  } finally { session.free(); }
 }
 
 function wrangler(args, capture = false) {
@@ -67,62 +111,90 @@ function remoteRevision(location = "--remote") {
   const tableRows = resultRows(
     wrangler(["d1", "execute", "DB", location, "--command", TABLE_QUERY, "--json"], true),
   );
-  if (tableRows.length === 0) return null;
-  const revisionQuery = revisionQueryForColumns(
-    tableRows.map((row) => row.name).filter((name) => typeof name === "string"),
-  );
-  if (!revisionQuery) throw new Error("Cloudflare D1 edge_meta schema is unsupported");
-  return revisionFromRows(
-    resultRows(wrangler(["d1", "execute", "DB", location, "--command", revisionQuery, "--json"], true)),
-  );
+  const session = new deploymentRuntime.DeployRevisionSession(3);
+  const rules = deploymentRuntime.DeployRevisionSession;
+  let query;
+  try {
+    for (;;) switch (session.need()) {
+      case 'table-length': {
+        const length = tableRows.length;
+        session.table_length(typeof length === 'number', typeof length === 'number' ? length : 0); break;
+      }
+      case 'columns-read': query = revisionQueryForColumns(tableRows.map(row => row.name).filter(name => rules.string_column(typeof name === 'string'))); session.flag(false); break;
+      case 'query-present': session.flag(Boolean(query)); break;
+      case 'schema-error': throw new Error('Cloudflare D1 edge_meta schema is unsupported');
+      case 'execute-revision': return revisionFromRows(resultRows(wrangler(["d1", "execute", "DB", location, "--command", query, "--json"], true)));
+      case 'null-return': return null;
+    }
+  } finally { session.free(); }
 }
 
-// Use the same SQLite framing as local bootstrap. Physical lines may be inside
-// source literals or triggers. One child writes one bounded file; the next is
-// not produced until this generator resumes after the caller imports that file.
-// Input is trusted, immutable producer SQL, not arbitrary caller-supplied SQL.
-export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024) {
-  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
-    throw new Error('SQL import chunk size must be a positive safe integer');
-  }
-  const source = resolve(path);
-  const identity = () => {
-    const stat = statSync(source, { bigint: true });
-    return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':');
-  };
-  const initialIdentity = identity();
-  const unchanged = () => {
-    if (identity() !== initialIdentity) throw new Error('SQL import source changed between chunks');
-  };
-  const directory = mkdtempSync(join(dirname(path), '.tos-import-'));
-  let offset = 0;
-  let part = 0;
+// Rust owns SQL framing, sequencing, budget and held source currentness. The
+// platform sends one request after consuming each file; no next file is eager.
+export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024,
+  maximumSeconds = process.env.TOS_D1_SQL_STREAM_MAX_SECONDS) {
+  const directory = mkdtempSync(join(dirname(resolve(path)), '.tos-import-'));
+  let child;
+  let lines;
+  let closed;
+  let stderr = '';
+  let finished = false;
   try {
+    child = spawn(process.env.TOS_ACCESS_BIN || 'tos', ['edge-sql-stream',
+      '--source', resolve(path), '--directory', directory,
+      '--maximum-bytes', String(maximumBytes), '--maximum-bytes-type', typeof maximumBytes,
+      '--max-seconds', String(maximumSeconds)], {stdio: ['pipe', 'pipe', 'pipe']});
+    closed = new Promise((done) => {
+      child.once('error', (error) => { stderr = error.message; });
+      child.once('close', (code, signal) => done({code, signal}));
+    });
+    child.stderr.on('data', (data) => { stderr = (stderr + data.toString()).slice(-8192); });
+    child.stdin.on('error', () => {}); // Exit/close carries any EPIPE failure.
+    lines = createInterface({input: child.stdout});
+    const frames = lines[Symbol.asyncIterator]();
     while (true) {
-      unchanged();
-      const target = join(directory, `part-${part++}.sql`);
-      const result = spawnSync('python', [fileURLToPath(new URL('./sql_stream.py', import.meta.url)),
-        '--source', source, '--output', target, '--offset', String(offset),
-        '--maximum-bytes', String(maximumBytes)], { encoding: 'utf8', maxBuffer: 8192 });
-      if (result.status !== 0) {
-        throw new Error(`SQL import framing failed: ${result.error?.message ?? result.stderr.trim()}`);
+      child.stdin.write('next\n');
+      const response = await frames.next();
+      if (response.done) {
+        const status = await closed;
+        throw new Error(`SQL import framing failed: ${stderr.trim() || `exit ${status.code}, signal ${status.signal}`}`);
       }
-      unchanged();
-      const chunk = JSON.parse(result.stdout);
-      if (!Number.isSafeInteger(chunk.next_offset) || chunk.next_offset < offset
-          || !Number.isSafeInteger(chunk.bytes) || chunk.bytes < 0
-          || chunk.next_offset - offset !== chunk.bytes || typeof chunk.eof !== 'boolean'
-          || (!chunk.eof && chunk.bytes === 0)) {
-        throw new Error('SQL import framing returned invalid progress');
-      }
-      if (chunk.bytes) yield target;
-      rmSync(target);
-      if (chunk.eof) break;
-      offset = chunk.next_offset;
+      const frame = JSON.parse(response.value);
+      if (frame.kind === 'done') { finished = true; break; }
+      // This validates the local process protocol's path envelope, not SQL.
+      if (frame.kind !== 'chunk' || typeof frame.file !== 'string'
+          || !/^part-[0-9]+\.sql$/.test(frame.file)) throw new Error('SQL import framing returned an invalid file envelope');
+      yield join(directory, frame.file);
     }
   } finally {
-    // Only this invocation's mkdtemp directory, never a caller path.
-    rmSync(directory, { recursive: true });
+    if (child) {
+      child.stdin.end();
+      // One monotonic cleanup deadline includes EOF, TERM, KILL and close.
+      // Only this exact child can be signalled; no unbounded reap follows it.
+      const cleanupDeadline = performance.now() + 5000;
+      const waitClose = async (grace) => {
+        let timer;
+        try {
+          return await Promise.race([closed, new Promise((done) => {
+            timer = setTimeout(() => done(null), Math.max(0,
+              Math.min(grace, cleanupDeadline - performance.now())));
+          })]);
+        } finally { clearTimeout(timer); }
+      };
+      let status = await waitClose(1000);
+      if (!status) { child.kill('SIGTERM'); status = await waitClose(1000); }
+      if (!status) { child.kill('SIGKILL'); status = await waitClose(Infinity); }
+      lines?.close();
+      if (!status) {
+        // The process may still own these bytes: preserve its exact district,
+        // release host handles, and report the unresolved custody explicitly.
+        child.stdin.destroy(); child.stdout.destroy(); child.stderr.destroy();
+        child.unref();
+        throw new Error(`SQL import cleanup deadline exceeded; child ${child.pid} not reaped; retained ${directory}`);
+      }
+      rmSync(directory, { recursive: true });
+      if (finished && status.code !== 0) throw new Error(`SQL import framing failed: ${stderr.trim()}`);
+    } else rmSync(directory, { recursive: true });
   }
 }
 
@@ -152,7 +224,7 @@ async function main() {
       ? readdirSync(localStore).filter((name) => /^[0-9a-f]{64}\.sqlite$/.test(name)) : [];
     if (candidates.length === 1) {
       console.log('Streaming local bootstrap in one SQLite transaction; remote imports always use Wrangler.');
-      const imported = spawnSync('python', [fileURLToPath(new URL('./import_local_sqlite.py', import.meta.url)),
+      const imported = edgeSql(['edge-import-local',
         '--database', join(localStore, candidates[0]), '--sql', input,
         '--base', currentRevision ?? 'null', '--target', localRevision], {stdio: 'inherit'});
       if (imported.status !== 0) throw new Error('local SQLite bootstrap failed; transaction rolled back');

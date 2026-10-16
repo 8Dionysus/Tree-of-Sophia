@@ -1,0 +1,318 @@
+{
+  "schema_version": "tos_source_object_link_fixture_v1",
+  "provenance": {
+    "capture_id": "object-link-base.call-00",
+    "test_filter": "command_object_link_cases::native_object_link_cli_creates_cold_replays_and_recovers_original_package",
+    "fixture_script_sha256": "a0559321d49533d7151e5329d32615eaebdbf9a3efc58651e0c7d7d4e8b538cd",
+    "capture_stdout_sha256": "0d5181854bef3a55732863a65c3fa23774eae38010e89edaf9b419b5729fa751",
+    "source_git_commit": "1d33e8f3dcc360c7e39a3b72db13d97a0d188f23",
+    "source_manifest_sha256": "b33552bb59152bc5f2740ab22200bb3edace621feb25a5a1b1fb8a087b56750b",
+    "fixture_basis": "existing frozen source-native-python-v1 work-expression source subset, verified byte-identical where overlapping",
+    "normalizations": [
+      {
+        "pointer": "/owner/source_root",
+        "from": "capture-private isolated path",
+        "to": "$TOS_FIXTURE_ROOT"
+      },
+      {
+        "pointer": "/owner/uid",
+        "from": "capture account uid 1000",
+        "to": "current isolated owner uid at test time"
+      },
+      {
+        "pointer": "/packet/owner",
+        "from": "capture-private owner path",
+        "to": "omitted; reconstructed from root and owner fixture name"
+      }
+    ],
+    "capture_artifact": "tos-combined-factory-capture-r2/capture",
+    "fixture_basis_manifest_sha256": "06d9dc44671c508caaf69ab58a15fb1e0757eb2bf37c26b6bcbc8f94514c2b14",
+    "excluded_source_members": [
+      {
+        "path": "ToS/source-witnesses/works/synthetic/link-subject/payload/opaque.bin",
+        "reason": "opaque payload is outside the authored source cut and is not copied into the test fixture"
+      }
+    ]
+  },
+  "owner": {
+    "artifact_path": "owner.json",
+    "size_bytes": 1191,
+    "sha256": "aa38fca3f35c6620ea41d77270b02e5396816cb2423f51b2f865ba7213822aab",
+    "captured_uid": 1000
+  },
+  "proposal": {
+    "artifact_path": "proposal.json",
+    "size_bytes": 2973,
+    "sha256": "af4a6e60c817ef517632d5b8157bc7687711bd20d74602c7aba583c6c02be31a"
+  },
+  "source_files": [
+    {
+      "path": "ToS/contracts/claim-packet.schema.json",
+      "size_bytes": 5632,
+      "mode": "0600",
+      "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd"
+    },
+    {
+      "path": "ToS/contracts/corpus-record.schema.json",
+      "size_bytes": 8744,
+      "mode": "0600",
+      "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+    },
+    {
+      "path": "ToS/contracts/human-form-set.schema.json",
+      "size_bytes": 2486,
+      "mode": "0600",
+      "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2"
+    },
+    {
+      "path": "ToS/contracts/human-form-template.schema.json",
+      "size_bytes": 1527,
+      "mode": "0600",
+      "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e"
+    },
+    {
+      "path": "ToS/contracts/human-form.schema.json",
+      "size_bytes": 16342,
+      "mode": "0600",
+      "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980"
+    },
+    {
+      "path": "ToS/contracts/knowledge-assessment.schema.json",
+      "size_bytes": 5043,
+      "mode": "0600",
+      "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298"
+    },
+    {
+      "path": "ToS/contracts/object-link-claim-v2.schema.json",
+      "size_bytes": 1462,
+      "mode": "0600",
+      "sha256": "ff0046e2e05dd67c68a75af02429d609baae75dba8db3aa4147ac0297cd50e92"
+    },
+    {
+      "path": "ToS/contracts/provenance-event-v2.schema.json",
+      "size_bytes": 34901,
+      "mode": "0600",
+      "sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0"
+    },
+    {
+      "path": "ToS/contracts/record-version-view.schema.json",
+      "size_bytes": 7514,
+      "mode": "0600",
+      "sha256": "e543b1b235302ec547128564f1e0792ecbc091eec9acca8b1d789c2ea2ff3cf0"
+    },
+    {
+      "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+      "size_bytes": 16948,
+      "mode": "0600",
+      "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29"
+    },
+    {
+      "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
+      "size_bytes": 19804,
+      "mode": "0600",
+      "sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894"
+    },
+    {
+      "path": "ToS/contracts/source-claim-record.schema.json",
+      "size_bytes": 4297,
+      "mode": "0600",
+      "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+    },
+    {
+      "path": "ToS/contracts/source-link.schema.json",
+      "size_bytes": 2618,
+      "mode": "0600",
+      "sha256": "0c2ca8b65823e69bf80417b029149f392e934b41c02dcbcfae0a198a4f2867b3"
+    },
+    {
+      "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "size_bytes": 18681,
+      "mode": "0600",
+      "sha256": "a0e24548262e692d37c98662aa715a640916477e1aeb3244ff8f980d673ae072"
+    },
+    {
+      "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+      "size_bytes": 264272,
+      "mode": "0600",
+      "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465"
+    },
+    {
+      "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+      "size_bytes": 335626,
+      "mode": "0600",
+      "sha256": "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/agents.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
+      "size_bytes": 889,
+      "mode": "0600",
+      "sha256": "6c727a12114cc8da38f9517635d2c51d91732d18edce715257df5f00ed7b2030"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/claims.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/collections.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/editions.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/expressions.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/items.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/links.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/organizations.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/places.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/works.jsonl",
+      "size_bytes": 376,
+      "mode": "0600",
+      "sha256": "bee64fad5bcc3fec9de80d0990c19f5a247f819cd7693e17a93c04931605bc72"
+    },
+    {
+      "path": "ToS/source-witnesses/works/synthetic/link-subject/work.json",
+      "size_bytes": 520,
+      "mode": "0600",
+      "sha256": "9a76d066b5d416ae18a7c8b390e5727960e459772aa220abb6a99a69dedae63c"
+    }
+  ],
+  "extension_files": [
+    {
+      "path": "ToS/contracts/object-link-claim-v2.schema.json",
+      "artifact_path": "extra/ToS/contracts/object-link-claim-v2.schema.json",
+      "size_bytes": 1462,
+      "mode": "0600",
+      "sha256": "ff0046e2e05dd67c68a75af02429d609baae75dba8db3aa4147ac0297cd50e92"
+    },
+    {
+      "path": "ToS/contracts/record-version-view.schema.json",
+      "artifact_path": "extra/ToS/contracts/record-version-view.schema.json",
+      "size_bytes": 7514,
+      "mode": "0600",
+      "sha256": "e543b1b235302ec547128564f1e0792ecbc091eec9acca8b1d789c2ea2ff3cf0"
+    },
+    {
+      "path": "ToS/contracts/source-link.schema.json",
+      "artifact_path": "extra/ToS/contracts/source-link.schema.json",
+      "size_bytes": 2618,
+      "mode": "0600",
+      "sha256": "0c2ca8b65823e69bf80417b029149f392e934b41c02dcbcfae0a198a4f2867b3"
+    },
+    {
+      "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "artifact_path": "extra/ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "size_bytes": 18681,
+      "mode": "0600",
+      "sha256": "a0e24548262e692d37c98662aa715a640916477e1aeb3244ff8f980d673ae072"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/agents.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/agents.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/catalog.manifest.json",
+      "size_bytes": 889,
+      "mode": "0600",
+      "sha256": "6c727a12114cc8da38f9517635d2c51d91732d18edce715257df5f00ed7b2030"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/collections.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/collections.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/editions.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/editions.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/items.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/items.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/links.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/links.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/organizations.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/organizations.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/places.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/places.jsonl",
+      "size_bytes": 0,
+      "mode": "0600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ToS/source-witnesses/catalog/works.jsonl",
+      "artifact_path": "extra/ToS/source-witnesses/catalog/works.jsonl",
+      "size_bytes": 376,
+      "mode": "0600",
+      "sha256": "bee64fad5bcc3fec9de80d0990c19f5a247f819cd7693e17a93c04931605bc72"
+    },
+    {
+      "path": "ToS/source-witnesses/works/synthetic/link-subject/work.json",
+      "artifact_path": "extra/ToS/source-witnesses/works/synthetic/link-subject/work.json",
+      "size_bytes": 520,
+      "mode": "0600",
+      "sha256": "9a76d066b5d416ae18a7c8b390e5727960e459772aa220abb6a99a69dedae63c"
+    }
+  ]
+}

@@ -38,7 +38,7 @@
     "schema_version": {"const": "tos_morphology_census_result_receipt_v1"},
     "generated_or_authored": {"const": "generated_from_private_provider_census"},
     "receipt_id": {
-      "const": "morphology-census-result:zarathustra-dta-first-editions-parts-1-4.a.dwdsmor-open-0.18.0.v1"
+      "type": "string", "pattern": "^morphology\\-census\\-result:zarathustra\\-dta\\-first\\-editions\\-parts\\-1\\-4\\.a\\.dwdsmor\\-open\\-0\\.18\\.0\\.v1(?:\\.native-[a-z0-9][a-z0-9-]{0,47})?$"
     },
     "recorded_at_utc": {"type": "string", "format": "date-time"},
     "status": {"const": "a-census-executed-awaiting-triggered-review"},
@@ -214,7 +214,7 @@
       "additionalProperties": false,
       "required": ["ref", "sha256"],
       "properties": {
-        "ref": {"const": "scripts/record_zarathustra_morphology_census_result.py"},
+        "ref": {"enum": ["scripts/record_zarathustra_morphology_census_result.py", "rust/crates/tos-compiler/src/lexical_derivatives/morphology_result.rs"]},
         "sha256": {"$ref": "#/$defs/digest"}
       }
     },

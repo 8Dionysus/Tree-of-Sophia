@@ -1,0 +1,36 @@
+{
+   "schema_version": "tos_corpus_record_v1",
+   "record_type": "agent",
+   "record_id": "tos.agent.revision-fixture",
+   "record_version": 1,
+   "preferred_label": "\u0423\u0441\u043b\u043e\u0432\u043d\u044b\u0439 \u044d\u043f\u0438\u0437\u043e\u0434",
+   "notes": "\u041d\u0435 \u0438\u0441\u0442\u043e\u0440\u0438\u0447\u0435\u0441\u043a\u043e\u0435 \u0441\u0432\u0438\u0434\u0435\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e.",
+   "identity_status": "provisional",
+   "same_as_posture": "no_equivalence_claim",
+   "source_refs": [
+      "test:synthetic"
+   ],
+   "external_identifiers": [
+      {
+         "scheme": "synthetic",
+         "value": "stable-external-id",
+         "source_ref": "test:synthetic",
+         "status": "unverified"
+      }
+   ],
+   "field_languages": {
+      "preferred_label": {
+         "language": "x-test",
+         "script": null,
+         "uninterpreted": [
+            false,
+            null,
+            0,
+            "",
+            {
+               "warning": "source text is not an instruction"
+            }
+         ]
+      }
+   }
+}

@@ -34,6 +34,48 @@ export async function meta<T = Item>(db: D1Database, key: string): Promise<T> {
   return JSON.parse(chunks.map((row) => row.json_chunk).join("")) as T;
 }
 
+const PUBLIC_D1_PROFILE = "tos-rust-public-d1-full-v2";
+const PUBLIC_D1_PROFILE_SCHEMA = "tos_public_d1_producer_profile_v1";
+
+/** Refuse new source-value/source-gap semantics when D1 carries an older build. */
+export async function requirePublicD1ProducerProfile(db: D1Database): Promise<void> {
+  const unavailable = (): never => {
+    throw new HttpError(503, `selected D1 data requires producer profile ${PUBLIC_D1_PROFILE}`);
+  };
+  type ProfileRow = { key: string; part: number; json_chunk: string | null; chunk_bytes: number | null };
+  let selected: ProfileRow[];
+  try {
+    selected = await rows<ProfileRow>(
+      db,
+      `SELECT key, part,
+              CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=4096 THEN json_chunk ELSE NULL END AS json_chunk,
+              length(CAST(json_chunk AS BLOB)) AS chunk_bytes
+         FROM edge_meta
+        WHERE key IN ('data_revision','public_d1_producer_profile')
+        ORDER BY key, part LIMIT 3`,
+    );
+  } catch {
+    return unavailable();
+  }
+  if (selected.length !== 2 || selected.some((row) => row.part !== 0
+    || row.json_chunk === null || !Number.isSafeInteger(row.chunk_bytes)
+    || row.chunk_bytes! <= 0 || row.chunk_bytes! > 4096)) return unavailable();
+  let revision: Item;
+  let profile: Item;
+  try {
+    revision = JSON.parse(selected.find((row) => row.key === "data_revision")!.json_chunk!) as Item;
+    profile = JSON.parse(selected.find((row) => row.key === "public_d1_producer_profile")!.json_chunk!) as Item;
+  } catch {
+    return unavailable();
+  }
+  const dataRevision = revision.sha256;
+  if (typeof dataRevision !== "string" || !/^[0-9a-f]{64}$/.test(dataRevision)
+    || profile.schema !== PUBLIC_D1_PROFILE_SCHEMA
+    || profile.producer !== PUBLIC_D1_PROFILE
+    || profile.read_model_schema !== "tos_cloudflare_edge_read_model_v9"
+    || profile.data_revision !== dataRevision) return unavailable();
+}
+
 export async function metaItem(db: D1Database, key: string): Promise<Item> {
   return meta<Item>(db, key);
 }
@@ -66,13 +108,6 @@ export async function philosophyNode(db: D1Database, id: string): Promise<Item |
 export async function philosophyEdge(db: D1Database, id: string): Promise<Item | null> {
   const row = await db.prepare("SELECT json FROM philosophy_edges WHERE id = ?").bind(id).first<JsonRow>();
   return row ? parseItem(row.json) : null;
-}
-
-export async function philosophyItem(db: D1Database, id: string): Promise<{ item: Item; kind: "node" | "edge" }> {
-  const [node, edge] = await Promise.all([philosophyNode(db, id), philosophyEdge(db, id)]);
-  if (node) return { item: node, kind: "node" };
-  if (edge) return { item: edge, kind: "edge" };
-  throw new HttpError(404, `unknown ToS philosophy projection item: ${id}`);
 }
 
 export async function itemsByIds(

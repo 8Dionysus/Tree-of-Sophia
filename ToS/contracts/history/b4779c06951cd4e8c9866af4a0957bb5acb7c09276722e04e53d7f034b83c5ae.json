@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-comparison-claim.schema.json",
+  "title": "Scoped lexical history, cognacy and translation correspondence",
+  "description": "Source-qualified comparisons of lexical referents. Inheritance, borrowing, formation, cognacy, change of sense and translation are distinct predicates. Endpoint languages concern the compared usage scopes, not the language of this description. Chronology wording is not a normalized date or a record revision.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/linguistic-relation-claim.schema.json"
+    },
+    {
+      "properties": {
+        "predicate": {
+          "enum": [
+            "lexical_inherited_from",
+            "lexical_borrowed_from",
+            "lexical_formed_from",
+            "lexical_cognate_with",
+            "lexical_sense_developed_from",
+            "lexical_translation_correspondence"
+          ]
+        },
+        "qualifiers": {
+          "required": [
+            "source_scope",
+            "target_scope",
+            "source_language",
+            "target_language"
+          ],
+          "properties": {
+            "source_scope": {
+              "$ref": "#/$defs/account"
+            },
+            "target_scope": {
+              "$ref": "#/$defs/account"
+            },
+            "source_language": {
+              "$ref": "#/$defs/comparedLanguage"
+            },
+            "target_language": {
+              "$ref": "#/$defs/comparedLanguage"
+            },
+            "chronology_basis": {
+              "$ref": "#/$defs/account"
+            },
+            "common_origin_basis": {
+              "$ref": "#/$defs/account"
+            },
+            "translation_scope": {
+              "$ref": "#/$defs/account"
+            },
+            "preserved_aspects": {
+              "$ref": "#/$defs/account"
+            },
+            "limitations": {
+              "$ref": "#/$defs/account"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "enum": [
+              "lexical_inherited_from",
+              "lexical_borrowed_from",
+              "lexical_formed_from",
+              "lexical_sense_developed_from"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "qualifiers": {
+            "required": [
+              "chronology_basis"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "lexical_cognate_with"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "qualifiers": {
+            "required": [
+              "common_origin_basis"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "lexical_translation_correspondence"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "qualifiers": {
+            "required": [
+              "translation_scope",
+              "preserved_aspects",
+              "limitations"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "account": {
+      "type": "string",
+      "pattern": "\\S",
+      "description": "A source-grounded account including limits, competing analyses or unknown bounds; nonemptiness does not establish substantive quality."
+    },
+    "comparedLanguage": {
+      "anyOf": [
+        {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The declared language of this endpoint in the compared usage scope, or unknown. Not the language of the statement, an authenticated language attribution or a Language identity reference."
+    }
+  }
+}

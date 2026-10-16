@@ -329,3 +329,4 @@ test('restored pairs fetch current material without carrying stored text or revi
   late.resolve(answer(node('old')));await tick();assert.deepEqual(shelf.entries.map(e=>e.id),['one','two']);
   shelf.restore([{...references[0],contentRevision:'c'.repeat(64)}]);await tick();assert.equal(shelf.entries[0].changed,true);
 });
+import './human-forms-wasm-test-runtime.mjs';

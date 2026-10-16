@@ -1,5 +1,5 @@
 import {createSourceCommandClient} from './source-command-client.mjs';
-import {createSourceFormSession} from './source-form-session.mjs';
+import {createSourceFormSession} from './source-form-session-rust.mjs';
 import './source-command-panel.css';
 
 const words={ru:{
@@ -53,7 +53,7 @@ export function mountSourceCommandPanel(container,{language='ru',onChanged=()=>{
     content.append(details(t.technical,{source:current.source,owner_configuration:current.owner_configuration,
       revision:current.revision,allowed_operations:current.allowed_operations}));
     if(state.pending){
-      content.append(el('p',state.uncertain?t.uncertain:t.done,'body'));
+      content.append(el('p',(state.uncertain||state.busy||!state.result?.receipt)?t.uncertain:t.done,'body'));
       const copy=action(t.copy,()=>void perform(copy,async()=>{
         await navigator.clipboard.writeText(JSON.stringify(session.retainedCommand(),null,2));status.textContent=t.copied;}));
       content.append(copy,details(t.technical,state.result??state.pending));
@@ -89,10 +89,10 @@ export function mountSourceCommandPanel(container,{language='ru',onChanged=()=>{
   const originLabel=el('label',t.origin),tokenLabel=el('label',t.token);originLabel.append(origin);tokenLabel.append(credential);
   const connect=el('button',t.connect,'primary');connect.type='submit';connection.append(originLabel,tokenLabel,connect);content.append(connection);
   connection.onsubmit=event=>{event.preventDefault();void perform(connect,async()=>{
-    client?.close();client=createSourceCommandClient({origin:origin.value,token:credential.value});credential.value='';
+    client?.close();session?.dispose();client=createSourceCommandClient({origin:origin.value,token:credential.value});credential.value='';
     session=createSourceFormSession(client);render(await session.describe());
   });};
-  return {dispose(){disposed=true;credential.value='';client?.close();},
+  return {dispose(){disposed=true;credential.value='';client?.close();session?.dispose();},
     hasUnconfirmedCommand:()=>{const state=session?.state();return Boolean(state?.pending&&
       (state.busy||state.uncertain||!state.result?.receipt));},
     retainedCommand:()=>session?.retainedCommand()??null};

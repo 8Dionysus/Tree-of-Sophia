@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {DEFAULT_INTERFACE,INTERFACE_KEY,readInterface,validateInterface} from './interface-model.mjs';
 

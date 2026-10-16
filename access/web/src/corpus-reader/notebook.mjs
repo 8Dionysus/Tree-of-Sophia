@@ -46,7 +46,6 @@ function bytes(value){
   return new TextEncoder().encode(serialized).byteLength;
 }
 const nonEmptyString=(value,max)=>typeof value==='string'&&value.trim().length>0&&value.length<=max;
-const optionalString=(value,max)=>value===undefined||nonEmptyString(value,max);
 const nullableString=(value,max)=>value===null||nonEmptyString(value,max);
 const integer=(value,min,max)=>Number.isSafeInteger(value)&&value>=min&&value<=max;
 

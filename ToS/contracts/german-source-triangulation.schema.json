@@ -182,7 +182,7 @@
         "source_text_emitted"
       ],
       "properties": {
-        "implementation": {"const": "python-standard-library"},
+        "implementation": {"enum": ["python-standard-library", "rust"]},
         "normalization": {
           "type": "array",
           "prefixItems": [
@@ -198,7 +198,7 @@
           "const": "remove_dta_printed_hyphen_marker_u00ac_and_following_whitespace_before_tokenization"
         },
         "comparison": {
-          "const": "python_stdlib_difflib_sequence_matcher_autojunk_false"
+          "enum": ["python_stdlib_difflib_sequence_matcher_autojunk_false", "sequence_matcher_autojunk_false"]
         },
         "model_used_for_text_decision": {"const": false},
         "translation_performed": {"const": false},

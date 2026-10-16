@@ -38,7 +38,10 @@
       "const": "derived_source_witness_bibliographic_claim_graph"
     },
     "generated_by": {
-      "const": "scripts/build_source_witness_bibliographic_graph.py"
+      "enum": [
+        "scripts/build_source_witness_bibliographic_graph.py",
+        "tos-native-owner-command corpus-index"
+      ]
     },
     "source_refs": {
       "type": "object",

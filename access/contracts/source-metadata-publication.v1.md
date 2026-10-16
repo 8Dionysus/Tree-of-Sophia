@@ -1,6 +1,6 @@
 # Initial metadata to prepared publication
 
-`scripts/source_metadata_catalog.py` and `scripts/source_metadata_publication.py`
+`rust/crates/tos-command/src/source_metadata_creation_observation.rs` and `rust/crates/tos-command/src/source_metadata_publication.rs`
 extend the existing source-owner publication path with one **initial standalone
 metadata subject**. The source command commits first; the publisher observes
 its exact current receipt, request, record, human forms and provenance. The
@@ -33,7 +33,7 @@ the whole catalog or select that candidate for a consumer. Existing source
 metadata publication tokens are retained; no fictitious revision transaction
 is created for the addition.
 
-`metadata_addition_publication` joins that candidate with the existing prepared
+`publish_committed_initial_metadata` joins that candidate with the existing prepared
 root-vector, dependency and context indexes. The caller provides the exact
 predecessor binding, catalog inputs, progress owner and separate work budgets.
 It uses the existing source metadata reader, source-navigation and bibliographic

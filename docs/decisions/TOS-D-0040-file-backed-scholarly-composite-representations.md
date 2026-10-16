@@ -57,6 +57,6 @@ This decision does not create an ancient Work, accept Sethe’s readings, prove 
 
 ## Validation
 
-Run `python scripts/validate_source_witness_foundation.py`, the focused scholarly-composite representation tests, `python scripts/validate_open_work_candidate_queue.py`, `python -m unittest tests.test_open_work_candidate_queue`, `python scripts/generate_decision_indexes.py --check`, and `python scripts/validate_decision_records.py`.
+Run `python scripts/validate_source_witness_foundation.py`, the focused scholarly-composite representation tests, `tos-open-work-queue validate --source-root ROOT`, `cargo test -p tos-ops-mechanics-plan open_work_queue`, `python scripts/generate_decision_indexes.py --check`, and `python scripts/validate_decision_records.py`.
 
 Also run the broad repository gate before landing.

@@ -1,6 +1,7 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
+import {frozenReference} from './frozen-reference.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -9,32 +10,10 @@ import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {knowledgeTemporalCompareD1} from '../src/knowledge-store.ts';
 
-const repo = fileURLToPath(new URL('../../../../',import.meta.url));
 const sha = raw => createHash('sha256').update(raw).digest('hex');
-const python = (code,input) => JSON.parse(execFileSync('python3',['-B','-c',
-  "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
-  {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
-const fixtures = python(String.raw`
-sys.path.insert(0,'access/tests')
-from test_temporal_comparison import TemporalComparisonTests
-from tos_access.published_read_metadata import published_reader_metadata,published_lens_metadata,emitted_row_digest,published_row_digest_key
-from build_runtime import compact_json
-TemporalComparisonTests.setUpClass()
-cases=[]
-for case in TemporalComparisonTests().transport_cases():
- nodes=[json.loads(raw) for raw in case['raw_nodes']]
- graph={'schema':'tos_knowledge_graph_v1','source_revision':case['graph']['source_revision'],'nodes':nodes,'relations':[],
-  'normalization_binding':{'schema':'tos_knowledge_graph_normalization_binding_v1',**{k:'0'*64 for k in ('processor_digest','entity_registry_digest','relation_registry_digest','configuration_digest')}},
-  'authority_boundary':{'source_owner':'Tree-of-Sophia','is_source':False,'is_canon':False,'writes_to_tree':False}}
- metadata=published_reader_metadata(graph,{'schema':'tos_knowledge_catalog_v1','source_revision':graph['source_revision']},'tos_cloudflare_edge_read_model_v9','d'*64,lens_metadata=published_lens_metadata(graph))
- metadata['data_revision']={'sha256':'d'*64}
- for node,raw in zip(nodes,case['raw_nodes']):metadata[published_row_digest_key('node',node['id'])]=emitted_row_digest(raw)
- cases.append({'name':case['name'],'request':case['request'],'nodes':case['raw_nodes'],'relations':[],
-  'metadata':{key:compact_json(value) for key,value in metadata.items()}})
-print(json.dumps(cases))
-`);
+const reference = (referenceId, input) => JSON.parse(frozenReference(import.meta.url, referenceId, input===undefined?undefined:JSON.stringify(input)));
+const fixtures = reference("temporal/fixtures");
 const schema = `CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
  CREATE TABLE knowledge_nodes(id TEXT,entity_id TEXT,native_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,title_text TEXT,search_text TEXT,json TEXT);
  CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,source_graph TEXT,from_id TEXT,to_id TEXT,predicate_id TEXT,relation_type_id TEXT,label_text TEXT,search_text TEXT,json TEXT);
@@ -54,7 +33,7 @@ function rowBindings(kind,raw) {
 }
 function database(fixture) {
   const directory=mkdtempSync(join(tmpdir(),'tos-native-temporal-')), path=join(directory,'published.sqlite');
-  const sqlite=new DatabaseSync(path);sqlite.exec(schema);sqlite.exec(migration);
+  const sqlite=new DatabaseSync(path);sqlite.exec('PRAGMA secure_delete=ON');sqlite.exec(schema);sqlite.exec(migration);
   for(const [key,raw] of Object.entries(fixture.metadata))sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key,raw);
   for(const kind of ['node','relation'])for(const raw of fixture[kind+'s'])sqlite.prepare(`INSERT INTO knowledge_${kind}s VALUES (${rowBindings(kind,raw).map(()=>'?').join(',')})`).run(...rowBindings(kind,raw));
   const statements=[], hook={after:null};
@@ -67,37 +46,17 @@ function database(fixture) {
   return {sqlite,db,statements,hook,path,binding,close(){sqlite.close();rmSync(directory,{recursive:true,force:true});}};
 }
 function oracle(database,request=database.request,binding=database.binding()) {
-  return python(String.raw`
-from tos_access.published_read_model import PublishedKnowledgeReadModel,PublishedReadBudgetExceeded,PublishedSnapshotConflict,PublishedReadModelError
-from tos_access.temporal_comparison import TemporalReadModelInvalid
-from tos_access.lens_pagination import KnowledgeRevisionConflict
-p=json.load(sys.stdin)
-try:
- packet=PublishedKnowledgeReadModel(p['path'],p['binding']).temporal_compare(p['request'])
- print(json.dumps({'status':200,'raw':json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False)}))
-except Exception as e:
- status=413 if isinstance(e,PublishedReadBudgetExceeded) else 409 if isinstance(e,(PublishedSnapshotConflict,KnowledgeRevisionConflict)) else 503 if isinstance(e,(PublishedReadModelError,TemporalReadModelInvalid)) else 404 if isinstance(e,KeyError) else 400 if isinstance(e,ValueError) else 500
- print(json.dumps({'status':status,'error':str(e)}))
-`,{path:database.path,binding,request});
+  return reference("temporal/compare",{path:database.path,binding,request});
 }
-function assertPackets(actual,expected) {
-  const diff=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': kind '+type(a).__name__+' != '+type(b).__name__]
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);print(json.dumps(diff(json.loads(p['actual']),json.loads(p['expected']))))
-`,{actual,expected});assert.deepEqual(diff,[]);
+function assertPackets(actual, expected, indexed = false) {
+  assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
 }
+
 let workerPromise;
 async function worker() {
-  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'})
+  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
     .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default);
   return workerPromise;
 }
@@ -119,7 +78,7 @@ function replaceRow(database,kind,id,change) {
   database.sqlite.prepare('INSERT OR REPLACE INTO edge_meta VALUES (?,0,?)').run(`knowledge_${kind}_digest:${id}`,JSON.stringify({sha256:sha(raw)}));
 }
 
-test('temporal actual raw Worker packets equal current published Python across the retained semantic corpus',async t=>{
+test('temporal actual raw Worker packets equal captured published reference packets across the retained semantic corpus',async t=>{
  for(const fixture of fixtures)await t.test(fixture.name,async()=>{
   const data=database(fixture);data.request=fixture.request;
   try {
@@ -136,35 +95,20 @@ test('temporal actual raw Worker packets equal current published Python across t
 
 test('temporal native equality, canonical numbers, Python source_line types and Unicode remain distinct',async t=>{
  const cases=[
-  ['historical-unsafe-equal',false,String.raw`obj['extension']={'10':9007199254740993,'2':1.0,'01':-0.0};source['object']=obj;attrs['value']=obj;time['raw']=obj`],
-  ['historical-unsafe-mismatch',false,String.raw`obj['extension']=9007199254740993;source['object']=obj;attrs['value']={**obj,'extension':9007199254740992};time['raw']=attrs['value']`],
-  ['historical-bool-integer-mismatch',false,String.raw`obj['extension']=True;source['object']=obj;attrs['value']={**obj,'extension':1};time['raw']=attrs['value']`],
-  ['historical-int-float-equal',false,String.raw`obj['extension']=1;source['object']=obj;attrs['value']={**obj,'extension':1.0};time['raw']=attrs['value']`],
-  ['document-line-float',true,String.raw`claim['attributes']['source_line']=1.0;attrs['source_line']=1.0`],
-  ['document-line-unsafe-integer',true,String.raw`claim['attributes']['source_line']=9007199254740993;attrs['source_line']=9007199254740993`],
-  ['document-line-bool-right',true,String.raw`claim['attributes']['source_line']=1;attrs['source_line']=True`],
-  ['unicode-source-refs',false,String.raw`claim['source_refs']=['',7,'😀','\ue000',''];value['source_refs']=['\ue000','😀',False]`],
-  ['unknown-native-context',false,String.raw`claim['unknown']={'10':9007199254740993,'2':1.0,'01':-0.0,'__proto__':{'constructor':1e-7}};time['unknown']={'10':1.0,'2':9007199254740993}`],
+  ['historical-unsafe-equal', false],
+  ['historical-unsafe-mismatch', false],
+  ['historical-bool-integer-mismatch', false],
+  ['historical-int-float-equal', false],
+  ['document-line-float', true],
+  ['document-line-unsafe-integer', true],
+  ['document-line-bool-right', true],
+  ['unicode-source-refs', false],
+  ['unknown-native-context', false],
  ];
- for(const [name,documentary,mutation] of cases)await t.test(name,async()=>{
+ for(const [name,documentary] of cases)await t.test(name,async()=>{
   const data=selected(documentary?'document-native-numbers':fixtures[0].name);
   try {
-   const ids=python(String.raw`
-import sqlite3
-p=json.load(sys.stdin)
-with sqlite3.connect(p['path']) as db:
- claim=json.loads(db.execute('SELECT json FROM knowledge_nodes WHERE id=?',(p['claim'],)).fetchone()[0])
- value_id=claim['semantics']['claim']['object_node_id'];value=json.loads(db.execute('SELECT json FROM knowledge_nodes WHERE id=?',(value_id,)).fetchone()[0])
- source=claim['attributes']['source_claim'];attrs=value['attributes'];time=value['semantics']['time'];obj=dict(source['object'])
- exec(p['mutation'])
- import hashlib
- for node in (claim,value):
-  raw=json.dumps(node,ensure_ascii=False,separators=(',',':'),allow_nan=False)
-  db.execute('UPDATE knowledge_nodes SET json=? WHERE id=?',(raw,node['id']))
-  db.execute('UPDATE edge_meta SET json_chunk=? WHERE key=?',(json.dumps({'sha256':hashlib.sha256(raw.encode()).hexdigest()}),'knowledge_node_digest:'+node['id']))
- db.commit()
-print(json.dumps([claim['id'],value_id]))
-`,{path:data.path,claim:data.request.left.node_id,mutation});
+   const ids=reference("temporal/replace-time-value",{path:data.path,claim:data.request.left.node_id,mutation:name});
    const expected=oracle(data),actual=await response(data);
    assert.equal(actual.status,expected.status,name);
    if(actual.status===200)assertPackets(await actual.text(),expected.raw);
@@ -239,6 +183,42 @@ test('temporal equivalent source float spellings bind canonically while duplicat
  }finally{data.close();}
 });
 
+// Unique predecessor controls now exercise the default Rust HTTP route rather
+// than keeping a second TS temporal algorithm as their executor.
+test('invalid temporal requests fail 400 before any forbidden or unavailable D1 access',async()=>{
+ const data=selected();try{
+  let accesses=0;
+  const forbidden=new Proxy({}, {get(){accesses++;throw Error('D1 access forbidden by request validation');}});
+  for(const request of [null,[],{}, {...data.request,extra:true},
+   {...data.request,source_revision:'invalid'}, {...data.request,left:{...data.request.left,node_id:' x'}},
+   {...data.request,right:{...data.request.right,content_revision:'invalid'}},
+   {...data.request,left:{...data.request.left,node_id:'😀'.repeat(1025)}}]){
+   const actual=await response({db:forbidden,request:data.request},request);
+   assert.equal(actual.status,400);await actual.arrayBuffer();
+  }
+  assert.equal(accesses,0);
+  const actual=await response(data,{...data.request,left:{...data.request.left,node_id:'😀'.repeat(1024)}});
+  assert.equal(actual.status,404);await actual.arrayBuffer();
+ }finally{data.close();}
+});
+
+test('temporal escaped row keys and decoded duplicate identity use retained Rust route bytes',async()=>{
+ for(const ambiguous of [false,true]){
+  const data=selected('document-native-numbers');try{
+   const claim=JSON.parse(data.sqlite.prepare('SELECT json FROM knowledge_nodes WHERE id=?').get(data.request.left.node_id).json);
+   const valueId=claim.semantics.claim.object_node_id;
+   for(const row of data.sqlite.prepare('SELECT id FROM knowledge_nodes').all())replaceRow(data,'node',row.id,raw=>{
+    if(ambiguous)return row.id===valueId?raw.slice(0,-1)+',"\\u0061ttributes":'+JSON.stringify(JSON.parse(raw).attributes)+'}':raw;
+    return ' \n'+raw.replace(/"(attributes|source_claim|semantics|time|raw|value)"(?=\s*:)/g,
+     (_,key)=>'"\\u'+key.charCodeAt(0).toString(16).padStart(4,'0')+key.slice(1)+'"')+'\n ';
+   });
+   const actual=await response(data);
+   if(ambiguous){assert.equal(actual.status,503);await actual.arrayBuffer();}
+   else {const expected=oracle(data);assert.equal(actual.status,expected.status);assertPackets(await actual.text(),expected.raw);}
+  }finally{data.close();}
+ }
+});
+
 test('temporal expanded canonical floats refuse source binding rather than imposing a hidden small-row cutoff',async()=>{
  const data=selected('document-native-numbers');try{
   replaceRow(data,'node',data.request.left.node_id,raw=>{
@@ -256,10 +236,7 @@ test('temporal expanded canonical floats refuse source binding rather than impos
 
 test('temporal v8 admission needs no lens rows and bounded full packets may exceed one MiB',async()=>{
  const data=selected();try{
-  const raw=python(String.raw`
-from tos_access.published_read_metadata import _compact
-p=json.load(sys.stdin);top=json.loads(p['raw']);top['schema']='tos_published_knowledge_reader_v1';top['read_model_schema']='tos_cloudflare_edge_read_model_v8';top.pop('lens_sha256');print(json.dumps(_compact(top)))
-`,{raw:data.sqlite.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top'").get().json_chunk});
+  const raw=reference("temporal/v8-metadata",{raw:data.sqlite.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top'").get().json_chunk});
   data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(raw);
   data.sqlite.exec('DROP TABLE knowledge_lens_order');
   for(const row of data.sqlite.prepare('SELECT id FROM knowledge_nodes').all())replaceRow(data,'node',row.id,
@@ -275,8 +252,13 @@ p=json.load(sys.stdin);top=json.loads(p['raw']);top['schema']='tos_published_kno
 
 test('real Miniflare temporal D1 raw HTTP matches published Python and rejects ABA',async()=>{
  const fixture=fixtures.find(item=>item.name==='document-native-numbers'),data=database(fixture);data.request=fixture.request;
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
- const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+ const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+  plugins:[{name:'existing-workerd-wasm-module',setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:'./tos_web_rules_bg.wasm',external:true}));}}]});
+ const modulesRoot=fileURLToPath(new URL('../generated/',import.meta.url));
+ const mf=new Miniflare(convertV4MiniflareOptions({modulesRoot,modules:[
+  {type:'ESModule',path:join(modulesRoot,'temporal-worker-test.mjs'),contents:bundle.outputFiles[0].text},
+  {type:'CompiledWasm',path:join(modulesRoot,'tos_web_rules_bg.wasm'),contents:readFileSync(join(modulesRoot,'tos_web_rules_bg.wasm'))}],
+  compatibilityDate:'2026-09-03',d1Databases:['DB']}));
  try{
   const db=await mf.getD1Database('DB');
   await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -296,6 +278,7 @@ test('real Miniflare temporal D1 raw HTTP matches published Python and rejects A
      db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(fixture.metadata.data_revision)]);
    }return result;
   }};}};
-  await assert.rejects(knowledgeTemporalCompareD1(guarded,data.request),error=>error.status===409);assert.equal(changed,true);
+  const changedResponse=await response({db:guarded,request:data.request});
+  assert.equal(changedResponse.status,409);await changedResponse.arrayBuffer();assert.equal(changed,true);
  }finally{data.close();await mf.dispose();}
 });

@@ -97,13 +97,19 @@ Conception обозначает ситуированную трактовку, �
 - **Corpus** — `ToS/doctrine/CORPUS_FOUNDATION.md`, `ToS/source-witnesses/` и
   соответствующие библиографические, текстовые и claim-контракты `ToS/contracts/`.
 - **Assessment** — `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`, четыре assessment
-  schemas, политика и `mechanics/growth-cycle/parts/branch-growth-cycle/`.
+  schemas, политика и `mechanics/growth-cycle/parts/branch-growth-cycle/`;
+  текущий native journal route —
+  `rust/crates/tos-command/src/source_assessment_journal.rs` и
+  `rust/crates/tos-command/src/source_native_private_assessment_cli.rs`.
 - **Research** — `access/contracts/knowledge-api.v1.json`, LensSpec, graph
-  schemas и `access/src/tos_access/knowledge.py`.
+  schemas и native Rust access/query owners under
+  `rust/crates/tos-access/` and `rust/crates/tos-query/`.
 - **Growth** — явный командный контракт у владельца исходного знания,
   `mechanics/growth-cycle/`; `access` обслуживает чтение.
 - **Forms** — исходные языковые поля и их оценки у ToS; общий контракт формы,
-  контекста и выбора языка с совместимым читателем у `access`.
+  контекста и выбора языка с совместимым читателем у `access`; текущая native
+  form-механика — `rust/crates/tos-command/src/source_forms.rs` и
+  `rust/crates/tos-command/src/source_native_forms_cli.rs`.
   [Source-owned навигация Claim](../review-ledger/2026-09-08-claim-navigation-review.md)
   использует точные имена, предикат и статусы для навигации к записи.
 Человеческое высказывание хранится в её авторской форме. Наблюдаемые legacy-пробелы форм сохраняются явно;
@@ -113,10 +119,15 @@ Conception обозначает ситуированную трактовку, �
   Python/Worker reader: полный контекст добавляется при чтении без переписывания
   формы, отдельная оценка Claim не теряет ограничения и не становится endorsement.
   Это проверенное продолжение A02/V01/V02; final-union V03/M01 проверяются отдельно.
-- **Processing** — `access/src/tos_access/normalization_cache.py`, обработка
-  исходных слоёв у Corpus, текущая материализация и чтение Cloudflare/D1.
+- **Processing** — native source/query processing under
+  `rust/crates/tos-command/` and `rust/crates/tos-query/`, с downstream
+  материализацией и чтением Cloudflare/D1.
 - **Consumer** — API/MCP/agent consumer и `access/web/src/observatory/`, с
   сохранением отдельного владельца UI.
+
+Карта выше описывает текущие Rust-владельческие маршруты. Исторические абзацы
+ниже сохраняют тогдашних consumer-ов, авторов журналов и факты проверок,
+включая Python/Worker/D1.
 
 Состояние **локальное исполнение** означает реализованный source/operation/form
 путь с указанными положительными и отрицательными проверками. Оно не означает
@@ -312,7 +323,7 @@ union. Текущее покрытие и оставшиеся gates задаё�
 применяются автоматически. Их полнота по настоящей карте ещё не доказана.
 
 Первое изменение добавляет Assessment schemas, политику и чистый механизм
-допуска. `mechanics/growth-cycle/tests/test_knowledge_assessment.py` проверяет
+допуска. `rust/crates/tos-validation/src/assessment.rs` проверяет
 точные зависимости, доверенный scope, подмену оценщика/метода, повторение,
 независимость, конфликт, ограничение и withdrawal на искусственных записях.
 Журнал `assessment_journal.py` добавляет неизменяемые пакеты, атомарное

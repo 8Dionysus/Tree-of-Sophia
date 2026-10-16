@@ -57,10 +57,9 @@ unavailable states. The existing complete v1 route must retain its compatibility
 contract during migration. Retained UI objects remain bounded and are released
 when their session binding changes.
 
-The current source routes are
-[`ToSAccessCore.knowledge_catalog`](../../../src/tos_access/core.py),
-[`PublishedKnowledgeReadModel.catalog`](../../../src/tos_access/published_read_model.py)
-and [`catalog_semantics`](../../../src/tos_access/catalog_semantics.py).
-The prepared reader verifies its selected catalog digest and source revision;
-future partial delivery must preserve that ownership rather than manufacture
-partial-catalog authority in the browser.
+The current catalog query owner is the native Rust `tos-query` crate, whose
+[`knowledge_catalog` module](../../../../rust/crates/tos-query/src/knowledge_catalog.rs)
+binds the selected catalog digest, source revision, and current disclosure
+authority. Native CLI, HTTP, and MCP adapters expose that owner; the browser
+retains a validated session snapshot and does not manufacture catalog
+authority or partial results.

@@ -1,3 +1,4 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import {describe,it,expect} from 'vitest';
 import {createConstructorModel} from './model.mjs';
 import {carrySemanticWorkspace} from './semantic-workspace.mjs';

@@ -47,7 +47,7 @@
       "properties": {
         "source_manifest_ref": {"type": "string", "minLength": 1},
         "source_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "query_adapter_ref": {"const": "scripts/query_zarathustra_concept_workbench_v1.py"},
+        "query_adapter_ref": {"enum": ["scripts/query_zarathustra_concept_workbench_v1.py", "rust/crates/tos-query/src/reading_search/concept.rs"]},
         "query_adapter_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "result_schema_ref": {"const": "ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json"},
         "result_schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}

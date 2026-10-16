@@ -5,20 +5,25 @@ This card applies to the installable access product under `access/`.
 ## Role
 
 `access/` owns portable, read-only delivery of Tree of Sophia projections:
-the shared query core, CLI, local HTTP service, native MCP adapter, web
-application, WebMCP action contract, standalone profiles, and bundle builder.
+the native Rust query core, its thin imported SDK bridge, installed CLI, local
+HTTP/MCP service, web application, WebMCP action contract, standalone
+profiles, and native software/data builders.
 
 It does not author philosophical meaning. `ToS/` source, review, canon, and
 derived-export owners remain stronger than every packet emitted here.
 
 ## Boundary
 
-- `src/tos_access/core.py` is the reusable read/query center.
-- CLI, HTTP, native MCP, browser actions, and optional AbyssOS integrations
-  are adapters over that center.
+- `rust/crates/tos-query/` owns query planning, normalization, presentation,
+  search and exploration semantics. `rust/crates/tos-access/` owns source-read,
+  managed-release, transport and installed-product integration. The Python
+  `src/tos_access/core.py` surface is a thin imported SDK bridge to the
+  installed native product; it contains no query, HTTP, or source-reading
+  engine.
+- Installed CLI, HTTP, MCP, and browser actions route to the native owner.
 - `contracts/` and `profiles/` own the portable consumer-facing ABI.
-- `packaging/` may assemble only the subjects allowlisted by
-  `contracts/runtime-data.v1.json`.
+- `packaging/` contains explicit data-generation/validation tools only; the
+  native software archive owner assembles software subjects.
 - `integrations/abyssos/` may adapt to ecosystem services but must remain
   optional; its absence is a capability state, not an installation failure.
 - Runtime packets must preserve `source_ref` and must not claim review,

@@ -1,4 +1,7 @@
 import '../constructor/style.css';
+import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
+import rulesWasmUrl from '../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm?url';
+import {installCorpusReferenceRules} from '../src/corpus-reader/corpus-reference-rules.mjs';
 import {mountConstructorSky} from '../constructor/sky.mjs';
 import {createFixtureProvider} from '../src/corpus-reader/fixture-provider.mjs';
 import {createReference} from '../src/corpus-reader/model.mjs';
@@ -6,6 +9,9 @@ import {mountCorpusEntry} from '../src/corpus-reader/host.mjs';
 import {mountExplorationScope} from '../src/corpus-reader/scope.mjs';
 import {checkCorpusIndexedDB} from './corpus-indexeddb-check.mjs';
 import './corpus-reader-fixture.css';
+
+await initRules(rulesWasmUrl);
+installCorpusReferenceRules(rules);
 
 const root=document.getElementById('tree'),output=document.getElementById('corpus-metrics');
 root.innerHTML=`<canvas class="tree-sky" aria-hidden="true"></canvas><div class="tree-clusters"></div><div class="edge-labels"></div><div class="tree-stars"></div>

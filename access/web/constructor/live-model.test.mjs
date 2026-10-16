@@ -1,3 +1,4 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import {liveSearchPreview} from './live-model.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';

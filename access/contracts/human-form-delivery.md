@@ -17,7 +17,7 @@ selection with exact common packet values factored out. V2 is a wire encoding,
 not a shorter materialization or a stronger assessment. Both envelopes remain
 recognized; an unknown version is unavailable, never guessed to be v1.
 
-The Python and Worker selectors retain an explicit `inline-v1` option for
+The native Rust and Worker selectors retain an explicit `inline-v1` option for
 direct callers and use `shared-v2` for lens carriers. Lens execution v7 marks
 this consumer transition. Before activating that producer, a consumer must
 support both versions at every semantic access point: scene labels, hover,
@@ -36,10 +36,9 @@ producer's conservative allocation contract. A malformed declared mandatory
 carrier context rejects form delivery rather than leaving ready wording next
 to an unavailable-context notice.
 
-The dependency-free browser/Worker codec is
+The native Rust selection path and dependency-free browser/Worker codec are
 [`access/shared/human-form-selection-codec.ts`](../shared/human-form-selection-codec.ts);
-the Python port is
-[`tos_access.human_form_codec`](../src/tos_access/human_form_codec.py).
+the Rust owner is `tos-query::knowledge_presentation`.
 Decoding establishes transport structure and bounds only. Existing checks of
 the source packet, selected exact form, role, language, subject, carrier
 revision, mandatory context and source-snapshot admission still apply. A saved

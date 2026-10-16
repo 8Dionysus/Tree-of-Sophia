@@ -1,87 +1,59 @@
 # Offline prepared bootstrap
 
-`python -m tos_access.prepare` explicitly assembles the selected source tree's
-complete normalized graph/catalog and publishes a new local prepared SQLite
-snapshot. This is **full bootstrap**, not source-incremental processing. It uses
-the portable access package only: no Cloudflare builder import, edge SQL, D1,
-deployment, service startup or automatic consumer switch.
+`tos prepare` is the native full source bootstrap for the existing installed
+`PREFIX/bin/tos` product. It captures the five explicit knowledge carriers,
+normalizes their existing families, and publishes a new local prepared SQLite
+snapshot. No Python runtime, production child, fallback, D1 SQL/static export,
+deployment, service startup, source admission or consumer switch occurs.
 
 ```bash
-PYTHONPATH=access/src python -m tos_access.prepare \
+/absolute/prefix/bin/tos prepare \
   --source-root /absolute/source/Tree-of-Sophia \
-  --output-dir /absolute/existing-parent/new-publication
+  --output-dir /absolute/existing-parent/new-publication \
+  --max-seconds 60
 ```
 
-Both paths are required. The parent output directory must already exist; the
-output path itself must not exist, including an empty directory or symlink.
-The producer creates it with mode 0700. It never replaces existing output or
-deletes an incomplete attempt. Select a fresh path to retry and review retained
-partial output under its storage owner. Host resource admission, adequate RAM
-for whole-source normalization and disk/journal capacity remain caller duties.
+The output directory must be fresh in an existing parent. It is created with
+mode 0700; the completed three-file ABI is `snapshot.sqlite`, `binding.json`,
+`completed.json`. Binding and completion files are exclusively linked and
+fsynced, with completion last. Failure retains an incomplete directory and
+never retries, replaces output or grants completion. The existing publisher
+owns SQLite rollback and disposable search scratch. Private computational
+stage files are removed on success; they cannot mint a selected Stage receipt.
 
-The five knowledge input paths are explicitly rooted in `--source-root` and
-override ambient `TOS_*` carrier selection; ancillary paths are explicitly
-rooted too. Core's explicit `knowledge_snapshot_once()` reads the five carriers
-without populating or evicting process-global raw caches, uses the shared
-graph/catalog builders, and does not retain canonical carrier bytes for a future
-mutable CAS delta. It checks the complete path/mtime/size/inode/ctime tuple
-before and after input reading, graph construction, and catalog construction;
-source drift refuses this attempt. The producer checks that state again before
-and after publication. Ambient normalization-cache context is disabled only
-for this one-shot build and restored afterwards. Existing mutable snapshots and
-their caches remain untouched. The receipt identifies the source
-revision and normalization binding observed during the build. A successful
-check does not prove future source currentness, rights, semantic acceptance,
-canon or any external deployment. Source symlinks retain the core's normal
-resolution semantics; this is explicit selection, not a filesystem sandbox.
+The source capture reuses the existing bounded retained native capture and
+family normalizers. It selects exactly corpus, philosophy, bibliographic claims
+and the two semantic registries from `--source-root`, independent of ambient
+`TOS_*` source selectors. Its prepare profile does not require public release
+contracts, evidence, audit or ledger files. Query vocabulary and schema code
+companions are compiled into the installed executable. Philosophy v1/v2 and
+the original carrier symlink resolution remain supported. The five selected
+path/mtime/size/inode/ctime observations and captured digests are checked before
+publication, after publication, and before/after an optional maintenance commit.
+Source refs and portable root-relative values remain in the read model. The
+receipt retains `source_state_checked: true` and
+`ongoing_currentness_granted: false`: coherence at build time grants no future
+currentness, rights, canon or semantic acceptance.
 
-The producer applies the same recursive portable path-value conversion as the
-edge builder: the exact root becomes `Tree-of-Sophia`, root-prefixed strings
-become relative, dictionary keys and non-string/list/dict values are unchanged.
-No normalization cache is selected or written. Complete graph construction still
-retains full-size source and normalized objects while building; this is not a
-streaming source compiler. Local input references expire after graph/catalog
-construction except where returned values legitimately retain their contents;
-the optional maintenance handoff below retains only its exact header, registries
-and saved-lens specifications, not a canonical source-transition baseline.
-The producer converts each row
-on demand in two repeatable publication passes, so path conversion does not
-retain a second complete graph. Header and catalog are converted separately.
-Publication uses
-`PublicationLimits` defaults: 64 MiB SQLite file, 1 MiB compact row, 8 MiB
-metadata, two million SQL mutations, plus the publisher's delta-only limits
-(4096 changes / 16 MiB). These are mechanical refusal caps, not host memory
-forecasts or write authority. For a larger corpus, explicitly select
-`--max-bytes BYTES` and `--max-mutations COUNT` after obtaining resource/storage
-admission. Both require positive integers and are recorded in the completion
-receipt. Portable storage admission also bounds the byte cap to `2**40` and
-the full-bootstrap mutation cap to `2**53 - 1`; invalid selections fail before
-source normalization or output creation. These upper bounds are numeric storage
-contracts, not recommended operating budgets. Addressed search deltas retain
-their separate 20,000,000 ceiling; a bootstrap budget is not a delta allowance.
-Raising these whole-publication caps does not raise the row/metadata
-limits, reserve any space, switch readers, or make full normalization incremental.
-The byte cap covers the SQLite file, not its transient journal or source memory;
-reserve those separately. There is no automatic retry with larger caps and no
-cache flag.
+Publication defaults remain 64 MiB SQLite, 1 MiB compact row, 8 MiB metadata,
+two million SQL mutations and the existing delta-only allowances. Explicit
+`--max-bytes` and `--max-mutations` change only those publication allowances.
+`--bulk-search-scratch-bytes` plus `--bulk-search-scratch-mutations` select the
+existing exclusive scratch initializer; buffered is the default. Scratch has
+its own byte/write cap and contributes to the publication mutation budget.
+`--attach-maintenance` selects the separate existing catalog/semantic attachment
+transaction; `--maintenance-max-mutations` requires it. The source capture and
+normalization use the existing compiler profile (8 GiB per capture/stage/TEMP
+carrier, 16 GiB cumulative work), not publication byte limits. These declared
+caps are refusal envelopes, neither host admission nor measured RAM/disk fit.
+The caller reserves source/image/output, journals, TEMP and scratch coexistence
+and supplies a whole deadline before invoking the command. No full corpus or
+capacity result is inferred from finite fixture execution.
 
-For explicit bulk search construction, add **both**
-`--bulk-search-scratch-bytes BYTES` and
-`--bulk-search-scratch-mutations COUNT`. They select the scratch-backed
-initializer described in [local prepared publication](LOCAL_PREPARED_PUBLICATION.md);
-the old buffered route remains the default. Scratch is exclusively created as
-`.search-sort.sqlite` inside the new output directory, capped independently,
-and disposed before success. Both scratch limits are validated before source
-work/output creation. A process interruption can still leave a disposable
-scratch candidate; it is never an admitted or resumable snapshot.
-
-Reserve scratch in addition to the main file and journal/headroom. Scratch
-mutations also count toward `--max-mutations`, including the publisher's exact
-carrier/header overhead. The completion receipt records `search_bootstrap`
-(`bulk` or `buffered`) and `search_scratch_limits` (null for buffered). These
-physical-build choices do not alter the logical binding or source admission.
-This option eliminates incremental posting maintenance during the initial
-cohort load; full source normalization remains a separate measured stage.
+The Python `tos_access.prepare` module and source-graph producer are retired.
+Invoke the installed `tos-access prepare` command directly. The native producer
+binds its own normalization processor and configuration; it does not claim
+identity with the retired Python implementation.
 
 ## Optional maintenance attachment
 
@@ -91,32 +63,33 @@ search. Without this flag, snapshot packet keys, output fields and the three-fil
 ABI are unchanged, and no maintenance indexes are constructed.
 
 ```bash
-PYTHONPATH=access/src python -m tos_access.prepare \
+/absolute/prefix/bin/tos-access prepare \
+  --max-seconds ADMITTED_SECONDS \
   --source-root /absolute/source/Tree-of-Sophia \
   --output-dir /absolute/existing-parent/new-maintainable-publication \
   --attach-maintenance --maintenance-max-mutations 2000000
 ```
 
-The opt-in snapshot call requests `knowledge_snapshot_once(include_catalog_inputs=True)`.
-It returns copy-isolated `CatalogInputs` from the actual registries and saved-lens
-carriers used by that coherent graph/catalog build, while normalization caching
-is still disabled and before the final source-state check. The producer makes
-the captured header and lenses portable, but preserves the original registries
-and their normalization-binding digests. It never reconstructs stronger inputs
-from a catalog. If portable rows/header/lenses plus those original registries
-cannot exactly reproduce the selected catalog and semantic report, attachment
-refuses; registry values are not rewritten or rebound to force success.
+The native command passes the selected header, original registry bytes and
+portable lens specs directly to the native maintenance owner. The producer makes
+the captured header and lenses portable, preserves the original registries and
+their normalization-binding digests, and verifies that the portable rows plus
+those registries reproduce the selected catalog and semantic report. Attachment
+refuses if they do not; it never reconstructs stronger inputs from a catalog or
+rewrites registry values to force success.
 
-After base publication commits, a separate `BEGIN IMMEDIATE` transaction invokes
-the existing `bootstrap_prepared_maintenance_transaction` kernel. It receives
+After base publication commits, the native maintenance owner adds the auxiliary
+indexes in a separate transaction. It receives
 the same on-demand portable row stream in an additional pass, not another full
 normalized graph. Source state and selected publication binding are checked
 before and after attachment; the kernel verifies exact catalog and semantic
 report reproduction. This bootstrap only creates auxiliary maintenance state:
 it does not change header, rows, catalog, search, epoch or independent reader
 binding, verify a source transition, select a consumer, or grant semantic
-acceptance. See [catalog index](EXACT_CATALOG_INDEX.md) and
-[semantic index](SEMANTIC_INDEX.md) for the unchanged kernel contracts.
+acceptance. The implementation is in Rust's
+[`prepared_catalog_index.rs`](../rust/crates/tos-compiler/src/prepared_catalog_index.rs),
+[`prepared_catalog_semantics.rs`](../rust/crates/tos-compiler/src/prepared_catalog_semantics.rs)
+and [`prepared_maintenance.rs`](../rust/crates/tos-compiler/src/prepared_maintenance.rs).
 
 `--maintenance-max-mutations` requires the flag and defaults to two million. It
 is a separate allowance for the attachment transaction's combined catalog and
@@ -132,25 +105,10 @@ of publication `max_bytes`, catalog `max_index_bytes`, and semantic `max_bytes`;
 it never interprets them as additive capacities. CLI owner defaults still
 include semantic 32 MiB input accounting and 256 MiB whole-file limits, catalog
 4 GiB whole-file limits, and publication 64 MiB whole-file limits. Raising only
-the CLI publication cap does not lift semantic or catalog limits. These defaults
-are refusal budgets, not full-corpus admission or RAM forecasts. Advanced callers
-can explicitly supply every owner limit, for example:
-
-```python
-from dataclasses import replace
-from tos_access.catalog_index import CatalogLimits
-from tos_access.semantic_index import SemanticIndexLimits
-from tos_access.prepare import MaintenanceAttachmentLimits, prepare
-from tos_access.prepared_publication import PublicationLimits
-
-maintenance = MaintenanceAttachmentLimits(
-    max_mutations=2_000_000,
-    catalog_limits=replace(CatalogLimits(), max_index_bytes=128 * 1024 * 1024),
-    semantic_limits=replace(SemanticIndexLimits(), max_bytes=128 * 1024 * 1024),
-)
-receipt = prepare(source_root, fresh_output_dir,
-    limits=PublicationLimits(max_bytes=128 * 1024 * 1024), maintenance=maintenance)
-```
+the CLI publication cap does not lift semantic or catalog limits. Advanced
+callers can supply complete owner profiles with `--publication-limits` and
+`--maintenance-limits`; these remain refusal budgets, not full-corpus admission
+or RAM forecasts.
 
 Only opt-in completion adds `maintenance` to the existing receipt. This field
 records attachment status, unchanged binding, catalog/report digests, declared
@@ -190,32 +148,38 @@ paths. Interruptions may leave partial files; no automatic recovery is implied.
 Select the snapshot and binding from a complete output **explicitly**, using
 the normal prepared reader/CLI selection documented in [README](README.md):
 
-```python
-import json
-from pathlib import Path
-from tos_access.published_read_model import PublishedKnowledgeReadModel
-
-output = Path('/absolute/existing-parent/new-publication')
-completed = json.loads((output / 'completed.json').read_text())
-assert completed['schema'] == 'tos_offline_prepared_bootstrap_receipt_v1'
-assert completed['status'] == 'completed'
-binding = json.loads((output / 'binding.json').read_text())
-assert binding == completed['binding']
-reader = PublishedKnowledgeReadModel(output / 'snapshot.sqlite', binding)
+```bash
+/absolute/prefix/bin/tos-access \
+  --prepared-read-model /absolute/existing-parent/new-publication/snapshot.sqlite \
+  --prepared-binding /absolute/existing-parent/new-publication/binding.json \
+  knowledge catalog
 ```
 
 Keep the independent binding with the selected snapshot. No receipt-reader
-integration or implicit fallback is installed. Subsequent addressed storage
-deltas and stale binding refusal belong to [local prepared publication](LOCAL_PREPARED_PUBLICATION.md).
+integration or implicit fallback is installed. Subsequent reads recheck the
+exact selected binding under the [native selected-snapshot contract](contracts/native-selected-snapshot-profile.v1.md).
 The completed marker records bootstrap completion only; it must not be treated
 as a refreshed binding after a later mutation.
 
-Focused regression: `PYTHONPATH=access/src:access/tests python -m unittest
-test_offline_prepare test_offline_maintenance`. The fixture writes only five tiny real
-core input carriers, invokes the executable in a subprocess, and compares
-prepared catalog/node/lens/compressed-search reads to their source reference.
-Attachment cases cover both search initializers, exact registry/lens handoff,
-cache restoration, declared/effective caps, transaction and marker ordering,
-rollback on kernel failures/interruptions/drift, and post-commit marker failure.
-Test ownership is in `tests/test_inventory.json`; ordered validation authority
-stays in `docs/validation/validation_lanes.json`.
+The installed native command test, `rust/crates/tos-access/tests/native_prepare.rs`,
+checks source revision, registry identity, completion receipt, private output,
+binding, buffered/bulk publication, optional attachment, invalid-cap refusal
+and occupied-output preservation. It exercises the real native CLI. Python
+graph-builder and adapter tests were retired with those implementations. The
+fixture uses only five tiny core input carriers; it makes no full-corpus
+capacity claim or human semantic judgment.
+
+Native prepare measures the executing ELF with a bounded streaming SHA256 read,
+keeps the executing file open through normalization, and verifies the exact
+file/path physical stamp again before completion. It streams the ELF once per
+call; a second full hash is not required by this protected executing-image
+custody profile. That processor binding is separate from source revision and the
+registry/query configuration binding. The D1 publisher identity is unchanged.
+
+An explicit `--source-limits` JSON profile may narrow input, capture, stage and
+TEMP envelopes; absence preserves production defaults. Limits describe refusal
+boundaries and do not reserve storage. The finite native consumer selects 8 MiB
+publication/index/file caps and retains one already required successful output
+with its separate fixture-origin receipt. This is a derivative read publication,
+without source admission, ongoing currentness or an incremental source-state
+baseline.

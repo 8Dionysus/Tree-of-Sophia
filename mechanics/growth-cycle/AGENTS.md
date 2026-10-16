@@ -14,6 +14,20 @@ branch and graph expansion routes through the graph-promotion path.
 
 ## Validation
 
-Select the `mechanics_local` or `philosophy_topology` route from
-[`mechanics/VALIDATION.md`](../VALIDATION.md) after the growth surface is known.
-The route owners retain the procedure.
+Select `rust_workspace` for maintained native Growth behavior and
+`mechanics_local` for the combined native pipeline and remaining package-local
+mechanics checks. The [mechanics validation route](../VALIDATION.md) owns usage;
+[the lane manifest](../../docs/validation/validation_lanes.json) owns ordered
+commands. The source-owned native pipeline prepares its actual Cargo products
+before dispatching the declared assertion classes.
+
+Retained Python Growth tests are comparison evidence and assertion inventory.
+Their native behavior and API fate are recorded in
+[the owner coverage matrix](parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md).
+The validation route exposes the native pipeline and bounded mechanics cohort;
+historical reference material is outside executable discovery. A successful native pipeline proves only its declared
+mechanical predicates; semantic assessment, rights and canon retain their
+actual owners.
+
+Use `philosophy_topology` when the change concerns source-home structure or
+philosophy branch admission.

@@ -1,3 +1,4 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import {describe,it,expect} from 'vitest';
 import {bindInquiryLayer,checkInquiryTextReferences,checkGrounds,inquiryReadingContexts,routeGroundContext} from './inquiry-layer.mjs';
 import {LENSES} from './atlas-view.mjs';

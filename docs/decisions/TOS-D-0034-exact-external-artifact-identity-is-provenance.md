@@ -61,8 +61,8 @@ the A48 dossier beyond manual pre-canon review.
 
 ## Source Surfaces
 
-- `scripts/validate_active_naming.py`
-- `tests/test_validate_active_naming.py`
+- `rust/crates/tos-ops-mechanics-plan/src/active_naming.rs` (current implementation; replaces `scripts/validate_active_naming.py`)
+- `rust/crates/tos-ops-mechanics-plan/src/active_naming_cache.rs` and `tests/active_naming_native.rs` in the same crate (current regressions; replace `tests/test_validate_active_naming.py`)
 - `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json`
 - `ToS/philosophy/atlas/multilingual/content-labels.json`
 - `docs/decisions/TOS-D-0021-domain-vocabulary-and-active-route-naming.md`

@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json",
+  "title": "Tree of Sophia semantic entity type registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "registry_version",
+    "source_refs",
+    "fallback_type_id",
+    "types"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_semantic_entity_type_registry_v1"},
+    "registry_id": {"const": "tos.semantic.entity-types"},
+    "registry_version": {"type": "integer", "minimum": 1},
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/nonEmptyString"}
+    },
+    "fallback_type_id": {"$ref": "#/$defs/typeId"},
+    "property_definitions": {"type": "array", "items": {"$ref": "#/$defs/propertyDefinition"}},
+    "types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/typeEntry"}
+    }
+  },
+  "$defs": {
+    "sourceRecordProfile": {
+      "type": "object", "additionalProperties": false,
+      "description": "A source-owned metadata reader contract, not an admission or write capability. Other source shapes retain their native adapters.",
+      "required": ["profile_version", "reader", "record_type", "id_prefix", "source_basename", "catalog_filename", "schemas", "graph_layer"],
+      "properties": {
+        "creation_gate": {"enum": ["sign-promotion-v1"], "description": "The exact authored Sign profile requires the separate competent-assessment promotion command. This descriptor selects a fail-closed creation boundary; it grants no promotion or current-use authority."},
+        "native_binding_adapter": {"enum": ["source-text-unit-v1"], "description": "Explicit return from a semantic description to an immutable native_text_binding. The current public metadata reader requires a separately public native packet and text layer; declaring this adapter grants neither publication nor linguistic acceptance."},
+        "retained_native_adapter": {"enum": ["scholarly-composite-v1"], "description": "Explicit coexistence with the unchanged native composite-witness adapter. Only the composite type may declare this route; it does not convert or duplicate native identity."},
+        "profile_version": {"type": "integer", "minimum": 1},
+        "reader": {"enum": ["corpus-metadata-v1", "semantic-metadata-v1"]},
+        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+        "id_prefix": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.$"},
+        "source_basename": {"type": "string", "pattern": "^[a-z][a-z0-9-]*\\.json$"},
+        "catalog_filename": {"type": "string", "pattern": "^[a-z][a-z0-9-]*\\.jsonl$"},
+        "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
+          "items": {"type": "object", "additionalProperties": false,
+            "required": ["schema_version", "schema_ref", "schema_dependencies"],
+            "properties": {
+              "schema_version": {"type": "string", "minLength": 1},
+              "schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
+              "schema_dependencies": {"type": "array", "maxItems": 16, "uniqueItems": true,
+                "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
+            }}},
+        "graph_layer": {"enum": ["historical", "source-profile"]}
+      }
+    },
+    "propertyDefinition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["property_id", "field", "labels", "definition", "value_type", "applies_to", "required", "inherited", "unit", "language", "operators"],
+      "properties": {
+        "property_id": {"type": "string", "pattern": "^tos\\.property\\.[a-z0-9-]+$"},
+        "field": {"type": "string", "minLength": 1}, "labels": {"$ref": "#/$defs/localizedLabel"},
+        "definition": {"type": "string", "minLength": 1},
+        "value_type": {"enum": ["string", "number", "boolean", "string-array"]},
+        "applies_to": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/typeId"}},
+        "required": {"type": "boolean"}, "inherited": {"type": "boolean"},
+        "unit": {"type": ["string", "null"]}, "language": {"type": ["string", "null"]},
+        "operators": {"type": "array", "minItems": 1, "items": {"enum": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"]}}
+      }
+    },
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "typeId": {
+      "type": "string",
+      "pattern": "^tos\\.entity\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+    },
+    "localizedLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": ["string", "null"], "minLength": 1}
+      },
+      "required": ["default", "ru", "en"],
+      "properties": {
+        "default": {"$ref": "#/$defs/nonEmptyString"},
+        "ru": {"type": ["string", "null"], "minLength": 1},
+        "en": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "sourceMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_graph", "source_kind_id"],
+      "properties": {
+        "source_graph": {"$ref": "#/$defs/nonEmptyString"},
+        "source_kind_id": {"$ref": "#/$defs/nonEmptyString"},
+        "labels": {"$ref": "#/$defs/localizedLabel"}
+      }
+    },
+    "typeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type_id",
+        "parent_type_ids",
+        "abstract",
+        "object_role",
+        "labels",
+        "definition",
+        "lifecycle",
+        "owner_ref",
+        "source_mappings",
+        "supersedes_type_id"
+      ],
+      "properties": {
+        "type_id": {"$ref": "#/$defs/typeId"},
+        "source_record_profile": {"$ref": "#/$defs/sourceRecordProfile"},
+        "parent_type_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/typeId"}
+        },
+        "abstract": {"type": "boolean"},
+        "object_role": {
+          "enum": [
+            "root",
+            "identity",
+            "semantic",
+            "assertion",
+            "literal",
+            "evidence",
+            "activity",
+            "navigation",
+            "projection",
+            "unresolved",
+            "unmapped"
+          ]
+        },
+        "labels": {"$ref": "#/$defs/localizedLabel"},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "lifecycle": {"enum": ["stable", "candidate", "deprecated"]},
+        "owner_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "source_mappings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sourceMapping"}
+        },
+        "supersedes_type_id": {
+          "anyOf": [{"$ref": "#/$defs/typeId"}, {"type": "null"}]
+        }
+      }
+    }
+  }
+}

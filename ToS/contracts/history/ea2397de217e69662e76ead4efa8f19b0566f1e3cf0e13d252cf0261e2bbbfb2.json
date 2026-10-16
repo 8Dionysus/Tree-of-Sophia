@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/social-relation-claim.schema.json",
+  "title": "Grounded social relationship with explicit scope",
+  "description": "This is a source-attributed relationship claim, not inference from co-presence, graph proximity, matching names or study of a person's text. Its required time note may explicitly state unknown bounds; it is not a normalized temporal assertion.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
+    },
+    {
+      "required": [
+        "qualifiers"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_social_relation_claim_v1"
+        },
+        "claim_type": {
+          "const": "relation"
+        },
+        "object": {
+          "type": "string",
+          "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "qualifiers": {
+          "type": "object",
+          "required": [
+            "statement",
+            "statement_language",
+            "statement_script",
+            "relation_basis",
+            "social_scope",
+            "time_scope_note"
+          ],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "statement_language": {
+              "anyOf": [
+                {
+                  "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "statement_script": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"
+            },
+            "relation_basis": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "social_scope": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The activity, affiliation or relational dimension actually asserted, including qualifications; not the person's whole life."
+            },
+            "time_scope_note": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The historical span or explicit absence of known bounds. Data capture time is not relationship time; prose does not create sortable date keys."
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

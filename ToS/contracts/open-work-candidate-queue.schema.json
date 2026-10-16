@@ -11,7 +11,7 @@
     "owner_surface": {"const": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl"},
     "receipt_root": {"const": "ToS/source-witnesses/discovery/candidates/receipts"},
     "timing_root": {"const": "ToS/source-witnesses/discovery/timings"},
-    "generated_by": {"const": "scripts/build_open_work_candidate_queue.py"},
+    "generated_by": {"enum": ["scripts/build_open_work_candidate_queue.py", "tos-open-work-queue"]},
     "source_snapshot": {"$ref": "#/$defs/sourceSnapshot"},
     "counts": {
       "type": "object",

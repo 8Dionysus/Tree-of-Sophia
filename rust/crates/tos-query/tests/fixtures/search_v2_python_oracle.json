@@ -1,0 +1,170 @@
+{
+  "oracle": "CPython 3.14.7 / Unicode 16.0.0",
+  "normalization": "str.strip().lower(); no casefold and no normalization",
+  "profile": "tos-python-native-unicode-v1",
+  "cases": [
+    {
+      "name": "contextual_final_sigma",
+      "raw": "  ΣΟΣ  ",
+      "raw_code_points": 7,
+      "normalized": "σος",
+      "normalized_code_points": 3,
+      "error": null
+    },
+    {
+      "name": "lower_not_casefold",
+      "raw": "Straße",
+      "raw_code_points": 6,
+      "normalized": "straße",
+      "normalized_code_points": 6,
+      "error": null
+    },
+    {
+      "name": "lower_expands_dotted_i",
+      "raw": "İaa",
+      "raw_code_points": 3,
+      "normalized": "i̇aa",
+      "normalized_code_points": 4,
+      "error": null
+    },
+    {
+      "name": "unicode_whitespace_strip_without_normalization",
+      "raw": " ÁB　",
+      "raw_code_points": 6,
+      "normalized": "áb",
+      "normalized_code_points": 3,
+      "error": null
+    },
+    {
+      "name": "one_normalized_code_point",
+      "raw": " A　",
+      "raw_code_points": 4,
+      "normalized": null,
+      "normalized_code_points": 1,
+      "error": "QueryTooShort"
+    },
+    {
+      "name": "two_normalized_code_points",
+      "raw": "ab",
+      "raw_code_points": 2,
+      "normalized": null,
+      "normalized_code_points": 2,
+      "error": "QueryTooShort"
+    },
+    {
+      "name": "minimum_three_code_points",
+      "raw": "abc",
+      "raw_code_points": 3,
+      "normalized": "abc",
+      "normalized_code_points": 3,
+      "error": null
+    },
+    {
+      "name": "raw_256_code_points",
+      "raw": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "raw_code_points": 256,
+      "normalized": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "normalized_code_points": 256,
+      "error": null
+    },
+    {
+      "name": "raw_257_code_points",
+      "raw": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "raw_code_points": 257,
+      "normalized": null,
+      "normalized_code_points": 257,
+      "error": "QueryTooLong"
+    },
+    {
+      "name": "expanded_output_256_code_points",
+      "raw": "İaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "raw_code_points": 255,
+      "normalized": "i̇aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "normalized_code_points": 256,
+      "error": null
+    },
+    {
+      "name": "expanded_output_257_code_points",
+      "raw": "İaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "raw_code_points": 256,
+      "normalized": null,
+      "normalized_code_points": 257,
+      "error": "QueryTooLong"
+    },
+    {
+      "name": "raw_limit_before_strip",
+      "raw": "                                                                                                                                                                                                                                                             abc",
+      "raw_code_points": 256,
+      "normalized": "abc",
+      "normalized_code_points": 3,
+      "error": null
+    },
+    {
+      "name": "raw_limit_before_strip_overflow",
+      "raw": "                                                                                                                                                                                                                                                              abc",
+      "raw_code_points": 257,
+      "normalized": null,
+      "normalized_code_points": 3,
+      "error": "QueryTooLong"
+    }
+  ],
+  "order_cases": [
+    {
+      "name": "rank_then_lower_id_then_source_position",
+      "input": [
+        {
+          "rank": "carrier",
+          "lower_id": "aaa",
+          "source_position": 0
+        },
+        {
+          "rank": "prefix",
+          "lower_id": "zulu",
+          "source_position": 9
+        },
+        {
+          "rank": "exact",
+          "lower_id": "zulu",
+          "source_position": 7
+        },
+        {
+          "rank": "exact",
+          "lower_id": "alpha",
+          "source_position": 3
+        },
+        {
+          "rank": "exact",
+          "lower_id": "alpha",
+          "source_position": 1
+        }
+      ],
+      "expected": [
+        {
+          "rank": "exact",
+          "lower_id": "alpha",
+          "source_position": 1
+        },
+        {
+          "rank": "exact",
+          "lower_id": "alpha",
+          "source_position": 3
+        },
+        {
+          "rank": "exact",
+          "lower_id": "zulu",
+          "source_position": 7
+        },
+        {
+          "rank": "prefix",
+          "lower_id": "zulu",
+          "source_position": 9
+        },
+        {
+          "rank": "carrier",
+          "lower_id": "aaa",
+          "source_position": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Initial Claim to prepared publication
 
-`scripts/source_claim_publication.py` composes the existing initial
+`rust/crates/tos-command/src/source_claim_publication.rs` composes the existing initial
 `claims.create` owner package, addressed catalog addition, source assembler,
 normalizer and prepared transaction lanes. It is offline and explicitly
 selected; it does not create source, serve writes through access, bootstrap a
@@ -8,11 +8,12 @@ legacy reader or switch a running consumer.
 
 ## Selection and scope
 
-`claim_addition_publication(owner_config, source_inputs=...,
-expected_binding=..., catalog_inputs=..., expected_receipt_sha256=...,
-expected_request_digest=..., progress_owner=...)` holds the existing source
-writer lock for its scope. It inherits the exact initial identity-relation
-and public metadata evidence boundary of `source_claim_catalog.py`. The source
+`ClaimAdditionPublication::prepare` selects the owner configuration, source
+inputs, predecessor binding, catalog inputs, exact creation receipt and request
+digest, and progress owner. `apply_transaction` and `commit_transaction`
+publish through the caller's bounded transaction while retaining the source
+writer lock for its scope. They preserve the exact initial identity-relation
+and public metadata evidence boundary of the native Claim catalog owner. The source
 command has already committed and is never replayed by this publisher.
 
 The unchanged creation configuration is evidence of its scope at the exact

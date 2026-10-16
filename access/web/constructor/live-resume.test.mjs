@@ -1,5 +1,7 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
+import * as runtime from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 import {test,expect} from 'vitest';
-import {makeLiveResume,validateLiveResume,resolveLiveResumeSelection} from './live-resume.mjs';
+import {installLiveResumeRules,makeLiveResume,validateLiveResume,resolveLiveResumeSelection} from './live-resume.mjs';
 import {StableExplorationLayout} from './live-model.mjs';
 import {ExplorationSceneCache} from '../src/observatory/exploration-cache.mjs';
 import {pageFixture} from '../src/observatory/exploration-test-fixtures.mjs';
@@ -7,6 +9,8 @@ import {compactFormLens} from '../fixtures/human-form-data.mjs';
 import {claimMaterialReference} from '../src/observatory/knowledge-client.mjs';
 import {createLiveResearch} from './live-research.mjs';
 import {knowledgeScene} from '../shared/knowledge-scene.ts';
+
+installLiveResumeRules(runtime);
 
 test('resume preserves a bounded query and geometry, without source packets or cursors',()=>{
   const cache=new ExplorationSceneCache(),first=pageFixture();cache.accept(cache.begin(first.query),first);const view=cache.snapshot();

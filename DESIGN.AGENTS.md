@@ -69,7 +69,7 @@ The machine-readable route map is
 [`docs/validation/agents_route_inventory.json`](docs/validation/agents_route_inventory.json).
 The generated companion
 `.agents/agents-route.current.json` records tracked/discovered parity,
-inheritance stacks, hashes, and context budgets. The deterministic `scripts/agents_route_harness.py` evaluates declared task
+inheritance stacks, hashes, and context budgets. The deterministic `rust/crates/tos-ops-mechanics-plan/src/route_harness.rs` evaluates declared task
 routes. Model behavior, semantic assessment and human time-to-owner require
 their own evaluations. `DESIGN.AGENTS.md` provides the shape reference;
 `docs/AGENTS_ROOT_REFERENCE.md` preserves historical law. Active inheritance

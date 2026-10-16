@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {capturePlace} from './place-model.mjs';
 import {createTravelStore,createTravelNavigation,validateHistory,historyLabel,travelKey,compactHistory,HISTORY_KEY,HISTORY_LIMIT} from './travel-model.mjs';

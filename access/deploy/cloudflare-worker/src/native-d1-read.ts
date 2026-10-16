@@ -20,24 +20,29 @@ export class NativeD1Read {
   returned = 0; deliveredBytes = 0; queries = 0; sqlReads = 0;
   private pending: Promise<void> = Promise.resolve();
   readonly db: D1Database; readonly limits: NativeD1Limits; readonly typedSizeBudgets: boolean;
-  constructor(db: D1Database, limits: NativeD1Limits, typedSizeBudgets = false) {
+  readonly signal: AbortSignal | undefined;
+  constructor(db: D1Database, limits: NativeD1Limits, typedSizeBudgets = false, signal?: AbortSignal) {
     this.db = db; this.limits = limits; this.typedSizeBudgets = typedSizeBudgets;
+    this.signal = signal;
   }
   sourceSizeExceeded(message: string): never {
     if (this.typedSizeBudgets) throw new NativeBudgetExceeded(message);
     return nativeUnavailable(message);
   }
   async query<T>(input: string | (() => {sql: string; args: unknown[]}), ...bindings: unknown[]): Promise<T[]> {
+    this.signal?.throwIfAborted();
     // A request may merge several endpoint streams concurrently. Serialize
     // delivery admission so they cannot each reserve the same remaining bytes.
     const previous = this.pending; let release!: () => void;
     this.pending = new Promise<void>(resolve => {release = resolve;});
     await previous;
     try {
+      this.signal?.throwIfAborted();
       if (this.returned >= this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
       if (++this.queries > this.limits.maxQueries) throw new NativeBudgetExceeded('native D1 query budget');
       const {sql, args} = typeof input === 'string' ? {sql: input, args: bindings} : input();
       const result = await this.db.prepare(sql).bind(...args).all<T>();
+      this.signal?.throwIfAborted();
       this.sqlReads += result.meta?.rows_read ?? 0;
       if (this.sqlReads > this.limits.maxSqlReads) throw new NativeBudgetExceeded('native D1 rows-read budget');
       for (const row of result.results) {
@@ -106,15 +111,15 @@ export class NativeD1Rows {
   compact = false; // Enabled only by a covered lens after exact store admission.
   decoded = 0; cacheBytes = 0;
   cache = new Map<string, {ref: NativeRef; size: number}>();
-  readonly read: NativeD1Read; readonly limits: NativeD1Limits; readonly verifyOrder: boolean;
-  constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true) {
-    this.read = read; this.limits = limits; this.verifyOrder = verifyOrder;
+  readonly read: NativeD1Read; readonly limits: NativeD1Limits; readonly verifyOrder: boolean; readonly cacheEnabled: boolean;
+  constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true, cacheEnabled = true) {
+    this.read = read; this.limits = limits; this.verifyOrder = verifyOrder; this.cacheEnabled = cacheEnabled;
   }
-  async load(kind: NativeKind, identifiers: Iterable<string>): Promise<Map<string, NativeRef>> {
+  async load(kind: NativeKind, identifiers: Iterable<string>, retained?: (id: string, raw: string) => void): Promise<Map<string, NativeRef>> {
     const ids = [...new Set(identifiers)].sort(codePointCompare), result = new Map<string, NativeRef>(), missing: string[] = [];
     for (const id of ids) {
       const key = kind + ':' + id, cached = this.cache.get(key);
-      if (cached) {this.cache.delete(key); this.cache.set(key, cached); result.set(id, cached.ref);} else missing.push(id);
+      if (cached && !retained) {this.cache.delete(key); this.cache.set(key, cached); result.set(id, cached.ref);} else missing.push(id);
     }
     for (let offset = 0; offset < missing.length; offset += this.limits.blockSize) {
       const page = missing.slice(offset, offset + this.limits.blockSize);
@@ -163,7 +168,8 @@ export class NativeD1Rows {
         const id = stringField(ref, 'id'), order = byOrder.get(id);
         if (this.verifyOrder && (!order || order.kind !== kind || order.sort_key !== nativeLower(id) || order.from_id !== (kind === 'relation' ? stringField(ref, 'from_id') : '') || order.to_id !== (kind === 'relation' ? stringField(ref, 'to_id') : ''))) nativeUnavailable('native lens ordered carrier differs from payload');
         result.set(id, ref);
-        if (size <= this.limits.maxCacheBytes) {
+        retained?.(id, raw);
+        if (this.cacheEnabled && size <= this.limits.maxCacheBytes) {
           while (this.cache.size && (this.cache.size >= this.limits.maxCacheEntries || this.cacheBytes + size > this.limits.maxCacheBytes)) {
             const [key, retired] = this.cache.entries().next().value!; this.cache.delete(key); this.cacheBytes -= retired.size;
           }
@@ -174,6 +180,13 @@ export class NativeD1Rows {
     return result;
   }
   async get(kind: NativeKind, id: string): Promise<NativeRef> {return (await this.load(kind, [id])).get(id)!;}
+  /** Retain verified emitted bytes for a Rust consumer without JS reserialization. */
+  async getRaw(kind: NativeKind, id: string): Promise<string> {
+    let raw: string | undefined;
+    await this.load(kind, [id], (found, value) => {if (found === id) raw = value;});
+    if (raw === undefined) nativeUnavailable('native selected retained payload missing');
+    return raw;
+  }
 }
 
 /** Python compact emitted framing, including UTF-8 encodability of every key/value. */
