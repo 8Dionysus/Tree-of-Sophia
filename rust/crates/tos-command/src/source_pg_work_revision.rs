@@ -518,8 +518,7 @@ fn decode_receipt_row(
     let stored_receipt_digest = parse_digest(row.get::<_, String>(17))?;
     let prepare_id: Vec<u8> = row.get(18);
     let commit_seq = as_u64(row.get(19))?;
-    if expected_publication.is_some()
-        || authorization_raw.is_empty()
+    if authorization_raw.is_empty()
         || authorization_raw.len() > MAX_AUTHORIZATION_BYTES
         || prepare_id.is_empty()
         || prepare_id.len() > MAX_PREPARE_ID_BYTES
@@ -536,6 +535,7 @@ fn decode_receipt_row(
         &command_id,
         owner_canonical,
         request_canonical,
+        expected_publication.as_deref(),
     )?;
     let computed = receipt_digest(
         domain,
@@ -550,7 +550,7 @@ fn decode_receipt_row(
         owner_canonical,
         request_raw,
         request_canonical,
-        None,
+        expected_publication.as_deref(),
         publication_observation,
         compound_members,
         &authorization_raw,
@@ -584,6 +584,7 @@ fn validate_selected_record_authorization_binding(
     command_id: &str,
     owner_canonical: Digest256,
     request_canonical: Digest256,
+    expected_publication: Option<&str>,
 ) -> DurableResult<()> {
     let authorization = cmd::parse(authorization_raw).map_err(DurableError::Source)?;
     cmd::exact_keys(
@@ -613,14 +614,39 @@ fn validate_selected_record_authorization_binding(
         || cmd::record_digest(request).map_err(DurableError::Source)? != request_canonical
         || cmd::text(request, "expected_configuration").map_err(DurableError::Source)?
             != owner_canonical.to_prefixed()
-        || cmd::field(request, "expected_publication").map_err(DurableError::Source)?
-            != &tos_foundation::JsonValue::Null
+        || selected_record_publication(
+            cmd::text(&authorization, "record_type").map_err(DurableError::Source)?,
+            request,
+        )?
+        .as_deref()
+            != expected_publication
     {
         return Err(DurableError::Corrupt(
             "PG selected record authorization binding",
         ));
     }
     Ok(())
+}
+
+/// Work keeps its independent null predecessor. Other selected records can
+/// bind an existing publication token; retain it verbatim in their PG receipt.
+fn selected_record_publication(
+    record_type: &str,
+    request: &tos_foundation::JsonValue,
+) -> DurableResult<Option<String>> {
+    let value = cmd::field(request, "expected_publication").map_err(DurableError::Source)?;
+    if value == &tos_foundation::JsonValue::Null {
+        return Ok(None);
+    }
+    if record_type == "work" {
+        return Err(DurableError::Conflict(
+            "PG Work publication predecessor must be null",
+        ));
+    }
+    let token = cmd::text(request, "expected_publication").map_err(DurableError::Source)?;
+    Digest256::from_prefixed(token)
+        .map_err(|_| DurableError::Invalid("PG selected publication predecessor digest"))?;
+    Ok(Some(token.to_owned()))
 }
 
 #[cfg(test)]
@@ -643,58 +669,87 @@ mod tests {
                 "test:agent-revision",
             ),
         ] {
-            let owner_canonical = Digest256::of_bytes(record_type.as_bytes());
-            let request = cmd::object(vec![
-                ("schema_version", cmd::string("tos_local_source_command_v1")),
-                ("operation", cmd::string("record.revise")),
-                ("command_id", cmd::string(command_id)),
-                (
-                    "expected_configuration",
-                    cmd::string(&owner_canonical.to_prefixed()),
-                ),
-                ("expected_publication", tos_foundation::JsonValue::Null),
-                ("fields", cmd::object(Vec::new())),
-            ]);
-            let authorization = cmd::object(vec![
-                (
-                    "schema_version",
-                    cmd::string("tos_selected_metadata_revision_authorization_v1"),
-                ),
-                ("principal_id", cmd::string("test-principal")),
-                ("authority_ref", cmd::string("test-authority")),
-                ("source_path", cmd::string(source_path)),
-                ("record_id", cmd::string(record_id)),
-                ("record_type", cmd::string(record_type)),
-                ("request", request.clone()),
-            ]);
-            let authorization_raw = cmd::published(&authorization).unwrap();
-            let request_canonical = cmd::record_digest(&request).unwrap();
-            let transaction_id = revision::transaction_id(&request).unwrap();
+            let token = Digest256::of_bytes(b"existing-publication").to_prefixed();
+            for expected_publication in [None, Some(token.as_str())] {
+                let owner_canonical = Digest256::of_bytes(record_type.as_bytes());
+                let request = cmd::object(vec![
+                    ("schema_version", cmd::string("tos_local_source_command_v1")),
+                    ("operation", cmd::string("record.revise")),
+                    ("command_id", cmd::string(command_id)),
+                    (
+                        "expected_configuration",
+                        cmd::string(&owner_canonical.to_prefixed()),
+                    ),
+                    (
+                        "expected_publication",
+                        expected_publication
+                            .map(cmd::string)
+                            .unwrap_or(tos_foundation::JsonValue::Null),
+                    ),
+                    ("fields", cmd::object(Vec::new())),
+                ]);
+                let authorization = cmd::object(vec![
+                    (
+                        "schema_version",
+                        cmd::string("tos_selected_metadata_revision_authorization_v1"),
+                    ),
+                    ("principal_id", cmd::string("test-principal")),
+                    ("authority_ref", cmd::string("test-authority")),
+                    ("source_path", cmd::string(source_path)),
+                    ("record_id", cmd::string(record_id)),
+                    ("record_type", cmd::string(record_type)),
+                    ("request", request.clone()),
+                ]);
+                let authorization_raw = cmd::published(&authorization).unwrap();
+                let request_canonical = cmd::record_digest(&request).unwrap();
+                let transaction_id = revision::transaction_id(&request).unwrap();
 
-            assert!(
-                validate_selected_record_authorization_binding(
-                    &authorization_raw,
-                    source_path,
-                    record_id,
-                    &transaction_id,
-                    command_id,
-                    owner_canonical,
-                    request_canonical,
-                )
-                .is_ok()
-            );
-            assert!(
-                validate_selected_record_authorization_binding(
-                    &authorization_raw,
-                    "ToS/source-witnesses/other.json",
-                    record_id,
-                    &transaction_id,
-                    command_id,
-                    owner_canonical,
-                    request_canonical,
-                )
-                .is_err()
-            );
+                assert_eq!(
+                    validate_selected_record_authorization_binding(
+                        &authorization_raw,
+                        source_path,
+                        record_id,
+                        &transaction_id,
+                        command_id,
+                        owner_canonical,
+                        request_canonical,
+                        expected_publication,
+                    )
+                    .is_ok(),
+                    record_type != "work" || expected_publication.is_none()
+                );
+                assert!(
+                    validate_selected_record_authorization_binding(
+                        &authorization_raw,
+                        "ToS/source-witnesses/other.json",
+                        record_id,
+                        &transaction_id,
+                        command_id,
+                        owner_canonical,
+                        request_canonical,
+                        expected_publication,
+                    )
+                    .is_err()
+                );
+                let mismatched = if expected_publication.is_some() {
+                    None
+                } else {
+                    Some(token.as_str())
+                };
+                assert!(
+                    validate_selected_record_authorization_binding(
+                        &authorization_raw,
+                        source_path,
+                        record_id,
+                        &transaction_id,
+                        command_id,
+                        owner_canonical,
+                        request_canonical,
+                        mismatched,
+                    )
+                    .is_err()
+                );
+            }
         }
     }
 }
@@ -725,7 +780,7 @@ fn verify_receipt_chain(
                     octet_length(authorization_raw)::bigint+octet_length(before_refs)::bigint+
                     octet_length(after_refs)::bigint+octet_length(prepare_id)::bigint
                 ),0)::bigint,
-                coalesce(bool_or(expected_publication IS NOT NULL
+                coalesce(bool_or(octet_length(expected_publication)>71
                     OR octet_length(source_path)>4096 OR octet_length(record_id)>1024
                     OR octet_length(transaction_id)>128 OR octet_length(command_id)>1024
                     OR octet_length(prepare_id)<1 OR octet_length(prepare_id)>65535),false)
@@ -839,9 +894,11 @@ pub(crate) fn make_commit_evidence(
     }
     let member_writes = selected_member_writes(&observation.source_path, writes)?;
     let request = cmd::parse(&context.request_raw).map_err(DurableError::Source)?;
-    if cmd::field(&request, "expected_publication").map_err(DurableError::Source)?
-        != &tos_foundation::JsonValue::Null
-        || observation.selected.is_some()
+    let expected_publication = selected_record_publication(
+        cmd::text(&configuration, "record_type").map_err(DurableError::Source)?,
+        &request,
+    )?;
+    if observation.selected.is_some()
         || observation.selected_refs.is_some()
         || proposal.operation != "record.revise"
     {
@@ -973,7 +1030,7 @@ pub(crate) fn make_commit_evidence(
         owner_configuration_canonical_digest: owner_canonical,
         request_raw_digest: Digest256::of_bytes(&context.request_raw),
         request_canonical_digest: cmd::record_digest(&request).map_err(DurableError::Source)?,
-        expected_publication: None,
+        expected_publication,
         publication_observation_digest,
         compound_members_digest,
         authorization_raw,
@@ -1060,6 +1117,16 @@ pub(crate) fn validate_attempt_evidence(
     observed_generation: u64,
     writes: &[SourceRevisionWrite],
 ) -> DurableResult<()> {
+    validate_selected_record_authorization_binding(
+        &evidence.authorization_raw,
+        &evidence.source_path,
+        &evidence.record_id,
+        &evidence.transaction_id,
+        &evidence.command_id,
+        evidence.owner_configuration_canonical_digest,
+        evidence.request_canonical_digest,
+        evidence.expected_publication.as_deref(),
+    )?;
     let observation = &evidence.observation;
     if observation.domain != domain
         || observation.store_id != store_id
@@ -1079,7 +1146,6 @@ pub(crate) fn validate_attempt_evidence(
                 observation.predecessor_receipt_digest,
             )
         || evidence.command_id != command_id
-        || evidence.expected_publication.is_some()
         || evidence.request_raw_digest != request_raw_digest
         || evidence.owner_configuration_raw_digest != owner_configuration_raw_digest
         || evidence.owner_configuration_canonical_digest != owner_configuration_canonical_digest
@@ -1192,7 +1258,6 @@ pub(crate) fn apply_source_change(
         || evidence.observation.source_path != evidence.source_path
         || evidence.observation.record_id != evidence.record_id
         || evidence.observation.generation != expected_predicate_generation
-        || evidence.expected_publication.is_some()
         || evidence.observation.selected_refs.is_some()
         || evidence.observation.selected.is_some()
         || actual_compound_digest != evidence.compound_members_digest

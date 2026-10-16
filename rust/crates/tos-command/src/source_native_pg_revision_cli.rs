@@ -579,10 +579,7 @@ pub(super) fn run(
                 )
                 .map_err(DurableError::Source)?
                 .selected()
-                    && operation == "record.revise"
-                    && cmd::field(&request, "expected_publication")
-                        .map_err(DurableError::Source)?
-                        == &tos_foundation::JsonValue::Null;
+                    && operation == "record.revise";
                 let configuration = if work_owner || selected_record_extension {
                     Some(cmd::parse(&owner_raw).map_err(DurableError::Source)?)
                 } else {

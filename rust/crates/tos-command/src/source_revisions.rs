@@ -1012,12 +1012,12 @@ impl PgRecordRevisionCommandContext {
     }
 
     fn selected_publication_ids(&self) -> SourceCommandResult<Vec<String>> {
-        if let Some(observation) = &self.work_revision {
-            return Ok(observation
-                .selected
-                .as_ref()
-                .map(|transaction| vec![transaction.transaction_id.clone()])
-                .unwrap_or_default());
+        if let Some(selected) = self
+            .work_revision
+            .as_ref()
+            .and_then(|o| o.selected.as_ref())
+        {
+            return Ok(vec![selected.transaction_id.clone()]);
         }
 
         let (_, family) = configuration(&self.command)?;
@@ -1083,7 +1083,13 @@ impl RecordRevisionCommandContext for PgRecordRevisionCommandContext {
         let Some(observation) = &self.work_revision else {
             return read_record_revision_publication(&self.command, selected_ids);
         };
-        let filesystem = read_record_revision_publication(&self.command, &[])?;
+        let selected = observation.selected.as_ref();
+        let filesystem_ids = selected_ids
+            .iter()
+            .copied()
+            .filter(|id| selected.is_none_or(|transaction| transaction.transaction_id != *id))
+            .collect::<Vec<_>>();
+        let filesystem = read_record_revision_publication(&self.command, &filesystem_ids)?;
         let config = cmd::parse(&self.command.configuration_raw)?;
         let source_path = cmd::text(&config, "source_path")?;
         let record_id = cmd::text(&config, "record_id")?;
@@ -1116,18 +1122,32 @@ impl RecordRevisionCommandContext for PgRecordRevisionCommandContext {
                 ));
             }
         }
-        let selected = observation.selected.as_ref();
-        let expected_ids = selected
-            .map(|transaction| vec![transaction.transaction_id.as_str()])
-            .unwrap_or_default();
-        if expected_ids != selected_ids {
+        let mut transactions = filesystem
+            .transactions
+            .iter()
+            .filter(|transaction| transaction.status == RevisionTransactionStatus::Committed)
+            .cloned()
+            .collect::<Vec<_>>();
+        transactions.extend(selected.cloned());
+        let expected_ids = transactions
+            .iter()
+            .map(|transaction| transaction.transaction_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if expected_ids != selected_ids.iter().copied().collect::<BTreeSet<_>>() {
             return Err(SourceCommandError::Conflict(
-                "PG Work replay selection differs from request",
+                "PG selected replay selection differs from request",
             ));
         }
+        let request = cmd::parse(&self.command.request_raw)?;
+        let independent = cmd::text(&config, "record_type")? == "work"
+            || cmd::field(&request, "expected_publication").ok() == Some(&JsonValue::Null);
         let publication = RevisionPublication {
-            token: None,
-            transactions: selected.cloned().into_iter().collect(),
+            token: if independent {
+                None
+            } else {
+                filesystem.token.clone()
+            },
+            transactions,
         };
         let mut hasher = Digest256Hasher::new();
         hasher.update(b"tos-pg-work-publication-observation-v1\0");

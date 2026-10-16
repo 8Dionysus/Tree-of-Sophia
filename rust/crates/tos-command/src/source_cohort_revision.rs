@@ -1255,8 +1255,8 @@ impl SourceRevisionReadSession<'_> {
     }
 
     /// Reuse the Work-compatible receipt format for every selected record
-    /// owner. Selected-null revisions require the explicitly provisioned v1
-    /// extension so their commit and ready timestamp can be replayed exactly.
+    /// owner. Selected revisions require the explicitly provisioned v1 extension
+    /// so both independent and publication-bound commits replay exactly.
     pub(crate) fn observe_pg_selected_revision(
         &mut self,
         source_path: &str,

@@ -1005,10 +1005,7 @@ pub(crate) fn prepare_pg_record_revision_with_work(
     let generic_selected_observation = if work_owner || work_revision.is_none() {
         true
     } else {
-        family.selected()
-            && cmd::text(&revision_request, "operation")? == "record.revise"
-            && cmd::field(&revision_request, "expected_publication")?
-                == &tos_foundation::JsonValue::Null
+        family.selected() && cmd::text(&revision_request, "operation")? == "record.revise"
     };
     let observation_matches_owner = if let Some(observation) = &work_revision {
         Digest256::of_bytes(observation.domain.as_bytes()) == identity.domain_digest
