@@ -167,6 +167,8 @@ mod linux {
             CandidateCutWorkerSchemaExecutor, CutSchemaCheck, CutSchemaExecutor, CutWorkerLimits,
         };
 
+        use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
         let (identity, _, _) = worker();
         let cancelled = AtomicBool::new(false);
         let deadline = Instant::now() + Duration::from_secs(30);
@@ -228,18 +230,18 @@ mod linux {
         );
         assert!(
             !candidate
-                .check_reusing_scalar("subject", br#""x""#, contract, deadline, &cancelled)
+                .check_with_fragment("subject", br#""x""#, contract, deadline, &cancelled)
                 .unwrap()
         );
         for _ in 0..3 {
             assert!(
                 candidate
-                    .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                    .check_with_fragment("subject", b"7", contract, deadline, &cancelled)
                     .unwrap()
             );
             assert!(
                 !candidate
-                    .check_reusing_scalar("subject", br#""x""#, contract, deadline, &cancelled)
+                    .check_with_fragment("subject", br#""x""#, contract, deadline, &cancelled)
                     .unwrap()
             );
         }
@@ -255,7 +257,7 @@ mod linux {
             ),
         ] {
             assert!(matches!(
-                candidate.check_reusing_scalar(path, raw, &root, deadline, &cancelled),
+                candidate.check_with_fragment(path, raw, &root, deadline, &cancelled),
                 Err(ItemRefusal::BudgetCheck {
                     check: "Cut scalar receipt count",
                     used: Some(3),
@@ -265,7 +267,7 @@ mod linux {
         }
         assert!(
             candidate
-                .check_reusing_scalar(
+                .check_with_fragment(
                     "subject",
                     b"7",
                     "ToS/contracts/absent.schema.json",
@@ -280,7 +282,7 @@ mod linux {
         cancelled.store(true, Ordering::Relaxed);
         assert!(
             candidate
-                .check_reusing_scalar("subject", b"7", contract, deadline, &cancelled)
+                .check_with_fragment("subject", b"7", contract, deadline, &cancelled)
                 .is_err()
         );
 

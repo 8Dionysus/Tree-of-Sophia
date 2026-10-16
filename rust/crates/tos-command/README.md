@@ -89,6 +89,12 @@ the exact earlier 13-field shape and the 14-field shape with a validated stream
 inventory; older readers reject the latter and must be upgraded with the
 producer. New publication requires the complete inventory. Subsequent events recognize both Record and
 Claim range-reconciliation cohorts as predecessor owners.
+Event schema checks reuse actual scalar receipts for repeated exact documents
+within the same prepared candidate executor. Path, raw bytes and full schema
+selector (including fragments) must match; cancellation, deadlines, selected
+schema binding and input budgets are checked again. This reuses validation work
+only and grants no source, rights or publication authority.
+
 Each Claim carries its own forms, identity, evidence and history closure, plus
 its exact complete stream and range causes. The immutable parsed inventory and
 range manifest bind the complete stream membership once. Each contribution

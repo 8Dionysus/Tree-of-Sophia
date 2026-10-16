@@ -1544,6 +1544,21 @@ impl<I: Copy + Eq> CutSchemaExecutor for CandidateCutWorkerSchemaExecutor<I> {
 impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
     for CandidateCutWorkerSchemaExecutor<I>
 {
+    // Catalog event owners revisit shared exact registries, provenance and
+    // endpoint records through this fragment-aware interface. Use the existing
+    // receipt reuse path; its preflight, decoded-input and exact selector checks
+    // remain mandatory and diagnostics-v2 still performs fresh executions.
+    fn check_with_fragment(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.check_reusing_scalar(path, raw, contract, deadline, cancelled)
+    }
+
     fn input_identity(&self) -> &I {
         CandidateCutWorkerSchemaExecutor::input_identity(self)
     }
