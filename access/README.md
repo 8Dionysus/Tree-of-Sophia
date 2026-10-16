@@ -22,6 +22,13 @@ CLI/HTTP/MCP entrypoints. `access/src/tos_access/` retains a source-importable
 Python SDK bridge for external callers; it delegates to an explicitly selected
 native binary and has no Python query fallback or installable wheel.
 
+Owned Python sessions use `NativeAccessCore.owned_ordinary_source_session` with
+the native READY capabilities and the caller's original transport, deadline,
+cancellation and receiving-state limits. The earlier GraphViews-only,
+selected-probe, lazy-selected and discovered-session prototype factories are
+retired. Callers select their paths before entering the ordinary session;
+unsupported capabilities remain explicit refusals.
+
 Use the repository's native validation route after installing its declared
 development dependencies. Build browser assets with `npm ci --prefix access/web`
 and `npm run build --prefix access/web`. To read production data, explicitly
