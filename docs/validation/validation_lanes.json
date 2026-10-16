@@ -342,7 +342,7 @@
       "layer": "software-foundation",
       "mode": "blocking",
       "owner_surface": "rust/README.md",
-      "purpose": "Check pinned native and WASM builds, formatting, exact conformance product provenance, complete fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
+      "purpose": "Check pinned native and WASM builds, formatting, exact conformance product provenance, complete fixture tests, isolated native install for Rust source changes.",
       "command_sequence": "rust_workspace",
       "failure_route": "rust/README.md",
       "does_not_own": [
@@ -684,16 +684,6 @@
         "command": [
           "tos-software-ci",
           "verify-mechanics-install",
-          "--repo-root",
-          "{repo_root}"
-        ]
-      },
-      {
-        "label": "verify generated WEB.1 binding in Node WebAssembly host",
-        "command_timeout_ms": 3600000,
-        "command": [
-          "tos-software-ci",
-          "verify-web-host",
           "--repo-root",
           "{repo_root}"
         ]

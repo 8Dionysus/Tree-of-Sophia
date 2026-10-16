@@ -439,125 +439,9 @@ fn verify_commands(root: &Path, prefix: &Path, work: &Path, r: &Run<'_>) -> io::
         json!({"status":"pass","products":products,"outside_checkout":true,"native_phase_execution":true,"native_git_selection":true,"failed_preparation_rejected":true}),
     )
 }
-fn verify_web(
-    root: &Path,
-    work: &Path,
-    generated: Option<&Path>,
-    r: &Run<'_>,
-) -> io::Result<Value> {
-    let output = if let Some(generated) = generated {
-        exact(generated)?;
-        generated.to_owned()
-    } else {
-        let cli = std::env::var("WASM_BINDGEN_CLI").unwrap_or_else(|_| "wasm-bindgen".into());
-        let version = r.run(root, vec![cli.clone(), "--version".into()], &[])?;
-        if String::from_utf8_lossy(&version).trim() != "wasm-bindgen 0.2.128" {
-            return Err(bad("WEB.1 requires wasm-bindgen CLI 0.2.128"));
-        }
-        r.run(
-            root,
-            strings(&[
-                "cargo",
-                "build",
-                "--locked",
-                "-p",
-                "tos-web-codec",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--features",
-                "wasm",
-                "--release",
-            ]),
-            &[],
-        )?;
-        let target = std::env::var_os("CARGO_TARGET_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| root.join("target"));
-        let target = if target.is_absolute() {
-            target
-        } else {
-            root.join(target)
-        };
-        let output = work.join("web");
-        fs::create_dir(&output)?;
-        r.run(
-            root,
-            vec![
-                cli,
-                "--target".into(),
-                "web".into(),
-                "--out-dir".into(),
-                path(&output)?,
-                path(&target.join("wasm32-unknown-unknown/release/tos_web_codec.wasm"))?,
-            ],
-            &[],
-        )?;
-        fs::write(output.join("package.json"), "{\"type\":\"module\"}\n")?;
-        output
-    };
-    let js = output.join("tos_web_codec.js");
-    let wasm = output.join("tos_web_codec_bg.wasm");
-    let js_sha = r.digest(&js)?;
-    let wasm_sha = r.digest(&wasm)?;
-    let mut argv = vec![
-        "node".into(),
-        path(&root.join("rust/crates/tos-web-codec/tests/wasm-host.mjs"))?,
-        path(&js)?,
-        path(&wasm)?,
-        path(&root.join("tests/conformance/rust/foundation.jsonl"))?,
-        path(&root.join("tests/conformance/rust/canonical-profiles-v1.jsonl"))?,
-    ];
-    let oracle = std::env::var_os("TOS_WEB_FLOAT_ORACLE").map(PathBuf::from);
-    let oracle_sha = if let Some(oracle) = oracle {
-        let expected = std::env::var("TOS_WEB_FLOAT_ORACLE_SHA256")
-            .map_err(|_| bad("WEB float oracle SHA-256 required"))?;
-        if r.digest(&oracle)? != expected {
-            return Err(bad("WEB float oracle SHA-256 mismatch"));
-        }
-        argv.push(path(&oracle)?);
-        Some(expected)
-    } else {
-        None
-    };
-    let result: Value =
-        serde_json::from_slice(&r.run(root, argv, &[])?).map_err(|e| bad(e.to_string()))?;
-    if result["status"] != "pass"
-        || result["foundation_vectors"] != 18
-        || result["profile_vectors"] != 51
-        || result["float_vectors"] != if oracle_sha.is_some() { 8258 } else { 0 }
-    {
-        return Err(bad("WEB.1 host returned incomplete vector result"));
-    }
-    let worker = if let Some(package) = std::env::var_os("TOS_WEB_MINIFLARE_PACKAGE") {
-        let argv = vec![
-            "node".into(),
-            path(&root.join("rust/crates/tos-web-codec/tests/worker-host.mjs"))?,
-            path(Path::new(&package))?,
-            path(&js)?,
-            path(&wasm)?,
-            path(&root.join("access/deploy/cloudflare-worker/wrangler.jsonc"))?,
-        ];
-        let result: Value =
-            serde_json::from_slice(&r.run(root, argv, &[])?).map_err(|e| bad(e.to_string()))?;
-        if result["status"] != "pass" || result["cases"] != 2 {
-            return Err(bad("WEB.1 Worker host returned incomplete result"));
-        }
-        result
-    } else {
-        Value::Null
-    };
-    if r.digest(&js)? != js_sha || r.digest(&wasm)? != wasm_sha {
-        return Err(bad("generated WEB assets changed during host verification"));
-    }
-    Ok(
-        json!({"schema_version":"tos_web_host_verification_v1","result":result,"worker_result":worker,"float_oracle_sha256":oracle_sha,"js_sha256":js_sha,"wasm_sha256":wasm_sha}),
-    )
-}
-
 pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
     let mut root = None;
     let mut prefix = None;
-    let mut generated = None;
     let mut entries_only = false;
     let mut command_ms = 900_000u64;
     let mut lane_ms = 3_600_000u64;
@@ -566,15 +450,14 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
     while let Some(key) = args.next() {
         match key.as_str() {
             "--command-entries-only" => entries_only = true,
-            "--repo-root" | "--installed-prefix" | "--generated-assets" => {
+            "--repo-root" | "--installed-prefix" => {
                 let value = PathBuf::from(
                     args.next()
                         .ok_or_else(|| bad("missing verification path"))?,
                 );
                 match key.as_str() {
                     "--repo-root" => root = Some(value),
-                    "--installed-prefix" => prefix = Some(value),
-                    _ => generated = Some(value),
+                    _ => prefix = Some(value),
                 }
             }
             "--command-timeout-ms" | "--lane-timeout-ms" | "--max-output-bytes" => {
@@ -600,19 +483,10 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
     }
     let root = root.ok_or_else(|| bad("--repo-root required"))?;
     exact(&root)?;
-    if ![
-        "verify-reader-install",
-        "verify-mechanics-install",
-        "verify-web-host",
-    ]
-    .contains(&mode)
-    {
+    if !["verify-reader-install", "verify-mechanics-install"].contains(&mode) {
         return Err(bad("unknown native verification mode"));
     }
-    if (entries_only && mode != "verify-mechanics-install")
-        || (generated.is_some() && mode != "verify-web-host")
-        || (prefix.is_some() && mode == "verify-web-host")
-    {
+    if entries_only && mode != "verify-mechanics-install" {
         return Err(bad("verification option does not apply to mode"));
     }
     let temporary = Temporary::new()?;
@@ -629,9 +503,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
         max_output,
         cancel,
     };
-    let result = if mode == "verify-web-host" {
-        verify_web(&root, &work, generated.as_deref(), &r)?
-    } else {
+    let result = {
         let prefix = if let Some(prefix) = prefix {
             exact(&prefix)?;
             prefix

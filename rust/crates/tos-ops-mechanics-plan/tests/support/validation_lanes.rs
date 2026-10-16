@@ -404,7 +404,11 @@ fn native_verifier_consumes_installed_symlink_entries_and_preserves_command_beha
     assert_eq!(result["failed_preparation_rejected"], true);
     assert_eq!(result["products"].as_object().unwrap().len(), 3);
     let bad = Command::new(bin.join("tos-software-ci"))
-        .args(["verify-web-host", "--repo-root"])
+        .args([
+            "verify-reader-install",
+            "--command-entries-only",
+            "--repo-root",
+        ])
         .arg(repository())
         .arg("--installed-prefix")
         .arg(&prefix)

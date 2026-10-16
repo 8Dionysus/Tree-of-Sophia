@@ -13,7 +13,7 @@ extern "C" fn cancelled(signal: i32) {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install|verify-web-host} --repo-root ABS [--installed-prefix ABS | --generated-assets ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
+    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install} --repo-root ABS [--installed-prefix ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
 }
 
 fn github_output(path: &Path, selection: &software_ci::Selection) -> io::Result<()> {
@@ -73,13 +73,7 @@ fn run() -> Result<(), String> {
         )
         .map_err(|e| e.to_string());
     }
-    if [
-        "verify-reader-install",
-        "verify-mechanics-install",
-        "verify-web-host",
-    ]
-    .contains(&mode.as_str())
-    {
+    if ["verify-reader-install", "verify-mechanics-install"].contains(&mode.as_str()) {
         #[cfg(target_os = "linux")]
         {
             unsafe {

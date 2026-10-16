@@ -177,7 +177,7 @@ use the full suite; a missing or failed selector fails the required gate.
 | `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
 | Rust source under `rust/crates/tos-reader/src/` | Rust workspace and isolated exact reader install; the independent browser/package job is omitted |
-| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install, and generated WEB.1 codec checks in Node WebAssembly |
+| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install |
 | Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
 Every run first prepares the three native CI executors with the pinned Rust
@@ -193,9 +193,9 @@ its surrounding implementation directory; `ToS/` source Markdown does not use
 the documentation-only shortcut. Source assessment/admission still belongs to
 its owner, not to a green software gate. This selector does not publish data.
 The Rust job uses its own sparse checkout and temporary Cargo cache. The
-installed reader checks exact old/current bytes from a tiny synthetic store;
-the generated WEB.1 binding runs independent codec vectors in Node. The
-matching `wasm-bindgen` CLI is verified against its pinned release digest.
+installed reader checks exact old/current bytes from a tiny synthetic store.
+The Worker job checks the shipped `tos-web-rules` WASM product with the matching
+`wasm-bindgen` CLI verified against its pinned release digest.
 Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
 
