@@ -626,6 +626,17 @@ and receipt bytes. The selected dump-byte limit must be at least the process's
 soft and hard `RLIMIT_FSIZE`; the transport does not silently substitute the
 old fixed 64 MiB ceiling when an explicit profile is supplied.
 
+The complete cut uses the existing streamed cold audit: metadata is read in
+64 KiB chunks and membership is sorted in unnamed temporary files. The same
+selected history, log, store and metadata bounds apply to this audit. Each cut
+permits at most `max_metadata_bytes` cumulative scratch writes and independently
+caps PostgreSQL temporary files at that many bytes, with 4 MiB work memory and
+60-second statement deadlines. Reserve both temporary allowances in addition to
+the copied store, dump and receipt before starting. Backup scratch belongs to
+the selected backup destination; restore scratch belongs to the fresh store
+destination. It leaves no named files and never requires a writable backup for
+restore. The log-cut digest and historical receipt comparisons are unchanged.
+
 V9 receipts bind the selected profile. Restore must receive the same profile
 that produced the receipt, and the existing exact stored-profile comparison
 rejects a mismatch. For older receipts without a profile, omit `--profile` to

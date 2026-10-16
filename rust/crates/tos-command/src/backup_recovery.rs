@@ -1,7 +1,10 @@
 //! Bounded owner-selected PostgreSQL/STO backup transport.
 //! The owner must quiesce its isolated database and byte store. These functions
 //! preserve committed custody; they grant no source, rights or publication authority.
-use crate::DurablePgCoordinator;
+use crate::{
+    ColdWorkspaceLimits, DurableError, DurablePgCoordinator, PrivateGenerationWorkspace,
+    StreamedGenerationProfile,
+};
 use postgres::{Client, NoTls};
 use serde_json::{Value, json};
 use std::os::{
@@ -21,7 +24,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_foundation::Digest256Hasher;
-use tos_segment_store::{SegmentLimits, SegmentStore};
+use tos_segment_store::{GenerationReadLimits, GenerationShapeLimits, SegmentLimits, SegmentStore};
 const BYTES: u64 = 64 * 1024 * 1024;
 const BACKUP_SCHEMA_V1: &str = "tos_cmd2_quiescent_backup_v1";
 const BACKUP_SCHEMA_V2: &str = "tos_cmd2_quiescent_backup_v2";
@@ -2682,19 +2685,76 @@ fn cut(
     url: &str,
     domain: &str,
     store: &SegmentStore,
+    workspace_root: &Path,
+    profile: BackupProfile,
     d: Instant,
     c: &AtomicBool,
 ) -> io::Result<Value> {
     active(d, c)?;
+    // Reuse the complete cold audit, including its chunked metadata reader.
+    // The transport's selected bounds apply to the cut as well as the census.
+    // Unnamed scratch files live only in the selected writable destination;
+    // a restore never needs write access to its authenticated backup.
+    let workspace = PrivateGenerationWorkspace::open(
+        workspace_root,
+        ColdWorkspaceLimits {
+            max_scratch_written_bytes: profile.max_metadata_bytes,
+            max_run_bytes: 64 * 1024,
+            max_runs: usize::try_from(profile.max_history_rows).map_err(|_| error())?,
+            merge_fan_in: 16,
+            max_rows: profile.max_history_rows,
+            max_key_bytes: 4096,
+        },
+    )
+    .map_err(cut_error)?;
+    let audit = StreamedGenerationProfile {
+        max_commit_seq: profile.max_log_rows,
+        max_members: profile.max_history_rows,
+        max_pins: usize::try_from(profile.max_log_rows).map_err(|_| error())?,
+        max_segment_bytes: profile.max_store_bytes,
+        max_membership_key_bytes: profile.max_metadata_bytes,
+        max_metadata_rows: usize::try_from(profile.max_metadata_rows).map_err(|_| error())?,
+        max_metadata_bytes: usize::try_from(profile.max_metadata_bytes).map_err(|_| error())?,
+        max_elapsed: d.saturating_duration_since(Instant::now()),
+        max_pg_temp_bytes: profile.max_metadata_bytes,
+        max_sql_statement_ms: 60_000,
+        // The cut does not publish a generation. Supply the finite minimum
+        // shape accepted by the shared profile; membership stays disk-backed.
+        generation: GenerationReadLimits {
+            max_descriptor_bytes: 4096,
+            shape: GenerationShapeLimits {
+                max_partitions: 1,
+                max_rows_per_partition: 1,
+                max_key_bytes: 4096,
+                max_leaf_bytes: 8192,
+            },
+            max_stream_rows: profile.max_history_rows,
+            max_stream_key_bytes: profile.max_metadata_bytes,
+        },
+        rows_per_leaf: 1,
+    };
     let bounded = client(url, d, c)?;
     let mut db = DurablePgCoordinator::from_configured_client(bounded);
     let cut = db
-        .cold_verify_cut_with_budget(store, domain, Some((d, c)))
-        .map_err(|_| error())?;
+        .cold_verify_cut_streamed(store, domain, &workspace, audit, d, c)
+        .map_err(cut_error)?;
     active(d, c)?;
     Ok(
         json!({"digest":cut.log_digest().to_hex(),"through_commit_seq":cut.through_commit_seq(),"historical_members":cut.historical_members()}),
     )
+}
+
+fn cut_error(cause: DurableError) -> io::Error {
+    match cause {
+        DurableError::Refused(reason)
+        | DurableError::Corrupt(reason)
+        | DurableError::Conflict(reason)
+        | DurableError::Invalid(reason) => {
+            io::Error::new(io::ErrorKind::InvalidData, format!("backup cut: {reason}"))
+        }
+        // Do not expose database payloads, paths or connection credentials.
+        _ => error(),
+    }
 }
 
 pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> io::Result<Value> {
@@ -2729,7 +2789,7 @@ pub fn backup_quiescent_with_profile(
     let mut db = client(s.pg_url, d, c)?;
     require_current_cmd2_schema(s.pg_url, d, c)?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
-    let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+    let original_cut = cut(s.pg_url, s.domain, &store, s.backup_root, profile, d, c)?;
     let metadata = frozen_domain_v11(&mut db, s.domain, &store, profile, d, c)?;
     let database: String = db
         .query_one("SELECT current_database()", &[])
@@ -2765,7 +2825,7 @@ pub fn backup_quiescent_with_profile(
     let copied =
         tos_fd_open::open_directory_at(&backup, Path::new("store")).map_err(|_| error())?;
     copy_store(&source, &copied, &members, profile, d, c)?;
-    require(cut(s.pg_url, s.domain, &store, d, c)? == original_cut)?;
+    require(cut(s.pg_url, s.domain, &store, s.backup_root, profile, d, c)? == original_cut)?;
     require(frozen_domain_v11(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
     let mut receipt = json!({"schema":BACKUP_SCHEMA_V11,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
     if metadata.get("managed_model_v2").is_some() {
@@ -3101,70 +3161,70 @@ fn restore_into_fresh_with_managed_binding_profile(
     }
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
     let (recovered_metadata, recovered) = if census_v11 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v11(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v10 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v10(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v9 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v9(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v8 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v8(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v7 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v7(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v6 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v6(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v5 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v5(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v4 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v4(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v3 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v3(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
         (recovered_metadata, recovered_cut)
     } else if census_v2 {
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         let recovered_metadata = frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)?;
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
@@ -3177,7 +3237,7 @@ fn restore_into_fresh_with_managed_binding_profile(
         if let Some(expected) = receipt.get("metadata") {
             require(&recovered_metadata == expected)?;
         }
-        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_cut = cut(s.pg_url, s.domain, &store, s.store_root, profile, d, c)?;
         (recovered_metadata, recovered_cut)
     };
     require(recovered == receipt["cut"])?;
@@ -3270,6 +3330,110 @@ mod tests {
         selected_config,
     };
     use std::path::{Path, PathBuf};
+
+    #[test]
+    #[ignore = "requires isolated PostgreSQL via TOS_METADATA_TEST_PG_URL"]
+    fn backup_cut_streams_large_metadata_and_keeps_selected_bounds() {
+        use super::*;
+        let url = std::env::var("TOS_METADATA_TEST_PG_URL").unwrap();
+        let mut db = DurablePgCoordinator::connect(&url).unwrap();
+        db.init_lab_schema().unwrap();
+        let domain = "backup-streamed-cut-test";
+        db.create_domain(domain, tos_foundation::Digest256::of_bytes(b"backup-test"))
+            .unwrap();
+        let source = tempfile::tempdir().unwrap();
+        let scratch = tempfile::tempdir().unwrap();
+        let store = SegmentStore::initialize_empty(
+            source.path(),
+            domain.as_bytes(),
+            SegmentLimits {
+                max_segment_bytes: 8 * 1024 * 1024,
+                max_frame_bytes: 1024 * 1024,
+                max_frames: 64,
+                max_journal_bytes: 1024 * 1024,
+            },
+        )
+        .unwrap();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let profile = BackupProfile::default();
+        let finite = db.cold_verify_cut(&store, domain).unwrap();
+        let expected = json!({"digest":finite.log_digest().to_hex(),"through_commit_seq":finite.through_commit_seq(),"historical_members":finite.historical_members()});
+        assert_eq!(
+            cut(
+                &url,
+                domain,
+                &store,
+                scratch.path(),
+                profile,
+                deadline,
+                &cancelled
+            )
+            .unwrap(),
+            expected
+        );
+        let mut sql = Client::connect(&url, NoTls).unwrap();
+        sql.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest,inventory_projection) VALUES($1,'path','ToS/large','ToS/large',repeat('a',64),$2)", &[&domain,&vec![0xab_u8;1_048_576]]).unwrap();
+        assert!(matches!(
+            db.cold_verify_cut(&store, domain),
+            Err(DurableError::Refused(
+                "cold metadata preadmission whole-row budget exceeded"
+            ))
+        ));
+        // The log cut is unchanged; its full metadata audit must still finish.
+        assert_eq!(
+            cut(
+                &url,
+                domain,
+                &store,
+                scratch.path(),
+                profile,
+                deadline,
+                &cancelled
+            )
+            .unwrap(),
+            expected
+        );
+        for short in [
+            BackupProfile {
+                max_metadata_bytes: 1_048_576,
+                ..profile
+            },
+            BackupProfile {
+                max_metadata_rows: 1,
+                ..profile
+            },
+        ] {
+            let refused = cut(
+                &url,
+                domain,
+                &store,
+                scratch.path(),
+                short,
+                deadline,
+                &cancelled,
+            )
+            .unwrap_err();
+            assert!(
+                refused.to_string().contains("metadata preadmission"),
+                "{refused}"
+            );
+        }
+        cancelled.store(true, Ordering::Relaxed);
+        assert!(
+            cut(
+                &url,
+                domain,
+                &store,
+                scratch.path(),
+                profile,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert_eq!(fs::read_dir(scratch.path()).unwrap().count(), 0);
+    }
 
     #[test]
     fn receipt_version_dispatch_is_explicit() {
