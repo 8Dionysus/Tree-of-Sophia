@@ -1763,6 +1763,7 @@ dependencies = [
 name = "tos-web-rules"
 version = "0.0.0"
 dependencies = [
+ "js-sys",
  "tos-foundation",
  "tos-query",
  "wasm-bindgen",

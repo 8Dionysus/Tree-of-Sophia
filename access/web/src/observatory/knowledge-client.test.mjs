@@ -404,7 +404,7 @@ test('source dossier callback predicates preserve revoked Proxy shortcircuits',(
   assert.throws(()=>validateSourceDossier(records,'tos.work.fixture'),TypeError);
 });
 
-test('retained native array callbacks outlive inspection and dossier sessions',async()=>{
+test('retained native array callbacks outlive inspection and dossier operations',async()=>{
   let inspectRef,stringElement,recordElement,chainElement;
   const raw=node('selected');raw.source_refs.some=callback=>{inspectRef=callback;return false;};
   const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
@@ -535,4 +535,13 @@ test('route policy retains compile 404 fallback, lazy error access and relation 
   let retained;const packet=clone();packet.relations.some=callback=>{retained=callback;return {truthy:true};};
   assert.equal((await compileRouteCenter({inspect:async()=>identity,compile:async()=>packet},identity.match.id)).kind,'relation');
   assert.equal(retained({id:identity.match.id}),true);assert.equal(retained({id:'different'}),false);
+});
+
+test('item iteration preserves the original failure when IteratorClose also fails',()=>{
+  const packet=clone(),body={body:true},close={close:true};let closed=0;
+  const item=node('selected');Object.defineProperty(item,'id',{get(){throw body;}});
+  packet.nodes=[];packet.nodes[Symbol.iterator]=()=>({next:()=>({done:false,value:item}),return(){closed++;throw close;}});
+  assert.throws(()=>validateLens(packet),error=>error===body);assert.equal(closed,1);
+  closed=0;packet.nodes[Symbol.iterator]=()=>({next(){throw body;},return(){closed++;}});
+  assert.throws(()=>validateLens(packet),error=>error===body);assert.equal(closed,0);
 });

@@ -20,6 +20,8 @@ pub use constructor_reading::constructor_reading_v1;
 #[cfg(feature = "wasm")]
 pub use constructor_reading::constructor_reading_wasm_v1;
 #[cfg(feature = "wasm")]
+mod browser_value;
+#[cfg(feature = "wasm")]
 mod exploration_session;
 mod human_forms;
 #[cfg(feature = "wasm")]
@@ -77,18 +79,24 @@ pub use temporal_session::{
 };
 
 #[cfg(feature = "wasm")]
-pub use record_context::RecordContextSession;
+pub use record_context::essential_context_v1;
 
 #[cfg(feature = "wasm")]
 pub use browser_lens_spec::{focus_spec_descriptor_wasm_v1, relation_spec_descriptor_wasm_v1};
 #[cfg(feature = "wasm")]
-pub use client_inspection::ClientInspectionSession;
+pub use client_inspection::validate_client_inspection_v1;
 #[cfg(feature = "wasm")]
-pub use client_packet::{ClientMaterialSession, ClientPacketSession, client_request_set_key_v1};
+pub use client_packet::{
+    client_request_set_key_v1, validate_client_claim_path_v1, validate_client_claim_scope_v1,
+    validate_client_exploration_request_v1, validate_client_material_packet_v1,
+    validate_client_material_request_v1, validate_client_packet_v1, validate_client_search_request_v1,
+};
 #[cfg(feature = "wasm")]
 pub use knowledge_scene::KnowledgeSceneSession;
 #[cfg(feature = "wasm")]
-pub use source_dossier::SourceDossierSession;
+pub use source_dossier::{
+    source_dossier_reference_v1, validate_source_dossier_request_v1, validate_source_dossier_v1,
+};
 
 #[cfg(feature = "wasm")]
 pub use worker_classic::{

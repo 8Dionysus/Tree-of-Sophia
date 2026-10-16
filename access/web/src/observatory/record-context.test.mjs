@@ -91,3 +91,15 @@ test('context pointer transport preserves UTF16 keys, sparse declarations and ar
   record.display_selection.essential_context_pointers=new Array(2);
   const sparse=essentialContext(record);assert.equal(sparse.state,'available');assert.equal(sparse.items.length,2);assert.equal(0 in sparse.items,false);
 });
+
+test('undeclared primitive selection keeps the original property receiver',()=>{
+  const prior=Object.getOwnPropertyDescriptor(Number.prototype,'schema_version');let receiver;
+  Object.defineProperty(Number.prototype,'schema_version',{configurable:true,get(){receiver=this;return 'wrong';}});
+  try{
+    assert.deepEqual(essentialContext({display_selection:1}),{state:'not-declared',items:[]});
+    assert.equal(receiver,1);
+  }finally{
+    if(prior)Object.defineProperty(Number.prototype,'schema_version',prior);
+    else delete Number.prototype.schema_version;
+  }
+});

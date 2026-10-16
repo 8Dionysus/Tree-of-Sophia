@@ -12,6 +12,16 @@ layout run directly in the browser host. They do not allocate WASM sessions for
 individual boolean observations. Rust retains packet/schema validation, query
 semantics and the request fields normalized as selector sets.
 
+Browser packet, inspection, material, dossier and declared-context checks take
+the whole held JavaScript input per operation. They preserve original objects,
+UTF-16 keys, sparse arrays, getter order and exceptions without a JSON copy.
+Native collection/coercion and presentation callbacks keep their host behavior
+and can outlive an invocation. The shared value adapter owns only that custody;
+the Rust operation owns the contract. Semantic refusals return a code separately
+from thrown source errors. Network reads, cancellation and asynchronous readable
+context verification remain in the existing browser driver. Its response-byte
+budget is unchanged; these operations do not claim an additional heap/RSS limit.
+
 ## Corpus text references
 
 `corpus_reference_rule_v1` owns canonical validation, stable keys, document

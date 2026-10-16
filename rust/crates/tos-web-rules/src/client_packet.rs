@@ -1,585 +1,818 @@
-//! Ordered final browser packet contracts. The host retains source objects,
-//! property access, native collection equality and asynchronous transport.
+//! Whole browser packet contracts. Held values preserve native collection,
+//! coercion, callback and presentation behavior without an observation protocol.
+use crate::{browser_value::*, client_inspection::check_items};
+use js_sys::{Array, Function};
 use wasm_bindgen::prelude::*;
-fn refusal(code: &str) -> JsValue {
-    JsValue::from_str(code)
-}
-#[wasm_bindgen]
-pub struct ClientPacketSession {
-    step: &'static str,
-    mode: u8,
-    expected: bool,
-    previous: bool,
-    v2: bool,
-    relation: bool,
-    paused: bool,
-    limited: bool,
-    partition_relation: bool,
-    endpoint_to: bool,
-}
-#[wasm_bindgen]
-impl ClientPacketSession {
-    /// 0 revision, 1 area, 2 lens, 3 exploration, 4 search request,
-    /// 5 search response, 6 initial exploration request identity.
-    /// Item validation uses the existing inspection core.
-    #[wasm_bindgen(constructor)]
-    pub fn new(mode: u8, expected: bool, previous: bool, relation: bool) -> Self {
-        Self {
-            step: match mode {
-                2 => "lens-schema",
-                3 => "exploration-schema",
-                4 => "cursor-null",
-                6 => "initial-request",
-                _ => "revision",
-            },
-            mode,
-            expected,
-            previous,
-            v2: false,
-            relation,
-            paused: false,
-            limited: false,
-            partition_relation: false,
-            endpoint_to: false,
-        }
-    }
-    pub fn need(&self) -> String {
-        self.step.into()
-    }
-    pub fn relation_partition(&self) -> bool {
-        self.partition_relation
-    }
-    pub fn origin_relation(&self) -> bool {
-        self.relation
-    }
-    pub fn endpoint_to(&self) -> bool {
-        self.endpoint_to
-    }
-    pub fn v2(&self) -> bool {
-        self.v2
-    }
-    pub fn text_length(&self, string: bool, length: usize) -> Result<(), JsValue> {
-        if !string || length > 64 {
-            return Err(refusal(self.code()));
-        }
-        Ok(())
-    }
-    pub fn text(&mut self, units: &[u16]) -> Result<(), JsValue> {
-        let eq = |text: &str| units.iter().copied().eq(text.encode_utf16());
-        let digest = || {
-            units.len() == 64
-                && units
-                    .iter()
-                    .all(|u| (48..=57).contains(u) || (97..=102).contains(u))
-        };
-        let (valid, next) = match self.step {
-            "lens-schema" => (eq("tos_lens_result_v1"), "revision"),
 
-            "revision" => (
-                digest(),
-                if self.expected {
-                    "expected"
-                } else {
-                    self.after_revision()
-                },
-            ),
-            "v1-schema" => (eq("tos_exploration_result_v1"), "writes"),
-            "search-schema" => (
-                eq(if self.relation {
-                    "tos_knowledge_search_indexed_v2"
-                } else {
-                    "tos_knowledge_search_compressed_v3"
-                }),
-                "search-nodes-length",
-            ),
-            "snapshot" => (digest(), if self.v2 { "execution" } else { "status" }),
-            "execution" => (
-                eq("tos-exploration-execution-v6") || eq("tos-exploration-d1-execution-v6"),
-                "status",
-            ),
-            "status" => {
-                self.paused = eq("paused");
-                self.limited = eq("limit_reached");
-                (
-                    self.paused || self.limited || eq("complete"),
-                    if self.v2 { "origin" } else { "v1-focus" },
-                )
+fn text(value: &JsValue, allowed: &[&str], code: &'static str) -> Checked<()> {
+    require(
+        allowed.iter().any(|text| *value == JsValue::from_str(text)),
+        code,
+    )
+}
+fn integer(value: &JsValue, safe: bool) -> bool {
+    value.as_f64().is_some_and(|value| {
+        value.is_finite() && value.fract() == 0.0 && (!safe || value.abs() <= 9007199254740991.0)
+    })
+}
+fn member(index: &JsValue, value: &JsValue) -> Result<bool, JsValue> {
+    Ok(call(index, "has", value)?.is_truthy())
+}
+fn localizer(host: &JsValue) -> Result<Function, JsValue> {
+    field(host, "localized")?
+        .dyn_into()
+        .map_err(|_| js_sys::TypeError::new("Missing localizer").into())
+}
+fn revision(packet: &JsValue, expected: &JsValue) -> Checked<()> {
+    require(
+        digest(&or_empty(optional(packet, "source_revision")?), false)?,
+        "missing_revision",
+    )?;
+    if expected.is_truthy() {
+        require(field(packet, "source_revision")? == *expected, "revision")?;
+    }
+    Ok(())
+}
+fn area(packet: &JsValue, v2: bool, host: &JsValue) -> Checked<JsValue> {
+    for name in ["is_source", "is_canon", "writes_to_tree"] {
+        require(
+            optional(&field(packet, "authority_boundary")?, name)?.as_bool() == Some(false),
+            "area",
+        )?;
+    }
+    require(is_array(&field(packet, "nodes")?)?, "budget")?;
+    require(is_array(&field(packet, "relations")?)?, "budget")?;
+    require(
+        !(number(&field(&field(packet, "nodes")?, "length")?)? > if v2 { 302.0 } else { 40.0 }),
+        "budget",
+    )?;
+    require(
+        !(number(&field(&field(packet, "relations")?, "length")?)? > if v2 { 101.0 } else { 80.0 }),
+        "budget",
+    )?;
+    let localized = localizer(host)?;
+    let ids: JsValue = check_items(&field(packet, "nodes")?, true, &localized)?.into();
+    check_items(&field(packet, "relations")?, false, &localized)?;
+    let area_ids = ids.clone();
+    let predicate =
+        Closure::<dyn Fn(JsValue) -> Result<bool, JsValue>>::new(move |relation: JsValue| {
+            if !member(&area_ids, &field(&relation, "from_id")?)? {
+                return Ok(true);
             }
-            "origin-kind" => {
-                self.relation = eq("relation");
-                (self.relation || eq("node"), "origin-revision")
-            }
-            "origin-revision" => (digest(), "origin-id-type"),
-            "query-schema" => (eq("tos_exploration_request_v2"), "query-revision"),
-            "page-scope" => (eq("resumable-neighborhood"), "returned-nodes"),
-            "counts-scope" => (
-                eq("cumulative-discovered-not-global-total"),
-                "inclusion-authority",
-            ),
-            "inclusion-authority" => (eq("query-execution-not-semantic-proof"), "cursor-status"),
-            "cursor-digest" => (digest(), self.after_cursor()),
-            "limit-reason" => (
-                eq("session_nodes") || eq("session_relations"),
-                "partition-start",
-            ),
-            "origin-inclusion" => (
-                eq("origin"),
-                if self.relation {
-                    "endpoint-start"
-                } else {
-                    "previous"
-                },
-            ),
-            "endpoint-inclusion" => (eq("origin-endpoint"), "endpoint-next"),
-            "prior-status" => (eq("paused"), "prior-source"),
-            _ => return Err(refusal("invalid_packet_progress")),
-        };
-        self.accept(valid, next)
+            Ok(!member(&area_ids, &field(&relation, "to_id")?)?)
+        })
+        .into_js_value();
+    require(
+        !call(&field(packet, "relations")?, "some", &predicate)?.is_truthy(),
+        "endpoints",
+    )?;
+    if field(packet, "focus")?.is_truthy() {
+        require(
+            member(&ids, &field(&field(packet, "focus")?, "node_id")?)?,
+            "focus",
+        )?;
     }
-    pub fn select_v2(&mut self, value: bool) -> Result<(), JsValue> {
-        if self.step != "exploration-schema" {
-            return Err(refusal("invalid_packet_progress"));
-        }
-        self.v2 = value;
-        self.step = "revision";
-        Ok(())
-    }
-    pub fn strict_digest(&self) -> bool {
-        self.step == "origin-revision"
-            || self.v2 && matches!(self.step, "snapshot" | "cursor-digest")
-    }
-    pub fn digest_type(&self, string: bool) -> Result<(), JsValue> {
-        if self.strict_digest() && !string {
-            Err(refusal(self.code()))
-        } else {
+    Ok(ids)
+}
+fn item_map(items: &JsValue) -> Result<JsValue, JsValue> {
+    let predicate = Closure::<dyn Fn(JsValue) -> Result<JsValue, JsValue>>::new(|item: JsValue| {
+        Ok(Array::of2(&field(&item, "id")?, &item).into())
+    })
+    .into_js_value();
+    collection("Map", &call(items, "map", &predicate)?)
+}
+fn item_ids(items: &JsValue) -> Result<JsValue, JsValue> {
+    let predicate = Closure::<dyn Fn(JsValue) -> Result<JsValue, JsValue>>::new(|item: JsValue| {
+        field(&item, "id")
+    })
+    .into_js_value();
+    collection("Set", &call(items, "map", &predicate)?)
+}
+fn missing_members(values: &JsValue, items: &JsValue) -> Result<bool, JsValue> {
+    let items = items.clone();
+    let predicate = Closure::<dyn Fn(JsValue) -> Result<bool, JsValue>>::new(move |id: JsValue| {
+        Ok(!member(&items, &id)?)
+    })
+    .into_js_value();
+    Ok(call(values, "some", &predicate)?.is_truthy())
+}
+fn v1_partition_ids(page: &JsValue) -> Checked<JsValue> {
+    let result = Array::new();
+    for name in ["primary_node_ids", "context_node_ids"] {
+        for_each(&field(page, name)?, |id| {
+            result.push(&id);
             Ok(())
-        }
+        })?;
     }
-    pub fn observe(&mut self, value: bool) -> Result<(), JsValue> {
-        let (valid, next) = match self.step {
-            "initial-request" => {
-                self.step = if self.previous {
-                    "done"
-                } else {
-                    "request-match"
-                };
-                return Ok(());
-            }
-            "request-match" => (value, "done"),
-            "cursor-null" => {
-                self.step = if value {
-                    "request-limit-type"
-                } else {
-                    "request-cursor-type"
-                };
-                return Ok(());
-            }
-            "request-cursor-type" => (value, "request-cursor-length"),
-            "request-mode" => (value, "request-limit-type"),
-            "expected" => (value, self.after_revision()),
-            "authority-source" => (value, "authority-canon"),
-            "authority-canon" => (value, "authority-writes"),
-            "authority-writes" => (value, "nodes-array"),
-            "nodes-array" => (value, "relations-array"),
-            "relations-array" => (value, "nodes-length"),
-            "node-items" => (true, "relation-items"),
-            "relation-items" => (
-                true,
-                if self.mode == 5 {
-                    "done"
-                } else {
-                    "area-endpoints"
-                },
-            ),
-            "area-endpoints" => (!value, "area-focus"),
-            "area-focus" => {
-                self.step = if value {
-                    "area-focus-member"
-                } else {
-                    self.after_area()
-                };
-                return Ok(());
-            }
-            "area-focus-member" => (value, self.after_area()),
-            "exploration-snapshots" => (true, if self.v2 { "writes" } else { "v1-schema" }),
-            "writes" => (value, "snapshot"),
-            "v1-focus" => (value, "page-integer"),
-            "origin" => (value, "origin-kind"),
-            "origin-id-type" => (value, "origin-id-truthy"),
-            "origin-id-truthy" => (value, "query"),
-            "query" => (value, "query-schema"),
-            "query-revision" => (value, "query-origin"),
-            "query-origin" => (value, "query-origin-fields"),
-            "query-origin-fields" => (!value, "focus-own"),
-            "focus-own" => (!value, "page-integer"),
-            "returned-nodes" => (value, "returned-relations"),
-            "returned-relations" => (
-                value,
-                if self.v2 {
-                    "work-integer"
-                } else {
-                    "v1-primary-array"
-                },
-            ),
-            "v1-primary-array" => (value, "v1-context-array"),
-            "v1-context-array" => (value, "v1-total"),
-            "v1-total" => (value, "v1-unique"),
-            "v1-unique" => (value, "v1-members"),
-            "v1-members" => (!value, "counts-scope"),
-            "cursor-status" => {
-                self.paused = value;
-                self.step = if value {
-                    "cursor-digest"
-                } else {
-                    "cursor-null-value"
-                };
-                return Ok(());
-            }
-            "cursor-null-value" => (value, self.after_cursor()),
-            "limit-status" => {
-                self.limited = value;
-                self.step = if value { "limit-reason" } else { "limit-null" };
-                return Ok(());
-            }
-            "limit-null" => (value, "partition-start"),
-            "partition-start" => (true, "primary-array"),
-            "primary-array" => (value, "context-array"),
-            "context-array" => (value, "partition-total"),
-            "partition-total" => (value, "partition-unique"),
-            "partition-unique" => (value, "partition-members"),
-            "partition-members" => (!value, "partition-inclusion"),
-            "partition-inclusion" => (value, "inclusion-count"),
-            "inclusion-count" => (value, "inclusion-keys"),
-            "inclusion-keys" => (!value, "partition-next"),
-            "partition-next" => {
-                self.step = if self.partition_relation {
-                    "origin-item"
-                } else {
-                    self.partition_relation = true;
-                    "partition-start"
-                };
-                return Ok(());
-            }
-            "origin-item" => (value, "origin-item-revision"),
-            "origin-item-revision" => (value, "origin-branch"),
-            "origin-branch" => {
-                self.relation = !value;
-                self.step = if value {
-                    "origin-no-endpoints"
-                } else {
-                    "context-relation-count"
-                };
-                return Ok(());
-            }
-            "origin-no-endpoints" => (!value, "context-relations-empty"),
-            "context-relations-empty" => (!value, "origin-node-context"),
-            "origin-node-context" => (value, "origin-inclusion"),
-            "context-relation-count" => (value, "context-relation-id"),
-            "context-relation-id" => (value, "origin-inclusion"),
-            "endpoint-start" => (true, "endpoint"),
-            "endpoint" => (value, "endpoint-node"),
-            "endpoint-node" => (value, "endpoint-id"),
-            "endpoint-id" => (value, "endpoint-revision"),
-            "endpoint-revision" => (value, "endpoint-entity"),
-            "endpoint-entity" => (value, "endpoint-context"),
-            "endpoint-context" => (value, "endpoint-inclusion"),
-            "endpoint-next" => {
-                self.step = if self.endpoint_to {
-                    "previous"
-                } else {
-                    self.endpoint_to = true;
-                    "endpoint-start"
-                };
-                return Ok(());
-            }
-            "previous" => {
-                self.step = if self.previous {
-                    if self.v2 {
-                        "prior-schema"
-                    } else {
-                        "prior-snapshot"
-                    }
-                } else {
-                    self.after_prior()
-                };
-                return Ok(());
-            }
-            "prior-schema" => (value, "prior-status"),
-            "prior-source" => (value, "prior-snapshot"),
-            "prior-snapshot" => (
-                value,
-                if self.v2 {
-                    "prior-execution"
-                } else {
-                    "prior-focus"
-                },
-            ),
-            "prior-execution" => (value, "prior-page"),
-            "prior-focus" => (value, "prior-page"),
-            "prior-page" => (
-                value,
-                if self.v2 {
-                    "prior-cursor-status"
-                } else {
-                    "prior-query-json"
-                },
-            ),
-            "prior-cursor-status" => {
-                self.step = if value {
-                    "prior-cursor-different"
-                } else {
-                    "prior-origin"
-                };
-                return Ok(());
-            }
-            "prior-cursor-different" => (!value, "prior-origin"),
-            "prior-origin" => (value, "prior-query"),
-            "prior-query" | "prior-query-json" => (value, self.after_prior()),
-            "scene" => (value, "scene-equal"),
-            "scene-equal" => (value, "done"),
-            "search-cursor" => (value, "search-limit"),
-            "search-limit" => (value, "search-more-type"),
-            "search-more-type" => (value, "search-more"),
-            "search-more" => {
-                self.step = if value {
-                    "search-next-type"
-                } else {
-                    "search-next-null"
-                };
-                return Ok(());
-            }
-            "search-next-type" => (value, "search-next-truthy"),
-            "search-next-truthy" | "search-next-null" => (value, "search-writes"),
-            "search-writes" => (value, "node-items"),
-            _ => return Err(refusal("invalid_packet_progress")),
-        };
-        self.accept(valid, next)
-    }
-    pub fn integer(&mut self, number: bool, value: f64) -> Result<(), JsValue> {
-        let safe = self.v2 || self.step == "request-limit-type" || self.step == "work-integer";
-        let valid = number
-            && value.is_finite()
-            && value.fract() == 0.0
-            && (!safe || value.abs() <= 9007199254740991.0);
-        let next = match self.step {
-            "page-integer" => "page-positive",
-            "work-integer" => "work-lower",
-            "request-limit-type" => "request-limit",
-            _ => return Err(refusal("invalid_packet_progress")),
-        };
-        self.accept(valid, next)
-    }
-    pub fn number(&mut self, value: f64) -> Result<(), JsValue> {
-        let (valid, next) = match self.step {
-            "request-cursor-length" => (value <= 65536.0, "request-mode"),
-            "request-limit" => (
-                value.is_finite() && value.fract() == 0.0 && (1.0..=6.0).contains(&value),
-                "done",
-            ),
-            "nodes-length" => (
-                !(value > if self.v2 { 302.0 } else { 40.0 }),
-                "relations-length",
-            ),
-            "relations-length" => (!(value > if self.v2 { 101.0 } else { 80.0 }), "node-items"),
-            "page-positive" => (!(value < 1.0), "page-scope"),
-            "work-lower" => (!(value < 0.0), "work-upper"),
-            "work-upper" => (!(value > 512.0), "counts-scope"),
-            _ => return Err(refusal("invalid_packet_progress")),
-        };
-        self.accept(valid, next)
-    }
-    pub fn search_length(&mut self, value: f64, limit: f64) -> Result<(), JsValue> {
-        let next = match self.step {
-            "search-nodes-length" => "search-relations-length",
-            "search-relations-length" => "search-cursor",
-            _ => return Err(refusal("invalid_packet_progress")),
-        };
-        self.accept(!(value > limit), next)
-    }
+    Ok(result.into())
 }
-impl ClientPacketSession {
-    fn code(&self) -> &'static str {
-        match self.step {
-            "revision" => "missing_revision",
-            "request-match" => "request_area",
-            "expected" => "revision",
-            "lens-schema" => "lens",
-            "authority-source" | "authority-canon" | "authority-writes" => "area",
-            "nodes-array" | "relations-array" | "nodes-length" | "relations-length" => "budget",
-            "area-endpoints" => "endpoints",
-            "area-focus-member" => "focus",
-            s if s.starts_with("prior-") => "revision",
-            _ if self.mode == 4 || self.mode == 5 => "search",
-            _ => "exploration",
-        }
+fn partition(primary: &JsValue, context: &JsValue, items: &JsValue, host: &JsValue) -> Checked<()> {
+    require(is_array(primary)?, "exploration")?;
+    require(is_array(context)?, "exploration")?;
+    require(
+        invoke(
+            host,
+            "add",
+            &[&field(primary, "length")?, &field(context, "length")?],
+        )? == field(items, "size")?,
+        "exploration",
+    )?;
+    let combined = spread(&[primary, context])?;
+    require(
+        field(&collection("Set", &combined)?, "size")? == field(items, "size")?,
+        "exploration",
+    )?;
+    require(
+        !missing_members(&spread(&[primary, context])?, items)?,
+        "exploration",
+    )
+}
+fn prior_page(page: &JsValue, previous: &JsValue, host: &JsValue) -> Checked<()> {
+    require(
+        field(page, "number")?
+            == invoke(
+                host,
+                "add",
+                &[
+                    &field(&field(previous, "page")?, "number")?,
+                    &JsValue::from_f64(1.0),
+                ],
+            )?,
+        "revision",
+    )
+}
+fn exploration(packet: &JsValue, v2: bool, previous: &JsValue, host: &JsValue) -> Checked<()> {
+    let (nodes, relations, origin, page, query, ids) = if v2 {
+        let nodes = item_map(&field(packet, "nodes")?)?;
+        let relations = item_map(&field(packet, "relations")?)?;
+        let origin = field(packet, "origin")?;
+        let page = field(packet, "page")?;
+        let query = field(packet, "query")?;
+        (nodes, relations, origin, page, query, JsValue::UNDEFINED)
+    } else {
+        let page = field(packet, "page")?;
+        let ids = item_ids(&field(packet, "nodes")?)?;
+        text(
+            &field(packet, "schema")?,
+            &["tos_exploration_result_v1"],
+            "exploration",
+        )?;
+        (
+            JsValue::UNDEFINED,
+            JsValue::UNDEFINED,
+            JsValue::UNDEFINED,
+            page,
+            JsValue::UNDEFINED,
+            ids,
+        )
+    };
+    require(
+        field(packet, "writes_to_tree")?.as_bool() == Some(false),
+        "exploration",
+    )?;
+    let snapshot = field(packet, "snapshot_revision")?;
+    require(
+        digest(&if v2 { snapshot } else { or_empty(snapshot) }, v2)?,
+        "exploration",
+    )?;
+    if v2 {
+        text(
+            &field(packet, "execution_version")?,
+            &[
+                "tos-exploration-execution-v6",
+                "tos-exploration-d1-execution-v6",
+            ],
+            "exploration",
+        )?;
     }
-    fn accept(&mut self, valid: bool, next: &'static str) -> Result<(), JsValue> {
-        if !valid {
-            return Err(refusal(self.code()));
+    text(
+        &field(packet, "status")?,
+        &["paused", "limit_reached", "complete"],
+        "exploration",
+    )?;
+    if v2 {
+        require(origin.is_truthy(), "exploration")?;
+        text(
+            &field(&origin, "kind")?,
+            &["node", "relation"],
+            "exploration",
+        )?;
+        require(
+            digest(&field(&origin, "content_revision")?, true)?,
+            "exploration",
+        )?;
+        require(field(&origin, "id")?.is_string(), "exploration")?;
+        require(field(&origin, "id")?.is_truthy(), "exploration")?;
+        require(query.is_truthy(), "exploration")?;
+        text(
+            &field(&query, "schema_version")?,
+            &["tos_exploration_request_v2"],
+            "exploration",
+        )?;
+        require(
+            field(&query, "source_revision")? == field(packet, "source_revision")?,
+            "exploration",
+        )?;
+        require(field(&query, "origin")?.is_truthy(), "exploration")?;
+        for name in ["kind", "id", "content_revision"] {
+            require(
+                field(&field(&query, "origin")?, name)? == field(&origin, name)?,
+                "exploration",
+            )?;
         }
-        self.step = next;
-        Ok(())
+        require(
+            !has_own(packet, &JsValue::from_str("focus"))?,
+            "exploration",
+        )?;
+    } else {
+        require(field(packet, "focus")?.is_truthy(), "exploration")?;
     }
-    fn after_revision(&self) -> &'static str {
-        match self.mode {
-            0 => "done",
-            5 => "search-schema",
-            _ => "authority-source",
-        }
+    require(integer(&optional(&page, "number")?, v2), "exploration")?;
+    require(!(number(&field(&page, "number")?)? < 1.0), "exploration")?;
+    text(
+        &field(&page, "scope")?,
+        &["resumable-neighborhood"],
+        "exploration",
+    )?;
+    require(
+        field(&page, "returned_nodes")?
+            == if v2 {
+                field(&nodes, "size")?
+            } else {
+                field(&field(packet, "nodes")?, "length")?
+            },
+        "exploration",
+    )?;
+    require(
+        field(&page, "returned_relations")?
+            == if v2 {
+                field(&relations, "size")?
+            } else {
+                field(&field(packet, "relations")?, "length")?
+            },
+        "exploration",
+    )?;
+    if v2 {
+        require(integer(&field(&page, "work_units")?, true), "exploration")?;
+        require(
+            !(number(&field(&page, "work_units")?)? < 0.0),
+            "exploration",
+        )?;
+        require(
+            !(number(&field(&page, "work_units")?)? > 512.0),
+            "exploration",
+        )?;
+    } else {
+        // V1 rereads the page arrays at each original observation.
+        require(is_array(&field(&page, "primary_node_ids")?)?, "exploration")?;
+        require(is_array(&field(&page, "context_node_ids")?)?, "exploration")?;
+        require(
+            invoke(
+                host,
+                "add",
+                &[
+                    &field(&field(&page, "primary_node_ids")?, "length")?,
+                    &field(&field(&page, "context_node_ids")?, "length")?,
+                ],
+            )? == field(&ids, "size")?,
+            "exploration",
+        )?;
+        require(
+            field(&collection("Set", &v1_partition_ids(&page)?)?, "size")? == field(&ids, "size")?,
+            "exploration",
+        )?;
+        require(
+            !missing_members(&v1_partition_ids(&page)?, &ids)?,
+            "exploration",
+        )?;
     }
-    fn after_area(&self) -> &'static str {
-        if self.mode == 3 {
-            "exploration-snapshots"
+    text(
+        &optional(&field(packet, "counts")?, "scope")?,
+        &["cumulative-discovered-not-global-total"],
+        "exploration",
+    )?;
+    text(
+        &optional(&field(packet, "inclusion")?, "authority")?,
+        &["query-execution-not-semantic-proof"],
+        "exploration",
+    )?;
+    if field(packet, "status")? == JsValue::from_str("paused") {
+        let cursor = field(&page, "next_cursor")?;
+        require(
+            digest(&if v2 { cursor } else { or_empty(cursor) }, v2)?,
+            "exploration",
+        )?;
+    } else {
+        require(field(&page, "next_cursor")?.is_null(), "exploration")?;
+    }
+    if v2 {
+        if field(packet, "status")? == JsValue::from_str("limit_reached") {
+            text(
+                &field(packet, "limit_reason")?,
+                &["session_nodes", "session_relations"],
+                "exploration",
+            )?;
         } else {
-            "done"
+            require(field(packet, "limit_reason")?.is_null(), "exploration")?;
+        }
+        for (kind, items) in [("node", &nodes), ("relation", &relations)] {
+            let primary = field(&page, &format!("primary_{kind}_ids"))?;
+            let context = field(&page, &format!("context_{kind}_ids"))?;
+            partition(&primary, &context, items, host)?;
+            let inclusion = field(
+                &field(packet, "inclusion")?,
+                if kind == "node" { "nodes" } else { "relations" },
+            )?;
+            require(inclusion.is_truthy(), "exploration")?;
+            require(
+                JsValue::from_f64(keys(&inclusion)?.length() as f64) == field(items, "size")?,
+                "exploration",
+            )?;
+            let selected = inclusion.clone();
+            let predicate =
+                Closure::<dyn Fn(JsValue) -> Result<bool, JsValue>>::new(move |id: JsValue| {
+                    Ok(!has_own(&selected, &id)?)
+                })
+                .into_js_value();
+            require(
+                !call(&spread(&[&call0(items, "keys")?])?, "some", &predicate)?.is_truthy(),
+                "exploration",
+            )?;
+        }
+        let item = call(
+            if field(&origin, "kind")? == JsValue::from_str("node") {
+                &nodes
+            } else {
+                &relations
+            },
+            "get",
+            &field(&origin, "id")?,
+        )?;
+        require(item.is_truthy(), "exploration")?;
+        require(
+            field(&item, "content_revision")? == field(&origin, "content_revision")?,
+            "exploration",
+        )?;
+        let node_origin = field(&origin, "kind")? == JsValue::from_str("node");
+        if node_origin {
+            require(
+                !has_own(&origin, &JsValue::from_str("endpoints"))?,
+                "exploration",
+            )?;
+            require(
+                !field(&field(&page, "context_relation_ids")?, "length")?.is_truthy(),
+                "exploration",
+            )?;
+            require(
+                call(
+                    &field(&page, "context_node_ids")?,
+                    "includes",
+                    &field(&origin, "id")?,
+                )?
+                .is_truthy(),
+                "exploration",
+            )?;
+        } else {
+            require(
+                field(&field(&page, "context_relation_ids")?, "length")? == JsValue::from_f64(1.0),
+                "exploration",
+            )?;
+            require(
+                field(&field(&page, "context_relation_ids")?, "0")? == field(&origin, "id")?,
+                "exploration",
+            )?;
+        }
+        text(
+            &optional(
+                &get(
+                    &field(
+                        &field(packet, "inclusion")?,
+                        if node_origin { "nodes" } else { "relations" },
+                    )?,
+                    &field(&origin, "id")?,
+                )?,
+                "kind",
+            )?,
+            &["origin"],
+            "exploration",
+        )?;
+        if !node_origin {
+            for side in ["from", "to"] {
+                let endpoint = optional(&field(&origin, "endpoints")?, side)?;
+                let node = call(&nodes, "get", &field(&item, &format!("{side}_id"))?)?;
+                require(endpoint.is_truthy(), "exploration")?;
+                require(node.is_truthy(), "exploration")?;
+                for (left, right) in [
+                    ("node_id", "id"),
+                    ("content_revision", "content_revision"),
+                    ("entity_id", "entity_id"),
+                ] {
+                    require(
+                        field(&endpoint, left)? == field(&node, right)?,
+                        "exploration",
+                    )?;
+                }
+                require(
+                    call(
+                        &field(&page, "context_node_ids")?,
+                        "includes",
+                        &field(&node, "id")?,
+                    )?
+                    .is_truthy(),
+                    "exploration",
+                )?;
+                text(
+                    &optional(
+                        &get(
+                            &field(&field(packet, "inclusion")?, "nodes")?,
+                            &field(&node, "id")?,
+                        )?,
+                        "kind",
+                    )?,
+                    &["origin-endpoint"],
+                    "exploration",
+                )?;
+            }
         }
     }
-    fn after_cursor(&self) -> &'static str {
-        if self.v2 { "limit-status" } else { "previous" }
+    if previous.is_truthy() {
+        if v2 {
+            require(
+                field(previous, "schema")? == field(packet, "schema")?,
+                "revision",
+            )?;
+            text(&field(previous, "status")?, &["paused"], "revision")?;
+            require(
+                field(packet, "source_revision")? == field(previous, "source_revision")?,
+                "revision",
+            )?;
+        }
+        require(
+            field(packet, "snapshot_revision")? == field(previous, "snapshot_revision")?,
+            "revision",
+        )?;
+        if v2 {
+            require(
+                field(packet, "execution_version")? == field(previous, "execution_version")?,
+                "revision",
+            )?;
+        } else {
+            require(
+                field(&field(packet, "focus")?, "node_id")?
+                    == field(&field(previous, "focus")?, "node_id")?,
+                "revision",
+            )?;
+        }
+        prior_page(&page, previous, host)?;
+        if v2 {
+            if field(packet, "status")? == JsValue::from_str("paused") {
+                require(
+                    field(&page, "next_cursor")?
+                        != field(&field(previous, "page")?, "next_cursor")?,
+                    "revision",
+                )?;
+            }
+            for name in ["origin", "query"] {
+                require(
+                    invoke(
+                        host,
+                        "sameJson",
+                        &[&field(packet, name)?, &field(previous, name)?],
+                    )?
+                    .is_truthy(),
+                    "revision",
+                )?;
+            }
+        } else {
+            require(
+                stringify(&field(packet, "query")?)? == stringify(&field(previous, "query")?)?,
+                "revision",
+            )?;
+        }
     }
-    fn after_prior(&self) -> &'static str {
-        if self.v2 { "scene" } else { "done" }
+    if v2 {
+        let focus = if field(&origin, "kind")? == JsValue::from_str("node") {
+            field(&origin, "id")?
+        } else {
+            JsValue::NULL
+        };
+        // Only the existing scene construction boundary intentionally turns
+        // presentation/source failures into an incomplete-page refusal.
+        let scene = (|| -> Result<JsValue, JsValue> {
+            let nodes = field(packet, "nodes")?;
+            let relations = field(packet, "relations")?;
+            let relation = if field(&origin, "kind")? == JsValue::from_str("relation") {
+                field(&origin, "id")?
+            } else {
+                JsValue::NULL
+            };
+            invoke(host, "scene", &[&nodes, &relations, &focus, &relation])
+        })()
+        .map_err(|_| Failure::Contract("exploration"))?;
+        require(
+            invoke(host, "sameJson", &[&field(packet, "scene")?, &scene])?.is_truthy(),
+            "exploration",
+        )?;
     }
+    Ok(())
+}
+fn search(packet: &JsValue, indexed: bool, options: &JsValue, host: &JsValue) -> Checked<()> {
+    text(
+        &field(packet, "schema")?,
+        &[if indexed {
+            "tos_knowledge_search_indexed_v2"
+        } else {
+            "tos_knowledge_search_compressed_v3"
+        }],
+        "search",
+    )?;
+    for kind in ["nodes", "relations"] {
+        require(
+            !(number(&optional(&field(packet, kind)?, "length")?)?
+                > number(&field(options, "limit")?)?),
+            "search",
+        )?;
+    }
+    require(
+        optional(&field(packet, "page")?, "cursor")? == field(options, "cursor")?,
+        "search",
+    )?;
+    require(
+        field(&field(packet, "page")?, "limit_per_kind")? == field(options, "limit")?,
+        "search",
+    )?;
+    require(
+        field(&field(packet, "page")?, "has_more")?
+            .as_bool()
+            .is_some(),
+        "search",
+    )?;
+    if field(&field(packet, "page")?, "has_more")?.is_truthy() {
+        require(
+            field(&field(packet, "page")?, "next_cursor")?.is_string(),
+            "search",
+        )?;
+        require(
+            field(&field(packet, "page")?, "next_cursor")?.is_truthy(),
+            "search",
+        )?;
+    } else {
+        require(
+            field(&field(packet, "page")?, "next_cursor")?.is_null(),
+            "search",
+        )?;
+    }
+    require(
+        optional(&field(packet, "authority_boundary")?, "writes_to_tree")?.as_bool() == Some(false),
+        "search",
+    )?;
+    let localized = localizer(host)?;
+    check_items(&field(packet, "nodes")?, true, &localized)?;
+    check_items(&field(packet, "relations")?, false, &localized)?;
+    Ok(())
+}
+#[wasm_bindgen]
+pub fn validate_client_packet_v1(
+    packet: &JsValue,
+    mode: u8,
+    expected: &JsValue,
+    previous: &JsValue,
+    options: &JsValue,
+    host: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        let indexed = field(options, "mode")? == JsValue::from_str("indexed");
+        if mode == 2 {
+            text(
+                &optional(packet, "schema")?,
+                &["tos_lens_result_v1"],
+                "lens",
+            )?;
+        }
+        let v2 = mode == 3
+            && optional(packet, "schema")? == JsValue::from_str("tos_exploration_result_v2");
+        revision(packet, expected)?;
+        match mode {
+            0 => (),
+            1 | 2 | 3 => {
+                area(packet, v2, host)?;
+                if mode == 3 {
+                    exploration(packet, v2, previous, host)?;
+                }
+            }
+            5 => search(packet, indexed, options, host)?,
+            _ => return Err(Failure::Contract("invalid_packet_mode")),
+        }
+        Ok(JsValue::NULL)
+    })())
+}
+#[wasm_bindgen]
+pub fn validate_client_search_request_v1(
+    cursor: &JsValue,
+    mode: &JsValue,
+    limit: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        if !cursor.is_null() {
+            require(cursor.is_string(), "search")?;
+            require(number(&field(cursor, "length")?)? <= 65536.0, "search")?;
+            require(mode.is_truthy(), "search")?;
+        }
+        require(integer(limit, true), "search")?;
+        let value = number(limit)?;
+        require((1.0..=6.0).contains(&value), "search")?;
+        Ok(JsValue::NULL)
+    })())
+}
+#[wasm_bindgen]
+pub fn validate_client_exploration_request_v1(
+    packet: &JsValue,
+    query: &JsValue,
+    previous: &JsValue,
+    host: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        if !previous.is_truthy() {
+            require(
+                invoke(host, "requestMatches", &[&field(packet, "query")?, query])?.is_truthy(),
+                "request_area",
+            )?;
+        }
+        Ok(JsValue::NULL)
+    })())
+}
+#[wasm_bindgen]
+pub fn client_request_set_key_v1(value: &JsValue) -> bool {
+    *value == JsValue::from_str("sources") || *value == JsValue::from_str("predicate_ids")
 }
 
-/// Request fields whose owner normalization treats values as sets.
-/// Native JavaScript collection equality remains in the browser host.
 #[wasm_bindgen]
-pub fn client_request_set_key_v1(units: &[u16]) -> bool {
-    units.iter().copied().eq("sources".encode_utf16())
-        || units.iter().copied().eq("predicate_ids".encode_utf16())
+pub fn validate_client_material_request_v1(
+    kind: &JsValue,
+    id: &JsValue,
+    language: &JsValue,
+    relation: &JsValue,
+    expected: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        text(kind, &["node", "relation"], "material_request")?;
+        require(id.is_string(), "material_request")?;
+        require(id.is_truthy(), "material_request")?;
+        require(
+            language
+                .as_string()
+                .is_some_and(|value| crate::human_forms::content_language_v1(&value)),
+            "material_request",
+        )?;
+        let inspect = *kind == JsValue::from_str("relation")
+            && (!relation.is_truthy() || field(relation, "id")? != *id || !expected.is_truthy());
+        Ok(JsValue::from_bool(inspect))
+    })())
 }
-
 #[wasm_bindgen]
-pub struct ClientMaterialSession {
-    step: &'static str,
-    claim: bool,
-    relation: bool,
-    versions: bool,
-}
-#[wasm_bindgen]
-impl ClientMaterialSession {
-    #[wasm_bindgen(constructor)]
-    pub fn new(claim: bool, versions: bool) -> Self {
-        Self {
-            step: if claim { "language" } else { "kind" },
-            claim,
-            relation: false,
-            versions,
+pub fn validate_client_material_packet_v1(
+    packet: &JsValue,
+    kind: &JsValue,
+    id: &JsValue,
+    content_revision: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        let relation = *kind == JsValue::from_str("relation");
+        let id_for_match = id.clone();
+        let predicate =
+            Closure::<dyn Fn(JsValue) -> Result<bool, JsValue>>::new(move |item: JsValue| {
+                Ok(field(&item, "id")? == id_for_match)
+            })
+            .into_js_value();
+        let selected = call(
+            &field(packet, if relation { "relations" } else { "nodes" })?,
+            "find",
+            &predicate,
+        )?;
+        require(selected.is_truthy(), "match")?;
+        if content_revision.is_truthy() {
+            require(
+                field(&selected, "content_revision")? == *content_revision,
+                "revision",
+            )?;
         }
-    }
-    pub fn need(&self) -> String {
-        self.step.into()
-    }
-    pub fn relation(&self) -> bool {
-        self.relation
-    }
-    pub fn kind(&mut self, string: bool, units: &[u16]) -> Result<(), JsValue> {
-        let node = units.iter().copied().eq("node".encode_utf16());
-        self.relation = units.iter().copied().eq("relation".encode_utf16());
-        if self.step != "kind" || !string || !(node || self.relation) {
-            return Err(refusal("material_request"));
-        }
-        self.step = "id-type";
-        Ok(())
-    }
-    pub fn observe(&mut self, value: bool) -> Result<(), JsValue> {
-        let (valid, next) = match self.step {
-            "id-type" => (value, "id-truthy"),
-            "id-truthy" => (value, "language"),
-            "language" => (
-                value,
-                if self.claim {
-                    "reference"
-                } else if self.relation {
-                    "relation-truthy"
-                } else {
-                    "spec"
-                },
-            ),
-            "relation-truthy" => {
-                self.step = if value { "relation-id" } else { "inspect" };
-                return Ok(());
-            }
-            "relation-id" => {
-                self.step = if value { "expected" } else { "inspect" };
-                return Ok(());
-            }
-            "expected" => {
-                self.step = if value { "spec" } else { "inspect" };
-                return Ok(());
-            }
-            "inspect" | "reference" => (true, "spec"),
-            "spec" => (true, "compile"),
-            "compile" => (
-                true,
-                if self.claim {
-                    "claim-nodes-count"
-                } else {
-                    "match"
-                },
-            ),
-            "match" => (value, "content-required"),
-            "content-required" => {
-                self.step = if value { "content-equal" } else { "allowed" };
-                return Ok(());
-            }
-            "content-equal" => (value, "allowed"),
-            "allowed" => (true, "scope-node-count"),
-            "scope-node-count" => (value, "scope-node-members"),
-            "scope-node-members" => (!value, "scope-relation-count"),
-            "scope-relation-count" => (value, "forms"),
-            "forms" => (true, "done"),
-            "claim-nodes-count" => (value, "claim-nodes-every"),
-            "claim-nodes-every" => (value, "claim-relations-count"),
-            "claim-relations-count" => (value, "claim-relations-every"),
-            "claim-relations-every" => (value, "claim-items"),
-            "item-version" => (value, "item-human"),
-            "item-human" => (true, "item-readable"),
-            "item-readable" => (true, "claim-items"),
-            "path" => (value, "closure"),
-            "closure" => (true, "path-id"),
-            "path-id" => (value, "path-relation-type"),
-            "path-relation-type" => (value, "path-nodes-json"),
-            "path-nodes-json" => (value, "path-relations-json"),
-            "path-relations-json" => (value, "closure-nodes-count"),
-            "closure-nodes-count" => (value, "closure-nodes-every"),
-            "closure-nodes-every" => (value, "closure-relations-count"),
-            "closure-relations-count" => (value, "closure-relations-every"),
-            "closure-relations-every" => (value, "done"),
-            _ => return Err(refusal("invalid_material_progress")),
-        };
-        if !valid {
-            return Err(refusal(match self.step {
-                "id-type" | "id-truthy" | "language" => "material_request",
-                "match" => "match",
-                "content-equal" | "item-version" => "revision",
-                s if s.starts_with("path") || s.starts_with("closure") => "form",
-                _ => "material_scope",
-            }));
-        }
-        self.step = next;
-        Ok(())
-    }
-    pub fn begin_item(&mut self) -> Result<(), JsValue> {
-        if self.step != "claim-items" {
-            return Err(refusal("invalid_material_progress"));
-        }
-        self.step = if self.versions {
-            "item-version"
+        let values = if relation {
+            Array::of2(&field(&selected, "from_id")?, &field(&selected, "to_id")?)
         } else {
-            "item-human"
+            Array::of1(id)
         };
-        Ok(())
-    }
-    pub fn finish_items(&mut self) -> Result<(), JsValue> {
-        if self.step != "claim-items" {
-            return Err(refusal("invalid_material_progress"));
-        }
-        self.step = "path";
-        Ok(())
-    }
-    pub fn kind_length(string: bool, length: usize) -> bool {
-        string && (length == 4 || length == 8)
-    }
+        let allowed = collection("Set", values.as_ref())?;
+        require(
+            field(&field(packet, "nodes")?, "length")? == field(&allowed, "size")?,
+            "material_scope",
+        )?;
+        let predicate =
+            Closure::<dyn Fn(JsValue) -> Result<bool, JsValue>>::new(move |item: JsValue| {
+                Ok(!member(&allowed, &field(&item, "id")?)?)
+            })
+            .into_js_value();
+        require(
+            !call(&field(packet, "nodes")?, "some", &predicate)?.is_truthy(),
+            "material_scope",
+        )?;
+        require(
+            field(&field(packet, "relations")?, "length")?
+                == JsValue::from_f64(if relation { 1.0 } else { 0.0 }),
+            "material_scope",
+        )?;
+        Ok(object(&[("match", &selected)])?)
+    })())
+}
+fn scope_items(
+    items: &JsValue,
+    closure: &JsValue,
+    key: &'static str,
+    code: &'static str,
+) -> Checked<()> {
+    require(
+        field(items, "length")? == field(&field(closure, key)?, "length")?,
+        code,
+    )?;
+    let closure = closure.clone();
+    let predicate =
+        Closure::<dyn Fn(JsValue) -> Result<JsValue, JsValue>>::new(move |item: JsValue| {
+            call(&field(&closure, key)?, "includes", &field(&item, "id")?)
+        })
+        .into_js_value();
+    require(call(items, "every", &predicate)?.is_truthy(), code)
+}
+#[wasm_bindgen]
+pub fn validate_client_claim_scope_v1(
+    packet: &JsValue,
+    closure: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        scope_items(
+            &field(packet, "nodes")?,
+            closure,
+            "nodeIds",
+            "material_scope",
+        )?;
+        scope_items(
+            &field(packet, "relations")?,
+            closure,
+            "relationIds",
+            "material_scope",
+        )?;
+        Ok(JsValue::NULL)
+    })())
+}
+fn wrapped_ids(ids: &JsValue) -> Result<JsValue, JsValue> {
+    let predicate = Closure::<dyn Fn(JsValue) -> Result<JsValue, JsValue>>::new(|id: JsValue| {
+        object(&[("id", &id)])
+    })
+    .into_js_value();
+    call(ids, "map", &predicate)
+}
+#[wasm_bindgen]
+pub fn validate_client_claim_path_v1(
+    packet: &JsValue,
+    reference: &JsValue,
+    closure: &JsValue,
+    host: &JsValue,
+) -> Result<JsValue, JsValue> {
+    finish((|| {
+        let selected = invoke(
+            host,
+            "claimPathFor",
+            &[packet, &field(reference, "claimId")?],
+        )?;
+        require(selected.is_truthy(), "form")?;
+        let returned = invoke(host, "claimPathClosure", &[packet, &selected])?;
+        require(
+            field(&selected, "id")? == field(reference, "pathId")?,
+            "form",
+        )?;
+        require(
+            field(&selected, "relation_type_id")? == field(reference, "relationType")?,
+            "form",
+        )?;
+        require(
+            stringify(&field(&selected, "node_ids")?)? == stringify(&field(reference, "nodeIds")?)?,
+            "form",
+        )?;
+        require(
+            stringify(&field(&selected, "relation_ids")?)?
+                == stringify(&field(reference, "relationIds")?)?,
+            "form",
+        )?;
+        scope_items(
+            &wrapped_ids(&field(&returned, "nodeIds")?)?,
+            closure,
+            "nodeIds",
+            "form",
+        )?;
+        scope_items(
+            &wrapped_ids(&field(&returned, "relationIds")?)?,
+            closure,
+            "relationIds",
+            "form",
+        )?;
+        Ok(object(&[("selected", &selected), ("returned", &returned)])?)
+    })())
 }

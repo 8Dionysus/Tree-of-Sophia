@@ -1,8 +1,8 @@
 import {lensPosition} from './lens-projection-rules.mjs';
 import {browserFocusSpec,browserRelationSpec} from './lens-spec-rules.mjs';
-import {createClientPacketSession,createClientMaterialSession,packetKindUnits,packetSetKey} from './client-packet-rules.mjs';
-import {createSourceDossierSession,dossierTextUnits,dossierPredicate} from './source-dossier-rules.mjs';
-import {createClientInspectionSession,createClientItemsSession,inspectionRefInvalid,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
+import {checkClientPacket,checkClientSearchRequest,checkClientExplorationRequest,checkClientMaterialRequest,checkClientMaterialPacket,checkClientClaimScope,checkClientClaimPath,packetSetKey} from './client-packet-rules.mjs';
+import {sourceDossierReference,sourceDossierRequest,sourceDossierCheck} from './source-dossier-rules.mjs';
+import {checkClientInspection} from './client-inspection-rules.mjs';
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
@@ -19,10 +19,7 @@ export const BUDGET = Object.freeze({nodes:40,relations:80});
 // owner-provided bibliographic route.  Keep the browser window narrower than
 // the backend contract; truncation remains an honest dossier field.
 export const SOURCE_DOSSIER_LIMIT = 64;
-export function isSourceDossierRef(value){
-  if(!dossierPredicate('reference_size',typeof value==='string',typeof value==='string'?value.length:0))return false;
-  return dossierPredicate('reference_value',dossierTextUnits(value));
-}
+export const isSourceDossierRef=sourceDossierReference;
 const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
@@ -182,307 +179,54 @@ export async function compileRouteCenter(client,id,signal,expected=null,{depth=1
 }
 
 export function checkRevision(packet,expected){return validateClientPacket(packet,0,expected);}
-function dossierMethod(session,method,...values){
-  try{return session[method](...values);}catch(error){
-    const messages={request:'Неверная ссылка на досье источника.',dossier:'Неподдерживаемое досье источника.',chain:'Неполная цепочка источника.'};
-    if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
-    throw error;
-  }
-}
-function dossierReference(session,value){
-  dossierMethod(session,'reference_length',typeof value==='string',typeof value==='string'?value.length:0);
-  dossierMethod(session,'reference',dossierTextUnits(value));
-}
 function validateDossierRequest(objectId,limit){
-  const session=createSourceDossierSession(true);
-  try{dossierReference(session,objectId);dossierMethod(session,'request_limit',typeof limit==='number',typeof limit==='number'?limit:0);}
-  finally{session.free();}
+  if(!sourceDossierRequest(objectId,limit))throw new ContractError(t('Неверная ссылка на досье источника.'));
 }
 export function validateSourceDossier(packet,expected){
-  const summary=packet?.agent_summary,object=packet?.object,session=createSourceDossierSession();
-  const run=(method,...values)=>dossierMethod(session,method,...values);
-  let array;
-  const recordObservation=value=>{
-    if(!run('record_type',value!==null,typeof value==='object'))return false;
-    return run('record_array',Array.isArray(value));
-  };
-  const recordElement=value=>{
-    if(!dossierPredicate('record_element_type',value!==null,typeof value==='object'))return false;
-    return dossierPredicate('record_element_array',Array.isArray(value));
-  };
-  const text=value=>{run('text_length',typeof value==='string',typeof value==='string'?value.length:0);run('text',dossierTextUnits(value));};
-  try{
-    while(true){
-      switch(session.need()){
-        case 'schema':text(packet?.schema);break;
-        case 'expected-ref':dossierReference(session,expected);break;
-        case 'object-id':run('observe',packet.object_id===expected);break;
-        case 'object':recordObservation(object);break;
-        case 'node-id':run('observe',object.node_id===expected);break;
-        case 'kind':text(object.node_kind);break;
-        case 'summary':run('observe',Boolean(summary));break;
-        case 'technical-type':run('observe',typeof summary.technical_access==='string');break;
-        case 'technical-truthy':run('observe',Boolean(summary.technical_access));break;
-        case 'posture-type':run('observe',typeof summary.rights_posture==='string');break;
-        case 'posture-truthy':run('observe',Boolean(summary.rights_posture));break;
-        case 'review-type':run('observe',typeof summary.human_review_required==='boolean');break;
-        case 'legal-type':run('observe',typeof summary.can_conclude_legal_openness==='boolean');break;
-        case 'license-false':{const value=summary.availability_is_license;run('license',typeof value==='boolean',Boolean(value));break;}
-        case 'array-value':{
-          const field=session.array_field();array=session.array_location()==='summary'?summary[field]:packet[field];
-          run('array_type',Array.isArray(array));break;
-        }
-        case 'array-length':run('array_length',Number(array.length));break;
-        case 'array-every':{
-          const callback=session.element_kind()==='string'
-            ?value=>dossierPredicate('string_element',typeof value==='string',typeof value==='string'?value.length:0):recordElement;
-          run('observe',Boolean(array.every(callback)));break;
-        }
-        case 'truncated':run('observe',typeof packet.truncated==='boolean');break;
-        case 'authority-type':run('observe',typeof packet.authority_note==='string');break;
-        case 'authority-length':run('authority_length',Number(packet.authority_note.length));break;
-        case 'authority-record':recordObservation(packet.authority_note);break;
-        case 'chain-truthy':run('observe',Boolean(packet.chain));break;
-        case 'chain-type':run('observe',typeof packet.chain==='object');break;
-        case 'chain-array':run('observe',Array.isArray(packet.chain));break;
-        case 'chain-values':run('observe',Boolean(Object.values(packet.chain).some(value=>{
-          if(!dossierPredicate('chain_array_type',Array.isArray(value)))return dossierPredicate('chain_result',false);
-          if(!dossierPredicate('chain_array_length',Number(value.length)))return dossierPredicate('chain_result',false);
-          return dossierPredicate('chain_result',Boolean(value.every(recordElement)));
-        })));break;
-        case 'done':return packet;
-        default:throw new Error('Invalid source dossier Rust need');
-      }
-    }
-  }finally{session.free();}
+  const code=sourceDossierCheck(packet,expected);
+  if(code)throw new ContractError(t(code==='chain'?'Неполная цепочка источника.':'Неподдерживаемое досье источника.'));
+  return packet;
 }
-function packetMethod(session,method,...values){
-  try{return session[method](...values);}catch(error){
-    if(error==='revision')throw new RevisionError();
-    const messages={missing_revision:'Ответ не содержит версию данных.',lens:'Неподдерживаемый контракт линзы.',
-      area:'Неподдерживаемый контракт области.',budget:'Область превышает бюджет отображения.',
-      endpoints:'Связь не содержит оба конца в области.',focus:'Центр отсутствует в области.',
-      exploration:'Неполная страница раскрытия связей.',request_area:'Сервер вернул другую область раскрытия.',search:'Неподдерживаемый ответ поиска.'};
-    if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
-    throw error;
-  }
+function packetRefusal(code){
+  if(code==='revision')throw new RevisionError();
+  if(code==='items'||code==='item')inspectionRefusal(code);
+  const messages={missing_revision:'Ответ не содержит версию данных.',lens:'Неподдерживаемый контракт линзы.',
+    area:'Неподдерживаемый контракт области.',budget:'Область превышает бюджет отображения.',
+    endpoints:'Связь не содержит оба конца в области.',focus:'Центр отсутствует в области.',
+    exploration:'Неполная страница раскрытия связей.',request_area:'Сервер вернул другую область раскрытия.',search:'Неподдерживаемый ответ поиска.'};
+  throw new ContractError(t(messages[code]));
 }
-function checkItems(items,kind){
-  const session=createClientItemsSession(kind==='node');let ids;
-  const run=(method,...values)=>{
-    try{return session[method](...values);}catch(error){
-      if(error==='items')throw new ContractError(t('Неверный список объектов.'));
-      if(error==='item')throw new ContractError(t('Неполный или повторяющийся объект.'));
-      throw error;
-    }
-  };
-  try{
-    run('observe',Array.isArray(items));ids=new Set();
-    for(const item of items){
-      run('observe',true);
-      while(session.need()!=='item-next'){
-        switch(session.need()){
-          case 'item-truthy':run('observe',Boolean(item));break;
-          case 'id-type':run('observe',typeof item.id==='string');break;
-          case 'id-truthy':run('observe',Boolean(item.id));break;
-          case 'id-duplicate':run('observe',ids.has(item.id));break;
-          case 'display':run('observe',Boolean(item.display));break;
-          case 'localized-title':run('observe',Boolean(localized(item.display.title)));break;
-          case 'localized-label':run('observe',Boolean(localized(item.display.label)));break;
-          case 'content-revision':{
-            const text=inspectionRevisionText(item.content_revision||'');run('text_length',text.length);run('text',inspectionRevisionUnits(text));break;
-          }
-          case 'refs-array':run('observe',Array.isArray(item.source_refs));break;
-          case 'refs-length':run('observe',Boolean(item.source_refs.length));break;
-          case 'refs':run('observe',Boolean(item.source_refs.some(ref=>inspectionRefInvalid(typeof ref==='string',Boolean(ref)))));break;
-          case 'add-id':ids.add(item.id);run('observe',true);break;
-          default:throw new Error('Invalid client item Rust need');
-        }
-      }
-    }
-    run('observe',false);return ids;
-  }finally{session.free();}
+function inspectionRefusal(code){
+  if(code==='revision')throw new RevisionError();
+  const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
+    items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
+    match:'Не найден точный идентификатор карточки.',endpoints:'Неполные концы связи.'};
+  throw new ContractError(t(messages[code]));
 }
+const packetHost={localized,sameJson,scene:knowledgeScene,add:(left,right)=>left+right,requestMatches:explorationRequestMatches,claimPathFor,claimPathClosure};
 function validateClientPacket(packet,mode,expected=null,previous=null,options={}){
-  const session=createClientPacketSession(mode,Boolean(expected),Boolean(previous),options.mode==='indexed');
-  const run=(method,...values)=>packetMethod(session,method,...values);
-  let ids,nodes,relations,page,origin,query,primary,context,items,inclusion,item,endpoint,node,scene;
-  const text=value=>{run('text_length',typeof value==='string',typeof value==='string'?value.length:0);run('text',inspectionRevisionUnits(value));};
-  const digest=value=>{
-    run('digest_type',typeof value==='string');
-    const valueText=session.strict_digest()?value:inspectionRevisionText(value);
-    run('text_length',true,valueText.length);run('text',inspectionRevisionUnits(valueText));
-  };
-  try{
-    while(true){
-      const need=session.need();
-      switch(need){
-        case 'lens-schema':text(packet?.schema);break;
-        case 'exploration-schema':run('select_v2',packet?.schema==='tos_exploration_result_v2');break;
-        case 'revision':digest(packet?.source_revision||'');break;
-        case 'expected':run('observe',packet.source_revision===expected);break;
-        case 'authority-source':run('observe',packet.authority_boundary?.is_source===false);break;
-        case 'authority-canon':run('observe',packet.authority_boundary?.is_canon===false);break;
-        case 'authority-writes':run('observe',packet.authority_boundary?.writes_to_tree===false);break;
-        case 'nodes-array':run('observe',Array.isArray(packet.nodes));break;
-        case 'relations-array':run('observe',Array.isArray(packet.relations));break;
-        case 'nodes-length':run('number',Number(packet.nodes.length));break;
-        case 'relations-length':run('number',Number(packet.relations.length));break;
-        case 'node-items':ids=checkItems(packet.nodes,'node');run('observe',true);break;
-        case 'relation-items':checkItems(packet.relations,'relation');run('observe',true);break;
-        case 'area-endpoints':{const areaIds=ids;run('observe',Boolean(packet.relations.some(relation=>{
-          if(!(areaIds.has(relation.from_id)))return true;
-          return !(areaIds.has(relation.to_id));
-        })));break;}
-        case 'area-focus':run('observe',Boolean(packet.focus));break;
-        case 'area-focus-member':run('observe',ids.has(packet.focus.node_id));break;
-        case 'exploration-snapshots':{
-          if(session.v2()){
-            nodes=new Map(packet.nodes.map(item=>[item.id,item]));relations=new Map(packet.relations.map(item=>[item.id,item]));
-            origin=packet.origin;page=packet.page;query=packet.query;
-          }else{page=packet.page;ids=new Set(packet.nodes.map(node=>node.id));}
-          run('observe',true);break;
-        }
-        case 'v1-schema':text(packet.schema);break;
-        case 'writes':run('observe',packet.writes_to_tree===false);break;
-        case 'snapshot':digest(session.v2()?packet.snapshot_revision:packet.snapshot_revision||'');break;
-        case 'execution':text(packet.execution_version);break;
-        case 'status':text(packet.status);break;
-        case 'v1-focus':run('observe',Boolean(packet.focus));break;
-        case 'origin':run('observe',Boolean(origin));break;
-        case 'origin-kind':text(origin.kind);break;
-        case 'origin-revision':digest(origin.content_revision);break;
-        case 'origin-id-type':run('observe',typeof origin.id==='string');break;
-        case 'origin-id-truthy':run('observe',Boolean(origin.id));break;
-        case 'query':run('observe',Boolean(query));break;
-        case 'query-schema':text(query.schema_version);break;
-        case 'query-revision':run('observe',query.source_revision===packet.source_revision);break;
-        case 'query-origin':run('observe',Boolean(query.origin));break;
-        case 'query-origin-fields':run('observe',Boolean(['kind','id','content_revision'].some(key=>!(query.origin[key]===origin[key]))));break;
-        case 'focus-own':run('observe',Object.hasOwn(packet,'focus'));break;
-        case 'page-integer':{const value=page?.number;run('integer',typeof value==='number',typeof value==='number'?value:0);break;}
-        case 'page-positive':run('number',Number(page.number));break;
-        case 'page-scope':text(page.scope);break;
-        case 'returned-nodes':run('observe',page.returned_nodes===(session.v2()?nodes.size:packet.nodes.length));break;
-        case 'returned-relations':run('observe',page.returned_relations===(session.v2()?relations.size:packet.relations.length));break;
-        case 'work-integer':{const value=page.work_units;run('integer',typeof value==='number',typeof value==='number'?value:0);break;}
-        case 'work-lower':run('number',Number(page.work_units));break;
-        case 'work-upper':run('number',Number(page.work_units));break;
-        case 'v1-primary-array':run('observe',Array.isArray(page.primary_node_ids));break;
-        case 'v1-context-array':run('observe',Array.isArray(page.context_node_ids));break;
-        case 'v1-total':run('observe',page.primary_node_ids.length+page.context_node_ids.length===ids.size);break;
-        case 'v1-unique':run('observe',new Set([...page.primary_node_ids,...page.context_node_ids]).size===ids.size);break;
-        case 'v1-members':run('observe',Boolean([...page.primary_node_ids,...page.context_node_ids].some(id=>!(ids.has(id)))));break;
-        case 'counts-scope':text(packet.counts?.scope);break;
-        case 'inclusion-authority':text(packet.inclusion?.authority);break;
-        case 'cursor-status':run('observe',packet.status==='paused');break;
-        case 'cursor-digest':digest(session.v2()?page.next_cursor:page.next_cursor||'');break;
-        case 'cursor-null-value':run('observe',page.next_cursor===null);break;
-        case 'limit-status':run('observe',packet.status==='limit_reached');break;
-        case 'limit-reason':text(packet.limit_reason);break;
-        case 'limit-null':run('observe',packet.limit_reason===null);break;
-        case 'partition-start':{
-          const kind=session.relation_partition()?'relation':'node';items=session.relation_partition()?relations:nodes;
-          primary=page[`primary_${kind}_ids`];context=page[`context_${kind}_ids`];run('observe',true);break;
-        }
-        case 'primary-array':run('observe',Array.isArray(primary));break;
-        case 'context-array':run('observe',Array.isArray(context));break;
-        case 'partition-total':run('observe',primary.length+context.length===items.size);break;
-        case 'partition-unique':run('observe',new Set([...primary,...context]).size===items.size);break;
-        case 'partition-members':{const partitionItems=items;run('observe',Boolean([...primary,...context].some(id=>!(partitionItems.has(id)))));break;}
-        case 'partition-inclusion':inclusion=packet.inclusion[session.relation_partition()?'relations':'nodes'];run('observe',Boolean(inclusion));break;
-        case 'inclusion-count':run('observe',Object.keys(inclusion).length===items.size);break;
-        case 'inclusion-keys':{const partitionInclusion=inclusion;run('observe',Boolean([...items.keys()].some(id=>!(Object.hasOwn(partitionInclusion,id)))));break;}
-        case 'partition-next':run('observe',true);break;
-        case 'origin-item':item=(origin.kind==='node'?nodes:relations).get(origin.id);run('observe',Boolean(item));break;
-        case 'origin-item-revision':run('observe',item.content_revision===origin.content_revision);break;
-        case 'origin-branch':run('observe',origin.kind==='node');break;
-        case 'origin-no-endpoints':run('observe',Object.hasOwn(origin,'endpoints'));break;
-        case 'context-relations-empty':run('observe',Boolean(page.context_relation_ids.length));break;
-        case 'origin-node-context':run('observe',Boolean(page.context_node_ids.includes(origin.id)));break;
-        case 'context-relation-count':run('observe',page.context_relation_ids.length===1);break;
-        case 'context-relation-id':run('observe',page.context_relation_ids[0]===origin.id);break;
-        case 'origin-inclusion':text(packet.inclusion[session.origin_relation()?'relations':'nodes'][origin.id]?.kind);break;
-        case 'endpoint-start':{
-          const side=session.endpoint_to()?'to':'from';endpoint=origin.endpoints?.[side];node=nodes.get(item[`${side}_id`]);run('observe',true);break;
-        }
-        case 'endpoint':run('observe',Boolean(endpoint));break;
-        case 'endpoint-node':run('observe',Boolean(node));break;
-        case 'endpoint-id':run('observe',endpoint.node_id===node.id);break;
-        case 'endpoint-revision':run('observe',endpoint.content_revision===node.content_revision);break;
-        case 'endpoint-entity':run('observe',endpoint.entity_id===node.entity_id);break;
-        case 'endpoint-context':run('observe',Boolean(page.context_node_ids.includes(node.id)));break;
-        case 'endpoint-inclusion':text(packet.inclusion.nodes[node.id]?.kind);break;
-        case 'endpoint-next':run('observe',true);break;
-        case 'previous':run('observe',true);break;
-        case 'prior-schema':run('observe',previous.schema===packet.schema);break;
-        case 'prior-status':text(previous.status);break;
-        case 'prior-source':run('observe',packet.source_revision===previous.source_revision);break;
-        case 'prior-snapshot':run('observe',packet.snapshot_revision===previous.snapshot_revision);break;
-        case 'prior-execution':run('observe',packet.execution_version===previous.execution_version);break;
-        case 'prior-focus':run('observe',packet.focus.node_id===previous.focus.node_id);break;
-        case 'prior-page':run('observe',page.number===previous.page.number+1);break;
-        case 'prior-cursor-status':run('observe',packet.status==='paused');break;
-        case 'prior-cursor-different':run('observe',page.next_cursor===previous.page.next_cursor);break;
-        case 'prior-origin':run('observe',sameJson(packet.origin,previous.origin));break;
-        case 'prior-query':run('observe',sameJson(packet.query,previous.query));break;
-        case 'prior-query-json':run('observe',JSON.stringify(packet.query)===JSON.stringify(previous.query));break;
-        case 'scene':{
-          const focusNode=origin.kind==='node'?origin.id:null;
-          let success=true;try{scene=knowledgeScene(packet.nodes,packet.relations,focusNode,origin.kind==='relation'?origin.id:null);}catch{success=false;}
-          run('observe',success);break;
-        }
-        case 'scene-equal':run('observe',sameJson(packet.scene,scene));break;
-        case 'search-schema':text(packet.schema);break;
-        case 'search-nodes-length':run('search_length',Number(packet.nodes?.length),options.limit);break;
-        case 'search-relations-length':run('search_length',Number(packet.relations?.length),options.limit);break;
-        case 'search-cursor':run('observe',packet.page?.cursor===options.cursor);break;
-        case 'search-limit':run('observe',packet.page.limit_per_kind===options.limit);break;
-        case 'search-more-type':run('observe',typeof packet.page.has_more==='boolean');break;
-        case 'search-more':run('observe',Boolean(packet.page.has_more));break;
-        case 'search-next-type':run('observe',typeof packet.page.next_cursor==='string');break;
-        case 'search-next-truthy':run('observe',Boolean(packet.page.next_cursor));break;
-        case 'search-next-null':run('observe',packet.page.next_cursor===null);break;
-        case 'search-writes':run('observe',packet.authority_boundary?.writes_to_tree===false);break;
-        case 'done':return packet;
-        default:throw new Error('Invalid client packet Rust need');
-      }
-    }
-  }finally{session.free();}
+  const code=checkClientPacket(packet,mode,expected,previous,options,packetHost);
+  if(code)packetRefusal(code);
+  return packet;
 }
 function validateArea(packet,expected=null){return validateClientPacket(packet,1,expected);}
 export function validateLens(packet,expected=null){return validateClientPacket(packet,2,expected);}
 export function validateExploration(packet,expected=null,previous=null){return validateClientPacket(packet,3,expected,previous);}
 function validateExplorationRequestPacket(packet,query,previous){
-  const session=createClientPacketSession(6,false,Boolean(previous),false);
-  try{while(true){switch(session.need()){
-    case 'initial-request':packetMethod(session,'observe',true);break;
-    case 'request-match':packetMethod(session,'observe',Boolean(explorationRequestMatches(packet.query,query)));break;
-    case 'done':return packet;
-    default:throw new Error('Invalid exploration request identity Rust need');
-  }}}finally{session.free();}
+  const code=checkClientExplorationRequest(packet,query,previous,packetHost);
+  if(code)packetRefusal(code);
+  return packet;
 }
-function materialMethod(session,method,...values){
-  try{return session[method](...values);}catch(error){
-    if(error==='revision')throw new RevisionError();
-    if(error==='form')throw new FormContractError();
-    const messages={material_request:'Неверный запрос материала.',match:'Не найден точный идентификатор карточки.',material_scope:'Ответ вышел за границы выбранного материала.'};
-    if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
-    throw error;
-  }
+function materialResult(result){
+  if(typeof result!=='string')return result;
+  if(result==='revision')throw new RevisionError();
+  if(result==='form')throw new FormContractError();
+  const messages={material_request:'Неверный запрос материала.',match:'Не найден точный идентификатор карточки.',material_scope:'Ответ вышел за границы выбранного материала.'};
+  throw new ContractError(t(messages[result]));
 }
 function validateSearchRequest(cursor,search_mode,limit){
-  const session=createClientPacketSession(4,false,false,false),run=(method,...values)=>packetMethod(session,method,...values);
-  try{while(true){switch(session.need()){
-    case 'cursor-null':run('observe',cursor===null);break;
-    case 'request-cursor-type':run('observe',typeof cursor==='string');break;
-    case 'request-cursor-length':run('number',cursor.length);break;
-    case 'request-mode':run('observe',Boolean(search_mode));break;
-    case 'request-limit-type':run('integer',typeof limit==='number',typeof limit==='number'?limit:0);break;
-    case 'request-limit':run('number',limit);break;
-    case 'done':return;
-    default:throw new Error('Invalid search request Rust need');
-  }}}finally{session.free();}
+  const code=checkClientSearchRequest(cursor,search_mode,limit);
+  if(code)packetRefusal(code);
 }
 
 // Abort and generation checking are both needed: a completed response can race
@@ -503,70 +247,9 @@ export class RequestSlots {
   }
 }
 function validateClientInspection(packet,kind,id,expected,contentRevision){
-  const session=createClientInspectionSession(kind==='node',kind==='relation',Boolean(expected),Boolean(contentRevision));
-  const run=(method,...values)=>{
-    // Source arguments evaluate outside the direct WASM refusal boundary.
-    try{return session[method](...values);}catch(error){
-      if(error==='revision')throw new RevisionError();
-      const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
-        items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
-        match:'Не найден точный идентификатор карточки.',endpoints:'Неполные концы связи.'};
-      if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
-      throw error;
-    }
-  };
-  let item,match,ids;
-  const digest=value=>{
-    const text=inspectionRevisionText(value);run('text_length',text.length);run('text',inspectionRevisionUnits(text));
-  };
-  const observeItem=need=>{
-    switch(need){
-        case 'item-truthy':run('observe',Boolean(item));break;
-        case 'id-type':run('observe',typeof item.id==='string');break;
-        case 'id-truthy':run('observe',Boolean(item.id));break;
-        case 'id-duplicate':run('observe',ids.has(item.id));break;
-        case 'display':run('observe',Boolean(item.display));break;
-        case 'localized-title':run('observe',Boolean(localized(item.display.title)));break;
-        case 'localized-label':run('observe',Boolean(localized(item.display.label)));break;
-        case 'content-revision':digest(item.content_revision||'');break;
-        case 'refs-array':run('observe',Array.isArray(item.source_refs));break;
-        case 'refs-length':run('observe',Boolean(item.source_refs.length));break;
-        case 'refs':run('observe',Boolean(item.source_refs.some(ref=>{
-          return inspectionRefInvalid(typeof ref==='string',Boolean(ref));
-        })));break;
-        case 'add-id':ids.add(item.id);run('observe',true);break;
-      default:throw new Error('Invalid client inspection item need');
-    }
-  };
-  try{
-    while(true){
-      const need=session.need();
-      switch(need){
-        case 'revision':digest(packet?.source_revision||'');break;
-        case 'expected':run('observe',packet.source_revision===expected);break;
-        case 'schema':{
-          const value=packet.schema;run('schema_length',typeof value==='string',typeof value==='string'?value.length:0);
-          run('text',inspectionRevisionUnits(value));break;
-        }
-        case 'matches':case 'endpoints':{
-          const values=need==='matches'?packet.matches:packet.endpoints;
-          run('observe',Array.isArray(values));ids=new Set();
-          // Native for-of owns IteratorClose and exception precedence.
-          for(const value of values){
-            item=value;run('observe',true);
-            while(session.need()!=='item-next')observeItem(session.need());
-          }
-          run('observe',false);break;
-        }
-        case 'exact':match=packet.matches.find(value=>value.id===id);run('observe',Boolean(match));break;
-        case 'content-expected':run('observe',match.content_revision===contentRevision);break;
-        case 'from-endpoint':run('observe',ids.has(match.from_id));break;
-        case 'to-endpoint':run('observe',ids.has(match.to_id));break;
-        case 'done':return match;
-        default:throw new Error('Invalid client inspection Rust need');
-      }
-    }
-  }finally{session.free();}
+  const result=checkClientInspection(packet,kind,id,expected,contentRevision,localized);
+  if(typeof result==='string')inspectionRefusal(result);
+  return result.match;
 }
 export class KnowledgeClient {
   constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000,maxResponseBytes=DEFAULT_RESPONSE_BYTES}={}){
@@ -637,37 +320,20 @@ export class KnowledgeClient {
     return validateSourceDossier(packet,objectId);
   }
   async readMaterial(kind,id,signal,expected,contentRevision,{language='ru',relation=null}={}) {
-    const session=createClientMaterialSession(false,false),run=(method,...values)=>materialMethod(session,method,...values);
-    let spec,revision=expected,packet,match,allowed;
-    try{while(true){switch(session.need()){
-      case 'kind':run('kind',typeof kind==='string',packetKindUnits(kind));break;
-      case 'id-type':run('observe',typeof id==='string');break;
-      case 'id-truthy':run('observe',Boolean(id));break;
-      case 'language':run('observe',Boolean(contentLanguage(language)));break;
-      case 'relation-truthy':run('observe',Boolean(relation));break;
-      case 'relation-id':run('observe',relation.id===id);break;
-      case 'expected':run('observe',Boolean(expected));break;
-      case 'inspect':{
-        const identity=await this.inspect(kind,id,signal,expected,contentRevision);
-        relation=identity.match;revision=identity.packet.source_revision;run('observe',true);break;
-      }
-      case 'spec':{
-        if(session.relation())spec=relationSpec(relation);
-        else{spec=focusSpec(id,{depth:0});spec.traversal.profile='all';spec.limits={nodes:1,relations:0,groups:1};}
-        spec={...spec,lens_id:'sophia-observatory-material',language,detail:'full',explain:false};run('observe',true);break;
-      }
-      case 'compile':packet=await this.compile(spec,signal,revision);run('observe',true);break;
-      case 'match':match=packet[session.relation()?'relations':'nodes'].find(item=>item.id===id);run('observe',Boolean(match));break;
-      case 'content-required':run('observe',Boolean(contentRevision));break;
-      case 'content-equal':run('observe',match.content_revision===contentRevision);break;
-      case 'allowed':allowed=new Set(session.relation()?[match.from_id,match.to_id]:[id]);run('observe',true);break;
-      case 'scope-node-count':run('observe',packet.nodes.length===allowed.size);break;
-      case 'scope-node-members':run('observe',Boolean(packet.nodes.some(node=>!(allowed.has(node.id)))));break;
-      case 'scope-relation-count':run('observe',packet.relations.length===(session.relation()?1:0));break;
-      case 'forms':for(const item of [...packet.nodes,...packet.relations]){validateHumanForms(item,language);await verifyReadableContext(item);}run('observe',true);break;
-      case 'done':return {packet,match,endpoints:session.relation()?packet.nodes:[]};
-      default:throw new Error('Invalid material Rust need');
-    }}}finally{session.free();}
+    const inspect=materialResult(checkClientMaterialRequest(kind,id,language,relation,expected));
+    let revision=expected;
+    if(inspect){
+      const identity=await this.inspect(kind,id,signal,expected,contentRevision);
+      relation=identity.match;revision=identity.packet.source_revision;
+    }
+    let spec;
+    if(kind==='relation')spec=relationSpec(relation);
+    else{spec=focusSpec(id,{depth:0});spec.traversal.profile='all';spec.limits={nodes:1,relations:0,groups:1};}
+    spec={...spec,lens_id:'sophia-observatory-material',language,detail:'full',explain:false};
+    const packet=await this.compile(spec,signal,revision);
+    const {match}=materialResult(checkClientMaterialPacket(packet,kind,id,contentRevision));
+    for(const item of [...packet.nodes,...packet.relations]){validateHumanForms(item,language);await verifyReadableContext(item);}
+    return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
   }
   async readClaimMaterial(scene,path,signal,{language='ru'}={}){
     validateArea(scene);
@@ -675,49 +341,22 @@ export class KnowledgeClient {
       {language,expected:scene.source_revision,versions:materialVersions(scene)});
   }
   async readClaimReference(reference,signal,{language='ru',expected=null,versions=null}={}){
-    const session=createClientMaterialSession(true,Boolean(versions)),run=(method,...values)=>materialMethod(session,method,...values);
-    let ref,closure,spec,packet,selected,returned,closureNodes,closureRelations,nodeItems,relationItems;
-    try{while(true){switch(session.need()){
-      case 'language':run('observe',Boolean(contentLanguage(language)));break;
-      case 'reference':ref=validateClaimReference(reference,reference?.claimId);closure={nodeIds:ref.closureNodeIds,relationIds:[...ref.relationIds,...ref.detailRelationIds]};run('observe',true);break;
-      case 'spec':{
-        spec={...focusSpec(ref.nodeIds[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
-          node_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.nodeIds}]},
-          relation_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.relationIds}]},
-          traversal:{depth:0,direction:'either',profile:'all'},
-          limits:{nodes:closure.nodeIds.length,relations:closure.relationIds.length,groups:closure.nodeIds.length}};
-        run('observe',true);break;
-      }
-      case 'compile':packet=await this.compile(spec,signal,expected);run('observe',true);break;
-      case 'claim-nodes-count':nodeItems=packet.nodes;run('observe',nodeItems.length===closure.nodeIds.length);break;
-      case 'claim-nodes-every':run('observe',Boolean(nodeItems.every(item=>closure.nodeIds.includes(item.id))));break;
-      case 'claim-relations-count':relationItems=packet.relations;run('observe',relationItems.length===closure.relationIds.length);break;
-      case 'claim-relations-every':run('observe',Boolean(relationItems.every(item=>closure.relationIds.includes(item.id))));break;
-      case 'claim-items':{
-        for(const kind of ['nodes','relations'])for(const item of packet[kind]){
-          run('begin_item');
-          while(session.need()!=='claim-items')switch(session.need()){
-            case 'item-version':run('observe',item.content_revision===versions[kind]?.[item.id]);break;
-            case 'item-human':validateHumanForms(item,language);run('observe',true);break;
-            case 'item-readable':await verifyReadableContext(item);run('observe',true);break;
-            default:throw new Error('Invalid Claim material item Rust need');
-          }
-        }
-        run('finish_items');break;
-      }
-      case 'path':selected=claimPathFor(packet,ref.claimId);run('observe',Boolean(selected));break;
-      case 'closure':returned=claimPathClosure(packet,selected);run('observe',true);break;
-      case 'path-id':run('observe',selected.id===ref.pathId);break;
-      case 'path-relation-type':run('observe',selected.relation_type_id===ref.relationType);break;
-      case 'path-nodes-json':run('observe',JSON.stringify(selected.node_ids)===JSON.stringify(ref.nodeIds));break;
-      case 'path-relations-json':run('observe',JSON.stringify(selected.relation_ids)===JSON.stringify(ref.relationIds));break;
-      case 'closure-nodes-count':closureNodes=returned.nodeIds.map(id=>({id}));run('observe',closureNodes.length===closure.nodeIds.length);break;
-      case 'closure-nodes-every':run('observe',Boolean(closureNodes.every(item=>closure.nodeIds.includes(item.id))));break;
-      case 'closure-relations-count':closureRelations=returned.relationIds.map(id=>({id}));run('observe',closureRelations.length===closure.relationIds.length);break;
-      case 'closure-relations-every':run('observe',Boolean(closureRelations.every(item=>closure.relationIds.includes(item.id))));break;
-      case 'done':return {packet,match:returned.node,endpoints:[],path:selected};
-      default:throw new Error('Invalid Claim material Rust need');
-    }}}finally{session.free();}
+    if(!contentLanguage(language))materialResult('material_request');
+    const ref=validateClaimReference(reference,reference?.claimId);
+    const closure={nodeIds:ref.closureNodeIds,relationIds:[...ref.relationIds,...ref.detailRelationIds]};
+    const spec={...focusSpec(ref.nodeIds[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
+      node_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.nodeIds}]},
+      relation_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.relationIds}]},
+      traversal:{depth:0,direction:'either',profile:'all'},
+      limits:{nodes:closure.nodeIds.length,relations:closure.relationIds.length,groups:closure.nodeIds.length}};
+    const packet=await this.compile(spec,signal,expected);
+    materialResult(checkClientClaimScope(packet,closure));
+    for(const kind of ['nodes','relations'])for(const item of packet[kind]){
+      if(versions&&item.content_revision!==versions[kind]?.[item.id])throw new RevisionError();
+      validateHumanForms(item,language);await verifyReadableContext(item);
+    }
+    const {selected,returned}=materialResult(checkClientClaimPath(packet,ref,closure,packetHost));
+    return {packet,match:returned.node,endpoints:[],path:selected};
   }
   capabilities(signal){return this.request('/explore/capabilities',{signal});}
 }

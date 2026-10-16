@@ -1,14 +1,28 @@
-//! Source dossier metadata validation, not rights or license adjudication.
+//! Whole metadata dossier validation; source identity and JavaScript callback
+//! semantics remain intact. This operation grants no rights or source admission.
+use crate::browser_value::*;
+use js_sys::JsString;
 use wasm_bindgen::prelude::*;
-fn reference(v: &[u16]) -> bool {
-    if !v.starts_with(&[116, 111, 115, 46]) {
+
+fn reference(value: &JsValue) -> bool {
+    if !value.is_string() {
         return false;
     }
+    let text: &JsString = value.unchecked_ref();
+    if text.length() == 0 || text.length() > 2048 {
+        return false;
+    }
+    let Some(value) = value.as_string() else {
+        return false;
+    };
+    let Some(tail) = value.strip_prefix("tos.") else {
+        return false;
+    };
     let mut part = false;
-    for u in &v[4..] {
-        if (97..=122).contains(u) || (48..=57).contains(u) {
+    for byte in tail.bytes() {
+        if byte.is_ascii_lowercase() || byte.is_ascii_digit() {
             part = true;
-        } else if (*u == 46 || *u == 45) && part {
+        } else if matches!(byte, b'.' | b'-') && part {
             part = false;
         } else {
             return false;
@@ -16,240 +30,137 @@ fn reference(v: &[u16]) -> bool {
     }
     part
 }
-fn refuse(code: &str) -> JsValue {
-    JsValue::from_str(code)
+fn string_element(value: JsValue) -> bool {
+    value.is_string() && {
+        let text: &JsString = value.unchecked_ref();
+        text.length() > 0 && text.length() <= 2048
+    }
 }
+fn record_element(value: JsValue) -> Result<bool, JsValue> {
+    if !value.is_object() {
+        return Ok(false);
+    }
+    Ok(!is_array(&value)?)
+}
+thread_local! {
+    // Selected arrays may retain their predicate. These stateless callbacks
+    // belong to the binding instance, rather than a freed packet session.
+    static STRING_ELEMENT: JsValue = Closure::<dyn Fn(JsValue) -> bool>::new(string_element).into_js_value();
+    static RECORD_ELEMENT: JsValue = Closure::<dyn Fn(JsValue) -> Result<bool, JsValue>>::new(record_element).into_js_value();
+}
+fn record_array(value: &JsValue) -> Result<bool, JsValue> {
+    RECORD_ELEMENT
+        .with(|callback| call(value, "every", callback))
+        .map(|value| value.is_truthy())
+}
+fn refused(code: &str) -> Result<JsValue, JsValue> {
+    Ok(JsValue::from_str(code))
+}
+
 #[wasm_bindgen]
-pub struct SourceDossierSession {
-    step: &'static str,
-    array: usize,
-    request: bool,
+pub fn source_dossier_reference_v1(value: &JsValue) -> bool {
+    reference(value)
 }
-impl SourceDossierSession {
-    fn code(&self) -> &'static str {
-        if self.request {
-            "request"
-        } else if self.step.starts_with("chain") {
-            "chain"
-        } else {
-            "dossier"
-        }
-    }
-}
+
 #[wasm_bindgen]
-impl SourceDossierSession {
-    #[wasm_bindgen(constructor)]
-    pub fn new(request: bool) -> Self {
-        Self {
-            step: if request { "request-ref" } else { "schema" },
-            array: 0,
-            request,
+pub fn validate_source_dossier_request_v1(value: &JsValue, limit: &JsValue) -> bool {
+    reference(value)
+        && limit
+            .as_f64()
+            .is_some_and(|n| n.is_finite() && n.fract() == 0.0 && (1.0..=64.0).contains(&n))
+}
+
+#[wasm_bindgen]
+pub fn validate_source_dossier_v1(
+    packet: &JsValue,
+    expected: &JsValue,
+) -> Result<JsValue, JsValue> {
+    // Keep the selected source snapshots ahead of schema validation.
+    let summary = optional(packet, "agent_summary")?;
+    let object = optional(packet, "object")?;
+    if optional(packet, "schema")? != JsValue::from_str("tos_source_dossier_v1")
+        || !reference(expected)
+    {
+        return refused("dossier");
+    }
+    if field(packet, "object_id")? != *expected
+        || !object.is_object()
+        || is_array(&object)?
+        || field(&object, "node_id")? != *expected
+    {
+        return refused("dossier");
+    }
+    let kind = field(&object, "node_kind")?;
+    if !["work", "expression", "edition", "item", "file", "link"]
+        .iter()
+        .any(|name| kind == JsValue::from_str(name))
+    {
+        return refused("dossier");
+    }
+    if !summary.is_truthy() {
+        return refused("dossier");
+    }
+    for name in ["technical_access", "rights_posture"] {
+        if !field(&summary, name)?.is_string() || !field(&summary, name)?.is_truthy() {
+            return refused("dossier");
         }
     }
-    pub fn need(&self) -> String {
-        self.step.into()
+    for name in ["human_review_required", "can_conclude_legal_openness"] {
+        if field(&summary, name)?.as_bool().is_none() {
+            return refused("dossier");
+        }
     }
-    pub fn reference_size(string: bool, length: usize) -> bool {
-        string && length > 0 && length <= 2048
+    if field(&summary, "availability_is_license")?.as_bool() != Some(false) {
+        return refused("dossier");
     }
-    pub fn reference_value(units: &[u16]) -> bool {
-        reference(units)
-    }
-    pub fn reference_length(&self, string: bool, length: usize) -> Result<(), JsValue> {
-        if string && length > 0 && length <= 2048 {
-            Ok(())
+    for (owner, name, cap, strings) in [
+        (&summary, "rights_scope_refs", 64.0, true),
+        (&summary, "gaps", 64.0, true),
+        (packet, "relations", 64.0, false),
+        (packet, "rights", 64.0, false),
+        (packet, "tree_paths", 64.0, false),
+        (packet, "source_refs", 1024.0, true),
+    ] {
+        let array = field(owner, name)?;
+        if !is_array(&array)? || !(number(&field(&array, "length")?)? <= cap) {
+            return refused("dossier");
+        }
+        let valid = if strings {
+            STRING_ELEMENT
+                .with(|callback| call(&array, "every", callback))?
+                .is_truthy()
         } else {
-            Err(refuse(self.code()))
-        }
-    }
-    pub fn reference(&mut self, units: &[u16]) -> Result<(), JsValue> {
-        if !reference(units) {
-            return Err(refuse(self.code()));
-        }
-        self.step = if self.request {
-            "request-limit"
-        } else {
-            "object-id"
-        };
-        Ok(())
-    }
-    pub fn request_limit(&mut self, number: bool, value: f64) -> Result<(), JsValue> {
-        if !number || !value.is_finite() || value.fract() != 0.0 || !(1.0..=64.0).contains(&value) {
-            return Err(refuse("request"));
-        }
-        self.step = "done";
-        Ok(())
-    }
-    pub fn text_length(&self, string: bool, length: usize) -> Result<(), JsValue> {
-        let valid = string
-            && if self.step == "schema" {
-                length == 21
-            } else {
-                length <= 10
-            };
-        if valid {
-            Ok(())
-        } else {
-            Err(refuse("dossier"))
-        }
-    }
-    pub fn text(&mut self, units: &[u16]) -> Result<(), JsValue> {
-        let valid = if self.step == "schema" {
-            units
-                .iter()
-                .copied()
-                .eq("tos_source_dossier_v1".encode_utf16())
-        } else {
-            ["work", "expression", "edition", "item", "file", "link"]
-                .iter()
-                .any(|v| units.iter().copied().eq(v.encode_utf16()))
+            record_array(&array)?
         };
         if !valid {
-            return Err(refuse("dossier"));
+            return refused("dossier");
         }
-        self.step = if self.step == "schema" {
-            "expected-ref"
-        } else {
-            "summary"
-        };
-        Ok(())
     }
-    pub fn record_type(&self, nonnull: bool, object: bool) -> Result<bool, JsValue> {
-        let valid = nonnull && object;
-        if !valid && matches!(self.step, "object" | "authority-record") {
-            return Err(refuse(self.code()));
+    if field(packet, "truncated")?.as_bool().is_none() {
+        return refused("dossier");
+    }
+    let authority_text = field(packet, "authority_note")?.is_string();
+    let nonempty_text =
+        authority_text && number(&field(&field(packet, "authority_note")?, "length")?)? > 0.0;
+    if !nonempty_text {
+        let note = field(packet, "authority_note")?;
+        if !note.is_object() || is_array(&note)? {
+            return refused("dossier");
         }
-        Ok(valid)
     }
-    pub fn record_array(&mut self, array: bool) -> Result<bool, JsValue> {
-        if matches!(self.step, "object" | "authority-record") {
-            if array {
-                return Err(refuse(self.code()));
-            }
-            self.step = if self.step == "object" {
-                "node-id"
-            } else {
-                "chain-truthy"
-            };
+    if !field(packet, "chain")?.is_truthy()
+        || field(packet, "chain")?.js_typeof() != JsValue::from_str("object")
+        || is_array(&field(packet, "chain")?)?
+    {
+        return refused("chain");
+    }
+    for value in values(&field(packet, "chain")?)?.iter() {
+        if !is_array(&value)?
+            || !(number(&field(&value, "length")?)? <= 64.0)
+            || !record_array(&value)?
+        {
+            return refused("chain");
         }
-        Ok(!array)
     }
-    pub fn license(&mut self, boolean: bool, value: bool) -> Result<(), JsValue> {
-        if self.step != "license-false" || !boolean || value {
-            return Err(refuse("dossier"));
-        }
-        self.step = "array-value";
-        Ok(())
-    }
-    pub fn array_location(&self) -> String {
-        if self.array < 2 { "summary" } else { "packet" }.into()
-    }
-    pub fn observe(&mut self, value: bool) -> Result<(), JsValue> {
-        let next = match self.step {
-            "object-id" => "object",
-            "node-id" => "kind",
-            "summary" => "technical-type",
-            "technical-type" => "technical-truthy",
-            "technical-truthy" => "posture-type",
-            "posture-type" => "posture-truthy",
-            "posture-truthy" => "review-type",
-            "review-type" => "legal-type",
-            "legal-type" => "license-false",
-            "array-every" => {
-                self.array += 1;
-                if self.array < 6 {
-                    "array-value"
-                } else {
-                    "truncated"
-                }
-            }
-            "truncated" => "authority-type",
-            "authority-type" => {
-                self.step = if value {
-                    "authority-length"
-                } else {
-                    "authority-record"
-                };
-                return Ok(());
-            }
-            "chain-truthy" => "chain-type",
-            "chain-type" => "chain-array",
-            "chain-array" => {
-                if value {
-                    return Err(refuse("chain"));
-                }
-                "chain-values"
-            }
-            "chain-values" => {
-                if value {
-                    return Err(refuse("chain"));
-                }
-                "done"
-            }
-            _ => return Err(refuse("invalid_dossier_progress")),
-        };
-        if !value && !matches!(self.step, "chain-array" | "chain-values") {
-            return Err(refuse(self.code()));
-        }
-        self.step = next;
-        Ok(())
-    }
-    pub fn authority_length(&mut self, value: f64) {
-        self.step = if value > 0.0 {
-            "chain-truthy"
-        } else {
-            "authority-record"
-        };
-    }
-    pub fn array_field(&self) -> String {
-        [
-            "rights_scope_refs",
-            "gaps",
-            "relations",
-            "rights",
-            "tree_paths",
-            "source_refs",
-        ][self.array]
-            .into()
-    }
-    pub fn array_type(&mut self, array: bool) -> Result<(), JsValue> {
-        if !array {
-            return Err(refuse("dossier"));
-        }
-        self.step = "array-length";
-        Ok(())
-    }
-    pub fn array_length(&mut self, length: f64) -> Result<(), JsValue> {
-        if !(length <= if self.array == 5 { 1024.0 } else { 64.0 }) {
-            return Err(refuse("dossier"));
-        }
-        self.step = "array-every";
-        Ok(())
-    }
-    pub fn element_kind(&self) -> String {
-        if self.array < 2 || self.array == 5 {
-            "string"
-        } else {
-            "record"
-        }
-        .into()
-    }
-    pub fn record_element_type(nonnull: bool, object: bool) -> bool {
-        nonnull && object
-    }
-    pub fn record_element_array(array: bool) -> bool {
-        !array
-    }
-    pub fn string_element(string: bool, length: usize) -> bool {
-        string && length > 0 && length <= 2048
-    }
-    pub fn chain_array_type(array: bool) -> bool {
-        array
-    }
-    pub fn chain_array_length(length: f64) -> bool {
-        length <= 64.0
-    }
-    pub fn chain_result(every: bool) -> bool {
-        !every
-    }
+    Ok(JsValue::NULL)
 }
