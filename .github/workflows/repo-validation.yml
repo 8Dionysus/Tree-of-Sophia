@@ -907,6 +907,15 @@ jobs:
           export TOS_CMD2_PG_DUMP_SHA256="$(sha256sum "$TOS_CMD2_PG_DUMP_PATH" | cut -d ' ' -f 1)"
           export TOS_CMD2_PG_RESTORE_SHA256="$(sha256sum "$TOS_CMD2_PG_RESTORE_PATH" | cut -d ' ' -f 1)"
           cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture --test-threads=1
+          # Run the maintained opt-in regressions on this already isolated PG
+          # service after the durable integration suite has finished.
+          cargo test -p tos-command --features postgres-lab --lib --locked \
+            durable_adapter::durable_projection::durable_navigation_event::bounded_batch_pg_tests \
+            -- --ignored --nocapture --test-threads=1
+          TOS_METADATA_TEST_PG_URL="$TOS_CMD_POSTGRES_URL" \
+            cargo test -p tos-command --features postgres-lab --lib --locked \
+            backup_recovery::tests::backup_cut_streams_large_metadata_and_keeps_selected_bounds \
+            -- --exact --ignored --nocapture --test-threads=1
 
       - name: Unmount isolated fs-verity test filesystem
         if: ${{ always() }}
