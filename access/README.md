@@ -1671,7 +1671,7 @@ registry and open-work queue. Every value contains only absolute `binary` and
 `receipt` paths. Each build-owned receipt uses
 `tos_native_software_command_build_v1`, the access receipt identity fields,
 and the exact role feature set. Mechanics, registry and queue require
-`["compiler-backed-validators", "default"]`; the schema worker requires
+`["compiler-backed-validators", "default", "philosophy-library"]`; the schema worker requires
 `["default", "native"]`. Other roles require `features: []`; the lightweight
 ops commands use `--no-default-features` so compiler validators do not leak
 into their receipts.

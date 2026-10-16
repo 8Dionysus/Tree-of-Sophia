@@ -925,7 +925,7 @@ mod tests {
         package_manifest(
             &root,
             "tos-ops-mechanics-plan",
-            "[package]\nname = \"tos-ops-mechanics-plan\"\n[features]\ndefault = [\"compiler-backed-validators\"]\ncompiler-backed-validators = [\"dep:tos-compiler\"]\n",
+            include_str!("../Cargo.toml"),
         );
         let images = root.join(TARGET).join("debug");
         fs::create_dir_all(&images).unwrap();
@@ -991,7 +991,7 @@ mod tests {
         package_manifest(
             &root,
             "tos-ops-mechanics-plan",
-            "[package]\nname = \"tos-ops-mechanics-plan\"\n[features]\ndefault = [\"compiler-backed-validators\"]\ncompiler-backed-validators = [\"dep:tos-compiler\"]\n",
+            include_str!("../Cargo.toml"),
         );
         for package in ["tos-compiler", "tos-reader"] {
             package_manifest(
