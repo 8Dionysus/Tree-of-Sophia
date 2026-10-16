@@ -84,8 +84,6 @@ pub mod source_gap;
 mod source_read_projection;
 pub mod source_text_search;
 pub mod source_value_search;
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-mod sqlite;
 mod temporal_comparison;
 pub mod worker_search_controls;
 pub use inspect_plan::{
@@ -135,18 +133,13 @@ pub use search_document::{
 };
 pub use search_execute::{ObservedSearchCandidate, SearchKindBudget};
 pub use source_descend::{
-    AdjacencyPage, Binding, Budget, Charged, CpuStepsMeter, DisclosableSourceDescend,
-    DisclosureLease, ExactNode, QueryError, QueryErrorCode, RawRecord, ReadModel,
-    SOURCE_DESCEND_D1_METER_V1, SOURCE_DESCEND_POSTGRES_METER_V1, SOURCE_DESCEND_SESSION_V1,
-    SOURCE_DESCEND_SESSION_V2, SOURCE_NAVIGATION_MODEL_ABI, SOURCE_NAVIGATION_SELECTION_PROFILE,
-    SessionAdvance, SessionCaps, SessionNeed, SessionNeedKind, SessionResponse,
-    SessionResponseKind, SourceDescendRequest, SourceDescendSession, SourceNavigationProofV1,
-    source_descend,
-};
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub use sqlite::{
-    AdapterAdmissionBudget, AdapterAdmissionCharge, CmpPinnedModel, CmpSqliteReadModel,
-    CurrentPolicy, DisclosureScope, PinnedLocalModel, SourcePin, SqliteReadModel,
+    AdjacencyPage, Binding, Budget, Charged, CpuStepsMeter, CurrentPolicy,
+    DisclosableSourceDescend, DisclosureLease, DisclosureScope, ExactNode, QueryError,
+    QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1,
+    SOURCE_DESCEND_POSTGRES_METER_V1, SOURCE_DESCEND_SESSION_V1, SOURCE_DESCEND_SESSION_V2,
+    SOURCE_NAVIGATION_MODEL_ABI, SOURCE_NAVIGATION_SELECTION_PROFILE, SessionAdvance, SessionCaps,
+    SessionNeed, SessionNeedKind, SessionResponse, SessionResponseKind, SourceDescendRequest,
+    SourceDescendSession, SourceNavigationProofV1, source_descend,
 };
 pub use temporal_comparison::{
     TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands, validate_temporal_request,

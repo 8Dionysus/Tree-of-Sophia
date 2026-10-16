@@ -6,37 +6,15 @@ query/compiler dependency graph excludes those modules; shared HTML character
 references and finite producer I/O remain available to their existing consumers.
 Historical builder bytes and prior receipts retain their recorded identities.
 
-The first Rust compiler family materializes source-navigation nodes, edges and
-rights from one exact partitioned corpus projection into a private SQLite read
-model. Its visible bibliographic profile excludes packet-member nodes and
-their incident edges. IDs and predicates come from owner records; paths are
-provenance only.
+The maintained knowledge Stage, native snapshot, catalog and D1 producers each
+have their own source and consumer contracts. Their presence in the crate does
+not establish that a selected dataset has passed construction, publication or
+restore.
 
-The legacy carrier adapter verifies the root digest, collection policy, every
-selected index/data part, decompressed bytes, row placement/count, navigation
-header counts and a second sealed-cut verification pass. Linux input opens
-walk directory descriptors without following symlinks or blocking on FIFO
-replacements. It is a compatibility input for a trusted local source cut.
-STO.2 byte custody alone does not supply the coordinator-published sealed
-membership/index cut; the legacy projection itself does not attest admission.
-
-The candidate contains indexed rows, emitted carrier digests/lengths, the exact
-source-owned navigation authority string and a per-visible-source adjacency
-count/digest, including explicit zero-edge certificates. A separate local selector requires
-an owner implementation of PublicationAuthority with a fence held through
-the pointer decision, compares the expected
-selected pointer and atomically switches it. The verified pinned candidate is
-copied, hashed and durably installed before the short selection lock and owner
-fence; the final decision rechecks the installed inode and held authority. The
-private candidate remains for owner-stage cleanup; the publication directory
-must be owner-controlled while the selector runs. This does not check current rights at query time; the
-source owner does so separately. No permissive authority implementation is
-included.
-
-The source-navigation compiler is one family in this crate. The maintained
-knowledge Stage, native snapshot, catalog and D1 producers have their own source
-and consumer contracts. Their presence in the crate does not establish that a
-particular selected dataset has passed construction, publication or restore.
+The unused first-generation navigation-only SQLite compiler, selector and reader
+have been retired. Partitioned carrier decoding and exact root-and-parts closure
+remain for current capture and artifact packaging consumers. Source visibility
+rules, source bindings and live knowledge-model formats retain their owners.
 
 ## Native snapshot byte format
 

@@ -1901,3 +1901,82 @@ pub fn source_descend<'hold, M: ReadModel>(
         lease,
     })
 }
+
+/// Source-owner disclosure route for this selected public metadata projection.
+/// The export/publication and policy fields must come from their actual ToS
+/// owners; a CMP file receipt or access packaging receipt alone is no grant.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DisclosureScope {
+    pub operation_id: String,
+    pub carrier_layer: String,
+    pub intended_use: String,
+    pub selected_binding: Binding,
+    pub corpus_revision: String,
+    pub data_revision: String,
+    pub selected_export_receipt_id: String,
+    pub selected_model_receipt_id: String,
+    pub policy_issuer_ref: String,
+    pub policy_receipt_id: String,
+    pub policy_epoch: String,
+    pub withdrawal_generation: String,
+}
+
+impl DisclosureScope {
+    /// Verify the public metadata scope against the exact selected model
+    /// binding and its owner receipt before a native adapter can use it.
+    pub fn validate_for_selected_model(
+        &self,
+        binding: &Binding,
+        selected_model_receipt_id: &str,
+    ) -> Result<(), QueryError> {
+        self.validate(binding, selected_model_receipt_id)
+    }
+
+    fn validate(
+        &self,
+        binding: &Binding,
+        selected_model_receipt_id: &str,
+    ) -> Result<(), QueryError> {
+        if self.operation_id != "tos.source.descend"
+            || self.carrier_layer != "tos_source_navigation_public_metadata_v1"
+            || self.intended_use != "read_only_public_metadata_navigation_v1"
+            || &self.selected_binding != binding
+            || self.selected_model_receipt_id != selected_model_receipt_id
+            || [
+                &self.corpus_revision,
+                &self.data_revision,
+                &self.selected_export_receipt_id,
+                &self.policy_issuer_ref,
+                &self.policy_receipt_id,
+                &self.policy_epoch,
+                &self.withdrawal_generation,
+            ]
+            .iter()
+            .any(|value| value.is_empty())
+        {
+            return Err(QueryError::new(
+                QueryErrorCode::Unavailable,
+                "source-owner public metadata disclosure scope absent or mismatched",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Source-owner current policy for the explicit carried layer and intended
+/// use. Historical selection and Item payload rights cannot imply metadata
+/// disclosure permission, nor can metadata permission grant Item payload use.
+pub trait CurrentPolicy {
+    fn authorize_current(
+        &mut self,
+        scope: &DisclosureScope,
+        record: &RawRecord,
+    ) -> Result<Charged, QueryError>;
+    /// Recheck all selected records under one current-policy hold. It must
+    /// serialize revocation through disclosure, not return a stale observation.
+    fn acquire_disclosure(
+        &mut self,
+        scope: &DisclosureScope,
+        selected: &[RawRecord],
+    ) -> Result<Box<dyn DisclosureLease>, QueryError>;
+}

@@ -1368,7 +1368,9 @@
           "test",
           "--locked",
           "-p",
-          "tos-query"
+          "tos-query",
+          "--features",
+          "test-fixture"
         ]
       },
       {
@@ -1452,7 +1454,9 @@
           "test",
           "--locked",
           "-p",
-          "tos-query"
+          "tos-query",
+          "--features",
+          "test-fixture"
         ]
       },
       {
