@@ -1326,8 +1326,8 @@ fn validate_dependencies(
             .ok_or(Error::Budget("navigation dependency manifest bytes"))?;
         match &dependency.state {
             NavigationDependencyStateV1::Present { sha256, size_bytes } => {
-                if *size_bytes == 0 {
-                    return Err(Error::Invalid("navigation present dependency size"));
+                if *size_bytes == 0 && *sha256 != Digest256::of_bytes(&[]) {
+                    return Err(Error::Invalid("navigation empty dependency digest"));
                 }
                 retained = retained
                     .checked_add(64 + std::mem::size_of::<u64>())

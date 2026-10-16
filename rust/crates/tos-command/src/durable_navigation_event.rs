@@ -7252,13 +7252,18 @@ fn validate_navigation_dependency_envelope(
         total_bytes = total_bytes
             .checked_add(path.len() as u64)
             .ok_or(DurableError::Refused("navigation event byte overflow"))?;
-        if let NavigationDependencyStateV1::Present { size_bytes, .. } = &dependency.state {
+        if let NavigationDependencyStateV1::Present { sha256, size_bytes } = &dependency.state {
             let source_byte_limit = if dependency.role == NavigationDependencyRoleV1::Event {
                 limits.max_total_bytes
             } else {
                 limits.max_row_bytes as u64
             };
-            if *size_bytes == 0 || *size_bytes > source_byte_limit {
+            if *size_bytes == 0 && *sha256 != Digest256::of_bytes(&[]) {
+                return Err(DurableError::Conflict(
+                    "navigation empty dependency digest differs",
+                ));
+            }
+            if *size_bytes > source_byte_limit {
                 return Err(DurableError::Refused(
                     "navigation dependency source byte budget",
                 ));

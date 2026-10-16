@@ -3185,8 +3185,7 @@ fn validate_range_current_dependencies(
         ))?;
         let dependency_path = checked_path(path)?;
         let selected_digest = dependency_present_sha256_any_role(dependencies, &dependency_path)?;
-        if bytes.is_empty()
-            || Digest256::of_bytes(bytes) != cause.changed_dependency_sha256
+        if Digest256::of_bytes(bytes) != cause.changed_dependency_sha256
             || selected_digest != cause.changed_dependency_sha256
         {
             return Err(Error::Invalid(
