@@ -21,7 +21,7 @@ use crate::source_text_private_store::{
 use crate::source_text_unit_proposal::build_text_unit_packet;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, RelativePath};

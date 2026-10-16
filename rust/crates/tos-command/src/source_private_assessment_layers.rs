@@ -18,16 +18,14 @@ use crate::source_text_owner::{
 };
 use crate::source_text_owner_ocr;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::File;
 use std::io::Read;
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, SourceRevision};
+use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::CorpusCutReader;
 use tos_validation::assessment::{
-    AssessmentLayerQualityObservation, AssessmentRecordInput, MAX_RECORD_BYTES,
+    AssessmentRecordInput, MAX_RECORD_BYTES,
 };
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
@@ -3074,7 +3072,7 @@ fn compare_derived_layer(
     let mut seen = BTreeSet::new();
     let root_is_initial;
     let root_source_access;
-    let mut payload_entry;
+    let payload_entry;
     let mut root_source_inputs = Vec::new();
     let mut lineage_inputs = Vec::<NativeInput>::new();
     loop {

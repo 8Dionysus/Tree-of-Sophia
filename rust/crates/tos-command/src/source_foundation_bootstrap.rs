@@ -416,10 +416,10 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
             )
             .map_err(FoundationBootstrapError::RouteRoot)?,
         };
-        let mut payload_sources =
+        let payload_sources =
             RouteSources::new_until_related(&payload_root, deadline, &sources)
                 .map_err(FoundationBootstrapError::RouteRoot)?;
-        let mut artifact_sources = selected_roots
+        let artifact_sources = selected_roots
             .artifact_root
             .as_deref()
             .map(|root| RouteSources::new_until_related(root, deadline, &sources))
@@ -689,7 +689,7 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
             },
         )?;
         let budget_after_selection = budget_cost(&remaining_budget);
-        let mut selection = selection;
+        let selection = selection;
         let shared_route_operations_after_selection = sources.operation_count();
         let source_root_component_opens_after_selection = sources.root_component_open_count();
 
@@ -892,7 +892,7 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
             cost.source_root_component_opens_after_auxiliary_selection =
                 Some(sources.root_component_open_count());
 
-            let (mut payloads, payload_facts) = run_budget_window(
+            let (payloads, payload_facts) = run_budget_window(
                 remaining_budget,
                 execution_limits,
                 "payload-snapshot",
@@ -1544,7 +1544,7 @@ impl<'input, 'cancel> CandidateFoundationBootstrapInputs<'input, 'cancel> {
                 remaining_budget,
             )
             .map_err(E::from)?;
-            let (mut payloads, payload_facts) = run_candidate_shared_budget_window(
+            let (payloads, payload_facts) = run_candidate_shared_budget_window(
                 remaining_budget,
                 execution_limits,
                 "payload-snapshot",

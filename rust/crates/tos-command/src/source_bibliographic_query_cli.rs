@@ -33,7 +33,7 @@ fn refusal(message: impl Into<String>) -> std::io::Error {
 }
 
 fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<QueryOptions, std::io::Error> {
-    let mut args = args.into_iter().take(MAX_ARGUMENTS + 1).collect::<Vec<_>>();
+    let args = args.into_iter().take(MAX_ARGUMENTS + 1).collect::<Vec<_>>();
     if args.len() > MAX_ARGUMENTS {
         return Err(refusal(
             "native bibliographic query exceeded its argument bound",

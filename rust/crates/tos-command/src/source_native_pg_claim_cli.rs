@@ -5,9 +5,8 @@
 use super::{absolute, capped, digest, exact, number, text};
 use crate::source_cohort::PreparedPgSourceRevision;
 use crate::source_cohort::claims::{PgCompleteClaimCut, PreparedPgClaimCommand};
-use crate::source_cohort::revision::SourceRevisionReadSession;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
-use crate::source_creation_store::{ClaimCatalogCapture, CreationFilesystem};
+use crate::source_creation_store::CreationFilesystem;
 use crate::{DurableError, DurablePgCoordinator, source_claims};
 use serde_json::{Value, json};
 use std::cell::RefCell;

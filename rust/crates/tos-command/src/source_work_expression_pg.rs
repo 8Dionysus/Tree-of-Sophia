@@ -485,7 +485,7 @@ pub(crate) fn prepare_pg_work_expression<'a, I: Copy + Eq>(
     let profiles = crate::source_claims::work_expression_source_descriptors_candidate(
         context, input, worker, limits, cancelled,
     )?;
-    let mut owner = WorkOwner::select(fs, context, limits.deadline, cancelled)?;
+    let owner = WorkOwner::select(fs, context, limits.deadline, cancelled)?;
     let snapshot = work_transaction::PublicationSnapshot::select_from_input(
         input.source_input(),
         limits.deadline,

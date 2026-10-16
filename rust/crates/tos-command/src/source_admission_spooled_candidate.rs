@@ -3745,7 +3745,7 @@ impl<'host> SpoolCandidate<'host> {
                 .ok_or_else(|| invalid("candidate read charge overflow"))?
         };
         let mut object_reads = per_update_reads;
-        let mut object_writes = update_bytes;
+        let object_writes = update_bytes;
         for i in self.new_retirement_start..self.retirement_count {
             self.running()?;
             let r = self

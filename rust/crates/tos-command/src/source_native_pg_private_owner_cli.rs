@@ -1037,7 +1037,7 @@ pub(crate) fn run(
         (
             first_epoch,
             schema_members,
-            mut owner,
+            owner,
             context_config,
             mut context,
             mut worker,
@@ -1128,7 +1128,7 @@ pub(crate) fn run(
                             .map_err(DurableError::Source)?;
                     }
                 }
-                let mut command = cmd::CommandContext {
+                let command = cmd::CommandContext {
                     base_revision: SourceRevision(selected_epoch.source_revision),
                     configuration_raw: grant_raw.clone(),
                     request_raw: request_raw.clone(),

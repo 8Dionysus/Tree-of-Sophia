@@ -466,7 +466,7 @@ impl<'g, 'a> Blob<'g, 'a> {
             sha1,
         })
     }
-    fn finish(mut self, oid: &str) -> Result<Digest256> {
+    fn finish(self, oid: &str) -> Result<Digest256> {
         if self.remaining != 0 {
             return Err(fail("Git blob was not consumed"));
         }

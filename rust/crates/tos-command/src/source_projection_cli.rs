@@ -414,7 +414,7 @@ fn projection_documents(
         .collect()
 }
 
-fn read_request_bytes(mut input: impl Read) -> Result<Vec<u8>, &'static str> {
+fn read_request_bytes(input: impl Read) -> Result<Vec<u8>, &'static str> {
     let mut bytes = Vec::new();
     input
         .take(65_537)
@@ -490,7 +490,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, String> {
         version,
         source_contract,
     };
-    let mut client = connect_selected_source_pg16()?;
+    let client = connect_selected_source_pg16()?;
     let mut db = DurablePgCoordinator::from_configured_client(client);
     match request {
         Request::Init => {

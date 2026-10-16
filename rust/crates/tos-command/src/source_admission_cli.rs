@@ -1657,7 +1657,7 @@ fn open_source_transition_root(
     cancel: &AtomicBool,
 ) -> io::Result<(File, (u64, u64))> {
     let path_bytes = path.as_os_str().as_bytes();
-    let mut components = path.components();
+    let components = path.components();
     let count = components.clone().count();
     if !path.is_absolute()
         || path_bytes.is_empty()

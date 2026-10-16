@@ -267,7 +267,7 @@ fn with_private_owner_shared_read_lock<T>(
     cancelled: &AtomicBool,
     operation: impl FnOnce(&mut Client) -> DurableResult<T>,
 ) -> DurableResult<T> {
-    let mut lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
+    let lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
     let result = check_private_history_deadline(deadline, cancelled)
         .and_then(|()| operation(&mut *lock.client));
     let released = lock.release();

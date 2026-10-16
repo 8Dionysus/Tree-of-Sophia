@@ -17,7 +17,6 @@ use super::foundation_execution_limits::{
 };
 use super::foundation_output::{self, SourceFoundationOutputOutcome};
 use super::foundation_payload::FoundationPayloadSources;
-use super::foundation_reader::FoundationRuleReadLimits;
 use super::foundation_rule_diagnostics::{
     CandidateRuleDiagnosticsError, SourceFoundationRuleDiagnosticsError,
     SourceFoundationRuleDiagnosticsLimits,
@@ -30,7 +29,6 @@ use crate::source_creation_store::DisposableCatalogTreeLimits;
 use std::cell::RefCell;
 use std::io;
 use std::mem::size_of;
-use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use tos_foundation::Digest256;
@@ -39,7 +37,7 @@ use tos_validation::executor::{
     BatchBudget, ExactWorkerIdentity, ExecutorBudget, MAX_WORKER_IMAGE_BYTES,
     SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
-use tos_validation::item_rules::{ItemLimits, ItemRefusal};
+use tos_validation::item_rules::ItemRefusal;
 use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagnosticsLimits};
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
@@ -1704,8 +1702,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use crate::source_admission_spooled_candidate::CandidateFence;
     use crate::source_admission_spooled_defaults::SpoolDefaultStore;
     use crate::source_admission_spooled_index::{
-        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES, CandidateRecordsReportVerified,
-        IndexSink, SpoolIndexLimits,
+        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES,
+        IndexSink,
     };
     use std::num::NonZeroUsize;
     use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};

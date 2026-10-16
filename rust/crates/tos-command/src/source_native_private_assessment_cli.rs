@@ -1600,7 +1600,7 @@ pub(crate) fn plan_assessment_evaluation<'a>(
         configuration_raw,
         request,
         version,
-        mut resolved,
+        resolved,
         public_fixity,
         public_identity_snapshots,
         public_claim_dependencies,
@@ -2108,7 +2108,7 @@ fn run_selected(
     if !selected.version.is_private() {
         selected.private_sources.native_summaries = public_sources.native_summaries.clone();
     }
-    let mut layers = if selected.version.has_layer_quality() {
+    let layers = if selected.version.has_layer_quality() {
         Some(
             crate::source_private_assessment_layers::select_owner_local_layers(
                 &mut selected.owner_context,

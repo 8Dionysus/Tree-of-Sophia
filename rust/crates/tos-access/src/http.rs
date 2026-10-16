@@ -1314,7 +1314,7 @@ fn serve_connection_scoped_with_software<
     'hold,
     E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
 >(
-    mut stream: TcpStream,
+    stream: TcpStream,
     executor: &E,
     profile: AccessProfile,
     site: Option<&Arc<crate::site::SoftwareSite>>,
@@ -1327,7 +1327,7 @@ pub fn serve_connection_scoped_controlled<
     'hold,
     E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
 >(
-    mut stream: TcpStream,
+    stream: TcpStream,
     executor: &E,
     site: Option<&Arc<crate::site::SoftwareSite>>,
     profile: AccessProfile,

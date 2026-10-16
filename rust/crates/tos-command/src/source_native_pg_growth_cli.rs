@@ -3066,7 +3066,7 @@ fn run_pg_object_link_preview(
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
     let recorded_at = crate::source_serialization::instant()?;
-    let ((mut preview, context, absences), readset) = db
+    let ((preview, context, absences), readset) = db
         .with_source_revision_session(
             &store,
             &selection.domain,

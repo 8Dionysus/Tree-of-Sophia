@@ -65,7 +65,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     verify_selected_contracts(context, input.source_input(), limits, cancelled)?;
 
     let fence = work_transaction::WorkCorpusFence::hold_existing(fs, limits.deadline, cancelled)?;
-    let mut owner = ExpressionEditionOwner::select(fs, context, false, limits.deadline, cancelled)?;
+    let owner = ExpressionEditionOwner::select(fs, context, false, limits.deadline, cancelled)?;
     let snapshot = work_transaction::PublicationSnapshot::select_from_input(
         input.source_input(),
         limits.deadline,

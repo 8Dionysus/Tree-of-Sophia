@@ -71,7 +71,7 @@ pub use object_link::{
     recover_isolated_object_link_from_captures, replay_isolated_object_link_from_captures,
 };
 pub(crate) use object_link::{
-    PgObjectLinkPreview, PgObjectLinkRequirements, PreparedPgObjectLink, describe_pg_object_link,
+    PreparedPgObjectLink, describe_pg_object_link,
     pg_object_link_requirements, prepare_pg_object_link, prepare_pg_object_link_preview,
 };
 #[path = "source_work_expression.rs"]
@@ -79,7 +79,7 @@ mod work_expression;
 #[cfg(test)]
 pub(crate) use work_expression::owner_test_support as native_owner_test_support;
 pub(crate) use work_expression::{
-    PgWorkExpressionOwnerPackage, PgWorkExpressionPreview, WORK_EXPRESSION_PG_FAMILY_TAG,
+    PgWorkExpressionOwnerPackage,
     expected_inventory_contributions_from_writes as expected_work_expression_inventory_contributions,
     expected_revision_indexes_from_writes as expected_work_expression_revision_indexes,
     prepare_pg_work_expression, preview_pg_work_expression, verify_pg_work_context,
@@ -91,11 +91,9 @@ pub use work_expression::{
 };
 #[path = "source_item_adoption.rs"]
 mod item_adoption;
-pub(crate) use item_adoption::PgItemAdoptionSelection;
 pub(crate) use item_adoption::current_result_fields as item_result_fields;
 pub(crate) use item_adoption::pg_claim_owner_contribution;
 pub(crate) use item_adoption::pg_item_adoption_response_from_attempt;
-pub(crate) use item_adoption::pg_item_adoption_transaction_id;
 pub(crate) use item_adoption::pg_item_adoption_transaction_id_from_request;
 pub(crate) use item_adoption::pg_select_owner as select_pg_item_adoption_owner;
 pub(crate) use item_adoption::pg_select_proposal as select_pg_item_adoption_proposal;
@@ -106,14 +104,14 @@ pub use item_adoption::{
     replay_isolated_item_adoption_from_captures,
 };
 pub(crate) use item_adoption::{
-    PG_ITEM_ADOPTION_FAMILY_TAG, PgItemAdoptionOwnerPlan, pg_expected_revision_indexes,
+    PG_ITEM_ADOPTION_FAMILY_TAG, pg_expected_revision_indexes,
     pg_inventory_owner_contributions, pg_item_adoption_insertion_paths, prepare_pg_item_adoption,
 };
 #[path = "source_collection_membership.rs"]
 mod collection_membership;
 pub(crate) use collection_membership::current_result_fields as collection_result_fields;
 pub(crate) use collection_membership::{
-    COLLECTION_MEMBERSHIP_PG_FAMILY_TAG, PgCollectionMembershipOwnerPackage,
+    PgCollectionMembershipOwnerPackage,
     check_collection_membership_configuration, expected_collection_inventory_contributions,
     expected_collection_membership_revision_indexes,
     pg_current_result_fields as pg_collection_current_result_fields,
@@ -139,7 +137,6 @@ pub use expression_responsibility::{
     replay_isolated_expression_responsibility_from_captures,
 };
 pub(crate) use expression_responsibility::{
-    PG_FAMILY_TAG as EXPRESSION_RESPONSIBILITY_PG_FAMILY_TAG,
     PgExpressionResponsibilityOwnerPackage,
     expected_inventory_contributions_from_writes as expected_expression_responsibility_inventory_contributions,
     expected_revision_indexes_from_writes as expected_expression_responsibility_revision_indexes,
@@ -158,7 +155,7 @@ pub use expression_edition::{
     replay_isolated_expression_edition_from_captures,
 };
 pub(crate) use expression_edition::{
-    PG_FAMILY_TAG as EXPRESSION_EDITION_PG_FAMILY_TAG, PgExpressionEditionOwnerPackage,
+    PgExpressionEditionOwnerPackage,
     expected_expression_edition_inventory_contributions,
     expected_expression_edition_revision_indexes, pg_current_result_fields,
     prepare_pg_expression_edition, prepare_pg_expression_edition_preview,

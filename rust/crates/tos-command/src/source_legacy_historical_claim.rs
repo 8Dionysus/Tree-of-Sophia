@@ -4131,7 +4131,7 @@ fn form_result(
         .collect::<Vec<_>>();
     let forms = form_refs(set)?;
     let materials = materializations(claim, set)?;
-    let mut result = cmd::object(vec![
+    let result = cmd::object(vec![
         (
             "schema_version",
             cmd::string("tos_local_source_command_result_v1"),

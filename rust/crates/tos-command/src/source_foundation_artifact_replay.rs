@@ -23,7 +23,7 @@ use tos_validation::PredicateRead;
 use tos_validation::executor::SharedSchemaWorkerQuota;
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::native_compound::{
-    CandidateNativeRecordHistoryReadObservation, NativeRecordHistoryReadObservation,
+    NativeRecordHistoryReadObservation,
     selected_record_history_from_cut, selected_record_history_from_input,
 };
 use tos_validation::record_biblio_cut::SourceCutRecordReport;
@@ -41,9 +41,8 @@ use tos_validation::source_foundation_discovery::{
 };
 use tos_validation::source_foundation_records::{
     NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationArtifactRecordPathSummary,
-    SourceFoundationRecordKernelOutcome, SourceFoundationRecordsCollection,
-    SourceFoundationRecordsCursor, SourceFoundationRecordsPageBudget,
-    SourceFoundationRecordsReport, SourceFoundationRecordsStoredFact,
+    SourceFoundationRecordKernelOutcome, SourceFoundationRecordsPageBudget,
+    SourceFoundationRecordsReport,
     SourceFoundationRecordsStreamedReport,
 };
 

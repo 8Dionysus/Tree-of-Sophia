@@ -253,7 +253,7 @@ pub(crate) fn context_with_pg_exact_reads(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(CommandContext, BTreeSet<String>)> {
     use crate::PredicateRead;
-    use tos_foundation::{Digest256, RelativePath};
+    use tos_foundation::Digest256;
 
     const MAX_EXACT_MEMBERS: usize = 4096;
     const MAX_EXACT_BYTES: usize = 33_554_432;

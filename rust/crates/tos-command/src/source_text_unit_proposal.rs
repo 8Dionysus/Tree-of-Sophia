@@ -330,7 +330,7 @@ pub(crate) fn build_text_unit_packet(
         "effective_visibility":effective,"rights_record_refs":rights_refs,
         "private_source_used":true,"publication_authorized":false,
         "inheritance_policy":"most-restrictive-source-packet-and-destination-wins"});
-    let (source_scope, source_layer, mut rights) = if let Some(packet) = &existing {
+    let (source_scope, source_layer, rights) = if let Some(packet) = &existing {
         if packet["schema_version"] != "tos_source_text_unit_packet_v1"
             || packet["content_posture"] != "source_bound"
             || packet["source_scope"] != derived_scope

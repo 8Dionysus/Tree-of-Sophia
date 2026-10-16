@@ -10,7 +10,7 @@ use crate::source_serialization::{
     capture_owner_alignment, executable, instant, selected_components,
 };
 use crate::source_sign_native::{
-    NativeInput, NativeReadKind, ResolvedOwnerAlignment, ResolvedOwnerAlignmentSide,
+    NativeReadKind, ResolvedOwnerAlignment, ResolvedOwnerAlignmentSide,
     SignNativeRead, resolve_owner_alignment,
 };
 use crate::source_text_identity::selected_alignment_identity_snapshot;
@@ -23,14 +23,14 @@ use crate::source_text_private_store::{
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::layer_family_rules::inspect_supplied_translation_alignment;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const RECORD_SCHEMA: &str = "ToS/contracts/native-translation-alignment-record-v1.schema.json";
@@ -2720,7 +2720,7 @@ fn selected_inspection_record_pg(
 }
 
 pub(crate) fn inspect_owner_alignment_selected(
-    mut context: OwnerTextContext,
+    context: OwnerTextContext,
     grant: OwnerTextAlignmentSelection,
     exact_version: Option<&JsonValue>,
     worker: &mut CutWorkerSchemaExecutor,

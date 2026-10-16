@@ -334,7 +334,7 @@ fn run_selected(
     };
     validator.bind_store_authority(&args.store)?;
     let execution = validator.prepared_execution_resources()?;
-    let mut resources = match execution {
+    let resources = match execution {
         PreparedAdmissionExecution::Spooled(resources) => resources,
         PreparedAdmissionExecution::Resident => {
             return Err(invalid("capacity fixture requires selected Native V2 case"));

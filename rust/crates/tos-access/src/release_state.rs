@@ -3,7 +3,7 @@
 //! This holder authorizes only the selected admitted projection, not source bytes.
 use crate::{AccessError, AccessErrorCode};
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     fs::File,
     io::Read,
     os::unix::fs::MetadataExt,

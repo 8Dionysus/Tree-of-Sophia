@@ -1461,7 +1461,7 @@ fn load_source_catalog(
                     catalogue_limits,
                     observation_limits,
                     |row| {
-                        let mut append = || -> Result<usize, String> {
+                        let append = || -> Result<usize, String> {
                             fence.meter.charge_row()?;
                             if !hashes.contains_key(row.source_ref) {
                                 // Stage and root reads are separate physical work.

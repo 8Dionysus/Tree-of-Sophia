@@ -10,7 +10,7 @@ use super::source_admission::{
     AdmissionBatch, AdmissionLimits, AdmissionWorkBudget, SourceUpdate, active, invalid,
 };
 use super::source_admission_source_census::{
-    SourceCensusLimits, SourceCensusScan, SourceCensusSummary, SourceCensusWorkKind,
+    SourceCensusLimits, SourceCensusScan, SourceCensusSummary,
     census_selected_to_scratch, working_state_upper_bound,
 };
 use super::source_admission_v2_seen_pack::configure_db;

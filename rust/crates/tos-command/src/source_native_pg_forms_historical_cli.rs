@@ -21,9 +21,8 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::{Digest256, RelativePath, SourceRevision};
+use tos_foundation::{Digest256, RelativePath};
 use tos_segment_store::SegmentStore;
-use tos_source_store::SoftwareCaptureReader;
 
 const MAX_CONTEXT_MEMBERS: usize = 4_096;
 const MAX_CONTEXT_BYTES: u64 = 33_554_432;

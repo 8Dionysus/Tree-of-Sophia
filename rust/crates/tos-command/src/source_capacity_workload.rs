@@ -7,7 +7,7 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::fmt::Write;
 use std::fs::{self, DirBuilder, File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom, Write as IoWrite};
+use std::io::{Read, Write as IoWrite};
 use std::mem::size_of;
 use std::os::unix::fs::{DirBuilderExt, FileExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -28,7 +28,7 @@ use tos_source_store::native_v2::objects::{
     PackedObjectSourceV2, PackedObjectWriterV2,
 };
 use tos_source_store::native_v2::roots::{
-    MEMBERS_KIND, OBJECT_EXTENTS_KIND, SOURCE_ADMISSION_V2_DOMAIN,
+    MEMBERS_KIND, SOURCE_ADMISSION_V2_DOMAIN,
 };
 use tos_source_store::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, PinnedSqliteSpaceReservation,
@@ -6084,7 +6084,7 @@ fn produce_weighted_scale_input_composed_v1(
         )?
     };
     let envelope = price.envelope;
-    let mut forecast = price.forecast;
+    let forecast = price.forecast;
     let total_members = price.member_count;
     let auxiliary_count = price.auxiliary_member_count;
     let auxiliary_bytes = price.auxiliary_source_bytes;

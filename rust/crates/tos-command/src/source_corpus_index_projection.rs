@@ -264,7 +264,7 @@ fn bibliographic_projection(
             *target.entry(value.to_owned()).or_default() += 1;
         }
     }
-    let mut input_digests = selected_bibliographic_input_digests(cut, max_digest_members)?;
+    let input_digests = selected_bibliographic_input_digests(cut, max_digest_members)?;
     if !input_digests.contains_key(BIBLIOGRAPHIC_GRAPH_SCHEMA) {
         return Err(tos_compiler::Error::Invalid(
             "native bibliographic schema absent from source digest closure",

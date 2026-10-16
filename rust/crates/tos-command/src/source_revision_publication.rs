@@ -24,8 +24,7 @@ mod tests;
 #[path = "source_revision_observation.rs"]
 mod observation;
 pub(crate) use observation::{
-    CommittedRecordBinding, CommittedRecordObservation, CurrentRecordBinding,
-    OriginalRecordBinding, observe_committed,
+    CommittedRecordObservation, observe_committed,
 };
 
 fn read(

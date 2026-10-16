@@ -314,7 +314,7 @@ fn revision_package(
             "bounded source revision member budget",
         ));
     }
-    let mut reads = SourceReads {
+    let reads = SourceReads {
         reads: readset.reads.reads.clone(),
         locators: readset.reads.locators.clone(),
         managed_original: None,
@@ -632,7 +632,7 @@ fn work_revision_recorded_at(
         format!("{parent}/{}", names[1]),
         format!("{parent}/{}", source_revisions::HISTORY),
     ]);
-    let mut actual = writes
+    let actual = writes
         .iter()
         .map(|write| write.subject.clone())
         .collect::<BTreeSet<_>>();

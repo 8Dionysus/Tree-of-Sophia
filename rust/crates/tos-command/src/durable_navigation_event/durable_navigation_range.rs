@@ -12,7 +12,7 @@ use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_raw_byte
 use tos_segment_store::SegmentStore;
 
 use super::{
-    DurableError, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
+    DurableError,
     DurableNavigationEventContextV1, DurableNavigationEventLimits, DurablePgCoordinator,
     DurableProjectionLimits, DurableProjectionProfile, DurableResult, EventWitness,
     MAX_NAVIGATION_EVENT_ID_BYTES, MAX_NAVIGATION_EVENT_STEPS_PER_CALL,

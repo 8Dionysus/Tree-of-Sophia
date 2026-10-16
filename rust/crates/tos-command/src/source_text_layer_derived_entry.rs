@@ -92,7 +92,7 @@ pub(crate) fn prepare_pg_derived_text_preview(
             "PostgreSQL derived Text preparation lacks a selected source inventory",
         ));
     }
-    let mut prepared = prepare_selected(
+    let prepared = prepare_selected(
         context,
         publication,
         grant,

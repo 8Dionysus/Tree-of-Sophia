@@ -1112,7 +1112,7 @@ pub(crate) fn run(
         }
         PrivateTextCustody::Absent => (),
     }
-    let mut p = prepare(
+    let p = prepare(
         selection,
         software,
         components,

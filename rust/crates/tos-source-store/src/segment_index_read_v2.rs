@@ -20,7 +20,7 @@ use crate::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget,
     error::{Result, StoreError, StoreErrorCode},
     segment_locator::{
-        SEGMENT_INDEX_KEY_MAX_BYTES_V1, SEGMENT_INDEX_PAGE_HEADER_BYTES_V1, SegmentExtentV1,
+        SegmentExtentV1,
         SegmentIndexKeySpaceV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1,
     },
     segment_locator_v2::{

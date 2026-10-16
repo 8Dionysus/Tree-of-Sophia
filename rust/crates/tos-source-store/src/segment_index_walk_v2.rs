@@ -3,7 +3,7 @@
 //! The walk validates the full selected tree and streams page/leaf callbacks;
 //! those callbacks do not select, admit, or publish a native root.
 
-use std::{io::Cursor, mem::size_of};
+use std::mem::size_of;
 
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -12,12 +12,12 @@ use crate::{
     segment_index_read_v2::{
         SegmentIndexClosureV2, SegmentIndexPageExpectationV2, SegmentIndexPageVisitV2,
         SegmentIndexReaderV2, V2_FIXED_WORKSPACE_BYTES, V2_KEY_BUFFER_BYTES, V2_PAGE_BUFFER_BYTES,
-        V2_RANGE_BUFFER_BYTES, check_page_binding, located_value,
+        V2_RANGE_BUFFER_BYTES, check_page_binding,
     },
     segment_locator::{SegmentExtentV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1},
     segment_locator_v2::{
         DecodedSegmentIndexPageV2, SegmentIndexEntryCursorV2, SegmentIndexEntryV2,
-        SegmentIndexInternalEntryV2, SegmentIndexLeafEntryV2, SegmentIndexLogicalSummaryV2,
+        SegmentIndexInternalEntryV2, SegmentIndexLeafEntryV2,
         SegmentIndexPageLimitsV2, SegmentIndexRootV2,
     },
     segment_subtree_memo_v2::SegmentSubtreeMemoV2,

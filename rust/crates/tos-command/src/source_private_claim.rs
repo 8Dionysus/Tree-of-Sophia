@@ -4472,13 +4472,13 @@ fn ground_claims(
                     .entry(identity.to_owned())
                     .or_default()
                     .push(
-                        (NativeSelection {
+                        NativeSelection {
                             key: binding_key,
                             binding: bound.clone(),
                             origin_id: cmd::text(selector, "origin_id")?.to_owned(),
                             source_access: cmd::field(selector, "source_access")?.clone(),
                             source_ids: BTreeSet::from([source_id.to_owned()]),
-                        }),
+                        },
                     );
             }
             records.insert(source_id.to_owned(), source);
@@ -4506,7 +4506,7 @@ fn ground_claims(
         }
         records_by_claim.insert(identity.to_owned(), records);
     }
-    let (identity_digest, identity_files, mut identity_ids) = identity_inventory(
+    let (identity_digest, identity_files, identity_ids) = identity_inventory(
         grant,
         owner,
         cut,
@@ -4588,7 +4588,7 @@ fn ground_claims(
         );
     }
     let implementation = implementation_digests(software, components, deadline, cancelled)?;
-    let mut provenance_contract = selected_authored(
+    let provenance_contract = selected_authored(
         ctx,
         owner,
         cut,
@@ -4638,7 +4638,7 @@ fn ground_claims(
     let mut snapshots = BTreeMap::new();
     let mut bindings = Vec::new();
     let mut source_fields = Vec::new();
-    let mut materializations = Vec::new();
+    let materializations = Vec::new();
     for claim in claims {
         let identity = cmd::text(claim, "claim_id")?;
         let route = routes
@@ -5820,7 +5820,7 @@ fn resolve_assessment_claim_sources_with_entities(
             selection.claim_id.clone(),
             claim_envelope.clone(),
         )?;
-        let mut languages =
+        let languages =
             assessment_languages(claim, route, &source_records, &claim_native_summaries)?;
         required_languages.insert(selection.claim_id.clone(), languages.clone());
         let mut dependency_refs = claim_required
@@ -8173,7 +8173,7 @@ pub(crate) fn prepare(
         "private Claim target package is absent",
     ))?;
     let _archive_refs = required_archives(package, &grant.value, context_config)?;
-    let mut state = package_state(
+    let state = package_state(
         ctx,
         &grant,
         context_config,

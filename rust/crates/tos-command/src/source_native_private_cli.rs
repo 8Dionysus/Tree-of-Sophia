@@ -12,8 +12,6 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-use tos_validation::item_rules::ItemRefusal;
-use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutPrefixCoverage};
 use tos_validation::source_cut::CutSchemaExecutor;
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 

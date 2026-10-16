@@ -11,7 +11,7 @@ pub(crate) mod audit_delta;
 #[path = "cold_membership_spool.rs"]
 mod cold_membership_spool;
 pub use cold_membership_spool::{ColdWorkspaceLimits, PrivateGenerationWorkspace};
-use cold_membership_spool::{RunCollector, ScratchReader, ScratchRows};
+use cold_membership_spool::{ScratchReader, ScratchRows};
 
 use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, GenericClient, IsolationLevel, NoTls, Transaction};

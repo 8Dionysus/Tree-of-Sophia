@@ -26,7 +26,6 @@ use crate::source_native_cli::pg_claims as pg;
 use crate::source_native_cli::private_assessment as assessment;
 use crate::source_native_cli::private_assessment::AssessmentAppendPreparation;
 use crate::source_private_assessment_layers::PrivateAssessmentLayers;
-use crate::source_revisions::ReadonlyRecordFiles;
 use crate::source_sign::pg::PgOwnerAssessmentPublicSources;
 use crate::source_sign_native::SignNativeRead;
 use crate::source_text_owner::{OwnerTextContext, read_absolute};
@@ -38,16 +37,14 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_segment_store::{SegmentLimits, SegmentStore};
+use tos_segment_store::SegmentStore;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::{
     AssessmentMechanicsReport, AssessmentReadInput, AssessmentRecordInput,
     evaluate_current_assessment_selected,
 };
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
-use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits,
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor,
 };
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
@@ -808,7 +805,7 @@ pub(crate) fn run(
     let (
         (
             initial_identity,
-            mut owner,
+            owner,
             selected_context,
             grant,
             scope,
@@ -1014,7 +1011,7 @@ pub(crate) fn run(
         )?,
     );
 
-    let ((mut preflight_worker, schema_members, lock_subjects, subject_targets), _) = source_db
+    let ((preflight_worker, schema_members, lock_subjects, subject_targets), _) = source_db
         .with_source_revision_session(
             &store,
             &selection.domain,
@@ -1126,7 +1123,7 @@ pub(crate) fn run(
                 let context =
                     command_context(identity, &config_raw, &request_raw, uid, &command_files)
                         .map_err(DurableError::Source)?;
-                let mut input = PgGrowthCurrentInput::new(
+                let input = PgGrowthCurrentInput::new(
                     session,
                     max_members,
                     usize::try_from(max_member_bytes)
@@ -1155,7 +1152,7 @@ pub(crate) fn run(
                         "private Assessment source package target set changed",
                     ));
                 }
-                let mut public_sources =
+                let public_sources =
                     crate::source_sign::pg::select_owner_assessment_public_sources_pg(
                         &input,
                         &config,
@@ -1467,7 +1464,7 @@ pub(crate) fn run(
                                 &command_files,
                             )
                             .map_err(DurableError::Source)?;
-                            let mut input = PgGrowthCurrentInput::new(
+                            let input = PgGrowthCurrentInput::new(
                                 session,
                                 max_members,
                                 usize::try_from(max_member_bytes).unwrap_or(

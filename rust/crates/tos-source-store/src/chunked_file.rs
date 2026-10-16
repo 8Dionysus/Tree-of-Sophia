@@ -882,7 +882,7 @@ pub fn restore_chunked_file_v1<T: ChunkedFileTransportV1>(
     }
     let manifest_size = manifest_metadata.len();
     let mut raw = Vec::with_capacity(manifest_size as usize);
-    let mut file = File::open(&manifest_path)
+    let file = File::open(&manifest_path)
         .map_err(|source| io_error("cannot read remote manifest", source))?;
     file.take(limits.max_manifest_bytes as u64 + 1)
         .read_to_end(&mut raw)

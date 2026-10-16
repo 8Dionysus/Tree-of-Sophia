@@ -1067,7 +1067,7 @@ fn cgroup_open(directory: &File, name: &str, access: libc::c_int) -> SourceComma
 }
 
 fn cgroup_text(directory: &File, name: &str, cap: usize) -> SourceCommandResult<String> {
-    let mut file = cgroup_open(directory, name, libc::O_RDONLY)?;
+    let file = cgroup_open(directory, name, libc::O_RDONLY)?;
     let mut bytes = Vec::with_capacity(cap.min(4096));
     file.take(cap as u64 + 1)
         .read_to_end(&mut bytes)

@@ -5,7 +5,7 @@
 //! change. The existing PG projection readers continue to enforce the current
 //! rights version and refuse stale or revoked projections.
 
-use super::{absolute, capped, digest, exact, number, text};
+use super::{absolute, capped, digest, exact, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::CreationFilesystem;
 use crate::{DurableError, DurablePgCoordinator};

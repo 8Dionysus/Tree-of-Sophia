@@ -651,12 +651,12 @@ fn philosophy_from_arguments(
             layers: strings("layers")?,
             predicates: strings("predicates")?,
             max_depth: count("max_depth", 6, 1, 8)?,
-            direction: match (match args.object_get("direction") {
+            direction: match match args.object_get("direction") {
                 None => "outgoing",
                 Some(value) => value
                     .as_str()
                     .ok_or_else(|| invalid("invalid philosophy path direction"))?,
-            }) {
+            } {
                 "outgoing" => D::Outgoing,
                 "incoming" => D::Incoming,
                 "either" => D::Either,

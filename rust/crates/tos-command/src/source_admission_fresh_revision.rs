@@ -959,7 +959,7 @@ pub(crate) fn prepare_record_revision<'a>(
     let WorkFacts {
         manifest_sha256,
         archive,
-        expected: mut expected,
+        mut expected,
     } = facts;
     let disposition = if base.selected_revision() == original_base {
         FreshRevisionDisposition::NewPublication

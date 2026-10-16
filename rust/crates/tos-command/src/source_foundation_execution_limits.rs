@@ -28,9 +28,7 @@ use tos_validation::item_rules::ItemLimits;
 use tos_validation::source_cut::{CutSchemaDiagnosticsLimits, CutWorkerLimits};
 use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesLimits;
 use tos_validation::source_foundation_records::SourceFoundationRecordsLimits;
-use tos_validation::source_foundation_schema::{
-    SourceFoundationSchemaLimits, SourceFoundationSchemaSet,
-};
+use tos_validation::source_foundation_schema::SourceFoundationSchemaLimits;
 
 /// One phase's upper-bound reservation. `source_read_bytes` includes all
 /// selected-root reads in that phase, including protected controls and repeat

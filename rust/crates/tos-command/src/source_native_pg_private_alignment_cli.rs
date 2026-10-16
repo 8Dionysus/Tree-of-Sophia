@@ -23,7 +23,6 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_segment_store::SegmentStore;
-use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const INVOCATION_SCHEMA: &str = "tos_local_pg_private_alignment_invocation_v1";
@@ -922,7 +921,7 @@ pub(crate) fn run(
         .ok_or(SourceCommandError::Conflict(
             "PostgreSQL Alignment context schema absent",
         ))?;
-    let (mut context, _) = OwnerTextContext::select_pg(
+    let (context, _) = OwnerTextContext::select_pg(
         &context_path,
         context_schema,
         &mut worker,

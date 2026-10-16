@@ -26,12 +26,11 @@ use tos_compiler::{
     source_bibliographic::BibliographicLimits,
     source_witness_catalog::SourceCatalogLimits,
 };
-use tos_foundation::{Digest256, SourceRevision};
+use tos_foundation::SourceRevision;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-use tos_validation::source_cut::CutSchemaExecutor;
 const META: usize = 1_048_576;
 fn failure(e: impl std::fmt::Debug + 'static) -> SourceCommandError {
     // Preserve bounded, source-authored diagnostics. Dynamic errors can carry

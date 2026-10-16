@@ -26,8 +26,7 @@ use std::{
 };
 use tos_compiler::{
     ColdOpenLimits, DedicatedSessionSqliteHeap, ImmutableKnowledgeCustody,
-    KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement,
-    NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths, PublicCapture,
+    KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeProcessLimits, NativeSelectionPaths, PublicCapture,
     RuntimeCaptureCreationUsage, RuntimeCaptureOwnedBudget,
     native_cold_resources::LinuxCgroupColdOpenResourceHold, native_snapshot,
     native_snapshot_manifest as manifest, private_tmpfs_stage::PrivateTmpfsStageIsolation,
@@ -41,7 +40,6 @@ use tos_source_store::{
     ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareComponentSelectionV1};
-use tos_validation::FormatProfile;
 use tos_validation::executor::{
     BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget,
 };
@@ -1973,7 +1971,7 @@ fn valid_child(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
 }
 
-fn bounded_input(mut input: impl Read) -> Result<Vec<u8>> {
+fn bounded_input(input: impl Read) -> Result<Vec<u8>> {
     let mut raw = Vec::new();
     input
         .take((MAX_REQUEST_BYTES + 1) as u64)

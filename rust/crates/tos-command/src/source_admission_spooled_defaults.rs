@@ -12,7 +12,7 @@ use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
 use std::{borrow::Cow, cell::Cell, io, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_foundation::{Digest256, RelativePath};
-use tos_source_store::{PinnedSqliteAuxScope, PinnedSqliteConnection, SourceMembershipV1};
+use tos_source_store::{PinnedSqliteAuxScope, PinnedSqliteConnection};
 use tos_validation::{
     biblio_rules::{
         BiblioClaim, SourceFoundationBiblioClaimSink, SourceFoundationBiblioEventSink,

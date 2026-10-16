@@ -11,7 +11,7 @@ use crate::source_cohort::revision::{
 };
 use crate::source_cohort::{IndexRows, SourceRevisionWrite};
 use crate::source_command::{
-    self as cmd, CommandContext, CommandPlan, PreparedCommand, SourceCommandError,
+    self as cmd, CommandContext, PreparedCommand, SourceCommandError,
     SourceCommandResult,
 };
 use crate::source_revisions::{self as revisions, PgRecordRevisionCommandContext};

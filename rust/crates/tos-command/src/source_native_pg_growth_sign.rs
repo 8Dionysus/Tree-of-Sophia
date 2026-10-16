@@ -216,7 +216,7 @@ fn preflight_sign_owner(
         deadline,
         cancelled,
     )?;
-    let (mut owner, selected_context) = OwnerTextContext::select_pg(
+    let (owner, selected_context) = OwnerTextContext::select_pg(
         context_path,
         &context_schema,
         &mut worker,
@@ -362,10 +362,10 @@ fn selected_schema_members(
         ));
     }
     let paths = schema_members.keys().cloned().collect::<Vec<_>>();
-    let mut guard_worker = assessment::selected_assessment_candidate_worker(
+    let guard_worker = assessment::selected_assessment_candidate_worker(
         invocation, &mut files, identity, &paths, deadline, cancelled,
     )?;
-    let mut operation_worker = assessment::selected_assessment_candidate_worker(
+    let operation_worker = assessment::selected_assessment_candidate_worker(
         invocation, &mut files, identity, &paths, deadline, cancelled,
     )?;
     drop(files);
@@ -819,7 +819,7 @@ pub(super) fn run(
         deadline,
         cancelled,
         |histories, _, source_packages, _guarded_worker, held_deadline, held_cancelled| {
-            let ((outcome, mut owner, grant), readset) = source_db
+            let ((outcome, owner, grant), readset) = source_db
                 .with_source_revision_session(
                     &store,
                     &selection.domain,
@@ -980,7 +980,7 @@ pub(super) fn run(
                                 "Sign PG private source target set changed",
                             ));
                         }
-                        let mut public_sources =
+                        let public_sources =
                             crate::source_sign::pg::select_owner_assessment_public_sources_pg(
                                 &input,
                                 &preflight.assessment_config,

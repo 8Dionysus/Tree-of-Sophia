@@ -769,7 +769,7 @@ impl StandaloneSnapshotGuard {
         if expected_receipt.is_some_and(|expected| expected != receipt) {
             return Err("Core snapshot retained guard identity changed");
         }
-        let mut guard = Self {
+        let guard = Self {
             root_path: root_path.to_owned(),
             root,
             root_identity,

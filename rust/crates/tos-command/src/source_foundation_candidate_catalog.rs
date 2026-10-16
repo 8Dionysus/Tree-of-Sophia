@@ -9,7 +9,7 @@
 use crate::source_admission_index::{FreshIndexRowsWriter, FreshRows};
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::{
-    DisposableCatalogTree, DisposableCatalogTreeCost, DisposableCatalogTreeLimits,
+    DisposableCatalogTree, DisposableCatalogTreeLimits,
     IsolatedCreationRoot,
 };
 use serde_json::{Map, Value};

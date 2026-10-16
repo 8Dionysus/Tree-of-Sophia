@@ -16,7 +16,7 @@ use std::{
 };
 use tos_compiler::SourceBinding;
 use tos_compiler::managed_source::ManagedProducerProof;
-use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
+use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::SegmentStore;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader,
@@ -1795,7 +1795,7 @@ fn prepare_initial(
             let (final_owner_metadata, owner_reused) = match tos_fd_open::open_regular_at(
                 filesystem.protected_root_file(), Path::new(&owner.final_owner_leaf),
             ) {
-                Ok(mut existing_file) => {
+                Ok(existing_file) => {
                     let existing_metadata = existing_file.metadata()
                         .map_err(|_| crate::DurableError::Conflict("existing final owner metadata unavailable"))?;
                     if !existing_metadata.is_file() || existing_metadata.uid() != uid

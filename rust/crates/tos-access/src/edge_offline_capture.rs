@@ -629,7 +629,7 @@ fn open_read_only_with_deadline(
         .metadata()
         .map_err(|error| error.to_string())?;
     let selected_identity = (selected_metadata.dev(), selected_metadata.ino());
-    let mut db = Connection::open_with_flags(
+    let db = Connection::open_with_flags(
         path,
         OpenFlags::SQLITE_OPEN_READ_ONLY
             | OpenFlags::SQLITE_OPEN_NO_MUTEX
@@ -4247,7 +4247,7 @@ fn run_prepared_transition(
     let installed_auxiliary =
         auxiliary_stores_accounted(&d1_tx, &base_top_raw, limits, &mut d1_read_bytes)?;
     let mut retained = RetainedBytes::new(limits);
-    let (mut changes, manifest_rows_scanned) = selected_manifest(
+    let (changes, manifest_rows_scanned) = selected_manifest(
         &d1_tx,
         &after_tx,
         &after_source,

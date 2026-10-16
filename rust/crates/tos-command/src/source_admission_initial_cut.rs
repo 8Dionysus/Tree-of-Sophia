@@ -8,7 +8,7 @@ use super::source_admission::{
 };
 use super::source_admission_segment_v2::NativeV2TreeIo;
 use super::source_admission_source_census::{
-    SourceCensusLimits, SourceCensusScan, SourceCensusSummary, SourceCensusWorkKind,
+    SourceCensusLimits, SourceCensusScan, SourceCensusSummary,
     census_selected_to_scratch, summarize_indexed_proposal_rows, working_state_upper_bound,
 };
 use super::source_admission_spooled_candidate::SpoolCandidate;
@@ -28,7 +28,7 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
     time::Instant,
 };
-use tos_foundation::{Digest256, RelativePath};
+use tos_foundation::Digest256;
 use tos_source_store::{
     PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
     ReadLimits,

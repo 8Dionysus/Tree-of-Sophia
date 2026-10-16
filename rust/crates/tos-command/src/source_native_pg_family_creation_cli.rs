@@ -335,7 +335,7 @@ fn select_recovered_creation_private_text(
         ));
     }
 
-    let ((mut context, identity), readset) = db
+    let ((context, identity), readset) = db
         .with_source_revision_session(
             store,
             &selection.domain,
