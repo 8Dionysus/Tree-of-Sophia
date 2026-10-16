@@ -1,7 +1,7 @@
 # Agon Provenance Bridge
 
 This is the active bridge from current Agon routes to former-path accounting.
-The package-local legacy archive preserves the former source material.
+Former source material remains recoverable in immutable Git history.
 
 ## Current Route First
 
@@ -21,4 +21,4 @@ Historical old-path accounting is preserved in [TOS-D-0043](../../docs/decisions
 ## Distillation Rule
 
 When former Agon material changes current behavior, update the owning active
-part first, then this bridge and the legacy index.
+part first, then this bridge with an exact immutable history reference.

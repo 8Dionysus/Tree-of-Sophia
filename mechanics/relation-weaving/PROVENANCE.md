@@ -3,4 +3,4 @@
 Use current routes first: [README](README.md), [PARTS](PARTS.md), and
 [Graph Promotion](parts/graph-promotion/README.md).
 
-No package-local `legacy/` exists yet.
+No package-local `legacy/` archive is maintained.

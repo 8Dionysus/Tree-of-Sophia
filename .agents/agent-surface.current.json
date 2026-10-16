@@ -1,36 +1,6 @@
 {
   "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
-  "legacy_projection": {
-    "entry_count": 25,
-    "legacy_ids": [
-      "aoa-adr-write",
-      "aoa-approval-gate-check",
-      "aoa-automation-opportunity-scan",
-      "aoa-bounded-context-map",
-      "aoa-change-protocol",
-      "aoa-checkpoint-closeout-bridge",
-      "aoa-commit-growth-seam",
-      "aoa-contract-test",
-      "aoa-core-logic-boundary",
-      "aoa-dry-run-first",
-      "aoa-invariant-coverage-audit",
-      "aoa-local-stack-bringup",
-      "aoa-port-adapter-refactor",
-      "aoa-property-invariants",
-      "aoa-quest-harvest",
-      "aoa-safe-infra-change",
-      "aoa-sanitized-share",
-      "aoa-session-donor-harvest",
-      "aoa-session-progression-lift",
-      "aoa-session-route-forks",
-      "aoa-session-self-diagnose",
-      "aoa-session-self-repair",
-      "aoa-source-of-truth-check",
-      "aoa-summon",
-      "aoa-tdd-slice"
-    ]
-  },
-  "manifest_sha256": "38f0a2e0352d78dc8ff98d4f90345da216dc2a033629d08bcdc8067a3c9fc10c",
+  "manifest_sha256": "130de8e79ac5fd7a23c27db52b5b4795b15534710fe51f7905cb68f62c4bf1bb",
   "owner_ports": [
     {
       "id": "eval_port",

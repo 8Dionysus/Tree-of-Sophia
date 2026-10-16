@@ -19,12 +19,9 @@ The profile uses Codex user scope and managed copies. The binding records select
 invocation, runtime behavior and acceptance each require current evidence from
 their owner.
 
-The old 25 Tree-of-Sophia names remain in the authored migration crosswalk.
-Each row is either a current owner skill, a merged capability mode, or a
-workflow/guard owner object. Each crosswalk row points to its actual package, mode or workflow owner. Deferred
-`engineering-shape` and `verification` modes remain deferred, and runtime
-approval, preview, stack, infrastructure, and commit effects remain with their
-named owners.
+Historical local projection names and their destinations remain with
+`aoa-skills@6eaeca11820adbbbe54f79a75c0ca5a54e0c4a15:capabilities/legacy-skill-migration.yaml`.
+This repository carries no copy of that completed migration.
 
 ## Read by load moment
 
@@ -39,8 +36,8 @@ named owners.
 The machine map is `agent-surface.manifest.json`. The generated structural
 read model is `agent-surface.current.json`. The map is authored here; the
 currentness file is rebuilt, never hand-edited. The generated file records zero
-repository-local package entries, the 18 selected profile bindings, the 25-row
-legacy crosswalk, task-probe depth, and owner-port inputs.
+repository-local package entries, the 18 selected profile bindings, task-probe
+depth, and owner-port inputs.
 The manifest is a machine validation and migration input; discovery starts from
 this entrypoint and reads the manifest on demand.
 
@@ -92,7 +89,7 @@ Use the `agent_surface` lane in
 through the command routes in [root validation](../VALIDATION.md).
 
 The builder proves parity for the authored map and generated read model. The
-validator proves profile-binding shape, zero local projections, crosswalk
-coverage, owner-port inputs, task-probe negative controls, and public safety.
+validator proves profile-binding shape, zero local projections, owner-port
+inputs, task-probe negative controls, and public safety.
 Profile installation, fresh-session discovery, model behavior, owner
 acceptance and release/runtime states require their own current checks.

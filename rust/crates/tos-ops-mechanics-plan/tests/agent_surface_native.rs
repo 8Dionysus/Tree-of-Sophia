@@ -1,7 +1,7 @@
-//! Native agent surface boundaries: profile authority, crosswalk and activation.
+//! Native agent surface boundaries: profile authority and activation.
 use serde_json::{Value, json};
 use tos_ops_mechanics_plan::agent_surface_validation::{
-    activation_policy_issues, legacy_projection_crosswalk_issues, profile_binding_issues,
+    activation_policy_issues, profile_binding_issues,
 };
 fn manifest() -> Value {
     serde_json::from_str(include_str!(
@@ -42,26 +42,6 @@ fn immutable_profile_owner_revision_and_duplicate_selection_remain_admission_inp
             .0
             .iter()
             .any(|(_, m)| m == "root must be a safe relative owner root")
-    );
-}
-#[test]
-fn legacy_crosswalk_requires_all_source_owned_names_and_destination_kinds() {
-    let mut source = manifest();
-    assert!(legacy_projection_crosswalk_issues(&source).is_empty());
-    source["legacy_projection_migration"]["entries"][0]["target_kind"] = json!("invented");
-    assert!(
-        legacy_projection_crosswalk_issues(&source)
-            .iter()
-            .any(|(_, m)| m == "target_kind is not a recognized destination kind")
-    );
-    source["legacy_projection_migration"]["entries"]
-        .as_array_mut()
-        .unwrap()
-        .pop();
-    assert!(
-        legacy_projection_crosswalk_issues(&source)
-            .iter()
-            .any(|(_, m)| m.starts_with("crosswalk names must be"))
     );
 }
 #[test]

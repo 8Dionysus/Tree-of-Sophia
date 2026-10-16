@@ -19,3 +19,9 @@
 - [PARTS](PARTS.md)
 - [PROVENANCE](PROVENANCE.md)
 - [ROADMAP](ROADMAP.md)
+
+Node, relation and template method changes return to the source-owned
+[node contract](../../ToS/doctrine/NODE_CONTRACT.md),
+[relation-pack contract](../../ToS/doctrine/RELATION_PACK_CONTRACT.md) and
+[contract home](../../ToS/contracts/). Update the owning validator with the
+contract; branch content remains with its ToS owner.

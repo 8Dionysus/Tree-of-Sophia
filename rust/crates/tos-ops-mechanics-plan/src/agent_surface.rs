@@ -226,15 +226,6 @@ pub fn profile_skill_ids(manifest: &Value) -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
-pub fn legacy_projection_ids(manifest: &Value) -> Vec<String> {
-    manifest["legacy_projection_migration"]["entries"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|s| s.get("legacy_name").and_then(Value::as_str))
-        .map(str::to_owned)
-        .collect()
-}
 fn tracked_files(
     root: &Path,
     sources: &mut RouteSources,
@@ -492,7 +483,6 @@ pub fn build_currentness_with_sources(
         ),
     );
     binding.insert("skill_ids".into(), json!(ids));
-    let legacy = legacy_projection_ids(&manifest);
     let mut depths = serde_json::Map::new();
     for probe in manifest["task_probes"].as_array().into_iter().flatten() {
         if let Some(id) = probe.get("id").and_then(Value::as_str) {
@@ -530,7 +520,7 @@ pub fn build_currentness_with_sources(
     }
     check(s, cancel)?;
     Ok(
-        json!({"schema_version":"tos_agent_tool_owner_port_current_v1","owner_repo":manifest["owner_repo"],"source_manifest":MANIFEST_PATH,"manifest_sha256":Digest256::of_bytes(&raw).to_hex(),"builder":"rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs","package_inventory":inventory,"packages":packages,"profile_binding":binding,"legacy_projection":{"entry_count":legacy.len(),"legacy_ids":legacy},"task_probe_depths":depths,"owner_ports":ports}),
+        json!({"schema_version":"tos_agent_tool_owner_port_current_v1","owner_repo":manifest["owner_repo"],"source_manifest":MANIFEST_PATH,"manifest_sha256":Digest256::of_bytes(&raw).to_hex(),"builder":"rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs","package_inventory":inventory,"packages":packages,"profile_binding":binding,"task_probe_depths":depths,"owner_ports":ports}),
     )
 }
 pub fn rendered_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<String> {

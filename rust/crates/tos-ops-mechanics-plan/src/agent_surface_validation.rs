@@ -30,33 +30,6 @@ const EXPECTED_PROFILE_SKILLS: &[&str] = &[
     "aoa-summon",
     "os-abyss-artifact-trust-loop",
 ];
-const EXPECTED_LEGACY_PROJECTIONS: &[&str] = &[
-    "aoa-adr-write",
-    "aoa-approval-gate-check",
-    "aoa-automation-opportunity-scan",
-    "aoa-bounded-context-map",
-    "aoa-change-protocol",
-    "aoa-checkpoint-closeout-bridge",
-    "aoa-commit-growth-seam",
-    "aoa-contract-test",
-    "aoa-core-logic-boundary",
-    "aoa-dry-run-first",
-    "aoa-invariant-coverage-audit",
-    "aoa-local-stack-bringup",
-    "aoa-port-adapter-refactor",
-    "aoa-property-invariants",
-    "aoa-quest-harvest",
-    "aoa-safe-infra-change",
-    "aoa-sanitized-share",
-    "aoa-session-donor-harvest",
-    "aoa-session-progression-lift",
-    "aoa-session-route-forks",
-    "aoa-session-self-diagnose",
-    "aoa-session-self-repair",
-    "aoa-source-of-truth-check",
-    "aoa-summon",
-    "aoa-tdd-slice",
-];
 const EXPECTED_PORTS: &[&str] = &["eval_port", "kag_provider", "memo_port", "stats_port"];
 const EXPECTED_PROBES: &[&str] = &[
     "approval_or_dry_run",
@@ -501,121 +474,6 @@ fn claim_limits(issues: &mut Vec<Issue>, value_: &Value, loc: &str) {
         );
     }
 }
-pub fn legacy_projection_crosswalk_issues(manifest: &Value) -> Vec<Issue> {
-    let mut issues = Vec::new();
-    let location = format!("{MANIFEST_PATH}#legacy_projection_migration");
-    let migration = value(manifest, "legacy_projection_migration");
-    if !migration.is_object() {
-        return vec![(
-            location,
-            "legacy_projection_migration must be an object".into(),
-        )];
-    }
-    required_scalars(
-        &mut issues,
-        migration,
-        &location,
-        &[
-            (
-                "schema_version",
-                json!("tos_legacy_skill_projection_crosswalk_v1"),
-            ),
-            (
-                "source_catalog",
-                json!("aoa-skills:capabilities/legacy-skill-migration.yaml"),
-            ),
-            (
-                "source_ref",
-                json!("aoa-skills@6eaeca11820adbbbe54f79a75c0ca5a54e0c4a15"),
-            ),
-            ("legacy_projection_root", json!(".agents/skills/")),
-            ("post_migration_local_projection", json!("absent")),
-            ("entry_count", json!(25)),
-        ],
-    );
-    let entries = value(migration, "entries");
-    if !entries.is_array() || list(entries).is_empty() {
-        issue(&mut issues, &location, "entries must be a non-empty list");
-        return issues;
-    }
-    let mut selected = Vec::new();
-    for (index, entry) in list(entries).iter().enumerate() {
-        let loc = format!("{location}.entries[{index}]");
-        if !entry.is_object() {
-            issue(&mut issues, &loc, "entry must be an object");
-            continue;
-        }
-        for key in [
-            "legacy_name",
-            "legacy_path",
-            "action",
-            "target_id",
-            "target_kind",
-            "target_owner",
-            "compatibility",
-            "evidence_state",
-            "reason",
-        ] {
-            if text(entry, key).is_none_or(str::is_empty) {
-                issue(
-                    &mut issues,
-                    &loc,
-                    format!("{key} must be a non-empty string"),
-                );
-            }
-        }
-        if let Some(name) = text(entry, "legacy_name") {
-            selected.push(name.to_string());
-        }
-        if !matches!(
-            text(entry, "action"),
-            Some("retain-advertised" | "merge-mode" | "route-owner-object")
-        ) {
-            issue(
-                &mut issues,
-                &loc,
-                "action is not a recognized migration action",
-            );
-        }
-        if !matches!(
-            text(entry, "target_kind"),
-            Some("skill" | "mode" | "workflow" | "guard")
-        ) {
-            issue(
-                &mut issues,
-                &loc,
-                "target_kind is not a recognized destination kind",
-            );
-        }
-        if text(entry, "legacy_path").is_some_and(|s| !s.starts_with("skills/")) {
-            issue(
-                &mut issues,
-                &loc,
-                "legacy_path must remain an aoa-skills source path",
-            );
-        }
-    }
-    let set: BTreeSet<String> = selected.iter().cloned().collect();
-    if set.len() != selected.len() {
-        issue(
-            &mut issues,
-            &location,
-            "crosswalk contains duplicate legacy names",
-        );
-    }
-    if set != names(EXPECTED_LEGACY_PROJECTIONS) {
-        issue(
-            &mut issues,
-            &location,
-            format!(
-                "crosswalk names must be {}",
-                py_sorted(&names(EXPECTED_LEGACY_PROJECTIONS))
-            ),
-        );
-    }
-    claim_limits(&mut issues, migration, &location);
-    issues
-}
 fn local_reference_issues(sources: &mut RouteSources, package: &str) -> io::Result<Vec<Issue>> {
     let mut issues = Vec::new();
     let pattern=Regex::new(r"\b(?:references|examples|checks|scripts|assets)/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.[A-Za-z0-9_-]+\b").unwrap();
@@ -753,7 +611,6 @@ pub fn validate_manifest_with_sources(
     }
     let (profile_issues, profile_skill_set) = profile_binding_issues(&manifest);
     issues.extend(profile_issues);
-    issues.extend(legacy_projection_crosswalk_issues(&manifest));
     let packages = value(&manifest, "skills");
     if !packages.is_array() {
         issue(&mut issues, MANIFEST_PATH, "skills must be a list");

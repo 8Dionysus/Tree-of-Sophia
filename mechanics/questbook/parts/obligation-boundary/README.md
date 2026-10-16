@@ -15,3 +15,7 @@
 ## Payload
 
 - `docs/QUESTBOOK_TOS_INTEGRATION.md`
+
+Reading progress stays a reflection owned by the selected ToS branch. When it
+creates a tracked obligation, use root `QUESTBOOK.md` and `quests/`. Progress
+reflection grants no score, rank, gameplay or canon authority.

@@ -26,18 +26,13 @@ ToS-local and may differ from sibling repositories.
 | Package | Class | Use for |
 | --- | --- | --- |
 | [`agon`](agon/README.md) | head-fed/local | threshold intake, canon restraint, candidate-only registries, and Agon-to-ToS handoff |
-| [`antifragility`](antifragility/README.md) | head-fed/local | source-first refusal, bad-growth pruning, and via negativa review posture |
 | [`audit`](audit/README.md) | head-fed/local | review-ledger route checks and source-home inspection evidence |
 | [`boundary-bridge`](boundary-bridge/README.md) | head-fed/local | derived KAG/public seams without authority transfer |
-| [`checkpoint`](checkpoint/README.md) | head-fed/local | review return points that preserve state without becoming memory truth |
 | [`distillation`](distillation/README.md) | head-fed/local | source compost and extraction into reviewable ToS form |
 | [`experience`](experience/README.md) | head-fed/local | adoption, governance, installation, service, pattern, candidate, and write-guard boundaries |
 | [`growth-cycle`](growth-cycle/README.md) | head-fed/local | branch growth loops from witness pressure to reviewed structure |
-| [`method-growth`](method-growth/README.md) | head-fed/local | node, relation, template, and validator method maturation |
 | [`questbook`](questbook/README.md) | head-fed/local | public obligation posture and quest dispatch contracts |
-| [`recurrence`](recurrence/README.md) | head-fed/local | calibration return and re-entry after route drift |
 | [`release-support`](release-support/README.md) | head-fed/local | source-home release gates and public support checks |
-| [`rpg`](rpg/README.md) | head-fed/local | bounded reading-progression reflection without gameplay or canon authority |
 
 ## ToS-Local Package Map
 
