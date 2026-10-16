@@ -18,7 +18,7 @@ use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, SourceRevision,
     canonical_raw_bytes_v1,
 };
-use tos_source_store::{CorpusCutReader, StreamedCorpusCutReaderV1};
+use tos_source_store::CorpusCutReader;
 use tos_validation::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, SharedSchemaWorkerQuota,
     VerifiedWorkerImageHandle,
@@ -1185,42 +1185,6 @@ impl<'a> SourceCatalogValidator<'a> {
             deadline,
             cancelled,
         )
-    }
-
-    /// Same selected schema/worker kernel over the authenticated streamed cut.
-    pub fn from_streamed_cut_with_image(
-        cut: &StreamedCorpusCutReaderV1,
-        image: &'a VerifiedWorkerImageHandle,
-        budget: ExecutorBudget,
-        limits: CutWorkerLimits,
-        operation: BatchStreamBudget,
-        deadline: Instant,
-        cancelled: &'a AtomicBool,
-    ) -> Result<Self> {
-        let deadline = deadline.min(image.operation_deadline());
-        let mut schemas = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            image,
-            budget,
-            limits,
-            deadline,
-            cancelled,
-        )
-        .map_err(|e| Error::Source(format!("catalog exact streamed executor:{e:?}")))?;
-        schemas
-            .set_operation_budget(operation)
-            .map_err(|e| Error::Source(format!("catalog schema operation budget:{e:?}")))?;
-        Ok(Self {
-            worker: image.identity(),
-            budget,
-            cancelled,
-            schemas: RefCell::new(CatalogSchemas::Resident(schemas)),
-            worker_pin: image.identity().clone(),
-            budget_pin: budget,
-            deadline,
-            event_source_revision: None,
-        })
     }
 
     fn from_cut_inner(

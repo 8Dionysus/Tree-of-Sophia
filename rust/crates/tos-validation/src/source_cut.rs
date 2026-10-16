@@ -705,31 +705,6 @@ pub fn cut_schema_resource_preparation_state_upper_bound(
     Ok(upper_bound)
 }
 
-/// Logical controller-workspace upper bound for preparing the exact schema
-/// resources selected from a streamed cut. This uses only authenticated
-/// member metadata and a bounded keyset walk; it does not read payload bytes or
-/// retain the whole member catalog in memory.
-pub fn streamed_cut_schema_resource_preparation_state_upper_bound(
-    cut: &StreamedCorpusCutReaderV1,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> Result<usize, ItemRefusal> {
-    let mut stats = SchemaResourcePreparationStats::default();
-    for_each_streamed_current_member(cut, deadline, cancelled, |_revision, member| {
-        let path = member.path.as_str();
-        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
-            stats.add_schema(
-                path,
-                usize::try_from(member.size_bytes).map_err(|_| crate::item_budget_origin!())?,
-            )?;
-        }
-        Ok(())
-    })?;
-    let upper_bound = stats.upper_bound()?;
-    check(deadline, cancelled)?;
-    Ok(upper_bound)
-}
-
 /// Visit the current revision's metadata in keyset order and authenticate the
 /// census against its declared member count. Each index query and each visit
 /// is surrounded by liveness checks, including the terminal `None` query.

@@ -37,7 +37,7 @@ use tos_foundation::SourceRevision;
 use tos_foundation::{Digest256, Digest256Hasher};
 #[cfg(feature = "source-tools")]
 use tos_source_store::{
-    CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1, StreamedCorpusCutReaderV1,
+    CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1,
 };
 
 // A selected descriptor permits up to 4,096 source registrations. A full
@@ -186,34 +186,6 @@ impl ColdAuthoredBinding {
                 != membership
         {
             return Err(Error::Invalid("cold authored independently selected cut"));
-        }
-        Ok(Self {
-            revision,
-            membership,
-            source_cut: revision.0.to_hex(),
-            epoch_token: epoch.token().map(str::to_owned),
-            epoch_generation: epoch.generation(),
-            epoch_member: epoch.member_binding().map_err(|_| {
-                Error::Source("cold authored metadata epoch binding refused".into())
-            })?,
-        })
-    }
-    /// Bind an independently selected revision to the authenticated disk index.
-    /// Full stream EOF/currentness remains the owner's final-stage obligation.
-    pub fn from_streamed_cut(
-        cut: &StreamedCorpusCutReaderV1,
-        revision: SourceRevision,
-        membership: SourceMembershipV1,
-        epoch: &MetadataPublicationEpoch,
-    ) -> Result<Self> {
-        let selected = cut
-            .revision(revision)
-            .map_err(|_| Error::Source("cold authored streamed custody refused".into()))?
-            .ok_or(Error::Invalid("cold authored streamed revision absent"))?;
-        if cut.current_revision() != revision || selected.membership != membership {
-            return Err(Error::Invalid(
-                "cold authored independently selected streamed cut",
-            ));
         }
         Ok(Self {
             revision,

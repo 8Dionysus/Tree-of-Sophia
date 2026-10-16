@@ -42,7 +42,6 @@ use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagno
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
     cut_schema_resource_preparation_state_upper_bound,
-    streamed_cut_schema_resource_preparation_state_upper_bound,
 };
 use tos_validation::source_foundation_discovery::SourcePhysicalFacts;
 use tos_validation::source_foundation_records::SourceFoundationRecordsReport;
@@ -4103,14 +4102,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         schema_total,
         max_checks,
     )?;
-    let preparation = match captured.streamed_cut() {
-        Some(cut) => {
-            streamed_cut_schema_resource_preparation_state_upper_bound(cut, deadline, cancelled)
-        }
-        None => {
-            cut_schema_resource_preparation_state_upper_bound(captured.cut(), deadline, cancelled)
-        }
-    };
+    let preparation =
+        cut_schema_resource_preparation_state_upper_bound(captured.cut(), deadline, cancelled);
     let schema_preparation_state = match preparation {
         Ok(bytes) => bytes,
         Err(error) => {
@@ -4130,23 +4123,13 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("schema closure preparation exceeds remaining state"),
         );
     }
-    let selected_schema_set = match captured.streamed_cut() {
-        Some(cut) => SourceFoundationSchemaSet::from_streamed_cut(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            schema_limits,
-            schema_preparation_state,
-            deadline,
-            cancelled,
-        ),
-        None => SourceFoundationSchemaSet::from_cut(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            schema_limits,
-            deadline,
-            cancelled,
-        ),
-    };
+    let selected_schema_set = SourceFoundationSchemaSet::from_cut(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        schema_limits,
+        deadline,
+        cancelled,
+    );
     let schema_set = match selected_schema_set {
         Ok(set) => set,
         Err(error) => {
@@ -4515,26 +4498,15 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("Item schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = match captured.streamed_cut() {
-        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            worker_limits,
-            deadline,
-            cancelled,
-        ),
-        None => CutWorkerSchemaExecutor::from_cut_with_image(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            worker_limits,
-            deadline,
-            cancelled,
-        ),
-    };
+    let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        executor_budget,
+        worker_limits,
+        deadline,
+        cancelled,
+    );
     let mut item_schemas = match selected_worker {
         Ok(executor) => executor,
         Err(error) => {
@@ -4884,26 +4856,15 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("layer schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = match captured.streamed_cut() {
-        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            layer_worker_limits,
-            deadline,
-            cancelled,
-        ),
-        None => CutWorkerSchemaExecutor::from_cut_with_image(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            layer_worker_limits,
-            deadline,
-            cancelled,
-        ),
-    };
+    let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        executor_budget,
+        layer_worker_limits,
+        deadline,
+        cancelled,
+    );
     let mut layer_schemas = match selected_worker {
         Ok(executor) => executor,
         Err(error) => {
@@ -5764,26 +5725,15 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     incomplete("admission callback schema preparation exceeds remaining state"),
                 );
             }
-            let selected_worker = match captured.streamed_cut() {
-                Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-                    cut,
-                    FormatProfile::LegacyPythonObserved20260923,
-                    &worker_image,
-                    callback_worker_budget,
-                    callback_limits,
-                    deadline,
-                    cancelled,
-                ),
-                None => CutWorkerSchemaExecutor::from_cut_with_image(
-                    captured.cut(),
-                    FormatProfile::LegacyPythonObserved20260923,
-                    &worker_image,
-                    callback_worker_budget,
-                    callback_limits,
-                    deadline,
-                    cancelled,
-                ),
-            };
+            let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+                captured.cut(),
+                FormatProfile::LegacyPythonObserved20260923,
+                &worker_image,
+                callback_worker_budget,
+                callback_limits,
+                deadline,
+                cancelled,
+            );
             let mut callback_schema = match selected_worker {
                 Ok(executor) => executor,
                 Err(error) => {
