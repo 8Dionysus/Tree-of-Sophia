@@ -1563,7 +1563,7 @@ fn selected_files_and_dependencies<'a>(
     Vec<NavigationDependencyV1>,
 )> {
     let mut paths = BTreeSet::new();
-    // Bind only this stream's complete selected closure. A batch may hold
+    // Bind only this Claim's complete selected closure. A batch may hold
     // unrelated streams and metadata; they remain fenced by the range owner
     // without being hashed and persisted again in every Claim contribution.
     for path in files.observed_paths() {

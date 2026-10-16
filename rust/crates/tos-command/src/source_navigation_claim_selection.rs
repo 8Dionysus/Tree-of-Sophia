@@ -109,12 +109,31 @@ fn claim_event_archive_manifest_paths_for_streams(
         if receipts.len() > MAX_ARCHIVES {
             return Err(DurableError::Refused("Claim history archive count"));
         }
+        let full_stream = parse_claim_stream(&stream.source_path, stream.exact_stream_bytes)?;
+        let retained_owner = &full_stream.owners[0].claim_id;
         let mut archives = BTreeSet::new();
         for receipt in receipts {
             let previous = receipt
                 .get("previous_source")
                 .ok_or(DurableError::Corrupt("Claim history predecessor absent"))?;
             let id = text(previous, "id")?;
+            // The stream history is shared, but its archive packages belong
+            // to the revised Claim. Every terminal owner must render before
+            // the range can seal, so each archive is checked by its owner.
+            let archive_owner = if full_stream.owners.iter().any(|owner| owner.claim_id == id) {
+                id
+            } else {
+                // A historical owner may have left the current stream. Its
+                // archive still gets checked by one deterministic survivor.
+                retained_owner.as_str()
+            };
+            if !stream
+                .owners
+                .iter()
+                .any(|owner| owner.claim_id == archive_owner)
+            {
+                continue;
+            }
             let revision = text(receipt, "previous_revision")?
                 .strip_prefix("sha256:")
                 .ok_or(DurableError::Corrupt("Claim history revision digest"))?;

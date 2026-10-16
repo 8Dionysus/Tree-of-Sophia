@@ -2218,13 +2218,12 @@ fn project_navigation_claim_event_core_v1(
         validate_range_current_dependencies(range_manifest, &dependencies, &source_files)?;
     }
     validate_selected_files_match_dependencies(input.selected_files, &dependencies, &source_files)?;
-    validate_inventory_dependencies(inventory, &dependencies, &source_files)?;
+    validate_inventory_dependencies(inventory, &source_path, &dependencies, &source_files)?;
     let historical_schema_path = checked_path("ToS/contracts/historical-claim.schema.json")?;
-    let historical_schema_bytes = if inventory
-        .scan_costs
-        .iter()
-        .any(|cost| is_historical_claim_endpoint_path(&cost.source_path))
-    {
+    let historical_schema_bytes = if inventory.scan_costs.iter().any(|cost| {
+        is_historical_claim_endpoint_path(&cost.source_path)
+            && source_files.contains_key(&cost.source_path)
+    }) {
         let bytes = source_files
             .get(historical_schema_path.as_str())
             .copied()
@@ -2242,11 +2241,10 @@ fn project_navigation_claim_event_core_v1(
         None
     };
     if let Some(schema_bytes) = historical_schema_bytes {
-        for cost in inventory
-            .scan_costs
-            .iter()
-            .filter(|cost| is_historical_claim_endpoint_path(&cost.source_path))
-        {
+        for cost in inventory.scan_costs.iter().filter(|cost| {
+            is_historical_claim_endpoint_path(&cost.source_path)
+                && source_files.contains_key(&cost.source_path)
+        }) {
             let path = checked_path(&cost.source_path)?;
             let bytes = source_files
                 .get(path.as_str())
@@ -4165,13 +4163,29 @@ fn validate_optional_dependency(
 
 fn validate_inventory_dependencies(
     inventory: &NavigationClaimEventOwnerInventoryV1,
+    owner_source_path: &RelativePath,
     dependencies: &[NavigationDependencyV1],
     source_files: &BTreeMap<String, &[u8]>,
 ) -> Result<()> {
     if owner_inventory_root(&inventory.scan_costs)? != inventory.root {
         return Err(Error::Invalid("navigation Claim inventory root differs"));
     }
-    for cost in &inventory.scan_costs {
+    if !inventory.streams.contains_key(owner_source_path.as_str())
+        || !source_files.contains_key(owner_source_path.as_str())
+    {
+        return Err(Error::Invalid(
+            "navigation Claim owner inventory stream absent",
+        ));
+    }
+    // The opaque inventory was parsed and hashed once from the complete held
+    // cut; the range manifest seals its full membership. An owner must bind
+    // its own stream and every selected endpoint, not copy unrelated streams.
+    // Full range sealing still requires a contribution for every owner.
+    for cost in inventory
+        .scan_costs
+        .iter()
+        .filter(|cost| source_files.contains_key(&cost.source_path))
+    {
         let bytes = source_files
             .get(&cost.source_path)
             .copied()
@@ -4745,17 +4759,25 @@ fn validate_claim_history(
         } else if previous_version != 1 {
             return Err(Error::Invalid("navigation Claim history initial revision"));
         }
-        verify_claim_archive(
-            archive_path,
-            source_path,
-            previous,
-            revision,
-            &receipts[..index],
-            dependencies,
-            source_files,
-            limits,
-            claim_stream_rows_scanned,
-        )?;
+        // Keep the complete interleaved history chain, but verify each
+        // immutable archive under the Claim that owns its revision. The
+        // complete terminal owner set is mandatory before atomic publication.
+        if id == claim_id
+            || (!current_stream.rows.contains_key(&id)
+                && current_stream.rows.keys().next().map(String::as_str) == Some(claim_id))
+        {
+            verify_claim_archive(
+                archive_path,
+                source_path,
+                previous,
+                revision,
+                &receipts[..index],
+                dependencies,
+                source_files,
+                limits,
+                claim_stream_rows_scanned,
+            )?;
+        }
         latest.insert(id, successor.clone());
     }
     let target_ref = claim_reference(current_claim, limits.catalog.max_row_bytes)?;
@@ -5752,12 +5774,19 @@ mod tests {
             ".source-claims.{}.human-forms.json.writer.lock",
             "a".repeat(64)
         );
-        shared_history_with_archived_lock(&lock, b"", true);
-        shared_history_with_archived_lock(&lock, b"nonempty", false);
-        shared_history_with_archived_lock(".private", b"", false);
+        for retired_owner in [false, true] {
+            shared_history_with_archived_lock(&lock, b"", true, retired_owner);
+            shared_history_with_archived_lock(&lock, b"nonempty", false, retired_owner);
+            shared_history_with_archived_lock(".private", b"", false, retired_owner);
+        }
     }
 
-    fn shared_history_with_archived_lock(lock_name: &str, lock_bytes: &[u8], accepted: bool) {
+    fn shared_history_with_archived_lock(
+        lock_name: &str,
+        lock_bytes: &[u8],
+        accepted: bool,
+        retired_owner: bool,
+    ) {
         let source_path =
             checked_path("ToS/source-witnesses/relations/test/source-claims.jsonl").unwrap();
         let history_path =
@@ -5841,7 +5870,12 @@ mod tests {
                 "request":request,"grants_admission":false
             }));
         }
-        let raw = stream_bytes(&claims);
+        let current_claims = claims
+            .iter()
+            .filter(|claim| !retired_owner || claim["claim_id"] != "tos.claim.b")
+            .cloned()
+            .collect::<Vec<_>>();
+        let raw = stream_bytes(&current_claims);
         let stream = NavigationClaimEventOwnerStreamV1 {
             stream_sha256: Digest256::of_bytes(&raw),
             rows: parse_claim_owner_stream(&raw, CLAIM_LINE_BYTES).unwrap().0,
@@ -5863,15 +5897,39 @@ mod tests {
                 },
             })
             .collect::<Vec<_>>();
-        let files = owned_files
-            .iter()
-            .map(|(path, raw)| (path.clone(), raw.as_slice()))
-            .collect();
         for (claim, expected_receipt) in
             claims
                 .iter()
                 .zip([Some(&receipts[2]), Some(&receipts[3]), None])
         {
+            let claim_id = claim["claim_id"].as_str().unwrap();
+            if !stream.rows.contains_key(claim_id) {
+                continue;
+            }
+            let archives = receipts
+                .iter()
+                .filter(|receipt| {
+                    let id = receipt["previous_source"]["id"].as_str().unwrap();
+                    id == claim_id
+                        || (!stream.rows.contains_key(id)
+                            && stream.rows.keys().next().map(String::as_str) == Some(claim_id))
+                })
+                .map(|receipt| format!("{}/", receipt["archive_path"].as_str().unwrap()))
+                .collect::<Vec<_>>();
+            let files = owned_files
+                .iter()
+                .filter(|(path, _)| {
+                    path.as_str() == history_path.as_str()
+                        || archives.iter().any(|prefix| path.starts_with(prefix))
+                })
+                .map(|(path, raw)| (path.clone(), raw.as_slice()))
+                .collect::<BTreeMap<_, _>>();
+            let dependencies = dependencies
+                .iter()
+                .filter(|row| files.contains_key(row.path.as_str()))
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut scanned = 0;
             let result = validate_claim_history(
                 Some(&history),
                 &history_path,
@@ -5882,9 +5940,9 @@ mod tests {
                 &dependencies,
                 &files,
                 limits,
-                &mut 0,
+                &mut scanned,
             );
-            if !accepted {
+            if !accepted && expected_receipt.is_some() {
                 assert!(
                     result.is_err(),
                     "archive must reject nonempty or unrecognized hidden members"
@@ -5892,6 +5950,16 @@ mod tests {
                 continue;
             }
             let result = result.expect("shared history and exact archived predecessor chains");
+            assert_eq!(
+                scanned,
+                if expected_receipt.is_none() {
+                    0
+                } else if retired_owner {
+                    12
+                } else {
+                    6
+                }
+            );
             assert_eq!(result.history_sha256, Some(Digest256::of_bytes(&history)));
             assert_eq!(
                 result.latest_revision_receipt_sha256,
@@ -5899,6 +5967,60 @@ mod tests {
                     .map(|receipt| source_digest256(receipt, CLAIM_LINE_BYTES).unwrap())
             );
         }
+    }
+
+    #[test]
+    fn selected_inventory_streams_preserve_owner_and_fixity_checks() {
+        let a = "ToS/source-witnesses/relations/a/source-claims.jsonl";
+        let b = "ToS/source-witnesses/relations/b/source-claims.jsonl";
+        let a_raw = br#"{"claim_id":"tos.claim.a","claim_version":1}"#;
+        let b_raw = br#"{"claim_id":"tos.claim.b","claim_version":1}"#;
+        let inventory = owner_inventory_from_streams(
+            &[
+                NavigationClaimEventOwnerStreamInputV1 {
+                    source_path: a,
+                    source_bytes: a_raw,
+                },
+                NavigationClaimEventOwnerStreamInputV1 {
+                    source_path: b,
+                    source_bytes: b_raw,
+                },
+            ],
+            CLAIM_LINE_BYTES,
+        )
+        .unwrap();
+        let owner = checked_path(a).unwrap();
+        let mut dependencies = vec![NavigationDependencyV1 {
+            path: owner.clone(),
+            role: NavigationDependencyRoleV1::Record,
+            state: NavigationDependencyStateV1::Present {
+                sha256: Digest256::of_bytes(a_raw),
+                size_bytes: a_raw.len() as u64,
+            },
+        }];
+        let mut files = BTreeMap::from([(a.to_owned(), a_raw.as_slice())]);
+        validate_inventory_dependencies(&inventory, &owner, &dependencies, &files).unwrap();
+        assert!(
+            validate_inventory_dependencies(
+                &inventory,
+                &checked_path(b).unwrap(),
+                &dependencies,
+                &files
+            )
+            .is_err()
+        );
+        files.insert(a.to_owned(), b_raw.as_slice());
+        assert!(
+            validate_inventory_dependencies(&inventory, &owner, &dependencies, &files).is_err()
+        );
+        files.insert(a.to_owned(), a_raw.as_slice());
+        dependencies[0].state = NavigationDependencyStateV1::Present {
+            sha256: Digest256::of_bytes(b_raw),
+            size_bytes: a_raw.len() as u64,
+        };
+        assert!(
+            validate_inventory_dependencies(&inventory, &owner, &dependencies, &files).is_err()
+        );
     }
 
     #[test]

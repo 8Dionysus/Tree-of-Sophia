@@ -90,7 +90,12 @@ inventory; older readers reject the latter and must be upgraded with the
 producer. New publication requires the complete inventory. Subsequent events recognize both Record and
 Claim range-reconciliation cohorts as predecessor owners.
 Each Claim carries its own forms, identity, evidence and history closure, plus
-the exact complete stream, range causes and shared inventory witnesses. Other
+its exact complete stream and range causes. The immutable parsed inventory and
+range manifest bind the complete stream membership once. Each contribution
+checks its own and referenced streams; unrelated stream payloads are not copied.
+The full interleaved history chain remains checked, while each revision archive
+is verified by the Claim that owns it. Every terminal owner must succeed before
+the complete range can seal, so a bad archive still refuses publication. Other
 owners' support files are not copied into its contribution. The producer computes
 the complete dependency-byte forecast before rendering any Claim; actual
 per-contribution costs retain the same aggregate admission limits.

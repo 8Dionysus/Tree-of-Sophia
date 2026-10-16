@@ -1590,24 +1590,14 @@ fn process_ready_range(
                     )?
                     .into_iter()
                     .collect::<BTreeSet<_>>();
-                // Keep all exact range causes and the shared inventory
-                // proof. Schema dependencies follow the same transitive
-                // URI resolver as the prepared worker, never all contracts
-                // merely because another stream uses them.
-                for paths in [
-                    changed_source_paths.clone(),
-                    claim_inventory
-                        .scan_costs()
-                        .iter()
-                        .map(|cost| cost.source_path.clone())
-                        .collect(),
-                ] {
-                    extend_event_paths(
-                        &mut stream_paths,
-                        paths,
-                        selection.event_limits.max_dependencies,
-                    )?;
-                }
+                // Keep exact range causes. The immutable parsed inventory
+                // and complete range manifest bind sibling streams once;
+                // each contribution carries only the streams it actually uses.
+                extend_event_paths(
+                    &mut stream_paths,
+                    changed_source_paths.iter().cloned(),
+                    selection.event_limits.max_dependencies,
+                )?;
                 let schema_roots = stream_paths
                     .iter()
                     .filter(|path| {
