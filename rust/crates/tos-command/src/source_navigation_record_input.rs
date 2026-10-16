@@ -22,7 +22,9 @@ use tos_compiler::{
         CandidateEventSourceIdentityV1, SourceCatalogValidator, render_catalog_record,
     },
 };
-use tos_foundation::{Digest256, RelativePath};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_raw_bytes_v1,
+};
 
 use crate::{
     DurableError, DurableNavigationEventContextV1, DurableResult,
@@ -203,6 +205,19 @@ pub(crate) fn direct_source_create_records_for_range_v1(
                 .pointer("/source/digest")
                 .and_then(Value::as_str)
                 .and_then(|value| value.strip_prefix("sha256:"));
+            // source.digest identifies the canonical Record; files and exact
+            // range coverage independently bind its published source bytes.
+            let record_digest = Digest256::of_bytes(
+                &canonical_raw_bytes_v1(
+                    &source_bytes,
+                    CanonicalProfile::SourceRecordDigestV1,
+                    JsonLimits {
+                        max_bytes: MAX_RECORD_BYTES,
+                        ..JsonLimits::default()
+                    },
+                )
+                .map_err(|_| DurableError::Invalid("range direct Record canonical digest"))?,
+            );
             let record_id = record
                 .get("record_id")
                 .or_else(|| record.get("artifact_id"))
@@ -212,7 +227,7 @@ pub(crate) fn direct_source_create_records_for_range_v1(
                 || !id.starts_with("tos.")
                 || id.len() > 256
                 || record_id != Some(id)
-                || source_digest != Some(Digest256::of_bytes(&source_bytes).to_hex().as_str())
+                || source_digest != Some(record_digest.to_hex().as_str())
             {
                 return Err(DurableError::Conflict(
                     "range direct Record source differs from its creation receipt",

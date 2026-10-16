@@ -1077,10 +1077,10 @@ fn seal_record_mutation_cause(
                 || receipt.pointer("/source/id").and_then(Value::as_str)
                     != Some(owner.record_id.as_str())
                 || receipt.pointer("/source/version").and_then(Value::as_u64) != Some(1)
+                // The subject digest is canonical Record identity. Exact file
+                // bytes remain bound by range coverage and receipt_file below.
                 || receipt.pointer("/source/digest").and_then(Value::as_str)
-                    != Some(
-                        format!("sha256:{}", Digest256::of_bytes(source_bytes).to_hex()).as_str(),
-                    )
+                    != Some(format!("sha256:{}", record_digest(&record, MAX_RANGE_BYTES)?).as_str())
                 || receipt_file(&receipt, source_path.as_str(), source_bytes).is_err()
                 || receipt_file(
                     &receipt,
