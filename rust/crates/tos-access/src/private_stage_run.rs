@@ -20,6 +20,7 @@ use std::{
     time::Duration,
 };
 use tos_foundation::{Digest256, Digest256Hasher};
+mod abyssos_host;
 const PATH_BYTES: usize = 4096;
 const PATH_PARTS: usize = 128;
 const ARGC: usize = 256;
@@ -4048,69 +4049,6 @@ fn host_refusal_diagnostic(
     diagnostic.to_string()
 }
 
-fn host_admission(
-    payload: serde_json::Value,
-    end: Cutoff,
-    cleanup_only: bool,
-) -> Result<serde_json::Value, String> {
-    use std::net::Shutdown;
-    use std::os::unix::net::UnixStream;
-    let path = PathBuf::from(format!(
-        "/run/user/{}/abyss-machine/resource/admission.sock",
-        unsafe { libc::geteuid() }
-    ));
-    let meta =
-        fs::symlink_metadata(&path).map_err(|_| "normal host runtime admission unavailable")?;
-    if meta.uid() != unsafe { libc::geteuid() } || meta.mode() & 0o077 != 0 {
-        return Err("host admission socket owner differs".into());
-    }
-    let mut s = UnixStream::connect(&path).map_err(|e| e.to_string())?;
-    let mut credentials = unsafe { std::mem::zeroed::<libc::ucred>() };
-    let mut size = std::mem::size_of::<libc::ucred>() as libc::socklen_t;
-    if unsafe {
-        libc::getsockopt(
-            s.as_raw_fd(),
-            libc::SOL_SOCKET,
-            libc::SO_PEERCRED,
-            &mut credentials as *mut _ as *mut _,
-            &mut size,
-        )
-    } != 0
-        || credentials.uid != unsafe { libc::geteuid() }
-    {
-        return Err("host admission peer differs".into());
-    }
-    let remaining = (if cleanup_only { end.whole } else { end.work })
-        .checked_sub(clock_ns()?)
-        .ok_or("original host cutoff")?;
-    s.set_read_timeout(Some(Duration::from_nanos(remaining)))
-        .map_err(|e| e.to_string())?;
-    s.set_write_timeout(Some(Duration::from_nanos(remaining)))
-        .map_err(|e| e.to_string())?;
-    let mut encoded = serde_json::to_vec(&payload).map_err(|e| e.to_string())?;
-    if encoded.len() > 65535 {
-        return Err("host request bound".into());
-    }
-    encoded.push(b'\n');
-    s.write_all(&encoded).map_err(|e| e.to_string())?;
-    s.shutdown(Shutdown::Write).map_err(|e| e.to_string())?;
-    let mut response = Vec::new();
-    s.take(65537)
-        .read_to_end(&mut response)
-        .map_err(|e| e.to_string())?;
-    end.cleanup_check()?;
-    if response.len() > 65536 {
-        return Err("host admission response bound".into());
-    }
-    let j: serde_json::Value = serde_json::from_slice(&response).map_err(|e| e.to_string())?;
-    if j["ok"] != true {
-        return Err(format!(
-            "normal host admission refused: {}",
-            host_refusal_diagnostic(&j, &payload, response.len(), cleanup_only)
-        ));
-    }
-    Ok(j)
-}
 fn sdk_host_session(args: &[String]) -> Result<i32, String> {
     // Cache path and snapshot-root are separate selectors; physical cache caps
     // are issued natively below, never accepted from the ordinary SDK request.
@@ -4219,7 +4157,9 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         return Err("host UUID unavailable".into());
     }
     let scope = format!("tos-sdk-session-{uuid}.scope");
-    let scratch = PathBuf::from(format!("/srv/abyss-machine/tmp/{scope}"));
+    let host_adapter = abyssos_host::Host::select(end)?;
+    let scratch = host_adapter.scratch(&scope)?;
+    let host = host_adapter.executable.as_str();
     // The ordinary request chooses only the selected path. Bind it to the exact
     // logical Root already admitted above and issue physical caps from this
     // native SDK profile.
@@ -4243,10 +4183,6 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             return Err("ordinary search cache overlaps native scratch".into());
         }
     }
-    let host = ["/usr/local/bin/abyss-machine", "/usr/bin/abyss-machine"]
-        .into_iter()
-        .find(|p| Path::new(p).is_file())
-        .ok_or("normal Abyss host owner unavailable")?;
     let mut lease: Option<String> = None;
     let mut storage = false;
     let mut cache_storage = false;
@@ -4333,7 +4269,7 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         // External caller buffers remain outside the migrated child scope and
         // already enter the broker's current host facts; do not add them here.
         let scope_ceiling_mib = SDK_SCOPE_BYTES.div_ceil(1024 * 1024);
-        let grant = host_admission(
+        let grant = host_adapter.admission(
             serde_json::json!({"command":"reserve","request":{"operation":"workload_start","owner":"tos-access-sdk","workload_id":scope,"request_id":uuid,"release_token":uuid,"activity":"foreground","class":"medium","kind":"generic","memory_demand_mib":scope_ceiling_mib,"estimate_source":"native_sdk_configured_cgroup_ceiling","estimate_confidence":"conditional","owner_pid":std::process::id(),"owner_cgroup":cgroup,"recoverability":"preserve"}}),
             end,
             false,
@@ -4473,6 +4409,7 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             cache.verify(&held, &scratch)?;
             cache_parent_hold = Some(held);
         }
+        host_adapter.recheck_scratch_parent()?;
         DirBuilder::new()
             .mode(0o700)
             .create(&scratch)
@@ -4604,7 +4541,7 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         drop(cache_parent_hold.take());
         drop(cache_anchor_hold.take());
         if let Some(id) = lease {
-            if let Err(error) = host_admission(
+            if let Err(error) = host_adapter.admission(
                 serde_json::json!({"command":"release","request":{"lease_id":id,"release_token":uuid}}),
                 end,
                 true,

@@ -13,6 +13,24 @@ Tree of Sophia owns the standalone product and its projection readers.
 bounded ports; `abyss-machine` retains artifact policy, registry, and consumer
 admission. None of those owners is imported into the query core.
 
+## Native SDK host paths
+
+The existing `sdk-host-session` launcher uses the embedded
+[`abyss-sdk-host.v1.json`](../../profiles/abyss-sdk-host.v1.json) profile.
+`TOS_ABYSS_MACHINE_PATH` explicitly selects an absolute host executable;
+otherwise the profile's installed candidates apply. The adapter reads the tmp
+root from `abyss-machine storage paths --json` and the admission socket from
+`abyss-machine resource paths --json`, checking their declared provider ABIs.
+It retains and rechecks the tmp parent and keeps the existing socket owner,
+peer UID, deadline, lease and storage-admission checks. Data roots select data;
+this software profile and executable come from the installed product/operator.
+
+This launcher remains an optional host capability for ordinary source SDK
+operations. The standalone prepared reader, CLI and query core retain their
+own routes. The frozen ecosystem deployment profile still requires its explicit
+unfreeze operation. Python result heap geometry remains a separate receiving
+contract.
+
 ## Rust protocol load readiness
 
 `rust/crates/tos-access/src/bin/tos-load-readiness.rs` is the finite Rust

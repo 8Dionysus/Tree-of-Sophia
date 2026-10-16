@@ -2038,6 +2038,10 @@ native product-selection route and refuses if none is available.
 
 ### Imported native query core
 
+Ordinary source SDK operations use the existing optional Abyss host launcher.
+Its installed host selection and provider-owned tmp/socket discovery are
+described in [the integration adapter](integrations/abyssos/README.md#native-sdk-host-paths).
+
 `NativeAccessCore` frames synchronous calls to the installed native MCP ABI.
 It returns the complete native packet. Rust owns query normalization, bounds,
 selected-source compatibility and disclosure fences; Python owns argv, the
