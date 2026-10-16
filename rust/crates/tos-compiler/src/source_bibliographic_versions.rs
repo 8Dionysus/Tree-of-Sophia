@@ -5199,7 +5199,9 @@ fn reconstruct_forms_with(
     Ok(())
 }
 
-fn public_form_lock(name: &str) -> bool {
+/// Recognize maintained public HumanForms writer-lock basenames.
+/// Callers must separately verify empty bytes and the selected archive scope.
+pub fn public_form_lock(name: &str) -> bool {
     if matches!(
         name,
         ".historical-event.human-forms.json.writer.lock"

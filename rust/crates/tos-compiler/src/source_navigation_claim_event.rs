@@ -4532,6 +4532,7 @@ fn verify_claim_archive(
     let mut archive_member_paths = BTreeSet::from([manifest_path.as_str().to_owned()]);
     let mut total_bytes = manifest_bytes.len();
     for (name, binding) in bindings {
+        let lock = crate::source_bibliographic_versions::public_form_lock(name);
         if name.is_empty()
             || name
                 .chars()
@@ -4540,7 +4541,8 @@ fn verify_claim_archive(
                 name.as_str(),
                 "." | ".." | "payload" | "owner-local" | "private" | "catalog"
             )
-            || name.starts_with('.')
+            || name.starts_with('.') && !lock
+            || lock && manifest["schema_version"] != "tos_source_package_archive_v1"
         {
             return Err(Error::Invalid("navigation Claim archive member name"));
         }
@@ -4570,6 +4572,11 @@ fn verify_claim_archive(
             || binding.get("bytes").and_then(Value::as_u64) != Some(bytes.len() as u64)
         {
             return Err(Error::Invalid("navigation Claim archive blob fixity"));
+        }
+        if lock && !bytes.is_empty() {
+            return Err(Error::Invalid(
+                "navigation Claim archive writer lock is not empty",
+            ));
         }
         total_bytes = total_bytes
             .checked_add(bytes.len())
@@ -5781,10 +5788,21 @@ mod tests {
 
     #[test]
     fn shared_history_binds_each_claims_own_latest_revision() {
+        let lock = format!(
+            ".source-claims.{}.human-forms.json.writer.lock",
+            "a".repeat(64)
+        );
+        shared_history_with_archived_lock(&lock, b"", true);
+        shared_history_with_archived_lock(&lock, b"nonempty", false);
+        shared_history_with_archived_lock(".private", b"", false);
+    }
+
+    fn shared_history_with_archived_lock(lock_name: &str, lock_bytes: &[u8], accepted: bool) {
         let source_path =
             checked_path("ToS/source-witnesses/relations/test/source-claims.jsonl").unwrap();
         let history_path =
-            checked_path("ToS/source-witnesses/relations/test/claim-revision-history.json").unwrap();
+            checked_path("ToS/source-witnesses/relations/test/claim-revision-history.json")
+                .unwrap();
         let limits = BibliographicLimits {
             catalog: crate::source_witness_catalog::SourceCatalogLimits {
                 max_files: 32,
@@ -5831,6 +5849,7 @@ mod tests {
             let files = BTreeMap::from([
                 ("source-claims.jsonl", stream_bytes(&claims)),
                 ("claim-revision-history.json", history_bytes(&receipts)),
+                (lock_name, lock_bytes.to_vec()),
             ]);
             let bindings = files.iter().map(|(name, raw)| ((*name).to_owned(), json!({
                 "sha256":format!("sha256:{}", Digest256::of_bytes(raw).to_hex()),"bytes":raw.len()
@@ -5889,7 +5908,8 @@ mod tests {
             .map(|(path, raw)| (path.clone(), raw.as_slice()))
             .collect();
         let creation = NavigationClaimCreationBindingV1 {
-            event_path: checked_path("ToS/source-witnesses/relations/test/provenance.jsonl").unwrap(),
+            event_path: checked_path("ToS/source-witnesses/relations/test/provenance.jsonl")
+                .unwrap(),
             event_id: "test-creation".to_owned(),
             event_version: 1,
             event_sha256: Digest256::of_bytes(b"event"),
@@ -5919,12 +5939,20 @@ mod tests {
                 &files,
                 limits,
                 &mut 0,
-            )
-            .expect("shared history and exact archived predecessor chains");
+            );
+            if !accepted {
+                assert!(
+                    result.is_err(),
+                    "archive must reject nonempty or unrecognized hidden members"
+                );
+                continue;
+            }
+            let result = result.expect("shared history and exact archived predecessor chains");
             assert_eq!(result.history_sha256, Some(Digest256::of_bytes(&history)));
             assert_eq!(
                 result.latest_revision_receipt_sha256,
-                expected_receipt.map(|receipt| source_digest256(receipt, CLAIM_LINE_BYTES).unwrap())
+                expected_receipt
+                    .map(|receipt| source_digest256(receipt, CLAIM_LINE_BYTES).unwrap())
             );
         }
     }

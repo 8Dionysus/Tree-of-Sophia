@@ -628,8 +628,19 @@ fn claim_event_archive_blob_paths_for_manifests_v1(
             return Err(DurableError::Refused("Claim archive member count"));
         }
         for (name, binding) in files {
-            if !safe_leaf(name) {
+            let lock = tos_compiler::source_bibliographic::public_form_lock(name);
+            if !safe_leaf(name)
+                && !(lock && manifest["schema_version"] == "tos_source_package_archive_v1")
+            {
                 return Err(DurableError::Conflict("Claim archive member name differs"));
+            }
+            if lock
+                && (binding.get("bytes").and_then(Value::as_u64) != Some(0)
+                    || text(binding, "sha256")? != Digest256::of_bytes(&[]).to_prefixed())
+            {
+                return Err(DurableError::Conflict(
+                    "Claim archive writer lock is not empty",
+                ));
             }
             let digest = text(binding, "sha256")?
                 .strip_prefix("sha256:")

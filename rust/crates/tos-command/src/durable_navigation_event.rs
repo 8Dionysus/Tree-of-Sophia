@@ -21,9 +21,7 @@ use tos_foundation::{
 };
 use tos_segment_store::SegmentStore;
 
-use crate::source_managed_selection::{
-    ManagedAgentSelectedParent, ManagedSelectedProof,
-};
+use crate::source_managed_selection::{ManagedAgentSelectedParent, ManagedSelectedProof};
 
 #[path = "durable_navigation_event/durable_navigation_range.rs"]
 mod durable_navigation_range;
@@ -37,10 +35,9 @@ pub use durable_navigation_range::{
 };
 
 use super::{
-    DurableError, DurablePgCoordinator, DurableProjectionLimits,
-    DurableProjectionProfile, DurableResult, EventMember, ProjectionEvent, as_i64, as_u64,
-    lock_domain_snapshot, read_domain_snapshot, set_local_timeouts, validate_identifier,
-    validate_relative_path,
+    DurableError, DurablePgCoordinator, DurableProjectionLimits, DurableProjectionProfile,
+    DurableResult, EventMember, ProjectionEvent, as_i64, as_u64, lock_domain_snapshot,
+    read_domain_snapshot, set_local_timeouts, validate_identifier, validate_relative_path,
 };
 
 const MAX_NAVIGATION_DEPENDENCIES: usize = 4096;
@@ -4955,8 +4952,11 @@ mod carrier_framing_tests {
         hidden.visible = false;
         assert!(!same_effective_node(&old, &hidden));
         for raw in [
-            canonical_value(&json!({"node_id":"identity:кружок","label":"changed"}), 4096)
-                .unwrap(),
+            canonical_value(
+                &json!({"node_id":"identity:кружок","label":"changed"}),
+                4096,
+            )
+            .unwrap(),
             [original.as_slice(), b" "].concat(),
             [original.as_slice(), b"\r\n"].concat(),
             [original.as_slice(), b"\n\n"].concat(),
@@ -6927,7 +6927,6 @@ impl DurablePgCoordinator {
             selected_sources,
         })
     }
-
 }
 
 fn resolve_event_witness(

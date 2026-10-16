@@ -12,7 +12,7 @@ pub use crate::source_bibliographic_render::{
     ClaimInputs as SuppliedBibliographicClaimInputs, Cohort as SuppliedBibliographicClaimCohort,
 };
 pub use crate::source_bibliographic_versions::{
-    BibliographicSourceCut, StreamedBibliographicReadLedger,
+    BibliographicSourceCut, StreamedBibliographicReadLedger, public_form_lock,
 };
 
 /// Render authenticated ordered metadata/history supplied by the source owner.

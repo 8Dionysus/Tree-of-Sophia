@@ -32,12 +32,14 @@ fn navigation_schema_upgrade_replaces_postgres_generated_version_check() {
             verified_prefix_cohort_root,verified_prefix_digest)
          VALUES('d','c','p','1',repeat('0',64),2,0,repeat('0',64),repeat('0',64),repeat('0',64));"
     ).unwrap();
-    assert!(client
-        .execute(
-            "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=3",
-            &[]
-        )
-        .is_err());
+    assert!(
+        client
+            .execute(
+                "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=3",
+                &[]
+            )
+            .is_err()
+    );
     client.batch_execute(projection).unwrap();
     client.batch_execute(projection).unwrap();
     assert_eq!(
@@ -59,12 +61,14 @@ fn navigation_schema_upgrade_replaces_postgres_generated_version_check() {
             .unwrap(),
         1
     );
-    assert!(client
-        .execute(
-            "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=4",
-            &[]
-        )
-        .is_err());
+    assert!(
+        client
+            .execute(
+                "UPDATE cmd2_projection_navigation_consumer SET verified_prefix_version=4",
+                &[]
+            )
+            .is_err()
+    );
     client
         .batch_execute("DROP SCHEMA tos_initial_version_upgrade_test CASCADE")
         .unwrap();
@@ -463,10 +467,12 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
         expected_adjacency_root
     );
     tx.execute("UPDATE cmd2_projection_navigation_adjacency_certificate SET edge_count=edge_count+1 WHERE node_id='work:current'", &[]).unwrap();
-    assert!(super::super::seal::verify_adjacency(
-        &mut tx, "lab", "initial", root, limits, deadline, &cancelled
-    )
-    .is_err());
+    assert!(
+        super::super::seal::verify_adjacency(
+            &mut tx, "lab", "initial", root, limits, deadline, &cancelled
+        )
+        .is_err()
+    );
     tx.rollback().unwrap();
     // A changed duplicate rights carrier must not become another owner copy.
     let mut position = Position {
