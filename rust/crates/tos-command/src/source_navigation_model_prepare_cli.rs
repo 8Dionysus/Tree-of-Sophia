@@ -23,6 +23,7 @@ use tos_source_store::{
     SoftwareComponentSelectionV1,
 };
 
+use super::source_navigation_model_compile::INITIAL_MAX_TOTAL_MS;
 use crate::{
     source_command::{self as cmd, SourceCommandError, SourceCommandResult},
     source_creation_store::active,
@@ -516,7 +517,7 @@ fn safe_leaf(value: &str) -> bool {
 }
 
 fn validate_model_limits(limits: ModelLimits) -> SourceCommandResult<()> {
-    if !(1_000..=600_000).contains(&limits.max_total_ms)
+    if !(1_000..=INITIAL_MAX_TOTAL_MS).contains(&limits.max_total_ms)
         || !(16 * 1024 * 1024..=2 * 1024 * 1024 * 1024).contains(&limits.host_export_bytes)
         || !(32..=1_000_000).contains(&limits.host_export_inodes)
         || !(64 * 1024 * 1024..=8 * 1024 * 1024 * 1024).contains(&limits.tmpfs_bytes)
@@ -1971,6 +1972,16 @@ mod initial_envelope_tests {
         assert!(read.max_selected_object_bytes >= 16_734_381);
         assert!(cut.max_members >= 19_034 && cut.max_total_bytes >= 549_726_458);
         assert_eq!(ms, 600000);
+        owner["model_limits"]["max_total_ms"] = json!(INITIAL_MAX_TOTAL_MS);
+        assert_eq!(
+            initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1000)
+                .unwrap()
+                .2,
+            INITIAL_MAX_TOTAL_MS
+        );
+        owner["model_limits"]["max_total_ms"] = json!(INITIAL_MAX_TOTAL_MS + 1);
+        assert!(initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1000).is_err());
+        owner["model_limits"]["max_total_ms"] = json!(600000);
         assert!(initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1001).is_err());
         owner["model_limits"]["max_source_total_bytes"] = json!(2147483649u64);
         assert!(initial_invocation_limits(&serde_json::to_vec(&owner).unwrap(), 1000).is_err());

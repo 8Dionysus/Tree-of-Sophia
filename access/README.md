@@ -1390,6 +1390,12 @@ time, host export bytes/inodes, tmpfs bytes/inodes, working RAM, source
 member/byte ceilings, plan bytes/work, and maximum model bytes. Initial
 catalog compilation uses these model limits and the selected cold row limit;
 ordinary incremental event/window limits continue to apply to later advances.
+`model_limits.max_total_ms` bounds the complete initial operation, including
+source assessment, export, compilation and publication, and admits at most
+900,000 ms. The compiler child receives only the remaining budget after the
+host's 60,000 ms finalization reserve, capped at 600,000 ms including its
+shutdown grace. Select the initial budget from measured work for the chosen
+cut; this ceiling does not change ordinary transaction or query budgets.
 
 The parent retains the protected owner and PostgreSQL connection. It reuses a
 current assessed source selection. After source changes or database restore,

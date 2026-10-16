@@ -5,7 +5,7 @@
 //! cleanup; owner selection and final publication remain in the caller.
 
 use super::source_navigation_model_compile::{
-    SOURCE_NAVIGATION_PHASE_STAGES, SourceNavigationModelCompileRequestV2,
+    CHILD_MAX_TOTAL_MS, SOURCE_NAVIGATION_PHASE_STAGES, SourceNavigationModelCompileRequestV2,
     SourceNavigationModelCompileResultV1,
 };
 use crate::source_command::{SourceCommandError, SourceCommandResult};
@@ -32,7 +32,6 @@ const RESPONSE_MAX_BYTES: usize = 8 * 1024 * 1024;
 const STDERR_RETAIN_BYTES: usize = 16 * 1024;
 const EXECUTABLE_MAX_BYTES: u64 = 512 * 1024 * 1024;
 const WORKER_MAX_BYTES: u64 = 256 * 1024 * 1024;
-const CHILD_MAX_TOTAL_MS: u64 = 600_000;
 const CHILD_MAX_SHUTDOWN_MS: u64 = 60_000;
 const POST_EXIT_DRAIN_MS: u64 = 250;
 const PIPE_READ_SLICE_BYTES: usize = 64 * 1024;
@@ -119,9 +118,10 @@ pub(crate) fn launch_source_navigation_model_compile(
 ) -> SourceCommandResult<SourceNavigationModelCompileResultV1> {
     // Establish the outer deadline before path checks or executable hashing.
     let started = monotonic_ns()?;
-    let total_ms = remaining_budget_ms.min(limits.max_total_ms);
+    let total_ms = remaining_budget_ms
+        .min(limits.max_total_ms)
+        .min(CHILD_MAX_TOTAL_MS);
     if total_ms == 0
-        || total_ms > CHILD_MAX_TOTAL_MS
         || launcher.shutdown_grace_ms == 0
         || launcher.shutdown_grace_ms > CHILD_MAX_SHUTDOWN_MS
         || total_ms <= launcher.shutdown_grace_ms
@@ -863,7 +863,11 @@ fn validate_result(
     // Derive the same receipt as the producer instead of comparing those two
     // intentionally distinct identities.
     let snapshot = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
-        request.model_limits.max_total_ms.div_ceil(1_000),
+        request
+            .model_limits
+            .max_total_ms
+            .min(CHILD_MAX_TOTAL_MS)
+            .div_ceil(1_000),
     )
     .map_err(|_| SourceCommandError::Invalid("source-navigation model receipt limits"))?;
     let expected_binding = tos_compiler::managed_agent_producer::managed_model_receipt_binding(

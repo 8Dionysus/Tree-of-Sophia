@@ -37,6 +37,10 @@ use crate::source_command::{SourceCommandError, SourceCommandResult};
 
 const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v2";
 pub(crate) const MAX_SOURCE_HISTORY_REVISIONS: usize = 4;
+// The host budget also covers assessment, selected export and publication.
+// The isolated compiler keeps its own smaller execution ceiling.
+pub(crate) const INITIAL_MAX_TOTAL_MS: u64 = 900_000;
+pub(crate) const CHILD_MAX_TOTAL_MS: u64 = 600_000;
 const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v1";
 const REQUEST_MAX_BYTES: usize = 8 * 1024 * 1024;
 const RESPONSE_MAX_BYTES: usize = 8 * 1024 * 1024;
@@ -702,7 +706,7 @@ pub(crate) fn compile(
         .map_err(|_| SourceCommandError::Invalid("source-navigation compile request digest"))?;
     let model = request.model_limits;
     validate_model_limits(model)?;
-    if request.operation_budget_ms == 0 || request.operation_budget_ms > 600_000 {
+    if request.operation_budget_ms == 0 || request.operation_budget_ms > CHILD_MAX_TOTAL_MS {
         return Err(SourceCommandError::Invalid(
             "source-navigation operation budget",
         ));
@@ -1001,7 +1005,7 @@ pub(crate) fn compile(
     )?;
 
     let mut snapshot = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
-        model.max_total_ms.div_ceil(1_000),
+        model.max_total_ms.min(CHILD_MAX_TOTAL_MS).div_ceil(1_000),
     )
     .map_err(|_| SourceCommandError::Unsupported("production source-navigation model limits"))?;
     snapshot.stage.sqlite.max_output_bytes = snapshot
@@ -1515,7 +1519,7 @@ fn bounded_positive(value: u64, maximum: u64, message: &'static str) -> SourceCo
 }
 
 fn validate_model_limits(limits: SourceNavigationCompileModelLimitsV1) -> SourceCommandResult<()> {
-    if !(1_000..=600_000).contains(&limits.max_total_ms)
+    if !(1_000..=INITIAL_MAX_TOTAL_MS).contains(&limits.max_total_ms)
         || !(16 * 1024 * 1024..=2 * 1024 * 1024 * 1024).contains(&limits.host_export_bytes)
         || !(32..=1_000_000).contains(&limits.host_export_inodes)
         || !(64 * 1024 * 1024..=8 * 1024 * 1024 * 1024).contains(&limits.tmpfs_bytes)
