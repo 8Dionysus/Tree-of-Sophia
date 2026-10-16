@@ -256,7 +256,7 @@ pub(crate) fn mcp_tool_list(
             }
             SOURCE_TEXT_SEARCH_OPERATION_ID => source_text_search_selected,
             id if crate::source_read::Operation::from_id(id).is_some() => {
-                crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_only())
+                crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_available())
                     || executor.source_read_available()
             }
             crate::knowledge::ACCESS_HEALTH_OPERATION => executor.access_health_available(),

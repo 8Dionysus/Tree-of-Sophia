@@ -1,4 +1,4 @@
-//! Native durable PostgreSQL source-text search is unavailable in wasm.
+//! Durable PostgreSQL source-text search needs the native source-owner adapter.
 //! Keep the transport surface type-correct while failing closed.
 
 use std::io::Write;
@@ -42,16 +42,18 @@ pub fn run_cli(
     _stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
-    let _ = writeln!(
-        stderr,
-        "unavailable: durable PostgreSQL source-text search is native-only"
-    );
+    let _ = writeln!(stderr, "unavailable: {}", unavailable_message());
     3
 }
 
 fn unavailable() -> AccessError {
-    AccessError::new(
-        AccessErrorCode::Unavailable,
-        "durable PostgreSQL source-text search is native-only",
-    )
+    AccessError::new(AccessErrorCode::Unavailable, unavailable_message())
+}
+
+fn unavailable_message() -> &'static str {
+    if cfg!(target_arch = "wasm32") {
+        "durable PostgreSQL source-text search is native-only"
+    } else {
+        "durable PostgreSQL source-text search is not enabled in this build"
+    }
 }

@@ -238,7 +238,6 @@ pub const RUNTIME_DATA_DECLARATION_PATH: &str = "access/contracts/runtime-data.v
 pub const RUNTIME_DATA_DECLARATION: &[u8] =
     include_bytes!("../../../../access/contracts/runtime-data.v1.json");
 
-
 /// Producer layout for the existing allowlisted public query/http ledger subset.
 /// Paths are derived from the owner declaration; identities/counts are not rules.
 pub fn public_source_gap_paths() -> Result<Vec<String>> {
@@ -1319,6 +1318,9 @@ impl ReleaseLease {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(
+    target_os = "linux",
+    any(feature = "source-tools", feature = "research-tools")
+))]
 #[path = "release_state_promotion.rs"]
 pub mod promotion;

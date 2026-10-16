@@ -8,6 +8,21 @@ use `TOS_NATIVE_PREPARED_CONSUMER_BIN` when an exact built `tos-access` image is
 selected, or the installed `tos` on PATH. Source-data validation is a separate
 operation and is not implied by this software result.
 
+Library build profiles separate readers from source operations. The default
+`source-tools` profile keeps the complete installed `tos-access` product.
+`--no-default-features` builds the transport and selected projection readers,
+including native software archive verification, without CMD, capture or the ZIP
+writer. Add `source-owner` for the explicit source/PG adapters; add
+`source-tools` for preparation, Core construction, publication, capture and
+archive creation/installation. Features select compiled code; data, owner
+binding and disclosure admission remain explicit runtime choices.
+MCP discovery omits source-contract tools when their owner adapter is absent;
+a direct call to the declared operation returns an unavailable tool result.
+
+The maintained `tos-research` build uses `--no-default-features --features
+research-tools --bin tos-research`. Its receipt retains the existing exact
+`["research-tools"]` package feature set through the shared native role table.
+
 The metadata-only lexical validation entry is
 `tos-research lexical-index validate-tracked --source-root ABS`. Use
 `--derived-input-root ABS` when the declared lexical projection is in a data

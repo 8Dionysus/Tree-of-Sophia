@@ -622,6 +622,7 @@ fn capability_requires_real_owner_selection() {
 {"jsonrpc":"2.0","method":"notifications/initialized"}
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"tos_zarathustra_reading_search","arguments":{"query":"x"}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"tos_source_read_capabilities","arguments":{}}}
 "#;
     let mut output = Vec::new();
     run_io(Cursor::new(input), &mut output, &executor, profile()).unwrap();
@@ -629,7 +630,7 @@ fn capability_requires_real_owner_selection() {
         .unwrap()
         .lines()
         .collect::<Vec<_>>();
-    assert_eq!(lines.len(), 3);
+    assert_eq!(lines.len(), 4);
     let document = parse_json(
         lines[1].as_bytes(),
         JsonMode::PublishedStrict,
@@ -653,17 +654,23 @@ fn capability_requires_real_owner_selection() {
                 .to_owned()
         })
         .collect::<std::collections::BTreeSet<_>>();
-    assert_eq!(
-        names,
-        std::collections::BTreeSet::from([
-            tos_access::exploration_contracts::OPERATION.to_owned(),
-            tos_access::reading::MCP_TOOL.to_owned(),
-            "tos_zarathustra_reading_public_capability".to_owned(),
-            "tos_zarathustra_word_analysis_public_capability".to_owned(),
+    let expected = std::collections::BTreeSet::from([
+        tos_access::exploration_contracts::OPERATION.to_owned(),
+        tos_access::reading::MCP_TOOL.to_owned(),
+        "tos_zarathustra_reading_public_capability".to_owned(),
+        "tos_zarathustra_word_analysis_public_capability".to_owned(),
+    ]);
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
+    let expected: std::collections::BTreeSet<_> = expected
+        .union(&std::collections::BTreeSet::from([
             "tos_source_read_capabilities".to_owned(),
             "tos_source_read_contract".to_owned(),
-        ]),
-        "only packaged contracts and unavailable Reading/Word capability metadata need no data owner"
+        ]))
+        .cloned()
+        .collect();
+    assert_eq!(
+        names, expected,
+        "only compiled packaged contracts and unavailable Reading/Word capability metadata need no data owner"
     );
     let reading = parse_json(
         lines[2].as_bytes(),
@@ -685,6 +692,20 @@ fn capability_requires_real_owner_selection() {
         capability.object_get("result"),
         Some(tos_foundation::JsonValue::Null)
     ));
+    let source = parse_json(
+        lines[3].as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let result = source
+        .root()
+        .object_get("result")
+        .expect("declared source command returns a packet or an unavailable tool result");
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
+    assert!(result.object_get("structuredContent").is_some());
+    #[cfg(not(any(feature = "source-owner", feature = "research-tools")))]
+    assert_eq!(result.object_get("isError"), Some(&JsonValue::Bool(true)));
     assert!(executor.calls.lock().unwrap().is_empty());
 }
 
@@ -1366,6 +1387,7 @@ fn mcp_bounds_metadata_and_refusal_frames_before_output() {
 }
 
 #[test]
+#[cfg(feature = "source-tools")]
 fn exploration_software_contracts_survive_unrelated_data_selection_and_all_native_wires() {
     use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
     let executor = Synthetic {
@@ -1602,6 +1624,7 @@ fn exploration_software_contracts_survive_unrelated_data_selection_and_all_nativ
     );
 }
 
+#[cfg(feature = "source-tools")]
 fn write_native_doctor_fixture(root: &std::path::Path) {
     use tos_compiler::{
         PhilosophyOriginalCollection,
@@ -1678,6 +1701,7 @@ fn write_native_doctor_fixture(root: &std::path::Path) {
 
 /// Build only the legacy reader's declared metadata envelope. This is an
 /// explicit schema fixture, not a second production QueryStore writer.
+#[cfg(feature = "source-tools")]
 fn write_legacy_query_store_fixture(root: &std::path::Path) {
     let input_paths = [
         "ToS/derived-exports/tos_corpus_index.min.json",
@@ -1740,6 +1764,7 @@ fn write_legacy_query_store_fixture(root: &std::path::Path) {
 }
 
 #[test]
+#[cfg(feature = "source-tools")]
 fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
     use std::{
         fs,

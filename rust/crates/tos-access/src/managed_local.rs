@@ -20,8 +20,7 @@ use tos_compiler::{
     PhilosophyOriginalReceipt, QueryVocabulary, VerifiedKnowledgeModel,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1,
-    parse_json,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, parse_json,
 };
 use tos_query::search_v2::{
     CurrentPolicyBinding, IndexedSearchV2Request, SearchContinuationState, SearchV2Error,
@@ -48,7 +47,10 @@ pub struct ManagedLocalExecutor {
     cold: ColdOpenLimits,
     profile: AccessProfile,
     checkpoints: Checkpoints,
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        any(feature = "source-owner", feature = "research-tools")
+    ))]
     source_navigation: Option<crate::source_navigation::SelectedPgSourceNavigation>,
 }
 fn unavailable(message: &'static str) -> AccessError {
@@ -251,11 +253,17 @@ impl ManagedLocalExecutor {
             cold,
             profile,
             checkpoints: Checkpoints::Process(checkpoints),
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(
+                not(target_arch = "wasm32"),
+                any(feature = "source-owner", feature = "research-tools")
+            ))]
             source_navigation: None,
         })
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        any(feature = "source-owner", feature = "research-tools")
+    ))]
     /// Add an explicit PG source-navigation selection while preserving this
     /// executor's independent managed-release capabilities.
     pub fn with_source_navigation(
@@ -409,11 +417,17 @@ fn intended(operation: O) -> &'static str {
     }
 }
 impl AccessExecutor for ManagedLocalExecutor {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        any(feature = "source-owner", feature = "research-tools")
+    ))]
     fn source_descend_available(&self) -> bool {
         self.source_navigation.is_some()
     }
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(any(
+        target_arch = "wasm32",
+        not(any(feature = "source-owner", feature = "research-tools"))
+    ))]
     fn source_descend_available(&self) -> bool {
         false
     }
@@ -424,7 +438,10 @@ impl AccessExecutor for ManagedLocalExecutor {
     ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(unavailable("source navigation requires scoped delivery"))
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        any(feature = "source-owner", feature = "research-tools")
+    ))]
     fn source_descend_with_delivery(
         &self,
         request: Params,

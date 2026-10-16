@@ -33,8 +33,8 @@ use tos_query::{
 
 pub const PREPARED_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 const REQUEST_BYTES: usize = 65_536;
-enum LocalRequest {
-    SourceBinding,
+enum LocalRequest<'a> {
+    SourceBinding(&'a str),
     PreparedStatus,
     Search(CompressedSearchRequest),
     SearchCapabilities,
@@ -179,6 +179,7 @@ struct Selection {
     reading: Option<crate::reading::ReadingLocalExecutor>,
 }
 pub struct PreparedLocalExecutor {
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
     source: Option<crate::selected_source::Selection>,
     selected: Arc<Selection>,
 }
@@ -262,6 +263,7 @@ impl PreparedLocalExecutor {
         // Binding validation and publication observation remain in the metered
         // request, rather than scanning the database at adapter construction.
         Ok(Self {
+            #[cfg(any(feature = "source-owner", feature = "research-tools"))]
             source: None,
             selected: Arc::new(Selection {
                 path,
@@ -272,6 +274,7 @@ impl PreparedLocalExecutor {
             }),
         })
     }
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
     pub fn with_source_reader(
         mut self,
         root: &std::path::Path,
@@ -292,7 +295,7 @@ impl PreparedLocalExecutor {
     }
     fn read(
         &self,
-        request: LocalRequest,
+        request: LocalRequest<'_>,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
         crate::knowledge::check_abort(&probe)?;
@@ -377,16 +380,10 @@ impl PreparedLocalExecutor {
             session
                 .stored_lens(&s.binding, identifier)
                 .map_err(AccessError::from)?
-        } else if matches!(request, LocalRequest::SourceBinding) {
+        } else if let LocalRequest::SourceBinding(inputs_sha256) = &request {
             session.admit_binding(&s.binding).map_err(query_error)?;
             session
-                .source_binding(
-                    &s.binding,
-                    self.source
-                        .as_ref()
-                        .ok_or_else(unavailable)?
-                        .source_inputs_sha256(),
-                )
+                .source_binding(&s.binding, inputs_sha256)
                 .map_err(query_error)?;
             object(vec![])
         } else if matches!(request, LocalRequest::PreparedStatus) {
@@ -443,15 +440,9 @@ impl PreparedLocalExecutor {
         db.execute_batch("COMMIT; BEGIN")
             .map_err(|_| unavailable())?;
         session.recheck_binding(&s.binding).map_err(query_error)?;
-        if matches!(request, LocalRequest::SourceBinding) {
+        if let LocalRequest::SourceBinding(inputs_sha256) = &request {
             session
-                .source_binding(
-                    &s.binding,
-                    self.source
-                        .as_ref()
-                        .ok_or_else(unavailable)?
-                        .source_inputs_sha256(),
-                )
+                .source_binding(&s.binding, inputs_sha256)
                 .map_err(query_error)?;
         }
         db.execute_batch("COMMIT").map_err(|_| unavailable())?;
@@ -484,14 +475,17 @@ impl PreparedLocalExecutor {
     }
 }
 impl AccessExecutor for PreparedLocalExecutor {
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
     fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
         self.source
             .as_ref()
             .map(crate::selected_source::Selection::software)
     }
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
     fn source_read_available(&self) -> bool {
         self.source.is_some()
     }
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
     fn source_read(
         &self,
         request: crate::source_read::Request,
@@ -502,7 +496,10 @@ impl AccessExecutor for PreparedLocalExecutor {
         }
         let source = self.source.as_ref().ok_or_else(unavailable)?;
         let deadline = source.deadline()?;
-        let prepared = self.read(LocalRequest::SourceBinding, Arc::clone(&probe))?;
+        let prepared = self.read(
+            LocalRequest::SourceBinding(source.source_inputs_sha256()),
+            Arc::clone(&probe),
+        )?;
         source.prepare(request, prepared.fence, deadline, probe)
     }
 

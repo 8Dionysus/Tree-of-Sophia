@@ -4704,6 +4704,7 @@ mod selected_knowledge {
         // assembly stage. This test never executes the integrity fixture ELF.
     }
     #[test]
+    #[cfg(feature = "source-tools")]
     fn native_software_archive_streaming_and_retained_identity_refuse_rebinding() {
         use tos_access::software_archive::{ArchiveLimits, VerifiedArchive};
         use zip::{ZipWriter, write::SimpleFileOptions};

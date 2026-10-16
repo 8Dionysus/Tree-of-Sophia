@@ -238,7 +238,7 @@ lock, toolchain and both resulting product identities with the owner receipt;
 an executable found on PATH is not an authorization or a matching worker proof.
 The complete historical `foundation` audit is available from the installed
 `tos-research foundation` entry. The full software cohort builds that executable
-separately with `--features research-tools`, preserving the ordinary reader's
+separately with `--no-default-features --features research-tools`, preserving the ordinary reader's
 feature set. A standalone owner build can instead select `--features research`.
 Ordinary selected-source validation
 does not compile the laboratory and gold-set implementations; requesting a full

@@ -16,6 +16,10 @@ impl Operation {
         matches!(self, Self::Capabilities | Self::Contract)
     }
 
+    pub(crate) fn software_available(self) -> bool {
+        self.software_only() && cfg!(any(feature = "source-owner", feature = "research-tools"))
+    }
+
     pub fn from_id(id: &str) -> Option<Self> {
         match id {
             "tos.source.read.capabilities" => Some(Self::Capabilities),
@@ -89,13 +93,19 @@ pub fn run_cli(
     if args.first().map(String::as_str) != Some("source") {
         return None;
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        any(feature = "source-owner", feature = "research-tools")
+    ))]
     if args.get(1).map(String::as_str) == Some("selected-owner") {
         return Some(crate::selected_source_owner_cli::run(
             args, profile, stdin, stdout, stderr,
         ));
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        any(feature = "source-owner", feature = "research-tools")
+    ))]
     if args.get(1).map(String::as_str) == Some("owner-provider-phase") {
         return Some(crate::source_owner_provider_phase::run(
             args, stdin, stdout, stderr,
@@ -154,6 +164,7 @@ pub fn run_cli(
 }
 
 /// Software discovery never opens a source or mints a disclosure grant.
+#[cfg(any(feature = "source-owner", feature = "research-tools"))]
 pub(crate) fn software_packet(
     operation: Operation,
     probe: std::sync::Arc<dyn tos_query::AbortProbe>,
@@ -185,6 +196,7 @@ pub(crate) fn software_packet(
 }
 /// The owner keeps a compact internal descriptor; portable adapters publish the
 /// maintained software contract envelope. Data selection cannot replace it.
+#[cfg(any(feature = "source-owner", feature = "research-tools"))]
 pub(crate) fn portable_packet(operation: Operation, body: Vec<u8>) -> Result<Vec<u8>, AccessError> {
     if operation != Operation::Contract {
         return Ok(body);
@@ -244,7 +256,9 @@ pub(crate) fn portable_packet(operation: Operation, body: Vec<u8>) -> Result<Vec
         )
     })
 }
+#[cfg(any(feature = "source-owner", feature = "research-tools"))]
 struct SoftwareFence(std::sync::Arc<dyn tos_query::AbortProbe>);
+#[cfg(any(feature = "source-owner", feature = "research-tools"))]
 impl crate::DisclosureFence for SoftwareFence {
     fn recheck(&mut self) -> Result<(), AccessError> {
         crate::knowledge::check_abort(&self.0)
@@ -279,4 +293,16 @@ mod tests {
             .expect("oversized request must be refused before parsing");
         assert_eq!(error.code, AccessErrorCode::BudgetExceeded);
     }
+}
+
+#[cfg(not(any(feature = "source-owner", feature = "research-tools")))]
+pub(crate) fn software_packet(
+    _operation: Operation,
+    probe: std::sync::Arc<dyn tos_query::AbortProbe>,
+) -> Result<crate::PreparedPacket<'static>, AccessError> {
+    crate::knowledge::check_abort(&probe)?;
+    Err(AccessError::new(
+        AccessErrorCode::Unavailable,
+        "exact source owner adapter is not enabled in this build",
+    ))
 }
