@@ -1064,11 +1064,14 @@ fn verify_range_member_digest(
         .ok_or(DurableError::Conflict(
             "navigation mutation identity path is absent from exact event members",
         ))?;
-    if member.sha256 != digest
-        || expected_is_source.is_some_and(|expected| member.is_source != expected)
-    {
+    if member.sha256 != digest {
         return Err(DurableError::Conflict(
             "navigation mutation identity digest differs from exact event member",
+        ));
+    }
+    if expected_is_source.is_some_and(|expected| member.is_source != expected) {
+        return Err(DurableError::Conflict(
+            "navigation mutation identity source role differs from exact event member",
         ));
     }
     Ok(())
@@ -1155,7 +1158,9 @@ fn verify_record_range_mutation_identity(
                 cause.event_sequence(),
                 identity.receipt_path().map(|path| path.as_str()),
                 identity.receipt_sha256(),
-                false,
+                // Native creation commits every package file as a source
+                // member, including this receipt, just as Claim creation does.
+                true,
             )?;
             let has_provenance = verify_optional_range_member_digest(
                 coverage,
