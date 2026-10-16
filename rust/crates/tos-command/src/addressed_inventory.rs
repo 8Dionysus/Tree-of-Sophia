@@ -234,21 +234,6 @@ impl AddressedMixedInventoryV1 {
         Ok(result)
     }
 
-    /// Apply initial-only added source members. Existing projection keys are
-    /// refused; ordinary revisions use their owner-specific retained-projection
-    /// route and are not a supported replacement operation here.
-    pub(super) fn apply_changed(
-        &self,
-        store: &SegmentStore,
-        changed: &ProjectionRows,
-        limits: AuthenticatedTreeLimitsV1,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<Self> {
-        let mut work = AuthenticatedTreeWorkV1::default();
-        self.apply_changed_with_work(store, changed, limits, deadline, cancelled, &mut work)
-    }
-
     pub(super) fn apply_changed_with_work(
         &self,
         store: &SegmentStore,

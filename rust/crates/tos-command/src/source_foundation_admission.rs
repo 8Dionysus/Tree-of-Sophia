@@ -1101,19 +1101,6 @@ impl<'c> NativeSourceValidator<'c> {
     pub(crate) fn deadline(&self) -> Instant {
         self.deadline
     }
-    /// The protected whole-run declaration, separate from logical state and
-    /// worker address space. Host admission and observed process fit remain
-    /// prerequisites owned by the original launcher/controller.
-    pub(crate) fn declared_working_ram_bytes(&self) -> io::Result<u64> {
-        let invocation = if let Some(prepared) = &self.prepared {
-            &prepared.invocation
-        } else if let Some(evaluated) = &self.evaluated {
-            &evaluated.invocation
-        } else {
-            return Err(invalid("admission invocation is unavailable"));
-        };
-        Ok(invocation.budgets.working_ram_bytes)
-    }
     fn ledger(&self) -> io::Result<&FoundationRemainingBudget<'c>> {
         if let Some(p) = &self.prepared {
             Ok(&p.ledger)

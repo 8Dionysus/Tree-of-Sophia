@@ -375,34 +375,6 @@ impl SourceRow {
             _hold: Some(hold),
         })
     }
-    pub(crate) fn with_owned_state<T>(
-        raw: &[u8],
-        max_bytes: usize,
-        state: &crate::d1_public_capture::CreationState<'_>,
-        operation: impl FnOnce(&Self) -> Result<T>,
-    ) -> Result<T> {
-        if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
-            return Err(Error::Budget("normalization source row bytes"));
-        }
-        let limits = JsonLimits::new(
-            max_bytes,
-            MAX_JSON_DEPTH,
-            MAX_JSON_VISITS,
-            MAX_INTEGER_DIGITS,
-        )
-        .map_err(|_| Error::Budget("normalization JSON limits"))?;
-        state.with_serde_owned_value_with_limits(raw, limits, |value| {
-            if !value.is_object() {
-                return Err(Error::Invalid("normalization source object"));
-            }
-            let source = Self {
-                value,
-                max_bytes,
-                max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
-            };
-            operation(&source)
-        })
-    }
     pub(crate) fn parse_with_owned_state(
         raw: &[u8],
         max_bytes: usize,

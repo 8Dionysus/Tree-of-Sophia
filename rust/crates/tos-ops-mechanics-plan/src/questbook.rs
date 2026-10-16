@@ -93,7 +93,7 @@ fn invalid(message: impl Into<String>) -> io::Error {
 
 fn read(root: &Path, relative: &str) -> io::Result<Vec<u8>> {
     let path = root.join(relative);
-    let mut file = File::open(&path).map_err(|error| {
+    let file = File::open(&path).map_err(|error| {
         if error.kind() == io::ErrorKind::NotFound {
             invalid(format!("missing required file: {relative}"))
         } else {

@@ -986,44 +986,8 @@ impl HeldIndexedInputDeclarationV1 {
         Ok(output.written)
     }
 
-    pub(crate) fn manifest_stamp_v1(&self) -> (u64, u64, u32, u64, i64, i64, i64, i64) {
-        let stamp = self.manifest_file.stamp;
-        (
-            stamp.device,
-            stamp.inode,
-            stamp.mode,
-            stamp.length,
-            stamp.mtime,
-            stamp.mtime_nsec,
-            stamp.ctime,
-            stamp.ctime_nsec,
-        )
-    }
-
-    pub(crate) fn profile_stamp_v1(&self) -> (u64, u64, u32, u64, i64, i64, i64, i64) {
-        let stamp = self.profile_file.stamp;
-        (
-            stamp.device,
-            stamp.inode,
-            stamp.mode,
-            stamp.length,
-            stamp.mtime,
-            stamp.mtime_nsec,
-            stamp.ctime,
-            stamp.ctime_nsec,
-        )
-    }
-
-    pub(crate) fn root_stamp_v1(&self) -> (u64, u64, u32, i64, i64, i64, i64) {
-        self.root_stamp
-    }
-
     pub(crate) fn named_root_v1(&self) -> &Path {
         &self.named_root
-    }
-
-    pub(crate) fn io_snapshot_v1(&self) -> tos_source_store::PinnedSqliteIoSnapshot {
-        self.io_budget.snapshot()
     }
 
     pub(crate) fn work_budget_v1(&self) -> AdmissionWorkBudget {

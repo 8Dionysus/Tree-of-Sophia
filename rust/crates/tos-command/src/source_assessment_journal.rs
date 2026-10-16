@@ -1785,39 +1785,6 @@ impl AssessmentHistory {
         )
     }
 
-    /// Reconstruct history under the exact selected candidate worker and its
-    /// opaque input identity. The owner must select the batch schema bytes in
-    /// the same read session and pass that identity unchanged.
-    pub(crate) fn from_private_package_history_selected<I: Copy + Eq>(
-        package_history: &PrivateOwnerPackageHistoryV1,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        subject: &str,
-        ctx: &CommandContext,
-        input_identity: &I,
-        worker: &mut CandidateCutWorkerSchemaExecutor<I>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Self> {
-        let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
-        let batch_schema = ctx
-            .file(&schema_path)?
-            .ok_or(SourceCommandError::Unsupported(
-                "selected assessment batch schema absent",
-            ))?;
-        Self::from_private_package_history_selected_schema(
-            package_history,
-            scope,
-            target_ref,
-            subject,
-            batch_schema,
-            input_identity,
-            worker,
-            deadline,
-            cancelled,
-        )
-    }
-
     /// Selected-input counterpart that authenticates the exact schema bytes
     /// without requiring the legacy `CommandContext` revision field.
     pub(crate) fn from_private_package_history_selected_schema<I: Copy + Eq>(

@@ -48,7 +48,7 @@ fn object(entries: Vec<(&str, JsonValue)>) -> JsonValue {
     )
 }
 fn read(root: &Path, path: &str) -> io::Result<Vec<u8>> {
-    let mut file = File::open(root.join(path))?;
+    let file = File::open(root.join(path))?;
     let limit = JsonLimits::default().max_bytes;
     if file.metadata()?.len() > limit as u64 {
         return Err(invalid(format!(

@@ -1810,36 +1810,6 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         result
     }
 
-    /// Parse exact row material under the stored state; only unit work escapes.
-    pub(crate) fn with_normalized_relation_raw_owned(
-        &self,
-        raw: &[u8],
-        max_raw_bytes: usize,
-        source_graph: &str,
-        identity: Option<&str>,
-        left_title: &Value,
-        right_title: &Value,
-        default_authority: &str,
-        output_byte_cap: usize,
-        consume: impl FnOnce(&Value, &[u8]) -> Result<()>,
-    ) -> Result<()> {
-        let state = self
-            .owner_state
-            .ok_or(Error::Invalid("owned relation state absent"))?;
-        let source =
-            SourceRow::parse_scoped_with_optional_owned_state(raw, max_raw_bytes, Some(state))?;
-        self.with_normalized_relation_owned(
-            &source,
-            source_graph,
-            identity,
-            left_title,
-            right_title,
-            default_authority,
-            output_byte_cap,
-            consume,
-        )
-    }
-
     pub fn normalize_relation(
         &self,
         source: &SourceRow,

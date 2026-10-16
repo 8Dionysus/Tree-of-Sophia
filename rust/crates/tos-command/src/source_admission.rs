@@ -334,37 +334,6 @@ impl AdmissionBatch {
         })
     }
 
-    /// SourceEntry can derive a bounded verified-row batch from its selected
-    /// readset and carry that invocation's original work meter into the packed
-    /// successor writer. The legacy constructor remains unchanged.
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn from_verified_rows_with_work(
-        base_revision: Option<Digest256>,
-        validator_sha256: Digest256,
-        updates: BTreeMap<String, SourceUpdate>,
-        input: File,
-        limits: AdmissionLimits,
-        additional_state_bytes: usize,
-        io: &tos_source_store::PinnedSqliteIoBudget,
-        work: AdmissionWorkBudget,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Self> {
-        let mut batch = Self::from_verified_rows(
-            base_revision,
-            validator_sha256,
-            updates,
-            input,
-            limits,
-            additional_state_bytes,
-            io,
-            deadline,
-            cancel,
-        )?;
-        batch.selected_work_budget = Some(work);
-        Ok(batch)
-    }
-
     /// Construct an initial-only batch from the proposal rows already held in
     /// the caller's AUX database. The rows remain SQL-backed for the spooled
     /// candidate; only one bounded row and its keyset cursor are resident at a

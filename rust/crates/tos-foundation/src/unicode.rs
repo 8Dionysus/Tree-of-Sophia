@@ -774,6 +774,7 @@ mod lower_tests {
     }
 }
 
+#[cfg(test)]
 fn in_ranges(point: u32, ranges: &[(u32, u32)]) -> bool {
     ranges
         .binary_search_by(|(start, end)| {

@@ -491,20 +491,6 @@ impl PublicNativeTextSelection {
         }
         Ok(bytes)
     }
-    pub(crate) fn read_expected(
-        &self,
-        reference: &str,
-        sha256: &str,
-        max: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> R<Vec<u8>> {
-        let bytes = self.read(reference, max, deadline, cancelled)?;
-        if Digest256::of_bytes(&bytes).to_hex() != sha256 {
-            return Err(E::Conflict("public Text input digest"));
-        }
-        Ok(bytes)
-    }
     pub(crate) fn package(
         &self,
         reference: &str,

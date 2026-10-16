@@ -1263,14 +1263,6 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             merged_event_json_bytes: self.default_events.merged_json_bytes,
         }
     }
-
-    pub(crate) fn biblio_event_count(&self) -> u64 {
-        self.biblio_events.observation_rows
-    }
-
-    pub(crate) fn biblio_claim_count(&self) -> u64 {
-        self.claims.inserted_rows
-    }
 }
 
 fn row_blob<'a>(row: &'a rusqlite::Row<'_>, column: usize) -> rusqlite::Result<&'a [u8]> {

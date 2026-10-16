@@ -1171,28 +1171,6 @@ impl<'a> SourceCatalogValidator<'a> {
         Ok(())
     }
 
-    /// Existing bibliographic rules consume the same borrowed candidate worker.
-    /// This path accepts no SourceRevision and keeps the opaque fence guarded.
-    pub(crate) fn with_candidate_schemas<T>(
-        &self,
-        f: impl FnOnce(&mut dyn CutSchemaExecutor) -> Result<T>,
-    ) -> Result<T> {
-        self.guard()?;
-        let mut schemas = self
-            .schemas
-            .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let CatalogSchemas::Candidate(s) = &mut *schemas else {
-            return Err(Error::Invalid("candidate catalog schemas not selected"));
-        };
-        s.prepared_binding()
-            .map_err(|e| Error::Source(format!("catalog candidate binding:{e:?}")))?;
-        let result = f(s.as_mut());
-        s.prepared_binding()
-            .map_err(|e| Error::Source(format!("catalog candidate binding:{e:?}")))?;
-        self.guard()?;
-        result
-    }
     pub fn candidate_schema_execution_count(&self) -> Result<usize> {
         self.guard()?;
         let schemas = self
@@ -1664,28 +1642,6 @@ impl<'a> SourceCatalogValidator<'a> {
                 Err(Error::Invalid("catalog bounded receipt spool not selected"))
             }
         }
-    }
-
-    /// Borrow the selected executor without exposing a resident receipt slice.
-    pub(crate) fn with_selected_schemas<T>(
-        &self,
-        revision: SourceRevision,
-        f: impl FnOnce(&mut dyn CutSchemaExecutor) -> Result<T>,
-    ) -> Result<T> {
-        self.verify_schema_binding(revision)?;
-        let mut schemas = self
-            .schemas
-            .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let result = match &mut *schemas {
-            CatalogSchemas::Resident(s) => f(s),
-            CatalogSchemas::Spooling(s) => f(s),
-            CatalogSchemas::Candidate(_) => {
-                return Err(Error::Invalid("candidate catalog has no source revision"));
-            }
-        };
-        self.guard()?;
-        result
     }
 
     fn guard(&self) -> Result<()> {

@@ -1222,50 +1222,6 @@ impl DurablePgCoordinator {
         Ok(generation)
     }
 
-    /// Reopen the exact retained addressed descriptor named by a persisted
-    /// V2 proof. This performs no source scan or producer build. The row and
-    /// audit locks make the retained binding coherent for construction; every
-    /// disclosure still repeats the full live owner/PG checks under the read
-    /// callback, and the absent log frontier deliberately prevents successor
-    /// extension from this read-only constructor.
-    pub(crate) fn reopen_persisted_addressed_source_selection(
-        &mut self,
-        store: &SegmentStore,
-        proof: &tos_compiler::managed_source::ManagedSourceProofV2,
-        limits: AuthenticatedTreeLimitsV1,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
-        active(deadline, cancelled)?;
-        proof
-            .validate()
-            .map_err(|_| DurableError::Refused("persisted managed source proof is invalid"))?;
-        let described = &proof.generation;
-        let parse_digest = |value: &str| {
-            Digest256::from_hex(value)
-                .map_err(|_| DurableError::Corrupt("persisted addressed cohort digest"))
-        };
-        let generation = self.reopen_current_addressed_source_selection(
-            store,
-            &described.domain,
-            SourceRevision(parse_digest(&described.bootstrap_source_revision)?),
-            SourceMembershipV1 {
-                digest: parse_digest(&described.bootstrap_membership_sha256)?,
-                count: described.bootstrap_members,
-            },
-            limits,
-            deadline,
-            cancelled,
-        )?;
-        let projection = parse_digest(&described.inventory_projection_sha256)?;
-        if Self::managed_model_generation_description_v2(&generation, projection)? != *described {
-            return Err(DurableError::Conflict(
-                "persisted addressed selection proof differs",
-            ));
-        }
-        Ok(generation)
-    }
-
     /// Require a current assessed selection, including for persisted proof reuse.
     pub(crate) fn reopen_current_addressed_source_selection(
         &mut self,

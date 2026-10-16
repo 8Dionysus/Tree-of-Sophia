@@ -1000,45 +1000,6 @@ impl<'candidate> IndexSink<'candidate> {
         })
     }
 
-    /// Run the existing candidate-fenced Records+Item receiver against this
-    /// exact SQLite sink and actual prepared candidate schema worker. This
-    /// report does not stand in for candidate catalog/render phases or the
-    /// remaining whole native admission callback.
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn inspect_candidate_records(
-        &mut self,
-        input: &CandidateRecordsInput<'_, '_>,
-        worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<CandidateFence>,
-        limits: tos_validation::source_foundation_records::SourceFoundationRecordsLimits,
-        require_local_payloads: bool,
-        cancelled: &AtomicBool,
-        record_executor: &mut tos_validation::record_biblio_cut::BiblioRecordExecutor,
-        physical_facts: &tos_validation::source_foundation_discovery::SourcePhysicalFacts,
-        payloads: &mut impl tos_validation::source_cut::CutPayloadReader,
-        fact_budget: tos_validation::record_biblio_cut::SourceCutRecordFactBudget,
-        page_budget: tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget,
-        retained_state_bytes: usize,
-        max_operation_state_bytes: usize,
-    ) -> io::Result<CandidateRecordsReportVerified> {
-        self.with_candidate_records_report(
-            input,
-            worker,
-            limits,
-            require_local_payloads,
-            cancelled,
-            record_executor,
-            physical_facts,
-            payloads,
-            fact_budget,
-            page_budget,
-            retained_state_bytes,
-            max_operation_state_bytes,
-            0,
-            |_, _, _, _, _| Ok(()),
-        )
-        .map(|(verified, ())| verified)
-    }
-
     /// Keep the genuine stored report and its read-only index borrowed through
     /// the caller's bounded dependent owner phases. The caller cannot return a
     /// report/store borrow: only its owned result escapes after report drop.
@@ -1204,31 +1165,6 @@ impl<'candidate> IndexSink<'candidate> {
         )?;
         self.native_index_built = true;
         Ok(retained)
-    }
-
-    /// Bind the opaque VAL report to this sink only after the Records/Item
-    /// kernel's full source traversal, currentness checks, and post-Item fence
-    /// verification returned successfully. The report is not a claim that the
-    /// candidate has no issues or that the remaining native callback passed.
-    pub(crate) fn verify_records_report(
-        &self,
-        report: &SourceFoundationRecordsStreamedReport<'_, CandidateFence>,
-        expected_schema: CutPreparedSchemaExecutionBinding,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> io::Result<CandidateRecordsReportVerified> {
-        if !report.index().is_backed_by(self) {
-            return Err(invalid("native Records report belongs to another store"));
-        }
-        Self::verify_records_report_bound(
-            self.candidate,
-            self.fence,
-            &self.sink_identity,
-            report,
-            expected_schema,
-            deadline,
-            cancelled,
-        )
     }
 
     #[allow(clippy::too_many_arguments)]

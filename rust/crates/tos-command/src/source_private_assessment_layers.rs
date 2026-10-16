@@ -351,15 +351,7 @@ impl PrivateAssessmentLayers {
     }
 }
 
-impl SelectedOwnerLayer {
-    pub(crate) fn quality_observation(&self, required: bool) -> AssessmentLayerQualityObservation {
-        AssessmentLayerQualityObservation {
-            source_comparison_required: required,
-            source_comparison_present: self.comparison_record.is_some(),
-            positive_use_allowed: self.positive_use_allowed,
-        }
-    }
-}
+impl SelectedOwnerLayer {}
 
 /// Validate the entire v5/v6 native-layer and quality-dependency selection
 /// without opening owner, corpus, payload, or image paths.

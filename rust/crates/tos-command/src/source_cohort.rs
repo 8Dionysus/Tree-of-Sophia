@@ -6114,26 +6114,6 @@ impl DurablePgCoordinator {
         Ok(receipt)
     }
 
-    /// One actual selected projection for the opt-in addressed model producer.
-    /// The indexed database row must agree with BOTH inventory and current
-    /// source trees under the held generation fence. No full catalog visitor.
-    pub(crate) fn managed_model_addressed_projection(
-        &mut self,
-        store: &SegmentStore,
-        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
-        path: &RelativePath,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<Option<tos_foundation::JsonValue>> {
-        self.managed_model_addressed_projection_with_work(
-            store,
-            generation,
-            path,
-            deadline,
-            cancelled,
-            &mut ManagedSourceWorkV1::default(),
-        )
-    }
     pub(crate) fn managed_model_addressed_projection_with_work(
         &mut self,
         store: &SegmentStore,
@@ -6312,24 +6292,6 @@ impl DurablePgCoordinator {
             history_members: cut.history.entries,
             inventory_projection_sha256: projection.to_hex(),
         })
-    }
-
-    /// Explicit opt-in bookkeeping schema, never ordinary V1 initialization.
-    /// The caller must use the matching recognized backup/restore profile;
-    /// table creation alone is not model or source admission.
-    pub(crate) fn enable_managed_model_overlay_v2(
-        &mut self,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<()> {
-        active(deadline, cancelled)?;
-        let mut tx = self.client.transaction()?;
-        managed_model_query_budget(&mut tx, deadline, cancelled)?;
-        tx.batch_execute(include_str!("managed_model_selection_v2.sql"))?;
-        require_managed_model_schema_v2(&mut tx, deadline, cancelled)?;
-        active(deadline, cancelled)?;
-        tx.commit()?;
-        Ok(())
     }
 
     /// Addressed selection identity only: no global inventory transcript is
@@ -6730,47 +6692,6 @@ impl DurablePgCoordinator {
         tx.commit()?;
         active(deadline, cancelled)?;
         Ok(root)
-    }
-
-    // Native selected-model disclosure uses the same real source/owner fences
-    // as creation. A serialized model companion cannot issue this boundary.
-    // Keep both owner and database locks across the actual bounded model seek.
-    pub(crate) fn with_current_managed_model<
-        T,
-        P: crate::source_managed_selection::ManagedSelectedProof,
-    >(
-        &mut self,
-        store: &SegmentStore,
-        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
-        proof: &P,
-        filesystem: &CreationFilesystem,
-        package: CreationPackage<'_>,
-        contract: Digest256,
-        rule_version: u64,
-        rights_version: u64,
-        job_id: &str,
-        job_fence: u64,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        seek: impl for<'seek> FnOnce(
-            &crate::source_managed_selection::ManagedCurrentModelLease<'seek, P>,
-        ) -> T,
-    ) -> DurableResult<T> {
-        self.with_current_managed_model_and_tx_owner(
-            store,
-            generation,
-            proof,
-            filesystem,
-            Some(package),
-            contract,
-            rule_version,
-            rights_version,
-            job_id,
-            job_fence,
-            deadline,
-            cancelled,
-            |lease, _tx| seek(lease),
-        )
     }
 
     /// Same managed owner/source fences, with the exact repeatable-read
@@ -7517,27 +7438,6 @@ impl DurablePgCoordinator {
             .into_iter()
             .map(|member| member.ok_or(DurableError::Corrupt("batch result incomplete")))
             .collect()
-    }
-
-    pub(crate) fn source_member_locator_digest(
-        &mut self,
-        cohort: &ManagedSourceCohort,
-        path: &RelativePath,
-        expected_revision: u64,
-    ) -> DurableResult<Digest256> {
-        let row = self
-            .client
-            .query_opt(
-                "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
-                &[&cohort.domain, &path.as_str()],
-            )?
-            .ok_or(DurableError::Conflict("current source member absent"))?;
-        if as_u64(row.get("revision"))? != expected_revision {
-            return Err(DurableError::Conflict(
-                "current source member custody revision changed",
-            ));
-        }
-        Ok(metadata_locator_digest(&row))
     }
 
     fn read_source_member_bound(

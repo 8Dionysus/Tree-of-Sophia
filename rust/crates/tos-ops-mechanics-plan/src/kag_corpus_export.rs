@@ -179,9 +179,6 @@ impl VerifiedExport {
             read_bytes: 0,
         }
     }
-    pub(crate) fn manifest(&self) -> &Value {
-        &self.manifest
-    }
     pub fn summary(&self) -> Value {
         json!({"export_revision":self.manifest["export_revision"],"corpus_revision":self.manifest["corpus_revision"],"primary_source":self.manifest["primary_source"]})
     }

@@ -262,32 +262,7 @@ pub(crate) struct RuntimeKnowledgeSqlHook<'connection, 'state, 'budget> {
     owner_deadline: Instant,
     _replacement_hold: CreationStateHold<'state, 'budget>,
 }
-impl RuntimeKnowledgeSqlHook<'_, '_, '_> {
-    /// Only after all narrowed cold/model/source guards have succeeded may the
-    /// retained connection resume its immutable original session lifetime.
-    /// Same counter, same original ceiling; unused windows stay charged.
-    pub(crate) fn promote_to_owner_after_fences(self) -> Result<()> {
-        let fixed = std::mem::size_of::<(
-            &Connection,
-            SharedVmWindow,
-            Result<SharedVmWindow>,
-            Arc<AtomicU64>,
-            Arc<AtomicBool>,
-            Result<()>,
-        )>()
-        .checked_add(SharedVmWindow::callback_state_upper_bound())
-        .ok_or(Error::Budget("runtime SQL promotion state"))?;
-        let _fixed = self.state.hold(fixed)?;
-        self.state.active()?;
-        self.state.heap().verify_current()?;
-        SharedVmWindow::reserve(self.state.sql_vm_counter(), self.state.sql_vm_limit())?.install(
-            self.db,
-            self.owner_deadline,
-            self.state.cancellation_handle(),
-        );
-        self.state.active()
-    }
-}
+impl RuntimeKnowledgeSqlHook<'_, '_, '_> {}
 
 /// A synchronous admission context for genuine cold preverification. This
 /// factory supplies no model/source authority: the caller retains authentic

@@ -235,40 +235,6 @@ impl WeightedScaleProfileV1 {
         Ok(profile)
     }
 
-    /// Smallest maintained weighted point that reaches the entire selected
-    /// quantile period in every class; it is a cohort input, not an admission.
-    pub(crate) fn minimum_all_quantile_variant_profile_v1(
-        seed: Digest256,
-    ) -> std::io::Result<Self> {
-        let reference = Self::fixed_100k(seed);
-        let minimum = reference
-            .classes
-            .iter()
-            .map(|row| row.count)
-            .min()
-            .filter(|count| *count != 0)
-            .ok_or_else(|| io_invalid("weighted class minimum absent"))?;
-        let total = reference
-            .classes
-            .iter()
-            .try_fold(0u64, |n, row| n.checked_add(row.count))
-            .ok_or_else(|| io_invalid("weighted class total overflow"))?;
-        let target = total
-            .checked_mul(SCALE_SELECTED_QUANTILE_PERIOD_V1)
-            .and_then(|n| n.checked_add(minimum - 1))
-            .map(|n| n / minimum)
-            .ok_or_else(|| io_invalid("representative quantile point overflow"))?;
-        let profile = Self::weighted_for_records(seed, target)?;
-        if profile
-            .classes
-            .iter()
-            .any(|row| row.count < SCALE_SELECTED_QUANTILE_PERIOD_V1)
-        {
-            return Err(io_invalid("representative quantile coverage differs"));
-        }
-        Ok(profile)
-    }
-
     pub fn validate(&self) -> std::io::Result<()> {
         if self.target_records < 20
             || raw_fixture_directory_count_v1(self).is_err()

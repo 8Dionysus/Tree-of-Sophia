@@ -1392,21 +1392,6 @@ impl<'input, 'cancel> CandidateFoundationBootstrapInputs<'input, 'cancel> {
             }),
         }
     }
-    pub(crate) fn with_initial_candidate_snapshots<'signal, T, E, F>(
-        &mut self,
-        git_signal: &'signal AtomicI32,
-        actual_input: &crate::source_admission_candidate_records::CandidateRecordsInput<'_, '_>,
-        run: F,
-    ) -> Result<T, E>
-    where
-        F: for<'work> FnOnce(
-            CandidateFoundationBootstrapView<'work, 'input, 'cancel, 'signal>,
-            FoundationPayloadSources<'work>,
-        ) -> Result<T, E>,
-        E: From<FoundationBootstrapError>,
-    {
-        self.with_initial_candidate_snapshots_with_history(git_signal, actual_input, None, run)
-    }
 
     pub(crate) fn with_initial_candidate_snapshots_with_history<'signal, T, E, F>(
         &mut self,

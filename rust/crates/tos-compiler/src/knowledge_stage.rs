@@ -3158,16 +3158,6 @@ impl<'a> KnowledgeStage<'a> {
             consume(stage, logical)
         })
     }
-    pub(crate) fn with_relation_payload_owned<T>(
-        &mut self,
-        id: &str,
-        max_bytes: usize,
-        consume: impl FnOnce(&mut Self, &[u8]) -> Result<T>,
-    ) -> Result<Option<T>> {
-        self.with_normalized_payload_owned(true, id, max_bytes, |stage, logical, _| {
-            consume(stage, logical)
-        })
-    }
     /// Keep exact source spelling for late normalized updates. Inline rows
     /// have no external source owner; Carrier rows supply the held raw packet.
     pub(crate) fn with_node_payload_source_owned<T>(
@@ -3664,102 +3654,6 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
 
-    /// One source-scoped lexical ID step for maintained late Node consumers.
-    /// Progress is admitted by the caller inside consume; no String escapes.
-    pub(crate) fn with_next_normalized_node_by_id_owned(
-        &mut self,
-        source_graph: &str,
-        after_id: Option<&str>,
-        max_bytes: usize,
-        consume: impl FnOnce(&mut Self, &NormalizedRowMetadata<'_>, &[u8], Option<&[u8]>) -> Result<()>,
-    ) -> Result<bool> {
-        let result = (|| {
-            if self.poisoned || self.limits.max_seek_rows == 0 {
-                return Err(Error::Invalid("normalized ID cursor unavailable"));
-            }
-            valid_id(source_graph)?;
-            if let Some(after) = after_id {
-                valid_id(after)?;
-            }
-            let cap = usize::try_from(self.limits.sqlite.max_row_bytes)
-                .map_err(|_| Error::Budget("normalized ID cursor row conversion"))?;
-            let max_bytes = max_bytes
-                .min(cap)
-                .min(self.limits.max_seek_bytes.min(usize::MAX as u64) as usize);
-            if max_bytes == 0 {
-                return Err(Error::Budget("normalized ID cursor row cap"));
-            }
-            let state = self
-                .owned_creation_state()
-                .ok_or(Error::Invalid("normalized ID cursor same owner absent"))?;
-            let sql = "SELECT source_order,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) THEN native_id END,CASE WHEN typeof(kind_id)='text' AND length(CAST(kind_id AS BLOB)) BETWEEN 1 AND 4096 THEN kind_id END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 END,native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096),0 FROM knowledge_nodes WHERE source_graph=?1 AND (?2 IS NULL OR id>?2) ORDER BY id LIMIT 1";
-            state.charge_work(sql.len())?;
-            state.charge_work(
-                source_graph
-                    .len()
-                    .checked_add(after_id.map_or(0, str::len))
-                    .ok_or(Error::Budget("normalized ID cursor binding work"))?,
-            )?;
-            state.active()?;
-            let cursor = self.with_connection(WritePhase::Sort, |db| {
-                let mut statement = db.prepare(sql)?;
-                let mut rows = statement.query(params![source_graph, after_id])?;
-                let Some(row) = rows.next()? else {
-                    return Ok(None);
-                };
-                Ok(Some(read_normalized_cursor_row(state, row, None)?))
-            })?;
-            let Some(mut cursor) = cursor else {
-                return Ok(false);
-            };
-            state.charge_work(
-                cursor
-                    .source_graph
-                    .len()
-                    .checked_add(cursor.id.len())
-                    .ok_or(Error::Budget("normalized ID cursor identity work"))?,
-            )?;
-            if cursor.source_graph != source_graph
-                || after_id.is_some_and(|after| cursor.id.as_str() <= after)
-            {
-                return Err(Error::Invalid("normalized ID cursor progress differs"));
-            }
-            cursor.raw_input_present =
-                self.normalized_raw_membership_owned(false, &cursor, state)?;
-            let metadata = NormalizedRowMetadata {
-                id: &cursor.id,
-                source_graph: &cursor.source_graph,
-                native_id: cursor.native_id.as_deref(),
-                semantic_key: &cursor.semantic_key,
-                source_order: cursor.source_order,
-                logical_digest: cursor.logical_digest,
-                raw_input_present: cursor.raw_input_present,
-            };
-            let delivered = self.with_normalized_payload_owned(
-                false,
-                &cursor.id,
-                max_bytes,
-                |stage, logical, source| {
-                    state.charge_work(logical.len())?;
-                    if Digest256::of_bytes(logical) != metadata.logical_digest {
-                        return Err(Error::Invalid(
-                            "normalized ID cursor payload revision changed",
-                        ));
-                    }
-                    consume(stage, &metadata, logical, source)
-                },
-            )?;
-            if delivered.is_none() {
-                return Err(Error::Invalid("normalized ID cursor row disappeared"));
-            }
-            drop(cursor);
-            state.active()?;
-            Ok(true)
-        })();
-        self.poisoned |= result.is_err();
-        result
-    }
-
     /// Preserve honest Inline rows and source-bound Carrier rows in late CAS.
     pub(crate) fn replace_node_logical_payload_if_current(
         &mut self,
@@ -3842,16 +3736,6 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
 
-    /// Update only the existing row's logical payload. Identity/index columns
-    /// and source carrier binding stay unchanged; no source re-admission.
-    pub(crate) fn replace_node_payload_with_exact_source(
-        &mut self,
-        id: &str,
-        logical: &[u8],
-        source: &[u8],
-    ) -> Result<()> {
-        self.replace_node_payload_with_exact_source_if_current(id, logical, source, None)
-    }
     /// Optional previous logical digest preserves existing producer CAS law.
     pub(crate) fn replace_node_payload_with_exact_source_if_current(
         &mut self,
@@ -3862,17 +3746,6 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<()> {
         self.replace_normalized_payload_with_exact_source_if_current(
             false, id, logical, source, previous,
-        )
-    }
-    pub(crate) fn replace_relation_payload_with_exact_source_if_current(
-        &mut self,
-        id: &str,
-        logical: &[u8],
-        source: &[u8],
-        previous: Option<Digest256>,
-    ) -> Result<()> {
-        self.replace_normalized_payload_with_exact_source_if_current(
-            true, id, logical, source, previous,
         )
     }
     fn replace_normalized_payload_with_exact_source_if_current(
@@ -4541,35 +4414,6 @@ impl<'a> KnowledgeStage<'a> {
                 state: None,
             }),
         }
-    }
-
-    /// Same indexed input page consumed under scoped original state. The
-    /// statement is closed before the mutable Stage callback starts; input
-    /// rows and their holds stay live through the callback and then drop.
-    pub(crate) fn with_scan_input_owned<T>(
-        &mut self,
-        source_graph: &str,
-        collection: &str,
-        after_id: Option<&str>,
-        max_rows: usize,
-        consume: impl FnOnce(&mut Self, &ScanPage) -> Result<T>,
-    ) -> Result<T> {
-        let Some(state) = self.owned_creation_state() else {
-            let page = self.scan_input(source_graph, collection, after_id, max_rows)?;
-            return consume(self, &page);
-        };
-        let result = (|| {
-            let page =
-                self.scoped_input_page(source_graph, collection, after_id, max_rows, state)?;
-            let result = consume(self, &page.page);
-            drop(page);
-            result.and_then(|value| {
-                state.active()?;
-                Ok(value)
-            })
-        })();
-        self.poisoned |= result.is_err();
-        result
     }
 
     pub(crate) fn with_raw_by_id_owned<T>(

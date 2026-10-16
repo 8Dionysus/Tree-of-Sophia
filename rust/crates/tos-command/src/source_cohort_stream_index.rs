@@ -840,26 +840,6 @@ impl SourceAssessmentIndex {
         })
     }
 
-    pub(crate) fn finish_member_comparison(
-        &mut self,
-        work: &mut SourceAssessmentWork,
-    ) -> DurableResult<()> {
-        self.require_source_finished()?;
-        self.run(false, work, |db, work| {
-            if let Some(path) = query_optional_text(
-                db,
-                "SELECT path FROM members WHERE seen=0 ORDER BY path COLLATE BINARY LIMIT 1",
-                [],
-                work,
-            )? {
-                return Err(DurableError::Corrupt(
-                    "current PostgreSQL source member coverage is incomplete",
-                ));
-            }
-            Ok(())
-        })
-    }
-
     pub(crate) fn observe_index_row(
         &mut self,
         row: &AssessmentIndexRow,
@@ -1616,19 +1596,6 @@ impl SourceAssessmentIndex {
         })
     }
 
-    /// Require the selected cold-cut placements to cover exactly the complete
-    /// source member set. Call after all placement rows have been added.
-    pub(crate) fn finish_placement_coverage(
-        &mut self,
-        work: &mut SourceAssessmentWork,
-    ) -> DurableResult<()> {
-        self.require_member_finished()?;
-        let limits = self.limits;
-        self.run(false, work, |db, work| {
-            check_placement_coverage(db, work, limits)
-        })
-    }
-
     /// Return the bounded immediate children of a directory. The query is a
     /// BINARY primary-key range scan, grouped with O(1) state. It refuses a
     /// source tree where one immediate child is both a file and directory.
@@ -1873,13 +1840,6 @@ impl SourceAssessmentIndex {
         })?;
         self.source_inputs_finished = true;
         Ok(())
-    }
-
-    pub(crate) fn snapshot_workspace_usage(
-        &mut self,
-        work: &mut SourceAssessmentWork,
-    ) -> DurableResult<()> {
-        self.snapshot_usage(work)
     }
 
     fn require_source_finished(&self) -> DurableResult<()> {

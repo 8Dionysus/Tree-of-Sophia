@@ -49,10 +49,6 @@ impl FreshCatalogCandidate<'_> {
         self.tree.root_path()
     }
 
-    pub(crate) fn fresh_rows(&self) -> &FreshRows {
-        &self.rows
-    }
-
     pub(crate) fn fresh_rows_mut(&mut self) -> &mut FreshRows {
         &mut self.rows
     }

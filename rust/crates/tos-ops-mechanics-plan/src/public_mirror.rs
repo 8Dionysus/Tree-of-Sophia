@@ -54,7 +54,7 @@ fn invalid(message: impl Into<String>) -> io::Error {
 }
 
 fn read(root: &Path, relative: &str) -> io::Result<Vec<u8>> {
-    let mut file = File::open(root.join(relative))?;
+    let file = File::open(root.join(relative))?;
     let limit = JsonLimits::default().max_bytes;
     if file.metadata()?.len() > limit as u64 {
         return Err(invalid(format!(

@@ -62,7 +62,7 @@ fn selected_root(root: &Path) -> io::Result<()> {
 }
 fn read(root: &Path, relative: &str) -> io::Result<Vec<u8>> {
     let path = root.join(PART).join(relative);
-    let mut file = File::open(path)?;
+    let file = File::open(path)?;
     let metadata = file.metadata()?;
     // Use the existing foundation codec bound for this native route; the
     // owner schema, rather than this bound, specifies the item count.

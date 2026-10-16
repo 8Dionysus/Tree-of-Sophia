@@ -662,14 +662,6 @@ impl<'cancel> FoundationInvocation<'cancel> {
         self.started
     }
 
-    pub(crate) fn invocation_sha256(&self) -> Digest256 {
-        self.raw_sha256
-    }
-
-    pub(crate) fn invocation_len(&self) -> usize {
-        self.raw.len()
-    }
-
     pub(crate) fn executable_sha256(&self) -> Digest256 {
         self.expected_executable_sha256
     }

@@ -202,10 +202,6 @@ impl PgClaimSourceProof {
             Self::Selected(cut) => cut.verify_readset(readset),
         }
     }
-
-    pub(crate) fn is_selected(&self) -> bool {
-        matches!(self, Self::Selected(_))
-    }
 }
 
 impl PgCompleteClaimCut {

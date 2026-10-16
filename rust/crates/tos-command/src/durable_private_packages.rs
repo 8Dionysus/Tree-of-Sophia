@@ -2404,99 +2404,6 @@ impl DurablePgCoordinator {
         )
     }
 
-    /// Read only the selected current package header under the owner-scope
-    /// shared lock. Member bytes and archives are never hydrated.
-    pub(crate) fn read_private_owner_current_header(
-        &mut self,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<PrivateOwnerPackageHeaderV1> {
-        validate_scope(scope)?;
-        validate_target_ref(target_ref)?;
-        check_private_history_deadline(deadline, cancelled)?;
-        require_private_schema(&mut self.client)?;
-        with_private_owner_shared_read_lock(
-            &mut self.client,
-            scope,
-            deadline,
-            cancelled,
-            |client| {
-                let mut tx = client.transaction()?;
-                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
-                if !verify_context_binding(&mut tx, scope)? {
-                    return Err(DurableError::Refused(
-                        "private owner context binding mismatch",
-                    ));
-                }
-                let generation = private_audit_generation(&mut tx, scope)?;
-                let current = read_current_package_header(
-                    &mut tx, scope, target_ref, generation, deadline, cancelled,
-                )?;
-                check_private_history_deadline(deadline, cancelled)?;
-                tx.commit()?;
-                Ok(PrivateOwnerPackageHeaderV1 {
-                    scope: scope.clone(),
-                    target_ref: target_ref.to_owned(),
-                    current,
-                    private_audit_generation: generation,
-                })
-            },
-        )
-    }
-
-    /// Find one command receipt and its immutable history binding without
-    /// loading any private package member bytes. The current target header and
-    /// receipt are read under the same repeatable-read owner-scope fence.
-    pub(crate) fn read_private_owner_command_metadata(
-        &mut self,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        command_id: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<PrivateOwnerCommandMetadataV1> {
-        validate_scope(scope)?;
-        validate_target_ref(target_ref)?;
-        if command_id.is_empty() || command_id.len() > 1024 || command_id.contains('\0') {
-            return Err(DurableError::Invalid("private package command ID"));
-        }
-        check_private_history_deadline(deadline, cancelled)?;
-        require_private_schema(&mut self.client)?;
-        with_private_owner_shared_read_lock(
-            &mut self.client,
-            scope,
-            deadline,
-            cancelled,
-            |client| {
-                let mut tx = client.transaction()?;
-                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
-                if !verify_context_binding(&mut tx, scope)? {
-                    return Err(DurableError::Refused(
-                        "private owner context binding mismatch",
-                    ));
-                }
-                let generation = private_audit_generation(&mut tx, scope)?;
-                let current = read_current_package_header(
-                    &mut tx, scope, target_ref, generation, deadline, cancelled,
-                )?;
-                let header = PrivateOwnerPackageHeaderV1 {
-                    scope: scope.clone(),
-                    target_ref: target_ref.to_owned(),
-                    current,
-                    private_audit_generation: generation,
-                };
-                let receipt = read_private_command_receipt_metadata(
-                    &mut tx, scope, target_ref, command_id, generation, deadline, cancelled,
-                )?;
-                check_private_history_deadline(deadline, cancelled)?;
-                tx.commit()?;
-                Ok(PrivateOwnerCommandMetadataV1 { header, receipt })
-            },
-        )
-    }
-
     /// Resolve one exact historical receipt after the semantic owner has
     /// revalidated the command against current sources and authority. This
     /// reads no package members and never appends a command or revision.
@@ -2790,26 +2697,6 @@ impl DurablePgCoordinator {
                 tx.commit()?;
                 Ok(result)
             },
-        )
-    }
-
-    pub(crate) fn read_private_owner_package_history(
-        &mut self,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        max_rows: usize,
-        max_total_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<PrivateOwnerPackageHistoryV1> {
-        self.with_private_owner_package_history_guard(
-            scope,
-            target_ref,
-            max_rows,
-            max_total_bytes,
-            deadline,
-            cancelled,
-            |history, _, _| Ok(history.clone()),
         )
     }
 

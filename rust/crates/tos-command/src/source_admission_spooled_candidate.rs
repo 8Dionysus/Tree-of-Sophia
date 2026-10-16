@@ -361,45 +361,6 @@ fn member(row: (String, Vec<u8>, Vec<u8>, u32)) -> io::Result<MemberMetadata> {
     })
 }
 impl<'host> SpoolCandidate<'host> {
-    /// Reads the exact protected canonical batch under the SAME ledger before
-    /// opening any candidate/index scope. No externally parsed batch can enter
-    /// the additive path through this constructor.
-    pub(crate) fn prepare_from_selected_batch(
-        store: &'host AdmissionStore,
-        batch_path: &std::path::Path,
-        input_root: &std::path::Path,
-        selected_validator: Digest256,
-        base: Option<&'host StreamedCorpusCutReaderV1>,
-        workspace: File,
-        request: PinnedSqliteAuxRequest,
-        limits: SpoolLimits,
-        deadline: Instant,
-        cancelled: Arc<AtomicBool>,
-    ) -> io::Result<Self> {
-        if request.deadline != deadline || !Arc::ptr_eq(&request.cancelled, &cancelled) {
-            return Err(invalid("candidate batch clock or cancellation differs"));
-        }
-        let batch_limits = limits.bounded_batch_limits()?;
-        let batch = AdmissionBatch::read_budgeted(
-            batch_path,
-            input_root,
-            batch_limits,
-            deadline,
-            &cancelled,
-            &request.io_budget,
-        )?;
-        Self::prepare_selected_batch(
-            store,
-            batch,
-            selected_validator,
-            base,
-            workspace,
-            request,
-            limits,
-            deadline,
-            cancelled,
-        )
-    }
     /// Continue from the same bounded canonical parser when the caller must
     /// check validator identity before creating the persistent store. The held
     /// input descriptor and private batch fields prevent arbitrary member
@@ -1469,20 +1430,6 @@ impl<'host> SpoolCandidate<'host> {
         self.abandon();
         result
     }
-    /// Creation starts from the unchanged admitted base, never a final future
-    /// authored batch whose declared members already occupy the requested homes.
-    pub(crate) fn verify_creation_base(&self) -> io::Result<CandidateFence> {
-        self.tick()?;
-        if self.batch.base_revision.is_none()
-            || self.batch.has_updates()
-            || !self.batch.retirements.is_empty()
-        {
-            return Err(invalid(
-                "creation staging requires an unchanged selected base",
-            ));
-        }
-        self.fence()
-    }
     pub(crate) fn base_revision(&self) -> Option<SourceRevision> {
         self.batch.base_revision.map(SourceRevision)
     }
@@ -1801,109 +1748,6 @@ impl<'host> SpoolCandidate<'host> {
     ) -> io::Result<Option<MemberMetadata>> {
         self.tick()?;
         self.finish_read(self.raw_after(after))
-    }
-    /// Stream only member rows changed by this batch in binary path order.
-    /// Base rows remain available through `member_after`; this delta cursor is
-    /// for immutable V2 successor writers and grants no publication authority.
-    pub(crate) fn changed_member_after(
-        &self,
-        after: Option<&RelativePath>,
-        allowance: usize,
-    ) -> io::Result<Option<MemberMetadata>> {
-        self.tick()?;
-        let result = (|| {
-            let input = after.map_or(0, |path| path.as_str().len());
-            let argument = cursor_argument_state(input)?;
-            self.check_state(allowance)?;
-            let row_allowance = allowance
-                .checked_sub(argument)
-                .ok_or_else(|| invalid("changed-member cursor state exceeds profile"))?;
-            let row = match after {
-                Some(after) => self.db.query_row(
-                    "SELECT path,sha,size,mode FROM members WHERE changed=1 AND path>?1 ORDER BY path LIMIT 1",
-                    [after.as_str()],
-                    |row| member_from_row(row, row_allowance),
-                ),
-                None => self.db.query_row(
-                    "SELECT path,sha,size,mode FROM members WHERE changed=1 ORDER BY path LIMIT 1",
-                    [],
-                    |row| member_from_row(row, row_allowance),
-                ),
-            }
-            .optional()
-            .map_err(sql)?;
-            row.map(member).transpose()
-        })();
-        self.finish_read(result)
-    }
-    /// Stream source paths removed by this batch in binary path order so a
-    /// V2 current-root writer can emit exact tombstones without a flat set.
-    pub(crate) fn retired_path_after(
-        &self,
-        after: Option<&RelativePath>,
-        allowance: usize,
-    ) -> io::Result<Option<RelativePath>> {
-        self.tick()?;
-        let result = (|| {
-            let input = after.map_or(0, |path| path.as_str().len());
-            let argument = cursor_argument_state(input)?;
-            self.check_state(allowance)?;
-            let row_allowance = allowance
-                .checked_sub(argument)
-                .ok_or_else(|| invalid("retirement cursor state exceeds profile"))?;
-            let path = match after {
-                Some(after) => self.db.query_row(
-                    "SELECT path FROM retirements WHERE path>?1 ORDER BY path,ordinal LIMIT 1",
-                    [after.as_str()],
-                    |row| bounded_text(row, row_allowance),
-                ),
-                None => self.db.query_row(
-                    "SELECT path FROM retirements ORDER BY path,ordinal LIMIT 1",
-                    [],
-                    |row| bounded_text(row, row_allowance),
-                ),
-            }
-            .optional()
-            .map_err(sql)?;
-            path.map(|path| RelativePath::parse(&path).map_err(invalid))
-                .transpose()
-        })();
-        self.finish_read(result)
-    }
-    /// Stream only retirement paths introduced by this candidate. Historical
-    /// events remain in the immutable retirement root, while these paths join
-    /// changed members to drive current-root deltas.
-    pub(crate) fn new_retired_path_after(
-        &self,
-        after: Option<&RelativePath>,
-        allowance: usize,
-    ) -> io::Result<Option<RelativePath>> {
-        self.tick()?;
-        let result = (|| {
-            let input = after.map_or(0, |path| path.as_str().len());
-            let argument = cursor_argument_state(input)?;
-            self.check_state(allowance)?;
-            let row_allowance = allowance
-                .checked_sub(argument)
-                .ok_or_else(|| invalid("new retirement cursor state exceeds profile"))?;
-            let row = match after {
-                Some(after) => self.db.query_row(
-                    "SELECT path FROM retirements WHERE ordinal>=?1 AND path>?2 ORDER BY path,ordinal LIMIT 1",
-                    params![i64::try_from(self.new_retirement_start).map_err(invalid)?, after.as_str()],
-                    |row| bounded_text(row, row_allowance),
-                ),
-                None => self.db.query_row(
-                    "SELECT path FROM retirements WHERE ordinal>=?1 ORDER BY path,ordinal LIMIT 1",
-                    [i64::try_from(self.new_retirement_start).map_err(invalid)?],
-                    |row| bounded_text(row, row_allowance),
-                ),
-            }
-            .optional()
-            .map_err(sql)?;
-            row.map(|path| RelativePath::parse(&path).map_err(invalid))
-                .transpose()
-        })();
-        self.finish_read(result)
     }
     /// Merge changed members and new tombstones into one strictly path-ordered
     /// cursor. The SQL union is bounded by the indexed changed subset.
@@ -4038,32 +3882,6 @@ impl<'host> SpoolCandidate<'host> {
         }
         self.running()
     }
-    pub(crate) fn affected_after(
-        &self,
-        after: Option<&RelativePath>,
-    ) -> io::Result<Option<RelativePath>> {
-        self.tick()?;
-        let result = (|| {
-            let path: Option<String> = match after {
-                Some(p) => self.db.query_row(
-                    "SELECT path FROM affected WHERE path>?1 ORDER BY path LIMIT 1",
-                    [p.as_str()],
-                    |r| bounded_text(r, self.row_state_ceiling.get()),
-                ),
-                None => {
-                    self.db
-                        .query_row("SELECT path FROM affected ORDER BY path LIMIT 1", [], |r| {
-                            bounded_text(r, self.row_state_ceiling.get())
-                        })
-                }
-            }
-            .optional()
-            .map_err(sql)?;
-            path.map(|p| RelativePath::parse(&p).map_err(invalid))
-                .transpose()
-        })();
-        self.finish_read(result)
-    }
     fn selected(&self, path: &str) -> io::Result<MemberMetadata> {
         let path = RelativePath::parse(path).map_err(invalid)?;
         self.member(&path)?
@@ -4443,17 +4261,6 @@ impl<'host> SpoolCandidate<'host> {
     pub(crate) fn retirement_count(&self) -> u64 {
         self.retirement_count
     }
-    pub(crate) fn new_retirement_at(&self, i: u64) -> io::Result<Option<RetirementMetadata>> {
-        self.tick()?;
-        let result = (|| {
-            self.retirement_at_raw(
-                self.new_retirement_start
-                    .checked_add(i)
-                    .ok_or_else(|| invalid("retirement ordinal overflow"))?,
-            )
-        })();
-        self.finish_read(result)
-    }
     pub(crate) fn new_retirement_at_bounded(
         &self,
         i: u64,
@@ -4469,71 +4276,6 @@ impl<'host> SpoolCandidate<'host> {
         self.retirement_count
             .checked_sub(self.new_retirement_start)
             .ok_or_else(|| invalid("candidate retirement range regressed"))
-    }
-    /// Current-base identity rows are copied into this bounded candidate's
-    /// SQLite workspace during authenticated base import. The COW writer can
-    /// merge them with the completed native identity cursor without spending
-    /// the V2 read session's already-consumed tree-node allowance again.
-    pub(crate) fn v2_base_identity_after(
-        &self,
-        after: Option<&str>,
-        allowance: usize,
-    ) -> io::Result<Option<(String, RelativePath)>> {
-        self.tick()?;
-        let result = (|| {
-            let argument = cursor_argument_state(after.map_or(0, str::len))?;
-            self.check_state(allowance)?;
-            let row_allowance = allowance
-                .checked_sub(argument)
-                .ok_or_else(|| invalid("V2 base identity cursor state exceeds profile"))?;
-            let row = match after {
-                Some(after) => self.db.query_row(
-                    "SELECT id,path FROM v2_base_identities WHERE id>?1 ORDER BY id LIMIT 1",
-                    [after],
-                    |row| {
-                        let id = bounded_text(row, row_allowance)?;
-                        let path = match row.get_ref(1)? {
-                            rusqlite::types::ValueRef::Text(bytes)
-                                if bytes
-                                    .len()
-                                    .checked_mul(16)
-                                    .and_then(|n| n.checked_add(2048))
-                                    .is_some_and(|n| n <= row_allowance) =>
-                            {
-                                row.get::<_, String>(1)?
-                            }
-                            _ => return Err(rusqlite::Error::InvalidQuery),
-                        };
-                        Ok((id, path))
-                    },
-                ),
-                None => self.db.query_row(
-                    "SELECT id,path FROM v2_base_identities ORDER BY id LIMIT 1",
-                    [],
-                    |row| {
-                        let id = bounded_text(row, row_allowance)?;
-                        let path = match row.get_ref(1)? {
-                            rusqlite::types::ValueRef::Text(bytes)
-                                if bytes
-                                    .len()
-                                    .checked_mul(16)
-                                    .and_then(|n| n.checked_add(2048))
-                                    .is_some_and(|n| n <= row_allowance) =>
-                            {
-                                row.get::<_, String>(1)?
-                            }
-                            _ => return Err(rusqlite::Error::InvalidQuery),
-                        };
-                        Ok((id, path))
-                    },
-                ),
-            }
-            .optional()
-            .map_err(sql)?;
-            row.map(|(id, path)| Ok((id, RelativePath::parse(&path).map_err(invalid)?)))
-                .transpose()
-        })();
-        self.finish_read(result)
     }
     /// Exact reverse lookup into the authenticated selected-base identities.
     /// The path index keeps a changed-member identity delta proportional to
@@ -4573,141 +4315,7 @@ impl<'host> SpoolCandidate<'host> {
         })();
         self.finish_read(result)
     }
-    /// Authenticated current-base dependency edges saved during import, in
-    /// the exact bytewise key order consumed by V2 dependency COW updates.
-    pub(crate) fn v2_base_dependency_after(
-        &self,
-        after: Option<&[u8]>,
-        allowance: usize,
-    ) -> io::Result<Option<(Vec<u8>, Vec<u8>)>> {
-        self.tick()?;
-        let result = (|| {
-            let argument = cursor_argument_state(after.map_or(0, <[u8]>::len))?;
-            self.check_state(allowance)?;
-            let row_allowance = allowance
-                .checked_sub(argument)
-                .ok_or_else(|| invalid("V2 base dependency cursor state exceeds profile"))?;
-            let mut decode = |row: &rusqlite::Row<'_>| -> rusqlite::Result<(Vec<u8>, Vec<u8>)> {
-                let key = match row.get_ref(0)? {
-                    rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= row_allowance => {
-                        bytes.to_vec()
-                    }
-                    _ => return Err(rusqlite::Error::InvalidQuery),
-                };
-                let value = match row.get_ref(1)? {
-                    rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= row_allowance => {
-                        bytes.to_vec()
-                    }
-                    _ => return Err(rusqlite::Error::InvalidQuery),
-                };
-                if key
-                    .len()
-                    .checked_add(value.len())
-                    .is_none_or(|bytes| bytes > row_allowance)
-                {
-                    return Err(rusqlite::Error::InvalidQuery);
-                }
-                Ok((key, value))
-            };
-            match after {
-                Some(after) => self.db.query_row(
-                    "SELECT key,value FROM v2_base_dependencies WHERE key>?1 ORDER BY key LIMIT 1",
-                    [after],
-                    &mut decode,
-                ),
-                None => self.db.query_row(
-                    "SELECT key,value FROM v2_base_dependencies ORDER BY key LIMIT 1",
-                    [],
-                    &mut decode,
-                ),
-            }
-            .optional()
-            .map_err(sql)
-        })();
-        self.finish_read(result)
-    }
 
-    pub(crate) fn base_identity_after(
-        &self,
-        after: Option<&str>,
-    ) -> io::Result<Option<(String, RelativePath)>> {
-        self.tick()?;
-        let result = (|| {
-            if let Some(base) = self.base {
-                self.preflight_base_locator(base)?;
-                return base
-                    .identity_after(base.current_revision(), after)
-                    .map_err(invalid);
-            }
-            if let Some(base) = self.base_v2 {
-                let base = self.preflight_v2_base()?;
-                let cursor_bytes = after.map_or(0, str::len);
-                self.check_state(v2_row_state_upper_bound(cursor_bytes, 0)?)?;
-                let revision = base.borrow().selected_revision();
-                let row = base.borrow_mut().next_row_after(
-                    revision,
-                    V2RootKind::Identities,
-                    None,
-                    None,
-                    after.map(str::as_bytes),
-                )?;
-                return row
-                    .map(|row| {
-                        self.check_state(v2_row_cursor_state_upper_bound(
-                            row.key.len(),
-                            row.value.len(),
-                            cursor_bytes,
-                        )?)?;
-                        decode_v2_identity(&row.key, &row.value)
-                    })
-                    .transpose();
-            }
-            Ok(None)
-        })();
-        self.finish_read(result)
-    }
-    pub(crate) fn base_dependency_source_after(
-        &self,
-        after: Option<&RelativePath>,
-    ) -> io::Result<Option<RelativePath>> {
-        self.tick()?;
-        let result = (|| {
-            if let Some(base) = self.base {
-                self.preflight_base_locator(base)?;
-                return base
-                    .dependency_source_after(base.current_revision(), after)
-                    .map_err(invalid);
-            }
-            if self.base_v2.is_some() {
-                let argument = after.map_or(0, |path| path.as_str().len());
-                self.check_state(v2_row_state_upper_bound(argument, 0)?)?;
-                let row_allowance = self
-                    .row_state_ceiling
-                    .get()
-                    .checked_sub(cursor_argument_state(argument)?)
-                    .ok_or_else(|| invalid("V2 dependency source result exceeds profile"))?;
-                let source: Option<String> = match after {
-                    Some(after) => self.db.query_row(
-                        "SELECT source FROM reverse_dependencies WHERE source>?1 ORDER BY source LIMIT 1",
-                        [after.as_str()],
-                        |row| bounded_text(row, row_allowance),
-                    ),
-                    None => self.db.query_row(
-                        "SELECT source FROM reverse_dependencies ORDER BY source LIMIT 1",
-                        [],
-                        |row| bounded_text(row, row_allowance),
-                    ),
-                }
-                .optional()
-                .map_err(sql)?;
-                return source
-                    .map(|source| RelativePath::parse(&source).map_err(invalid))
-                    .transpose();
-            }
-            Ok(None)
-        })();
-        self.finish_read(result)
-    }
     pub(crate) fn base_dependency_after(
         &self,
         source: &RelativePath,
@@ -4725,137 +4333,6 @@ impl<'host> SpoolCandidate<'host> {
                     .map_err(invalid);
             }
             Ok(None)
-        })();
-        self.finish_read(result)
-    }
-    /// Unique historical identity ownership imported from every authenticated
-    /// ancestor with its exact identity EOF. This is data, not completion.
-    pub(crate) fn historical_identity_after(
-        &self,
-        after: Option<&str>,
-        max_owned_state_bytes: usize,
-    ) -> io::Result<Option<(String, RelativePath)>> {
-        self.tick()?;
-        let result = (|| {
-            let input_bytes = after.map_or(0, str::len);
-            if input_bytes > self.row_state_ceiling.get() {
-                return Err(invalid("historical cursor input bound"));
-            }
-            let parameters = input_bytes
-                .checked_mul(16)
-                .and_then(|n| n.checked_add(1024))
-                .ok_or_else(|| invalid("historical cursor parameter state"))?;
-            self.check_state(parameters)?;
-            let decode = |row: &rusqlite::Row<'_>| -> rusqlite::Result<(String, RelativePath)> {
-                let id = match row.get_ref(0)? {
-                    rusqlite::types::ValueRef::Text(bytes) => bytes,
-                    _ => return Err(rusqlite::Error::InvalidQuery),
-                };
-                let path = match row.get_ref(1)? {
-                    rusqlite::types::ValueRef::Text(bytes) => bytes,
-                    _ => return Err(rusqlite::Error::InvalidQuery),
-                };
-                let output = id
-                    .len()
-                    .checked_add(path.len())
-                    .and_then(|n| n.checked_mul(16))
-                    .and_then(|n| {
-                        n.checked_add(size_of::<String>() + size_of::<RelativePath>() + 1024)
-                    })
-                    .filter(|n| *n <= max_owned_state_bytes)
-                    .ok_or(rusqlite::Error::InvalidQuery)?;
-                if id.len() > self.row_state_ceiling.get()
-                    || path.len() > self.row_state_ceiling.get()
-                    || std::str::from_utf8(id).is_err()
-                    || std::str::from_utf8(path).is_err()
-                {
-                    return Err(rusqlite::Error::InvalidQuery);
-                }
-                self.check_state(
-                    parameters
-                        .checked_add(output)
-                        .ok_or(rusqlite::Error::InvalidQuery)?,
-                )
-                .map_err(|_| rusqlite::Error::InvalidQuery)?;
-                let id = std::str::from_utf8(id).map_err(|_| rusqlite::Error::InvalidQuery)?;
-                let path = std::str::from_utf8(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
-                let path = RelativePath::parse(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
-                Ok((id.to_owned(), path))
-            };
-            let row = match after {
-                None => self.db.query_row(
-                    "SELECT id,path FROM historical_ids ORDER BY id LIMIT 1",
-                    [],
-                    decode,
-                ),
-                Some(after) => self.db.query_row(
-                    "SELECT id,path FROM historical_ids WHERE id>?1 ORDER BY id LIMIT 1",
-                    [after],
-                    decode,
-                ),
-            }
-            .optional()
-            .map_err(sql)?;
-            if row
-                .as_ref()
-                .is_some_and(|(id, _)| after.is_some_and(|after| id.as_str() <= after))
-            {
-                return Err(invalid("historical cursor order"));
-            }
-            Ok(row)
-        })();
-        self.finish_read(result)
-    }
-    pub(crate) fn historical_identity_path(&self, id: &str) -> io::Result<Option<RelativePath>> {
-        self.tick()?;
-        let result = (|| {
-            let path: Option<String> = self
-                .db
-                .query_row("SELECT path FROM historical_ids WHERE id=?1", [id], |r| {
-                    bounded_text(r, self.row_state_ceiling.get())
-                })
-                .optional()
-                .map_err(sql)?;
-            path.map(|path| RelativePath::parse(&path).map_err(invalid))
-                .transpose()
-        })();
-        self.finish_read(result)
-    }
-    /// Reverse lookup the old identity rows owned by one changed member path.
-    /// The dedicated SQLite order is finite and avoids rescanning all retained
-    /// identities for every warm source update.
-    pub(crate) fn historical_identity_for_path_after(
-        &self,
-        path: &RelativePath,
-        after_id: Option<&str>,
-        allowance: usize,
-    ) -> io::Result<Option<String>> {
-        self.tick()?;
-        let result = (|| {
-            let argument_bytes = path
-                .as_str()
-                .len()
-                .checked_add(after_id.map_or(0, str::len))
-                .ok_or_else(|| invalid("historical path cursor argument overflow"))?;
-            let argument = cursor_argument_state(argument_bytes)?;
-            self.check_state(allowance)?;
-            let row_allowance = allowance
-                .checked_sub(argument)
-                .ok_or_else(|| invalid("historical path cursor state exceeds profile"))?;
-            match after_id {
-                Some(after) => self.db.query_row(
-                    "SELECT id FROM historical_ids WHERE path=?1 AND id>?2 ORDER BY id LIMIT 1",
-                    params![path.as_str(), after],
-                    |row| bounded_text(row, row_allowance),
-                ),
-                None => self.db.query_row(
-                    "SELECT id FROM historical_ids WHERE path=?1 ORDER BY id LIMIT 1",
-                    [path.as_str()],
-                    |row| bounded_text(row, row_allowance),
-                ),
-            }
-            .optional()
-            .map_err(sql)
         })();
         self.finish_read(result)
     }
@@ -4898,9 +4375,6 @@ impl<'host> SpoolCandidate<'host> {
                 .transpose()
         })();
         self.finish_read(result)
-    }
-    pub(crate) fn base_identity_path(&self, id: &str) -> io::Result<Option<RelativePath>> {
-        self.base_identity_path_bounded(id, self.row_state_ceiling.get())
     }
     /// Native global-index callback supplies its remaining owned-row allowance.
     /// The store must inspect borrowed SQL text BEFORE allocating a RelativePath.

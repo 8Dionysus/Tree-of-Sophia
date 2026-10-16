@@ -125,15 +125,6 @@ struct WireArguments<'a> {
     semantic: bool,
 }
 
-/// Shared wire validation also serves the software-only unavailable response.
-/// JSON permits lone surrogates; only the positive UTF-8 reader rejects them.
-pub(crate) fn validate_arguments(
-    args: &tos_foundation::JsonValue,
-    profile: AccessProfile,
-) -> Result<(), AccessError> {
-    parse_arguments(args, profile).map(|_| ())
-}
-
 pub(crate) fn from_arguments(
     args: &tos_foundation::JsonValue,
     profile: AccessProfile,

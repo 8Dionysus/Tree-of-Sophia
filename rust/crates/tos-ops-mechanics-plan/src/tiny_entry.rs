@@ -9,17 +9,7 @@ use std::{
 use tos_foundation::{FoundationErrorCode, JsonLimits, JsonMode, parse_json};
 pub type Issue = (String, String);
 const ROUTE_PATH: &str = "ToS/public-compatibility/tos_tiny_entry_route.example.json";
-const README_PATH: &str = "README.md";
-const CHARTER_PATH: &str = "CHARTER.md";
-const ROUTE_DOC_PATH: &str = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md";
-const KAG_EXPORT_DOC_PATH: &str =
-    "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md";
-const CAPSULE_PATH: &str = "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md";
-const KNOWLEDGE_MODEL_PATH: &str = "ToS/doctrine/KNOWLEDGE_MODEL.md";
-const REVIEW_CHECKLIST_PATH: &str =
-    "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md";
 const SOURCE_NODE_PATH: &str = "ToS/public-compatibility/source_node.example.json";
-const CONCEPT_NODE_PATH: &str = "ToS/public-compatibility/concept_node.example.json";
 const EXPECTED_ROUTE_ID: &str = "tos-tiny-entry.zarathustra-prologue";
 const EXPECTED_NODE_KIND: &str = "source_node";
 const EXPECTED_ROOT_SURFACE: &str = "README.md";
@@ -403,6 +393,8 @@ pub fn validate(_root: &Path, s: &mut RouteSources, cancel: &AtomicI32) -> io::R
 }
 #[cfg(test)]
 mod tests {
+    const README_PATH: &str = "README.md";
+    const ROUTE_DOC_PATH: &str = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md";
     use super::*;
     #[test]
     fn bounded_route_fields_legacy_hop_and_token_guards() {

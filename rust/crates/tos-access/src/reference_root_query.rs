@@ -193,24 +193,6 @@ fn catalog_refusal() -> CatalogError {
     }
 }
 impl<'view, 'capture> ReferenceRootMetadataHold<'view, 'capture> {
-    pub(crate) fn navigation_packet(
-        &self,
-        body: Vec<u8>,
-    ) -> std::result::Result<crate::PreparedPacket<'view>, crate::AccessError> {
-        if !matches!(self.operation, ReferenceMetadataOperation::SourceDescend)
-            || self.navigation_root.is_none()
-        {
-            return Err(search_refusal().into());
-        }
-        self.current()?;
-        Ok(crate::PreparedPacket {
-            body,
-            fence: Box::new(ReferenceDisclosureLease {
-                view: self.view,
-                abort: Arc::clone(&self.abort),
-            }),
-        })
-    }
     pub(crate) fn policy_binding(&self) -> &CurrentPolicyBinding {
         &self.policy
     }

@@ -537,15 +537,6 @@ impl KnowledgeRegistry {
         })
     }
 
-    pub(crate) fn parse_with_creation_state(
-        entity_bytes: &[u8],
-        relation_bytes: &[u8],
-        state: &CreationState<'_>,
-    ) -> Result<Self> {
-        Self::with_parsed_owned(entity_bytes, relation_bytes, state, |_, _, _| Ok(()))
-            .map(|(registry, ())| registry)
-    }
-
     fn parse_values_owned(
         entity: &Value,
         relation: &Value,

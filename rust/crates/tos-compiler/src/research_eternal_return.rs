@@ -1314,30 +1314,3 @@ mod tests {
         assert!(indexed(&root, rows, "alignment_ref").is_err());
     }
 }
-
-/// Frozen provenance retains authored input order separately from sorted output keys.
-pub(crate) fn ordered_input_refs(root: &ResearchExecution, p: &str) -> Result<Vec<Value>> {
-    let raw = read(root, p)?;
-    root.tick(raw.len() as u64)?;
-    let doc = tos_foundation::parse_json(
-        &raw,
-        tos_foundation::JsonMode::PublishedStrict,
-        tos_foundation::JsonLimits::new(raw.len().max(1), 64, 2_000_000, 4300)
-            .map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
-    let entries = doc
-        .root()
-        .object_get("inputs")
-        .and_then(|v| v.as_object())
-        .ok_or("plan inputs object required")?;
-    entries
-        .iter()
-        .map(|(_, r)| {
-            r.object_get("ref")
-                .and_then(|v| v.as_str())
-                .map(|s| json!(s))
-                .ok_or_else(|| "input ref required".into())
-        })
-        .collect()
-}

@@ -273,22 +273,6 @@ pub(super) fn bounded_output_before(
         .unwrap();
     bounded_child_output_until(OwnedChild(child), stdout_max, deadline, None)
 }
-/// Only the selected factory opts into bounded partial failure evidence.
-#[track_caller]
-pub(super) fn bounded_output_before_diagnostic(
-    command: &mut Command,
-    stdout_max: usize,
-    deadline: Instant,
-    phase: &str,
-) -> Output {
-    assert!(
-        Instant::now() < deadline,
-        "native child refusal phase={phase} trigger=deadline-before-spawn original_signal=unknown child=not-spawned output=unavailable"
-    );
-    let child = command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()
-        .unwrap_or_else(|error| panic!("native child refusal phase={phase} trigger=spawn-error error={error} original_signal=unknown child=not-spawned output=unavailable"));
-    bounded_child_output_until(OwnedChild(child), stdout_max, deadline, Some(phase))
-}
 pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
     hash_before(path, max, None)
 }

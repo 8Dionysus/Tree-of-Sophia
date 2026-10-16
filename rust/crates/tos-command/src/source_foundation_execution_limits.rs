@@ -530,40 +530,6 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         Ok(remaining)
     }
 
-    /// Record only an already-observed terminal source-read suffix. This does
-    /// no work, opens no ticket and returns no remaining allowance. Callers
-    /// may inspect the measured counter delta even when terminal liveness or
-    /// capacity refusal follows the retained charge.
-    pub(crate) fn record_terminal_measured_source_read_suffix(&mut self, bytes: u64) -> Result<()> {
-        let total = self.charged.source_read_bytes.checked_add(bytes);
-        let measured = self.measured_charged.source_read_bytes.checked_add(bytes);
-        let (Some(total), Some(measured)) = (total, measured) else {
-            self.poisoned = true;
-            return Err(Error::Unsupported(
-                "foundation terminal source-read accounting overflow",
-            ));
-        };
-        self.charged.source_read_bytes = total;
-        self.measured_charged.source_read_bytes = measured;
-        if total > self.caps.max_total_read_bytes {
-            self.poisoned = true;
-            return Err(Error::Unsupported(
-                "foundation terminal source reads exceed invocation",
-            ));
-        }
-        if self.open_ticket_id.is_some() {
-            self.poisoned = true;
-            return Err(Error::Unsupported(
-                "foundation terminal source reads with open window",
-            ));
-        }
-        if let Err(error) = self.check_live() {
-            self.poisoned = true;
-            return Err(error);
-        }
-        Ok(())
-    }
-
     /// Record a source-owned conservative read envelope after the shared IO
     /// ledger reports its terminal suffix. Preserve the admitted-upper-bound
     /// classification and the exact attempted prefix even if the invocation
@@ -2005,40 +1971,6 @@ impl FoundationExecutionLimits {
             ));
         }
         Ok(limits)
-    }
-
-    /// Use the already-loaded exact cut schema set as the source of resource
-    /// count/byte ceilings when constructing a later diagnostic slice. This
-    /// preserves the fact that resource bytes were captured and loaded once.
-    pub(crate) fn schema_set_limits(
-        &self,
-        work: FoundationPhaseReservation,
-        schema_set: &SourceFoundationSchemaSet,
-        max_checks: usize,
-        max_chunks: usize,
-        max_instance_bytes: usize,
-        max_total_instance_bytes: usize,
-        max_total_issues: usize,
-        max_total_report_bytes: usize,
-        batch: BatchBudget,
-    ) -> Result<SourceFoundationSchemaLimits> {
-        self.schema_limits(
-            self.reservations.schema,
-            work,
-            schema_set.schema_resource_count(),
-            schema_set.schema_bytes().min(as_usize(
-                self.invocation_budgets.max_member_bytes,
-                "foundation schema member limit range",
-            )?),
-            schema_set.schema_bytes(),
-            max_checks,
-            max_chunks,
-            max_instance_bytes,
-            max_total_instance_bytes,
-            max_total_issues,
-            max_total_report_bytes,
-            batch,
-        )
     }
 
     pub(crate) fn diagnostic_limits(&self) -> Result<SourceFoundationRuleDiagnosticsLimits> {

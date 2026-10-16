@@ -638,25 +638,6 @@ impl QueryVocabulary {
         state.active()
     }
 
-    /// The semantic binding owns this metered descriptor tree and an immutable
-    /// borrow of the exact vocabulary already checked against authored bytes.
-    /// Private construction prevents a cached digest/public fields from
-    /// manufacturing a successful verification token.
-    pub(crate) fn verified_descriptor_with_owned_state<'a>(
-        &'a self,
-        authored_bytes: &[u8],
-        state: &crate::d1_public_capture::CreationState<'_>,
-    ) -> Result<VerifiedAuthoredVocabulary<'a>> {
-        self.verify_authored_bytes_with_owned_state(authored_bytes, state)?;
-        let limits = JsonLimits::new(MAX_DESCRIPTOR_BYTES, 64, 100_000, 4096)
-            .map_err(|_| Error::Budget("query vocabulary JSON limits"))?;
-        let descriptor = state.foundation_owned_with_limits(authored_bytes, limits)?;
-        Ok(VerifiedAuthoredVocabulary {
-            vocabulary: self,
-            descriptor,
-        })
-    }
-
     /// `supported_adapters` comes from actual installed compiler capabilities,
     /// never from the descriptor itself. An eighth registered source needs no
     /// source-ID code branch when it uses an installed adapter.

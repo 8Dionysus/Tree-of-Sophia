@@ -6910,55 +6910,6 @@ impl WorkCorpusFence<'_> {
         )
     }
 
-    /// Apply a validated SourceEntry Work delta together with its selected V2
-    /// successor. The Work intent retains the exact readset and prepared
-    /// locator before any file mover runs; the source owner supplies the
-    /// currentness and selector-CAS operations under the agreed lock order.
-    pub(crate) fn apply_source_successor(
-        &self,
-        plan: WorkPlan,
-        snapshot: &PublicationSnapshot,
-        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
-        mut begin_source_intent: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-            &str,
-            &str,
-        ) -> SourceCommandResult<()>,
-        mut verify_readset: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-        ) -> SourceCommandResult<()>,
-        mut publish_successor: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-        ) -> SourceCommandResult<()>,
-        mut finish_source_intent: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-            &str,
-            &str,
-        ) -> SourceCommandResult<()>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<WorkTransportResult> {
-        self.apply_selected(
-            plan,
-            snapshot,
-            None,
-            false,
-            false,
-            guard,
-            Some(SourceSuccessorHooks {
-                begin_source_intent: &mut begin_source_intent,
-                verify_readset: &mut verify_readset,
-                publish_successor: &mut publish_successor,
-                finish_source_intent: &mut finish_source_intent,
-            }),
-            deadline,
-            cancelled,
-        )
-    }
     fn apply_selected(
         &self,
         plan: WorkPlan,
@@ -7170,53 +7121,6 @@ impl WorkCorpusFence<'_> {
             recovery_authorization,
             guard,
             None,
-            deadline,
-            cancelled,
-        )
-    }
-
-    /// Forward-only selected recovery for a V2 SourceEntry publication. The
-    /// source owner rechecks the same durable witnesses and replays the exact
-    /// prepared selector operation before Work can become terminal.
-    pub(crate) fn recover_source_successor(
-        &self,
-        selected: &PendingWork,
-        recovery_authorization: Option<JsonValue>,
-        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
-        mut begin_source_intent: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-            &str,
-            &str,
-        ) -> SourceCommandResult<()>,
-        mut verify_readset: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-        ) -> SourceCommandResult<()>,
-        mut finish_source_intent: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-            &str,
-            &str,
-        ) -> SourceCommandResult<()>,
-        mut publish_successor: impl FnMut(
-            &SourceCutReadsetV1,
-            &PreparedV2SuccessorLocatorV2,
-        ) -> SourceCommandResult<()>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<WorkTransportResult> {
-        self.recover_selected(
-            selected,
-            false,
-            recovery_authorization,
-            guard,
-            Some(SourceSuccessorHooks {
-                begin_source_intent: &mut begin_source_intent,
-                verify_readset: &mut verify_readset,
-                publish_successor: &mut publish_successor,
-                finish_source_intent: &mut finish_source_intent,
-            }),
             deadline,
             cancelled,
         )

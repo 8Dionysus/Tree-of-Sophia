@@ -1166,14 +1166,6 @@ impl<'budget> CreationState<'budget> {
         let bytes = compact_with_owned_state(self, value, cap, source_bytes)?;
         operation(&bytes)
     }
-    pub(crate) fn clone_foundation(&self, value: &JsonValue) -> Result<JsonValue> {
-        let upper = value
-            .retained_storage_bytes()
-            .map_err(|_| Error::Budget("owned Foundation clone state"))?;
-        self.retain(upper)?;
-        self.charge_work(upper)?;
-        Ok(value.clone())
-    }
     pub(crate) fn encode_foundation_canonical_with_limits(
         &self,
         value: &JsonValue,
@@ -4511,27 +4503,6 @@ impl PublicCapture {
         self.limits.max_sql_vm_steps
     }
 
-    /// Borrow the authentic original capture for one serial operation. Derive
-    /// its absolute phase intersections once, before frame admission or owner
-    /// Arc copies. The capture/session ceilings and counters never change.
-    pub(crate) fn model_creation_state_for_operation<'a>(
-        &'a self,
-        remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
-        heap: &Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
-        max_json_visits: usize,
-        creation_deadline: Instant,
-        phase_work_bytes: u64,
-        phase_sql_vm_steps: u64,
-    ) -> Result<CreationState<'a>> {
-        self.model_creation_state_with_phase(
-            remaining_after_retained,
-            heap,
-            max_json_visits,
-            creation_deadline,
-            Some((phase_work_bytes, phase_sql_vm_steps)),
-        )
-    }
-
     fn model_creation_state_with_phase<'a>(
         &'a self,
         remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
@@ -5811,37 +5782,6 @@ impl PublicCapture {
             _ => Error::Invalid(error.detail),
         })?;
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
-        Ok(db)
-    }
-
-    pub(crate) fn write_db(&self) -> Result<Connection> {
-        self.check_custody()?;
-        if let Some(heap) = &self.sqlite_heap {
-            heap.verify_current()?;
-        }
-        let shared_window = if self.shared_vm {
-            Some(sqlite_budget::SharedVmWindow::reserve(
-                Arc::clone(&self.vm_used),
-                self.active_vm_limit()?,
-            )?)
-        } else {
-            None
-        };
-        let db = Connection::open(&self.path)?;
-        if let Some(window) = shared_window {
-            window.install(&db, self.active_deadline()?, Arc::clone(&self.cancelled));
-        } else {
-            sqlite_budget::install_progress_until(
-                &db,
-                self.limits.sqlite(),
-                Arc::clone(&self.vm_used),
-                self.active_deadline()?,
-            );
-        }
-        db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
-        db.execute_batch(
-            "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE",
-        )?;
         Ok(db)
     }
 

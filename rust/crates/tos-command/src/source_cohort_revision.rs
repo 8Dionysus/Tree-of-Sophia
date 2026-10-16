@@ -2285,35 +2285,6 @@ impl SourceRevisionReadSession<'_> {
         Ok(result)
     }
 
-    /// Read bounded reverse Claim references for ToS identities and source
-    /// paths. Every empty result carries a Range generation, and every
-    /// returned stream is reopened as an exact current source member before
-    /// the closure can leave this read epoch.
-    pub(crate) fn lookup_claim_navigation_references(
-        &mut self,
-        keys: &BTreeSet<(
-            crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
-            String,
-        )>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<
-        BTreeMap<
-            (
-                crate::source_claim_dependency_index::ClaimNavigationReferenceKind,
-                String,
-            ),
-            crate::source_claim_dependency_index::ClaimNavigationReferenceObservation,
-        >,
-    > {
-        self.lookup_claim_navigation_references_at(
-            keys,
-            self.selection.head_seq,
-            deadline,
-            cancelled,
-        )
-    }
-
     /// Resolve exact reverse references at an authored-source cut while the
     /// readset remains bound to the session's held current source head.
     pub(crate) fn lookup_claim_navigation_references_at(

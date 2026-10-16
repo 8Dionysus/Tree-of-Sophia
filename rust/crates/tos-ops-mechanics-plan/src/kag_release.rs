@@ -584,7 +584,7 @@ fn copy_sources(export: &Path, provider: &Path, manifest: &Value) -> io::Result<
         }
         fs::create_dir_all(target.parent().unwrap())?;
         safe_absolute(&target)?;
-        let mut input = File::open(&source)?;
+        let input = File::open(&source)?;
         let mut output = OpenOptions::new()
             .write(true)
             .create_new(true)
