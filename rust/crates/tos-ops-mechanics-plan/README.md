@@ -62,6 +62,13 @@ not a hostile-code sandbox. SIGKILL/crash of the supervisor itself, processes
 outside its ancestry, and malicious same-user interference require external
 host supervision. No host services or privileges are configured by this tool.
 
+The three CI entries (`tos-software-ci`, `tos-validation-lanes` and
+`tos-release-check`) build with `--no-default-features`. That selection compiles
+the shared command, process-custody and Cargo-product checks without source
+storage, schema engines, publication tools or embedded mechanics assertions.
+The `mechanics` feature adds those owner routes; default compiler-backed
+validators and the CMD `philosophy-library` selection enable it explicitly.
+
 Discovery visits only immediate `mechanics/*` and `mechanics/*/parts/*`
 homes, rejects encountered symlinks and caps scanned entries. The
 native discovery fixtures protect ordering; the real validation-lane CLI fixture protects

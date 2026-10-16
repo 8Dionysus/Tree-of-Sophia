@@ -9,24 +9,30 @@ license.workspace = true
 [features]
 default = ["compiler-backed-validators"]
 # CMD needs the philosophy producer library without standalone validator families.
-philosophy-library = ["dep:tos-compiler"]
+philosophy-library = ["mechanics", "dep:tos-compiler"]
 compiler-backed-validators = ["philosophy-library"]
+# The CI selector/executors need no source, schema, publication or mechanics bodies.
+mechanics = [
+    "dep:csv", "dep:jsonschema", "dep:num-bigint", "dep:rusqlite",
+    "dep:tos-source-store", "dep:tos-validation",
+    "dep:unicode-general-category", "dep:yaml-rust2",
+]
 
 [dependencies]
-csv = "=1.4.0"
-jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
-num-bigint = "=0.4.8"
+csv = { version = "=1.4.0", optional = true }
+jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"], optional = true }
+num-bigint = { version = "=0.4.8", optional = true }
 regex = "=1.13.1"
-rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
+rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 tos-foundation = { path = "../tos-foundation" }
-tos-source-store = { path = "../tos-source-store" }
+tos-source-store = { path = "../tos-source-store", optional = true }
 tos-compiler = { path = "../tos-compiler", optional = true, features = ["preserve-order-workspace", "source-tools"] }
-tos-validation = { path = "../tos-validation" }
+tos-validation = { path = "../tos-validation", optional = true }
 toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
-unicode-general-category = "=1.1.0"
-yaml-rust2 = { version = "=0.13.0", default-features = false }
+unicode-general-category = { version = "=1.1.0", optional = true }
+yaml-rust2 = { version = "=0.13.0", default-features = false, optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "0.2"
@@ -35,6 +41,7 @@ tos-fd-open = { path = "../tos-fd-open" }
 [[bin]]
 name = "tos-ops-mechanics-plan"
 path = "src/main.rs"
+required-features = ["mechanics"]
 
 [[bin]]
 name = "tos-validation-lanes"
@@ -51,22 +58,27 @@ path = "src/software_ci_main.rs"
 [[bin]]
 name = "tos-route-cards"
 path = "src/route_cards_main.rs"
+required-features = ["mechanics"]
 
 [[bin]]
 name = "tos-agents-route-harness"
 path = "src/route_harness_main.rs"
+required-features = ["mechanics"]
 
 [[bin]]
 name = "tos-kag-provider-controls"
 path = "src/provider_controls_main.rs"
+required-features = ["mechanics"]
 
 [[bin]]
 name = "tos-kag-release"
 path = "src/kag_release_main.rs"
+required-features = ["mechanics"]
 
 [[bin]]
 name = "tos-stats-release"
 path = "src/stats_release_main.rs"
+required-features = ["mechanics"]
 
 [[bin]]
 name = "tos-source-registry"
@@ -85,3 +97,66 @@ path = "src/unicode_tables_main.rs"
 [[bin]]
 name = "tos-constructor-desktop"
 path = "src/constructor_desktop_main.rs"
+
+[dev-dependencies]
+yaml-rust2 = { version = "=0.13.0", default-features = false }
+
+[[test]]
+name = "active_naming_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "route_cards_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "decision_records_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "source_routes_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "provider_controls_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "mechanics_contracts"
+required-features = ["mechanics"]
+
+[[test]]
+name = "witness_structure_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "stats_release_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "documentation_cross_corpus_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "agent_surface_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "route_harness_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "semantic_registry_transition_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "kag_publication_native"
+required-features = ["mechanics"]
+
+[[test]]
+name = "open_work_queue_cli"
+required-features = ["compiler-backed-validators"]
+
+[[test]]
+name = "source_registry_native"
+required-features = ["compiler-backed-validators"]

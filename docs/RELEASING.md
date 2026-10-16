@@ -181,7 +181,9 @@ use the full suite; a missing or failed selector fails the required gate.
 | Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
 Every run first prepares the three native CI executors with the pinned Rust
-compiler. The plan job records their source commit/tree, lock digest, toolchain
+compiler and `--no-default-features`. This selection retains command custody,
+source identity and required-job checks without compiling mechanics, storage
+or schema-validation families. The plan job records their source commit/tree, lock digest, toolchain
 and binary sizes/digests; software, Rust and the required gate reuse that same
 run's artifact and verify its identity before placing the native executors on PATH.
 Missing products or a failed plan fail closed. Documentation-only changes skip

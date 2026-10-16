@@ -1,9 +1,13 @@
 //! Bounded discovery and dedicated native execution for mechanics-local validation.
 //! Lane selection and the planned tools retain their own authority.
 
+#[cfg(feature = "mechanics")]
 pub mod active_naming;
+#[cfg(feature = "mechanics")]
 pub mod agent_surface;
+#[cfg(feature = "mechanics")]
 pub mod agent_surface_budget;
+#[cfg(feature = "mechanics")]
 pub mod agent_surface_validation;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod artifact_bundle;
@@ -12,28 +16,37 @@ pub mod ci_artifacts;
 pub mod ci_verification;
 #[cfg(target_os = "linux")]
 mod conformance_products;
+#[cfg(feature = "mechanics")]
 pub mod decision_records;
+#[cfg(feature = "mechanics")]
 pub mod derived_kag;
+#[cfg(feature = "mechanics")]
 pub mod documentation_cross_corpus;
+#[cfg(feature = "mechanics")]
 pub mod documentation_family;
 pub mod executor;
 pub mod growth_coverage;
 pub mod growth_native_plan;
+#[cfg(feature = "mechanics")]
 pub mod intake_pack;
-#[cfg(target_os = "linux")]
+#[cfg(all(feature = "mechanics", target_os = "linux"))]
 pub mod kag_corpus_export;
-#[cfg(target_os = "linux")]
+#[cfg(all(feature = "mechanics", target_os = "linux"))]
 pub mod kag_downstream_status;
-#[cfg(target_os = "linux")]
+#[cfg(all(feature = "mechanics", target_os = "linux"))]
 pub mod kag_release;
+#[cfg(feature = "mechanics")]
 pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
+#[cfg(feature = "mechanics")]
 pub mod local_contracts;
+#[cfg(feature = "mechanics")]
 pub mod mechanics_topology;
 #[cfg(feature = "philosophy-library")]
 pub mod philosophy_graph_views;
 #[cfg(feature = "philosophy-library")]
 pub mod philosophy_products;
+#[cfg(feature = "mechanics")]
 pub mod philosophy_topology;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod prepared_dossier_docx_adapter;
@@ -51,32 +64,49 @@ pub mod prepared_dossier_render;
 pub mod source_registry;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod source_registry_views;
-#[cfg(target_os = "linux")]
+#[cfg(all(feature = "mechanics", target_os = "linux"))]
 pub mod stats_release;
+#[cfg(feature = "mechanics")]
 pub mod tiny_entry;
 #[cfg(feature = "compiler-backed-validators")]
 pub mod tree_nodes;
 
+#[cfg(feature = "mechanics")]
 pub mod provider_controls;
+#[cfg(feature = "mechanics")]
 pub mod public_mirror;
+#[cfg(feature = "mechanics")]
 pub mod questbook;
+#[cfg(feature = "mechanics")]
 pub mod relation_pack;
+#[cfg(feature = "mechanics")]
 pub mod root_entry_map;
+#[cfg(feature = "mechanics")]
 pub mod route_cards;
+#[cfg(feature = "mechanics")]
 pub mod route_harness;
+#[cfg(feature = "mechanics")]
 pub mod semantic_registry_transition;
 pub mod software_ci;
+#[cfg(feature = "mechanics")]
 pub mod source_home;
+#[cfg(feature = "mechanics")]
 pub mod threshold_registry;
 pub mod validation_lanes;
+#[cfg(feature = "mechanics")]
 pub mod witness_structure;
 
 use serde::Serialize;
+#[cfg(feature = "mechanics")]
 use std::collections::BTreeSet;
+#[cfg(feature = "mechanics")]
 use std::fs;
+#[cfg(feature = "mechanics")]
 use std::io;
+#[cfg(feature = "mechanics")]
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "mechanics")]
 const MAX_VISITED_ENTRIES: usize = 10_000;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -92,10 +122,12 @@ pub struct Plan {
     pub commands: Vec<Command>,
 }
 
+#[cfg(feature = "mechanics")]
 fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
 }
 
+#[cfg(feature = "mechanics")]
 fn children(path: &Path, visited: &mut usize) -> io::Result<Vec<PathBuf>> {
     let mut result = Vec::new();
     for item in fs::read_dir(path)? {
@@ -114,6 +146,7 @@ fn children(path: &Path, visited: &mut usize) -> io::Result<Vec<PathBuf>> {
     Ok(result)
 }
 
+#[cfg(feature = "mechanics")]
 fn named_files(path: &Path, prefix: &str, visited: &mut usize) -> io::Result<Vec<PathBuf>> {
     match fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
@@ -140,6 +173,7 @@ fn named_files(path: &Path, prefix: &str, visited: &mut usize) -> io::Result<Vec
     Ok(files)
 }
 
+#[cfg(feature = "mechanics")]
 fn homes(root: &Path, visited: &mut usize) -> io::Result<Vec<PathBuf>> {
     let mechanics = root.join("mechanics");
     if fs::symlink_metadata(&mechanics)?.file_type().is_symlink() {
@@ -170,6 +204,7 @@ fn homes(root: &Path, visited: &mut usize) -> io::Result<Vec<PathBuf>> {
     Ok(result)
 }
 
+#[cfg(feature = "mechanics")]
 fn relative(root: &Path, path: &Path) -> io::Result<String> {
     let path = path
         .strip_prefix(root)
@@ -182,6 +217,7 @@ fn relative(root: &Path, path: &Path) -> io::Result<String> {
 
 // Fixed owner routes survive retirement of their interpreter wrappers.
 // Package/part existence selects the route; source-owned flags select behavior.
+#[cfg(feature = "mechanics")]
 const NATIVE_MECHANICS: &[(&str, &str, &str, bool)] = &[
     (
         "mechanics/agon/parts/threshold-registry",
@@ -220,6 +256,7 @@ const NATIVE_MECHANICS: &[(&str, &str, &str, bool)] = &[
         false,
     ),
 ];
+#[cfg(feature = "mechanics")]
 fn native_mechanics_command(root: &Path, mode: &str, check: bool) -> io::Result<Vec<String>> {
     let mut argv = vec![
         std::env::current_exe()?
@@ -239,6 +276,7 @@ fn native_mechanics_command(root: &Path, mode: &str, check: bool) -> io::Result<
 }
 /// Discover source-owned native mechanics entries in deterministic home order.
 /// Unexpected Python test/build/validation files fail discovery.
+#[cfg(feature = "mechanics")]
 pub fn discover(root: &Path) -> io::Result<Plan> {
     if !root.is_absolute() || fs::canonicalize(root)? != root {
         return Err(invalid(
@@ -343,7 +381,7 @@ pub fn discover(root: &Path) -> io::Result<Plan> {
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "mechanics"))]
 mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};

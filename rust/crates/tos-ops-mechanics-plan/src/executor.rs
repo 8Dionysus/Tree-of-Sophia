@@ -153,6 +153,7 @@ pub(crate) fn capture_ci_git(
 
 /// The selected KAG owner's Python producer/probe are host adapters. Reuse the
 /// existing bounded subreaper custody; the publisher owns result validation.
+#[cfg(feature = "mechanics")]
 pub(crate) fn capture_kag_owner(
     root: &Path,
     argv: Vec<String>,
@@ -165,6 +166,7 @@ pub(crate) fn capture_kag_owner(
 /// The external artifact owner's declared CLI, with one explicit store scope.
 /// The environment belongs only to the child; nested rehearsals cannot alter
 /// this process or acquire ambient host stores.
+#[cfg(feature = "compiler-backed-validators")]
 pub(crate) fn capture_artifact_owner(
     root: &Path,
     argv: Vec<String>,
@@ -205,6 +207,7 @@ pub(crate) fn capture_artifact_owner(
 
 /// The philosophy CLI's existing Linux custody, with its original deadline
 /// captured before option/worker setup. Other executor clients keep their law.
+#[cfg(any(feature = "philosophy-library", test))]
 pub(crate) fn run_philosophy_product(
     argv: Vec<String>,
     limits: Limits,
@@ -232,6 +235,7 @@ pub(crate) fn run_philosophy_product(
 
 /// Exact interpreter facts observation for the KAG receipt admission check.
 /// Isolated standard-library metadata only; no repository imports or fallback.
+#[cfg(feature = "mechanics")]
 pub(crate) fn capture_agent_surface_runtime(
     root: &Path,
     interpreter: &Path,
@@ -837,6 +841,7 @@ mod native {
             &[],
         )
     }
+    #[cfg(feature = "compiler-backed-validators")]
 
     pub(super) fn run_captured_with_env(
         root: &Path,
@@ -857,6 +862,7 @@ mod native {
             overrides,
         )
     }
+    #[cfg(any(feature = "philosophy-library", test))]
 
     pub(super) fn run_product_until(
         root: &Path,
