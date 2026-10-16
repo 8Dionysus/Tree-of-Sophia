@@ -1,14 +1,23 @@
 //! Exact maintained catalog row contributions and transaction-local rendering.
 //! Reads the prepared catalog index only; no graph scan, publication or admission.
 use crate::{Error, Result};
+#[cfg(feature = "source-tools")]
 use rusqlite::{Transaction, params};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "source-tools")]
 use serde_json::{Map, Value, json};
+#[cfg(feature = "source-tools")]
 use std::cell::Cell;
+#[cfg(feature = "source-tools")]
 use std::collections::{BTreeMap, BTreeSet};
-use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue};
+#[cfg(feature = "source-tools")]
+use tos_foundation::JsonMode;
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue};
+#[cfg(feature = "source-tools")]
 const NODE: &str = "node";
+#[cfg(feature = "source-tools")]
 const RELATION: &str = "relation";
+#[cfg(feature = "source-tools")]
 const SCHEMA: &str = "tos_knowledge_catalog_v1";
 pub const PROJECTOR_VERSION: &str = "tos-exact-catalog-contributions-v1";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,6 +119,7 @@ impl CatalogInputs {
         catalog_owner_digest(&self.header, 16 * 1024 * 1024)
     }
 }
+#[cfg(feature = "source-tools")]
 pub fn encoded_owner(value: &JsonValue, cap: usize) -> Result<String> {
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("catalog owner JSON limits"))?;
@@ -131,10 +141,12 @@ pub fn encoded_canonical_owner(value: &JsonValue, cap: usize) -> Result<String> 
 pub fn catalog_owner_digest(value: &JsonValue, cap: usize) -> Result<String> {
     Ok(Digest256::of_bytes(encoded_canonical_owner(value, cap)?.as_bytes()).to_hex())
 }
+#[cfg(feature = "source-tools")]
 fn owner_view(value: &JsonValue, cap: usize) -> Result<Value> {
     serde_json::from_str(&encoded_owner(value, cap)?)
         .map_err(|_| Error::Invalid("catalog owner view JSON"))
 }
+#[cfg(feature = "source-tools")]
 fn owner_from(value: &Value, cap: usize) -> Result<JsonValue> {
     let raw = serde_json::to_string(value).map_err(|_| Error::Invalid("catalog owner JSON"))?;
     if raw.len() > cap {
@@ -150,25 +162,31 @@ fn owner_from(value: &Value, cap: usize) -> Result<JsonValue> {
     .map_err(|_| Error::Invalid("catalog owner JSON"))
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg(feature = "source-tools")]
 pub enum CatalogOrder {
     OwnerSequence(u64),
     SourceGraphId(String, String),
 }
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct CatalogRow {
     pub kind: String,
     pub id: String,
     pub source_order: CatalogOrder,
     pub item: JsonValue,
 }
+#[cfg(feature = "source-tools")]
 pub type Counts = BTreeMap<Vec<String>, i64>;
+#[cfg(feature = "source-tools")]
 pub type Posts = Vec<(Vec<String>, Value, i64)>;
 #[derive(Clone, Copy, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct CatalogRenderLimits {
     pub max_output_entries: u64,
     pub max_aggregate_bytes: usize,
     pub max_catalog_bytes: usize,
 }
+#[cfg(feature = "source-tools")]
 impl Default for CatalogRenderLimits {
     fn default() -> Self {
         Self {
@@ -178,6 +196,7 @@ impl Default for CatalogRenderLimits {
         }
     }
 }
+#[cfg(feature = "source-tools")]
 pub fn encoded(value: &Value) -> Result<String> {
     let raw = serde_json::to_vec(value).map_err(|_| Error::Invalid("catalog JSON"))?;
     let doc = tos_foundation::parse_json(
@@ -194,9 +213,11 @@ pub fn encoded(value: &Value) -> Result<String> {
     .map_err(|_| Error::Invalid("catalog JSON"))?;
     String::from_utf8(bytes).map_err(|_| Error::Invalid("catalog UTF-8"))
 }
+#[cfg(feature = "source-tools")]
 pub fn catalog_digest(value: &Value) -> Result<String> {
     Ok(Digest256::of_bytes(encoded(value)?.as_bytes()).to_hex())
 }
+#[cfg(feature = "source-tools")]
 pub fn order_key(value: &CatalogOrder) -> Result<Vec<u8>> {
     match value {
         CatalogOrder::OwnerSequence(n) if *n < 1u64 << 63 => {
@@ -222,6 +243,7 @@ pub fn order_key(value: &CatalogOrder) -> Result<Vec<u8>> {
         )),
     }
 }
+#[cfg(feature = "source-tools")]
 pub fn order_value(raw: &[u8]) -> Result<CatalogOrder> {
     if raw.first() == Some(&b'I') && raw.len() == 9 {
         let n = u64::from_be_bytes(
@@ -262,10 +284,12 @@ pub fn order_value(raw: &[u8]) -> Result<CatalogOrder> {
         parts.remove(0),
     ))
 }
+#[cfg(feature = "source-tools")]
 struct ByteBudget {
     used: Cell<usize>,
     max: usize,
 }
+#[cfg(feature = "source-tools")]
 impl ByteBudget {
     fn new(max: usize) -> Self {
         Self {
@@ -286,12 +310,14 @@ impl ByteBudget {
         Ok(())
     }
 }
+#[cfg(feature = "source-tools")]
 struct CatalogView<'a> {
     db: &'a Transaction<'a>,
     counts: Counts,
     groups: BTreeMap<Vec<String>, BTreeMap<String, u64>>,
     max_entries: u64,
 }
+#[cfg(feature = "source-tools")]
 fn scalar_counts(
     view: &CatalogView<'_>,
     prefix: &[&str],
@@ -302,6 +328,7 @@ fn scalar_counts(
     let group = view.groups.get(&key);
     Ok(group.cloned().unwrap_or_default())
 }
+#[cfg(feature = "source-tools")]
 fn top_counts(
     view: &CatalogView<'_>,
     kind: &str,
@@ -310,6 +337,7 @@ fn top_counts(
 ) -> Result<BTreeMap<String, u64>> {
     scalar_counts(view, &[kind, metric], budget)
 }
+#[cfg(feature = "source-tools")]
 fn sub_counts(
     view: &CatalogView<'_>,
     kind: &str,
@@ -319,6 +347,7 @@ fn sub_counts(
 ) -> Result<BTreeMap<String, u64>> {
     scalar_counts(view, &[kind, metric, a], budget)
 }
+#[cfg(feature = "source-tools")]
 fn first_values(
     view: &CatalogView<'_>,
     kind: &str,
@@ -354,6 +383,7 @@ fn first_values(
     Ok(out)
 }
 #[derive(Clone)]
+#[cfg(feature = "source-tools")]
 struct Route {
     id: String,
     kinds: Vec<String>,
@@ -362,6 +392,7 @@ struct Route {
     relation_types: Vec<String>,
 }
 
+#[cfg(feature = "source-tools")]
 fn text<'a>(v: &'a Value, key: &str) -> Result<&'a str> {
     v.get(key)
         .and_then(Value::as_str)
@@ -369,6 +400,7 @@ fn text<'a>(v: &'a Value, key: &str) -> Result<&'a str> {
         .ok_or(Error::Invalid("catalog required string"))
 }
 
+#[cfg(feature = "source-tools")]
 fn array<'a>(v: &'a Value, key: &str) -> Result<&'a [Value]> {
     v.get(key)
         .and_then(Value::as_array)
@@ -376,6 +408,7 @@ fn array<'a>(v: &'a Value, key: &str) -> Result<&'a [Value]> {
         .ok_or(Error::Invalid("catalog required array"))
 }
 
+#[cfg(feature = "source-tools")]
 fn strings(v: &Value, key: &str) -> Result<Vec<String>> {
     array(v, key)?
         .iter()
@@ -388,11 +421,13 @@ fn strings(v: &Value, key: &str) -> Result<Vec<String>> {
         .collect()
 }
 
+#[cfg(feature = "source-tools")]
 fn path<'a>(v: &'a Value, name: &str) -> Option<&'a Value> {
     name.split('.')
         .try_fold(v, |at, key| at.as_object()?.get(key))
 }
 
+#[cfg(feature = "source-tools")]
 fn value_kind(v: &Value) -> &'static str {
     match v {
         Value::Null => "null",
@@ -405,10 +440,12 @@ fn value_kind(v: &Value) -> &'static str {
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn ordered_strings(v: &Value, key: &str) -> Result<Vec<String>> {
     strings(v, key)
 }
 
+#[cfg(feature = "source-tools")]
 fn registry_entries(registry: &Value, field: &str, key: &str) -> Result<BTreeMap<String, Value>> {
     let mut out = BTreeMap::new();
     for entry in registry
@@ -431,6 +468,7 @@ fn registry_entries(registry: &Value, field: &str, key: &str) -> Result<BTreeMap
     Ok(out)
 }
 
+#[cfg(feature = "source-tools")]
 fn type_is_a(id: &str, allowed: &[String], entries: &BTreeMap<String, Value>) -> bool {
     let mut todo = vec![id.to_owned()];
     let mut seen = BTreeSet::new();
@@ -452,6 +490,7 @@ fn type_is_a(id: &str, allowed: &[String], entries: &BTreeMap<String, Value>) ->
     false
 }
 
+#[cfg(feature = "source-tools")]
 fn python_casefold(value: &str, _budget: &ByteBudget) -> Result<String> {
     tos_foundation::python_casefold_unicode16_v1(
         value,
@@ -461,6 +500,7 @@ fn python_casefold(value: &str, _budget: &ByteBudget) -> Result<String> {
     )
     .map_err(|_| Error::Budget("catalog facet casefold bytes"))
 }
+#[cfg(feature = "source-tools")]
 fn facet_names(vocab: &Value, kind: &str) -> Result<Vec<String>> {
     let catalog = vocab
         .get("catalog")
@@ -483,6 +523,7 @@ fn facet_names(vocab: &Value, kind: &str) -> Result<Vec<String>> {
         .collect())
 }
 
+#[cfg(feature = "source-tools")]
 fn attribute_allowed(field: &str) -> bool {
     let Some(suffix) = field.strip_prefix("attributes.") else {
         return false;
@@ -499,6 +540,7 @@ fn attribute_allowed(field: &str) -> bool {
             .any(|part| matches!(part, "__proto__" | "prototype" | "constructor"))
 }
 
+#[cfg(feature = "source-tools")]
 fn form_key(key: &str) -> bool {
     if matches!(key, "default" | "original") {
         return true;
@@ -518,6 +560,7 @@ fn form_key(key: &str) -> bool {
             .all(|p| !p.is_empty() && p.len() <= 8 && p.bytes().all(|b| b.is_ascii_alphanumeric()))
 }
 
+#[cfg(feature = "source-tools")]
 fn field_catalog(
     db: &CatalogView<'_>,
     kind: &str,
@@ -549,6 +592,7 @@ fn field_catalog(
     Ok(Value::Array(out))
 }
 
+#[cfg(feature = "source-tools")]
 fn facets(
     db: &CatalogView<'_>,
     vocab: &Value,
@@ -582,6 +626,7 @@ fn facets(
     Ok(Value::Object(result))
 }
 
+#[cfg(feature = "source-tools")]
 fn registry_metadata(
     registry: &Value,
     entries: &BTreeMap<String, Value>,
@@ -667,6 +712,7 @@ fn registry_metadata(
     Ok(Value::Object(out))
 }
 
+#[cfg(feature = "source-tools")]
 fn group_catalog(
     db: &CatalogView<'_>,
     kind: &str,
@@ -724,6 +770,7 @@ fn group_catalog(
     Ok(Value::Array(out))
 }
 
+#[cfg(feature = "source-tools")]
 fn route_catalog(
     db: &CatalogView<'_>,
     route_defs: &[Route],
@@ -799,6 +846,7 @@ fn route_catalog(
     Ok(Value::Array(out))
 }
 
+#[cfg(feature = "source-tools")]
 fn presentation(entity_registry: &Value) -> Result<Value> {
     let Some(value) = entity_registry
         .get("context_presentation")
@@ -814,6 +862,7 @@ fn presentation(entity_registry: &Value) -> Result<Value> {
         "digest":format!("sha256:{}",Digest256::of_bytes(encoded.as_bytes()).to_hex()),"payload":value}))
 }
 
+#[cfg(feature = "source-tools")]
 fn capabilities(
     db: &CatalogView<'_>,
     vocab: &Value,
@@ -879,6 +928,7 @@ fn capabilities(
     }))
 }
 
+#[cfg(feature = "source-tools")]
 fn render(
     db: &CatalogView<'_>,
     header: &Value,
@@ -931,12 +981,15 @@ fn render(
     Ok(packet)
 }
 
+#[cfg(feature = "source-tools")]
 fn vocabulary() -> Result<Value> {
     serde_json::from_str(VOCABULARY).map_err(|_| Error::Invalid("catalog vocabulary"))
 }
+#[cfg(feature = "source-tools")]
 pub fn entity_entries(registry: &Value) -> Result<BTreeMap<String, Value>> {
     registry_entries(registry, "types", "type_id")
 }
+#[cfg(feature = "source-tools")]
 fn add(counts: &mut Counts, kind: &str, metric: &str, keys: &[&str]) {
     let key = std::iter::once(kind)
         .chain(std::iter::once(metric))
@@ -945,6 +998,7 @@ fn add(counts: &mut Counts, kind: &str, metric: &str, keys: &[&str]) {
         .collect();
     *counts.entry(key).or_insert(0) += 1;
 }
+#[cfg(feature = "source-tools")]
 fn push(
     posts: &mut Posts,
     kind: &str,
@@ -960,10 +1014,12 @@ fn push(
     ));
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn required<'a>(item: &'a Value, key: &str) -> Result<&'a Value> {
     item.get(key)
         .ok_or(Error::Invalid("catalog missing row field"))
 }
+#[cfg(feature = "source-tools")]
 fn node_summary(
     item: &JsonValue,
     entries: &BTreeMap<String, Value>,
@@ -993,6 +1049,7 @@ fn node_summary(
         (JsonString::from_utf8("typed"), JsonValue::Array(typed)),
     ]))
 }
+#[cfg(feature = "source-tools")]
 pub fn row_facts(row: &CatalogRow, registry: &JsonValue) -> Result<(Counts, Posts, JsonValue)> {
     let kind = row.kind.as_str();
     let decoded = owner_view(&row.item, 16 * 1024 * 1024)?;
@@ -1232,6 +1289,7 @@ pub fn row_facts(row: &CatalogRow, registry: &JsonValue) -> Result<(Counts, Post
     };
     Ok((counts, posts, summary))
 }
+#[cfg(feature = "source-tools")]
 pub fn route_counts<F>(kind: &str, summary: &JsonValue, mut endpoint: F) -> Result<Counts>
 where
     F: FnMut(&str) -> Result<Option<JsonValue>>,
@@ -1301,12 +1359,14 @@ where
     }
     Ok(counts)
 }
+#[cfg(feature = "source-tools")]
 fn total(view: &CatalogView<'_>, kind: &str, metric: &str) -> u64 {
     view.counts
         .get(&vec![kind.into(), metric.into()])
         .copied()
         .unwrap_or(0) as u64
 }
+#[cfg(feature = "source-tools")]
 fn graph_counts(view: &CatalogView<'_>, original: &Value, budget: &ByteBudget) -> Result<Value> {
     let mut result = original.clone();
     let n = total(view, NODE, "total");
@@ -1337,6 +1397,7 @@ fn graph_counts(view: &CatalogView<'_>, original: &Value, budget: &ByteBudget) -
     }
     Ok(result)
 }
+#[cfg(feature = "source-tools")]
 pub fn finalized_header(inputs: &CatalogInputs, catalog: &JsonValue) -> Result<JsonValue> {
     inputs.validate()?;
     if catalog.object_get("schema").and_then(JsonValue::as_str) != Some(SCHEMA)
@@ -1375,6 +1436,7 @@ pub fn finalized_header(inputs: &CatalogInputs, catalog: &JsonValue) -> Result<J
     }
     Ok(header)
 }
+#[cfg(feature = "source-tools")]
 pub fn render_catalog(
     inputs: &CatalogInputs,
     db: &Transaction<'_>,
@@ -1470,13 +1532,16 @@ pub fn render_catalog(
     Ok(output)
 }
 
+#[cfg(feature = "source-tools")]
 const VOCABULARY: &str = r###"{"catalog":{"canonical_order":"source-graph-id-v1","facets":["source_graph","kind_id","type_id","type_mapping.status","epistemic.authority_layer","epistemic.canon_status","epistemic.review_posture","graph_layers","view_ids"]},"overview":{"excluded_predicate_ids":["anchored_in","annotation_member","has_anchor","has_text_unit"],"excluded_relation_type_ids":["tos.relation.generated-by","tos.relation.made-by"],"routes":[{"route_id":"concept","candidate_kind_ids":["concept","principle"],"confirming_predicate_ids":[],"candidate_type_ids":["tos.entity.concept","tos.entity.principle"],"confirming_relation_type_ids":[]},{"route_id":"author","candidate_kind_ids":["agent"],"confirming_predicate_ids":["authored_by"],"candidate_type_ids":["tos.entity.agent"],"confirming_relation_type_ids":["tos.relation.authored-by"]},{"route_id":"work","candidate_kind_ids":["work"],"confirming_predicate_ids":["authored_by","has_expression"],"candidate_type_ids":["tos.entity.work"],"confirming_relation_type_ids":["tos.relation.authored-by","tos.relation.has-expression"]},{"route_id":"word","candidate_kind_ids":["lexeme","word","token","word-occurrence"],"confirming_predicate_ids":["occurs_in","expresses_concept"],"candidate_type_ids":[],"confirming_relation_type_ids":[]},{"route_id":"tradition","candidate_kind_ids":["tradition","school_tradition"],"confirming_predicate_ids":[],"candidate_type_ids":["tos.entity.tradition","tos.entity.school-tradition"],"confirming_relation_type_ids":[]},{"route_id":"place","candidate_kind_ids":["place","region"],"confirming_predicate_ids":[],"candidate_type_ids":["tos.entity.place"],"confirming_relation_type_ids":["tos.relation.has-normalized-place"]},{"route_id":"source-object","candidate_kind_ids":["work","expression","edition","item","file","source_witness"],"confirming_predicate_ids":[],"candidate_type_ids":["tos.entity.intellectual-object","tos.entity.source-witness"],"confirming_relation_type_ids":[]}]},"filters":{"operators":["eq","neq","in","contains","prefix","exists","gt","gte","lt","lte"],"dotted_field_profile":"safe-attributes-and-semantics-v1","node_fields":["id","entity_id","native_id","source_dossier_ref","source_graph","kind_id","type_id","type_mapping.status","type_mapping.source_kind_id","display.title.default","display.title.ru","display.title.en","display.kind_label.default","display.summary.default","display.summary.ru","display.summary.en","display.summary_state","epistemic.authority_layer","epistemic.canon_status","epistemic.review_posture","epistemic.confidence","graph_layers","view_ids","source_refs"],"relation_fields":["id","native_id","source_graph","from_id","to_id","predicate_id","relation_type_id","predicate_mapping.status","predicate_mapping.source_predicate_id","display.label.default","display.label.ru","display.label.en","display.statement.default","display.explanation.default","display.explanation_state","epistemic.authority_layer","epistemic.canon_status","epistemic.review_posture","epistemic.confidence","graph_layers","view_ids","source_refs"],"property_definitions":"selected-entity-registry-property-definitions; preserve-applies-to-inherited-value-type-operators","unknown_field":"reject","unknown_property_id":"reject"},"sources":[{"source_graph_id":"philosophy","owner_ref":"ToS/philosophy/AGENTS.md","input_role":"philosophy-graph","adapter_profile":"philosophy-node-edge-v1","representative_priority":3},{"source_graph_id":"canon","owner_ref":"ToS/canon/AGENTS.md","input_role":"corpus-index","adapter_profile":"canon-node-relation-v1","representative_priority":1},{"source_graph_id":"candidate-intake","owner_ref":"ToS/candidate-intake/AGENTS.md","input_role":"corpus-index","adapter_profile":"candidate-relation-v1","representative_priority":4},{"source_graph_id":"source-navigation","owner_ref":"ToS/source-witnesses/AGENTS.md","input_role":"corpus-source-navigation","adapter_profile":"source-navigation-node-edge-v1","representative_priority":0},{"source_graph_id":"source-claims","owner_ref":"ToS/source-witnesses/AGENTS.md","input_role":"bibliographic-claims","adapter_profile":"reified-bibliographic-claims-v1","representative_priority":2},{"source_graph_id":"semantic-interchange","owner_ref":"ToS/doctrine/semantic-interchange/README.md","input_role":"derived-cross-source-join","adapter_profile":"declared-identity-and-source-ref-joins-v1","representative_priority":6},{"source_graph_id":"repository","owner_ref":"ToS/source_home.manifest.json","input_role":"corpus-topology","adapter_profile":"repository-topology-v1","representative_priority":5}]}"###;
 
+#[cfg(feature = "source-tools")]
 fn python_strip(value: &str) -> String {
     tos_foundation::python_strip_unicode16_v1(value, value.chars().count())
         .unwrap_or(value)
         .to_owned()
 }
+#[cfg(feature = "source-tools")]
 pub fn validate_row_order(inputs: &CatalogInputs, row: &CatalogRow) -> Result<()> {
     order_key(&row.source_order)?;
     match (&inputs.source_order_profile, &row.source_order) {
@@ -1494,9 +1559,11 @@ pub fn validate_row_order(inputs: &CatalogInputs, row: &CatalogRow) -> Result<()
         _ => Err(Error::Invalid("catalog row source order profile")),
     }
 }
+#[cfg(feature = "source-tools")]
 fn legacy_scalar_json(value: &Value) -> Result<String> {
     encoded(value)
 }
+#[cfg(feature = "source-tools")]
 fn preserve_counts(original: &JsonValue, new: &Value) -> Result<JsonValue> {
     fn merge(original: &JsonValue, new: &Value, path: &str) -> Result<JsonValue> {
         if matches!(
@@ -1542,6 +1609,7 @@ fn preserve_counts(original: &JsonValue, new: &Value) -> Result<JsonValue> {
     merge(original, new, "")
 }
 
+#[cfg(feature = "source-tools")]
 fn routes(vocab: &Value) -> Result<Vec<Route>> {
     let raw = array(
         vocab
@@ -1562,6 +1630,7 @@ fn routes(vocab: &Value) -> Result<Vec<Route>> {
         .collect()
 }
 
+#[cfg(feature = "source-tools")]
 fn owner_field<'a>(value: &'a JsonValue, path: &str) -> Option<&'a JsonValue> {
     path.split('.')
         .try_fold(value, |at, key| at.object_get(key))
@@ -1569,6 +1638,7 @@ fn owner_field<'a>(value: &'a JsonValue, path: &str) -> Option<&'a JsonValue> {
 // Maintained Python catalog constructors are insertion ordered. Reduction maps
 // are disposable views; this boundary reconstructs those constructors and
 // restores every owner payload before emitting the packet.
+#[cfg(feature = "source-tools")]
 fn owner_set(object: &mut JsonValue, key: &str, value: JsonValue) -> Result<()> {
     let JsonValue::Object(fields) = object else {
         return Err(Error::Invalid("catalog owner object"));
@@ -1583,6 +1653,7 @@ fn owner_set(object: &mut JsonValue, key: &str, value: JsonValue) -> Result<()> 
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn owner_mut<'a>(value: &'a mut JsonValue, key: &str) -> Result<&'a mut JsonValue> {
     let JsonValue::Object(fields) = value else {
         return Err(Error::Invalid("catalog owner object"));
@@ -1593,6 +1664,7 @@ fn owner_mut<'a>(value: &'a mut JsonValue, key: &str) -> Result<&'a mut JsonValu
         .map(|(_, value)| value)
         .ok_or(Error::Invalid("catalog owner member"))
 }
+#[cfg(feature = "source-tools")]
 fn owner_order_at(value: &mut JsonValue, path: &[&str], keys: &[&str]) -> Result<()> {
     if let Some((head, tail)) = path.split_first() {
         if *head == "*" {
@@ -1640,6 +1712,7 @@ fn owner_order_at(value: &mut JsonValue, path: &[&str], keys: &[&str]) -> Result
     *fields = ordered;
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn owner_registry_entries(
     registry: &JsonValue,
     field: &str,
@@ -1662,6 +1735,7 @@ fn owner_registry_entries(
     }
     entries
 }
+#[cfg(feature = "source-tools")]
 fn owner_entry_counts(
     registry: &JsonValue,
     field: &str,
@@ -1696,6 +1770,7 @@ fn owner_entry_counts(
     }
     Ok(JsonValue::Array(result))
 }
+#[cfg(feature = "source-tools")]
 fn owner_representatives(
     output: &mut JsonValue,
     db: &Transaction<'_>,
@@ -1739,6 +1814,7 @@ fn owner_representatives(
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn owner_semantic_definitions(output: &mut JsonValue, registry: &JsonValue) -> Result<()> {
     let entries = owner_registry_entries(registry, "relations", "relation_type_id");
     let JsonValue::Array(groups) = owner_mut(output, "predicates")? else {
@@ -1766,6 +1842,7 @@ fn owner_semantic_definitions(output: &mut JsonValue, registry: &JsonValue) -> R
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn ordered_catalog(
     inputs: &CatalogInputs,
     db: &Transaction<'_>,
@@ -2354,11 +2431,13 @@ fn ordered_catalog(
     Ok(output)
 }
 
+#[cfg(feature = "source-tools")]
 fn owner_required<'a>(value: &'a JsonValue, key: &str) -> Result<&'a JsonValue> {
     value
         .object_get(key)
         .ok_or(Error::Invalid("catalog missing row field"))
 }
+#[cfg(feature = "source-tools")]
 fn owner_truthy(value: &JsonValue) -> bool {
     match value {
         JsonValue::Null => false,

@@ -54,3 +54,7 @@ required-features = ["source-tools"]
 name = "tos-constructor-fragments"
 path = "src/bin/tos-constructor-fragments.rs"
 required-features = ["source-tools"]
+
+[[test]]
+name = "compressed_search_writer"
+required-features = ["source-tools"]

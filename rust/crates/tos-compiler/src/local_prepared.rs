@@ -1,10 +1,15 @@
 //! Offline owner-selected local publication. All lanes share one SQLite
 //! transaction; no source assembly, selection or semantic admission occurs here.
+#[cfg(feature = "source-tools")]
+use crate::local_prepared_aux as auxiliary;
 pub use crate::local_prepared_read::{
     PreparedReadError, PreparedReadErrorCode, PreparedReadLimits, PreparedReadTransaction,
 };
-use crate::{Error, Result, local_prepared_aux as auxiliary, local_prepared_search as search};
-use rusqlite::{Connection, OptionalExtension, params};
+use crate::{Error, Result, local_prepared_search as search};
+use rusqlite::Connection;
+#[cfg(feature = "source-tools")]
+use rusqlite::{OptionalExtension, params};
+#[cfg(feature = "source-tools")]
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, OpenOptions},
@@ -13,17 +18,22 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{
-    Digest256, Digest256Hasher, JsonNumber, JsonNumberKind, JsonString, JsonValue,
-    python_lower_unicode16_v1, python_printable_unicode16_v1,
+    Digest256, JsonNumber, JsonNumberKind, JsonString, JsonValue, python_printable_unicode16_v1,
 };
+#[cfg(feature = "source-tools")]
+use tos_foundation::{Digest256Hasher, python_lower_unicode16_v1};
 
 pub const SCHEMA: &str = "tos_local_prepared_read_model_v1";
 pub const DESCRIPTOR_SCHEMA: &str = "tos_local_prepared_revision_v2";
 pub const MAX_ADDRESS: u64 = 9_007_199_254_740_991;
+#[cfg(feature = "source-tools")]
 const STRIDE: u64 = 1u64 << 32;
 const TOP: &str = "knowledge_reader_top";
+#[cfg(feature = "source-tools")]
 const LENS: &str = "knowledge_lens_top";
+#[cfg(feature = "source-tools")]
 const CATALOG: &str = "knowledge_catalog";
+#[cfg(feature = "source-tools")]
 const KINDS: [&str; 2] = ["node", "relation"];
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
@@ -68,11 +78,13 @@ impl PublicationLimits {
 
 /// Repeatable, explicit normalized rows in source encounter order. The two
 /// passes are hashed independently; changing input aborts the new publication.
+#[cfg(feature = "source-tools")]
 pub trait PreparedRows {
     fn visit(&mut self, kind: &str, sink: &mut dyn FnMut(&JsonValue) -> Result<()>) -> Result<()>;
 }
 /// Explicit whole-bootstrap alternatives. The caller reserves donor reads or
 /// private scratch separately; neither path is an automatic fallback.
+#[cfg(feature = "source-tools")]
 pub enum BootstrapSearch {
     Buffered,
     Reuse(crate::local_prepared_reuse::PreparedSearchReuse),
@@ -83,6 +95,7 @@ pub enum BootstrapSearch {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct PreparedChange {
     pub operation: String,
     pub kind: String,
@@ -152,12 +165,15 @@ fn digest(value: &JsonValue, cap: usize) -> Result<String> {
 fn hash_text(raw: &str) -> String {
     Digest256::of_bytes(raw.as_bytes()).to_hex()
 }
+#[cfg(feature = "source-tools")]
 fn sha_value(raw: &str) -> JsonValue {
     object(vec![("sha256", text(&hash_text(raw)))])
 }
+#[cfg(feature = "source-tools")]
 fn lower(raw: &str) -> Result<String> {
     python_lower_unicode16_v1(raw, 4096, 16_384, 16_384).map_err(|e| Error::Source(e.to_string()))
 }
+#[cfg(feature = "source-tools")]
 fn columns(kind: &str) -> Result<&'static [&'static str]> {
     match kind {
         "node" => Ok(&[
@@ -180,6 +196,7 @@ fn columns(kind: &str) -> Result<&'static [&'static str]> {
         _ => Err(Error::Invalid("prepared kind")),
     }
 }
+#[cfg(feature = "source-tools")]
 fn dimensions(kind: &str) -> Result<&'static [&'static str]> {
     match kind {
         "node" => Ok(&["source_graph", "kind_id", "type_id"]),
@@ -313,9 +330,11 @@ fn index_repr(
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn indexed(item: &JsonValue, key: &str) -> Result<String> {
     index_value(item, key)
 }
+#[cfg(feature = "source-tools")]
 fn row(kind: &str, item: &JsonValue, limits: PublicationLimits) -> Result<String> {
     let id = required(item, "id")?;
     if id.chars().count() > 4096 {
@@ -361,6 +380,7 @@ pub(crate) fn metadata(db: &Connection, key: &str, cap: usize) -> Result<JsonVal
     }
     Ok(value)
 }
+#[cfg(feature = "source-tools")]
 fn put_metadata(
     db: &Connection,
     key: &str,
@@ -449,21 +469,25 @@ pub(crate) fn capabilities() -> JsonValue {
     ])
 }
 #[derive(Default)]
+#[cfg(feature = "source-tools")]
 struct Histogram {
     map: BTreeMap<[String; 3], u64>,
     bytes: usize,
 }
+#[cfg(feature = "source-tools")]
 impl std::ops::Deref for Histogram {
     type Target = BTreeMap<[String; 3], u64>;
     fn deref(&self) -> &Self::Target {
         &self.map
     }
 }
+#[cfg(feature = "source-tools")]
 impl std::ops::DerefMut for Histogram {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.map
     }
 }
+#[cfg(feature = "source-tools")]
 fn cell(kind: &str, item: &JsonValue) -> Result<[String; 3]> {
     let d = dimensions(kind)?;
     Ok([
@@ -472,6 +496,7 @@ fn cell(kind: &str, item: &JsonValue) -> Result<[String; 3]> {
         indexed(item, d[2])?,
     ])
 }
+#[cfg(feature = "source-tools")]
 fn adjust(hist: &mut Histogram, cell: [String; 3], add: bool) -> Result<()> {
     let existing = hist.get(&cell).copied();
     let previous = existing.unwrap_or(0);
@@ -516,6 +541,7 @@ fn adjust(hist: &mut Histogram, cell: [String; 3], add: bool) -> Result<()> {
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn cells(hist: &Histogram) -> JsonValue {
     JsonValue::Array(
         hist.iter()
@@ -523,6 +549,7 @@ fn cells(hist: &Histogram) -> JsonValue {
             .collect(),
     )
 }
+#[cfg(feature = "source-tools")]
 fn lens(header: &JsonValue, hist: &[Histogram; 2]) -> Result<JsonValue> {
     let properties = header
         .object_get("query_properties")
@@ -563,6 +590,7 @@ fn lens(header: &JsonValue, hist: &[Histogram; 2]) -> Result<JsonValue> {
     compact(&value, 1_048_576)?;
     Ok(value)
 }
+#[cfg(feature = "source-tools")]
 fn descriptor(
     header: &JsonValue,
     catalog: &JsonValue,
@@ -601,6 +629,7 @@ fn descriptor(
     );
     Ok(object(f))
 }
+#[cfg(feature = "source-tools")]
 fn publish_header(
     db: &Connection,
     header: &JsonValue,
@@ -711,6 +740,7 @@ pub(crate) fn snapshot_binding(db: &Connection) -> Result<JsonValue> {
     binding(&top, epoch, PublicationLimits::default())
 }
 
+#[cfg(feature = "source-tools")]
 fn cap(db: &Connection, limits: PublicationLimits, retained: Option<u64>) -> Result<u64> {
     let size: u64 = db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
     let old: u64 = db.query_row("PRAGMA max_page_count", [], |r| r.get(0))?;
@@ -724,6 +754,7 @@ fn cap(db: &Connection, limits: PublicationLimits, retained: Option<u64>) -> Res
     db.pragma_update(None, "max_page_count", max)?;
     Ok(max)
 }
+#[cfg(feature = "source-tools")]
 pub fn ensure_source_scope_indexes(db: &Connection) -> Result<()> {
     if db.is_autocommit() {
         return Err(Error::Invalid("prepared index caller transaction"));
@@ -779,6 +810,7 @@ pub fn ensure_source_scope_indexes(db: &Connection) -> Result<()> {
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn ddl(db: &Connection) -> Result<()> {
     db.execute_batch("CREATE TABLE edge_meta(key TEXT NOT NULL,part INTEGER NOT NULL,json_chunk TEXT NOT NULL,PRIMARY KEY(key,part));CREATE TABLE knowledge_exploration_clock(singleton INTEGER PRIMARY KEY CHECK(singleton=1),epoch INTEGER NOT NULL);CREATE TABLE knowledge_lens_order(kind TEXT NOT NULL,id TEXT NOT NULL,sort_key TEXT NOT NULL,from_id TEXT NOT NULL,to_id TEXT NOT NULL,PRIMARY KEY(kind,id));CREATE TABLE prepared_documents(kind TEXT NOT NULL,id TEXT NOT NULL,doc_id INTEGER NOT NULL UNIQUE,source_order INTEGER NOT NULL,PRIMARY KEY(kind,id));CREATE TABLE prepared_state(singleton INTEGER PRIMARY KEY CHECK(singleton=1),high_water INTEGER NOT NULL,max_pages INTEGER NOT NULL,descriptor TEXT NOT NULL);")?;
     for kind in KINDS {
@@ -841,6 +873,7 @@ fn ddl(db: &Connection) -> Result<()> {
     }
     ensure_source_scope_indexes(db)
 }
+#[cfg(feature = "source-tools")]
 fn put_row(
     db: &Connection,
     kind: &str,
@@ -888,6 +921,7 @@ fn put_row(
         limits,
     )
 }
+#[cfg(feature = "source-tools")]
 fn endpoint(db: &Connection, id: &str) -> Result<()> {
     if !db.query_row(
         "SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id=?)",
@@ -898,6 +932,7 @@ fn endpoint(db: &Connection, id: &str) -> Result<()> {
     }
     Ok(())
 }
+#[cfg(feature = "source-tools")]
 fn frame(
     hash: &mut Digest256Hasher,
     kind: &str,
@@ -919,6 +954,7 @@ fn frame(
 }
 
 /// Exclusive 0600 new-file bootstrap. Failure deletes only its created inode.
+#[cfg(feature = "source-tools")]
 pub fn publish_prepared_rows<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,
@@ -938,6 +974,7 @@ pub fn publish_prepared_rows<R: PreparedRows>(
     )
 }
 /// Native adapter variant. One absolute deadline covers both row passes and SQL.
+#[cfg(feature = "source-tools")]
 pub fn publish_prepared_rows_until<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,
@@ -957,6 +994,7 @@ pub fn publish_prepared_rows_until<R: PreparedRows>(
         None,
     )
 }
+#[cfg(feature = "source-tools")]
 pub fn publish_prepared_rows_with_search_until<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,
@@ -977,6 +1015,7 @@ pub fn publish_prepared_rows_with_search_until<R: PreparedRows>(
         None,
     )
 }
+#[cfg(feature = "source-tools")]
 pub fn publish_prepared_rows_with_progress_until<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,
@@ -998,6 +1037,7 @@ pub fn publish_prepared_rows_with_progress_until<R: PreparedRows>(
         progress,
     )
 }
+#[cfg(feature = "source-tools")]
 fn write_bootstrap_rows<R: PreparedRows>(
     db: &Connection,
     rows: &mut R,
@@ -1039,6 +1079,7 @@ fn write_bootstrap_rows<R: PreparedRows>(
     Ok((address, actual.finalize().to_hex()))
 }
 
+#[cfg(feature = "source-tools")]
 fn publish_prepared_rows_with_deadline<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,
@@ -1320,6 +1361,7 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
     result
 }
 
+#[cfg(feature = "source-tools")]
 fn histograms(lens: &JsonValue) -> Result<[Histogram; 2]> {
     let mut result: [Histogram; 2] = Default::default();
     for (i, name) in ["node_counts", "relation_counts"].iter().enumerate() {
@@ -1438,12 +1480,14 @@ pub fn apply_prepared_delta_transaction_fallible<I: IntoIterator<Item = Result<P
 /// No row changes are admitted here. The caller must pair all dependent states
 /// and roll back the entire transaction on any refusal. Naming a review does
 /// not establish semantic compatibility: that is the caller's owner evidence.
+#[cfg(feature = "source-tools")]
 pub struct ReviewedNormalizationTransition<'a> {
     pub before_processor: &'a str,
     pub after_processor: &'a str,
     pub review_ref: &'a str,
 }
 
+#[cfg(feature = "source-tools")]
 impl ReviewedNormalizationTransition<'_> {
     pub(crate) fn validate(
         &self,
@@ -1920,6 +1964,7 @@ fn apply_prepared_delta_with_deadline<I: IntoIterator<Item = Result<PreparedChan
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn check_deadline(deadline: Option<Instant>) -> Result<()> {
     if deadline.is_some_and(|d| Instant::now() >= d) {
         Err(Error::Budget("prepared whole operation deadline"))
@@ -1927,12 +1972,14 @@ fn check_deadline(deadline: Option<Instant>) -> Result<()> {
         Ok(())
     }
 }
+#[cfg(feature = "source-tools")]
 fn install_deadline(db: &Connection, deadline: Option<Instant>) {
     if let Some(deadline) = deadline {
         db.progress_handler(1000, Some(move || Instant::now() >= deadline));
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn check_path_stamp(path: &Path, expected: &fs::Metadata) -> Result<()> {
     let actual = fs::symlink_metadata(path)?;
     if !actual.is_file()

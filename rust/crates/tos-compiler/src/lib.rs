@@ -42,17 +42,22 @@ mod d1_public_static;
 pub mod epistemic_evidence;
 pub mod local_prepared;
 pub mod local_prepared_aux;
+#[cfg(feature = "source-tools")]
 pub mod local_prepared_bulk;
 mod local_prepared_read;
+#[cfg(feature = "source-tools")]
 pub mod local_prepared_reuse;
 pub mod local_prepared_search;
+#[cfg(feature = "source-tools")]
 pub mod prepared_catalog_index;
 pub mod prepared_catalog_semantics;
 #[cfg(feature = "source-tools")]
 pub mod prepared_maintenance;
 #[cfg(feature = "source-tools")]
 pub mod prepared_maintenance_file;
+#[cfg(feature = "source-tools")]
 pub mod prepared_semantic_index;
+#[cfg(feature = "source-tools")]
 mod prepared_semantic_kernel;
 pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
@@ -399,8 +404,10 @@ pub use legacy::partitioned_projection_closure;
 pub use native_knowledge_selection::{
     LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits,
     NativeSelectionPaths, NativeSelectionProducer,
-    measure_existing_native_knowledge_artifact_custody, prepare_native_knowledge_artifact,
+    measure_existing_native_knowledge_artifact_custody,
 };
+#[cfg(feature = "source-tools")]
+pub use native_knowledge_selection::prepare_native_knowledge_artifact;
 #[cfg(feature = "source-tools")]
 pub use source_bibliographic_selected_files::SelectedBibliographicFilesV1;
 #[cfg(feature = "source-tools")]

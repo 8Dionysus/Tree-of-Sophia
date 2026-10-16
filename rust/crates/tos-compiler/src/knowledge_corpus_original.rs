@@ -1,16 +1,16 @@
 //! Named original corpus projection custody. Capture identity is distinct from
 //! authored-source identity; neither projection custody nor selection admits it.
+#[cfg(feature = "source-tools")]
+use crate::QueryVocabulary;
 use crate::d1_public_capture::CreationState;
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_selected::{
     owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
 };
+use crate::knowledge_stage::{KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout};
 #[cfg(feature = "source-tools")]
-use crate::knowledge_stage::KnowledgeStage;
-use crate::knowledge_stage::{
-    KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout, WritePhase,
-};
-use crate::{Error, QueryVocabulary, Result, SourceBinding};
+use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::{Error, Result, SourceBinding};
 use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
 use serde_json::Value;
 use tos_foundation::{
@@ -973,7 +973,6 @@ fn page_with_layout_and_work(
         return Err(Error::Budget("corpus page ordinal"));
     }
     let (where_sql, args) = selection(collection, selector)?;
-    use CorpusOriginalSelector as S;
     let index = selection_index(selector);
     let carrier_join = if layout.uses_carriers() {
         " LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len)"

@@ -6,16 +6,22 @@
 //! The pager cap covers the entire main database; pager settings are not SQL
 //! data and are not promised to roll back. No corpus, digest or source is selected.
 use crate::{Error, Result};
-use rusqlite::{Connection, OptionalExtension, Params, params, params_from_iter};
+use rusqlite::Connection;
+#[cfg(feature = "source-tools")]
+use rusqlite::{OptionalExtension, Params, params, params_from_iter};
+use std::collections::BTreeSet;
+#[cfg(feature = "source-tools")]
 use std::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, VecDeque},
     fs::File,
     io::Read,
     time::Instant,
 };
+#[cfg(feature = "source-tools")]
+use tos_foundation::python_lower_unicode16_v1;
 use tos_foundation::{
     CanonicalProfile, Digest256Hasher, JsonLimits, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue, canonical_bytes_v1, python_lower_unicode16_v1,
+    JsonValue, canonical_bytes_v1,
 };
 
 pub const SCHEMA: &str = "tos_knowledge_search_compressed_v3";
@@ -23,18 +29,25 @@ pub const ALGORITHM: &str = "python-lower-json-default-order-v1";
 pub const STORAGE_VERSION: u64 = 3;
 pub const MAX_ADDRESS: u64 = (1 << 53) - 1;
 pub const BLOCK_SIZE: usize = 256;
+#[cfg(feature = "source-tools")]
 pub const CHUNK_SIZE: usize = 32768;
+#[cfg(feature = "source-tools")]
 pub const MAX_DOCUMENT_BYTES: usize = 8 * 1024 * 1024;
+#[cfg(feature = "source-tools")]
 pub const MAX_ROW_BYTES: usize = 1_900_000;
 pub const MAX_TERMS: usize = 200_000;
 pub const MAX_HEADER_BYTES: usize = 65536;
+#[cfg(feature = "source-tools")]
 const MAX_VALUES: usize = 8192;
+#[cfg(feature = "source-tools")]
 const MAX_CACHE_BLOCKS: usize = 8192;
+#[cfg(feature = "source-tools")]
 const MAX_CACHE_BYTES: usize = 32 * 1024 * 1024;
 const REVERSE_DOMAIN: &[u8] = b"tos-search-reverse-uvarint-v1\0";
 
 /// Six data tables and one header, byte-for-byte column/index contracts of
 /// access/src/tos_access/compressed_search_store.py. Execute one DDL at a time.
+#[cfg(feature = "source-tools")]
 pub const DDL: &[&str] = &[
     "CREATE TABLE search_header (singleton INTEGER PRIMARY KEY CHECK(singleton=1), header TEXT NOT NULL, cursor_key BLOB NOT NULL, high_water INTEGER NOT NULL, max_pages INTEGER NOT NULL)",
     "CREATE TABLE search_documents (doc_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, identifier BLOB NOT NULL, sort_key BLOB NOT NULL, filters BLOB NOT NULL, UNIQUE(kind,sort_key), UNIQUE(kind,identifier))",
@@ -47,6 +60,7 @@ pub const DDL: &[&str] = &[
 ];
 
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct PreparedSearchDocument {
     pub doc_id: u64,
     pub kind: String,
@@ -57,6 +71,7 @@ pub struct PreparedSearchDocument {
     pub visible: Vec<String>,
     pub filters: JsonValue,
 }
+#[cfg(feature = "source-tools")]
 impl PreparedSearchDocument {
     /// Exact normalized-object preparation; display dictionaries retain their
     /// source encounter order. Unicode is the pinned foundation Unicode 16.
@@ -156,6 +171,7 @@ impl PreparedSearchDocument {
     }
 }
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub enum SearchChange {
     Insert(PreparedSearchDocument),
     Update(PreparedSearchDocument),
@@ -167,6 +183,7 @@ pub enum SearchChange {
 /// caps, not represented as DML rows. Retained/workspace bytes are accounted
 /// payload, never RSS. The owner's independent carrier writes are not included.
 #[derive(Clone, Debug, Default)]
+#[cfg(feature = "source-tools")]
 pub struct SearchWriteReport {
     pub mutations: u64,
     pub blocks_written: u64,
@@ -273,6 +290,7 @@ fn address(value: u64) -> Result<()> {
         Err(Error::Invalid("search document address"))
     }
 }
+#[cfg(feature = "source-tools")]
 fn order(value: u64) -> Result<()> {
     if value <= MAX_ADDRESS {
         Ok(())
@@ -280,6 +298,7 @@ fn order(value: u64) -> Result<()> {
         Err(Error::Invalid("search source order"))
     }
 }
+#[cfg(feature = "source-tools")]
 fn lower(input: &str) -> Result<String> {
     python_lower_unicode16_v1(
         input,
@@ -289,6 +308,7 @@ fn lower(input: &str) -> Result<String> {
     )
     .map_err(|e| Error::Source(e.to_string()))
 }
+#[cfg(feature = "source-tools")]
 fn display_values(display: Option<&JsonValue>, field: &str) -> Result<Vec<String>> {
     let mut values = Vec::new();
     if let Some(value) = display.and_then(|v| v.object_get(field)) {
@@ -309,6 +329,7 @@ fn display_values(display: Option<&JsonValue>, field: &str) -> Result<Vec<String
 }
 /// Normalized carrier IDs are scalar JSON values. Unsupported container IDs
 /// are refused explicitly rather than inventing a Python repr/ordering.
+#[cfg(feature = "source-tools")]
 fn python_str_or_empty(value: &JsonValue) -> Result<String> {
     if !crate::truthy(value) {
         return Ok(String::new());
@@ -334,6 +355,7 @@ fn python_str_or_empty(value: &JsonValue) -> Result<String> {
         )),
     }
 }
+#[cfg(feature = "source-tools")]
 pub fn order_key(identifier: &JsonValue, source_order: u64) -> Result<Vec<u8>> {
     order(source_order)?;
     let lowered = lower(&python_str_or_empty(identifier)?)?;
@@ -510,7 +532,9 @@ pub fn decode_search_reverse(
     Ok(terms)
 }
 
+#[cfg(feature = "source-tools")]
 pub(crate) type Term = (u8, u8, Vec<u8>);
+#[cfg(feature = "source-tools")]
 pub(crate) fn document_terms(document: &PreparedSearchDocument) -> Result<BTreeSet<Term>> {
     let mut terms = BTreeSet::from([(3, 0, Vec::new())]);
     for value in &document.identities {
@@ -560,6 +584,7 @@ pub(crate) fn document_terms(document: &PreparedSearchDocument) -> Result<BTreeS
     Ok(terms)
 }
 
+#[cfg(feature = "source-tools")]
 struct CachedBlock {
     term: u64,
     fence: Vec<u8>,
@@ -569,6 +594,7 @@ struct CachedBlock {
     dirty: bool,
     recency: u64,
 }
+#[cfg(feature = "source-tools")]
 impl CachedBlock {
     fn bytes(&self) -> usize {
         64 + self.fence.len()
@@ -577,6 +603,7 @@ impl CachedBlock {
             + self.addresses.len() * 8
     }
 }
+#[cfg(feature = "source-tools")]
 pub(crate) struct Writer<'a> {
     pub(crate) db: &'a Connection,
     pub(crate) maximum: u64,
@@ -587,6 +614,7 @@ pub(crate) struct Writer<'a> {
     next_recency: u64,
     cached_bytes: usize,
 }
+#[cfg(feature = "source-tools")]
 impl<'a> Writer<'a> {
     pub(crate) fn new(db: &'a Connection, maximum: u64, bootstrap: bool) -> Result<Self> {
         if maximum == 0 || maximum > if bootstrap { MAX_ADDRESS } else { 20_000_000 } {
@@ -1075,6 +1103,7 @@ impl<'a> Writer<'a> {
     }
 }
 
+#[cfg(feature = "source-tools")]
 pub(crate) fn require_transaction(db: &Connection) -> Result<()> {
     if db.is_autocommit() {
         Err(Error::Invalid(
@@ -1100,6 +1129,7 @@ pub(crate) fn page_cap(db: &Connection, requested: u64) -> Result<u64> {
     }
     Ok(cap)
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn cursor_key() -> Result<[u8; 32]> {
     let mut key = [0; 32];
     // Kernel entropy is read afresh at each publication. No deterministic key,
@@ -1107,6 +1137,7 @@ pub(crate) fn cursor_key() -> Result<[u8; 32]> {
     File::open("/dev/urandom")?.read_exact(&mut key)?;
     Ok(key)
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn database_bytes(db: &Connection) -> Result<u64> {
     let pages: u64 = db.query_row("PRAGMA page_count", [], |r| r.get(0))?;
     let size: u64 = db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
@@ -1115,6 +1146,7 @@ pub(crate) fn database_bytes(db: &Connection) -> Result<u64> {
         .ok_or(Error::Budget("search database byte count"))
 }
 
+#[cfg(feature = "source-tools")]
 pub fn initialize<I>(
     db: &Connection,
     binding: &JsonValue,
@@ -1134,6 +1166,7 @@ where
 }
 /// Callback producer permits fallible streaming carrier writes in the exact
 /// same transaction. Search cap is set before the callback can write carriers.
+#[cfg(feature = "source-tools")]
 pub fn initialize_with(
     db: &Connection,
     binding: &JsonValue,
@@ -1171,6 +1204,7 @@ pub fn initialize_with(
     Ok(writer.report)
 }
 
+#[cfg(feature = "source-tools")]
 pub fn apply_delta<I>(
     db: &Connection,
     expected_binding: &JsonValue,
@@ -1188,6 +1222,7 @@ where
         Ok(())
     })
 }
+#[cfg(feature = "source-tools")]
 pub fn apply_delta_with(
     db: &Connection,
     expected_binding: &JsonValue,

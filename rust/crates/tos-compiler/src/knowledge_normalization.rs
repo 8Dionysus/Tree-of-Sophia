@@ -1164,3 +1164,94 @@ pub(crate) const ASSERTION_FIELDS: &[&str] = &[
     "provenance_event_ref",
     "visibility",
 ];
+
+/// Python equality for JSON carriers, including the bool/int/float numeric
+/// equivalences used by the source validator.
+pub(crate) fn python_eq(left: &Value, right: &Value) -> Result<bool> {
+    fn equal(left: &Value, right: &Value) -> bool {
+        fn integer_text(value: &Value) -> Option<String> {
+            let text = match value {
+                Value::Bool(true) => "1".to_owned(),
+                Value::Bool(false) => "0".to_owned(),
+                Value::Number(number) => number.to_string(),
+                _ => return None,
+            };
+            if text.contains(['.', 'e', 'E']) {
+                return None;
+            }
+            Some(normalize_integer(&text))
+        }
+
+        fn normalize_integer(value: &str) -> String {
+            let (negative, digits) = value
+                .strip_prefix('-')
+                .map(|digits| (true, digits))
+                .unwrap_or((false, value));
+            let digits = digits.trim_start_matches('0');
+            if digits.is_empty() {
+                "0".to_owned()
+            } else if negative {
+                format!("-{digits}")
+            } else {
+                digits.to_owned()
+            }
+        }
+
+        fn float_value(value: &Value) -> Option<f64> {
+            match value {
+                Value::Number(number) if number.to_string().contains(['.', 'e', 'E']) => {
+                    number.as_f64()
+                }
+                _ => None,
+            }
+        }
+
+        fn numeric_equal(left: &Value, right: &Value) -> Option<bool> {
+            if let (Some(left), Some(right)) = (integer_text(left), integer_text(right)) {
+                return Some(left == right);
+            }
+            let left_integer = integer_text(left);
+            let right_integer = integer_text(right);
+            let left_float = float_value(left);
+            let right_float = float_value(right);
+            match (left_integer, right_integer, left_float, right_float) {
+                (Some(integer), None, _, Some(float))
+                    if float.is_finite() && float.fract() == 0.0 =>
+                {
+                    Some(integer == normalize_integer(&format!("{float:.0}")))
+                }
+                (None, Some(integer), Some(float), _)
+                    if float.is_finite() && float.fract() == 0.0 =>
+                {
+                    Some(normalize_integer(&format!("{float:.0}")) == integer)
+                }
+                (None, None, Some(left), Some(right)) => Some(left == right),
+                _ => None,
+            }
+        }
+
+        if let Some(equal) = numeric_equal(left, right) {
+            return equal;
+        }
+        match (left, right) {
+            (Value::Null, Value::Null) => true,
+            (Value::String(left), Value::String(right)) => left == right,
+            (Value::Array(left), Value::Array(right)) => {
+                left.len() == right.len()
+                    && left
+                        .iter()
+                        .zip(right)
+                        .all(|(left, right)| equal(left, right))
+            }
+            (Value::Object(left), Value::Object(right)) => {
+                left.len() == right.len()
+                    && left
+                        .iter()
+                        .all(|(key, left)| right.get(key).is_some_and(|right| equal(left, right)))
+            }
+            _ => false,
+        }
+    }
+
+    Ok(equal(left, right))
+}

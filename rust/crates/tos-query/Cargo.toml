@@ -40,7 +40,7 @@ path = "src/lib.rs"
 
 [[test]]
 name = "compressed_search"
-required-features = ["native-models"]
+required-features = ["test-fixture"]
 
 [[test]]
 name = "knowledge_inspect"

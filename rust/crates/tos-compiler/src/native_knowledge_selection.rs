@@ -588,6 +588,7 @@ fn measured(file: &File) -> Result<NativeFsVerityMeasurement> {
 }
 /// Software-level preparation only. The caller must close writers first and
 /// supply a private admitted candidate. This never changes a release pointer.
+#[cfg(feature = "source-tools")]
 pub fn prepare_native_knowledge_artifact(
     path: &Path,
     receipt: &StageReceipt,

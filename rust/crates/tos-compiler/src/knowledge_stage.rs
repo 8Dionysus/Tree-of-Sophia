@@ -1,16 +1,20 @@
 //! Private, disk-indexed full-knowledge staging. Source admission and the
 //! filesystem spill quota are supplied by independent owner/host guards.
 
-use crate::{
-    Error, Limits, Result, SourceBinding, file_digest, safe_open, sqlite_budget, stream_digest,
-};
+use crate::{Error, Result, SourceBinding};
+#[cfg(feature = "source-tools")]
+use crate::{Limits, file_digest, safe_open, sqlite_budget, stream_digest};
 #[cfg(feature = "source-tools")]
 use fs2::FileExt;
-use rusqlite::{Connection, OptionalExtension, params};
+#[cfg(feature = "source-tools")]
+use rusqlite::params;
+use rusqlite::{Connection, OptionalExtension};
+use std::collections::BTreeSet;
+#[cfg(feature = "source-tools")]
 use std::{
     any::Any,
     cell::Cell,
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     fs,
     io::{Read, Seek, SeekFrom, Write},
     os::{
@@ -28,7 +32,10 @@ use std::{
     },
     time::Instant,
 };
-use tos_foundation::{Digest256, Digest256Hasher, SourceRevision};
+#[cfg(feature = "source-tools")]
+use tos_foundation::SourceRevision;
+use tos_foundation::{Digest256, Digest256Hasher};
+#[cfg(feature = "source-tools")]
 use tos_source_store::{
     CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1, StreamedCorpusCutReaderV1,
 };

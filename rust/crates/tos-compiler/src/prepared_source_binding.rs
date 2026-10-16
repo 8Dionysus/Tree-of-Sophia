@@ -1,10 +1,12 @@
 //! Private retained source roots paired with the prepared publication.
 //! All operations borrow the whole caller's transaction; errors require rollback.
 //! Root metadata is addressing evidence, never source closure or admission.
+#[cfg(feature = "source-tools")]
 use crate::prepared_catalog_index::CatalogMaintenanceLimits;
 use crate::prepared_catalog_semantics::{self as catalog, CatalogInputs};
 #[cfg(feature = "source-tools")]
 use crate::prepared_maintenance::{self, MaintenanceReceipt};
+#[cfg(feature = "source-tools")]
 use crate::prepared_semantic_index::SemanticMaintenanceLimits;
 use crate::{Error, Result, local_prepared as prepared};
 use rusqlite::{OptionalExtension, Transaction, params};
@@ -759,7 +761,7 @@ pub(crate) fn selected_same(a: &JsonValue, b: &JsonValue, cap: usize) -> Result<
         .map_err(|_| Error::Invalid("maintenance equality JSON"))?;
     let b: Value = serde_json::from_str(&prepared::compact(b, cap)?)
         .map_err(|_| Error::Invalid("maintenance equality JSON"))?;
-    crate::prepared_semantic_kernel::python_eq(&a, &b)
+    crate::knowledge_normalization::python_eq(&a, &b)
 }
 pub(crate) fn selected_prepared_catalog(
     tx: &Transaction<'_>,

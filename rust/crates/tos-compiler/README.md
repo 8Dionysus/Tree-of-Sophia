@@ -3,7 +3,9 @@
 The default library keeps the knowledge-model and prepared-query contracts used
 by readers. Source preparation, full catalog/model and native snapshot production,
 D1 emission, managed-source tools, prepared deltas and optional index installation
-require `source-tools`. This also selects DOCX/source-registry parsing,
+require `source-tools`. Prepared bootstrap, bulk/reuse writers, catalog and
+semantic index maintenance, and fs-verity artifact preparation also select it.
+This also selects DOCX/source-registry parsing,
 philosophy atlas/dossier preparation, navigation event producers, managed overlays,
 constructor commands, Knowledge Stage writes and external producer I/O. Native
 model readers do not enable this feature, its schema engine, regex, file locking
@@ -22,10 +24,10 @@ cargo build -p tos-compiler --features source-tools --bin tos-constructor-librar
 Specialized research recipes require `research`, which includes `source-tools`.
 Their access handlers live in the separate `tos-research` executable.
 
-Some prepared publication internals still share model and custody contracts
-with readers. This feature boundary does not
-make the default crate a fully separate reader implementation or remove any
-live storage format.
+Prepared readers retain the same snapshot admission, source-state validation,
+catalog inputs, codecs and exact checks used by producers. Their shared contracts
+remain in this crate; the capability boundary removes producer operations from
+default compilation and does not retire a live storage format.
 
 ## Native snapshot byte format
 
