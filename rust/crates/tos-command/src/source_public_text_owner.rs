@@ -316,9 +316,6 @@ impl PublicNativeTextSelection {
     pub(crate) fn recovery_root(&self) -> &Path {
         &self.recovery_root
     }
-    pub(crate) fn target_is_private(&self) -> bool {
-        false
-    }
     pub(crate) fn configuration_digest(&self) -> Digest256 {
         self.digest
     }

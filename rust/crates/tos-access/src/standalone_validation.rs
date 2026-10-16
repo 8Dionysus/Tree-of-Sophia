@@ -326,23 +326,6 @@ impl Meter {
         self.charge(relative, bytes.len(), after)?;
         Ok(bytes)
     }
-    fn account_external(&mut self, rows: u64, bytes: u64) -> Result<(), String> {
-        self.tick(
-            rows.checked_add(bytes)
-                .ok_or("standalone external work envelope overflow")?,
-        )?;
-        self.rows = self
-            .rows
-            .checked_add(rows)
-            .filter(|value| *value <= self.max_rows)
-            .ok_or("standalone validation row envelope exceeded")?;
-        self.bytes = self
-            .bytes
-            .checked_add(bytes)
-            .filter(|value| *value <= self.max_bytes)
-            .ok_or("standalone validation cumulative byte envelope exceeded")?;
-        Ok(())
-    }
     fn json(&mut self, relative: &str, cap: usize) -> Result<(Vec<u8>, Value), String> {
         let raw = self.read(relative, cap)?;
         let limits = JsonLimits::new(cap, SOURCE_JSON_DEPTH, SOURCE_JSON_VISITS, 4_300)

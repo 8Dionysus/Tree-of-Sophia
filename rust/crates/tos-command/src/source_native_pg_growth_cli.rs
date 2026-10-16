@@ -1394,13 +1394,7 @@ impl PreparedPgGrowthRevision {
         &self.proposal
     }
 
-    pub(crate) fn identity(&self) -> PgRecordRevisionIdentity {
-        self.binding.identity
-    }
 
-    pub(crate) fn family(&self) -> PgGrowthFamily {
-        self.family
-    }
 }
 
 /// Owner-package contract for validating its exact context against the

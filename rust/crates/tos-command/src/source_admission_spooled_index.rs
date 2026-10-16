@@ -639,9 +639,6 @@ impl CandidateRecordsReportVerified {
         self.selected_member_bytes
     }
 
-    pub(crate) fn record_source_bytes_read(&self) -> u64 {
-        self.record_source_bytes_read
-    }
 
     pub(crate) fn record_issue_count(&self) -> usize {
         self.record_issue_count
@@ -695,7 +692,6 @@ trait CandidateFenceSource {
         max_owned_state_bytes: usize,
     ) -> io::Result<CandidateMemberRead>;
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
-    fn verify(&self, path: &str) -> io::Result<()>;
     fn base_identity_path_bounded(
         &self,
         id: &str,
@@ -761,9 +757,6 @@ impl CandidateFenceSource for SpoolCandidate<'_> {
         SpoolCandidate::read(self, path, cap)
     }
 
-    fn verify(&self, path: &str) -> io::Result<()> {
-        SpoolCandidate::verify(self, path)
-    }
 
     fn base_identity_path_bounded(
         &self,
@@ -894,9 +887,6 @@ impl CandidateIndexInput for SpoolInput<'_> {
         Ok(raw)
     }
 
-    fn verify_member(&mut self, path: &str) -> io::Result<()> {
-        self.candidate.verify(path)
-    }
 
     fn json_limits(&self) -> JsonLimits {
         self.json
@@ -1814,12 +1804,6 @@ impl IndexView<'_> {
         self.row_limit
     }
 
-    pub(crate) fn publication_epoch(&self) -> &tos_source_store::MetadataPublicationEpoch {
-        self.complete.original_epoch()
-    }
-    pub(crate) fn prepared_schema(&self) -> CutPreparedSchemaExecutionBinding {
-        self.complete.records().prepared_schema()
-    }
     /// Invocation-selected persistent V2 IO/allocation limits carried only by
     /// the genuine native completion witness. This is a budget profile, not a
     /// source or publication permission.

@@ -171,42 +171,6 @@ fn is_public_candidate_path(path: &str) -> bool {
         && is_candidate(path.rsplit('/').next().unwrap_or(path))
 }
 
-/// Exact current unique-predicate tokens derived by this owner from a complete
-/// selected source cut. Historical predicate generations are retained by the
-/// caller separately because they are conflict tombstones.
-pub(crate) fn current_predicate_tokens(
-    files: &BTreeMap<String, Vec<u8>>,
-) -> DurableResult<BTreeSet<String>> {
-    let mut tokens = BTreeSet::new();
-    let mut candidate_files = 0usize;
-    let mut candidate_bytes = 0usize;
-    for (path, bytes) in files {
-        validate_public_path(path)?;
-        if !is_public_candidate_path(path) {
-            continue;
-        }
-        candidate_files += 1;
-        if candidate_files > MAX_FILES {
-            return Err(DurableError::Refused(
-                "Text identity full member bound exceeded",
-            ));
-        }
-        candidate_bytes = candidate_bytes
-            .checked_add(bytes.len())
-            .filter(|count| *count <= MAX_BYTES)
-            .ok_or(DurableError::Refused(
-                "Text identity full byte bound exceeded",
-            ))?;
-        for token in member_rows(path, bytes)?.into_keys() {
-            if tokens.insert(token) && tokens.len() > MAX_INDEX_ROWS {
-                return Err(DurableError::Refused(
-                    "Text identity full index row bound exceeded",
-                ));
-            }
-        }
-    }
-    Ok(tokens)
-}
 
 fn validate_index_path(path: &str) -> DurableResult<()> {
     validate_public_path(path)?;

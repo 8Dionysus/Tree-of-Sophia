@@ -98,9 +98,6 @@ impl FoundationBootstrapClock {
         Ok(deadline)
     }
 
-    pub(crate) fn uid(&self) -> u32 {
-        self.uid
-    }
 }
 
 fn active(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {

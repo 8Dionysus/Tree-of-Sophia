@@ -211,12 +211,6 @@ enum ConfigVersion {
     V2,
 }
 impl ConfigVersion {
-    fn schema(self) -> &'static str {
-        match self {
-            Self::V1 => CONFIG_V1,
-            Self::V2 => CONFIG_V2,
-        }
-    }
     fn reader_allowed(self, value: &str) -> bool {
         match self {
             Self::V1 => matches!(value, "semantic-relation-v1" | "identity-relation-v1"),
@@ -1816,14 +1810,6 @@ impl ClaimGrammar {
         Ok(result)
     }
 
-    fn type_for_source(&self, kind: &str) -> SourceCommandResult<&str> {
-        self.type_by_kind
-            .get(kind)
-            .map(String::as_str)
-            .ok_or(SourceCommandError::Unsupported(
-                "private Claim source type mapping",
-            ))
-    }
 }
 
 fn validate_allowed_predicates(grant: &Grant, grammar: &ClaimGrammar) -> SourceCommandResult<()> {

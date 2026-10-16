@@ -164,19 +164,7 @@ impl PgSelectedClaimCut {
 }
 
 impl PgClaimSourceProof {
-    pub(crate) fn members(&self) -> &[SourceFile] {
-        match self {
-            Self::Complete(cut) => cut.members(),
-            Self::Selected(cut) => cut.members(),
-        }
-    }
 
-    pub(crate) fn total_bytes(&self) -> u64 {
-        match self {
-            Self::Complete(cut) => cut.total_bytes(),
-            Self::Selected(cut) => cut.total_bytes(),
-        }
-    }
 
     pub(crate) fn identity(&self) -> super::revision::PgRecordRevisionIdentity {
         match self {

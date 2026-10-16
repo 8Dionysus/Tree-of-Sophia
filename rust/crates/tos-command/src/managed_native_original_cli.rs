@@ -2274,25 +2274,7 @@ enum SelectedSource {
 }
 
 impl SelectedSource {
-    fn source_root(&self) -> &Path {
-        match self {
-            Self::Historical { census, .. } => census.source_root(),
-            Self::Current { runtime, .. } => &runtime.inputs.source_root,
-        }
-    }
 
-    fn retained_state_upper_bound(&self) -> Result<usize> {
-        match self {
-            Self::Historical { profile, census } => profile
-                .retained_state_upper_bound()?
-                .checked_add(census.retained_state_upper_bound()?)
-                .ok_or_else(|| Refusal("selected historical source census overflow").into()),
-            Self::Current { runtime, census } => runtime
-                .retained_state_upper_bound()?
-                .checked_add(census.retained_state_upper_bound()?)
-                .ok_or_else(|| Refusal("selected current source census overflow").into()),
-        }
-    }
 
     fn validate_capture_closure(
         &self,
@@ -2388,12 +2370,6 @@ impl SelectedSource {
         }
     }
 
-    fn member_bytes(&self) -> u64 {
-        match self {
-            Self::Historical { census, .. } => census.member_bytes(),
-            Self::Current { census, .. } => census.member_bytes(),
-        }
-    }
 
     fn selected_source_json(&self, captured_count: usize, captured_bytes: u64) -> Value {
         match self {

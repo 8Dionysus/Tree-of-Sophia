@@ -86,14 +86,6 @@ fn select_pg_item_adoption(
     })
 }
 
-pub(crate) fn pg_item_adoption_transaction_id(
-    fs: &CreationFilesystem,
-    context: &CommandContext,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<String> {
-    super::ItemOwner::select(fs, context, deadline, cancelled)?.transaction_id()
-}
 
 pub(crate) fn pg_item_adoption_transaction_id_from_request(
     request: &JsonValue,

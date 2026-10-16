@@ -506,17 +506,8 @@ impl SourceTransitionPrepared<'_> {
             .ok_or_else(|| invalid("source transition batch already consumed"))
     }
 
-    pub(crate) fn retained_state_upper_bound_bytes(&self) -> usize {
-        self.fence.profile.max_state_slice_bytes
-    }
 
-    pub(crate) fn work_units_used(&self) -> u64 {
-        self.fence.work.used()
-    }
 
-    pub(crate) fn proposal_census(&self) -> SourceCensusSummary {
-        self.fence.proposal
-    }
 
     /// Keep the exact current selector captured by the held V2 session pinned
     /// across the accepted-publication lookup. This can be a later current

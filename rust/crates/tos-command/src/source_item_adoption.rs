@@ -3373,7 +3373,7 @@ pub(crate) use pg::{
     expected_item_adoption_revision_indexes as pg_expected_revision_indexes,
     inventory_owner_contributions as pg_inventory_owner_contributions,
     item_adoption_insertion_paths as pg_item_adoption_insertion_paths,
-    pg_item_adoption_response_from_attempt, pg_item_adoption_transaction_id,
+    pg_item_adoption_response_from_attempt,
     pg_item_adoption_transaction_id_from_request, prepare_pg_item_adoption,
     select_pg_item_adoption_owner as pg_select_owner,
     select_pg_item_adoption_proposal as pg_select_proposal, verify_pg_item_adoption_owner,

@@ -364,12 +364,6 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
         self.guard(self.deadline, self.cancelled)?;
         self.finish_result(self.worker.diagnostics_v2_cumulative_cost())
     }
-    pub(crate) fn prepared_execution_binding(
-        &self,
-    ) -> Result<CutPreparedSchemaExecutionBinding, ItemRefusal> {
-        self.guard(self.deadline, self.cancelled)?;
-        Ok(self.prepared)
-    }
 }
 impl CutSchemaExecutor for CandidateSchemaBinding<'_, '_, '_> {
     fn check(

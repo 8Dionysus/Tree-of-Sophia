@@ -316,27 +316,6 @@ impl GeneratedCatalogObservation {
     pub(crate) fn retained_state_bytes(&self) -> usize {
         self.state_bytes
     }
-    /// Narrow the later physical EOF pass to the caller's current whole-run
-    /// allowance. Cumulative reads and retained state only move downward.
-    pub(crate) fn restrict_remaining_budget(
-        &mut self,
-        additional_read_bytes: usize,
-        available_state_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<()> {
-        self.checkpoint(deadline, cancelled)?;
-        if self.state_bytes > available_state_bytes {
-            return Err(Error::Budget("generated catalog final state"));
-        }
-        let total_read_limit = self
-            .read_bytes
-            .checked_add(additional_read_bytes)
-            .ok_or(Error::Budget("generated catalog final read allowance"))?;
-        self.max_total_bytes = self.max_total_bytes.min(total_read_limit);
-        self.max_state_bytes = self.max_state_bytes.min(available_state_bytes);
-        self.checkpoint(deadline, cancelled)
-    }
 
     /// Narrow only the raw-byte allowance for an EOF verification. The
     /// observation's existing state/workspace cap remains in force, since a

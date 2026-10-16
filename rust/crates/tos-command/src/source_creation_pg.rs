@@ -705,12 +705,6 @@ impl PgSerializedCorpusCreation {
     pub(crate) fn context(&self) -> &CommandContext {
         &self.context
     }
-    pub(crate) fn proposal(&self) -> &CommandPlan {
-        &self.plan
-    }
-    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
-        &self.files
-    }
 }
 
 impl creation::PgCreationInput for PgSerializedCorpusCreation {

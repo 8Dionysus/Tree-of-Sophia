@@ -201,9 +201,6 @@ impl<'cut> ArtifactReplayEvidence<'cut> {
             .collect()
     }
 
-    pub(crate) fn skips(&self) -> &[ArtifactReplaySkip] {
-        &self.skips
-    }
 
     pub(crate) fn invalid_schema_proofs(&self) -> &CurrentArtifactInvalidSchemaProofs<'cut> {
         &self.invalid_schema_proofs

@@ -2889,13 +2889,7 @@ impl CandidateEventSourceIdentityV1 for NavigationEventSourceCutIdentityV1 {
 }
 
 impl NavigationEventSourceCutIdentityV1 {
-    pub(crate) fn owner_binding(&self) -> Digest256 {
-        self.owner_binding
-    }
 
-    pub(crate) fn event_member_binding(&self) -> Digest256 {
-        self.event_member_binding
-    }
 
     pub(crate) fn range_coverage_binding(&self) -> Option<Digest256> {
         self.range_coverage_binding

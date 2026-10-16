@@ -276,14 +276,17 @@ class SoftwareBoundaryTests(unittest.TestCase):
 
     def test_native_core_word_method_preserves_reference_argument_contract(self):
         from tos_access.native_core import NativeCore
-        from tos_access.native_mcp import _native_wire_bytes
+        from tos_access.native_io import _bounded_json
         from mcp import types
         wire_query = "Я\ud800\ud83d\ude00"
         request = types.JSONRPCMessage(root=types.JSONRPCRequest(
             jsonrpc="2.0", id=1, method="tools/call",
             params={"name": "tos_zarathustra_prepare_word_analysis",
                     "arguments": {"query": wire_query}}))
-        raw = _native_wire_bytes(request.model_dump(mode="json", by_alias=True, exclude_none=True))
+        raw = _bounded_json(
+            request.model_dump(mode="json", by_alias=True, exclude_none=True),
+            65_536, time.monotonic() + 5,
+        )
         self.assertIn("Я".encode("utf-8"), raw)
         self.assertIn(b"\\ud800", raw)
         self.assertIn(b"\\ud83d\\ude00", raw)

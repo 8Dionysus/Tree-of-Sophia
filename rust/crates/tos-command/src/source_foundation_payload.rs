@@ -943,12 +943,6 @@ impl<'a> FoundationPayloadSources<'a> {
         }
     }
 
-    /// Revalidate all observed physical facts and return them for the
-    /// discovery owner. Prefer `finish_with_cost` when aggregate accounting is
-    /// required; this compatibility wrapper preserves the facts-only result.
-    pub fn finish(self) -> Result<BTreeMap<String, PhysicalPayloadFacts>, ItemRefusal> {
-        self.finish_with_cost().map(|completion| completion.facts)
-    }
 
     /// Final post-worker hash/stamp fence, with explicit aggregate cost.
     pub fn finish_with_cost(mut self) -> Result<PhysicalPayloadCompletion, ItemRefusal> {

@@ -368,9 +368,6 @@ impl NativeAdmissionComplete {
     pub(crate) fn cancelled(&self) -> &Arc<AtomicBool> {
         &self.cancelled
     }
-    pub(crate) fn original_epoch(&self) -> &tos_source_store::MetadataPublicationEpoch {
-        &self.original_epoch
-    }
     pub(crate) fn records(&self) -> &CandidateRecordsReportVerified {
         &self.records
     }

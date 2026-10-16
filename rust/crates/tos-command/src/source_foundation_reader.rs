@@ -105,24 +105,6 @@ impl FoundationAuxiliaryCustody<'_> {
         }
         reader_checkpoint(self.limits.deadline, self.cancelled)
     }
-    pub(crate) fn recheck(
-        &mut self,
-        physical: &mut RouteSources,
-        cancelled: &AtomicBool,
-    ) -> Result<FoundationRuleReadCost, ItemRefusal> {
-        let remaining_read_bytes = self
-            .limits
-            .max_read_bytes
-            .checked_sub(self.read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
-        self.recheck_until_with_limits(
-            physical,
-            remaining_read_bytes,
-            self.limits.max_auxiliary_state_bytes,
-            self.limits.deadline,
-            cancelled,
-        )
-    }
 
     /// Recheck selected auxiliary operands under a caller's remaining whole-
     /// invocation allowance. Both limits narrow monotonically, including on

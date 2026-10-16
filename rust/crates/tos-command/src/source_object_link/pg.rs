@@ -100,9 +100,6 @@ impl PgObjectLinkPreview {
         &self.response
     }
 
-    pub(crate) fn materializations(&self) -> &JsonValue {
-        &self.materializations
-    }
 
     pub(crate) fn bind_read_snapshot(
         &mut self,

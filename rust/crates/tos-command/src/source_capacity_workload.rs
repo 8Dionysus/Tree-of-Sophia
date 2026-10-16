@@ -91,15 +91,6 @@ impl WeightedScaleClassV1 {
         Self::Work,
     ];
 
-    pub fn directory(self) -> &'static str {
-        match self {
-            Self::Artifact => "artifacts",
-            Self::Claim => "claims",
-            Self::EvidencePacket => "evidence-packets",
-            Self::TextUnit => "text-units",
-            Self::Work => "works",
-        }
-    }
 
     fn id_kind(self) -> &'static str {
         match self {
@@ -2854,9 +2845,6 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         self.member_count
     }
 
-    pub fn source_bytes(&self) -> u64 {
-        self.source_bytes
-    }
 
     pub fn class_source_bytes(&self) -> [u64; 5] {
         self.class_source_bytes
@@ -3137,24 +3125,6 @@ pub(crate) struct WeightedScaleGeneratedMemberV1 {
 }
 
 impl WeightedScaleGeneratedMemberV1 {
-    pub(crate) fn class(&self) -> WeightedScaleClassV1 {
-        self.class
-    }
-    pub(crate) fn ordinal(&self) -> u64 {
-        self.ordinal
-    }
-    pub(crate) fn identity(&self) -> &str {
-        &self.identity
-    }
-    pub(crate) fn template_sha256(&self) -> Digest256 {
-        self.template_sha256
-    }
-    pub(crate) fn raw_sha256(&self) -> Digest256 {
-        self.raw_sha256
-    }
-    pub(crate) fn raw_bytes(&self) -> u64 {
-        self.raw_bytes
-    }
 }
 
 /// Generated-ALL is issued from the authenticated input reader declaration,

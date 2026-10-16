@@ -1412,12 +1412,6 @@ impl<'a> SourceNavigationCurrentLeaseV1<'a> {
         self.check_current()
     }
 
-    pub(crate) fn proof(&self) -> &ManagedSourceProofV2 {
-        self.proof
-    }
-    pub(crate) fn generation(&self) -> &ManagedCurrentSourceGeneration {
-        self.generation
-    }
     pub(crate) fn domain(&self) -> &str {
         self.generation.cohort().domain()
     }

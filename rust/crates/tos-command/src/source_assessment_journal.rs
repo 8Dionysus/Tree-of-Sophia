@@ -334,25 +334,6 @@ impl ProtectedAssessmentPgGrant {
         Ok(target_ref)
     }
 
-    pub(crate) fn history_target(
-        &self,
-        context: &crate::source_text_owner::OwnerTextContext,
-        domain: &str,
-        subject: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<AssessmentPgHistoryTarget> {
-        self.verify_current(deadline, cancelled)?;
-        let owner_context_binding = context.private_owner_scope_binding(deadline, cancelled)?;
-        let scope = PrivateOwnerScopeV1::for_context(domain, owner_context_binding)
-            .map_err(|_| SourceCommandError::Invalid("assessment PG private owner scope"))?;
-        let target_ref = self.target_ref(context, subject)?;
-        Ok(AssessmentPgHistoryTarget {
-            scope,
-            target_ref,
-            owner_context_binding,
-        })
-    }
 
     pub(crate) fn verify_current(
         &self,
@@ -1201,21 +1182,6 @@ impl AssessmentJournalReadBatch<'_> {
         self.owner.verify_current(deadline, cancelled)
     }
 
-    pub(crate) fn head(
-        &self,
-        subject: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>> {
-        let (head, member) = read_head(self, subject, deadline, cancelled)?;
-        if let Some(member) = member.as_ref() {
-            verify_member_current(self, member, deadline, cancelled)?;
-        } else {
-            verify_head_absent(self, subject, deadline, cancelled)?;
-        }
-        self.verify_current(deadline, cancelled)?;
-        Ok(head)
-    }
 
     pub(crate) fn read(
         &self,

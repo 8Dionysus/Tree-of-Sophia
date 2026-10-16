@@ -560,9 +560,6 @@ impl HistoryEvidence {
     pub(crate) fn retained_state_bytes(&self) -> usize {
         self.retained_state
     }
-    pub(crate) fn state_bytes(&self) -> usize {
-        self.peak_state
-    }
     /// Historical rows must remain outside the actual current candidate.
     /// Each presence query is fenced by the same input and charged by it.
     pub(crate) fn verify_candidate_input(

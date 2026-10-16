@@ -148,9 +148,6 @@ impl PgGrowthSelectedInputs {
         Ok(())
     }
 
-    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
-        &self.files
-    }
 
     /// Rebind every catalog member and exact owner endpoint selected from the
     /// cut input to the held PostgreSQL read session before capturing its

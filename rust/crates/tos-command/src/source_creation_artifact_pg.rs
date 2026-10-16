@@ -666,12 +666,6 @@ impl PgSerializedArtifactCreation {
     pub(crate) fn plan(&self) -> &CommandPlan {
         &self.plan
     }
-    pub(crate) fn family_tag(&self) -> &'static str {
-        ARTIFACT_FAMILY_TAG
-    }
-    pub(crate) fn record_type(&self) -> &'static str {
-        ARTIFACT_RECORD_TYPE
-    }
     pub(crate) fn home(&self) -> &RelativePath {
         &self.home
     }
@@ -692,8 +686,5 @@ impl PgSerializedArtifactCreation {
     }
     pub(crate) fn unique_observations(&self) -> &[PgSourceUniqueIndexObservation] {
         &self.observations.unique
-    }
-    pub(crate) fn artifact_id(&self) -> &str {
-        &self.artifact_id
     }
 }

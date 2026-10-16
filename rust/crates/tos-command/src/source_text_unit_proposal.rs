@@ -73,9 +73,6 @@ fn interval(row: &Value) -> SourceCommandResult<(usize, usize)> {
     Ok((start, end))
 }
 
-fn span(start: usize, end: usize) -> Value {
-    json!({"start":start,"end":end,"position_unit":"unicode_code_point","interval":"half_open"})
-}
 
 fn anchor(
     identity: &str,

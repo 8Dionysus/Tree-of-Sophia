@@ -81,9 +81,6 @@ pub(crate) enum PreparedV2SuccessorSelectionV2 {
 }
 
 impl PreparedV2SuccessorV2 {
-    pub(crate) fn locator(&self) -> &PreparedV2SuccessorLocatorV2 {
-        &self.locator
-    }
 }
 
 #[derive(Debug)]
@@ -757,29 +754,6 @@ impl AdmissionStore {
     pub(crate) fn has_v2_segments(&self) -> io::Result<bool> {
         self.verify_layout()?;
         Ok(self.v2_segments.borrow().is_some())
-    }
-    fn source_work_ledgers(
-        &self,
-    ) -> io::Result<(
-        tos_source_store::PinnedSqliteIoBudget,
-        Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
-    )> {
-        let io = self
-            .v2_layout_io
-            .borrow()
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| invalid("V2 Work intent lacks its selected IO ledger"))?;
-        let accountant = self
-            .v2_allocation_accountant
-            .borrow()
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| invalid("V2 Work intent lacks selected allocation custody"))?;
-        if !io.shares_with(accountant.io_budget()) {
-            return Err(invalid("V2 Work intent IO ledgers differ"));
-        }
-        Ok((io, accountant))
     }
 
     fn read_source_work_marker(

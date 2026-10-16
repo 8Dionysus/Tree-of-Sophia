@@ -303,9 +303,6 @@ impl DurableNavigationCurrentnessGuardV1 {
     pub(crate) fn adjacency_root(&self) -> Digest256 {
         self.adjacency_root
     }
-    pub(crate) fn source_revision(&self) -> Digest256 {
-        self.source_revision
-    }
     pub(crate) fn index_root(&self) -> Digest256 {
         self.index_root
     }
@@ -335,9 +332,6 @@ impl DurableNavigationCurrentnessGuardV1 {
     }
     pub(crate) fn header_raw(&self) -> &[u8] {
         &self.header_raw
-    }
-    pub(crate) fn header_sha256(&self) -> Digest256 {
-        self.header_sha256
     }
 }
 
@@ -373,9 +367,6 @@ impl DurableNavigationPublishedGenerationGuardV2 {
     pub(crate) fn adjacency_root(&self) -> Digest256 {
         self.inner.adjacency_root()
     }
-    pub(crate) fn source_revision(&self) -> Digest256 {
-        self.inner.source_revision()
-    }
     pub(crate) fn rights_allowed(&self) -> bool {
         self.inner.rights_allowed()
     }
@@ -402,9 +393,6 @@ impl DurableNavigationPublishedGenerationGuardV2 {
     }
     pub(crate) fn header_raw(&self) -> &[u8] {
         self.inner.header_raw()
-    }
-    pub(crate) fn header_sha256(&self) -> Digest256 {
-        self.inner.header_sha256()
     }
 }
 

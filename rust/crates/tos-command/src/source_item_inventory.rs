@@ -23,24 +23,6 @@ use tos_compiler::html_entities::unescape;
 #[path = "source_item_inventory_extended.rs"]
 mod extended;
 
-/// Build the complete standalone source-resource inventory from an Item
-/// manifest and explicitly selected local payload root. The caller publishes
-/// and schema-validates the returned wrapper; this function only observes.
-pub(crate) fn build_full_inventory(
-    repo_root: &Path,
-    item_manifest_ref: &str,
-    payload_source_root: &Path,
-    event_date: &str,
-    plain_text_profile: &str,
-) -> std::result::Result<Value, String> {
-    extended::build_full_inventory(
-        repo_root,
-        item_manifest_ref,
-        payload_source_root,
-        event_date,
-        plain_text_profile,
-    )
-}
 
 /// Run the owned source-resource inventory build/check command.
 pub(crate) fn invoke(request: &Value) -> std::result::Result<Value, String> {

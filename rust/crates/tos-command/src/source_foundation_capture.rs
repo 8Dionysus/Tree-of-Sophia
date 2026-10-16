@@ -590,33 +590,10 @@ impl FoundationCapturedCut {
     pub(crate) fn cost(&self) -> FoundationCaptureCost {
         self.cost
     }
-    /// Exact independently captured inventory, already bounded and ordered.
-    /// It contains authored members only; payload and auxiliary custody are
-    /// selected separately by the command owner.
-    pub(crate) fn current_paths(&self) -> Vec<String> {
-        self.metadata.keys().cloned().collect()
-    }
     pub(crate) fn observed_members(&self) -> impl Iterator<Item = (&str, &MemberMetadata)> {
         self.metadata
             .iter()
             .map(|(path, member)| (path.as_str(), member))
-    }
-    pub(crate) fn member(&self, path: &RelativePath) -> io::Result<Option<MemberMetadata>> {
-        Ok(self.metadata.get(path.as_str()).cloned())
-    }
-    pub(crate) fn read_member(
-        &self,
-        path: &RelativePath,
-        max_bytes: usize,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> io::Result<Vec<u8>> {
-        let max_bytes = u64::try_from(max_bytes)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "captured read cap"))?;
-        self.cut
-            .read_member(self.revision(), path, max_bytes, deadline, cancel)
-            .map(|member| member.raw)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member bytes"))
     }
     /// Visit the sorted captured inventory after rechecking its complete
     /// membership and byte total. Each callback retains the operation clock.
@@ -645,19 +622,6 @@ impl FoundationCapturedCut {
         Ok(())
     }
 
-    /// Re-enumerate and rehash actual current files; a participating epoch alone
-    /// is not a complete membership certificate. Cut absence says nothing about
-    /// external payload bytes, generated catalogs, or software custody.
-    pub(crate) fn recheck(
-        &self,
-        sources: &mut RouteSources,
-        limits: ReadLimits,
-        deadline: Instant,
-        cancel: &AtomicBool,
-    ) -> Result<()> {
-        self.recheck_bounded(sources, limits, MAX_BYTES, deadline, cancel)
-            .map(|_| ())
-    }
 
     /// The caller reserves this pass from its remaining whole-operation raw
     /// read allowance before entering it. No independent allowance is reset.
@@ -802,63 +766,7 @@ impl FoundationCapturedCut {
     }
 }
 
-/// Caller-selected real live source into the existing immutable v1 carrier.
-/// Empty index claims mean none are asserted: the full validator builds and
-/// checks identities/dependencies from these exact source bytes. This ephemeral
-/// current capture is not a durable historical/canon admission manifest.
-pub(crate) fn capture(
-    sources: &mut RouteSources,
-    isolated: &IsolatedCreationRoot,
-    validator_sha256: Digest256,
-    read_limits: ReadLimits,
-    cut_limits: CutReadLimits,
-    deadline: Instant,
-    cancel: &AtomicBool,
-) -> Result<FoundationCapturedCut> {
-    capture_bounded(
-        sources,
-        isolated,
-        validator_sha256,
-        read_limits,
-        cut_limits,
-        MAX_BYTES * 3,
-        deadline,
-        cancel,
-    )
-}
 
-/// Bound the three raw authored-member passes performed by capture: source
-/// materialization, authentic immutable-stream EOF, and initial live recheck.
-/// A final invocation EOF pass is reserved separately by the caller.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn capture_bounded(
-    sources: &mut RouteSources,
-    isolated: &IsolatedCreationRoot,
-    validator_sha256: Digest256,
-    read_limits: ReadLimits,
-    cut_limits: CutReadLimits,
-    max_source_read_bytes: usize,
-    deadline: Instant,
-    cancel: &AtomicBool,
-) -> Result<FoundationCapturedCut> {
-    let max_capture_write_bytes = (max_source_read_bytes / 3)
-        .min(MAX_BYTES)
-        .checked_add(read_limits.max_manifest_bytes)
-        .ok_or(Error::Unsupported(
-            "foundation capture write limit overflow",
-        ))?;
-    capture_bounded_with_write_cap(
-        sources,
-        isolated,
-        validator_sha256,
-        read_limits,
-        cut_limits,
-        max_source_read_bytes,
-        max_capture_write_bytes,
-        deadline,
-        cancel,
-    )
-}
 
 /// Capture the authored members of one already-prepared admission candidate.
 /// Candidate bytes are copied once into the same immutable v1 carrier used by

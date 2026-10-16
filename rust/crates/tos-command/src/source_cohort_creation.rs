@@ -49,12 +49,6 @@ impl PgDependencyCommitment {
         }
         Ok(Self { version, digest })
     }
-    pub(crate) fn version(self) -> u16 {
-        self.version
-    }
-    pub(crate) fn digest(self) -> Digest256 {
-        self.digest
-    }
 }
 
 /// Capture owns the concrete sealed prepared type. Implementing this trait is

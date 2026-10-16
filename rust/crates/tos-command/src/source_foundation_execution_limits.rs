@@ -5,11 +5,9 @@
 //! Both use the same protected invocation ceilings and absolute deadline.
 
 use super::foundation_entry::{FoundationInvocation, FoundationInvocationBudgets};
-use super::foundation_output::SourceFoundationOutputLimits;
 use super::foundation_payload::PhysicalPayloadLimits;
 use super::foundation_physical::PhysicalSourceLimits;
 use super::foundation_reader::FoundationRuleReadLimits;
-use super::foundation_rule_diagnostics::SourceFoundationRuleDiagnosticsLimits;
 use super::foundation_selection::FoundationSelectionLimits;
 use crate::source_command::{SourceCommandError as Error, SourceCommandResult as Result};
 use std::mem::size_of;
@@ -20,7 +18,7 @@ use tos_compiler::SourceCatalogInputLimits;
 use tos_compiler::knowledge_stage::StageLimits;
 use tos_compiler::source_bibliographic::BibliographicLimits;
 use tos_compiler::source_witness_catalog::SourceCatalogLimits;
-use tos_source_store::{CutReadLimits, ReadLimits};
+use tos_source_store::ReadLimits;
 use tos_validation::executor::{
     BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget,
 };
@@ -173,9 +171,6 @@ pub(crate) struct FoundationBudgetTicket {
 }
 
 impl FoundationBudgetTicket {
-    pub(crate) fn label(&self) -> &'static str {
-        self.label
-    }
 
     pub(crate) fn remaining(&self) -> FoundationPhaseReservation {
         self.remaining
@@ -185,9 +180,6 @@ impl FoundationBudgetTicket {
         self.operation_limits
     }
 
-    pub(crate) fn already_admitted(&self) -> FoundationPhaseReservation {
-        self.already_admitted
-    }
 
     pub(crate) fn remaining_worker_cpu_micros(&self) -> u64 {
         self.remaining_worker_cpu_micros
@@ -1210,60 +1202,6 @@ impl FoundationExecutionLimits {
         })
     }
 
-    /// The record and Item kernels have independent read limits over the same
-    /// authenticated cut. Their actual sub-reservations must fit under the
-    /// named combined phase; the caller supplies those slices after deriving
-    /// the exact selected record/item shape.
-    pub(crate) fn records_limits(
-        &self,
-        operation: FoundationPhaseReservation,
-        records: FoundationPhaseReservation,
-        items: FoundationPhaseReservation,
-        schema_request_state_bytes: usize,
-    ) -> Result<SourceFoundationRecordsLimits> {
-        let combined = self.reservations.records_and_bibliography;
-        ensure_subreservation(operation, combined, "foundation Records operation")?;
-        ensure_subreservation(records, operation, "foundation record kernel")?;
-        ensure_subreservation(items, operation, "foundation Item kernel")?;
-        ensure_sum_fits(
-            [records.source_read_bytes, items.source_read_bytes],
-            operation.source_read_bytes,
-            "foundation record/item read reservations",
-        )?;
-        ensure_sum_fits(
-            [records.worker_wire_bytes, items.worker_wire_bytes],
-            operation.worker_wire_bytes,
-            "foundation record/item worker wire reservations",
-        )?;
-        ensure_sum_fits_usize(
-            [records.state_bytes, items.state_bytes],
-            operation.state_bytes,
-            "foundation record/item state reservations",
-        )?;
-        ensure_sum_fits_usize(
-            [records.issue_count, items.issue_count],
-            operation.issue_count,
-            "foundation record/item issue reservations",
-        )?;
-        if schema_request_state_bytes == 0
-            || schema_request_state_bytes == usize::MAX
-            || schema_request_state_bytes > items.state_bytes
-        {
-            return Err(Error::Unsupported(
-                "foundation schema request state exceeds Item reservation",
-            ));
-        }
-        let operation = self.item_limits(operation)?;
-        let records = self.item_limits(records)?;
-        let items = self.item_limits(items)?;
-        Ok(SourceFoundationRecordsLimits {
-            operation,
-            records,
-            items,
-            max_schema_resource_bytes: operation.max_total_bytes,
-            max_schema_request_state_bytes: schema_request_state_bytes,
-        })
-    }
 
     /// Sequential owner kernels receive the original operation ceiling. The
     /// rolling VAL entry narrows Item limits only after actual Records usage;
@@ -1448,27 +1386,6 @@ impl FoundationExecutionLimits {
         })
     }
 
-    /// Compose the final CLI output envelope across all already-reserved
-    /// finding phases. Additional wrapper allocation stays in the final
-    /// custody/output state slice.
-    pub(crate) fn output_limits(&self) -> Result<SourceFoundationOutputLimits> {
-        let phases = self.phases();
-        let max_issues = checked_sum_usize(phases.map(|phase| phase.issue_count))
-            .ok_or(Error::Unsupported("foundation output issue overflow"))?;
-        let max_output_bytes = checked_sum_usize(phases.map(|phase| phase.output_bytes))
-            .ok_or(Error::Unsupported("foundation output byte overflow"))?;
-        let max_state_bytes = self.reservations.final_custody_and_output.state_bytes;
-        if max_issues == 0 || max_output_bytes == 0 || max_state_bytes == 0 {
-            return Err(Error::Unsupported(
-                "foundation final output reservation must be positive",
-            ));
-        }
-        Ok(SourceFoundationOutputLimits {
-            max_issues,
-            max_output_bytes,
-            max_state_bytes,
-        })
-    }
 
     /// Stage VM execution and temporary spill use the actual selected SQLite
     /// budget and the catalog phase's reserved private-stage space. The page
@@ -1833,36 +1750,6 @@ impl FoundationExecutionLimits {
         })
     }
 
-    /// The capture store intentionally contains the exact current revision,
-    /// while the source-store API still requires a finite non-max revision cap.
-    pub(crate) fn current_cut_limits(
-        &self,
-        current_members: u64,
-        reservation: FoundationPhaseReservation,
-    ) -> Result<CutReadLimits> {
-        let max_member_bytes = self
-            .invocation_budgets
-            .max_member_bytes
-            .min(reservation.source_read_bytes)
-            .min(u64::MAX - 1);
-        let max_members = current_members
-            .min(self.invocation_budgets.max_current_members)
-            .min(u64::MAX - 1);
-        if current_members > self.invocation_budgets.max_current_members
-            || max_member_bytes == 0
-            || reservation.source_read_bytes == 0
-        {
-            return Err(Error::Unsupported(
-                "foundation captured-cut reservation is invalid",
-            ));
-        }
-        Ok(CutReadLimits {
-            max_revisions: 1,
-            max_members: max_members.max(1),
-            max_total_bytes: reservation.source_read_bytes.min(u64::MAX - 1),
-            max_member_bytes,
-        })
-    }
 
     /// Construct one schema evaluator envelope from caller-observed cut and
     /// check shapes. Repeated calls must use distinct phase slices; each
@@ -1971,22 +1858,6 @@ impl FoundationExecutionLimits {
         Ok(limits)
     }
 
-    pub(crate) fn diagnostic_limits(&self) -> Result<SourceFoundationRuleDiagnosticsLimits> {
-        let reservation = self.reservations.diagnostics;
-        if reservation.issue_count == 0
-            || reservation.output_bytes == 0
-            || reservation.state_bytes == 0
-        {
-            return Err(Error::Unsupported(
-                "foundation diagnostic reservation must be positive",
-            ));
-        }
-        Ok(SourceFoundationRuleDiagnosticsLimits {
-            max_issues: reservation.issue_count,
-            max_output_bytes: reservation.output_bytes,
-            max_state_bytes: reservation.state_bytes,
-        })
-    }
 
     /// The final authenticated authored-member EOF pass is reserved
     /// separately from the initial capture and catalog-owner rechecks.
@@ -2005,22 +1876,6 @@ impl FoundationExecutionLimits {
         Ok(bytes)
     }
 
-    fn phases(&self) -> [FoundationPhaseReservation; 11] {
-        let reservations = self.reservations;
-        [
-            reservations.capture,
-            reservations.selection,
-            reservations.physical,
-            reservations.payload,
-            reservations.records_and_bibliography,
-            reservations.artifact_history_replay,
-            reservations.default_rules,
-            reservations.catalog_and_persisted,
-            reservations.schema,
-            reservations.diagnostics,
-            reservations.final_custody_and_output,
-        ]
-    }
 }
 
 // One capacity formula owns both strict required-count and nominal-ceiling
@@ -2199,35 +2054,7 @@ fn ensure_subreservation(
     Ok(())
 }
 
-fn ensure_sum_fits<const N: usize>(
-    values: [u64; N],
-    limit: u64,
-    label: &'static str,
-) -> Result<()> {
-    let total = values
-        .into_iter()
-        .try_fold(0u64, u64::checked_add)
-        .ok_or(Error::Unsupported(label))?;
-    if total > limit {
-        return Err(Error::Unsupported(label));
-    }
-    Ok(())
-}
 
-fn ensure_sum_fits_usize<const N: usize>(
-    values: [usize; N],
-    limit: usize,
-    label: &'static str,
-) -> Result<()> {
-    let total = values
-        .into_iter()
-        .try_fold(0usize, usize::checked_add)
-        .ok_or(Error::Unsupported(label))?;
-    if total > limit {
-        return Err(Error::Unsupported(label));
-    }
-    Ok(())
-}
 
 fn checked_sum_u64(values: [u64; 11]) -> Option<u64> {
     values.into_iter().try_fold(0u64, u64::checked_add)

@@ -413,9 +413,6 @@ impl V2SeenPackSpill {
         Ok(spill)
     }
 
-    pub(crate) fn state_charge(&self) -> std::io::Result<usize> {
-        self.limits.state_charge()
-    }
 
     pub(crate) fn packed_verifier_caller_state_bytes(&self) -> std::io::Result<usize> {
         let coordinate_state = usize::try_from(self.limits.max_pack_frames)

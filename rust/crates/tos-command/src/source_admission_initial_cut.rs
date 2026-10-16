@@ -166,21 +166,8 @@ impl InitialCutPrepared<'_> {
             .ok_or_else(|| invalid("initial source cut batch already consumed"))
     }
 
-    /// The entire selected bridge slice remains charged on the original
-    /// Native state ledger through candidate validation and the terminal
-    /// census. The V2 reader and candidate retain their separately selected
-    /// slices from that same invocation.
-    pub(crate) fn retained_state_upper_bound_bytes(&self) -> usize {
-        self.fence.profile.max_state_slice_bytes
-    }
 
-    pub(crate) fn work_units_used(&self) -> u64 {
-        self.fence.work.used()
-    }
 
-    pub(crate) fn proposal_census(&self) -> SourceCensusSummary {
-        self.fence.proposal
-    }
 
     /// After exact accepted-publication lookup misses, prove the target is
     /// still a genuinely empty initial store before candidate ingestion writes

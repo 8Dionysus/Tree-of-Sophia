@@ -353,17 +353,6 @@ impl AddressedMixedInventoryV1 {
         hash.finalize()
     }
 
-    pub(super) fn projection_digest(
-        &self,
-        store: &SegmentStore,
-        path: &RelativePath,
-        limits: AuthenticatedTreeLimitsV1,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<Option<Digest256>> {
-        let mut work = AuthenticatedTreeWorkV1::default();
-        self.projection_digest_with_work(store, path, limits, deadline, cancelled, &mut work)
-    }
 
     pub(super) fn projection_digest_with_work(
         &self,

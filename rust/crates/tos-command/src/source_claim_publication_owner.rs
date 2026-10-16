@@ -320,9 +320,6 @@ impl CommittedClaimObservation {
     pub(crate) fn source_path(&self) -> &RelativePath {
         &self.source_path
     }
-    pub(crate) fn bindings(&self) -> Value {
-        Value::Object(self.captured.iter().map(|(p,c)|(p.clone(),serde_json::json!({"sha256":Digest256::of_bytes(&c.bytes).to_hex(),"bytes":c.bytes.len()}))).collect())
-    }
     pub(crate) fn read_selected(
         &mut self,
         path: &RelativePath,

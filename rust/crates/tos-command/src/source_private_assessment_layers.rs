@@ -214,11 +214,6 @@ impl PrivateAssessmentLayers {
         self.selected_input_bytes
     }
 
-    /// Canonical input buffers supplied by the caller and excluded from
-    /// `input_bytes()` to avoid charging the same envelopes twice.
-    pub(crate) fn provided_input_bytes(&self) -> u64 {
-        self.provided_input_bytes
-    }
 
     /// Revalidate the retained owner and third-root file evidence after the
     /// caller's review locks have been acquired. Every private read made by

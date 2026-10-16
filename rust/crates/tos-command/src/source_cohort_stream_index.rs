@@ -798,47 +798,6 @@ impl SourceAssessmentIndex {
         })
     }
 
-    /// Match one actual PostgreSQL current-member carrier to the complete
-    /// source assessment and mark the expected path seen. The caller counts
-    /// the PostgreSQL row before invoking this method.
-    pub(crate) fn observe_member(
-        &mut self,
-        actual: SourceAssessmentMember<'_>,
-        work: &mut SourceAssessmentWork,
-    ) -> DurableResult<()> {
-        self.require_source_finished()?;
-        validate_path(actual.path, self.limits.max_key_bytes)?;
-        validate_dependencies(actual.dependencies, self.limits.max_key_bytes)?;
-        let Some(expected) = self.member(actual.path, work)? else {
-            return Err(DurableError::Corrupt(
-                "current PostgreSQL member is absent from source assessment",
-            ));
-        };
-        if expected.sha256 != actual.sha256
-            || expected.size_bytes != actual.size_bytes
-            || expected.mode != actual.mode
-            || expected.dependencies.as_deref() != actual.dependencies
-        {
-            return Err(DurableError::Corrupt(
-                "current PostgreSQL member differs from source assessment",
-            ));
-        }
-        self.run(true, work, |db, work| {
-            let changed = db
-                .execute(
-                    "UPDATE members SET seen=1 WHERE path=?1 AND seen=0",
-                    params![actual.path],
-                )
-                .map_err(sqlite_error)?;
-            if changed != 1 {
-                return Err(DurableError::Corrupt(
-                    "duplicate current PostgreSQL source member",
-                ));
-            }
-            add_counter(&mut work.sqlite_rows_updated, 1)?;
-            Ok(())
-        })
-    }
 
     pub(crate) fn observe_index_row(
         &mut self,

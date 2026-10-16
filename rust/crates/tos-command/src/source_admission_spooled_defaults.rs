@@ -5994,15 +5994,6 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         ))
     }
 
-    fn derivation_keyset_drained(
-        &self,
-        set: SourceFoundationClosureDerivationKeySet,
-    ) -> Result<bool, ItemRefusal> {
-        let index = Self::derivation_set_index(set);
-        Ok(self.derivation_keyset_eof[index]
-            && self.derivation_keyset_expected[index]
-                == Some(self.derivation_keyset_drained[index]))
-    }
 
     fn derivation_count(
         &mut self,

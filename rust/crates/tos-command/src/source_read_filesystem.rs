@@ -78,9 +78,6 @@ impl SourceReadFilesystem {
             max_files,
         })
     }
-    pub(crate) fn source_root(&self) -> &Path {
-        &self.path
-    }
     pub(crate) fn effective_uid(&self) -> u32 {
         self.uid
     }
@@ -89,9 +86,6 @@ impl SourceReadFilesystem {
             self.publication.token.as_deref(),
             self.publication.generation,
         )
-    }
-    pub(crate) fn bytes_read(&self) -> usize {
-        self.bytes_read
     }
     fn charge(&mut self, n: usize) -> SourceCommandResult<()> {
         self.bytes_read = self

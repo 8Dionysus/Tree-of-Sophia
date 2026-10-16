@@ -1199,9 +1199,6 @@ impl PreparedNativeDerivedTextPackage {
         &self.source_path
     }
 
-    pub(crate) fn operation(&self) -> &str {
-        &self.prepared.grant.operation
-    }
 
     pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
         &self.files
@@ -1219,9 +1216,6 @@ impl PreparedNativeDerivedTextPackage {
         &self.prepared.owner_configuration
     }
 
-    pub(crate) fn expected_dependencies(&self) -> &str {
-        &self.prepared.dependencies
-    }
 
     pub(crate) fn owner_context_binding(&self) -> Digest256 {
         self.context_binding
@@ -1231,13 +1225,7 @@ impl PreparedNativeDerivedTextPackage {
         self.request_digest
     }
 
-    pub(crate) fn grant_digest(&self) -> Digest256 {
-        self.grant_digest
-    }
 
-    pub(crate) fn account_uid(&self) -> u32 {
-        self.prepared.context.account_uid()
-    }
 
     pub(crate) fn verify_current(
         &self,

@@ -193,9 +193,6 @@ fn catalog_refusal() -> CatalogError {
     }
 }
 impl<'view, 'capture> ReferenceRootMetadataHold<'view, 'capture> {
-    pub(crate) fn policy_binding(&self) -> &CurrentPolicyBinding {
-        &self.policy
-    }
     /// Direct Original carrier adapters must call this before actual delivery
     /// and after final flush while the same callback/view still lives.
     pub fn recheck_delivery(&self) -> Result<()> {
