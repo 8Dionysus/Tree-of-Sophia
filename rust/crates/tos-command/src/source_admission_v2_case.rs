@@ -6,7 +6,7 @@ use super::source_admission_v2_backup_restore::{
     V2HeldImageRoots, V2HeldSourceRoot, V2HeldTargetRoot, V2ImageLimits, V2ImageReceipt,
     open_selected_target, transfer_image_with_cold_spill_at, verify_named_root,
 };
-use super::source_admission_v2_seen_pack::V2SeenPackSpillRequests;
+use super::source_admission_v2_seen_pack::V2SeenPackSpillRequest;
 use std::{
     fs::File,
     io,
@@ -117,7 +117,7 @@ pub struct V2CaseOutcome {
 
 struct ColdCaseResources<'a> {
     auxiliary_space: &'a PinnedSqliteSpaceBudget,
-    requests: V2SeenPackSpillRequests,
+    spill: V2SeenPackSpillRequest,
     held_roots: V2HeldImageRoots<'a>,
     shared_work: AdmissionWorkBudget,
 }
@@ -139,7 +139,7 @@ pub fn read_backup_restore_case_with_cold_spill_at(
     original_io: PinnedSqliteIoBudget,
     persistent_space: &PinnedSqliteSpaceBudget,
     original_auxiliary_space: &PinnedSqliteSpaceBudget,
-    requests: V2SeenPackSpillRequests,
+    spill: V2SeenPackSpillRequest,
     shared_work: AdmissionWorkBudget,
     deadline: Instant,
     cancel: Arc<AtomicBool>,
@@ -148,8 +148,8 @@ pub fn read_backup_restore_case_with_cold_spill_at(
     // Source, image and SQLite reserve their own live allocations. They may
     // share the original aggregate envelope: this keeps their combined usage
     // under the selected ceiling instead of minting an independent allowance.
-    requests.validate_for_operation(&original_io, original_auxiliary_space, deadline, &cancel)?;
-    let _profiles = limits.image.validate_cold_spill(&requests)?;
+    spill.validate_for_operation(&original_io, original_auxiliary_space, deadline, &cancel)?;
+    let _profiles = limits.image.validate_cold_spill(&spill)?;
     verify_named_root(
         source_path,
         source_held,
@@ -190,7 +190,7 @@ pub fn read_backup_restore_case_with_cold_spill_at(
         cancel,
         ColdCaseResources {
             auxiliary_space: original_auxiliary_space,
-            requests,
+            spill,
             held_roots: roots,
             shared_work,
         },
@@ -214,7 +214,7 @@ fn read_backup_restore_case_inner(
     active(deadline, &cancel)?;
     let ColdCaseResources {
         auxiliary_space,
-        requests,
+        spill,
         held_roots: roots,
         shared_work,
     } = resources;
@@ -267,7 +267,7 @@ fn read_backup_restore_case_inner(
         &original_io,
         persistent_space,
         auxiliary_space,
-        requests,
+        spill,
         shared_work.clone(),
         deadline,
         &cancel,
@@ -280,9 +280,7 @@ fn read_backup_restore_case_inner(
         if image_receipt.selection.revision != expected_revision {
             return Err(invalid("V2 case source advanced before cold image"));
         }
-        let target_root = held_target_root
-            .as_ref()
-            .ok_or_else(|| invalid("V2 restored held target descriptor absent"))?;
+        let target_root = &held_target_root;
         let _current_target = open_selected_target(
             roots.target,
             Some(roots.target_store_identity),
@@ -323,7 +321,7 @@ fn read_backup_restore_case_inner(
             observed_bytes: bytes,
         })
     })();
-    let result = if held_target_root.is_some() {
+    let result = {
         let source_fence = verify_named_root(
             roots.source.path,
             roots.source.held,
@@ -344,8 +342,6 @@ fn read_backup_restore_case_inner(
             Ok(receipt) => source_fence.and(target_fence).map(|_| receipt),
             Err(error) => Err(error),
         }
-    } else {
-        result
     };
     Ok(V2CaseOutcome { result, custody })
 }

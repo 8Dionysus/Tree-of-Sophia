@@ -1370,7 +1370,7 @@ fn run_selected_v2_case(
     use crate::source_admission_v2_case::{
         V2CaseLimits, cold_case_phase_overhead_bytes, read_backup_restore_case_with_cold_spill_at,
     };
-    use crate::source_admission_v2_seen_pack::{V2SeenPackSpillRequest, V2SeenPackSpillRequests};
+    use crate::source_admission_v2_seen_pack::V2SeenPackSpillRequest;
     use tos_source_store::native_v2::reader::V2PointReadLimits;
     let source_root = resources
         .v2_source_root
@@ -1457,7 +1457,7 @@ fn run_selected_v2_case(
             .ok_or_else(|| invalid("V2 case whole byte partition overflow"))?,
         max_state_bytes: selected.state_bytes,
     };
-    let request = |workspace: File| {
+    let spill = {
         let mut caps = resources.request.limits;
         caps.main_logical_bytes = caps.main_logical_bytes.min(selected.aux_bytes);
         caps.main_allocated_bytes = caps.main_allocated_bytes.min(selected.aux_bytes);
@@ -1476,7 +1476,7 @@ fn run_selected_v2_case(
             .other_aux_aggregate_allocated_bytes
             .min(selected.aux_bytes);
         V2SeenPackSpillRequest {
-            workspace,
+            workspace: resources.workspace.try_clone()?,
             request: tos_source_store::PinnedSqliteAuxRequest {
                 limits: caps,
                 io_budget: profile.io.clone(),
@@ -1487,12 +1487,6 @@ fn run_selected_v2_case(
             cache_bytes: selected.sqlite_cache_bytes,
             sqlite_native_overhead_bytes: selected.sqlite_native_overhead_bytes,
         }
-    };
-    // Each scope creates fresh unnamed inodes and a distinct VFS context in
-    // this already-held private workspace. No source/target rows are shared.
-    let paired = V2SeenPackSpillRequests {
-        source: request(resources.workspace.try_clone()?),
-        target: request(resources.workspace.try_clone()?),
     };
     read_backup_restore_case_with_cold_spill_at(
         source,
@@ -1510,7 +1504,7 @@ fn run_selected_v2_case(
         profile.io.clone(),
         &profile.allocation_space,
         &resources.request.space_budget,
-        paired,
+        spill,
         work,
         deadline,
         cancelled.clone(),
