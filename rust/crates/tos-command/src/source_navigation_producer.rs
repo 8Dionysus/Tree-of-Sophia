@@ -1577,6 +1577,79 @@ fn process_ready_range(
             })
             .collect::<BTreeMap<_, _>>();
         drop(schema_resources);
+        let mut owner_selections = Vec::new();
+        let mut dependency_forecast = meter.dependency_bytes;
+        for stream in claim_manifest.terminal_streams() {
+            for claim_id in stream.owner_ids() {
+                let mut stream_paths =
+                    crate::source_navigation_claim_selection::claim_event_range_owner_paths_v1(
+                        &context,
+                        stream.source_path(),
+                        claim_id,
+                        &claim_identity_owners,
+                    )?
+                    .into_iter()
+                    .collect::<BTreeSet<_>>();
+                // Keep all exact range causes and the shared inventory
+                // proof. Schema dependencies follow the same transitive
+                // URI resolver as the prepared worker, never all contracts
+                // merely because another stream uses them.
+                for paths in [
+                    changed_source_paths.clone(),
+                    claim_inventory
+                        .scan_costs()
+                        .iter()
+                        .map(|cost| cost.source_path.clone())
+                        .collect(),
+                ] {
+                    extend_event_paths(
+                        &mut stream_paths,
+                        paths,
+                        selection.event_limits.max_dependencies,
+                    )?;
+                }
+                let schema_roots = stream_paths
+                    .iter()
+                    .filter(|path| {
+                        path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>();
+                for path in schema_roots {
+                    let closure =
+                        schema_closures
+                            .get(path.as_str())
+                            .ok_or(DurableError::Conflict(
+                                "Claim stream schema is outside configured worker closure",
+                            ))?;
+                    extend_event_paths(
+                        &mut stream_paths,
+                        closure.iter().cloned(),
+                        selection.event_limits.max_dependencies,
+                    )?;
+                }
+
+                for path in &stream_paths {
+                    if let Some(bytes) = files.optional(path).map_err(compiler_refusal)? {
+                        dependency_forecast = dependency_forecast
+                            .checked_add(bytes.len() as u64)
+                            .ok_or(DurableError::Refused(
+                            "Claim selection dependency forecast overflow",
+                        ))?;
+                    }
+                }
+                owner_selections.push((stream.source_path(), claim_id, stream_paths));
+            }
+        }
+        if dependency_forecast > selection.max_total_dependency_bytes {
+            return Err(DurableError::Source(
+                crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                    "navigation aggregate event budget exceeded: phase=claim_selection_preflight owners={} dependency_bytes={dependency_forecast}/{}",
+                    owner_selections.len(),
+                    selection.max_total_dependency_bytes
+                )),
+            ));
+        }
         with_range_schema_validator(
             owner,
             selection,
@@ -1586,48 +1659,7 @@ fn process_ready_range(
             deadline,
             cancelled,
             |validator| {
-                for stream in claim_manifest.terminal_streams() {
-                    let mut stream_paths = crate::source_navigation_claim_selection::claim_event_range_stream_paths_v1(
-                        &context, stream.source_path(), &claim_identity_owners,
-                    )?.into_iter().collect::<BTreeSet<_>>();
-                    // Keep all exact range causes and the shared inventory
-                    // proof. Schema dependencies follow the same transitive
-                    // URI resolver as the prepared worker, never all contracts
-                    // merely because another stream uses them.
-                    for paths in [
-                        changed_source_paths.clone(),
-                        claim_inventory
-                            .scan_costs()
-                            .iter()
-                            .map(|cost| cost.source_path.clone())
-                            .collect(),
-                    ] {
-                        extend_event_paths(
-                            &mut stream_paths,
-                            paths,
-                            selection.event_limits.max_dependencies,
-                        )?;
-                    }
-                    let schema_roots = stream_paths
-                        .iter()
-                        .filter(|path| {
-                            path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
-                        })
-                        .cloned()
-                        .collect::<Vec<_>>();
-                    for path in schema_roots {
-                        let closure =
-                            schema_closures
-                                .get(path.as_str())
-                                .ok_or(DurableError::Conflict(
-                                    "Claim stream schema is outside configured worker closure",
-                                ))?;
-                        extend_event_paths(
-                            &mut stream_paths,
-                            closure.iter().cloned(),
-                            selection.event_limits.max_dependencies,
-                        )?;
-                    }
+                for (stream_path, claim_id, stream_paths) in owner_selections {
                     let mut stream_present = BTreeMap::new();
                     let mut stream_absent = BTreeSet::new();
                     for path in stream_paths {
@@ -1650,23 +1682,19 @@ fn process_ready_range(
                         .map_err(|_| DurableError::Refused("Claim stream selected byte budget"))?,
                     )
                     .map_err(compiler_refusal)?;
-                    for claim_id in stream.owner_ids() {
-                        let predecessor = claim_manifest
-                            .stream_predecessors()
-                            .iter()
-                            .find(|owner| {
-                                owner.claim_stream_path == stream.source_path()
-                                    && owner.claim_id == *claim_id
-                            })
-                            .and_then(|owner| match owner.basis {
-                                NavigationClaimEventRangePriorOwnerBasisV1::EventCohort {
-                                    cohort_root,
-                                } => Some(cohort_root),
-                                NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap {
-                                    ..
-                                } => None,
-                            });
-                        let (cohort, cost) = crate::source_navigation_claim_input::assemble_selected_claim_event_range_owner_v1(
+                    let predecessor = claim_manifest
+                        .stream_predecessors()
+                        .iter()
+                        .find(|owner| {
+                            owner.claim_stream_path == stream_path && owner.claim_id == *claim_id
+                        })
+                        .and_then(|owner| match owner.basis {
+                            NavigationClaimEventRangePriorOwnerBasisV1::EventCohort {
+                                cohort_root,
+                            } => Some(cohort_root),
+                            NavigationClaimEventRangePriorOwnerBasisV1::Bootstrap { .. } => None,
+                        });
+                    let (cohort, cost) = crate::source_navigation_claim_input::assemble_selected_claim_event_range_owner_v1(
                         &context,
                         identity,
                         validator,
@@ -1674,23 +1702,22 @@ fn process_ready_range(
                         &claim_inventory,
                         &claim_manifest,
                         &claim_identity_owners,
-                        stream.source_path(),
+                        stream_path,
                         claim_id,
                         predecessor,
                         &mut forms,
                         limits,
                     )?;
-                        meter.admit(
-                            "claim_projection",
-                            cost.rows,
-                            cost.encoded_bytes,
-                            cost.dependency_bytes,
-                            cost.claim_stream_rows_scanned,
-                            selection,
-                            &selection.event_limits,
-                        )?;
-                        contributions.push(cohort);
-                    }
+                    meter.admit(
+                        "claim_projection",
+                        cost.rows,
+                        cost.encoded_bytes,
+                        cost.dependency_bytes,
+                        cost.claim_stream_rows_scanned,
+                        selection,
+                        &selection.event_limits,
+                    )?;
+                    contributions.push(cohort);
                 }
                 Ok(())
             },

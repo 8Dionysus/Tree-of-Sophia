@@ -603,17 +603,24 @@ pub(crate) fn claim_event_range_identity_archive_blob_paths_v1(
     claim_event_archive_blob_paths_for_manifests_v1(context, &manifests)
 }
 
-/// Reuse the staged selectors for one terminal stream within an already
-/// selected range. Other streams' identity/form/archive closures do not become
-/// dependencies of this stream merely because they share one producer batch.
-/// The caller separately retains the range and shared inventory witnesses.
-pub(crate) fn claim_event_range_stream_paths_v1(
+/// Select one Claim's exact support closure while keeping the complete stream
+/// bytes. Publication still replaces and authenticates every owner in the stream;
+/// unrelated companions' forms and identity sources are not this owner's inputs.
+/// The caller separately retains the range causes and shared inventory witnesses.
+pub(crate) fn claim_event_range_owner_paths_v1(
     context: &DurableNavigationEventContextV1,
     source_path: &str,
+    claim_id: &str,
     range_identity_owners: &[ClaimEventIdentityOwnerV1],
 ) -> DurableResult<Vec<String>> {
-    let streams = [source_path.to_owned()];
-    let requests = claim_event_range_identity_requests_v1(context, &streams)?;
+    let mut streams = claim_event_streams_for_range_v1(context, &[source_path.to_owned()])?;
+    streams[0].owners.retain(|owner| owner.claim_id == claim_id);
+    if streams[0].owners.len() != 1 {
+        return Err(DurableError::Conflict(
+            "Claim selected closure owner is absent",
+        ));
+    }
+    let requests = claim_event_identity_requests_for_streams(context, &streams)?;
     let owners = requests
         .iter()
         .map(|request| {
@@ -622,37 +629,49 @@ pub(crate) fn claim_event_range_stream_paths_v1(
                 .find(|owner| owner.id == request.id)
                 .cloned()
                 .ok_or(DurableError::Conflict(
-                    "Claim stream identity left selected range closure",
+                    "Claim identity left selected range closure",
                 ))
         })
         .collect::<DurableResult<Vec<_>>>()?;
-    let mut paths = claim_event_range_current_owner_paths_v1(context, &streams)?
+    let mut paths = BTreeSet::new();
+    add_stream_support_paths(&mut paths, source_path)?;
+    add_claim_form_path(&mut paths, source_path, claim_id)?;
+    add_direct_evidence_paths(&mut paths, streams[0].owners[0].exact_row_bytes)?;
+    add_static_paths(&mut paths)?;
+    paths.insert(source_path.to_owned());
+    paths.extend(claim_event_indexed_paths_for_requests(
+        context, &streams, &requests, &owners,
+    )?);
+    paths.extend(claim_event_indexed_schema_paths_for_requests(
+        context, &requests, &owners,
+    )?);
+    paths.extend(claim_event_historical_endpoint_paths_for_requests(
+        context, &requests, &owners,
+    )?);
+    paths.extend(claim_event_historical_capture_paths_for_requests(
+        context, &requests, &owners,
+    )?);
+    let mut manifests = claim_event_archive_manifest_paths_for_streams(context, &streams)?
         .into_iter()
         .collect::<BTreeSet<_>>();
-    paths.insert(source_path.to_owned());
-    paths.extend(claim_event_range_indexed_paths_v1(
-        context, &streams, &owners,
+    let (collection_refs, membership_refs) =
+        claim_event_collection_order_refs_for_streams(&streams)?;
+    manifests.extend(claim_event_identity_archive_paths_for_refs(
+        context,
+        &owners,
+        &collection_refs,
+        &membership_refs,
     )?);
-    paths.extend(claim_event_range_schema_paths_v1(
-        context, &streams, &owners,
-    )?);
-    paths.extend(claim_event_range_historical_endpoint_paths_v1(
-        context, &streams, &owners,
-    )?);
-    paths.extend(claim_event_range_historical_capture_paths_v1(
-        context, &streams, &owners,
-    )?);
-    let manifests = claim_event_range_archive_manifest_paths_v1(context, &streams)?;
-    paths.extend(claim_event_range_archive_blob_paths_v1(
+    manifests.extend(
+        claim_event_identity_owner_archive_manifest_paths_for_requests(
+            context, &requests, &owners,
+        )?,
+    );
+    let manifests = manifests.into_iter().collect::<Vec<_>>();
+    paths.extend(claim_event_archive_blob_paths_for_manifests_v1(
         context, &manifests,
     )?);
     paths.extend(manifests);
-    paths.extend(claim_event_range_identity_archive_manifest_paths_v1(
-        context, &streams, &owners,
-    )?);
-    paths.extend(claim_event_range_identity_archive_blob_paths_v1(
-        context, &streams, &owners,
-    )?);
     paths_within_limit(paths)
 }
 
