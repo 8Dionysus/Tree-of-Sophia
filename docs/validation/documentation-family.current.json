@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6034,
+    "tracked_surface_count": 6035,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5944,
+    "excluded_tracked_path_count": 5945,
     "human_scope": {
-      "bytes": 7345666,
+      "bytes": 7346932,
       "count": 1071,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 620219,
+          "bytes": 621485,
           "count": 44,
-          "lines": 9869
+          "lines": 9891
         },
         "agents-other": {
           "bytes": 8916,
@@ -121,15 +121,15 @@
           "lines": 82527
         }
       },
-      "lines": 121095
+      "lines": 121117
     },
     "surface_kind_counts": {
       "executable": 78,
       "human": 1071,
-      "structured": 4885
+      "structured": 4886
     },
-    "tracked_path_count": 11978,
-    "tracked_surface_count": 6034,
+    "tracked_path_count": 11980,
+    "tracked_surface_count": 6035,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -181,10 +181,10 @@
       "surface_kind_counts": {
         "executable": 31,
         "human": 44,
-        "structured": 49
+        "structured": 50
       },
-      "tracked_surface_bytes": 1539439,
-      "tracked_surface_count": 124
+      "tracked_surface_bytes": 1540915,
+      "tracked_surface_count": 125
     },
     {
       "family_id": "docs",
@@ -290,7 +290,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "45c713688f76538b00b0460d3082d559940749a289f3662a50c0b4617dbc4bf0",
+  "tracked_surface_digest": "a9929aace34a5014ba145aa546fa7fd9b31c466fc1fab735259c8ad089501533",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -42237,11 +42237,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 154636,
+      "bytes": 154882,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "ad163935807ddf97936fd3aa33e3cc8290f2f5a1595bc56299126e0a3a556c6d",
+      "sha256": "9105bf950ed978acf2eb291273554fbbb9eac02b2fc5be43387ffc6016ea203c",
       "surface_kind": "human"
     },
     {
@@ -42621,11 +42621,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 27695,
+      "bytes": 28715,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/integrations/abyssos/README.md",
-      "sha256": "fae53abc8bec52e6a4041396bb964136f140e33f7ed54e95c27c82245198bc05",
+      "sha256": "3da6c23e6976d169e62a3e1aec3a98a45e23859e3e7c0b44ac46ca2de5d25890",
       "surface_kind": "human"
     },
     {
@@ -42634,6 +42634,14 @@
       "family_id": "access",
       "path": "access/integrations/abyssos/fixtures/load-readiness-two-session.json",
       "sha256": "ca58840db927d53b112e917c143929ceac2ceb18f30d265d6a2c0af556aeff1d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 210,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/profiles/abyss-sdk-host.v1.json",
+      "sha256": "d47607047cacfbb2af833df444c0b8e877a740001b495a3901689b78de815ff3",
       "surface_kind": "structured"
     },
     {
