@@ -17,13 +17,13 @@ The generated manifest, coverage receipt, reading census, quote ledger and gap
 ledger belong to the explicitly selected private dataset, not this source tree.
 
 ```bash
-tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
-tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --check --source-root /path/to/private-source-root --output-root /path/to/reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
-tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
+tos-research zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+tos-research zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --check --source-root /path/to/private-source-root --output-root /path/to/reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+tos-research zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
 /absolute/installed-prefix/bin/tos --root /path/to/private-source-root --reading-analysis-root /path/to/reading-data reading-search --query судьбы --language ru --limit 100 --group-by speaker,formula
 ```
 
-The installed native producer runs directly through `tos`. `--source-root` and `--output-root` select data directories,
+The producer runs directly through the separately built `tos-research`. `--source-root` and `--output-root` select data directories,
 and build may create its separate output directory. Build and check require
 `--scratch-bytes` with the admitted remaining quota; this selector does not
 grant storage. Both directories share one original operation deadline,

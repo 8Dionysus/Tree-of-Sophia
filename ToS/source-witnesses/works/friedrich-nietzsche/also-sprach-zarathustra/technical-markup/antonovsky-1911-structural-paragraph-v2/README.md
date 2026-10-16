@@ -29,9 +29,9 @@ The native producer is called through the installed `tos` executable with an
 explicit absolute source home. It requires the same exact local PDF, inventory,
 v1 observation plan and Poppler 26.01.0 for reconstruction.
 
-- rebuild: `tos structural-paragraph --source-root ABS_SOURCE_HOME --build`
-- full parity: `tos structural-paragraph --source-root ABS_SOURCE_HOME --check`
-- tracked-only validation: `tos structural-paragraph --source-root ABS_SOURCE_HOME --validate-tracked`
+- rebuild: `tos-research structural-paragraph --source-root ABS_SOURCE_HOME --build`
+- full parity: `tos-research structural-paragraph --source-root ABS_SOURCE_HOME --check`
+- tracked-only validation: `tos-research structural-paragraph --source-root ABS_SOURCE_HOME --validate-tracked`
 - native focused tests: `cargo test -p tos-compiler --lib antonovsky_structural::tests`
 
 The separately requested `--private-model` emits exact private words, rows and
@@ -40,7 +40,7 @@ Writing modes still require the source owner's authority and host storage
 admission. `--issue-identities` and `--import-challenger ABS_DIRECTORY` retain
 the existing refusal to replace their once-issued inputs.
 
-The native validation and rebuild tests call `tos structural-paragraph`
+The native validation and rebuild tests call `tos-research structural-paragraph`
 directly with an explicit absolute source root. The retired Python builder has
 no producer fallback. `--private-model` is an explicitly requested private
 consumer route.

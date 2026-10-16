@@ -24,9 +24,9 @@ lexical equivalence, a translation judgment, a lexeme, a sign, or a concept.
 
 ## Rebuild and verify
 
-- first identity issue and build: `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build --issue-identities`
-- rebuild: `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build`
-- parity check: `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --check`
+- first identity issue and build: `tos-research zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build --issue-identities`
+- rebuild: `tos-research zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build`
+- parity check: `tos-research zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --check`
 - focused native assertions: `research_parallel_lexical` in the `tos-compiler` library
 
 Identity issuance is a one-time operation. A normal rebuild refuses to remint
@@ -43,13 +43,13 @@ review route.
 
 ## Native technical input profiles
 
-The native `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --plan-ref ROOT_RELATIVE --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build` route selects an explicit technical input profile; omitting `--plan-ref` retains the authenticated v1 plan. Custom profiles require a current-user-owned mode-`0700` carrier root and mode-`0600` plan. Use a separate private carrier and preserve the old plan, outputs and issuance in their original custody. The scratch value is an explicitly reserved remaining quota after the carrier baseline, retained outputs and metadata; it does not grant storage. The selector grants no source, semantic, rights or canon admission.
+The native `tos-research zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --plan-ref ROOT_RELATIVE --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build` route selects an explicit technical input profile; omitting `--plan-ref` retains the authenticated v1 plan. Custom profiles require a current-user-owned mode-`0700` carrier root and mode-`0600` plan. Use a separate private carrier and preserve the old plan, outputs and issuance in their original custody. The scratch value is an explicitly reserved remaining quota after the carrier baseline, retained outputs and metadata; it does not grant storage. The selector grants no source, semantic, rights or canon admission.
 
 A profile requires a distinct `plan_id`, `status: proposed-technical-input-profile-successor`, `frozen_at: null`, and `input_profile_lineage` with `profile_version >= 2`, `supersedes_plan_ref` and `supersedes_plan_sha256` matching the authentic v1 plan. Only input `sha256` values may change; input membership, refs and all semantic fields, methods, thresholds, output declarations and authority remain exact. Unknown changes fail closed. Selected plan ref and digest are emitted in provenance and manifest. Full bindings must match the retained v1 issuance, including in preview; custom profiles reject `--issue-identities`. Outputs retain the existing filenames inside the selected carrier. Technical profile proposal and boundary review precede scoped mechanical admission; execution does not perform that admission.
 
 The local `0700`/`0600` privacy guard does not prove distinct custody. The controller and explicit admission must fence the selected carrier from original source and historical output custody.
 
-Invoke installed `tos zarathustra-parallel-lexical-candidates-v1` directly with
+Invoke `tos-research zarathustra-parallel-lexical-candidates-v1` directly with
 an explicit source root. Concept and Eternal Concept use their Rust owners;
 the Python compatibility helpers and wrappers are retired. Historical recipe
 bytes and independently retained comparison evidence keep their exact identities.

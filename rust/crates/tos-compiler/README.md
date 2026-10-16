@@ -150,7 +150,7 @@ software preparation neither selects a public release nor admits source/rights.
 
 The maintained DTA Parts 1–4 lexical producer is exposed by
 `zarathustra_lexical::build_from_cut` and the installed
-`tos lexical-index build|validate|validate-legacy` command. It reads the exact
+`tos-research lexical-index build|validate|validate-legacy` command. It reads the exact
 plan, manifests, resource inventories, rights states and schema closure from an
 explicit authenticated corpus revision. The operator supplies a software source
 capture, the four existing fixity-bound private TEI payloads, an exact verified
@@ -203,8 +203,8 @@ storage and process resources. No command writes the canonical projection or
 source provenance, changes data selection, accepts German, supplies a lemma or
 sign, clears rights, admits canon, or grants publication.
 
-The maintained native route is `tos lexical-index build`, followed by
-`tos lexical-index validate` on that private candidate. The producer also runs
+The maintained native route is `tos-research lexical-index build`, followed by
+`tos-research lexical-index validate` on that private candidate. The producer also runs
 the existing private SQLite query probes for exact and normalized forms,
 prefixes, phrases, sections, source items/pages, language and edition; their
 counts belong to the projection's local receipt. This is the DTA maintainer

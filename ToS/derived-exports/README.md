@@ -157,7 +157,7 @@ Use:
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-build --check --kag-export EXPORT`
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`
 - Native tracked corpus-index and bibliographic-graph parity: see [`Data and corpus operations`](../../docs/RELEASING.md#data-and-corpus-operations).
-- `tos lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
+- `tos-research lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
 - `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode check`
 - `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode validate`
 - `tos-ops-mechanics-plan --philosophy-product views --source-root "$PWD" --output-root "$PWD" --mode check`
@@ -169,7 +169,7 @@ Use:
 - `tos evidence-projection check --source-root "$PWD"`
 - `tos evidence-projection validate --source-root "$PWD"`
 
-The lexical maintainer is the native `tos lexical-index` command. `build` creates a fresh private candidate from an explicit source cut; it does not overwrite the retained projection or local database. `validate-tracked` checks the read-only source closure and optional local database fixity. Historical provenance keeps its original [historical lexical builder](https://github.com/8Dionysus/Tree-of-Sophia/blob/c04257b4f2270587856ac94d3fb28a5a9d5afa25/scripts/build_zarathustra_lexical_index.py) reference; exact generator bytes are retained under `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/` and are not executable fallbacks.
+The lexical maintainer is the native `tos-research lexical-index` command. `build` creates a fresh private candidate from an explicit source cut; it does not overwrite the retained projection or local database. `validate-tracked` checks the read-only source closure and optional local database fixity. Historical provenance keeps its original [historical lexical builder](https://github.com/8Dionysus/Tree-of-Sophia/blob/c04257b4f2270587856ac94d3fb28a5a9d5afa25/scripts/build_zarathustra_lexical_index.py) reference; exact generator bytes are retained under `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/` and are not executable fallbacks.
 
 Select a private, already reserved scratch directory through
 `TOS_EVIDENCE_STAGING_PARENT` and its remaining byte quota through

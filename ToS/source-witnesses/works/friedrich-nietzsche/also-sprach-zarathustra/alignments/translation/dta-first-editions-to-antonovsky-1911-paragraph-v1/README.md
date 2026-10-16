@@ -38,9 +38,9 @@ paragraph layers used by exact text-position selectors.
 
 ## Rebuild and verify
 
-- rebuild: `tos zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --scratch-bytes ADMITTED_REMAINING_BYTES --build`
-- full local parity: `tos zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --check`
-- tracked-only validation: `tos zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --validate-tracked`
+- rebuild: `tos-research zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --scratch-bytes ADMITTED_REMAINING_BYTES --build`
+- full local parity: `tos-research zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --check`
+- tracked-only validation: `tos-research zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --validate-tracked`
 - focused validation: `cargo test -p tos-compiler tracked_current_route_preserves_census_and_authority_ceiling`
 
 The supported command is the installed native `tos` owner. Native parsing owns

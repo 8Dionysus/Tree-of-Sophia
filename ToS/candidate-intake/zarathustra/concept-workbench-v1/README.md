@@ -124,7 +124,7 @@ excluded from the Zarathustra work scope. In particular, three apparent extra
 `Schicksal` occurrences belong to that separate work; the German direct core
 inside Zarathustra is therefore 26 occurrences, not 29.
 
-The native producer is `tos zarathustra-concept-workbench-v1 --source-root
+The native producer is `tos-research zarathustra-concept-workbench-v1 --source-root
 <absolute-source-root> --scratch-bytes <reserved-remaining-bytes>
 --preview|--build|--check`. Its complete generation
 kernel lives in `rust/crates/tos-compiler/src/research_concept_workbench.rs`;
@@ -182,7 +182,7 @@ the graph contains only its concept candidate and sets `empty_result: true`.
 The no-isolated-node invariant applies to evidence-bearing form, occurrence,
 and speaker nodes; absence is recorded rather than padded with invented edges.
 
-The installed native `tos zarathustra-concept-workbench-v1` owns producer
+The separately built native `tos-research zarathustra-concept-workbench-v1` owns producer
 execution; `concept-search` and `word-analysis` use the Rust query owner.
 The exact c60 recipe remains nonexecuted provenance, with its own identity
 separate from the executing native product.

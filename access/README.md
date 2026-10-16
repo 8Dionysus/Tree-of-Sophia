@@ -1169,7 +1169,9 @@ Source-selected research builders use `tos-research COMMAND [OPTIONS]`.
 Build the separate executable with
 `cargo build --locked -p tos-access --features research-tools --bin tos-research`.
 Ordinary `tos-access` builds exclude these recipe modules and their command
-handlers. `tos-research COMMAND --help` documents each operation's exact source,
+handlers. Select this binary for data validation lanes with
+`TOS_RESEARCH_EXECUTOR=/absolute/path/to/tos-research`.
+`tos-research COMMAND --help` documents each operation's exact source,
 resource and output contract. The options and source/provenance requirements are
 unchanged; existing automation invoking these commands must select this binary.
 The constructor library builder and online reading/query endpoints retain their
