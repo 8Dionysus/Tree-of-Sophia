@@ -8536,7 +8536,6 @@ impl DurablePgCoordinator {
         )
     }
 
-
     pub fn register_managed_source_creation(
         &mut self,
         store: &SegmentStore,

@@ -234,9 +234,7 @@ fn encoded_scalar_receipt_len(path: &str, contract: &str) -> Result<usize, ItemR
     Ok(total)
 }
 
-fn encoded_receipt_len(
-    receipt: &CutSchemaReceipt,
-) -> Result<usize, ItemRefusal> {
+fn encoded_receipt_len(receipt: &CutSchemaReceipt) -> Result<usize, ItemRefusal> {
     let total = encoded_scalar_receipt_len(&receipt.path, &receipt.contract)?
         .checked_add(if receipt.batch.is_some() {
             BATCH_BINDING_BYTES
@@ -2700,7 +2698,6 @@ impl CutWorkerSchemaExecutor {
         Some(result)
     }
 
-
     fn produce_diagnostics_v2_terminal(
         &mut self,
         path: &str,
@@ -2730,7 +2727,6 @@ impl CutWorkerSchemaExecutor {
             "cut schema diagnostics status incomplete".into(),
         ))
     }
-
 
     fn retain_pending_diagnostic(
         &mut self,
@@ -3092,10 +3088,9 @@ impl CutWorkerSchemaExecutor {
             ));
         }
         if !matches!(
-                report.status,
-                schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
-            )
-        {
+            report.status,
+            schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
+        ) {
             // The status and counts are observable only after the complete
             // worker/request/unit/report binding above has been authenticated.
             // Keep this fail-closed and expose only protocol enums and counts,
@@ -3487,7 +3482,6 @@ impl CutWorkerSchemaExecutor {
     pub fn receipt_count(&self) -> usize {
         self.scalar_check_count
     }
-
 
     pub fn source_revision(&self) -> SourceRevision {
         self.revision
@@ -4072,8 +4066,7 @@ impl CutSchemaReceiptRange for CutWorkerSchemaExecutor {
                 .ok_or(crate::item_budget_origin!())?;
             encoded_bytes = encoded_bytes
                 .checked_add(
-                    encoded_receipt_len(receipt)
-                        .map_err(|_| crate::item_budget_origin!())?,
+                    encoded_receipt_len(receipt).map_err(|_| crate::item_budget_origin!())?,
                 )
                 .ok_or(crate::item_budget_origin!())?;
         }

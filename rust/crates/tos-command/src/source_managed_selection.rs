@@ -911,7 +911,6 @@ pub fn prepare_managed_agent_overlay_parent_v2<P: ManagedSelectedProof>(
     Ok((parent, prepared, cas_work))
 }
 
-
 pub fn rebind_restored_managed_agent_overlay_v2_with_work(
     coordinator: &mut DurablePgCoordinator,
     store: &SegmentStore,

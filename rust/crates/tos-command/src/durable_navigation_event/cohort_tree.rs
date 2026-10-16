@@ -445,7 +445,6 @@ pub(super) fn initialize<C: GenericClient>(
     Ok(())
 }
 
-
 fn commitment(domain: &str, consumer: &str, checkpoint: &Checkpoint) -> DurableResult<Digest256> {
     let raw = serde_json::to_vec(&checkpoint.root)
         .map_err(|_| DurableError::Corrupt("cohort tree root encoding"))?;

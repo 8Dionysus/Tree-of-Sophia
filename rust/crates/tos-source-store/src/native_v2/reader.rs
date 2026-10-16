@@ -938,7 +938,6 @@ impl V2ReadSession {
         result
     }
 
-
     fn lookup(
         &mut self,
         root: &AuthenticatedTreeDescriptorV2,
