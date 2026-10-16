@@ -6071,7 +6071,8 @@ fn spawn_group(
     pids: &Arc<Mutex<Vec<i32>>>,
     deadline: Instant,
 ) -> Result<ManagedChild, String> {
-    let child = unsafe { command.process_group(0) }
+    let child = command
+        .process_group(0)
         .spawn()
         .map_err(|e| format!("child start: {e}"))?;
     let mut managed = ManagedChild {

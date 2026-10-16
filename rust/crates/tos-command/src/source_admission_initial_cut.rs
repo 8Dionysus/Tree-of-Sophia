@@ -8,8 +8,8 @@ use super::source_admission::{
 };
 use super::source_admission_segment_v2::NativeV2TreeIo;
 use super::source_admission_source_census::{
-    SourceCensusLimits, SourceCensusScan, SourceCensusSummary,
-    census_selected_to_scratch, summarize_indexed_proposal_rows, working_state_upper_bound,
+    SourceCensusLimits, SourceCensusScan, SourceCensusSummary, census_selected_to_scratch,
+    summarize_indexed_proposal_rows, working_state_upper_bound,
 };
 use super::source_admission_spooled_candidate::SpoolCandidate;
 use super::source_admission_store::AdmissionStore;
@@ -165,9 +165,6 @@ impl InitialCutPrepared<'_> {
             .take()
             .ok_or_else(|| invalid("initial source cut batch already consumed"))
     }
-
-
-
 
     /// After exact accepted-publication lookup misses, prove the target is
     /// still a genuinely empty initial store before candidate ingestion writes
@@ -735,7 +732,6 @@ fn compose_indexed_proposal(
             deadline,
             cancel,
         )?;
-        drop(debit);
         // Every physical source row must survive with exact path, digest,
         // length and mode. Generated extras still require the selected native
         // generated-closure validator and actual packed payload verification.
@@ -1422,7 +1418,6 @@ pub(crate) fn prepare_initial_cut<'a>(
             cancel,
         )?
     };
-    drop(callback);
     let mut published_proposal = proposal;
     let mut published_scan = SourceCensusScan::Proposal;
     let indexed_reader = if let Some(request) = indexed_input {
@@ -1637,7 +1632,6 @@ impl InitialCutFence<'_> {
                 &self.cancel,
             )?
         };
-        drop(callback);
         if terminal != self.proposal {
             return Err(invalid(
                 "initial terminal source cut differs from its proposal",

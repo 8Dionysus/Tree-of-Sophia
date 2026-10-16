@@ -10,8 +10,8 @@ use super::source_admission::{
     AdmissionBatch, AdmissionLimits, AdmissionWorkBudget, SourceUpdate, active, invalid,
 };
 use super::source_admission_source_census::{
-    SourceCensusLimits, SourceCensusScan, SourceCensusSummary,
-    census_selected_to_scratch, working_state_upper_bound,
+    SourceCensusLimits, SourceCensusScan, SourceCensusSummary, census_selected_to_scratch,
+    working_state_upper_bound,
 };
 use super::source_admission_v2_seen_pack::configure_db;
 use super::source_foundation_admission::NativeSourceValidator;
@@ -506,9 +506,6 @@ impl SourceTransitionPrepared<'_> {
             .ok_or_else(|| invalid("source transition batch already consumed"))
     }
 
-
-
-
     /// Keep the exact current selector captured by the held V2 session pinned
     /// across the accepted-publication lookup. This can be a later current
     /// revision than the historical base used to derive the canonical batch.
@@ -681,7 +678,6 @@ pub(crate) fn prepare_source_transition<'a>(
         deadline,
         cancel,
     )?;
-    drop(callback);
     let updates = derive_updates(
         &db,
         proposal,

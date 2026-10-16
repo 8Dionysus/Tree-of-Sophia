@@ -434,7 +434,6 @@ fn run_v2(
     {
         return Err("V2 staging file length differs from verified payload".to_owned());
     }
-    drop(observation);
     check_active(deadline, cancelled.as_ref())?;
     verify_private_stage_root_name(&stage_dir, &stage_root, deadline, cancelled.as_ref())
         .map_err(|error| error.to_string())?;

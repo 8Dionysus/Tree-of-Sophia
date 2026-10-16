@@ -763,7 +763,6 @@ pub mod schema_diagnostics {
             }
             ValidationErrorKind::UniqueItems => (Reason::UniqueItems, "uniqueItems"),
             ValidationErrorKind::Referencing(_) => (Reason::ReferenceFailure, "$ref"),
-            _ => (Reason::UnknownValidationFailure, "unknown"),
         }
     }
 

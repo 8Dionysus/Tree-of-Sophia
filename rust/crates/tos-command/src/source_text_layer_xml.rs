@@ -379,7 +379,6 @@ pub(crate) fn extract_xhtml_text(
             }
             XmlEvent::EndDocument => break,
             XmlEvent::Comment(_) => (),
-            _ => return Err(SourceCommandError::Unsupported("XHTML event profile")),
         }
     }
     active(deadline, cancelled)?;

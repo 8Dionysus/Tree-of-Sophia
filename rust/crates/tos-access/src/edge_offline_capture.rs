@@ -1361,7 +1361,6 @@ fn row_key(table: D1Table, row: &[D1Cell]) -> Result<String, String> {
         D1Table::SourceNavigationRights => &[0],
         D1Table::SourceNavigationRightsPayload => &[0, 1],
         D1Table::EdgeMeta => &[0, 1],
-        _ => return Err(invalid("unsupported private capture row table")),
     };
     let parts = indexes
         .iter()

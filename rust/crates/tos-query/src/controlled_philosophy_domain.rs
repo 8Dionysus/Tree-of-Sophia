@@ -185,7 +185,6 @@ pub fn execute_controlled_philosophy_domain_response<
                         caps.max_read_vm_steps,
                         &mut interrupt,
                     )?;
-                    drop(interrupt);
                     let body = if render {
                         let mut limits = caps.json;
                         limits.max_bytes = limits.max_bytes.min(caps.max_response_bytes);

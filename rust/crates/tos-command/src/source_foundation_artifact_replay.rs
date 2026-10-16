@@ -23,8 +23,8 @@ use tos_validation::PredicateRead;
 use tos_validation::executor::SharedSchemaWorkerQuota;
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::native_compound::{
-    NativeRecordHistoryReadObservation,
-    selected_record_history_from_cut, selected_record_history_from_input,
+    NativeRecordHistoryReadObservation, selected_record_history_from_cut,
+    selected_record_history_from_input,
 };
 use tos_validation::record_biblio_cut::SourceCutRecordReport;
 use tos_validation::record_biblio_cut::{
@@ -42,8 +42,7 @@ use tos_validation::source_foundation_discovery::{
 use tos_validation::source_foundation_records::{
     NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationArtifactRecordPathSummary,
     SourceFoundationRecordKernelOutcome, SourceFoundationRecordsPageBudget,
-    SourceFoundationRecordsReport,
-    SourceFoundationRecordsStreamedReport,
+    SourceFoundationRecordsReport, SourceFoundationRecordsStreamedReport,
 };
 
 const ARTIFACTS: &str = "ToS/source-witnesses/artifacts/";
@@ -199,7 +198,6 @@ impl<'cut> ArtifactReplayEvidence<'cut> {
             })
             .collect()
     }
-
 
     pub(crate) fn invalid_schema_proofs(&self) -> &CurrentArtifactInvalidSchemaProofs<'cut> {
         &self.invalid_schema_proofs
@@ -2103,7 +2101,7 @@ pub(crate) fn prepare_artifact_replay<'cut>(
             std::collections::btree_map::Entry::Occupied(mut entry) => {
                 // Keep duplicate identity explicit and defer refusal until
                 // the same companion-gated lookup point as the old scan.
-                entry.insert(Err(()));
+                let _ = entry.insert(Err(()));
             }
         }
     }

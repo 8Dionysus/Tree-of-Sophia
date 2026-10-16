@@ -186,7 +186,7 @@ fn check(probe: &dyn AbortProbe) -> Result<()> {
 pub fn normalize_reading_request(request: &ReadingSearchRequest) -> Result<ReadingSearchRequest> {
     fn strip(s: &str) -> Result<&str> {
         tos_foundation::python_strip_unicode16_v1(s, s.chars().count()).map_err(|_| budget_error())
-    };
+    }
     let query = strip(&request.query)?.to_owned();
     let language = strip(&request.language)?;
     let count = language.chars().count();

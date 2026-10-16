@@ -2974,7 +2974,6 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
         // Original packet and actual pretty-output capacity coexist with this escaped envelope;
         // the decoded tree has already been dropped and all allocations use the original remainder.
         drop(argument_storage);
-        drop(registered);
         let work = u64::try_from(resource_text.map_or(packet.body.len(), str::len))
             .ok()
             .and_then(|n| n.checked_mul(2))

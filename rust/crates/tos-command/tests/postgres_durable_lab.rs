@@ -5179,8 +5179,6 @@ fn maintained_agent_creation_operation<
     drop(current_request);
     drop(current_config);
     drop(current_filesystem);
-    drop(successor);
-    drop(current);
     drop(second_selected);
     drop(initial_selected);
     drop(successor_member);
