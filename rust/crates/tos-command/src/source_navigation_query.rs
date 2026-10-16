@@ -1151,9 +1151,7 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
                     "source edge endpoints differ",
                 ));
             }
-            if let Some((old_from, old_to, old_visible, _, old_raw)) =
-                effective.get(&edge_id)
-            {
+            if let Some((old_from, old_to, old_visible, _, old_raw)) = effective.get(&edge_id) {
                 if old_from != &from
                     || old_to != &to
                     || *old_visible != visible

@@ -1711,8 +1711,14 @@ mod tests {
             ]),
         };
         let selected = private_selected();
-        let receipt =
-            emit_private_prepared_capture(&selected, [row.clone()], &paths[0], Some(&paths[1]), &paths[2]).unwrap();
+        let receipt = emit_private_prepared_capture(
+            &selected,
+            [row.clone()],
+            &paths[0],
+            Some(&paths[1]),
+            &paths[2],
+        )
+        .unwrap();
         assert_eq!(receipt.changed_rows, 1);
         assert!(paths.iter().all(|path| path.is_file()));
         let forward = fs::read_to_string(&paths[0]).unwrap();
@@ -1878,7 +1884,10 @@ mod tests {
                     ]),
                 }
             });
-            assert!(emit_private_prepared_capture(&spec, rows, &forward, Some(&rollback), &manifest).is_err());
+            assert!(
+                emit_private_prepared_capture(&spec, rows, &forward, Some(&rollback), &manifest)
+                    .is_err()
+            );
             assert_eq!(fs::read(&foreign).unwrap(), b"independent writer");
             assert!(!rollback.exists() && !manifest.exists());
             assert!(!forward.with_extension("sql.next").exists());

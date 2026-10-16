@@ -3736,7 +3736,9 @@ impl DurablePgCoordinator {
                 "navigation historical member differs from exact event bytes",
             ));
         }
-        if selected.content_length == 0 || selected.content_length > limits.max_row_bytes as u64 {
+        // A selected historical member can be an exact empty archive blob.
+        // Presence, event identity, custody and digest remain mandatory.
+        if selected.content_length > limits.max_row_bytes as u64 {
             return Err(DurableError::Refused(
                 "navigation historical member byte budget",
             ));

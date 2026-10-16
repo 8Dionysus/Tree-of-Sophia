@@ -1,7 +1,9 @@
 //! Validate exact source-input and reader bindings for private D1 capture.
 //! The caller holds the snapshots and owns selection, rights and publication.
 
-use crate::d1::{D1PairFailure, D1PrivatePreparedInput, D1PrivatePreparedMode, private_prepared_target_revision};
+use crate::d1::{
+    D1PairFailure, D1PrivatePreparedInput, D1PrivatePreparedMode, private_prepared_target_revision,
+};
 use serde_json::Value;
 use std::{
     collections::{BTreeMap, BTreeSet},

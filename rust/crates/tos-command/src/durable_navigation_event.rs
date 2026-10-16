@@ -7120,7 +7120,10 @@ fn read_selected_sources_at_cut(
                         } else {
                             limits.max_row_bytes as u64
                         };
-                    if version.content_length == 0 || version.content_length > source_byte_limit {
+                    // Exact archived public writer locks are present empty members.
+                    // Their bytes still pass custody and digest verification below;
+                    // source-specific parsers own nonempty document requirements.
+                    if version.content_length > source_byte_limit {
                         return Err(DurableError::Refused("navigation event source byte budget"));
                     }
                     let mut source_work = super::DurableProjectionWork::default();

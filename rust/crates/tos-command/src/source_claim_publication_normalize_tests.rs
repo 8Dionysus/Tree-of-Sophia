@@ -1,6 +1,6 @@
 //! Supplied cohort regression fixtures for the live publication normalizer.
-use serde::Serialize;
 use super::*;
+use serde::Serialize;
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
 use tos_compiler::knowledge_full_fixture::{
