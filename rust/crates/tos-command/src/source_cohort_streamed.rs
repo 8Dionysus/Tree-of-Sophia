@@ -333,6 +333,56 @@ pub(super) fn verify_original_content(
     })
 }
 
+// Resource admission for the fields returned by the binary current-row cursor.
+// A bytea projection is not its doubled hexadecimal JSON transport encoding.
+// This aggregate bounds the input; cold membership and exact lineage below
+// remain responsible for integrity and source authority.
+fn admit_streamed_current_metadata(
+    tx: &mut Transaction<'_>,
+    max_statement_ms: u64,
+    domain: &str,
+    expected_members: u64,
+    limits: SourceAssessmentLimits,
+    max_member_bytes: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    if expected_members > limits.max_rows
+        || max_member_bytes == 0
+        || max_member_bytes > usize::MAX as u64
+    {
+        return Err(DurableError::Refused(
+            "streamed current input preflight bounds",
+        ));
+    }
+    let scan_rows = expected_members
+        .checked_add(1)
+        .ok_or(DurableError::Refused("streamed current input row bound"))?;
+    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
+    let admitted = tx.query_one(
+        "SELECT count(*),coalesce(max(content_length),0),
+         coalesce(max(greatest(octet_length(domain),octet_length(subject),octet_length(profile_id),octet_length(profile_version),octet_length(content_digest),octet_length(custody_domain_digest),octet_length(segment_digest),octet_length(frame_digest),octet_length(sto_receipt_id),octet_length(durability_class),dependency_key_bytes)),0)::bigint,
+         coalesce(max(greatest(coalesce(octet_length(inventory_projection),0),octet_length(prepare_id),octet_length(store_id),octet_length(custody_domain),octet_length(pin_id),dependency_bytes)),0)::bigint,
+         coalesce(sum(octet_length(domain)::bigint+octet_length(subject)+octet_length(profile_id)+octet_length(profile_version)+octet_length(content_digest)+octet_length(custody_domain_digest)+octet_length(segment_digest)+octet_length(frame_digest)+octet_length(sto_receipt_id)+octet_length(durability_class)+octet_length(prepare_id)+octet_length(store_id)+octet_length(custody_domain)+octet_length(pin_id)+coalesce(octet_length(inventory_projection),0)+dependency_bytes+76),0)::bigint
+         FROM (SELECT * FROM cmd2_current WHERE domain=$1 LIMIT $2) c
+         CROSS JOIN LATERAL (SELECT coalesce(sum(octet_length(d)::bigint+4),0)::bigint AS dependency_bytes,coalesce(max(octet_length(d)),0) AS dependency_key_bytes FROM unnest(c.source_dependencies) d) dependencies",
+        &[&domain, &as_i64(scan_rows)?],
+    )?;
+    // 76 counts the fixed-width integer fields, including the joined attempt
+    // fence, conservatively retaining four bytes for an absent source mode.
+    if as_u64(admitted.get(0))? != expected_members
+        || as_u64(admitted.get(1))? > max_member_bytes
+        || as_u64(admitted.get(2))? > limits.max_key_bytes as u64
+        || as_u64(admitted.get(3))? > limits.max_value_bytes as u64
+        || as_u64(admitted.get(4))? > limits.max_logical_bytes
+    {
+        return Err(DurableError::Refused(
+            "streamed current input preflight bounds",
+        ));
+    }
+    Ok(())
+}
+
 /// Populate only from the exact already cold-verified membership cursor and
 /// the caller's held RR source/audit/domain/rights snapshot. No row list or
 /// placement map survives the next iteration. The derived index is not a gate.
@@ -354,27 +404,16 @@ fn index_current_source(
 ) -> DurableResult<()> {
     active(deadline, cancelled)?;
     cold.audited_root.require_store(store)?;
-    set_streamed_pg_limits(tx, max_statement_ms, deadline, cancelled)?;
-    let admitted = tx.query_one(
-        "SELECT count(*),coalesce(max(content_length),0),coalesce(max(octet_length(inventory_projection)),0)::bigint,coalesce(max(octet_length(row_to_json(c)::text)),0)::bigint,coalesce(sum(octet_length(row_to_json(c)::text)),0)::bigint FROM cmd2_current c WHERE domain=$1",
-        &[&domain],
+    admit_streamed_current_metadata(
+        tx,
+        max_statement_ms,
+        domain,
+        cold.current_members,
+        limits,
+        max_member_bytes,
+        deadline,
+        cancelled,
     )?;
-    // This index stores identity/placement metadata, not source bodies. Whole
-    // source bytes are bounded by the selected cut and streamed generation;
-    // charging their sum to the index budget would reintroduce a corpus cap.
-    if as_u64(admitted.get(0))? != cold.current_members
-        || cold.current_members > limits.max_rows
-        || max_member_bytes == 0
-        || max_member_bytes > usize::MAX as u64
-        || as_u64(admitted.get(1))? > max_member_bytes
-        || as_u64(admitted.get(2))? > limits.max_value_bytes as u64
-        || as_u64(admitted.get(3))? > limits.max_value_bytes as u64
-        || as_u64(admitted.get(4))? > limits.max_logical_bytes
-    {
-        return Err(DurableError::Refused(
-            "streamed current input preflight bounds",
-        ));
-    }
     let installation = cold.installation(store);
     let mut cursor = installation.cursor(GenerationNamespaceV1::Current)?;
     let mut count = 0u64;
@@ -4165,6 +4204,91 @@ mod owner_metadata_budget_tests {
         // An unrelated domain does not consume this cut's bounds.
         tx.execute("INSERT INTO cmd2_source_index VALUES('other','path','ToS/b','ToS/b',repeat('b',64),$1)", &[&vec![0u8; value.len()+1]]).unwrap();
         assert_eq!(check(&mut tx, limits).unwrap(), (1, 1));
+        // The current-source cursor has the same logical-field contract.
+        // Its binary projection fits even when row_to_json doubles it past
+        // the value limit. Exercise the production aggregate and all bounds.
+        tx.batch_execute(
+            "CREATE TEMP TABLE cmd2_current (domain text,subject text,content_length bigint,profile_id text,profile_version text,content_digest text,custody_domain_digest text,segment_digest text,frame_digest text,sto_receipt_id text,durability_class text,prepare_id bytea,store_id bytea,custody_domain bytea,pin_id bytea,inventory_projection bytea,source_dependencies text[]) ON COMMIT DROP;"
+        ).unwrap();
+        tx.execute(
+            "INSERT INTO cmd2_current VALUES($1,'ToS/a',7,'original','1',repeat('a',64),repeat('b',64),repeat('c',64),repeat('d',64),repeat('e',64),'durable',decode(repeat('00',32),'hex'),decode(repeat('00',16),'hex'),decode('00','hex'),decode(repeat('00',16),'hex'),$2,ARRAY['ToS/dependency'])",
+            &[&domain, &value],
+        ).unwrap();
+        assert!(
+            tx.query_one(
+                "SELECT octet_length(row_to_json(c)::text) FROM cmd2_current c",
+                &[]
+            )
+            .unwrap()
+            .get::<_, i32>(0) as usize
+                > value.len() * 2
+        );
+        let check_current = |tx: &mut Transaction<'_>, bounds, expected, member_bytes| {
+            admit_streamed_current_metadata(
+                tx,
+                5000,
+                domain,
+                expected,
+                bounds,
+                member_bytes,
+                deadline,
+                &cancelled,
+            )
+        };
+        check_current(&mut tx, limits, 1, 7).unwrap();
+        assert!(
+            check_current(
+                &mut tx,
+                SourceAssessmentLimits {
+                    max_value_bytes: value.len() - 1,
+                    ..limits
+                },
+                1,
+                7
+            )
+            .is_err()
+        );
+        assert!(
+            check_current(
+                &mut tx,
+                SourceAssessmentLimits {
+                    max_logical_bytes: value.len() as u64,
+                    ..limits
+                },
+                1,
+                7
+            )
+            .is_err()
+        );
+        assert!(
+            check_current(
+                &mut tx,
+                SourceAssessmentLimits {
+                    max_rows: 0,
+                    ..limits
+                },
+                1,
+                7
+            )
+            .is_err()
+        );
+        assert!(check_current(&mut tx, limits, 0, 7).is_err());
+        assert!(check_current(&mut tx, limits, 1, 6).is_err());
+        tx.execute(
+            "UPDATE cmd2_current SET source_dependencies=ARRAY[$1]",
+            &[&"я".repeat(2049)],
+        )
+        .unwrap();
+        assert!(check_current(&mut tx, limits, 1, 7).is_err());
+        tx.execute("UPDATE cmd2_current SET source_dependencies=ARRAY(SELECT repeat('x',4096) FROM generate_series(1,256))", &[]).unwrap();
+        assert!(check_current(&mut tx, limits, 1, 7).is_err());
+        tx.execute(
+            "UPDATE cmd2_current SET source_dependencies=ARRAY['ToS/dependency']",
+            &[],
+        )
+        .unwrap();
+        tx.execute("INSERT INTO cmd2_current SELECT 'other',subject,content_length,profile_id,profile_version,content_digest,custody_domain_digest,segment_digest,frame_digest,sto_receipt_id,durability_class,prepare_id,store_id,custody_domain,pin_id,$1,source_dependencies FROM cmd2_current", &[&vec![0u8;value.len()+1]]).unwrap();
+        check_current(&mut tx, limits, 1, 7).unwrap();
         tx.rollback().unwrap();
     }
 }
