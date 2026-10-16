@@ -7,8 +7,6 @@ use super::source_admission_store::{AdmissionStore, CandidatePayloadPackV2};
 use tos_source_store::native_v2::objects::{
     PackedObjectChangeV2, PackedObjectLocationV2, PackedObjectSourceV2,
 };
-#[path = "source_admission_logical_membership.rs"]
-mod logical_membership;
 use rusqlite::{OptionalExtension, params};
 use std::{
     cell::{Cell, RefCell},

@@ -965,7 +965,6 @@ impl<'candidate> IndexSink<'candidate> {
             "CREATE TABLE identities(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID;\
              CREATE INDEX identities_by_path ON identities(path COLLATE BINARY,id COLLATE BINARY);\
              CREATE TABLE dependencies(source TEXT COLLATE BINARY NOT NULL,target TEXT COLLATE BINARY NOT NULL,PRIMARY KEY(source,target)) WITHOUT ROWID;\
-             CREATE INDEX dependencies_reverse_order ON dependencies(target COLLATE BINARY,source COLLATE BINARY);\
              CREATE TABLE fresh_record_rows(ordinal INTEGER PRIMARY KEY,id TEXT NOT NULL,source_ref TEXT NOT NULL);\
              CREATE TABLE fresh_claim_rows(ordinal INTEGER PRIMARY KEY,id TEXT NOT NULL,source_ref TEXT NOT NULL);\
              CREATE TABLE fresh_semantic_rows(ordinal INTEGER PRIMARY KEY,id TEXT COLLATE BINARY NOT NULL,path TEXT NOT NULL);\
@@ -2064,11 +2063,10 @@ impl IndexView<'_> {
         Ok(source)
     }
 
-    /// Stream the actual maintained edge table in the chosen native key order.
+    /// Stream the maintained edge table in source/target key order.
     /// The tuple is always (source,target); no native row or completion is minted.
     pub(crate) fn dependency_pair_after(
         &self,
-        direction: source_admission_index::NativeDependencyDirectionV1,
         after: Option<(&RelativePath, &RelativePath)>,
     ) -> io::Result<Option<(RelativePath, RelativePath)>> {
         self.candidate.tick()?;
@@ -2090,23 +2088,13 @@ impl IndexView<'_> {
             .row_limit
             .checked_sub(argument_state)
             .ok_or_else(|| invalid("native dependency pair cursor state exceeds profile"))?;
-        use source_admission_index::NativeDependencyDirectionV1::{Forward, Reverse};
-        // Both orders have a maintained SQLite index. The pinned connection
-        // accounts reverse-index insertion pages in the SAME IO/space budget.
-        let row = match (direction, after) {
-            (Forward, Some((source, target))) => self.db.query_row(
+        let row = match after {
+            Some((source, target)) => self.db.query_row(
                 "SELECT source,target FROM dependencies WHERE (source,target)>(?1,?2) ORDER BY source,target LIMIT 1",
                 params![source.as_str(),target.as_str()],
                 |row| bounded_text_pair(row,0,1,returned_row_limit)),
-            (Reverse, Some((source, target))) => self.db.query_row(
-                "SELECT source,target FROM dependencies INDEXED BY dependencies_reverse_order WHERE (target,source)>(?1,?2) ORDER BY target,source LIMIT 1",
-                params![target.as_str(),source.as_str()],
-                |row| bounded_text_pair(row,0,1,returned_row_limit)),
-            (Forward, None) => self.db.query_row(
+            None => self.db.query_row(
                 "SELECT source,target FROM dependencies ORDER BY source,target LIMIT 1", [],
-                |row| bounded_text_pair(row,0,1,returned_row_limit)),
-            (Reverse, None) => self.db.query_row(
-                "SELECT source,target FROM dependencies INDEXED BY dependencies_reverse_order ORDER BY target,source LIMIT 1", [],
                 |row| bounded_text_pair(row,0,1,returned_row_limit)),
         }.optional().map_err(sql)?;
         let pair = row

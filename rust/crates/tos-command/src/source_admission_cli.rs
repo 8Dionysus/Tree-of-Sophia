@@ -1779,10 +1779,8 @@ fn run_spooled_inner(
         }
         // Require an existing native completion proof. The current executable
         // is only the reader; it never reissues the historical validator claim.
-        crate::source_admission_index::SelectedNativeAdmissionRootV1::from_selected_current_roots(
-            reader.current_roots(),
-            reader.selected_rootset_sha256()?,
-        )?;
+        reader.selected_rootset_sha256()?;
+        crate::source_admission_index::validate_selected_native_completion(reader.current_roots())?;
         let roots = reader.current_roots();
         let original_batch = roots
             .batch_sha256

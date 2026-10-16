@@ -14,8 +14,7 @@ use crate::source_foundation_closure::{
     SourceFoundationClosureReport, inspect_source_foundation_closure,
 };
 use crate::source_foundation_discovery::{
-    ArtifactCorrectionReplayMap, CandidateArtifactCorrectionReplayMap,
-    CandidateArtifactEvidenceProvider, CandidateArtifactInvalidSchemaProofs, Cost as DiscoveryCost,
+    ArtifactCorrectionReplayMap, CandidateArtifactEvidenceProvider, Cost as DiscoveryCost,
     CurrentArtifactInvalidSchemaProofs, DiscoveryDigestCache, DiscoveryEventSummaryStore,
     DiscoveryRunSummaryStore, DiscoverySchemaRequestStore, DiscoverySeenIds,
     Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest, SourcePhysicalFacts,
@@ -839,455 +838,10 @@ fn later_district_owner_issue_bytes(
     Ok(bytes)
 }
 
-/// Run the maintained default district order over the actual stored Records
-/// report and bounded provider views belonging to that same input. The caller
-/// keeps the candidate scope and schema worker alive for the complete call.
-/// The scoped event provider has already folded the actual Records insertion
-/// stream once, before bibliography reads its readonly event projection. This
-/// call continues that same projection with Gold and Discovery writes.
-/// This returns findings only; it never creates source-admission authority.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    native_histories: &BTreeMap<
-        String,
-        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
-    >,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    artifact_replays: &crate::source_foundation_discovery::CandidateArtifactCorrectionReplayMap<
-        '_,
-        I,
-    >,
-    invalid_artifact_proofs: &crate::source_foundation_discovery::CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        Some(native_histories),
-        claims,
-        physical,
-        Some(artifact_replays),
-        Some(invalid_artifact_proofs),
-        None,
-        None,
-        None,
-        None,
-        None,
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Run the maintained default district order while reconstructing one
-/// candidate Artifact evidence packet at a time inside Discovery. The
-/// provider remains CMD-owned; this portable composition only calls its
-/// exact-path callback.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        None,
-        None,
-        None,
-        None,
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate stored composition with the held disk-backed exact-ID scratch
-/// index used by Discovery to preserve duplicate and negative-membership laws.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        None,
-        None,
-        None,
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate stored composition with both held Discovery scratch providers:
-/// exact-ID uniqueness and exact-path run-summary point lookup.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        None,
-        None,
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate stored composition with all three bounded Discovery scratch
-/// providers: exact-ID uniqueness, path-keyed run summaries, and ordered event
-/// summaries. Event values are folded into `events` after Discovery finishes.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        None,
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate stored composition that also streams decoded Discovery schema
-/// documents to the scoped CMD request spool for one-at-a-time diagnostics.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
-    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(discovery_schema_requests),
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        None,
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate stored composition with a bounded held cache for exact digests
-/// computed from current-member bytes, alongside the Discovery schema spool.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
-    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
-    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(discovery_schema_requests),
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        Some(discovery_digest_cache),
-        None,
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
-/// Candidate stored composition that also spills the plain current Link
-/// projection into the invocation's bounded CMD scratch table.
-#[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
-    discovery_seen_ids: &mut dyn DiscoverySeenIds,
-    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
-    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
-    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
-    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
-    closure_link_store: &mut dyn crate::source_foundation_closure::SourceFoundationClosureLinkStore,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(discovery_schema_requests),
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        Some(discovery_digest_cache),
-        Some(closure_link_store),
-        None,
-        SourceFoundationDefaultRuleScope::FullAudit,
-    )
-}
-
 /// Candidate stored composition that also spools Closure schema documents for
 /// the maintained diagnostic worker to drain one at a time after Discovery.
 #[allow(clippy::too_many_arguments)]
-pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links_and_closure_schema_requests<
+pub fn inspect_source_foundation_default_rules_from_input_stored<
     I: Copy + Eq,
     S: LayerFamilySource + ?Sized,
 >(
@@ -1314,72 +868,6 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
     cancelled: &AtomicBool,
     scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
-    inspect_source_foundation_default_rules_from_input_stored_inner(
-        source,
-        input,
-        coverage,
-        records,
-        records_lookup,
-        paths,
-        events,
-        None,
-        claims,
-        physical,
-        None,
-        None,
-        Some(evidence_provider),
-        Some(discovery_seen_ids),
-        Some(discovery_run_summaries),
-        Some(discovery_event_summaries),
-        Some(discovery_schema_requests),
-        require_local_payloads,
-        limits,
-        stored_limits,
-        cancelled,
-        Some(discovery_digest_cache),
-        Some(closure_link_store),
-        Some(closure_schema_request_store),
-        scope,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn inspect_source_foundation_default_rules_from_input_stored_inner<
-    I: Copy + Eq,
-    S: LayerFamilySource + ?Sized,
->(
-    source: &mut S,
-    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
-    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
-    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
-    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
-    paths: &dyn SourceFoundationDefaultPaths,
-    events: &mut dyn SourceFoundationDefaultEventStore,
-    native_histories: Option<
-        &BTreeMap<String, crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>>,
-    >,
-    claims: &dyn SourceFoundationDefaultClaims,
-    physical: &SourcePhysicalFacts,
-    artifact_replays: Option<&CandidateArtifactCorrectionReplayMap<'_, I>>,
-    invalid_artifact_proofs: Option<&CandidateArtifactInvalidSchemaProofs<'_, '_, I>>,
-    mut evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
-    mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
-    mut discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
-    mut discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
-    mut discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-    stored_limits: SourceFoundationDefaultStoredLimits,
-    cancelled: &AtomicBool,
-    mut discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
-    mut closure_link_store: Option<
-        &mut dyn crate::source_foundation_closure::SourceFoundationClosureLinkStore,
-    >,
-    mut closure_schema_request_store: Option<
-        &mut dyn crate::source_foundation_closure::SourceFoundationClosureSchemaRequestStore,
-    >,
-    scope: SourceFoundationDefaultRuleScope,
-) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
     let operation = limits.operation;
     source.checkpoint(operation.deadline)?;
     let generated_scope = scope == SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure;
@@ -1398,37 +886,6 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     {
         return Err(ItemRefusal::Source(
             "source-foundation stored input/report binding differs".into(),
-        ));
-    }
-    if discovery_event_summaries.is_some()
-        && (evidence_provider.is_none()
-            || discovery_seen_ids.is_none()
-            || discovery_run_summaries.is_none())
-    {
-        return Err(ItemRefusal::Source(
-            "candidate Discovery event spill requires the evidence, ID, and run-summary providers"
-                .into(),
-        ));
-    }
-    if discovery_schema_requests.is_some()
-        && (evidence_provider.is_none()
-            || discovery_seen_ids.is_none()
-            || discovery_run_summaries.is_none()
-            || discovery_event_summaries.is_none())
-    {
-        return Err(ItemRefusal::Source(
-            "candidate Discovery schema request spool requires bounded evidence, ID, run, and event providers"
-                .into(),
-        ));
-    }
-    if discovery_digest_cache.is_some()
-        && (discovery_schema_requests.is_none()
-            || evidence_provider.is_none()
-            || discovery_seen_ids.is_none())
-    {
-        return Err(ItemRefusal::Source(
-            "candidate Discovery digest cache requires its bounded evidence, ID, and request providers"
-                .into(),
         ));
     }
     input.verify_current_fence(coverage, operation.deadline, cancelled)?;
@@ -1546,19 +1003,6 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     } else {
         None
     };
-    if scope.is_scoped()
-        && (evidence_provider.is_none()
-            || discovery_seen_ids.is_none()
-            || discovery_run_summaries.is_none()
-            || discovery_event_summaries.is_none()
-            || discovery_schema_requests.is_none()
-            || discovery_digest_cache.is_none()
-            || closure_schema_request_store.is_none())
-    {
-        return Err(ItemRefusal::Source(
-            "selected source closure requires its authenticated district providers".into(),
-        ));
-    }
     let discovery_limits = remaining_limits(
         operation,
         records_read_reservation_bytes,
@@ -1566,183 +1010,29 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let discovery = (|| { Ok(if let Some(provider) = evidence_provider.as_deref_mut() {
-        if let Some(seen_ids) = discovery_seen_ids.as_deref_mut() {
-            if let Some(run_summaries) = discovery_run_summaries.as_deref_mut() {
-                if let Some(event_summaries) = discovery_event_summaries.as_deref_mut() {
-                    if let Some(schema_requests) = discovery_schema_requests.as_deref_mut() {
-                        if let Some(digest_cache) = discovery_digest_cache.as_deref_mut() {
-                            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests(
-                                &mut aggregate_source,
-                                input,
-                                coverage,
-                                paths,
-                                events.event_lookup(),
-                                records_lookup,
-                                records,
-                                discovery_limits,
-                                physical,
-                                provider,
-                                seen_ids,
-                                run_summaries,
-                                event_summaries,
-                                schema_requests,
-                                digest_cache,
-                                limits
-                                    .max_event_map_bytes
-                                    .min(discovery_limits.max_member_bytes),
-                                require_local_payloads,
-                                scope,
-                            )?
-                        } else {
-                            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests(
-                            &mut aggregate_source,
-                            input,
-                            coverage,
-                            paths,
-                            events.event_lookup(),
-                            records_lookup,
-                            records,
-                            discovery_limits,
-                            physical,
-                            provider,
-                            seen_ids,
-                            run_summaries,
-                            event_summaries,
-                            schema_requests,
-                            limits
-                                .max_event_map_bytes
-                                .min(discovery_limits.max_member_bytes),
-                            require_local_payloads,
-                        )?
-                        }
-                    } else {
-                        crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries(
-                            &mut aggregate_source,
-                            input,
-                            coverage,
-                            paths,
-                            events.event_lookup(),
-                            records_lookup,
-                            records,
-                            discovery_limits,
-                            physical,
-                            provider,
-                            seen_ids,
-                            run_summaries,
-                            event_summaries,
-                            limits
-                                .max_event_map_bytes
-                                .min(discovery_limits.max_member_bytes),
-                            require_local_payloads,
-                        )?
-                    }
-                } else {
-                    crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries(
-                        &mut aggregate_source,
-                        input,
-                        coverage,
-                        paths,
-                        events.event_lookup(),
-                        records_lookup,
-                        records,
-                        discovery_limits,
-                        physical,
-                        provider,
-                        seen_ids,
-                        run_summaries,
-                        require_local_payloads,
-                    )?
-                }
-            } else {
-                crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids(
-                    &mut aggregate_source,
-                    input,
-                    coverage,
-                    paths,
-                    events.event_lookup(),
-                    records_lookup,
-                    records,
-                    discovery_limits,
-                    physical,
-                    provider,
-                    seen_ids,
-                    require_local_payloads,
-                )?
-            }
-        } else {
-            if discovery_run_summaries.is_some() {
-                return Err(ItemRefusal::Source(
-                    "candidate Discovery summary store requires the held ID index".into(),
-                ));
-            }
-            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider(
-                &mut aggregate_source,
-                input,
-                coverage,
-                paths,
-                events.event_lookup(),
-                records_lookup,
-                records,
-                discovery_limits,
-                physical,
-                provider,
-                require_local_payloads,
-            )?
-        }
-    } else {
-        if discovery_run_summaries.is_some() {
-            return Err(ItemRefusal::Source(
-                "candidate Discovery summary store requires the lazy evidence provider".into(),
-            ));
-        }
-        if let Some(seen_ids) = discovery_seen_ids.as_deref_mut() {
-            crate::source_foundation_discovery::inspect_candidate_with_artifact_replays_and_records_with_proofs_and_seen_ids(
-                &mut aggregate_source,
-                input,
-                coverage,
-                paths,
-                events.event_lookup(),
-                records_lookup,
-                records,
-                discovery_limits,
-                physical,
-                native_histories.ok_or_else(|| {
-                    ItemRefusal::Source("candidate native Artifact histories are missing".into())
-                })?,
-                artifact_replays.ok_or_else(|| {
-                    ItemRefusal::Source("candidate Artifact replay map is missing".into())
-                })?,
-                invalid_artifact_proofs.ok_or_else(|| {
-                    ItemRefusal::Source("candidate Artifact schema proof is missing".into())
-                })?,
-                seen_ids,
-                require_local_payloads,
-            )?
-        } else {
-            crate::source_foundation_discovery::inspect_candidate_with_artifact_replays_and_records_with_proofs(
-                &mut aggregate_source,
-                input,
-                coverage,
-                paths,
-                events.event_lookup(),
-                records_lookup,
-                records,
-                discovery_limits,
-                physical,
-                native_histories.ok_or_else(|| {
-                    ItemRefusal::Source("candidate native Artifact histories are missing".into())
-                })?,
-                artifact_replays.ok_or_else(|| {
-                    ItemRefusal::Source("candidate Artifact replay map is missing".into())
-                })?,
-                invalid_artifact_proofs.ok_or_else(|| {
-                    ItemRefusal::Source("candidate Artifact schema proof is missing".into())
-                })?,
-                require_local_payloads,
-            )?
-        }
-    }) })().map_err(|error| default_owner_refusal("stored default discovery", error))?;
+    let discovery = crate::source_foundation_discovery::inspect_candidate_with_stores(
+        &mut aggregate_source,
+        input,
+        coverage,
+        paths,
+        events.event_lookup(),
+        records_lookup,
+        records,
+        discovery_limits,
+        physical,
+        evidence_provider,
+        discovery_seen_ids,
+        discovery_run_summaries,
+        discovery_event_summaries,
+        discovery_schema_requests,
+        discovery_digest_cache,
+        limits
+            .max_event_map_bytes
+            .min(discovery_limits.max_member_bytes),
+        require_local_payloads,
+        scope,
+    )
+    .map_err(|error| default_owner_refusal("stored default discovery", error))?;
     if discovery.input_identity() != input.input_identity()
         || discovery.source_membership() != *records.source_membership()
     {
@@ -1763,7 +1053,8 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         discovery.cost.state_bytes,
         operation.max_state_bytes,
     )?;
-    if let Some(event_summaries) = discovery_event_summaries.as_deref_mut() {
+    {
+        let event_summaries = &mut *discovery_event_summaries;
         if !discovery.source_event_insertions.is_empty() {
             return Err(ItemRefusal::Source(
                 "candidate Discovery event spill also returned resident insertions".into(),
@@ -1806,17 +1097,6 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         discovery
             .cost
             .candidate_discovery_event_summary_scan_row_operations = event_cost.scan_row_operations;
-    } else {
-        for (id, value) in &discovery.source_event_insertions {
-            insert_stored_event(
-                events,
-                id,
-                value,
-                &mut used_state,
-                &mut event_charge,
-                limits,
-            )?;
-        }
     }
     let discovery = SourceFoundationDefaultDiscoveryFindings {
         issues: discovery.issues,
@@ -1832,35 +1112,20 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let closure = (|| { Ok(if let Some(schema_request_store) = closure_schema_request_store.as_mut() {
-        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores_with_scope(
-            &mut aggregate_source,
-            input,
-            input.input_identity(),
-            coverage,
-            events.event_lookup(),
-            records_lookup,
-            paths,
-            claims,
-            closure_link_store.take(),
-            Some(&mut **schema_request_store),
-            closure_limits,
-            scope,
-        )?
-    } else {
-        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_link_store(
-            &mut aggregate_source,
-            input,
-            input.input_identity(),
-            coverage,
-            events.event_lookup(),
-            records_lookup,
-            paths,
-            claims,
-            closure_link_store.take(),
-            closure_limits,
-        )?
-    }) })().map_err(|error| default_owner_refusal("stored default closure", error))?;
+    let closure = crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores_with_scope(
+        &mut aggregate_source,
+        input,
+        input.input_identity(),
+        coverage,
+        events.event_lookup(),
+        records_lookup,
+        paths,
+        claims,
+        Some(closure_link_store),
+        Some(&mut *closure_schema_request_store),
+        closure_limits,
+        scope,
+    ).map_err(|error| default_owner_refusal("stored default closure", error))?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(closure.issues.len())
         .ok_or(crate::item_budget_origin!())?;
@@ -1870,11 +1135,6 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         operation.max_state_bytes,
     )?;
     let selected_layer_owners = if generated_scope {
-        let store = closure_schema_request_store.as_mut().ok_or_else(|| {
-            ItemRefusal::Source(
-                "selected layer owners require the sealed candidate event index".into(),
-            )
-        })?;
         let pass_limits = remaining_limits(
             operation,
             records_read_reservation_bytes,
@@ -1885,7 +1145,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         Some(inspect_selected_layer_owners(
             &mut aggregate_source,
             paths,
-            &mut **store,
+            closure_schema_request_store,
             pass_limits,
             require_local_payloads,
         )?)
@@ -1982,37 +1242,6 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             queued_schema_document_count,
         },
     })
-}
-
-/// Run the default authored foundation districts over actual owner inputs.
-/// `records`, native histories, biblio claims, physical observations and
-/// correction replay evidence are borrowed or moved from their existing
-/// owners; this function never fabricates empty substitutes for them.
-pub fn inspect_source_foundation_default_rules<S: LayerFamilySource + ?Sized>(
-    source: &mut S,
-    cut: &CorpusCutReader,
-    current_paths: &[String],
-    records: SourceFoundationRecordsReport,
-    native_histories: &BTreeMap<String, NativeRecordHistoryReadObservation>,
-    bibliographic_claims: &[BiblioClaim],
-    physical: &SourcePhysicalFacts,
-    artifact_replays: &ArtifactCorrectionReplayMap<'_>,
-    require_local_payloads: bool,
-    limits: SourceFoundationDefaultRulesLimits,
-) -> Result<SourceFoundationDefaultRulesReport, ItemRefusal> {
-    inspect_source_foundation_default_rules_internal(
-        source,
-        cut,
-        current_paths,
-        records,
-        native_histories,
-        bibliographic_claims,
-        physical,
-        artifact_replays,
-        None,
-        require_local_payloads,
-        limits,
-    )
 }
 
 /// Default districts with the shared exact-cut Artifact invalid-schema proof

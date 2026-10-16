@@ -512,11 +512,10 @@ pub(crate) fn build_initial_rootset_v2(
         .ok_or_else(|| invalid("V2 reverse identity roots state overflow"))?;
 
     let dependency_rows = {
-        use super::source_admission_index::NativeDependencyDirectionV1::Forward;
         let mut after: Option<(RelativePath, RelativePath)> = None;
         let index = index;
         std::iter::from_fn(move || {
-            match index.dependency_pair_after(Forward, after.as_ref().map(|(s, t)| (s, t))) {
+            match index.dependency_pair_after(after.as_ref().map(|(s, t)| (s, t))) {
                 Ok(Some((source, target))) => {
                     after = Some((source.clone(), target.clone()));
                     let pair = match length_prefixed_pair(&source, &target) {
@@ -1771,14 +1770,12 @@ pub(crate) fn build_v1_migration_rootset_v2(
     let dependency_source_rows = Cell::new(0u64);
     let dependency_source_rows = &dependency_source_rows;
     let dependency_rows = {
-        use super::source_admission_index::NativeDependencyDirectionV1::Forward;
         let mut after: Option<(RelativePath, RelativePath)> = None;
         let mut prior_source: Option<RelativePath> = None;
         std::iter::from_fn(move || {
-            match index.dependency_pair_after(
-                Forward,
-                after.as_ref().map(|(source, target)| (source, target)),
-            ) {
+            match index
+                .dependency_pair_after(after.as_ref().map(|(source, target)| (source, target)))
+            {
                 Ok(Some((source, target))) => {
                     if prior_source.as_ref() != Some(&source) {
                         dependency_source_rows.set(dependency_source_rows.get().saturating_add(1));
