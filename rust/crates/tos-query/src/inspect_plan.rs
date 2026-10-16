@@ -184,7 +184,7 @@ pub enum InspectNeed {
 }
 enum InspectIdentity {
     Cut(String),
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
     Managed {
         basis: JsonValue,
         root: String,
@@ -222,7 +222,7 @@ impl InspectPlan {
     /// The adapter verifies its digest before this call; bound comparison here
     /// rejects a different proof. Current authority and custody remain outside
     /// the domain plan, held throughout seek and final disclosure.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
     pub(crate) fn from_managed_header(
         request: InspectRequest,
         header: JsonValue,
@@ -524,11 +524,11 @@ impl InspectPlan {
         let limits = self.budget.json;
         self.into_packet_with_targets(|items, identity, managed| {
             if managed {
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
                 return Ok(crate::source_read_projection::managed_source_read_targets(
                     items, identity, limits,
                 ));
-                #[cfg(target_arch = "wasm32")]
+                #[cfg(any(target_arch = "wasm32", not(feature = "native-models")))]
                 return Err(corrupt());
             }
             Ok(source_read_targets(items, identity, limits))
@@ -563,7 +563,7 @@ impl InspectPlan {
                 vec![("source_revision", text(&revision))],
                 targets(&items, &revision, false)?,
             ),
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
             InspectIdentity::Managed { basis, root } => (
                 if node {
                     "tos_knowledge_node_packet_v2"

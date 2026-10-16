@@ -1,4 +1,4 @@
-#![cfg(not(target_arch = "wasm32"))]
+#![cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 //! Native selected packets against frozen outputs from the maintained historical Python engine.
 use std::{
     collections::BTreeSet,

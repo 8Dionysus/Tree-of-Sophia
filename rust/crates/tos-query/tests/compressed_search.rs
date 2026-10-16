@@ -1,7 +1,7 @@
 //! Native controls for the maintained PublishedSearchTests cases: full rank
 //! streams, empty work/long-value progress, deferred bodies and cursor integrity.
 //! The tiny normalized carriers are disposable software fixtures, not a corpus.
-#![cfg(not(target_arch = "wasm32"))]
+#![cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 use rusqlite::{Connection, OpenFlags};
 use std::{
     fs,

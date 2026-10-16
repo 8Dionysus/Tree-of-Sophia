@@ -1,4 +1,4 @@
-#![cfg(not(target_arch = "wasm32"))]
+#![cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 
 //! One producer-built CMP selection through QRY ranked packet continuation.
 //! All custody and disclosure callbacks here are synthetic test holders.

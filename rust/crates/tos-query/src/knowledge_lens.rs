@@ -7,7 +7,7 @@ use crate::{
     search_v2::{SearchV2Error, SearchV2ErrorCode},
     source_read_projection::{object, text},
 };
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 use crate::{
     knowledge_binding::BoundCmpKnowledge,
     knowledge_inspect::{
@@ -16,7 +16,7 @@ use crate::{
     search_v2::SearchKind,
 };
 use std::collections::{BTreeMap, BTreeSet};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 pub const LENS_OPERATION: &str = "tos.lens.compile";
@@ -27,7 +27,7 @@ pub const STORED_LENS_OPERATION: &str = "tos.lens.open";
 pub const STORED_LENS_INTENDED_USE: &str = "read_only_public_stored_lens_v1";
 /// Continuation identity for an already authorized selected execution. This
 /// value binds a cursor; it neither issues a scope nor authorizes disclosure.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn lens_continuation_binding(
     bound: &BoundCmpKnowledge<'_>,
     scope: &crate::IndexedDisclosureScope,
@@ -142,7 +142,7 @@ pub(crate) fn relation_regime(
                     .iter()
                     .any(|p| p == string(get(r, "relation_type_id")))))
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn execute_selected_lens<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
@@ -158,7 +158,7 @@ pub fn execute_selected_lens<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
         budget_value,
     )
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn execute_selected_focus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
@@ -174,7 +174,7 @@ pub fn execute_selected_focus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>
         budget_value,
     )
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn execute_selected_stored_lens<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
@@ -193,14 +193,14 @@ pub fn execute_selected_stored_lens<'hold, A: InspectCurrentAuthority<'hold> + ?
         budget_value,
     )
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 #[derive(Clone, Copy)]
 enum LensRequest<'a> {
     Compile(&'a JsonValue),
     Focus(&'a crate::knowledge_focus::KnowledgeFocusRequest),
     Stored(&'a str),
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 fn execute_selected_lens_request<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,

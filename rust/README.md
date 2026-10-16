@@ -16,6 +16,15 @@ bounded immutable segments, crash-recoverable pin journals and receipt-bound
 selected reads. Its independent conformance target checks exact synthetic
 segment bytes. A custody receipt grants neither source admission nor rights.
 
+`tos-query` defaults to shared query rules, with only `tos-foundation` and
+`regex` as direct dependencies. Native model opening, SQLite adapters and the
+compiler-backed query implementations require its explicit `native-models`
+feature. Access, command and conformance consumers select that feature;
+`tos-web-rules` uses the shared rules without it on native hosts as well as WASM.
+Native disclosure leases still require `Send` in both configurations.
+Run selected-model integration tests with `cargo test -p tos-query --features
+native-models`; a default query build does not include those adapters.
+
 `tos-query::source_text_search` owns the portable `tos_source_text_search_v1`
 ranking, Unicode-16 query normalization, cursor binding and response budget over
 one complete bounded candidate set. The adapter still owns source selection,

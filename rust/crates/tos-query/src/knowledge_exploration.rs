@@ -8,7 +8,7 @@ use crate::{
     search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
     source_read_projection::{object, text},
 };
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 use crate::{
     knowledge_binding::BoundCmpKnowledge,
     knowledge_inspect::{
@@ -17,7 +17,7 @@ use crate::{
     },
 };
 use std::collections::{BTreeSet, VecDeque};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
     CanonicalProfile, Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue,
@@ -30,7 +30,7 @@ pub const PUBLISHED_EXPLORATION_EXECUTION_VERSION: &str = "tos-exploration-d1-ex
 pub const PUBLISHED_EXPLORATION_CACHE_VERSION: &str =
     "tos-exploration-d1-execution-v6/rust-state-v1";
 pub const EXPLORATION_EXECUTION_VERSION: &str = "tos-exploration-execution-v6";
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 const SNAPSHOT_SCHEMA: &str = "tos_rust_selected_exploration_snapshot_v1";
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
     SearchV2Error { code, message }
@@ -1609,7 +1609,7 @@ pub(crate) async fn advance(
     }
     Ok(result)
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 fn snapshot(
     bound: &BoundCmpKnowledge<'_>,
     scope: &crate::knowledge_packet::IndexedDisclosureScope,
@@ -1666,7 +1666,7 @@ fn snapshot(
     .to_hex())
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 fn drive_selected<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     input: crate::exploration_plan::ExplorationInput,
@@ -1775,7 +1775,7 @@ fn drive_selected<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
 /// Execute and stage one page. A checkpoint preparation is committed only
 /// after packet size, selected snapshot, current policy and disclosure hold
 /// all pass. A failed query leaves the input cursor/state unchanged.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn execute_selected_exploration<
     'hold,
     A: InspectCurrentAuthority<'hold> + ?Sized,
