@@ -6766,8 +6766,12 @@ fn validate_claim_history(
     }
     let current_source_ref = claim_reference(current_claim, limits.catalog.max_row_bytes)?;
     let current_source_ref_sha256 = claim_reference_digest(&current_source_ref)?;
+    // A stream shares its history across Claims. Bind this owner's latest
+    // revision, including no revision for a version-one companion.
     let latest_revision_receipt_sha256 = receipts
-        .last()
+        .iter()
+        .rev()
+        .find(|receipt| receipt.pointer("/source/id").and_then(Value::as_str) == Some(claim_id))
         .map(|receipt| source_digest256(receipt, limits.catalog.max_row_bytes))
         .transpose()?;
     if Some(history_path) != mutation_receipt_path
@@ -7962,6 +7966,156 @@ fn navigation_claim_event_budget_cost(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shared_history_binds_each_claims_own_latest_revision() {
+        let source_path =
+            checked_path("ToS/source-witnesses/relations/test/source-claims.jsonl").unwrap();
+        let history_path =
+            checked_path("ToS/source-witnesses/relations/test/claim-revision-history.json").unwrap();
+        let limits = BibliographicLimits {
+            catalog: crate::source_witness_catalog::SourceCatalogLimits {
+                max_files: 32,
+                max_rows: 32,
+                max_file_bytes: CLAIM_LINE_BYTES,
+                max_row_bytes: CLAIM_LINE_BYTES,
+                max_contract_bytes: CLAIM_LINE_BYTES,
+                max_output_row_bytes: CLAIM_LINE_BYTES,
+            },
+            max_claim_cohort_rows: 32,
+            max_claim_cohort_bytes: TOTAL_DEPENDENCY_BYTES,
+            max_output_rows: 32,
+            max_output_bytes: TOTAL_DEPENDENCY_BYTES as u64,
+            deadline: std::time::Instant::now() + std::time::Duration::from_secs(10),
+        };
+        let mut claims = ["tos.claim.a", "tos.claim.b", "tos.claim.unchanged"]
+            .map(|id| json!({"claim_id":id,"claim_version":1}));
+        let stream_bytes = |claims: &[Value]| {
+            claims
+                .iter()
+                .flat_map(|claim| {
+                    let mut raw = canonical(claim, CLAIM_LINE_BYTES).unwrap();
+                    raw.push(b'\n');
+                    raw
+                })
+                .collect::<Vec<_>>()
+        };
+        let history_bytes = |receipts: &[Value]| {
+            canonical(
+                &json!({
+                    "schema_version":"tos_claim_revision_history_v1",
+                    "source_path":source_path.as_str(),"receipts":receipts
+                }),
+                CLAIM_LINE_BYTES,
+            )
+            .unwrap()
+        };
+        let mut receipts = Vec::new();
+        let mut owned_files = BTreeMap::new();
+        // Interleave revisions so A's latest receipt is not the stream's last.
+        // The third Claim stays at version one despite sharing that history.
+        for index in [0, 1, 0, 1] {
+            let previous = claim_reference(&claims[index], CLAIM_LINE_BYTES).unwrap();
+            let files = BTreeMap::from([
+                ("source-claims.jsonl", stream_bytes(&claims)),
+                ("claim-revision-history.json", history_bytes(&receipts)),
+            ]);
+            let bindings = files.iter().map(|(name, raw)| ((*name).to_owned(), json!({
+                "sha256":format!("sha256:{}", Digest256::of_bytes(raw).to_hex()),"bytes":raw.len()
+            }))).collect::<serde_json::Map<_, _>>();
+            let revision = source_digest(&Value::Object(bindings), TOTAL_DEPENDENCY_BYTES).unwrap();
+            let archive = format!(
+                "ToS/source-witnesses/.record-revisions/{}-{revision}",
+                Digest256::of_bytes(previous["id"].as_str().unwrap().as_bytes()).to_hex()
+            );
+            let mut manifest_files = serde_json::Map::new();
+            for (name, raw) in files {
+                let hash = Digest256::of_bytes(&raw).to_hex();
+                manifest_files.insert(name.to_owned(), json!({
+                    "sha256":format!("sha256:{hash}"),"bytes":raw.len(),"blob":format!("{hash}.blob")
+                }));
+                owned_files.insert(format!("{archive}/{hash}.blob"), raw);
+            }
+            owned_files.insert(format!("{archive}/manifest.json"), canonical(&json!({
+                "schema_version":"tos_source_package_archive_v1","source_path":source_path.as_str(),
+                "source":previous,"revision":format!("sha256:{revision}"),"files":manifest_files
+            }), CLAIM_LINE_BYTES).unwrap());
+            claims[index]["claim_version"] =
+                json!(claims[index]["claim_version"].as_u64().unwrap() + 1);
+            let request = json!({"operation":"claim.revise"});
+            receipts.push(json!({
+                "previous_source":previous,"source":claim_reference(&claims[index], CLAIM_LINE_BYTES).unwrap(),
+                "command_id":format!("revision-{}", receipts.len()),"previous_revision":format!("sha256:{revision}"),
+                "archive_path":archive,"request_digest":format!("sha256:{}", source_digest(&request, CLAIM_LINE_BYTES).unwrap()),
+                "request":request,"grants_admission":false
+            }));
+        }
+        let raw = stream_bytes(&claims);
+        let stream = NavigationClaimEventOwnerStreamV1 {
+            stream_sha256: Digest256::of_bytes(&raw),
+            rows: parse_claim_owner_stream(&raw, CLAIM_LINE_BYTES).unwrap().0,
+        };
+        let history = history_bytes(&receipts);
+        owned_files.insert(history_path.as_str().to_owned(), history.clone());
+        let dependencies = owned_files
+            .iter()
+            .map(|(path, raw)| NavigationDependencyV1 {
+                path: checked_path(path).unwrap(),
+                role: if path == history_path.as_str() {
+                    NavigationDependencyRoleV1::RecordHistory
+                } else {
+                    NavigationDependencyRoleV1::VersionSource
+                },
+                state: NavigationDependencyStateV1::Present {
+                    sha256: Digest256::of_bytes(raw),
+                    size_bytes: raw.len() as u64,
+                },
+            })
+            .collect::<Vec<_>>();
+        let files = owned_files
+            .iter()
+            .map(|(path, raw)| (path.clone(), raw.as_slice()))
+            .collect();
+        let creation = NavigationClaimCreationBindingV1 {
+            event_path: checked_path("ToS/source-witnesses/relations/test/provenance.jsonl").unwrap(),
+            event_id: "test-creation".to_owned(),
+            event_version: 1,
+            event_sha256: Digest256::of_bytes(b"event"),
+            event_file_sha256: Digest256::of_bytes(b"event"),
+            receipt_path: checked_path("ToS/source-witnesses/relations/test/receipt.json").unwrap(),
+            receipt_sha256: Digest256::of_bytes(b"receipt"),
+        };
+        for (claim, expected_receipt) in
+            claims
+                .iter()
+                .zip([Some(&receipts[2]), Some(&receipts[3]), None])
+        {
+            let result = validate_claim_history(
+                Some(&history),
+                &history_path,
+                &source_path,
+                &stream,
+                claim["claim_id"].as_str().unwrap(),
+                claim,
+                None,
+                None,
+                &[],
+                "metadata-refresh",
+                153,
+                &creation,
+                &dependencies,
+                &files,
+                limits,
+                &mut 0,
+            )
+            .expect("shared history and exact archived predecessor chains");
+            assert_eq!(result.history_sha256, Some(Digest256::of_bytes(&history)));
+            assert_eq!(
+                result.latest_revision_receipt_sha256,
+                expected_receipt.map(|receipt| source_digest256(receipt, CLAIM_LINE_BYTES).unwrap())
+            );
+        }
+    }
 
     #[test]
     fn stream_predecessors_bind_unchanged_companions_without_inventing_causes() {
