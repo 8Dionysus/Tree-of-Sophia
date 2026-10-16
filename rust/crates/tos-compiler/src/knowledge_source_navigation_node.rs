@@ -1665,8 +1665,7 @@ impl NavigationPlaceholderBase {
 }
 
 /// Private base carrier. Its content revision is valid only before the
-/// all-source `_apply_final_node_changes` pass; no conversion to a final-row
-/// candidate or `OrderedKnowledgeSink` is offered here.
+/// all-source `_apply_final_node_changes` pass; it is not a final-row candidate.
 pub struct NavigationBaseNode {
     value: Value,
     ordered_context_raw: Vec<u8>,

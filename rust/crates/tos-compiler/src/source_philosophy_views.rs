@@ -12,7 +12,7 @@ pub const VIEW_CONTRACT: &str = "ToS/philosophy/graph-workbench/views/view-contr
 pub const LENS_CONTRACT: &str = "ToS/philosophy/graph-workbench/views/lens-review-contracts.json";
 pub const VIEW_ROOT: &str = "ToS/philosophy/graph-workbench/views";
 pub const LAYERS_SOURCE: &str = "ToS/philosophy/trunk/graph-layers/README.md";
-pub const ATLAS_REF: &str = "ToS/derived-exports/philosophy_atlas_projection.min.json";
+pub use crate::native_snapshot_manifest::PHILOSOPHY_ATLAS_PATH as ATLAS_REF;
 pub const VIEWS_SCHEMA: &str = "ToS/contracts/philosophy-graph-views.schema.json";
 #[derive(Clone, Copy, Debug)]
 pub struct ViewLimits {

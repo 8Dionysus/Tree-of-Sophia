@@ -7,14 +7,16 @@ license = "Apache-2.0"
 publish = false
 
 [features]
+# Source preparation and managed-source tools are opt-in for reader consumers.
+source-tools = ["dep:quick-xml"]
 # Explicit source-selected research builders; excluded from ordinary readers.
-research = ["tos-validation/research"]
+research = ["source-tools", "tos-validation/research"]
 # Selects the pinned IndexMap allocation envelope for cold raw normalization.
 preserve-order-workspace = ["serde_json/preserve_order"]
 test-fixture = []
 
 [dependencies]
-quick-xml = "=0.41.0"
+quick-xml = { version = "=0.41.0", optional = true }
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 tos-validation = { path = "../tos-validation" }
@@ -42,3 +44,13 @@ path = "src/lib.rs"
 [[test]]
 name = "zarathustra_lexical_unicode_contract"
 required-features = ["research"]
+
+[[bin]]
+name = "tos-constructor-library"
+path = "src/bin/tos-constructor-library.rs"
+required-features = ["source-tools"]
+
+[[bin]]
+name = "tos-constructor-fragments"
+path = "src/bin/tos-constructor-fragments.rs"
+required-features = ["source-tools"]

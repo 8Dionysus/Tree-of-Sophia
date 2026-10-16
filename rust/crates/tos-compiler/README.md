@@ -1,20 +1,25 @@
 # tos-compiler
 
-Specialized research recipes compile only with the explicit `research` feature.
-Their access handlers are in the separate `tos-research` executable. The normal
-query/compiler dependency graph excludes those modules; shared HTML character
-references and finite producer I/O remain available to their existing consumers.
-Historical builder bytes and prior receipts retain their recorded identities.
+The default library keeps the knowledge-model and prepared-query contracts used
+by readers. Source preparation and managed-source tools require `source-tools`:
+DOCX/source-registry parsing, philosophy atlas and dossier preparation,
+navigation event producers, managed overlays, constructor commands and external
+producer I/O. Native query consumers do not enable this feature or its XML parser.
 
-The maintained knowledge Stage, native snapshot, catalog and D1 producers each
-have their own source and consumer contracts. Their presence in the crate does
-not establish that a selected dataset has passed construction, publication or
-restore.
+The source-owning command, access and mechanics packages select `source-tools`
+explicitly. Build the two constructor executables with:
 
-The unused first-generation navigation-only SQLite compiler, selector and reader
-have been retired. Partitioned carrier decoding and exact root-and-parts closure
-remain for current capture and artifact packaging consumers. Source visibility
-rules, source bindings and live knowledge-model formats retain their owners.
+```sh
+cargo build -p tos-compiler --features source-tools --bin tos-constructor-library --bin tos-constructor-fragments
+```
+
+Specialized research recipes require `research`, which includes `source-tools`.
+Their access handlers live in the separate `tos-research` executable.
+
+Knowledge Stage, native snapshot, prepared publication and D1 internals still
+share model and custody contracts with readers. This feature boundary does not
+make the default crate a fully separate reader implementation or remove any
+live storage format.
 
 ## Native snapshot byte format
 

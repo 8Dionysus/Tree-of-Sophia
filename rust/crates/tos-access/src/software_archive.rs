@@ -1776,12 +1776,14 @@ mod role_feature_tests {
     }
 
     #[test]
-    fn constructor_roles_use_the_standard_empty_feature_proof() {
+    fn constructor_roles_require_the_source_tools_feature_proof() {
         let empty = proof_with_features("[]");
+        let source = proof_with_features(r#"["source-tools"]"#);
         let phi =
             proof_with_features(r#"["compiler-backed-validators","default","philosophy-library"]"#);
         for role in ["tos-constructor-library", "tos-constructor-fragments"] {
-            assert!(command_proof(role, &empty, &empty).is_ok());
+            assert!(command_proof(role, &source, &empty).is_ok());
+            assert!(command_proof(role, &empty, &empty).is_err());
             assert!(command_proof(role, &phi, &empty).is_err());
         }
     }
@@ -1799,6 +1801,8 @@ mod role_feature_tests {
                 "tos-source-registry",
                 "tos-open-work-queue",
                 "tos-schema-worker",
+                "tos-constructor-library",
+                "tos-constructor-fragments",
             ]
             .contains(&role)
             {

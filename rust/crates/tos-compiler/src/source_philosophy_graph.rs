@@ -89,8 +89,8 @@ fn type_layers(key: &str) -> BTreeSet<String> {
     layers.iter().map(|s| s.to_string()).collect()
 }
 pub const GRAPH_SCHEMA: &str = "ToS/contracts/philosophy-graph-projection.schema.json";
-pub const GRAPH_REF: &str = "ToS/derived-exports/philosophy_graph_projection.min.json";
-pub const VIEWS_REF: &str = "ToS/derived-exports/philosophy_graph_views.min.json";
+pub use crate::native_snapshot_manifest::PHILOSOPHY_GRAPH_PATH as GRAPH_REF;
+pub use crate::native_snapshot_manifest::PHILOSOPHY_VIEWS_PATH as VIEWS_REF;
 pub const CLUSTER_CONTRACT: &str = "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json";
 pub const REVIEW_CONTRACT: &str =
     "ToS/philosophy/graph-workbench/review-packets/review-packet-contract.json";

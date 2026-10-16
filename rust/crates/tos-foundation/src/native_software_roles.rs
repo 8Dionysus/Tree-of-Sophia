@@ -54,6 +54,14 @@ pub fn features(role: &str) -> Option<&'static [&'static str]> {
             "philosophy-library",
         ],
         "tos-schema-worker" => &["default", "native"],
-        _ => &[],
+        _ => explicit_features(role),
     })
+}
+
+/// Package-local flags passed explicitly by the maintained Cargo build command.
+pub fn explicit_features(role: &str) -> &'static [&'static str] {
+    match role {
+        "tos-constructor-library" | "tos-constructor-fragments" => &["source-tools"],
+        _ => &[],
+    }
 }

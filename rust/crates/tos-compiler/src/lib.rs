@@ -3,7 +3,9 @@
 
 pub mod catalog;
 pub mod d1;
+#[cfg(feature = "source-tools")]
 pub mod d1_prepared_pair;
+#[cfg(feature = "source-tools")]
 pub mod d1_projection_snapshot;
 mod d1_public_baseline;
 mod d1_public_build;
@@ -31,10 +33,12 @@ pub mod local_prepared_search;
 pub mod prepared_catalog_index;
 pub mod prepared_catalog_semantics;
 pub mod prepared_maintenance;
+#[cfg(feature = "source-tools")]
 pub mod prepared_maintenance_file;
 pub mod prepared_semantic_index;
 mod prepared_semantic_kernel;
 pub mod prepared_source_binding;
+#[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
@@ -114,7 +118,6 @@ mod knowledge_byte_codec;
 mod knowledge_byte_dictionary;
 mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
-mod knowledge_ordered;
 mod knowledge_payload_codec;
 pub mod knowledge_payload_read;
 pub mod knowledge_philosophy_display;
@@ -150,13 +153,16 @@ mod knowledge_source_navigation_prepare;
 mod knowledge_source_navigation_relation;
 pub mod knowledge_stage;
 mod legacy;
+#[cfg(feature = "source-tools")]
 mod managed_model_overlay;
+#[cfg(feature = "source-tools")]
 pub use managed_model_overlay::{
     CompletedManagedOverlayBaseV2, CompletedManagedOverlayRecoveryV2,
     CompletedManagedOverlaySuccessorV2, ManagedOverlayChangedMemberV2, ManagedOverlayLookupWorkV2,
     ManagedOverlayReaderV2, prepare_managed_overlay_base_v2,
     prepare_managed_overlay_initial_agent_v2, prepare_managed_overlay_recovery_rebind_v2,
 };
+#[cfg(feature = "source-tools")]
 mod managed_model_manifest;
 /// Bounded verified part decoding; namespace and source selection stay with callers.
 pub use legacy::decode_partition_part;
@@ -171,9 +177,13 @@ mod source_bibliographic_source;
 mod source_bibliographic_unicode;
 mod source_bibliographic_values;
 mod source_bibliographic_versions;
+#[cfg(feature = "source-tools")]
 pub mod source_navigation_claim_event;
+#[cfg(feature = "source-tools")]
 pub mod source_navigation_event;
+#[cfg(feature = "source-tools")]
 pub mod source_navigation_record_range;
+#[cfg(feature = "source-tools")]
 pub use managed_model_manifest::{
     ManagedManifestDeltaV2, ManagedManifestLimitsV2, ManagedManifestRecoveryRebindV2,
     ManagedManifestV2, ManagedOverlaySourceBindingV2,
@@ -183,16 +193,23 @@ pub use versions_catalog_epoch::VersionsCatalogEpochV2;
 pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
-mod source_navigation_storage;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_atlas;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_dossier_docx;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_dossier_extract;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_graph;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_multilingual;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_post_planting;
 mod source_philosophy_support;
+#[cfg(feature = "source-tools")]
 pub mod source_registry;
 pub use source_philosophy_support::PhilosophySourceReadProfile;
+#[cfg(feature = "source-tools")]
 pub mod source_philosophy_views;
 pub mod source_witness_catalog;
 mod sqlite_budget;
@@ -228,10 +245,6 @@ pub use knowledge_navigation_materialize::{
     NavigationMaterializeLimits, NavigationNodeMaterializeReceipt, NavigationPlaceholderReceipt,
     NavigationRelationMaterializeReceipt, materialize_navigation_nodes,
     materialize_navigation_placeholders, materialize_navigation_relations,
-};
-pub use knowledge_ordered::{
-    NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,
-    OrderedCandidateReceipt, OrderedKnowledgeSink,
 };
 pub use knowledge_philosophy_materialize::{
     PhilosophyBase, PhilosophyMaterializeLimits, PhilosophyMaterializeReceipt,
@@ -289,17 +302,14 @@ pub use native_knowledge_selection::{
 };
 pub use source_bibliographic_selected_files::SelectedBibliographicFilesV1;
 pub use source_bibliographic_source::{
-    CandidateSourceCatalogInputPlan, ColdSourceCatalogInputPlan, ColdSourceCatalogInputSpool,
-    ColdSourceCatalogSpoolIsolation, ColdSourceCatalogSpoolLimits, ColdSourceCatalogSpoolPhase,
+    CandidateSourceCatalogInputPlan, ColdSourceCatalogInputPlan, ColdSourceCatalogSpoolLimits,
     SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
     SourceCatalogRenderWorkV1, plan_candidate_source_catalog_inputs_spooled,
     plan_candidate_source_catalog_inputs_with_workspace, plan_cold_source_catalog_inputs,
     plan_cold_source_catalog_inputs_with_workspace, plan_source_catalog_inputs,
-    plan_streamed_cold_source_catalog_inputs, prepare_candidate_source_catalog_plan_observed,
-    prepare_cold_source_catalog_plan, prepare_cold_source_catalog_plan_observed,
-    prepare_source_catalog_plan, prepare_streamed_cold_source_catalog_spool,
+    prepare_candidate_source_catalog_plan_observed, prepare_cold_source_catalog_plan,
+    prepare_cold_source_catalog_plan_observed, prepare_source_catalog_plan,
     render_source_bibliographic_plan, render_source_bibliographic_plan_with_work,
-    render_streamed_source_bibliographic_spool,
 };
 pub use source_bibliographic_versions::StreamedBibliographicReadLedger;
 pub use source_bibliographic_versions::{
@@ -680,9 +690,11 @@ fn file_digest(path: &Path) -> Result<(String, u64)> {
 #[cfg(feature = "research")]
 pub mod antonovsky_structural;
 
+#[cfg(feature = "source-tools")]
 pub mod native_prepare;
 
 /// Finite owned external-tool I/O for exact native producers.
+#[cfg(feature = "source-tools")]
 pub mod owned_native_child;
 
 #[cfg(feature = "research")]
@@ -707,6 +719,7 @@ pub mod research_concept_workbench;
 pub mod research_eternal_return;
 #[cfg(feature = "research")]
 pub mod research_eternal_return_concept;
+#[cfg(feature = "source-tools")]
 pub mod research_execution;
 #[cfg(feature = "research")]
 pub mod research_morphology_theme;
@@ -745,6 +758,7 @@ pub mod transfer_target_passages;
 #[cfg(feature = "research")]
 pub mod transfer_candidates;
 
+#[cfg(feature = "source-tools")]
 pub mod html_entities;
 #[cfg(feature = "research")]
 pub mod research_html;
@@ -772,6 +786,7 @@ pub mod authored_canon_bridge;
 #[cfg(feature = "research")]
 pub mod provenance_event_lab;
 
+#[cfg(feature = "source-tools")]
 pub mod constructor_library;
 #[cfg(feature = "research")]
 pub mod jenseits_label_correspondence;

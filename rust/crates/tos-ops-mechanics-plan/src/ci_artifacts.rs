@@ -196,6 +196,7 @@ fn enabled_features(
     root: &Path,
     package: &str,
     default_features: bool,
+    selected_features: &[&str],
     b: &Budget<'_>,
 ) -> io::Result<Vec<String>> {
     let path = root.join(format!("rust/crates/{package}/Cargo.toml"));
@@ -211,28 +212,19 @@ fn enabled_features(
     {
         return Err(bad("Cargo feature manifest package mismatch"));
     }
-    let Some(features) = manifest.get("features").and_then(toml::Value::as_table) else {
-        return Ok(Vec::new());
-    };
-    if !default_features {
-        return Ok(Vec::new());
-    }
-    let Some(default) = features.get("default") else {
-        return Ok(Vec::new());
-    };
-    let default = default
-        .as_array()
-        .ok_or_else(|| bad("Cargo default feature set must be an array"))?;
-    let mut active = BTreeSet::from(["default".to_owned()]);
-    let mut pending = default
+    let empty = toml::map::Map::new();
+    let features = manifest
+        .get("features")
+        .and_then(toml::Value::as_table)
+        .unwrap_or(&empty);
+    let mut active = BTreeSet::new();
+    let mut pending = selected_features
         .iter()
-        .map(|value| {
-            value
-                .as_str()
-                .map(str::to_owned)
-                .ok_or_else(|| bad("Cargo feature names must be strings"))
-        })
-        .collect::<io::Result<Vec<_>>>()?;
+        .map(|feature| (*feature).to_owned())
+        .collect::<Vec<_>>();
+    if default_features && features.contains_key("default") {
+        pending.push("default".to_owned());
+    }
     while let Some(feature) = pending.pop() {
         b.check()?;
         if feature.starts_with("dep:") {
@@ -240,12 +232,12 @@ fn enabled_features(
         }
         if feature.contains(['/', '?']) {
             return Err(bad(
-                "unsupported Cargo feature expression in default profile",
+                "unsupported Cargo feature expression in selected profile",
             ));
         }
         let Some(references) = features.get(&feature) else {
             return Err(bad(
-                "Cargo default references an undeclared package feature",
+                "Cargo profile references an undeclared package feature",
             ));
         };
         let references = references
@@ -403,8 +395,13 @@ fn cargo_products(
         }
         let package = native_software_roles::package(name)
             .ok_or_else(|| bad("unsupported Cargo software role"))?;
-        let expected_features =
-            enabled_features(root, package, !no_default_features.contains(&name), b)?;
+        let expected_features = enabled_features(
+            root,
+            package,
+            !no_default_features.contains(&name),
+            native_software_roles::explicit_features(name),
+            b,
+        )?;
         let actual_features = value["features"]
             .as_array()
             .ok_or_else(|| bad("Cargo executable feature list missing"))?
@@ -993,7 +990,12 @@ mod tests {
             "tos-ops-mechanics-plan",
             include_str!("../Cargo.toml"),
         );
-        for package in ["tos-compiler", "tos-reader"] {
+        package_manifest(
+            &root,
+            "tos-compiler",
+            include_str!("../../tos-compiler/Cargo.toml"),
+        );
+        for package in ["tos-reader"] {
             package_manifest(
                 &root,
                 package,
@@ -1009,7 +1011,7 @@ mod tests {
             } else if ["tos-source-registry", "tos-open-work-queue"].contains(n) {
                 json!(["compiler-backed-validators"])
             } else {
-                json!([])
+                json!(native_software_roles::explicit_features(n))
             };
             let opt_level = if *n == "tos-access" { "1" } else { "0" };
             let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/{package}#0.1.0",root.display()),"manifest_path":root.join(format!("rust/crates/{package}/Cargo.toml")),"target":{"name":n,"kind":["bin"],"required-features":required_features},"features":features,"profile":{"opt_level":opt_level,"debuginfo":0,"debug_assertions":true,"test":false},"executable":images.join(n)});
@@ -1036,6 +1038,14 @@ mod tests {
         assert_eq!(
             products["tos-schema-worker"].features,
             ["default", "native"]
+        );
+        assert_eq!(
+            products["tos-constructor-library"].features,
+            ["source-tools"]
+        );
+        assert_eq!(
+            products["tos-constructor-fragments"].features,
+            ["source-tools"]
         );
         assert_eq!(products["tos-access"].opt_level, "1");
         assert!(products["tos-validation-lanes"].features.is_empty());

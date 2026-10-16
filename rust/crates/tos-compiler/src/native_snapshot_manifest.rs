@@ -28,6 +28,8 @@ pub const RUNTIME_DATA_DECLARATION: &[u8] =
     include_bytes!("../../../../access/contracts/runtime-data.v1.json");
 pub const CORPUS_INDEX_PATH: &str = "ToS/derived-exports/tos_corpus_index.min.json";
 pub const PHILOSOPHY_GRAPH_PATH: &str = "ToS/derived-exports/philosophy_graph_projection.min.json";
+pub const PHILOSOPHY_ATLAS_PATH: &str = "ToS/derived-exports/philosophy_atlas_projection.min.json";
+pub const PHILOSOPHY_VIEWS_PATH: &str = "ToS/derived-exports/philosophy_graph_views.min.json";
 pub const CLAIM_GRAPH_PATH: &str =
     "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json";
 pub const EVIDENCE_PROJECTION_PATH: &str =
@@ -291,8 +293,8 @@ pub struct NativeSelectedRuntimeSourceProfile {
 pub fn required_native_runtime_product_paths() -> [&'static str; 6] {
     [
         CORPUS_INDEX_PATH,
-        crate::source_philosophy_views::ATLAS_REF,
-        crate::source_philosophy_graph::VIEWS_REF,
+        PHILOSOPHY_ATLAS_PATH,
+        PHILOSOPHY_VIEWS_PATH,
         PHILOSOPHY_GRAPH_PATH,
         CLAIM_GRAPH_PATH,
         EVIDENCE_PROJECTION_PATH,
@@ -1052,8 +1054,8 @@ fn native_runtime_projection_path(path: &str) -> bool {
             | PHILOSOPHY_GRAPH_PATH
             | CLAIM_GRAPH_PATH
             | EVIDENCE_PROJECTION_PATH
-            | crate::source_philosophy_views::ATLAS_REF
-            | crate::source_philosophy_graph::VIEWS_REF
+            | PHILOSOPHY_ATLAS_PATH
+            | PHILOSOPHY_VIEWS_PATH
     )
 }
 
@@ -3254,10 +3256,7 @@ mod selected_snapshot_tests {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().join("source");
         materialize_runtime_fixture(&root);
-        for relative in [
-            crate::source_philosophy_views::ATLAS_REF,
-            crate::source_philosophy_graph::VIEWS_REF,
-        ] {
+        for relative in [PHILOSOPHY_ATLAS_PATH, PHILOSOPHY_VIEWS_PATH] {
             write_json_fixture(&root, relative, json!({"fixture":relative}));
         }
         let binding = |path: &str| {
@@ -3346,10 +3345,7 @@ mod selected_snapshot_tests {
                 .retained_input_members()
                 .unwrap()
                 .iter()
-                .any(
-                    |(path, _, _)| path == crate::source_philosophy_views::ATLAS_REF
-                        || path == crate::source_philosophy_graph::VIEWS_REF
-                )
+                .any(|(path, _, _)| path == PHILOSOPHY_ATLAS_PATH || path == PHILOSOPHY_VIEWS_PATH)
         );
         drop(historical);
         let current = capture("current.sqlite3", Some(&profile)).unwrap();
@@ -3465,7 +3461,7 @@ mod selected_snapshot_tests {
         }
         let missing_member_paths = member_paths
             .iter()
-            .filter(|path| **path != format!("data/{}", crate::source_philosophy_views::ATLAS_REF))
+            .filter(|path| **path != format!("data/{}", PHILOSOPHY_ATLAS_PATH))
             .cloned()
             .collect::<Vec<_>>();
         let invalid = NativeDataSnapshotManifestInput {
@@ -3482,14 +3478,10 @@ mod selected_snapshot_tests {
             ),
             Err(Error::Invalid("native source binding lacks data member"))
         ));
-        fs::write(
-            root.join(crate::source_philosophy_views::ATLAS_REF),
-            b"changed",
-        )
-        .unwrap();
+        fs::write(root.join(PHILOSOPHY_ATLAS_PATH), b"changed").unwrap();
         assert!(current.verify_inputs(limits).is_err());
         assert!(capture("changed.sqlite3", Some(&profile)).is_err());
-        fs::remove_file(root.join(crate::source_philosophy_views::ATLAS_REF)).unwrap();
+        fs::remove_file(root.join(PHILOSOPHY_ATLAS_PATH)).unwrap();
         assert!(capture("missing.sqlite3", Some(&profile)).is_err());
     }
 

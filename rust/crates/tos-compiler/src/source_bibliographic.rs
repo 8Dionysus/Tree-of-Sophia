@@ -12,7 +12,7 @@ pub use crate::source_bibliographic_render::{
     ClaimInputs as SuppliedBibliographicClaimInputs, Cohort as SuppliedBibliographicClaimCohort,
 };
 pub use crate::source_bibliographic_versions::{
-    BibliographicSourceCut, StreamedBibliographicReadLedger, StreamedBibliographicSourceCut,
+    BibliographicSourceCut, StreamedBibliographicReadLedger,
 };
 
 /// Render authenticated ordered metadata/history supplied by the source owner.
@@ -1663,25 +1663,7 @@ pub fn prepare_cold_bibliographic_graph_from_cut(
         ),
     )
 }
-pub fn prepare_streamed_cold_bibliographic_graph_from_cut(
-    stage: &mut KnowledgeStage<'_>,
-    catalog_receipt: &catalog::ColdSourceCatalogReceipt,
-    validator: &SourceCatalogValidator<'_>,
-    materializer: &mut dyn BibliographicForms,
-    l: BibliographicLimits,
-    source: &StreamedBibliographicSourceCut<'_>,
-) -> Result<BibliographicReceipt> {
-    prepare_impl(
-        stage,
-        catalog_receipt,
-        validator,
-        materializer,
-        l,
-        Some(
-            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Streamed(source),
-        ),
-    )
-}
+
 /// Compile the same exact metadata/Claim/history kernel from an actual selected
 /// current candidate. Opaque input identity is retained in its typed receipt;
 /// no candidate revision, future epoch, or source-cut label is manufactured.
