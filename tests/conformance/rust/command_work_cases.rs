@@ -58,6 +58,17 @@ fn seed_native_work_fixture(repository: &Path, root: &Path) -> (PathBuf, Vec<u8>
             }
         }
     }
+    // The captured Work seed predates the explicit semantic registries.
+    // Complete the selected catalog input with the current owner resources,
+    // preserving any registry bytes already carried by the fixture.
+    for name in ["entity-types.v1.json", "relation-types.v1.json"] {
+        let relative = Path::new("ToS/doctrine/semantic-interchange").join(name);
+        let target = root.join(&relative);
+        if !target.exists() {
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, fs::read(repository.join(relative)).unwrap()).unwrap();
+        }
+    }
     let mut configuration: Value =
         serde_json::from_slice(&fs::read(seed.join("compound-owner.json")).unwrap()).unwrap();
     configuration["uid"] = json!(fs::metadata(root).unwrap().uid());
