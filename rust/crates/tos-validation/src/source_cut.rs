@@ -993,15 +993,14 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
                     "selected candidate schema resource identity or bounds".into(),
                 ));
             }
-            let expected_uri_local = format!("https://tree-of-sophia.local/{path}");
-            let expected_uri_legacy = format!("https://treeofsophia.local/{path}");
             let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
                 .map_err(|_| ItemRefusal::Unsupported("selected candidate schema JSON".into()))?;
-            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str())
-                || (resource.uri != expected_uri_local && resource.uri != expected_uri_legacy)
-            {
+            // The authenticated source bytes own $id. Maintained schemas also
+            // use /contracts/ and public GitHub identities; a filesystem path
+            // does not manufacture or replace their declared resource URI.
+            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
                 return Err(ItemRefusal::Source(
-                    "selected candidate schema URI differs from its exact path".into(),
+                    "selected candidate schema URI differs from its source bytes".into(),
                 ));
             }
             schema_bytes = schema_bytes

@@ -2607,6 +2607,20 @@ fn connected_browser_produce_pair(
         &sign_workspace,
     )
     .unwrap();
+    // Epoch A retains the exact older contract and its issued handles. Epoch B
+    // adds sign claims using the current schema's provenance fields, so record
+    // that one explicit contract transition before capturing the successor cut.
+    let index_contract = "ToS/contracts/tos-corpus-index.schema.json";
+    assert_eq!(
+        fs::read(source_root.join(index_contract)).unwrap(),
+        fs::read(epoch_a_source_root.join(index_contract)).unwrap(),
+    );
+    let current_contract = fs::read(repository.join(index_contract)).unwrap();
+    assert_eq!(
+        fs::read(sign.public_root.join(index_contract)).unwrap(),
+        current_contract,
+    );
+    fs::write(source_root.join(index_contract), current_contract).unwrap();
     connected_browser_merge_sign_fixture(repository, &sign.public_root, &source_root, deadline);
     let occurrence_path = "ToS/source-witnesses/occurrences/synthetic-flame-1/occurrence.json";
     let occurrence: Value =

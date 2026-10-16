@@ -177,10 +177,35 @@ mod linux {
         let selected = vec![(
             contract.to_owned(),
             SchemaResource {
-                uri: format!("https://tree-of-sophia.local/{contract}"),
-                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/ToS/contracts/scalar-reuse.schema.json","type":"integer","$defs":{"integer":{"type":"integer"}}}"#.to_vec(),
+                uri: "https://tree-of-sophia.local/contracts/scalar-reuse.schema.json".into(),
+                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/contracts/scalar-reuse.schema.json","type":"integer","$defs":{"integer":{"type":"integer"}}}"#.to_vec(),
             },
         )];
+        // Both candidate profiles bind the declared $id to exact source bytes,
+        // including maintained URI forms that differ from the filesystem path.
+        for tampered in [false, true] {
+            let mut resources = selected.clone();
+            if tampered {
+                resources[0].1.uri = format!("https://tree-of-sophia.local/{contract}");
+            }
+            assert_eq!(
+                CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
+                    17u64,
+                    resources,
+                    FormatProfile::LegacyPythonObserved20260923,
+                    &image,
+                    budget,
+                    CutWorkerLimits {
+                        max_receipts: 2,
+                        max_receipt_bytes: 4096
+                    },
+                    deadline,
+                    &cancelled,
+                )
+                .is_ok(),
+                !tampered,
+            );
+        }
         let mut candidate =
             CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
                 17u64,
