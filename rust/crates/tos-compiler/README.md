@@ -1,5 +1,11 @@
 # tos-compiler
 
+Specialized research recipes compile only with the explicit `research` feature.
+Their access handlers are in the separate `tos-research` executable. The normal
+query/compiler dependency graph excludes those modules; shared HTML character
+references and finite producer I/O remain available to their existing consumers.
+Historical builder bytes and prior receipts retain their recorded identities.
+
 The first Rust compiler family materializes source-navigation nodes, edges and
 rights from one exact partitioned corpus projection into a private SQLite read
 model. Its visible bibliographic profile excludes packet-member nodes and

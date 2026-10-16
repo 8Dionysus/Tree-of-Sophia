@@ -305,6 +305,7 @@ impl ResearchExecution {
         Ok(())
     }
     /// Record actual cumulative structural reads within the reserved allowance.
+    #[cfg(feature = "research")]
     pub fn charge_structural(
         &self,
         model: &crate::antonovsky_structural::Model,

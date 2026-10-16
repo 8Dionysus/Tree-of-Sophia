@@ -1,6 +1,6 @@
 //! Explicit text-free structural map builder/checker over an owned source root.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos jenseits-label-correspondence --source-root ABS --check|--build [--output-directory REL --map-id ID --event-id ID --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nCheck defaults to exact reconstruction of the retained historical map and event. Building requires all four new-output options and admitted bytes; existing different bytes are preserved. A supplied output selection can also be checked. No source text, translation assessment or rights admission.\n";
+const HELP: &str = "tos-research jenseits-label-correspondence --source-root ABS --check|--build [--output-directory REL --map-id ID --event-id ID --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nCheck defaults to exact reconstruction of the retained historical map and event. Building requires all four new-output options and admitted bytes; existing different bytes are preserved. A supplied output selection can also be checked. No source text, translation assessment or rights admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("jenseits-label-correspondence") {
         return None;

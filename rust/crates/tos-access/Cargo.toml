@@ -7,6 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [features]
+research-tools = ["tos-compiler/research"]
 load-readiness = ["dep:hmac", "dep:sha2"]
 e2e-fixture = []
 
@@ -53,3 +54,8 @@ required-features = ["load-readiness"]
 name = "tos-e2e-fixture"
 path = "src/bin/tos-e2e-fixture.rs"
 required-features = ["e2e-fixture"]
+
+[[bin]]
+name = "tos-research"
+path = "src/bin/tos-research.rs"
+required-features = ["research-tools"]

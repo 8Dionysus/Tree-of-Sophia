@@ -4,7 +4,7 @@ use tos_compiler::{
     research_execution::ResearchExecution,
     transfer_source_visible::{self, Action, Options},
 };
-const HELP: &str = "tos transfer-source-visible --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS] [--generation NAME] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nReproduce four page-render hashes and aggregate diagnostics from the explicit private model review bundle. Historical v1 is immutable; a new generation writes a fresh text-free receipt. Build needs an admitted output quota. No new source-visible review or textual acceptance is performed. Renders use bounded memory and are not retained. Tracked validation reads no private payload.\n";
+const HELP: &str = "tos-research transfer-source-visible --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS] [--generation NAME] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nReproduce four page-render hashes and aggregate diagnostics from the explicit private model review bundle. Historical v1 is immutable; a new generation writes a fresh text-free receipt. Build needs an admitted output quota. No new source-visible review or textual acceptance is performed. Renders use bounded memory and are not retained. Tracked validation reads no private payload.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("transfer-source-visible") {
         return None;

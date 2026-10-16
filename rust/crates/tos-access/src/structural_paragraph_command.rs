@@ -3,7 +3,7 @@
 //! selection, corpus admission, canon or publication permission.
 use std::{io::Write, path::PathBuf};
 use tos_compiler::antonovsky_structural::{Action, run};
-const HELP: &str = "tos structural-paragraph --source-root ABS (--build|--check|--validate-tracked|--issue-identities|--import-challenger ABS)\n\nReads the exact owner-bound Antonovsky PDF/Poppler layer for reconstruction.\n--validate-tracked reads tracked text-free metadata only.\n--private-model emits private exact source words for maintained local consumers.\nWriting modes require prior host storage admission and explicit owner authority.\n";
+const HELP: &str = "tos-research structural-paragraph --source-root ABS (--build|--check|--validate-tracked|--issue-identities|--import-challenger ABS)\n\nReads the exact owner-bound Antonovsky PDF/Poppler layer for reconstruction.\n--validate-tracked reads tracked text-free metadata only.\n--private-model emits private exact source words for maintained local consumers.\nWriting modes require prior host storage admission and explicit owner authority.\n";
 fn arguments(args: &[String]) -> Result<(PathBuf, Action), String> {
     let mut root = None;
     let mut action = None;

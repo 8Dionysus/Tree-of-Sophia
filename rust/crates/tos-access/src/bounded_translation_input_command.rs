@@ -4,7 +4,7 @@ use tos_compiler::{
     bounded_translation_input::{self, Action, Options},
     research_execution::ResearchExecution,
 };
-const HELP: &str = "tos bounded-translation-input --source-root ABS --check|--build|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--generation NAME --prepared-at RFC3339] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nDerive one exact DTA opening sentence with eKGWB and Naumann corroboration. Source text is written only to the explicitly selected local output root, under an ignored local-content path; tracked outputs are text-free. Historical v1 evidence is retained; a fresh generation receives its own identity and provenance. Build requires admitted output bytes. All roots are full repository roots. No translation, source acceptance or publication is performed.\n";
+const HELP: &str = "tos-research bounded-translation-input --source-root ABS --check|--build|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--generation NAME --prepared-at RFC3339] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nDerive one exact DTA opening sentence with eKGWB and Naumann corroboration. Source text is written only to the explicitly selected local output root, under an ignored local-content path; tracked outputs are text-free. Historical v1 evidence is retained; a fresh generation receives its own identity and provenance. Build requires admitted output bytes. All roots are full repository roots. No translation, source acceptance or publication is performed.\n";
 
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("bounded-translation-input") {

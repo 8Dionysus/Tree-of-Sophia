@@ -1,6 +1,6 @@
 //! Text-free structural source routes selected explicitly by the operator.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos nietzsche-transfer-source-routes --source-root ABS --check|--build|--validate-tracked [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nChecks both retained historical maps, candidate source routes and their events exactly. A new generation creates eight files under separate native-NAME source-owned alignment directories and records Rust provenance. An existing different output is preserved. No witness payloads, source text acceptance, translation assessment or rights admission.\n";
+const HELP: &str = "tos-research nietzsche-transfer-source-routes --source-root ABS --check|--build|--validate-tracked [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nChecks both retained historical maps, candidate source routes and their events exactly. A new generation creates eight files under separate native-NAME source-owned alignment directories and records Rust provenance. An existing different output is preserved. No witness payloads, source text acceptance, translation assessment or rights admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("nietzsche-transfer-source-routes") {
         return None;

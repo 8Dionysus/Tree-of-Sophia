@@ -1061,6 +1061,7 @@ fn compile_created<I: NavigationInput>(
 }
 
 /// Exact private-source structural/paragraph producer; no semantic admission.
+#[cfg(feature = "research")]
 pub mod antonovsky_structural;
 
 pub mod native_prepare;
@@ -1068,28 +1069,47 @@ pub mod native_prepare;
 /// Finite owned external-tool I/O for exact native producers.
 pub mod owned_native_child;
 
+#[cfg(feature = "research")]
 pub mod zarathustra_lexical;
+#[cfg(feature = "research")]
 pub mod zarathustra_lexical_schema;
+#[cfg(feature = "research")]
 pub mod zarathustra_lexical_validate;
 
+#[cfg(feature = "research")]
 mod zarathustra_lexical_morphology_validate;
+#[cfg(feature = "research")]
 mod zarathustra_lexical_usage_validate;
 
+#[cfg(feature = "research")]
 pub mod dta_technical_markup;
+#[cfg(feature = "research")]
 pub mod opening_sentence_alignment;
+#[cfg(feature = "research")]
 pub mod research_concept_workbench;
+#[cfg(feature = "research")]
 pub mod research_eternal_return;
+#[cfg(feature = "research")]
 pub mod research_eternal_return_concept;
 pub mod research_execution;
+#[cfg(feature = "research")]
 pub mod research_morphology_theme;
+#[cfg(feature = "research")]
 pub mod research_paragraph_alignment;
+#[cfg(feature = "research")]
 pub mod research_parallel_lexical;
+#[cfg(feature = "research")]
 pub mod source_text_foundation;
+#[cfg(feature = "research")]
 pub mod target_text_foundation;
+#[cfg(feature = "research")]
 pub mod transfer_route_readiness;
 
+#[cfg(feature = "research")]
 mod research_reading_discourse;
+#[cfg(feature = "research")]
 mod research_reading_formulas;
+#[cfg(feature = "research")]
 pub mod research_reading_workbench;
 
 mod retained_state;
@@ -1101,42 +1121,64 @@ pub use native_snapshot::{
     with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,
 };
 
+#[cfg(feature = "research")]
 pub mod transfer_source_passages;
+#[cfg(feature = "research")]
 pub mod transfer_target_passages;
 
+#[cfg(feature = "research")]
 pub mod transfer_candidates;
 
+pub mod html_entities;
+#[cfg(feature = "research")]
 pub mod research_html;
+#[cfg(feature = "research")]
 mod research_text_comparison;
+#[cfg(feature = "research")]
 pub mod transfer_source_visible;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "research")]
 pub mod german_triangulation;
 
+#[cfg(feature = "research")]
 pub mod bounded_translation_input;
 
+#[cfg(feature = "research")]
 pub mod antonovsky_collation;
 
+#[cfg(feature = "research")]
 pub mod synthetic_foundation_labs;
 
+#[cfg(feature = "research")]
 pub mod authored_canon_bridge;
 
+#[cfg(feature = "research")]
 pub mod provenance_event_lab;
 
 pub mod constructor_library;
+#[cfg(feature = "research")]
 pub mod jenseits_label_correspondence;
 
+#[cfg(feature = "research")]
 pub mod nietzsche_transfer_source_routes;
 
+#[cfg(feature = "research")]
 pub mod jenseits_numbered_structure;
 
+#[cfg(feature = "research")]
 pub mod jenseits_polilov_numbered_structure;
 
+#[cfg(feature = "research")]
 pub mod mysl_transfer_target_structure;
+#[cfg(feature = "research")]
 pub mod nietzsche_transfer_source_structure;
 
+#[cfg(feature = "research")]
 pub mod witness_structure_correspondence;
 
+#[cfg(feature = "research")]
 pub mod lexical_derivatives;
 
+#[cfg(feature = "research")]
 pub mod research_visual_result;

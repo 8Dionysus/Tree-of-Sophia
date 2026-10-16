@@ -1,6 +1,6 @@
 //! Explicit local source structure generation with separate payload custody.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos jenseits-numbered-structure --source-root ABS --local-input-root ABS --check|--build [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReconstruct the retained text-free ABBYY numbered-unit map, or produce a separate native generation with its own provenance. Build requires a generation, event timestamp and admitted bytes. Checks are read-only. No source text, translation, rights or canon admission.\n";
+const HELP: &str = "tos-research jenseits-numbered-structure --source-root ABS --local-input-root ABS --check|--build [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReconstruct the retained text-free ABBYY numbered-unit map, or produce a separate native generation with its own provenance. Build requires a generation, event timestamp and admitted bytes. Checks are read-only. No source text, translation, rights or canon admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     let command = args.first().map(String::as_str);
     let polilov = command == Some("jenseits-polilov-numbered-structure");

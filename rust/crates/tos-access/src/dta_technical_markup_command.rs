@@ -4,7 +4,7 @@ use tos_compiler::{
     dta_technical_markup::{self, Action, Options},
     research_execution::ResearchExecution,
 };
-const HELP: &str = "tos dta-technical-markup --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--plan REPO_PATH] [--event-id ID] [--issue-identities] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nObserved TEI structure, exact private text layers and stable opaque identities.\nBuild/check require explicit local input and output roots. Tracked validation reads no private payload. Fresh native output requires a new event ID and fresh plan-selected paths; existing differing outputs are preserved. Build needs an admitted scratch quota. This route grants no textual, linguistic, translation or publication admission.\n";
+const HELP: &str = "tos-research dta-technical-markup --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--plan REPO_PATH] [--event-id ID] [--issue-identities] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nObserved TEI structure, exact private text layers and stable opaque identities.\nBuild/check require explicit local input and output roots. Tracked validation reads no private payload. Fresh native output requires a new event ID and fresh plan-selected paths; existing differing outputs are preserved. Build needs an admitted scratch quota. This route grants no textual, linguistic, translation or publication admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("dta-technical-markup") {
         return None;

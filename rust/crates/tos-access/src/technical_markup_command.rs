@@ -2,7 +2,7 @@
 //! scratch selections carry no corpus, publication or storage permission.
 use std::{io::Write, path::PathBuf};
 use tos_compiler::antonovsky_structural::technical_markup::{Action, run};
-const HELP: &str = "tos technical-markup --source-root ABS (--build [--issue-identities]|--check|--validate-tracked) [--max-seconds 1..600] [--scratch-bytes N]\n\nExact Antonovsky v1 page/panel/block, screening and private-layer producer.\n--build requires an explicitly admitted remaining scratch quota.\n--check includes both private layers and their mode0600; tracked validation opens no PDF.\nHistorical Python bytes are source provenance only, never executable fallback.\n";
+const HELP: &str = "tos-research technical-markup --source-root ABS (--build [--issue-identities]|--check|--validate-tracked) [--max-seconds 1..600] [--scratch-bytes N]\n\nExact Antonovsky v1 page/panel/block, screening and private-layer producer.\n--build requires an explicitly admitted remaining scratch quota.\n--check includes both private layers and their mode0600; tracked validation opens no PDF.\nHistorical Python bytes are source provenance only, never executable fallback.\n";
 fn arguments(args: &[String]) -> Result<(PathBuf, Action, u64, Option<u64>), String> {
     let mut root = None;
     let mut mode = None;

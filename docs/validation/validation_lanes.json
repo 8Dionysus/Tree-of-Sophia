@@ -595,6 +595,8 @@
           "cargo",
           "test",
           "--workspace",
+          "--features",
+          "tos-access/research-tools",
           "--locked",
           "--no-fail-fast",
           "--exclude",

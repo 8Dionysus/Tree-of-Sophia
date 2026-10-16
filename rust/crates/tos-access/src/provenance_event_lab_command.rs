@@ -1,6 +1,6 @@
 //! Explicit native entrypoint for the independent public provenance A/B/C operations.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos provenance-event-v2-lab --source-root ABS --prepare|--variant A|B|C|--finalize|--check [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nPrepare the native environment, run each independent variant, then finalize its exact manifest. Variant C records an honest ASCII failure and returns 7. Check is read-only. Writes require admitted bytes. Records withhold host-local argv paths and never establish execution truth, human review or publication authority.\n";
+const HELP: &str = "tos-research provenance-event-v2-lab --source-root ABS --prepare|--variant A|B|C|--finalize|--check [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nPrepare the native environment, run each independent variant, then finalize its exact manifest. Variant C records an honest ASCII failure and returns 7. Check is read-only. Writes require admitted bytes. Records withhold host-local argv paths and never establish execution truth, human review or publication authority.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("provenance-event-v2-lab") {
         return None;
