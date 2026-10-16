@@ -287,9 +287,10 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
         "shared physical carrier selection must match the query adapter's digest order"
     );
     assert_eq!(updates["c"].as_ref().unwrap().edge_count, 1);
+    let scanned = seq_rows(&mut tx) - before;
     assert!(
-        seq_rows(&mut tx) - before < 1000,
-        "ordinary mutation must not scan the 100000 unrelated carriers"
+        scanned < 1000,
+        "ordinary mutation scanned {scanned} rows beside the 100000 unrelated carriers"
     );
 
     let mut conflicting = replacement;

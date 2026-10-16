@@ -4675,31 +4675,36 @@ fn verify_navigation_batch_final_budget<C: GenericClient>(
     limits: DurableNavigationEventLimits,
 ) -> DurableResult<()> {
     let (target_paths, target_ids): (Vec<_>, Vec<_>) = target_owners.iter().cloned().unzip();
+    // Expose the selected values as restrictions on each indexed relation.
+    // A join to a materialized unnest CTE under LIMIT otherwise lets PostgreSQL
+    // estimate that every owner matches and scan an unrelated bootstrap cohort.
+    // The join still preserves exact path/record pairs; these filters change
+    // planning selectivity, not membership or the aggregate budget.
     let selected = tx.query_one(
         "WITH target AS (SELECT * FROM unnest($3::text[],$4::text[]) AS t(source_path,record_id)),
          carriers_raw AS (
            SELECT octet_length(b.row_json)::bigint AS bytes
              FROM target t JOIN cmd2_projection_navigation_bootstrap_row b
                ON b.owner_source_path=t.source_path AND b.owner_record_id=t.record_id
-            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.active
+            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.owner_source_path=ANY($3) AND b.owner_record_id=ANY($4) AND b.active
            UNION ALL
            SELECT octet_length(n.row_json)::bigint FROM target t JOIN cmd2_projection_navigation_node n
              ON n.source_path=t.source_path AND n.record_id=t.record_id
-            WHERE n.domain=$1 AND n.consumer_id=$2
+            WHERE n.domain=$1 AND n.consumer_id=$2 AND n.source_path=ANY($3) AND n.record_id=ANY($4)
            UNION ALL
            SELECT octet_length(e.row_json)::bigint FROM target t JOIN cmd2_projection_navigation_edge e
              ON e.source_path=t.source_path AND e.record_id=t.record_id
-            WHERE e.domain=$1 AND e.consumer_id=$2
+            WHERE e.domain=$1 AND e.consumer_id=$2 AND e.source_path=ANY($3) AND e.record_id=ANY($4)
            UNION ALL
            SELECT octet_length(d.row_json)::bigint FROM target t JOIN cmd2_projection_navigation_diagnostic d
              ON d.source_path=t.source_path AND d.record_id=t.record_id
-            WHERE d.domain=$1 AND d.consumer_id=$2
+            WHERE d.domain=$1 AND d.consumer_id=$2 AND d.source_path=ANY($3) AND d.record_id=ANY($4)
          ), carriers AS (SELECT * FROM carriers_raw LIMIT $5), dependencies_raw AS (
            SELECT (octet_length(d.dependency_path)+octet_length(d.dependency_role)
                   +COALESCE(octet_length(d.sha256),0)+COALESCE(octet_length(d.absent_reason),0)+64)::bigint AS bytes
              FROM target t JOIN cmd2_projection_navigation_dependency d
                ON d.source_path=t.source_path AND d.record_id=t.record_id
-            WHERE d.domain=$1 AND d.consumer_id=$2
+            WHERE d.domain=$1 AND d.consumer_id=$2 AND d.source_path=ANY($3) AND d.record_id=ANY($4)
          ), dependencies AS (SELECT * FROM dependencies_raw LIMIT $6)
          SELECT (SELECT count(*) FROM carriers) AS carrier_count,
                   (SELECT COALESCE(sum(bytes),0)::bigint FROM carriers) AS carrier_bytes,
@@ -5026,15 +5031,15 @@ fn load_navigation_batch_neighborhood<C: GenericClient>(
            SELECT b.row_kind,b.row_id,b.from_id FROM target t
              JOIN cmd2_projection_navigation_bootstrap_row b
                ON b.owner_source_path=t.path AND b.owner_record_id=t.id
-            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.active AND b.row_kind IN ('node','edge')
+            WHERE b.domain=$1 AND b.consumer_id=$2 AND b.owner_source_path=ANY($3) AND b.owner_record_id=ANY($4) AND b.active AND b.row_kind IN ('node','edge')
            UNION ALL
            SELECT 'node',n.node_id,NULL::text FROM target t
              JOIN cmd2_projection_navigation_node n ON n.source_path=t.path AND n.record_id=t.id
-            WHERE n.domain=$1 AND n.consumer_id=$2
+            WHERE n.domain=$1 AND n.consumer_id=$2 AND n.source_path=ANY($3) AND n.record_id=ANY($4)
            UNION ALL
            SELECT 'edge',e.edge_id,e.from_id FROM target t
              JOIN cmd2_projection_navigation_edge e ON e.source_path=t.path AND e.record_id=t.id
-            WHERE e.domain=$1 AND e.consumer_id=$2
+            WHERE e.domain=$1 AND e.consumer_id=$2 AND e.source_path=ANY($3) AND e.record_id=ANY($4)
          ) selected LIMIT $5",
         &[&domain, &consumer_id, &paths, &records, &row_cap],
     )?;
