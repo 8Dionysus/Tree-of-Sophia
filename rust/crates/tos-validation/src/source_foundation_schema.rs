@@ -1232,53 +1232,7 @@ enum SourceFoundationInputProfile {
     Mixed,
 }
 
-/// Evaluate one source-foundation diagnostics call against an exact source
-/// cut. The function may use bounded protocol batches, all under one caller
-/// deadline/cancellation flag and the aggregate limits below. `BatchBudget`
-/// supplies each disposable worker's wall/CPU/address-space envelope.
-pub fn evaluate_source_foundation_schema_checks(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationSchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceFoundationSchemaOutcome {
-    evaluate_source_foundation_schema_checks_with_optional_quota(
-        schema_set, worker, checks, limits, deadline, cancelled, None, None,
-    )
-}
 
-fn evaluate_source_foundation_schema_checks_with_optional_quota(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationSchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: Option<&SharedSchemaWorkerQuota>,
-    image: Option<&VerifiedWorkerImageHandle>,
-) -> SourceFoundationSchemaOutcome {
-    let selection = SchemaEvaluationSelection {
-        resources: &schema_set.resources,
-        contracts: &schema_set.contracts,
-        schema_set_sha256: schema_set.schema_set_sha256,
-        contract_selection_sha256: schema_set.contract_selection_sha256,
-        schema_bytes: schema_set.schema_bytes,
-    };
-    evaluate_source_foundation_schema_checks_inner(
-        schema_set,
-        &selection,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        SourceFoundationInputProfile::FiniteJson,
-        quota,
-        image,
-    )
-}
 
 fn evaluate_source_foundation_legacy_schema_checks_with_optional_quota(
     schema_set: &SourceFoundationSchemaSet,

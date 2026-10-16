@@ -230,9 +230,6 @@ impl ArtifactCorrectionReplayObservation {
         self.current_membership
     }
 
-    pub(crate) fn source_root(&self) -> &str {
-        &self.source_root
-    }
 
     pub(crate) fn source_path(&self) -> &str {
         &self.source_path
@@ -242,21 +239,9 @@ impl ArtifactCorrectionReplayObservation {
         &self.record_id
     }
 
-    pub(crate) fn origin_record_sha256(&self) -> &str {
-        &self.origin_record_sha256
-    }
 
-    pub(crate) fn origin_record_byte_size(&self) -> usize {
-        self.origin_record_byte_size
-    }
 
-    pub(crate) fn history_sha256(&self) -> Option<&str> {
-        self.history_sha256.as_deref()
-    }
 
-    pub(crate) fn transactions(&self) -> &[ArtifactCorrectionReplayTransactionObservation] {
-        &self.transactions
-    }
 
     pub(crate) fn publication_state_bytes(&self) -> usize {
         self.publication_state_bytes
@@ -268,17 +253,8 @@ impl ArtifactCorrectionReplayObservation {
 }
 
 impl ArtifactCorrectionReplayTransactionObservation {
-    pub(crate) fn transaction_id(&self) -> &str {
-        &self.transaction_id
-    }
 
-    pub(crate) fn manifest_sha256(&self) -> &str {
-        &self.manifest_sha256
-    }
 
-    pub(crate) fn receipt_sha256(&self) -> &str {
-        &self.receipt_sha256
-    }
 }
 
 impl tos_validation::source_foundation_discovery::ArtifactCorrectionReplayEvidence
@@ -5654,28 +5630,9 @@ pub(crate) fn schema_candidate<I: Copy + Eq>(
     )
 }
 
-/// Validate one schema through either a cut worker or a candidate worker,
-/// keeping its selected read identity attached to the exact source closure.
-pub(crate) fn schema_for_worker<W, C>(
-    worker: &mut W,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    ctx: &C,
-    refs: &[String],
-    root: &str,
-    instance: &JsonValue,
-) -> SourceCommandResult<()>
-where
-    W: RecordSchemaWorker,
-    C: RecordRead<Identity = W::Identity>,
-{
-    schema_at(
-        worker, deadline, cancelled, ctx, refs, root, instance, None, false,
-    )
-}
 
-/// Owner-path form of `schema_for_worker`; the path remains a checked part of
-/// the schema execution input for both candidate and immutable-cut reads.
+/// Validate at an explicit owner path through either a cut or candidate worker.
+/// The path remains a checked part of the selected schema execution input.
 pub(crate) fn schema_for_source_path_worker<W, C>(
     worker: &mut W,
     deadline: Instant,
