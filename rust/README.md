@@ -65,13 +65,14 @@ chunk transfer for writer/tool consumers. The standalone `tos-reader` and
 ordinary native query do not select that preparation feature.
 
 `tos-native-owner-command source-capture import-corpus` prepares a fresh,
-unselected V1 store. It can combine a current Git capture with an explicitly
-selected retained subtree, using the
+unselected V1 store. It can combine a current Git capture with explicitly
+selected disjoint retained subtrees, each using the
 [`retained-corpus-binding`](../ToS/contracts/retained-corpus-binding.schema.json)
-contract. The target preserves the original snapshot and receipt, shares one
+contract. The target preserves every original snapshot and receipt, shares one
 content-addressed object pool with the composed snapshot, and writes a V2
 custody receipt. Retained members consume the original aggregate limits;
-overlapping namespaces are refused. No current pointer, identity/dependency
+overlapping or nested namespaces are refused. Selection order does not change
+the result. No current pointer, identity/dependency
 index, semantic admission or publication authority is created. The command's
 `--help` owns its exact input and resource options.
 

@@ -1,4 +1,4 @@
-//! Custody-only import from one exact Git capture and an optional retained cut
+//! Custody-only import from one exact Git capture and explicit retained cuts
 //! into a fresh immutable V1 corpus.
 //!
 //! This writes byte custody and one exact manifest revision. It does not run
@@ -31,6 +31,8 @@ const IMPORT_RECEIPT_SCHEMA: &str = "tos_corpus_capture_import_v1";
 const RETAINED_IMPORT_RECEIPT_SCHEMA: &str = "tos_corpus_capture_import_v2";
 const MECHANICAL_VALIDATOR_ROLE: &str = "capture-import-byte-integrity-v1";
 const MAX_EXECUTABLE_BYTES: u64 = 536_870_912;
+/// Finite retained-cut selections admitted by one fresh import.
+pub const MAX_RETAINED_CAPTURE_INPUTS_V1: usize = 16;
 
 /// Exact capture selection and a new store directory beneath a private parent.
 /// `expected_validator_sha256` is checked against the executing ELF image; it
@@ -41,7 +43,7 @@ pub struct CaptureImportRequestV1<'a> {
     pub selection: &'a SoftwareCaptureSelectionV1,
     pub limits: CaptureRestoreLimits,
     pub expected_validator_sha256: Digest256,
-    pub retained: Option<RetainedCaptureSelectionV1<'a>>,
+    pub retained: Vec<RetainedCaptureSelectionV1<'a>>,
 }
 
 /// One explicitly selected immutable historical subtree. Container revision
@@ -91,7 +93,7 @@ pub struct CaptureImportReceipt {
     pub source_bytes: u64,
     pub import_receipt_sha256: Digest256,
     pub usage: CaptureReadUsage,
-    pub retained: Option<RetainedCaptureReceiptV1>,
+    pub retained: Vec<RetainedCaptureReceiptV1>,
 }
 
 fn fail(detail: &'static str) -> StoreError {
@@ -243,7 +245,7 @@ struct ImportMemberSink<'a> {
     next_temporary: u64,
     deadline: Instant,
     cancelled: &'a AtomicBool,
-    forbidden_scope: Option<tos_foundation::RelativePath>,
+    forbidden_scopes: Vec<tos_foundation::RelativePath>,
 }
 
 impl<'a> ImportMemberSink<'a> {
@@ -258,7 +260,7 @@ impl<'a> ImportMemberSink<'a> {
             next_temporary: 0,
             deadline,
             cancelled,
-            forbidden_scope: None,
+            forbidden_scopes: Vec::new(),
         }
     }
 
@@ -543,7 +545,7 @@ impl CaptureMemberSink for ImportMemberSink<'_> {
                 "capture member is outside the authored ToS carrier",
             ));
         }
-        if self.forbidden_scope.as_ref().is_some_and(|scope| {
+        if self.forbidden_scopes.iter().any(|scope| {
             member.path == *scope
                 || member
                     .path
@@ -964,14 +966,14 @@ fn import_receipt_bytes(
     usage: CaptureReadUsage,
     member_count: u64,
     source_bytes: u64,
-    retained: Option<&RetainedCaptureReceiptV1>,
+    retained: &[SelectedRetainedInput<'_>],
     limits: JsonLimits,
 ) -> Result<Vec<u8>> {
     let capture_total_read_bytes = usage.total_read_bytes()?;
     let mut fields = vec![
         (
             "schema_version",
-            string(if retained.is_some() {
+            string(if !retained.is_empty() {
                 RETAINED_IMPORT_RECEIPT_SCHEMA
             } else {
                 IMPORT_RECEIPT_SCHEMA
@@ -1020,14 +1022,22 @@ fn import_receipt_bytes(
             ]),
         ),
     ];
-    if let Some(retained) = retained {
-        fields.push(("retained_source", retained_receipt_value(retained)));
+    if !retained.is_empty() {
+        fields.push((
+            "retained_sources",
+            JsonValue::Array(
+                retained
+                    .iter()
+                    .map(|input| retained_receipt_value(&input.observation))
+                    .collect(),
+            ),
+        ));
     }
     canonical(&object(fields), limits)
 }
 
-/// Stream one exact verified capture, optionally composed with an explicitly
-/// selected byte-only retained cut, into a fresh, unselected immutable V1 store.
+/// Stream one exact verified capture, optionally composed with explicitly
+/// selected byte-only retained cuts, into a fresh, unselected immutable V1 store.
 /// No current pointer is written; on error, exact private stages are cleaned
 /// where possible and installed bytes remain unselected.
 pub fn import_git_capture_corpus_v1(
@@ -1036,6 +1046,26 @@ pub fn import_git_capture_corpus_v1(
     cancelled: &AtomicBool,
 ) -> Result<CaptureImportReceipt> {
     check(deadline, cancelled)?;
+    if request.retained.len() > MAX_RETAINED_CAPTURE_INPUTS_V1 {
+        return Err(StoreError::new(
+            Code::BudgetExceeded,
+            "too many retained source cuts",
+        ));
+    }
+    for (index, input) in request.retained.iter().enumerate() {
+        for other in &request.retained[..index] {
+            let a = input.scope.as_str();
+            let b = other.scope.as_str();
+            if a == b
+                || a.strip_prefix(b)
+                    .is_some_and(|suffix| suffix.starts_with('/'))
+                || b.strip_prefix(a)
+                    .is_some_and(|suffix| suffix.starts_with('/'))
+            {
+                return Err(fail("retained source scopes overlap"));
+            }
+        }
+    }
     let metadata = request.limits.metadata.validate()?;
     if request.limits.max_archive_bytes == 0
         || request.limits.max_archive_bytes == u64::MAX
@@ -1059,8 +1089,8 @@ pub fn import_git_capture_corpus_v1(
         verify_executing_validator(request.expected_validator_sha256, deadline, cancelled)?;
     if request
         .retained
-        .as_ref()
-        .is_some_and(|retained| request.output.starts_with(retained.root))
+        .iter()
+        .any(|retained| request.output.starts_with(retained.root))
     {
         return Err(fail(
             "fresh import output must be disjoint from retained input",
@@ -1068,10 +1098,12 @@ pub fn import_git_capture_corpus_v1(
     }
     let mut retained = request
         .retained
+        .into_iter()
         .map(|selection| select_retained_input(selection, request.limits, deadline, cancelled))
-        .transpose()?;
+        .collect::<Result<Vec<_>>>()?;
+    retained.sort_by(|a, b| a.selection.scope.cmp(&b.selection.scope));
     let mut capture_limits = request.limits;
-    if let Some(input) = retained.as_ref() {
+    for input in &retained {
         // The retained subtree consumes the same original member/source and
         // decoded-input ceilings, rather than receiving a second allowance.
         capture_limits.metadata.max_manifest_entries = capture_limits
@@ -1092,7 +1124,7 @@ pub fn import_git_capture_corpus_v1(
             .ok_or_else(|| fail("retained source exhausts original decoded allowance"))?;
     }
     let mut sink = ImportMemberSink::new(request.output, deadline, cancelled);
-    if let Some(input) = retained.as_mut() {
+    for input in &mut retained {
         for member in input.members.values() {
             check(deadline, cancelled)?;
             let selected = input.cut.read_member(
@@ -1126,7 +1158,7 @@ pub fn import_git_capture_corpus_v1(
             deadline,
             cancelled,
         )?;
-        sink.forbidden_scope = Some(input.selection.scope.clone());
+        sink.forbidden_scopes.push(input.selection.scope.clone());
     }
     let walked = walk_capture_for_import(
         request.capture_root,
@@ -1144,7 +1176,7 @@ pub fn import_git_capture_corpus_v1(
     }
     let mut members = walked.index.members.clone();
     let mut source_bytes = walked.index.source_bytes;
-    if let Some(input) = retained.as_ref() {
+    for input in &retained {
         for (path, member) in &input.members {
             if members.insert(path.clone(), member.clone()).is_some() {
                 return Err(fail("retained and Git capture member sets overlap"));
@@ -1170,7 +1202,7 @@ pub fn import_git_capture_corpus_v1(
             }
         }
     }
-    if let Some(input) = retained.as_ref() {
+    for input in &retained {
         let named = tos_fd_open::open_absolute_directory(input.selection.root)
             .map_err(|_| fail("retained corpus name changed"))?;
         let before = input
@@ -1233,7 +1265,7 @@ pub fn import_git_capture_corpus_v1(
         walked.usage,
         member_count,
         source_bytes,
-        retained.as_ref().map(|input| &input.observation),
+        &retained,
         metadata.json,
     )?;
     if receipt.len() > metadata.max_manifest_bytes {
@@ -1246,7 +1278,7 @@ pub fn import_git_capture_corpus_v1(
     let import_receipt_sha256 = Digest256::of_bytes(&receipt);
     check(deadline, cancelled)?;
     Ok(CaptureImportReceipt {
-        schema_version: if retained.is_some() {
+        schema_version: if !retained.is_empty() {
             RETAINED_IMPORT_RECEIPT_SCHEMA
         } else {
             IMPORT_RECEIPT_SCHEMA
@@ -1264,7 +1296,10 @@ pub fn import_git_capture_corpus_v1(
         source_bytes,
         import_receipt_sha256,
         usage: walked.usage,
-        retained: retained.map(|input| input.observation),
+        retained: retained
+            .into_iter()
+            .map(|input| input.observation)
+            .collect(),
     })
 }
 
@@ -1429,7 +1464,7 @@ mod tests {
                 selection: &selection,
                 limits,
                 expected_validator_sha256: validator_sha256,
-                retained: None,
+                retained: Vec::new(),
             },
             deadline,
             &cancelled,
@@ -1505,7 +1540,8 @@ mod tests {
     }
 
     #[test]
-    fn retained_capture_keeps_old_cut_modes_receipt_and_one_object_pool_under_original_limits() {
+    fn retained_cuts_keep_old_cuts_receipts_order_independence_and_one_pool_under_original_limits()
+    {
         let scratch = scratch();
         let repository = scratch.0.join("repo");
         fs::create_dir(&repository).unwrap();
@@ -1513,7 +1549,11 @@ mod tests {
         let raw = b"same exact authored bytes\n";
         let old_paths = ["ToS/history/a.md", "ToS/history/b.md"];
         let current_path = "ToS/current/subject.md";
-        for path in old_paths.into_iter().chain([current_path]) {
+        let transaction_path = "ToS/transactions/c.md";
+        for path in old_paths
+            .into_iter()
+            .chain([current_path, transaction_path])
+        {
             let path = repository.join(path);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, raw).unwrap();
@@ -1579,6 +1619,8 @@ mod tests {
             capture("history-capture", &["ToS/history".into()]);
         let (current_capture, current_selection) =
             capture("current-capture", &["ToS/current".into()]);
+        let (transaction_capture, transaction_selection) =
+            capture("transaction-capture", &["ToS/transactions".into()]);
         let (collision_capture, collision_selection) =
             capture("collision-capture", &["ToS".into()]);
         let validator = running_image_digest();
@@ -1590,7 +1632,7 @@ mod tests {
                 selection: &history_selection,
                 limits,
                 expected_validator_sha256: validator,
-                retained: None,
+                retained: Vec::new(),
             },
             deadline,
             &cancelled,
@@ -1604,6 +1646,28 @@ mod tests {
         )
         .unwrap();
         let old_receipt = fs::read(history.join("capture-import.json")).unwrap();
+        let transaction = scratch.0.join("transaction-store");
+        let transaction_receipt = import_git_capture_corpus_v1(
+            CaptureImportRequestV1 {
+                capture_root: &transaction_capture,
+                output: &transaction,
+                selection: &transaction_selection,
+                limits,
+                expected_validator_sha256: validator,
+                retained: Vec::new(),
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let transaction_snapshot = fs::read(
+            transaction
+                .join("revisions")
+                .join(transaction_receipt.revision.0.to_hex())
+                .join("snapshot.json"),
+        )
+        .unwrap();
+        let transaction_receipt_raw = fs::read(transaction.join("capture-import.json")).unwrap();
         let retained = |root, receipt_file| RetainedCaptureSelectionV1 {
             root,
             revision: history_receipt.revision,
@@ -1615,9 +1679,27 @@ mod tests {
             member_mode: 0o644,
             binding_sha256: Digest256::of_bytes(b"exact owned binding fixture"),
         };
+        let retained_transaction = |root, receipt_file| RetainedCaptureSelectionV1 {
+            root,
+            revision: transaction_receipt.revision,
+            receipt_file,
+            scope: RelativePath::parse("ToS/transactions").unwrap(),
+            membership_sha256: transaction_receipt.membership_sha256,
+            member_count: 1,
+            source_bytes: raw.len() as u64,
+            member_mode: 0o644,
+            binding_sha256: Digest256::of_bytes(b"second exact owned binding fixture"),
+        };
         let mut receipts = Vec::new();
-        for leaf in ["joined-first", "joined-repeat"] {
+        for (index, leaf) in ["joined-first", "joined-repeat"].into_iter().enumerate() {
             let target = scratch.0.join(leaf);
+            let mut selected = vec![
+                retained(&history, "capture-import.json"),
+                retained_transaction(&transaction, "capture-import.json"),
+            ];
+            if index == 1 {
+                selected.reverse();
+            }
             let receipt = import_git_capture_corpus_v1(
                 CaptureImportRequestV1 {
                     capture_root: &current_capture,
@@ -1625,16 +1707,17 @@ mod tests {
                     selection: &current_selection,
                     limits,
                     expected_validator_sha256: validator,
-                    retained: Some(retained(&history, "capture-import.json")),
+                    retained: selected,
                 },
                 deadline,
                 &cancelled,
             )
             .unwrap();
             assert_eq!(receipt.schema_version, RETAINED_IMPORT_RECEIPT_SCHEMA);
-            assert_eq!(receipt.member_count, 3);
-            assert_eq!(receipt.source_bytes, 3 * raw.len() as u64);
-            let preserved = receipt.retained.as_ref().unwrap();
+            assert_eq!(receipt.member_count, 4);
+            assert_eq!(receipt.source_bytes, 4 * raw.len() as u64);
+            assert_eq!(receipt.retained.len(), 2);
+            let preserved = &receipt.retained[0];
             assert_eq!(preserved.member_bytes_read, 2 * raw.len() as u64);
             assert_eq!(
                 fs::read(target.join(&preserved.receipt_ref)).unwrap(),
@@ -1650,14 +1733,29 @@ mod tests {
                 .unwrap(),
                 old_snapshot
             );
+            assert_eq!(
+                fs::read(target.join(&receipt.retained[1].receipt_ref)).unwrap(),
+                transaction_receipt_raw
+            );
+            assert_eq!(
+                fs::read(
+                    target
+                        .join("revisions")
+                        .join(transaction_receipt.revision.0.to_hex())
+                        .join("snapshot.json")
+                )
+                .unwrap(),
+                transaction_snapshot
+            );
             assert_eq!(fs::read_dir(target.join("objects")).unwrap().count(), 1);
             assert!(!target.join("current.json").exists());
             let reader = CorpusReader::open_existing(&target, limits.metadata).unwrap();
             for (revision, paths) in [
                 (history_receipt.revision, old_paths.as_slice()),
+                (transaction_receipt.revision, [transaction_path].as_slice()),
                 (
                     receipt.revision,
-                    [old_paths[0], old_paths[1], current_path].as_slice(),
+                    [old_paths[0], old_paths[1], current_path, transaction_path].as_slice(),
                 ),
             ] {
                 let cut = reader
@@ -1665,7 +1763,7 @@ mod tests {
                         revision,
                         CutReadLimits {
                             max_revisions: 1,
-                            max_members: 3,
+                            max_members: 4,
                             max_total_bytes: 8192,
                             max_member_bytes: 4096,
                         },
@@ -1692,7 +1790,8 @@ mod tests {
             receipts[1].import_receipt_sha256
         );
         let first = scratch.0.join("joined-first");
-        let carried_receipt = &receipts[0].retained.as_ref().unwrap().receipt_ref;
+        let carried_receipt = &receipts[0].retained[0].receipt_ref;
+        let carried_transaction = &receipts[0].retained[1].receipt_ref;
         let target = scratch.0.join("joined-from-carried-history");
         let carried = import_git_capture_corpus_v1(
             CaptureImportRequestV1 {
@@ -1701,7 +1800,10 @@ mod tests {
                 selection: &current_selection,
                 limits,
                 expected_validator_sha256: validator,
-                retained: Some(retained(&first, carried_receipt)),
+                retained: vec![
+                    retained_transaction(&first, carried_transaction),
+                    retained(&first, carried_receipt),
+                ],
             },
             deadline,
             &cancelled,
@@ -1739,7 +1841,7 @@ mod tests {
                 retained(&history, "capture-import.json"),
                 CaptureRestoreLimits {
                     metadata: ReadLimits {
-                        max_manifest_entries: 2,
+                        max_manifest_entries: 3,
                         ..limits.metadata
                     },
                     ..limits
@@ -1751,7 +1853,7 @@ mod tests {
                 "source-cap",
                 retained(&history, "capture-import.json"),
                 CaptureRestoreLimits {
-                    max_source_bytes: 3 * raw.len() as u64 - 1,
+                    max_source_bytes: 4 * raw.len() as u64 - 1,
                     ..limits
                 },
                 &current_capture,
@@ -1761,7 +1863,7 @@ mod tests {
                 "decoded-cap",
                 retained(&history, "capture-import.json"),
                 CaptureRestoreLimits {
-                    max_decoded_bytes: 2 * raw.len() as u64,
+                    max_decoded_bytes: 3 * raw.len() as u64,
                     ..limits
                 },
                 &current_capture,
@@ -1784,7 +1886,10 @@ mod tests {
                         selection,
                         limits: changed_limits,
                         expected_validator_sha256: validator,
-                        retained: Some(supplied),
+                        retained: vec![
+                            supplied,
+                            retained_transaction(&transaction, "capture-import.json")
+                        ],
                     },
                     deadline,
                     &cancelled
@@ -1796,8 +1901,8 @@ mod tests {
             if target.exists() {
                 assert_eq!(
                     fs::read_dir(target.join("revisions")).unwrap().count(),
-                    1,
-                    "only the old unselected snapshot may survive refusal: {name}"
+                    2,
+                    "only the old unselected snapshots may survive refusal: {name}"
                 );
             }
         }
@@ -1817,5 +1922,62 @@ mod tests {
         );
         assert_eq!(fs::read_dir(history.join("objects")).unwrap().count(), 1);
         assert_eq!(fs::read_dir(history.join("revisions")).unwrap().count(), 1);
+        assert_eq!(
+            fs::read(transaction.join("capture-import.json")).unwrap(),
+            transaction_receipt_raw
+        );
+        assert_eq!(
+            fs::read(
+                transaction
+                    .join("revisions")
+                    .join(transaction_receipt.revision.0.to_hex())
+                    .join("snapshot.json")
+            )
+            .unwrap(),
+            transaction_snapshot
+        );
+        for (name, selected) in [
+            (
+                "duplicate-scope",
+                vec![
+                    retained(&history, "capture-import.json"),
+                    retained(&history, "capture-import.json"),
+                ],
+            ),
+            (
+                "nested-scope",
+                vec![
+                    retained(&history, "capture-import.json"),
+                    RetainedCaptureSelectionV1 {
+                        scope: RelativePath::parse("ToS/history/nested").unwrap(),
+                        ..retained(&history, "capture-import.json")
+                    },
+                ],
+            ),
+            (
+                "too-many-cuts",
+                (0..=MAX_RETAINED_CAPTURE_INPUTS_V1)
+                    .map(|_| retained(&history, "capture-import.json"))
+                    .collect(),
+            ),
+        ] {
+            let target = scratch.0.join(name);
+            assert!(
+                import_git_capture_corpus_v1(
+                    CaptureImportRequestV1 {
+                        capture_root: &current_capture,
+                        output: &target,
+                        selection: &current_selection,
+                        limits,
+                        expected_validator_sha256: validator,
+                        retained: selected,
+                    },
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+            );
+            assert!(!target.exists());
+        }
     }
 }

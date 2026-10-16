@@ -11,9 +11,17 @@ use std::{
 };
 use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::{
-    CaptureGitRequest, CaptureImportRequestV1, CaptureRestoreLimits, GitCaptureLimits, ReadLimits,
-    RetainedCaptureSelectionV1, SoftwareCaptureSelectionV1,
+    CaptureGitRequest, CaptureImportRequestV1, CaptureRestoreLimits, GitCaptureLimits,
+    MAX_RETAINED_CAPTURE_INPUTS_V1, ReadLimits, RetainedCaptureSelectionV1,
+    SoftwareCaptureSelectionV1,
 };
+
+const RETAINED_FLAGS: [&str; 4] = [
+    "--retained-store",
+    "--retained-revision",
+    "--retained-binding",
+    "--retained-receipt",
+];
 
 pub const HELP: &str =
     "usage: tos-native-owner-command source-capture capture-git|verify|restore|import-corpus OPTIONS
@@ -32,9 +40,12 @@ import-corpus also requires --output ABS, a new store child under a private owne
   Optional retained input: --retained-store ABS --retained-revision HEX64
   --retained-binding ABS, with --retained-receipt LEAF when selecting its
   revision-scoped original receipt instead of capture-import.json.
-  The retained subtree consumes the original aggregate member/source/decoded limits;
-  incoming Git members must be outside that subtree. Both snapshots and the
-  original receipt remain exact in the fresh store's shared object pool.
+  Up to 16 selections: repeat store/revision/binding in the same per-flag order.
+  An explicit receipt list must name every selected input's original receipt.
+  Retained subtrees share the original aggregate member/source/decoded limits;
+  they must be disjoint, and incoming Git members must be outside them.
+  Every old snapshot and receipt remains exact in the fresh shared object pool.
+  retained_member_bytes_read counts logical member bytes, not complete physical I/O.
 Its capture_read_usage reports parser logical byte counts, not complete physical I/O;
 the launch supervisor measures process/cgroup I/O separately.
 Capture roots and output/destination parents must be exclusively owner-controlled.
@@ -79,13 +90,7 @@ fn retained_selection<'a>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<RetainedCaptureSelectionV1<'a>>, &'static str> {
-    let flags = [
-        "--retained-store",
-        "--retained-revision",
-        "--retained-binding",
-        "--retained-receipt",
-    ];
-    if !flags.iter().any(|flag| values.contains_key(flag)) {
+    if !RETAINED_FLAGS.iter().any(|flag| values.contains_key(flag)) {
         return Ok(None);
     }
     let get = |name| {
@@ -219,6 +224,49 @@ fn retained_selection<'a>(
     }))
 }
 
+fn retained_selections<'a>(
+    values: &BTreeMap<&str, Vec<&'a str>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<RetainedCaptureSelectionV1<'a>>, &'static str> {
+    if values.is_empty() {
+        return Ok(Vec::new());
+    }
+    let stores = values
+        .get("--retained-store")
+        .ok_or("retained stores absent")?;
+    let revisions = values
+        .get("--retained-revision")
+        .ok_or("retained revisions absent")?;
+    let bindings = values
+        .get("--retained-binding")
+        .ok_or("retained bindings absent")?;
+    let receipts = values.get("--retained-receipt");
+    if stores.is_empty()
+        || stores.len() > MAX_RETAINED_CAPTURE_INPUTS_V1
+        || revisions.len() != stores.len()
+        || bindings.len() != stores.len()
+        || receipts.is_some_and(|rows| rows.len() != stores.len())
+    {
+        return Err("retained selection lists differ or exceed their bound");
+    }
+    let mut selected = Vec::with_capacity(stores.len());
+    for index in 0..stores.len() {
+        let mut one = BTreeMap::from([
+            ("--retained-store", stores[index]),
+            ("--retained-revision", revisions[index]),
+            ("--retained-binding", bindings[index]),
+        ]);
+        if let Some(receipts) = receipts {
+            one.insert("--retained-receipt", receipts[index]);
+        }
+        selected.push(
+            retained_selection(&one, deadline, cancelled)?.ok_or("retained selection absent")?,
+        );
+    }
+    Ok(selected)
+}
+
 fn import_response(
     receipt: tos_source_store::CaptureImportReceipt,
 ) -> Result<serde_json::Value, &'static str> {
@@ -258,19 +306,26 @@ fn import_response(
         "dependency_index_derived": false,
         "current_pointer_written": false
     });
-    if let Some(retained) = receipt.retained {
-        response["retained_source"] = serde_json::json!({
-            "revision": retained.revision.0.to_hex(),
-            "membership_sha256": retained.membership_sha256.to_hex(),
-            "member_count": retained.member_count,
-            "source_bytes": retained.source_bytes,
-            "member_mode": retained.member_mode,
-            "binding_sha256": retained.binding_sha256.to_hex(),
-            "original_receipt_sha256": retained.original_receipt_sha256.to_hex(),
-            "receipt_ref": retained.receipt_ref,
-            "member_bytes_read": retained.member_bytes_read,
-            "complete_physical_io": false,
-        });
+    if !receipt.retained.is_empty() {
+        let (members, bytes, read) = receipt.retained.iter().try_fold(
+            (0u64, 0u64, 0u64),
+            |(members, bytes, read), input| {
+                Ok::<_, &'static str>((
+                    members
+                        .checked_add(input.member_count)
+                        .ok_or("retained member count overflow")?,
+                    bytes
+                        .checked_add(input.source_bytes)
+                        .ok_or("retained source bytes overflow")?,
+                    read.checked_add(input.member_bytes_read)
+                        .ok_or("retained read bytes overflow")?,
+                ))
+            },
+        )?;
+        response["retained_source_count"] = serde_json::json!(receipt.retained.len());
+        response["retained_member_count"] = serde_json::json!(members);
+        response["retained_source_bytes"] = serde_json::json!(bytes);
+        response["retained_member_bytes_read"] = serde_json::json!(read);
     }
     Ok(response)
 }
@@ -326,6 +381,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         return Err("invalid operation/options");
     }
     let mut values = BTreeMap::new();
+    let mut retained_values: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     let mut include = Vec::new();
     let mut exclude = Vec::new();
     let mut parts = Vec::new();
@@ -343,6 +399,10 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
                 "--exclude-prefix" => exclude.push(v.to_owned()),
                 _ => parts.push(v.to_owned()),
             }
+            continue;
+        }
+        if operation == "import-corpus" && RETAINED_FLAGS.contains(&k) {
+            retained_values.entry(k).or_default().push(v);
             continue;
         }
         let common = matches!(
@@ -370,10 +430,6 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
                     | "--json-max-integer-digits"
                     | "--output"
                     | "--validator-sha256"
-                    | "--retained-store"
-                    | "--retained-revision"
-                    | "--retained-binding"
-                    | "--retained-receipt"
             )
         } else {
             matches!(
@@ -506,9 +562,12 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         let parent_fd = hold(parent, true)?;
         let expected_validator_sha256 = Digest256::from_hex(get("--validator-sha256")?)
             .map_err(|_| "invalid executing validator image pin")?;
-        let retained = retained_selection(&values, deadline, &cancel)?;
-        let retained_path = retained.as_ref().map(|input| input.root);
-        let retained_guard = retained_path.map(|path| hold(path, true)).transpose()?;
+        let retained = retained_selections(&retained_values, deadline, &cancel)?;
+        let retained_paths = retained.iter().map(|input| input.root).collect::<Vec<_>>();
+        let retained_guards = retained_paths
+            .iter()
+            .map(|path| hold(path, true))
+            .collect::<Result<Vec<_>, _>>()?;
         let receipt = tos_source_store::import_git_capture_corpus_v1(
             CaptureImportRequestV1 {
                 capture_root: root,
@@ -523,7 +582,7 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
         )
         .map_err(|_| "capture corpus import refused; retain unselected partial custody")?;
         recheck(root, &held, true)?;
-        if let (Some(path), Some(guard)) = (retained_path, retained_guard.as_ref()) {
+        for (path, guard) in retained_paths.iter().zip(&retained_guards) {
             recheck(path, guard, true)?;
         }
         recheck(parent, &parent_fd, true)?;
@@ -593,7 +652,7 @@ mod tests {
                 archive_read_bytes: 0,
                 decoded_bytes: 0,
             },
-            retained: None,
+            retained: Vec::new(),
         };
         let response = import_response(receipt.clone()).unwrap();
         let encoded = serde_json::to_vec(&response).unwrap();
@@ -617,24 +676,31 @@ mod tests {
         let mut composed = receipt;
         composed.schema_version = "tos_corpus_capture_import_v2";
         let old_revision = SourceRevision(Digest256::of_bytes(b"old revision"));
-        composed.retained = Some(tos_source_store::RetainedCaptureReceiptV1 {
-            revision: old_revision,
-            validator_sha256: Digest256::of_bytes(b"old validator"),
-            scope: RelativePath::parse(&format!("ToS/{}", "x".repeat(4090))).unwrap(),
-            membership_sha256: Digest256::of_bytes(b"old membership"),
-            member_count: u64::MAX - 1,
-            source_bytes: u64::MAX - 1,
-            member_mode: 0o644,
-            binding_sha256: Digest256::of_bytes(b"binding"),
-            original_receipt_sha256: Digest256::of_bytes(b"old receipt"),
-            receipt_ref: format!("capture-import.{}.json", old_revision.0.to_hex()),
-            member_bytes_read: u64::MAX - 1,
-        });
+        let max_inputs = MAX_RETAINED_CAPTURE_INPUTS_V1 as u64;
+        composed.retained = vec![
+            tos_source_store::RetainedCaptureReceiptV1 {
+                revision: old_revision,
+                validator_sha256: Digest256::of_bytes(b"old validator"),
+                scope: RelativePath::parse(&format!("ToS/{}", "x".repeat(4090))).unwrap(),
+                membership_sha256: Digest256::of_bytes(b"old membership"),
+                member_count: u64::MAX / max_inputs - 1,
+                source_bytes: u64::MAX / max_inputs - 1,
+                member_mode: 0o644,
+                binding_sha256: Digest256::of_bytes(b"binding"),
+                original_receipt_sha256: Digest256::of_bytes(b"old receipt"),
+                receipt_ref: format!("capture-import.{}.json", old_revision.0.to_hex()),
+                member_bytes_read: u64::MAX / max_inputs - 1,
+            };
+            MAX_RETAINED_CAPTURE_INPUTS_V1
+        ];
         let response = import_response(composed).unwrap();
         assert!(serde_json::to_vec(&response).unwrap().len() <= 2048);
-        assert!(response["retained_source"].get("scope").is_none());
+        assert!(response.get("retained_sources").is_none());
         assert_eq!(response["schema_version"], "tos_corpus_capture_import_v2");
-        assert_eq!(response["retained_source"]["complete_physical_io"], false);
+        assert_eq!(
+            response["retained_source_count"],
+            MAX_RETAINED_CAPTURE_INPUTS_V1
+        );
     }
 
     #[test]
@@ -667,6 +733,26 @@ mod tests {
         assert_eq!(selection.member_count, 2);
         assert_eq!(selection.member_mode, 0o644);
         assert_eq!(selection.binding_sha256, Digest256::of_bytes(&original));
+        let mut multiple = values
+            .iter()
+            .map(|(key, value)| (*key, vec![*value, *value]))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            retained_selections(&multiple, deadline, &cancelled)
+                .unwrap()
+                .len(),
+            2
+        );
+        multiple.insert("--retained-receipt", vec!["capture-import.json"]);
+        assert!(retained_selections(&multiple, deadline, &cancelled).is_err());
+        multiple.remove("--retained-receipt");
+        multiple.get_mut("--retained-revision").unwrap().pop();
+        assert!(retained_selections(&multiple, deadline, &cancelled).is_err());
+        let excessive = values
+            .iter()
+            .map(|(key, value)| (*key, vec![*value; MAX_RETAINED_CAPTURE_INPUTS_V1 + 1]))
+            .collect::<BTreeMap<_, _>>();
+        assert!(retained_selections(&excessive, deadline, &cancelled).is_err());
         let mut partial = values.clone();
         partial.remove("--retained-revision");
         assert!(retained_selection(&partial, deadline, &cancelled).is_err());
