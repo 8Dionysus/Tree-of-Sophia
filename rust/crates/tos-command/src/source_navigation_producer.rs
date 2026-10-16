@@ -878,7 +878,9 @@ fn process_ready_range(
             &mut context,
             identity_archive_blobs,
         )?;
-    } else if !claim_dependency_causes.is_empty()
+    } else if claim_dependency_causes
+        .iter()
+        .any(|cause| !cause.predecessor_claim_ids.is_empty() || !cause.current_claim_ids.is_empty())
         || !range_claim_mutations.is_empty()
         || !prior_claim_owners.is_empty()
     {
@@ -1002,6 +1004,9 @@ fn process_ready_range(
         .collect::<Vec<_>>();
 
     let claim_inventory = if terminal_claim_stream_paths.is_empty() {
+        // Changed source members still carry dependency causes when every
+        // reverse lookup is empty. Keep those exact causes: the compiler and
+        // publisher verify their coverage and the held zero-owner closure.
         let source_paths_present = coverage.events().iter().any(|event| {
             event
                 .members
@@ -1037,10 +1042,10 @@ fn process_ready_range(
                     lookup_keys: &lookup_keys,
                 },
             )
-            .map_err(|_| DurableError::Conflict("empty Claim source range closure differs"))?
+            .map_err(compiler_refusal)?
         } else {
             tos_compiler::source_navigation_claim_event::prepare_navigation_claim_event_no_projectable_tos_members_inventory_v1(&compiler_coverage_input)
-                .map_err(|_| DurableError::Conflict("empty Claim no-ToS range evidence differs"))?
+                .map_err(compiler_refusal)?
         }
     } else {
         let closure = claim_closure.as_ref().ok_or(DurableError::Conflict(
@@ -1120,7 +1125,7 @@ fn process_ready_range(
                 terminal_inventory: &claim_inventory,
             },
         )
-        .map_err(|_| DurableError::Conflict("Claim range manifest refused"))?;
+        .map_err(compiler_refusal)?;
 
     let mut record_prior_by_key = BTreeMap::<(String, String), Digest256>::new();
     let mut record_prior_by_cause =
@@ -1531,7 +1536,7 @@ fn process_ready_range(
             &claim_manifest,
             Vec::new(),
         )
-        .map_err(|_| DurableError::Conflict("empty Claim range owner set refused"))?
+        .map_err(compiler_refusal)?
     } else {
         let files = files.as_ref().ok_or(DurableError::Conflict(
             "Claim range has no selected source files",
@@ -1595,7 +1600,7 @@ fn process_ready_range(
             &claim_manifest,
             contributions,
         )
-        .map_err(|_| DurableError::Conflict("Claim range owner set refused"))?
+        .map_err(compiler_refusal)?
     };
 
     let record_range_set = if record_owner_inputs.is_empty() {
@@ -1612,7 +1617,7 @@ fn process_ready_range(
                 Err(tos_compiler::Error::Invalid("unexpected empty Record row"))
             },
         )
-        .map_err(|_| DurableError::Conflict("empty Record range set refused"))?
+        .map_err(compiler_refusal)?
     } else {
         let files = files
             .as_ref()
@@ -1668,13 +1673,13 @@ fn process_ready_range(
                     }
                 },
             )
-            .map_err(|_| DurableError::Conflict("Record range set refused"))
+            .map_err(compiler_refusal)
             },
-        )?;
+        );
         if let Some(error) = project_error {
             return Err(error);
         }
-        set_result
+        set_result?
     };
 
     check_active()?;
