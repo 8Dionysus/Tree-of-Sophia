@@ -13,7 +13,7 @@ observatory and Foundation API consumer.
 ## Live source exploration
 
 `constructor.html?live=1` selects the real, read-only exploration adapter before
-the demo library or personal workspace is loaded. It mounts the same owner sky,
+importing the demo controller, atlas, inquiry data or personal workspace. It mounts the same owner sky,
 camera and gestures. It neither imports demo knowledge into ToS nor modifies the
 demo's saved state. Optional `focus=<exact API ID>&kind=node|relation&lang=ru|en`
 opens an addressable origin; without a focus, search is the entry point.
