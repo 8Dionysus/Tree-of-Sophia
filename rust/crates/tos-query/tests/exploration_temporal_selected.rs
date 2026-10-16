@@ -1,4 +1,4 @@
-#![cfg(not(target_arch = "wasm32"))]
+#![cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 //! Native producer and exact selected reads with explicit owner expectations.
 use std::{
     collections::BTreeMap,

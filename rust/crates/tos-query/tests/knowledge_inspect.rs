@@ -1,4 +1,4 @@
-#![cfg(not(target_arch = "wasm32"))]
+#![cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 //! Independent legacy packet oracle over the existing CMP producer fixture.
 use tos_compiler::knowledge_full_fixture::build_fixture;
 use tos_foundation::{

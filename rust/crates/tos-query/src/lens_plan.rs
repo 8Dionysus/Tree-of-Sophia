@@ -2225,7 +2225,7 @@ impl<'original> LensPlan<'original> {
             None,
         )
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
     pub(crate) fn native(
         public: JsonValue,
         vocabulary: LensVocabulary,
@@ -2257,7 +2257,7 @@ impl<'original> LensPlan<'original> {
     /// same driver separately admits actual vocabulary, authenticated row,
     /// reply and packet geometries before their corresponding plan phase.
     /// All admissions stay with the original owner through disclosure.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
     pub(crate) fn native_with_original(
         public: JsonValue,
         vocabulary: LensVocabulary,

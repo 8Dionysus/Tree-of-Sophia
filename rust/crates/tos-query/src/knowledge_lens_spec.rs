@@ -18,7 +18,7 @@ pub struct LensVocabulary {
     published_identity_prefix: bool,
 }
 impl LensVocabulary {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
     pub(crate) fn from_selected(
         bound: &crate::knowledge_binding::BoundCmpKnowledge<'_>,
         header: &JsonValue,

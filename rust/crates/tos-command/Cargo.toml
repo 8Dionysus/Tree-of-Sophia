@@ -26,7 +26,7 @@ tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
 jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 tos-compiler = { path = "../tos-compiler", features = ["preserve-order-workspace"] }
-tos-query = { path = "../tos-query" }
+tos-query = { path = "../tos-query", features = ["native-models"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 postgres = "0.19"

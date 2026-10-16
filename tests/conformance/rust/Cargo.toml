@@ -14,7 +14,7 @@ tar = { version = "=0.4.45", default-features = false }
 tempfile = "3"
 tos-command = { path = "../../../rust/crates/tos-command", features = ["conformance-owner-local-source-resolver"] }
 tos-compiler = { path = "../../../rust/crates/tos-compiler", features = ["test-fixture"] }
-tos-query = { path = "../../../rust/crates/tos-query" }
+tos-query = { path = "../../../rust/crates/tos-query", features = ["native-models"] }
 tos-access = { path = "../../../rust/crates/tos-access" }
 tos-validation = { path = "../../../rust/crates/tos-validation" }
 tos-foundation = { path = "../../../rust/crates/tos-foundation" }

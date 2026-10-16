@@ -191,7 +191,7 @@ pub fn build_knowledge_contract_bundle(
 }
 /// Bind the pure bundle to a cold-verified native selection. This is deliberately
 /// not a Disclosable packet: callers still need exact registry source authority.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn build_selected_knowledge_contract_bundle(
     model: &tos_compiler::VerifiedKnowledgeModel<'_>,
     bound: &crate::BoundCmpKnowledge<'_>,
@@ -221,7 +221,7 @@ pub const KNOWLEDGE_CONTRACTS_INTENDED_USE: &str = "read_only_public_knowledge_c
 /// Exact borrowed selected registry carriers plus the existing owner hold.
 /// A missing production registry holder remains unavailable. Digest equality
 /// alone cannot satisfy `authorize_registry_current` or acquire a public grant.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub fn execute_selected_knowledge_contracts<
     'hold,
     A: crate::InspectCurrentAuthority<'hold> + ?Sized,

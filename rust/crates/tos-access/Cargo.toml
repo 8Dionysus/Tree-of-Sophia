@@ -17,7 +17,7 @@ tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
-tos-query = { path = "../tos-query" }
+tos-query = { path = "../tos-query", features = ["native-models"] }
 tos-compiler = { path = "../tos-compiler" }
 toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
 rawzip = { version = "=0.5.1", default-features = false, features = ["std"] }

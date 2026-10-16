@@ -218,7 +218,7 @@ pub(crate) fn source_read_targets(
     }
     project_targets(items, "source_revision", revision, limits)
 }
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub(crate) fn managed_source_read_targets(
     items: &[JsonValue],
     root: &str,
