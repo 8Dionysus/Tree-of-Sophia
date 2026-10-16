@@ -23,7 +23,6 @@ pub(crate) use durable_navigation_event::{
     DurableNavigationCurrentnessV1, DurableNavigationPublishedGenerationGuardV2,
     DurableNavigationPublishedGenerationV2, navigation_owner_binding,
     navigation_owner_binding_with_verified_model, read_navigation_adjacency_certificate_v1,
-    read_navigation_currentness_guard_with_client_v1, read_navigation_currentness_guard_with_tx_v1,
     read_navigation_published_guard_with_tx_v2,
 };
 pub use durable_navigation_event::{
@@ -31,21 +30,16 @@ pub use durable_navigation_event::{
     DurableNavigationBootstrapOwnerSourceV1, DurableNavigationBootstrapPackageV1,
     DurableNavigationBootstrapRowKindV1, DurableNavigationBootstrapRowV1,
     DurableNavigationCurrentIndexNotReadyReasonV1, DurableNavigationCurrentIndexNotReadyV1,
-    DurableNavigationCurrentIndexOwnerBindingV1, DurableNavigationCurrentIndexReadyV1,
-    DurableNavigationCurrentIndexStatusV1, DurableNavigationCurrentIndexV1,
-    DurableNavigationEventAdvanceV2, DurableNavigationEventAffectedOwnerKindV1,
-    DurableNavigationEventAffectedOwnerV1, DurableNavigationEventApply,
-    DurableNavigationEventBacklogStopV2, DurableNavigationEventBacklogV2,
-    DurableNavigationEventCohortReadV1, DurableNavigationEventCohortSetV2,
-    DurableNavigationEventContextV1, DurableNavigationEventCursorV1,
-    DurableNavigationEventDependencyReadV1, DurableNavigationEventLimits,
-    DurableNavigationEventPendingReasonV2, DurableNavigationEventRangeApplyV1,
+    DurableNavigationCurrentIndexOwnerBindingV1, DurableNavigationEventAffectedOwnerKindV1,
+    DurableNavigationEventAffectedOwnerV1, DurableNavigationEventContextV1, DurableNavigationEventCursorV1,
+    DurableNavigationEventLimits,
+    DurableNavigationEventRangeApplyV1,
     DurableNavigationEventRangeClaimMutationV1, DurableNavigationEventRangeCoverageV1,
     DurableNavigationEventRangeDependencyCauseV1, DurableNavigationEventRangeEventV1,
     DurableNavigationEventRangeMemberV1, DurableNavigationEventRangePendingReasonV1,
     DurableNavigationEventRangePriorClaimOwnerV1, DurableNavigationEventRangePriorOwnerBasisV1,
     DurableNavigationEventRangePriorRecordOwnerV1, DurableNavigationEventRangeSeedV1,
-    DurableNavigationEventSeedV1, DurableNavigationEventSourceV1,
+    DurableNavigationEventSourceV1,
 };
 
 #[path = "durable_projection_bootstrap.rs"]

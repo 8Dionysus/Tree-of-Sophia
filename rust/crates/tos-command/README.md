@@ -56,6 +56,15 @@ before rebuilding the inventory. An invalidated V2 selection or unknown
 format remains refused; restore never grants an unverified old selector new
 database authority.
 
+Navigation publication has one maintained path: the bounded event-range producer.
+The unused single-event publishers, per-event backlog driver and their compiler
+adapters are retired. The unconsumed full-index/cohort materializing read APIs
+and standalone currentness wrappers are retired with them. Published selection
+uses its existing bounded guard and point readers. Existing stored event-cohort
+formats, root verification,
+currentness checks and range predecessor reads remain supported; this source
+cleanup changes neither the PostgreSQL schema nor stored model identities.
+
 Addressed navigation replaces complete selected Claim streams. Its range
 manifest keeps causal reverse dependencies separate from the complete
 published predecessor inventory of those streams. The additive
