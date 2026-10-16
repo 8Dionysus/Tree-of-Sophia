@@ -3,6 +3,7 @@
 //! The caller supplies one sealed graph header, registries and authored vocabulary.
 //! This module only creates a derived candidate. It does not select a publication.
 
+use crate::knowledge_normalization::python_casefold_with_state;
 use crate::{
     Error, QueryVocabulary, Result,
     d1_public_capture::{CreationState, CreationStateHold},
@@ -729,44 +730,6 @@ struct FoldedFacet<'state, 'budget> {
     folded: String,
     value: String,
     _hold: Option<CreationStateHold<'state, 'budget>>,
-}
-pub(crate) fn python_casefold_with_state<'state, 'budget>(
-    value: &str,
-    creation: &'state CreationState<'budget>,
-    max_output_bytes: usize,
-) -> Result<(String, CreationStateHold<'state, 'budget>)> {
-    let error_floor = tos_foundation::python_casefold_unicode16_v1_error_state_upper_bound();
-    let floor_hold = creation.hold(error_floor)?;
-    let fixed = tos_foundation::python_casefold_unicode16_v1_fixed_state_upper_bound();
-    let workspace_hold = creation.hold(fixed)?;
-    let result = {
-        let mut check = || {
-            creation.charge_work(1).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "catalog facet casefold cutoff",
-                )
-            })
-        };
-        let _check_hold = creation.hold(std::mem::size_of_val(&check))?;
-        let available = creation
-            .remaining(0)?
-            .checked_add(fixed)
-            .ok_or(Error::Budget("catalog facet casefold workspace"))?;
-        tos_foundation::python_casefold_unicode16_v1_with_state_budget_and_check(
-            value,
-            value.len(),
-            max_output_bytes,
-            max_output_bytes,
-            available,
-            &mut check,
-        )
-    };
-    let folded = result.map_err(|_| Error::Budget("catalog facet casefold bytes"))?;
-    let output_hold = creation.hold(folded.capacity())?;
-    drop(workspace_hold);
-    drop(floor_hold);
-    Ok((folded, output_hold))
 }
 
 fn python_casefold<'state, 'budget>(

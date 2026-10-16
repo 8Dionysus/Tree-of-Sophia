@@ -6,6 +6,19 @@ use serde_json::Value;
 use std::collections::BTreeSet;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 
+/// Adapter implementations accepted by the existing native composition.
+/// Consumers use this capability closure, never derive support from input data.
+pub const NATIVE_KNOWLEDGE_ADAPTER_PROFILES: &[&str] = &[
+    "source-navigation-node-edge-v1",
+    "reified-bibliographic-claims-v1",
+    "philosophy-node-edge-v1",
+    "canon-node-relation-v1",
+    "candidate-relation-v1",
+    "repository-topology-v1",
+    "declared-identity-and-source-ref-joins-v1",
+    "indexed-node-edge-v1",
+];
+
 const MAX_DESCRIPTOR_BYTES: usize = 1024 * 1024;
 const MAX_SOURCES: usize = 4096;
 const MAX_ROUTES: usize = 4096;

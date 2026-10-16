@@ -16,7 +16,7 @@ use tos_foundation::{
     parse_json,
 };
 
-pub const KNOWLEDGE_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1;
+use crate::KNOWLEDGE_MODEL_ABI;
 const GRAPH_ROOT_DOMAIN: &str = "tos-knowledge-graph-root-v1";
 
 struct CappedWriter {
@@ -51,31 +51,7 @@ pub struct SealLimits {
     pub max_header_bytes: usize,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct KnowledgeSealReceipt {
-    pub model_abi: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub managed_source_root_sha256: Option<String>,
-    pub navigation_original_root_sha256: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub philosophy_original_root_sha256: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub corpus_original_root_sha256: Option<String>,
-    pub graph_root_sha256: String,
-    pub graph_header_sha256: String,
-    pub node_root_sha256: String,
-    pub relation_root_sha256: String,
-    pub node_count: u64,
-    pub relation_count: u64,
-    pub catalog_packet_sha256: String,
-    pub catalog_index_root_sha256: String,
-    pub source_scope_root_sha256: String,
-    /// Absent only for the explicit native navigation ABI, which does not
-    /// advertise an offline search capability.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub search_index_root_sha256: Option<String>,
-}
+pub use crate::knowledge_selected::KnowledgeSealReceipt;
 
 pub(crate) fn canonical(value: &Value, cap: usize) -> Result<Vec<u8>> {
     if cap == 0 || cap > 8 * 1024 * 1024 {

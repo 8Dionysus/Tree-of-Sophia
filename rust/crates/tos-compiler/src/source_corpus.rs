@@ -22,66 +22,8 @@ pub struct NativeCorpusLimits {
     /// Must come from the same owner declaration used to create the validator.
     pub schema_work: BatchStreamBudget,
 }
-#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct NativeCorpusSourceReceipt {
-    pub profile: String,
-    pub source_revision: String,
-    pub source_membership_sha256: String,
-    pub source_members: u64,
-    pub source_cut: String,
-    pub descriptor_sha256: String,
-    pub software_commit: String,
-    pub software_tree: String,
-    pub software_manifest_sha256: String,
-    pub owner_program_sha256: String,
-    pub owner_schema_sha256: String,
-    pub repository_inventory_root_sha256: String,
-    pub canon_source_root_sha256: String,
-    pub navigation_catalog_root_sha256: String,
-    pub output_sha256: String,
-    pub output_bytes: u64,
-    pub schema_units: u64,
-}
-pub(crate) fn validate_receipt(r: &NativeCorpusSourceReceipt) -> Result<()> {
-    if r.profile != "tos_native_corpus_source_v1"
-        || r.source_cut.is_empty()
-        || r.source_cut.len() > 4096
-        || r.source_members == 0
-        || r.schema_units == 0
-        || r.output_bytes == 0
-        || r.output_bytes > crate::knowledge_original_rows::MAX_TOTAL_BYTES
-    {
-        return Err(Error::Invalid(
-            "native corpus producer receipt profile/limits",
-        ));
-    }
-    for sha in [
-        &r.source_revision,
-        &r.source_membership_sha256,
-        &r.descriptor_sha256,
-        &r.software_manifest_sha256,
-        &r.owner_program_sha256,
-        &r.owner_schema_sha256,
-        &r.repository_inventory_root_sha256,
-        &r.canon_source_root_sha256,
-        &r.navigation_catalog_root_sha256,
-        &r.output_sha256,
-    ] {
-        Digest256::from_hex(sha)
-            .map_err(|_| Error::Invalid("native corpus producer receipt SHA"))?;
-    }
-    for git in [&r.software_commit, &r.software_tree] {
-        if ![40, 64].contains(&git.len())
-            || !git
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        {
-            return Err(Error::Invalid("native corpus software identity"));
-        }
-    }
-    Ok(())
-}
+pub use crate::knowledge_corpus_original::NativeCorpusSourceReceipt;
+use crate::knowledge_corpus_original::validate_native_corpus_source_receipt as validate_receipt;
 /// Private output, computed only after complete family roots and schema checks.
 pub struct NativeCorpusProjection {
     value: Value,
@@ -321,7 +263,7 @@ fn visit_instances(
         );
     }
     visit(
-        crate::knowledge_corpus_source::encode(&Value::Object(header), cap)?,
+        crate::knowledge_corpus_original::encode(&Value::Object(header), cap)?,
         "corpus:header".into(),
         CONTRACT.into(),
     )?;
@@ -373,7 +315,7 @@ fn visit_array_instances(
     let mut count = 0usize;
     for (ordinal, row) in rows.iter().enumerate() {
         check(deadline, cancelled)?;
-        let raw = crate::knowledge_corpus_source::encode(row, cap)?;
+        let raw = crate::knowledge_corpus_original::encode(row, cap)?;
         let required = portion
             .len()
             .checked_add(raw.len())
@@ -749,7 +691,7 @@ pub fn project_native_corpus_from_sources(
             counts.insert(name.into(), Value::from(rows.len() as u64));
             for row in rows {
                 check(deadline, cancelled)?;
-                let raw = crate::knowledge_corpus_source::encode(row, l.originals.max_row_bytes)?;
+                let raw = crate::knowledge_corpus_original::encode(row, l.originals.max_row_bytes)?;
                 charge(&mut work, raw.len(), l)?;
                 total_rows = total_rows
                     .checked_add(1)
@@ -777,7 +719,7 @@ pub fn project_native_corpus_from_sources(
             }
             for row in rows {
                 check(deadline, cancelled)?;
-                let raw = crate::knowledge_corpus_source::encode(row, l.originals.max_row_bytes)?;
+                let raw = crate::knowledge_corpus_original::encode(row, l.originals.max_row_bytes)?;
                 charge(&mut work, raw.len(), l)?;
                 total_rows = total_rows
                     .checked_add(1)
@@ -794,7 +736,7 @@ pub fn project_native_corpus_from_sources(
             .ok_or(Error::Invalid("native corpus graph views"))?
         {
             check(deadline, cancelled)?;
-            let raw = crate::knowledge_corpus_source::encode(row, l.originals.max_row_bytes)?;
+            let raw = crate::knowledge_corpus_original::encode(row, l.originals.max_row_bytes)?;
             charge(&mut work, raw.len(), l)?;
             total_rows = total_rows
                 .checked_add(1)
@@ -822,7 +764,7 @@ pub fn project_native_corpus_from_sources(
         }
         // All output serialization/caps precede the first projection schema
         // frame; no large late value can consume child work before refusing.
-        let mut raw = crate::knowledge_corpus_source::encode(
+        let mut raw = crate::knowledge_corpus_original::encode(
             &payload,
             usize::try_from(l.originals.max_total_bytes)
                 .map_err(|_| Error::Budget("native corpus output usize"))?,
@@ -984,7 +926,7 @@ mod schema_portion_tests {
             assert_eq!(units, 40);
             assert_eq!(refused, usize::from(!valid));
         }
-        let scalar_cap = crate::knowledge_corpus_source::encode(&resource, 4096)
+        let scalar_cap = crate::knowledge_corpus_original::encode(&resource, 4096)
             .unwrap()
             .len();
         let mut count = 0;

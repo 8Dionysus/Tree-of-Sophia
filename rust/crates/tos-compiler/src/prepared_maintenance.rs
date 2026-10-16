@@ -6,6 +6,11 @@ use crate::prepared_catalog_semantics::{self as catalog, CatalogInputs, CatalogO
 use crate::prepared_semantic_index::{
     self as semantic, SemanticChange, SemanticMaintenanceLimits, SemanticRows,
 };
+use crate::prepared_source_binding::{
+    selected_digest as digest, selected_prepared_catalog as selected,
+    selected_registry_digest as registry_digest, selected_required as required,
+    selected_same as same,
+};
 use crate::{Error, Result, local_prepared as prepared};
 use rusqlite::{OptionalExtension, Transaction, params};
 use serde_json::Value;
@@ -24,27 +29,6 @@ pub struct MaintenanceReceipt {
     pub consumer_switched: bool,
     pub source_transition_verified: bool,
     pub semantic_acceptance: bool,
-}
-fn digest(value: &JsonValue, cap: usize) -> Result<String> {
-    Ok(Digest256::of_bytes(prepared::compact(value, cap)?.as_bytes()).to_hex())
-}
-fn registry_digest(value: &JsonValue, cap: usize) -> Result<String> {
-    let view: Value = serde_json::from_str(&prepared::compact(value, cap)?)
-        .map_err(|_| Error::Invalid("maintenance registry JSON"))?;
-    crate::knowledge_normalization::stable_digest(&view)
-}
-fn required<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str> {
-    value
-        .object_get(key)
-        .and_then(JsonValue::as_str)
-        .ok_or(Error::Invalid("maintenance required string"))
-}
-fn same(a: &JsonValue, b: &JsonValue, cap: usize) -> Result<bool> {
-    let a: Value = serde_json::from_str(&prepared::compact(a, cap)?)
-        .map_err(|_| Error::Invalid("maintenance equality JSON"))?;
-    let b: Value = serde_json::from_str(&prepared::compact(b, cap)?)
-        .map_err(|_| Error::Invalid("maintenance equality JSON"))?;
-    crate::prepared_semantic_kernel::python_eq(&a, &b)
 }
 fn remaining(tx: &Transaction<'_>, start: u64, limits: prepared::PublicationLimits) -> Result<u64> {
     let used = tx
@@ -129,105 +113,6 @@ fn body(
         }
     }
     Ok(item)
-}
-pub(crate) fn selected(
-    tx: &Transaction<'_>,
-    expected: &JsonValue,
-    inputs: &CatalogInputs,
-    limits: prepared::PublicationLimits,
-) -> Result<JsonValue> {
-    match expected.object_get("publication_epoch") {
-        Some(JsonValue::Number(epoch))
-            if epoch.kind == tos_foundation::JsonNumberKind::Int
-                && epoch
-                    .lexeme
-                    .parse::<u64>()
-                    .is_ok_and(|epoch| epoch <= prepared::MAX_ADDRESS) => {}
-        _ => {
-            return Err(Error::Invalid(
-                "maintenance publication epoch must be a safe integer",
-            ));
-        }
-    }
-    limits.validate()?;
-    if tx.is_autocommit() {
-        return Err(Error::Invalid("maintenance caller transaction"));
-    }
-    if !same(
-        &prepared::snapshot_binding(tx)?,
-        expected,
-        limits.max_metadata_bytes,
-    )? {
-        return Err(Error::Invalid("maintenance selected binding"));
-    }
-    let top = prepared::metadata(
-        tx,
-        "knowledge_reader_top",
-        65536.min(limits.max_metadata_bytes),
-    )?;
-    if required(&top, "read_model_schema")? != prepared::SCHEMA {
-        return Err(Error::Invalid("maintenance selected schema"));
-    }
-    let revision = prepared::metadata(tx, "data_revision", 1024)?;
-    if revision.as_object().is_none_or(|fields| fields.len() != 1)
-        || revision.object_get("sha256").and_then(JsonValue::as_str)
-            != top.object_get("data_revision").and_then(JsonValue::as_str)
-    {
-        return Err(Error::Invalid("maintenance data revision"));
-    }
-    let state:Option<(u64,Option<String>)>=tx.query_row("SELECT max_pages,CASE WHEN length(CAST(descriptor AS BLOB))<=? THEN descriptor ELSE NULL END FROM prepared_state WHERE singleton=1",[limits.max_metadata_bytes],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
-    let (max_pages, raw) = state.ok_or(Error::Invalid("maintenance descriptor absent"))?;
-    let raw = raw.ok_or(Error::Budget("maintenance descriptor bytes"))?;
-    let descriptor = prepared::parse(&raw, limits.max_metadata_bytes)?;
-    if digest(&descriptor, limits.max_metadata_bytes)? != required(&top, "data_revision")?
-        || catalog::catalog_owner_digest(
-            descriptor
-                .object_get("header")
-                .ok_or(Error::Invalid("maintenance descriptor header"))?,
-            limits.max_metadata_bytes,
-        )? != inputs.header_digest()?
-    {
-        return Err(Error::Invalid("maintenance descriptor/header differs"));
-    }
-    let normalization = inputs
-        .header
-        .object_get("normalization_binding")
-        .ok_or(Error::Invalid("maintenance normalization"))?;
-    if !same(
-        normalization,
-        top.object_get("normalization_binding")
-            .ok_or(Error::Invalid("maintenance selected normalization"))?,
-        limits.max_metadata_bytes,
-    )? {
-        return Err(Error::Invalid("maintenance normalization differs"));
-    }
-    if normalization
-        .object_get("entity_registry_digest")
-        .and_then(JsonValue::as_str)
-        != Some(registry_digest(&inputs.entity_registry, limits.max_metadata_bytes)?.as_str())
-        || normalization
-            .object_get("relation_registry_digest")
-            .and_then(JsonValue::as_str)
-            != Some(registry_digest(&inputs.relation_registry, limits.max_metadata_bytes)?.as_str())
-    {
-        return Err(Error::Invalid("maintenance registry digest"));
-    }
-    let selected_catalog = prepared::metadata(tx, "knowledge_catalog", limits.max_metadata_bytes)?;
-    if digest(&selected_catalog, limits.max_metadata_bytes)? != required(&top, "catalog_sha256")? {
-        return Err(Error::Invalid("maintenance catalog checksum"));
-    }
-    let page: u64 = tx.query_row("PRAGMA page_size", [], |r| r.get(0))?;
-    let pages: u64 = tx.query_row("PRAGMA page_count", [], |r| r.get(0))?;
-    if pages > max_pages
-        || pages
-            .checked_mul(page)
-            .ok_or(Error::Budget("maintenance pages"))?
-            > limits.max_bytes
-    {
-        return Err(Error::Budget("maintenance whole database bytes"));
-    }
-    crate::local_prepared_search::page_cap(tx, max_pages.min(limits.max_bytes / page))?;
-    Ok(selected_catalog)
 }
 fn source_order(inputs: &CatalogInputs, item: &JsonValue, token: u64) -> Result<CatalogOrder> {
     match inputs.source_order_profile {

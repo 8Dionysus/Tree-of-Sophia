@@ -3892,6 +3892,7 @@ impl PublicCapture {
         Ok(bytes)
     }
 
+    #[cfg(feature = "source-tools")]
     pub fn create(
         root: &Path,
         staging: &Path,
@@ -3905,6 +3906,7 @@ impl PublicCapture {
 
     /// Five maintained prepare input roles. Software contracts are compiled
     /// code companions; optional public-release inputs are not prepare inputs.
+    #[cfg(feature = "source-tools")]
     pub(crate) fn create_prepared(
         root: &Path,
         staging: &Path,
@@ -3916,6 +3918,7 @@ impl PublicCapture {
         )
     }
     /// Evidence Lens opens only views and canon node/edge collections.
+    #[cfg(feature = "source-tools")]
     pub(crate) fn create_evidence(
         root: &Path,
         staging: &Path,
@@ -3931,6 +3934,7 @@ impl PublicCapture {
     /// caller-owned operation token. Its own source and route refs remain
     /// rooted at `root`; only the selected corpus/philosophy projections are
     /// redirected by this exact constructor.
+    #[cfg(feature = "source-tools")]
     pub(crate) fn create_evidence_selected(
         root: &Path,
         selected: &PublicCaptureInputPaths,
@@ -3956,6 +3960,7 @@ impl PublicCapture {
     }
     /// Existing Evidence-only selected profile under the parent's actual
     /// owned construction state. No fresh work/VM/JSON allowance is minted.
+    #[cfg(feature = "source-tools")]
     pub(crate) fn create_evidence_selected_with_owned_state(
         root: &Path,
         selected: &PublicCaptureInputPaths,
@@ -4001,6 +4006,7 @@ impl PublicCapture {
 
     /// Runtime projection data belongs to the selected source root; executable
     /// contract/vocabulary companions belong to this exact compiled producer.
+    #[cfg(feature = "source-tools")]
     pub fn create_runtime(
         root: &Path,
         staging: &Path,
@@ -4022,6 +4028,7 @@ impl PublicCapture {
     /// inputs are required. The selected audit and Evidence Lens projection
     /// are represented even when absent, so existence queries cannot silently
     /// fall back to a different root-relative file.
+    #[cfg(feature = "source-tools")]
     pub fn create_runtime_selected(
         root: &Path,
         selected: &PublicCaptureInputPaths,
@@ -4063,6 +4070,7 @@ impl PublicCapture {
     /// registries, evidence files or the public ledger. The audit role reads
     /// only its exact selected optional file. The callback below supplies the
     /// same pre/post capture fence as a full completed snapshot.
+    #[cfg(feature = "source-tools")]
     pub fn create_runtime_carrier_selected(
         root: &Path,
         selected: &PublicCaptureInputPaths,
@@ -4124,6 +4132,7 @@ impl PublicCapture {
     /// selected profile. This shares the original work/VM domains; usage is
     /// returned even when construction refuses. Source/state implementation
     /// remains an integration draft until every preallocation seam is joined.
+    #[cfg(feature = "source-tools")]
     pub fn create_runtime_selected_with_owned_budget(
         root: &Path,
         selected: &PublicCaptureInputPaths,
@@ -4152,6 +4161,7 @@ impl PublicCapture {
 
     /// Full public-site capture from the maintained public input route, under
     /// the original dedicated process heap, state, work and VM owners.
+    #[cfg(feature = "source-tools")]
     pub(crate) fn create_public_with_owned_budget(
         root: &Path,
         staging: &Path,
@@ -4180,6 +4190,7 @@ impl PublicCapture {
     /// A source-only producer also hands off its exact completed product set.
     /// Those bytes remain retained inputs even when the graph compiler does
     /// not parse them. Historical captures retain their existing input set.
+    #[cfg(feature = "source-tools")]
     pub fn create_runtime_with_owned_budget(
         root: &Path,
         source_profile: Option<
@@ -4225,6 +4236,7 @@ impl PublicCapture {
         )
     }
 
+    #[cfg(feature = "source-tools")]
     fn create_selected_with_owned_budget(
         root: &Path,
         selected: Option<&PublicCaptureInputPaths>,
@@ -4510,6 +4522,7 @@ impl PublicCapture {
         })
     }
 
+    #[cfg(feature = "source-tools")]
     fn create_profile(
         root: &Path,
         staging: &Path,
@@ -4538,6 +4551,7 @@ impl PublicCapture {
         )
     }
 
+    #[cfg(feature = "source-tools")]
     fn create_profile_owned<'a>(
         root: &Path,
         staging: &Path,
@@ -5317,6 +5331,7 @@ impl PublicCapture {
     /// Lend the exact selected original carrier under this capture's pre/post
     /// source fence. A partial-role capture intentionally has no whole Core
     /// `source_revision`; the view reports that absence explicitly.
+    #[cfg(feature = "source-tools")]
     pub fn with_captured_carriers<'a, T>(
         &'a self,
         consume: impl for<'view> FnOnce(
@@ -5518,10 +5533,12 @@ impl PublicCapture {
     /// The one sanctioned mutation of this private capture: the maintained
     /// family-reference preparation. A failed/partial preparation permanently
     /// poisons the capture; arbitrary writers cannot refresh its stamp.
+    #[cfg(feature = "source-tools")]
     pub(crate) fn prepare_family_rows_once(&self, limits: PublicCaptureLimits) -> Result<()> {
         self.prepare_family_rows_once_with_owned_state(limits, None)
     }
 
+    #[cfg(feature = "source-tools")]
     pub(crate) fn prepare_family_rows_once_with_owned_state(
         &self,
         limits: PublicCaptureLimits,
@@ -7287,7 +7304,11 @@ mod construction_phase_tests {
                 .keys()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            ["z", "a"]
+            if cfg!(feature = "preserve-order-workspace") {
+                ["z", "a"]
+            } else {
+                ["a", "z"]
+            }
         );
         assert_eq!(state.retained.get(), baseline + hold.admitted);
         drop(decoded);

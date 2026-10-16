@@ -7,9 +7,11 @@ use std::{fs::File, io::Seek};
 use rusqlite::{OptionalExtension, params};
 use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, OwnedState};
 
+#[cfg(feature = "source-tools")]
+use crate::NativeSnapshotOwnedReadLoan;
 use crate::{
     ColdOpenLimits, Error, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
-    KnowledgeSourceBasis, NativeSnapshotOwnedReadLoan, QueryVocabulary, Result,
+    KnowledgeSourceBasis, QueryVocabulary, Result,
     knowledge_payload_read::{RuntimeKnowledgeReadContext, SelectedPayloadRow},
     knowledge_stage::{self, KnowledgePayloadLayout},
 };
@@ -2062,6 +2064,7 @@ mod component_budget_tests;
 /// Incoming file/expectation/custody owners and once-process VFS state are
 /// already admitted by the authentic Completed/Driver owner. Source/currentness
 /// custody operations retain their separate original owner charging law.
+#[cfg(feature = "source-tools")]
 pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
     pinned: &mut File,
     expected: &KnowledgeSelectedExpectation,

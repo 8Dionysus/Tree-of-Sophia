@@ -1402,6 +1402,7 @@ pub(crate) fn verify_descriptor(value: &JsonValue, raw: &str, top: &JsonValue) -
 
 /// Addressed normalized successor; the caller MUST rollback its whole
 /// transaction on any error. No commit, graph scan, index install or migration.
+#[cfg(feature = "source-tools")]
 pub fn apply_prepared_delta_transaction<I: IntoIterator<Item = PreparedChange>>(
     db: &Connection,
     expected: &JsonValue,
@@ -1421,6 +1422,7 @@ pub fn apply_prepared_delta_transaction<I: IntoIterator<Item = PreparedChange>>(
 }
 /// Fallible streaming transport seam; a framing/parse error has the same
 /// whole-transaction rollback obligation as a storage refusal.
+#[cfg(feature = "source-tools")]
 pub fn apply_prepared_delta_transaction_fallible<I: IntoIterator<Item = Result<PreparedChange>>>(
     db: &Connection,
     expected: &JsonValue,
@@ -1490,6 +1492,7 @@ impl ReviewedNormalizationTransition<'_> {
     }
 }
 
+#[cfg(feature = "source-tools")]
 pub(crate) fn transition_prepared_normalization_transaction(
     db: &Connection,
     expected: &JsonValue,
@@ -1509,6 +1512,7 @@ pub(crate) fn transition_prepared_normalization_transaction(
     )
 }
 
+#[cfg(feature = "source-tools")]
 fn apply_prepared_delta_inner<I: IntoIterator<Item = Result<PreparedChange>>>(
     db: &Connection,
     expected: &JsonValue,
@@ -1832,6 +1836,7 @@ fn apply_prepared_delta_inner<I: IntoIterator<Item = Result<PreparedChange>>>(
 }
 
 /// File owner wrapper. One immediate transaction rolls back all lanes on error.
+#[cfg(feature = "source-tools")]
 pub fn apply_prepared_delta<I: IntoIterator<Item = PreparedChange>>(
     path: &Path,
     expected: &JsonValue,
@@ -1850,6 +1855,7 @@ pub fn apply_prepared_delta<I: IntoIterator<Item = PreparedChange>>(
         None,
     )
 }
+#[cfg(feature = "source-tools")]
 pub fn apply_prepared_delta_until<I: IntoIterator<Item = Result<PreparedChange>>>(
     path: &Path,
     expected: &JsonValue,
@@ -1869,6 +1875,7 @@ pub fn apply_prepared_delta_until<I: IntoIterator<Item = Result<PreparedChange>>
         Some(deadline),
     )
 }
+#[cfg(feature = "source-tools")]
 fn apply_prepared_delta_with_deadline<I: IntoIterator<Item = Result<PreparedChange>>>(
     path: &Path,
     expected: &JsonValue,

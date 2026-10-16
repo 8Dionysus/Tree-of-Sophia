@@ -225,33 +225,7 @@ struct SnapshotModelIdentity {
     ctime_nanoseconds: i64,
 }
 
-/// Implemented by the selected host resource owner. It must recheck a real
-/// process-scoped hard-memory/swap boundary and the admitted cold-work envelope.
-/// For the Linux source route, that means the held current cgroup-v2 scope has a
-/// finite `memory.max` no greater than `working_ram_bytes`, `memory.swap.max`
-/// equal to zero, and enough headroom for the retained stage model, sealed copy,
-/// the remaining unallocated copy bytes, the producer's bounded 64 KiB copy
-/// buffer while that buffer is live, and the cold SQLite working set. The stage
-/// ticket's `working_ram_bytes` field alone is only metadata. The producer
-/// supplies copy-phase values itself: before and during copy,
-/// `additional_copy_bytes` is the exact remaining source size and
-/// `copy_buffer_bytes` is 65,536; after the copy is held, additional copy
-/// bytes are zero. The hold must remain valid for the entire callback and
-/// recheck on every method call.
-pub trait NativeColdOpenResourceHold: Send + Sync {
-    fn verify_cold_open(
-        &self,
-        cold: crate::ColdOpenLimits,
-        process: crate::NativeProcessLimits,
-        working_ram_bytes: u64,
-        stage_model_bytes: u64,
-        sealed_model_bytes: u64,
-        additional_copy_bytes: u64,
-        copy_buffer_bytes: u64,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<()>;
-}
+pub use crate::native_cold_resources::NativeColdOpenResourceHold;
 
 /// Explicit resident-memory and transfer ceilings for the whole Core
 /// graph/catalog export. These limits apply only to this opt-in whole result;

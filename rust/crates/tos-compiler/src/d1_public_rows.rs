@@ -1,10 +1,11 @@
 //! Exact source-projection rows for the disposable v9 D1 transport. The
 //! capture owns source order; this module never rebuilds a projection in RAM.
 
+#[cfg(feature = "source-tools")]
+use crate::d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, chunks, quote, quote_len};
 use crate::{
     Error, Result,
     d1_public_capture::{MAX_ROW_BYTES, PublicCapture, compact, json},
-    d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, chunks, quote, quote_len},
 };
 use rusqlite::OptionalExtension;
 use std::{collections::BTreeMap, path::Path};
@@ -12,6 +13,7 @@ use tos_foundation::{
     Digest256, JsonNumber, JsonNumberKind, JsonString, JsonValue, python_lower_unicode16_v1,
 };
 
+#[cfg(feature = "source-tools")]
 pub(crate) fn portable(value: &mut JsonValue, root: &str) {
     match value {
         JsonValue::String(text) => {
@@ -40,18 +42,22 @@ pub(crate) fn portable(value: &mut JsonValue, root: &str) {
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn source_value(capture: &PublicCapture, raw: &[u8], root: &str) -> Result<JsonValue> {
     capture.charge_work(raw.len() as u64)?;
     let mut value = json(raw, MAX_ROW_BYTES)?;
     portable(&mut value, root);
     Ok(value)
 }
+#[cfg(feature = "source-tools")]
 fn text<'a>(value: &'a JsonValue, key: &str) -> Option<&'a str> {
     value.object_get(key).and_then(JsonValue::as_str)
 }
+#[cfg(feature = "source-tools")]
 fn default_text<'a>(value: &'a JsonValue, key: &str) -> &'a str {
     text(value, key).unwrap_or("")
 }
+#[cfg(feature = "source-tools")]
 fn identity(value: &JsonValue, fallback: &str) -> String {
     for key in [
         "node_id",
@@ -71,6 +77,7 @@ fn identity(value: &JsonValue, fallback: &str) -> String {
     }
     fallback.to_owned()
 }
+#[cfg(feature = "source-tools")]
 fn array_strings<'a>(value: &'a JsonValue, key: &str) -> impl Iterator<Item = &'a str> {
     value
         .object_get(key)
@@ -80,11 +87,13 @@ fn array_strings<'a>(value: &'a JsonValue, key: &str) -> impl Iterator<Item = &'
         .filter_map(JsonValue::as_str)
         .filter(|value| !value.is_empty())
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn encoded(capture: &PublicCapture, value: &JsonValue) -> Result<String> {
     let raw = compact(value, MAX_ROW_BYTES)?;
     capture.charge_work(raw.len() as u64)?;
     String::from_utf8(raw).map_err(|_| Error::Invalid("public D1 compact JSON UTF-8"))
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn preflight_large_fields(capture: &PublicCapture, values: &[&str]) -> Result<()> {
     let mut total = 1024usize;
     for value in values {
@@ -97,6 +106,7 @@ pub(crate) fn preflight_large_fields(capture: &PublicCapture, values: &[&str]) -
     }
     capture.charge_work(total as u64)
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn lower_search(capture: &PublicCapture, input: &str) -> Result<String> {
     if quote_len(input)?
         .checked_add(1024)
@@ -155,6 +165,7 @@ pub fn project_private_philosophy_view_row(
 /// The view header owns reference membership. Repeated references select a
 /// source row once; absent references cannot create rows. Callers own source
 /// order, inline precedence and the original work allowance.
+#[cfg(feature = "source-tools")]
 fn philosophy_view_reference_contains<'a, E>(
     references: impl IntoIterator<Item = &'a str>,
     id: &str,
@@ -170,6 +181,7 @@ fn philosophy_view_reference_contains<'a, E>(
     Ok(false)
 }
 
+#[cfg(feature = "source-tools")]
 fn view_reference_mask(
     capture: &PublicCapture,
     id: &str,
@@ -193,6 +205,7 @@ fn view_reference_mask(
     Ok(result)
 }
 
+#[cfg(feature = "source-tools")]
 fn resolved_view_count(
     capture: &PublicCapture,
     view: &JsonValue,
@@ -218,6 +231,7 @@ fn resolved_view_count(
     Ok(count)
 }
 
+#[cfg(feature = "source-tools")]
 fn mask(value: &JsonValue, key: &str, positions: &BTreeMap<String, u32>) -> Result<u64> {
     let mut mask = 0u64;
     for id in array_strings(value, key) {
@@ -232,6 +246,7 @@ fn mask(value: &JsonValue, key: &str, positions: &BTreeMap<String, u32>) -> Resu
     }
     Ok(mask)
 }
+#[cfg(feature = "source-tools")]
 fn insert_large(
     sink: &mut SqlSink,
     table: &str,
@@ -242,6 +257,7 @@ fn insert_large(
 ) -> Result<()> {
     sink.insert_chunked(table, columns, values, selector, large)
 }
+#[cfg(feature = "source-tools")]
 pub(crate) fn quoted(capture: &PublicCapture, value: &str) -> Result<String> {
     let length = quote_len(value)?;
     if length > MAX_ROW_VALUE_BYTES {
@@ -250,12 +266,14 @@ pub(crate) fn quoted(capture: &PublicCapture, value: &str) -> Result<String> {
     capture.charge_work(length as u64)?;
     quote(value)
 }
+#[cfg(feature = "source-tools")]
 fn nullable(capture: &PublicCapture, value: Option<&str>) -> Result<String> {
     value
         .map(|value| quoted(capture, value))
         .transpose()
         .map(|value| value.unwrap_or_else(|| "NULL".to_owned()))
 }
+#[cfg(feature = "source-tools")]
 fn positions(
     capture: &PublicCapture,
     collection: &str,
@@ -300,6 +318,7 @@ pub(crate) struct SourceSqlCounts {
 
 /// The caller passes its resolved repository root and owns the single SQL
 /// sink/output budget. Source row bytes are rechecked by PublicCapture.
+#[cfg(feature = "source-tools")]
 pub(crate) fn emit_philosophy(
     capture: &PublicCapture,
     sink: &mut SqlSink,
@@ -567,6 +586,7 @@ pub(crate) fn emit_philosophy(
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 pub(crate) fn emit_corpus(
     capture: &PublicCapture,
     sink: &mut SqlSink,
@@ -712,6 +732,7 @@ pub(crate) fn emit_corpus(
 /// kernel. The raw records live only behind the private D1 binding; the public
 /// static projection remains the bounded derived packet. Per-record digests
 /// in the companion manifest bind each D1 member to this captured source cut.
+#[cfg(feature = "source-tools")]
 pub(crate) fn emit_source_gap_records(
     capture: &PublicCapture,
     sink: &mut SqlSink,
@@ -817,6 +838,7 @@ pub(crate) fn emit_source_gap_records(
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 fn navigation_selection(item: &JsonValue, field: &str, keys: &[&str]) -> JsonValue {
     match item.object_get(field) {
         Some(JsonValue::Object(fields)) if !keys.is_empty() => JsonValue::Object(
@@ -838,6 +860,7 @@ fn navigation_selection(item: &JsonValue, field: &str, keys: &[&str]) -> JsonVal
 /// Project one already-addressed private source-navigation value through the
 /// same row/overflow/digest kernel used by the full D1 producer.  The caller
 /// owns the snapshot and order proof; this function only derives carrier rows.
+#[cfg(feature = "source-tools")]
 pub fn project_private_navigation_row(
     kind: &str,
     ordinal: i64,
@@ -1013,10 +1036,12 @@ pub fn project_private_navigation_row(
     Ok(result)
 }
 
+#[cfg(feature = "source-tools")]
 fn bounded_quote(capture: &PublicCapture, value: &str) -> Result<String> {
     quoted(capture, value)
 }
 
+#[cfg(feature = "source-tools")]
 fn emit_navigation_digest(
     capture: &PublicCapture,
     sink: &mut SqlSink,
@@ -1046,6 +1071,7 @@ fn emit_navigation_digest(
 
 /// Exact public navigation and rights rows, including lossless overflow and
 /// a digest over the JSON bytes actually emitted to the D1 carrier.
+#[cfg(feature = "source-tools")]
 pub(crate) fn emit_navigation(
     capture: &PublicCapture,
     sink: &mut SqlSink,
@@ -1237,7 +1263,7 @@ pub(crate) fn emit_navigation(
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "source-tools"))]
 mod tests {
     use super::*;
     use crate::d1_public_capture::{

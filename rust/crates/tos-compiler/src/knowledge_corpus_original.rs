@@ -95,7 +95,7 @@ pub struct CorpusOriginalOrigin {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capture_manifest_sha256: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub native_producer: Option<crate::source_corpus::NativeCorpusSourceReceipt>,
+    pub native_producer: Option<NativeCorpusSourceReceipt>,
     pub source_path: String,
     pub source_sha256: String,
     pub source_size_bytes: u64,
@@ -366,9 +366,7 @@ pub fn captured_runtime_input_manifest_digest(
         )
         .map_err(|_| Error::Invalid("runtime capture member SHA"))?;
     }
-    Ok(Digest256::of_bytes(
-        &crate::knowledge_corpus_source::encode(input_bindings, cap)?,
-    ))
+    Ok(Digest256::of_bytes(&encode(input_bindings, cap)?))
 }
 
 pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
@@ -430,7 +428,7 @@ pub(crate) fn validate_receipt_with_state(
             .native_producer
             .as_ref()
             .ok_or(Error::Invalid("native corpus producer missing"))?;
-        crate::source_corpus::validate_receipt(producer)?;
+        validate_native_corpus_source_receipt(producer)?;
         if producer.source_cut != r.source_cut
             || producer.descriptor_sha256 != r.descriptor_sha256
             || producer.source_membership_sha256 != r.membership_root
@@ -1919,4 +1917,79 @@ fn verify_rows_with_state(
     } else {
         verify_rows(db, r, l, work, cap, layout)
     }
+}
+
+pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
+    let raw = serde_json::to_vec(v).map_err(|_| Error::Invalid("corpus original encoding"))?;
+    let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("corpus original JSON limits"))?;
+    let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits)
+        .map_err(|e| Error::Source(e.to_string()))?;
+    canonical_bytes_v1(
+        parsed.root(),
+        CanonicalProfile::SourceRecordDigestV1,
+        limits,
+    )
+    .map_err(|e| Error::Source(e.to_string()))
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeCorpusSourceReceipt {
+    pub profile: String,
+    pub source_revision: String,
+    pub source_membership_sha256: String,
+    pub source_members: u64,
+    pub source_cut: String,
+    pub descriptor_sha256: String,
+    pub software_commit: String,
+    pub software_tree: String,
+    pub software_manifest_sha256: String,
+    pub owner_program_sha256: String,
+    pub owner_schema_sha256: String,
+    pub repository_inventory_root_sha256: String,
+    pub canon_source_root_sha256: String,
+    pub navigation_catalog_root_sha256: String,
+    pub output_sha256: String,
+    pub output_bytes: u64,
+    pub schema_units: u64,
+}
+pub(crate) fn validate_native_corpus_source_receipt(r: &NativeCorpusSourceReceipt) -> Result<()> {
+    if r.profile != "tos_native_corpus_source_v1"
+        || r.source_cut.is_empty()
+        || r.source_cut.len() > 4096
+        || r.source_members == 0
+        || r.schema_units == 0
+        || r.output_bytes == 0
+        || r.output_bytes > crate::knowledge_original_rows::MAX_TOTAL_BYTES
+    {
+        return Err(Error::Invalid(
+            "native corpus producer receipt profile/limits",
+        ));
+    }
+    for sha in [
+        &r.source_revision,
+        &r.source_membership_sha256,
+        &r.descriptor_sha256,
+        &r.software_manifest_sha256,
+        &r.owner_program_sha256,
+        &r.owner_schema_sha256,
+        &r.repository_inventory_root_sha256,
+        &r.canon_source_root_sha256,
+        &r.navigation_catalog_root_sha256,
+        &r.output_sha256,
+    ] {
+        Digest256::from_hex(sha)
+            .map_err(|_| Error::Invalid("native corpus producer receipt SHA"))?;
+    }
+    for git in [&r.software_commit, &r.software_tree] {
+        if ![40, 64].contains(&git.len())
+            || !git
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err(Error::Invalid("native corpus software identity"));
+        }
+    }
+    Ok(())
 }

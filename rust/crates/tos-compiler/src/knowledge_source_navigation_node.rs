@@ -202,42 +202,7 @@ fn owner_envelope(item: &Value) -> Result<()> {
     }
     Ok(())
 }
-pub(crate) const ASSERTION_FIELDS: &[&str] = &[
-    "claim_id",
-    "claim_ref",
-    "claim_version",
-    "claim_type",
-    "assertion_layer",
-    "subject_ref",
-    "predicate",
-    "object",
-    "proposition",
-    "qualifiers",
-    "polarity",
-    "negated",
-    "condition",
-    "conditions",
-    "attribution",
-    "scope",
-    "temporal_context",
-    "spatial_context",
-    "epistemic_status",
-    "review_status",
-    "claim_status",
-    "review_refs",
-    "reviews",
-    "assessment_refs",
-    "confidence",
-    "maker",
-    "method_ref",
-    "evidence_refs",
-    "counterevidence_refs",
-    "alternative_claim_refs",
-    "competing_claim_refs",
-    "supersedes_claim_ref",
-    "provenance_event_ref",
-    "visibility",
-];
+use crate::knowledge_normalization::ASSERTION_FIELDS;
 fn assertion_trigger(key: &str) -> bool {
     ASSERTION_FIELDS.contains(&key)
         && !matches!(

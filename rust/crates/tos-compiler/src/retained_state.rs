@@ -35,6 +35,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_stage::InputCollectionReceipt
     expected_count,
     expected_root_sha256
 });
+#[cfg(feature = "source-tools")]
 tos_foundation::impl_owned_state!(crate::knowledge_full::FullKnowledgeReceipt {
     source_scope,
     catalog,
@@ -47,6 +48,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_scope::ScopeReceipt {
     relation_count,
     source_scope_root_sha256
 });
+#[cfg(feature = "source-tools")]
 tos_foundation::impl_owned_state!(crate::knowledge_catalog_index::CatalogIndexReceipt {
     descriptor_sha256,
     catalog_packet_sha256,
@@ -67,7 +69,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_search::SearchIndexReceipt {
     work_bytes,
     search_index_root_sha256
 });
-tos_foundation::impl_owned_state!(crate::knowledge_seal::KnowledgeSealReceipt {
+tos_foundation::impl_owned_state!(crate::knowledge_selected::KnowledgeSealReceipt {
     model_abi,
     managed_source_root_sha256,
     navigation_original_root_sha256,
@@ -84,6 +86,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_seal::KnowledgeSealReceipt {
     source_scope_root_sha256,
     search_index_root_sha256
 });
+#[cfg(feature = "source-tools")]
 tos_foundation::impl_owned_state!(crate::knowledge_native::NativeProducerReceipt {
     final_rows,
     navigation_original,
@@ -108,6 +111,7 @@ tos_foundation::impl_owned_state!(crate::knowledge_native::NativeProducerReceipt
     indexed_nodes,
     indexed_relations
 });
+#[cfg(feature = "source-tools")]
 tos_foundation::impl_owned_state!(crate::knowledge_native_finalize::NativeFinalizeReceipt {
     source_cut,
     nodes,
@@ -189,25 +193,27 @@ tos_foundation::impl_owned_state!(
         ordered_root_sha256
     }
 );
-tos_foundation::impl_owned_state!(crate::source_corpus::NativeCorpusSourceReceipt {
-    profile,
-    source_revision,
-    source_membership_sha256,
-    source_members,
-    source_cut,
-    descriptor_sha256,
-    software_commit,
-    software_tree,
-    software_manifest_sha256,
-    owner_program_sha256,
-    owner_schema_sha256,
-    repository_inventory_root_sha256,
-    canon_source_root_sha256,
-    navigation_catalog_root_sha256,
-    output_sha256,
-    output_bytes,
-    schema_units
-});
+tos_foundation::impl_owned_state!(
+    crate::knowledge_corpus_original::NativeCorpusSourceReceipt {
+        profile,
+        source_revision,
+        source_membership_sha256,
+        source_members,
+        source_cut,
+        descriptor_sha256,
+        software_commit,
+        software_tree,
+        software_manifest_sha256,
+        owner_program_sha256,
+        owner_schema_sha256,
+        repository_inventory_root_sha256,
+        canon_source_root_sha256,
+        navigation_catalog_root_sha256,
+        output_sha256,
+        output_bytes,
+        schema_units
+    }
+);
 tos_foundation::impl_owned_state!(crate::knowledge_selected::KnowledgeSelectedExpectation {
     model_sha256,
     model_size_bytes,

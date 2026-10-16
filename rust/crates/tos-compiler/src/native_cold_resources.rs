@@ -1,6 +1,5 @@
 //! Actual Linux cgroup-v2 RAM custody for the selected native cold opener.
 //! Stage tickets and nominal process limits do not replace these kernel facts.
-use crate::native_snapshot::NativeColdOpenResourceHold;
 use crate::{ColdOpenLimits, Error, NativeProcessLimits, Result};
 use std::{
     fs::File,
@@ -12,6 +11,34 @@ use std::{
     },
     time::Instant,
 };
+
+/// Implemented by the selected host resource owner. It must recheck a real
+/// process-scoped hard-memory/swap boundary and the admitted cold-work envelope.
+/// For the Linux source route, that means the held current cgroup-v2 scope has a
+/// finite `memory.max` no greater than `working_ram_bytes`, `memory.swap.max`
+/// equal to zero, and enough headroom for the retained stage model, sealed copy,
+/// the remaining unallocated copy bytes, the producer's bounded 64 KiB copy
+/// buffer while that buffer is live, and the cold SQLite working set. The stage
+/// ticket's `working_ram_bytes` field alone is only metadata. The producer
+/// supplies copy-phase values itself: before and during copy,
+/// `additional_copy_bytes` is the exact remaining source size and
+/// `copy_buffer_bytes` is 65,536; after the copy is held, additional copy
+/// bytes are zero. The hold must remain valid for the entire callback and
+/// recheck on every method call.
+pub trait NativeColdOpenResourceHold: Send + Sync {
+    fn verify_cold_open(
+        &self,
+        cold: crate::ColdOpenLimits,
+        process: crate::NativeProcessLimits,
+        working_ram_bytes: u64,
+        stage_model_bytes: u64,
+        sealed_model_bytes: u64,
+        additional_copy_bytes: u64,
+        copy_buffer_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<()>;
+}
 
 const PATH_BYTES: usize = 8193;
 const COPY_BUFFER_BYTES: u64 = 64 * 1024;

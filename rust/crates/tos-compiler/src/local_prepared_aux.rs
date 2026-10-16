@@ -2,9 +2,10 @@
 //! No request-time DDL or implicit bootstrap. The caller owns the transaction,
 //! rollback, disk reservation and SQLite file/VM caps for explicit installation.
 
+#[cfg(feature = "source-tools")]
+use crate::d1_public_lens::compact_seed;
 use crate::{
     Error, Result,
-    d1_public_lens::compact_seed,
     local_prepared::{compact, metadata, parse, snapshot_binding},
 };
 use rusqlite::{Connection, OptionalExtension, params};
@@ -77,6 +78,7 @@ pub struct AuxInstallReceipt {
     pub entries: u64,
 }
 
+#[cfg(feature = "source-tools")]
 fn transaction(db: &Connection) -> Result<()> {
     if db.is_autocommit() {
         return Err(Error::Invalid(
@@ -134,6 +136,7 @@ pub fn validate(db: &Connection, binding: &JsonValue) -> Result<AuxPresence> {
     })
 }
 
+#[cfg(feature = "source-tools")]
 fn addressed(kind: &str, id: &str) -> Result<()> {
     if !matches!(kind, "node" | "relation")
         || id.is_empty()
@@ -145,6 +148,7 @@ fn addressed(kind: &str, id: &str) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 fn member_values(item: &JsonValue, field: &str) -> Result<BTreeSet<String>> {
     let values = item
         .object_get(field)
@@ -167,6 +171,7 @@ fn member_values(item: &JsonValue, field: &str) -> Result<BTreeSet<String>> {
 /// Maintain only previously admitted optional lanes alongside base-row writes.
 /// Exact source JSON bytes own the source digest; compact omissions preserve
 /// the shared form inputs and all unknown source fields.
+#[cfg(feature = "source-tools")]
 pub fn put(
     db: &Connection,
     presence: AuxPresence,
@@ -251,6 +256,7 @@ pub fn put(
 }
 
 /// Seal after all base and optional writes, using the newly published binding.
+#[cfg(feature = "source-tools")]
 pub fn seal(db: &Connection, presence: AuxPresence, binding: &JsonValue) -> Result<()> {
     transaction(db)?;
     let binding = compact(binding, MAX_BINDING_BYTES)?;
@@ -270,6 +276,7 @@ pub fn seal(db: &Connection, presence: AuxPresence, binding: &JsonValue) -> Resu
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 fn create_compact(db: &Connection) -> Result<()> {
     db.execute_batch(&format!(
         "CREATE TABLE {COMPACT_TABLE}(kind TEXT NOT NULL,id TEXT NOT NULL,source_sha256 TEXT NOT NULL,\
@@ -289,6 +296,7 @@ fn create_compact(db: &Connection) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 fn create_membership(db: &Connection) -> Result<()> {
     db.execute_batch(&format!(
         "CREATE TABLE {MEMBERSHIP_TABLE}(kind TEXT NOT NULL,field TEXT NOT NULL,value TEXT NOT NULL,\
@@ -310,6 +318,7 @@ fn create_membership(db: &Connection) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "source-tools")]
 fn add(value: &mut u64, amount: u64, max: u64, label: &'static str) -> Result<()> {
     *value = value
         .checked_add(amount)
@@ -321,6 +330,7 @@ fn add(value: &mut u64, amount: u64, max: u64, label: &'static str) -> Result<()
 // Expected binding comparison ignores dict field order; field order remains
 // significant only for the separately stored compact state-binding bytes.
 // Call after bounded compact emission so caller-built values are bounded too.
+#[cfg(feature = "source-tools")]
 fn same_binding(left: &JsonValue, right: &JsonValue) -> bool {
     match (left, right) {
         (JsonValue::Object(left), JsonValue::Object(right)) => {
@@ -343,6 +353,7 @@ fn same_binding(left: &JsonValue, right: &JsonValue) -> bool {
     }
 }
 
+#[cfg(feature = "source-tools")]
 fn install(
     db: &Connection,
     expected_binding: &JsonValue,
@@ -448,6 +459,7 @@ fn install(
 }
 
 /// Explicit complete compact installation, refusing existing stores.
+#[cfg(feature = "source-tools")]
 pub fn install_compact(
     db: &Connection,
     expected_binding: &JsonValue,
@@ -465,6 +477,7 @@ pub fn install_compact(
 }
 
 /// Explicit complete membership installation, refusing existing stores.
+#[cfg(feature = "source-tools")]
 pub fn install_membership(
     db: &Connection,
     expected_binding: &JsonValue,
@@ -481,7 +494,7 @@ pub fn install_membership(
     )
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "source-tools"))]
 mod tests {
     use super::*;
 

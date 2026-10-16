@@ -1,28 +1,44 @@
 //! Bounded compilation of derived knowledge, catalog and publication models.
 //! This crate writes private candidates; admission, rights and selection remain owner routes.
 
+#[cfg(feature = "source-tools")]
 pub mod catalog;
+#[cfg(feature = "source-tools")]
 pub mod d1;
 #[cfg(feature = "source-tools")]
 pub mod d1_prepared_pair;
 #[cfg(feature = "source-tools")]
 pub mod d1_projection_snapshot;
+#[cfg(feature = "source-tools")]
 mod d1_public_baseline;
+#[cfg(feature = "source-tools")]
 mod d1_public_build;
 mod d1_public_capture;
+#[cfg(feature = "source-tools")]
 mod d1_public_delta;
+#[cfg(feature = "source-tools")]
 mod d1_public_graph;
+#[cfg(feature = "source-tools")]
 mod d1_public_header;
+#[cfg(feature = "source-tools")]
 mod d1_public_knowledge;
+#[cfg(feature = "source-tools")]
 mod d1_public_lens;
+#[cfg(feature = "source-tools")]
 mod d1_public_lens_specs;
+#[cfg(feature = "source-tools")]
 mod d1_public_metadata;
+#[cfg(feature = "source-tools")]
 mod d1_public_publication;
 mod d1_public_rows;
+#[cfg(feature = "source-tools")]
 mod d1_public_schema;
+#[cfg(feature = "source-tools")]
 mod d1_public_semantics;
+#[cfg(feature = "source-tools")]
 mod d1_public_sql;
 mod d1_public_static;
+#[cfg(feature = "source-tools")]
 pub mod epistemic_evidence;
 pub mod local_prepared;
 pub mod local_prepared_aux;
@@ -32,6 +48,7 @@ pub mod local_prepared_reuse;
 pub mod local_prepared_search;
 pub mod prepared_catalog_index;
 pub mod prepared_catalog_semantics;
+#[cfg(feature = "source-tools")]
 pub mod prepared_maintenance;
 #[cfg(feature = "source-tools")]
 pub mod prepared_maintenance_file;
@@ -40,6 +57,7 @@ mod prepared_semantic_kernel;
 pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
+#[cfg(feature = "source-tools")]
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
     public_d1_limits,
@@ -48,18 +66,31 @@ pub use d1_public_capture::{
     PublicCapture, PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureCreationUsage,
     RuntimeCaptureOwnedBudget, RuntimeCaptureProfile, RuntimeCaptureRole,
 };
+#[cfg(feature = "source-tools")]
 pub use d1_public_knowledge::project_private_knowledge_row;
+#[cfg(feature = "source-tools")]
 pub use d1_public_lens::project_private_lens_auxiliary_rows;
-pub use d1_public_rows::{project_private_navigation_row, project_private_philosophy_view_row};
+#[cfg(feature = "source-tools")]
+pub use d1_public_rows::project_private_navigation_row;
+pub use d1_public_rows::project_private_philosophy_view_row;
+#[cfg(feature = "source-tools")]
 mod knowledge_base;
+#[cfg(feature = "source-tools")]
 pub mod knowledge_candidates;
+#[cfg(feature = "source-tools")]
 pub mod knowledge_canon_materialize;
+#[cfg(feature = "source-tools")]
 pub mod knowledge_canon_prepare;
+#[cfg(feature = "source-tools")]
 pub mod knowledge_canon_source;
+#[cfg(feature = "source-tools")]
 mod knowledge_catalog_index;
 mod knowledge_corpus_original;
+#[cfg(feature = "source-tools")]
 mod knowledge_corpus_source;
+#[cfg(feature = "source-tools")]
 mod native_normalization_binding;
+#[cfg(feature = "source-tools")]
 mod native_snapshot_originals;
 pub use knowledge_corpus_original::{
     CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
@@ -70,10 +101,12 @@ pub use knowledge_corpus_original::{
     captured_runtime_input_manifest_digest, retain_captured_corpus_original,
     retain_corpus_original,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_corpus_source::{
     CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,
     retain_captured_corpus_original_from_capture,
 };
+#[cfg(feature = "source-tools")]
 pub mod managed_agent_producer;
 pub mod managed_source;
 pub use managed_source::{
@@ -81,53 +114,74 @@ pub use managed_source::{
     ManagedSourceGenerationV1, ManagedSourceGenerationV2, ManagedSourceProofV1,
     ManagedSourceProofV2,
 };
+#[cfg(feature = "source-tools")]
 mod knowledge_full;
-#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    feature = "source-tools",
+    any(test, feature = "test-fixture")
+))]
 pub mod knowledge_full_fixture;
 mod knowledge_global_titles;
 mod knowledge_indexed;
 mod knowledge_inherited_views;
+#[cfg(feature = "source-tools")]
 mod knowledge_native;
+#[cfg(feature = "source-tools")]
 mod knowledge_native_finalize;
 mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
 pub mod native_cold_resources;
+#[cfg(feature = "source-tools")]
 pub mod native_snapshot;
+#[cfg(feature = "source-tools")]
 pub mod native_snapshot_carriers;
+#[cfg(feature = "source-tools")]
 pub mod native_snapshot_manifest;
+#[cfg(feature = "source-tools")]
 pub mod processing_cache;
+#[cfg(feature = "source-tools")]
+pub use knowledge_philosophy_original::retain_philosophy_original;
 pub use knowledge_philosophy_original::{
     KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,
     PhilosophyOriginalInput, PhilosophyOriginalPage, PhilosophyOriginalReceipt,
-    PhilosophyOriginalRow, philosophy_original_rows_root, retain_philosophy_original,
+    PhilosophyOriginalRow, philosophy_original_rows_root,
 };
 pub use knowledge_posting_codec::{
     MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block,
     decode_posting_block_for_abi,
 };
 mod knowledge_navigation_original;
+#[cfg(feature = "source-tools")]
+pub use knowledge_navigation_original::retain_navigation_original;
 pub use knowledge_navigation_original::{
     KNOWLEDGE_NAVIGATION_MODEL_ABI, NAVIGATION_ORIGINAL_PROFILE, NavigationOriginalInput,
     NavigationOriginalLimits, NavigationOriginalMember, NavigationOriginalMemberPage,
     NavigationOriginalPage, NavigationOriginalReceipt, NavigationOriginalRightsHasher,
-    navigation_original_rights_root, retain_navigation_original,
+    navigation_original_rights_root,
 };
 mod controlled_cold_model;
 mod knowledge_byte_codec;
 mod knowledge_byte_dictionary;
+#[cfg(feature = "source-tools")]
 mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_payload_codec;
 pub mod knowledge_payload_read;
 pub mod knowledge_philosophy_display;
+#[cfg(feature = "source-tools")]
 mod knowledge_philosophy_materialize;
+#[cfg(feature = "source-tools")]
 mod knowledge_philosophy_prepare;
 mod knowledge_readable_context;
 mod knowledge_registry;
+#[cfg(feature = "source-tools")]
 mod knowledge_repository;
+#[cfg(feature = "source-tools")]
 pub mod knowledge_repository_source;
 mod knowledge_scope;
+#[cfg(feature = "source-tools")]
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_search_rank;
@@ -145,11 +199,17 @@ pub use controlled_cold_model::{
     ControlledOriginalReceipt, ControlledOriginalRowRead, ControlledSidecarModel,
     SearchSidecarAdmissionError,
 };
+#[cfg(feature = "source-tools")]
 mod knowledge_semantic_join;
+#[cfg(feature = "source-tools")]
 pub mod knowledge_source_claims;
+#[cfg(feature = "source-tools")]
 mod knowledge_source_claims_prepare;
+#[cfg(feature = "source-tools")]
 mod knowledge_source_navigation_node;
+#[cfg(feature = "source-tools")]
 mod knowledge_source_navigation_prepare;
+#[cfg(feature = "source-tools")]
 mod knowledge_source_navigation_relation;
 pub mod knowledge_stage;
 mod legacy;
@@ -190,6 +250,7 @@ pub use managed_model_manifest::{
 };
 mod versions_catalog_epoch;
 pub use versions_catalog_epoch::VersionsCatalogEpochV2;
+#[cfg(feature = "source-tools")]
 pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
@@ -215,8 +276,11 @@ pub mod source_witness_catalog;
 mod sqlite_budget;
 pub use sqlite_budget::{DedicatedSessionSqliteHeap, dedicated_session_heap_bytes};
 mod vocabulary;
+#[cfg(feature = "source-tools")]
 pub use knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
+#[cfg(feature = "source-tools")]
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
+#[cfg(feature = "source-tools")]
 pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
     managed_navigation_header_with_binding,
@@ -233,62 +297,74 @@ pub use knowledge_inherited_views::{
     CompleteRelationSeal, InheritedViewLimits, InheritedViewReceipt, clear_inherited_views,
     endpoint_inherited_views, prepare_global_inherited_views,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_native::{
-    NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NativeProducerLimits,
-    NativeProducerReceipt, materialize_native_sources, materialize_native_sources_with_inputs,
+    NativeFamilyInputs, NativeProducerLimits, NativeProducerReceipt, materialize_native_sources,
+    materialize_native_sources_with_inputs,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_native_finalize::{
     NativeFinalizeLimits, NativeFinalizeReceipt, finalize_native_graph_rows,
     finalize_native_graph_rows_with_witnesses,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_navigation_materialize::{
     NavigationMaterializeLimits, NavigationNodeMaterializeReceipt, NavigationPlaceholderReceipt,
     NavigationRelationMaterializeReceipt, materialize_navigation_nodes,
     materialize_navigation_placeholders, materialize_navigation_relations,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_philosophy_materialize::{
     PhilosophyBase, PhilosophyMaterializeLimits, PhilosophyMaterializeReceipt,
     PhilosophyNormalizer, PhilosophyRelationGlobalInputs, materialize_philosophy_nodes,
     materialize_philosophy_relations,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_philosophy_prepare::{
     PhilosophyExternalDependency, PhilosophyPrepareLimits, PhilosophyPrepareReceipt,
     clear_philosophy_prepare, prepare_philosophy,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_readable_context::{
     ReadableContextCarrier, ReadableContextCompiler, ReadableContextLimits,
     ordered_readable_witness, ordered_readable_witness_bounded,
 };
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
+#[cfg(feature = "source-tools")]
 pub use knowledge_repository::{
     RepositoryPrepareReceipt, RepositoryRootInput, TopologyLimits, clear_repository_topology,
     materialize_repository_nodes, materialize_repository_relations, prepare_repository_topology,
     repository_material_witness, scan_repository_relation_sources,
 };
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
-pub use knowledge_seal::{
-    KNOWLEDGE_MODEL_ABI, KnowledgeSealReceipt, SealLimits, seal_knowledge_model,
-};
+#[cfg(feature = "source-tools")]
+pub use knowledge_seal::{SealLimits, seal_knowledge_model};
 pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index};
 pub use knowledge_selected::{
-    ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
-    VerifiedKnowledgeModel, open_selected_knowledge_model, open_selected_knowledge_model_owned,
+    ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KNOWLEDGE_MODEL_ABI,
+    KnowledgeSealReceipt, KnowledgeSelectedExpectation, VerifiedKnowledgeModel,
+    open_selected_knowledge_model, open_selected_knowledge_model_owned,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_semantic_join::{
     SemanticJoinReceipt, clear_semantic_joins, materialize_semantic_relations,
     prepare_semantic_joins, render_supplied_shared_identity_pair,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_source_claims_prepare::{
     ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_source_navigation_node::{
     NavigationBaseNode, NavigationEndpoint, NavigationNodeLimits, NavigationNodeNormalizer,
     NavigationPlaceholderBase,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_source_navigation_prepare::{
     NavigationExternalDependency, NavigationHeaderClaim, NavigationPrepareLimits,
     NavigationPrepareReceipt, prepare_source_navigation,
 };
+#[cfg(feature = "source-tools")]
 pub use knowledge_source_navigation_relation::{
     NavigationBaseRelation, NavigationRelationDependencyReceipt, NavigationRelationGlobalInputs,
     NavigationRelationLimits, NavigationRelationNormalizeLimits, NavigationRelationNormalizer,
@@ -320,7 +396,9 @@ pub use source_bibliographic_versions::{
     selected_metadata_archive_manifest_paths_v1, selected_metadata_archive_record_blob_path_v1,
     selected_metadata_record_schema_path_v1,
 };
-pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
+pub use vocabulary::{
+    NATIVE_KNOWLEDGE_ADAPTER_PROFILES, QueryVocabulary, RegisteredSource, VocabularyBinding,
+};
 
 use std::{fmt, io::Read, path::Path};
 use tos_foundation::{Digest256, Digest256Hasher, JsonValue};
@@ -744,6 +822,7 @@ pub mod research_reading_workbench;
 mod retained_state;
 
 // Explicit layout is admitted only by the original owned whole producer.
+#[cfg(feature = "source-tools")]
 pub use native_snapshot::{
     NativeSnapshotCreationUsage, NativeSnapshotOwnedBudget, NativeSnapshotOwnedReadLoan,
     build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,

@@ -898,14 +898,7 @@ pub(crate) fn parent_navigation_member(
     ))
 }
 
-/// Exact original bytes recovered from authenticated membership and either
-/// the V2 direct carrier or the older normalized carrier, plus bounded work.
-/// This is immutable custody only; the caller retains current owner authority.
-pub struct ManagedNavigationOriginalCarrier {
-    pub raw: Vec<u8>,
-    pub visited_rows: u64,
-    pub work_bytes: u64,
-}
+pub use crate::knowledge_navigation_original::ManagedNavigationOriginalCarrier;
 
 /// Read one original member through the existing managed model format. The
 /// caller retains its SQL cancellation/VM hook. Placeholder carriers cannot

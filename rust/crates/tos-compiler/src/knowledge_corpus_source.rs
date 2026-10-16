@@ -439,19 +439,7 @@ fn json(raw: &[u8], cap: usize) -> Result<Value> {
     parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|e| Error::Source(e.to_string()))?;
     serde_json::from_slice(raw).map_err(|_| Error::Invalid("corpus source JSON"))
 }
-pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
-    let raw = serde_json::to_vec(v).map_err(|_| Error::Invalid("corpus original encoding"))?;
-    let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
-        .map_err(|_| Error::Budget("corpus original JSON limits"))?;
-    let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits)
-        .map_err(|e| Error::Source(e.to_string()))?;
-    canonical_bytes_v1(
-        parsed.root(),
-        CanonicalProfile::SourceRecordDigestV1,
-        limits,
-    )
-    .map_err(|e| Error::Source(e.to_string()))
-}
+
 fn check_originals(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
     if cancelled.load(Ordering::Relaxed) {
         return Err(Error::Invalid("corpus original cancelled"));
@@ -1388,7 +1376,7 @@ pub fn prepare_native_corpus_original(
     check_originals(deadline, cancelled)?;
     limits.originals.validate()?;
     let producer = projection.receipt();
-    crate::source_corpus::validate_receipt(producer)?;
+    crate::knowledge_corpus_original::validate_native_corpus_source_receipt(producer)?;
     let mut actual_binding = projection.source_binding().clone();
     let mut target_binding = binding.clone();
     // Planner and final target have independently computed projection roots.

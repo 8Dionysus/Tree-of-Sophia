@@ -6967,7 +6967,7 @@ const CARRIER_NORMALIZED_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_
     Err(_) => panic!("carrier normalized schema contains interior NUL"),
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "source-tools"))]
 mod tests {
     use super::*;
     use std::{

@@ -1,5 +1,7 @@
 //! Exact ordered philosophy projection input retained under the selected lease.
 //! Mechanical custody only: authored source and current policy retain authority.
+#[cfg(feature = "source-tools")]
+use crate::PhilosophyPrepareReceipt;
 use crate::d1_public_capture::CreationState;
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_selected::{
@@ -9,7 +11,7 @@ use crate::knowledge_stage::{
     InputCollectionReceipt, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout,
     KnowledgeStage, WritePhase,
 };
-use crate::{Error, NavigationOriginalLimits, PhilosophyPrepareReceipt, QueryVocabulary, Result};
+use crate::{Error, NavigationOriginalLimits, QueryVocabulary, Result};
 use rusqlite::{Connection, OptionalExtension, params};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};
 
@@ -200,6 +202,7 @@ pub(crate) fn validate_producer_receipt(
 }
 /// Retain the real input ordering before normalization; raw_records has no order.
 /// Every supplied row must exactly match a complete declared same-cut stage input.
+#[cfg(feature = "source-tools")]
 pub fn retain_philosophy_original(
     stage: &mut KnowledgeStage<'_>,
     vocabulary: &QueryVocabulary,

@@ -463,7 +463,7 @@ fn ordered_readable_witness_kernel(
             }
             for pointer in ["", "/properties", "/properties/source_claim"] {
                 if let Ok(layer) = at_ordered(source, pointer) {
-                    for key in crate::knowledge_source_navigation_node::ASSERTION_FIELDS {
+                    for key in crate::knowledge_normalization::ASSERTION_FIELDS {
                         if layer.object_get(key).is_some()
                             && fields.contains_key(*key)
                             && !field_order.contains(key)

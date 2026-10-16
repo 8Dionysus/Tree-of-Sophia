@@ -2,6 +2,7 @@
 //! These packets never issue current authority. The command owner derives and
 //! checks them against its retained generation, committed chain and fences.
 
+#[cfg(feature = "source-tools")]
 pub use crate::managed_agent_producer::{
     CompletedManagedAgentProducer, prepare_managed_agent_selected_model,
     prepare_managed_agent_selected_successor,

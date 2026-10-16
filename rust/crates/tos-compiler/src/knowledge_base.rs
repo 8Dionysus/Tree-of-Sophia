@@ -1,11 +1,12 @@
 //! Shared bounded base assembly for ordinary owner node/edge carriers.
 //! These pure mechanics normalize selected registry mappings and preserve raw
 //! source records; source adapters still own input completeness and admission.
+use crate::knowledge_normalization::ASSERTION_FIELDS;
 use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
 use crate::knowledge_philosophy_display::{
     full_owner_relation_display, full_philosophy_node_display,
 };
-use crate::knowledge_source_navigation_node::{ASSERTION_FIELDS, epistemic, normalized_time};
+use crate::knowledge_source_navigation_node::{epistemic, normalized_time};
 use crate::knowledge_source_navigation_relation::direct_assertion_context;
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
 use serde_json::{Map, Value, json};

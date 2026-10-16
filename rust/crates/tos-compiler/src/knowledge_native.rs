@@ -107,19 +107,6 @@ pub struct NativeProducerLimits {
     pub finalize: NativeFinalizeLimits,
 }
 
-/// Adapter implementations accepted by the existing native composition.
-/// Consumers use this capability closure, never derive support from input data.
-pub const NATIVE_KNOWLEDGE_ADAPTER_PROFILES: &[&str] = &[
-    "source-navigation-node-edge-v1",
-    "reified-bibliographic-claims-v1",
-    "philosophy-node-edge-v1",
-    "canon-node-relation-v1",
-    "candidate-relation-v1",
-    "repository-topology-v1",
-    "declared-identity-and-source-ref-joins-v1",
-    "indexed-node-edge-v1",
-];
-
 #[derive(Clone, Debug)]
 pub struct NativeProducerReceipt {
     pub final_rows: NativeFinalizeReceipt,

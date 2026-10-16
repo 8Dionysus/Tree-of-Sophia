@@ -2,7 +2,9 @@
 //! This component binds projection custody, never current rights authority.
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
-use crate::{Error, NavigationHeaderClaim, NavigationPrepareReceipt, QueryVocabulary, Result};
+use crate::{Error, QueryVocabulary, Result};
+#[cfg(feature = "source-tools")]
+use crate::{NavigationHeaderClaim, NavigationPrepareReceipt};
 use rusqlite::{Connection, OptionalExtension, params};
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -509,7 +511,7 @@ pub(crate) fn exact_carrier(
     db: &Connection,
     member: &NavigationOriginalMember,
     limits: NavigationOriginalLimits,
-) -> Result<crate::managed_agent_producer::ManagedNavigationOriginalCarrier> {
+) -> Result<ManagedNavigationOriginalCarrier> {
     let raw: Option<Vec<u8>> = db.query_row(
         "SELECT CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND packet_len=?3 AND packet_len<=?4 AND packet_sha256=?5 THEN packet END FROM navigation_original_carriers WHERE collection=?1 AND id=?2",
         params![member.collection,member.id,member.raw_bytes,limits.max_row_bytes,Digest256::from_hex(&member.raw_sha256).map_err(|_|Error::Invalid("navigation carrier expected SHA"))?.as_bytes().as_slice()],
@@ -522,17 +524,16 @@ pub(crate) fn exact_carrier(
     if work_bytes > limits.max_total_bytes {
         return Err(Error::Budget("navigation exact carrier work"));
     }
-    Ok(
-        crate::managed_agent_producer::ManagedNavigationOriginalCarrier {
-            raw,
-            visited_rows: 1,
-            work_bytes,
-        },
-    )
+    Ok(ManagedNavigationOriginalCarrier {
+        raw,
+        visited_rows: 1,
+        work_bytes,
+    })
 }
 /// Independently supplied expected rights root binds the original ordered rows.
 /// The same-cut owner must supply these originals alongside its prepared raw
 /// navigation. Mechanical binding does not admit the source or current rights.
+#[cfg(feature = "source-tools")]
 pub fn retain_navigation_original(
     stage: &mut KnowledgeStage<'_>,
     vocabulary: &QueryVocabulary,
@@ -1303,7 +1304,7 @@ mod addressed_membership_tests {
     }
 }
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(all(test, not(target_arch = "wasm32"), feature = "source-tools"))]
 mod cold_abi_admission_tests {
     use super::*;
 
@@ -1627,4 +1628,13 @@ fn verify_members_with_owned_state(
         return Err(Error::Invalid("navigation original member index closure"));
     }
     Ok(())
+}
+
+/// Exact original bytes recovered from authenticated membership and either
+/// the V2 direct carrier or the older normalized carrier, plus bounded work.
+/// This is immutable custody only; the caller retains current owner authority.
+pub struct ManagedNavigationOriginalCarrier {
+    pub raw: Vec<u8>,
+    pub visited_rows: u64,
+    pub work_bytes: u64,
 }

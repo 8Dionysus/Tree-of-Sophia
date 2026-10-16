@@ -2,11 +2,12 @@
 //! All operations borrow the whole caller's transaction; errors require rollback.
 //! Root metadata is addressing evidence, never source closure or admission.
 use crate::prepared_catalog_index::CatalogMaintenanceLimits;
-use crate::prepared_catalog_semantics::CatalogInputs;
+use crate::prepared_catalog_semantics::{self as catalog, CatalogInputs};
+#[cfg(feature = "source-tools")]
 use crate::prepared_maintenance::{self, MaintenanceReceipt};
 use crate::prepared_semantic_index::SemanticMaintenanceLimits;
 use crate::{Error, Result, local_prepared as prepared};
-use rusqlite::{Transaction, params};
+use rusqlite::{OptionalExtension, Transaction, params};
 use serde_json::Value;
 use std::path::Path;
 use tos_foundation::{
@@ -338,7 +339,7 @@ pub fn read_prepared_source_inputs_transaction(
     catalog: &CatalogInputs,
     limits: prepared::PublicationLimits,
 ) -> Result<PreparedSourceInputs> {
-    prepared_maintenance::selected(tx, expected, catalog, limits)?;
+    selected_prepared_catalog(tx, expected, catalog, limits)?;
     let cap = MAX_STATE_BYTES.min(limits.max_metadata_bytes);
     let mut stmt=tx.prepare("SELECT CASE WHEN typeof(binding)='text' AND length(CAST(binding AS BLOB))<=? THEN binding END,CASE WHEN typeof(inputs)='text' AND length(CAST(inputs AS BLOB))<=? THEN inputs END,CASE WHEN typeof(sha256)='text' AND length(sha256)=64 THEN sha256 END FROM prepared_source_state WHERE singleton=1 LIMIT 2")?;
     let mut rows = stmt.query(params![cap, cap])?;
@@ -389,6 +390,7 @@ pub fn validate_prepared_source_state(
 }
 
 #[derive(Clone, Debug)]
+#[cfg(feature = "source-tools")]
 pub struct SourceMaintenanceReceipt {
     pub publication: MaintenanceReceipt,
     /// Exact finalized header plus the original registry/lens/order inputs.
@@ -401,6 +403,7 @@ pub struct SourceMaintenanceReceipt {
     pub semantic_acceptance: bool,
     pub consumer_switched: bool,
 }
+#[cfg(feature = "source-tools")]
 pub fn apply_source_bound_prepared_delta_transaction<
     I: IntoIterator<Item = Result<prepared::PreparedChange>>,
 >(
@@ -461,6 +464,7 @@ pub fn apply_source_bound_prepared_delta_transaction<
 /// Add one independent addressing root without changing existing roots, source
 /// publication, normalized rows or execution profiles. The stronger source
 /// owner proves membership; this helper does not confer admission or commit.
+#[cfg(feature = "source-tools")]
 pub fn bootstrap_prepared_source_root_extension_transaction(
     tx: &Transaction<'_>,
     expected: &JsonValue,
@@ -561,6 +565,7 @@ pub fn bootstrap_prepared_source_root_extension_transaction(
     )
 }
 
+#[cfg(feature = "source-tools")]
 fn finish_pair(
     tx: &Transaction<'_>,
     predecessor: &PreparedSourceInputs,
@@ -612,6 +617,7 @@ fn finish_pair(
 /// Explicit implementation-profile transition before any source command writes.
 /// Naming a review does not prove algorithm compatibility or source admission;
 /// the whole caller owns that evidence and rolls back every paired state.
+#[cfg(feature = "source-tools")]
 pub fn transition_prepared_source_profiles_transaction(
     tx: &Transaction<'_>,
     expected: &JsonValue,
@@ -732,4 +738,133 @@ pub fn transition_prepared_source_profiles_transaction(
         limits,
         start,
     )
+}
+
+pub(crate) fn selected_digest(value: &JsonValue, cap: usize) -> Result<String> {
+    Ok(Digest256::of_bytes(prepared::compact(value, cap)?.as_bytes()).to_hex())
+}
+pub(crate) fn selected_registry_digest(value: &JsonValue, cap: usize) -> Result<String> {
+    let view: Value = serde_json::from_str(&prepared::compact(value, cap)?)
+        .map_err(|_| Error::Invalid("maintenance registry JSON"))?;
+    crate::knowledge_normalization::stable_digest(&view)
+}
+pub(crate) fn selected_required<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str> {
+    value
+        .object_get(key)
+        .and_then(JsonValue::as_str)
+        .ok_or(Error::Invalid("maintenance required string"))
+}
+pub(crate) fn selected_same(a: &JsonValue, b: &JsonValue, cap: usize) -> Result<bool> {
+    let a: Value = serde_json::from_str(&prepared::compact(a, cap)?)
+        .map_err(|_| Error::Invalid("maintenance equality JSON"))?;
+    let b: Value = serde_json::from_str(&prepared::compact(b, cap)?)
+        .map_err(|_| Error::Invalid("maintenance equality JSON"))?;
+    crate::prepared_semantic_kernel::python_eq(&a, &b)
+}
+pub(crate) fn selected_prepared_catalog(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    inputs: &CatalogInputs,
+    limits: prepared::PublicationLimits,
+) -> Result<JsonValue> {
+    match expected.object_get("publication_epoch") {
+        Some(JsonValue::Number(epoch))
+            if epoch.kind == tos_foundation::JsonNumberKind::Int
+                && epoch
+                    .lexeme
+                    .parse::<u64>()
+                    .is_ok_and(|epoch| epoch <= prepared::MAX_ADDRESS) => {}
+        _ => {
+            return Err(Error::Invalid(
+                "maintenance publication epoch must be a safe integer",
+            ));
+        }
+    }
+    limits.validate()?;
+    if tx.is_autocommit() {
+        return Err(Error::Invalid("maintenance caller transaction"));
+    }
+    if !selected_same(
+        &prepared::snapshot_binding(tx)?,
+        expected,
+        limits.max_metadata_bytes,
+    )? {
+        return Err(Error::Invalid("maintenance selected binding"));
+    }
+    let top = prepared::metadata(
+        tx,
+        "knowledge_reader_top",
+        65536.min(limits.max_metadata_bytes),
+    )?;
+    if selected_required(&top, "read_model_schema")? != prepared::SCHEMA {
+        return Err(Error::Invalid("maintenance selected schema"));
+    }
+    let revision = prepared::metadata(tx, "data_revision", 1024)?;
+    if revision.as_object().is_none_or(|fields| fields.len() != 1)
+        || revision.object_get("sha256").and_then(JsonValue::as_str)
+            != top.object_get("data_revision").and_then(JsonValue::as_str)
+    {
+        return Err(Error::Invalid("maintenance data revision"));
+    }
+    let state:Option<(u64,Option<String>)>=tx.query_row("SELECT max_pages,CASE WHEN length(CAST(descriptor AS BLOB))<=? THEN descriptor ELSE NULL END FROM prepared_state WHERE singleton=1",[limits.max_metadata_bytes],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+    let (max_pages, raw) = state.ok_or(Error::Invalid("maintenance descriptor absent"))?;
+    let raw = raw.ok_or(Error::Budget("maintenance descriptor bytes"))?;
+    let descriptor = prepared::parse(&raw, limits.max_metadata_bytes)?;
+    if selected_digest(&descriptor, limits.max_metadata_bytes)?
+        != selected_required(&top, "data_revision")?
+        || catalog::catalog_owner_digest(
+            descriptor
+                .object_get("header")
+                .ok_or(Error::Invalid("maintenance descriptor header"))?,
+            limits.max_metadata_bytes,
+        )? != inputs.header_digest()?
+    {
+        return Err(Error::Invalid("maintenance descriptor/header differs"));
+    }
+    let normalization = inputs
+        .header
+        .object_get("normalization_binding")
+        .ok_or(Error::Invalid("maintenance normalization"))?;
+    if !selected_same(
+        normalization,
+        top.object_get("normalization_binding")
+            .ok_or(Error::Invalid("maintenance selected normalization"))?,
+        limits.max_metadata_bytes,
+    )? {
+        return Err(Error::Invalid("maintenance normalization differs"));
+    }
+    if normalization
+        .object_get("entity_registry_digest")
+        .and_then(JsonValue::as_str)
+        != Some(
+            selected_registry_digest(&inputs.entity_registry, limits.max_metadata_bytes)?.as_str(),
+        )
+        || normalization
+            .object_get("relation_registry_digest")
+            .and_then(JsonValue::as_str)
+            != Some(
+                selected_registry_digest(&inputs.relation_registry, limits.max_metadata_bytes)?
+                    .as_str(),
+            )
+    {
+        return Err(Error::Invalid("maintenance registry digest"));
+    }
+    let selected_catalog = prepared::metadata(tx, "knowledge_catalog", limits.max_metadata_bytes)?;
+    if selected_digest(&selected_catalog, limits.max_metadata_bytes)?
+        != selected_required(&top, "catalog_sha256")?
+    {
+        return Err(Error::Invalid("maintenance catalog checksum"));
+    }
+    let page: u64 = tx.query_row("PRAGMA page_size", [], |r| r.get(0))?;
+    let pages: u64 = tx.query_row("PRAGMA page_count", [], |r| r.get(0))?;
+    if pages > max_pages
+        || pages
+            .checked_mul(page)
+            .ok_or(Error::Budget("maintenance pages"))?
+            > limits.max_bytes
+    {
+        return Err(Error::Budget("maintenance whole database bytes"));
+    }
+    crate::local_prepared_search::page_cap(tx, max_pages.min(limits.max_bytes / page))?;
+    Ok(selected_catalog)
 }

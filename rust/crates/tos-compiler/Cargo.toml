@@ -13,7 +13,7 @@ source-tools = ["dep:quick-xml"]
 research = ["source-tools", "tos-validation/research"]
 # Selects the pinned IndexMap allocation envelope for cold raw normalization.
 preserve-order-workspace = ["serde_json/preserve_order"]
-test-fixture = []
+test-fixture = ["source-tools"]
 
 [dependencies]
 quick-xml = { version = "=0.41.0", optional = true }

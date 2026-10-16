@@ -371,7 +371,7 @@ fn prepare_inner<'a>(
     }
     let header_bytes = match state {
         Some(state) => state.encode_canonical(&header, limits.originals.max_row_bytes)?,
-        None => crate::knowledge_corpus_source::encode(&header, limits.originals.max_row_bytes)?,
+        None => crate::knowledge_corpus_original::encode(&header, limits.originals.max_row_bytes)?,
     };
     drop(header);
     drop(header_holds);

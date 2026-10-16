@@ -1,10 +1,11 @@
 //! Disk-indexed catalog lookup rows derived from one bounded catalog receipt.
 //! These rows are a private read model, not source admission or publication.
 
+use crate::knowledge_normalization::python_casefold_with_state;
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{
     Error, QueryVocabulary, Result,
-    catalog::{CatalogPacketRef, CatalogReceipt, python_casefold_with_state},
+    catalog::{CatalogPacketRef, CatalogReceipt},
     d1_public_capture::{CreationState, CreationStateHold},
 };
 use rusqlite::{Connection, OptionalExtension, params};
@@ -13,8 +14,7 @@ use std::io::{self, Write};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 const SCHEMA: &str = "tos_catalog_index_v1";
-pub(crate) const ORDER_PROFILE: &str = "python-str-casefold-unicode16-v1";
-pub(crate) const LEGACY_ORDER_PROFILE: &str = "python-str-casefold-v1-ascii-domain";
+use crate::knowledge_selected::CATALOG_ORDER_PROFILE as ORDER_PROFILE;
 
 #[derive(Clone, Copy, Debug)]
 pub struct CatalogIndexLimits {

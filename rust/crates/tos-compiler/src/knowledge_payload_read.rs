@@ -305,6 +305,7 @@ pub(crate) fn with_runtime_knowledge_read_context<'budget, T>(
 /// read. This does not create, reset or return a second CreationState; JSON,
 /// work, VM, SQLite heap, cancellation and retained-byte charges all remain on
 /// the loan's original owner.
+#[cfg(feature = "source-tools")]
 pub(crate) fn with_snapshot_owned_knowledge_read_context<'owner, 'budget>(
     loan: &crate::native_snapshot::NativeSnapshotOwnedReadLoan<'owner, 'budget>,
     operation_deadline: Instant,

@@ -21,7 +21,9 @@ use tos_foundation::{
     canonical_bytes_v1, parse_json,
 };
 
-pub use crate::knowledge_seal::KNOWLEDGE_MODEL_ABI;
+pub const KNOWLEDGE_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1;
+pub(crate) const CATALOG_ORDER_PROFILE: &str = "python-str-casefold-unicode16-v1";
+pub(crate) const LEGACY_CATALOG_ORDER_PROFILE: &str = "python-str-casefold-v1-ascii-domain";
 // Query vocabulary's semantic primitive profile is distinct from the
 // search-index Unicode normalization profile.
 pub const KNOWLEDGE_QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
@@ -1259,11 +1261,7 @@ fn verify_catalog(
         nonnegative(routes)?,
     );
     if schema != "tos_catalog_index_v1"
-        || ![
-            crate::knowledge_catalog_index::ORDER_PROFILE,
-            crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE,
-        ]
-        .contains(&order_profile.as_str())
+        || ![CATALOG_ORDER_PROFILE, LEGACY_CATALOG_ORDER_PROFILE].contains(&order_profile.as_str())
         || catalog_sha != expected.catalog_packet_sha256
         || index_root != expected.catalog_index_root_sha256
         || sources != expected.source_scopes.len() as u64
@@ -1274,7 +1272,7 @@ fn verify_catalog(
     {
         return Err(Error::Invalid("knowledge catalog packet/meta binding"));
     }
-    let legacy_ascii = order_profile == crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE;
+    let legacy_ascii = order_profile == LEGACY_CATALOG_ORDER_PROFILE;
     if legacy_ascii
         && expected
             .source_scopes
@@ -4687,11 +4685,11 @@ pub(crate) fn verify_catalog_with_owned_context(
                     || !(owned_schema_equal(
                         state,
                         order_profile.as_bytes(),
-                        crate::knowledge_catalog_index::ORDER_PROFILE.as_bytes(),
+                        CATALOG_ORDER_PROFILE.as_bytes(),
                     )? || owned_schema_equal(
                         state,
                         order_profile.as_bytes(),
-                        crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE.as_bytes(),
+                        LEGACY_CATALOG_ORDER_PROFILE.as_bytes(),
                     )?)
                     || !owned_schema_equal(
                         state,
@@ -4719,7 +4717,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                 let legacy_ascii = owned_schema_equal(
                     state,
                     order_profile.as_bytes(),
-                    crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE.as_bytes(),
+                    LEGACY_CATALOG_ORDER_PROFILE.as_bytes(),
                 )?;
                 if legacy_ascii {
                     for scope in &expected.source_scopes {
@@ -4988,7 +4986,9 @@ pub(crate) fn verify_catalog_with_owned_context(
                     if legacy_ascii && !owned_catalog_is_ascii(value.as_bytes(), state)? {
                         return Err(Error::Invalid("legacy catalog ASCII facet profile"));
                     }
-                    crate::catalog::python_casefold_with_state(value, state, fold_cap)
+                    crate::knowledge_normalization::python_casefold_with_state(
+                        value, state, fold_cap,
+                    )
                 };
                 let _fold_operation_hold = state.hold(std::mem::size_of_val(&fold_operation))?;
                 let context_result = context
@@ -5694,4 +5694,30 @@ fn owned_catalog_utf8<'a>(
     // Every byte was checked in bounded chunks; the borrowed serializer output
     // remains immutable for the full callback.
     Ok(unsafe { std::str::from_utf8_unchecked(raw) })
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct KnowledgeSealReceipt {
+    pub model_abi: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_source_root_sha256: Option<String>,
+    pub navigation_original_root_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub philosophy_original_root_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corpus_original_root_sha256: Option<String>,
+    pub graph_root_sha256: String,
+    pub graph_header_sha256: String,
+    pub node_root_sha256: String,
+    pub relation_root_sha256: String,
+    pub node_count: u64,
+    pub relation_count: u64,
+    pub catalog_packet_sha256: String,
+    pub catalog_index_root_sha256: String,
+    pub source_scope_root_sha256: String,
+    /// Absent only for the explicit native navigation ABI, which does not
+    /// advertise an offline search capability.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_index_root_sha256: Option<String>,
 }
