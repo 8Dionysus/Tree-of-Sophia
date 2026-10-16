@@ -19,7 +19,7 @@ tos-access = { path = "../../../rust/crates/tos-access" }
 tos-validation = { path = "../../../rust/crates/tos-validation" }
 tos-foundation = { path = "../../../rust/crates/tos-foundation" }
 tos-fd-open = { path = "../../../rust/crates/tos-fd-open" }
-tos-source-store = { path = "../../../rust/crates/tos-source-store" }
+tos-source-store = { path = "../../../rust/crates/tos-source-store", features = ["capture"] }
 tos-segment-store = { path = "../../../rust/crates/tos-segment-store" }
 
 [[test]]

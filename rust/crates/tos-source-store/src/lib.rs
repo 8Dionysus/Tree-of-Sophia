@@ -1,13 +1,20 @@
-//! Read-only current-format ToS corpus snapshots.
+//! Exact current-format ToS corpus snapshots.
+//!
+//! Readers use the default format/custody surface. The explicit `capture`
+//! feature adds Git capture, archive verification/import/restore and transfer.
 //!
 //! This crate verifies mechanical exactness. Source meaning, rights, admission,
 //! publication and current-use authority remain with their owners.
 
+#[cfg(feature = "capture")]
 mod archive;
+#[cfg(feature = "capture")]
 mod capture_import;
+#[cfg(feature = "capture")]
 mod chunked_file;
 mod cut;
 mod error;
+#[cfg(feature = "capture")]
 mod git_capture;
 mod limits;
 mod manifest;
@@ -41,24 +48,31 @@ pub use streamed_cut::{
     StreamedRevisionV1, StreamedSourceMemberStreamV1, StreamedSourceMemberV1,
 };
 
+#[cfg(feature = "capture")]
 pub use archive::{
     CaptureReadUsage, CaptureRestoreLimits, CaptureVerification, restore_capture, verify_capture,
     verify_capture_with_usage,
 };
+#[cfg(feature = "capture")]
 pub use capture_import::{
     CaptureImportReceiptV1, CaptureImportRequestV1, import_git_capture_corpus_v1,
 };
 
+#[cfg(feature = "capture")]
 pub use chunked_file::{
     CHUNKED_FILE_MAX_CHUNK_BYTES_V1, CHUNKED_FILE_SCHEMA_V1, ChunkedFileLimitsV1,
     ChunkedFileReceiptV1, ChunkedFileTransportV1, restore_chunked_file_v1, upload_chunked_file_v1,
 };
 
+#[cfg(feature = "capture")]
 pub use git_capture::{CaptureGitRequest, CaptureGitResult, GitCaptureLimits, capture_git};
 
+#[cfg(feature = "capture")]
 mod source_cut_restore;
+#[cfg(feature = "capture")]
 pub use source_cut_restore::{SourceCutRestoreResult, restore_source_cut};
 
+#[cfg(feature = "capture")]
 pub use git_capture::{GitMemberDescriptor, read_git_member, resolve_git_member};
 
 mod publication;

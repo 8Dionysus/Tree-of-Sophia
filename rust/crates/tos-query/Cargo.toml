@@ -13,7 +13,7 @@ native-models = [
     "dep:tos-validation", "dep:serde_json", "dep:unicode-normalization",
     "dep:unicode-general-category",
 ]
-test-fixture = ["native-models", "tos-compiler/test-fixture", "dep:flate2"]
+test-fixture = ["native-models", "tos-compiler/test-fixture", "tos-source-store/capture", "dep:flate2"]
 
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }

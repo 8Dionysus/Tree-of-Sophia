@@ -59,6 +59,11 @@ OPS-reviewed workspace and lockfile update. This workspace contains only
 synthetic test bytes, no production corpus data, and imports no sibling
 repository.
 
+`tos-source-store` defaults to exact format, custody and read operations.
+Its explicit `capture` feature enables Git capture, import, archive restore and
+chunk transfer for writer/tool consumers. The standalone `tos-reader` and
+ordinary native query do not select that preparation feature.
+
 Run the named `rust_workspace` lane from
 [`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
 when the pinned toolchain, rustfmt and WASM target are available. Set

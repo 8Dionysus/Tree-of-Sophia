@@ -15,7 +15,7 @@ e2e-fixture = []
 libc = "0.2"
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
-tos-source-store = { path = "../tos-source-store" }
+tos-source-store = { path = "../tos-source-store", features = ["capture"] }
 tos-validation = { path = "../tos-validation" }
 tos-query = { path = "../tos-query", features = ["native-models"] }
 tos-compiler = { path = "../tos-compiler", features = ["source-tools"] }

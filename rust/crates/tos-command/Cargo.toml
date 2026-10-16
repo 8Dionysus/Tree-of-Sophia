@@ -22,7 +22,7 @@ crc32fast = "=1.5.2"
 flate2 = "=1.1.10"
 tos-foundation = { path = "../tos-foundation" }
 tos-segment-store = { path = "../tos-segment-store" }
-tos-source-store = { path = "../tos-source-store" }
+tos-source-store = { path = "../tos-source-store", features = ["capture"] }
 tos-validation = { path = "../tos-validation" }
 jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 tos-compiler = { path = "../tos-compiler", features = ["preserve-order-workspace", "source-tools"] }
