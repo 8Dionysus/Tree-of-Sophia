@@ -4,6 +4,11 @@
 DOM, Fetch, storage, platform I/O and WebMCP registration remain host duties.
 These private bindings are not source selection, rights, review or canon.
 
+Native JavaScript object/collection comparison, HTTP error fallback and display
+layout run directly in the browser host. They do not allocate WASM sessions for
+individual boolean observations. Rust retains packet/schema validation, query
+semantics and the request fields normalized as selector sets.
+
 ## Corpus text references
 
 `corpus_reference_rule_v1` owns canonical validation, stable keys, document
