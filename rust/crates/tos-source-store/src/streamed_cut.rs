@@ -1055,7 +1055,6 @@ fn read_exact_manifest(
     let mut cursor = ManifestCursor::new(
         manifest,
         manifest_cap,
-        row_cap,
         io_budget,
         deadline,
         cancelled,
@@ -1691,7 +1690,6 @@ struct ManifestCursor<'a> {
     reader: BufReader<ManifestRead<'a>>,
     consumed: usize,
     max_bytes: usize,
-    max_row_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
@@ -1700,7 +1698,6 @@ impl<'a> ManifestCursor<'a> {
     fn new(
         file: File,
         max_bytes: usize,
-        max_row_bytes: usize,
         io_budget: Option<&'a crate::PinnedSqliteIoBudget>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
@@ -1717,7 +1714,6 @@ impl<'a> ManifestCursor<'a> {
             ),
             consumed: 0,
             max_bytes,
-            max_row_bytes,
             deadline,
             cancelled,
         }

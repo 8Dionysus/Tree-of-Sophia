@@ -535,16 +535,6 @@ impl SegmentIndexReaderV2 {
         Ok(())
     }
 
-    fn check_workspace(&self, requested: usize, required: usize) -> Result<()> {
-        if requested == 0
-            || requested == usize::MAX
-            || requested < required
-            || requested > self.limits.max_workspace_bytes
-        {
-            return Err(refusal("V2 operation workspace exceeds its caller limit"));
-        }
-        self.active()
-    }
 }
 
 /// Exact copied expectation carried from a parent child entry to its page.
