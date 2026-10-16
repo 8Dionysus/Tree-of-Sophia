@@ -611,7 +611,13 @@ fn verify_initial_agent_changed_members(
             ));
         }
         if member.raw.len() > max_bytes
-            || member.projection["schema_version"] != "tos_managed_agent_inventory_member_v1"
+            || member.projection["schema_version"] != crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
+            || member.projection.as_object().is_none_or(|fields| {
+                let expected = crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_FIELDS_V2;
+                fields.len() != expected.len() || expected.iter().any(|name| !fields.contains_key(*name))
+            })
+            || !member.projection["claim_owner"].is_null()
+            || !member.projection["public_text_owner"].is_null()
             || member.projection["path"] != member.path
             || member.projection["raw_sha256"] != Digest256::of_bytes(member.raw).to_hex()
             || !member.projection["anchors"]
@@ -827,7 +833,7 @@ pub fn prepare_managed_overlay_initial_agent_v2(
             "overlay requires only initial Agent projection; FullOnly required",
         ));
     }
-    if record_projection["schema_version"] != "tos_managed_agent_inventory_member_v1"
+    if record_projection["schema_version"] != crate::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
         || record_projection["path"] != record_path
         || record_projection["raw_sha256"] != Digest256::of_bytes(record_raw).to_hex()
         || entries.len() != 1

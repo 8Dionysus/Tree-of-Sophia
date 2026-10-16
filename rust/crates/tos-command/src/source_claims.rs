@@ -6763,7 +6763,7 @@ pub(crate) fn render_agent_inventory_member(
     let contribution = object(vec![
         (
             "schema_version",
-            string("tos_managed_mixed_source_inventory_member_v2"),
+            string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2),
         ),
         ("path", string(location)),
         (

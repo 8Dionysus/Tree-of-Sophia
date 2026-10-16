@@ -2645,7 +2645,7 @@ impl CutWorkerSchemaExecutor {
             ));
         }
         let result = self.check_diagnostics_v2_inner_with_selected_limits(
-            path, raw, contract, deadline, cancelled, None, false,
+            path, raw, contract, deadline, cancelled, None,
         );
         if result.is_err() {
             self.diagnostics_v2_cost_unknown = true;
@@ -2684,7 +2684,6 @@ impl CutWorkerSchemaExecutor {
             deadline,
             cancelled,
             Some(limits),
-            false,
         );
         if result.is_err() {
             self.diagnostics_v2_cost_unknown = true;
@@ -2743,7 +2742,6 @@ impl CutWorkerSchemaExecutor {
                 deadline,
                 cancelled,
                 self.diagnostics_v2_legacy_selected_limits,
-                false,
             )?
         } else {
             self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?
@@ -2902,7 +2900,6 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
         selected_limits: Option<LegacySelectedDiagnosticsLimits>,
-        retain_nonverdict_terminal: bool,
     ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
@@ -3119,8 +3116,7 @@ impl CutWorkerSchemaExecutor {
                 "cut schema diagnostics binding incomplete".into(),
             ));
         }
-        if !retain_nonverdict_terminal
-            && !matches!(
+        if !matches!(
                 report.status,
                 schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
             )

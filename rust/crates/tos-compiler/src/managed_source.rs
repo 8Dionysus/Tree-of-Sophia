@@ -14,6 +14,15 @@ use tos_foundation::{
 };
 
 pub const KNOWLEDGE_MANAGED_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1;
+/// Current addressed inventory envelope consumed by managed model preparation.
+/// The command owner authenticates its complete current membership and source bytes.
+pub const MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2: &str =
+    "tos_managed_mixed_source_inventory_member_v2";
+pub const MANAGED_MIXED_INVENTORY_MEMBER_FIELDS_V2: &[&str] = &[
+    "schema_version", "path", "raw_sha256", "records", "source_profiles",
+    "events", "anchors", "form", "claim_owner", "public_text_owner",
+];
+
 pub const MANAGED_SOURCE_V2_SCHEMA: &str = "tos_managed_agent_selected_source_v2";
 pub const MANAGED_SOURCE_SCHEMA: &str = "tos_managed_agent_selected_source_v1";
 pub const MANAGED_GRAPH_SCHEMA: &str = "tos_knowledge_graph_v2";

@@ -16,7 +16,6 @@ const MIXED_PROJECTION_KIND: &[u8] = b"tos.cmd.managed-mixed-source-inventory-pr
 const MIXED_PROFILE_KIND: &[u8] = b"tos.cmd.managed-mixed-source-profile-v2";
 const MIXED_AGENT_PROFILE_KIND: &[u8] = b"tos.cmd.managed-mixed-agent-source-profile-v1";
 const MIXED_INVENTORY_MAGIC: &[u8] = b"TOS-MI-V2\0";
-const MIXED_SCHEMA_VERSION: &str = "tos_managed_mixed_source_inventory_member_v2";
 const MIXED_AGENT_BASELINE: [&str; 2] = [
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/contracts/semantic-entity-type-registry.schema.json",
@@ -1061,18 +1060,7 @@ fn parse_mixed_projection(
     let value = cmd::parse(raw).map_err(source_error)?;
     cmd::exact_keys(
         &value,
-        &[
-            "schema_version",
-            "path",
-            "raw_sha256",
-            "records",
-            "source_profiles",
-            "events",
-            "anchors",
-            "form",
-            "claim_owner",
-            "public_text_owner",
-        ],
+        tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_FIELDS_V2,
     )
     .map_err(source_error)?;
     let raw_digest = cmd::text(&value, "raw_sha256").map_err(source_error)?;
@@ -1206,7 +1194,7 @@ fn parse_mixed_projection(
         subject,
         raw_digest,
     )?;
-    if cmd::text(&value, "schema_version").map_err(source_error)? != MIXED_SCHEMA_VERSION
+    if cmd::text(&value, "schema_version").map_err(source_error)? != tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2
         || cmd::text(&value, "path").map_err(source_error)? != subject
         || expected_content_digest.is_some_and(|expected| expected != parsed_digest.to_hex())
         || cmd::canonical(&value).map_err(source_error)? != raw
@@ -3910,7 +3898,7 @@ mod tests {
                 .collect(),
         );
         let projection = cmd::object(vec![
-            ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+            ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
             ("path", cmd::string(&path)),
             (
                 "raw_sha256",
@@ -4047,7 +4035,7 @@ mod tests {
             let source = b"{}\n".to_vec();
             let digest = Digest256::of_bytes(&source).to_hex();
             let projection = cmd::object(vec![
-                ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+                ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
                 ("path", cmd::string(&path)),
                 ("raw_sha256", cmd::string(&digest)),
                 (
@@ -4101,7 +4089,7 @@ mod tests {
         let digest = Digest256::of_bytes(source).to_hex();
         let envelope = |path: &str, owner| {
             cmd::canonical(&cmd::object(vec![
-                ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+                ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
                 ("path", cmd::string(path)),
                 ("raw_sha256", cmd::string(&digest)),
                 (
@@ -4190,7 +4178,7 @@ mod tests {
         };
         let envelope = |records| {
             cmd::object(vec![
-                ("schema_version", cmd::string(MIXED_SCHEMA_VERSION)),
+                ("schema_version", cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2)),
                 ("path", cmd::string(path)),
                 (
                     "raw_sha256",

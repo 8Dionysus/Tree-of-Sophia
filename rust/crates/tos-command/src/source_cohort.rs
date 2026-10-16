@@ -3265,7 +3265,7 @@ fn mixed_projection_envelope(
     let envelope = cmd::object(vec![
         (
             "schema_version",
-            cmd::string("tos_managed_mixed_source_inventory_member_v2"),
+            cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2),
         ),
         ("path", cmd::string(path)),
         ("raw_sha256", cmd::string(&source_digest)),
@@ -13895,7 +13895,7 @@ mod public_text_rederivation_tests {
         let projection = cmd::object(vec![
             (
                 "schema_version",
-                cmd::string("tos_managed_mixed_source_inventory_member_v2"),
+                cmd::string(tos_compiler::managed_source::MANAGED_MIXED_INVENTORY_MEMBER_SCHEMA_V2),
             ),
             ("path", cmd::string(path)),
             ("raw_sha256", cmd::string(&digest)),
