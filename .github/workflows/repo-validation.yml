@@ -916,10 +916,12 @@ jobs:
             cargo test -p tos-command --features postgres-lab --lib --locked \
             backup_recovery::tests::backup_cut_streams_large_metadata_and_keeps_selected_bounds \
             -- --exact --ignored --nocapture --test-threads=1
+          metadata_test=durable_adapter::source_cohort::source_cohort_streamed::owner_metadata_budget_tests::postgres_contract_owner_metadata_logical_fields
           TOS_METADATA_TEST_PG_URL="$TOS_CMD_POSTGRES_URL" \
             cargo test -p tos-command --features postgres-lab --lib --locked \
-            source_cohort::source_cohort_streamed::owner_metadata_budget_tests::postgres_contract_owner_metadata_logical_fields \
-            -- --exact --ignored --nocapture --test-threads=1
+            "$metadata_test" -- --exact --ignored --nocapture --test-threads=1 \
+            | tee "$RUNNER_TEMP/tos-pg-owner-metadata.log"
+          grep -Fq "test $metadata_test ... ok" "$RUNNER_TEMP/tos-pg-owner-metadata.log"
 
       - name: Unmount isolated fs-verity test filesystem
         if: ${{ always() }}
