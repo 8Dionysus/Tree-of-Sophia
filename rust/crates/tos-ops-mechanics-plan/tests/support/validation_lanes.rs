@@ -34,12 +34,6 @@ impl Drop for Fixture {
 fn repository() -> PathBuf {
     super::repository()
 }
-fn authored() -> Value {
-    serde_json::from_slice(
-        &fs::read(repository().join("docs/validation/validation_lanes.json")).unwrap(),
-    )
-    .unwrap()
-}
 fn step(label: &str, command: &[&str]) -> Value {
     json!({"label":label,"command":command})
 }
@@ -136,9 +130,7 @@ fn maintained_manifest_check_and_selection_reject_python_commands() {
         let issues = lanes::validate_manifest(&root.0).unwrap();
         assert!(
             issues.iter().any(|(_, detail)| {
-                detail.contains(
-                    ".command uses Python, which is unsupported in maintained validation lanes",
-                )
+                detail.contains("Python commands are unsupported in maintained validation lanes")
             }),
             "manifest validator accepted argv0 {:?}",
             command[0]
@@ -156,20 +148,12 @@ fn maintained_manifest_check_and_selection_reject_python_commands() {
 
 #[test]
 fn workspace_consumers_run_before_package_tests_can_relink_products() {
-    let value = authored();
-    let steps = value["command_sequences"]["rust_workspace"]
-        .as_array()
-        .unwrap();
+    let steps = lanes::command_sequence(&repository(), "rust_workspace").unwrap();
     let mut prepared = false;
     let mut package_tests_started = false;
     let mut consumers = 0;
-    for step in steps {
-        let argv: Vec<_> = step["command"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|arg| arg.as_str().unwrap())
-            .collect();
+    for (_, command) in steps {
+        let argv: Vec<_> = command.iter().map(String::as_str).collect();
         if argv.contains(&"--no-run") && argv.contains(&"--message-format=json") {
             assert!(!prepared, "prepare workspace products once");
             prepared = true;
@@ -193,25 +177,15 @@ fn workspace_consumers_run_before_package_tests_can_relink_products() {
 
 #[test]
 fn browser_behavior_runs_the_complete_native_node_playwright_suite() {
-    let value = authored();
-    let steps = value["command_sequences"]["software_browser"]
-        .as_array()
-        .unwrap();
+    let steps = lanes::command_sequence(&repository(), "software_browser").unwrap();
     let groups: Vec<_> = steps
         .iter()
-        .filter(|s| {
-            s["label"]
-                .as_str()
-                .unwrap()
-                .starts_with("browser behavior: ")
-        })
+        .filter(|(label, _)| label.starts_with("browser behavior: "))
         .collect();
     assert_eq!(groups.len(), 1);
-    let argv = groups[0]["command"].as_array().unwrap();
+    let argv = &groups[0].1;
     assert_eq!(
-        argv.iter()
-            .map(|value| value.as_str().unwrap())
-            .collect::<Vec<_>>(),
+        argv.iter().map(String::as_str).collect::<Vec<_>>(),
         vec![
             "node",
             "--test",

@@ -7,7 +7,8 @@
     "This manifest is the executable command-authority surface for ToS validation lanes.",
     "tos-validation-lanes loads, checks and executes this manifest.",
     "Inventories describe coverage and do not own command execution.",
-    "TOS-D-0062: release_check validates software only. The former full repository aggregate is retired. Blocking mode applies only inside the selected source, data or integration operation."
+    "TOS-D-0062: release_check validates software only. The former full repository aggregate is retired. Blocking mode applies only inside the selected source, data or integration operation.",
+    "Shared argv are declared once in shared_commands. Each step selects command or command_ref; labels, deadlines and sequence order remain lane-owned."
   ],
   "lanes": {
     "validation_authority": {
@@ -373,6 +374,148 @@
       ]
     }
   },
+  "shared_commands": {
+    "native_release_actions": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "tos-access",
+      "--test",
+      "native_release_actions",
+      "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "work37_cold_replay": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "tos-command",
+      "--lib",
+      "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+      "--",
+      "--exact"
+    ],
+    "corpus_projection_parity": [
+      "tos-native-owner-command",
+      "corpus-projection-check",
+      "--repo-root",
+      "{repo_root}",
+      "--software-commit",
+      "HEAD",
+      "--schema-worker-env",
+      "TOS_SCHEMA_WORKER_PATH",
+      "--limits-profile",
+      "repo-validation-v1"
+    ],
+    "philosophy_atlas_check": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "atlas",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "check"
+    ],
+    "philosophy_atlas_validate": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "atlas",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "validate"
+    ],
+    "philosophy_views_check": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "views",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "check"
+    ],
+    "philosophy_views_validate": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "views",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "validate"
+    ],
+    "philosophy_graph_validate": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "graph",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "validate"
+    ],
+    "evidence_projection_check": [
+      "tos",
+      "evidence-projection",
+      "check",
+      "--source-root",
+      "{repo_root}",
+      "--max-seconds",
+      "180"
+    ],
+    "evidence_projection_validate": [
+      "tos",
+      "evidence-projection",
+      "validate",
+      "--source-root",
+      "{repo_root}",
+      "--max-seconds",
+      "180"
+    ],
+    "philosophy_audit_check": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "audit",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "check"
+    ],
+    "philosophy_audit_validate": [
+      "tos-ops-mechanics-plan",
+      "--philosophy-product",
+      "audit",
+      "--source-root",
+      "{repo_root}",
+      "--output-root",
+      "{repo_root}",
+      "--mode",
+      "validate"
+    ],
+    "native_query_tests": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "tos-query",
+      "--features",
+      "test-fixture"
+    ]
+  },
   "command_sequences": {
     "rust_workspace": [
       {
@@ -611,19 +754,7 @@
       {
         "label": "test native software/data release actions fixture",
         "command_timeout_ms": 900000,
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-access",
-          "--test",
-          "native_release_actions",
-          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
-          "--",
-          "--exact",
-          "--nocapture"
-        ]
+        "command_ref": "native_release_actions"
       },
       {
         "label": "test isolated process-cold source revision fixture",
@@ -642,17 +773,7 @@
       },
       {
         "label": "test isolated process-cold Work37 fixture",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-command",
-          "--lib",
-          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-          "--",
-          "--exact"
-        ]
+        "command_ref": "work37_cold_replay"
       },
       {
         "label": "test isolated process-cold Work recovery fixture",
@@ -911,140 +1032,43 @@
       },
       {
         "label": "validate native corpus and bibliographic projection parity",
-        "command": [
-          "tos-native-owner-command",
-          "corpus-projection-check",
-          "--repo-root",
-          "{repo_root}",
-          "--software-commit",
-          "HEAD",
-          "--schema-worker-env",
-          "TOS_SCHEMA_WORKER_PATH",
-          "--limits-profile",
-          "repo-validation-v1"
-        ]
+        "command_ref": "corpus_projection_parity"
       },
       {
         "label": "check philosophy atlas projection",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "atlas",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "check"
-        ]
+        "command_ref": "philosophy_atlas_check"
       },
       {
         "label": "validate philosophy atlas projection",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "atlas",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_atlas_validate"
       },
       {
         "label": "check philosophy graph views",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "views",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "check"
-        ]
+        "command_ref": "philosophy_views_check"
       },
       {
         "label": "validate philosophy graph views",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "views",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_views_validate"
       },
       {
         "label": "validate philosophy graph projection",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "graph",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_graph_validate"
       },
       {
         "label": "check epistemic evidence projection",
-        "command": [
-          "tos",
-          "evidence-projection",
-          "check",
-          "--source-root",
-          "{repo_root}",
-          "--max-seconds",
-          "180"
-        ]
+        "command_ref": "evidence_projection_check"
       },
       {
         "label": "validate epistemic evidence projection",
-        "command": [
-          "tos",
-          "evidence-projection",
-          "validate",
-          "--source-root",
-          "{repo_root}",
-          "--max-seconds",
-          "180"
-        ]
+        "command_ref": "evidence_projection_validate"
       },
       {
         "label": "check philosophy post-planting audit",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "audit",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "check"
-        ]
+        "command_ref": "philosophy_audit_check"
       },
       {
         "label": "validate philosophy post-planting audit",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "audit",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_audit_validate"
       },
       {
         "label": "check decision indexes",
@@ -1204,140 +1228,43 @@
     "graph_exports": [
       {
         "label": "validate native corpus and bibliographic projection parity",
-        "command": [
-          "tos-native-owner-command",
-          "corpus-projection-check",
-          "--repo-root",
-          "{repo_root}",
-          "--software-commit",
-          "HEAD",
-          "--schema-worker-env",
-          "TOS_SCHEMA_WORKER_PATH",
-          "--limits-profile",
-          "repo-validation-v1"
-        ]
+        "command_ref": "corpus_projection_parity"
       },
       {
         "label": "check philosophy atlas projection",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "atlas",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "check"
-        ]
+        "command_ref": "philosophy_atlas_check"
       },
       {
         "label": "validate philosophy atlas projection",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "atlas",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_atlas_validate"
       },
       {
         "label": "check philosophy graph views",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "views",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "check"
-        ]
+        "command_ref": "philosophy_views_check"
       },
       {
         "label": "validate philosophy graph views",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "views",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_views_validate"
       },
       {
         "label": "validate philosophy graph projection",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "graph",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_graph_validate"
       },
       {
         "label": "check epistemic evidence projection",
-        "command": [
-          "tos",
-          "evidence-projection",
-          "check",
-          "--source-root",
-          "{repo_root}",
-          "--max-seconds",
-          "180"
-        ]
+        "command_ref": "evidence_projection_check"
       },
       {
         "label": "validate epistemic evidence projection",
-        "command": [
-          "tos",
-          "evidence-projection",
-          "validate",
-          "--source-root",
-          "{repo_root}",
-          "--max-seconds",
-          "180"
-        ]
+        "command_ref": "evidence_projection_validate"
       },
       {
         "label": "check philosophy post-planting audit",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "audit",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "check"
-        ]
+        "command_ref": "philosophy_audit_check"
       },
       {
         "label": "validate philosophy post-planting audit",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--philosophy-product",
-          "audit",
-          "--source-root",
-          "{repo_root}",
-          "--output-root",
-          "{repo_root}",
-          "--mode",
-          "validate"
-        ]
+        "command_ref": "philosophy_audit_validate"
       }
     ],
     "standalone_access": [
@@ -1353,15 +1280,7 @@
       },
       {
         "label": "run native query package tests",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-query",
-          "--features",
-          "test-fixture"
-        ]
+        "command_ref": "native_query_tests"
       },
       {
         "label": "validate standalone software profile through installed native CLI",
@@ -1423,45 +1342,15 @@
       },
       {
         "label": "run tests: native software/data release actions fixture",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-access",
-          "--test",
-          "native_release_actions",
-          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
-          "--",
-          "--exact",
-          "--nocapture"
-        ]
+        "command_ref": "native_release_actions"
       },
       {
         "label": "run tests: native query package",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-query",
-          "--features",
-          "test-fixture"
-        ]
+        "command_ref": "native_query_tests"
       },
       {
         "label": "run tests: isolated process-cold Work37 fixture",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-command",
-          "--lib",
-          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-          "--",
-          "--exact"
-        ]
+        "command_ref": "work37_cold_replay"
       },
       {
         "label": "run tests: native source and command packages excluding isolated Work37 fixture",

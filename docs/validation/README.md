@@ -27,6 +27,11 @@ own owner surfaces.
 
 Inventories describe coverage. They are not command authority.
 
+Repeated argv live once in `validation_lanes.json` under `shared_commands`.
+A sequence step selects either inline `command` or a direct `command_ref`;
+its label, deadline and position remain part of that sequence. Every selected
+sequence executes all its ordered steps. Unknown or ambiguous references refuse.
+
 The `source_witness_foundation` lane runs the native full audit and catalog
 parity through `tos-native-owner-command foundation`. Run it inside the
 abyss-machine private-tmpfs owner launcher, which supplies the sealed

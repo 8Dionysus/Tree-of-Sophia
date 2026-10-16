@@ -75,6 +75,34 @@ fn valid_command(value: Option<&Value>) -> bool {
     })
 }
 
+fn step_command<'a>(
+    manifest: &'a serde_json::Map<String, Value>,
+    step: &'a serde_json::Map<String, Value>,
+) -> io::Result<&'a Value> {
+    let command = match (step.get("command"), step.get("command_ref")) {
+        (Some(command), None) => command,
+        (None, Some(Value::String(reference))) if !reference.is_empty() => manifest
+            .get("shared_commands")
+            .and_then(Value::as_object)
+            .and_then(|commands| commands.get(reference))
+            .ok_or_else(|| invalid(format!("unknown shared command: {reference}")))?,
+        _ => {
+            return Err(invalid(
+                "step must select exactly one command or command_ref",
+            ));
+        }
+    };
+    if !valid_command(Some(command)) {
+        return Err(invalid("command must be a non-empty string list"));
+    }
+    if is_python_command(Some(command)) {
+        return Err(invalid(
+            "Python commands are unsupported in maintained validation lanes",
+        ));
+    }
+    Ok(command)
+}
+
 fn is_python_command(value: Option<&Value>) -> bool {
     let Some(program) = value
         .and_then(Value::as_array)
@@ -236,6 +264,24 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
             issue(&mut issues, MANIFEST, message)?;
         }
     }
+    if let Some(shared) = manifest.get("shared_commands") {
+        if let Some(shared) = shared.as_object() {
+            for (name, command) in shared {
+                if name.is_empty()
+                    || !valid_command(Some(command))
+                    || is_python_command(Some(command))
+                {
+                    issue(
+                        &mut issues,
+                        MANIFEST,
+                        format!("shared_commands.{name} must name a native command string list"),
+                    )?;
+                }
+            }
+        } else {
+            issue(&mut issues, MANIFEST, "shared_commands must be an object")?;
+        }
+    }
     let Some(lanes) = manifest
         .get("lanes")
         .and_then(Value::as_object)
@@ -365,42 +411,30 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
                     format!("{location}.label must be a non-empty string"),
                 )?;
             }
-            if !valid_command(step.get("command")) {
-                issue(
-                    &mut issues,
-                    MANIFEST,
-                    format!("{location}.command must be a non-empty string list"),
-                )?;
-            } else {
-                if is_python_command(step.get("command")) {
-                    issue(
-                        &mut issues,
-                        MANIFEST,
-                        format!(
-                            "{location}.command uses Python, which is unsupported in maintained validation lanes"
-                        ),
-                    )?;
+            match step_command(manifest, step) {
+                Ok(command) => {
+                    let command: Vec<String> = command
+                        .as_array()
+                        .expect("validated command array")
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_owned)
+                        .collect();
+                    if command
+                        .iter()
+                        .any(|part| part == FOUNDATION_INVOCATION_ARGUMENT)
+                        && !valid_foundation_invocation_selection(sequence_id, &command)
+                    {
+                        issue(
+                            &mut issues,
+                            MANIFEST,
+                            format!(
+                                "{location} must select a protected invocation only on the direct native foundation route"
+                            ),
+                        )?;
+                    }
                 }
-                let command: Vec<String> = step["command"]
-                    .as_array()
-                    .expect("validated command array")
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .map(str::to_owned)
-                    .collect();
-                if command
-                    .iter()
-                    .any(|part| part == FOUNDATION_INVOCATION_ARGUMENT)
-                    && !valid_foundation_invocation_selection(sequence_id, &command)
-                {
-                    issue(
-                        &mut issues,
-                        MANIFEST,
-                        format!(
-                            "{location} must select a protected invocation only on the direct native foundation route"
-                        ),
-                    )?;
-                }
+                Err(error) => issue(&mut issues, MANIFEST, format!("{location}: {error}"))?,
             }
             if let Err(error) = command_timeout_ms(sequence_id, step) {
                 issue(&mut issues, MANIFEST, format!("{location}: {error}"))?;
@@ -458,22 +492,17 @@ pub fn command_sequence_with_budgets(
             .get("label")
             .and_then(Value::as_str)
             .ok_or_else(|| invalid(format!("{sequence_id} contains an invalid command step")))?;
-        if !valid_command(step.get("command")) {
-            return Err(invalid(format!(
-                "{sequence_id} contains an invalid command step"
-            )));
-        }
-        if is_python_command(step.get("command")) {
-            return Err(invalid(
-                "Python commands are unsupported in maintained validation lanes",
-            ));
-        }
-        let mut parts: Vec<String> = step["command"]
-            .as_array()
-            .ok_or_else(|| invalid("command array disappeared"))?
-            .iter()
-            .map(|part| part.as_str().unwrap_or_default().to_owned())
-            .collect();
+        let mut parts: Vec<String> = step_command(
+            manifest
+                .as_object()
+                .ok_or_else(|| invalid("manifest root must be an object"))?,
+            step,
+        )?
+        .as_array()
+        .ok_or_else(|| invalid("command array disappeared"))?
+        .iter()
+        .map(|part| part.as_str().unwrap_or_default().to_owned())
+        .collect();
         if parts.iter().any(|part| part == "{repo_root}") {
             let selected = root.canonicalize()?;
             let selected = selected
@@ -575,6 +604,41 @@ pub fn release_steps(root: &Path, phase: ReleasePhase) -> io::Result<Vec<Command
 #[cfg(test)]
 mod timeout_tests {
     use super::*;
+
+    #[test]
+    fn shared_argv_keeps_step_deadlines_and_refuses_ambiguous_or_missing_refs() {
+        let manifest = serde_json::json!({"shared_commands":{
+            "native": ["cargo", "test", "--locked"],
+            "interpreter": ["python3", "old.py"],
+            "recursive": {"command_ref":"native"}
+        }});
+        let manifest = manifest.as_object().unwrap();
+        let shared = serde_json::json!({"label":"run tests: native", "command_ref":"native", "command_timeout_ms":900000});
+        let inline =
+            serde_json::json!({"label":"another lane", "command":["cargo","test","--locked"]});
+        assert_eq!(
+            step_command(manifest, shared.as_object().unwrap()).unwrap(),
+            step_command(manifest, inline.as_object().unwrap()).unwrap()
+        );
+        assert_eq!(
+            command_timeout_ms("rust_workspace", shared.as_object().unwrap()).unwrap(),
+            Some(900000)
+        );
+        assert_eq!(
+            command_timeout_ms("rust_workspace", inline.as_object().unwrap()).unwrap(),
+            None
+        );
+        for step in [
+            serde_json::json!({"command_ref":"absent"}),
+            serde_json::json!({"command_ref":""}),
+            serde_json::json!({"command_ref":true}),
+            serde_json::json!({"command_ref":"native","command":["cargo"]}),
+            serde_json::json!({"command_ref":"interpreter"}),
+            serde_json::json!({"command_ref":"recursive"}),
+        ] {
+            assert!(step_command(manifest, step.as_object().unwrap()).is_err());
+        }
+    }
 
     #[test]
     fn explicit_command_deadline_refuses_malformed_or_unapplied_budget() {

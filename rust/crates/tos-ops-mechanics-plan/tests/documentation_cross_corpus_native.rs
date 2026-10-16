@@ -1136,7 +1136,12 @@ fn script_navigation_keeps_unique_owners_side_effects_and_advisory_boundaries() 
             assert_eq!(entry["ci_inclusion"], "advisory-only", "{path}");
             for steps in manifest["command_sequences"].as_object().unwrap().values() {
                 for step in steps.as_array().unwrap() {
-                    if let Some(command) = step.get("command").and_then(Value::as_array) {
+                    let command = step.get("command").or_else(|| {
+                        step.get("command_ref")
+                            .and_then(Value::as_str)
+                            .and_then(|name| manifest["shared_commands"].get(name))
+                    });
+                    if let Some(command) = command.and_then(Value::as_array) {
                         assert!(
                             !command.iter().any(|v| v.as_str() == Some(path)),
                             "advisory helper in hard gate: {path}"
