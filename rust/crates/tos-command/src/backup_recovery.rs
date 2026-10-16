@@ -3374,6 +3374,7 @@ mod tests {
         );
         let mut sql = Client::connect(&url, NoTls).unwrap();
         sql.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest,inventory_projection) VALUES($1,'path','ToS/large','ToS/large',repeat('a',64),$2)", &[&domain,&vec![0xab_u8;1_048_576]]).unwrap();
+        sql.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest) VALUES($1,'path','ToS/small','ToS/small',repeat('a',64))", &[&domain]).unwrap();
         assert!(matches!(
             db.cold_verify_cut(&store, domain),
             Err(DurableError::Refused(
