@@ -21,7 +21,9 @@ use tos_query::{
 use crate::{
     DurableError, DurableNavigationEventLimits, DurableNavigationPublishedGenerationGuardV2,
     DurableProjectionProfile,
-    durable_adapter::durable_projection::DurableNavigationPublishedGenerationV2,
+    durable_adapter::durable_projection::{
+        DurableNavigationPublishedGenerationV2, same_navigation_carrier_payload,
+    },
     source_managed_selection::{
         ManagedSelectionError, ManagedSelectionResult, SourceNavigationCurrentLeaseV1,
     },
@@ -762,7 +764,7 @@ impl SourceNavigationPgReadModel<'_, '_, '_, '_> {
              )
              SELECT id,visible,row_sha256,size,owner_source_path,owner_record_id,
                     CASE WHEN size <= $4 THEN row_json END AS row_json
-             FROM candidates ORDER BY id COLLATE \"C\"",
+             FROM candidates ORDER BY id COLLATE \"C\",row_sha256 COLLATE \"C\"",
             &[&self.domain, &self.consumer_id, &id, &carrier_cap, &row_limit],
         ).map_err(|_| query_error(QueryErrorCode::CorruptSelectedCarrier, "source node index query failed"))?;
         if candidates.len() as u64 > max_work_rows {
@@ -847,8 +849,8 @@ impl SourceNavigationPgReadModel<'_, '_, '_, '_> {
                     "source node identity differs",
                 ));
             }
-            if let Some((old_visible, old_sha256, old_raw)) = effective.as_ref() {
-                if *old_visible != visible || *old_sha256 != sha256 || old_raw != &raw {
+            if let Some((old_visible, _, old_raw)) = effective.as_ref() {
+                if *old_visible != visible || !same_navigation_carrier_payload(old_raw, &raw) {
                     return Err(query_error(
                         QueryErrorCode::IndexIncomplete,
                         "source node ID has conflicting projected contributions",
@@ -1149,14 +1151,13 @@ impl ReadModel for SourceNavigationPgReadModel<'_, '_, '_, '_> {
                     "source edge endpoints differ",
                 ));
             }
-            if let Some((old_from, old_to, old_visible, old_sha256, old_raw)) =
+            if let Some((old_from, old_to, old_visible, _, old_raw)) =
                 effective.get(&edge_id)
             {
                 if old_from != &from
                     || old_to != &to
                     || *old_visible != visible
-                    || *old_sha256 != sha256
-                    || old_raw != &raw
+                    || !same_navigation_carrier_payload(old_raw, &raw)
                 {
                     return Err(query_error(
                         QueryErrorCode::IndexIncomplete,

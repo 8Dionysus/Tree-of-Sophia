@@ -92,6 +92,15 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
     insert(
         &mut tx,
         "edge",
+        "ab",
+        "shared",
+        Some("a"),
+        Some("b"),
+        &ab.row_json,
+    );
+    insert(
+        &mut tx,
+        "edge",
         "ca",
         "external",
         Some("c"),
@@ -116,10 +125,23 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
     };
     let before = seq_rows(&mut tx);
     let owners = BTreeSet::from([("changed".into(), "changed".into())]);
+    // Original bootstrap packets omit the LF added by the durable row profile.
+    // Both carriers remain authenticated by their own exact digest.
+    let mut event_a = a.clone();
+    event_a.row_json.push(b'\n');
+    event_a.sha256 = Digest256::of_bytes(&event_a.row_json);
+    let mut event_ab = ab.clone();
+    event_ab.row_json.push(b'\n');
+    event_ab.sha256 = Digest256::of_bytes(&event_ab.row_json);
+    let expected_ab_sha = if ab.sha256.as_bytes() < event_ab.sha256.as_bytes() {
+        ab.sha256
+    } else {
+        event_ab.sha256
+    };
     let replacement = PersistedRows {
         dependencies: vec![],
-        nodes: vec![a.clone()],
-        edges: vec![ab],
+        nodes: vec![event_a],
+        edges: vec![event_ab],
         diagnostics: vec![],
         cohort_bytes: 256,
     };
@@ -153,7 +175,7 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
     )
     .unwrap();
     assert_eq!(nodes.len(), 4);
-    assert_eq!(edges.len(), 2);
+    assert_eq!(edges.len(), 3);
     assert_eq!(affected, BTreeSet::from(["a".into(), "c".into()]));
     let bootstrap = Digest256::of_bytes(b"bootstrap");
     let prior = Digest256::of_bytes(b"prior");
@@ -171,6 +193,16 @@ fn navigation_batch_uses_only_affected_neighborhood_and_keeps_shared_owners() {
     .unwrap();
     assert_eq!(updates.keys().cloned().collect::<BTreeSet<_>>(), affected);
     assert_eq!(updates["a"].as_ref().unwrap().edge_count, 1);
+    assert_eq!(
+        updates["a"].as_ref().unwrap().edge_digest,
+        make_navigation_adjacency_certificate(
+            bootstrap,
+            "a".into(),
+            &BTreeMap::from([("ab".into(), expected_ab_sha)]),
+        )
+        .edge_digest,
+        "shared physical carrier selection must match the query adapter's digest order"
+    );
     assert_eq!(updates["c"].as_ref().unwrap().edge_count, 1);
     assert!(
         seq_rows(&mut tx) - before < 1000,

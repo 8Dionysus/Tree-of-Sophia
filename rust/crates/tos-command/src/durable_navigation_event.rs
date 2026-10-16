@@ -8168,16 +8168,78 @@ fn stored_navigation_node(
     })
 }
 
+/// Compare already authenticated projection carriers across their two framing
+/// profiles: Original packets have no LF; durable event rows have one LF.
+/// This does not normalize source bytes, JSON values, ordering or whitespace.
+/// Callers must verify each carrier against its own digest before comparing.
+pub(crate) fn same_navigation_carrier_payload(left: &[u8], right: &[u8]) -> bool {
+    fn payload(raw: &[u8]) -> &[u8] {
+        raw.strip_suffix(b"\n")
+            .filter(|body| !body.ends_with(b"\n"))
+            .unwrap_or(raw)
+    }
+    payload(left) == payload(right)
+}
+
 fn same_effective_node(left: &NavigationEffectiveNode, right: &NavigationEffectiveNode) -> bool {
-    left.visible == right.visible && left.sha256 == right.sha256 && left.raw == right.raw
+    left.visible == right.visible && same_navigation_carrier_payload(&left.raw, &right.raw)
 }
 
 fn same_effective_edge(left: &NavigationEffectiveEdge, right: &NavigationEffectiveEdge) -> bool {
     left.from_id == right.from_id
         && left.to_id == right.to_id
         && left.visible == right.visible
-        && left.sha256 == right.sha256
-        && left.raw == right.raw
+        && same_navigation_carrier_payload(&left.raw, &right.raw)
+}
+
+#[cfg(test)]
+mod carrier_framing_tests {
+    use super::*;
+
+    #[test]
+    fn original_and_event_frames_share_payload_but_preserve_real_conflicts() {
+        let value = json!({"node_id":"identity:кружок","label":"Венский кружок"});
+        let event = canonical_value(&value, 4096).unwrap();
+        let original = event.strip_suffix(b"\n").unwrap().to_vec();
+        let node = |raw: Vec<u8>| NavigationEffectiveNode {
+            node_id: "identity:кружок".into(),
+            visible: true,
+            sha256: Digest256::of_bytes(&raw),
+            raw,
+        };
+        let old = node(original.clone());
+        let new = node(event.clone());
+        assert_ne!(old.sha256, new.sha256);
+        assert!(same_effective_node(&old, &new));
+        assert!(same_effective_node(&new, &old));
+        let mut hidden = node(event.clone());
+        hidden.visible = false;
+        assert!(!same_effective_node(&old, &hidden));
+        for raw in [
+            canonical_value(&json!({"node_id":"identity:кружок","label":"changed"}), 4096)
+                .unwrap(),
+            [original.as_slice(), b" "].concat(),
+            [original.as_slice(), b"\r\n"].concat(),
+            [original.as_slice(), b"\n\n"].concat(),
+        ] {
+            assert!(!same_effective_node(&old, &node(raw)));
+        }
+        let edge_value = json!({"edge_id":"e","from_id":"a","to_id":"b"});
+        let edge_event = canonical_value(&edge_value, 4096).unwrap();
+        let edge = |raw: Vec<u8>| NavigationEffectiveEdge {
+            edge_id: "e".into(),
+            from_id: "a".into(),
+            to_id: "b".into(),
+            visible: true,
+            sha256: Digest256::of_bytes(&raw),
+            raw,
+        };
+        let old_edge = edge(edge_event.strip_suffix(b"\n").unwrap().to_vec());
+        let mut new_edge = edge(edge_event);
+        assert!(same_effective_edge(&old_edge, &new_edge));
+        new_edge.to_id = "c".into();
+        assert!(!same_effective_edge(&old_edge, &new_edge));
+    }
 }
 
 /// Select only changed owners, their shared carriers, incident edges and the
@@ -8462,6 +8524,11 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
                     "navigation shared node contributions conflict",
                 ));
             }
+            // Choose the same physical representative as the query adapter.
+            // Its exact digest remains the adjacency certificate input.
+            if node.sha256.as_bytes() < existing.sha256.as_bytes() {
+                nodes.insert(node.node_id.clone(), node);
+            }
             return Ok(());
         }
         nodes.insert(node.node_id.clone(), node);
@@ -8494,6 +8561,9 @@ fn prepare_navigation_adjacency_update_batch<C: GenericClient>(
                 return Err(DurableError::Conflict(
                     "navigation shared edge contributions conflict",
                 ));
+            }
+            if edge.sha256.as_bytes() < existing.sha256.as_bytes() {
+                edges.insert(edge.edge_id.clone(), edge);
             }
             return Ok(());
         }

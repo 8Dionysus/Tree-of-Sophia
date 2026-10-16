@@ -1299,6 +1299,11 @@ The initial native compiler selects `tos_knowledge_managed_navigation_v2`.
 This PostgreSQL bootstrap anchor retains complete authenticated Navigation
 Original carriers directly, together with their source proof and descriptor
 metadata. Raw, semantic and canonical identities remain separately checked.
+Shared projected rows compare the authenticated JSON payload across the Original
+packet framing (no final LF) and durable event framing (one final LF). All other
+bytes, visibility and edge endpoints must agree. Each physical carrier keeps its
+own exact digest; publication and queries select the lowest digest when both
+framings survive, so adjacency certificates bind the same physical carrier.
 It builds no normalized graph answers: the complete source node/edge counts
 live in the Original receipt; normalized metadata counts are zero because that
 capability is absent. PostgreSQL owns the published graph. The anchor omits

@@ -25,6 +25,7 @@ pub(crate) use durable_navigation_event::{
     navigation_selected_expectation_digest, read_navigation_adjacency_certificate_v1,
     read_navigation_currentness_guard_with_client_v1, read_navigation_currentness_guard_with_tx_v1,
     read_navigation_published_guard_with_tx_v2, verify_navigation_selected_cohort_metadata_v3,
+    same_navigation_carrier_payload,
 };
 pub use durable_navigation_event::{
     DurableNavigationBaseRowReadV1, DurableNavigationBootstrapApplyV1,
