@@ -184,12 +184,86 @@ pub struct CutSchemaReceipt {
     pub batch: Option<CutBatchBinding>,
 }
 
-#[path = "source_cut_receipt_spool.rs"]
-mod receipt_spool;
-pub use receipt_spool::{
-    CutSchemaDiagnosticPage, CutSchemaReceiptPage, CutSchemaReceiptSpoolLimits,
-    CutSchemaReceiptSpoolSummary, CutWorkerSchemaExecutorSpooling,
-};
+#[derive(Debug, Clone)]
+pub struct CutSchemaReceiptPage {
+    rows: Vec<(u64, CutSchemaReceipt)>,
+    next_after_ordinal: Option<u64>,
+    encoded_bytes: usize,
+}
+
+impl CutSchemaReceiptPage {
+    fn from_rows(
+        rows: Vec<(u64, CutSchemaReceipt)>,
+        next_after_ordinal: Option<u64>,
+        encoded_bytes: usize,
+    ) -> Self {
+        Self {
+            rows,
+            next_after_ordinal,
+            encoded_bytes,
+        }
+    }
+
+    pub fn rows(&self) -> &[(u64, CutSchemaReceipt)] {
+        &self.rows
+    }
+    pub fn into_rows(self) -> Vec<(u64, CutSchemaReceipt)> {
+        self.rows
+    }
+    pub fn next_after_ordinal(&self) -> Option<u64> {
+        self.next_after_ordinal
+    }
+    pub fn encoded_bytes(&self) -> usize {
+        self.encoded_bytes
+    }
+}
+
+// Retain the historical receipt framing charge for resident range quotas.
+const RECEIPT_HEADER_BYTES: usize = 4 + 1;
+const RECEIPT_FIXED_BYTES: usize = RECEIPT_HEADER_BYTES + (7 * 32) + 3;
+const BATCH_BINDING_BYTES: usize = (5 * 32) + 1 + 8 + 8 + 32;
+
+fn encoded_scalar_receipt_len(path: &str, contract: &str) -> Result<usize, ItemRefusal> {
+    let path_bytes = encoded_string_len(path.len())?;
+    let contract_bytes = encoded_string_len(contract.len())?;
+    let total = RECEIPT_FIXED_BYTES
+        .checked_add(path_bytes)
+        .and_then(|bytes| bytes.checked_add(contract_bytes))
+        .ok_or(crate::item_budget_origin!())?;
+    ensure_sqlite_length(total)?;
+    Ok(total)
+}
+
+fn encoded_receipt_len(
+    receipt: &CutSchemaReceipt,
+) -> Result<usize, ItemRefusal> {
+    let total = encoded_scalar_receipt_len(&receipt.path, &receipt.contract)?
+        .checked_add(if receipt.batch.is_some() {
+            BATCH_BINDING_BYTES
+        } else {
+            0
+        })
+        .ok_or(crate::item_budget_origin!())?;
+    ensure_sqlite_length(total)?;
+    Ok(total)
+}
+
+fn encoded_string_len(len: usize) -> Result<usize, ItemRefusal> {
+    u32::try_from(len).map_err(|_| crate::item_budget_origin!())?;
+    len.checked_add(4).ok_or(crate::item_budget_origin!())
+}
+
+fn ensure_sqlite_length(len: usize) -> Result<(), ItemRefusal> {
+    let len = u64::try_from(len).map_err(|_| crate::item_budget_origin!())?;
+    if len > i64::MAX as u64 {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "cut schema spool SQLite row bytes",
+            used: Some(len),
+            limit: Some(i64::MAX as u64),
+        });
+    }
+    Ok(())
+}
 
 /// Bounded receipt range access used by operation reports. Rows are local to
 /// the requested executor interval and never imply selected source membership.
@@ -2652,24 +2726,6 @@ impl CutWorkerSchemaExecutor {
         Some(result)
     }
 
-    /// Retrieve a fully authenticated non-verdict terminal retained only by
-    /// the opt-in spool route. Ordinary diagnostics calls preserve their
-    /// established refusal and poison behavior without queueing these reports.
-    pub(crate) fn take_spooled_diagnostics_v2_status_refusal(
-        &mut self,
-    ) -> Option<CutSchemaDiagnostic> {
-        let source_revision = self.revision?;
-        let index = self
-            .pending_diagnostics
-            .iter()
-            .position(|diagnostic| !diagnostic.is_valid() && !diagnostic.is_invalid())?;
-        let result = self.pending_diagnostics.remove(index);
-        self.release_diagnostic_state(&result).ok()?;
-        Some(CutSchemaDiagnostic {
-            source_revision,
-            result,
-        })
-    }
 
     fn produce_diagnostics_v2_terminal(
         &mut self,
@@ -2702,40 +2758,6 @@ impl CutWorkerSchemaExecutor {
         ))
     }
 
-    /// Spool-only opt-in for retaining a fully authenticated non-verdict
-    /// terminal. The ordinary public diagnostics API keeps its existing
-    /// status refusal and poison behavior.
-    fn produce_authenticated_diagnostics_v2_terminal_for_spool(
-        &mut self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
-        let source_revision = self.revision.ok_or_else(|| {
-            ItemRefusal::Unsupported(
-                "candidate diagnostics require the typed candidate result envelope".into(),
-            )
-        })?;
-        let result = self.check_diagnostics_v2_inner_with_selected_limits(
-            path,
-            raw,
-            contract,
-            deadline,
-            cancelled,
-            self.diagnostics_v2_legacy_selected_limits,
-            true,
-        );
-        if result.is_err() {
-            self.diagnostics_v2_cost_unknown = true;
-            self.prepared.poison(ExecutorFailure::Protocol);
-        }
-        result.map(|result| CutSchemaDiagnostic {
-            source_revision,
-            result,
-        })
-    }
 
     fn retain_pending_diagnostic(
         &mut self,
@@ -3495,32 +3517,6 @@ impl CutWorkerSchemaExecutor {
         self.scalar_check_count
     }
 
-    /// Move this verified executor into the opt-in bounded receipt store.
-    /// The caller-created auxiliary scope must share the caller's already
-    /// admitted filesystem namespace, logical I/O and space ledgers, deadline,
-    /// and cancellation lifetime; this conversion grants no quota itself.
-    pub fn into_spooling(
-        self,
-        workspace_dir: std::fs::File,
-        request: tos_source_store::PinnedSqliteAuxRequest,
-        limits: CutSchemaReceiptSpoolLimits,
-        deadline: Instant,
-        cancelled: std::sync::Arc<AtomicBool>,
-    ) -> Result<CutWorkerSchemaExecutorSpooling, ItemRefusal> {
-        if self.revision.is_none() {
-            return Err(ItemRefusal::Unsupported(
-                "candidate schema executor cannot spool cut receipts".into(),
-            ));
-        }
-        CutWorkerSchemaExecutorSpooling::new(
-            self,
-            workspace_dir,
-            request,
-            limits,
-            deadline,
-            cancelled,
-        )
-    }
 
     pub fn source_revision(&self) -> SourceRevision {
         self.revision
@@ -4105,7 +4101,7 @@ impl CutSchemaReceiptRange for CutWorkerSchemaExecutor {
                 .ok_or(crate::item_budget_origin!())?;
             encoded_bytes = encoded_bytes
                 .checked_add(
-                    receipt_spool::receipt_codec::encoded_receipt_len(receipt)
+                    encoded_receipt_len(receipt)
                         .map_err(|_| crate::item_budget_origin!())?,
                 )
                 .ok_or(crate::item_budget_origin!())?;

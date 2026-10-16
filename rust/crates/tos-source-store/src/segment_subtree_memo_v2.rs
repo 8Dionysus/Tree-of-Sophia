@@ -129,9 +129,6 @@ impl SegmentSubtreeMemoV2 {
             abandoned: false,
         })
     }
-    pub fn required_state_charge(&self) -> Result<usize> {
-        Self::state_charge(self.limits)
-    }
     pub(crate) fn matches(&self, reader: &SegmentIndexReaderV2, basis: Digest256) -> Result<()> {
         reader.check_request()?;
         if self.abandoned

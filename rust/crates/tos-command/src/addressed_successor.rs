@@ -1222,30 +1222,6 @@ impl DurablePgCoordinator {
         Ok(generation)
     }
 
-    /// Require a current assessed selection, including for persisted proof reuse.
-    pub(crate) fn reopen_current_addressed_source_selection(
-        &mut self,
-        store: &SegmentStore,
-        domain: &str,
-        initial_revision: SourceRevision,
-        initial_membership: SourceMembershipV1,
-        limits: AuthenticatedTreeLimitsV1,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
-        self.try_reopen_current_addressed_source_selection(
-            store,
-            domain,
-            initial_revision,
-            initial_membership,
-            limits,
-            deadline,
-            cancelled,
-        )?
-        .ok_or(DurableError::Conflict(
-            "addressed source requires explicit current assessment",
-        ))
-    }
 
     /// Reuse an already assessed current V2 generation for explicit export.
     /// This reads the authenticated descriptor under the same live fences as

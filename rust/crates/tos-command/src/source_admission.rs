@@ -860,13 +860,6 @@ impl AdmissionBatch {
         )
     }
 
-    pub(crate) fn has_updates(&self) -> bool {
-        !self.updates.is_empty()
-            || self
-                .initial_updates
-                .as_ref()
-                .is_some_and(|rows| rows.expected_rows != 0)
-    }
 
     pub(crate) fn is_census_backed(&self) -> bool {
         self.initial_updates.is_some()

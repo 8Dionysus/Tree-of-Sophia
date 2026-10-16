@@ -2521,69 +2521,6 @@ impl DurablePgCoordinator {
         Ok(snapshot)
     }
 
-    /// Read and verify the exact append-only package history while holding a
-    /// shared owner-scope lock. The callback may perform a
-    /// separate public source registration; private package writers take the
-    /// matching exclusive lock before acquiring public source fences, so the
-    /// history remains stable without blocking that registration.
-    pub(crate) fn with_private_owner_package_history_guard<T>(
-        &mut self,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        max_rows: usize,
-        max_total_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        callback: impl FnOnce(&PrivateOwnerPackageHistoryV1, Instant, &AtomicBool) -> DurableResult<T>,
-    ) -> DurableResult<T> {
-        validate_scope(scope)?;
-        validate_target_ref(target_ref)?;
-        if max_rows == 0
-            || max_rows > MAX_PACKAGE_HISTORY_ROWS
-            || max_total_bytes == 0
-            || max_total_bytes > MAX_PACKAGE_HISTORY_BYTES
-        {
-            return Err(DurableError::Invalid("private package history budget"));
-        }
-        check_private_history_deadline(deadline, cancelled)?;
-        require_private_schema(&mut self.client)?;
-        with_private_owner_shared_read_lock(
-            &mut self.client,
-            scope,
-            deadline,
-            cancelled,
-            |client| {
-                let mut tx = client.transaction()?;
-                // Bound each read and use the supplied deadline checks to keep
-                // a long sequence of bounded reads inside the operation limit.
-                tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='1s'; SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")?;
-                if !verify_context_binding(&mut tx, scope)? {
-                    return Err(DurableError::Refused(
-                        "private owner context binding mismatch",
-                    ));
-                }
-                let generation = private_audit_generation(&mut tx, scope)?;
-                let history = read_package_history(
-                    &mut tx,
-                    scope,
-                    target_ref,
-                    max_rows,
-                    max_total_bytes,
-                    generation,
-                    deadline,
-                    cancelled,
-                )?;
-                check_private_history_deadline(deadline, cancelled)?;
-                // Callback contract: use the supplied deadline/cancellation token
-                // for every public registration step and never recursively write
-                // this private owner scope while its shared lock is held.
-                let result = callback(&history, deadline, cancelled)?;
-                check_private_history_deadline(deadline, cancelled)?;
-                tx.commit()?;
-                Ok(result)
-            },
-        )
-    }
 
     /// Read one bounded set of immutable package histories under a single
     /// owner-scope lock and repeatable-read snapshot. The aggregate row and

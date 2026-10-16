@@ -50,19 +50,11 @@ pub fn source_refusal_stage(reason: &str) -> Option<&'static str> {
         "catalog execution count" => Some("execution-count"),
         "catalog exact streamed executor" => Some("stream-executor"),
         "catalog schema operation budget" => Some("schema-budget"),
-        "catalog spool diagnostics configuration" => Some("spool-config"),
-        "catalog spool selected raw limit" => Some("spool-raw-limit"),
-        "catalog spool shared schema quota" => Some("spool-quota"),
-        "catalog receipt spool" => Some("receipt-spool"),
         "catalog exact cut executor" => Some("cut-executor"),
         "catalog diagnostics drain" => Some("diagnostics-drain"),
         "catalog candidate diagnostics drain" => Some("candidate-drain"),
         "catalog schema operation finish" => Some("schema-finish"),
         "catalog receipt page" => Some("receipt-page"),
-        "catalog diagnostic page" => Some("diagnostic-page"),
-        "catalog spool finish" => Some("spool-finish"),
-        "catalog spool close" => Some("spool-close"),
-        "catalog spool summary" => Some("spool-summary"),
         "catalog selected schema inventory" => Some("schema-inventory"),
         "catalog schema execution incomplete" => Some("schema-execution"),
         "catalog selected verifier bound" => Some("verifier-bound"),
@@ -344,13 +336,11 @@ impl<I: Copy + Eq + 'static> CandidateCatalogSchemas for BorrowedCandidateSchema
 enum CatalogSchemas<'a> {
     Candidate(Box<dyn CandidateCatalogSchemas + 'a>),
     Resident(CutWorkerSchemaExecutor),
-    Spooling(tos_validation::source_cut::CutWorkerSchemaExecutorSpooling),
 }
 impl CatalogSchemas<'_> {
     fn execution_binding(&self) -> Result<tos_validation::source_cut::CutExecutionBinding> {
         match self {
             Self::Resident(s) => Ok(s.execution_binding()),
-            Self::Spooling(s) => Ok(s.execution_binding()),
             Self::Candidate(_) => Err(Error::Invalid("candidate catalog has no source revision")),
         }
     }
@@ -363,7 +353,6 @@ impl CatalogSchemas<'_> {
                 "configure candidate diagnostics before catalog borrowing".into(),
             )),
             Self::Resident(s) => s.enable_diagnostics_v2(l),
-            Self::Spooling(s) => s.enable_diagnostics_v2(l),
         }
     }
     fn set_diagnostics_v2_legacy_raw_instance_limit(
@@ -375,7 +364,6 @@ impl CatalogSchemas<'_> {
                 "configure candidate raw limit before catalog borrowing".into(),
             )),
             Self::Resident(s) => s.set_diagnostics_v2_legacy_raw_instance_limit(n),
-            Self::Spooling(s) => s.set_diagnostics_v2_legacy_raw_instance_limit(n),
         }
     }
     fn diagnostics_v2_cumulative_cost(
@@ -387,7 +375,6 @@ impl CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.cumulative_cost(),
             Self::Resident(s) => s.diagnostics_v2_cumulative_cost(),
-            Self::Spooling(s) => s.diagnostics_v2_cumulative_cost(),
         }
     }
     fn take_schema_diagnostic_rejection(
@@ -398,7 +385,6 @@ impl CatalogSchemas<'_> {
                 "candidate diagnostic requires its typed identity envelope".into(),
             )),
             Self::Resident(s) => Ok(s.take_schema_diagnostic_rejection()),
-            Self::Spooling(s) => Ok(s.take_schema_diagnostic_rejection()),
         }
     }
 
@@ -428,7 +414,6 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.selected_contract_digest(contract),
             Self::Resident(s) => s.contract_digest(contract),
-            Self::Spooling(s) => s.contract_digest(contract),
         }
     }
 
@@ -446,7 +431,6 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
             // Reuse only an actual matching scalar receipt; the executor still
             // checks current deadlines, raw/decoded bytes, contract and worker.
             Self::Resident(s) => s.check_reusing_scalar(path, raw, contract, deadline, cancelled),
-            Self::Spooling(s) => s.check(path, raw, contract, deadline, cancelled),
         }
     }
     fn set_shared_schema_worker_quota(
@@ -456,7 +440,6 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.set_shared_schema_worker_quota(q),
             Self::Resident(s) => s.set_shared_schema_worker_quota(q),
-            Self::Spooling(s) => s.set_shared_schema_worker_quota(q),
         }
     }
     fn finish(
@@ -467,7 +450,6 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.finish(deadline, cancelled),
             Self::Resident(s) => CutSchemaExecutor::finish(s, deadline, cancelled),
-            Self::Spooling(s) => CutSchemaExecutor::finish(s, deadline, cancelled),
         }
     }
 }
@@ -1439,60 +1421,8 @@ impl<'a> SourceCatalogValidator<'a> {
         self.guard()
     }
 
-    /// Finish the same worker EOF and retain a typed execution-only summary.
-    pub fn finish_spooled(
-        &self,
-    ) -> Result<tos_validation::source_cut::CutSchemaReceiptSpoolSummary> {
-        self.guard()?;
-        let mut schemas = self
-            .schemas
-            .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        match &mut *schemas {
-            CatalogSchemas::Spooling(s) => s
-                .finish_spooled(self.deadline, self.cancelled)
-                .map_err(|e| Error::Source(format!("catalog spool finish:{e:?}"))),
-            CatalogSchemas::Candidate(_) | CatalogSchemas::Resident(_) => {
-                Err(Error::Invalid("catalog bounded receipt spool not selected"))
-            }
-        }
-    }
 
-    /// Release receipt-spool custody after worker EOF and final bounded reads.
-    pub fn close_spooled(&self) -> Result<()> {
-        self.guard()?;
-        let mut schemas = self
-            .schemas
-            .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        match &mut *schemas {
-            CatalogSchemas::Spooling(s) => s
-                .close_spooled(self.deadline, self.cancelled)
-                .map_err(|e| Error::Source(format!("catalog spool close:{e:?}"))),
-            CatalogSchemas::Candidate(_) | CatalogSchemas::Resident(_) => {
-                Err(Error::Invalid("catalog bounded receipt spool not selected"))
-            }
-        }
-    }
 
-    /// Retrieve the authenticated summary after the existing finish call.
-    pub fn summary_spooled(
-        &self,
-    ) -> Result<tos_validation::source_cut::CutSchemaReceiptSpoolSummary> {
-        self.guard()?;
-        let schemas = self
-            .schemas
-            .try_borrow()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        match &*schemas {
-            CatalogSchemas::Spooling(s) => s
-                .summary_spooled(self.deadline, self.cancelled)
-                .map_err(|e| Error::Source(format!("catalog spool summary:{e:?}"))),
-            CatalogSchemas::Candidate(_) | CatalogSchemas::Resident(_) => {
-                Err(Error::Invalid("catalog bounded receipt spool not selected"))
-            }
-        }
-    }
 
     fn guard(&self) -> Result<()> {
         if self.worker.sha256 != self.worker_pin.sha256
@@ -1525,9 +1455,9 @@ impl<'a> SourceCatalogValidator<'a> {
         }
         RefMut::filter_map(schemas, |s| match s {
             CatalogSchemas::Resident(s) => Some(s),
-            CatalogSchemas::Spooling(_) | CatalogSchemas::Candidate(_) => None,
+            CatalogSchemas::Candidate(_) => None,
         })
-        .map_err(|_| Error::Invalid("catalog selected spool requires bounded schema access"))
+        .map_err(|_| Error::Invalid("catalog candidate requires typed schema access"))
     }
 
     pub(crate) fn verify_schema_binding(&self, revision: SourceRevision) -> Result<()> {
@@ -2802,30 +2732,6 @@ fn outputs(
     Ok((manifest, file_sha, record_count, claim_count))
 }
 
-pub fn prepare_candidate_source_witness_catalog_observed<I: Copy + Eq + 'static>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-) -> Result<CandidateSourceCatalogReceipt<I>> {
-    let result = (|| {
-        stage.recheck_candidate_owner::<I>()?;
-        let receipt = prepare_catalog_receipt_observed(stage, validator, l, observer)?;
-        stage.recheck_candidate_owner::<I>()?;
-        Ok(receipt)
-    })();
-    if result.is_err() {
-        stage.poison();
-    }
-    result
-}
-pub(crate) fn prepare_catalog_receipt<B: CatalogInputBinding>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-) -> Result<SourceCatalogReceipt<B>> {
-    prepare_catalog_receipt_observed(stage, validator, l, &mut IgnoreCatalogProfiles)
-}
 pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
@@ -3109,17 +3015,6 @@ pub(crate) fn prepare_catalog_contracts(
     contracts(stage, validator, l, &mut IgnoreCatalogProfiles)
 }
 
-pub(crate) fn check_catalog_schema(
-    stage: &KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    schema: &str,
-    fragment: &str,
-    raw: &[u8],
-) -> Result<()> {
-    let contracts = prepare_catalog_contracts(stage, validator, l)?;
-    check_catalog_schema_with_contracts(&contracts, validator, schema, fragment, raw)
-}
 
 pub(crate) fn check_catalog_schema_with_contracts(
     contracts: &Contracts,

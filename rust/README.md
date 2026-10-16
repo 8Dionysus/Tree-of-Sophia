@@ -46,7 +46,7 @@ candidate, trace, and outcome interfaces, `SchemaResource`, `FormatProfile`,
 `layer_family_rules`, `provenance_rules`, `relation_rules`,
 `semantic_registry_rules`, `source_copy`, `source_forms`,
 `text_metadata_rules`, and `text_rules`. `assessment`, source-cut composition,
-persisted receipt spooling, the schema-worker process boundary, and rules that
+the schema-worker process boundary, and rules that
 consume `tos-source-store` remain native-only. The WASM check establishes
 compilation feasibility for the portable validation/backend surface; it does
 not establish native-adapter availability, source admission, rule completeness,

@@ -95,23 +95,6 @@ impl SegmentIndexReaderV2 {
         })
     }
 
-    /// Whole simultaneous interval workspace, excluding caller-owned bounds,
-    /// captures, retained output and native state. Values use one fixed buffer.
-    pub fn interval_workspace_upper_bound(&self, max_value_buffer_bytes: usize) -> Result<usize> {
-        self.check_request()?;
-        if max_value_buffer_bytes == 0
-            || max_value_buffer_bytes == usize::MAX
-            || max_value_buffer_bytes as u64 > self.read_limits().max_value_bytes
-        {
-            return Err(refusal("V2 interval value buffer is not finite"));
-        }
-        let required = self
-            .walk_workspace_upper_bound()?
-            .checked_add(interval_value_workspace(max_value_buffer_bytes)?)
-            .ok_or_else(|| refusal("V2 interval workspace overflowed"))?;
-        self.check_request()?;
-        Ok(required)
-    }
 
     fn walk_selected_pages_and_leaves(
         &self,
@@ -689,13 +672,6 @@ fn add_leaf_v2(control: &mut WalkControlV2, leaf: SegmentIndexLeafEntryV2<'_>) -
     Ok(())
 }
 
-fn interval_value_workspace(max_value_buffer_bytes: usize) -> Result<usize> {
-    max_value_buffer_bytes
-        .checked_add(size_of::<Vec<u8>>())
-        .and_then(|bytes| bytes.checked_add(size_of::<Cursor<&mut [u8]>>()))
-        .and_then(|bytes| bytes.checked_add(size_of::<SegmentIndexIntervalClosureV2>()))
-        .ok_or_else(|| refusal("V2 interval value workspace overflowed"))
-}
 
 fn refusal(detail: &'static str) -> StoreError {
     StoreError::new(StoreErrorCode::BudgetExceeded, detail)

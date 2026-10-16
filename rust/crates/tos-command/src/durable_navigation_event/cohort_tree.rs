@@ -445,21 +445,6 @@ pub(super) fn initialize<C: GenericClient>(
     Ok(())
 }
 
-/// Only the first event of a new, unbootstrapped consumer can initialize an
-/// empty map. Existing v1/v2 state always requires its explicit source bootstrap.
-pub(super) fn initialize_empty_if_absent<C: GenericClient>(
-    tx: &mut C,
-    domain: &str,
-    consumer: &str,
-) -> DurableResult<()> {
-    if tx.query_opt("SELECT 1 FROM cmd2_projection_navigation_cohort_tree WHERE domain=$1 AND consumer_id=$2", &[&domain, &consumer])?.is_none() {
-        if tx.query_opt("SELECT 1 FROM cmd2_projection_navigation_cohort WHERE domain=$1 AND consumer_id=$2 LIMIT 1", &[&domain, &consumer])?.is_some() {
-            return Err(DurableError::Conflict("existing cohort metadata requires explicit bootstrap"));
-        }
-        initialize(tx, domain, consumer)?;
-    }
-    Ok(())
-}
 
 fn commitment(domain: &str, consumer: &str, checkpoint: &Checkpoint) -> DurableResult<Digest256> {
     let raw = serde_json::to_vec(&checkpoint.root)

@@ -884,7 +884,6 @@ fn expose_metadata(
 #[derive(Clone, Copy)]
 enum SourceRegistrationBasis<'a> {
     Original,
-    Current(&'a crate::source_current_cut::ManagedCurrentSourceCut),
     Managed(&'a crate::source_current_cut::ManagedCurrentSourceGeneration),
     CommittedReplay,
 }
@@ -8537,53 +8536,6 @@ impl DurablePgCoordinator {
         )
     }
 
-    /// A subsequent maintained creation consumes the actual parent-owned,
-    /// independently reopened current source cut, including earlier bodies.
-    /// Its highest caller finishes the schema operation before durable commit.
-    pub fn register_source_creation_from_current(
-        &mut self,
-        store: &SegmentStore,
-        current: &crate::source_current_cut::ManagedCurrentSourceCut,
-        prepare_id: &[u8],
-        package: &SerializedCreation,
-        worker: &mut CutWorkerSchemaExecutor,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> DurableResult<SourceCreationAttempt> {
-        if package.command().base_revision != current.cut().current().revision() {
-            return Err(DurableError::Conflict(
-                "proposal does not consume actual current source cut",
-            ));
-        }
-        let package_members = package
-            .command()
-            .reads
-            .iter()
-            .filter(|r| r.path.as_str().starts_with("ToS/"))
-            .map(|r| (r.path.as_str(), r.raw_sha256))
-            .collect::<BTreeMap<_, _>>();
-        if package_members.len() != current.files().len()
-            || current
-                .files()
-                .iter()
-                .any(|(p, raw)| package_members.get(p.as_str()) != Some(&Digest256::of_bytes(raw)))
-            || membership_of_files(current.files()) != current.membership()
-        {
-            return Err(DurableError::Conflict(
-                "current cut package and verified raw membership differ",
-            ));
-        }
-        self.register_source_creation_bound(
-            store,
-            current.cohort(),
-            prepare_id,
-            CreationPackage::V1(package),
-            SourceRegistrationBasis::Current(current),
-            worker,
-            deadline,
-            cancelled,
-        )
-    }
 
     pub fn register_managed_source_creation(
         &mut self,
@@ -10550,18 +10502,6 @@ impl DurablePgCoordinator {
         let audit_generation = lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
         cohort_matches(&row, cohort, true)?;
-        if let SourceRegistrationBasis::Current(current) = &basis {
-            if as_u64(row.get("head_seq"))? != cohort.generation
-                || row.get::<_, Option<i64>>("source_generation")
-                    != Some(as_i64(cohort.generation)?)
-                || row.get::<_, Option<String>>("selected_generation_digest")
-                    != Some(current.selected_digest().to_hex())
-            {
-                return Err(DurableError::Conflict(
-                    "selected current source generation changed",
-                ));
-            }
-        }
         if let SourceRegistrationBasis::Managed(generation) = &basis {
             if package.managed_basis() != Some(&ManagedCreationBasis::from_generation(generation))
                 || as_u64(row.get("head_seq"))? != generation.commit_seq()

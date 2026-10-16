@@ -938,33 +938,6 @@ impl V2ReadSession {
         result
     }
 
-    pub fn member_tuple_with_caller_state(
-        &mut self,
-        revision: SourceRevision,
-        path: &RelativePath,
-        caller_retained_state_bytes: usize,
-    ) -> io::Result<Option<V2MemberTupleObservation>> {
-        if self.failed {
-            return Err(invalid("V2 point session already refused"));
-        }
-        self.observation = None;
-        let result = (|| {
-            let Some(roots) =
-                self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
-            else {
-                return Ok(None);
-            };
-            let roots_state = roots.retained_state_bytes()?;
-            let retained = caller_retained_state_bytes
-                .checked_add(roots_state)
-                .ok_or_else(|| invalid("V2 member tuple state overflow"))?;
-            self.member_tuple_from_roots_with_caller_state(&roots, path, retained)
-        })();
-        if result.is_err() {
-            self.failed = true;
-        }
-        result
-    }
 
     fn lookup(
         &mut self,

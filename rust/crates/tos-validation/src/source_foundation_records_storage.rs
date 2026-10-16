@@ -679,11 +679,6 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
         Self { store }
     }
 
-    /// Report whether this read-only view is tied to the exact caller-owned
-    /// store object, without reopening a connection or granting authority.
-    pub fn is_backed_by(&self, store: &dyn SourceFoundationRecordsStore) -> bool {
-        std::ptr::eq(self.store, store)
-    }
 
     pub fn lookup_current_record(
         &self,

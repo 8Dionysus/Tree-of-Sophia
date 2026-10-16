@@ -520,16 +520,6 @@ impl VerifiedAuditInterval {
         &self.expected_final_commitments
     }
 
-    pub fn verify_final_rows_controlled(
-        &self,
-        tx: &mut Transaction<'_>,
-        domain: &str,
-        limits: AuditDeltaLimits,
-        control: Option<AuditDeltaControl<'_>>,
-    ) -> Result<(), AuditDeltaError> {
-        let mut work = AuditDeltaWork::default();
-        self.verify_final_rows_controlled_with_work(tx, domain, limits, control, &mut work)
-    }
 
     pub fn verify_final_rows_controlled_with_work(
         &self,

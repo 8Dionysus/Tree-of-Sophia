@@ -361,35 +361,6 @@ fn member(row: (String, Vec<u8>, Vec<u8>, u32)) -> io::Result<MemberMetadata> {
     })
 }
 impl<'host> SpoolCandidate<'host> {
-    /// Continue from the same bounded canonical parser when the caller must
-    /// check validator identity before creating the persistent store. The held
-    /// input descriptor and private batch fields prevent arbitrary member
-    /// iterators or caller-authored `AdmissionBatch` values from entering.
-    pub(crate) fn prepare_selected_batch(
-        store: &'host AdmissionStore,
-        batch: AdmissionBatch,
-        selected_validator: Digest256,
-        base: Option<&'host StreamedCorpusCutReaderV1>,
-        workspace: File,
-        request: PinnedSqliteAuxRequest,
-        limits: SpoolLimits,
-        deadline: Instant,
-        cancelled: Arc<AtomicBool>,
-    ) -> io::Result<Self> {
-        Self::prepare_selected_batch_with_v2_base(
-            store,
-            batch,
-            selected_validator,
-            base,
-            None,
-            None,
-            workspace,
-            request,
-            limits,
-            deadline,
-            cancelled,
-        )
-    }
 
     /// Additive authenticated V2 base route. A V2 reader and its exact pointer
     /// IO ledger are borrowed from the protected invocation; the candidate
