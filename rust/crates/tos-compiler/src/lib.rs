@@ -401,13 +401,13 @@ pub use knowledge_source_navigation_relation::{
     direct_assertion_context, prepare_navigation_relation_dependencies,
 };
 pub use legacy::partitioned_projection_closure;
+#[cfg(feature = "source-tools")]
+pub use native_knowledge_selection::prepare_native_knowledge_artifact;
 pub use native_knowledge_selection::{
     LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits,
     NativeSelectionPaths, NativeSelectionProducer,
     measure_existing_native_knowledge_artifact_custody,
 };
-#[cfg(feature = "source-tools")]
-pub use native_knowledge_selection::prepare_native_knowledge_artifact;
 #[cfg(feature = "source-tools")]
 pub use source_bibliographic_selected_files::SelectedBibliographicFilesV1;
 #[cfg(feature = "source-tools")]
