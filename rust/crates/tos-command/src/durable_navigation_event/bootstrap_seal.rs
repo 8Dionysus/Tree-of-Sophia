@@ -28,6 +28,63 @@ fn require_same_set(
     Ok(())
 }
 
+// Full primary keys and expected lengths only. Each response contains at most
+// 128 rows and one max-row byte budget, guarded before PostgreSQL sends bytes.
+type RowKey<'a> = (&'a str, &'a str, &'a str, &'a str, i64);
+
+fn read_row_batch(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    consumer: &str,
+    keys: &[RowKey<'_>],
+    limits: DurableNavigationEventLimits,
+) -> DurableResult<Vec<postgres::Row>> {
+    let mut count = 0;
+    let mut bytes = 0u64;
+    for key in keys.iter().take(128) {
+        let size = as_u64(key.4)?;
+        if size > limits.max_row_bytes as u64 {
+            return Err(DurableError::Refused("navigation initial root row size"));
+        }
+        if size > limits.max_row_bytes as u64 - bytes {
+            break;
+        }
+        bytes += size;
+        count += 1;
+    }
+    if count == 0 {
+        return Err(DurableError::Invalid("initial row batch empty"));
+    }
+    let keys = &keys[..count];
+    let kinds = keys.iter().map(|k| k.0).collect::<Vec<_>>();
+    let ids = keys.iter().map(|k| k.1).collect::<Vec<_>>();
+    let paths = keys.iter().map(|k| k.2).collect::<Vec<_>>();
+    let owners = keys.iter().map(|k| k.3).collect::<Vec<_>>();
+    let sizes = keys.iter().map(|k| k.4).collect::<Vec<_>>();
+    let rows = tx.query(
+        "SELECT r.active,r.visible,r.from_id,r.to_id,r.row_sha256,
+         CASE WHEN octet_length(r.row_json)::bigint=k.size THEN r.row_json END,k.ord
+         FROM unnest($3::text[],$4::text[],$5::text[],$6::text[],$7::bigint[])
+              WITH ORDINALITY AS k(kind,id,path,owner,size,ord)
+         JOIN cmd2_projection_navigation_bootstrap_row r
+           ON r.domain=$1 AND r.consumer_id=$2 AND r.row_kind=k.kind
+          AND r.row_id=k.id AND r.owner_source_path=k.path AND r.owner_record_id=k.owner
+         ORDER BY k.ord",
+        &[&domain, &consumer, &kinds, &ids, &paths, &owners, &sizes],
+    )?;
+    if rows.len() != count
+        || rows
+            .iter()
+            .enumerate()
+            .any(|(i, r)| r.get::<_, i64>(6) != i as i64 + 1)
+    {
+        return Err(DurableError::Conflict(
+            "navigation initial normalized carrier missing",
+        ));
+    }
+    Ok(rows)
+}
+
 pub(super) fn verify_derived(
     tx: &mut Transaction<'_>,
     domain: &str,
@@ -79,44 +136,45 @@ pub(super) fn verify_derived(
         let page =
             normalize::prepare_page(tx, domain, consumer, &position, limits, deadline, cancelled)?;
         add(&mut work, page.work)?;
-        for expected in &page.rows {
+        let keys = page
+            .rows
+            .iter()
+            .map(|r| {
+                (
+                    r.kind.as_str(),
+                    r.id.as_str(),
+                    r.owner_source_path.as_str(),
+                    r.owner_record_id.as_str(),
+                    r.raw.len() as i64,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut offset = 0;
+        while offset < keys.len() {
             live(deadline, cancelled)?;
-            let actual = tx
-                .query_opt(
-                    "SELECT active,visible,from_id,to_id,row_sha256,
-                CASE WHEN octet_length(row_json)::bigint=$7 THEN row_json END
-                FROM cmd2_projection_navigation_bootstrap_row WHERE domain=$1 AND consumer_id=$2
-                AND row_kind=$3 AND row_id=$4 AND owner_source_path=$5 AND owner_record_id=$6",
-                    &[
-                        &domain,
-                        &consumer,
-                        &expected.kind.as_str(),
-                        &expected.id,
-                        &expected.owner_source_path,
-                        &expected.owner_record_id,
-                        &(expected.raw.len() as i64),
-                    ],
-                )?
-                .ok_or(DurableError::Conflict(
-                    "navigation initial normalized carrier missing",
-                ))?;
-            let raw = actual.get::<_, Option<String>>(5);
-            if !actual.get::<_, bool>(0)
-                || actual.get::<_, Option<bool>>(1) != expected.visible
-                || actual.get::<_, Option<String>>(2) != expected.from_id
-                || actual.get::<_, Option<String>>(3) != expected.to_id
-                || parse_digest(actual.get(4))? != expected.sha256
-                || raw.as_deref().map(str::as_bytes) != Some(expected.raw.as_slice())
-            {
-                return Err(DurableError::Conflict(
-                    "navigation initial normalized carrier differs from Original",
-                ));
+            let actuals = read_row_batch(tx, domain, consumer, &keys[offset..], limits)?;
+            let count = actuals.len();
+            for (expected, actual) in page.rows[offset..offset + count].iter().zip(actuals) {
+                live(deadline, cancelled)?;
+                let raw = actual.get::<_, Option<String>>(5);
+                if !actual.get::<_, bool>(0)
+                    || actual.get::<_, Option<bool>>(1) != expected.visible
+                    || actual.get::<_, Option<String>>(2) != expected.from_id
+                    || actual.get::<_, Option<String>>(3) != expected.to_id
+                    || parse_digest(actual.get(4))? != expected.sha256
+                    || raw.as_deref().map(str::as_bytes) != Some(expected.raw.as_slice())
+                {
+                    return Err(DurableError::Conflict(
+                        "navigation initial normalized carrier differs from Original",
+                    ));
+                }
+                add(&mut work, expected.raw.len() as u64)?;
+                if expected.kind != DurableNavigationBootstrapRowKindV1::Right {
+                    add(&mut rows, 1)?;
+                    add(&mut bytes, expected.raw.len() as u64)?;
+                }
             }
-            add(&mut work, expected.raw.len() as u64)?;
-            if expected.kind != DurableNavigationBootstrapRowKindV1::Right {
-                add(&mut rows, 1)?;
-                add(&mut bytes, expected.raw.len() as u64)?;
-            }
+            offset += count;
         }
         for (path, id, dependency) in &page.dependencies {
             tx.execute("INSERT INTO pg_temp.tos_initial_verify_dependency VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
@@ -181,8 +239,8 @@ pub(super) fn verify_derived(
     })
 }
 
-/// Cursor carries bounded metadata only. Raw carriers are fetched one at a
-/// time with an SQL length guard; even a maximum-sized row fits the page cap.
+/// Cursor carries bounded metadata only. Raw batches keep the SQL length
+/// guard and share one maximum-row byte budget.
 pub(super) fn root<P: ManagedSelectedProof>(
     tx: &mut Transaction<'_>,
     store: &SegmentStore,
@@ -278,52 +336,61 @@ pub(super) fn hash_rows(
             if page.is_empty() {
                 break;
             }
-            for meta in page {
+            let metadata = page
+                .iter()
+                .map(|meta| {
+                    (
+                        meta.get::<_, String>(0),
+                        meta.get::<_, String>(1),
+                        meta.get::<_, String>(2),
+                        meta.get::<_, i64>(3),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let keys = metadata
+                .iter()
+                .map(|(id, path, owner, size)| {
+                    (
+                        kind.as_str(),
+                        id.as_str(),
+                        path.as_str(),
+                        owner.as_str(),
+                        *size,
+                    )
+                })
+                .collect::<Vec<_>>();
+            let mut offset = 0;
+            while offset < keys.len() {
                 live(deadline, cancelled)?;
-                let id: String = meta.get(0);
-                let path: String = meta.get(1);
-                let owner: String = meta.get(2);
-                let size: i64 = meta.get(3);
-                if as_u64(size)? > limits.max_row_bytes as u64 {
-                    return Err(DurableError::Refused("navigation initial root row size"));
+                let rows = read_row_batch(tx, domain, consumer, &keys[offset..], limits)?;
+                let count = rows.len();
+                for ((id, path, owner, _), row) in metadata[offset..offset + count].iter().zip(rows)
+                {
+                    live(deadline, cancelled)?;
+                    let raw = row
+                        .get::<_, Option<String>>(5)
+                        .ok_or(DurableError::Corrupt("initial root row changed"))?
+                        .into_bytes();
+                    let sha256 = parse_digest(row.get(4))?;
+                    if Digest256::of_bytes(&raw) != sha256 {
+                        return Err(DurableError::Corrupt("initial root row digest"));
+                    }
+                    add(&mut work, raw.len() as u64)?;
+                    hash.row(&DurableNavigationBaseRowReadV1 {
+                        kind,
+                        id: id.clone(),
+                        owner_source_path: path.clone(),
+                        owner_record_id: owner.clone(),
+                        active: true,
+                        source_refs: Vec::new(),
+                        visible: row.get(1),
+                        from_id: row.get(2),
+                        to_id: row.get(3),
+                        raw,
+                        sha256,
+                    })?;
                 }
-                let row = tx.query_one(
-                    "SELECT visible,from_id,to_id,row_sha256,
-                    CASE WHEN octet_length(row_json)::bigint=$7 THEN row_json END
-                    FROM cmd2_projection_navigation_bootstrap_row WHERE domain=$1 AND consumer_id=$2
-                    AND row_kind=$3 AND row_id=$4 AND owner_source_path=$5 AND owner_record_id=$6",
-                    &[
-                        &domain,
-                        &consumer,
-                        &kind.as_str(),
-                        &id,
-                        &path,
-                        &owner,
-                        &size,
-                    ],
-                )?;
-                let raw = row
-                    .get::<_, Option<String>>(4)
-                    .ok_or(DurableError::Corrupt("initial root row changed"))?
-                    .into_bytes();
-                let sha256 = parse_digest(row.get(3))?;
-                if Digest256::of_bytes(&raw) != sha256 {
-                    return Err(DurableError::Corrupt("initial root row digest"));
-                }
-                add(&mut work, raw.len() as u64)?;
-                hash.row(&DurableNavigationBaseRowReadV1 {
-                    kind,
-                    id,
-                    owner_source_path: path,
-                    owner_record_id: owner,
-                    active: true,
-                    source_refs: Vec::new(),
-                    visible: row.get(0),
-                    from_id: row.get(1),
-                    to_id: row.get(2),
-                    raw,
-                    sha256,
-                })?;
+                offset += count;
             }
         }
         tx.batch_execute("CLOSE tos_initial_rows")?;

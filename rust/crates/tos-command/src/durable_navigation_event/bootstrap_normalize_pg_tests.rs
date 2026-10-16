@@ -394,6 +394,28 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
     assert_eq!(actual_hash.finish(), expected_hash.finish());
     assert_eq!(hash_work, position.normalized_bytes);
     tx.commit().unwrap();
+    // A batch never accepts a bad raw digest or an oversized stored carrier.
+    for tamper in [
+        "UPDATE cmd2_projection_navigation_bootstrap_row SET row_sha256=repeat('0',64) WHERE row_id='unrelated:000150'",
+        "UPDATE cmd2_projection_navigation_bootstrap_row SET row_json=repeat('x',65537) WHERE row_id='unrelated:000150'",
+    ] {
+        let mut tx = client.transaction().unwrap();
+        assert!(tx.execute(tamper, &[]).unwrap() > 0);
+        assert!(
+            super::super::seal::hash_rows(
+                &mut tx,
+                "lab",
+                "initial",
+                &mut empty_hash(),
+                limits,
+                deadline,
+                &cancelled,
+            )
+            .is_err(),
+            "{tamper}"
+        );
+        tx.rollback().unwrap();
+    }
     // The seal derives its own facts and contributor/dependency sets. A
     // plausible stored position or updated row hash cannot bless corruption.
     let mut tx = client.transaction().unwrap();
@@ -410,6 +432,7 @@ fn navigation_initial_normalization_matches_shared_rules_across_committed_pages(
     );
     tx.commit().unwrap();
     for tamper in [
+        "DELETE FROM cmd2_projection_navigation_bootstrap_row WHERE row_id='unrelated:000150'",
         "UPDATE cmd2_projection_navigation_initial_row SET node_facts_json='{\"visible\":false,\"current_owner\":null}' WHERE row_id='work:current'",
         "DELETE FROM cmd2_projection_navigation_initial_contributor WHERE node_id='evidence:shared' AND owner_record_id='a'",
         "INSERT INTO cmd2_projection_navigation_initial_contributor VALUES('lab','initial','evidence:shared','ToS/current.json','forged')",
