@@ -191,11 +191,13 @@ fn identity(root: &Path, b: &Budget<'_>) -> io::Result<Value> {
 }
 /// Resolve the package-local features enabled by the exact Cargo invocation.
 /// The product groups pass `default_features` according to their maintained
-/// build commands; feature names come from the package manifest.
+/// build commands. Explicit role features and their local closure are resolved
+/// against the package manifest; dependency features are not package features.
 fn enabled_features(
     root: &Path,
     package: &str,
     default_features: bool,
+    selected_features: &[&str],
     b: &Budget<'_>,
 ) -> io::Result<Vec<String>> {
     let path = root.join(format!("rust/crates/{package}/Cargo.toml"));
@@ -212,41 +214,27 @@ fn enabled_features(
         return Err(bad("Cargo feature manifest package mismatch"));
     }
     let Some(features) = manifest.get("features").and_then(toml::Value::as_table) else {
-        return Ok(Vec::new());
+        return if selected_features.is_empty() {
+            Ok(Vec::new())
+        } else {
+            Err(bad("selected Cargo role features are undeclared"))
+        };
     };
-    if !default_features {
-        return Ok(Vec::new());
-    }
-    let Some(default) = features.get("default") else {
-        return Ok(Vec::new());
-    };
-    let default = default
-        .as_array()
-        .ok_or_else(|| bad("Cargo default feature set must be an array"))?;
-    let mut active = BTreeSet::from(["default".to_owned()]);
-    let mut pending = default
+    let mut active = BTreeSet::new();
+    let mut pending = selected_features
         .iter()
-        .map(|value| {
-            value
-                .as_str()
-                .map(str::to_owned)
-                .ok_or_else(|| bad("Cargo feature names must be strings"))
-        })
-        .collect::<io::Result<Vec<_>>>()?;
+        .map(|value| (*value).to_owned())
+        .collect::<Vec<_>>();
+    if default_features && features.contains_key("default") {
+        pending.push("default".to_owned());
+    }
     while let Some(feature) = pending.pop() {
         b.check()?;
-        if feature.starts_with("dep:") {
+        if feature.starts_with("dep:") || feature.contains('/') {
             continue;
         }
-        if feature.contains(['/', '?']) {
-            return Err(bad(
-                "unsupported Cargo feature expression in default profile",
-            ));
-        }
         let Some(references) = features.get(&feature) else {
-            return Err(bad(
-                "Cargo default references an undeclared package feature",
-            ));
+            return Err(bad("Cargo role references an undeclared package feature"));
         };
         let references = references
             .as_array()
@@ -403,8 +391,13 @@ fn cargo_products(
         }
         let package = native_software_roles::package(name)
             .ok_or_else(|| bad("unsupported Cargo software role"))?;
-        let expected_features =
-            enabled_features(root, package, !no_default_features.contains(&name), b)?;
+        let expected_features = enabled_features(
+            root,
+            package,
+            !no_default_features.contains(&name),
+            native_software_roles::features(name).unwrap_or(&[]),
+            b,
+        )?;
         let actual_features = value["features"]
             .as_array()
             .ok_or_else(|| bad("Cargo executable feature list missing"))?
@@ -484,6 +477,7 @@ fn cargo_products(
             Ok((
                 native_software_roles::package(name),
                 !no_default_features.contains(name),
+                product.features.as_slice(),
                 product.opt_level.as_str(),
             ))
         })
@@ -975,7 +969,11 @@ mod tests {
         // Software receipts require the explicitly selected reduced debug-info profile.
         let mut names = vec!["tos-access"];
         names.extend(COMMANDS);
-        package_manifest(&root, "tos-access", "[package]\nname = \"tos-access\"\n");
+        package_manifest(
+            &root,
+            "tos-access",
+            "[package]\nname = \"tos-access\"\n[features]\nresearch-tools = [\"tos-compiler/research\", \"tos-command/research\"]\n",
+        );
         package_manifest(
             &root,
             "tos-command",
@@ -1004,7 +1002,9 @@ mod tests {
         for n in &names {
             let package = native_software_roles::package(n).unwrap();
             let features = native_software_roles::features(n).unwrap_or(&[]);
-            let required_features = if *n == "tos-schema-worker" {
+            let required_features = if *n == "tos-research" {
+                json!(["research-tools"])
+            } else if *n == "tos-schema-worker" {
                 json!(["native"])
             } else if ["tos-source-registry", "tos-open-work-queue"].contains(n) {
                 json!(["compiler-backed-validators"])
@@ -1016,7 +1016,7 @@ mod tests {
             serde_json::to_writer(&mut software_stream, &event).unwrap();
             software_stream.push(b'\n');
         }
-        for _ in 0..7 {
+        for _ in 0..8 {
             software_stream
                 .extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         }
@@ -1038,6 +1038,8 @@ mod tests {
             ["default", "native"]
         );
         assert_eq!(products["tos-access"].opt_level, "1");
+        assert!(products["tos-access"].features.is_empty());
+        assert_eq!(products["tos-research"].features, ["research-tools"]);
         assert!(products["tos-validation-lanes"].features.is_empty());
         assert!(
             cargo_products(
@@ -1083,24 +1085,29 @@ mod tests {
             .is_err()
         );
         fs::write(&messages, &software_stream).unwrap();
-        let dishonest = String::from_utf8(software_stream)
-            .unwrap()
-            .replace("\"features\":[\"default\",\"native\"]", "\"features\":[]");
-        fs::write(&messages, dishonest).unwrap();
-        assert!(
-            cargo_products(
-                &root,
-                &messages,
-                &images,
-                &names,
-                &SOFTWARE_NO_DEFAULT_FEATURES,
-                &version,
-                0,
-                true,
-                &b,
-            )
-            .is_err()
-        );
+        let software_text = String::from_utf8(software_stream).unwrap();
+        for missing in [
+            "\"features\":[\"default\",\"native\"]",
+            "\"features\":[\"research-tools\"]",
+        ] {
+            let dishonest = software_text.replace(missing, "\"features\":[]");
+            assert_ne!(dishonest, software_text);
+            fs::write(&messages, dishonest).unwrap();
+            assert!(
+                cargo_products(
+                    &root,
+                    &messages,
+                    &images,
+                    &names,
+                    &SOFTWARE_NO_DEFAULT_FEATURES,
+                    &version,
+                    0,
+                    true,
+                    &b,
+                )
+                .is_err()
+            );
+        }
         fs::remove_dir_all(root).unwrap();
     }
 }

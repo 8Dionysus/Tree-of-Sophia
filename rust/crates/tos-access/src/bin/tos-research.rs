@@ -1,10 +1,28 @@
 //! Explicit source-selected research tools, built independently of serving.
 use std::io::Write;
 fn main() {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "foundation")
+    {
+        // Keep the protected foundation grammar and bounded argument intake
+        // with its existing command owner, including the complete audit scope.
+        let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        let git_signal = std::sync::atomic::AtomicI32::new(0);
+        let result = tos_command::source_current_cut::foundation_command::run(
+            &args,
+            &cancelled,
+            &git_signal,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        std::process::exit(result.unwrap_or(2));
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() || matches!(args[0].as_str(), "--help" | "-h" | "help") {
         println!(
-            "usage: tos-research COMMAND [OPTIONS]\nRun COMMAND --help for its explicit source, budget and output contract.\nResearch builders are separate from the read-only access service.\nCommands:\n  antonovsky-collation\n  authored-canon-bridge\n  bounded-translation-input\n  dta-technical-markup\n  german-triangulation\n  jenseits-label-correspondence\n  jenseits-numbered-structure\n  jenseits-polilov-numbered-structure\n  mysl-transfer-target-structure\n  nietzsche-transfer-source-structure\n  witness-structure-correspondence\n  lexical-index\n  nietzsche-transfer-source-routes\n  opening-sentence-alignment\n  provenance-event-v2-lab\n  semantic-source-recurrence\n  source-text-foundation\n  structural-paragraph\n  synthetic-foundation-lab\n  target-text-foundation\n  technical-markup\n  transfer-candidates\n  transfer-route-readiness\n  transfer-source-passages\n  transfer-source-visible\n  transfer-target-passages\n  zarathustra-morphology-census-result\n  zarathustra-morphology-context\n  zarathustra-morphology-context-result\n  zarathustra-morphology-input\n  zarathustra-recurrence-projection\n  zarathustra-usage-context\n  zarathustra-visual-retrieval-result\n  zarathustra-reading-workbench-v1\n  zarathustra-parallel-lexical-candidates-v1\n  zarathustra-de-ru-paragraph-alignment-v1\n  zarathustra-concept-workbench-v1\n  zarathustra-eternal-return-review-preparation-v1\n  zarathustra-morphology-theme-candidates-v1\n  zarathustra-eternal-return-concept-candidate-v1"
+            "usage: tos-research COMMAND [OPTIONS]\nRun COMMAND --help for its explicit source, budget and output contract.\nResearch builders are separate from the read-only access service.\nCommands:\n  foundation\n  antonovsky-collation\n  authored-canon-bridge\n  bounded-translation-input\n  dta-technical-markup\n  german-triangulation\n  jenseits-label-correspondence\n  jenseits-numbered-structure\n  jenseits-polilov-numbered-structure\n  mysl-transfer-target-structure\n  nietzsche-transfer-source-structure\n  witness-structure-correspondence\n  lexical-index\n  nietzsche-transfer-source-routes\n  opening-sentence-alignment\n  provenance-event-v2-lab\n  semantic-source-recurrence\n  source-text-foundation\n  structural-paragraph\n  synthetic-foundation-lab\n  target-text-foundation\n  technical-markup\n  transfer-candidates\n  transfer-route-readiness\n  transfer-source-passages\n  transfer-source-visible\n  transfer-target-passages\n  zarathustra-morphology-census-result\n  zarathustra-morphology-context\n  zarathustra-morphology-context-result\n  zarathustra-morphology-input\n  zarathustra-recurrence-projection\n  zarathustra-usage-context\n  zarathustra-visual-retrieval-result\n  zarathustra-reading-workbench-v1\n  zarathustra-parallel-lexical-candidates-v1\n  zarathustra-de-ru-paragraph-alignment-v1\n  zarathustra-concept-workbench-v1\n  zarathustra-eternal-return-review-preparation-v1\n  zarathustra-morphology-theme-candidates-v1\n  zarathustra-eternal-return-concept-candidate-v1"
         );
         return;
     }

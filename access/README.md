@@ -1176,10 +1176,12 @@ Source-selected research builders use `tos-research COMMAND [OPTIONS]`.
 Build the separate executable with
 `cargo build --locked -p tos-access --features research-tools --bin tos-research`.
 This also enables the historical laboratory and gold-set validation implementations.
-Ordinary source readers and selected-source validation omit them. For the complete
-protected foundation audit, build the owner command explicitly with
-`cargo build --locked -p tos-command --features research --bin tos-native-owner-command`.
-A build without that feature refuses `FullAudit`; it never reports skipped districts as valid.
+The installed `tos-research foundation` entry runs the existing protected foundation
+command, including its complete audit scope, with the same explicit root, invocation
+and resource contract. Ordinary source readers and selected-source validation omit
+these research implementations. A separately built owner command can enable them
+with `--features research`; a build without that feature refuses `FullAudit` before
+source capture. It never reports skipped districts as valid.
 Ordinary `tos-access` builds exclude these recipe modules and their command
 handlers. Select this binary for data validation lanes with
 `TOS_RESEARCH_EXECUTOR=/absolute/path/to/tos-research`.
@@ -1422,6 +1424,9 @@ source assessment, export, compilation and publication, and admits at most
 host's 60,000 ms finalization reserve, capped at 600,000 ms including its
 shutdown grace. Select the initial budget from measured work for the chosen
 cut; this ceiling does not change ordinary transaction or query budgets.
+The result's `phase_ms.bootstrap` and `phase_ms.selected_cut_export` measure
+those completed phases separately. `catalog_and_plan` and `catalog_render`
+are nested within `model`; do not add them again to the model duration.
 
 The parent retains the protected owner and PostgreSQL connection. It reuses a
 current assessed source selection. After source changes or database restore,
@@ -1703,12 +1708,13 @@ JSON object selects a nonempty subset of the native roles declared in
 `tos-foundation::native_software_roles`: owner command, schema worker, reader,
 validation/release/CI commands, mechanics, constructor library/fragments,
 route cards/harness, KAG release/provider controls, stats release, source
-registry and open-work queue. Every value contains only absolute `binary` and
+registry, open-work queue and explicit research tools. Every value contains only absolute `binary` and
 `receipt` paths. Each build-owned receipt uses
 `tos_native_software_command_build_v1`, the access receipt identity fields,
 and the exact role feature set. Mechanics, registry and queue require
 `["compiler-backed-validators", "default", "philosophy-library"]`; the schema worker requires
-`["default", "native"]`. Other roles require `features: []`; the lightweight
+`["default", "native"]`, and `tos-research` requires `["research-tools"]`.
+Other roles require `features: []`; the lightweight
 ops commands use `--no-default-features` so compiler validators do not leak
 into their receipts.
 Producer receipts check Cargo messages against the selected package manifests;

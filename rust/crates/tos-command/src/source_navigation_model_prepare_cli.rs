@@ -1049,6 +1049,7 @@ fn prepare_initial(
         deadline,
         cancelled,
     )?;
+    let bootstrap_ms = bootstrap_start.elapsed().as_millis();
     let bootstrap_source_revision = original_cut.current().revision();
     let source_membership = original_cut
         .stream(bootstrap_source_revision)
@@ -1423,6 +1424,7 @@ fn prepare_initial(
             ));
         }
     };
+    let export_ms = export_start.elapsed().as_millis();
     let source_read_limits =
         super::source_navigation_model_compile::SourceNavigationCompileReadLimitsV1::from(
             export.read_limits,
@@ -1857,8 +1859,8 @@ fn prepare_initial(
                 "proof": proof,
                 "final_owner_configuration": {"path": filesystem.protected_root_path().join(&owner.final_owner_leaf).to_string_lossy(), "sha256": final_owner_metadata.sha256.to_hex(), "size_bytes": final_owner_metadata.size_bytes},
                 "phase_ms": {
-                    "bootstrap": bootstrap_start.elapsed().as_millis(),
-                    "selected_cut_export": export_start.elapsed().as_millis(),
+                    "bootstrap": bootstrap_ms,
+                    "selected_cut_export": export_ms,
                     "catalog_and_plan": completed.catalog_work.planning_elapsed_ms,
                     "catalog_render": completed.catalog_work.rendering_elapsed_ms,
                     "model": model_ms,

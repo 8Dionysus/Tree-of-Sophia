@@ -1799,6 +1799,7 @@ mod role_feature_tests {
                 "tos-source-registry",
                 "tos-open-work-queue",
                 "tos-schema-worker",
+                "tos-research",
             ]
             .contains(&role)
             {
@@ -1820,6 +1821,10 @@ mod role_feature_tests {
             assert!(command_proof("tos-ops-mechanics-plan", &wrong, &empty).is_err());
         }
         let worker = proof_with_features(r#"["default","native"]"#);
+        let research = proof_with_features(r#"["research-tools"]"#);
+        assert!(command_proof("tos-research", &research, &empty).is_ok());
+        assert!(command_proof("tos-research", &empty, &empty).is_err());
+        assert!(command_proof("tos-native-owner-command", &research, &empty).is_err());
         assert!(command_proof("tos-schema-worker", &worker, &empty).is_ok());
         assert!(command_proof("tos-schema-worker", &empty, &empty).is_err());
         for role in COMMANDS

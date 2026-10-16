@@ -141,9 +141,9 @@ owner surfaces.
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
-   CI uses this native route with the eighteen native command roles for its software
+   CI uses this native route with the nineteen native command roles for its software
    candidate. It builds receipts for the exact feature sets in the shared native command
-   descriptor, and derives package byte limits from the actual nineteen
+   descriptor, and derives package byte limits from the actual twenty
    executables, web assets and bounded software inputs; it does not reuse an
    access-only byte cap. The job builds the same native archive and sidecar
    twice and compares their bytes before verify/install, retaining the legacy
@@ -234,8 +234,11 @@ sha256sum "$owner_prefix/bin/tos-native-owner-command" "$owner_prefix/bin/tos-sc
 Preparation needs its own admitted storage/process budget. Keep the exact source,
 lock, toolchain and both resulting product identities with the owner receipt;
 an executable found on PATH is not an authorization or a matching worker proof.
-The complete historical `foundation` audit additionally requires building
-`tos-command` with `--features research`. Ordinary selected-source validation
+The complete historical `foundation` audit is available from the installed
+`tos-research foundation` entry. The full software cohort builds that executable
+separately with `--features research-tools`, preserving the ordinary reader's
+feature set. A standalone owner build can instead select `--features research`.
+Ordinary selected-source validation
 does not compile the laboratory and gold-set implementations; requesting a full
 audit from that build returns an explicit refusal before source capture.
 The owner supplies a protected, user-owned `0600` invocation file and protected

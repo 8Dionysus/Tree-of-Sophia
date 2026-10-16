@@ -7,7 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [features]
-research-tools = ["tos-compiler/research"]
+research-tools = ["tos-compiler/research", "tos-command/research"]
 load-readiness = ["dep:hmac", "dep:sha2"]
 e2e-fixture = []
 
