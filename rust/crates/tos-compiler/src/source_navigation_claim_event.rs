@@ -5907,16 +5907,6 @@ mod tests {
             .iter()
             .map(|(path, raw)| (path.clone(), raw.as_slice()))
             .collect();
-        let creation = NavigationClaimCreationBindingV1 {
-            event_path: checked_path("ToS/source-witnesses/relations/test/provenance.jsonl")
-                .unwrap(),
-            event_id: "test-creation".to_owned(),
-            event_version: 1,
-            event_sha256: Digest256::of_bytes(b"event"),
-            event_file_sha256: Digest256::of_bytes(b"event"),
-            receipt_path: checked_path("ToS/source-witnesses/relations/test/receipt.json").unwrap(),
-            receipt_sha256: Digest256::of_bytes(b"receipt"),
-        };
         for (claim, expected_receipt) in
             claims
                 .iter()
@@ -5929,12 +5919,6 @@ mod tests {
                 &stream,
                 claim["claim_id"].as_str().unwrap(),
                 claim,
-                None,
-                None,
-                &[],
-                "metadata-refresh",
-                153,
-                &creation,
                 &dependencies,
                 &files,
                 limits,
