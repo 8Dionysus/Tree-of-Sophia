@@ -130,31 +130,6 @@ class NativeCoreSnapshotSelection:
         return cls(tos_root=root, **fields, query_store_path=selected,
                    query_store_configured=configured)
 
-    @classmethod
-    def prepare_owned_discovery(cls):
-        """Prepare optional bounded OS bindings before ReceiverState exists."""
-        from .locations import prepare_owned_source_discovery
-        return prepare_owned_source_discovery()
-
-    @classmethod
-    def discover_under_admission(cls, prepared, state, *, tos_root=None,
-                                 query_store_path=None, carrier_selectors,
-                                 maximum_owner_objects, source_root_only=False):
-        """Select existing paths using the original setup state/cutoff.
-
-        Preparation occurs on this same SDK thread before ReceiverState. This
-        freezes explicit/env/root selection; it never reads projection bodies,
-        rebuilds a Store or provides a Stage/publication/release grant.
-        """
-        from .native_core_selection_paths import PreparedSourceDiscovery
-        if cls is not NativeCoreSnapshotSelection:
-            raise TypeError('bounded native discovery requires its actual selection owner')
-        if type(prepared) is not PreparedSourceDiscovery:
-            raise TypeError('bounded native discovery requires its prepared runtime owner')
-        return prepared.discover(cls, tos_root, query_store_path, carrier_selectors,
-            state, maximum_owner_objects=maximum_owner_objects,
-            source_root_only=source_root_only)
-
     def source_paths_wire(self) -> dict[str, str]:
         return {name: os.fspath(getattr(self, name)) for name in _SOURCE_PATH_FIELDS}
 

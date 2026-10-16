@@ -65,13 +65,3 @@ def source_carrier_paths(root: Path, **explicit) -> dict[str, Path]:
     return paths
 
 QUERY_STORE_RELATIVE_PATH = Path('ToS/derived-exports/runtime/knowledge.sqlite3')
-
-
-def prepare_owned_source_discovery():
-    """Prepare optional Linux OS mechanics before the setup receiving ledger.
-
-    Source path selection stays here. The returned owner is not an admission,
-    default switch, deadline or managed-release grant.
-    """
-    from .native_core_selection_paths import prepare_owned_discovery
-    return prepare_owned_discovery()

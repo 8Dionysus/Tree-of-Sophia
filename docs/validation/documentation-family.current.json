@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6035,
+    "tracked_surface_count": 6034,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5943,
     "human_scope": {
-      "bytes": 7348606,
+      "bytes": 7348701,
       "count": 1071,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 621802,
+          "bytes": 621897,
           "count": 44,
-          "lines": 9896
+          "lines": 9897
         },
         "agents-other": {
           "bytes": 8916,
@@ -121,15 +121,15 @@
           "lines": 82527
         }
       },
-      "lines": 121142
+      "lines": 121143
     },
     "surface_kind_counts": {
-      "executable": 78,
+      "executable": 77,
       "human": 1071,
       "structured": 4886
     },
-    "tracked_path_count": 11978,
-    "tracked_surface_count": 6035,
+    "tracked_path_count": 11977,
+    "tracked_surface_count": 6034,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -179,12 +179,12 @@
     {
       "family_id": "access",
       "surface_kind_counts": {
-        "executable": 31,
+        "executable": 30,
         "human": 44,
         "structured": 50
       },
-      "tracked_surface_bytes": 1539068,
-      "tracked_surface_count": 125
+      "tracked_surface_bytes": 1515369,
+      "tracked_surface_count": 124
     },
     {
       "family_id": "docs",
@@ -290,7 +290,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f63afb3ffc4408bc871d0cc587a055db8bc16865aa08808241b20e53de05c18a",
+  "tracked_surface_digest": "6f25de5538c3b14ca8f433ec0cb343db26f0d9e4c9f0e58f0d017734e8fcc088",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -42237,11 +42237,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 155199,
+      "bytes": 155294,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "6d90c1b34fd8b5a6f348f6329e5fce7a9a86d1d3f16f7a567354c13492c6ffa1",
+      "sha256": "7a59d4aaa1b642277361ef22fdb4b0a3541fed8abf8b305ea2114455e0a23746",
       "surface_kind": "human"
     },
     {
@@ -42693,11 +42693,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 3619,
+      "bytes": 3253,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/locations.py",
-      "sha256": "958e4f1ad8cf02ff035ccfae761da55423a571f52241905a8358c6b84297636d",
+      "sha256": "3d652b93d992398bea8c44d1bd6ec4e14d618aea4a464d9f08b8c46a2059c7d6",
       "surface_kind": "executable"
     },
     {
@@ -42738,14 +42738,6 @@
       "family_id": "access",
       "path": "access/src/tos_access/native_core_search_request.py",
       "sha256": "0d3d643fa83a5d15b149e31f1667a9b45407c64323a90d6f11a0d99073874dd2",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 22059,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "access",
-      "path": "access/src/tos_access/native_core_selection_paths.py",
-      "sha256": "d3b7a94e1678d5282615934feea9a82e07e2abd55d47f7317128db0f69da2d57",
       "surface_kind": "executable"
     },
     {
@@ -42821,11 +42813,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 46426,
+      "bytes": 45057,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/native_core_snapshot.py",
-      "sha256": "c1f51bc4649a4e19df14d717effa8acf5bad05430135e6dda97d43b60ef65e95",
+      "sha256": "1f75a43713ab7fff1d285a67b63d283aacf022d9b11532c187deffa8c1579c36",
       "surface_kind": "executable"
     },
     {

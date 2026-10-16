@@ -31,8 +31,9 @@ Owned Python sessions use `NativeAccessCore.owned_ordinary_source_session` with
 the native READY capabilities and the caller's original transport, deadline,
 cancellation and receiving-state limits. The earlier GraphViews-only,
 selected-probe, lazy-selected and discovered-session prototype factories are
-retired. Callers select their paths before entering the ordinary session;
-unsupported capabilities remain explicit refusals.
+retired, including their separate bounded OS path selector. Callers select their
+paths with `NativeCoreSnapshotSelection.discover` before entering the ordinary
+session; unsupported capabilities remain explicit refusals.
 
 Use the repository's native validation route after installing its declared
 development dependencies. Build browser assets with `npm ci --prefix access/web`
