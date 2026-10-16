@@ -279,6 +279,8 @@ fn native_desktop_preserves_owned_startup_concurrency_pipe_lifetime_and_install_
         .arg(root.join("install-runtime"))
         .arg("--cache-root")
         .arg(root.join("install-cache"))
+        .arg("--browser")
+        .arg(tools.join("chromium"))
         .env("PATH", &tools);
     let r = output(install);
     assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
