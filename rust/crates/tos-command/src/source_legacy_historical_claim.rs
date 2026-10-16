@@ -273,10 +273,6 @@ fn invalid() -> SourceCommandError {
     SourceCommandError::Invalid("captured historical Claim owner input")
 }
 
-fn conflict() -> SourceCommandError {
-    SourceCommandError::Conflict("captured historical Claim package changed")
-}
-
 fn rel(value: &str) -> SourceCommandResult<RelativePath> {
     RelativePath::parse(value).map_err(|_| invalid())
 }

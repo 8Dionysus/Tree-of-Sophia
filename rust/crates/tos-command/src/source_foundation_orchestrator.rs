@@ -915,15 +915,6 @@ fn reservation_minus(
     })
 }
 
-fn issue_bytes(issues: &[(String, String)]) -> Result<usize, FoundationOrchestratorError> {
-    issues.iter().try_fold(0usize, |total, (path, message)| {
-        total
-            .checked_add(path.len())
-            .and_then(|bytes| bytes.checked_add(message.len()))
-            .ok_or_else(|| incomplete("foundation issue byte count overflow"))
-    })
-}
-
 fn incomplete(reason: &'static str) -> FoundationOrchestratorError {
     FoundationOrchestratorError::Incomplete(reason)
 }

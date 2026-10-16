@@ -3710,20 +3710,6 @@ fn tree_error(error: SegmentError) -> DurableError {
     }
 }
 
-fn tree_input_error(error: DurableError) -> SegmentError {
-    match error {
-        DurableError::Storage(error) => error,
-        DurableError::Refused("source operation deadline or cancellation") => SegmentError::new(
-            SegmentErrorCode::DeadlineExceeded,
-            "Agent inventory projection read deadline or cancellation",
-        ),
-        _ => SegmentError::new(
-            SegmentErrorCode::CorruptBytes,
-            "Agent inventory projection input failed validation",
-        ),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -64,9 +64,7 @@ fn pretty(ctx: &ResearchExecution, v: &Value) -> Result<Vec<u8>> {
     ctx.check()?;
     Ok(raw)
 }
-fn compact(ctx: &ResearchExecution, v: &Value) -> Result<Vec<u8>> {
-    encode_until(ctx.deadline(), v, false)
-}
+
 fn jsonl(ctx: &ResearchExecution, v: &[Value]) -> Result<Vec<u8>> {
     encodel_until(ctx.deadline(), v)
 }
