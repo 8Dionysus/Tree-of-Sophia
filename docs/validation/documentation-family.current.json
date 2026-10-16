@@ -34,9 +34,9 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5945,
+    "excluded_tracked_path_count": 5943,
     "human_scope": {
-      "bytes": 7346932,
+      "bytes": 7346956,
       "count": 1071,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -61,9 +61,9 @@
           "lines": 315
         },
         "github": {
-          "bytes": 83472,
+          "bytes": 83524,
           "count": 5,
-          "lines": 1180
+          "lines": 1181
         },
         "kag": {
           "bytes": 8834,
@@ -96,7 +96,7 @@
           "lines": 3095
         },
         "rust": {
-          "bytes": 161007,
+          "bytes": 160979,
           "count": 14,
           "lines": 2380
         },
@@ -121,14 +121,14 @@
           "lines": 82527
         }
       },
-      "lines": 121117
+      "lines": 121118
     },
     "surface_kind_counts": {
       "executable": 78,
       "human": 1071,
       "structured": 4886
     },
-    "tracked_path_count": 11980,
+    "tracked_path_count": 11978,
     "tracked_surface_count": 6035,
     "unhandled_family_count": 0,
     "unhandled_paths": []
@@ -163,7 +163,7 @@
         "executable": 1,
         "human": 5
       },
-      "tracked_surface_bytes": 88248,
+      "tracked_surface_bytes": 88300,
       "tracked_surface_count": 6
     },
     {
@@ -245,7 +245,7 @@
         "human": 14,
         "structured": 276
       },
-      "tracked_surface_bytes": 4605151,
+      "tracked_surface_bytes": 4605123,
       "tracked_surface_count": 290
     },
     {
@@ -290,7 +290,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "a9929aace34a5014ba145aa546fa7fd9b31c466fc1fab735259c8ad089501533",
+  "tracked_surface_digest": "f1e99812cab98be33bf2eaeaad5a02243aef1d2b5a556891c847b5bab8044433",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -373,11 +373,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 74259,
+      "bytes": 74311,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "99dadf4f1091cee19b718710b7e264e25c1f1180610724c6e49287bfdadfe8e5",
+      "sha256": "17c029647c8656631745927fb3543f2a1c66b164f82a4101c96a7fcf7014c8d8",
       "surface_kind": "human"
     },
     {
@@ -45461,11 +45461,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8159,
+      "bytes": 8131,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/README.md",
-      "sha256": "fd429e257edd0ee2d612d92736018116e570ba9553c98e548b062db3fa39bd04",
+      "sha256": "5eb819432c5dcd00ef945ced8fcdaf5d5b11f147d652b7ce3b15d6c266efbb67",
       "surface_kind": "human"
     },
     {
