@@ -863,7 +863,6 @@ pub(super) fn complete_current_cut(
 struct WorkCatalog {
     // Raw lowercase SHA-256 hex, exactly the maintained dependency dialect.
     digests: BTreeMap<String, String>,
-    prior_claims: BTreeMap<String, JsonValue>,
     retained_transactions: BTreeMap<String, String>,
 }
 
@@ -1423,7 +1422,6 @@ fn current_catalog(
             "Work topology forward/backlink closure",
         ));
     }
-    let mut prior_claims = BTreeMap::new();
     let mut retained_transactions = BTreeMap::new();
     let mut expression_targets = BTreeSet::new();
     for (id, entry) in &claims {
@@ -1555,7 +1553,6 @@ fn current_catalog(
             }
             digests.insert(legacy_ref.to_owned(), raw_hex(&raw));
         }
-        prior_claims.insert(id.clone(), claim);
     }
     if expression_targets != expressions.keys().cloned().collect() {
         return Err(SourceCommandError::Conflict(
@@ -1565,7 +1562,6 @@ fn current_catalog(
     check_publication()?;
     Ok(WorkCatalog {
         digests,
-        prior_claims,
         retained_transactions,
     })
 }

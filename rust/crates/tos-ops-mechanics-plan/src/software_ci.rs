@@ -12,7 +12,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 
-const MAX_PATHS: usize = 4096;
+const MAX_PATHS: usize = 16_384;
 const MAX_PATH_BYTES: usize = 4 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES: usize = 8 * 1024 * 1024;
 const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
@@ -476,6 +476,28 @@ pub fn plan(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn repository_wide_changes_keep_late_surfaces_and_count_bound() {
+        let mut paths = (0..4_401)
+            .map(|index| format!("docs/history/{index}.md"))
+            .collect::<Vec<_>>();
+        paths.extend([
+            "rust/crates/tos-reader/src/main.rs".into(),
+            "access/deploy/cloudflare-worker/src/index.ts".into(),
+            "access/web/src/main.ts".into(),
+        ]);
+        let result = select(paths.clone(), false).unwrap();
+        assert_eq!(result.changed_paths, paths);
+        assert_eq!(
+            (result.software_mode, result.worker, result.rust),
+            ("browser", true, true)
+        );
+        let too_many = (0..=MAX_PATHS)
+            .map(|index| format!("docs/history/{index}.md"))
+            .collect();
+        assert!(select(too_many, false).is_err());
+    }
+
     #[test]
     fn omission_requires_a_known_surface_and_gate_requires_every_job() {
         // Reject option-shaped refs before any Git reader or filesystem call.

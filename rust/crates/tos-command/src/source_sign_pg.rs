@@ -132,7 +132,6 @@ pub(crate) struct PgOwnerAssessmentPublicSources {
     pub(crate) rows: Vec<JsonValue>,
     pub(crate) native_rows: Vec<JsonValue>,
     pub(crate) native_summaries: Vec<JsonValue>,
-    pub(crate) native_contracts: BTreeMap<String, String>,
     pub(crate) claim_dependencies: BTreeMap<String, Vec<JsonValue>>,
     pub(crate) fixity: Vec<JsonValue>,
     pub(crate) identity_snapshots: BTreeMap<String, JsonValue>,
@@ -1992,7 +1991,6 @@ pub(crate) fn select_owner_assessment_public_sources_pg(
             contracts: BTreeMap::new(),
         }
     };
-    let native_contracts = native.contracts.clone();
     let mut all_rows = rows.clone();
     for row in &native.rows {
         if all_rows
@@ -2126,7 +2124,6 @@ pub(crate) fn select_owner_assessment_public_sources_pg(
         rows,
         native_rows: native.rows,
         native_summaries: native.summaries,
-        native_contracts,
         claim_dependencies,
         fixity,
         identity_snapshots,

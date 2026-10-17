@@ -245,7 +245,6 @@ pub(crate) struct StreamedCutWorkspace {
     pub main: File,
     pub io_budget: PinnedSqliteIoBudget,
     pub space_budget: PinnedSqliteSpaceBudget,
-    pub deadline: Instant,
     pub cancelled: Arc<AtomicBool>,
 }
 /// Field order closes the manifest FD before releasing its shared reservation.
@@ -808,7 +807,6 @@ impl<'host> SpoolCandidate<'host> {
                 main,
                 io_budget: self.ledger.clone(),
                 space_budget: self.space_budget.clone(),
-                deadline: self.deadline,
                 cancelled: self.cancelled.clone(),
             })
         })();
