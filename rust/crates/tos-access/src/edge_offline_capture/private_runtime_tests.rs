@@ -5,6 +5,7 @@ use flate2::{Compression, write::GzEncoder};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tos_compiler::local_prepared::{self, PreparedChange, PreparedRows};
 use tos_compiler::local_prepared_aux::{self, AuxInstallLimits};
+use tos_foundation::{CanonicalProfile, canonical_bytes_v1};
 
 const REVISION: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 const TABLES: &[&str] = &[

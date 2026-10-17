@@ -112,16 +112,9 @@ jobs:
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
             /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
-            # Exact named source fixture and retained history archive closure used by native tests.
+            # Exact named source fixture; historical regression inputs live in the native fixture capture.
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/
             !/ToS/source-witnesses/**/payload/
-            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449/
-            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-22370571e4cd463e98665704bf9078a049cc6e99dec5b952d9e8cdf652bfa56f/
-            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8/
-            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-72f379603bc5ceda5cf51425dd3e439fa55a65f80a869a45b929c2f331aebb0f/
-            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f/
-            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-6b4fa1ee7a09aa19434dab2e7e584849a4a0af0d67945ba863f52f448e1f8402/
-            /ToS/source-witnesses/.record-revisions/5466b177c32b46f4676c6775ce161b07f62cc270fd8a42ab343ba5f421701b4d-8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f/
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json
             /ToS/canon/registries/predicates.csv
@@ -141,9 +134,6 @@ jobs:
             /ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md
             /ToS/source-witnesses/access-requests/public-ledger/*.access-request.json
             /ToS/source-witnesses/relations/linguistic/
-            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16/
-            /ToS/source-witnesses/.record-revisions/b5fbd42a38469624a843e67afce57302734ba84d0a175a305e808f28621fabe6-b3809a94d176983232ec0a813d5547d651c0c309ea023853e9b1985379213d3b/
-            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-eef8a15aade0fca9a299aab2f9710d9a9376e7fe548d2387327269ad3ca6bdc5/
             /ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl
             /ToS/source-witnesses/relations/object-link/object-link-claims.jsonl
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json
@@ -151,6 +141,8 @@ jobs:
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/parallel-technical-readiness.v1.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json
             /ToS/source_home.manifest.json
+            /ToS/source-witnesses/record-revisions.storage.json
+            /ToS/source-witnesses/metadata-transactions.storage.json
             /docs/decisions/indexes/index_contract.yaml
             /docs/validation/agents_route_inventory.json
             /docs/validation/documentation_family_map.json
@@ -228,7 +220,7 @@ jobs:
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-reader --bin tos-reader \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked -p tos-access --features research-tools --bin tos-research \
+          cargo build --locked --no-default-features -p tos-access --features research-tools --bin tos-research \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
@@ -563,15 +555,8 @@ jobs:
             /ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json
             /ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json
             /ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json
-            # Exact named source fixture and retained history archive closure used by native tests.
+            # Exact named source fixture; historical regression inputs live in the native fixture capture.
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/
-            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449/
-            /ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-22370571e4cd463e98665704bf9078a049cc6e99dec5b952d9e8cdf652bfa56f/
-            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8/
-            /ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-72f379603bc5ceda5cf51425dd3e439fa55a65f80a869a45b929c2f331aebb0f/
-            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f/
-            /ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-6b4fa1ee7a09aa19434dab2e7e584849a4a0af0d67945ba863f52f448e1f8402/
-            /ToS/source-witnesses/.record-revisions/5466b177c32b46f4676c6775ce161b07f62cc270fd8a42ab343ba5f421701b4d-8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f/
             /ToS/source-witnesses/relations/oim-a00645-physical-composition/source-claims.jsonl
             /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json
             /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json
@@ -591,10 +576,6 @@ jobs:
             /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/source-revision-history.json
             /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json
             /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/anchors.jsonl
-            /ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2/
-            /ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-d34e996729a4bb5b04a3a6cc486f2e1ef7e020747fc18afcf10e5ab7628feb73/
-            /ToS/source-witnesses/.metadata-transactions/64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583/
-            /ToS/source-witnesses/.metadata-transactions/ea6aab06fd43ea735791de0ae5e973950f67900dfd9b70a6af1fee853673705c/
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json
             /ToS/source-witnesses/agents/friedrich-nietzsche/agent.json
@@ -623,9 +604,6 @@ jobs:
             /ToS/research-packets/AGENTS.md
             /ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md
             /ToS/review-ledger/AGENTS.md
-            /ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/
-            /ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/
-            /ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/
             /ToS/source-witnesses/AGENTS.md
             /ToS/source-witnesses/agents/constantin-georg-naumann/
             /ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/
@@ -658,6 +636,8 @@ jobs:
             /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json
             /ToS/source_home.manifest.json
+            /ToS/source-witnesses/record-revisions.storage.json
+            /ToS/source-witnesses/metadata-transactions.storage.json
             # Exact files embedded by the native GenericXML integration test; historical programs/receipts are not executed.
             /ToS/zarathustra/AGENTS.md
             /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json
@@ -676,9 +656,6 @@ jobs:
             /ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md
             /ToS/source-witnesses/access-requests/public-ledger/*.access-request.json
             /ToS/source-witnesses/relations/linguistic/
-            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16/
-            /ToS/source-witnesses/.record-revisions/b5fbd42a38469624a843e67afce57302734ba84d0a175a305e808f28621fabe6-b3809a94d176983232ec0a813d5547d651c0c309ea023853e9b1985379213d3b/
-            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-eef8a15aade0fca9a299aab2f9710d9a9376e7fe548d2387327269ad3ca6bdc5/
             /ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl
             /ToS/source-witnesses/relations/object-link/object-link-claims.jsonl
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json
@@ -706,12 +683,6 @@ jobs:
             /ToS/review-ledger/2026-09-07-intellectual-formations-source-reading.md
             /ToS/review-ledger/2026-09-07-parmenides-survival-source-reading.md
             /ToS/review-ledger/2026-09-07-social-source-reading.md
-            /ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3/8c4ed05ab45c566b536d4b75c6d7c287d566e6bea4ed5ff7f46495377cf03e9a.blob
-            /ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3/e31cb8860cd306d0693e424e45830142f19d659eb49df789ec7838a1339e7bff.blob
-            /ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3/manifest.json
-            /ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10/25114a88356f09e04ec7d2aa538a8925109f4a3cc87cdcc9423b5657ee8e1c7d.blob
-            /ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10/49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab.blob
-            /ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10/manifest.json
             /ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json
             /ToS/source-witnesses/agents/friedrich-nietzsche/source-revision-history.json
             /ToS/source-witnesses/agents/hans-hahn/agent.human-forms.json

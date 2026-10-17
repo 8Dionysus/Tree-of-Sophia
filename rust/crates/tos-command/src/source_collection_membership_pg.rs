@@ -21,8 +21,6 @@ use tos_validation::record_biblio_cut::{
 };
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
-pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:native-collection-membership";
-
 const COLLECTION_CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
@@ -41,7 +39,6 @@ pub(crate) struct PgCollectionMembershipOwnerPackage<'a> {
     pub(crate) context: CommandContext,
     pub(crate) proposal: cmd::PreparedCommand,
     pub(crate) semantic_indexes: IndexRows,
-    pub(crate) owner_contributions: BTreeMap<String, JsonValue>,
     pub(crate) fence: work_transaction::WorkCorpusFence<'a>,
 }
 
@@ -357,15 +354,13 @@ pub(crate) fn prepare_pg_collection_membership<'a, I: Copy + Eq>(
     let semantic_indexes = expected_collection_membership_revision_indexes(&writes)
         .map_err(|_| SourceCommandError::Invalid("Collection PG semantic index projection"))?;
     let proposal = context.plan("native-collection-membership", response, changes, false)?;
-    let owner_contributions =
-        expected_collection_inventory_contributions(&writes, context, &proposal.response)
-            .map_err(|_| SourceCommandError::Invalid("Collection PG inventory projection"))?;
+    expected_collection_inventory_contributions(&writes, context, &proposal.response)
+        .map_err(|_| SourceCommandError::Invalid("Collection PG inventory projection"))?;
 
     Ok(PgCollectionMembershipOwnerPackage {
         context: context.clone(),
         proposal,
         semantic_indexes,
-        owner_contributions,
         fence,
     })
 }

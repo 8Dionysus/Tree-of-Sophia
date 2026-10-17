@@ -52,16 +52,15 @@ const ITEM_GRAMMAR_EXTRA: [&str; 9] = [
     "ToS/contracts/rights-record.schema.json",
     "ToS/contracts/provenance-event.schema.json",
 ];
-fn preparation_grammar_extra(kind: CompoundKind) -> Result<&'static [&'static str], ItemRefusal> {
+fn preparation_grammar_extra(kind: CompoundKind) -> &'static [&'static str] {
     match kind {
         // These metadata families require the same five exact contract files;
         // their scope, Claim predicate and output recipes remain kind-specific.
         CompoundKind::WorkExpression
         | CompoundKind::ExpressionEdition
         | CompoundKind::ExpressionResponsibility
-        | CompoundKind::CollectionWork => Ok(&WORK_GRAMMAR_EXTRA),
-        CompoundKind::EditionItem => Ok(&ITEM_GRAMMAR_EXTRA),
-        _ => Err(bad("no native preparation grammar for compound family")),
+        | CompoundKind::CollectionWork => &WORK_GRAMMAR_EXTRA,
+        CompoundKind::EditionItem => &ITEM_GRAMMAR_EXTRA,
     }
 }
 const OBJECT_LINK_RECEIPT: &str = "object-link-creation-receipt.json";
@@ -613,7 +612,6 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
         .len()
         .checked_add(std::mem::size_of::<Vec<u8>>())
         .ok_or(ItemRefusal::Budget)?;
-    drop(selected_line);
     drop(claims_raw);
     reader.release_temporary(claims_raw_state);
     reader.release_raw_cache();
@@ -6020,12 +6018,12 @@ struct WorkGrammar {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum NativeSchemaBinding {
+pub(crate) enum NativeSchemaBinding {
     Cut(CutExecutionBinding),
     Selected(CutPreparedSchemaExecutionBinding),
 }
 
-trait NativeCompoundSchema: CutSchemaExecutor {
+pub(crate) trait NativeCompoundSchema: CutSchemaExecutor {
     fn cut_execution_binding(&self) -> Option<CutExecutionBinding>;
     fn native_schema_binding(&self) -> NativeSchemaBinding;
     fn validate_local_claim(
@@ -6094,7 +6092,7 @@ impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> 
             input,
             identity: *self.input_identity(),
         };
-        let mut local = crate::record_rules::validate_stored_source_claim_from_selected_input(
+        let local = crate::record_rules::validate_stored_source_claim_from_selected_input(
             &selected, claim_raw, self, limits, cancelled,
         )?;
         if let Some(issue) = local.issues.first() {
@@ -6229,7 +6227,7 @@ impl<I: Eq> SourceCutInputWithIdentity<I> for SelectedCompoundInput<'_, I> {
     }
 }
 
-struct LocalClaimValidation {
+pub(crate) struct LocalClaimValidation {
     dependency_digests: BTreeMap<String, Digest256>,
     dependency_bytes_read: u64,
 }
@@ -6268,7 +6266,7 @@ fn preparation_grammar_from_cut<S: NativeCompoundSchema>(
     schemas: &mut S,
     claim_raw: &[u8],
 ) -> Result<WorkGrammar, ItemRefusal> {
-    let extra = preparation_grammar_extra(kind)?;
+    let extra = preparation_grammar_extra(kind);
     let mut local_limits = reader.limits;
     local_limits.max_state_bytes = reader
         .limits
@@ -6354,9 +6352,7 @@ fn preparation_grammar_from_selected_input<I: Copy + Eq>(
     }
     preparation_grammar_from_cut(kind, reader, schemas, claim_raw)
 }
-struct FinishedCompound<'a> {
-    kind: CompoundKind,
-    authority: Cow<'a, Value>,
+struct FinishedCompound {
     request: Value,
     before: Package,
     parent_receipt: Value,
@@ -6629,8 +6625,6 @@ fn finish_prepared_compound_bytes(
     let kind = prepared.kind;
     let finished = reader.finish_compound_core(prepared, &environment, Some(event_raw), schemas)?;
     let FinishedCompound {
-        kind: _,
-        authority: _,
         request: _,
         before: _,
         parent_receipt,
@@ -7878,56 +7872,51 @@ fn preview_item_receipt(
     reader.release_temporary(workspace);
     Ok(raw)
 }
-fn native_preparation_procedure(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
+fn native_preparation_procedure(kind: CompoundKind) -> &'static str {
     match kind {
-        CompoundKind::CollectionWork => Ok("native-collection-membership-serialization"),
-        CompoundKind::WorkExpression => Ok("native-work-expression-serialization"),
-        CompoundKind::EditionItem => Ok("native-item-adoption-serialization"),
-        CompoundKind::ExpressionEdition => Ok("native-expression-edition-serialization"),
-        CompoundKind::ExpressionResponsibility => {
-            Ok("native-expression-responsibility-serialization")
+        CompoundKind::CollectionWork => "native-collection-membership-serialization",
+        CompoundKind::WorkExpression => "native-work-expression-serialization",
+        CompoundKind::EditionItem => "native-item-adoption-serialization",
+        CompoundKind::ExpressionEdition => "native-expression-edition-serialization",
+        CompoundKind::ExpressionResponsibility => "native-expression-responsibility-serialization",
+    }
+}
+fn native_preparation_purpose(kind: CompoundKind) -> &'static str {
+    match kind {
+        CompoundKind::CollectionWork => {
+            "Serialize one qualified Collection membership Claim and explicit source-copy forms without judging membership."
         }
-        _ => Err(bad("unknown actual native preparation family")),
+        CompoundKind::WorkExpression => {
+            "Serialize one declared Work/Expression link and explicit source-copy forms without judging content."
+        }
+        CompoundKind::EditionItem => {
+            "Serialize one declared Edition/Item link and explicit source-copy forms without judging content."
+        }
+        CompoundKind::ExpressionEdition => {
+            "Serialize one declared Expression/Edition link and explicit source-copy forms without judging content."
+        }
+        CompoundKind::ExpressionResponsibility => {
+            "Serialize one qualified Expression responsibility Claim and explicit source-copy forms without judging attribution."
+        }
     }
 }
-fn native_preparation_purpose(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
+fn native_preparation_warning(kind: CompoundKind) -> &'static str {
     match kind {
-        CompoundKind::CollectionWork => Ok(
-            "Serialize one qualified Collection membership Claim and explicit source-copy forms without judging membership.",
-        ),
-        CompoundKind::WorkExpression => Ok(
-            "Serialize one declared Work/Expression link and explicit source-copy forms without judging content.",
-        ),
-        CompoundKind::EditionItem => Ok(
-            "Serialize one declared Edition/Item link and explicit source-copy forms without judging content.",
-        ),
-        CompoundKind::ExpressionEdition => Ok(
-            "Serialize one declared Expression/Edition link and explicit source-copy forms without judging content.",
-        ),
-        CompoundKind::ExpressionResponsibility => Ok(
-            "Serialize one qualified Expression responsibility Claim and explicit source-copy forms without judging attribution.",
-        ),
-        _ => Err(bad("unknown actual native preparation family")),
-    }
-}
-fn native_preparation_warning(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
-    match kind {
-        CompoundKind::CollectionWork => Ok(
-            "Completed in-process Collection membership buffer serialization; atomic selected-metadata publication occurs afterward.",
-        ),
-        CompoundKind::WorkExpression => Ok(
-            "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
-        ),
-        CompoundKind::EditionItem => Ok(
-            "Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward.",
-        ),
-        CompoundKind::ExpressionEdition => Ok(
-            "Completed in-process Expression/Edition buffer serialization; atomic selected-metadata publication occurs afterward.",
-        ),
-        CompoundKind::ExpressionResponsibility => Ok(
-            "Completed in-process Expression responsibility buffer serialization; atomic selected-metadata publication occurs afterward.",
-        ),
-        _ => Err(bad("unknown actual native preparation family")),
+        CompoundKind::CollectionWork => {
+            "Completed in-process Collection membership buffer serialization; atomic selected-metadata publication occurs afterward."
+        }
+        CompoundKind::WorkExpression => {
+            "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward."
+        }
+        CompoundKind::EditionItem => {
+            "Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward."
+        }
+        CompoundKind::ExpressionEdition => {
+            "Completed in-process Expression/Edition buffer serialization; atomic selected-metadata publication occurs afterward."
+        }
+        CompoundKind::ExpressionResponsibility => {
+            "Completed in-process Expression responsibility buffer serialization; atomic selected-metadata publication occurs afterward."
+        }
     }
 }
 /// Produce a descriptive Item preview from one selected Claim grammar pass.
@@ -8558,7 +8547,6 @@ impl NativeCompoundReader<'_> {
                 .saturating_sub(original_state),
         )?;
         let expression = &request[kind.record_key()];
-        let claim = &request["claim"];
         let ordered_request = self.ordered_value(&request_raw)?;
         let expression_ordered = self.ordered_copy(
             ordered_request
@@ -8663,7 +8651,6 @@ impl NativeCompoundReader<'_> {
         let prechecked_grammar = work_grammar.is_some();
         let (dependency_digests, grammar_digests, dependency_bytes_read) =
             if let Some(grammar) = work_grammar {
-                preparation_grammar_extra(kind)?;
                 if grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
                     || schemas.native_schema_binding() != grammar.binding
                 {
@@ -8690,7 +8677,7 @@ impl NativeCompoundReader<'_> {
         if prechecked_grammar {
             self.record_work_dependencies(dependency_digests, &grammar_digests)?;
             self.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
-            for &path in preparation_grammar_extra(kind)? {
+            for &path in preparation_grammar_extra(kind) {
                 if !grammar_digests.contains_key(path) {
                     return Err(bad("Work grammar missing selected contract"));
                 }
@@ -8982,7 +8969,7 @@ impl NativeCompoundReader<'_> {
         environment: &Value,
         native_event_raw: Option<&[u8]>,
         schemas: &mut impl CutSchemaExecutor,
-    ) -> Result<FinishedCompound<'b>, ItemRefusal> {
+    ) -> Result<FinishedCompound, ItemRefusal> {
         let CompoundCore {
             kind,
             authority,
@@ -9024,11 +9011,10 @@ impl NativeCompoundReader<'_> {
         self.temporary(slice_rows_state(&outputs)?)?;
         let mut captured_native = false;
         let event = if let Some(raw) = native_event_raw {
-            preparation_grammar_extra(kind)?;
             let event = self.decoded(raw)?;
             let procedure = text(&event["method"]["procedure"], "name")?.to_owned();
             match procedure.as_str() {
-                name if name == native_preparation_procedure(kind)? => {
+                name if name == native_preparation_procedure(kind) => {
                     native_work_event(
                         kind,
                         &event,
@@ -9251,8 +9237,6 @@ impl NativeCompoundReader<'_> {
         let expected_raw = self.buffer(pretty(&receipt_ordered)?)?;
         let receipt = self.decoded(&expected_raw)?;
         Ok(FinishedCompound {
-            kind,
-            authority,
             request,
             before,
             parent_receipt,
@@ -9454,8 +9438,6 @@ impl NativeCompoundReader<'_> {
             None
         };
         let FinishedCompound {
-            kind: _,
-            authority: _,
             request,
             before,
             parent_receipt,
@@ -9769,9 +9751,9 @@ fn native_work_event(
         archive,
         kind.publication_home(scope)?,
         kind.receipt_file(),
-        native_preparation_procedure(kind)?,
-        native_preparation_purpose(kind)?,
-        native_preparation_warning(kind)?,
+        native_preparation_procedure(kind),
+        native_preparation_purpose(kind),
+        native_preparation_warning(kind),
         deadline,
         cancelled,
         available,

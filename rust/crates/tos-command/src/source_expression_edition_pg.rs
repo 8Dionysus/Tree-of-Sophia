@@ -22,8 +22,6 @@ use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
-pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:native-expression-edition";
-
 const CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
@@ -43,12 +41,11 @@ pub(crate) struct PgExpressionEditionOwnerPackage<'a> {
     pub(crate) context: CommandContext,
     pub(crate) proposal: cmd::PreparedCommand,
     pub(crate) semantic_indexes: IndexRows,
-    pub(crate) owner_contributions: BTreeMap<String, JsonValue>,
     pub(crate) fence: WorkCorpusFence<'a>,
 }
 
 /// Prepare one exact selected Work/Expression/Edition operation. `catalog` is
-/// the publication-bound catalog selected by `PgExpressionEditionInputs`;
+/// the publication-bound catalog selected by `PgGrowthSelectedInputs::select_expression_edition`;
 /// the PG caller binds the returned context to its final readset afterwards.
 pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     fs: &'a CreationFilesystem,
@@ -65,7 +62,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     verify_selected_contracts(context, input.source_input(), limits, cancelled)?;
 
     let fence = work_transaction::WorkCorpusFence::hold_existing(fs, limits.deadline, cancelled)?;
-    let mut owner = ExpressionEditionOwner::select(fs, context, false, limits.deadline, cancelled)?;
+    let owner = ExpressionEditionOwner::select(fs, context, false, limits.deadline, cancelled)?;
     let snapshot = work_transaction::PublicationSnapshot::select_from_input(
         input.source_input(),
         limits.deadline,
@@ -354,7 +351,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     let projected_writes = projected_writes(&plan)?;
     let semantic_indexes = expected_expression_edition_revision_indexes(&projected_writes)
         .map_err(|_| SourceCommandError::Conflict("ExpressionEdition semantic index projection"))?;
-    let owner_contributions = expected_expression_edition_inventory_contributions(
+    expected_expression_edition_inventory_contributions(
         &projected_writes,
         &proposal_context,
         &proposal.response,
@@ -366,7 +363,6 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
         context: proposal_context,
         proposal,
         semantic_indexes,
-        owner_contributions,
         fence,
     })
 }

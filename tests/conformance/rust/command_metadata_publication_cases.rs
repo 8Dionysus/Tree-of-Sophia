@@ -2840,8 +2840,7 @@ fn export_connected_source_browser_inputs_when_selected() {
     };
     let (current_root, current_inputs, current_model, current_binding, current_local) =
         pair_paths("current");
-    let (previous_root, previous_inputs, previous_model, previous_binding, previous_local) =
-        pair_paths("previous");
+    let (previous_root, ..) = pair_paths("previous");
     if allowed_representation == "native_local_unit" {
         assert!(
             current_local.is_some(),

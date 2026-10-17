@@ -910,26 +910,6 @@ pub(crate) fn selection(
         },_=>Err(Error::Invalid("corpus selector collection")),
     }
 }
-pub(crate) fn page(
-    db: &Connection,
-    collection: CorpusOriginalCollection,
-    selector: &CorpusOriginalSelector,
-    after: Option<u64>,
-    max_rows: usize,
-    max_row_bytes: usize,
-    max_page_bytes: u64,
-) -> Result<CorpusOriginalPage> {
-    page_with_layout(
-        db,
-        collection,
-        selector,
-        after,
-        max_rows,
-        max_row_bytes,
-        max_page_bytes,
-        KnowledgePayloadLayout::InlineV1,
-    )
-}
 pub(crate) fn page_with_layout(
     db: &Connection,
     collection: CorpusOriginalCollection,

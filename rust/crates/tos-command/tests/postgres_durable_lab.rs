@@ -32,6 +32,9 @@ use tos_segment_store::{
     SegmentStore, VerificationBudget, describe_placement_partition,
 };
 
+#[path = "support/retained_history.rs"]
+mod retained_history_capture;
+
 #[path = "postgres_durable_lab/postgres_real_backup_restore.rs"]
 mod postgres_real_backup_restore;
 #[path = "postgres_durable_lab/postgres_real_revision.rs"]
@@ -1689,7 +1692,6 @@ fn maintained_agent_creation_operation<
     use tos_command::source_command::{CommandContext, SourceFile};
     use tos_command::source_creation::prepare_source_creation_from_captures;
     use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};
-    use tos_compiler::managed_source::ManagedProducerProof;
     use tos_foundation::{
         CanonicalProfile, JsonLimits, JsonMode, RelativePath, canonical_bytes_v1, parse_json,
     };
@@ -1906,6 +1908,13 @@ fn maintained_agent_creation_operation<
         // packages, including Work forms/history and its retained v1 archive.
         // This reproduces the mixed family shape without fabricating records
         // or dropping any member from either package.
+        let retained_history = retained_history_capture::retained_history(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../..")
+                .canonicalize()
+                .unwrap(),
+        );
+        let retained_root = retained_history.path().join("source");
         for relative_dir in [
             "ToS/source-witnesses/agents/justus-lipsius",
             "ToS/source-witnesses/works/justus-lipsius/de-constantia",
@@ -1941,7 +1950,7 @@ fn maintained_agent_creation_operation<
         assert_eq!(archive_paths.len(), 1, "Work v1 is retained exactly once");
         for archive_path in archive_paths {
             assert!(archive_path.starts_with("ToS/source-witnesses/.record-revisions/"));
-            let archive_entries = fs::read_dir(repository.join(archive_path))
+            let archive_entries = fs::read_dir(retained_root.join(archive_path))
                 .unwrap()
                 .collect::<Result<Vec<_>, _>>()
                 .unwrap();
@@ -4676,7 +4685,7 @@ fn maintained_agent_creation_operation<
             "the mixed successor preserves every retained node and relation: {id}"
         );
     }
-    let mut synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
+    let synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
     let mut no_checkpoints = ManagedFixtureNoCheckpoints;
     let query_budgets = managed_fixture_query_budgets();
     let query_profile = tos_access::AccessProfile::new(65536, 1024 * 1024, 1024 * 1024)
@@ -5179,8 +5188,6 @@ fn maintained_agent_creation_operation<
     drop(current_request);
     drop(current_config);
     drop(current_filesystem);
-    drop(successor);
-    drop(current);
     drop(second_selected);
     drop(initial_selected);
     drop(successor_member);

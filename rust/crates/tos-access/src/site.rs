@@ -127,7 +127,6 @@ pub struct SoftwareSite {
 }
 const SCHEMA_WORKER: &str = "native/bin/tos-schema-worker";
 pub(crate) const WORD_OPERATION: &str = "tos.zarathustra.word_analysis_task";
-pub(crate) const WORD_TOOL: &str = "tos_zarathustra_prepare_word_analysis";
 const WORD_PROVIDER: &str = "scripts/prepare_zarathustra_word_analysis_v1.py";
 fn missing_software_member(error: &tos_fd_open::OpenError) -> bool {
     error.code == tos_fd_open::OpenErrorCode::Io

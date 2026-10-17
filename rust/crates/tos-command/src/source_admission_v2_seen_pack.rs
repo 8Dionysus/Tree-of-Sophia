@@ -91,7 +91,7 @@ pub(crate) struct V2SeenPackSpillLimits {
     pub sqlite_native_overhead_bytes: usize,
 }
 
-/// Owner-supplied scratch for one side of a cold source/target verification.
+/// Owner-supplied scratch for independent closure proof of the fresh V2 target.
 /// The workspace FD, auxiliary request and finite cache/native overhead are
 /// selected under the original operation's grants.
 pub struct V2SeenPackSpillRequest {
@@ -101,20 +101,13 @@ pub struct V2SeenPackSpillRequest {
     pub sqlite_native_overhead_bytes: usize,
 }
 
-/// Independent held scratch requests for the source and fresh target. These
-/// scopes never share verified rows, even when the copied rootset is equal.
-pub struct V2SeenPackSpillRequests {
-    pub source: V2SeenPackSpillRequest,
-    pub target: V2SeenPackSpillRequest,
-}
-
 pub(crate) struct V2ColdPayloadFrameRow {
     pub frame_index: u32,
     pub digest: Digest256,
     pub location: PackedObjectLocationV2,
 }
 
-impl V2SeenPackSpillRequests {
+impl V2SeenPackSpillRequest {
     pub(crate) fn validate_for_operation(
         &self,
         io: &PinnedSqliteIoBudget,
@@ -122,23 +115,17 @@ impl V2SeenPackSpillRequests {
         deadline: Instant,
         cancelled: &Arc<AtomicBool>,
     ) -> std::io::Result<()> {
-        let source_cap = validate_request(&self.source, io, auxiliary_space, deadline, cancelled)?;
-        let target_cap = validate_request(&self.target, io, auxiliary_space, deadline, cancelled)?;
+        let allocation_ceiling = validate_request(self, io, auxiliary_space, deadline, cancelled)?;
         let remaining = auxiliary_space.snapshot();
-        let combined_cap = source_cap
-            .checked_add(target_cap)
-            .ok_or_else(|| invalid("V2 spill allocation ceiling overflow"))?;
         if !remaining.ledger_consistent
             || remaining.allocation_anomalies != 0
             || remaining.reserved_current_bytes > remaining.declared_available_bytes
-            || combined_cap
+            || allocation_ceiling
                 > remaining
                     .declared_available_bytes
                     .saturating_sub(remaining.reserved_current_bytes)
         {
-            return Err(invalid(
-                "V2 source and target spill ceilings exceed held auxiliary space",
-            ));
+            return Err(invalid("V2 spill ceiling exceeds held auxiliary space"));
         }
         Ok(())
     }
@@ -411,10 +398,6 @@ impl V2SeenPackSpill {
             .check_context()
             .map_err(|_| invalid("V2 pack spill request context is unavailable"))?;
         Ok(spill)
-    }
-
-    pub(crate) fn state_charge(&self) -> std::io::Result<usize> {
-        self.limits.state_charge()
     }
 
     pub(crate) fn packed_verifier_caller_state_bytes(&self) -> std::io::Result<usize> {

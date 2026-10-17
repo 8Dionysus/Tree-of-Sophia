@@ -410,7 +410,7 @@ impl<'a> CanonNormalizer<'a> {
                     return Err(Error::Budget("canon prepared edge identity bytes"));
                 }
                 let adapted_source = SourceRow::parse(&adapted_raw, self.limits.max_raw_bytes)?;
-                let mut normalized = if let Some(run) = &self.processing_run {
+                let normalized = if let Some(run) = &self.processing_run {
                     let original = run.input(
                         &format!("source-relation-original:{}:{identity}", self.source_graph),
                         source.value(),

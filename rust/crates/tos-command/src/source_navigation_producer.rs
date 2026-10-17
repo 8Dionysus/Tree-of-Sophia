@@ -338,9 +338,8 @@ fn process_ready_range(
     use tos_compiler::source_navigation_record_range::{
         NavigationRecordEventRangeClaimCauseInputV1,
         NavigationRecordEventRangeDependencyCauseInputV1, NavigationRecordEventRangeInputV1,
-        NavigationRecordEventRangeMutationCauseInputV1,
-        NavigationRecordEventRangeMutationKindInputV1, NavigationRecordEventRangeOwnerInputV1,
-        NavigationRecordEventRangeOwnerKeyV1, NavigationRecordEventRangePriorOwnerInputV1,
+        NavigationRecordEventRangeOwnerInputV1, NavigationRecordEventRangeOwnerKeyV1,
+        NavigationRecordEventRangePriorOwnerInputV1,
     };
 
     let check_active = || {
@@ -603,15 +602,15 @@ fn process_ready_range(
         Some(closure)
     };
 
-    let (current_claim_ids, current_claim_stream_paths, claim_dependency_causes) =
-        if let Some(closure) = claim_closure.as_ref() {
-            let (ids, paths) = claim_navigation_reverse_owners(closure);
-            let causes =
-                range_dependency_causes(coverage, &prior_claim_owners, closure, &ids_by_path)?;
-            (ids, paths, causes)
-        } else {
-            (Vec::new(), Vec::new(), Vec::new())
-        };
+    let (current_claim_stream_paths, claim_dependency_causes) = if let Some(closure) =
+        claim_closure.as_ref()
+    {
+        let (_, paths) = claim_navigation_reverse_owners(closure);
+        let causes = range_dependency_causes(coverage, &prior_claim_owners, closure, &ids_by_path)?;
+        (paths, causes)
+    } else {
+        (Vec::new(), Vec::new())
+    };
 
     let mut terminal_claim_stream_paths = current_claim_stream_paths
         .iter()
@@ -2891,14 +2890,6 @@ impl CandidateEventSourceIdentityV1 for NavigationEventSourceCutIdentityV1 {
 }
 
 impl NavigationEventSourceCutIdentityV1 {
-    pub(crate) fn owner_binding(&self) -> Digest256 {
-        self.owner_binding
-    }
-
-    pub(crate) fn event_member_binding(&self) -> Digest256 {
-        self.event_member_binding
-    }
-
     pub(crate) fn range_coverage_binding(&self) -> Option<Digest256> {
         self.range_coverage_binding
     }

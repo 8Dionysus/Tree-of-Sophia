@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 const CONFIG_SCHEMA: &str = "ToS/contracts/public-native-text-create-owner.schema.json";
 pub(crate) const SCHEMAS: [&str; 3] = [
@@ -315,9 +315,6 @@ impl PublicNativeTextSelection {
     }
     pub(crate) fn recovery_root(&self) -> &Path {
         &self.recovery_root
-    }
-    pub(crate) fn target_is_private(&self) -> bool {
-        false
     }
     pub(crate) fn configuration_digest(&self) -> Digest256 {
         self.digest

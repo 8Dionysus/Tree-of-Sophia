@@ -1034,15 +1034,7 @@ pub(crate) fn run(
     );
 
     let (
-        (
-            first_epoch,
-            schema_members,
-            mut owner,
-            context_config,
-            mut context,
-            mut worker,
-            basenames,
-        ),
+        (first_epoch, schema_members, owner, context_config, mut context, mut worker, basenames),
         _,
     ) = db
         .with_source_revision_session(
@@ -1128,7 +1120,7 @@ pub(crate) fn run(
                             .map_err(DurableError::Source)?;
                     }
                 }
-                let mut command = cmd::CommandContext {
+                let command = cmd::CommandContext {
                     base_revision: SourceRevision(selected_epoch.source_revision),
                     configuration_raw: grant_raw.clone(),
                     request_raw: request_raw.clone(),

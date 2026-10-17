@@ -768,7 +768,7 @@ fn execute_prepare(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<se
         },
     )?;
     let running_image_path = std::env::current_exe().map_err(|e| e.to_string())?;
-    let mut running_image = Held::open(running_image_path, limits.max_image_bytes, &mut budget)?;
+    let running_image = Held::open(running_image_path, limits.max_image_bytes, &mut budget)?;
     let native_proof = field(verified_archive.manifest(), "native_access")?;
     if running_image.stamp.2
         != field(native_proof, "size_bytes")?
@@ -1223,7 +1223,7 @@ fn execute(
         )?;
         let decoded = state::decode_native_manifest(&manifest_value, &manifest_raw, &pair)
             .map_err(|e| e.to_string())?;
-        let mut selection = Held::open(
+        let selection = Held::open(
             data_root.join(decoded.selection_path),
             limits.max_metadata_bytes as u64,
             &mut budget,

@@ -10,7 +10,7 @@ use tos_foundation::{Digest256, RelativePath};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
 const MANIFEST_SCHEMA: &str = "ToS/contracts/acquisition-batch.schema.json";
-const DELTA_SCHEMA: &str = "ToS/contracts/acquisition-provenance-delta.schema.json";
+
 const CORPUS_SCHEMA: &str = "ToS/contracts/corpus-record.schema.json";
 const ITEM_MANIFEST_SCHEMA: &str = "ToS/contracts/source-item-manifest.schema.json";
 const RESOURCE_INVENTORY_SCHEMA: &str = "ToS/contracts/source-resource-inventory.schema.json";

@@ -24,6 +24,57 @@ include!("native_corpus_query.rs");
 #[path = "native_managed_corpus_consumer.rs"]
 mod native_managed_corpus_consumer;
 
+// The frozen Python packets predate the source-history storage migration.
+// Description and manifest fixity follow the independently parsed authored input;
+// every other historical branch field and all projection assertions stay exact.
+fn reconcile_source_home_inputs(expected: &mut Value, files: &BTreeMap<String, Vec<u8>>) {
+    let home_raw = &files["ToS/source_home.manifest.json"];
+    let home: Value = serde_json::from_slice(home_raw).unwrap();
+    let home_sha256 = Digest256::of_bytes(home_raw).to_hex();
+    let branch = home["branches"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["id"] == "source_witnesses")
+        .unwrap();
+    fn visit(value: &mut Value, branch: &Value, home_sha256: &str) -> usize {
+        if value.get("manifest_kind").and_then(Value::as_str) == Some("source_home_manifest") {
+            assert_eq!(value["path"], "ToS/source_home.manifest.json");
+            assert_eq!(
+                value["sha256"],
+                "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c"
+            );
+            value["sha256"] = json!(home_sha256);
+        }
+        if value.get("id").and_then(Value::as_str) == Some("source_witnesses") {
+            for field in ["id", "path", "owner_surface"] {
+                assert_eq!(value[field], branch[field], "unchanged branch {field}");
+            }
+            assert_eq!(
+                value["role"],
+                "Tracked corpus catalog, bibliographic work/expression/edition/item topology, parallel physical-artifact and scholarly-composite witnesses, narrowly gitignored immutable payloads, fixity, provenance, rights, and primary source-facing witness material."
+            );
+            value["role"] = branch["role"].clone();
+            return 1;
+        }
+        match value {
+            Value::Array(rows) => rows
+                .iter_mut()
+                .map(|row| visit(row, branch, home_sha256))
+                .sum(),
+            Value::Object(fields) => fields
+                .values_mut()
+                .map(|row| visit(row, branch, home_sha256))
+                .sum(),
+            _ => 0,
+        }
+    }
+    assert!(
+        visit(expected, branch, &home_sha256) > 0,
+        "historical source-witness branch present"
+    );
+}
+
 struct FixtureOwner;
 impl StageOwner for FixtureOwner {
     fn verify_receipt(&self, _: &ExactInputReceipt) -> tos_compiler::Result<()> {
@@ -141,19 +192,28 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     (authored, captured)
 }
-// The frozen Python captures predate this authored contract, while the current
+// The frozen Python captures predate these authored contracts, while the current
 // source-home capture includes all tracked ToS paths outside explicit exclusions.
-fn append_current_private_pg_text_contract_resource(resources: &mut Vec<Value>) {
-    const PATH: &str = "ToS/contracts/native-pg-private-text-read.schema.json";
-    assert!(
-        !resources.iter().any(|row| row["path"] == PATH),
-        "historical Python oracle predates the current private-text contract"
-    );
-    resources.push(json!({
-        "path":PATH, "resource_kind":"contract_schema", "owner_branch":"ToS/contracts",
-        "authority_layer":"contract", "sha256":"", "size_bytes":0,
-    }));
+fn append_current_contract_resources(resources: &mut Vec<Value>) {
+    for path in [
+        "ToS/contracts/native-pg-private-text-read.schema.json",
+        "ToS/contracts/retained-corpus-binding.schema.json",
+    ] {
+        assert!(
+            !resources.iter().any(|row| row["path"] == path),
+            "historical Python oracle predates current contract {path}"
+        );
+        resources.push(json!({
+            "path": path,
+            "resource_kind": "contract_schema",
+            "owner_branch": "ToS/contracts",
+            "authority_layer": "contract",
+            "sha256": "",
+            "size_bytes": 0,
+        }));
+    }
 }
+
 #[test]
 fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     let (authored, captured) = sources();
@@ -349,7 +409,8 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     )
     .unwrap();
     render_repository_source_plan(&mut stage, &plan, &vocabulary, deadline, &cancelled).unwrap();
-    let expected = crate::frozen_legacy_python_oracle("repository-topology");
+    let mut expected = crate::frozen_legacy_python_oracle("repository-topology");
+    reconcile_source_home_inputs(&mut expected, &captured);
     let source = &vocabulary
         .sources
         .iter()
@@ -374,7 +435,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         }
         let mut wanted = expected[collection].as_array().unwrap().clone();
         if collection == "resources" {
-            append_current_private_pg_text_contract_resource(&mut wanted);
+            append_current_contract_resources(&mut wanted);
             for row in &mut wanted {
                 let path = required(row, "path");
                 let raw = captured.get(path).expect("selected topology resource");
@@ -1126,11 +1187,17 @@ fn native_corpus_composition_case(installed: bool) {
         "ToS/source-witnesses/relations/nietzsche-letter-705-addressee",
         "ToS/source-witnesses/agents/constantin-georg-naumann",
         "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705",
+    ] {
+        add_tree(&repository, path, &mut files);
+    }
+    let historical = super::retained_history_capture::retained_history(&repository);
+    let historical_root = historical.path().join("source");
+    for path in [
         "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba",
         "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422",
         "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497",
     ] {
-        add_tree(&repository, path, &mut files);
+        add_tree(&historical_root, path, &mut files);
     }
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
@@ -1645,6 +1712,7 @@ fn native_corpus_composition_case(installed: bool) {
     }
     let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
     let mut expected: Value = serde_json::from_slice(&historical_raw).unwrap();
+    reconcile_source_home_inputs(&mut expected, &files);
     assert_eq!(
         expected["validation_refs"],
         serde_json::json!([
@@ -1668,7 +1736,7 @@ fn native_corpus_composition_case(installed: bool) {
         "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
         "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
     }));
-    append_current_private_pg_text_contract_resource(resource_rows);
+    append_current_contract_resources(resource_rows);
     for row in resource_rows.iter_mut() {
         let path = row["path"].as_str().unwrap();
         let raw = files
@@ -1702,9 +1770,10 @@ fn native_corpus_composition_case(installed: bool) {
     .unwrap();
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
-    // The selected native cut adds the vocabulary resource and current contract.
+    reconcile_source_home_inputs(&mut query_oracle, &files);
+    // The selected native cut adds the vocabulary and two current contracts.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(339));
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(340));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
@@ -1718,7 +1787,7 @@ fn native_corpus_composition_case(installed: bool) {
     ] {
         let count = query_oracle.pointer_mut(pointer).unwrap();
         assert_eq!(*count, serde_json::json!(337));
-        *count = serde_json::json!(339);
+        *count = expected["counts"]["resources"].clone();
         let parent = pointer.strip_suffix("/resources").unwrap();
         for (field, old, new) in [
             ("source_navigation_nodes", 6, 12),

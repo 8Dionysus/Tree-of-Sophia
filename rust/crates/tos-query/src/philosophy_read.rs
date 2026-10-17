@@ -1599,10 +1599,6 @@ pub(crate) fn controlled_header_metadata(
     }
 }
 
-pub(crate) fn controlled_status(header: &JsonValue) -> JsonValue {
-    public::status(header)
-}
-
 fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     bound: &BoundCmpKnowledge<'_>,

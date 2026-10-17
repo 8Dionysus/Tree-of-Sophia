@@ -360,7 +360,6 @@ fn bounded_title_store_error(error: StoreError) -> Error {
 
 fn endpoint_title_row_owned<'s, 'budget>(
     stage: &mut KnowledgeStage<'_>,
-    receipt: &GlobalTitleReceipt,
     endpoint_id: &str,
     max_title_bytes: usize,
     state: &'s CreationState<'budget>,
@@ -437,8 +436,8 @@ pub(crate) fn with_endpoint_title_pair_owned<T>(
     {
         return Err(Error::Invalid("global title owned lookup binding"));
     }
-    let left = endpoint_title_row_owned(stage, receipt, left_id, max_title_bytes, state)?;
-    let right = endpoint_title_row_owned(stage, receipt, right_id, max_title_bytes, state)?;
+    let left = endpoint_title_row_owned(stage, left_id, max_title_bytes, state)?;
+    let right = endpoint_title_row_owned(stage, right_id, max_title_bytes, state)?;
     let result = consume(stage, left.value(), right.value());
     drop(right);
     drop(left);

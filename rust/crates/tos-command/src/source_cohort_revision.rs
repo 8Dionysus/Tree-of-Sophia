@@ -614,7 +614,6 @@ pub(crate) struct SourceRevisionReadSet {
     pub(crate) reads: SourceReads,
     pub(crate) observations: BTreeMap<String, SourceRevisionObservation>,
     pub(crate) work: SourceRevisionReadWork,
-    pub(crate) work_revision: Option<crate::source_pg_work_revision::Observation>,
     claim_navigation_closure: Option<SourceRevisionClaimNavigationClosure>,
 }
 
@@ -750,10 +749,6 @@ impl SourceRevisionClaimNavigationClosure {
         self.selection_identity
     }
 
-    pub(crate) fn selection_digest(&self) -> Digest256 {
-        self.selection_identity.digest()
-    }
-
     pub(crate) fn as_of_sequence(&self) -> u64 {
         self.as_of_sequence
     }
@@ -835,23 +830,8 @@ impl SourceRevisionClaimNavigationClosure {
         &self.lookups
     }
 
-    pub(crate) fn members(&self) -> &BTreeMap<String, SourceRevisionObservation> {
-        &self.members
-    }
-
     pub(crate) fn member_facts(&self) -> &BTreeMap<String, SourceRevisionClaimMemberEvidence> {
         &self.member_facts
-    }
-
-    pub(crate) fn lookup_count(&self) -> usize {
-        self.lookups.len()
-    }
-
-    pub(crate) fn row_count(&self) -> usize {
-        self.lookups
-            .values()
-            .map(|observation| observation.rows.len())
-            .sum()
     }
 }
 
@@ -932,10 +912,6 @@ impl SourceRevisionReadSet {
         &self.observations
     }
 
-    pub(crate) fn work(&self) -> SourceRevisionReadWork {
-        self.work
-    }
-
     pub(crate) fn claim_navigation_closure(&self) -> Option<&SourceRevisionClaimNavigationClosure> {
         self.claim_navigation_closure.as_ref()
     }
@@ -996,7 +972,6 @@ impl DurablePgCoordinator {
             reads: session.reads,
             observations: session.observations,
             work: session.work,
-            work_revision: session.work_revision,
             claim_navigation_closure: if session.claim_navigation_as_of_sequence.is_none() {
                 None
             } else {
@@ -1160,10 +1135,6 @@ impl SourceRevisionReadSession<'_> {
     /// proposal so registration cannot accept a different same-selection cut.
     pub(crate) fn reads_snapshot(&self) -> SourceReads {
         self.reads.clone()
-    }
-
-    pub(crate) fn work(&self) -> SourceRevisionReadWork {
-        self.work
     }
 
     pub(crate) fn ready_work_recorded_at(

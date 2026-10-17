@@ -14,7 +14,7 @@ use std::io::Read;
 use std::os::unix::fs::MetadataExt as StdMetadataExt;
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::Digest256;
 
 const SOURCE_PREFIX: &str = "ToS/source-witnesses";
 const MAX_METADATA: u64 = 16 * 1024 * 1024;

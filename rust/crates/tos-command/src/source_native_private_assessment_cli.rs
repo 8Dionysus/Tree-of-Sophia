@@ -37,17 +37,7 @@ use tos_validation::source_cut::{
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const QUALITY_BASIS_SCHEMA: &str = "ToS/contracts/native-text-layer-quality-basis.schema.json";
-pub(crate) const PG_ASSESSMENT_EVALUATION_SCHEMAS: &[&str] = &[
-    "ToS/contracts/knowledge-assessment-policy.schema.json",
-    "ToS/contracts/knowledge-assessment-authority.schema.json",
-    "ToS/contracts/knowledge-assessment-competence.schema.json",
-    "ToS/contracts/knowledge-assessment.schema.json",
-    BATCH_SCHEMA,
-    "ToS/contracts/human-form.schema.json",
-    "ToS/contracts/human-form-set.schema.json",
-    "ToS/contracts/human-form-template.schema.json",
-    QUALITY_BASIS_SCHEMA,
-];
+
 const MAX_OPERATION_BYTES: usize = 234_881_024;
 const MAX_RESOLVED_BYTES: usize = 33_554_432;
 const MAX_REQUEST_BYTES: usize = 1_048_576;
@@ -66,7 +56,6 @@ pub(crate) struct ParsedRequest {
 }
 
 struct SelectedOperation<'a> {
-    invocation: &'a Value,
     cut: &'a CorpusCutReader,
     owner: ProtectedAssessmentJournal,
     owner_context: OwnerTextContext,
@@ -121,8 +110,6 @@ pub(crate) struct AssessmentEvaluationPlan<'a> {
     pub(crate) base_snapshot: String,
     pub(crate) current: JsonValue,
     pub(crate) scope: JsonValue,
-    pub(crate) subject_is_native: bool,
-    pub(crate) subject_is_sourced: bool,
     pub(crate) subject_required_source_refs: Vec<JsonValue>,
     pub(crate) required_sources: Vec<JsonValue>,
     pub(crate) source_route: AssessmentSourceRoute,
@@ -132,8 +119,6 @@ pub(crate) struct AssessmentEvaluationPlan<'a> {
     pub(crate) lock_subjects: Vec<String>,
     pub(crate) public_claim_dependencies: &'a BTreeMap<String, Vec<JsonValue>>,
     pub(crate) private_required_source_refs: &'a BTreeMap<String, Vec<JsonValue>>,
-    pub(crate) private_required_languages: &'a BTreeMap<String, Vec<String>>,
-    pub(crate) native_summaries: &'a [JsonValue],
     pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
 }
 
@@ -146,14 +131,10 @@ pub(crate) struct AssessmentEvaluationResult {
         bool,
         Vec<JsonValue>,
     )>,
-    pub(crate) record_rows: Vec<JsonValue>,
-    pub(crate) trusted_history: Vec<AssessmentSubmissionInput>,
-    pub(crate) reviews: Vec<AssessmentSubmissionInput>,
     pub(crate) current_report: AssessmentMechanicsReport,
     pub(crate) append_report: Option<AssessmentMechanicsReport>,
     pub(crate) parent_assessment: Option<JsonValue>,
     pub(crate) source_read_ready: bool,
-    pub(crate) route_layer_quality: Option<AssessmentLayerQualityObservation>,
 }
 
 #[derive(Debug)]
@@ -621,7 +602,6 @@ pub(super) fn run(
         ));
     }
     let operation = SelectedOperation {
-        invocation,
         cut,
         owner,
         owner_context,
@@ -1600,7 +1580,7 @@ pub(crate) fn plan_assessment_evaluation<'a>(
         configuration_raw,
         request,
         version,
-        mut resolved,
+        resolved,
         public_fixity,
         public_identity_snapshots,
         public_claim_dependencies,
@@ -1781,8 +1761,6 @@ pub(crate) fn plan_assessment_evaluation<'a>(
         base_snapshot,
         current,
         scope,
-        subject_is_native,
-        subject_is_sourced,
         subject_required_source_refs,
         required_sources,
         source_route,
@@ -1792,8 +1770,6 @@ pub(crate) fn plan_assessment_evaluation<'a>(
         lock_subjects,
         public_claim_dependencies,
         private_required_source_refs,
-        private_required_languages,
-        native_summaries,
         layers,
     })
 }
@@ -2056,14 +2032,10 @@ where
         current_snapshot,
         quality_bases,
         admission_bases,
-        record_rows,
-        trusted_history,
-        reviews,
         source_read_ready: current_report.source_read_ready(),
         current_report,
         append_report,
         parent_assessment,
-        route_layer_quality,
     })
 }
 
@@ -2108,7 +2080,7 @@ fn run_selected(
     if !selected.version.is_private() {
         selected.private_sources.native_summaries = public_sources.native_summaries.clone();
     }
-    let mut layers = if selected.version.has_layer_quality() {
+    let layers = if selected.version.has_layer_quality() {
         Some(
             crate::source_private_assessment_layers::select_owner_local_layers(
                 &mut selected.owner_context,
@@ -2222,11 +2194,9 @@ fn run_selected(
     let current_snapshot = evaluation.current_snapshot;
     let quality_bases = evaluation.quality_bases;
     let admission_bases = evaluation.admission_bases;
-    let record_rows = evaluation.record_rows;
     let current_report = evaluation.current_report;
     let append_report = evaluation.append_report;
     let parent_assessment = evaluation.parent_assessment;
-    let route_layer_quality = evaluation.route_layer_quality;
     let current = &plan.current;
     let scope = &plan.scope;
     let all_by_id = &plan.all_by_id;
@@ -4904,7 +4874,7 @@ pub(crate) fn materialize_assessed_form_from_selected_maps<W: CutSchemaExecutor>
 
     let mut required_context = Vec::<JsonValue>::new();
     let mut source_copy_binding = None;
-    let mut wording = String::new();
+    let wording;
     if kind == "source-copy" {
         let slot = cmd::text(content, "slot")?;
         let binding = binding_rows

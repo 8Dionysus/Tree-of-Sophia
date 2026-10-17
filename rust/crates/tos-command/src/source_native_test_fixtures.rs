@@ -1,5 +1,5 @@
-//! Frozen, provenance-linked source fixtures captured before retirement of
-//! the maintained Python test factories. Only the isolated source_root changes.
+//! Frozen, provenance-linked source fixtures. Captured bytes remain exact;
+//! only explicitly declared isolated roots and owner grants are rebased.
 use flate2::read::GzDecoder;
 use serde_json::Value;
 use std::fs;
@@ -127,6 +127,19 @@ pub(crate) fn record_revision(repository: &Path, root: &Path, family: usize) -> 
 
 pub(crate) fn work_expression(repository: &Path, root: &Path) -> Value {
     packet(repository, root, "work-expression")
+}
+
+#[path = "../tests/support/retained_history.rs"]
+mod retained_history_capture;
+
+/// Restore the shared pinned history fixture for native owner regressions.
+pub(crate) fn retained_history() -> tempfile::TempDir {
+    retained_history_capture::retained_history(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .expect("native fixture repository root"),
+    )
 }
 
 /// A single frozen Item fixture for owner-internal retained-orphan recovery.

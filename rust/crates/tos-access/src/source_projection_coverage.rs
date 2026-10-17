@@ -28,8 +28,6 @@ const PUBLICATION_REF: &str = "ToS/source-witnesses/.metadata-publication.json";
 const INPUT_CAP: u64 = 256 * 1024 * 1024;
 const REQUEST_CAP: usize = 16 * 1024 * 1024;
 const MAX_ROWS: u64 = 1_000_000;
-const MAX_SELECTED_FILES: usize = 16_384;
-const MAX_CLAIM_FILE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_FILE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_ROW_BYTES: usize = 1024 * 1024;
 const MAX_SOURCE_HASH_MAP_BYTES: usize = 256 * 1024 * 1024;
@@ -704,14 +702,6 @@ impl Meter {
     }
 }
 
-#[derive(Clone)]
-enum SourceCandidateKind {
-    Record(String),
-    Claim,
-    Native,
-    Contract,
-}
-
 struct RootFence {
     root: File,
     meter: Meter,
@@ -937,19 +927,14 @@ impl RootFence {
         Ok(())
     }
 
-    fn walk_tree<F, S>(
+    fn walk_tree<S>(
         &mut self,
         directory: File,
         relative_dir: String,
         depth: usize,
-        selected_limit: usize,
-        selected_limit_error: &'static str,
-        select: &mut F,
         skip_subtree: &mut S,
-        selected: &mut Vec<(String, SourceCandidateKind)>,
     ) -> Result<(), String>
     where
-        F: FnMut(&str, &fs::FileType) -> Result<Option<SourceCandidateKind>, String>,
         S: FnMut(&str) -> bool,
     {
         self.meter.checkpoint()?;
@@ -972,49 +957,19 @@ impl RootFence {
             if path == "ToS/source-witnesses/owner-local" {
                 return Err("reserved owner-local metadata home blocks source coverage".into());
             }
-            let candidate = select(&path, &kind)?;
-            match (kind.is_dir(), kind.is_file(), kind.is_symlink()) {
-                (true, _, _) => {
-                    let child = tos_fd_open::open_directory_at(&directory, Path::new(&name))
-                        .map_err(|_| "source projection selected directory is unsafe")?;
-                    let child_stamp =
-                        Stamp::read(&child.metadata().map_err(
-                            |_| "source projection selected directory cannot be stated",
-                        )?);
-                    if skip_subtree(&path) {
-                        self.record_directory(&path, &child, child_stamp)?;
-                        continue;
-                    }
-                    self.walk_tree(
-                        child,
-                        path,
-                        depth + 1,
-                        selected_limit,
-                        selected_limit_error,
-                        select,
-                        skip_subtree,
-                        selected,
-                    )?;
+            if kind.is_dir() {
+                let child = tos_fd_open::open_directory_at(&directory, Path::new(&name))
+                    .map_err(|_| "source projection selected directory is unsafe")?;
+                let child_stamp = Stamp::read(
+                    &child
+                        .metadata()
+                        .map_err(|_| "source projection selected directory cannot be stated")?,
+                );
+                if skip_subtree(&path) {
+                    self.record_directory(&path, &child, child_stamp)?;
+                    continue;
                 }
-                (false, true, false) => {
-                    if let Some(candidate) = candidate {
-                        if selected.len() >= selected_limit {
-                            return Err(selected_limit_error.into());
-                        }
-                        self.meter.charge_state(path.len() as u64 + 128)?;
-                        selected.push((path, candidate));
-                    }
-                }
-                (false, false, true) => {
-                    if candidate.is_some() {
-                        return Err("source projection selected file is a symlink".into());
-                    }
-                }
-                _ => {
-                    if candidate.is_some() {
-                        return Err("source projection selected file is not regular".into());
-                    }
-                }
+                self.walk_tree(child, path, depth + 1, skip_subtree)?;
             }
         }
         let after = Stamp::read(
@@ -1031,8 +986,6 @@ impl RootFence {
     fn bind_metadata_directories(&mut self) -> Result<(), String> {
         for home in ["ToS/contracts", SOURCE_HOME] {
             let directory = self.open_dir_ref(home)?;
-            let mut selected = Vec::new();
-            let mut no_selection = |_path: &str, _kind: &fs::FileType| Ok(None);
             let mut skip = |path: &str| {
                 path.split('/').any(|part| {
                     matches!(
@@ -1041,16 +994,7 @@ impl RootFence {
                     )
                 })
             };
-            self.walk_tree(
-                directory,
-                home.to_owned(),
-                0,
-                MAX_SELECTED_FILES,
-                "coverage directory fence",
-                &mut no_selection,
-                &mut skip,
-                &mut selected,
-            )?;
+            self.walk_tree(directory, home.to_owned(), 0, &mut skip)?;
         }
         Ok(())
     }
@@ -1307,6 +1251,7 @@ fn verify_source_snapshot(
     verify_publication_current(fence, publication)
 }
 
+#[cfg(test)]
 fn claim_rows(raw: &[u8], max_rows: u64) -> Result<Vec<(u64, &[u8])>, String> {
     let text = std::str::from_utf8(raw).map_err(|_| "source projection claim file is not UTF-8")?;
     let mut rows = Vec::new();
@@ -1461,7 +1406,7 @@ fn load_source_catalog(
                     catalogue_limits,
                     observation_limits,
                     |row| {
-                        let mut append = || -> Result<usize, String> {
+                        let append = || -> Result<usize, String> {
                             fence.meter.charge_row()?;
                             if !hashes.contains_key(row.source_ref) {
                                 // Stage and root reads are separate physical work.

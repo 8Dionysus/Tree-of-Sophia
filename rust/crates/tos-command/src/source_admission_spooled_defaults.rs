@@ -12,7 +12,7 @@ use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
 use std::{borrow::Cow, cell::Cell, io, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_foundation::{Digest256, RelativePath};
-use tos_source_store::{PinnedSqliteAuxScope, PinnedSqliteConnection, SourceMembershipV1};
+use tos_source_store::{PinnedSqliteAuxScope, PinnedSqliteConnection};
 use tos_validation::{
     biblio_rules::{
         BiblioClaim, SourceFoundationBiblioClaimSink, SourceFoundationBiblioEventSink,
@@ -20,7 +20,7 @@ use tos_validation::{
         SourceFoundationBiblioStoredSink,
     },
     item_rules::ItemRefusal,
-    record_biblio_cut::{BiblioCurrentRecord, SourceCutInput, SourceCutInputWithIdentity},
+    record_biblio_cut::{BiblioCurrentRecord, SourceCutInputWithIdentity},
     source_foundation_closure::{
         SourceFoundationClosureAnchorStoreCost,
         SourceFoundationClosureBoundaryMembershipRefStoreCost, SourceFoundationClosureClaimRef,
@@ -52,9 +52,6 @@ use tos_validation::{
         SourceFoundationRecordsStoredFact as StoredFact, SourceFoundationRecordsStreamedReport,
     },
 };
-
-const EVENT_CODEC_VERSION: i64 = 1;
-const CLAIM_CODEC_VERSION: i64 = 1;
 
 #[track_caller]
 fn source_refusal() -> ItemRefusal {
@@ -517,7 +514,6 @@ impl<'candidate, 'input, 'host, 'cancel, 'budget>
         &self,
         mut visit: impl FnMut(&str) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal> {
-        use tos_validation::record_biblio_cut::SourceCutInput;
         self.context.check()?;
         self.input
             .verify_invocation(self.context.deadline, self.context.cancelled)?;
@@ -3237,8 +3233,6 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     loaded_document_scan_row_operations: u64,
     loaded_document_workspace_state_bytes: usize,
     loaded_rows: SourceFoundationClosureLoadedRowStoreCost,
-    loaded_row_stream_count: u64,
-    loaded_row_stream_drained_rows: u64,
     event_rows: u64,
     event_serialized_read_bytes: u64,
     event_serialized_write_bytes: u64,
@@ -5992,16 +5986,6 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             workspace,
             returned_state,
         ))
-    }
-
-    fn derivation_keyset_drained(
-        &self,
-        set: SourceFoundationClosureDerivationKeySet,
-    ) -> Result<bool, ItemRefusal> {
-        let index = Self::derivation_set_index(set);
-        Ok(self.derivation_keyset_eof[index]
-            && self.derivation_keyset_expected[index]
-                == Some(self.derivation_keyset_drained[index]))
     }
 
     fn derivation_count(
@@ -8769,11 +8753,6 @@ impl SourceFoundationClosureSchemaRequestStore
         }
         let row_workspace =
             Self::responsibility_claim_workspace(self.max_object_link_claim_bytes, 3)?;
-        let previous_bytes = self
-            .last_object_link_claim_id
-            .as_deref()
-            .map(str::len)
-            .unwrap_or_default();
         let cursor_copy = self
             .last_object_link_claim_id
             .as_deref()
@@ -13383,8 +13362,6 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 loaded_document_scan_row_operations: 0,
                 loaded_document_workspace_state_bytes: 0,
                 loaded_rows: SourceFoundationClosureLoadedRowStoreCost::default(),
-                loaded_row_stream_count: 0,
-                loaded_row_stream_drained_rows: 0,
                 event_rows: 0,
                 event_serialized_read_bytes: 0,
                 event_serialized_write_bytes: 0,

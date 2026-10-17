@@ -5,7 +5,7 @@
 use crate::{
     Error, Result,
     d1::{D1Cell, D1RowTransition, D1Table},
-    d1_public_capture::{CreationState, MAX_ROW_BYTES, PublicCapture, compact, json},
+    d1_public_capture::{CreationState, MAX_ROW_BYTES, PublicCapture, compact},
     d1_public_lens::{LensCounts, emit_lens_auxiliary},
     d1_public_rows::{encoded, lower_search, portable, preflight_large_fields},
     d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, bounded_decimal, chunks, quote, quote_len},

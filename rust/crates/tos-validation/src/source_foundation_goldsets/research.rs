@@ -9,7 +9,7 @@
 
 use super::{SourceFoundationGoldsetsReport, SourceFoundationSchemaRequest};
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::layer_family_rules::{LayerFamilySource, LayerPayload};
+use crate::layer_family_rules::LayerFamilySource;
 use crate::record_biblio_cut::BiblioCurrentRecord;
 use crate::source_foundation_default_rules::{
     BorrowedDefaultRecords, SliceDefaultPaths, SourceFoundationDefaultEventLookup,
@@ -23,7 +23,6 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
 use std::mem::size_of;
-use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath};
 
 const SAMPLE_PLAN: &str = "sample-plan.json";
@@ -84,11 +83,8 @@ struct PhysicalTarget<'a> {
     relative_target: Option<&'a str>,
     exists: bool,
     regular_file: bool,
-    directory: bool,
     byte_size: Option<u64>,
     sha256: Option<&'a str>,
-    git_tracked: Option<bool>,
-    git_ignored: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -104,11 +100,8 @@ fn physical_target_observation(facts: &PhysicalPathFacts) -> PhysicalTargetObser
             relative_target: None,
             exists: facts.exists,
             regular_file: facts.regular_file,
-            directory: facts.directory,
             byte_size: facts.byte_size,
             sha256: facts.sha256.as_deref(),
-            git_tracked: facts.git_tracked,
-            git_ignored: facts.git_ignored,
         });
     }
     match facts.resolved_target.as_ref() {
@@ -116,21 +109,15 @@ fn physical_target_observation(facts: &PhysicalPathFacts) -> PhysicalTargetObser
             relative_target,
             exists,
             regular_file,
-            directory,
             byte_size,
             sha256,
-            git_tracked,
-            git_ignored,
             ..
         }) => PhysicalTargetObservation::Target(PhysicalTarget {
             relative_target: Some(relative_target),
             exists: *exists,
             regular_file: *regular_file,
-            directory: *directory,
             byte_size: *byte_size,
             sha256: sha256.as_deref(),
-            git_tracked: *git_tracked,
-            git_ignored: *git_ignored,
         }),
         Some(ResolvedTargetFacts::OutsideSelectedRoot) => {
             PhysicalTargetObservation::OutsideSelectedRoot
@@ -1093,7 +1080,7 @@ fn inspect_source_foundation_goldset_root(
         provenance_validation_stages.insert(provenance_path.clone(), validation_stage);
         next_provenance_stage = advance_diagnostic_stage(next_provenance_stage, 2)?;
     }
-    let mut supplemental_provenance_paths: Vec<String> = [
+    let supplemental_provenance_paths: Vec<String> = [
         "provenance.german-source-triangulation.jsonl",
         "provenance.bounded-translation-research-input.jsonl",
         "provenance.critical-edition-citation-decision.jsonl",
@@ -3152,12 +3139,6 @@ fn inspect_source_foundation_goldset_root(
                 "selected-form source-recurrence receipt drifted",
             )?;
         }
-        let expected_parts = [
-            (1, 17, 14, 12),
-            (2, 32, 20, 12),
-            (3, 45, 26, 13),
-            (4, 51, 36, 22),
-        ];
         checks.charge(
             encoded_len(receipt.get("parts").unwrap_or(&Value::Null))?
                 .checked_mul(4)

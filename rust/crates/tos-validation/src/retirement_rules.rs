@@ -548,9 +548,7 @@ fn finite_python_numbers(value: &Value) -> Result<(), RetirementRefusal> {
     Ok(())
 }
 
-pub(crate) use crate::datetime_support::{
-    MAX_EVENT_BYTES, observed_datetime, observed_datetime_raw_order,
-};
+pub(crate) use crate::datetime_support::MAX_EVENT_BYTES;
 pub use crate::datetime_support::{
     ObservedDateTimeError, observed_datetime_order, observed_instant_elapsed_micros,
     observed_instant_order,
@@ -559,6 +557,7 @@ pub use crate::datetime_support::{
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::datetime_support::{observed_datetime, observed_datetime_raw_order};
 
     #[test]
     fn retirement_strict_json_matches_duplicate_and_finite_oracle_cases() {

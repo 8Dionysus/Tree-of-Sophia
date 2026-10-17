@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/retained-corpus-binding.schema.json",
+  "title": "Retained corpus subtree binding",
+  "description": "Portable fixity for one unchanged authored subtree. The operator selects its physical corpus root and exact revision separately. Membership uses tos-val-full-membership-v1; member_mode additionally binds every logical file mode. This binding grants no source admission, rights or publication.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "scope",
+    "restore_origin_git_commit",
+    "membership_sha256",
+    "member_count",
+    "source_bytes",
+    "member_mode"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/retained-corpus-binding.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_retained_corpus_binding_v1"
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 4096,
+      "pattern": "^ToS/[^\\\\\\x00-\\x1f]+$",
+      "description": "The native importer also checks the complete RelativePath grammar and refuses incoming members in this subtree."
+    },
+    "restore_origin_git_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Exact Git witness from which this byte membership can be restored; the import itself verifies the separately selected corpus bytes."
+    },
+    "membership_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "member_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "member_mode": {
+      "enum": [
+        420,
+        493
+      ],
+      "description": "One uniform portable file mode, 0644 or 0755; object-pool files remain immutable 0444."
+    }
+  }
+}

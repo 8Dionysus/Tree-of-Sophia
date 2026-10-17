@@ -256,7 +256,7 @@ pub(crate) fn mcp_tool_list(
             }
             SOURCE_TEXT_SEARCH_OPERATION_ID => source_text_search_selected,
             id if crate::source_read::Operation::from_id(id).is_some() => {
-                crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_only())
+                crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_available())
                     || executor.source_read_available()
             }
             crate::knowledge::ACCESS_HEALTH_OPERATION => executor.access_health_available(),
@@ -875,7 +875,8 @@ pub type SourceDescendDelivery<'call> = dyn for<'packet> FnMut(Result<PreparedPa
 // One method/default contract serves both installed owned executors and
 // callback-scoped selected owners. A lifetime never grants source authority.
 macro_rules! access_executor_contract {
-    ($name:ident, [$($generics:tt)*], $packet_lifetime:lifetime, [$($bounds:tt)*]) => {
+    ($(#[$metadata:meta])* $name:ident, [$($generics:tt)*], $packet_lifetime:lifetime, [$($bounds:tt)*]) => {
+        $(#[$metadata])*
         pub trait $name $($generics)* $($bounds)* {
     /// Reuse admitted software custody; selected data cannot supply code.
     fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
@@ -1062,9 +1063,11 @@ macro_rules! access_executor_contract {
     };
 }
 access_executor_contract!(AccessExecutor, [], 'static, [: Send + Sync]);
-/// Callback-local executor: every returned packet retains its real owner lease.
-/// Delivery must finish before the borrowed selected context is dropped.
-access_executor_contract!(ScopedAccessExecutor, [<'hold>], 'hold, []);
+access_executor_contract!(
+    /// Callback-local executor: every returned packet retains its real owner lease.
+    /// Delivery must finish before the borrowed selected context is dropped.
+    ScopedAccessExecutor, [<'hold>], 'hold, []
+);
 
 // Existing owned/static implementations safely outlive any shorter hold.
 impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {

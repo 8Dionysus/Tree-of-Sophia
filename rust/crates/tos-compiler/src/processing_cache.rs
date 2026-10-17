@@ -22,7 +22,6 @@ use tos_foundation::{Digest256, Digest256Hasher};
 pub const DEFAULT_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
 pub const DEFAULT_CACHE_ENTRIES: u64 = 500_000;
 
-const CACHE_KEY_DOMAIN: &[u8] = b"tos-rust-processing-cache-key-v1\0";
 const MAX_CANONICAL_VALUE_BYTES: usize = 8 * 1024 * 1024;
 static RUN_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
@@ -1505,7 +1504,7 @@ impl<'a> ProcessingReadSnapshot<'a> {
                 },
             )?
             .collect::<std::result::Result<Vec<_>, _>>()?;
-        let mut rows = rows
+        let rows = rows
             .into_iter()
             .map(|(id, before, after, change)| {
                 let id = id.ok_or(Error::Invalid("malformed processing input identity"))?;
@@ -1872,20 +1871,6 @@ fn trim_outputs(db: &Connection, limits: ProcessingCacheLimits) -> Result<u64> {
         evicted = evicted
             .checked_add(deleted as u64)
             .ok_or(Error::Budget("processing evicted output count"))?;
-    }
-}
-
-impl ProcessingRunInner {
-    fn current_status(&self) -> Result<String> {
-        self.shared
-            .db
-            .borrow()
-            .query_row(
-                "SELECT status FROM tos_rust_processing_runs WHERE id=?1",
-                [&self.run_id],
-                |row| row.get(0),
-            )
-            .map_err(Error::from)
     }
 }
 

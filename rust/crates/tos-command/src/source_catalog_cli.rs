@@ -14,10 +14,8 @@ use std::ffi::OsString;
 use std::io::{self, Write};
 use std::os::unix::ffi::OsStrExt;
 use std::sync::atomic::{AtomicBool, AtomicI32};
-use tos_compiler::knowledge_stage::KnowledgeStage;
 use tos_compiler::source_witness_catalog::{
-    ColdSourceCatalogReceipt, SourceCatalogLimits, SourceCatalogSink,
-    render_cold_source_witness_catalog,
+    SourceCatalogLimits, SourceCatalogSink, render_cold_source_witness_catalog,
 };
 use tos_compiler::{Error as CompilerError, Result as CompilerResult};
 use tos_foundation::{Digest256, JsonLimits};

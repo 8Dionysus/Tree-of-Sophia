@@ -89,7 +89,6 @@ pub(crate) fn pg_object_link_requirements(
 /// source package or publication authority.
 pub(crate) struct PgObjectLinkPreview {
     response: JsonValue,
-    materializations: JsonValue,
     identity: PgRecordRevisionIdentity,
     reads: Option<crate::source_cohort::SourceReads>,
     requirements: PgObjectLinkRequirements,
@@ -98,10 +97,6 @@ pub(crate) struct PgObjectLinkPreview {
 impl PgObjectLinkPreview {
     pub(crate) fn response(&self) -> &JsonValue {
         &self.response
-    }
-
-    pub(crate) fn materializations(&self) -> &JsonValue {
-        &self.materializations
     }
 
     pub(crate) fn bind_read_snapshot(
@@ -271,7 +266,6 @@ pub(crate) fn describe_pg_object_link(
     )?;
     Ok(PgObjectLinkPreview {
         response,
-        materializations: JsonValue::Null,
         identity: *input.input_identity(),
         reads: None,
         requirements: PgObjectLinkRequirements {
@@ -1458,11 +1452,7 @@ pub(crate) fn prepare_pg_object_link_preview(
         ))?;
     cmd::set(&mut response, "prepared_claim", claim)?;
     cmd::set(&mut response, "prepared_forms", forms)?;
-    cmd::set(
-        &mut response,
-        "prepared_materializations",
-        materializations.clone(),
-    )?;
+    cmd::set(&mut response, "prepared_materializations", materializations)?;
     cmd::set(
         &mut response,
         "expected_publication",
@@ -1477,7 +1467,6 @@ pub(crate) fn prepare_pg_object_link_preview(
     )?;
     Ok(PgObjectLinkPreview {
         response,
-        materializations,
         identity: *input.input_identity(),
         reads: None,
         requirements,

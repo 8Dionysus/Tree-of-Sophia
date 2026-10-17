@@ -1754,7 +1754,7 @@ mod tests {
         budget.max_text_bytes = 256 * 1024;
         budget.max_response_bytes = 64 * 1024;
         budget.max_work_steps = 2_000_000;
-        let mut request = request("needle", 1, None);
+        let request = request("needle", 1, None);
 
         let first_page = execute_source_text_search(
             &request,

@@ -131,26 +131,6 @@ impl FreshRevisionPrepared<'_> {
             .ok_or_else(|| invalid("fresh revision batch already consumed"))
     }
 
-    /// Rust-side fence plus the SQLite cache/native terms remain live after
-    /// the batch is moved to the normal candidate/validator path.
-    pub(crate) fn retained_state_upper_bound_bytes(&self) -> usize {
-        self.fence
-            .profile
-            .retained_fence_state_bytes
-            .checked_add(self.fence.profile.sqlite_cache_bytes)
-            .and_then(|bytes| bytes.checked_add(self.fence.profile.sqlite_native_overhead_bytes))
-            .unwrap_or(usize::MAX)
-    }
-
-    pub(crate) fn work_units_used(&self) -> u64 {
-        self.fence.work.used
-    }
-
-    pub(crate) fn proposal_census(&self) -> Option<SourceCensusSummary> {
-        (self.disposition == FreshRevisionDisposition::NewPublication)
-            .then_some(self.fence.proposal_census)
-    }
-
     /// The only publication path: Work owner/configuration, exact source
     /// census, and selected-current V2 fence are rechecked after Native
     /// validation. A retry candidate deliberately cannot use this method.
@@ -959,7 +939,7 @@ pub(crate) fn prepare_record_revision<'a>(
     let WorkFacts {
         manifest_sha256,
         archive,
-        expected: mut expected,
+        mut expected,
     } = facts;
     let disposition = if base.selected_revision() == original_base {
         FreshRevisionDisposition::NewPublication

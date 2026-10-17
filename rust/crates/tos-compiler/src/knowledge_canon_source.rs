@@ -513,7 +513,7 @@ fn csv_records_with_spans<F>(
     l: CsvReadLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-    mut emit: F,
+    emit: F,
 ) -> Result<()>
 where
     F: FnMut(Vec<String>, usize, usize) -> Result<bool>,

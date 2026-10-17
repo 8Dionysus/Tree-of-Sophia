@@ -601,7 +601,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             None,
         )
     }
-    pub fn new_with_owned_state(
+    pub(crate) fn new_with_owned_state(
         registry: &'a KnowledgeRegistry,
         entity_bytes: &[u8],
         relation_bytes: &[u8],
@@ -1926,7 +1926,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
                 semantics.insert(key.into(),json!({"roles":sorted(roles),"literal_forms":sorted(forms),"normalization_status":"source-declared"}));
             }
         }
-        let mut value = json!({"id":format!("{}:{}",source_graph,identity.unwrap_or(native)),"native_id":native,"source_graph":source_graph,
+        let value = json!({"id":format!("{}:{}",source_graph,identity.unwrap_or(native)),"native_id":native,"source_graph":source_graph,
             "from_id":from,"to_id":to,"predicate_id":predicate,"relation_type_id":type_id,
             "predicate_mapping":{"status":if resolved.mapped {"mapped"} else {"unmapped"},"source_predicate_id":predicate,"registry_ref":self.relation_registry_ref},
             "display":full_owner_relation_display(source,predicate,left_title,right_title,&entry)?,"epistemic":source_epistemic(item,default_authority),

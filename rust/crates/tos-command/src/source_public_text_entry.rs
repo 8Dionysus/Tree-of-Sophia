@@ -687,7 +687,6 @@ pub(crate) struct PublicTextPackage {
     pub(crate) files: BTreeMap<String, Vec<u8>>,
     pub(crate) receipt: JsonValue,
     pub(crate) bindings: JsonValue,
-    pub(crate) dependencies: String,
 }
 
 pub(crate) fn complete_package(
@@ -787,7 +786,6 @@ pub(crate) fn complete_package(
         files,
         receipt,
         bindings: assembly.bindings.clone(),
-        dependencies,
     })
 }
 
@@ -960,7 +958,7 @@ pub(crate) fn run(
             ))?,
     );
     let operation = cmd::text(request, "operation")?;
-    let config = value(&selection.config)?;
+    value(&selection.config)?;
     let source_path = cmd::text(&selection.config, "source_path")?;
     let configuration = selection.configuration_digest().to_prefixed();
     selection.verify_current(deadline, cancelled)?;
@@ -1112,7 +1110,7 @@ pub(crate) fn run(
         }
         PrivateTextCustody::Absent => (),
     }
-    let mut p = prepare(
+    let p = prepare(
         selection,
         software,
         components,

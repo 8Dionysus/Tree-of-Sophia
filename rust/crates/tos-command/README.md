@@ -855,6 +855,10 @@ or publish a new revision, including on a lookup miss. A newer installed reader
 can complete verification of an older admitted writer's result. The receipt names
 `verification_only`, `publication_performed: false` and the original validator.
 
+Cold V2 restore requires the original held source/target roots and shared work
+meter. The caller supplies one target spill request backed by its original
+IO/AUX budget, deadline and cancellation token. Source point reading and copying
+create no SQLite spill; the fresh target owns its independent closure proof.
 Cold V2 restore partitions its original state between fixed receipt/decoder
 state, the SQLite spill and one bounded tree stream. The stream admits its live
 stack and each node decoder before allocation; cumulative traversal ceilings

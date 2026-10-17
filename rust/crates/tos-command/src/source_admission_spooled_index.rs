@@ -609,7 +609,6 @@ pub(crate) struct CandidateRecordsReportVerified {
     membership: SourceMembershipV1,
     prepared_schema: CutPreparedSchemaExecutionBinding,
     selected_member_bytes: u64,
-    record_source_bytes_read: u64,
     record_issue_count: usize,
     item_issue_count: usize,
     manifest_item_id_count: usize,
@@ -637,10 +636,6 @@ impl CandidateRecordsReportVerified {
 
     pub(crate) fn selected_member_bytes(&self) -> u64 {
         self.selected_member_bytes
-    }
-
-    pub(crate) fn record_source_bytes_read(&self) -> u64 {
-        self.record_source_bytes_read
     }
 
     pub(crate) fn record_issue_count(&self) -> usize {
@@ -695,7 +690,6 @@ trait CandidateFenceSource {
         max_owned_state_bytes: usize,
     ) -> io::Result<CandidateMemberRead>;
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
-    fn verify(&self, path: &str) -> io::Result<()>;
     fn base_identity_path_bounded(
         &self,
         id: &str,
@@ -759,10 +753,6 @@ impl CandidateFenceSource for SpoolCandidate<'_> {
 
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         SpoolCandidate::read(self, path, cap)
-    }
-
-    fn verify(&self, path: &str) -> io::Result<()> {
-        SpoolCandidate::verify(self, path)
     }
 
     fn base_identity_path_bounded(
@@ -892,10 +882,6 @@ impl CandidateIndexInput for SpoolInput<'_> {
             }
         }
         Ok(raw)
-    }
-
-    fn verify_member(&mut self, path: &str) -> io::Result<()> {
-        self.candidate.verify(path)
     }
 
     fn json_limits(&self) -> JsonLimits {
@@ -1204,7 +1190,6 @@ impl<'candidate> IndexSink<'candidate> {
                 "candidate Records report differs from the prepared schema worker",
             ));
         }
-        let record_source_bytes_read = report.record_usage().source_bytes_read;
         let selected_member_bytes = report.cost().selected_current_member_bytes;
         let record_issue_count = report.record_usage().observed_issue_count;
         let item_issue_count = report.items().issue_count;
@@ -1222,7 +1207,6 @@ impl<'candidate> IndexSink<'candidate> {
             membership: *report.source_membership(),
             prepared_schema: expected_schema,
             selected_member_bytes,
-            record_source_bytes_read,
             record_issue_count,
             item_issue_count,
             manifest_item_id_count,
@@ -1814,12 +1798,6 @@ impl IndexView<'_> {
         self.row_limit
     }
 
-    pub(crate) fn publication_epoch(&self) -> &tos_source_store::MetadataPublicationEpoch {
-        self.complete.original_epoch()
-    }
-    pub(crate) fn prepared_schema(&self) -> CutPreparedSchemaExecutionBinding {
-        self.complete.records().prepared_schema()
-    }
     /// Invocation-selected persistent V2 IO/allocation limits carried only by
     /// the genuine native completion witness. This is a budget profile, not a
     /// source or publication permission.

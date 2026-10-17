@@ -6,20 +6,30 @@ pub mod installed;
 use rawzip::{FileReader, ZipArchive, ZipArchiveEntryWayfinder};
 use std::{
     collections::BTreeMap,
-    fs::{self, File, OpenOptions},
+    fs::File,
     io::{Read, Seek, SeekFrom, Write},
-    os::{
-        fd::AsRawFd,
-        unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
-    },
+    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
-    JsonString, JsonValue, RelativePath, canonical_bytes_v1, parse_json,
+    Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue, RelativePath, parse_json,
 };
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
+
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
+use std::{
+    fs::{self, OpenOptions},
+    os::{
+        fd::AsRawFd,
+        unix::fs::{OpenOptionsExt, PermissionsExt},
+    },
+    process::{Command, Stdio},
+};
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
+use tos_foundation::{
+    CanonicalProfile, JsonNumber, JsonNumberKind, JsonString, canonical_bytes_v1,
+};
 
 const PROGRAM: &str = "access/src/tos_access/tos-access";
 const COMMAND_SCHEMA: &str = "tos_native_software_command_build_v1";
@@ -37,12 +47,14 @@ const TARGET: &str = "x86_64-unknown-linux-gnu";
 const NATIVE_SCHEMA: &str = "tos_native_access_build_v1";
 const NATIVE_SCHEMA_V2: &str = "tos_native_access_build_v2";
 const SCHEMA: &str = "tos_software_bundle_manifest_v1";
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 const SOURCE_FILES: [&str; 1] = ["access/README.md"];
 const TOS_SCHEMAS: [&str; 3] = [
     "semantic-entity-type-registry.schema.json",
     "semantic-relation-type-registry.schema.json",
     "epistemic-evidence-projection.schema.json",
 ];
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; invoke its absolute path explicitly.\nAn optional verified command cohort installs selected verified PREFIX/bin command links.\nOwner command execution still requires a protected explicit invocation and grants.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nPython callers use the source-importable SDK bridge and must select this native\nproduct explicitly. No Python wheel, runtime fallback or corpus data is installed.\n";
 type Result<T> = std::result::Result<T, String>;
 trait Checked<T> {
@@ -92,15 +104,18 @@ fn identity(file: &File) -> Result<Identity> {
         m.ctime_nsec(),
     ))
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn text(s: &str) -> JsonValue {
     JsonValue::String(JsonString::from_utf8(s))
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn number(n: u64) -> JsonValue {
     JsonValue::Number(JsonNumber {
         kind: JsonNumberKind::Int,
         lexeme: n.to_string(),
     })
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn object(fields: Vec<(&str, JsonValue)>) -> JsonValue {
     JsonValue::Object(
         fields
@@ -137,6 +152,7 @@ fn json(raw: &[u8], cap: usize) -> Result<JsonValue> {
     .checked()
     .map(|d| d.into_root())
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn encode(value: &JsonValue, cap: usize) -> Result<Vec<u8>> {
     canonical_bytes_v1(
         value,
@@ -230,6 +246,7 @@ fn allowed(name: &str) -> bool {
         || ((name.starts_with("access/contracts/") || name.starts_with("access/profiles/"))
             && name.ends_with(".json"))
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn child(root: &File, name: &str) -> Result<File> {
     if !path_ok(name) {
         return Err("invalid software member path".into());
@@ -244,6 +261,7 @@ fn child(root: &File, name: &str) -> Result<File> {
     }
     Err("empty software member path".into())
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn directory(root: &File, name: &str) -> Result<File> {
     if !name.is_empty() && !path_ok(name) {
         return Err("invalid software directory".into());
@@ -257,6 +275,7 @@ fn directory(root: &File, name: &str) -> Result<File> {
     }
     Ok(dir)
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn walk(
     root: &File,
     relative: &str,
@@ -322,6 +341,7 @@ fn walk(
     }
     Ok(())
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn git(root: &File, args: &[&str]) -> Result<String> {
     // The child changes directory through this parent's retained descriptor.
     // Git discovers the actual checkout from that directory, preserving its
@@ -369,6 +389,7 @@ fn git(root: &File, args: &[&str]) -> Result<String> {
         .checked()
         .map(|s| s.trim().to_owned())
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn source(root: &File) -> Result<(String, String)> {
     let head = git(root, &["rev-parse", "HEAD"])?;
     let tree = git(root, &["rev-parse", "HEAD^{tree}"])?;
@@ -530,6 +551,7 @@ fn command_closure<'a>(
     }
     Ok(Some(commands))
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn header(f: &mut File) -> Result<()> {
     f.seek(SeekFrom::Start(0)).checked()?;
     let mut h = [0u8; 64];
@@ -550,6 +572,7 @@ fn toolchain(raw: &[u8]) -> Result<String> {
         .ok_or("software toolchain channel absent or invalid".into())
 }
 
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 struct Input {
     name: String,
     file: Option<File>,
@@ -558,6 +581,7 @@ struct Input {
     size: u64,
     sha: Digest256,
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn add(
     inputs: &mut BTreeMap<String, Input>,
     name: String,
@@ -604,6 +628,7 @@ fn add(
     *total = admitted;
     Ok(())
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn create(path: &Path) -> Result<File> {
     if !path.is_absolute() {
         return Err("software output must be absolute".into());
@@ -626,11 +651,13 @@ fn create(path: &Path) -> Result<File> {
         .checked()
 }
 
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 struct ArchiveOutput {
     file: File,
     position: u64,
     cap: u64,
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 impl Write for ArchiveOutput {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
         let end = self
@@ -646,6 +673,7 @@ impl Write for ArchiveOutput {
         self.file.flush()
     }
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 impl Seek for ArchiveOutput {
     fn seek(&mut self, from: SeekFrom) -> std::io::Result<u64> {
         let next = self.file.seek(from)?;
@@ -657,6 +685,7 @@ impl Seek for ArchiveOutput {
     }
 }
 
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub fn build(
     root: &Path,
     web_dist: &Path,
@@ -670,6 +699,7 @@ pub fn build(
         root, web_dist, output, source_ref, binary, receipt, None, limits,
     )
 }
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub fn build_with_commands(
     root: &Path,
     web_dist: &Path,
@@ -1073,17 +1103,21 @@ pub fn build_with_commands(
 struct Member {
     size: u64,
     sha: Digest256,
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     mode: u32,
     method: rawzip::CompressionMethod,
     wayfinder: ZipArchiveEntryWayfinder,
 }
 pub struct VerifiedArchive {
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     archive: ZipArchive<FileReader>,
     file: File,
     identity: Identity,
     sha: Digest256,
     manifest: JsonValue,
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     members: BTreeMap<String, Member>,
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     limits: ArchiveLimits,
 }
 // Every emitted byte is charged before passing it to the consumer. The final
@@ -1299,6 +1333,7 @@ impl VerifiedArchive {
                 Member {
                     size,
                     sha: Digest256::of_bytes(&[]),
+                    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
                     mode: expected_mode,
                     method,
                     wayfinder,
@@ -1465,12 +1500,15 @@ impl VerifiedArchive {
             return Err("archive native toolchain proof differs".into());
         }
         let mut verified = Self {
+            #[cfg(any(feature = "source-tools", feature = "research-tools"))]
             archive,
             file,
             identity: id,
             sha,
             manifest,
+            #[cfg(any(feature = "source-tools", feature = "research-tools"))]
             members,
+            #[cfg(any(feature = "source-tools", feature = "research-tools"))]
             limits,
         };
         verified.recheck()?;
@@ -1488,6 +1526,7 @@ impl VerifiedArchive {
     pub fn manifest(&self) -> &JsonValue {
         &self.manifest
     }
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     pub fn extract(&mut self, destination: &Path) -> Result<JsonValue> {
         self.recheck()?;
         if !destination.is_absolute() {
@@ -1506,6 +1545,7 @@ impl VerifiedArchive {
         }
         self.extract_at(&parent, leaf).map(|(report, _)| report)
     }
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     fn extract_at(&mut self, parent: &File, leaf: &str) -> Result<(JsonValue, File)> {
         fs::create_dir(format!("/proc/self/fd/{}/{leaf}", parent.as_raw_fd())).checked()?;
         let root = tos_fd_open::open_directory_at(parent, Path::new(leaf)).checked()?;
@@ -1562,6 +1602,7 @@ impl VerifiedArchive {
         ))
     }
     /// A fresh software-only user prefix. No PATH edits, data selection or cleanup.
+    #[cfg(any(feature = "source-tools", feature = "research-tools"))]
     pub fn install(&mut self, prefix: &Path) -> Result<JsonValue> {
         self.recheck()?;
         if !prefix.is_absolute() {
@@ -1642,6 +1683,7 @@ impl VerifiedArchive {
 }
 
 /// Local software tooling runs before data selection and never starts a server.
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub fn run_if_requested(
     args: &[String],
     stdout: &mut impl Write,

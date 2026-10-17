@@ -730,7 +730,7 @@ mod tests {
             material_value["input_representation"] = input.clone();
         }
         let material = source_value(&material_value);
-        let mut response = json!({
+        let response = json!({
             "ok": true,
             "receipt": receipt,
             "receipt_sha256": receipt_sha,

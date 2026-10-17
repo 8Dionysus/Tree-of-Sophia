@@ -16,7 +16,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 #[path = "source_expression_edition_pg.rs"]
 mod pg;
 pub(crate) use pg::{
-    PG_FAMILY_TAG, PgExpressionEditionOwnerPackage,
+    PgExpressionEditionOwnerPackage,
     current_result_fields_from_selected_pg as pg_current_result_fields,
     expected_expression_edition_inventory_contributions,
     expected_expression_edition_revision_indexes, prepare_pg_expression_edition,

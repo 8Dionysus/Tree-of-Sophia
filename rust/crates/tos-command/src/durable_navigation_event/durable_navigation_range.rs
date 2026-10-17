@@ -12,10 +12,9 @@ use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_raw_byte
 use tos_segment_store::SegmentStore;
 
 use super::{
-    DurableError, DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
-    DurableNavigationEventContextV1, DurableNavigationEventLimits, DurablePgCoordinator,
-    DurableProjectionLimits, DurableProjectionProfile, DurableResult, EventWitness,
-    MAX_NAVIGATION_EVENT_ID_BYTES, MAX_NAVIGATION_EVENT_STEPS_PER_CALL,
+    DurableError, DurableNavigationEventContextV1, DurableNavigationEventLimits,
+    DurablePgCoordinator, DurableProjectionLimits, DurableProjectionProfile, DurableResult,
+    EventWitness, MAX_NAVIGATION_EVENT_ID_BYTES, MAX_NAVIGATION_EVENT_STEPS_PER_CALL,
     MAX_NAVIGATION_RECORD_ID_BYTES, as_i64, as_u64, canonical_value,
     navigation_verified_prefix_digest, parse_digest, read_domain_snapshot,
     read_navigation_event_cursor, read_navigation_event_head, resolve_event_witness,
@@ -3598,7 +3597,7 @@ impl DurablePgCoordinator {
                     "navigation event range moved from its held source head",
                 ));
             }
-            let event = exact_range_event(&mut self.client, domain, command_id, &witness, limits)?;
+            let event = exact_range_event(&mut self.client, domain, command_id, &witness)?;
             let next_member_count =
                 total_members
                     .checked_add(event.members.len())
@@ -3846,7 +3845,6 @@ impl DurablePgCoordinator {
                 domain,
                 terminal.command_id.clone(),
                 &witness,
-                limits,
             )?;
             if cursor.sequence != coverage.cursor_before
                 || source_head_sequence != coverage.held_source_head_sequence
@@ -4348,7 +4346,6 @@ fn exact_range_event(
     domain: &str,
     command_id: Option<String>,
     witness: &EventWitness,
-    limits: DurableNavigationEventLimits,
 ) -> DurableResult<DurableNavigationEventRangeEventV1> {
     let max_rows = 65i64;
     let root_row = client.query_opt(

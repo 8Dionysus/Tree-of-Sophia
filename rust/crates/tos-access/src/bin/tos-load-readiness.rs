@@ -539,8 +539,14 @@ extern "C" fn signal_handler(_: i32) {
 
 fn install_signals() {
     unsafe {
-        libc::signal(libc::SIGTERM, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGINT, signal_handler as libc::sighandler_t);
+        libc::signal(
+            libc::SIGTERM,
+            signal_handler as *const () as libc::sighandler_t,
+        );
+        libc::signal(
+            libc::SIGINT,
+            signal_handler as *const () as libc::sighandler_t,
+        );
     }
 }
 
@@ -841,7 +847,7 @@ fn copy_stage_tree(
     if *files > MAX_STAGE_FILES {
         return Err("owner stage exceeds 16384-file bound".into());
     }
-    let mut input = OpenOptions::new()
+    let input = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(source)
@@ -2179,7 +2185,7 @@ fn token_bytes(path: &Path) -> Result<Vec<u8>, String> {
     {
         return Err("token must be owner-only 64 lowercase hex bytes".into());
     }
-    let mut f = OpenOptions::new()
+    let f = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(path)
@@ -5198,7 +5204,6 @@ fn validate_plan(
                     "operation labels must be unique bounded ASCII within each session".into(),
                 );
             }
-            let sdk = op.channel == "sdk";
             let native_process = matches!(op.channel.as_str(), "sdk" | "projection");
             let primary = ExpectedOutcome {
                 status: op.expected_status,
@@ -5516,7 +5521,6 @@ fn validate_plan(
     let mut postload_integrity_checks = 0usize;
     let mut postload_selected_integrity_checks = 0usize;
     let mut postload_pg_integrity_checks = 0usize;
-    let mut postload_rights_checks = 0usize;
     let mut postload_idempotency_checks = 0usize;
     let mut postload_integrity_positions = Vec::<usize>::new();
     let mut postload_selected_integrity_positions = Vec::<usize>::new();
@@ -5834,7 +5838,6 @@ fn validate_plan(
             if allowed {
                 postload_pre_revoke_describes.insert(op.label.clone(), op.clone());
             }
-            postload_rights_checks += 1;
         }
     }
     if native_pg_stage {
@@ -6071,10 +6074,11 @@ fn spawn_group(
     pids: &Arc<Mutex<Vec<i32>>>,
     deadline: Instant,
 ) -> Result<ManagedChild, String> {
-    let child = unsafe { command.process_group(0) }
+    let child = command
+        .process_group(0)
         .spawn()
         .map_err(|e| format!("child start: {e}"))?;
-    let mut managed = ManagedChild {
+    let managed = ManagedChild {
         child,
         registry: Arc::clone(pids),
         reaped: false,
@@ -6524,8 +6528,8 @@ fn native_command_process(
     let mut child = spawn_group(&mut command, pids, deadline)?;
     let pid = child.id() as i32;
     let mut stdin = child.stdin.take().ok_or("SDK stdin unavailable")?;
-    let mut stdout = child.stdout.take().ok_or("SDK stdout unavailable")?;
-    let mut stderr = child.stderr.take().ok_or("SDK stderr unavailable")?;
+    let stdout = child.stdout.take().ok_or("SDK stdout unavailable")?;
+    let stderr = child.stderr.take().ok_or("SDK stderr unavailable")?;
     // Drain SDK output while stdin is being written; either pipe alone can fill
     // and deadlock an otherwise valid full-duplex client exchange.
     let (output_tx, output_rx) = mpsc::sync_channel(1);
@@ -8107,7 +8111,7 @@ fn main_result() -> Result<i32, String> {
     if schedule_initial_stamp.len > args.schedule_cap as u64 {
         return Err("schedule cap exceeded".into());
     }
-    let mut schedule_file = OpenOptions::new()
+    let schedule_file = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(&args.schedule)
@@ -8713,7 +8717,7 @@ fn main_result() -> Result<i32, String> {
         .map(|s| s.operations.len())
         .max()
         .unwrap_or(0);
-    let mut successes = 0usize;
+    let mut successes;
     let mut errors = 0usize;
     let mut conflicts = 0usize;
     let mut conflict_groups = 0usize;
@@ -9338,7 +9342,7 @@ fn main_result() -> Result<i32, String> {
     {
         return Err("selected input changed during workload".into());
     }
-    let mut schedule_after = OpenOptions::new()
+    let schedule_after = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(&args.schedule)

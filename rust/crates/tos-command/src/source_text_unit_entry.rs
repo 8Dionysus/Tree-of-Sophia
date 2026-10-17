@@ -21,7 +21,7 @@ use crate::source_text_private_store::{
 use crate::source_text_unit_proposal::build_text_unit_packet;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, RelativePath};
@@ -151,7 +151,6 @@ pub(crate) struct PreparedNativeTextUnitPackage {
     replayed: bool,
     context_binding: Digest256,
     request_digest: Digest256,
-    grant_digest: Digest256,
 }
 
 impl PreparedNativeTextUnitPackage {
@@ -175,24 +174,12 @@ impl PreparedNativeTextUnitPackage {
         &self.prepared.owner_configuration
     }
 
-    pub(crate) fn expected_dependencies(&self) -> &str {
-        &self.prepared.dependencies
-    }
-
     pub(crate) fn owner_context_binding(&self) -> Digest256 {
         self.context_binding
     }
 
     pub(crate) fn request_digest(&self) -> Digest256 {
         self.request_digest
-    }
-
-    pub(crate) fn grant_digest(&self) -> Digest256 {
-        self.grant_digest
-    }
-
-    pub(crate) fn account_uid(&self) -> u32 {
-        self.prepared.context.account_uid()
     }
 
     pub(crate) fn verify_current(
@@ -401,7 +388,6 @@ fn prepare_selected(
                 raw: resolved.raw,
                 inputs: resolved.inputs,
                 input_snapshot: resolved.input_snapshot,
-                selected_members: resolved.selected_members,
             },
             Some(resolved.packet),
         )
@@ -1176,7 +1162,6 @@ pub(crate) fn prepare_pg_text_unit_package(
     let context_binding = prepared
         .context
         .private_owner_scope_binding(deadline, cancelled)?;
-    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
     Ok(PreparedNativeTextUnitPackage {
         prepared,
         source_path,
@@ -1185,7 +1170,6 @@ pub(crate) fn prepare_pg_text_unit_package(
         replayed,
         context_binding,
         request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
-        grant_digest,
     })
 }
 

@@ -209,7 +209,7 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 .member(path)
                 .map(|m| (m.size_bytes, m.sha256))),
             Self::Candidate(_) => {
-                if !self.present(path, validator, l)? {
+                if !self.present(path, l)? {
                     return Ok(None);
                 }
                 let raw = self.read(path, validator, l)?;
@@ -217,12 +217,7 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
             }
         }
     }
-    fn present(
-        self,
-        path: &RelativePath,
-        validator: &SourceCatalogValidator<'_>,
-        l: BibliographicLimits,
-    ) -> Result<bool> {
+    fn present(self, path: &RelativePath, l: BibliographicLimits) -> Result<bool> {
         match self {
             Self::Resident(i) => Ok(i.cut.current().member(path).is_some()),
             Self::Candidate(i) => i
@@ -734,7 +729,7 @@ impl<'a, 'b> Versions<'a, 'b> {
     ) -> Result<Option<Vec<u8>>> {
         check(validator, l)?;
         let parsed = path(reference)?;
-        if !self.input.present(&parsed, validator, l)? {
+        if !self.input.present(&parsed, l)? {
             return Ok(None);
         }
         if let SelectedBibliographicSourceCut::Resident(input) = self.input {

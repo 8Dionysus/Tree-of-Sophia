@@ -1,3 +1,4 @@
+use super::history::{reconstruct, snapshot_witness};
 use super::*;
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/open_work_queue")

@@ -86,7 +86,6 @@ pub(crate) trait CandidateIndexInput {
     fn member_size(&mut self, path: &str) -> io::Result<u64>;
     fn member_digest(&mut self, path: &str) -> io::Result<Digest256>;
     fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
-    fn verify_member(&mut self, path: &str) -> io::Result<()>;
     fn json_limits(&self) -> JsonLimits;
     fn json_state_bytes(&self) -> usize;
 
@@ -373,10 +372,6 @@ impl CandidateIndexInput for CandidateInput<'_> {
 
     fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         (self.read)(path, cap)
-    }
-
-    fn verify_member(&mut self, path: &str) -> io::Result<()> {
-        (self.verify_member)(path)
     }
 
     fn json_limits(&self) -> JsonLimits {

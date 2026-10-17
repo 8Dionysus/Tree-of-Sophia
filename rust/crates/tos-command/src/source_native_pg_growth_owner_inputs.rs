@@ -26,7 +26,6 @@ const MAX_SELECTED_MEMBER: usize = 8_388_608;
 /// topology by `select_source_witness_catalog_from_input`.
 pub(crate) struct PgGrowthSelectedInputs {
     pub(crate) identity: PgRecordRevisionIdentity,
-    pub(crate) publication_token: Option<String>,
     pub(crate) catalog: SelectedSourceWitnessCatalog,
     files: BTreeMap<String, Vec<u8>>,
 }
@@ -46,7 +45,6 @@ impl PgGrowthSelectedInputs {
         )?;
         Ok(Self {
             identity: *input.input_identity(),
-            publication_token: publication_token.map(str::to_owned),
             catalog,
             files: BTreeMap::new(),
         })
@@ -146,10 +144,6 @@ impl PgGrowthSelectedInputs {
         let _ = relative;
         self.files.insert(path.to_owned(), raw);
         Ok(())
-    }
-
-    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
-        &self.files
     }
 
     /// Rebind every catalog member and exact owner endpoint selected from the
@@ -253,7 +247,7 @@ pub(crate) fn context_with_pg_exact_reads(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(CommandContext, BTreeSet<String>)> {
     use crate::PredicateRead;
-    use tos_foundation::{Digest256, RelativePath};
+    use tos_foundation::Digest256;
 
     const MAX_EXACT_MEMBERS: usize = 4096;
     const MAX_EXACT_BYTES: usize = 33_554_432;
@@ -343,16 +337,8 @@ pub(crate) fn context_with_pg_exact_reads(
 
 /// The exact current Work/Expression/Edition endpoints for one Edition
 /// creation attempt, with the future Edition and Claim identities proven free.
-pub(crate) struct PgExpressionEditionInputs {
-    pub(crate) selected: PgGrowthSelectedInputs,
-    pub(crate) work_path: String,
-    pub(crate) expression_path: String,
-    pub(crate) edition_path: String,
-    pub(crate) claim_path: String,
-}
-
-impl PgExpressionEditionInputs {
-    pub(crate) fn select(
+impl PgGrowthSelectedInputs {
+    pub(crate) fn select_expression_edition(
         input: &dyn SourceCutInputWithIdentity<PgRecordRevisionIdentity>,
         fs: &CreationFilesystem,
         configuration: &JsonValue,
@@ -373,15 +359,11 @@ impl PgExpressionEditionInputs {
         let edition_id = cmd::text(configuration, "edition_id")?;
         let edition_path = cmd::text(configuration, "edition_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = format!(
-            "{}/source-claims.jsonl",
-            edition_path
-                .rsplit_once('/')
-                .map(|(parent, _)| parent)
-                .ok_or(SourceCommandError::Invalid(
-                    "PG Expression Edition Claim home"
-                ),)?
-        );
+        edition_path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid(
+                "PG Expression Edition Claim home",
+            ))?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -416,26 +398,13 @@ impl PgExpressionEditionInputs {
                 "PG Expression Edition event identity is occupied",
             ));
         }
-        Ok(Self {
-            selected,
-            work_path,
-            expression_path,
-            edition_path,
-            claim_path,
-        })
+        Ok(selected)
     }
 }
 
 /// Exact current Expression/Agent endpoints for one responsibility Claim.
-pub(crate) struct PgExpressionResponsibilityInputs {
-    pub(crate) selected: PgGrowthSelectedInputs,
-    pub(crate) expression_path: String,
-    pub(crate) agent_path: String,
-    pub(crate) claim_path: String,
-}
-
-impl PgExpressionResponsibilityInputs {
-    pub(crate) fn select(
+impl PgGrowthSelectedInputs {
+    pub(crate) fn select_expression_responsibility(
         input: &dyn SourceCutInputWithIdentity<PgRecordRevisionIdentity>,
         fs: &CreationFilesystem,
         configuration: &JsonValue,
@@ -454,7 +423,7 @@ impl PgExpressionResponsibilityInputs {
         let agent_id = cmd::text(configuration, "agent_id")?;
         let agent_path = cmd::text(configuration, "agent_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = cmd::text(configuration, "claim_source_path")?.to_owned();
+        cmd::text(configuration, "claim_source_path")?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -482,25 +451,13 @@ impl PgExpressionResponsibilityInputs {
                 "PG Expression Responsibility event identity is occupied",
             ));
         }
-        Ok(Self {
-            selected,
-            expression_path,
-            agent_path,
-            claim_path,
-        })
+        Ok(selected)
     }
 }
 
 /// Exact current Collection/Work endpoints for one membership Claim.
-pub(crate) struct PgCollectionMembershipInputs {
-    pub(crate) selected: PgGrowthSelectedInputs,
-    pub(crate) collection_path: String,
-    pub(crate) work_path: String,
-    pub(crate) claim_path: String,
-}
-
-impl PgCollectionMembershipInputs {
-    pub(crate) fn select(
+impl PgGrowthSelectedInputs {
+    pub(crate) fn select_collection_membership(
         input: &dyn SourceCutInputWithIdentity<PgRecordRevisionIdentity>,
         fs: &CreationFilesystem,
         configuration: &JsonValue,
@@ -519,7 +476,7 @@ impl PgCollectionMembershipInputs {
         let work_id = cmd::text(configuration, "work_id")?;
         let work_path = cmd::text(configuration, "work_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = cmd::text(configuration, "claim_source_path")?.to_owned();
+        cmd::text(configuration, "claim_source_path")?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -547,27 +504,15 @@ impl PgCollectionMembershipInputs {
                 "PG Collection Membership event identity is occupied",
             ));
         }
-        Ok(Self {
-            selected,
-            collection_path,
-            work_path,
-            claim_path,
-        })
+        Ok(selected)
     }
 }
 
 /// Exact current Work endpoint plus the future Expression/Claim identities
 /// for one Work-expression creation. The Work owner keeps request and grant
 /// authorization; this bridge binds only the source-side identity closure.
-pub(crate) struct PgWorkExpressionInputs {
-    pub(crate) selected: PgGrowthSelectedInputs,
-    pub(crate) work_path: String,
-    pub(crate) expression_path: String,
-    pub(crate) claim_path: String,
-}
-
-impl PgWorkExpressionInputs {
-    pub(crate) fn select(
+impl PgGrowthSelectedInputs {
+    pub(crate) fn select_work_expression(
         input: &dyn SourceCutInputWithIdentity<PgRecordRevisionIdentity>,
         configuration: &JsonValue,
         publication_token: Option<&str>,
@@ -579,13 +524,9 @@ impl PgWorkExpressionInputs {
         let expression_id = cmd::text(configuration, "expression_id")?;
         let expression_path = cmd::text(configuration, "expression_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = format!(
-            "{}/source-claims.jsonl",
-            expression_path
-                .rsplit_once('/')
-                .map(|(parent, _)| parent)
-                .ok_or(SourceCommandError::Invalid("PG Work Expression Claim home"))?
-        );
+        expression_path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("PG Work Expression Claim home"))?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -612,12 +553,7 @@ impl PgWorkExpressionInputs {
                 "PG Work Expression event identity is occupied",
             ));
         }
-        Ok(Self {
-            selected,
-            work_path,
-            expression_path,
-            claim_path,
-        })
+        Ok(selected)
     }
 }
 

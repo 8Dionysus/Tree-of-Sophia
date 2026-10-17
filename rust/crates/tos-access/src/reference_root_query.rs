@@ -193,9 +193,6 @@ fn catalog_refusal() -> CatalogError {
     }
 }
 impl<'view, 'capture> ReferenceRootMetadataHold<'view, 'capture> {
-    pub(crate) fn policy_binding(&self) -> &CurrentPolicyBinding {
-        &self.policy
-    }
     /// Direct Original carrier adapters must call this before actual delivery
     /// and after final flush while the same callback/view still lives.
     pub fn recheck_delivery(&self) -> Result<()> {
@@ -860,7 +857,7 @@ pub fn with_selected_metadata_context(
 
 /// The same metadata authority can borrow either compiler-owned controlled
 /// reader. The sidecar reader delegates receipts and currentness to its source.
-trait ControlledReferenceModel {
+pub(crate) trait ControlledReferenceModel {
     fn check_reference_pin(&self) -> tos_compiler::Result<()>;
     fn corpus_original_root(&self) -> Option<&str>;
     fn philosophy_original_root(&self) -> Option<&str>;
@@ -1017,7 +1014,7 @@ where
 
 impl tos_foundation::OwnedState for ReferenceRootMetadataHold<'_, '_> {
     fn owned_heap_bytes(&self) -> tos_foundation::Result<usize> {
-        use tos_foundation::{OwnedState, checked_state_add};
+        use tos_foundation::checked_state_add;
         let mut bytes = 0;
         for amount in [
             self.selection.owned_heap_bytes()?,
@@ -1034,7 +1031,6 @@ impl tos_foundation::OwnedState for ReferenceRootMetadataHold<'_, '_> {
 }
 impl tos_foundation::OwnedState for ReferenceMetadataContext<'_, '_> {
     fn owned_heap_bytes(&self) -> tos_foundation::Result<usize> {
-        use tos_foundation::OwnedState;
         // Borrowed capture, cancellation and view aliases are priced once by
         // their actual outer owners; the single Reference abort payload is ours.
         tos_foundation::checked_state_add(self.hold.owned_heap_bytes()?, self.scope_peak.get())

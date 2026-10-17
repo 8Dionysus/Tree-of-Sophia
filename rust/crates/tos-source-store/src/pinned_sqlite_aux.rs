@@ -3,7 +3,6 @@
 //! The public budgets are deliberately independent of SQLite so callers can
 //! reserve their output/staging lifetime against the same declared envelope.
 
-use crate::pinned_sqlite::FdIoPolicy;
 use crate::{Result, StoreError, StoreErrorCode};
 use rusqlite::ffi;
 use std::fs::OpenOptions;
@@ -1855,7 +1854,7 @@ impl PinnedSqliteAuxScope {
                     ))
                 }
             },
-            Err(error) if self.request.io_budget.snapshot().failure.is_some() => Err(budget_error(
+            Err(_) if self.request.io_budget.snapshot().failure.is_some() => Err(budget_error(
                 "SQLite auxiliary connection open refused by its shared budget or deadline",
             )),
             Err(error) => Err(error),

@@ -2,13 +2,9 @@
 //! command. Each real owner runs in one serial ledger window; reports are
 //! carried forward and consumed by the existing finalizer/output assembler.
 
-use super::foundation_artifact_replay::{
-    ArtifactReplayFailure, CandidateArtifactSchemaExecutor, prepare_artifact_replay,
-};
+use super::foundation_artifact_replay::{CandidateArtifactSchemaExecutor, prepare_artifact_replay};
 use super::foundation_bootstrap::{FoundationBootstrapError, FoundationBootstrapView};
-use super::foundation_catalog::{
-    self, EvaluatedPersistedCatalog, FoundationCatalogOutcome, PersistedCatalogEvaluationError,
-};
+use super::foundation_catalog::{self, EvaluatedPersistedCatalog, FoundationCatalogOutcome};
 use super::foundation_execution_limits::FoundationCutWorkerShape;
 use super::foundation_execution_limits::{
     FoundationBudgetTicket, FoundationCatalogWorkerShape, FoundationCharge,
@@ -17,7 +13,6 @@ use super::foundation_execution_limits::{
 };
 use super::foundation_output::{self, SourceFoundationOutputOutcome};
 use super::foundation_payload::FoundationPayloadSources;
-use super::foundation_reader::FoundationRuleReadLimits;
 use super::foundation_rule_diagnostics::{
     CandidateRuleDiagnosticsError, SourceFoundationRuleDiagnosticsError,
     SourceFoundationRuleDiagnosticsLimits,
@@ -30,7 +25,6 @@ use crate::source_creation_store::DisposableCatalogTreeLimits;
 use std::cell::RefCell;
 use std::io;
 use std::mem::size_of;
-use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use tos_foundation::Digest256;
@@ -39,12 +33,11 @@ use tos_validation::executor::{
     BatchBudget, ExactWorkerIdentity, ExecutorBudget, MAX_WORKER_IMAGE_BYTES,
     SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
-use tos_validation::item_rules::{ItemLimits, ItemRefusal};
+use tos_validation::item_rules::ItemRefusal;
 use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagnosticsLimits};
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
     cut_schema_resource_preparation_state_upper_bound,
-    streamed_cut_schema_resource_preparation_state_upper_bound,
 };
 use tos_validation::source_foundation_discovery::SourcePhysicalFacts;
 use tos_validation::source_foundation_records::SourceFoundationRecordsReport;
@@ -60,9 +53,7 @@ pub(crate) enum FoundationOrchestratorError {
     OwnerAt(&'static str, ItemRefusal),
     Default(FoundationDefaultStage, FoundationDefaultReadError),
     Final(FoundationFinalInputError),
-    Replay(ArtifactReplayFailure),
     Catalog(tos_compiler::Error),
-    Persisted(PersistedCatalogEvaluationError),
     Admission(io::Error),
     Incomplete(&'static str),
 }
@@ -404,9 +395,7 @@ impl FoundationOrchestratorError {
                 ) => "source-foundation default evaluate default: diagnostics incomplete schema",
             },
             Self::Final(_) => "source-foundation final custody refused",
-            Self::Replay(_) => "source-foundation artifact replay refused",
             Self::Catalog(_) => "source-foundation catalog comparison refused",
-            Self::Persisted(_) => "source-foundation persisted catalog refused",
             Self::Admission(error) => {
                 // Return only known owner-authored static diagnostics. Unknown
                 // errors may contain private paths or payloads and remain opaque.
@@ -1704,8 +1693,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use crate::source_admission_spooled_candidate::CandidateFence;
     use crate::source_admission_spooled_defaults::SpoolDefaultStore;
     use crate::source_admission_spooled_index::{
-        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES, CandidateRecordsReportVerified,
-        IndexSink, SpoolIndexLimits,
+        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES, IndexSink,
     };
     use std::num::NonZeroUsize;
     use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
@@ -4105,14 +4093,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         schema_total,
         max_checks,
     )?;
-    let preparation = match captured.streamed_cut() {
-        Some(cut) => {
-            streamed_cut_schema_resource_preparation_state_upper_bound(cut, deadline, cancelled)
-        }
-        None => {
-            cut_schema_resource_preparation_state_upper_bound(captured.cut(), deadline, cancelled)
-        }
-    };
+    let preparation =
+        cut_schema_resource_preparation_state_upper_bound(captured.cut(), deadline, cancelled);
     let schema_preparation_state = match preparation {
         Ok(bytes) => bytes,
         Err(error) => {
@@ -4132,23 +4114,13 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("schema closure preparation exceeds remaining state"),
         );
     }
-    let selected_schema_set = match captured.streamed_cut() {
-        Some(cut) => SourceFoundationSchemaSet::from_streamed_cut(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            schema_limits,
-            schema_preparation_state,
-            deadline,
-            cancelled,
-        ),
-        None => SourceFoundationSchemaSet::from_cut(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            schema_limits,
-            deadline,
-            cancelled,
-        ),
-    };
+    let selected_schema_set = SourceFoundationSchemaSet::from_cut(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        schema_limits,
+        deadline,
+        cancelled,
+    );
     let schema_set = match selected_schema_set {
         Ok(set) => set,
         Err(error) => {
@@ -4517,26 +4489,15 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("Item schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = match captured.streamed_cut() {
-        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            worker_limits,
-            deadline,
-            cancelled,
-        ),
-        None => CutWorkerSchemaExecutor::from_cut_with_image(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            worker_limits,
-            deadline,
-            cancelled,
-        ),
-    };
+    let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        executor_budget,
+        worker_limits,
+        deadline,
+        cancelled,
+    );
     let mut item_schemas = match selected_worker {
         Ok(executor) => executor,
         Err(error) => {
@@ -4886,26 +4847,15 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("layer schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = match captured.streamed_cut() {
-        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            layer_worker_limits,
-            deadline,
-            cancelled,
-        ),
-        None => CutWorkerSchemaExecutor::from_cut_with_image(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            layer_worker_limits,
-            deadline,
-            cancelled,
-        ),
-    };
+    let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        executor_budget,
+        layer_worker_limits,
+        deadline,
+        cancelled,
+    );
     let mut layer_schemas = match selected_worker {
         Ok(executor) => executor,
         Err(error) => {
@@ -5766,26 +5716,15 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     incomplete("admission callback schema preparation exceeds remaining state"),
                 );
             }
-            let selected_worker = match captured.streamed_cut() {
-                Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-                    cut,
-                    FormatProfile::LegacyPythonObserved20260923,
-                    &worker_image,
-                    callback_worker_budget,
-                    callback_limits,
-                    deadline,
-                    cancelled,
-                ),
-                None => CutWorkerSchemaExecutor::from_cut_with_image(
-                    captured.cut(),
-                    FormatProfile::LegacyPythonObserved20260923,
-                    &worker_image,
-                    callback_worker_budget,
-                    callback_limits,
-                    deadline,
-                    cancelled,
-                ),
-            };
+            let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+                captured.cut(),
+                FormatProfile::LegacyPythonObserved20260923,
+                &worker_image,
+                callback_worker_budget,
+                callback_limits,
+                deadline,
+                cancelled,
+            );
             let mut callback_schema = match selected_worker {
                 Ok(executor) => executor,
                 Err(error) => {

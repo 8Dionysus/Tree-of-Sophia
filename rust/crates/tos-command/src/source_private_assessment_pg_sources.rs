@@ -45,10 +45,8 @@ struct PackageHeadMarker {
 pub(crate) struct PgPrivateAssessmentSources {
     pub(crate) records: Vec<AssessmentRecordInput>,
     pub(crate) native_records: Vec<AssessmentRecordInput>,
-    pub(crate) native_inputs: Vec<NativeInput>,
     pub(crate) native_snapshots: Vec<String>,
     pub(crate) native_summaries: Vec<JsonValue>,
-    pub(crate) native_identity_snapshots: Vec<JsonValue>,
     pub(crate) owner_local_sources_snapshot: String,
     pub(crate) required_source_refs: BTreeMap<String, Vec<JsonValue>>,
     pub(crate) required_languages: BTreeMap<String, Vec<String>>,
@@ -57,11 +55,6 @@ pub(crate) struct PgPrivateAssessmentSources {
     pub(crate) source_paths: BTreeMap<String, String>,
     pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
     pub(crate) target_refs: Vec<String>,
-    pub(crate) package_snapshot: String,
-    pub(crate) snapshot: String,
-    pub(crate) selection_rows: JsonValue,
-    pub(crate) claim_snapshots: Vec<String>,
-    pub(crate) profile_snapshots: Vec<String>,
     context_snapshot: String,
     private_heads: BTreeMap<String, PackageHeadMarker>,
     public_members: BTreeMap<String, Vec<u8>>,
@@ -2513,47 +2506,7 @@ pub(crate) fn select_owner_local_sources_pg(
             "private assessment PG assembled record budget",
         ));
     }
-    let native_inputs = native_inputs.into_values().collect::<Vec<_>>();
     let package_snapshot = source_package_snapshot(&private_heads)?;
-    let source_rows = JsonValue::Object(
-        public_members
-            .iter()
-            .map(|(path, bytes)| {
-                (
-                    JsonString::from_utf8(path),
-                    cmd::string(&tos_foundation::Digest256::of_bytes(bytes).to_prefixed()),
-                )
-            })
-            .collect(),
-    );
-    let dependency_rows = JsonValue::Object(
-        source_dependencies
-            .iter()
-            .map(|(path, digest)| (JsonString::from_utf8(path), cmd::string(digest)))
-            .collect(),
-    );
-    let native_rows = JsonValue::Array(
-        native_inputs
-            .iter()
-            .map(|native| {
-                cmd::object(vec![
-                    ("path", cmd::string(&native.reference)),
-                    (
-                        "kind",
-                        cmd::string(match native.kind {
-                            NativeReadKind::Metadata => "metadata",
-                            NativeReadKind::Schema => "schema",
-                            NativeReadKind::Support => "support",
-                            NativeReadKind::Content => "content",
-                        }),
-                    ),
-                    ("size_bytes", cmd::number(native.raw_size as u64)),
-                    ("sha256", cmd::string(&native.raw_sha256.to_prefixed())),
-                    ("category", cmd::string(native.category)),
-                ])
-            })
-            .collect(),
-    );
     let claim_rows = JsonValue::Array(
         claim_snapshots
             .iter()
@@ -2569,36 +2522,14 @@ pub(crate) fn select_owner_local_sources_pg(
     let owner_local_sources_snapshot = digest_snapshot(&cmd::object(vec![
         ("context", cmd::string(&context_snapshot)),
         ("profiles", profile_rows),
-        ("claims", claim_rows.clone()),
+        ("claims", claim_rows),
         ("packages", cmd::string(&package_snapshot)),
-    ]))?;
-    let snapshot = digest_snapshot(&cmd::object(vec![
-        ("identity", cmd::string(&identity.digest().to_prefixed())),
-        ("selection", selection_rows.clone()),
-        ("packages", cmd::string(&package_snapshot)),
-        ("public_members", source_rows),
-        ("source_dependencies", dependency_rows),
-        ("native_inputs", native_rows),
-        (
-            "native_snapshots",
-            JsonValue::Array(
-                native_snapshots
-                    .iter()
-                    .map(|value| cmd::string(value))
-                    .collect(),
-            ),
-        ),
-        ("claim_snapshots", claim_rows),
     ]))?;
     Ok(PgPrivateAssessmentSources {
         records,
         native_records,
-        native_inputs,
         native_snapshots,
-        claim_snapshots,
-        profile_snapshots,
         native_summaries,
-        native_identity_snapshots: Vec::new(),
         owner_local_sources_snapshot,
         required_source_refs,
         required_languages,
@@ -2607,9 +2538,6 @@ pub(crate) fn select_owner_local_sources_pg(
         source_paths,
         selected_members: private_members,
         target_refs: targets,
-        package_snapshot,
-        snapshot,
-        selection_rows,
         context_snapshot,
         private_heads,
         public_members,

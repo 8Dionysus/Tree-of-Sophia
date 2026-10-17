@@ -11,8 +11,7 @@ use crate::source_cohort::revision::{
 };
 use crate::source_cohort::{IndexRows, SourceRevisionWrite};
 use crate::source_command::{
-    self as cmd, CommandContext, CommandPlan, PreparedCommand, SourceCommandError,
-    SourceCommandResult,
+    self as cmd, CommandContext, PreparedCommand, SourceCommandError, SourceCommandResult,
 };
 use crate::source_revisions::{self as revisions, PgRecordRevisionCommandContext};
 use std::collections::{BTreeMap, BTreeSet};
@@ -22,7 +21,6 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
-const SIGN_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:sign-promotion";
 const REQUIRED_SCHEMA_INPUTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/contracts/semantic-entity-type-registry.schema.json",
@@ -166,9 +164,6 @@ pub(crate) fn requirements(
 pub(crate) struct PreparedPgSignCreation {
     prepared: PreparedCreation,
     identity: PgRecordRevisionIdentity,
-    observations: PgSignCreationObservations,
-    commitment: Digest256,
-    owner_snapshot: Digest256,
 }
 
 impl PreparedPgSignCreation {
@@ -234,15 +229,7 @@ impl PreparedPgSignCreation {
         Ok(PgSerializedSignCreation {
             context: prepared.context.clone(),
             proposal,
-            home: prepared.home.clone(),
-            files: prepared.files().clone(),
             indexes,
-            writes,
-            commitment: self.commitment,
-            identity: self.identity,
-            observations: self.observations,
-            owner_snapshot: self.owner_snapshot,
-            family_tag: SIGN_FAMILY_TAG,
         })
     }
 }
@@ -338,15 +325,7 @@ pub(crate) fn selected_information(
 pub(crate) struct PgSerializedSignCreation {
     pub(crate) context: CommandContext,
     pub(crate) proposal: PreparedCommand,
-    pub(crate) home: RelativePath,
-    pub(crate) files: BTreeMap<String, Vec<u8>>,
     pub(crate) indexes: IndexRows,
-    pub(crate) writes: Vec<SourceRevisionWrite>,
-    pub(crate) commitment: Digest256,
-    pub(crate) identity: PgRecordRevisionIdentity,
-    pub(crate) observations: PgSignCreationObservations,
-    pub(crate) owner_snapshot: Digest256,
-    pub(crate) family_tag: &'static str,
 }
 
 /// Prepare Sign owner semantics from selected exact inputs. There is no
@@ -506,13 +485,7 @@ pub(crate) fn prepare_pg_sign_creation(
         files,
         components: components.clone(),
     };
-    Ok(PreparedPgSignCreation {
-        prepared,
-        identity,
-        observations,
-        commitment,
-        owner_snapshot,
-    })
+    Ok(PreparedPgSignCreation { prepared, identity })
 }
 
 fn validate_basis_binding(

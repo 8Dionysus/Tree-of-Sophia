@@ -48,7 +48,6 @@ struct VerifiedFile {
     byte_size: u64,
     sha256: String,
     media_type: String,
-    manifest_ref: String,
     manifest_sha256: String,
     rights_ref: String,
     rights_sha256: String,
@@ -912,7 +911,6 @@ fn verify_local(
                 .and_then(Value::as_str)
                 .unwrap_or("application/octet-stream")
                 .to_owned(),
-            manifest_ref: text(&context.plan["manifest"], "ref")?.to_owned(),
             manifest_sha256: text(&context.plan["manifest"], "sha256")?.to_owned(),
             rights_ref: text(&context.plan["rights_policy"], "rights_record_ref")?.to_owned(),
             rights_sha256: text(&context.plan["rights_policy"], "rights_record_sha256")?.to_owned(),
@@ -1218,6 +1216,7 @@ fn load_registry_unlocked(path: &Path) -> Result<Value> {
     Ok(value)
 }
 
+#[cfg(test)]
 fn load_registry(path: &Path) -> Result<Value> {
     let (registry, _guard) = load_registry_with_guard(path)?;
     Ok(registry)

@@ -25,7 +25,7 @@ use tos_source_store::native_v2::custody::{
 
 const ADMISSION_IO_BLOCK_BYTES: usize = 65_536;
 const SOURCE_WORK_MARKER: &str = ".source-work-intent.v1";
-const SOURCE_WORK_MARKER_MAGIC: &[u8; 8] = b"TOSSWI01";
+
 const SOURCE_WORK_MARKER_MAX_BYTES: usize = 512;
 // `ingest_accounted` retains its copy block while final fixity verification
 // calls `verify_file_recorded`, which owns a second block.
@@ -71,19 +71,6 @@ pub(crate) struct PreparedV2SuccessorLocatorV2 {
 pub(crate) struct PreparedV2SuccessorV2 {
     pub(crate) locator: PreparedV2SuccessorLocatorV2,
     built: super::source_admission_segment_v2::BuiltSuccessorRootSetV2,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PreparedV2SuccessorSelectionV2 {
-    BaseSelected,
-    TargetSelected,
-    Advanced(Option<tos_source_store::CorpusCurrentSelection>),
-}
-
-impl PreparedV2SuccessorV2 {
-    pub(crate) fn locator(&self) -> &PreparedV2SuccessorLocatorV2 {
-        &self.locator
-    }
 }
 
 #[derive(Debug)]
@@ -209,11 +196,6 @@ fn directory(parent: &File, name: &str) -> io::Result<File> {
         Err(Errno::EXIST) => (),
         Err(error) => return Err(error.into()),
     }
-    owned_directory(tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(invalid)?)
-}
-fn directory_new(parent: &File, name: &str) -> io::Result<File> {
-    rustix::fs::mkdirat(parent, name, Mode::from_raw_mode(0o700))?;
-    parent.sync_all()?;
     owned_directory(tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(invalid)?)
 }
 
@@ -495,40 +477,6 @@ fn allocated_bytes(file: &File, reason: &'static str) -> io::Result<u64> {
         .ok_or_else(|| invalid(reason))
 }
 
-fn partial_v2_namespace_allocation(
-    parent: &File,
-    name: &str,
-    parent_before: u64,
-) -> io::Result<Option<u64>> {
-    let root = match tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(open_io_error)
-    {
-        Ok(root) => owned_directory(root)?,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error),
-    };
-    let mut allocated = allocated_bytes(&root, "V2 store directory allocation overflow")?;
-    for child in ["objects", "revisions", "staging"] {
-        match tos_fd_open::open_directory_at(&root, Path::new(child)).map_err(open_io_error) {
-            Ok(directory) => {
-                let directory = owned_directory(directory)?;
-                allocated = allocated
-                    .checked_add(allocated_bytes(
-                        &directory,
-                        "V2 store child-directory allocation overflow",
-                    )?)
-                    .ok_or_else(|| invalid("V2 store namespace allocation overflow"))?;
-            }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
-            Err(error) => return Err(error),
-        }
-    }
-    let parent_after = allocated_bytes(parent, "V2 store parent allocation overflow")?;
-    allocated
-        .checked_add(parent_after.saturating_sub(parent_before))
-        .map(Some)
-        .ok_or_else(|| invalid("V2 store namespace allocation overflow"))
-}
-
 fn partial_v2_existing_root_allocation(
     root: &File,
     root_before: u64,
@@ -564,80 +512,6 @@ impl Drop for AdmissionLock {
         // unrelated concurrent process fork briefly inherited this CLOEXEC fd.
         let _ = rustix::fs::flock(&self.0, FlockOperation::Unlock);
     }
-}
-
-fn digest_from_work_identity(value: &str) -> io::Result<Digest256> {
-    let hex = value
-        .strip_prefix("sha256:")
-        .filter(|hex| hex.len() == 64)
-        .ok_or_else(|| invalid("source Work identity is malformed"))?;
-    if !hex
-        .bytes()
-        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(invalid("source Work identity is not canonical"));
-    }
-    Digest256::from_hex(hex).map_err(invalid)
-}
-
-fn marker_optional_digest(output: &mut Vec<u8>, value: Option<Digest256>) {
-    match value {
-        Some(value) => {
-            output.push(1);
-            output.extend_from_slice(value.as_bytes());
-        }
-        None => {
-            output.push(0);
-            output.extend_from_slice(&[0; 32]);
-        }
-    }
-}
-
-fn source_work_marker_bytes(
-    readset: &tos_source_store::SourceCutReadsetV1,
-    locator: &PreparedV2SuccessorLocatorV2,
-    transaction_id: &str,
-    manifest_sha256: &str,
-) -> io::Result<Vec<u8>> {
-    let transaction_id = digest_from_work_identity(transaction_id)?;
-    let manifest_sha256 = digest_from_work_identity(manifest_sha256)?;
-    let mut raw = Vec::new();
-    raw.try_reserve_exact(SOURCE_WORK_MARKER_MAX_BYTES)
-        .map_err(|_| invalid("source Work marker allocation failed"))?;
-    raw.extend_from_slice(SOURCE_WORK_MARKER_MAGIC);
-    raw.extend_from_slice(transaction_id.as_bytes());
-    raw.extend_from_slice(manifest_sha256.as_bytes());
-    raw.extend_from_slice(readset.base_revision.0.as_bytes());
-    raw.push(match locator.expected_selection.format {
-        tos_source_store::CorpusPointerFormat::V1 => 1,
-        tos_source_store::CorpusPointerFormat::V2 => 2,
-    });
-    raw.extend_from_slice(locator.expected_selection.revision.0.as_bytes());
-    marker_optional_digest(
-        &mut raw,
-        locator.expected_selection.previous.map(|value| value.0),
-    );
-    marker_optional_digest(&mut raw, locator.expected_selection.rootset_sha256);
-    raw.extend_from_slice(locator.target_revision.0.as_bytes());
-    raw.extend_from_slice(locator.rootset_sha256.as_bytes());
-    raw.push(match locator.source_artifact {
-        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::LegacyManifestV1 {
-            ..
-        } => 1,
-        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::SnapshotV1 { .. } => 2,
-        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::CompactCommitV2 {
-            ..
-        } => 3,
-        tos_source_store::native_v2::roots::SourceRevisionArtifactV2::CompactPackedV2 {
-            ..
-        } => 4,
-    });
-    raw.extend_from_slice(locator.source_artifact.sha256().as_bytes());
-    raw.extend_from_slice(&locator.source_artifact.bytes().unwrap_or(0).to_be_bytes());
-    if raw.len() > SOURCE_WORK_MARKER_MAX_BYTES {
-        return Err(invalid("source Work marker byte bound exceeded"));
-    }
-    Ok(raw)
 }
 
 fn lock_at_root(
@@ -765,8 +639,6 @@ pub(crate) struct AdmissionStore {
     // Object ingestion and tree construction share the selected allocation cap.
     v2_allocation_accountant:
         RefCell<Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>>,
-    // Recovered Work markers must not debit an unrelated invocation ledger.
-    source_work_marker_accounting: RefCell<Option<(Digest256, Digest256, u64, u64)>>,
 }
 impl std::ops::Deref for AdmissionStore {
     type Target = NativeSourceCustody;
@@ -782,7 +654,6 @@ impl AdmissionStore {
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
-            source_work_marker_accounting: RefCell::new(None),
         }
     }
     pub(crate) fn open_existing(
@@ -866,29 +737,6 @@ impl AdmissionStore {
     pub(crate) fn has_v2_segments(&self) -> io::Result<bool> {
         self.verify_layout()?;
         Ok(self.v2_segments.borrow().is_some())
-    }
-    fn source_work_ledgers(
-        &self,
-    ) -> io::Result<(
-        tos_source_store::PinnedSqliteIoBudget,
-        Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
-    )> {
-        let io = self
-            .v2_layout_io
-            .borrow()
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| invalid("V2 Work intent lacks its selected IO ledger"))?;
-        let accountant = self
-            .v2_allocation_accountant
-            .borrow()
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| invalid("V2 Work intent lacks selected allocation custody"))?;
-        if !io.shares_with(accountant.io_budget()) {
-            return Err(invalid("V2 Work intent IO ledgers differ"));
-        }
-        Ok((io, accountant))
     }
 
     fn read_source_work_marker(
@@ -3091,7 +2939,6 @@ impl AdmissionStore {
                 streamed_manifest_custody: RefCell::new(None),
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
-                source_work_marker_accounting: RefCell::new(None),
             };
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
             if let Some(precharge) = namespace_reservation.as_ref() {
@@ -3195,7 +3042,6 @@ impl AdmissionStore {
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
-            source_work_marker_accounting: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;

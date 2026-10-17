@@ -22,8 +22,6 @@ use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
-pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-maintained-growth-v1:native-work-expression";
-
 const WORK_CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
@@ -485,7 +483,7 @@ pub(crate) fn prepare_pg_work_expression<'a, I: Copy + Eq>(
     let profiles = crate::source_claims::work_expression_source_descriptors_candidate(
         context, input, worker, limits, cancelled,
     )?;
-    let mut owner = WorkOwner::select(fs, context, limits.deadline, cancelled)?;
+    let owner = WorkOwner::select(fs, context, limits.deadline, cancelled)?;
     let snapshot = work_transaction::PublicationSnapshot::select_from_input(
         input.source_input(),
         limits.deadline,

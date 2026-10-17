@@ -21,7 +21,7 @@ pub const COMMANDS: [&str; 19] = [
     "tos-open-work-queue",
     "tos-research",
 ];
-pub const NO_DEFAULT_FEATURES: [&str; 10] = [
+pub const NO_DEFAULT_FEATURES: [&str; 11] = [
     "tos-validation-lanes",
     "tos-release-check",
     "tos-software-ci",
@@ -32,6 +32,7 @@ pub const NO_DEFAULT_FEATURES: [&str; 10] = [
     "tos-stats-release",
     "tos-unicode-tables",
     "tos-constructor-desktop",
+    "tos-research",
 ];
 pub fn package(role: &str) -> Option<&'static str> {
     Some(match role {

@@ -4963,7 +4963,6 @@ pub(crate) struct MaintainedInventory {
 /// corpus inventory.
 pub(crate) struct SelectedIdentityClosure {
     pub objects: BTreeMap<String, JsonValue>,
-    pub source_records: BTreeMap<String, JsonValue>,
     pub claims: BTreeMap<String, JsonValue>,
     pub record_inputs: JsonValue,
     pub events: JsonValue,
@@ -5251,7 +5250,6 @@ fn selected_identity_closure(
     }
     Ok(SelectedIdentityClosure {
         objects: inventory.objects,
-        source_records: inventory.source_records,
         claims: inventory.claims,
         record_inputs: inventory.record_inputs,
         events: inventory.events,
@@ -5287,33 +5285,11 @@ struct RetainedProfileRead {
     read_bytes: u64,
     state_bytes: usize,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
-    selected_context_digest: Option<Digest256>,
 }
 
 struct RetainedGroundingInput {
     inventory: MaintainedInventory,
     budget: RetainedProfileRead,
-}
-
-fn selected_claim_context_digest(ctx: &CommandContext) -> SourceCommandResult<Digest256> {
-    let members = ctx
-        .files
-        .iter()
-        .filter(|file| file.path.as_str().starts_with("ToS/"))
-        .map(|file| {
-            object(vec![
-                ("path", string(file.path.as_str())),
-                (
-                    "sha256",
-                    string(&Digest256::of_bytes(&file.raw).to_prefixed()),
-                ),
-            ])
-        })
-        .collect::<Vec<_>>();
-    record_digest(&object(vec![
-        ("schema_version", string("tos_claim_selected_context_v1")),
-        ("members", JsonValue::Array(members)),
-    ]))
 }
 
 fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
@@ -5488,29 +5464,7 @@ impl RetainedProfileRead {
             read_bytes,
             state_bytes,
             whole_call,
-            selected_context_digest: None,
         })
-    }
-
-    fn new_with_selected_members(
-        ctx: &CommandContext,
-        executor: &mut CutWorkerSchemaExecutor,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
-        whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
-    ) -> SourceCommandResult<Self> {
-        let mut retained = Self::new_with_complete_members(
-            ctx,
-            executor,
-            deadline,
-            cancelled,
-            catalog_capture,
-            whole_call,
-            None,
-        )?;
-        retained.selected_context_digest = Some(selected_claim_context_digest(ctx)?);
-        Ok(retained)
     }
 
     fn debit(&mut self, bytes_read: u64, state_bytes: usize) -> SourceCommandResult<()> {
@@ -5663,7 +5617,7 @@ impl RetainedProfileRead {
                         "retained Claim PG complete cut changed",
                     ));
                 }
-            } else if self.selected_context_digest != Some(selected_claim_context_digest(ctx)?) {
+            } else {
                 return Err(SourceCommandError::Conflict(
                     "retained Claim selected dependency closure changed",
                 ));
@@ -7409,12 +7363,7 @@ where
                     return Err(SourceCommandError::Denied("catalog Claim visibility"));
                 }
                 let mut selected_schema = None;
-                let mut schema_bytes =
-                    if text(&claim, "schema_version")? == "tos_historical_claim_v1" {
-                        "ToS/contracts/historical-claim.schema.json".len()
-                    } else {
-                        0
-                    };
+                text(&claim, "schema_version")?;
                 if profiled {
                     let registry_bytes = selected(ctx, RELATIONS)?.len();
                     inventory_live_preflight(
@@ -7499,7 +7448,7 @@ where
                         .ok_or(SourceCommandError::Unsupported(
                             "Claim profile route state overflow",
                         ))?;
-                    schema_bytes = text(route, "schema_ref")?.len();
+                    let schema_bytes = text(route, "schema_ref")?.len();
                     inventory_live_preflight(
                         whole_call,
                         retained_inventory_state,
@@ -11135,7 +11084,8 @@ mod retained_history_reader_regression {
     }
 
     fn selected_linguistic_owner() -> CommandContext {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let fixture = crate::source_creation_store::source_native_test_fixtures::retained_history();
+        let root = fixture.path().join("source");
         let root = fs::canonicalize(root).unwrap();
         let mut files = Vec::new();
         add_file(&root, &mut files, RELATIONS);

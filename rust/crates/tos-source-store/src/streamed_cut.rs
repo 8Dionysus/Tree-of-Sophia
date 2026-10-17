@@ -1052,14 +1052,7 @@ fn read_exact_manifest(
     })?;
     let manifest_cap = limits.manifest_json.max_bytes;
     let row_cap = limits.max_manifest_row_bytes.min(manifest_cap);
-    let mut cursor = ManifestCursor::new(
-        manifest,
-        manifest_cap,
-        row_cap,
-        io_budget,
-        deadline,
-        cancelled,
-    );
+    let mut cursor = ManifestCursor::new(manifest, manifest_cap, io_budget, deadline, cancelled);
     cursor.expect_byte(b'{')?;
 
     let ordinal_key = ordinal.to_be_bytes();
@@ -1691,7 +1684,6 @@ struct ManifestCursor<'a> {
     reader: BufReader<ManifestRead<'a>>,
     consumed: usize,
     max_bytes: usize,
-    max_row_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
@@ -1700,7 +1692,6 @@ impl<'a> ManifestCursor<'a> {
     fn new(
         file: File,
         max_bytes: usize,
-        max_row_bytes: usize,
         io_budget: Option<&'a crate::PinnedSqliteIoBudget>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
@@ -1717,7 +1708,6 @@ impl<'a> ManifestCursor<'a> {
             ),
             consumed: 0,
             max_bytes,
-            max_row_bytes,
             deadline,
             cancelled,
         }

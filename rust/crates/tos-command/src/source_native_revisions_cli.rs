@@ -966,6 +966,7 @@ impl PreparedPgRecordRevision {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn prepare_pg_record_revision(
     invocation: &Value,
     context: cmd::CommandContext,

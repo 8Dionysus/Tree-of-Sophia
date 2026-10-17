@@ -4474,9 +4474,9 @@ pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
 
 pub use crate::validation_codec::bounded_decoded_state;
 pub(crate) use crate::validation_codec::{
-    bounded_legacy_decoded_state, bounded_legacy_decoded_state_with_limits,
-    bounded_legacy_item_decoded_state, bounded_ordered, check, decoded_state, decoded_wire_size,
-    ordered_codec_state, ordered_emit_state, ordered_state, serialized_wire_size,
+    bounded_legacy_decoded_state, bounded_legacy_item_decoded_state, bounded_ordered, check,
+    decoded_state, decoded_wire_size, ordered_codec_state, ordered_emit_state, ordered_state,
+    serialized_wire_size,
 };
 fn record_error(error: RecordRuleError) -> ItemRefusal {
     match error {

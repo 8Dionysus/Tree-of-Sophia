@@ -60,7 +60,6 @@ pub(crate) struct PgCorpusCreationRequirements {
 
 // Retained for the existing parent-module wrapper while callers move to the
 // family-aware requirement type.
-pub(crate) type PgAgentCreationRequirements = PgCorpusCreationRequirements;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PgCorpusCreationObservations {
@@ -704,12 +703,6 @@ pub(crate) struct PgSerializedCorpusCreation {
 impl PgSerializedCorpusCreation {
     pub(crate) fn context(&self) -> &CommandContext {
         &self.context
-    }
-    pub(crate) fn proposal(&self) -> &CommandPlan {
-        &self.plan
-    }
-    pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
-        &self.files
     }
 }
 

@@ -111,56 +111,6 @@ pub(crate) enum SourceFoundationRuleDiagnosticsError {
     },
 }
 
-impl SourceFoundationRuleDiagnosticsError {
-    pub(crate) fn owner_report(&self) -> &SourceFoundationDefaultRulesReport {
-        match self {
-            Self::Refused { owner_report, .. } | Self::IncompleteSchema { owner_report, .. } => {
-                owner_report
-            }
-        }
-    }
-
-    pub(crate) fn reason(&self) -> &'static str {
-        match self {
-            Self::Refused { reason, .. } => reason,
-            Self::IncompleteSchema { reason, .. } => match reason {
-                SourceFoundationSchemaFailure::InvalidLimits => "foundation schema limits invalid",
-                SourceFoundationSchemaFailure::Deadline => "foundation schema deadline",
-                SourceFoundationSchemaFailure::Cancelled => "foundation schema cancelled",
-                SourceFoundationSchemaFailure::InvalidLocation => {
-                    "foundation schema location invalid"
-                }
-                SourceFoundationSchemaFailure::ContractNotSelected => {
-                    "foundation schema contract not selected"
-                }
-                SourceFoundationSchemaFailure::InputProfileMismatch => {
-                    "foundation schema input profile mismatch"
-                }
-                SourceFoundationSchemaFailure::CatalogSchemaSelection => {
-                    "foundation schema selection invalid"
-                }
-                SourceFoundationSchemaFailure::InputBudget => "foundation schema input budget",
-                SourceFoundationSchemaFailure::Worker(_) => "foundation schema worker failed",
-                SourceFoundationSchemaFailure::IncompleteDiagnostic => {
-                    "foundation diagnostic incomplete"
-                }
-                SourceFoundationSchemaFailure::TruncatedDiagnostics => {
-                    "foundation diagnostic truncated"
-                }
-                SourceFoundationSchemaFailure::DiagnosticReportBudget => {
-                    "foundation diagnostic report budget"
-                }
-                SourceFoundationSchemaFailure::DiagnosticBinding => {
-                    "foundation diagnostic binding invalid"
-                }
-                SourceFoundationSchemaFailure::UnsupportedInputSemantics => {
-                    "foundation schema input semantics unsupported"
-                }
-            },
-        }
-    }
-}
-
 struct Processed {
     resolved_labs: Vec<ResolvedSourceFoundationLab>,
     records_issues: Vec<(String, String)>,
@@ -376,14 +326,6 @@ pub(crate) enum CandidateRuleDiagnosticsError<I> {
         diagnostics: CandidateRuleDiagnosticProgress<I>,
         reason: &'static str,
     },
-}
-
-impl<I> CandidateRuleDiagnosticsError<I> {
-    pub(crate) fn reason(&self) -> &'static str {
-        match self {
-            Self::Refused { reason, .. } | Self::Incomplete { reason, .. } => reason,
-        }
-    }
 }
 
 struct CandidateRuleStepFailure<I> {
@@ -1478,7 +1420,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             }
         };
     let mut failed = None;
-    let mut current_phase = 0usize;
+    let mut current_phase;
     macro_rules! run_request {
         ($request:expr, $workspace_state:expr) => {
             run_request!(
@@ -2521,33 +2463,6 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             peak_additional_state_upper_bound_bytes: peak_state,
         },
     })
-}
-
-/// Schedule every retained district request in maintained order and run the
-/// same diagnostic-v2 evaluator used by the other foundation routes. Local
-/// insertion ordinals remain district-local and the generic CLI interleaver
-/// inserts full schema prose without boolean surrogates.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn evaluate(
-    owner_report: SourceFoundationDefaultRulesReport,
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    schema_limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    limits: SourceFoundationRuleDiagnosticsLimits,
-) -> Result<EvaluatedSourceFoundationRules, SourceFoundationRuleDiagnosticsError> {
-    evaluate_inner(
-        owner_report,
-        schema_set,
-        worker,
-        schema_limits,
-        deadline,
-        cancelled,
-        limits,
-        None,
-        None,
-    )
 }
 
 /// Evaluate the same ordered diagnostics kernel with the caller's already

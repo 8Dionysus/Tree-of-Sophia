@@ -7,7 +7,7 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::fmt::Write;
 use std::fs::{self, DirBuilder, File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom, Write as IoWrite};
+use std::io::{Read, Write as IoWrite};
 use std::mem::size_of;
 use std::os::unix::fs::{DirBuilderExt, FileExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -20,16 +20,14 @@ use super::source_admission::{AdmissionWorkBudget, active as scale_active};
 use super::source_admission_segment_v2::NativeV2TreeIo;
 use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_bytes_v1, parse_json};
 use tos_segment_store::{
-    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
-    AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
+    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeLimitsV1,
+    AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
 };
 use tos_source_store::native_v2::objects::{
     MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectBuildWorkV2, PackedObjectLimitsV2,
     PackedObjectSourceV2, PackedObjectWriterV2,
 };
-use tos_source_store::native_v2::roots::{
-    MEMBERS_KIND, OBJECT_EXTENTS_KIND, SOURCE_ADMISSION_V2_DOMAIN,
-};
+use tos_source_store::native_v2::roots::{MEMBERS_KIND, SOURCE_ADMISSION_V2_DOMAIN};
 use tos_source_store::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, PinnedSqliteSpaceReservation,
 };
@@ -90,16 +88,6 @@ impl WeightedScaleClassV1 {
         Self::TextUnit,
         Self::Work,
     ];
-
-    pub fn directory(self) -> &'static str {
-        match self {
-            Self::Artifact => "artifacts",
-            Self::Claim => "claims",
-            Self::EvidencePacket => "evidence-packets",
-            Self::TextUnit => "text-units",
-            Self::Work => "works",
-        }
-    }
 
     fn id_kind(self) -> &'static str {
         match self {
@@ -1968,13 +1956,6 @@ impl WeightedScaleTemplateSetV1 {
         }
         Ok(result)
     }
-    pub(crate) fn source_recipe(&self) -> Option<&WeightedScaleFixtureRecipeSourceV2> {
-        self.fixture_recipe_source.as_ref()
-    }
-
-    pub fn load(repository_root: &Path) -> std::io::Result<Self> {
-        Self::load_inner(repository_root, None, false, false, None)
-    }
 
     pub(crate) fn load_accounted(
         repository_root: &Path,
@@ -2854,10 +2835,6 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         self.member_count
     }
 
-    pub fn source_bytes(&self) -> u64 {
-        self.source_bytes
-    }
-
     pub fn class_source_bytes(&self) -> [u64; 5] {
         self.class_source_bytes
     }
@@ -3134,27 +3111,6 @@ pub(crate) struct WeightedScaleGeneratedMemberV1 {
     template_sha256: Digest256,
     raw_sha256: Digest256,
     raw_bytes: u64,
-}
-
-impl WeightedScaleGeneratedMemberV1 {
-    pub(crate) fn class(&self) -> WeightedScaleClassV1 {
-        self.class
-    }
-    pub(crate) fn ordinal(&self) -> u64 {
-        self.ordinal
-    }
-    pub(crate) fn identity(&self) -> &str {
-        &self.identity
-    }
-    pub(crate) fn template_sha256(&self) -> Digest256 {
-        self.template_sha256
-    }
-    pub(crate) fn raw_sha256(&self) -> Digest256 {
-        self.raw_sha256
-    }
-    pub(crate) fn raw_bytes(&self) -> u64 {
-        self.raw_bytes
-    }
 }
 
 /// Generated-ALL is issued from the authenticated input reader declaration,
@@ -4013,35 +3969,6 @@ pub(crate) struct WeightedScaleGeneratedEofV1 {
     auxiliary_bytes: u64,
     observed_members: u64,
     ordered_sha256: Digest256,
-}
-impl WeightedScaleGeneratedEofV1 {
-    pub(crate) fn selection_sha256(&self) -> Digest256 {
-        self.selection_sha256
-    }
-    pub(crate) fn support_count(&self) -> u64 {
-        self.support_count
-    }
-    pub(crate) fn support_bytes(&self) -> u64 {
-        self.support_bytes
-    }
-    pub(crate) fn generated_count(&self) -> u64 {
-        self.generated_count
-    }
-    pub(crate) fn generated_bytes(&self) -> u64 {
-        self.generated_bytes
-    }
-    pub(crate) fn auxiliary_count(&self) -> u64 {
-        self.auxiliary_count
-    }
-    pub(crate) fn auxiliary_bytes(&self) -> u64 {
-        self.auxiliary_bytes
-    }
-    pub(crate) fn observed_members(&self) -> u64 {
-        self.observed_members
-    }
-    pub(crate) fn ordered_sha256(&self) -> Digest256 {
-        self.ordered_sha256
-    }
 }
 
 fn max_member_path_bytes_v1(profile: &WeightedScaleProfileV1) -> usize {
@@ -6084,7 +6011,7 @@ fn produce_weighted_scale_input_composed_v1(
         )?
     };
     let envelope = price.envelope;
-    let mut forecast = price.forecast;
+    let forecast = price.forecast;
     let total_members = price.member_count;
     let auxiliary_count = price.auxiliary_member_count;
     let auxiliary_bytes = price.auxiliary_source_bytes;

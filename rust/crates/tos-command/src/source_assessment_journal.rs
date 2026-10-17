@@ -96,12 +96,6 @@ pub(crate) struct ProtectedAssessmentPgGrant {
     uid: u32,
 }
 
-pub(crate) struct AssessmentPgHistoryTarget {
-    pub(crate) scope: PrivateOwnerScopeV1,
-    pub(crate) target_ref: String,
-    pub(crate) owner_context_binding: Digest256,
-}
-
 impl ProtectedAssessmentPgGrant {
     /// Read the selected context path from a protected v5/v6 grant so its
     /// context can be constructed before the final grant selection. This is
@@ -332,26 +326,6 @@ impl ProtectedAssessmentPgGrant {
             ));
         }
         Ok(target_ref)
-    }
-
-    pub(crate) fn history_target(
-        &self,
-        context: &crate::source_text_owner::OwnerTextContext,
-        domain: &str,
-        subject: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<AssessmentPgHistoryTarget> {
-        self.verify_current(deadline, cancelled)?;
-        let owner_context_binding = context.private_owner_scope_binding(deadline, cancelled)?;
-        let scope = PrivateOwnerScopeV1::for_context(domain, owner_context_binding)
-            .map_err(|_| SourceCommandError::Invalid("assessment PG private owner scope"))?;
-        let target_ref = self.target_ref(context, subject)?;
-        Ok(AssessmentPgHistoryTarget {
-            scope,
-            target_ref,
-            owner_context_binding,
-        })
     }
 
     pub(crate) fn verify_current(
@@ -1201,22 +1175,6 @@ impl AssessmentJournalReadBatch<'_> {
         self.owner.verify_current(deadline, cancelled)
     }
 
-    pub(crate) fn head(
-        &self,
-        subject: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>> {
-        let (head, member) = read_head(self, subject, deadline, cancelled)?;
-        if let Some(member) = member.as_ref() {
-            verify_member_current(self, member, deadline, cancelled)?;
-        } else {
-            verify_head_absent(self, subject, deadline, cancelled)?;
-        }
-        self.verify_current(deadline, cancelled)?;
-        Ok(head)
-    }
-
     pub(crate) fn read(
         &self,
         subject: &str,
@@ -1312,7 +1270,7 @@ pub(crate) struct AssessmentHistory {
 
 /// Assessment's PG package writer. The only package members are the current
 /// head and the newest immutable batch; older batches remain in broker-owned
-/// immutable package history and are reconstructed by `from_private_package_history`.
+/// immutable package history and are reconstructed by `from_private_package_history_selected_schema`.
 pub(crate) struct AssessmentPrivatePackageCapabilityV1 {
     write: PrivateOwnerPackageWriteV1,
     package_digest: Digest256,
@@ -1750,39 +1708,6 @@ impl AssessmentHistory {
             }
         }
         Ok(true)
-    }
-
-    /// Reconstruct the same immutable assessment batch chain from the private
-    /// package broker. Each package-history row contains exactly one batch and
-    /// the head that selected it; the caller retains the broker snapshot for
-    /// its currentness/CAS fence.
-    pub(crate) fn from_private_package_history(
-        package_history: &PrivateOwnerPackageHistoryV1,
-        scope: &PrivateOwnerScopeV1,
-        target_ref: &str,
-        subject: &str,
-        ctx: &CommandContext,
-        worker: &mut CutWorkerSchemaExecutor,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Self> {
-        let schema_path = tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap();
-        let batch_schema = ctx
-            .file(&schema_path)?
-            .ok_or(SourceCommandError::Unsupported(
-                "selected assessment batch schema absent",
-            ))?;
-        Self::from_private_package_history_with_worker(
-            package_history,
-            scope,
-            target_ref,
-            subject,
-            batch_schema,
-            worker,
-            Some(ctx.base_revision),
-            deadline,
-            cancelled,
-        )
     }
 
     /// Selected-input counterpart that authenticates the exact schema bytes

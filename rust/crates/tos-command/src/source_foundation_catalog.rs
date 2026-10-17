@@ -316,27 +316,6 @@ impl GeneratedCatalogObservation {
     pub(crate) fn retained_state_bytes(&self) -> usize {
         self.state_bytes
     }
-    /// Narrow the later physical EOF pass to the caller's current whole-run
-    /// allowance. Cumulative reads and retained state only move downward.
-    pub(crate) fn restrict_remaining_budget(
-        &mut self,
-        additional_read_bytes: usize,
-        available_state_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<()> {
-        self.checkpoint(deadline, cancelled)?;
-        if self.state_bytes > available_state_bytes {
-            return Err(Error::Budget("generated catalog final state"));
-        }
-        let total_read_limit = self
-            .read_bytes
-            .checked_add(additional_read_bytes)
-            .ok_or(Error::Budget("generated catalog final read allowance"))?;
-        self.max_total_bytes = self.max_total_bytes.min(total_read_limit);
-        self.max_state_bytes = self.max_state_bytes.min(available_state_bytes);
-        self.checkpoint(deadline, cancelled)
-    }
 
     /// Narrow only the raw-byte allowance for an EOF verification. The
     /// observation's existing state/workspace cap remains in force, since a
@@ -746,61 +725,6 @@ impl SourceCatalogSink for CompareCatalog<'_, '_> {
         }
         Ok(())
     }
-}
-
-/// Exact inline comparison controller; heap/workspace terms are admitted separately.
-pub(crate) fn catalogue_comparison_controller_state_bytes() -> usize {
-    std::mem::size_of::<CompareCatalog<'_, '_>>()
-}
-
-/// Compare completed rendered outputs under the same held generated root.
-/// The caller admits the moved manifest and renderer workspace before entry;
-/// returned issue state is separate from the retained selection observation.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn compare_catalogue_outputs(
-    sources: &RefCell<&mut RouteSources>,
-    manifest: Vec<u8>,
-    max_file_bytes: usize,
-    max_total_bytes: usize,
-    max_files: usize,
-    max_state_bytes: usize,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    render: impl FnOnce(&mut dyn SourceCatalogSink) -> Result<()>,
-) -> Result<(Vec<Issue>, GeneratedCatalogObservation, usize)> {
-    let mut sink = CompareCatalog::new(
-        sources,
-        manifest,
-        max_file_bytes,
-        max_total_bytes,
-        max_files,
-        max_state_bytes,
-        deadline,
-        cancelled,
-    );
-    sink.observation.checkpoint(deadline, cancelled)?;
-    if deadline > sources.borrow().deadline() {
-        return Err(Error::Invalid("catalog comparison original clock differs"));
-    }
-    render(&mut sink)?;
-    if sink.current.is_some() {
-        return Err(Error::Invalid(
-            "catalog comparison unfinished rendered file",
-        ));
-    }
-    if !sink
-        .observation
-        .selections
-        .iter()
-        .any(|(path, _)| path == MANIFEST)
-    {
-        return Err(Error::Invalid(
-            "catalog comparison rendered manifest absent",
-        ));
-    }
-    sink.observation
-        .recheck(&mut sources.borrow_mut(), deadline, cancelled)?;
-    Ok((sink.issues, sink.observation, sink.issue_state_bytes))
 }
 
 /// Exact maintained tail schema selections. Entry and ClaimEntry are real

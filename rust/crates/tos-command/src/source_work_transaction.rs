@@ -6858,7 +6858,7 @@ impl WorkCorpusFence<'_> {
         &self,
         plan: WorkPlan,
         snapshot: &PublicationSnapshot,
-        mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {

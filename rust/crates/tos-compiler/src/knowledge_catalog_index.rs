@@ -118,15 +118,6 @@ impl<'state, 'budget> DecodeBudget<'state, 'budget> {
         }
         Ok(())
     }
-    fn charge_text(&mut self, parts: &[&str], overhead: u64) -> Result<()> {
-        let mut total = overhead;
-        for part in parts {
-            total = total
-                .checked_add(part.len() as u64)
-                .ok_or(Error::Budget("catalog index decoded bytes"))?;
-        }
-        self.charge(total)
-    }
     fn hold(&self, bytes: usize) -> Result<Option<CreationStateHold<'state, 'budget>>> {
         self.creation
             .map(|creation| creation.hold(bytes))
@@ -758,6 +749,7 @@ fn read_packet_owned<'state, 'budget>(
     Ok(EncodedPacket { bytes, _hold: hold })
 }
 
+#[cfg(test)]
 fn read_packet(
     db: &Connection,
     descriptor: &str,
@@ -1014,7 +1006,7 @@ mod tests {
 
     fn fixture(scope_mismatch: bool) -> (Connection, CatalogReceipt, QueryVocabulary, Vec<u8>) {
         let vocab = QueryVocabulary::parse(VOCAB, ADAPTERS).unwrap();
-        let mut db = Connection::open_in_memory().unwrap();
+        let db = Connection::open_in_memory().unwrap();
         db.execute_batch(
             "CREATE TABLE source_scope(
             source_graph TEXT PRIMARY KEY,expected_node_count INTEGER NOT NULL,

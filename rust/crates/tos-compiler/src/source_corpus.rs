@@ -23,7 +23,6 @@ pub struct NativeCorpusLimits {
     pub schema_work: BatchStreamBudget,
 }
 pub use crate::knowledge_corpus_original::NativeCorpusSourceReceipt;
-use crate::knowledge_corpus_original::validate_native_corpus_source_receipt as validate_receipt;
 /// Private output, computed only after complete family roots and schema checks.
 pub struct NativeCorpusProjection {
     value: Value,

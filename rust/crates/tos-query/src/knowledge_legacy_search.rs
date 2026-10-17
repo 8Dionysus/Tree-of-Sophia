@@ -746,7 +746,6 @@ fn controlled_workspace_bytes(
 
 fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut ControlledKnowledgeModel<'model, 'state, 'budget>,
-    bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     kind: SearchKind,
     sources: &[String],
@@ -1105,7 +1104,6 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
             let mut heap = model.new_owned_query_heap();
             let (node_count, node_hits) = scan_controlled(
                 model,
-                bound,
                 authority,
                 SearchKind::Nodes,
                 &sources,
@@ -1119,7 +1117,6 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
             )?;
             let (relation_count, relation_hits) = scan_controlled(
                 model,
-                bound,
                 authority,
                 SearchKind::Relations,
                 &sources,

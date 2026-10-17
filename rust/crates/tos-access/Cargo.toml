@@ -7,25 +7,31 @@ rust-version.workspace = true
 license.workspace = true
 
 [features]
-research-tools = ["tos-compiler/research", "tos-command/research"]
-load-readiness = ["dep:hmac", "dep:sha2"]
-e2e-fixture = []
+# The installed product retains the complete existing command surface.
+default = ["source-tools"]
+# Source/PG owners are explicit adapters over CMD; transport/model readers do not need them.
+source-owner = ["dep:tos-command"]
+# Candidate preparation, native Core construction, publication and capture are opt-in to library readers.
+source-tools = ["source-owner", "tos-compiler/source-tools", "tos-source-store/capture", "dep:zip"]
+research-tools = ["tos-compiler/research", "tos-command/research", "tos-source-store/capture", "dep:zip"]
+load-readiness = ["source-tools", "dep:hmac", "dep:sha2"]
+e2e-fixture = ["source-tools"]
 
 [dependencies]
 libc = "0.2"
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
-tos-source-store = { path = "../tos-source-store", features = ["capture"] }
+tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
 tos-query = { path = "../tos-query", features = ["reading-source"] }
-tos-compiler = { path = "../tos-compiler", features = ["source-tools"] }
+tos-compiler = { path = "../tos-compiler" }
 toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
 rawzip = { version = "=0.5.1", default-features = false, features = ["std"] }
-zip = { version = "=2.4.2", default-features = false, features = ["deflate-flate2", "flate2"] }
+zip = { version = "=2.4.2", default-features = false, features = ["deflate-flate2", "flate2"], optional = true }
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tos-command = { path = "../tos-command" }
+tos-command = { path = "../tos-command", optional = true }
 tos-segment-store = { path = "../tos-segment-store" }
 hmac = { version = "=0.13.0", optional = true }
 sha2 = { version = "=0.11.0", optional = true }
@@ -44,6 +50,7 @@ tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
 [[bin]]
 name = "tos-access"
 path = "src/main.rs"
+required-features = ["source-tools"]
 
 [[bin]]
 name = "tos-load-readiness"
@@ -59,3 +66,16 @@ required-features = ["e2e-fixture"]
 name = "tos-research"
 path = "src/bin/tos-research.rs"
 required-features = ["research-tools"]
+
+# These integration targets exercise the complete native command product.
+[[test]]
+name = "native_prepare"
+required-features = ["source-tools"]
+
+[[test]]
+name = "native_release_actions"
+required-features = ["source-tools"]
+
+[[test]]
+name = "word_analysis_cli"
+required-features = ["source-tools"]

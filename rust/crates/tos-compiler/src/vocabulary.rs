@@ -56,19 +56,6 @@ pub struct QueryVocabulary {
     pub(crate) query_delivery_caches_retired: bool,
 }
 
-pub struct VerifiedAuthoredVocabulary<'a> {
-    vocabulary: &'a QueryVocabulary,
-    descriptor: tos_foundation::JsonValue,
-}
-impl<'a> VerifiedAuthoredVocabulary<'a> {
-    pub fn vocabulary(&self) -> &'a QueryVocabulary {
-        self.vocabulary
-    }
-    pub fn into_parts(self) -> (&'a QueryVocabulary, tos_foundation::JsonValue) {
-        (self.vocabulary, self.descriptor)
-    }
-}
-
 /// Derived selection envelope: all roots and cut evidence are outside the
 /// authored descriptor, so the descriptor->graph/catalog DAG is acyclic.
 #[derive(Clone, Debug)]
@@ -96,13 +83,6 @@ fn exact_keys(v: &Value, allowed: &[&str]) -> Result<()> {
         return Err(Error::Invalid("unknown query vocabulary field"));
     }
     Ok(())
-}
-fn object_field<'a>(v: &'a Value, key: &str) -> Result<&'a Value> {
-    let item = field(v, key)?;
-    if !item.is_object() {
-        return Err(Error::Invalid("query vocabulary object field"));
-    }
-    Ok(item)
 }
 fn string(v: &Value, key: &str) -> Result<String> {
     let s = field(v, key)?

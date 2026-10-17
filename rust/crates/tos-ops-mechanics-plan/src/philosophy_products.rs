@@ -1402,7 +1402,7 @@ pub fn run(arguments: &[String], cancelled: Arc<AtomicBool>) -> Result<Value, St
     let mut context = ProductContext::new(&options, cancelled)?;
     let limits = builder_limits(options.product);
     let refs: Vec<&'static str>;
-    let mut built_outputs: Vec<(&'static str, Vec<u8>)>;
+    let built_outputs: Vec<(&'static str, Vec<u8>)>;
     match options.product {
         Product::Atlas => {
             refs = vec![source_philosophy_views::ATLAS_REF];

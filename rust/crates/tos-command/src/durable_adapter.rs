@@ -11,7 +11,7 @@ pub(crate) mod audit_delta;
 #[path = "cold_membership_spool.rs"]
 mod cold_membership_spool;
 pub use cold_membership_spool::{ColdWorkspaceLimits, PrivateGenerationWorkspace};
-use cold_membership_spool::{RunCollector, ScratchReader, ScratchRows};
+use cold_membership_spool::{ScratchReader, ScratchRows};
 
 use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, GenericClient, IsolationLevel, NoTls, Transaction};
@@ -691,7 +691,6 @@ struct SelectedCutFacts {
     store_id: [u8; 16],
     domain_digest: Digest256,
     through_seq: u64,
-    audit_generation: u64,
     database_oid: u64,
     schema_profile_digest: Digest256,
     state_digest: Digest256,
@@ -708,7 +707,6 @@ impl SelectedCutFacts {
             store_id: cut.store_id,
             domain_digest: cut.domain_digest,
             through_seq: cut.through_seq,
-            audit_generation: cut.audit_generation,
             database_oid: cut.database_oid,
             schema_profile_digest: cut.schema_profile_digest,
             state_digest: cut.state_digest,

@@ -128,11 +128,8 @@ pub(crate) struct SpooledPublicationReceipt {
     pub manifest_sha256: Option<Digest256>,
     pub source_artifact: Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     pub rootset_sha256: Option<Digest256>,
-    pub manifest_bytes: Option<u64>,
     pub fence: CandidateFence,
     pub identities: u64,
-    pub dependency_sources: u64,
-    pub dependencies: u64,
     /// Hold through terminal or verified retained-baseline handoff. Rename does
     /// not free the surviving named manifest's physical allocation.
     pub persistent_manifest_custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
@@ -245,7 +242,6 @@ pub(crate) struct StreamedCutWorkspace {
     pub main: File,
     pub io_budget: PinnedSqliteIoBudget,
     pub space_budget: PinnedSqliteSpaceBudget,
-    pub deadline: Instant,
     pub cancelled: Arc<AtomicBool>,
 }
 /// Field order closes the manifest FD before releasing its shared reservation.
@@ -808,7 +804,6 @@ impl<'host> SpoolCandidate<'host> {
                 main,
                 io_budget: self.ledger.clone(),
                 space_budget: self.space_budget.clone(),
-                deadline: self.deadline,
                 cancelled: self.cancelled.clone(),
             })
         })();
@@ -1125,11 +1120,8 @@ impl<'host> SpoolCandidate<'host> {
                     manifest_sha256: None,
                     source_artifact: Some(source_artifact),
                     rootset_sha256: Some(rootset_sha256),
-                    manifest_bytes: None,
                     fence,
                     identities: index.identity_count(),
-                    dependency_sources: index.dependency_source_count(),
-                    dependencies: index.dependency_count(),
                     persistent_manifest_custody: custody,
                 });
             }
@@ -1364,11 +1356,8 @@ impl<'host> SpoolCandidate<'host> {
                 manifest_sha256: Some(manifest_sha256),
                 source_artifact,
                 rootset_sha256,
-                manifest_bytes: Some(manifest_bytes),
                 fence,
                 identities: index.identity_count(),
-                dependency_sources: index.dependency_source_count(),
-                dependencies: index.dependency_count(),
                 persistent_manifest_custody: custody,
             };
             Ok(receipt)
@@ -1576,9 +1565,6 @@ impl<'host> SpoolCandidate<'host> {
     /// object; a shorter/new clock cannot reset the candidate's shared ledger.
     pub(crate) fn matches_invocation(&self, deadline: Instant, cancelled: &AtomicBool) -> bool {
         self.deadline == deadline && std::ptr::eq(self.cancelled.as_ref(), cancelled)
-    }
-    pub(crate) fn membership(&self) -> SourceMembershipV1 {
-        self.membership
     }
     pub(crate) fn membership_counts(&self) -> (u64, u64) {
         (self.membership.count, self.source_bytes)
@@ -3744,7 +3730,7 @@ impl<'host> SpoolCandidate<'host> {
                 .ok_or_else(|| invalid("candidate read charge overflow"))?
         };
         let mut object_reads = per_update_reads;
-        let mut object_writes = update_bytes;
+        let object_writes = update_bytes;
         for i in self.new_retirement_start..self.retirement_count {
             self.running()?;
             let r = self
@@ -3851,11 +3837,6 @@ impl<'host> SpoolCandidate<'host> {
             }
         }
         self.running()
-    }
-    fn selected(&self, path: &str) -> io::Result<MemberMetadata> {
-        let path = RelativePath::parse(path).map_err(invalid)?;
-        self.member(&path)?
-            .ok_or_else(|| invalid("read outside candidate membership"))
     }
     fn mark_read(&self, path: &str) -> io::Result<()> {
         self.db
@@ -3992,61 +3973,6 @@ impl<'host> SpoolCandidate<'host> {
         )
     }
 
-    fn copy_object_source_accounted(
-        &self,
-        digest: Digest256,
-        size: u64,
-        sink: &mut dyn Write,
-    ) -> io::Result<()> {
-        if self.base_object(digest)?.is_some() {
-            let bytes = self.read_object_source_accounted(
-                digest,
-                size,
-                usize::try_from(self.limits.candidate.admission.max_member_bytes)
-                    .map_err(invalid)?,
-            )?;
-            for chunk in bytes.chunks(64 * 1024) {
-                self.running()?;
-                self.debit_write(chunk.len() as u64)?;
-                sink.write_all(chunk)?;
-                self.record_write_returned(chunk.len() as u64)?;
-            }
-            return Ok(());
-        }
-        if let Some((packed_size, offset)) = self.candidate_payload(digest)? {
-            if packed_size != size {
-                return Err(invalid("staged object copy size differs"));
-            }
-            let pack = self.payload_pack.borrow();
-            let pack = pack
-                .as_ref()
-                .ok_or_else(|| invalid("staged object pack is absent"))?;
-            return self.store.copy_candidate_payload_slice_accounted(
-                pack,
-                offset,
-                size,
-                digest,
-                sink,
-                self.deadline,
-                &self.cancelled,
-                &|n| self.debit_read(n),
-                &|n| self.debit_write(n),
-                &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                &|n| self.record_write_returned(n),
-            );
-        }
-        self.store.copy_object_accounted(
-            digest,
-            size,
-            sink,
-            self.deadline,
-            &self.cancelled,
-            &|n| self.debit_read(n),
-            &|n| self.debit_write(n),
-            &|n| self.ledger.record_read_returned(n).map_err(invalid),
-            &|n| self.record_write_returned(n),
-        )
-    }
     pub(crate) fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         self.tick()?;
         self.failed.set(true);
@@ -4110,40 +4036,6 @@ impl<'host> SpoolCandidate<'host> {
             self.failed.set(false);
         }
         result
-    }
-    pub(crate) fn verify(&self, path: &str) -> io::Result<()> {
-        self.tick()?;
-        self.failed.set(true);
-        let r = (|| {
-            let m = self
-                .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
-                .ok_or_else(|| invalid("verify outside candidate membership"))?;
-            self.reserve_logical(m.size_bytes, 0)?;
-            self.verify_object_source_accounted(m.sha256, m.size_bytes)?;
-            self.mark_read(path)?;
-            self.running()
-        })();
-        if r.is_ok() {
-            self.failed.set(false)
-        }
-        r
-    }
-    pub(crate) fn copy(&self, path: &str, sink: &mut dyn Write) -> io::Result<()> {
-        self.tick()?;
-        self.failed.set(true);
-        let r = (|| {
-            let m = self
-                .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
-                .ok_or_else(|| invalid("copy outside candidate membership"))?;
-            self.reserve_logical(m.size_bytes, 0)?;
-            self.copy_object_source_accounted(m.sha256, m.size_bytes, sink)?;
-            self.mark_read(path)?;
-            self.running()
-        })();
-        if r.is_ok() {
-            self.failed.set(false)
-        }
-        r
     }
     fn retirement_at_raw_bounded(
         &self,

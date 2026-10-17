@@ -9,7 +9,7 @@ use crate::{
     d1_public_capture::{CreationState, CreationStateHold},
     knowledge_stage::KnowledgePayloadLayout,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, params};
 use serde_json::{Map, Value, json};
 use std::cell::Cell;
 use std::io::{self, Write};
@@ -1106,11 +1106,6 @@ fn item_source<'state, 'budget>(
     order: i64,
     creation: Option<&'state CreationState<'budget>>,
 ) -> Result<Option<OwnedText<'state, 'budget>>> {
-    let table = if kind == NODE {
-        "knowledge_nodes"
-    } else {
-        "knowledge_relations"
-    };
     let sql = if kind == NODE {
         "SELECT source_graph,length(CAST(source_graph AS BLOB)) FROM knowledge_nodes WHERE source_order=?1"
     } else {
@@ -2655,7 +2650,7 @@ fn capabilities(
     object.insert("filter_operators".into(), filter_operators);
     object.insert("node_fields".into(), ordered_node_fields);
     object.insert("relation_fields".into(), ordered_relation_fields);
-    let mut profile = object
+    let profile = object
         .get_mut("neighborhood_profiles")
         .and_then(Value::as_array_mut)
         .and_then(|profiles| profiles.get_mut(0))
@@ -3156,7 +3151,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
                 let value = route
                     .get(field)
                     .ok_or(Error::Invalid("catalog route field"))?;
-                let mut bytes = 0usize;
+                let mut bytes;
                 match value {
                     Value::String(text) => {
                         bytes = text.len();

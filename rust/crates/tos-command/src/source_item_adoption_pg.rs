@@ -27,7 +27,6 @@ pub(crate) const PG_ITEM_ADOPTION_FAMILY_TAG: &str =
 /// does not enumerate unrelated metadata records or Item packages.
 pub(crate) struct PgItemCurrentClosure {
     pub(crate) before: BTreeMap<String, Vec<u8>>,
-    pub(crate) related_items: BTreeMap<String, BTreeMap<String, Vec<u8>>>,
     pub(crate) claims: BTreeMap<String, JsonValue>,
     pub(crate) claim_paths: BTreeMap<String, String>,
     pub(crate) catalog: super::ItemCatalog,
@@ -84,15 +83,6 @@ fn select_pg_item_adoption(
         closure,
         proposal,
     })
-}
-
-pub(crate) fn pg_item_adoption_transaction_id(
-    fs: &CreationFilesystem,
-    context: &CommandContext,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<String> {
-    super::ItemOwner::select(fs, context, deadline, cancelled)?.transaction_id()
 }
 
 pub(crate) fn pg_item_adoption_transaction_id_from_request(
@@ -1486,7 +1476,6 @@ pub(crate) fn current_closure(
 
     Ok(PgItemCurrentClosure {
         before,
-        related_items,
         claims,
         claim_paths,
         catalog: super::ItemCatalog {

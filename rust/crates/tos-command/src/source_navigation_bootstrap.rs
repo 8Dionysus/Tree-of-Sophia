@@ -8,7 +8,7 @@ use crate::durable_adapter::durable_projection::{
 };
 use crate::{DurableError, DurableResult};
 use std::collections::{BTreeMap, BTreeSet};
-use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
+use tos_foundation::{JsonLimits, JsonMode, RelativePath, parse_json};
 
 const MAX_BOOTSTRAP_PATH_BYTES: usize = 4096;
 const MAX_BOOTSTRAP_ID_BYTES: usize = 256;

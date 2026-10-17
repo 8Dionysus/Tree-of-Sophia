@@ -63,6 +63,7 @@ pub(super) struct Surface {
 }
 
 impl Surface {
+    #[cfg(test)]
     fn from_value(value: &Value) -> R<Self> {
         Ok(Self {
             context_ref: string_field(value, "context_unit_ref")?.to_owned(),
@@ -141,6 +142,7 @@ fn integer_field(value: &Value, key: &str) -> R<i64> {
         .ok_or_else(|| format!("missing or non-integer {key}"))
 }
 
+#[cfg(test)]
 fn offset_field(value: &Value, key: &str) -> R<usize> {
     value
         .get(key)
@@ -691,6 +693,7 @@ fn count_values<'a>(values: impl Iterator<Item = &'a str>) -> BTreeMap<String, u
 }
 
 /// The maintained bounded formula profile; defaults preserve the v1 recipe.
+#[cfg(test)]
 pub fn build_formulas_with_settings(
     root: &ResearchExecution,
     contexts: &[Value],

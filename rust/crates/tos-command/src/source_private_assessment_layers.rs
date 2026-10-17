@@ -18,17 +18,13 @@ use crate::source_text_owner::{
 };
 use crate::source_text_owner_ocr;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::File;
 use std::io::Read;
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, SourceRevision};
+use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::CorpusCutReader;
-use tos_validation::assessment::{
-    AssessmentLayerQualityObservation, AssessmentRecordInput, MAX_RECORD_BYTES,
-};
+use tos_validation::assessment::{AssessmentRecordInput, MAX_RECORD_BYTES};
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 const LAYER_SCHEMA: &str = "ToS/contracts/source-text-layer.schema.json";
@@ -92,8 +88,8 @@ pub(crate) struct LayerQualityDependency {
 /// are resolved later from exact current records.
 #[derive(Debug, Clone)]
 pub(crate) struct OwnerLocalLayerPreflight {
+    #[cfg(test)]
     pub(crate) layer_ids: BTreeSet<String>,
-    pub(crate) lock_subject_ids: BTreeSet<String>,
     pub(crate) quality_dependencies: BTreeMap<String, Vec<LayerQualityDependency>>,
     pub(crate) selection_digest: String,
 }
@@ -107,7 +103,6 @@ pub(crate) struct SelectedOwnerLayer {
     /// Exact comparison envelope, absent when the independently selected
     /// grant is metadata-only.
     pub(crate) comparison_record: Option<AssessmentRecordInput>,
-    pub(crate) scope: JsonValue,
     pub(crate) read_ready: bool,
     /// A comparison can make a source visible to a later human assessment;
     /// it never contains a positive assessment decision of its own.
@@ -124,7 +119,6 @@ pub(crate) struct PrivateAssessmentLayers {
     pub(crate) source_snapshot: String,
     pub(crate) profile_contract_digests: BTreeMap<String, String>,
     selected_input_bytes: u64,
-    provided_input_bytes: u64,
     selection_digest: String,
     context_snapshot: String,
     currentness: Vec<CurrentnessPin>,
@@ -176,7 +170,6 @@ struct TargetLayer {
     policy_raw: Vec<u8>,
     policy: JsonValue,
     scope: JsonValue,
-    subject: JsonValue,
     selection: JsonValue,
 }
 
@@ -214,12 +207,6 @@ impl PrivateAssessmentLayers {
     /// charged the owner configuration, selected context and source records.
     pub(crate) fn input_bytes(&self) -> u64 {
         self.selected_input_bytes
-    }
-
-    /// Canonical input buffers supplied by the caller and excluded from
-    /// `input_bytes()` to avoid charging the same envelopes twice.
-    pub(crate) fn provided_input_bytes(&self) -> u64 {
-        self.provided_input_bytes
     }
 
     /// Revalidate the retained owner and third-root file evidence after the
@@ -351,8 +338,6 @@ impl PrivateAssessmentLayers {
     }
 }
 
-impl SelectedOwnerLayer {}
-
 /// Validate the entire v5/v6 native-layer and quality-dependency selection
 /// without opening owner, corpus, payload, or image paths.
 pub(crate) fn preflight_owner_local_layers(
@@ -422,7 +407,6 @@ pub(crate) fn preflight_owner_local_layers(
         "private assessment layer subjects",
     ))?;
     let mut quality_dependencies = BTreeMap::new();
-    let mut lock_subject_ids = layer_ids.clone();
     for (subject_key, values) in entries {
         let subject_id = subject_key
             .as_str()
@@ -469,7 +453,6 @@ pub(crate) fn preflight_owner_local_layers(
             }
             selected.push(LayerQualityDependency { layer_id, use_name });
         }
-        lock_subject_ids.insert(subject_id.clone());
         quality_dependencies.insert(subject_id, selected);
     }
     let selection_digest = Digest256::of_bytes(&cmd::canonical(&cmd::object(vec![
@@ -479,8 +462,8 @@ pub(crate) fn preflight_owner_local_layers(
     ]))?)
     .to_prefixed();
     Ok(OwnerLocalLayerPreflight {
+        #[cfg(test)]
         layer_ids,
-        lock_subject_ids,
         quality_dependencies,
         selection_digest,
     })
@@ -804,7 +787,6 @@ fn select_owner_local_layers_with_contract_reader(
             layer_record: target.record.clone(),
             binding: target.binding.clone(),
             comparison_record,
-            scope: target.scope.clone(),
             read_ready,
             positive_use_allowed,
             comparison_limits: if v6 {
@@ -853,7 +835,6 @@ fn select_owner_local_layers_with_contract_reader(
         source_snapshot,
         profile_contract_digests: selected_contracts,
         selected_input_bytes,
-        provided_input_bytes,
         selection_digest: preflight.selection_digest,
         context_snapshot,
         currentness,
@@ -1330,7 +1311,6 @@ fn read_target(
         policy_raw,
         policy,
         scope,
-        subject,
         selection: selection.clone(),
     })
 }
@@ -2952,7 +2932,6 @@ fn read_lineage_layer(
         policy_raw,
         policy,
         scope,
-        subject: JsonValue::Null,
         selection: JsonValue::Null,
     })
 }
@@ -3074,8 +3053,8 @@ fn compare_derived_layer(
     let mut seen = BTreeSet::new();
     let root_is_initial;
     let root_source_access;
-    let mut payload_entry;
-    let mut root_source_inputs = Vec::new();
+    let payload_entry;
+    let root_source_inputs;
     let mut lineage_inputs = Vec::<NativeInput>::new();
     loop {
         if lineage.len() >= MAX_LINEAGE {

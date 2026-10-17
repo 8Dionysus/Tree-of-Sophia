@@ -64,6 +64,18 @@ Its explicit `capture` feature enables Git capture, import, archive restore and
 chunk transfer for writer/tool consumers. The standalone `tos-reader` and
 ordinary native query do not select that preparation feature.
 
+`tos-native-owner-command source-capture import-corpus` prepares a fresh,
+unselected V1 store. It can combine a current Git capture with explicitly
+selected disjoint retained subtrees, each using the
+[`retained-corpus-binding`](../ToS/contracts/retained-corpus-binding.schema.json)
+contract. The target preserves every original snapshot and receipt, shares one
+content-addressed object pool with the composed snapshot, and writes a V2
+custody receipt. Retained members consume the original aggregate limits;
+overlapping or nested namespaces are refused. Selection order does not change
+the result. No current pointer, identity/dependency
+index, semantic admission or publication authority is created. The command's
+`--help` owns its exact input and resource options.
+
 Run the named `rust_workspace` lane from
 [`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
 when the pinned toolchain, rustfmt and WASM target are available. Set
@@ -74,13 +86,11 @@ and installed mechanics executor lifecycle parity against tiny synthetic
 inputs. It does not prove a released public adapter, browser/Worker bundle
 integration or production-scale runtime.
 
-The native lane defaults each command to 300 seconds and caps the full lane at
-3,600 seconds. The conformance suite runs in disjoint source and named family
-commands so output and deadlines stay attributable to those test groups. Each
-of the four grouped family commands has a 900-second command deadline. The
-native executor keeps one shared 3,600-second lane deadline and caps every
-command by the remaining lane time. Other steps retain the 300-second command
-default.
+The executor defaults to 300 seconds per command and 3,600 seconds per lane.
+Rust CI selects a three-hour aggregate budget with
+`--lane-timeout-ms 10800000`; use that budget for the full local lane too.
+The validation manifest owns the separate command limits and test groups.
+The executor caps each command by the remaining lane time.
 
 The PostgreSQL integration target requires the explicit `postgres-lab` feature
 and a dedicated ephemeral database. The ordinary workspace lane excludes this

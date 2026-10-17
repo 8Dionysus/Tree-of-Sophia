@@ -1186,9 +1186,6 @@ pub(crate) fn truthy(v: &JsonValue) -> bool {
         JsonValue::Object(o) => !o.is_empty(),
     }
 }
-pub(crate) fn matches_filter(item: &JsonValue, rule: &JsonValue) -> bool {
-    matches_filter_definition(item, rule, rule.object_get("_property_binding"))
-}
 fn matches_filter_definition(
     item: &JsonValue,
     rule: &JsonValue,

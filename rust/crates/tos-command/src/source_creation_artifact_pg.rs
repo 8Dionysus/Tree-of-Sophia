@@ -641,7 +641,6 @@ impl PreparedPgArtifactCreation {
             dependency_commitment,
             identity: self.identity,
             observations: self.observations,
-            artifact_id: self.artifact_id,
         })
     }
 }
@@ -656,7 +655,6 @@ pub(crate) struct PgSerializedArtifactCreation {
     dependency_commitment: PgDependencyCommitment,
     identity: PgRecordRevisionIdentity,
     observations: PgArtifactCreationObservations,
-    artifact_id: String,
 }
 
 impl PgSerializedArtifactCreation {
@@ -665,12 +663,6 @@ impl PgSerializedArtifactCreation {
     }
     pub(crate) fn plan(&self) -> &CommandPlan {
         &self.plan
-    }
-    pub(crate) fn family_tag(&self) -> &'static str {
-        ARTIFACT_FAMILY_TAG
-    }
-    pub(crate) fn record_type(&self) -> &'static str {
-        ARTIFACT_RECORD_TYPE
     }
     pub(crate) fn home(&self) -> &RelativePath {
         &self.home
@@ -692,8 +684,5 @@ impl PgSerializedArtifactCreation {
     }
     pub(crate) fn unique_observations(&self) -> &[PgSourceUniqueIndexObservation] {
         &self.observations.unique
-    }
-    pub(crate) fn artifact_id(&self) -> &str {
-        &self.artifact_id
     }
 }

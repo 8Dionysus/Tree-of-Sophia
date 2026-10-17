@@ -116,10 +116,6 @@ impl McpSession {
         false
     }
 
-    fn handle_line(&mut self, executor: &dyn AccessExecutor, line: &[u8]) -> Option<Vec<u8>> {
-        self.handle_line_with_probe(executor, line, self.profile.deadline_probe())
-    }
-
     pub(crate) fn initializing(&self) -> bool {
         self.pending_initialize
     }
@@ -316,7 +312,7 @@ impl McpSession {
                                 ops.iter().any(|op| {
                                     op.mcp_tool == name
                                         && crate::source_read::Operation::from_id(&op.operation_id)
-                                            .is_some_and(|o| o.software_only())
+                                            .is_some_and(|o| o.software_available())
                                 })
                             })
                     }
@@ -345,7 +341,7 @@ impl McpSession {
                         ops.iter().any(|op| {
                             Some(op.mcp_tool.as_str()) == name
                                 && crate::source_read::Operation::from_id(&op.operation_id)
-                                    .is_some_and(|operation| !operation.software_only())
+                                    .is_some_and(|operation| !operation.software_available())
                         })
                     })
                 {

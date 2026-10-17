@@ -17,7 +17,6 @@ use crate::{
 };
 use closure::*;
 use constraints::*;
-use history::*;
 pub use measurement::{MeasureOptions, measure};
 use serde_json::{Value, json};
 use std::{

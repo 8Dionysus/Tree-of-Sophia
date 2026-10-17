@@ -972,8 +972,6 @@ fn joined_fields_match(text: &str, fields: &[&str]) -> bool {
 }
 
 struct CachedInsertBatch {
-    offset: u64,
-    length: u64,
     statement: String,
     columns: Range<usize>,
     rows: Vec<Range<usize>>,
@@ -1015,8 +1013,6 @@ fn scan_tuple(statement: &str, open: usize) -> Result<(Range<usize>, usize)> {
 fn parse_insert_batch(
     statement: String,
     table: &str,
-    offset: u64,
-    length: u64,
     capture: &PublicCapture,
 ) -> Result<CachedInsertBatch> {
     let expected = batch_columns(table).ok_or(Error::Invalid("public D1 delta batch table"))?;
@@ -1069,8 +1065,6 @@ fn parse_insert_batch(
         }
     }
     Ok(CachedInsertBatch {
-        offset,
-        length,
         statement,
         columns,
         rows,
@@ -1452,7 +1446,7 @@ pub(crate) fn produce(
                     }
                     if active.cached.is_none() {
                         let statement = segment(&mut sql, offset, length, capture)?;
-                        let cached = parse_insert_batch(statement, table, offset, length, capture)?;
+                        let cached = parse_insert_batch(statement, table, capture)?;
                         if ordinal >= cached.rows.len() {
                             return Err(Error::Invalid("public D1 delta batch row ordinal"));
                         }
@@ -1686,8 +1680,6 @@ mod batch_delta_parser_tests {
             Some(1)
         );
         complete.as_mut().unwrap().cached = Some(CachedInsertBatch {
-            offset: 10,
-            length: 90,
             statement: String::new(),
             columns: 0..0,
             rows: vec![0..1, 1..2],
@@ -1697,8 +1689,6 @@ mod batch_delta_parser_tests {
         let mut short_index = None;
         add_segment_row(&mut short_index, Some((10, 90))).unwrap();
         short_index.as_mut().unwrap().cached = Some(CachedInsertBatch {
-            offset: 10,
-            length: 90,
             statement: String::new(),
             columns: 0..0,
             rows: vec![0..1, 1..2],

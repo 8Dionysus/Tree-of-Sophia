@@ -20,8 +20,7 @@ use crate::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget,
     error::{Result, StoreError, StoreErrorCode},
     segment_locator::{
-        SEGMENT_INDEX_KEY_MAX_BYTES_V1, SEGMENT_INDEX_PAGE_HEADER_BYTES_V1, SegmentExtentV1,
-        SegmentIndexKeySpaceV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1,
+        SegmentExtentV1, SegmentIndexKeySpaceV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1,
     },
     segment_locator_v2::{
         DecodedSegmentIndexPageV2, SEGMENT_INDEX_KEY_MAX_BYTES_V2,
@@ -534,17 +533,6 @@ impl SegmentIndexReaderV2 {
         }
         Ok(())
     }
-
-    fn check_workspace(&self, requested: usize, required: usize) -> Result<()> {
-        if requested == 0
-            || requested == usize::MAX
-            || requested < required
-            || requested > self.limits.max_workspace_bytes
-        {
-            return Err(refusal("V2 operation workspace exceeds its caller limit"));
-        }
-        self.active()
-    }
 }
 
 /// Exact copied expectation carried from a parent child entry to its page.
@@ -683,153 +671,4 @@ pub(crate) fn validate_object_digest_value(key: &[u8], value: SegmentLocatedValu
         return Err(corrupt("V2 ObjectDigest logical tuple digest differs"));
     }
     Ok(())
-}
-
-struct MutationRouteV2<'a> {
-    child: SegmentIndexInternalEntryV2<'a>,
-    ordinal: u32,
-    selection: SegmentIndexMutationSelectionV2,
-    adjacent_lower_key: Option<&'a [u8]>,
-    adjacent_upper_key: Option<&'a [u8]>,
-}
-
-fn route_mutation_key<'a>(
-    reader: &SegmentIndexReaderV2,
-    page: DecodedSegmentIndexPageV2<'a>,
-    key: &[u8],
-) -> Result<MutationRouteV2<'a>> {
-    if page.kind() != SegmentIndexPageKindV1::Internal || page.entry_count() == 0 {
-        return Err(corrupt(
-            "V2 mutation route requires a nonempty internal page",
-        ));
-    }
-    let mut cursor = page.initial_cursor();
-    let mut ordinal = 0u32;
-    let mut previous: Option<(u32, SegmentIndexInternalEntryV2<'a>)> = None;
-    loop {
-        reader.check_request()?;
-        let Some(entry) = page.next_entry(&mut cursor)? else {
-            break;
-        };
-        reader.check_request()?;
-        let SegmentIndexEntryV2::Internal(child) = entry else {
-            return Err(corrupt("V2 internal page contains a leaf entry"));
-        };
-        if key < child.lower_key {
-            if let Some((previous_ordinal, predecessor)) = previous {
-                return Ok(MutationRouteV2 {
-                    child: predecessor,
-                    ordinal: previous_ordinal,
-                    selection: SegmentIndexMutationSelectionV2::Gap,
-                    adjacent_lower_key: Some(predecessor.upper_key),
-                    adjacent_upper_key: Some(child.lower_key),
-                });
-            }
-            return Ok(MutationRouteV2 {
-                child,
-                ordinal,
-                selection: SegmentIndexMutationSelectionV2::BeforeFirst,
-                adjacent_lower_key: None,
-                adjacent_upper_key: Some(child.lower_key),
-            });
-        }
-        if key <= child.upper_key {
-            return Ok(MutationRouteV2 {
-                child,
-                ordinal,
-                selection: SegmentIndexMutationSelectionV2::Contains,
-                adjacent_lower_key: Some(child.lower_key),
-                adjacent_upper_key: Some(child.upper_key),
-            });
-        }
-        previous = Some((ordinal, child));
-        ordinal = ordinal
-            .checked_add(1)
-            .ok_or_else(|| refusal("V2 mutation child ordinal overflowed"))?;
-    }
-    let Some((ordinal, child)) = previous else {
-        return Err(corrupt("V2 internal page has no mutation neighbor"));
-    };
-    Ok(MutationRouteV2 {
-        child,
-        ordinal,
-        selection: SegmentIndexMutationSelectionV2::AfterLast,
-        adjacent_lower_key: Some(child.upper_key),
-        adjacent_upper_key: None,
-    })
-}
-
-fn classify_leaf<'a>(
-    reader: &SegmentIndexReaderV2,
-    page: DecodedSegmentIndexPageV2<'a>,
-    key: &[u8],
-    is_root: bool,
-) -> Result<(
-    SegmentIndexMutationSelectionV2,
-    Option<&'a [u8]>,
-    Option<&'a [u8]>,
-    Option<SegmentIndexLeafEntryV2<'a>>,
-)> {
-    if page.kind() != SegmentIndexPageKindV1::Leaf {
-        return Err(corrupt("V2 leaf classification received an internal page"));
-    }
-    if page.entry_count() == 0 {
-        if is_root {
-            return Ok((SegmentIndexMutationSelectionV2::EmptyRoot, None, None, None));
-        }
-        return Err(corrupt("V2 non-root leaf page is empty"));
-    }
-    let mut cursor = page.initial_cursor();
-    let mut ordinal = 0u32;
-    let mut previous: Option<&'a [u8]> = None;
-    loop {
-        reader.check_request()?;
-        let Some(entry) = page.next_entry(&mut cursor)? else {
-            break;
-        };
-        reader.check_request()?;
-        let SegmentIndexEntryV2::Leaf(leaf) = entry else {
-            return Err(corrupt("V2 leaf page contains an internal entry"));
-        };
-        if key == leaf.key {
-            return Ok((
-                SegmentIndexMutationSelectionV2::Contains,
-                Some(leaf.key),
-                Some(leaf.key),
-                Some(leaf),
-            ));
-        }
-        if key < leaf.key {
-            return Ok(match previous {
-                Some(lower) => (
-                    SegmentIndexMutationSelectionV2::Gap,
-                    Some(lower),
-                    Some(leaf.key),
-                    None,
-                ),
-                None => (
-                    SegmentIndexMutationSelectionV2::BeforeFirst,
-                    None,
-                    Some(leaf.key),
-                    None,
-                ),
-            });
-        }
-        previous = Some(leaf.key);
-        ordinal = ordinal
-            .checked_add(1)
-            .ok_or_else(|| refusal("V2 leaf ordinal overflowed"))?;
-    }
-    if ordinal != page.entry_count() {
-        return Err(corrupt("V2 leaf cursor ended before its page"));
-    }
-    let Some(last) = previous else {
-        return Err(corrupt("V2 non-root leaf page has no keys"));
-    };
-    Ok((
-        SegmentIndexMutationSelectionV2::AfterLast,
-        Some(last),
-        None,
-        None,
-    ))
 }

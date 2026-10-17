@@ -1,7 +1,6 @@
 """Platform lifecycle and MCP SDK adapter for an installed native child."""
 from __future__ import annotations
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -9,12 +8,6 @@ from types import SimpleNamespace
 from typing import Any
 
 DEFAULT_HTTP_PORT = 5429
-
-def _native_wire_bytes(value):
-    # JSON permits lone UTF-16 surrogates. Preserve ordinary UTF-8 byte costs,
-    # escaping only those code units rather than changing normal Unicode text.
-    return json.dumps(value, ensure_ascii=False, allow_nan=False,
-                      separators=(",", ":")).encode("utf-8", "backslashreplace")
 
 
 class NativeMCPServer:

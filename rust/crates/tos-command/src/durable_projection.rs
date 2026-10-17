@@ -17,27 +17,22 @@ pub(crate) mod durable_source_text_search;
 
 #[path = "durable_navigation_event.rs"]
 mod durable_navigation_event;
+pub use durable_navigation_event::{
+    DurableNavigationBootstrapApplyV1, DurableNavigationBootstrapRowKindV1,
+    DurableNavigationBootstrapRowV1, DurableNavigationCurrentIndexOwnerBindingV1,
+    DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
+    DurableNavigationEventContextV1, DurableNavigationEventLimits,
+    DurableNavigationEventRangeClaimMutationV1, DurableNavigationEventRangeCoverageV1,
+    DurableNavigationEventRangeDependencyCauseV1, DurableNavigationEventRangeMemberV1,
+    DurableNavigationEventRangePendingReasonV1, DurableNavigationEventRangePriorClaimOwnerV1,
+    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangeSeedV1,
+    DurableNavigationEventSourceV1,
+};
 pub(crate) use durable_navigation_event::{
-    DurableNavigationAdjacencyCertificateReadV1, DurableNavigationCurrentnessGuardV1,
-    DurableNavigationCurrentnessV1, DurableNavigationPublishedGenerationGuardV2,
-    DurableNavigationPublishedGenerationV2, navigation_owner_binding,
+    DurableNavigationPublishedGenerationGuardV2, DurableNavigationPublishedGenerationV2,
     navigation_selected_expectation_digest, read_navigation_adjacency_certificate_v1,
     read_navigation_published_guard_with_tx_v2, same_navigation_carrier_payload,
     verify_navigation_selected_cohort_metadata_v3,
-};
-pub use durable_navigation_event::{
-    DurableNavigationBaseRowReadV1, DurableNavigationBootstrapApplyV1,
-    DurableNavigationBootstrapOwnerSourceV1, DurableNavigationBootstrapRowKindV1,
-    DurableNavigationBootstrapRowV1, DurableNavigationCurrentIndexNotReadyReasonV1,
-    DurableNavigationCurrentIndexNotReadyV1, DurableNavigationCurrentIndexOwnerBindingV1,
-    DurableNavigationEventAffectedOwnerKindV1, DurableNavigationEventAffectedOwnerV1,
-    DurableNavigationEventContextV1, DurableNavigationEventCursorV1, DurableNavigationEventLimits,
-    DurableNavigationEventRangeApplyV1, DurableNavigationEventRangeClaimMutationV1,
-    DurableNavigationEventRangeCoverageV1, DurableNavigationEventRangeDependencyCauseV1,
-    DurableNavigationEventRangeEventV1, DurableNavigationEventRangeMemberV1,
-    DurableNavigationEventRangePendingReasonV1, DurableNavigationEventRangePriorClaimOwnerV1,
-    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangePriorRecordOwnerV1,
-    DurableNavigationEventRangeSeedV1, DurableNavigationEventSourceV1,
 };
 
 #[path = "durable_projection_bootstrap.rs"]
@@ -52,7 +47,7 @@ const MAX_CONSUMER_ID_BYTES: usize = 256;
 const MAX_PROFILE_FIELD_BYTES: usize = 128;
 const MAX_DOCUMENT_ID_BYTES: usize = 256;
 const MAX_SHORT_TEXT_BYTES: usize = 16 * 1024;
-const MAX_QUERY_BYTES: usize = 4096;
+
 const MAX_PROJECTION_PATH_BYTES: usize = 4096;
 // Keep the projection admission ceiling aligned with the shared source-text
 // QRY page contract; the legacy search remains independently ranked.

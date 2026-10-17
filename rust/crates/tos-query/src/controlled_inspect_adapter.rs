@@ -9,7 +9,7 @@ use crate::{
 use tos_compiler::{
     ControlledCarrierSelection, ControlledKnowledgeModel, ControlledQueryHeap, ControlledSearchKind,
 };
-use tos_foundation::{JsonString, JsonValue, OwnedState};
+use tos_foundation::{JsonString, JsonValue};
 
 fn budget() -> SearchV2Error {
     SearchV2Error {

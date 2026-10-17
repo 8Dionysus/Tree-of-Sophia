@@ -22,12 +22,18 @@ CLI/HTTP/MCP entrypoints. `access/src/tos_access/` retains a source-importable
 Python SDK bridge for external callers; it delegates to an explicitly selected
 native binary and has no Python query fallback or installable wheel.
 
+Native library consumers can omit source construction and CMD with
+`--no-default-features`; the installed product keeps its complete default
+profile. The [native access build profiles](../rust/crates/tos-access/README.md)
+define the optional source-owner, construction and research boundaries.
+
 Owned Python sessions use `NativeAccessCore.owned_ordinary_source_session` with
 the native READY capabilities and the caller's original transport, deadline,
 cancellation and receiving-state limits. The earlier GraphViews-only,
 selected-probe, lazy-selected and discovered-session prototype factories are
-retired. Callers select their paths before entering the ordinary session;
-unsupported capabilities remain explicit refusals.
+retired, including their separate bounded OS path selector. Callers select their
+paths with `NativeCoreSnapshotSelection.discover` before entering the ordinary
+session; unsupported capabilities remain explicit refusals.
 
 Use the repository's native validation route after installing its declared
 development dependencies. Build browser assets with `npm ci --prefix access/web`
@@ -1173,7 +1179,7 @@ selected-release deployment check.
 
 Source-selected research builders use `tos-research COMMAND [OPTIONS]`.
 Build the separate executable with
-`cargo build --locked -p tos-access --features research-tools --bin tos-research`.
+`cargo build --locked --no-default-features -p tos-access --features research-tools --bin tos-research`.
 This also enables the historical laboratory and gold-set validation implementations.
 The installed `tos-research foundation` entry runs the existing protected foundation
 command, including its complete audit scope, with the same explicit root, invocation

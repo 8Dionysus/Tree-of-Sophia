@@ -107,6 +107,7 @@ impl Checkpoint {
     pub(super) fn work(&self) -> (u64, u64, u64) {
         self.work
     }
+    #[cfg(test)]
     pub(super) fn count(&self) -> u64 {
         self.root.as_ref().map_or(0, |root| root.count)
     }

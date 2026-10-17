@@ -725,7 +725,7 @@ impl PreparedCreation {
         Ok(SerializedCreation { prepared, command })
     }
     fn serialize_content(
-        mut self,
+        self,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
         worker: &mut CutWorkerSchemaExecutor,

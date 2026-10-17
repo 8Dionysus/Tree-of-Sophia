@@ -283,7 +283,6 @@ fn selected_segment_limits(
 
 fn packed_object_limits(
     profile: &super::source_foundation_admission::NativeSegmentV2Budget,
-    segment: &SegmentStore,
     used: AuthenticatedTreeWorkV1,
     rows_used: u64,
     max_objects: u64,
@@ -335,7 +334,6 @@ pub(crate) struct BuiltInitialRootSetV2 {
     pub(crate) sha256: Digest256,
     pub(crate) tree_io: Arc<NativeV2TreeIo>,
     pub(crate) segment_store: SegmentStore,
-    pub(crate) work: AuthenticatedTreeWorkV1,
 }
 
 pub(crate) struct BuiltSuccessorRootSetV2 {
@@ -348,7 +346,6 @@ pub(crate) struct BuiltSuccessorRootSetV2 {
     pub(crate) source_record: Vec<u8>,
     pub(crate) tree_io: Arc<NativeV2TreeIo>,
     pub(crate) segment_store: SegmentStore,
-    pub(crate) work: AuthenticatedTreeWorkV1,
 }
 
 /// Build the first V2 rootset from an empty store using the real validated
@@ -608,7 +605,6 @@ pub(crate) fn build_initial_rootset_v2(
         .ok_or_else(|| invalid("V2 object root live-state overflow"))?;
     let object_limits = packed_object_limits(
         profile,
-        &segment,
         used,
         used_rows,
         candidate.desired_object_count()?,
@@ -773,7 +769,6 @@ pub(crate) fn build_initial_rootset_v2(
         sha256,
         tree_io,
         segment_store: segment,
-        work: used,
     })
 }
 
@@ -1883,7 +1878,6 @@ pub(crate) fn build_v1_migration_rootset_v2(
         .ok_or_else(|| invalid("migration object root live-state overflow"))?;
     let object_limits = packed_object_limits(
         profile,
-        &segment,
         used,
         used_rows,
         current_object_count,
@@ -2095,7 +2089,6 @@ pub(crate) fn build_v1_migration_rootset_v2(
         source_record,
         tree_io,
         segment_store: segment,
-        work: used,
     })
 }
 
@@ -2562,7 +2555,6 @@ pub(crate) fn build_successor_rootset_v2(
     let desired_object_count = candidate.desired_object_count()?;
     let object_limits = packed_object_limits(
         profile,
-        &segment,
         work,
         row_count.get(),
         desired_object_count,
@@ -2775,7 +2767,6 @@ pub(crate) fn build_successor_rootset_v2(
         source_record,
         tree_io,
         segment_store: segment,
-        work,
     };
     Ok(result)
 }

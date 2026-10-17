@@ -23,6 +23,25 @@ the move; authored records remain the authority behind generated navigation. Use
 [corpus and data release route](../../docs/RELEASING.md#data-and-corpus-operations)
 for admission, compilation and explicit reader selection.
 
+Historical `.record-revisions/` and `.metadata-transactions/` paths belong to
+explicitly selected immutable corpus cuts.
+[`record-revisions.storage.json`](record-revisions.storage.json) and
+[`metadata-transactions.storage.json`](metadata-transactions.storage.json) bind
+each unchanged subtree's membership, bytes, portable mode and exact Git restore
+witness. The checkout retains these bindings; archived manifests, completions
+and blobs keep their original logical paths in the corpus. The curated
+`.metadata-publication.json` retains its exact publication reference, whose
+transaction closure is available in the complete selected cut.
+
+Prepare the current `ToS` Git capture with `source-capture capture-git`, excluding
+both historical prefixes and the reserved `owner-local`, `payload` and `.git`
+path parts. Then use `source-capture import-corpus` with each explicitly selected
+retained store, revision and binding. The fresh store contains the complete source
+cut, every exact old historical snapshot and its original receipt in one
+immutable object pool. The command's `--help` owns the paired input flags and
+limits. Select the complete cut for the source-to-reader operation; a curated Git
+capture alone does not contain the historical package closure.
+
 ## Speaking topology
 
 ```text

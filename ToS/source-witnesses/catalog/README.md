@@ -1,11 +1,12 @@
 # Source-Witness Catalog
 
-This directory holds the generated navigation index over authoritative objects
-and source Claims under `ToS/source-witnesses/`. Catalog outputs are local
-derived artifacts under the software/corpus release separation. The shared catalog preserves the native bibliographic types and each
-explicitly declared source profile. The live file inventory,
-schema bindings and counts belong to
-[`catalog.manifest.json`](catalog.manifest.json); declared profile meaning
+This directory documents the generated navigation index over authoritative
+objects and source Claims under `ToS/source-witnesses/`. Catalog outputs live
+in explicitly selected corpus/catalog materializations and are omitted from
+the software checkout. The shared catalog preserves the native bibliographic
+types and each explicitly declared source profile. The live file inventory,
+schema bindings and counts belong to `catalog.manifest.json` in that
+materialization; declared profile meaning
 belongs to [semantic interchange](../../doctrine/semantic-interchange/README.md).
 The table and source-history notes below describe an earlier bibliographic
 baseline; the manifest describes current coverage.
@@ -112,8 +113,9 @@ returns to the undated page-204 printer line. The same provisional publisher,
 printer, and Leipzig identities are reused only through claim-originating
 edges; the Edition year is not an exact printing-completion or release date.
 
-Regeneration, parity checks, and source-foundation validation route through
-`scripts/AGENTS.md`, which owns the catalog builder and evidence-spine
-validator. A green result proves exact projection and source return, not the
+Regeneration, parity checks, and source-foundation validation follow the
+[native generator and validation route](../../../scripts/AGENTS.md), including
+the `source_witness_foundation` lane. A green result proves exact projection
+and source return, not the
 truth of metadata or relations, rights, OCR, translation, review, or
 semantics.

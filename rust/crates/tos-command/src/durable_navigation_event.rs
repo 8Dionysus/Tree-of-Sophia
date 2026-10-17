@@ -27,12 +27,10 @@ use crate::source_managed_selection::{ManagedAgentSelectedParent, ManagedSelecte
 #[path = "durable_navigation_event/durable_navigation_range.rs"]
 mod durable_navigation_range;
 pub use durable_navigation_range::{
-    DurableNavigationEventRangeApplyV1, DurableNavigationEventRangeClaimMutationV1,
-    DurableNavigationEventRangeCoverageV1, DurableNavigationEventRangeDependencyCauseV1,
-    DurableNavigationEventRangeEventV1, DurableNavigationEventRangeMemberV1,
+    DurableNavigationEventRangeClaimMutationV1, DurableNavigationEventRangeCoverageV1,
+    DurableNavigationEventRangeDependencyCauseV1, DurableNavigationEventRangeMemberV1,
     DurableNavigationEventRangePendingReasonV1, DurableNavigationEventRangePriorClaimOwnerV1,
-    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangePriorRecordOwnerV1,
-    DurableNavigationEventRangeSeedV1,
+    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangeSeedV1,
 };
 
 use super::{
@@ -303,9 +301,6 @@ impl DurableNavigationCurrentnessGuardV1 {
     pub(crate) fn adjacency_root(&self) -> Digest256 {
         self.adjacency_root
     }
-    pub(crate) fn source_revision(&self) -> Digest256 {
-        self.source_revision
-    }
     pub(crate) fn index_root(&self) -> Digest256 {
         self.index_root
     }
@@ -335,9 +330,6 @@ impl DurableNavigationCurrentnessGuardV1 {
     }
     pub(crate) fn header_raw(&self) -> &[u8] {
         &self.header_raw
-    }
-    pub(crate) fn header_sha256(&self) -> Digest256 {
-        self.header_sha256
     }
 }
 
@@ -373,9 +365,6 @@ impl DurableNavigationPublishedGenerationGuardV2 {
     pub(crate) fn adjacency_root(&self) -> Digest256 {
         self.inner.adjacency_root()
     }
-    pub(crate) fn source_revision(&self) -> Digest256 {
-        self.inner.source_revision()
-    }
     pub(crate) fn rights_allowed(&self) -> bool {
         self.inner.rights_allowed()
     }
@@ -402,9 +391,6 @@ impl DurableNavigationPublishedGenerationGuardV2 {
     }
     pub(crate) fn header_raw(&self) -> &[u8] {
         self.inner.header_raw()
-    }
-    pub(crate) fn header_sha256(&self) -> Digest256 {
-        self.inner.header_sha256()
     }
 }
 
@@ -633,7 +619,6 @@ pub enum DurableNavigationCurrentIndexNotReadyReasonV1 {
     BootstrapCoverageMismatch,
     AdjacencyCoverageMismatch,
     CoverageChainMismatch,
-    IndexRootMismatch,
     BudgetExceeded,
 }
 
@@ -776,23 +761,6 @@ fn navigation_owner_binding_json(binding: &DurableNavigationCurrentIndexOwnerBin
         value["navigation_original_receipt"] = json!(receipt);
     }
     value
-}
-
-fn navigation_bootstrap_root(
-    binding: &DurableNavigationCurrentIndexOwnerBindingV1,
-    header_raw: &[u8],
-    rows: &[DurableNavigationBaseRowReadV1],
-    owner_sources: &BTreeMap<String, DurableNavigationBootstrapOwnerSourceV1>,
-    max_bytes: usize,
-) -> DurableResult<Digest256> {
-    let mut hash = NavigationBootstrapRootHasher::new(binding, header_raw, max_bytes)?;
-    for source in owner_sources.values() {
-        hash.source(source)?;
-    }
-    for row in rows {
-        hash.row(row)?;
-    }
-    Ok(hash.finish())
 }
 
 /// V1 framing over a source-ordered then row-ordered stream. Retain only the
@@ -3851,6 +3819,7 @@ pub(crate) fn read_navigation_adjacency_certificate_v1(
     }))
 }
 
+#[cfg(test)]
 fn navigation_adjacency_root_initial(
     bootstrap_root: Digest256,
     certificates: &[NavigationAdjacencyCertificate],
@@ -3917,6 +3886,7 @@ fn make_navigation_adjacency_certificate(
     }
 }
 
+#[cfg(test)]
 fn bootstrap_adjacency_certificates(
     bootstrap_root: Digest256,
     rows: &[DurableNavigationBaseRowReadV1],

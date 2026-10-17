@@ -287,7 +287,6 @@ fn relation_registry_indexes<'a>(
 #[derive(Clone)]
 pub(crate) struct Kernel<'a> {
     entity_registry: &'a Value,
-    relation_registry: &'a Value,
     entity_registry_original: &'a JsonValue,
     relation_registry_original: &'a JsonValue,
     entity_entries: Rc<BTreeMap<String, &'a Value>>,
@@ -311,7 +310,6 @@ impl<'a> Kernel<'a> {
             entity_registry,
             relation_registry,
             entity_registry_original,
-            relation_registry_original,
         )?;
         let registry_violations = report
             .get("violations")
@@ -324,7 +322,6 @@ impl<'a> Kernel<'a> {
             relation_registry_indexes(relation_registry);
         Ok(Self {
             entity_registry,
-            relation_registry,
             entity_registry_original,
             relation_registry_original,
             entity_entries: Rc::new(entity_entries),
@@ -1973,7 +1970,6 @@ pub(crate) fn validate_semantic_registries(
     entity_registry: &Value,
     relation_registry: &Value,
     entity_original: &JsonValue,
-    relation_original: &JsonValue,
 ) -> Result<Value> {
     let mut violations = validate_vocabulary(entity_registry, None);
     let entity_rows = registry_items(entity_registry, "types");

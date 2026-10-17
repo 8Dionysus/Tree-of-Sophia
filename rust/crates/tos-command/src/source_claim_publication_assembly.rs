@@ -92,7 +92,6 @@ impl OrderedRow {
 pub(super) struct CatalogAddition {
     pub header: Value,
     pub changes: Vec<roots::Change>,
-    pub claim_ids: Vec<String>,
 }
 pub(super) struct AssembledAddition {
     pub nodes: BTreeMap<(String, String), OrderedRow>,
@@ -144,12 +143,7 @@ pub(super) struct AddressedEndpointVersion {
     pub exact_ref: Value,
     pub current_ref: Value,
     pub record: Value,
-    pub source_path: String,
     pub version_status: &'static str,
-    pub source: Value,
-    pub history: Value,
-    pub transition: Value,
-    pub route_profile: Value,
 }
 fn foundation_value(value: &tos_foundation::JsonValue) -> Result<Value> {
     serde_json::from_slice(&owner(cmd::canonical(value))?)
@@ -193,12 +187,7 @@ fn resolve_endpoint_version(
         exact_ref: foundation_value(exact)?,
         current_ref: foundation_value(&resolved.current_ref)?,
         record: foundation_value(&resolved.record)?,
-        source_path: resolved.source_path,
         version_status: resolved.version_status,
-        source: foundation_value(&resolved.source)?,
-        history: foundation_value(&resolved.history)?,
-        transition: foundation_value(&resolved.transition)?,
-        route_profile: foundation_value(&resolved.route_profile)?,
     })
 }
 struct Identity {
@@ -823,7 +812,6 @@ pub(super) fn assemble(
         declarations: Vec::new(),
         endpoint_versions: BTreeMap::new(),
     };
-    let mut claim_ids = Vec::new();
     if roots
         .get(
             catalog_role,
@@ -1122,7 +1110,6 @@ pub(super) fn assemble(
             before_sha256: None,
             after: addressed,
         });
-        claim_ids.push(id);
     }
     if offset != stream.len() {
         return Err(Error::Invalid("Claim stream addition closure differs"));
@@ -1177,12 +1164,5 @@ pub(super) fn assemble(
             .insert(id, identity.verified_versions);
     }
     owner(observation.verify_current(l.deadline, cancelled))?;
-    Ok((
-        CatalogAddition {
-            header,
-            changes,
-            claim_ids,
-        },
-        output,
-    ))
+    Ok((CatalogAddition { header, changes }, output))
 }

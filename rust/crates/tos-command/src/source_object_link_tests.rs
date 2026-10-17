@@ -7,7 +7,7 @@ use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
-use tos_foundation::{Digest256, JsonValue, RelativePath};
+use tos_foundation::{Digest256, RelativePath};
 use tos_validation::item_rules::ItemLimits;
 
 type Side = Option<(usize, Digest256)>;

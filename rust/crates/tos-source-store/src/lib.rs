@@ -55,7 +55,8 @@ pub use archive::{
 };
 #[cfg(feature = "capture")]
 pub use capture_import::{
-    CaptureImportReceiptV1, CaptureImportRequestV1, import_git_capture_corpus_v1,
+    CaptureImportReceipt, CaptureImportRequestV1, MAX_RETAINED_CAPTURE_INPUTS_V1,
+    RetainedCaptureReceiptV1, RetainedCaptureSelectionV1, import_git_capture_corpus_v1,
 };
 
 #[cfg(feature = "capture")]

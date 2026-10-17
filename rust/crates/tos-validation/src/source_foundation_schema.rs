@@ -22,7 +22,7 @@ use std::io::{self, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
-use tos_source_store::{CorpusCutReader, StreamedCorpusCutReaderV1};
+use tos_source_store::CorpusCutReader;
 
 const CONTRACT_PREFIX: &str = "ToS/contracts/";
 const CONTRACT_SUFFIX: &str = ".schema.json";
@@ -204,17 +204,6 @@ pub struct SourceFoundationSelectedSchemaResource<'a> {
     pub sha256: Digest256,
 }
 
-fn selected_source_resource_metadata_state_from_members(
-    members: &[(String, RelativePath, u64, Digest256)],
-    descriptor_capacity: usize,
-) -> Option<usize> {
-    let slots = descriptor_capacity.checked_mul(std::mem::size_of::<SelectedSchemaResource>())?;
-    let paths = members.iter().try_fold(0usize, |total, (path, _, _, _)| {
-        total.checked_add(path.capacity())
-    })?;
-    slots.checked_add(paths)
-}
-
 pub(crate) fn selected_source_resource_metadata_state(
     resources: &[SelectedSchemaResource],
     descriptor_capacity: usize,
@@ -345,186 +334,6 @@ impl SourceFoundationSchemaSet {
         // outside the exceptional evaluator's closed subset; that evaluator
         // reports Indeterminate for such a check. General schema probes keep
         // their stricter SchemaBackendProbe keyword gate.
-        let schema_set_sha256 = match schema_resource_set_digest(&resources) {
-            Some(digest) => digest,
-            None => {
-                check_load_active(deadline, cancelled)?;
-                return Err(SourceFoundationSchemaLoadFailure::SchemaSet);
-            }
-        };
-        check_load_active(deadline, cancelled)?;
-        let contract_selection_sha256 = contract_selection_digest(&contracts);
-        Ok(Self {
-            source_revision,
-            profile,
-            resources,
-            source_resources,
-            contracts,
-            contract_selection_sha256,
-            schema_set_sha256,
-            limits_sha256: limits.digest(),
-            schema_bytes: total_bytes,
-            catalog_entry_schema_present,
-            catalog_claim_entry_schema_present,
-            deadline,
-        })
-    }
-
-    /// Select the same complete contract-resource closure from the bounded
-    /// streamed source index. The cursor scans all current membership rows so
-    /// selected schema resources cannot be omitted by an incomplete member
-    /// view; only the finite contract metadata authorized by `limits` is held.
-    pub fn from_streamed_cut(
-        cut: &StreamedCorpusCutReaderV1,
-        profile: FormatProfile,
-        limits: SourceFoundationSchemaLimits,
-        max_source_resource_metadata_state_bytes: usize,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<Self, SourceFoundationSchemaLoadFailure> {
-        if !limits.validate() {
-            return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-        }
-        check_load_active(deadline, cancelled)?;
-        if profile != SOURCE_FOUNDATION_PROFILE {
-            return Err(SourceFoundationSchemaLoadFailure::SchemaSet);
-        }
-        let source_revision = cut.current_revision();
-        let mut members = Vec::new();
-        members
-            .try_reserve_exact(limits.max_schema_resources)
-            .map_err(|_| SourceFoundationSchemaLoadFailure::InvalidLimits)?;
-        let row_limit = cut.manifest_row_byte_limit();
-        check_load_active(deadline, cancelled)?;
-        let current_revision = cut.revision_at(0);
-        check_load_active(deadline, cancelled)?;
-        let expected_member_count = current_revision
-            .map_err(|_| SourceFoundationSchemaLoadFailure::CutRead)?
-            .ok_or(SourceFoundationSchemaLoadFailure::CutRead)?
-            .member_count;
-        let mut after: Option<RelativePath> = None;
-        let mut scanned = 0u64;
-        loop {
-            check_load_active(deadline, cancelled)?;
-            let next = cut.member_after(source_revision, after.as_ref());
-            check_load_active(deadline, cancelled)?;
-            let Some(member) = next.map_err(|_| SourceFoundationSchemaLoadFailure::CutRead)? else {
-                break;
-            };
-            scanned = scanned
-                .checked_add(1)
-                .ok_or(SourceFoundationSchemaLoadFailure::InvalidLimits)?;
-            let path = member.path.as_str();
-            if path.starts_with(CONTRACT_PREFIX) && path.ends_with(CONTRACT_SUFFIX) {
-                if path.len() > MAX_LOCATION_BYTES || path.len() > row_limit {
-                    return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                }
-                if members.len() >= limits.max_schema_resources {
-                    return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                }
-                members.push((
-                    path.to_owned(),
-                    member.path.clone(),
-                    member.size_bytes,
-                    member.sha256,
-                ));
-            }
-            after = Some(member.path);
-        }
-        if scanned != expected_member_count || members.is_empty() {
-            return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-        }
-        let requested_metadata_state =
-            selected_source_resource_metadata_state_from_members(&members, members.len())
-                .ok_or(SourceFoundationSchemaLoadFailure::InvalidLimits)?;
-        if requested_metadata_state > max_source_resource_metadata_state_bytes {
-            return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-        }
-
-        let mut resources = Vec::new();
-        resources
-            .try_reserve_exact(members.len())
-            .map_err(|_| SourceFoundationSchemaLoadFailure::InvalidLimits)?;
-        let mut source_resources = Vec::new();
-        source_resources
-            .try_reserve_exact(members.len())
-            .map_err(|_| SourceFoundationSchemaLoadFailure::InvalidLimits)?;
-        if selected_source_resource_metadata_state_from_members(
-            &members,
-            source_resources.capacity(),
-        )
-        .is_none_or(|state| state > max_source_resource_metadata_state_bytes)
-        {
-            return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-        }
-        let mut contracts = BTreeMap::new();
-        let mut total_bytes = 0usize;
-        let mut catalog_entry_schema_present = false;
-        let mut catalog_claim_entry_schema_present = false;
-        for (path, relative, expected_size, expected_digest) in members {
-            check_load_active(deadline, cancelled)?;
-            if expected_size > limits.max_schema_resource_bytes as u64 {
-                return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
-            }
-            let member = match cut.read_member(
-                source_revision,
-                &relative,
-                limits.max_schema_resource_bytes as u64,
-                deadline,
-                cancelled,
-            ) {
-                Ok(member) => member,
-                Err(_) => {
-                    check_load_active(deadline, cancelled)?;
-                    return Err(SourceFoundationSchemaLoadFailure::CutRead);
-                }
-            };
-            if member.raw.len() as u64 != expected_size
-                || Digest256::of_bytes(&member.raw) != expected_digest
-                || member.raw.len() > limits.max_schema_resource_bytes
-            {
-                return Err(SourceFoundationSchemaLoadFailure::CutRead);
-            }
-            total_bytes = total_bytes
-                .checked_add(member.raw.len())
-                .filter(|used| *used <= limits.max_total_schema_bytes)
-                .ok_or(SourceFoundationSchemaLoadFailure::InvalidLimits)?;
-            let value: Value =
-                crate::published_value(&member.raw, limits.max_schema_resource_bytes)
-                    .map_err(|_| SourceFoundationSchemaLoadFailure::SchemaResource)?;
-            if path == SOURCE_FOUNDATION_CATALOG_PATH {
-                let definitions = value.get("$defs").and_then(Value::as_object);
-                catalog_entry_schema_present = definitions
-                    .and_then(|definitions| definitions.get("entry"))
-                    .is_some_and(Value::is_object);
-                catalog_claim_entry_schema_present = definitions
-                    .and_then(|definitions| definitions.get("claim_entry"))
-                    .is_some_and(Value::is_object);
-            }
-            let uri = source_foundation_schema_resource_uri(&value)
-                .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
-                .to_owned();
-            let digest = Digest256::of_bytes(&member.raw);
-            if contracts
-                .insert(path.clone(), (uri.clone(), digest))
-                .is_some()
-            {
-                return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
-            }
-            resources.push(SchemaResource {
-                uri,
-                raw: member.raw,
-            });
-            source_resources.push(SelectedSchemaResource {
-                path,
-                size_bytes: expected_size,
-                sha256: expected_digest,
-            });
-        }
-        if resources.len() > limits.max_schema_resources || contracts.len() != resources.len() {
-            return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
-        }
-        check_load_active(deadline, cancelled)?;
         let schema_set_sha256 = match schema_resource_set_digest(&resources) {
             Some(digest) => digest,
             None => {
@@ -943,14 +752,6 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
 
     pub fn catalog_claim_entry_schema_present(&self) -> bool {
         self.catalog_claim_entry_schema_present
-    }
-
-    pub(crate) fn resources(&self) -> &[SchemaResource] {
-        &self.resources
-    }
-
-    pub(crate) fn contracts(&self) -> &BTreeMap<String, (String, Digest256)> {
-        &self.contracts
     }
 }
 
@@ -1421,85 +1222,6 @@ enum SourceFoundationInputProfile {
     FiniteJson,
     LegacyPythonObserved,
     Mixed,
-}
-
-/// Evaluate one source-foundation diagnostics call against an exact source
-/// cut. The function may use bounded protocol batches, all under one caller
-/// deadline/cancellation flag and the aggregate limits below. `BatchBudget`
-/// supplies each disposable worker's wall/CPU/address-space envelope.
-pub fn evaluate_source_foundation_schema_checks(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationSchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceFoundationSchemaOutcome {
-    evaluate_source_foundation_schema_checks_with_optional_quota(
-        schema_set, worker, checks, limits, deadline, cancelled, None, None,
-    )
-}
-
-fn evaluate_source_foundation_schema_checks_with_optional_quota(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationSchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: Option<&SharedSchemaWorkerQuota>,
-    image: Option<&VerifiedWorkerImageHandle>,
-) -> SourceFoundationSchemaOutcome {
-    let selection = SchemaEvaluationSelection {
-        resources: &schema_set.resources,
-        contracts: &schema_set.contracts,
-        schema_set_sha256: schema_set.schema_set_sha256,
-        contract_selection_sha256: schema_set.contract_selection_sha256,
-        schema_bytes: schema_set.schema_bytes,
-    };
-    evaluate_source_foundation_schema_checks_inner(
-        schema_set,
-        &selection,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        SourceFoundationInputProfile::FiniteJson,
-        quota,
-        image,
-    )
-}
-
-fn evaluate_source_foundation_legacy_schema_checks_with_optional_quota(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationLegacySchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: Option<&SharedSchemaWorkerQuota>,
-    image: Option<&VerifiedWorkerImageHandle>,
-) -> SourceFoundationSchemaOutcome {
-    let selection = SchemaEvaluationSelection {
-        resources: &schema_set.resources,
-        contracts: &schema_set.contracts,
-        schema_set_sha256: schema_set.schema_set_sha256,
-        contract_selection_sha256: schema_set.contract_selection_sha256,
-        schema_bytes: schema_set.schema_bytes,
-    };
-    evaluate_source_foundation_schema_checks_inner(
-        schema_set,
-        &selection,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        SourceFoundationInputProfile::LegacyPythonObserved,
-        quota,
-        image,
-    )
 }
 
 /// Evaluate finite decoded and raw LegacyPythonObserved checks in one ordered
@@ -3487,7 +3209,7 @@ pub fn python_path_suffix(path: &[schema_diagnostics::PathSegment]) -> String {
 }
 
 fn python_string_repr(value: &str) -> String {
-    use unicode_general_category::{GeneralCategory, get_general_category};
+    use unicode_general_category::get_general_category;
     let quote = if value.contains('\'') && !value.contains('"') {
         '"'
     } else {

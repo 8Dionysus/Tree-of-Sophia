@@ -107,9 +107,6 @@ pub(crate) struct SelectedGeneratedDeclarationV1 {
 }
 
 impl SelectedGeneratedDeclarationV1 {
-    pub(crate) fn manifest_sha256(&self) -> Digest256 {
-        self.manifest_sha256
-    }
     pub(crate) fn seed_sha256(&self) -> Digest256 {
         self.seed_sha256
     }
@@ -353,12 +350,6 @@ impl SelectedArtifactTemplateSelectionV1 {
     }
     pub(crate) fn generated_at(&self) -> &str {
         &self.generated_at
-    }
-    pub(crate) fn immutable_recipe_sha256(&self) -> Digest256 {
-        self.immutable_recipe_sha256
-    }
-    pub(crate) fn artifact_recipe_sha256(&self) -> Digest256 {
-        self.artifact_recipe_sha256
     }
     pub(crate) fn output_observation(&self) -> &SelectedArtifactOutputObservationV1 {
         &self.output_observation
@@ -2404,12 +2395,6 @@ pub(crate) struct IndexedInputMemberV1 {
     pub(crate) source_mode: u32,
     pub(crate) retained_state_bytes: usize,
     input_identity: Digest256,
-}
-
-impl IndexedInputMemberV1 {
-    pub(crate) fn retained_state_bytes(&self) -> usize {
-        self.retained_state_bytes
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

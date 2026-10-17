@@ -85,7 +85,7 @@ fn element(
             .map_err(|e| e.to_string())?
             .to_owned();
         let value = attr
-            .decode_and_unescape_value(decoder)
+            .decoded_and_normalized_value(quick_xml::XmlVersion::Implicit1_0, decoder)
             .map_err(|e| e.to_string())?
             .into_owned();
         if name == "xmlns" {

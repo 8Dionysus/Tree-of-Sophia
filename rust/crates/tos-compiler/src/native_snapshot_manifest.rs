@@ -3748,7 +3748,7 @@ mod selected_snapshot_tests {
         materialize_runtime_fixture(&source_root);
         let profile = historical_runtime_fixture(&source_root);
         let deadline = Instant::now() + std::time::Duration::from_secs(300);
-        let mut census = census_selected_runtime_closure(&profile, deadline).unwrap();
+        let census = census_selected_runtime_closure(&profile, deadline).unwrap();
         let limits = portable_native_snapshot_limits(300).unwrap();
         let capture_path = temp.path().join("current-capture.sqlite3");
         let capture = crate::PublicCapture::create_runtime(

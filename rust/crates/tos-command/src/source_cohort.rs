@@ -314,7 +314,7 @@ fn revision_package(
             "bounded source revision member budget",
         ));
     }
-    let mut reads = SourceReads {
+    let reads = SourceReads {
         reads: readset.reads.reads.clone(),
         locators: readset.reads.locators.clone(),
         managed_original: None,
@@ -632,7 +632,7 @@ fn work_revision_recorded_at(
         format!("{parent}/{}", names[1]),
         format!("{parent}/{}", source_revisions::HISTORY),
     ]);
-    let mut actual = writes
+    let actual = writes
         .iter()
         .map(|write| write.subject.clone())
         .collect::<BTreeSet<_>>();
@@ -999,7 +999,7 @@ pub(crate) struct SourceRevisionAttempt {
     pub(crate) source_head_sequence: Option<u64>,
     pub(crate) predecessor_source_revision: SourceRevision,
     pub(crate) reads: SourceReads,
-    pub(crate) metadata: SourceMetadata,
+    pub(in crate::durable_adapter) metadata: SourceMetadata,
     /// Only structural source-index rows created by this revision are bound
     /// here. Existing semantic rows remain in place after an index-preserving
     /// update; newly inserted archive members still need their path rows for
@@ -8676,16 +8676,6 @@ impl DurablePgCoordinator {
         let raw_request_digest = Digest256::of_bytes(&context.request_raw);
         let configuration_raw_digest = proposal.configuration_raw_sha256;
         let configuration_canonical_digest = proposal.configuration_canonical_sha256;
-        let delta = revision_delta(
-            &authored_proposal,
-            selection,
-            &reads,
-            &writes,
-            &metadata,
-            &projections,
-            publication_package.as_ref(),
-            work_revision.as_ref(),
-        )?;
         let domain = selection.cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
@@ -14184,7 +14174,8 @@ mod item_claim_owner_current_history_tests {
 
     #[test]
     fn current_item_owner_reconstructs_adoption_and_later_record_revisions() {
-        let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let fixture = crate::source_creation_store::source_native_test_fixtures::retained_history();
+        let repository = fixture.path().join("source");
         let repository = repository.canonicalize().expect("repository root");
         let mut retained = BTreeMap::new();
         retain_package(&repository, EDITION_HOME, &mut retained);

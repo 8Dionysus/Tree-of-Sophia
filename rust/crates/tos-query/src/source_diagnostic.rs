@@ -638,7 +638,7 @@ impl LegacyStore {
     pub fn visit_knowledge_table(
         &mut self,
         relations: bool,
-        mut observe: impl FnMut(&Value) -> Result<()>,
+        observe: impl FnMut(&Value) -> Result<()>,
     ) -> Result<u64> {
         self.visit_knowledge_where(relations, "1", &[], self.limits.max_json_bytes, 0, observe)
     }

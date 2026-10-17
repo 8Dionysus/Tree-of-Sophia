@@ -27,10 +27,10 @@ use std::{
 use tos_compiler::{
     ColdOpenLimits, DedicatedSessionSqliteHeap, ImmutableKnowledgeCustody,
     KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement,
-    NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths, PublicCapture,
-    RuntimeCaptureCreationUsage, RuntimeCaptureOwnedBudget,
-    native_cold_resources::LinuxCgroupColdOpenResourceHold, native_snapshot,
-    native_snapshot_manifest as manifest, private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    NativeProcessLimits, NativeSelectionPaths, PublicCapture, RuntimeCaptureCreationUsage,
+    RuntimeCaptureOwnedBudget, native_cold_resources::LinuxCgroupColdOpenResourceHold,
+    native_snapshot, native_snapshot_manifest as manifest,
+    private_tmpfs_stage::PrivateTmpfsStageIsolation,
 };
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, SourceRevision, parse_json,
@@ -41,7 +41,6 @@ use tos_source_store::{
     ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareComponentSelectionV1};
-use tos_validation::FormatProfile;
 use tos_validation::executor::{
     BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget,
 };
@@ -1600,7 +1599,7 @@ pub fn conformance_write_assessed_candidate(
     Ok(())
 }
 
-pub(crate) fn write_assessed_candidate_with_hook(
+fn write_assessed_candidate_with_hook(
     target: &Path,
     rendered: &[u8],
     after_stage_fsync: impl FnOnce() -> Result<()>,
@@ -1973,7 +1972,7 @@ fn valid_child(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
 }
 
-fn bounded_input(mut input: impl Read) -> Result<Vec<u8>> {
+fn bounded_input(input: impl Read) -> Result<Vec<u8>> {
     let mut raw = Vec::new();
     input
         .take((MAX_REQUEST_BYTES + 1) as u64)
@@ -2276,26 +2275,6 @@ enum SelectedSource {
 }
 
 impl SelectedSource {
-    fn source_root(&self) -> &Path {
-        match self {
-            Self::Historical { census, .. } => census.source_root(),
-            Self::Current { runtime, .. } => &runtime.inputs.source_root,
-        }
-    }
-
-    fn retained_state_upper_bound(&self) -> Result<usize> {
-        match self {
-            Self::Historical { profile, census } => profile
-                .retained_state_upper_bound()?
-                .checked_add(census.retained_state_upper_bound()?)
-                .ok_or_else(|| Refusal("selected historical source census overflow").into()),
-            Self::Current { runtime, census } => runtime
-                .retained_state_upper_bound()?
-                .checked_add(census.retained_state_upper_bound()?)
-                .ok_or_else(|| Refusal("selected current source census overflow").into()),
-        }
-    }
-
     fn validate_capture_closure(
         &self,
         capture: &PublicCapture,
@@ -2387,13 +2366,6 @@ impl SelectedSource {
         match self {
             Self::Historical { census, .. } => census.member_count(),
             Self::Current { census, .. } => census.member_count(),
-        }
-    }
-
-    fn member_bytes(&self) -> u64 {
-        match self {
-            Self::Historical { census, .. } => census.member_bytes(),
-            Self::Current { census, .. } => census.member_bytes(),
         }
     }
 
@@ -3658,7 +3630,7 @@ pub(crate) fn with_direct_repository_projection<T>(
         final_fence_workspace_upper_bound_bytes: limits.final_fence_workspace_upper_bound_bytes,
     };
     let worker_image_digest = worker.sha256;
-    let ((products, consumed), _) =
+    let (products, consumed) =
         crate::source_current_cut::foundation_capture::with_authored_diagnostic_capture(
             &mut sources,
             &isolated,

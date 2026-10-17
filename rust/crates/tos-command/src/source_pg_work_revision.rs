@@ -7,9 +7,7 @@
 
 use crate::durable_adapter::{DurableError, DurableResult};
 use crate::source_cohort::{OWNER as SOURCE_OWNER, SourceRevisionWrite};
-use crate::source_command::{
-    self as cmd, CommandContext, PreparedCommand, SourceCommandError, SourceCommandResult,
-};
+use crate::source_command::{self as cmd, CommandContext, PreparedCommand};
 use crate::source_revisions::{
     self as revision, RetainedRevisionTransaction, RevisionFamily, RevisionTransactionStatus,
 };
@@ -467,8 +465,6 @@ struct StoredReceipt {
     before: Vec<MemberVersionRef>,
     after: Vec<MemberVersionRef>,
     receipt_digest: Digest256,
-    prepare_id: Vec<u8>,
-    commit_seq: u64,
 }
 
 impl StoredReceipt {
@@ -571,8 +567,6 @@ fn decode_receipt_row(
         before,
         after,
         receipt_digest: stored_receipt_digest,
-        prepare_id,
-        commit_seq,
     })
 }
 
@@ -975,8 +969,8 @@ pub(crate) fn make_commit_evidence(
             digest: Some(Digest256::of_bytes(&write.exact_bytes)),
         });
     }
-    let before_raw = encode_refs(&before, source_path)?;
-    let after_raw = encode_refs(&after, source_path)?;
+    encode_refs(&before, source_path)?;
+    encode_refs(&after, source_path)?;
     let source_raw = after
         .iter()
         .find(|file| file.path == source_path)

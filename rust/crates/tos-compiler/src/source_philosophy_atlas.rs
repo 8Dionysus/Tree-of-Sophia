@@ -2,7 +2,7 @@
 use crate::source_philosophy_multilingual::Multilingual;
 use crate::source_philosophy_support::check_run;
 use crate::source_philosophy_support::{
-    array, bytes, digest, fallback, object_with_profile, required, sha1_hex, string, truth,
+    array, bytes, digest, fallback, object_with_profile, required, sha1_hex, truth,
 };
 use crate::{Error, PhilosophySourceReadProfile, Result};
 use serde_json::{Value, json};

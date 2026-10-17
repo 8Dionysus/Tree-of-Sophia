@@ -20,8 +20,8 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 use tos_command::{
-    DurablePgCoordinator, DurableProjectionExtractor, DurableProjectionLimits,
-    DurableProjectionProfile, DurableProjectionSearch, DurableProjectionStatus,
+    DurablePgCoordinator, DurableProjectionLimits, DurableProjectionProfile,
+    DurableProjectionSearch, DurableProjectionStatus,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, RelativePath,
@@ -36,7 +36,7 @@ use tos_source_store::{
     GitCaptureLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
 const AGENT_DIRS: &[&str] = &["parmenides-of-elea", "justus-lipsius", "hans-hahn"];
 const SHARED_SOURCE: &[&str] = &[
@@ -418,6 +418,13 @@ fn selected_shared_source_members(
         vec![NIETZSCHE_DIR, "parmenides-of-elea", "justus-lipsius"]
     };
     let mut members = SourceMembers::new();
+    let retained_history = super::retained_history_capture::retained_history(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap(),
+    );
+    let retained_root = retained_history.path().join("source");
     for name in selected {
         let relative_dir = format!("ToS/source-witnesses/agents/{name}");
         let source_dir = repository.join(&relative_dir);
@@ -464,7 +471,7 @@ fn selected_shared_source_members(
                 )
                 .expect("the retained archive path is safe");
                 let manifest_path = format!("{}/manifest.json", archive_path.as_str());
-                copy_repository_member(repository, private_root, &mut members, &manifest_path);
+                copy_repository_member(&retained_root, private_root, &mut members, &manifest_path);
                 let manifest: Value = serde_json::from_slice(&members[&manifest_path].0).unwrap();
                 let archived_files = manifest["files"]
                     .as_object()
@@ -486,7 +493,7 @@ fn selected_shared_source_members(
                         RelativePath::parse(&format!("{}/{}", archive_path.as_str(), blob))
                             .expect("retained archive blob path is safe");
                     copy_repository_member(
-                        repository,
+                        &retained_root,
                         private_root,
                         &mut members,
                         blob_path.as_str(),
@@ -528,6 +535,13 @@ fn selected_work_source_members(repository: &Path, private_root: &Path) -> Sourc
     fs::create_dir_all(private_root).unwrap();
     fs::set_permissions(private_root, fs::Permissions::from_mode(0o700)).unwrap();
     let mut members = SourceMembers::new();
+    let retained_history = super::retained_history_capture::retained_history(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap(),
+    );
+    let retained_root = retained_history.path().join("source");
     let work_directory = Path::new(WORK_SOURCE_PATH).parent().unwrap();
     let source_directory = repository.join(work_directory);
     let mut entries = fs::read_dir(&source_directory)
@@ -564,12 +578,17 @@ fn selected_work_source_members(repository: &Path, private_root: &Path) -> Sourc
     for receipt in history["receipts"].as_array().unwrap() {
         let archive = RelativePath::parse(receipt["archive_path"].as_str().unwrap()).unwrap();
         let manifest_path = format!("{}/manifest.json", archive.as_str());
-        copy_repository_member(repository, private_root, &mut members, &manifest_path);
+        copy_repository_member(&retained_root, private_root, &mut members, &manifest_path);
         let manifest: Value = serde_json::from_slice(&members[&manifest_path].0).unwrap();
         for binding in manifest["files"].as_object().unwrap().values() {
             let blob = binding["blob"].as_str().unwrap();
             let blob_path = RelativePath::parse(&format!("{}/{}", archive.as_str(), blob)).unwrap();
-            copy_repository_member(repository, private_root, &mut members, blob_path.as_str());
+            copy_repository_member(
+                &retained_root,
+                private_root,
+                &mut members,
+                blob_path.as_str(),
+            );
         }
     }
 
@@ -1848,8 +1867,8 @@ fn kill_projection_child(case: &RevisionCase, consumer: &str) -> Value {
         reaped, pid as libc::pid_t,
         "killed projection child is reaped"
     );
-    let (stdout, stdout_bytes) = stdout_reader.join().unwrap();
-    let (stderr, stderr_bytes) = stderr_reader.join().unwrap();
+    let (_, stdout_bytes) = stdout_reader.join().unwrap();
+    let (_, stderr_bytes) = stderr_reader.join().unwrap();
     assert!(stdout_bytes <= 1_048_576 && stderr_bytes <= 1_048_576);
     assert_eq!(
         ExitStatus::from_raw(status).signal(),

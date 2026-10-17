@@ -92,7 +92,7 @@ pub(crate) fn prepare_pg_derived_text_preview(
             "PostgreSQL derived Text preparation lacks a selected source inventory",
         ));
     }
-    let mut prepared = prepare_selected(
+    let prepared = prepare_selected(
         context,
         publication,
         grant,
@@ -1191,16 +1191,11 @@ pub(crate) struct PreparedNativeDerivedTextPackage {
     replayed: bool,
     context_binding: Digest256,
     request_digest: Digest256,
-    grant_digest: Digest256,
 }
 
 impl PreparedNativeDerivedTextPackage {
     pub(crate) fn source_path(&self) -> &str {
         &self.source_path
-    }
-
-    pub(crate) fn operation(&self) -> &str {
-        &self.prepared.grant.operation
     }
 
     pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
@@ -1219,24 +1214,12 @@ impl PreparedNativeDerivedTextPackage {
         &self.prepared.owner_configuration
     }
 
-    pub(crate) fn expected_dependencies(&self) -> &str {
-        &self.prepared.dependencies
-    }
-
     pub(crate) fn owner_context_binding(&self) -> Digest256 {
         self.context_binding
     }
 
     pub(crate) fn request_digest(&self) -> Digest256 {
         self.request_digest
-    }
-
-    pub(crate) fn grant_digest(&self) -> Digest256 {
-        self.grant_digest
-    }
-
-    pub(crate) fn account_uid(&self) -> u32 {
-        self.prepared.context.account_uid()
     }
 
     pub(crate) fn verify_current(
@@ -1490,7 +1473,6 @@ pub(crate) fn prepare_pg_derived_text_package(
     let context_binding = prepared
         .context
         .private_owner_scope_binding(deadline, cancelled)?;
-    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
     Ok(PreparedNativeDerivedTextPackage {
         prepared,
         source_path,
@@ -1499,7 +1481,6 @@ pub(crate) fn prepare_pg_derived_text_package(
         replayed,
         context_binding,
         request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
-        grant_digest,
     })
 }
 

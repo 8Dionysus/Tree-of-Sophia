@@ -18,7 +18,7 @@ use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, SourceRevision,
     canonical_raw_bytes_v1,
 };
-use tos_source_store::{CorpusCutReader, StreamedCorpusCutReaderV1};
+use tos_source_store::CorpusCutReader;
 use tos_validation::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, SharedSchemaWorkerQuota,
     VerifiedWorkerImageHandle,
@@ -211,7 +211,7 @@ impl SourceCatalogLimits {
 /// There is no permissive validator implementation or token-based shortcut.
 type SchemaResult<T> = std::result::Result<T, tos_validation::item_rules::ItemRefusal>;
 use tos_validation::source_cut::{
-    CandidateCutSchemaDiagnostic, CutPreparedSchemaExecutionBinding, CutSchemaDiagnostic,
+    CandidateCutSchemaDiagnostic, CutPreparedSchemaExecutionBinding,
     CutSchemaDiagnosticsCumulativeCost,
 };
 use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
@@ -221,7 +221,6 @@ trait CandidateCatalogSchemas: CutSchemaExecutor {
     fn prepared_binding(&self) -> SchemaResult<CutPreparedSchemaExecutionBinding>;
     fn take_candidate_rejection_any(&mut self) -> SchemaResult<Option<Box<dyn std::any::Any>>>;
     fn cumulative_cost(&self) -> SchemaResult<CutSchemaDiagnosticsCumulativeCost>;
-    fn execution_count(&self) -> SchemaResult<usize>;
 }
 
 /// Opaque source-cut identity for one selected event compilation. The
@@ -326,10 +325,6 @@ impl<I: Copy + Eq + 'static> CandidateCatalogSchemas for BorrowedCandidateSchema
     fn cumulative_cost(&self) -> SchemaResult<CutSchemaDiagnosticsCumulativeCost> {
         self.guard()?;
         self.schemas.diagnostics_v2_cumulative_cost()
-    }
-    fn execution_count(&self) -> SchemaResult<usize> {
-        self.guard()?;
-        self.schemas.diagnostic_execution_count()
     }
 }
 
@@ -644,7 +639,7 @@ impl CatalogInputBinding for crate::knowledge_stage::ColdAuthoredBinding {
     }
 }
 
-pub type CandidateSourceCatalogReceipt<I: Eq + Copy + 'static> =
+pub type CandidateSourceCatalogReceipt<I> =
     SourceCatalogReceipt<crate::knowledge_stage::CandidateValidationBinding<I>>;
 impl<I: Copy + Eq + 'static> CatalogInputBinding
     for crate::knowledge_stage::CandidateValidationBinding<I>
@@ -1185,42 +1180,6 @@ impl<'a> SourceCatalogValidator<'a> {
             deadline,
             cancelled,
         )
-    }
-
-    /// Same selected schema/worker kernel over the authenticated streamed cut.
-    pub fn from_streamed_cut_with_image(
-        cut: &StreamedCorpusCutReaderV1,
-        image: &'a VerifiedWorkerImageHandle,
-        budget: ExecutorBudget,
-        limits: CutWorkerLimits,
-        operation: BatchStreamBudget,
-        deadline: Instant,
-        cancelled: &'a AtomicBool,
-    ) -> Result<Self> {
-        let deadline = deadline.min(image.operation_deadline());
-        let mut schemas = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            image,
-            budget,
-            limits,
-            deadline,
-            cancelled,
-        )
-        .map_err(|e| Error::Source(format!("catalog exact streamed executor:{e:?}")))?;
-        schemas
-            .set_operation_budget(operation)
-            .map_err(|e| Error::Source(format!("catalog schema operation budget:{e:?}")))?;
-        Ok(Self {
-            worker: image.identity(),
-            budget,
-            cancelled,
-            schemas: RefCell::new(CatalogSchemas::Resident(schemas)),
-            worker_pin: image.identity().clone(),
-            budget_pin: budget,
-            deadline,
-            event_source_revision: None,
-        })
     }
 
     fn from_cut_inner(
@@ -2729,32 +2688,6 @@ fn outputs(
     Ok((manifest, file_sha, record_count, claim_count))
 }
 
-pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-) -> Result<SourceCatalogReceipt<B>> {
-    prepare_catalog_receipt_observed_with_selection(stage, validator, l, observer, None, None)
-}
-pub(crate) fn prepare_catalog_receipt_observed_with_selection<B: CatalogInputBinding>(
-    stage: &mut KnowledgeStage<'_>,
-    validator: &SourceCatalogValidator<'_>,
-    l: SourceCatalogLimits,
-    observer: &mut impl SourceCatalogProfileObserver,
-    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
-    verification_workspace: Option<usize>,
-) -> Result<SourceCatalogReceipt<B>> {
-    prepare_catalog_receipt_observed_with_selections(
-        stage,
-        validator,
-        l,
-        observer,
-        selection,
-        None,
-        verification_workspace,
-    )
-}
 pub(crate) fn prepare_catalog_receipt_observed_with_selections<B: CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,

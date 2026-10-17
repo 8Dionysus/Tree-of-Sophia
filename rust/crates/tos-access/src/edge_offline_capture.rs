@@ -34,8 +34,8 @@ use tos_compiler::{
     project_private_navigation_row,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
-    canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
+    Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
+    emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
 mod borrowed_bridge;
@@ -629,7 +629,7 @@ fn open_read_only_with_deadline(
         .metadata()
         .map_err(|error| error.to_string())?;
     let selected_identity = (selected_metadata.dev(), selected_metadata.ino());
-    let mut db = Connection::open_with_flags(
+    let db = Connection::open_with_flags(
         path,
         OpenFlags::SQLITE_OPEN_READ_ONLY
             | OpenFlags::SQLITE_OPEN_NO_MUTEX
@@ -1361,7 +1361,6 @@ fn row_key(table: D1Table, row: &[D1Cell]) -> Result<String, String> {
         D1Table::SourceNavigationRights => &[0],
         D1Table::SourceNavigationRightsPayload => &[0, 1],
         D1Table::EdgeMeta => &[0, 1],
-        _ => return Err(invalid("unsupported private capture row table")),
     };
     let parts = indexes
         .iter()
@@ -3522,8 +3521,6 @@ fn manifest_sha(value: &Value) -> Result<&str, String> {
 
 #[derive(Clone)]
 struct CapturedChange {
-    kind: String,
-    id: String,
     after_digest: Option<String>,
     operation: Option<String>,
 }
@@ -3543,7 +3540,6 @@ fn add_change(
     let bytes = kind
         .len()
         .checked_add(id.len())
-        .and_then(|bytes| bytes.checked_mul(2))
         .and_then(|bytes| bytes.checked_add(operation.map_or(0, str::len)))
         .and_then(|bytes| bytes.checked_add(after_digest.map_or(0, str::len)))
         .ok_or_else(|| invalid("private capture retained byte overflow"))?;
@@ -3553,8 +3549,6 @@ fn add_change(
         .insert(
             key,
             CapturedChange {
-                kind: kind.to_owned(),
-                id: id.to_owned(),
                 after_digest: after_digest.map(str::to_owned),
                 operation: operation.map(str::to_owned),
             },
@@ -4022,7 +4016,7 @@ fn run_prepared_transition(
     let after_header_raw = compact(&after_header, limits.prepared.max_metadata_bytes)?;
     let (_, _, after_catalog_raw) =
         parse_meta_accounted(&after_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
-    let (after_lens, _, after_lens_raw) =
+    let (_, _, after_lens_raw) =
         parse_meta_accounted(&after_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?;
     // The exact held source binding is validated against prepared_source_state.
     // The rendered knowledge_catalog row is a separate owner output whose
@@ -4247,7 +4241,7 @@ fn run_prepared_transition(
     let installed_auxiliary =
         auxiliary_stores_accounted(&d1_tx, &base_top_raw, limits, &mut d1_read_bytes)?;
     let mut retained = RetainedBytes::new(limits);
-    let (mut changes, manifest_rows_scanned) = selected_manifest(
+    let (changes, manifest_rows_scanned) = selected_manifest(
         &d1_tx,
         &after_tx,
         &after_source,
@@ -5498,8 +5492,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
         &request["after_binding"],
         limits.prepared.max_metadata_bytes,
     )?;
-    let (rights, rights_expected, _rights_trusted) =
-        private_trusted_projection_root(&request["rights_root"])?;
+    let (rights, _, _rights_trusted) = private_trusted_projection_root(&request["rights_root"])?;
     let forward = output_path(string(&request, "forward_sql")?)?;
     let rollback = output_path(string(&request, "rollback_sql")?)?;
     let manifest = output_path(string(&request, "manifest_json")?)?;

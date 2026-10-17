@@ -656,10 +656,8 @@ fn inspect_source_anchor_v2(
                 .and_then(|bytes| bytes.checked_add(128))
                 .ok_or(ItemRefusal::Budget)?;
             for text in [
-                representation_ref,
                 sha256,
                 media_type,
-                representation_ref,
                 representation_ref,
                 sha256,
                 media_type,
@@ -671,7 +669,6 @@ fn inspect_source_anchor_v2(
             }
             state.reserve(entry_bytes, limits)?;
             let entry = AnchorResource {
-                representation_ref: representation_ref.to_owned(),
                 sha256: sha256.to_owned(),
                 media_type: media_type.to_owned(),
                 bytes: Arc::new(raw),
@@ -883,7 +880,6 @@ fn inspect_source_anchor_v2(
 
 #[derive(Debug, Clone)]
 struct AnchorResource {
-    representation_ref: String,
     sha256: String,
     media_type: String,
     bytes: Arc<Vec<u8>>,
@@ -3755,7 +3751,6 @@ fn inspect_semantic_annotation_v2(
         None,
         "semantic",
         |state, source, id, packet_path, packet, _raw, row| {
-            let report_index = state.report["variants"].as_array().map_or(0, Vec::len);
             let family = crate::layer_family_rules::inspect_supplied_semantic_annotation(
                 packet_path,
                 packet,

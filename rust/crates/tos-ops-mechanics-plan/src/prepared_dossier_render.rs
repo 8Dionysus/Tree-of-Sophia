@@ -1553,7 +1553,7 @@ fn render_branch_readme(
         .routes
         .get(&dossier.dossier_id)
         .ok_or("README route missing")?;
-    let (review, fields) = route_review(inputs, dossier)?;
+    let (review, _) = route_review(inputs, dossier)?;
     let plants = inputs
         .source_planting_refs
         .get(&dossier.dossier_id)

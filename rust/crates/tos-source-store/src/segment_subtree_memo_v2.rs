@@ -45,7 +45,6 @@ pub struct SegmentSubtreeMemoV2 {
     reader_limits: SegmentIndexReadLimitsV2,
     limits: SegmentSubtreeMemoLimitsV2,
     entries: u64,
-    abandoned: bool,
 }
 pub(crate) struct CompletedSubtreeV2 {
     pub(crate) pages: u64,
@@ -126,13 +125,11 @@ impl SegmentSubtreeMemoV2 {
             reader_limits: reader.read_limits(),
             limits,
             entries: 0,
-            abandoned: false,
         })
     }
     pub(crate) fn matches(&self, reader: &SegmentIndexReaderV2, basis: Digest256) -> Result<()> {
         reader.check_request()?;
-        if self.abandoned
-            || self.basis != basis
+        if self.basis != basis
             || self.reader_limits != reader.read_limits()
             || self.directory != reader.memo_directory_identity()
             || !reader.shares_request(&self.io, &self.space, self.deadline, &self.cancelled)
@@ -140,9 +137,6 @@ impl SegmentSubtreeMemoV2 {
             return Err(refusal("V2 subtree memo basis or original request differs"));
         }
         Ok(())
-    }
-    pub(crate) fn abandon(&mut self) {
-        self.abandoned = true;
     }
     pub(crate) fn lookup(
         &self,

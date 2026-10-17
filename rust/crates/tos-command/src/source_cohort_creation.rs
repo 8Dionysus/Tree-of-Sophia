@@ -49,12 +49,6 @@ impl PgDependencyCommitment {
         }
         Ok(Self { version, digest })
     }
-    pub(crate) fn version(self) -> u16 {
-        self.version
-    }
-    pub(crate) fn digest(self) -> Digest256 {
-        self.digest
-    }
 }
 
 /// Capture owns the concrete sealed prepared type. Implementing this trait is
@@ -109,7 +103,7 @@ pub(crate) struct PgCreationAttempt {
     pub(crate) definition: Digest256,
     pub(crate) delta: Digest256,
     pub(crate) reads: SourceReads,
-    pub(crate) metadata: SourceMetadata,
+    pub(in crate::durable_adapter) metadata: SourceMetadata,
     pub(crate) indexes: IndexRows,
     pub(crate) index_binding: Vec<u8>,
     pub(crate) dependency_commitment: PgDependencyCommitment,

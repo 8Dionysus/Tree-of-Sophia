@@ -19,7 +19,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
+use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
@@ -188,12 +188,6 @@ const NATIVE_CORPUS_KINDS: &[&str] = &[
     "collection",
     "item",
 ];
-const FORM_SCHEMAS: &[&str] = &[
-    "ToS/contracts/knowledge-assessment.schema.json",
-    "ToS/contracts/human-form.schema.json",
-    "ToS/contracts/human-form-set.schema.json",
-    "ToS/contracts/human-form-template.schema.json",
-];
 
 /// Semantic output only. The private owner store compares `before`, publishes
 /// `files`, and atomically retains `archive`; these bytes are proposals.
@@ -211,12 +205,6 @@ enum ConfigVersion {
     V2,
 }
 impl ConfigVersion {
-    fn schema(self) -> &'static str {
-        match self {
-            Self::V1 => CONFIG_V1,
-            Self::V2 => CONFIG_V2,
-        }
-    }
     fn reader_allowed(self, value: &str) -> bool {
         match self {
             Self::V1 => matches!(value, "semantic-relation-v1" | "identity-relation-v1"),
@@ -841,7 +829,7 @@ fn validate_grant(
     let allowed_forms = exact_list(&value, "allowed_form_ids", 32)?;
     let allowed_subjects = exact_list(&value, "allowed_subject_refs", 128)?;
     let allowed_objects = exact_list(&value, "allowed_object_refs", 128)?;
-    let allowed_predicates = exact_list(&value, "allowed_predicates", 32)?;
+    exact_list(&value, "allowed_predicates", 32)?;
     let allowed_evidence = exact_list(&value, "allowed_evidence_refs", 128)?;
     let allowed_fields = exact_list(&value, "allowed_fields", 8)?;
     if allowed_claims.iter().any(|v| !claim_id(v))
@@ -1045,7 +1033,7 @@ fn archive_package(
     let source = archive_ref(cmd::text(subject, "id")?, revision, context)?;
     let refs = crate::source_revisions::file_refs(files, true);
     let mut archived = PrivatePackage::new();
-    for (name, raw) in files {
+    for raw in files.values() {
         let blob = format!("{}.blob", Digest256::of_bytes(raw).to_hex());
         if let Some(existing) = archived.insert(blob, raw.clone())
             && existing != *raw
@@ -1459,7 +1447,6 @@ struct ClaimRoute {
 }
 
 struct ClaimGrammar {
-    relations: JsonValue,
     entities: JsonValue,
     routes: BTreeMap<String, ClaimRoute>,
     entity_by_id: BTreeMap<String, JsonValue>,
@@ -1778,7 +1765,6 @@ impl ClaimGrammar {
         );
         let _ = (relation_schema, entity_registry_schema);
         Ok(Self {
-            relations,
             entities,
             routes,
             entity_by_id,
@@ -1814,15 +1800,6 @@ impl ClaimGrammar {
         result.schema_ref = cmd::text(selected, "schema_ref")?.to_owned();
         result.schema_dependencies = field_texts(selected, "schema_dependencies", 128)?;
         Ok(result)
-    }
-
-    fn type_for_source(&self, kind: &str) -> SourceCommandResult<&str> {
-        self.type_by_kind
-            .get(kind)
-            .map(String::as_str)
-            .ok_or(SourceCommandError::Unsupported(
-                "private Claim source type mapping",
-            ))
     }
 }
 
@@ -2113,7 +2090,7 @@ fn identity_inventory(
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(String, BTreeMap<String, String>, BTreeSet<String>)> {
+) -> SourceCommandResult<(String, BTreeSet<String>)> {
     // The Claim-only owner-store census combines public and selected-private
     // entries and charges each visited directory entry before maintained
     // hidden/payload/catalog skips. Do not count cut file members again.
@@ -2225,28 +2202,7 @@ fn identity_inventory(
     }
     let inventory = JsonValue::Object(fingerprints);
     let digest = cmd::record_digest(&inventory)?.to_prefixed();
-    Ok((digest, fingerprints_to_map(&inventory)?, ids))
-}
-
-fn fingerprints_to_map(value: &JsonValue) -> SourceCommandResult<BTreeMap<String, String>> {
-    let fields = value
-        .as_object()
-        .ok_or(SourceCommandError::Invalid("private Claim inventory map"))?;
-    fields
-        .iter()
-        .map(|(name, raw)| {
-            Ok((
-                name.as_str()
-                    .ok_or(SourceCommandError::Invalid("private Claim inventory path"))?
-                    .to_owned(),
-                raw.as_str()
-                    .ok_or(SourceCommandError::Invalid(
-                        "private Claim inventory digest",
-                    ))?
-                    .to_owned(),
-            ))
-        })
-        .collect()
+    Ok((digest, ids))
 }
 
 struct OwnerNativeRead<'a> {
@@ -3683,9 +3639,6 @@ struct PreparedForms {
 fn prepare_claim_forms(
     ctx: &CommandContext,
     grant: &Grant,
-    owner: &OwnerTextContext,
-    cut: &dyn PrivateSelectedSourceInput,
-    context: &JsonValue,
     worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     record: &JsonValue,
     payload: Option<&JsonValue>,
@@ -3858,9 +3811,6 @@ fn creation_files(
         let prepared = prepare_claim_forms(
             ctx,
             grant,
-            owner,
-            cut,
-            context,
             worker,
             claim,
             None,
@@ -3963,11 +3913,6 @@ struct GroundedClaims {
     dependencies: String,
     bindings: Vec<JsonValue>,
     source_fields: Vec<JsonValue>,
-    materializations: Vec<JsonValue>,
-    identity_digest: String,
-    identity_files: BTreeMap<String, String>,
-    identity_ids: BTreeSet<String>,
-    snapshots: BTreeMap<String, String>,
     reads: Vec<SourceFile>,
 }
 
@@ -4471,15 +4416,13 @@ fn ground_claims(
                 native_by_claim
                     .entry(identity.to_owned())
                     .or_default()
-                    .push(
-                        (NativeSelection {
-                            key: binding_key,
-                            binding: bound.clone(),
-                            origin_id: cmd::text(selector, "origin_id")?.to_owned(),
-                            source_access: cmd::field(selector, "source_access")?.clone(),
-                            source_ids: BTreeSet::from([source_id.to_owned()]),
-                        }),
-                    );
+                    .push(NativeSelection {
+                        key: binding_key,
+                        binding: bound.clone(),
+                        origin_id: cmd::text(selector, "origin_id")?.to_owned(),
+                        source_access: cmd::field(selector, "source_access")?.clone(),
+                        source_ids: BTreeSet::from([source_id.to_owned()]),
+                    });
             }
             records.insert(source_id.to_owned(), source);
         }
@@ -4506,7 +4449,7 @@ fn ground_claims(
         }
         records_by_claim.insert(identity.to_owned(), records);
     }
-    let (identity_digest, identity_files, mut identity_ids) = identity_inventory(
+    let (identity_digest, identity_ids) = identity_inventory(
         grant,
         owner,
         cut,
@@ -4588,7 +4531,7 @@ fn ground_claims(
         );
     }
     let implementation = implementation_digests(software, components, deadline, cancelled)?;
-    let mut provenance_contract = selected_authored(
+    let provenance_contract = selected_authored(
         ctx,
         owner,
         cut,
@@ -4638,7 +4581,6 @@ fn ground_claims(
     let mut snapshots = BTreeMap::new();
     let mut bindings = Vec::new();
     let mut source_fields = Vec::new();
-    let mut materializations = Vec::new();
     for claim in claims {
         let identity = cmd::text(claim, "claim_id")?;
         let route = routes
@@ -4989,7 +4931,7 @@ fn ground_claims(
         );
         source_fields.extend(form_fields_for_claim(claim)?);
     }
-    let grounding = hash_map(snapshots.clone());
+    let grounding = hash_map(snapshots);
     let dependency_basis = cmd::object(vec![
         ("grounding", grounding),
         ("identity", cmd::string(&identity_digest)),
@@ -5002,11 +4944,6 @@ fn ground_claims(
         dependencies,
         bindings,
         source_fields,
-        materializations,
-        identity_digest,
-        identity_files,
-        identity_ids,
-        snapshots,
         reads: reads.into_source_files()?,
     })
 }
@@ -5338,7 +5275,7 @@ fn resolve_assessment_claim_sources_with_entities(
     preflight_assessment_claim_sources(
         ctx, owner, cut, context, &grammar, selections, worker, &mut reads, deadline, cancelled,
     )?;
-    let form_grammar = super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
+    super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
     let mut claims = BTreeMap::<String, JsonValue>::new();
     let mut routes = BTreeMap::<String, ClaimRoute>::new();
     let mut claim_streams = BTreeMap::<String, String>::new();
@@ -5820,7 +5757,7 @@ fn resolve_assessment_claim_sources_with_entities(
             selection.claim_id.clone(),
             claim_envelope.clone(),
         )?;
-        let mut languages =
+        let languages =
             assessment_languages(claim, route, &source_records, &claim_native_summaries)?;
         required_languages.insert(selection.claim_id.clone(), languages.clone());
         let mut dependency_refs = claim_required
@@ -6268,7 +6205,6 @@ struct PackageState {
     history: JsonValue,
     receipt: JsonValue,
     initial_archive_stream_digest: Option<String>,
-    archive_locations: Vec<JsonValue>,
 }
 
 fn historical_grant(raw: &[u8], context: &JsonValue) -> SourceCommandResult<Grant> {
@@ -7013,7 +6949,6 @@ fn package_state(
             }
         }
     }
-    let mut archive_locations = Vec::new();
     let mut initial_archive_stream_digest = None;
     let mut expected_stream_digest: Option<String> = None;
     let mut history_commands = BTreeSet::new();
@@ -7068,8 +7003,7 @@ fn package_state(
             ));
         }
         crate::source_command::validate_instant(cmd::text(receipt, "recorded_at")?)?;
-        let (package, locations) =
-            read_archive(grant, context, archives, receipt, deadline, cancelled)?;
+        let (package, _) = read_archive(grant, context, archives, receipt, deadline, cancelled)?;
         for name in [
             CONFIG_FILE,
             CREATE_REQUEST,
@@ -7231,7 +7165,6 @@ fn package_state(
             &revised,
         )?;
         expected_stream_digest = Some(Digest256::of_bytes(&successor_stream).to_prefixed());
-        archive_locations.push(locations);
     }
     if let Some(expected) = &expected_stream_digest
         && Digest256::of_bytes(required_package_file(files, CLAIM_STREAM)?)
@@ -7249,7 +7182,6 @@ fn package_state(
         history,
         receipt,
         initial_archive_stream_digest,
-        archive_locations,
     })
 }
 
@@ -7838,9 +7770,6 @@ fn prepare_revision(
     let prepared = prepare_claim_forms(
         ctx,
         grant,
-        owner,
-        cut,
-        context_config,
         worker,
         &revised,
         Some(before_forms),
@@ -8173,7 +8102,7 @@ pub(crate) fn prepare(
         "private Claim target package is absent",
     ))?;
     let _archive_refs = required_archives(package, &grant.value, context_config)?;
-    let mut state = package_state(
+    let state = package_state(
         ctx,
         &grant,
         context_config,

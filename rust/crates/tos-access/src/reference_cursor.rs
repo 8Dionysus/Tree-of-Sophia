@@ -633,7 +633,6 @@ impl IndexedWireCursorCodec for NativeReferenceIndexedCursorCodec {
             SearchKind::Relations,
             state.wire_progress(SearchKind::Relations),
         )?;
-        drop(child);
         let envelope = ReferenceCursorEnvelope::new(
             nodes,
             relations,

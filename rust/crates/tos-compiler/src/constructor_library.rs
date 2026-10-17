@@ -1328,7 +1328,7 @@ pub fn build(repo: &Path, demo_path: &Path) -> Result<Build> {
                 "No Russian passage is present in this alignment: the exact German text is shown. This gap does not establish an omission in the translated book. English translation is also unavailable.",
             );
         }
-        let mut body;
+        let body;
         if demo_identity(short_id) {
             let previous = demo_nodes
                 .get(short_id)

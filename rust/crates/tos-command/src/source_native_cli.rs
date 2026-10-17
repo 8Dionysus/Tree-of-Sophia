@@ -181,7 +181,7 @@ fn exact(value: &Value, keys: &[&str]) -> SourceCommandResult<()> {
     Ok(())
 }
 
-fn bounded_read(mut input: impl Read, max: usize) -> SourceCommandResult<Vec<u8>> {
+fn bounded_read(input: impl Read, max: usize) -> SourceCommandResult<Vec<u8>> {
     let mut raw = Vec::new();
     input
         .take((max + 1) as u64)

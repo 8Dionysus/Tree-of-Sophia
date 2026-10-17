@@ -1242,52 +1242,6 @@ impl V2ReadSession {
         )))
     }
 
-    fn lookup_packed_object_location(
-        &mut self,
-        descriptor: &AuthenticatedTreeDescriptorV2,
-        digest: Digest256,
-        caller_retained_state_bytes: usize,
-    ) -> io::Result<Option<PackedObjectLocationV2>> {
-        let limits = self.remaining_object_limits()?;
-        let remaining_work = limits.max_work_units;
-        let mut debited = 0u64;
-        let mut debit = || {
-            let Some(next) = debited
-                .checked_add(1)
-                .filter(|units| *units <= remaining_work)
-            else {
-                return false;
-            };
-            debited = next;
-            true
-        };
-        let result = (|| {
-            let mut reader = PackedObjectReaderV2::new(
-                &self.segment,
-                descriptor,
-                limits,
-                self.tree_io.clone(),
-                self.deadline,
-                &self.cancel,
-                caller_retained_state_bytes,
-                &mut debit,
-            )?;
-            let (location, work) = reader.lookup_with_work(digest, None)?;
-            Ok((location, work))
-        })();
-        let (location, work) = match result {
-            Ok(found) => found,
-            Err(error) => {
-                self.failed = true;
-                return Err(error);
-            }
-        };
-        self.account_object_operation(debited, Some(work), None)?;
-        self.store.verify_layout()?;
-        active(self.deadline, &self.cancel)?;
-        Ok(location)
-    }
-
     fn remaining_object_limits(&self) -> io::Result<PackedObjectLimitsV2> {
         let max_work_units = self
             .work
