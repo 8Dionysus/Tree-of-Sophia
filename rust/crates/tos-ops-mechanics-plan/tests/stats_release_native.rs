@@ -2,10 +2,9 @@
 #[cfg(target_os = "linux")]
 #[test]
 fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_source() {
-    use serde_json::Value;
+    use serde_json::{Value, json};
     use std::{
         fs,
-        path::Path,
         process::Command,
         time::{SystemTime, UNIX_EPOCH},
     };
@@ -20,14 +19,37 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
     ));
     let source = root.join("source");
     let release = root.join("release");
-    let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(3)
-        .unwrap();
+    // Software tests exercise the export protocol, independently of the
+    // current authored observation and the checkout's sparse input selection.
+    let packet_ref = "stats/packets/table-i-prepared-dossier-route-ratio.reference.json";
+    let measurement = "Tree-of-Sophia/synthetic-ratio";
+    let port_document = json!({
+        "schema_version":"aoa_stats_local_port_v1", "contract_version":"1.0.0",
+        "owner_repo":"Tree-of-Sophia",
+        "evidence_posture":{"raw_content_allowed":false,"live_state":"reference_only","privacy":"public"},
+        "measurements":[{"schema_version":"aoa_stats_measurement_contract_v1",
+            "measurement_id":measurement,"contract_version":"1.0.0",
+            "owner_repo":"Tree-of-Sophia","statistic":"ratio"}],
+        "exports":[{"measurement_id":measurement,"packet_refs":[packet_ref]}]
+    });
+    let packet_document = json!({
+        "schema_version":"aoa_stats_measurement_packet_v1",
+        "contract_ref":"stats/port.manifest.json#/measurements/0","contract_version":"1.0.0",
+        "measurement_id":measurement,"writer_repo":"Tree-of-Sophia",
+        "observation_id":"synthetic-ratio:fixture-v1","observed_at":"2026-10-17T00:00:00Z",
+        "provenance":{"source_revision":"synthetic-source:fixture-v1"},
+        "posture":{"raw_content_included":false,"live_state":"reference_only"},
+        "value":{"status":"observed","numerator":1,"denominator":2,"number":0.5}
+    });
     for name in SOURCE_PATHS {
         let path = source.join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::copy(repo.join(name), path).unwrap();
+        let raw = match name {
+            "stats/port.manifest.json" => serde_json::to_vec(&port_document).unwrap(),
+            name if name == packet_ref => serde_json::to_vec(&packet_document).unwrap(),
+            _ => b"# Synthetic ToS stats export fixture\n".to_vec(),
+        };
+        fs::write(path, raw).unwrap();
     }
     let binary = env!("CARGO_BIN_EXE_tos-stats-release");
     let build = || {
