@@ -4963,7 +4963,6 @@ pub(crate) struct MaintainedInventory {
 /// corpus inventory.
 pub(crate) struct SelectedIdentityClosure {
     pub objects: BTreeMap<String, JsonValue>,
-    pub source_records: BTreeMap<String, JsonValue>,
     pub claims: BTreeMap<String, JsonValue>,
     pub record_inputs: JsonValue,
     pub events: JsonValue,
@@ -5251,7 +5250,6 @@ fn selected_identity_closure(
     }
     Ok(SelectedIdentityClosure {
         objects: inventory.objects,
-        source_records: inventory.source_records,
         claims: inventory.claims,
         record_inputs: inventory.record_inputs,
         events: inventory.events,

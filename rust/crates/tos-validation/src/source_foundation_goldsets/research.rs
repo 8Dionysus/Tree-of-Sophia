@@ -9,7 +9,7 @@
 
 use super::{SourceFoundationGoldsetsReport, SourceFoundationSchemaRequest};
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::layer_family_rules::{LayerFamilySource, LayerPayload};
+use crate::layer_family_rules::LayerFamilySource;
 use crate::record_biblio_cut::BiblioCurrentRecord;
 use crate::source_foundation_default_rules::{
     BorrowedDefaultRecords, SliceDefaultPaths, SourceFoundationDefaultEventLookup,
@@ -23,7 +23,6 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
 use std::mem::size_of;
-use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath};
 
 const SAMPLE_PLAN: &str = "sample-plan.json";
@@ -1081,7 +1080,7 @@ fn inspect_source_foundation_goldset_root(
         provenance_validation_stages.insert(provenance_path.clone(), validation_stage);
         next_provenance_stage = advance_diagnostic_stage(next_provenance_stage, 2)?;
     }
-    let mut supplemental_provenance_paths: Vec<String> = [
+    let supplemental_provenance_paths: Vec<String> = [
         "provenance.german-source-triangulation.jsonl",
         "provenance.bounded-translation-research-input.jsonl",
         "provenance.critical-edition-citation-decision.jsonl",

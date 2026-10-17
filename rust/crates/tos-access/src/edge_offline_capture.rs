@@ -34,8 +34,8 @@ use tos_compiler::{
     project_private_navigation_row,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
-    canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
+    Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
+    emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
 mod borrowed_bridge;

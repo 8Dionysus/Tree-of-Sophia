@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn eighth_source_private_producer_opens_one_complete_selected_model() {
         let fixture = build_fixture();
-        let mut selected = fixture.open().unwrap();
+        let selected = fixture.open().unwrap();
         assert_eq!(selected.selection().node_count, 4);
         assert_eq!(selected.source_revision(), Some("2".repeat(64).as_str()));
         assert!(selected.open_vm_steps() > 0);
@@ -941,7 +941,7 @@ mod tests {
             "source-recorded"
         );
         assert!(relation.get("readable_context").is_some());
-        let mut selected = fixture.open().unwrap();
+        let selected = fixture.open().unwrap();
         selected.check_pin().unwrap();
         assert_eq!(
             selected.selection().relation_count,
@@ -1000,7 +1000,7 @@ mod tests {
         assert!(contract.get("source_canonical_json").is_none());
         assert_eq!(claim["view_ids"], serde_json::json!(["native-fixture"]));
         assert!(claim.get("readable_context").is_some());
-        let mut selected = fixture.open().unwrap();
+        let selected = fixture.open().unwrap();
         assert_eq!(selected.selection().node_count, 7);
         assert_eq!(selected.selection().relation_count, 6);
         assert_eq!(selected.selection().model_abi, crate::KNOWLEDGE_MODEL_ABI);

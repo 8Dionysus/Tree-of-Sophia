@@ -63,6 +63,7 @@ pub(crate) struct GrammarIdentity {
     limits: IdentityLimits,
     deadline: Instant,
     read_bytes: u64,
+    #[cfg(test)]
     state_bytes: usize,
     retained_state_bytes: usize,
     root_custody: RouteRootCustody,
@@ -277,6 +278,7 @@ impl GrammarIdentity {
             limits,
             deadline,
             read_bytes: read_bytes as u64,
+            #[cfg(test)]
             state_bytes: peak_state,
             retained_state_bytes: retained_state,
             root_custody: sources.root_custody(),

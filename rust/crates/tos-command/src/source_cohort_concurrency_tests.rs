@@ -12,7 +12,6 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_segment_store::{SegmentLimits, SegmentStore};
-use tos_validation::source_cut::CutSchemaExecutor;
 
 use crate::source_creation_store::native_owner_test_support as fixture;
 
@@ -1304,7 +1303,7 @@ fn private_owner_read_waits_for_writer_commit_before_repeatable_read_snapshot() 
 
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
-    let mut fixture = lab_fixture(deadline, &cancelled);
+    let fixture = lab_fixture(deadline, &cancelled);
     let database_url = std::env::var("TOS_CMD_POSTGRES_URL")
         .expect("private owner race test uses the selected PostgreSQL fixture");
     let scope = PrivateOwnerScopeV1::for_context(

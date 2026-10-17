@@ -28,7 +28,6 @@ const PUBLICATION_REF: &str = "ToS/source-witnesses/.metadata-publication.json";
 const INPUT_CAP: u64 = 256 * 1024 * 1024;
 const REQUEST_CAP: usize = 16 * 1024 * 1024;
 const MAX_ROWS: u64 = 1_000_000;
-const MAX_SELECTED_FILES: usize = 16_384;
 const MAX_SOURCE_FILE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_ROW_BYTES: usize = 1024 * 1024;
 const MAX_SOURCE_HASH_MAP_BYTES: usize = 256 * 1024 * 1024;

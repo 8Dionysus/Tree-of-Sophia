@@ -11,7 +11,7 @@ use crate::source_creation_store::active;
 use crate::source_forms;
 use crate::source_native_cli::PgGrowthCurrentInput;
 use crate::source_native_cli::private_assessment as assessment;
-use crate::source_revisions::{ReadonlyRecordFiles, RecordRead};
+use crate::source_revisions::RecordRead;
 use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
 use crate::source_text_owner::OwnerTextContext;
 use std::collections::{BTreeMap, BTreeSet};
@@ -740,9 +740,6 @@ pub(crate) struct PgSignRecoverableBasis {
     pub(crate) assessment_refs: Vec<JsonValue>,
     pub(crate) owner_snapshot: Digest256,
     pub(crate) journal_revision: Digest256,
-    pub(crate) status: String,
-    pub(crate) limits: JsonValue,
-    pub(crate) basis_digest: Digest256,
 }
 
 fn validate_sign_basis_ref(value: &JsonValue, candidate: bool) -> Result<()> {
@@ -838,14 +835,15 @@ impl PgSignRecoverableBasis {
             .map_err(|_| Error::Invalid("Sign PG recoverable owner snapshot digest"))?;
         let journal_revision = Digest256::from_hex(cmd::text(basis, "journal_revision")?)
             .map_err(|_| Error::Invalid("Sign PG recoverable journal revision"))?;
-        let status = cmd::text(basis, "status")?.to_owned();
-        if !matches!(status.as_str(), "admitted" | "admitted-with-limits") {
+        let status = cmd::text(basis, "status")?;
+        if !matches!(status, "admitted" | "admitted-with-limits") {
             return Err(Error::Invalid("Sign PG recoverable basis admission status"));
         }
-        let limits = cmd::field(basis, "limits")?.clone();
+        let limits = cmd::field(basis, "limits")?;
         if limits.as_object().is_none() {
             return Err(Error::Invalid("Sign PG recoverable basis limits"));
         }
+        cmd::record_digest(basis)?;
         Ok(Self {
             candidate,
             policy,
@@ -853,9 +851,6 @@ impl PgSignRecoverableBasis {
             assessment_refs,
             owner_snapshot,
             journal_revision,
-            status,
-            limits,
-            basis_digest: cmd::record_digest(basis)?,
         })
     }
 }

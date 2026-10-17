@@ -8,7 +8,7 @@ use crate::{
         ensure, fresh_or_matching_limit, load, private_boundary, private_input_boundary, s, schema,
         sha,
     },
-    transfer_target_passages::{n, read_optional},
+    transfer_target_passages::n,
 };
 use serde_json::{Value, json};
 use std::{

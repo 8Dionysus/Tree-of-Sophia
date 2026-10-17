@@ -7345,7 +7345,7 @@ mod native {
     fn run_batch_image_cancellable(
         image: &File,
         prepared: BatchPrepared,
-        mut results: Digest256Hasher,
+        results: Digest256Hasher,
         budget: BatchBudget,
         start: Instant,
         argv: &[*mut libc::c_char],

@@ -19,9 +19,7 @@ use tos_compiler::{
     ColdOpenLimits, NavigationOriginalReceipt, PhilosophyOriginalCollection,
     PhilosophyOriginalReceipt, QueryVocabulary, VerifiedKnowledgeModel,
 };
-use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, parse_json,
-};
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue};
 use tos_query::search_v2::{
     CurrentPolicyBinding, IndexedSearchV2Request, SearchContinuationState, SearchV2Error,
     SearchV2ErrorCode,
@@ -2382,6 +2380,7 @@ fn same_corpus_receipt(
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod health_tests {
     use super::*;
+    use tos_foundation::parse_json;
 
     struct ReadyProbe;
     impl AbortProbe for ReadyProbe {

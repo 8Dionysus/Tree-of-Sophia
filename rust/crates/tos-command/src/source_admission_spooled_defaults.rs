@@ -20,7 +20,7 @@ use tos_validation::{
         SourceFoundationBiblioStoredSink,
     },
     item_rules::ItemRefusal,
-    record_biblio_cut::{BiblioCurrentRecord, SourceCutInput, SourceCutInputWithIdentity},
+    record_biblio_cut::{BiblioCurrentRecord, SourceCutInputWithIdentity},
     source_foundation_closure::{
         SourceFoundationClosureAnchorStoreCost,
         SourceFoundationClosureBoundaryMembershipRefStoreCost, SourceFoundationClosureClaimRef,
@@ -514,7 +514,6 @@ impl<'candidate, 'input, 'host, 'cancel, 'budget>
         &self,
         mut visit: impl FnMut(&str) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal> {
-        use tos_validation::record_biblio_cut::SourceCutInput;
         self.context.check()?;
         self.input
             .verify_invocation(self.context.deadline, self.context.cancelled)?;
@@ -3234,8 +3233,6 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     loaded_document_scan_row_operations: u64,
     loaded_document_workspace_state_bytes: usize,
     loaded_rows: SourceFoundationClosureLoadedRowStoreCost,
-    loaded_row_stream_count: u64,
-    loaded_row_stream_drained_rows: u64,
     event_rows: u64,
     event_serialized_read_bytes: u64,
     event_serialized_write_bytes: u64,
@@ -13370,8 +13367,6 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 loaded_document_scan_row_operations: 0,
                 loaded_document_workspace_state_bytes: 0,
                 loaded_rows: SourceFoundationClosureLoadedRowStoreCost::default(),
-                loaded_row_stream_count: 0,
-                loaded_row_stream_drained_rows: 0,
                 event_rows: 0,
                 event_serialized_read_bytes: 0,
                 event_serialized_write_bytes: 0,

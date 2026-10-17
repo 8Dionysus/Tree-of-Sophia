@@ -109,11 +109,6 @@ pub(crate) struct ResolvedInitialTextSource {
     pub(crate) payload_entry: JsonValue,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
-    pub(crate) schema_digests: BTreeMap<String, Digest256>,
-    /// Exact bytes actually selected by this semantic pass. The PG owner
-    /// adapter installs these as the later Text preparation's only source
-    /// transport; it does not rerun against a local filesystem projection.
-    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 /// Exact current predecessor for the owner-local TextUnit and TextLayer
@@ -124,7 +119,6 @@ pub(crate) struct ResolvedOwnerTextLayer {
     pub(crate) raw: Vec<u8>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
-    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 pub(crate) struct ResolvedOwnerTextPacket {
@@ -133,7 +127,6 @@ pub(crate) struct ResolvedOwnerTextPacket {
     pub(crate) raw: Vec<u8>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
-    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 pub(crate) struct ResolvedOwnerAlignmentSide {
@@ -147,7 +140,6 @@ pub(crate) struct ResolvedOwnerAlignment {
     pub(crate) target: ResolvedOwnerAlignmentSide,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
-    pub(crate) schema_digests: BTreeMap<String, Digest256>,
 }
 
 pub(crate) struct ResolvedDerivedTextSource {
@@ -158,7 +150,6 @@ pub(crate) struct ResolvedDerivedTextSource {
     pub(crate) predecessor_raw: Option<Vec<u8>>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
-    pub(crate) selected_members: BTreeMap<String, Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -228,20 +219,20 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         Ok(())
     }
 
-    fn selected_members(&self) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
-        let mut selected = BTreeMap::new();
+    fn check_selected_member_bytes(&self) -> SourceCommandResult<()> {
+        let mut selected = BTreeMap::<&str, &[u8]>::new();
         for ((reference, _), cached) in &self.cache {
-            if let Some(previous) = selected.get(reference) {
-                if previous != &cached.raw {
+            if let Some(previous) = selected.get(reference.as_str()) {
+                if *previous != cached.raw.as_slice() {
                     return Err(SourceCommandError::Conflict(
                         "native source member bytes changed during selection",
                     ));
                 }
             } else {
-                selected.insert(reference.clone(), cached.raw.clone());
+                selected.insert(reference.as_str(), cached.raw.as_slice());
             }
         }
-        Ok(selected)
+        Ok(())
     }
     fn route(&self, name: &str, kind: NativeReadKind) -> SourceCommandResult<()> {
         path(name)?;
@@ -2102,13 +2093,11 @@ pub(crate) fn resolve_initial_owner_text_source<R: SignNativeRead + ?Sized>(
         native.owner_text_layer_source(&grant.config, &["application/epub+zip"], true)?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
-    let selected_members = native.selected_members()?;
+    native.check_selected_member_bytes()?;
     Ok(ResolvedInitialTextSource {
         payload_entry,
         inputs,
         input_snapshot,
-        schema_digests: native.schemas,
-        selected_members,
     })
 }
 
@@ -2363,7 +2352,7 @@ pub(crate) fn resolve_derived_owner_text_source<R: SignNativeRead + ?Sized>(
     };
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
-    let selected_members = native.selected_members()?;
+    native.check_selected_member_bytes()?;
     Ok(ResolvedDerivedTextSource {
         payload_entry,
         source_binding,
@@ -2372,7 +2361,6 @@ pub(crate) fn resolve_derived_owner_text_source<R: SignNativeRead + ?Sized>(
         predecessor_raw,
         inputs,
         input_snapshot,
-        selected_members,
     })
 }
 
@@ -2435,13 +2423,12 @@ pub(crate) fn resolve_owner_text_layer<R: SignNativeRead + ?Sized>(
     native.derived_content(&layer, text)?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
-    let selected_members = native.selected_members()?;
+    native.check_selected_member_bytes()?;
     Ok(ResolvedOwnerTextLayer {
         layer,
         raw,
         inputs,
         input_snapshot,
-        selected_members,
     })
 }
 
@@ -2476,14 +2463,13 @@ pub(crate) fn resolve_owner_text_packet<R: SignNativeRead + ?Sized>(
     )?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
-    let selected_members = native.selected_members()?;
+    native.check_selected_member_bytes()?;
     Ok(ResolvedOwnerTextPacket {
         packet,
         layer,
         raw,
         inputs,
         input_snapshot,
-        selected_members,
     })
 }
 
@@ -2549,7 +2535,6 @@ pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
         input_snapshot = native.snapshot()?;
     }
     let inputs = selected_inputs(&native);
-    let schema_digests = native.schemas;
     let target = sides
         .pop()
         .ok_or(SourceCommandError::Invalid("native alignment target"))?;
@@ -2561,7 +2546,6 @@ pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
         target,
         inputs,
         input_snapshot,
-        schema_digests,
     })
 }
 
@@ -2636,10 +2620,6 @@ pub(crate) fn resolve_binding<R: SignNativeRead + ?Sized>(
 /// Source-owned public authority and rights observations, captured before text access.
 pub(crate) struct ResolvedPublicTextAuthority {
     pub(crate) authority: JsonValue,
-    pub(crate) payload_entry: JsonValue,
-    pub(crate) inputs: Vec<NativeInput>,
-    pub(crate) input_snapshot: String,
-    pub(crate) schema_digests: BTreeMap<String, Digest256>,
 }
 
 /// Validate the exact retained delegation and every output-bearing rights record.
@@ -2841,14 +2821,8 @@ pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
             "public Item rights closure and both output rights required",
         ));
     }
-    let input_snapshot = native.snapshot()?;
-    Ok(ResolvedPublicTextAuthority {
-        authority,
-        payload_entry: entry,
-        inputs: selected_inputs(&native),
-        input_snapshot,
-        schema_digests: native.schemas,
-    })
+    native.snapshot()?;
+    Ok(ResolvedPublicTextAuthority { authority })
 }
 
 /// Validate the current occurrence contract and return its exact native

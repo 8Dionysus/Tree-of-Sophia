@@ -56,7 +56,6 @@ pub(crate) struct ParsedRequest {
 }
 
 struct SelectedOperation<'a> {
-    invocation: &'a Value,
     cut: &'a CorpusCutReader,
     owner: ProtectedAssessmentJournal,
     owner_context: OwnerTextContext,
@@ -111,8 +110,6 @@ pub(crate) struct AssessmentEvaluationPlan<'a> {
     pub(crate) base_snapshot: String,
     pub(crate) current: JsonValue,
     pub(crate) scope: JsonValue,
-    pub(crate) subject_is_native: bool,
-    pub(crate) subject_is_sourced: bool,
     pub(crate) subject_required_source_refs: Vec<JsonValue>,
     pub(crate) required_sources: Vec<JsonValue>,
     pub(crate) source_route: AssessmentSourceRoute,
@@ -122,8 +119,6 @@ pub(crate) struct AssessmentEvaluationPlan<'a> {
     pub(crate) lock_subjects: Vec<String>,
     pub(crate) public_claim_dependencies: &'a BTreeMap<String, Vec<JsonValue>>,
     pub(crate) private_required_source_refs: &'a BTreeMap<String, Vec<JsonValue>>,
-    pub(crate) private_required_languages: &'a BTreeMap<String, Vec<String>>,
-    pub(crate) native_summaries: &'a [JsonValue],
     pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
 }
 
@@ -137,8 +132,6 @@ pub(crate) struct AssessmentEvaluationResult {
         Vec<JsonValue>,
     )>,
     pub(crate) record_rows: Vec<JsonValue>,
-    pub(crate) trusted_history: Vec<AssessmentSubmissionInput>,
-    pub(crate) reviews: Vec<AssessmentSubmissionInput>,
     pub(crate) current_report: AssessmentMechanicsReport,
     pub(crate) append_report: Option<AssessmentMechanicsReport>,
     pub(crate) parent_assessment: Option<JsonValue>,
@@ -611,7 +604,6 @@ pub(super) fn run(
         ));
     }
     let operation = SelectedOperation {
-        invocation,
         cut,
         owner,
         owner_context,
@@ -1771,8 +1763,6 @@ pub(crate) fn plan_assessment_evaluation<'a>(
         base_snapshot,
         current,
         scope,
-        subject_is_native,
-        subject_is_sourced,
         subject_required_source_refs,
         required_sources,
         source_route,
@@ -1782,8 +1772,6 @@ pub(crate) fn plan_assessment_evaluation<'a>(
         lock_subjects,
         public_claim_dependencies,
         private_required_source_refs,
-        private_required_languages,
-        native_summaries,
         layers,
     })
 }
@@ -2047,8 +2035,6 @@ where
         quality_bases,
         admission_bases,
         record_rows,
-        trusted_history,
-        reviews,
         source_read_ready: current_report.source_read_ready(),
         current_report,
         append_report,

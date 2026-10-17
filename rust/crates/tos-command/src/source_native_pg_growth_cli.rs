@@ -11,11 +11,8 @@ mod owner_inputs;
 mod sign;
 
 pub(crate) use input::PgGrowthCurrentInput;
+pub(super) use owner_inputs::PgGrowthSelectedInputs;
 pub(crate) use owner_inputs::context_with_pg_exact_reads;
-pub(super) use owner_inputs::{
-    PgCollectionMembershipInputs, PgExpressionEditionInputs, PgExpressionResponsibilityInputs,
-    PgGrowthSelectedInputs, PgWorkExpressionInputs,
-};
 
 use crate::source_cohort::revision::{
     PgRecordRevisionIdentity, SourceRevisionReadSession, SourceRevisionReadSet,
@@ -918,9 +915,14 @@ fn run_pg_work_expression_preview(
                 )
                 .map_err(|_| DurableError::Invalid("PG Growth selected input budget"))?;
                 let mut selected = if operation == "prepare-create" {
-                    PgWorkExpressionInputs::select(&input, owner_config, None, deadline, cancelled)
-                        .map_err(DurableError::Source)?
-                        .selected
+                    PgGrowthSelectedInputs::select_work_expression(
+                        &input,
+                        owner_config,
+                        None,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?
                 } else {
                     let mut selected =
                         PgGrowthSelectedInputs::select(&input, None, deadline, cancelled)
@@ -1208,7 +1210,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
     let identity = session.selection().identity();
     let input = PgGrowthCurrentInput::new(session, 4096, MAX_GROWTH_SOFTWARE_MEMBER_BYTES as usize)
         .map_err(|_| SourceCommandError::Invalid("PG Growth selected input budget"))?;
-    let mut selected = PgWorkExpressionInputs::select(
+    let mut selected = PgGrowthSelectedInputs::select_work_expression(
         &input,
         configuration,
         publication_token,
@@ -1216,12 +1218,10 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
         cancelled,
     )?;
     for path in WORK_EXPRESSION_CONTRACTS {
-        selected
-            .selected
-            .member(input.source_input(), path, deadline, cancelled)?;
+        selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -1250,7 +1250,6 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
     // the owner-specific exact read closure and selected catalog into context.
     drop(input);
     selected
-        .selected
         .bind_selected_readset(session, deadline, cancelled)
         .map_err(|_| SourceCommandError::Conflict("PG Growth selected catalog read epoch"))?;
     let (final_context, absences) =
@@ -2243,7 +2242,7 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
     let identity = session.selection().identity();
     let input = PgGrowthCurrentInput::new(session, 4096, MAX_GROWTH_SOFTWARE_MEMBER_BYTES as usize)
         .map_err(|_| SourceCommandError::Invalid("PG Growth selected input budget"))?;
-    let mut selected = PgExpressionEditionInputs::select(
+    let mut selected = PgGrowthSelectedInputs::select_expression_edition(
         &input,
         fs,
         configuration,
@@ -2252,12 +2251,10 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
         cancelled,
     )?;
     for path in EXPRESSION_GROWTH_CONTRACTS {
-        selected
-            .selected
-            .member(input.source_input(), path, deadline, cancelled)?;
+        selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2275,7 +2272,7 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
         fs,
         &context,
         &input,
-        &selected.selected.catalog,
+        &selected.catalog,
         software,
         components,
         &mut worker,
@@ -2289,7 +2286,7 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
     finish_selected_growth_package(
         fs,
         session,
-        &selected.selected,
+        &selected,
         PgGrowthFamily::ExpressionEdition,
         &owner_context,
         &owner_proposal,
@@ -2319,7 +2316,7 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
     let identity = session.selection().identity();
     let input = PgGrowthCurrentInput::new(session, 4096, MAX_GROWTH_SOFTWARE_MEMBER_BYTES as usize)
         .map_err(|_| SourceCommandError::Invalid("PG Growth selected input budget"))?;
-    let mut selected = PgExpressionResponsibilityInputs::select(
+    let mut selected = PgGrowthSelectedInputs::select_expression_responsibility(
         &input,
         fs,
         configuration,
@@ -2328,12 +2325,10 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
         cancelled,
     )?;
     for path in EXPRESSION_GROWTH_CONTRACTS {
-        selected
-            .selected
-            .member(input.source_input(), path, deadline, cancelled)?;
+        selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2351,7 +2346,7 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
         fs,
         &context,
         &input,
-        &selected.selected.catalog,
+        &selected.catalog,
         software,
         components,
         &mut worker,
@@ -2365,7 +2360,7 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
     finish_selected_growth_package(
         fs,
         session,
-        &selected.selected,
+        &selected,
         PgGrowthFamily::ExpressionResponsibility,
         &owner_context,
         &owner_proposal,
@@ -2395,7 +2390,7 @@ pub(crate) fn prepare_pg_collection_membership_growth<'a>(
     let identity = session.selection().identity();
     let input = PgGrowthCurrentInput::new(session, 4096, MAX_GROWTH_SOFTWARE_MEMBER_BYTES as usize)
         .map_err(|_| SourceCommandError::Invalid("PG Growth selected input budget"))?;
-    let mut selected = PgCollectionMembershipInputs::select(
+    let mut selected = PgGrowthSelectedInputs::select_collection_membership(
         &input,
         fs,
         configuration,
@@ -2404,12 +2399,10 @@ pub(crate) fn prepare_pg_collection_membership_growth<'a>(
         cancelled,
     )?;
     for path in EXPRESSION_GROWTH_CONTRACTS {
-        selected
-            .selected
-            .member(input.source_input(), path, deadline, cancelled)?;
+        selected.member(input.source_input(), path, deadline, cancelled)?;
     }
     let software_files = selected_software_files(software, components, deadline, cancelled)?;
-    let context = selected.selected.context(
+    let context = selected.context(
         configuration_raw,
         request_raw,
         recorded_at,
@@ -2427,7 +2420,7 @@ pub(crate) fn prepare_pg_collection_membership_growth<'a>(
         fs,
         &context,
         &input,
-        &selected.selected.catalog,
+        &selected.catalog,
         software,
         components,
         &mut worker,
@@ -2441,7 +2434,7 @@ pub(crate) fn prepare_pg_collection_membership_growth<'a>(
     finish_selected_growth_package(
         fs,
         session,
-        &selected.selected,
+        &selected,
         PgGrowthFamily::CollectionMembership,
         &owner_context,
         &owner_proposal,

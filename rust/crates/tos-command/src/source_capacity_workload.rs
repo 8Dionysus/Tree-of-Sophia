@@ -20,8 +20,8 @@ use super::source_admission::{AdmissionWorkBudget, active as scale_active};
 use super::source_admission_segment_v2::NativeV2TreeIo;
 use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_bytes_v1, parse_json};
 use tos_segment_store::{
-    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
-    AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
+    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeLimitsV1,
+    AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
 };
 use tos_source_store::native_v2::objects::{
     MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectBuildWorkV2, PackedObjectLimitsV2,
@@ -3969,35 +3969,6 @@ pub(crate) struct WeightedScaleGeneratedEofV1 {
     auxiliary_bytes: u64,
     observed_members: u64,
     ordered_sha256: Digest256,
-}
-impl WeightedScaleGeneratedEofV1 {
-    pub(crate) fn selection_sha256(&self) -> Digest256 {
-        self.selection_sha256
-    }
-    pub(crate) fn support_count(&self) -> u64 {
-        self.support_count
-    }
-    pub(crate) fn support_bytes(&self) -> u64 {
-        self.support_bytes
-    }
-    pub(crate) fn generated_count(&self) -> u64 {
-        self.generated_count
-    }
-    pub(crate) fn generated_bytes(&self) -> u64 {
-        self.generated_bytes
-    }
-    pub(crate) fn auxiliary_count(&self) -> u64 {
-        self.auxiliary_count
-    }
-    pub(crate) fn auxiliary_bytes(&self) -> u64 {
-        self.auxiliary_bytes
-    }
-    pub(crate) fn observed_members(&self) -> u64 {
-        self.observed_members
-    }
-    pub(crate) fn ordered_sha256(&self) -> Digest256 {
-        self.ordered_sha256
-    }
 }
 
 fn max_member_path_bytes_v1(profile: &WeightedScaleProfileV1) -> usize {

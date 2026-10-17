@@ -847,7 +847,7 @@ fn copy_stage_tree(
     if *files > MAX_STAGE_FILES {
         return Err("owner stage exceeds 16384-file bound".into());
     }
-    let mut input = OpenOptions::new()
+    let input = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(source)
@@ -2185,7 +2185,7 @@ fn token_bytes(path: &Path) -> Result<Vec<u8>, String> {
     {
         return Err("token must be owner-only 64 lowercase hex bytes".into());
     }
-    let mut f = OpenOptions::new()
+    let f = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(path)
@@ -6081,7 +6081,7 @@ fn spawn_group(
         .process_group(0)
         .spawn()
         .map_err(|e| format!("child start: {e}"))?;
-    let mut managed = ManagedChild {
+    let managed = ManagedChild {
         child,
         registry: Arc::clone(pids),
         reaped: false,
@@ -6531,8 +6531,8 @@ fn native_command_process(
     let mut child = spawn_group(&mut command, pids, deadline)?;
     let pid = child.id() as i32;
     let mut stdin = child.stdin.take().ok_or("SDK stdin unavailable")?;
-    let mut stdout = child.stdout.take().ok_or("SDK stdout unavailable")?;
-    let mut stderr = child.stderr.take().ok_or("SDK stderr unavailable")?;
+    let stdout = child.stdout.take().ok_or("SDK stdout unavailable")?;
+    let stderr = child.stderr.take().ok_or("SDK stderr unavailable")?;
     // Drain SDK output while stdin is being written; either pipe alone can fill
     // and deadlock an otherwise valid full-duplex client exchange.
     let (output_tx, output_rx) = mpsc::sync_channel(1);
@@ -8114,7 +8114,7 @@ fn main_result() -> Result<i32, String> {
     if schedule_initial_stamp.len > args.schedule_cap as u64 {
         return Err("schedule cap exceeded".into());
     }
-    let mut schedule_file = OpenOptions::new()
+    let schedule_file = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(&args.schedule)
@@ -9345,7 +9345,7 @@ fn main_result() -> Result<i32, String> {
     {
         return Err("selected input changed during workload".into());
     }
-    let mut schedule_after = OpenOptions::new()
+    let schedule_after = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
         .open(&args.schedule)

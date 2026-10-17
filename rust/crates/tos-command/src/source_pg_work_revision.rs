@@ -465,8 +465,6 @@ struct StoredReceipt {
     before: Vec<MemberVersionRef>,
     after: Vec<MemberVersionRef>,
     receipt_digest: Digest256,
-    prepare_id: Vec<u8>,
-    commit_seq: u64,
 }
 
 impl StoredReceipt {
@@ -569,8 +567,6 @@ fn decode_receipt_row(
         before,
         after,
         receipt_digest: stored_receipt_digest,
-        prepare_id,
-        commit_seq,
     })
 }
 

@@ -151,7 +151,6 @@ pub(crate) struct PreparedNativeTextUnitPackage {
     replayed: bool,
     context_binding: Digest256,
     request_digest: Digest256,
-    grant_digest: Digest256,
 }
 
 impl PreparedNativeTextUnitPackage {
@@ -389,7 +388,6 @@ fn prepare_selected(
                 raw: resolved.raw,
                 inputs: resolved.inputs,
                 input_snapshot: resolved.input_snapshot,
-                selected_members: resolved.selected_members,
             },
             Some(resolved.packet),
         )
@@ -1164,7 +1162,6 @@ pub(crate) fn prepare_pg_text_unit_package(
     let context_binding = prepared
         .context
         .private_owner_scope_binding(deadline, cancelled)?;
-    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
     Ok(PreparedNativeTextUnitPackage {
         prepared,
         source_path,
@@ -1173,7 +1170,6 @@ pub(crate) fn prepare_pg_text_unit_package(
         replayed,
         context_binding,
         request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
-        grant_digest,
     })
 }
 

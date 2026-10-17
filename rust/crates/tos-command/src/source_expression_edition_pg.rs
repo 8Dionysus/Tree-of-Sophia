@@ -41,12 +41,11 @@ pub(crate) struct PgExpressionEditionOwnerPackage<'a> {
     pub(crate) context: CommandContext,
     pub(crate) proposal: cmd::PreparedCommand,
     pub(crate) semantic_indexes: IndexRows,
-    pub(crate) owner_contributions: BTreeMap<String, JsonValue>,
     pub(crate) fence: WorkCorpusFence<'a>,
 }
 
 /// Prepare one exact selected Work/Expression/Edition operation. `catalog` is
-/// the publication-bound catalog selected by `PgExpressionEditionInputs`;
+/// the publication-bound catalog selected by `PgGrowthSelectedInputs::select_expression_edition`;
 /// the PG caller binds the returned context to its final readset afterwards.
 pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     fs: &'a CreationFilesystem,
@@ -352,7 +351,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     let projected_writes = projected_writes(&plan)?;
     let semantic_indexes = expected_expression_edition_revision_indexes(&projected_writes)
         .map_err(|_| SourceCommandError::Conflict("ExpressionEdition semantic index projection"))?;
-    let owner_contributions = expected_expression_edition_inventory_contributions(
+    expected_expression_edition_inventory_contributions(
         &projected_writes,
         &proposal_context,
         &proposal.response,
@@ -364,7 +363,6 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
         context: proposal_context,
         proposal,
         semantic_indexes,
-        owner_contributions,
         fence,
     })
 }

@@ -750,13 +750,7 @@ struct State {
 }
 
 struct Snapshot {
-    profile_snapshot: String,
-    rights_snapshot: Option<String>,
-    native_summary: Option<JsonValue>,
     native_reads: Vec<SourceFile>,
-    form_digests: JsonValue,
-    identity_digest: String,
-    implementation_digests: JsonValue,
     dependencies: String,
 }
 
@@ -3216,7 +3210,7 @@ fn make_snapshot(
         deadline,
         cancelled,
     )?;
-    let (rights, native_metadata, native_summary, native_reads, native_contracts) =
+    let (rights, native_metadata, _native_summary, native_reads, native_contracts) =
         validate_native_profile(
             ctx,
             cut,
@@ -3263,13 +3257,7 @@ fn make_snapshot(
     // Cold archive reads are deliberately streamed by the lifecycle verifier.
     let _ = archive_reader;
     Ok(Snapshot {
-        profile_snapshot: profile_digest,
-        rights_snapshot: native_metadata,
-        native_summary,
         native_reads,
-        form_digests,
-        identity_digest,
-        implementation_digests,
         dependencies,
     })
 }

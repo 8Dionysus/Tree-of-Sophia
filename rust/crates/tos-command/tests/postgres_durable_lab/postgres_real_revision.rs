@@ -20,8 +20,8 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 use tos_command::{
-    DurablePgCoordinator, DurableProjectionExtractor, DurableProjectionLimits,
-    DurableProjectionProfile, DurableProjectionSearch, DurableProjectionStatus,
+    DurablePgCoordinator, DurableProjectionLimits, DurableProjectionProfile,
+    DurableProjectionSearch, DurableProjectionStatus,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, RelativePath,
@@ -36,7 +36,7 @@ use tos_source_store::{
     GitCaptureLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
 const AGENT_DIRS: &[&str] = &["parmenides-of-elea", "justus-lipsius", "hans-hahn"];
 const SHARED_SOURCE: &[&str] = &[

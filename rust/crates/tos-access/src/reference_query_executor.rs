@@ -112,7 +112,7 @@ where
     where
         C: tos_foundation::OwnedState,
     {
-        use tos_foundation::{OwnedState, checked_state_add};
+        use tos_foundation::checked_state_add;
         let map = |_| {
             AccessError::new(
                 AccessErrorCode::BudgetExceeded,

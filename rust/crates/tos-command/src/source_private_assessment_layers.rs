@@ -88,6 +88,7 @@ pub(crate) struct LayerQualityDependency {
 /// are resolved later from exact current records.
 #[derive(Debug, Clone)]
 pub(crate) struct OwnerLocalLayerPreflight {
+    #[cfg(test)]
     pub(crate) layer_ids: BTreeSet<String>,
     pub(crate) quality_dependencies: BTreeMap<String, Vec<LayerQualityDependency>>,
     pub(crate) selection_digest: String,
@@ -102,7 +103,6 @@ pub(crate) struct SelectedOwnerLayer {
     /// Exact comparison envelope, absent when the independently selected
     /// grant is metadata-only.
     pub(crate) comparison_record: Option<AssessmentRecordInput>,
-    pub(crate) scope: JsonValue,
     pub(crate) read_ready: bool,
     /// A comparison can make a source visible to a later human assessment;
     /// it never contains a positive assessment decision of its own.
@@ -119,7 +119,6 @@ pub(crate) struct PrivateAssessmentLayers {
     pub(crate) source_snapshot: String,
     pub(crate) profile_contract_digests: BTreeMap<String, String>,
     selected_input_bytes: u64,
-    provided_input_bytes: u64,
     selection_digest: String,
     context_snapshot: String,
     currentness: Vec<CurrentnessPin>,
@@ -171,7 +170,6 @@ struct TargetLayer {
     policy_raw: Vec<u8>,
     policy: JsonValue,
     scope: JsonValue,
-    subject: JsonValue,
     selection: JsonValue,
 }
 
@@ -464,6 +462,7 @@ pub(crate) fn preflight_owner_local_layers(
     ]))?)
     .to_prefixed();
     Ok(OwnerLocalLayerPreflight {
+        #[cfg(test)]
         layer_ids,
         quality_dependencies,
         selection_digest,
@@ -788,7 +787,6 @@ fn select_owner_local_layers_with_contract_reader(
             layer_record: target.record.clone(),
             binding: target.binding.clone(),
             comparison_record,
-            scope: target.scope.clone(),
             read_ready,
             positive_use_allowed,
             comparison_limits: if v6 {
@@ -837,7 +835,6 @@ fn select_owner_local_layers_with_contract_reader(
         source_snapshot,
         profile_contract_digests: selected_contracts,
         selected_input_bytes,
-        provided_input_bytes,
         selection_digest: preflight.selection_digest,
         context_snapshot,
         currentness,
@@ -1314,7 +1311,6 @@ fn read_target(
         policy_raw,
         policy,
         scope,
-        subject,
         selection: selection.clone(),
     })
 }
@@ -2936,7 +2932,6 @@ fn read_lineage_layer(
         policy_raw,
         policy,
         scope,
-        subject: JsonValue::Null,
         selection: JsonValue::Null,
     })
 }

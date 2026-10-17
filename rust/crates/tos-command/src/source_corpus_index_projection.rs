@@ -52,11 +52,6 @@ pub(crate) struct NativeCorpusIndexProducts {
 pub(crate) struct NativeBibliographicProjectionReceipt {
     pub source_revision: String,
     pub source_membership_sha256: String,
-    pub source_claims: u64,
-    pub nodes: u64,
-    pub edges: u64,
-    pub claim_traces: u64,
-    pub output_sha256: String,
     pub output_bytes: u64,
 }
 
@@ -332,7 +327,6 @@ fn bibliographic_projection(
         &output,
         BIBLIOGRAPHIC_GRAPH_SCHEMA,
     )?;
-    let output_sha256 = Digest256::of_bytes(&output).to_hex();
     let output_bytes = output.len() as u64;
     Ok((
         output,
@@ -344,11 +338,6 @@ fn bibliographic_projection(
                 .expectation()
                 .digest
                 .to_hex(),
-            source_claims: candidate.bibliographic.claim_count,
-            nodes: candidate.bibliographic.node_count,
-            edges: candidate.bibliographic.edge_count,
-            claim_traces: candidate.bibliographic.claim_count,
-            output_sha256,
             output_bytes,
         },
     ))

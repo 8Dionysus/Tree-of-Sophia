@@ -641,7 +641,6 @@ impl PreparedPgArtifactCreation {
             dependency_commitment,
             identity: self.identity,
             observations: self.observations,
-            artifact_id: self.artifact_id,
         })
     }
 }
@@ -656,7 +655,6 @@ pub(crate) struct PgSerializedArtifactCreation {
     dependency_commitment: PgDependencyCommitment,
     identity: PgRecordRevisionIdentity,
     observations: PgArtifactCreationObservations,
-    artifact_id: String,
 }
 
 impl PgSerializedArtifactCreation {

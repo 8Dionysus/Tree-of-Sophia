@@ -128,11 +128,8 @@ pub(crate) struct SpooledPublicationReceipt {
     pub manifest_sha256: Option<Digest256>,
     pub source_artifact: Option<tos_source_store::native_v2::roots::SourceRevisionArtifactV2>,
     pub rootset_sha256: Option<Digest256>,
-    pub manifest_bytes: Option<u64>,
     pub fence: CandidateFence,
     pub identities: u64,
-    pub dependency_sources: u64,
-    pub dependencies: u64,
     /// Hold through terminal or verified retained-baseline handoff. Rename does
     /// not free the surviving named manifest's physical allocation.
     pub persistent_manifest_custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
@@ -1123,11 +1120,8 @@ impl<'host> SpoolCandidate<'host> {
                     manifest_sha256: None,
                     source_artifact: Some(source_artifact),
                     rootset_sha256: Some(rootset_sha256),
-                    manifest_bytes: None,
                     fence,
                     identities: index.identity_count(),
-                    dependency_sources: index.dependency_source_count(),
-                    dependencies: index.dependency_count(),
                     persistent_manifest_custody: custody,
                 });
             }
@@ -1362,11 +1356,8 @@ impl<'host> SpoolCandidate<'host> {
                 manifest_sha256: Some(manifest_sha256),
                 source_artifact,
                 rootset_sha256,
-                manifest_bytes: Some(manifest_bytes),
                 fence,
                 identities: index.identity_count(),
-                dependency_sources: index.dependency_source_count(),
-                dependencies: index.dependency_count(),
                 persistent_manifest_custody: custody,
             };
             Ok(receipt)

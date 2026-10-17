@@ -614,7 +614,6 @@ pub(crate) struct SourceRevisionReadSet {
     pub(crate) reads: SourceReads,
     pub(crate) observations: BTreeMap<String, SourceRevisionObservation>,
     pub(crate) work: SourceRevisionReadWork,
-    pub(crate) work_revision: Option<crate::source_pg_work_revision::Observation>,
     claim_navigation_closure: Option<SourceRevisionClaimNavigationClosure>,
 }
 
@@ -973,7 +972,6 @@ impl DurablePgCoordinator {
             reads: session.reads,
             observations: session.observations,
             work: session.work,
-            work_revision: session.work_revision,
             claim_navigation_closure: if session.claim_navigation_as_of_sequence.is_none() {
                 None
             } else {

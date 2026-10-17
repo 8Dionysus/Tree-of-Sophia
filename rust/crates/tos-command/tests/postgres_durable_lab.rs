@@ -1689,7 +1689,6 @@ fn maintained_agent_creation_operation<
     use tos_command::source_command::{CommandContext, SourceFile};
     use tos_command::source_creation::prepare_source_creation_from_captures;
     use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};
-    use tos_compiler::managed_source::ManagedProducerProof;
     use tos_foundation::{
         CanonicalProfile, JsonLimits, JsonMode, RelativePath, canonical_bytes_v1, parse_json,
     };
@@ -4676,7 +4675,7 @@ fn maintained_agent_creation_operation<
             "the mixed successor preserves every retained node and relation: {id}"
         );
     }
-    let mut synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
+    let synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
     let mut no_checkpoints = ManagedFixtureNoCheckpoints;
     let query_budgets = managed_fixture_query_budgets();
     let query_profile = tos_access::AccessProfile::new(65536, 1024 * 1024, 1024 * 1024)

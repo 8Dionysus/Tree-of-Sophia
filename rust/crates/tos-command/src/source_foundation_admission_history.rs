@@ -49,7 +49,6 @@ struct Evidence {
 }
 pub(crate) struct HistoryRead {
     pub bytes: Vec<u8>,
-    pub read_bytes: u64,
 }
 pub(crate) struct HistoryEvidence {
     packs: Vec<Pack>,
@@ -60,7 +59,6 @@ pub(crate) struct HistoryEvidence {
     shared_io_budget: Option<PinnedSqliteIoBudget>,
     read_limit: u64,
     retained_state: usize,
-    peak_state: usize,
 }
 fn add(a: u64, b: u64) -> io::Result<u64> {
     a.checked_add(b)
@@ -510,6 +508,7 @@ impl HistoryEvidence {
             });
         }
         entries.sort_by(|a, b| a.path.cmp(&b.path));
+        usize::try_from(peak).map_err(invalid)?;
         Ok(Self {
             packs,
             entries,
@@ -519,7 +518,6 @@ impl HistoryEvidence {
             shared_io_budget: None,
             read_limit: limits.max_read_bytes,
             retained_state: usize::try_from(retained).map_err(invalid)?,
-            peak_state: usize::try_from(peak).map_err(invalid)?,
         })
     }
     /// Bind only the actual concrete candidate whose SQLite pager already
@@ -755,10 +753,7 @@ impl HistoryEvidence {
             p.capture.verify_root()?;
             p.restored.verify_root()?;
             active(self.deadline, cancel)?;
-            Ok(Some(HistoryRead {
-                bytes,
-                read_bytes: read as u64,
-            }))
+            Ok(Some(HistoryRead { bytes }))
         })();
         if shared.is_none() {
             self.read_bytes

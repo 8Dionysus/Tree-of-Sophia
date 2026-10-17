@@ -27,9 +27,7 @@ use tos_validation::native_compound::{
     selected_record_history_from_input,
 };
 use tos_validation::record_biblio_cut::SourceCutRecordReport;
-use tos_validation::record_biblio_cut::{
-    SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity,
-};
+use tos_validation::record_biblio_cut::{SourceCutInputCoverage, SourceCutInputWithIdentity};
 use tos_validation::source_cut::{
     CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
 };
@@ -221,9 +219,7 @@ pub(crate) struct CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I:
     worker_quota: SharedSchemaWorkerQuota,
     invalid_schema_proofs: CandidateArtifactInvalidSchemaProofs<'provider, 'store, I>,
     history_limits: ItemLimits,
-    page_budget: SourceFoundationRecordsPageBudget,
     max_scan_rows: usize,
-    max_diagnostic_validation_work: usize,
     source_bytes_used: u64,
     retained_state_bytes: usize,
     active_path: Option<String>,
@@ -713,9 +709,7 @@ pub(crate) fn prepare_candidate_artifact_replay<'provider, 'store, 'worker, I: C
         worker_quota,
         invalid_schema_proofs,
         history_limits,
-        page_budget,
         max_scan_rows,
-        max_diagnostic_validation_work,
         source_bytes_used: 0,
         retained_state_bytes: proof_cost.retained_state_bytes,
         active_path: None,

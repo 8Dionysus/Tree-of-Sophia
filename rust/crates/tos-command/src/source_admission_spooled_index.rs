@@ -609,7 +609,6 @@ pub(crate) struct CandidateRecordsReportVerified {
     membership: SourceMembershipV1,
     prepared_schema: CutPreparedSchemaExecutionBinding,
     selected_member_bytes: u64,
-    record_source_bytes_read: u64,
     record_issue_count: usize,
     item_issue_count: usize,
     manifest_item_id_count: usize,
@@ -1191,7 +1190,6 @@ impl<'candidate> IndexSink<'candidate> {
                 "candidate Records report differs from the prepared schema worker",
             ));
         }
-        let record_source_bytes_read = report.record_usage().source_bytes_read;
         let selected_member_bytes = report.cost().selected_current_member_bytes;
         let record_issue_count = report.record_usage().observed_issue_count;
         let item_issue_count = report.items().issue_count;
@@ -1209,7 +1207,6 @@ impl<'candidate> IndexSink<'candidate> {
             membership: *report.source_membership(),
             prepared_schema: expected_schema,
             selected_member_bytes,
-            record_source_bytes_read,
             record_issue_count,
             item_issue_count,
             manifest_item_id_count,

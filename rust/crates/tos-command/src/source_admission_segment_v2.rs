@@ -335,7 +335,6 @@ pub(crate) struct BuiltInitialRootSetV2 {
     pub(crate) sha256: Digest256,
     pub(crate) tree_io: Arc<NativeV2TreeIo>,
     pub(crate) segment_store: SegmentStore,
-    pub(crate) work: AuthenticatedTreeWorkV1,
 }
 
 pub(crate) struct BuiltSuccessorRootSetV2 {
@@ -348,7 +347,6 @@ pub(crate) struct BuiltSuccessorRootSetV2 {
     pub(crate) source_record: Vec<u8>,
     pub(crate) tree_io: Arc<NativeV2TreeIo>,
     pub(crate) segment_store: SegmentStore,
-    pub(crate) work: AuthenticatedTreeWorkV1,
 }
 
 /// Build the first V2 rootset from an empty store using the real validated
@@ -773,7 +771,6 @@ pub(crate) fn build_initial_rootset_v2(
         sha256,
         tree_io,
         segment_store: segment,
-        work: used,
     })
 }
 
@@ -2095,7 +2092,6 @@ pub(crate) fn build_v1_migration_rootset_v2(
         source_record,
         tree_io,
         segment_store: segment,
-        work: used,
     })
 }
 
@@ -2775,7 +2771,6 @@ pub(crate) fn build_successor_rootset_v2(
         source_record,
         tree_io,
         segment_store: segment,
-        work,
     };
     Ok(result)
 }

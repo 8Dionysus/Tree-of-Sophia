@@ -1006,7 +1006,7 @@ mod tests {
 
     fn fixture(scope_mismatch: bool) -> (Connection, CatalogReceipt, QueryVocabulary, Vec<u8>) {
         let vocab = QueryVocabulary::parse(VOCAB, ADAPTERS).unwrap();
-        let mut db = Connection::open_in_memory().unwrap();
+        let db = Connection::open_in_memory().unwrap();
         db.execute_batch(
             "CREATE TABLE source_scope(
             source_graph TEXT PRIMARY KEY,expected_node_count INTEGER NOT NULL,

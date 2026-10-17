@@ -5,7 +5,6 @@ use rusqlite::params;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs,
     os::unix::fs::PermissionsExt,
     path::Path,
 };
@@ -1401,6 +1400,7 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     fn fixture_request() -> Value {
         json!({"request_key":"fate","request_identity_key":"tos.concept-request-key.sid-0123456789abcdef0123456789abcdef","request_version":2,"lexical_probes":{"de":["Schicksal"],"ru":["судьба"]},"semantic_neighbor_probes":{"de":["Verhängniss"],"ru":[]}})
     }

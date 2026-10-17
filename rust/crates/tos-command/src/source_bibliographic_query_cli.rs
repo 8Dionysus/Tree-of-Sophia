@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 use std::{
     ffi::OsString,
     fs::OpenOptions,
-    io::{Read, Write},
+    io::Write,
     os::unix::fs::{MetadataExt, OpenOptionsExt},
     path::PathBuf,
 };

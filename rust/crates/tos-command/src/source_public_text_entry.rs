@@ -687,7 +687,6 @@ pub(crate) struct PublicTextPackage {
     pub(crate) files: BTreeMap<String, Vec<u8>>,
     pub(crate) receipt: JsonValue,
     pub(crate) bindings: JsonValue,
-    pub(crate) dependencies: String,
 }
 
 pub(crate) fn complete_package(
@@ -787,7 +786,6 @@ pub(crate) fn complete_package(
         files,
         receipt,
         bindings: assembly.bindings.clone(),
-        dependencies,
     })
 }
 

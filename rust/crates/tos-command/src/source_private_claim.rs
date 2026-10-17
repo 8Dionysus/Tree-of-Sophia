@@ -19,7 +19,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
+use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
@@ -1447,7 +1447,6 @@ struct ClaimRoute {
 }
 
 struct ClaimGrammar {
-    relations: JsonValue,
     entities: JsonValue,
     routes: BTreeMap<String, ClaimRoute>,
     entity_by_id: BTreeMap<String, JsonValue>,
@@ -1766,7 +1765,6 @@ impl ClaimGrammar {
         );
         let _ = (relation_schema, entity_registry_schema);
         Ok(Self {
-            relations,
             entities,
             routes,
             entity_by_id,
@@ -2092,7 +2090,7 @@ fn identity_inventory(
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(String, BTreeMap<String, String>, BTreeSet<String>)> {
+) -> SourceCommandResult<(String, BTreeSet<String>)> {
     // The Claim-only owner-store census combines public and selected-private
     // entries and charges each visited directory entry before maintained
     // hidden/payload/catalog skips. Do not count cut file members again.
@@ -2204,28 +2202,7 @@ fn identity_inventory(
     }
     let inventory = JsonValue::Object(fingerprints);
     let digest = cmd::record_digest(&inventory)?.to_prefixed();
-    Ok((digest, fingerprints_to_map(&inventory)?, ids))
-}
-
-fn fingerprints_to_map(value: &JsonValue) -> SourceCommandResult<BTreeMap<String, String>> {
-    let fields = value
-        .as_object()
-        .ok_or(SourceCommandError::Invalid("private Claim inventory map"))?;
-    fields
-        .iter()
-        .map(|(name, raw)| {
-            Ok((
-                name.as_str()
-                    .ok_or(SourceCommandError::Invalid("private Claim inventory path"))?
-                    .to_owned(),
-                raw.as_str()
-                    .ok_or(SourceCommandError::Invalid(
-                        "private Claim inventory digest",
-                    ))?
-                    .to_owned(),
-            ))
-        })
-        .collect()
+    Ok((digest, ids))
 }
 
 struct OwnerNativeRead<'a> {
@@ -3942,11 +3919,6 @@ struct GroundedClaims {
     dependencies: String,
     bindings: Vec<JsonValue>,
     source_fields: Vec<JsonValue>,
-    materializations: Vec<JsonValue>,
-    identity_digest: String,
-    identity_files: BTreeMap<String, String>,
-    identity_ids: BTreeSet<String>,
-    snapshots: BTreeMap<String, String>,
     reads: Vec<SourceFile>,
 }
 
@@ -4483,7 +4455,7 @@ fn ground_claims(
         }
         records_by_claim.insert(identity.to_owned(), records);
     }
-    let (identity_digest, identity_files, identity_ids) = identity_inventory(
+    let (identity_digest, identity_ids) = identity_inventory(
         grant,
         owner,
         cut,
@@ -4615,7 +4587,6 @@ fn ground_claims(
     let mut snapshots = BTreeMap::new();
     let mut bindings = Vec::new();
     let mut source_fields = Vec::new();
-    let materializations = Vec::new();
     for claim in claims {
         let identity = cmd::text(claim, "claim_id")?;
         let route = routes
@@ -4966,7 +4937,7 @@ fn ground_claims(
         );
         source_fields.extend(form_fields_for_claim(claim)?);
     }
-    let grounding = hash_map(snapshots.clone());
+    let grounding = hash_map(snapshots);
     let dependency_basis = cmd::object(vec![
         ("grounding", grounding),
         ("identity", cmd::string(&identity_digest)),
@@ -4979,11 +4950,6 @@ fn ground_claims(
         dependencies,
         bindings,
         source_fields,
-        materializations,
-        identity_digest,
-        identity_files,
-        identity_ids,
-        snapshots,
         reads: reads.into_source_files()?,
     })
 }
@@ -6245,7 +6211,6 @@ struct PackageState {
     history: JsonValue,
     receipt: JsonValue,
     initial_archive_stream_digest: Option<String>,
-    archive_locations: Vec<JsonValue>,
 }
 
 fn historical_grant(raw: &[u8], context: &JsonValue) -> SourceCommandResult<Grant> {
@@ -6990,7 +6955,6 @@ fn package_state(
             }
         }
     }
-    let mut archive_locations = Vec::new();
     let mut initial_archive_stream_digest = None;
     let mut expected_stream_digest: Option<String> = None;
     let mut history_commands = BTreeSet::new();
@@ -7208,7 +7172,6 @@ fn package_state(
             &revised,
         )?;
         expected_stream_digest = Some(Digest256::of_bytes(&successor_stream).to_prefixed());
-        archive_locations.push(locations);
     }
     if let Some(expected) = &expected_stream_digest
         && Digest256::of_bytes(required_package_file(files, CLAIM_STREAM)?)
@@ -7226,7 +7189,6 @@ fn package_state(
         history,
         receipt,
         initial_archive_stream_digest,
-        archive_locations,
     })
 }
 

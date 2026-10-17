@@ -37,7 +37,6 @@ pub(crate) struct PgExpressionResponsibilityOwnerPackage<'a> {
     pub(crate) context: CommandContext,
     pub(crate) proposal: cmd::PreparedCommand,
     pub(crate) semantic_indexes: IndexRows,
-    pub(crate) owner_contributions: BTreeMap<String, JsonValue>,
     pub(crate) fence: work_transaction::WorkCorpusFence<'a>,
 }
 
@@ -364,7 +363,7 @@ pub(crate) fn prepare_pg_expression_responsibility<'a, I: Copy + Eq>(
         &owner.claim_id,
         cmd::text(&owner.configuration, "provenance_event_id")?,
     )?;
-    let owner_contributions = owner_contributions_from_members(
+    owner_contributions_from_members(
         projected_outputs
             .iter()
             .map(|(path, raw)| (path.as_str(), raw.as_slice())),
@@ -380,7 +379,6 @@ pub(crate) fn prepare_pg_expression_responsibility<'a, I: Copy + Eq>(
         context: context.clone(),
         proposal,
         semantic_indexes,
-        owner_contributions,
         fence,
     })
 }

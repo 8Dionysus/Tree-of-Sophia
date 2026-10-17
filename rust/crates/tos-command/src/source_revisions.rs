@@ -26,7 +26,7 @@ use tos_validation::native_compound::{
     CandidateNativeRecordHistoryReadObservation, NativeRecordHistoryReadObservation,
     NativeTransportState,
 };
-use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
+use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 

@@ -96,7 +96,6 @@ struct Owner {
     config_digest: String,
     contract_digests: JsonValue,
     claim_id: String,
-    form_identity_inputs: JsonValue,
     reads: Vec<SourceFile>,
 }
 
@@ -514,9 +513,9 @@ fn owner(
         return Err(invalid());
     }
     let contracts = contract_digests(ctx)?;
-    let form_identity_inputs = if !is_revision {
+    if !is_revision {
         if let Some(index) = cut.identity_index() {
-            selected_form_identity_inputs(ctx, index, &config, &path, id)?
+            selected_form_identity_inputs(ctx, index, &config, &path, id)?;
         } else {
             let inventory = source_claims::maintained_inventory_from_members(
                 ctx,
@@ -528,11 +527,9 @@ fn owner(
             )?;
             form_identity_inputs(
                 ctx, cut, &inventory, &config, &path, id, worker, deadline, cancelled,
-            )?
+            )?;
         }
-    } else {
-        cmd::object(vec![])
-    };
+    }
     let config_digest = if is_revision {
         cmd::record_digest(&config)?.to_prefixed()
     } else {
@@ -560,7 +557,6 @@ fn owner(
         config_digest,
         contract_digests: contracts,
         claim_id,
-        form_identity_inputs,
         reads: ctx.files.clone(),
     })
 }

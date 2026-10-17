@@ -19,7 +19,6 @@ const MAX_PACKAGE_BYTES: usize = 12 * 1024 * 1024;
 
 pub(crate) struct InitialLayerOutput {
     pub(crate) layer: JsonValue,
-    pub(crate) anchor: JsonValue,
     pub(crate) files: BTreeMap<String, Vec<u8>>,
 }
 
@@ -206,7 +205,6 @@ pub(crate) fn build_initial_layer(
     );
     Ok(InitialLayerOutput {
         layer: source_value(&layer)?,
-        anchor: source_value(&anchor)?,
         files,
     })
 }

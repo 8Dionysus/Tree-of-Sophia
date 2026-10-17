@@ -203,7 +203,6 @@ struct ResolvedObservation {
 pub struct FoundationPhysicalSnapshot<'cancel, 'signal> {
     facts: SourcePhysicalFacts,
     historical_originals: BTreeMap<String, PhysicalPathFacts>,
-    repo_paths: BTreeSet<String>,
     authored_capture_paths: BTreeSet<String>,
     candidate_member_paths: BTreeSet<String>,
     private_declared_paths: BTreeSet<String>,
@@ -1101,7 +1100,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         Ok(Self {
             facts,
             historical_originals: BTreeMap::new(),
-            repo_paths,
             authored_capture_paths,
             candidate_member_paths,
             private_declared_paths,

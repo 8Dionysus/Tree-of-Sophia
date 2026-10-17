@@ -857,8 +857,6 @@ fn sorted_fact_collection(collection: SourceFoundationRecordFactCollection) -> b
 }
 
 struct Cursor<'a> {
-    tag: u8,
-    mode: u8,
     seq: i64,
     key1: &'a str,
     key2: &'a str,
@@ -949,13 +947,7 @@ fn parse_cursor<'a>(
     }
     let key2 = std::str::from_utf8(&raw[second_len_end..second_end])
         .map_err(|_| invalid("source-foundation cursor key is not UTF-8"))?;
-    Ok(Some(Cursor {
-        tag,
-        mode,
-        seq,
-        key1,
-        key2,
-    }))
+    Ok(Some(Cursor { seq, key1, key2 }))
 }
 
 fn check_operation(

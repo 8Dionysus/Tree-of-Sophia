@@ -1191,7 +1191,6 @@ pub(crate) struct PreparedNativeDerivedTextPackage {
     replayed: bool,
     context_binding: Digest256,
     request_digest: Digest256,
-    grant_digest: Digest256,
 }
 
 impl PreparedNativeDerivedTextPackage {
@@ -1474,7 +1473,6 @@ pub(crate) fn prepare_pg_derived_text_package(
     let context_binding = prepared
         .context
         .private_owner_scope_binding(deadline, cancelled)?;
-    let grant_digest = Digest256::of_bytes(&prepared.grant.raw);
     Ok(PreparedNativeDerivedTextPackage {
         prepared,
         source_path,
@@ -1483,7 +1481,6 @@ pub(crate) fn prepare_pg_derived_text_package(
         replayed,
         context_binding,
         request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
-        grant_digest,
     })
 }
 
