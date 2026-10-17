@@ -29,7 +29,8 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         "evidence_posture":{"raw_content_allowed":false,"live_state":"reference_only","privacy":"public"},
         "measurements":[{"schema_version":"aoa_stats_measurement_contract_v1",
             "measurement_id":measurement,"contract_version":"1.0.0",
-            "owner_repo":"Tree-of-Sophia","statistic":"ratio"}],
+            "owner_repo":"Tree-of-Sophia","statistic":"ratio","unit":{"symbol":"1"},
+            "missingness":{"states":["missing","unknown","stale"]}}],
         "exports":[{"measurement_id":measurement,"packet_refs":[packet_ref]}]
     });
     let packet_document = json!({
@@ -39,7 +40,7 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         "observation_id":"synthetic-ratio:fixture-v1","observed_at":"2026-10-17T00:00:00Z",
         "provenance":{"source_revision":"synthetic-source:fixture-v1"},
         "posture":{"raw_content_included":false,"live_state":"reference_only"},
-        "value":{"status":"observed","numerator":1,"denominator":2,"number":0.5}
+        "value":{"status":"observed","kind":"ratio","unit":"1","numerator":1,"denominator":2,"number":0.5}
     });
     for name in SOURCE_PATHS {
         let path = source.join(name);
@@ -118,6 +119,41 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
     assert!(!build().status.success());
     assert_eq!(status(revision)["export_revision"], identity);
     fs::write(&port, port_raw).unwrap();
+    fs::write(&packet, &raw).unwrap();
+    let validate = || {
+        Command::new(binary)
+            .args(["validate", "--port"])
+            .arg(&port)
+            .env("PATH", root.join("no-tools"))
+            .output()
+            .unwrap()
+    };
+    for bad in [
+        json!({"kind":"ratio","unit":"1"}),
+        json!({"status":"invalid","kind":"ratio","unit":"1"}),
+        json!({"status":"observed","kind":"ratio","unit":"1"}),
+        json!({"status":"observed","kind":"count","unit":"1","numerator":1,"denominator":2,"number":0.5}),
+        json!({"status":"observed","kind":"ratio","unit":"wrong","numerator":1,"denominator":2,"number":0.5}),
+        json!({"status":"unknown","kind":"ratio","unit":"1"}),
+        json!({"status":"unknown","kind":"ratio","unit":"1","reason":"input unavailable","number":0}),
+        json!({"status":"stale","kind":"ratio","unit":"1","reason":"old observation","number":0.5}),
+    ] {
+        altered = serde_json::from_slice(&raw).unwrap();
+        altered["value"] = bad;
+        fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
+        assert!(!validate().status.success());
+        assert!(!build().status.success());
+        assert_eq!(status(revision)["export_revision"], identity);
+    }
+    for state in ["missing", "unknown", "stale"] {
+        altered = serde_json::from_slice(&raw).unwrap();
+        altered["value"] = json!({"status":state,"kind":"ratio","unit":"1","reason":"synthetic input unavailable"});
+        fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
+        assert!(validate().status.success());
+    }
+    altered["value"] = json!({"status":"stale","kind":"ratio","unit":"1","reason":"old observation","number":0.5,"numerator":1,"denominator":2});
+    fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
+    assert!(validate().status.success());
     fs::write(&packet, raw).unwrap();
     for option in ["--python", "--stats-root"] {
         assert!(

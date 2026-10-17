@@ -105,6 +105,73 @@ fn read_bounded(path: &Path, max: u64) -> io::Result<Vec<u8>> {
     Ok(raw)
 }
 
+// This export owns census ratios. New statistic kinds need an explicit local
+// implementation; an unrecognized kind/status must never skip value checks.
+fn validate_ratio_value(contract: &Value, value: &Value) -> io::Result<()> {
+    let unit = nonempty(&contract["unit"]["symbol"])?;
+    let fields = value
+        .as_object()
+        .ok_or_else(|| invalid("stats ratio value"))?;
+    if contract["statistic"] != "ratio"
+        || value["kind"] != "ratio"
+        || value["unit"] != unit
+        || fields.keys().any(|k| {
+            ![
+                "status",
+                "kind",
+                "unit",
+                "number",
+                "numerator",
+                "denominator",
+                "reason",
+            ]
+            .contains(&k.as_str())
+        })
+    {
+        return Err(invalid("unsupported ToS ratio value shape"));
+    }
+    let has_number = ["number", "numerator", "denominator"]
+        .iter()
+        .any(|k| fields.contains_key(*k));
+    match value["status"].as_str() {
+        Some("observed") => {}
+        Some(status @ ("missing" | "unknown" | "stale")) => {
+            if !contract["missingness"]["states"]
+                .as_array()
+                .is_some_and(|states| states.iter().any(|s| s == status))
+            {
+                return Err(invalid("stats status is not declared by the measurement"));
+            }
+            nonempty(&value["reason"])?;
+            if has_number && status != "stale" {
+                return Err(invalid("missing or unknown stats cannot assert a number"));
+            }
+            if !has_number {
+                return Ok(());
+            }
+        }
+        _ => return Err(invalid("unsupported stats value status")),
+    }
+    if fields.contains_key("reason") {
+        nonempty(&value["reason"])?;
+    }
+    let numerator = value["numerator"]
+        .as_u64()
+        .ok_or_else(|| invalid("stats numerator"))?;
+    let denominator = value["denominator"]
+        .as_u64()
+        .filter(|v| *v > 0)
+        .ok_or_else(|| invalid("stats denominator"))?;
+    let number = value["number"]
+        .as_f64()
+        .filter(|v| v.is_finite())
+        .ok_or_else(|| invalid("stats ratio number"))?;
+    if numerator > denominator || (number - numerator as f64 / denominator as f64).abs() > 1e-12 {
+        return Err(invalid("stats ratio is inconsistent"));
+    }
+    Ok(())
+}
+
 /// Validate the ToS-owned export and its local packet bindings. Consumer
 /// admission is deliberately absent: a consumer validates at its own boundary.
 pub fn validate_port(port: &Path) -> io::Result<Value> {
@@ -181,25 +248,7 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 return Err(invalid("stats packet binding differs"));
             }
             observation(&packet)?;
-            if packet["value"]["status"] == "observed" && contract["statistic"] == "ratio" {
-                let value = &packet["value"];
-                let numerator = value["numerator"]
-                    .as_u64()
-                    .ok_or_else(|| invalid("stats numerator"))?;
-                let denominator = value["denominator"]
-                    .as_u64()
-                    .filter(|v| *v > 0)
-                    .ok_or_else(|| invalid("stats denominator"))?;
-                let number = value["number"]
-                    .as_f64()
-                    .filter(|v| v.is_finite())
-                    .ok_or_else(|| invalid("stats ratio number"))?;
-                if numerator > denominator
-                    || (number - numerator as f64 / denominator as f64).abs() > 1e-12
-                {
-                    return Err(invalid("stats ratio is inconsistent"));
-                }
-            }
+            validate_ratio_value(contract, &packet["value"])?;
         }
     }
     if exported != identities {

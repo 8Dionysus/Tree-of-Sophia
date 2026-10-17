@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2281,
     "human_scope": {
-      "bytes": 7317957,
+      "bytes": 7318256,
       "count": 1072,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -76,7 +76,7 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 449171,
+          "bytes": 449088,
           "count": 125,
           "lines": 8222
         },
@@ -106,9 +106,9 @@
           "lines": 163
         },
         "stats": {
-          "bytes": 6981,
+          "bytes": 7363,
           "count": 3,
-          "lines": 146
+          "lines": 152
         },
         "tests": {
           "bytes": 63703,
@@ -121,7 +121,7 @@
           "lines": 82560
         }
       },
-      "lines": 120724
+      "lines": 120730
     },
     "surface_kind_counts": {
       "executable": 77,
@@ -209,7 +209,7 @@
         "human": 3,
         "structured": 2
       },
-      "tracked_surface_bytes": 13602,
+      "tracked_surface_bytes": 13984,
       "tracked_surface_count": 5
     },
     {
@@ -226,7 +226,7 @@
         "human": 125,
         "structured": 34
       },
-      "tracked_surface_bytes": 578395,
+      "tracked_surface_bytes": 578312,
       "tracked_surface_count": 159
     },
     {
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "c780488ca535750b2a87437d7694314c7c9df51d0caad87d9f83dc3f74d11cc2",
+  "tracked_surface_digest": "3b640ed072ab10766f689cc952912c17ab5825d492c63bfa07e4a5392b48168c",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "02ef3ba33544b483c3ffca6b2e0658f3e7e41ea003e57fd18d5c1c02dc50d96d",
+      "sha256": "ba1ce48b71840a35374d4dfaacc1fb36777e87a41de13d208647b2578eee36f6",
       "surface_kind": "structured"
     },
     {
@@ -38420,11 +38420,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 638,
+      "bytes": 555,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/boundary-bridge/parts/derived-kag-seam/README.md",
-      "sha256": "996c92636a27f463b50155c9b025324c3ab256b546a34b73b3782d7189c0ee62",
+      "sha256": "3c0918baf2accb8bb33a24cde6798d4a44dd3a9b0b7ff532ace6d20d4a0daaa8",
       "surface_kind": "human"
     },
     {
@@ -41924,11 +41924,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 1775,
+      "bytes": 2157,
       "currentness": "tracked_source_snapshot",
       "family_id": "stats",
       "path": "stats/VALIDATION.md",
-      "sha256": "886da9296fbd1d3f18c538fc961175c6f32463600e3c2de4e50e3c09e001473a",
+      "sha256": "028c74f98ff56a341a82a1e5cf9002ab356926f2d7dbd9ff1efa7fa0d715d10c",
       "surface_kind": "human"
     },
     {
