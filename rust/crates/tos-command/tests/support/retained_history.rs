@@ -14,10 +14,10 @@ pub(crate) fn retained_history(repository: &std::path::Path) -> tempfile::TempDi
         &capture,
         &temporary.path().join("source"),
         &SoftwareCaptureSelectionV1 {
-            source_git_commit: "c83a40969d69b99204cf2941ae9c7d9db7d654cf".into(),
-            source_git_tree: "f04afc2ebdf6d3d9d42060b793e11d72562878ac".into(),
+            source_git_commit: "989343513e7d1042cec1bb541f7d39fdfb4ad479".into(),
+            source_git_tree: "edcd678c928f511f17d1bfd4d779c2aa5ddf0162".into(),
             capture_manifest_sha256: Digest256::from_hex(
-                "aa9358a29c59ada42d73e8b361433194e22db82e8ca4069cbe7006014ad970f2",
+                "8fc43282ad9b06f828559d4619026ded3c99dba616426b5aa01024b3226cb863",
             )
             .unwrap(),
         },

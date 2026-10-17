@@ -32,6 +32,9 @@ use tos_segment_store::{
     SegmentStore, VerificationBudget, describe_placement_partition,
 };
 
+#[path = "support/retained_history.rs"]
+mod retained_history_capture;
+
 #[path = "postgres_durable_lab/postgres_real_backup_restore.rs"]
 mod postgres_real_backup_restore;
 #[path = "postgres_durable_lab/postgres_real_revision.rs"]
@@ -1905,6 +1908,13 @@ fn maintained_agent_creation_operation<
         // packages, including Work forms/history and its retained v1 archive.
         // This reproduces the mixed family shape without fabricating records
         // or dropping any member from either package.
+        let retained_history = retained_history_capture::retained_history(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../..")
+                .canonicalize()
+                .unwrap(),
+        );
+        let retained_root = retained_history.path().join("source");
         for relative_dir in [
             "ToS/source-witnesses/agents/justus-lipsius",
             "ToS/source-witnesses/works/justus-lipsius/de-constantia",
@@ -1940,7 +1950,7 @@ fn maintained_agent_creation_operation<
         assert_eq!(archive_paths.len(), 1, "Work v1 is retained exactly once");
         for archive_path in archive_paths {
             assert!(archive_path.starts_with("ToS/source-witnesses/.record-revisions/"));
-            let archive_entries = fs::read_dir(repository.join(archive_path))
+            let archive_entries = fs::read_dir(retained_root.join(archive_path))
                 .unwrap()
                 .collect::<Result<Vec<_>, _>>()
                 .unwrap();
