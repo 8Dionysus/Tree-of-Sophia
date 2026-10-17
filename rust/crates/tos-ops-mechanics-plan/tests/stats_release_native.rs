@@ -30,6 +30,8 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         "measurements":[{"schema_version":"aoa_stats_measurement_contract_v1",
             "measurement_id":measurement,"contract_version":"1.0.0",
             "owner_repo":"Tree-of-Sophia","statistic":"ratio","unit":{"symbol":"1"},
+            "live_state":{"capability":"reference_only"},
+            "privacy":{"classification":"public","raw_content_allowed":false},
             "missingness":{"states":["missing","unknown","stale"]}}],
         "exports":[{"measurement_id":measurement,"packet_refs":[packet_ref]}]
     });
@@ -39,7 +41,7 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         "measurement_id":measurement,"writer_repo":"Tree-of-Sophia",
         "observation_id":"synthetic-ratio:fixture-v1","observed_at":"2026-10-17T00:00:00Z",
         "provenance":{"source_revision":"synthetic-source:fixture-v1"},
-        "posture":{"raw_content_included":false,"live_state":"reference_only"},
+        "posture":{"raw_content_included":false,"live_state":"reference","privacy":"public","freshness":"current"},
         "value":{"status":"observed","kind":"ratio","unit":"1","numerator":1,"denominator":2,"number":0.5}
     });
     for name in SOURCE_PATHS {
@@ -148,12 +150,29 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
     for state in ["missing", "unknown", "stale"] {
         altered = serde_json::from_slice(&raw).unwrap();
         altered["value"] = json!({"status":state,"kind":"ratio","unit":"1","reason":"synthetic input unavailable"});
+        if state == "stale" {
+            altered["posture"]["freshness"] = json!("stale");
+        }
         fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
         assert!(validate().status.success());
     }
     altered["value"] = json!({"status":"stale","kind":"ratio","unit":"1","reason":"old observation","number":0.5,"numerator":1,"denominator":2});
     fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
     assert!(validate().status.success());
+    for posture in [
+        json!({"raw_content_included":false,"live_state":null,"privacy":"public","freshness":"current"}),
+        json!({"raw_content_included":false,"live_state":"live","privacy":"public","freshness":"current"}),
+        json!({"raw_content_included":false,"live_state":"invalid","privacy":"public","freshness":"current"}),
+        json!({"raw_content_included":false,"live_state":"reference","privacy":"sensitive","freshness":"current"}),
+        json!({"raw_content_included":false,"live_state":"reference","privacy":"public","freshness":null}),
+    ] {
+        altered = serde_json::from_slice(&raw).unwrap();
+        altered["posture"] = posture;
+        fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
+        assert!(!validate().status.success());
+        assert!(!build().status.success());
+        assert_eq!(status(revision)["export_revision"], identity);
+    }
     fs::write(&packet, raw).unwrap();
     for option in ["--python", "--stats-root"] {
         assert!(

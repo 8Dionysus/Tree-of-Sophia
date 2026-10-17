@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2281,
     "human_scope": {
-      "bytes": 7318256,
+      "bytes": 7318514,
       "count": 1072,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -106,9 +106,9 @@
           "lines": 163
         },
         "stats": {
-          "bytes": 7363,
+          "bytes": 7621,
           "count": 3,
-          "lines": 152
+          "lines": 156
         },
         "tests": {
           "bytes": 63703,
@@ -121,7 +121,7 @@
           "lines": 82560
         }
       },
-      "lines": 120730
+      "lines": 120734
     },
     "surface_kind_counts": {
       "executable": 77,
@@ -209,7 +209,7 @@
         "human": 3,
         "structured": 2
       },
-      "tracked_surface_bytes": 13984,
+      "tracked_surface_bytes": 14242,
       "tracked_surface_count": 5
     },
     {
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "3b640ed072ab10766f689cc952912c17ab5825d492c63bfa07e4a5392b48168c",
+  "tracked_surface_digest": "cb18e95048aa87be5db3561582e103b6c8061bc20399b35f46a94b0ec795c68f",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "ba1ce48b71840a35374d4dfaacc1fb36777e87a41de13d208647b2578eee36f6",
+      "sha256": "4129a0cb319e33afbef8d70f0283c2a284add767952c21da65d0b08537415815",
       "surface_kind": "structured"
     },
     {
@@ -41924,11 +41924,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2157,
+      "bytes": 2415,
       "currentness": "tracked_source_snapshot",
       "family_id": "stats",
       "path": "stats/VALIDATION.md",
-      "sha256": "028c74f98ff56a341a82a1e5cf9002ab356926f2d7dbd9ff1efa7fa0d715d10c",
+      "sha256": "e59286a3c62044dcabcf3c780876e29c8c2901158b67273f1519151dd78fe73a",
       "surface_kind": "human"
     },
     {

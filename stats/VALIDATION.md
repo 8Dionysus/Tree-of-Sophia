@@ -13,6 +13,10 @@ The current export supports census ratios with matching `kind` and unit.
 and number. Declared `missing`, `unknown` and `stale` values require a reason;
 missing or unknown cannot assert a number. Stale may retain a complete checked
 ratio. Unsupported statuses, kinds and partial values refuse publication.
+The port's `reference_only` capability requires a packet `reference` posture,
+matching measurement capability and privacy, and supported freshness. A stale
+value must declare stale freshness. These checks never promote a reference
+observation to live state.
 
 No consumer repository, interpreter or schema checkout is selected. Shared
 format identifiers and contract references are portable compatibility metadata;

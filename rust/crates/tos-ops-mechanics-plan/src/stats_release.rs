@@ -60,10 +60,10 @@ fn observation(packet: &Value) -> io::Result<Value> {
     ] {
         nonempty(value)?;
     }
-    let live = packet
-        .get("posture")
-        .and_then(|p| p.get("live_state"))
-        .ok_or_else(|| invalid("stats packet lacks explicit live_state"))?;
+    let live = nonempty(&packet["posture"]["live_state"])?;
+    if live != "reference" {
+        return Err(invalid("ToS stats export requires a reference observation"));
+    }
     Ok(
         json!({"observation_id":packet["observation_id"],"observed_at":packet["observed_at"],
         "source_revision":packet["provenance"]["source_revision"],"live_state":live}),
@@ -188,9 +188,13 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
         return Err(invalid("stats port location differs"));
     }
     let document = read_json(&port)?;
+    let evidence = &document["evidence_posture"];
+    let privacy = nonempty(&evidence["privacy"])?;
     if document["schema_version"] != "aoa_stats_local_port_v1"
         || document["owner_repo"] != "Tree-of-Sophia"
-        || document["evidence_posture"]["raw_content_allowed"] != false
+        || evidence["raw_content_allowed"] != false
+        || evidence["live_state"] != "reference_only"
+        || !["public", "internal", "sensitive"].contains(&privacy)
     {
         return Err(invalid("unsupported ToS stats port"));
     }
@@ -209,6 +213,9 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
         if contract["schema_version"] != "aoa_stats_measurement_contract_v1"
             || !identities.insert(nonempty(&contract["measurement_id"])?.to_owned())
             || contract["owner_repo"] != "Tree-of-Sophia"
+            || contract["live_state"]["capability"] != evidence["live_state"]
+            || contract["privacy"]["classification"] != privacy
+            || contract["privacy"]["raw_content_allowed"] != false
         {
             return Err(invalid(
                 "stats measurement identity differs or is duplicated",
@@ -244,6 +251,12 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                     != format!("stats/port.manifest.json#/measurements/{index}")
                 || packet["contract_version"] != contract["contract_version"]
                 || packet["posture"]["raw_content_included"] != false
+                // Port capability and packet assertion use different grammar:
+                // reference_only permits reference, never live or null.
+                || packet["posture"]["live_state"] != "reference"
+                || packet["posture"]["privacy"] != privacy
+                || !matches!(packet["posture"]["freshness"].as_str(), Some("current" | "unknown" | "stale"))
+                || (packet["value"]["status"] == "stale" && packet["posture"]["freshness"] != "stale")
             {
                 return Err(invalid("stats packet binding differs"));
             }
