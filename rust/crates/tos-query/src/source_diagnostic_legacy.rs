@@ -2461,7 +2461,7 @@ impl LegacyStore {
                 original: original_abort.as_ref(),
                 operation: operation.as_ref(),
             };
-            let mut result = (|| {
+            let result = (|| {
                 let mut field_bytes = request.query.len();
                 if field_bytes > QUERY_STORE_INDEXED_FILTER_FIELD_BYTES {
                     return Err(owned_err("indexed QueryStore query byte bound"));

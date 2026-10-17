@@ -2,8 +2,8 @@
 //! selection facts; it neither admits authored source nor issues a live grant.
 use crate::{
     Error, ExpectedSourceScope, FullKnowledgeLimits, KnowledgeSelectedExpectation,
-    NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NativeProducerLimits, QueryVocabulary,
-    Result, SourceBinding,
+    NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeProducerLimits, QueryVocabulary, Result,
+    SourceBinding,
     d1_public_capture::{CreationState, PublicCapture, PublicCaptureLimits},
     d1_public_graph::{
         PublicRepositoryRoot, PublicStageOwner, captured_input_roots, captured_input_roots_owned,

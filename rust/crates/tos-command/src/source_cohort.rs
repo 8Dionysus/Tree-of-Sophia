@@ -999,7 +999,7 @@ pub(crate) struct SourceRevisionAttempt {
     pub(crate) source_head_sequence: Option<u64>,
     pub(crate) predecessor_source_revision: SourceRevision,
     pub(crate) reads: SourceReads,
-    pub(crate) metadata: SourceMetadata,
+    pub(in crate::durable_adapter) metadata: SourceMetadata,
     /// Only structural source-index rows created by this revision are bound
     /// here. Existing semantic rows remain in place after an index-preserving
     /// update; newly inserted archive members still need their path rows for

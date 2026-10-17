@@ -493,8 +493,8 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
 }
 
 /// Same indexed page kernel with a borrowed owner-issued delivery hold.
-pub fn execute_scoped_indexed_search_page<'hold, M, A>(
-    model: &mut M,
+pub fn execute_scoped_indexed_search_page<'hold, A>(
+    model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     cursor_codec: &mut dyn IndexedWireCursorCodec,
@@ -503,7 +503,6 @@ pub fn execute_scoped_indexed_search_page<'hold, M, A>(
     budget: IndexedPageBudget,
 ) -> Result<DisclosableScopedIndexedSearch<'hold>, SearchV2Error>
 where
-    M: IndexedSearchModel,
     A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
 {
     let normalized = request.clone().normalize(bound.selection(), bound)?;

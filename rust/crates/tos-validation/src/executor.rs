@@ -5350,7 +5350,7 @@ mod native {
             &mut self,
             units: &[BatchUnit],
             expected: BatchCoverageExpectation,
-            mut budget: BatchBudget,
+            budget: BatchBudget,
             deadline: Instant,
             cancelled: &AtomicBool,
         ) -> BatchOutcome {
@@ -6824,6 +6824,7 @@ mod native {
 
     /// Snapshot the verified worker into an executable, sealed in-memory file.
     /// Hashing the *copy* removes the in-place mutation race of path+hash+exec.
+    #[cfg(test)]
     fn sealed_worker(worker: &ExactWorkerIdentity) -> Result<File, ExecutorFailure> {
         sealed_worker_checked(worker, None, None)
     }
@@ -7755,15 +7756,13 @@ mod native {
 
     struct DiagnosticsParsedUnit<'a> {
         ordinal: u64,
-        member_id: &'a str,
-        relative_path: &'a str,
         root_uri: &'a str,
         raw: &'a [u8],
         input_mode: DiagnosticsUnitInputMode,
         unit_sha256: Digest256,
     }
 
-    fn diagnostics_worker_once(mut input: impl Read, mut output: impl Write) -> io::Result<()> {
+    fn diagnostics_worker_once(input: impl Read, mut output: impl Write) -> io::Result<()> {
         use jsonschema::{Registry, Validator};
 
         let bad = || io::Error::new(io::ErrorKind::InvalidData, "schema diagnostics request");
@@ -8747,8 +8746,6 @@ mod native {
                 };
             units.push(DiagnosticsParsedUnit {
                 ordinal: observed_ordinal,
-                member_id,
-                relative_path,
                 root_uri,
                 raw,
                 input_mode,

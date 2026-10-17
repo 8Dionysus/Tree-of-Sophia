@@ -1531,8 +1531,8 @@ fn source_profiles(
 #[path = "source_object_link/pg.rs"]
 mod pg;
 pub(crate) use pg::{
-    PG_FAMILY as OBJECT_LINK_PG_FAMILY_TAG, PgObjectLinkPreview, PgObjectLinkRequirements,
-    PreparedPgObjectLink, describe_pg_object_link, expected_inventory_contributions_from_writes,
+    PG_FAMILY as OBJECT_LINK_PG_FAMILY_TAG, PreparedPgObjectLink, describe_pg_object_link,
+    expected_inventory_contributions_from_writes,
     expected_revision_indexes_from_writes as expected_object_link_revision_indexes,
     pg_object_link_requirements, prepare_pg_object_link, prepare_pg_object_link_preview,
 };

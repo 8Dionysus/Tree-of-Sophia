@@ -26,7 +26,7 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_bytes_v1};
+use tos_foundation::Digest256;
 use tos_source_store::CorpusCutReader;
 
 use crate::source_foundation_default_rules::SourceFoundationDefaultRuleScope;
@@ -6393,7 +6393,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         &mut self,
         temporary_baseline: usize,
     ) -> Result<u64, ItemRefusal> {
-        let mut store = self
+        let store = self
             .schema_request_store
             .take()
             .ok_or(crate::item_budget_origin!())?;
@@ -9117,7 +9117,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         events: Option<&BTreeMap<String, String>>,
         temporary_baseline: usize,
     ) -> Result<(), ItemRefusal> {
-        let mut store = self.link_store.take().ok_or(crate::item_budget_origin!())?;
+        let store = self.link_store.take().ok_or(crate::item_budget_origin!())?;
         let mut after_id: Option<String> = None;
         let mut cursor_state = 0usize;
         let mut drained = 0u64;

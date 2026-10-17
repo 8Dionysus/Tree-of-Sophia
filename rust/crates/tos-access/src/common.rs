@@ -875,7 +875,8 @@ pub type SourceDescendDelivery<'call> = dyn for<'packet> FnMut(Result<PreparedPa
 // One method/default contract serves both installed owned executors and
 // callback-scoped selected owners. A lifetime never grants source authority.
 macro_rules! access_executor_contract {
-    ($name:ident, [$($generics:tt)*], $packet_lifetime:lifetime, [$($bounds:tt)*]) => {
+    ($(#[$metadata:meta])* $name:ident, [$($generics:tt)*], $packet_lifetime:lifetime, [$($bounds:tt)*]) => {
+        $(#[$metadata])*
         pub trait $name $($generics)* $($bounds)* {
     /// Reuse admitted software custody; selected data cannot supply code.
     fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
@@ -1062,9 +1063,11 @@ macro_rules! access_executor_contract {
     };
 }
 access_executor_contract!(AccessExecutor, [], 'static, [: Send + Sync]);
-/// Callback-local executor: every returned packet retains its real owner lease.
-/// Delivery must finish before the borrowed selected context is dropped.
-access_executor_contract!(ScopedAccessExecutor, [<'hold>], 'hold, []);
+access_executor_contract!(
+    /// Callback-local executor: every returned packet retains its real owner lease.
+    /// Delivery must finish before the borrowed selected context is dropped.
+    ScopedAccessExecutor, [<'hold>], 'hold, []
+);
 
 // Existing owned/static implementations safely outlive any shorter hold.
 impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {

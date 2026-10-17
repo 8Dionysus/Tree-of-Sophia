@@ -360,7 +360,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     if let Some(profile) = source_limits {
         profile.apply(&mut limits)?;
     }
-    let mut processor_owner = ExecutingProcessor::measure(deadline)?;
+    let processor_owner = ExecutingProcessor::measure(deadline)?;
     operand(source_root)?;
     operand(output_dir)?;
     let root = fs::canonicalize(source_root)?;

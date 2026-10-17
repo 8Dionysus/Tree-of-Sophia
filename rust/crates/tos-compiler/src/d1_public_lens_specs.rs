@@ -4,7 +4,7 @@ use crate::{
     Error, Result,
     d1_public_capture::{CreationState, MAX_ROW_BYTES, PublicCapture},
 };
-use serde_json::{Value, json};
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 fn text<'a>(row: &'a Value, key: &str) -> Option<&'a str> {

@@ -1,17 +1,14 @@
 //! Exact selected public corpus compatibility input. Reads only explicitly
 //! selected capture members; it never claims an authored native builder result.
 use crate::knowledge_corpus_original::*;
-use crate::knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{Error, NavigationOriginalLimits, QueryVocabulary, Result, SourceBinding};
 use rusqlite::params;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath,
-    canonical_bytes_v1, parse_json,
-};
+use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
 use tos_source_store::SoftwareCaptureReader;
 
 #[derive(Clone, Copy, Debug)]

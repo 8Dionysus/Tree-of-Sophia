@@ -3,7 +3,7 @@
 //! cut; its result is a district report, never whole-source admission.
 
 use crate::item_rules::{
-    ItemFamilyReport, ItemIssue, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
+    ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
 };
 use crate::record_biblio_cut::{
     BiblioCurrentRecord, BiblioRecordExecutor, SourceCutInput, SourceCutInputCoverage,

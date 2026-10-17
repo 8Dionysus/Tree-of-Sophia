@@ -6,7 +6,7 @@ use std::{
     fs::{File, Metadata},
     io::{Read, Seek, SeekFrom},
     os::{fd::AsRawFd, unix::fs::MetadataExt},
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},

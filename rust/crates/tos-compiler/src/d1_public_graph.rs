@@ -13,7 +13,6 @@ use crate::{
 };
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
-use std::{collections::BTreeMap, path::Path};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 const FAMILY_PROFILE: &[(&str, &str, &str, &str)] = &[

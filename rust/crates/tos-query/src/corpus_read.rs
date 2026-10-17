@@ -346,9 +346,6 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             .filter(|v| field(v, "view_id").as_str().is_some_and(supported))
             .collect())
     }
-    fn status(&self, views: &[JsonValue]) -> JsonValue {
-        controlled_status(&self.header, self.context, views)
-    }
     fn search(
         &mut self,
         query: &str,

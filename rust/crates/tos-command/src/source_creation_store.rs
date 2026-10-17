@@ -71,8 +71,8 @@ pub use object_link::{
     recover_isolated_object_link_from_captures, replay_isolated_object_link_from_captures,
 };
 pub(crate) use object_link::{
-    PreparedPgObjectLink, describe_pg_object_link,
-    pg_object_link_requirements, prepare_pg_object_link, prepare_pg_object_link_preview,
+    PreparedPgObjectLink, describe_pg_object_link, pg_object_link_requirements,
+    prepare_pg_object_link, prepare_pg_object_link_preview,
 };
 #[path = "source_work_expression.rs"]
 mod work_expression;
@@ -104,26 +104,25 @@ pub use item_adoption::{
     replay_isolated_item_adoption_from_captures,
 };
 pub(crate) use item_adoption::{
-    PG_ITEM_ADOPTION_FAMILY_TAG, pg_expected_revision_indexes,
-    pg_inventory_owner_contributions, pg_item_adoption_insertion_paths, prepare_pg_item_adoption,
+    PG_ITEM_ADOPTION_FAMILY_TAG, pg_expected_revision_indexes, pg_inventory_owner_contributions,
+    pg_item_adoption_insertion_paths, prepare_pg_item_adoption,
 };
 #[path = "source_collection_membership.rs"]
 mod collection_membership;
 pub(crate) use collection_membership::current_result_fields as collection_result_fields;
-pub(crate) use collection_membership::{
-    PgCollectionMembershipOwnerPackage,
-    check_collection_membership_configuration, expected_collection_inventory_contributions,
-    expected_collection_membership_revision_indexes,
-    pg_current_result_fields as pg_collection_current_result_fields,
-    prepare_pg_collection_membership, prepare_pg_collection_membership_preview,
-    verify_pg_collection_context,
-};
 pub use collection_membership::{
     CollectionMembershipPreparation, CollectionMembershipPublication, CollectionRecoveryDecision,
     execute_isolated_collection_membership_from_captures,
     prepare_isolated_collection_membership_from_proposal,
     recover_isolated_collection_membership_from_captures,
     replay_isolated_collection_membership_from_captures,
+};
+pub(crate) use collection_membership::{
+    PgCollectionMembershipOwnerPackage, check_collection_membership_configuration,
+    expected_collection_inventory_contributions, expected_collection_membership_revision_indexes,
+    pg_current_result_fields as pg_collection_current_result_fields,
+    prepare_pg_collection_membership, prepare_pg_collection_membership_preview,
+    verify_pg_collection_context,
 };
 #[path = "source_expression_responsibility.rs"]
 mod expression_responsibility;
@@ -155,8 +154,7 @@ pub use expression_edition::{
     replay_isolated_expression_edition_from_captures,
 };
 pub(crate) use expression_edition::{
-    PgExpressionEditionOwnerPackage,
-    expected_expression_edition_inventory_contributions,
+    PgExpressionEditionOwnerPackage, expected_expression_edition_inventory_contributions,
     expected_expression_edition_revision_indexes, pg_current_result_fields,
     prepare_pg_expression_edition, prepare_pg_expression_edition_preview,
     verify_pg_expression_edition_context,
@@ -1092,7 +1090,7 @@ pub(crate) struct DisposableCatalogTree<'a> {
     isolated: &'a IsolatedCreationRoot,
     root: File,
     root_identity: (u64, u64),
-    output_root: Option<IsolatedCreationRoot>,
+    output_root: IsolatedCreationRoot,
     tos: Option<File>,
     tos_identity: Option<(u64, u64)>,
     witness: Option<File>,
@@ -1124,56 +1122,34 @@ impl<'a> DisposableCatalogTree<'a> {
         std::mem::size_of::<Self>().checked_add(Self::directory_chain_scratch_bytes()?)
     }
 
-    pub(crate) fn create(
-        isolated: &'a IsolatedCreationRoot,
-        limits: DisposableCatalogTreeLimits,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Self> {
-        Self::create_inner(isolated, limits, deadline, cancelled, false)
-    }
-
     pub(crate) fn create_in_child(
         isolated: &'a IsolatedCreationRoot,
         limits: DisposableCatalogTreeLimits,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        Self::create_inner(isolated, limits, deadline, cancelled, true)
-    }
-
-    fn create_inner(
-        isolated: &'a IsolatedCreationRoot,
-        limits: DisposableCatalogTreeLimits,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        separate_output_root: bool,
-    ) -> SourceCommandResult<Self> {
         if limits.max_total_bytes == 0
             || limits.max_file_bytes == 0
             || limits.max_files == 0
-            || limits.max_inodes < 3 + usize::from(separate_output_root)
+            || limits.max_inodes < 4
         {
             return Err(SourceCommandError::Unsupported(
                 "catalog candidate tree limits",
             ));
         }
         active(deadline, cancelled)?;
-        let outer_root = isolated.verify_current(deadline, cancelled)?;
-        let output_root_state = if separate_output_root {
-            isolated
-                .path()
-                .as_os_str()
-                .len()
-                .checked_add("tos-isolated-create-".len() + 64)
-                .and_then(|n| n.checked_mul(2))
-                .and_then(|n| n.checked_add(1))
-                .ok_or(SourceCommandError::Unsupported(
-                    "catalog candidate child state overflow",
-                ))?
-        } else {
-            0
-        };
+        // Retain the verified parent descriptor throughout child admission.
+        let _outer_root = isolated.verify_current(deadline, cancelled)?;
+        let output_root_state = isolated
+            .path()
+            .as_os_str()
+            .len()
+            .checked_add("tos-isolated-create-".len() + 64)
+            .and_then(|n| n.checked_mul(2))
+            .and_then(|n| n.checked_add(1))
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate child state overflow",
+            ))?;
         if Self::minimum_state_upper_bound()
             .and_then(|n| n.checked_add(output_root_state))
             .is_none_or(|n| n > limits.max_state_bytes)
@@ -1182,38 +1158,23 @@ impl<'a> DisposableCatalogTree<'a> {
                 "catalog candidate child state budget",
             ));
         }
-        let output_root = if separate_output_root {
-            Some(IsolatedCreationRoot::create(
-                isolated.path(),
-                deadline,
-                cancelled,
-            )?)
-        } else {
-            None
-        };
-        let root = match &output_root {
-            Some(child) => match child.verify_current(deadline, cancelled) {
-                Ok(root) => root,
-                Err(error) => {
-                    let _ = child.cleanup_empty_inner(None);
-                    return Err(error);
-                }
-            },
-            None => outer_root,
+        let output_root = IsolatedCreationRoot::create(isolated.path(), deadline, cancelled)?;
+        let root = match output_root.verify_current(deadline, cancelled) {
+            Ok(root) => root,
+            Err(error) => {
+                let _ = output_root.cleanup_empty_inner(None);
+                return Err(error);
+            }
         };
         let root_metadata = match owned(&root, rustix::process::geteuid().as_raw(), true) {
             Ok(metadata) => metadata,
             Err(error) => {
-                if let Some(child) = &output_root {
-                    let _ = child.cleanup_empty_inner(None);
-                }
+                let _ = output_root.cleanup_empty_inner(None);
                 return Err(error);
             }
         };
         if root_metadata.mode() & 0o7777 != 0o700 {
-            if let Some(child) = &output_root {
-                let _ = child.cleanup_empty_inner(None);
-            }
+            let _ = output_root.cleanup_empty_inner(None);
             return Err(SourceCommandError::Denied(
                 "catalog candidate isolated root mode changed",
             ));
@@ -1249,7 +1210,7 @@ impl<'a> DisposableCatalogTree<'a> {
             peak_state_bytes: path_state,
             output_bytes: 0,
             readback_bytes: 0,
-            created_inodes: usize::from(separate_output_root),
+            created_inodes: 1,
             manifest_written: false,
             eof_verified: false,
         };
@@ -1383,10 +1344,7 @@ impl<'a> DisposableCatalogTree<'a> {
         )?;
         let uid = rustix::process::geteuid().as_raw();
         self.isolated.verify_current(deadline, cancelled)?;
-        let current_root = match &self.output_root {
-            Some(child) => child.verify_current(deadline, cancelled)?,
-            None => self.isolated.verify_current(deadline, cancelled)?,
-        };
+        let current_root = self.output_root.verify_current(deadline, cancelled)?;
         if inode(&owned(&current_root, uid, true)?) != self.root_identity
             || inode(&owned(&self.root, uid, true)?) != self.root_identity
             || owned(&current_root, uid, true)?.mode() & 0o7777 != 0o700
@@ -1504,9 +1462,7 @@ impl<'a> DisposableCatalogTree<'a> {
     }
 
     pub(crate) fn root_path(&self) -> &Path {
-        self.output_root
-            .as_ref()
-            .map_or(self.isolated.path(), IsolatedCreationRoot::path)
+        self.output_root.path()
     }
 
     pub(crate) fn output_file_count(&self) -> usize {
@@ -2203,9 +2159,53 @@ impl<'a> DisposableCatalogTree<'a> {
 impl Drop for DisposableCatalogTree<'_> {
     fn drop(&mut self) {
         let _ = self.rollback();
-        if let Some(child) = &self.output_root {
-            let _ = child.cleanup_empty_inner(None);
-        }
+        let _ = self.output_root.cleanup_empty_inner(None);
+    }
+}
+
+#[cfg(test)]
+mod disposable_catalog_tests {
+    use super::*;
+
+    #[test]
+    fn candidate_catalog_uses_a_child_and_rolls_back_without_touching_parent() {
+        let temporary = tempfile::tempdir().unwrap();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let parent = IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
+        let sentinel = parent.path().join("caller-owned");
+        std::fs::write(&sentinel, b"preserve parent").unwrap();
+        let limits = DisposableCatalogTreeLimits {
+            max_total_bytes: 1024,
+            max_file_bytes: 1024,
+            max_files: 1,
+            max_state_bytes: 65_536,
+            max_inodes: 4,
+        };
+        assert!(
+            DisposableCatalogTree::create_in_child(
+                &parent,
+                DisposableCatalogTreeLimits {
+                    max_inodes: 3,
+                    ..limits
+                },
+                deadline,
+                &cancelled,
+            )
+            .is_err()
+        );
+        let tree =
+            DisposableCatalogTree::create_in_child(&parent, limits, deadline, &cancelled).unwrap();
+        let output = tree.root_path().to_path_buf();
+        assert_ne!(output, parent.path());
+        assert_eq!(output.parent(), Some(parent.path()));
+        assert!(output.join("ToS/source-witnesses/catalog").is_dir());
+        drop(tree);
+        assert!(!output.exists());
+        assert_eq!(std::fs::read(&sentinel).unwrap(), b"preserve parent");
+        parent.verify_current(deadline, &cancelled).unwrap();
+        std::fs::remove_file(sentinel).unwrap();
+        parent.cleanup_empty(deadline, &cancelled).unwrap();
     }
 }
 

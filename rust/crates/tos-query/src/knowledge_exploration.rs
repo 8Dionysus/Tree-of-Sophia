@@ -3,7 +3,7 @@
 use crate::{
     exploration_plan::{ExplorationProfile, Rows},
     inspect_plan::InspectBudget,
-    knowledge_lens_spec::{LensVocabulary, array, boolean, get, number, set, string, uint},
+    knowledge_lens_spec::{LensVocabulary, array, get, number, set, string, uint},
     knowledge_presentation::{knowledge_scene, lens_carrier},
     search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
     source_read_projection::{object, text},

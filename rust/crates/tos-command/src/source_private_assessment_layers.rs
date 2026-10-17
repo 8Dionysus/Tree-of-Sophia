@@ -24,9 +24,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::CorpusCutReader;
-use tos_validation::assessment::{
-    AssessmentRecordInput, MAX_RECORD_BYTES,
-};
+use tos_validation::assessment::{AssessmentRecordInput, MAX_RECORD_BYTES};
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 const LAYER_SCHEMA: &str = "ToS/contracts/source-text-layer.schema.json";
@@ -91,7 +89,6 @@ pub(crate) struct LayerQualityDependency {
 #[derive(Debug, Clone)]
 pub(crate) struct OwnerLocalLayerPreflight {
     pub(crate) layer_ids: BTreeSet<String>,
-    pub(crate) lock_subject_ids: BTreeSet<String>,
     pub(crate) quality_dependencies: BTreeMap<String, Vec<LayerQualityDependency>>,
     pub(crate) selection_digest: String,
 }
@@ -213,7 +210,6 @@ impl PrivateAssessmentLayers {
     pub(crate) fn input_bytes(&self) -> u64 {
         self.selected_input_bytes
     }
-
 
     /// Revalidate the retained owner and third-root file evidence after the
     /// caller's review locks have been acquired. Every private read made by
@@ -415,7 +411,6 @@ pub(crate) fn preflight_owner_local_layers(
         "private assessment layer subjects",
     ))?;
     let mut quality_dependencies = BTreeMap::new();
-    let mut lock_subject_ids = layer_ids.clone();
     for (subject_key, values) in entries {
         let subject_id = subject_key
             .as_str()
@@ -462,7 +457,6 @@ pub(crate) fn preflight_owner_local_layers(
             }
             selected.push(LayerQualityDependency { layer_id, use_name });
         }
-        lock_subject_ids.insert(subject_id.clone());
         quality_dependencies.insert(subject_id, selected);
     }
     let selection_digest = Digest256::of_bytes(&cmd::canonical(&cmd::object(vec![
@@ -473,7 +467,6 @@ pub(crate) fn preflight_owner_local_layers(
     .to_prefixed();
     Ok(OwnerLocalLayerPreflight {
         layer_ids,
-        lock_subject_ids,
         quality_dependencies,
         selection_digest,
     })

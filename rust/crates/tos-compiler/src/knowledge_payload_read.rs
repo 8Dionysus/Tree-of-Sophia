@@ -5,7 +5,7 @@
 use crate::DedicatedSessionSqliteHeap;
 use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::sqlite_budget::SharedVmWindow;
-use crate::{Error, Result, VerifiedKnowledgeModel};
+use crate::{Error, Result};
 use rusqlite::Connection;
 use std::{
     sync::{

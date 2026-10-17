@@ -583,7 +583,7 @@ fn extend_namespace_scope(
         };
         if let Some(prefix) = prefix {
             let value = attribute
-                .decode_and_unescape_value(decoder)
+                .decoded_and_normalized_value(quick_xml::XmlVersion::Implicit1_0, decoder)
                 .map_err(|error| error.to_string())?;
             scope.insert(prefix.to_owned(), value.into_owned());
         }
@@ -600,7 +600,7 @@ fn unqualified_attribute(
         let attribute = attribute.map_err(|error| error.to_string())?;
         if attribute.key.as_ref() == wanted {
             return attribute
-                .decode_and_unescape_value(decoder)
+                .decoded_and_normalized_value(quick_xml::XmlVersion::Implicit1_0, decoder)
                 .map(|value| Some(value.into_owned()))
                 .map_err(|error| error.to_string());
         }
@@ -625,7 +625,7 @@ fn word_attribute_value(
                 == Some("http://schemas.openxmlformats.org/wordprocessingml/2006/main")
         {
             let value = attribute
-                .decode_and_unescape_value(decoder)
+                .decoded_and_normalized_value(quick_xml::XmlVersion::Implicit1_0, decoder)
                 .map_err(|error| error.to_string())?;
             return Ok(Some(value.into_owned()));
         }

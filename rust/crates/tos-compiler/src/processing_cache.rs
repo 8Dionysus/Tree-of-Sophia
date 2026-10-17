@@ -1505,7 +1505,7 @@ impl<'a> ProcessingReadSnapshot<'a> {
                 },
             )?
             .collect::<std::result::Result<Vec<_>, _>>()?;
-        let mut rows = rows
+        let rows = rows
             .into_iter()
             .map(|(id, before, after, change)| {
                 let id = id.ok_or(Error::Invalid("malformed processing input identity"))?;

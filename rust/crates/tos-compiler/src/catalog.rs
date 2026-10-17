@@ -9,7 +9,7 @@ use crate::{
     d1_public_capture::{CreationState, CreationStateHold},
     knowledge_stage::KnowledgePayloadLayout,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, params};
 use serde_json::{Map, Value, json};
 use std::cell::Cell;
 use std::io::{self, Write};
@@ -2655,7 +2655,7 @@ fn capabilities(
     object.insert("filter_operators".into(), filter_operators);
     object.insert("node_fields".into(), ordered_node_fields);
     object.insert("relation_fields".into(), ordered_relation_fields);
-    let mut profile = object
+    let profile = object
         .get_mut("neighborhood_profiles")
         .and_then(Value::as_array_mut)
         .and_then(|profiles| profiles.get_mut(0))

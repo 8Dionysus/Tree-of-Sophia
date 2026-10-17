@@ -8,7 +8,7 @@ use std::{
     io::Read,
     path::{Path, PathBuf},
 };
-use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 
 pub(crate) const ROOT_CAP: usize = 256 * 1024;
 pub(crate) const INDEX_CAP: usize = 128 * 1024;

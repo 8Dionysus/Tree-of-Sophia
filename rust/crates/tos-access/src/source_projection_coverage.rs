@@ -1307,6 +1307,7 @@ fn verify_source_snapshot(
     verify_publication_current(fence, publication)
 }
 
+#[cfg(test)]
 fn claim_rows(raw: &[u8], max_rows: u64) -> Result<Vec<(u64, &[u8])>, String> {
     let text = std::str::from_utf8(raw).map_err(|_| "source projection claim file is not UTF-8")?;
     let mut rows = Vec::new();

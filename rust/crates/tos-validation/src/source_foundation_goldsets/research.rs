@@ -84,11 +84,8 @@ struct PhysicalTarget<'a> {
     relative_target: Option<&'a str>,
     exists: bool,
     regular_file: bool,
-    directory: bool,
     byte_size: Option<u64>,
     sha256: Option<&'a str>,
-    git_tracked: Option<bool>,
-    git_ignored: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -104,11 +101,8 @@ fn physical_target_observation(facts: &PhysicalPathFacts) -> PhysicalTargetObser
             relative_target: None,
             exists: facts.exists,
             regular_file: facts.regular_file,
-            directory: facts.directory,
             byte_size: facts.byte_size,
             sha256: facts.sha256.as_deref(),
-            git_tracked: facts.git_tracked,
-            git_ignored: facts.git_ignored,
         });
     }
     match facts.resolved_target.as_ref() {
@@ -116,21 +110,15 @@ fn physical_target_observation(facts: &PhysicalPathFacts) -> PhysicalTargetObser
             relative_target,
             exists,
             regular_file,
-            directory,
             byte_size,
             sha256,
-            git_tracked,
-            git_ignored,
             ..
         }) => PhysicalTargetObservation::Target(PhysicalTarget {
             relative_target: Some(relative_target),
             exists: *exists,
             regular_file: *regular_file,
-            directory: *directory,
             byte_size: *byte_size,
             sha256: sha256.as_deref(),
-            git_tracked: *git_tracked,
-            git_ignored: *git_ignored,
         }),
         Some(ResolvedTargetFacts::OutsideSelectedRoot) => {
             PhysicalTargetObservation::OutsideSelectedRoot

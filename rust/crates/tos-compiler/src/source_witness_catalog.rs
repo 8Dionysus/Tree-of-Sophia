@@ -211,7 +211,7 @@ impl SourceCatalogLimits {
 /// There is no permissive validator implementation or token-based shortcut.
 type SchemaResult<T> = std::result::Result<T, tos_validation::item_rules::ItemRefusal>;
 use tos_validation::source_cut::{
-    CandidateCutSchemaDiagnostic, CutPreparedSchemaExecutionBinding, CutSchemaDiagnostic,
+    CandidateCutSchemaDiagnostic, CutPreparedSchemaExecutionBinding,
     CutSchemaDiagnosticsCumulativeCost,
 };
 use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
@@ -644,7 +644,7 @@ impl CatalogInputBinding for crate::knowledge_stage::ColdAuthoredBinding {
     }
 }
 
-pub type CandidateSourceCatalogReceipt<I: Eq + Copy + 'static> =
+pub type CandidateSourceCatalogReceipt<I> =
     SourceCatalogReceipt<crate::knowledge_stage::CandidateValidationBinding<I>>;
 impl<I: Copy + Eq + 'static> CatalogInputBinding
     for crate::knowledge_stage::CandidateValidationBinding<I>

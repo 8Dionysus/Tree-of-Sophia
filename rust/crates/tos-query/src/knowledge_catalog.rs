@@ -13,7 +13,7 @@ use rusqlite::{ErrorCode, OptionalExtension, params};
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue, canonical_bytes_v1, parse_json,
+    JsonValue, parse_json,
 };
 
 use crate::knowledge_inspect::InspectVisitMeter;
@@ -413,6 +413,7 @@ fn health_exact_object(
     }
     Ok(())
 }
+#[cfg(test)]
 fn validate_health_graph_counts(counts: &JsonValue) -> Result<(), CatalogError> {
     health_exact_object(
         counts,

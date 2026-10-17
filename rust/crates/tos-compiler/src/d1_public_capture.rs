@@ -25,7 +25,6 @@ use std::{
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue, emit_python_compact_json,
     emit_python_compact_json_with_state_budget_and_visits_and_check, parse_json,
-    parse_json_with_state_budget_and_check,
 };
 
 const CORPUS: &str = "corpus";
@@ -4644,7 +4643,7 @@ impl PublicCapture {
             inode.set_permissions(fs::Permissions::from_mode(0o600))?;
             drop(inode);
         }
-        let mut db = Connection::open(staging)?;
+        let db = Connection::open(staging)?;
         if let Some(window) = shared_window {
             window.install(&db, deadline, Arc::clone(&cancelled));
         } else {
@@ -6644,7 +6643,7 @@ impl PublicCapture {
             return Err(Error::Budget("public D1 input bytes"));
         }
         self.charge_work(source.len)?;
-        let mut file = match &source.origin {
+        let file = match &source.origin {
             SourceOrigin::Compiled(raw) => return Ok(Some(raw.to_vec())),
             SourceOrigin::File(path) => profile_open(path, cap as u64, self.prepared_profile)?,
         };

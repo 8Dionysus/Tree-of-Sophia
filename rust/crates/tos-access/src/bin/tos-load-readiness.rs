@@ -539,8 +539,14 @@ extern "C" fn signal_handler(_: i32) {
 
 fn install_signals() {
     unsafe {
-        libc::signal(libc::SIGTERM, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGINT, signal_handler as libc::sighandler_t);
+        libc::signal(
+            libc::SIGTERM,
+            signal_handler as *const () as libc::sighandler_t,
+        );
+        libc::signal(
+            libc::SIGINT,
+            signal_handler as *const () as libc::sighandler_t,
+        );
     }
 }
 

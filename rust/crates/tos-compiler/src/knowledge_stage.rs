@@ -36,9 +36,7 @@ use std::{
 use tos_foundation::SourceRevision;
 use tos_foundation::{Digest256, Digest256Hasher};
 #[cfg(feature = "source-tools")]
-use tos_source_store::{
-    CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1,
-};
+use tos_source_store::{CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1};
 
 // A selected descriptor permits up to 4,096 source registrations. A full
 // source family can contribute several independently sealed collections.
@@ -1998,7 +1996,7 @@ impl<'a> KnowledgeStage<'a> {
                 "cold stage deadline"
             }));
         }
-        let mut lease = fs::OpenOptions::new()
+        let lease = fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create_new(true)

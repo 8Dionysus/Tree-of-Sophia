@@ -1876,7 +1876,7 @@ fn selected_philosophy_variant_parity(
     let fixture = build_native_fixture_with_philosophy_view_variant(variant);
     let mut cold = fixture.open().unwrap();
     let receipt = cold.philosophy_original_receipt().unwrap().clone();
-    let mut originals = |collection, count| {
+    let originals = |collection, count| {
         let mut rows = Vec::new();
         let mut after = None;
         for ordinal in 0..count {

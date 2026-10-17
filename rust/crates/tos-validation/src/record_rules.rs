@@ -2837,7 +2837,6 @@ impl CandidateLocalClaimDiagnosticsCost {
         &mut self,
         diagnostic: &crate::source_cut::SchemaDiagnosticResult,
     ) -> Result<(), crate::item_rules::ItemRefusal> {
-        use crate::item_rules::ItemRefusal;
         let add_u64 = |left: u64, right: usize| {
             left.checked_add(u64::try_from(right).map_err(|_| crate::item_budget_origin!())?)
                 .ok_or(crate::item_budget_origin!())
@@ -4717,7 +4716,6 @@ fn local_constructor_state(
     entities: &Value,
     relations: &Value,
 ) -> Result<usize, crate::item_rules::ItemRefusal> {
-    use crate::item_rules::ItemRefusal;
     let mut state = std::mem::size_of::<BTreeMap<&str, Entity<'_>>>()
         + std::mem::size_of::<BTreeMap<&str, &str>>()
         + std::mem::size_of::<BTreeSet<&str>>()

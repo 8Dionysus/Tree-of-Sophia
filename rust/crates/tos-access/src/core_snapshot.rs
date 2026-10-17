@@ -883,7 +883,7 @@ impl SignalGuard {
             return Err("Core operation signal owner already selected");
         }
         let mut action: libc::sigaction = unsafe { std::mem::zeroed() };
-        action.sa_sigaction = cancel_operation as usize;
+        action.sa_sigaction = cancel_operation as *const () as usize;
         unsafe {
             libc::sigemptyset(&mut action.sa_mask);
         }

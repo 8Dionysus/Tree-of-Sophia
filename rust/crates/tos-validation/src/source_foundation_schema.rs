@@ -1232,39 +1232,6 @@ enum SourceFoundationInputProfile {
     Mixed,
 }
 
-
-
-fn evaluate_source_foundation_legacy_schema_checks_with_optional_quota(
-    schema_set: &SourceFoundationSchemaSet,
-    worker: &ExactWorkerIdentity,
-    checks: &[SourceFoundationLegacySchemaInput<'_>],
-    limits: SourceFoundationSchemaLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    quota: Option<&SharedSchemaWorkerQuota>,
-    image: Option<&VerifiedWorkerImageHandle>,
-) -> SourceFoundationSchemaOutcome {
-    let selection = SchemaEvaluationSelection {
-        resources: &schema_set.resources,
-        contracts: &schema_set.contracts,
-        schema_set_sha256: schema_set.schema_set_sha256,
-        contract_selection_sha256: schema_set.contract_selection_sha256,
-        schema_bytes: schema_set.schema_bytes,
-    };
-    evaluate_source_foundation_schema_checks_inner(
-        schema_set,
-        &selection,
-        worker,
-        checks,
-        limits,
-        deadline,
-        cancelled,
-        SourceFoundationInputProfile::LegacyPythonObserved,
-        quota,
-        image,
-    )
-}
-
 /// Evaluate finite decoded and raw LegacyPythonObserved checks in one ordered
 /// diagnostics-v2 request. The unit mode is part of the request digest; finite
 /// members keep the published finite serializer and raw members retain their
@@ -3250,7 +3217,7 @@ pub fn python_path_suffix(path: &[schema_diagnostics::PathSegment]) -> String {
 }
 
 fn python_string_repr(value: &str) -> String {
-    use unicode_general_category::{GeneralCategory, get_general_category};
+    use unicode_general_category::get_general_category;
     let quote = if value.contains('\'') && !value.contains('"') {
         '"'
     } else {

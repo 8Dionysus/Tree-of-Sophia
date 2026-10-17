@@ -857,7 +857,7 @@ pub fn with_selected_metadata_context(
 
 /// The same metadata authority can borrow either compiler-owned controlled
 /// reader. The sidecar reader delegates receipts and currentness to its source.
-trait ControlledReferenceModel {
+pub(crate) trait ControlledReferenceModel {
     fn check_reference_pin(&self) -> tos_compiler::Result<()>;
     fn corpus_original_root(&self) -> Option<&str>;
     fn philosophy_original_root(&self) -> Option<&str>;

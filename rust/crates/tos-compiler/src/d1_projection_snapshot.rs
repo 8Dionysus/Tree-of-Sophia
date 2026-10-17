@@ -438,7 +438,7 @@ impl SnapshotReader {
         let (directory, parts_directory, shard_dir, leaf) = self.part_location(path)?;
         let _keep_dir = directory;
         let _keep_parts = parts_directory;
-        let mut file = tos_fd_open::open_regular_at(&shard_dir, Path::new(&leaf))
+        let file = tos_fd_open::open_regular_at(&shard_dir, Path::new(&leaf))
             .map_err(|_| Error::Invalid("unsafe D1 projection part path"))?;
         let declared = uint(descriptor, "size_bytes")?;
         work.reserve(

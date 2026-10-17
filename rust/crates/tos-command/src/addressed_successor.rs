@@ -319,7 +319,7 @@ pub(crate) struct AddressedCutV2 {
     pub metadata: AuthenticatedTreeDescriptorV2,
     pub history: AuthenticatedTreeDescriptorV2,
     pub current: AuthenticatedTreeDescriptorV2,
-    pub inventory: super::addressed_inventory::AddressedMixedInventoryV1,
+    pub(super) inventory: super::addressed_inventory::AddressedMixedInventoryV1,
 }
 #[derive(Clone, Debug)]
 pub(crate) struct VerifiedAddressedGeneration {
@@ -332,7 +332,7 @@ pub(crate) struct VerifiedAddressedGeneration {
     /// Present only when this process has just exhaustively verified the
     /// OID-bound transcript. A retained descriptor proves its digest, not the
     /// internal streaming hasher state needed to extend a later successor.
-    pub(crate) log_frontier: Option<VerifiedLogFrontier>,
+    pub(in crate::durable_adapter) log_frontier: Option<VerifiedLogFrontier>,
     pub(crate) limits: AuthenticatedTreeLimitsV1,
 }
 
@@ -637,7 +637,7 @@ pub(super) fn verify_published_addressed_inventory(
 }
 
 impl VerifiedAddressedGeneration {
-    pub(crate) fn facts(&self) -> SourceSelectionFacts<'_> {
+    pub(in crate::durable_adapter) fn facts(&self) -> SourceSelectionFacts<'_> {
         SourceSelectionFacts {
             audited_root: &self.audited_root,
             domain: &self.cut.domain,

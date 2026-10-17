@@ -355,9 +355,9 @@ pub(crate) fn finalize_native_graph_rows_with_observer<F, G>(
     entity_registry_bytes: &[u8],
     inherited: &InheritedViewReceipt,
     limits: NativeFinalizeLimits,
-    mut claim_sources: F,
-    mut source_material: G,
-    mut observer: Option<&mut dyn FinalRowObserver>,
+    claim_sources: F,
+    source_material: G,
+    observer: Option<&mut dyn FinalRowObserver>,
 ) -> Result<NativeFinalizeReceipt>
 where
     F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,

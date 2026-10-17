@@ -8,12 +8,10 @@ use crate::prepared_semantic_index::{
 };
 use crate::prepared_source_binding::{
     selected_digest as digest, selected_prepared_catalog as selected,
-    selected_registry_digest as registry_digest, selected_required as required,
-    selected_same as same,
+    selected_required as required, selected_same as same,
 };
 use crate::{Error, Result, local_prepared as prepared};
 use rusqlite::{OptionalExtension, Transaction, params};
-use serde_json::Value;
 use tos_foundation::{Digest256, JsonString, JsonValue};
 
 #[derive(Clone, Debug)]

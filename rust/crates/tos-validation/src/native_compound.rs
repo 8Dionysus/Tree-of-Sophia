@@ -6018,12 +6018,12 @@ struct WorkGrammar {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum NativeSchemaBinding {
+pub(crate) enum NativeSchemaBinding {
     Cut(CutExecutionBinding),
     Selected(CutPreparedSchemaExecutionBinding),
 }
 
-trait NativeCompoundSchema: CutSchemaExecutor {
+pub(crate) trait NativeCompoundSchema: CutSchemaExecutor {
     fn cut_execution_binding(&self) -> Option<CutExecutionBinding>;
     fn native_schema_binding(&self) -> NativeSchemaBinding;
     fn validate_local_claim(
@@ -6092,7 +6092,7 @@ impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> 
             input,
             identity: *self.input_identity(),
         };
-        let mut local = crate::record_rules::validate_stored_source_claim_from_selected_input(
+        let local = crate::record_rules::validate_stored_source_claim_from_selected_input(
             &selected, claim_raw, self, limits, cancelled,
         )?;
         if let Some(issue) = local.issues.first() {
@@ -6227,7 +6227,7 @@ impl<I: Eq> SourceCutInputWithIdentity<I> for SelectedCompoundInput<'_, I> {
     }
 }
 
-struct LocalClaimValidation {
+pub(crate) struct LocalClaimValidation {
     dependency_digests: BTreeMap<String, Digest256>,
     dependency_bytes_read: u64,
 }

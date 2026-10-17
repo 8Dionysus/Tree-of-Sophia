@@ -21,9 +21,9 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 #[path = "source_work_expression_pg.rs"]
 mod pg;
 pub(crate) use pg::{
-    PgWorkExpressionOwnerPackage, PgWorkExpressionPreview,
-    expected_inventory_contributions_from_writes, expected_revision_indexes_from_writes,
-    prepare_pg_work_expression, preview_pg_work_expression, verify_pg_work_context,
+    PgWorkExpressionOwnerPackage, expected_inventory_contributions_from_writes,
+    expected_revision_indexes_from_writes, prepare_pg_work_expression, preview_pg_work_expression,
+    verify_pg_work_context,
 };
 
 const CONFIG: &str = "tos_local_work_expression_owner_v1";

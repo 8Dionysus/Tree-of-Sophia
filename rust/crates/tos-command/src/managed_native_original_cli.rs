@@ -26,10 +26,11 @@ use std::{
 };
 use tos_compiler::{
     ColdOpenLimits, DedicatedSessionSqliteHeap, ImmutableKnowledgeCustody,
-    KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeProcessLimits, NativeSelectionPaths, PublicCapture,
-    RuntimeCaptureCreationUsage, RuntimeCaptureOwnedBudget,
-    native_cold_resources::LinuxCgroupColdOpenResourceHold, native_snapshot,
-    native_snapshot_manifest as manifest, private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement,
+    NativeProcessLimits, NativeSelectionPaths, PublicCapture, RuntimeCaptureCreationUsage,
+    RuntimeCaptureOwnedBudget, native_cold_resources::LinuxCgroupColdOpenResourceHold,
+    native_snapshot, native_snapshot_manifest as manifest,
+    private_tmpfs_stage::PrivateTmpfsStageIsolation,
 };
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, SourceRevision, parse_json,
@@ -1598,7 +1599,7 @@ pub fn conformance_write_assessed_candidate(
     Ok(())
 }
 
-pub(crate) fn write_assessed_candidate_with_hook(
+fn write_assessed_candidate_with_hook(
     target: &Path,
     rendered: &[u8],
     after_stage_fsync: impl FnOnce() -> Result<()>,
@@ -2274,8 +2275,6 @@ enum SelectedSource {
 }
 
 impl SelectedSource {
-
-
     fn validate_capture_closure(
         &self,
         capture: &PublicCapture,
@@ -2369,7 +2368,6 @@ impl SelectedSource {
             Self::Current { census, .. } => census.member_count(),
         }
     }
-
 
     fn selected_source_json(&self, captured_count: usize, captured_bytes: u64) -> Value {
         match self {

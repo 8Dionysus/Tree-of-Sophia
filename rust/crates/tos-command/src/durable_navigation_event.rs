@@ -27,12 +27,10 @@ use crate::source_managed_selection::{ManagedAgentSelectedParent, ManagedSelecte
 #[path = "durable_navigation_event/durable_navigation_range.rs"]
 mod durable_navigation_range;
 pub use durable_navigation_range::{
-    DurableNavigationEventRangeApplyV1, DurableNavigationEventRangeClaimMutationV1,
-    DurableNavigationEventRangeCoverageV1, DurableNavigationEventRangeDependencyCauseV1,
-    DurableNavigationEventRangeEventV1, DurableNavigationEventRangeMemberV1,
+    DurableNavigationEventRangeClaimMutationV1, DurableNavigationEventRangeCoverageV1,
+    DurableNavigationEventRangeDependencyCauseV1, DurableNavigationEventRangeMemberV1,
     DurableNavigationEventRangePendingReasonV1, DurableNavigationEventRangePriorClaimOwnerV1,
-    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangePriorRecordOwnerV1,
-    DurableNavigationEventRangeSeedV1,
+    DurableNavigationEventRangePriorOwnerBasisV1, DurableNavigationEventRangeSeedV1,
 };
 
 use super::{
@@ -764,7 +762,6 @@ fn navigation_owner_binding_json(binding: &DurableNavigationCurrentIndexOwnerBin
     }
     value
 }
-
 
 /// V1 framing over a source-ordered then row-ordered stream. Retain only the
 /// previous keys, so an explicit initial seal need not materialize all bytes.

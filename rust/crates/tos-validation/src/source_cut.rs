@@ -18,8 +18,8 @@ use crate::executor::{
     BatchBudget, BatchCoverageCheckpoint, BatchCoverageExpectation, BatchOutcome,
     BatchStreamBudget, BatchUnit, BatchUnitVerdict, DiagnosticsUnitInputMode, ExactWorkerIdentity,
     ExecutionIdentity, ExecutorBudget, ExecutorFailure, ExecutorOutcome, PreparedSchemaWorker,
-    SchemaDiagnosticUnit, SchemaDiagnosticsCheckpoint, SchemaDiagnosticsExecutionCost,
-    SchemaDiagnosticsOutcome, SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
+    SchemaDiagnosticUnit, SchemaDiagnosticsCheckpoint, SchemaDiagnosticsOutcome,
+    SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
     legacy_selected_child_address_space_required, schema_diagnostics,
     selected_legacy_diagnostics_batch_unit_digest,
 };

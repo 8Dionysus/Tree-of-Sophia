@@ -10,7 +10,7 @@ use crate::relation_rules::{
     RelationIssue, RelationShadow, inspect_current_topology_bounded,
     inspect_current_topology_from_stored,
 };
-use crate::source_cut::{CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerSchemaExecutor};
+use crate::source_cut::{CutSchemaExecutor, CutSchemaReceiptRange};
 use crate::source_foundation_default_rules::{
     SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
     SourceFoundationDefaultRecordsLookup,
