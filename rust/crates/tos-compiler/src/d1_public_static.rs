@@ -370,7 +370,7 @@ fn corpus_view(
     limit: usize,
 ) -> Result<Value> {
     let view_id = id(view, "view_id");
-    let mut items = Vec::new();
+    let items;
     let mut nodes = Vec::new();
     let mut edges = Vec::new();
     if view_id == "corpus-topology" {

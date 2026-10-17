@@ -3751,7 +3751,6 @@ fn inspect_semantic_annotation_v2(
         None,
         "semantic",
         |state, source, id, packet_path, packet, _raw, row| {
-            let report_index = state.report["variants"].as_array().map_or(0, Vec::len);
             let family = crate::layer_family_rules::inspect_supplied_semantic_annotation(
                 packet_path,
                 packet,

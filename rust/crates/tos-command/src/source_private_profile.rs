@@ -2670,7 +2670,6 @@ fn identity_snapshot(
 }
 
 fn validate_native_profile(
-    ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     owner: &OwnerTextContext,
     grant: &Grant,
@@ -3212,7 +3211,6 @@ fn make_snapshot(
     )?;
     let (rights, native_metadata, _native_summary, native_reads, native_contracts) =
         validate_native_profile(
-            ctx,
             cut,
             owner,
             grant,

@@ -310,7 +310,6 @@ impl<'a> Kernel<'a> {
             entity_registry,
             relation_registry,
             entity_registry_original,
-            relation_registry_original,
         )?;
         let registry_violations = report
             .get("violations")
@@ -1971,7 +1970,6 @@ pub(crate) fn validate_semantic_registries(
     entity_registry: &Value,
     relation_registry: &Value,
     entity_original: &JsonValue,
-    relation_original: &JsonValue,
 ) -> Result<Value> {
     let mut violations = validate_vocabulary(entity_registry, None);
     let entity_rows = registry_items(entity_registry, "types");

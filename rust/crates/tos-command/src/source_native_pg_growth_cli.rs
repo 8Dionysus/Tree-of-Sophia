@@ -2669,7 +2669,6 @@ fn prepare_pg_object_link_growth<'a>(
     session: &mut SourceRevisionReadSession<'_>,
     invocation: &Value,
     configuration_raw: &[u8],
-    configuration: &JsonValue,
     request_raw: &[u8],
     publication_token: Option<&str>,
     recorded_at: String,
@@ -2905,7 +2904,6 @@ fn run_pg_object_link(
                     session,
                     invocation,
                     owner_raw,
-                    owner_config,
                     request_raw,
                     cmd::field(request, "expected_publication")
                         .map_err(DurableError::Source)?

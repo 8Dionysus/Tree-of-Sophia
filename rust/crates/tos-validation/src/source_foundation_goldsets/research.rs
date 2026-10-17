@@ -3139,12 +3139,6 @@ fn inspect_source_foundation_goldset_root(
                 "selected-form source-recurrence receipt drifted",
             )?;
         }
-        let expected_parts = [
-            (1, 17, 14, 12),
-            (2, 32, 20, 12),
-            (3, 45, 26, 13),
-            (4, 51, 36, 22),
-        ];
         checks.charge(
             encoded_len(receipt.get("parts").unwrap_or(&Value::Null))?
                 .checked_mul(4)

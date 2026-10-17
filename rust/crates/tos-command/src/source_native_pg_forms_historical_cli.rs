@@ -1255,7 +1255,6 @@ pub(crate) fn pg_owner_contributions_for_attempt(
         context,
         proposal,
         owner_schema,
-        operation,
         historical_claim_owner,
     )
 }
@@ -1264,7 +1263,6 @@ fn pg_owner_contributions_with_historical_owner(
     context: &CommandContext,
     proposal: &PreparedCommand,
     owner_schema: &str,
-    operation: &str,
     historical_claim_owner: Option<tos_foundation::JsonValue>,
 ) -> DurableResult<BTreeMap<String, tos_foundation::JsonValue>> {
     if proposal.changes.is_empty() {

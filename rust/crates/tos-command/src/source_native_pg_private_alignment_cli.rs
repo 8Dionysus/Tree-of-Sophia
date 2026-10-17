@@ -1163,7 +1163,7 @@ pub(crate) fn run(
         } else {
             None
         };
-        let ((selected_epoch, selected), current, history, selected_readset) = db
+        let ((_, selected), current, _, selected_readset) = db
             .with_private_owner_read_session(
                 &scope,
                 deadline,
@@ -1373,7 +1373,7 @@ pub(crate) fn run(
     // Resolve source and private owner members under nested private -> public
     // sessions. Each private representation read is exact-member only and the
     // owner grant is rechecked by the Sign resolver before every read.
-    let ((selected_epoch, selected), current, history) = db
+    let ((_, selected), current, history) = db
         .with_private_owner_read_session(&scope, deadline, cancelled, |private_session, _, _| {
             if private_session.private_audit_generation() != private_generation {
                 return Err(DurableError::Conflict(

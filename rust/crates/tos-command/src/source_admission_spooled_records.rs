@@ -1781,7 +1781,7 @@ fn report_page(
         .map_err(|_| tos_validation::item_budget_origin!())?;
     for row in &meta[..take] {
         check_operation(sink, deadline, cancelled)?;
-        let (key1, key2, payload, aux) = read_row_for_page(
+        let (_, _, payload, aux) = read_row_for_page(
             sink,
             collection,
             row.seq,
@@ -2334,7 +2334,7 @@ fn fact_page(
         .try_reserve_exact(capacity)
         .map_err(|_| tos_validation::item_budget_origin!())?;
     for row in &meta[..take] {
-        let (key, payload) = read_fact_for_page(
+        let (_, payload) = read_fact_for_page(
             sink,
             collection,
             row.seq,
@@ -3821,7 +3821,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         else {
             return Ok(None);
         };
-        let (payload, aux) = table_read_payload(&self.db, collection, item_id, "", meta)
+        let (payload, _) = table_read_payload(&self.db, collection, item_id, "", meta)
             .map_err(|error| refusal(error))?;
         let value =
             decode_value(&payload, max_state_bytes.get()).map_err(|error| refusal(error))?;

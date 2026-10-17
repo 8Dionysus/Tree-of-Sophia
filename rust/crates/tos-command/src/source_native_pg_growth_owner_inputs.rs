@@ -359,15 +359,11 @@ impl PgGrowthSelectedInputs {
         let edition_id = cmd::text(configuration, "edition_id")?;
         let edition_path = cmd::text(configuration, "edition_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = format!(
-            "{}/source-claims.jsonl",
-            edition_path
-                .rsplit_once('/')
-                .map(|(parent, _)| parent)
-                .ok_or(SourceCommandError::Invalid(
-                    "PG Expression Edition Claim home"
-                ),)?
-        );
+        edition_path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid(
+                "PG Expression Edition Claim home",
+            ))?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -427,7 +423,7 @@ impl PgGrowthSelectedInputs {
         let agent_id = cmd::text(configuration, "agent_id")?;
         let agent_path = cmd::text(configuration, "agent_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = cmd::text(configuration, "claim_source_path")?.to_owned();
+        cmd::text(configuration, "claim_source_path")?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -480,7 +476,7 @@ impl PgGrowthSelectedInputs {
         let work_id = cmd::text(configuration, "work_id")?;
         let work_path = cmd::text(configuration, "work_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = cmd::text(configuration, "claim_source_path")?.to_owned();
+        cmd::text(configuration, "claim_source_path")?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(
@@ -528,13 +524,9 @@ impl PgGrowthSelectedInputs {
         let expression_id = cmd::text(configuration, "expression_id")?;
         let expression_path = cmd::text(configuration, "expression_source_path")?.to_owned();
         let claim_id = cmd::text(configuration, "claim_id")?;
-        let claim_path = format!(
-            "{}/source-claims.jsonl",
-            expression_path
-                .rsplit_once('/')
-                .map(|(parent, _)| parent)
-                .ok_or(SourceCommandError::Invalid("PG Work Expression Claim home"))?
-        );
+        expression_path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("PG Work Expression Claim home"))?;
         let mut selected =
             PgGrowthSelectedInputs::select(input, publication_token, deadline, cancelled)?;
         selected.record(

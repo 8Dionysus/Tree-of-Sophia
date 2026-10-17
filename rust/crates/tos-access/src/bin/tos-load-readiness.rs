@@ -5204,7 +5204,6 @@ fn validate_plan(
                     "operation labels must be unique bounded ASCII within each session".into(),
                 );
             }
-            let sdk = op.channel == "sdk";
             let native_process = matches!(op.channel.as_str(), "sdk" | "projection");
             let primary = ExpectedOutcome {
                 status: op.expected_status,
@@ -5522,7 +5521,6 @@ fn validate_plan(
     let mut postload_integrity_checks = 0usize;
     let mut postload_selected_integrity_checks = 0usize;
     let mut postload_pg_integrity_checks = 0usize;
-    let mut postload_rights_checks = 0usize;
     let mut postload_idempotency_checks = 0usize;
     let mut postload_integrity_positions = Vec::<usize>::new();
     let mut postload_selected_integrity_positions = Vec::<usize>::new();
@@ -5840,7 +5838,6 @@ fn validate_plan(
             if allowed {
                 postload_pre_revoke_describes.insert(op.label.clone(), op.clone());
             }
-            postload_rights_checks += 1;
         }
     }
     if native_pg_stage {
@@ -8720,7 +8717,7 @@ fn main_result() -> Result<i32, String> {
         .map(|s| s.operations.len())
         .max()
         .unwrap_or(0);
-    let mut successes = 0usize;
+    let mut successes;
     let mut errors = 0usize;
     let mut conflicts = 0usize;
     let mut conflict_groups = 0usize;

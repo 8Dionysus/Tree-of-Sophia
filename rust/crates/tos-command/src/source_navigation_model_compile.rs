@@ -856,7 +856,6 @@ pub(crate) fn compile(
     let max_catalog_members = usize::try_from(model.max_source_members)
         .map_err(|_| SourceCommandError::Invalid("source-navigation manifest member limit"))?
         .min(SourceCatalogInputLimits::MAX_SELECTED_MEMBERS);
-    let max_source_member_bytes = model.max_source_member_bytes;
     let read_limits = request.source_read_limits.checked()?;
     let corpus =
         CorpusReader::open_existing(&request.source_cut_root, read_limits).map_err(|_| {

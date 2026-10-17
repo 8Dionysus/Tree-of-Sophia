@@ -3675,7 +3675,7 @@ fn prepare_revision(
             "Claim correction history capacity reached",
         ));
     }
-    let (revised, proposed, views, refs, dependencies, bindings) = revision_proposal(
+    let (revised, proposed, _, refs, dependencies, bindings) = revision_proposal(
         ctx,
         cut,
         authored_members,
@@ -3788,7 +3788,6 @@ fn prepare_revision(
 fn prepare_forms(
     ctx: &CommandContext,
     cut: &impl HistoricalCurrentSource,
-    authored_members: &[SourceFile],
     owner: &Owner,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
@@ -4235,15 +4234,7 @@ fn prepare_with_source(
         )
     } else {
         prepare_forms(
-            ctx,
-            cut,
-            authored_members,
-            &owner,
-            current,
-            reader,
-            worker,
-            deadline,
-            cancelled,
+            ctx, cut, &owner, current, reader, worker, deadline, cancelled,
         )
     }
 }

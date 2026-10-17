@@ -8753,11 +8753,6 @@ impl SourceFoundationClosureSchemaRequestStore
         }
         let row_workspace =
             Self::responsibility_claim_workspace(self.max_object_link_claim_bytes, 3)?;
-        let previous_bytes = self
-            .last_object_link_claim_id
-            .as_deref()
-            .map(str::len)
-            .unwrap_or_default();
         let cursor_copy = self
             .last_object_link_claim_id
             .as_deref()

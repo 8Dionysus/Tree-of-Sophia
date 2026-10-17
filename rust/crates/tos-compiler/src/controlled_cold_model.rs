@@ -1161,9 +1161,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let source_cap = max_payload_bytes as i64;
         let field_cap = max_field_bytes as i64;
         let char_cap = max_document_chars as i64;
-        let (table_kind, table) = match kind {
-            ControlledSearchKind::Nodes => ("nodes", "knowledge_nodes"),
-            ControlledSearchKind::Relations => ("relations", "knowledge_relations"),
+        let table_kind = match kind {
+            ControlledSearchKind::Nodes => "nodes",
+            ControlledSearchKind::Relations => "relations",
         };
         if !KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi).uses_carriers() {
             return Err(Error::Invalid(

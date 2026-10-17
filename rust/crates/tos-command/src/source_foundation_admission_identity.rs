@@ -170,6 +170,7 @@ impl GrammarIdentity {
             ));
         }
         let (paths, mut state) = discover(sources, limits, deadline, cancel)?;
+        #[cfg(test)]
         let mut peak_state = state;
         let mut read_bytes = 0usize;
         let mut bindings = Vec::new();
@@ -202,7 +203,10 @@ impl GrammarIdentity {
             }
             let mut raw_state = state;
             reserve(&mut raw_state, size, limits.max_state_bytes)?;
-            peak_state = peak_state.max(raw_state);
+            #[cfg(test)]
+            {
+                peak_state = peak_state.max(raw_state);
+            }
             let raw = sources.bounded_bytes(
                 &path,
                 size,
@@ -250,7 +254,10 @@ impl GrammarIdentity {
                 limits.max_state_bytes,
             )?;
         }
-        peak_state = peak_state.max(serialization_state);
+        #[cfg(test)]
+        {
+            peak_state = peak_state.max(serialization_state);
+        }
         let value = json!({"domain":"tos_native_source_validator_v1","executable_sha256":executable.to_hex(),"worker_sha256":worker.to_hex(),"validation_profile_id":profile.id,"validation_profile_declaration_sha256":profile.declaration_sha256.to_hex(),"grammar":bindings.iter().map(|b|json!({"path":b.path,"sha256":b.sha256.to_hex(),"size_bytes":b.size_bytes})).collect::<Vec<_>>()});
         let raw = serde_json::to_vec(&value).map_err(invalid)?;
         let json_limits = JsonLimits::new(

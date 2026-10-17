@@ -1106,11 +1106,6 @@ fn item_source<'state, 'budget>(
     order: i64,
     creation: Option<&'state CreationState<'budget>>,
 ) -> Result<Option<OwnedText<'state, 'budget>>> {
-    let table = if kind == NODE {
-        "knowledge_nodes"
-    } else {
-        "knowledge_relations"
-    };
     let sql = if kind == NODE {
         "SELECT source_graph,length(CAST(source_graph AS BLOB)) FROM knowledge_nodes WHERE source_order=?1"
     } else {
@@ -3156,7 +3151,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
                 let value = route
                     .get(field)
                     .ok_or(Error::Invalid("catalog route field"))?;
-                let mut bytes = 0usize;
+                let mut bytes;
                 match value {
                     Value::String(text) => {
                         bytes = text.len();

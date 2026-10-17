@@ -3054,7 +3054,7 @@ fn compare_derived_layer(
     let root_is_initial;
     let root_source_access;
     let payload_entry;
-    let mut root_source_inputs = Vec::new();
+    let root_source_inputs;
     let mut lineage_inputs = Vec::<NativeInput>::new();
     loop {
         if lineage.len() >= MAX_LINEAGE {

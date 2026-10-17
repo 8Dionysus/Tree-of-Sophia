@@ -1420,7 +1420,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             }
         };
     let mut failed = None;
-    let mut current_phase = 0usize;
+    let mut current_phase;
     macro_rules! run_request {
         ($request:expr, $workspace_state:expr) => {
             run_request!(

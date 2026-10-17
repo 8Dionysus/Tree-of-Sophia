@@ -194,7 +194,6 @@ pub(super) fn layer(
 }
 pub(super) fn packet(
     plan: &Value,
-    layer_record_ref: &str,
     content: &[u8],
     anchors: Vec<Value>,
     units: Vec<Value>,
@@ -315,7 +314,6 @@ pub(super) struct Provenance<'a> {
     pub plan_ref: &'a str,
     pub plan_digest: &'a str,
     pub event_id: &'a str,
-    pub source_digest: &'a str,
     pub source_len: usize,
     pub plan_len: usize,
     pub builder_ref: &'a str,
@@ -337,7 +335,6 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
         plan_ref,
         plan_digest,
         event_id,
-        source_digest,
         source_len,
         plan_len,
         builder_ref,
@@ -544,12 +541,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     }
     event
 }
-pub(super) fn scope_anchor(
-    plan: &Value,
-    layer_record_ref: &str,
-    content: &[u8],
-    text: &str,
-) -> Value {
+pub(super) fn scope_anchor(plan: &Value, content: &[u8], text: &str) -> Value {
     let anchor_ids = &plan["opaque_ids"]["anchor_ids"];
     let content_digest = sha(content);
     json!({
@@ -574,7 +566,6 @@ pub(super) fn scope_anchor(
 }
 pub(super) fn content_anchor(
     plan: &Value,
-    layer_record_ref: &str,
     content_digest: &str,
     anchor_id: &Value,
     ordinal: usize,
@@ -626,7 +617,6 @@ pub(super) fn unit(unit_id: &Value, anchor_id: &Value, kind: &str) -> Value {
     })
 }
 pub(super) fn method(
-    plan: &Value,
     plan_ref: &str,
     builder_ref: &str,
     event_id: &str,

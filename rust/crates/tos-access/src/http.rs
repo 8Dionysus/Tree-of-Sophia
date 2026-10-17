@@ -1433,7 +1433,6 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                                             profile,
                                                         ),
                                                     )?;
-                                                    source_written = true;
                                                     return control.check();
                                                 }
                                             };

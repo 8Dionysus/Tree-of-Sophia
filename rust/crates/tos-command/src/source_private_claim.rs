@@ -829,7 +829,7 @@ fn validate_grant(
     let allowed_forms = exact_list(&value, "allowed_form_ids", 32)?;
     let allowed_subjects = exact_list(&value, "allowed_subject_refs", 128)?;
     let allowed_objects = exact_list(&value, "allowed_object_refs", 128)?;
-    let allowed_predicates = exact_list(&value, "allowed_predicates", 32)?;
+    exact_list(&value, "allowed_predicates", 32)?;
     let allowed_evidence = exact_list(&value, "allowed_evidence_refs", 128)?;
     let allowed_fields = exact_list(&value, "allowed_fields", 8)?;
     if allowed_claims.iter().any(|v| !claim_id(v))
@@ -1033,7 +1033,7 @@ fn archive_package(
     let source = archive_ref(cmd::text(subject, "id")?, revision, context)?;
     let refs = crate::source_revisions::file_refs(files, true);
     let mut archived = PrivatePackage::new();
-    for (name, raw) in files {
+    for raw in files.values() {
         let blob = format!("{}.blob", Digest256::of_bytes(raw).to_hex());
         if let Some(existing) = archived.insert(blob, raw.clone())
             && existing != *raw
@@ -3639,9 +3639,6 @@ struct PreparedForms {
 fn prepare_claim_forms(
     ctx: &CommandContext,
     grant: &Grant,
-    owner: &OwnerTextContext,
-    cut: &dyn PrivateSelectedSourceInput,
-    context: &JsonValue,
     worker: &mut dyn super::profile::PrivateSelectedSchemaExecutor,
     record: &JsonValue,
     payload: Option<&JsonValue>,
@@ -3814,9 +3811,6 @@ fn creation_files(
         let prepared = prepare_claim_forms(
             ctx,
             grant,
-            owner,
-            cut,
-            context,
             worker,
             claim,
             None,
@@ -5281,7 +5275,7 @@ fn resolve_assessment_claim_sources_with_entities(
     preflight_assessment_claim_sources(
         ctx, owner, cut, context, &grammar, selections, worker, &mut reads, deadline, cancelled,
     )?;
-    let form_grammar = super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
+    super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
     let mut claims = BTreeMap::<String, JsonValue>::new();
     let mut routes = BTreeMap::<String, ClaimRoute>::new();
     let mut claim_streams = BTreeMap::<String, String>::new();
@@ -7009,8 +7003,7 @@ fn package_state(
             ));
         }
         crate::source_command::validate_instant(cmd::text(receipt, "recorded_at")?)?;
-        let (package, locations) =
-            read_archive(grant, context, archives, receipt, deadline, cancelled)?;
+        let (package, _) = read_archive(grant, context, archives, receipt, deadline, cancelled)?;
         for name in [
             CONFIG_FILE,
             CREATE_REQUEST,
@@ -7777,9 +7770,6 @@ fn prepare_revision(
     let prepared = prepare_claim_forms(
         ctx,
         grant,
-        owner,
-        cut,
-        context_config,
         worker,
         &revised,
         Some(before_forms),

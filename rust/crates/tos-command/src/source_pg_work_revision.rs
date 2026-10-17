@@ -969,8 +969,8 @@ pub(crate) fn make_commit_evidence(
             digest: Some(Digest256::of_bytes(&write.exact_bytes)),
         });
     }
-    let before_raw = encode_refs(&before, source_path)?;
-    let after_raw = encode_refs(&after, source_path)?;
+    encode_refs(&before, source_path)?;
+    encode_refs(&after, source_path)?;
     let source_raw = after
         .iter()
         .find(|file| file.path == source_path)

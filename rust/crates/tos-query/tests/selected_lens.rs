@@ -1871,13 +1871,12 @@ fn selected_philosophy_variant_parity(
         execute_selected_philosophy,
     };
     // One finite software fixture goes through the normal producer, seal and
-    // cold open. Its exact originals feed the maintained historical reader;
-    // this is not authored philosophy, source or publication admission.
+    // cold open. Check original carrier pages, then compare reads with the
+    // independently frozen historical reader packets.
     let fixture = build_native_fixture_with_philosophy_view_variant(variant);
     let mut cold = fixture.open().unwrap();
     let receipt = cold.philosophy_original_receipt().unwrap().clone();
     let originals = |collection, count| {
-        let mut rows = Vec::new();
         let mut after = None;
         for ordinal in 0..count {
             let page = cold
@@ -1892,28 +1891,18 @@ fn selected_philosophy_variant_parity(
             assert_eq!(page.rows.len(), 1);
             let row = page.rows.into_iter().next().unwrap();
             assert_eq!(row.ordinal, ordinal);
-            rows.push(
-                parse_json(&row.raw, JsonMode::PublishedStrict, budget().inspect.json)
-                    .unwrap()
-                    .into_root(),
-            );
+            let value = parse_json(&row.raw, JsonMode::PublishedStrict, budget().inspect.json)
+                .unwrap()
+                .into_root();
+            if matches!(collection, PhilosophyOriginalCollection::Header) {
+                value.as_object().unwrap();
+            }
             after = Some(ordinal);
         }
-        rows
     };
-    let header = originals(PhilosophyOriginalCollection::Header, 1).remove(0);
-    let nodes = originals(PhilosophyOriginalCollection::Nodes, receipt.nodes);
-    let edges = originals(PhilosophyOriginalCollection::Edges, receipt.edges);
-    let mut projection = header.as_object().unwrap().to_vec();
-    projection.push((
-        tos_foundation::JsonString::from_utf8("nodes"),
-        JsonValue::Array(nodes),
-    ));
-    projection.push((
-        tos_foundation::JsonString::from_utf8("edges"),
-        JsonValue::Array(edges),
-    ));
-    let projection = JsonValue::Object(projection);
+    originals(PhilosophyOriginalCollection::Header, 1);
+    originals(PhilosophyOriginalCollection::Nodes, receipt.nodes);
+    originals(PhilosophyOriginalCollection::Edges, receipt.edges);
     let mut oracle = historical_oracle(match variant {
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::ReferencesV2 => "philosophy-01",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1 => "philosophy-02",

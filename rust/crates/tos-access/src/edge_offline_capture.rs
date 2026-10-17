@@ -4016,7 +4016,7 @@ fn run_prepared_transition(
     let after_header_raw = compact(&after_header, limits.prepared.max_metadata_bytes)?;
     let (_, _, after_catalog_raw) =
         parse_meta_accounted(&after_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
-    let (after_lens, _, after_lens_raw) =
+    let (_, _, after_lens_raw) =
         parse_meta_accounted(&after_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?;
     // The exact held source binding is validated against prepared_source_state.
     // The rendered knowledge_catalog row is a separate owner output whose
@@ -5492,8 +5492,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
         &request["after_binding"],
         limits.prepared.max_metadata_bytes,
     )?;
-    let (rights, rights_expected, _rights_trusted) =
-        private_trusted_projection_root(&request["rights_root"])?;
+    let (rights, _, _rights_trusted) = private_trusted_projection_root(&request["rights_root"])?;
     let forward = output_path(string(&request, "forward_sql")?)?;
     let rollback = output_path(string(&request, "rollback_sql")?)?;
     let manifest = output_path(string(&request, "manifest_json")?)?;

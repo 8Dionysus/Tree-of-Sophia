@@ -1019,7 +1019,7 @@ pub(crate) fn validate_public_current_registries(
         .map_err(|_| Error::Invalid("public D1 entity registry JSON"))?;
     let relation: Value = serde_json::from_slice(relation_bytes)
         .map_err(|_| Error::Invalid("public D1 relation registry JSON"))?;
-    validate_public_current_registries_values(capture, &entity, &relation, &registry, None)?;
+    validate_public_current_registries_values(capture, &entity, &relation, None)?;
     Ok(registry)
 }
 
@@ -1033,14 +1033,8 @@ pub(crate) fn validate_public_current_registries_owned(
         entity_bytes,
         relation_bytes,
         state,
-        |entity, relation, registry| {
-            validate_public_current_registries_values(
-                capture,
-                entity,
-                relation,
-                registry,
-                Some(state),
-            )
+        |entity, relation, _| {
+            validate_public_current_registries_values(capture, entity, relation, Some(state))
         },
     )
     .map(|(registry, ())| registry)
@@ -1050,7 +1044,6 @@ fn validate_public_current_registries_values(
     capture: &PublicCapture,
     entity: &Value,
     relation: &Value,
-    registry: &KnowledgeRegistry,
     state: Option<&CreationState<'_>>,
 ) -> Result<()> {
     if let Some(state) = state {

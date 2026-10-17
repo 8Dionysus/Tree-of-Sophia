@@ -196,7 +196,6 @@ finally:
     );
     super::assert_native_python_fixture(&captured, factory, &native_owner_paths);
     let root = isolated.path().join("source");
-    let recovery = isolated.path().join("recovery");
     physical_bytes(temporary.path(), 180 * 1024 * 1024);
     let oracle = captured.packets.get("factory").unwrap();
     let owner = PathBuf::from(oracle["owner"].as_str().unwrap());

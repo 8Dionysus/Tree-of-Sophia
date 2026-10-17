@@ -208,7 +208,6 @@ fn build_public_header_captured(
     if let Some(state) = stage.owned_creation_state() {
         return build_owned_header(
             stage,
-            capture,
             registry,
             entity_bytes,
             source_revision,
@@ -330,7 +329,6 @@ fn increment_count(
 }
 fn build_owned_header(
     stage: &mut KnowledgeStage<'_>,
-    capture: &PublicCapture,
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     source_revision: &str,

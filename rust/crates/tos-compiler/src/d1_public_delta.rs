@@ -1013,8 +1013,6 @@ fn scan_tuple(statement: &str, open: usize) -> Result<(Range<usize>, usize)> {
 fn parse_insert_batch(
     statement: String,
     table: &str,
-    offset: u64,
-    length: u64,
     capture: &PublicCapture,
 ) -> Result<CachedInsertBatch> {
     let expected = batch_columns(table).ok_or(Error::Invalid("public D1 delta batch table"))?;
@@ -1448,7 +1446,7 @@ pub(crate) fn produce(
                     }
                     if active.cached.is_none() {
                         let statement = segment(&mut sql, offset, length, capture)?;
-                        let cached = parse_insert_batch(statement, table, offset, length, capture)?;
+                        let cached = parse_insert_batch(statement, table, capture)?;
                         if ordinal >= cached.rows.len() {
                             return Err(Error::Invalid("public D1 delta batch row ordinal"));
                         }

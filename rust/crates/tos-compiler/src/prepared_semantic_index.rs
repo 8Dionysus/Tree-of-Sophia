@@ -568,7 +568,6 @@ impl<'a, 't> Budget<'a, 't> {
     }
 }
 fn dependencies(
-    b: &mut Budget<'_, '_>,
     binding: &Value,
     entity: &Value,
     relation: &Value,
@@ -1425,7 +1424,7 @@ pub fn bootstrap_semantic_index_transaction(
     b.input_json(relation)?;
     let entity = view(entity, limits.max_input_bytes)?;
     let relation = view(relation, limits.max_input_bytes)?;
-    let dep = dependencies(&mut b, &binding, &entity, &relation, processor)?;
+    let dep = dependencies(&binding, &entity, &relation, processor)?;
     let kernel = Rc::new(Kernel::new(
         &entity,
         &relation,
@@ -1579,7 +1578,7 @@ pub fn apply_semantic_delta_transaction(
     b.input_json(relation)?;
     let entity = view(entity, limits.max_input_bytes)?;
     let relation = view(relation, limits.max_input_bytes)?;
-    let dep = dependencies(&mut b, &binding, &entity, &relation, processor)?;
+    let dep = dependencies(&binding, &entity, &relation, processor)?;
     if state["pending"] != false
         || !python_eq(&state["binding"], &binding)?
         || state["dependencies"] != dep

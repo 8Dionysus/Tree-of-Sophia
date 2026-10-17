@@ -131,12 +131,10 @@ pub(crate) struct AssessmentEvaluationResult {
         bool,
         Vec<JsonValue>,
     )>,
-    pub(crate) record_rows: Vec<JsonValue>,
     pub(crate) current_report: AssessmentMechanicsReport,
     pub(crate) append_report: Option<AssessmentMechanicsReport>,
     pub(crate) parent_assessment: Option<JsonValue>,
     pub(crate) source_read_ready: bool,
-    pub(crate) route_layer_quality: Option<AssessmentLayerQualityObservation>,
 }
 
 #[derive(Debug)]
@@ -2034,12 +2032,10 @@ where
         current_snapshot,
         quality_bases,
         admission_bases,
-        record_rows,
         source_read_ready: current_report.source_read_ready(),
         current_report,
         append_report,
         parent_assessment,
-        route_layer_quality,
     })
 }
 
@@ -2198,11 +2194,9 @@ fn run_selected(
     let current_snapshot = evaluation.current_snapshot;
     let quality_bases = evaluation.quality_bases;
     let admission_bases = evaluation.admission_bases;
-    let record_rows = evaluation.record_rows;
     let current_report = evaluation.current_report;
     let append_report = evaluation.append_report;
     let parent_assessment = evaluation.parent_assessment;
-    let route_layer_quality = evaluation.route_layer_quality;
     let current = &plan.current;
     let scope = &plan.scope;
     let all_by_id = &plan.all_by_id;
@@ -4880,7 +4874,7 @@ pub(crate) fn materialize_assessed_form_from_selected_maps<W: CutSchemaExecutor>
 
     let mut required_context = Vec::<JsonValue>::new();
     let mut source_copy_binding = None;
-    let mut wording = String::new();
+    let wording;
     if kind == "source-copy" {
         let slot = cmd::text(content, "slot")?;
         let binding = binding_rows

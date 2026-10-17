@@ -602,15 +602,15 @@ fn process_ready_range(
         Some(closure)
     };
 
-    let (current_claim_ids, current_claim_stream_paths, claim_dependency_causes) =
-        if let Some(closure) = claim_closure.as_ref() {
-            let (ids, paths) = claim_navigation_reverse_owners(closure);
-            let causes =
-                range_dependency_causes(coverage, &prior_claim_owners, closure, &ids_by_path)?;
-            (ids, paths, causes)
-        } else {
-            (Vec::new(), Vec::new(), Vec::new())
-        };
+    let (current_claim_stream_paths, claim_dependency_causes) = if let Some(closure) =
+        claim_closure.as_ref()
+    {
+        let (_, paths) = claim_navigation_reverse_owners(closure);
+        let causes = range_dependency_causes(coverage, &prior_claim_owners, closure, &ids_by_path)?;
+        (paths, causes)
+    } else {
+        (Vec::new(), Vec::new())
+    };
 
     let mut terminal_claim_stream_paths = current_claim_stream_paths
         .iter()

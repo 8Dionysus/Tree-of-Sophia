@@ -1159,7 +1159,6 @@ pub(crate) fn inspect_current_topology_from_stored<
 
     records.for_each_current_record(&mut |id, record| {
         projection.reserve(0)?;
-        let record_id = field_str(&record.value, "record_id");
         let record_type = field_str(&record.value, "record_type");
         // The unchanged topology kernel detects duplicate IDs across every
         // record, so retain this minimal identity pair for all rows. Only the

@@ -752,7 +752,7 @@ pub(crate) fn run(
     }
     let _ = super::capped(budgets, "max_schema_receipts", 128)?;
     let _ = super::capped(budgets, "max_schema_receipt_bytes", 262_144)?;
-    let executable_path = super::absolute(super::text(invocation, "native_executable")?)?;
+    super::absolute(super::text(invocation, "native_executable")?)?;
     let runtime = crate::source_serialization::observe_executable(deadline, cancelled)?;
     let executable_digest = super::digest(super::text(invocation, "native_executable_sha256")?)?;
     if runtime.current_digest(deadline, cancelled)? != executable_digest {
@@ -804,7 +804,6 @@ pub(crate) fn run(
         (
             initial_identity,
             owner,
-            selected_context,
             grant,
             scope,
             config,
@@ -841,7 +840,7 @@ pub(crate) fn run(
                     cancelled,
                 )
                 .map_err(DurableError::Source)?;
-                let (mut owner, selected_context) = OwnerTextContext::select_pg(
+                let (mut owner, _) = OwnerTextContext::select_pg(
                     &context_path,
                     &context_schema,
                     &mut context_worker,
@@ -869,8 +868,7 @@ pub(crate) fn run(
                         "private PG Assessment requires owner v5/v6",
                     ));
                 }
-                let request = assessment::parse_request(&request_raw, version)
-                    .map_err(DurableError::Source)?;
+                assessment::parse_request(&request_raw, version).map_err(DurableError::Source)?;
                 assessment::preflight_configuration(&config, version)
                     .map_err(DurableError::Source)?;
                 let binding = owner
@@ -906,7 +904,6 @@ pub(crate) fn run(
                 Ok((
                     identity,
                     owner,
-                    selected_context,
                     grant,
                     scope,
                     config,

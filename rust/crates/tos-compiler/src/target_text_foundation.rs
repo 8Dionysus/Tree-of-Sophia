@@ -263,8 +263,8 @@ fn packet(plan: &Value, content: &[u8], text: &str, method: &Value) -> Result<Va
         anchor_ids.len() == 12 && unit_ids.len() == 11,
         "source-layout identity counts",
     )?;
-    let layer = s(&plan["outputs"]["text_layer_ref"])?;
-    let mut anchors = vec![records::scope_anchor(plan, layer, content, text)];
+    s(&plan["outputs"]["text_layer_ref"])?;
+    let mut anchors = vec![records::scope_anchor(plan, content, text)];
     let mut units = vec![];
     let mut segments = vec![];
     let mut start = 0;
@@ -291,7 +291,6 @@ fn packet(plan: &Value, content: &[u8], text: &str, method: &Value) -> Result<Va
         let aid = &anchor_ids[i + 1];
         anchors.push(records::content_anchor(
             plan,
-            layer,
             &digest,
             aid,
             i + 2,
@@ -302,9 +301,7 @@ fn packet(plan: &Value, content: &[u8], text: &str, method: &Value) -> Result<Va
         ));
         units.push(records::unit(&unit_ids[i], aid, kind));
     }
-    Ok(records::packet(
-        plan, layer, content, anchors, units, method,
-    ))
+    Ok(records::packet(plan, content, anchors, units, method))
 }
 
 fn output_entities(
@@ -450,14 +447,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     } else {
         (BUILDER, native_unicode.as_str(), observed.as_str())
     };
-    let method = records::method(
-        &plan,
-        opts.plan_ref,
-        builder,
-        &event_id,
-        unicode_version,
-        made_at,
-    );
+    let method = records::method(opts.plan_ref, builder, &event_id, unicode_version, made_at);
     let anchor = records::anchor(&plan, opts.plan_ref, &sha(&plan_raw), &event_id);
     let anchor_raw = encode(&anchor, true)?;
     let mut layer = records::layer(
@@ -558,7 +548,6 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             plan_ref: opts.plan_ref,
             plan_digest: &sha(&plan_raw),
             event_id: &event_id,
-            source_digest: &source_digest,
             source_len,
             pdftotext_version: &extraction.backend_version,
             pdftotext_digest: &extraction.backend_digest,
@@ -672,7 +661,6 @@ mod tests {
             LEGACY_EVENT,
         );
         let method = records::method(
-            plan,
             PLAN,
             LEGACY_BUILDER,
             LEGACY_EVENT,

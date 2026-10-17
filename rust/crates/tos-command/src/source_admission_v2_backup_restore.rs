@@ -473,7 +473,6 @@ fn stamp(m: &Metadata) -> (u64, u64, u64, u32, u32, i64, i64, i64, i64) {
 fn selected_roots(
     store: &AdmissionStore,
     selection: &CorpusCurrentSelection,
-    limits: V2ImageLimits,
     io: &PinnedSqliteIoBudget,
     deadline: Instant,
     cancel: &AtomicBool,
@@ -1537,7 +1536,7 @@ fn transfer_image_inner(
     let selection = source
         .current_selection(limits.reader, deadline, cancel, Some(io))?
         .ok_or_else(|| invalid("V2 image source selection absent"))?;
-    let roots = selected_roots(&source, &selection, limits, io, deadline, cancel)?;
+    let roots = selected_roots(&source, &selection, io, deadline, cancel)?;
     let target = {
         let roots = held_roots;
 
@@ -1618,7 +1617,7 @@ fn transfer_image_inner(
         {
             return Err(invalid("V2 image target root replaced"));
         }
-        let restored_roots = selected_roots(&restored, &selection, limits, io, deadline, cancel)?;
+        let restored_roots = selected_roots(&restored, &selection, io, deadline, cancel)?;
         if restored_roots != roots {
             return Err(invalid("V2 image restored roots differ"));
         }

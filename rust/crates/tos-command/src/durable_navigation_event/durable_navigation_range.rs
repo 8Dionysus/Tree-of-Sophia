@@ -3597,7 +3597,7 @@ impl DurablePgCoordinator {
                     "navigation event range moved from its held source head",
                 ));
             }
-            let event = exact_range_event(&mut self.client, domain, command_id, &witness, limits)?;
+            let event = exact_range_event(&mut self.client, domain, command_id, &witness)?;
             let next_member_count =
                 total_members
                     .checked_add(event.members.len())
@@ -3845,7 +3845,6 @@ impl DurablePgCoordinator {
                 domain,
                 terminal.command_id.clone(),
                 &witness,
-                limits,
             )?;
             if cursor.sequence != coverage.cursor_before
                 || source_head_sequence != coverage.held_source_head_sequence
@@ -4347,7 +4346,6 @@ fn exact_range_event(
     domain: &str,
     command_id: Option<String>,
     witness: &EventWitness,
-    limits: DurableNavigationEventLimits,
 ) -> DurableResult<DurableNavigationEventRangeEventV1> {
     let max_rows = 65i64;
     let root_row = client.query_opt(

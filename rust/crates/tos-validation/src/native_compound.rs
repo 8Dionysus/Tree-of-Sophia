@@ -8547,7 +8547,6 @@ impl NativeCompoundReader<'_> {
                 .saturating_sub(original_state),
         )?;
         let expression = &request[kind.record_key()];
-        let claim = &request["claim"];
         let ordered_request = self.ordered_value(&request_raw)?;
         let expression_ordered = self.ordered_copy(
             ordered_request

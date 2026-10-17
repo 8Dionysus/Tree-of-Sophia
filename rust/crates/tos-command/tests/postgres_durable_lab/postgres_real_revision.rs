@@ -1848,8 +1848,8 @@ fn kill_projection_child(case: &RevisionCase, consumer: &str) -> Value {
         reaped, pid as libc::pid_t,
         "killed projection child is reaped"
     );
-    let (stdout, stdout_bytes) = stdout_reader.join().unwrap();
-    let (stderr, stderr_bytes) = stderr_reader.join().unwrap();
+    let (_, stdout_bytes) = stdout_reader.join().unwrap();
+    let (_, stderr_bytes) = stderr_reader.join().unwrap();
     assert!(stdout_bytes <= 1_048_576 && stderr_bytes <= 1_048_576);
     assert_eq!(
         ExitStatus::from_raw(status).signal(),

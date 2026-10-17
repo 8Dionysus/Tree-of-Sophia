@@ -8676,16 +8676,6 @@ impl DurablePgCoordinator {
         let raw_request_digest = Digest256::of_bytes(&context.request_raw);
         let configuration_raw_digest = proposal.configuration_raw_sha256;
         let configuration_canonical_digest = proposal.configuration_canonical_sha256;
-        let delta = revision_delta(
-            &authored_proposal,
-            selection,
-            &reads,
-            &writes,
-            &metadata,
-            &projections,
-            publication_package.as_ref(),
-            work_revision.as_ref(),
-        )?;
         let domain = selection.cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;

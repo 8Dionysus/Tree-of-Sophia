@@ -7363,12 +7363,7 @@ where
                     return Err(SourceCommandError::Denied("catalog Claim visibility"));
                 }
                 let mut selected_schema = None;
-                let mut schema_bytes =
-                    if text(&claim, "schema_version")? == "tos_historical_claim_v1" {
-                        "ToS/contracts/historical-claim.schema.json".len()
-                    } else {
-                        0
-                    };
+                text(&claim, "schema_version")?;
                 if profiled {
                     let registry_bytes = selected(ctx, RELATIONS)?.len();
                     inventory_live_preflight(
@@ -7453,7 +7448,7 @@ where
                         .ok_or(SourceCommandError::Unsupported(
                             "Claim profile route state overflow",
                         ))?;
-                    schema_bytes = text(route, "schema_ref")?.len();
+                    let schema_bytes = text(route, "schema_ref")?.len();
                     inventory_live_preflight(
                         whole_call,
                         retained_inventory_state,

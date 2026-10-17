@@ -1065,21 +1065,18 @@ pub(crate) fn compose_selected_access_health_original(
     }
     let mut visit_meter = tos_query::InspectVisitMeter::new(inspect_budget.json.max_visits);
     let mut errors = Vec::with_capacity(8);
-    let child_json = inspect_budget.json;
-    let mut corpus_source_schema = None;
-    let mut corpus_view_id = None;
-    let mut corpus_index_status = health_subject("unavailable", None, None, None, None);
+    let corpus_index_status;
     let mut corpus_view_status = health_subject("not_checked", None, None, None, None);
     let corpus_seed = child(HealthChild::CorpusSeed, inspect_budget, &mut visit_meter);
     match corpus_seed {
         Ok(seed) => {
             health_child_schema(&seed, "tos_selected_corpus_health_seed_v1")?;
-            corpus_source_schema = Some(health_required_text(
+            let corpus_source_schema = Some(health_required_text(
                 &seed,
                 "index_schema_version",
                 inspect_budget.max_field_bytes,
             )?);
-            corpus_view_id =
+            let corpus_view_id =
                 health_optional_text(&seed, "first_graph_view_id", inspect_budget.max_field_bytes)?;
             if corpus_source_schema.as_deref() != Some("tos_corpus_index_v1") {
                 append_health_error(&mut errors, "unsupported corpus index schema".into());
@@ -1178,9 +1175,7 @@ pub(crate) fn compose_selected_access_health_original(
         original.check()?;
     }
 
-    let mut philosophy_schema = None;
-    let mut philosophy_view_id = None;
-    let mut philosophy_projection_status = health_subject("unavailable", None, None, None, None);
+    let philosophy_projection_status;
     let mut philosophy_view_status = health_subject("not_checked", None, None, None, None);
     let philosophy_seed = child(
         HealthChild::PhilosophySeed,
@@ -1190,12 +1185,12 @@ pub(crate) fn compose_selected_access_health_original(
     match philosophy_seed {
         Ok(seed) => {
             health_child_schema(&seed, "tos_selected_philosophy_health_seed_v1")?;
-            philosophy_schema = Some(health_required_text(
+            let philosophy_schema = Some(health_required_text(
                 &seed,
                 "projection_schema_version",
                 inspect_budget.max_field_bytes,
             )?);
-            philosophy_view_id =
+            let philosophy_view_id =
                 health_optional_text(&seed, "first_view_id", inspect_budget.max_field_bytes)?;
             if !matches!(
                 philosophy_schema.as_deref(),
@@ -1302,8 +1297,8 @@ pub(crate) fn compose_selected_access_health_original(
 
     let mut knowledge_schema = JsonValue::Null;
     let mut knowledge_counts = JsonValue::Null;
-    let mut knowledge_graph_status = health_subject("unavailable", None, None, None, None);
-    let mut knowledge_catalog_status = health_subject("unavailable", None, None, None, None);
+    let knowledge_graph_status;
+    let knowledge_catalog_status;
     let knowledge = child(HealthChild::Knowledge, inspect_budget, &mut visit_meter);
     match knowledge {
         Ok(metadata) => {

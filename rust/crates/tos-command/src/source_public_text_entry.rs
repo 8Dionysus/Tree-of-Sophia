@@ -958,7 +958,7 @@ pub(crate) fn run(
             ))?,
     );
     let operation = cmd::text(request, "operation")?;
-    let config = value(&selection.config)?;
+    value(&selection.config)?;
     let source_path = cmd::text(&selection.config, "source_path")?;
     let configuration = selection.configuration_digest().to_prefixed();
     selection.verify_current(deadline, cancelled)?;

@@ -1548,7 +1548,7 @@ pub(super) fn publish_agent_load_fixture(
         0o700
     );
     let owner = PathBuf::from(required(&packet, "owner_config"));
-    let config_raw = fs::read(&owner).unwrap();
+    fs::read(&owner).unwrap();
     assert_eq!(
         fs::metadata(&owner).unwrap().permissions().mode() & 0o777,
         0o600
