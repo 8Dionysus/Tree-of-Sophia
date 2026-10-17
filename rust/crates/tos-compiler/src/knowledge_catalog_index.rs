@@ -749,6 +749,7 @@ fn read_packet_owned<'state, 'budget>(
     Ok(EncodedPacket { bytes, _hold: hold })
 }
 
+#[cfg(test)]
 fn read_packet(
     db: &Connection,
     descriptor: &str,

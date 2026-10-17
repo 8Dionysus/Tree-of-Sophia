@@ -35,7 +35,6 @@ use tos_foundation::{
     JsonString, JsonValue, canonical_bytes_v1, python_lower_unicode16_v1,
 };
 
-const TOP: &str = "knowledge_reader_top";
 const LENS: &str = "knowledge_lens_top";
 const CATALOG: &str = "knowledge_catalog";
 const MAX_HISTOGRAM_CELLS: usize = 16384;

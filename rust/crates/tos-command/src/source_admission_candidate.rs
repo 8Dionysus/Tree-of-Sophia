@@ -750,6 +750,7 @@ impl<'a> Candidate<'a> {
     pub(crate) fn retained_state_bytes(&self) -> usize {
         self.state.get()
     }
+    #[cfg(test)]
     pub(crate) fn peak_state_bytes(&self) -> usize {
         self.peak_state.get()
     }

@@ -753,14 +753,6 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
     pub fn catalog_claim_entry_schema_present(&self) -> bool {
         self.catalog_claim_entry_schema_present
     }
-
-    pub(crate) fn resources(&self) -> &[SchemaResource] {
-        &self.resources
-    }
-
-    pub(crate) fn contracts(&self) -> &BTreeMap<String, (String, Digest256)> {
-        &self.contracts
-    }
 }
 
 /// One caller-owned decoded instance. `location` is the stable source label to

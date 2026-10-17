@@ -248,6 +248,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
 pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullKnowledgeFixture {
     build_fixture_configured(report, false, None)
 }
+#[cfg(test)]
 pub(crate) fn build_fixture_with_prepared_catalog(report: Option<Value>) -> FullKnowledgeFixture {
     build_fixture_configured(report, true, None)
 }

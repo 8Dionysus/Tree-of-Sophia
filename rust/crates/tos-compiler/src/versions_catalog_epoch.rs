@@ -305,6 +305,7 @@ impl VersionsCatalogEpochV2 {
     /// Initial-Agent-only COW change. This method is crate-private: the
     /// managed producer must check the genuine committed projection and
     /// source proof before invoking it. It issues no current-use grant.
+    #[cfg(test)]
     pub(crate) fn insert_created_agent(
         &self,
         binding: SourceBinding,

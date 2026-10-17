@@ -481,7 +481,7 @@ impl GrammarIdentity {
     pub(crate) fn read_bytes(&self) -> u64 {
         self.read_bytes
     }
-    /// Conservatively charged peak payload, not measured process RSS.
+    #[cfg(test)]
     pub(crate) fn state_bytes(&self) -> usize {
         self.state_bytes
     }
@@ -489,6 +489,7 @@ impl GrammarIdentity {
     pub(crate) fn retained_state_bytes(&self) -> usize {
         self.retained_state_bytes
     }
+    #[cfg(test)]
     pub(crate) fn bindings(&self) -> &[GrammarBinding] {
         &self.bindings
     }

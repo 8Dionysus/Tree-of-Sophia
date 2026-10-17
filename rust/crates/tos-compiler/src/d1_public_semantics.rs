@@ -1053,7 +1053,6 @@ fn validate_public_current_registries_values(
     registry: &KnowledgeRegistry,
     state: Option<&CreationState<'_>>,
 ) -> Result<()> {
-    const MAX_REGISTRY_BYTES: usize = 4 * 1024 * 1024;
     if let Some(state) = state {
         state.active()?;
     }

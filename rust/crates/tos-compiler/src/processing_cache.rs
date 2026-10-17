@@ -22,7 +22,6 @@ use tos_foundation::{Digest256, Digest256Hasher};
 pub const DEFAULT_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
 pub const DEFAULT_CACHE_ENTRIES: u64 = 500_000;
 
-const CACHE_KEY_DOMAIN: &[u8] = b"tos-rust-processing-cache-key-v1\0";
 const MAX_CANONICAL_VALUE_BYTES: usize = 8 * 1024 * 1024;
 static RUN_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 

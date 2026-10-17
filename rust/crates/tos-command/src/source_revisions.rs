@@ -247,8 +247,6 @@ impl ArtifactCorrectionReplayObservation {
     }
 }
 
-impl ArtifactCorrectionReplayTransactionObservation {}
-
 impl tos_validation::source_foundation_discovery::ArtifactCorrectionReplayEvidence
     for ArtifactCorrectionReplayObservation
 {

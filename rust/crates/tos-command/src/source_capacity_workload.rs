@@ -27,9 +27,7 @@ use tos_source_store::native_v2::objects::{
     MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectBuildWorkV2, PackedObjectLimitsV2,
     PackedObjectSourceV2, PackedObjectWriterV2,
 };
-use tos_source_store::native_v2::roots::{
-    MEMBERS_KIND, SOURCE_ADMISSION_V2_DOMAIN,
-};
+use tos_source_store::native_v2::roots::{MEMBERS_KIND, SOURCE_ADMISSION_V2_DOMAIN};
 use tos_source_store::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, PinnedSqliteSpaceReservation,
 };
@@ -90,7 +88,6 @@ impl WeightedScaleClassV1 {
         Self::TextUnit,
         Self::Work,
     ];
-
 
     fn id_kind(self) -> &'static str {
         match self {
@@ -1959,13 +1956,6 @@ impl WeightedScaleTemplateSetV1 {
         }
         Ok(result)
     }
-    pub(crate) fn source_recipe(&self) -> Option<&WeightedScaleFixtureRecipeSourceV2> {
-        self.fixture_recipe_source.as_ref()
-    }
-
-    pub fn load(repository_root: &Path) -> std::io::Result<Self> {
-        Self::load_inner(repository_root, None, false, false, None)
-    }
 
     pub(crate) fn load_accounted(
         repository_root: &Path,
@@ -2845,7 +2835,6 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         self.member_count
     }
 
-
     pub fn class_source_bytes(&self) -> [u64; 5] {
         self.class_source_bytes
     }
@@ -3122,9 +3111,6 @@ pub(crate) struct WeightedScaleGeneratedMemberV1 {
     template_sha256: Digest256,
     raw_sha256: Digest256,
     raw_bytes: u64,
-}
-
-impl WeightedScaleGeneratedMemberV1 {
 }
 
 /// Generated-ALL is issued from the authenticated input reader declaration,

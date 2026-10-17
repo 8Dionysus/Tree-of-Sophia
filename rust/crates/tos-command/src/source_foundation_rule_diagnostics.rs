@@ -111,10 +111,6 @@ pub(crate) enum SourceFoundationRuleDiagnosticsError {
     },
 }
 
-impl SourceFoundationRuleDiagnosticsError {
-
-}
-
 struct Processed {
     resolved_labs: Vec<ResolvedSourceFoundationLab>,
     records_issues: Vec<(String, String)>,
@@ -330,9 +326,6 @@ pub(crate) enum CandidateRuleDiagnosticsError<I> {
         diagnostics: CandidateRuleDiagnosticProgress<I>,
         reason: &'static str,
     },
-}
-
-impl<I> CandidateRuleDiagnosticsError<I> {
 }
 
 struct CandidateRuleStepFailure<I> {
@@ -2471,7 +2464,6 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         },
     })
 }
-
 
 /// Evaluate the same ordered diagnostics kernel with the caller's already
 /// verified worker image. The handle remains borrowed across the exchange so

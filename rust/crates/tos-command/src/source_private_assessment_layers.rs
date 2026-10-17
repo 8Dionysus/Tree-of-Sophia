@@ -340,8 +340,6 @@ impl PrivateAssessmentLayers {
     }
 }
 
-impl SelectedOwnerLayer {}
-
 /// Validate the entire v5/v6 native-layer and quality-dependency selection
 /// without opening owner, corpus, payload, or image paths.
 pub(crate) fn preflight_owner_local_layers(

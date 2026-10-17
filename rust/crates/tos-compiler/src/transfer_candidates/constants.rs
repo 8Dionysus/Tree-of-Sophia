@@ -10,12 +10,8 @@ pub(super) const RIGHTS_PATH: &str = "ToS/source-witnesses/collections/friedrich
 pub(super) const GOLD_ASSURANCE_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json";
 pub(super) const EVENT_ID: &str =
     "tos.event.segmentation.zarathustra-transfer-candidate-freeze-v3.2026-07-29";
-pub(super) const PREVIOUS_EVENT_ID: &str =
-    "tos.event.annotation.zarathustra-transfer-plan-v2.2026-07-24";
 pub(super) const EXPECTED_FILE_SHA256: &str =
     "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa";
-pub(super) const PDFTOTEXT_VERSION: &str = "26.01.0";
-pub(super) const PREPARED_AT: &str = "2026-07-29T16:10:00Z";
 pub(super) const WORKS: [(&str, &str, usize); 3] = [
     (
         "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",

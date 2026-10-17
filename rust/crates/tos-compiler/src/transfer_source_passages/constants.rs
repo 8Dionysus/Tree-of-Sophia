@@ -7,7 +7,6 @@ pub(super) const LOCAL_CONTENT_ROOT: &str = "ToS/source-witnesses/works/friedric
 pub(super) const SCHEMA_PATH: &str =
     "ToS/contracts/transfer-source-passage-candidate-set.schema.json";
 pub(super) const SOURCE_ANCHOR_SCHEMA_PATH: &str = "ToS/contracts/source-anchor.schema.json";
-pub(super) const BOUNDARY_FORENSIC_RETURN: &str = "ToS/research-packets/foundation-laboratory-2026-07/TRANSFER_SOURCE_BOUNDARY_FORENSIC_RETURN.md";
 pub(super) const JENSEITS_ITEM_DIR: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf";
 pub(super) const JENSEITS_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json";
 pub(super) const GENE_ITEM_DIR: &str = "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf";

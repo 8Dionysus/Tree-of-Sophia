@@ -195,6 +195,7 @@ fn sorted(v: &Value) -> Value {
 }
 /// Foundation owns CPython float spelling. Sorting is explicit, independent of
 /// serde feature unification. Pretty framing changes whitespace only.
+#[cfg(test)]
 fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
     encode_until(default_deadline(), v, pretty)
 }
@@ -2039,6 +2040,7 @@ const FORBIDDEN: &[&str] = &[
     "concept",
     "relation",
 ];
+#[cfg(test)]
 fn text_free(value: &Value) -> Result<()> {
     text_free_until(default_deadline(), value)
 }

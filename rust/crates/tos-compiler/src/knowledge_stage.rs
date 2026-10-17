@@ -3151,6 +3151,7 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<Option<T>> {
         self.with_normalized_payload_owned(false, id, max_bytes, consume)
     }
+    #[cfg(test)]
     pub(crate) fn with_relation_payload_source_owned<T>(
         &mut self,
         id: &str,
@@ -3647,6 +3648,7 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     /// Optional previous logical digest preserves existing producer CAS law.
+    #[cfg(test)]
     pub(crate) fn replace_node_payload_with_exact_source_if_current(
         &mut self,
         id: &str,
@@ -4326,6 +4328,7 @@ impl<'a> KnowledgeStage<'a> {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_raw_by_id_owned<T>(
         &mut self,
         source_graph: &str,

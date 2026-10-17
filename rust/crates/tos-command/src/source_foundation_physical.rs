@@ -303,41 +303,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             cancelled,
         )
     }
-    /// Observe captured authored metadata, explicit private paths/prefixes,
-    /// payload Git posture, and caller-selected artifact paths. All Git facts
-    /// come from the actual selected ToS repository's maintained read-only Git
-    /// helper; source-cut membership is never treated as Git evidence.
-    #[allow(clippy::too_many_arguments)]
-    pub fn observe(
-        sources: &mut RouteSources,
-        captured: &FoundationCapturedCut,
-        authored_paths: &[String],
-        payloads: BTreeMap<String, PhysicalPayloadFacts>,
-        private_paths: &[String],
-        private_prefixes: &[String],
-        artifact_sources: Option<&mut RouteSources>,
-        artifact_paths: &[String],
-        limits: PhysicalSourceLimits,
-        deadline: Instant,
-        cancelled: &'cancel AtomicBool,
-        git_signal: &'signal AtomicI32,
-    ) -> Result<Self, ItemRefusal> {
-        Self::observe_with_resolved_targets(
-            sources,
-            captured,
-            authored_paths,
-            payloads,
-            private_paths,
-            private_prefixes,
-            artifact_sources,
-            artifact_paths,
-            &BTreeMap::new(),
-            limits,
-            deadline,
-            cancelled,
-            git_signal,
-        )
-    }
 
     /// Observe physical targets through caller-selected, explicit directory
     /// capabilities. Each ToS key maps to one selected repository-relative
@@ -1284,22 +1249,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             }
         }
         reader_history_checkpoint(self.deadline, self.cancelled)
-    }
-
-    pub fn bytes_read(&self) -> usize {
-        self.bytes_read
-    }
-
-    pub fn path_observations(&self) -> usize {
-        self.path_observations
-    }
-
-    pub fn git_path_queries(&self) -> usize {
-        self.git_path_queries
-    }
-
-    pub fn state_bytes(&self) -> usize {
-        self.state_bytes
     }
 
     /// True only when this candidate snapshot retained the exact original

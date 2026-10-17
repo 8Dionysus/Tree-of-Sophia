@@ -2397,9 +2397,6 @@ pub(crate) struct IndexedInputMemberV1 {
     input_identity: Digest256,
 }
 
-impl IndexedInputMemberV1 {
-}
-
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct IndexedInputCostV1 {
     // Metadata visits include the optional initial proposal pass. Payload
