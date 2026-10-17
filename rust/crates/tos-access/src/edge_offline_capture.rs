@@ -3521,8 +3521,6 @@ fn manifest_sha(value: &Value) -> Result<&str, String> {
 
 #[derive(Clone)]
 struct CapturedChange {
-    kind: String,
-    id: String,
     after_digest: Option<String>,
     operation: Option<String>,
 }
@@ -3542,7 +3540,6 @@ fn add_change(
     let bytes = kind
         .len()
         .checked_add(id.len())
-        .and_then(|bytes| bytes.checked_mul(2))
         .and_then(|bytes| bytes.checked_add(operation.map_or(0, str::len)))
         .and_then(|bytes| bytes.checked_add(after_digest.map_or(0, str::len)))
         .ok_or_else(|| invalid("private capture retained byte overflow"))?;
@@ -3552,8 +3549,6 @@ fn add_change(
         .insert(
             key,
             CapturedChange {
-                kind: kind.to_owned(),
-                id: id.to_owned(),
                 after_digest: after_digest.map(str::to_owned),
                 operation: operation.map(str::to_owned),
             },

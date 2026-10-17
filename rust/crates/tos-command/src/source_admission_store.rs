@@ -639,8 +639,6 @@ pub(crate) struct AdmissionStore {
     // Object ingestion and tree construction share the selected allocation cap.
     v2_allocation_accountant:
         RefCell<Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>>,
-    // Recovered Work markers must not debit an unrelated invocation ledger.
-    source_work_marker_accounting: RefCell<Option<(Digest256, Digest256, u64, u64)>>,
 }
 impl std::ops::Deref for AdmissionStore {
     type Target = NativeSourceCustody;
@@ -656,7 +654,6 @@ impl AdmissionStore {
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
-            source_work_marker_accounting: RefCell::new(None),
         }
     }
     pub(crate) fn open_existing(
@@ -2942,7 +2939,6 @@ impl AdmissionStore {
                 streamed_manifest_custody: RefCell::new(None),
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
-                source_work_marker_accounting: RefCell::new(None),
             };
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
             if let Some(precharge) = namespace_reservation.as_ref() {
@@ -3046,7 +3042,6 @@ impl AdmissionStore {
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
-            source_work_marker_accounting: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;

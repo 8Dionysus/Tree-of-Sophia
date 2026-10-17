@@ -972,8 +972,6 @@ fn joined_fields_match(text: &str, fields: &[&str]) -> bool {
 }
 
 struct CachedInsertBatch {
-    offset: u64,
-    length: u64,
     statement: String,
     columns: Range<usize>,
     rows: Vec<Range<usize>>,
@@ -1069,8 +1067,6 @@ fn parse_insert_batch(
         }
     }
     Ok(CachedInsertBatch {
-        offset,
-        length,
         statement,
         columns,
         rows,
@@ -1686,8 +1682,6 @@ mod batch_delta_parser_tests {
             Some(1)
         );
         complete.as_mut().unwrap().cached = Some(CachedInsertBatch {
-            offset: 10,
-            length: 90,
             statement: String::new(),
             columns: 0..0,
             rows: vec![0..1, 1..2],
@@ -1697,8 +1691,6 @@ mod batch_delta_parser_tests {
         let mut short_index = None;
         add_segment_row(&mut short_index, Some((10, 90))).unwrap();
         short_index.as_mut().unwrap().cached = Some(CachedInsertBatch {
-            offset: 10,
-            length: 90,
             statement: String::new(),
             columns: 0..0,
             rows: vec![0..1, 1..2],

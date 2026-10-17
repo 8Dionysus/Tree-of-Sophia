@@ -58,7 +58,6 @@ pub(crate) struct SelectedPayloadRow<'a> {
 /// to omit them. Returned owners require persistent admission by the caller.
 pub(crate) struct RuntimeKnowledgeReadContext<'state, 'budget> {
     state: &'state CreationState<'budget>,
-    owner_deadline: Instant,
 }
 impl<'state, 'budget> RuntimeKnowledgeReadContext<'state, 'budget> {
     pub(crate) fn owned_state(&self) -> &'state CreationState<'budget> {
@@ -107,9 +106,8 @@ impl<'state, 'budget> RuntimeKnowledgeReadContext<'state, 'budget> {
         );
         self.state.active()?;
         Ok(RuntimeKnowledgeSqlHook {
-            db,
-            state: self.state,
-            owner_deadline: self.owner_deadline,
+            _db: db,
+            _state: self.state,
             _replacement_hold: hold,
         })
     }
@@ -257,12 +255,10 @@ pub(crate) fn with_query_vm_window<T>(
 /// Dropping on failure retains charged VM windows; the caller must terminate.
 /// The persistent callback slot stays in the outer model/connection census.
 pub(crate) struct RuntimeKnowledgeSqlHook<'connection, 'state, 'budget> {
-    db: &'connection Connection,
-    state: &'state CreationState<'budget>,
-    owner_deadline: Instant,
+    _db: &'connection Connection,
+    _state: &'state CreationState<'budget>,
     _replacement_hold: CreationStateHold<'state, 'budget>,
 }
-impl RuntimeKnowledgeSqlHook<'_, '_, '_> {}
 
 /// A synchronous admission context for genuine cold preverification. This
 /// factory supplies no model/source authority: the caller retains authentic
@@ -289,10 +285,7 @@ pub(crate) fn with_runtime_knowledge_read_context<'budget, T>(
         .checked_add(std::mem::size_of_val(&consume))
         .ok_or(Error::Budget("runtime knowledge controller state"))?;
         let _fixed = state.hold(fixed)?;
-        let context = RuntimeKnowledgeReadContext {
-            state: &state,
-            owner_deadline: budget.owner_deadline,
-        };
+        let context = RuntimeKnowledgeReadContext { state: &state };
         let result = consume(&context);
         state.active()?;
         result
@@ -328,10 +321,7 @@ pub(crate) fn with_snapshot_owned_knowledge_read_context<'owner, 'budget>(
     .ok_or(Error::Budget("snapshot cold-read context frame"))?;
     let _frame = state.hold(fixed)?;
     state.active()?;
-    let context = RuntimeKnowledgeReadContext {
-        state,
-        owner_deadline: operation_deadline,
-    };
+    let context = RuntimeKnowledgeReadContext { state };
     let outcome = consume(&context);
     let active = state.active();
     match (active, outcome) {

@@ -5294,7 +5294,6 @@ struct RetainedGroundingInput {
     budget: RetainedProfileRead,
 }
 
-
 fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
     canonical_count_v1(
         value,
@@ -5469,7 +5468,6 @@ impl RetainedProfileRead {
             whole_call,
         })
     }
-
 
     fn debit(&mut self, bytes_read: u64, state_bytes: usize) -> SourceCommandResult<()> {
         if let Some(budget) = &self.whole_call {
@@ -11093,7 +11091,8 @@ mod retained_history_reader_regression {
     }
 
     fn selected_linguistic_owner() -> CommandContext {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let fixture = crate::source_creation_store::source_native_test_fixtures::retained_history();
+        let root = fixture.path().join("source");
         let root = fs::canonicalize(root).unwrap();
         let mut files = Vec::new();
         add_file(&root, &mut files, RELATIONS);

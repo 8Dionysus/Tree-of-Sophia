@@ -69,8 +69,6 @@ pub(crate) struct BoundedMemberSchemaPlan {
     pub route_uri: String,
     pub common_uri: String,
     pub schema_set_digest: Digest256,
-    pub format_profile: FormatProfile,
-    pub instance_sha256: Digest256,
 }
 
 /// Exact source-owned resource bytes. The URI is read from `$id`, not chosen by
@@ -578,10 +576,8 @@ struct Route {
 struct Profile {
     kind: String,
     version: u64,
-    reader: String,
     id_prefix: String,
     basename: String,
-    catalog_filename: String,
     routes: BTreeMap<String, Route>,
 }
 
@@ -623,8 +619,6 @@ pub(crate) struct NativeSchemaPlan {
     pub resources: Vec<SchemaResource>,
     pub root_uri: String,
     pub schema_set_digest: Digest256,
-    pub format_profile: FormatProfile,
-    pub instance_sha256: Digest256,
 }
 
 impl RecordFamily {
@@ -911,8 +905,6 @@ impl RecordFamily {
             route_uri: self.resources[&route.schema_ref].0.clone(),
             common_uri: COMMON_URI.to_owned(),
             schema_set_digest: probe.schema_set_digest(),
-            format_profile: self.format_profile,
-            instance_sha256: Digest256::of_bytes(raw),
             resources,
         })
     }
@@ -940,8 +932,6 @@ impl RecordFamily {
             resources,
             root_uri: uri.clone(),
             schema_set_digest: probe.schema_set_digest(),
-            format_profile: self.format_profile,
-            instance_sha256: Digest256::of_bytes(raw),
         })
     }
 
@@ -1998,10 +1988,8 @@ fn compile_profiles(registry: &Value) -> Result<BTreeMap<String, Profile>, Recor
                 Profile {
                     kind,
                     version,
-                    reader,
                     id_prefix,
                     basename,
-                    catalog_filename,
                     routes,
                 },
             )
@@ -2278,15 +2266,15 @@ mod tests {
         let plan = rule.member_schema_plan(RECORD, &raw).unwrap();
         let evidence = BoundedMemberSchemaEvidence {
             route: synthetic_verdict(
-                plan.instance_sha256,
+                Digest256::of_bytes(&raw),
                 plan.schema_set_digest,
-                plan.format_profile,
+                FormatProfile::LegacyPythonObserved20260923,
                 &plan.route_uri,
             ),
             common: synthetic_verdict(
-                plan.instance_sha256,
+                Digest256::of_bytes(&raw),
                 plan.schema_set_digest,
-                plan.format_profile,
+                FormatProfile::LegacyPythonObserved20260923,
                 &plan.common_uri,
             ),
         };
@@ -2324,9 +2312,9 @@ mod tests {
                     .ends_with("artifact-source-witness.schema.json")
         );
         let evidence = synthetic_verdict(
-            plan.instance_sha256,
+            Digest256::of_bytes(&raw),
             plan.schema_set_digest,
-            plan.format_profile,
+            FormatProfile::LegacyPythonObserved20260923,
             &plan.root_uri,
         );
         let mut events = Events::default();
@@ -2553,9 +2541,9 @@ mod tests {
         let raw = source(LINK);
         let plan = rule.native_schema_plan(LINK, &raw).unwrap();
         let evidence = synthetic_verdict(
-            plan.instance_sha256,
+            Digest256::of_bytes(&raw),
             plan.schema_set_digest,
-            plan.format_profile,
+            FormatProfile::LegacyPythonObserved20260923,
             &plan.root_uri,
         );
         let mut events = Events::default();

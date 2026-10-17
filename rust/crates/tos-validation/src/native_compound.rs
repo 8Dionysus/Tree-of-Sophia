@@ -6352,9 +6352,7 @@ fn preparation_grammar_from_selected_input<I: Copy + Eq>(
     }
     preparation_grammar_from_cut(kind, reader, schemas, claim_raw)
 }
-struct FinishedCompound<'a> {
-    kind: CompoundKind,
-    authority: Cow<'a, Value>,
+struct FinishedCompound {
     request: Value,
     before: Package,
     parent_receipt: Value,
@@ -6627,8 +6625,6 @@ fn finish_prepared_compound_bytes(
     let kind = prepared.kind;
     let finished = reader.finish_compound_core(prepared, &environment, Some(event_raw), schemas)?;
     let FinishedCompound {
-        kind: _,
-        authority: _,
         request: _,
         before: _,
         parent_receipt,
@@ -8974,7 +8970,7 @@ impl NativeCompoundReader<'_> {
         environment: &Value,
         native_event_raw: Option<&[u8]>,
         schemas: &mut impl CutSchemaExecutor,
-    ) -> Result<FinishedCompound<'b>, ItemRefusal> {
+    ) -> Result<FinishedCompound, ItemRefusal> {
         let CompoundCore {
             kind,
             authority,
@@ -9242,8 +9238,6 @@ impl NativeCompoundReader<'_> {
         let expected_raw = self.buffer(pretty(&receipt_ordered)?)?;
         let receipt = self.decoded(&expected_raw)?;
         Ok(FinishedCompound {
-            kind,
-            authority,
             request,
             before,
             parent_receipt,
@@ -9445,8 +9439,6 @@ impl NativeCompoundReader<'_> {
             None
         };
         let FinishedCompound {
-            kind: _,
-            authority: _,
             request,
             before,
             parent_receipt,

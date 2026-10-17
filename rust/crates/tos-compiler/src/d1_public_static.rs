@@ -24,7 +24,6 @@ const HEADERS: &str = "/*\n  Content-Security-Policy: default-src 'self'; base-u
 pub(crate) struct StaticSummary {
     pub(crate) default_corpus_view: String,
     pub(crate) default_philosophy_view: String,
-    pub(crate) bytes: u64,
     web_dist: PathBuf,
     web_inputs: Vec<(PathBuf, Digest256, u64)>,
 }
@@ -1334,7 +1333,6 @@ pub(crate) fn build(
     Ok(StaticSummary {
         default_corpus_view,
         default_philosophy_view,
-        bytes: writer.bytes,
         web_dist: source_root.join("access/web/dist"),
         web_inputs,
     })

@@ -1,5 +1,5 @@
-//! Frozen, provenance-linked source fixtures captured before retirement of
-//! the maintained Python test factories. Only the isolated source_root changes.
+//! Frozen, provenance-linked source fixtures. Captured bytes remain exact;
+//! only explicitly declared isolated roots and owner grants are rebased.
 use flate2::read::GzDecoder;
 use serde_json::Value;
 use std::fs;
@@ -127,6 +127,47 @@ pub(crate) fn record_revision(repository: &Path, root: &Path, family: usize) -> 
 
 pub(crate) fn work_expression(repository: &Path, root: &Path) -> Value {
     packet(repository, root, "work-expression")
+}
+
+/// Exact historical inputs independent of the current corpus's storage layout.
+pub(crate) fn retained_history() -> tempfile::TempDir {
+    use std::{
+        sync::atomic::AtomicBool,
+        time::{Duration, Instant},
+    };
+    use tos_foundation::JsonLimits;
+    use tos_source_store::{CaptureRestoreLimits, ReadLimits, SoftwareCaptureSelectionV1};
+
+    let capture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/retained-history-v1/capture");
+    let temporary = tempfile::tempdir().expect("private retained-history fixture parent");
+    tos_source_store::restore_capture(
+        &capture,
+        &temporary.path().join("source"),
+        &SoftwareCaptureSelectionV1 {
+            source_git_commit: "7750a007a8257536a1804a6766e5c11100cc14bc".into(),
+            source_git_tree: "141b8bb8fba082aeeb2881e808e9120f365a896c".into(),
+            capture_manifest_sha256: Digest256::from_hex(
+                "834c79683d075841f9dd00ebee477293d6ecfa382c03db0e6d0c736eee7f894c",
+            )
+            .unwrap(),
+        },
+        CaptureRestoreLimits {
+            metadata: ReadLimits {
+                max_manifest_bytes: 131_072,
+                max_manifest_entries: 128,
+                max_selected_object_bytes: 1_048_576,
+                json: JsonLimits::new(131_072, 64, 32_768, 4300).unwrap(),
+            },
+            max_archive_bytes: 262_144,
+            max_decoded_bytes: 2_097_152,
+            max_source_bytes: 2_097_152,
+        },
+        Instant::now() + Duration::from_secs(60),
+        &AtomicBool::new(false),
+    )
+    .expect("restore pinned retained-history regression fixture");
+    temporary
 }
 
 /// A single frozen Item fixture for owner-internal retained-orphan recovery.

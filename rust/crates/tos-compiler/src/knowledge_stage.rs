@@ -935,7 +935,6 @@ pub(crate) struct NormalizedRowMetadata<'row> {
     pub semantic_key: &'row str,
     pub source_order: i64,
     pub logical_digest: Digest256,
-    pub raw_input_present: bool,
 }
 struct NormalizedCursorRow<'s, 'budget> {
     id: String,
@@ -944,7 +943,6 @@ struct NormalizedCursorRow<'s, 'budget> {
     semantic_key: String,
     source_order: i64,
     logical_digest: Digest256,
-    raw_input_present: bool,
     _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
 }
 
@@ -986,7 +984,6 @@ fn read_normalized_cursor_row<'s, 'budget>(
         .as_blob()
         .map_err(|_| Error::Invalid("normalized cursor digest type/bound"))?;
     let native_valid: bool = row.get(6)?;
-    let raw_input_present: bool = row.get(7)?;
     if !native_valid
         || source_order < 0
         || after_order.is_some_and(|after| source_order <= after)
@@ -1012,7 +1009,6 @@ fn read_normalized_cursor_row<'s, 'budget>(
         semantic_key: semantic.to_owned(),
         source_order,
         logical_digest: Digest256::from_bytes(digest),
-        raw_input_present,
         _hold: hold,
     })
 }
@@ -3434,76 +3430,6 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
 
-    /// Raw membership belongs only to the open-input phase. Closed late
-    /// consumers must never prepare SQL naming the already-dropped raw table.
-    fn normalized_raw_membership_owned(
-        &mut self,
-        relation: bool,
-        cursor: &NormalizedCursorRow<'_, '_>,
-        state: &crate::d1_public_capture::CreationState<'_>,
-    ) -> Result<bool> {
-        state.active()?;
-        self.check(WritePhase::Sort)?;
-        if self.closed_input_rows.is_some() {
-            return Ok(false);
-        }
-        let Some(native) = cursor.native_id.as_deref() else {
-            return Ok(false);
-        };
-        const SQL: &std::ffi::CStr = c"SELECT EXISTS(SELECT 1 FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3)";
-        let collection = if relation { "edges" } else { "nodes" };
-        let work = SQL
-            .to_bytes()
-            .len()
-            .checked_add(cursor.source_graph.len())
-            .and_then(|n| n.checked_add(collection.len()))
-            .and_then(|n| n.checked_add(native.len()))
-            .ok_or(Error::Budget("raw membership work"))?;
-        state.charge_work(work)?;
-        type Frame<'s, 'a, 'b> = (
-            &'s mut KnowledgeStage<'b>,
-            (usize, usize),
-            &'s NormalizedCursorRow<'a, 'b>,
-            &'s crate::d1_public_capture::CreationState<'b>,
-            bool,
-            &'static std::ffi::CStr,
-            &'static str,
-            &'s str,
-            i64,
-            Result<bool>,
-        );
-        let geometry =
-            tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
-                .checked_add(std::mem::size_of::<Frame<'_, '_, '_>>())
-                .ok_or(Error::Budget("raw membership controller geometry"))?;
-        let _hold = state.hold(geometry)?;
-        let mut statement =
-            tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), SQL)
-                .map_err(carrier_schema_sql_error)?;
-        statement
-            .bind_text(1, &cursor.source_graph)
-            .map_err(carrier_schema_sql_error)?;
-        statement
-            .bind_text(2, collection)
-            .map_err(carrier_schema_sql_error)?;
-        statement
-            .bind_text(3, native)
-            .map_err(carrier_schema_sql_error)?;
-        state.active()?;
-        if !statement.step().map_err(carrier_schema_sql_error)? {
-            return Err(Error::Invalid("raw membership scalar absent"));
-        }
-        state.active()?;
-        let present = statement.integer(0).map_err(carrier_schema_sql_error)?;
-        if !(0..=1).contains(&present) || statement.step().map_err(carrier_schema_sql_error)? {
-            return Err(Error::Invalid("raw membership scalar differs"));
-        }
-        drop(statement);
-        state.active()?;
-        self.check(WritePhase::Sort)?;
-        Ok(present == 1)
-    }
-
     /// Stream a bounded normalized page in the maintained global source order.
     /// Only one scalar cursor row and its exact logical/source payload are live.
     /// SQL closes before consume; no intermediate Vec<Page> escapes custody.
@@ -3567,9 +3493,9 @@ impl<'a> KnowledgeStage<'a> {
                 .owned_creation_state()
                 .ok_or(Error::Invalid("normalized cursor same owner absent"))?;
             let sql = if relation {
-                "SELECT source_order,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) THEN native_id END,CASE WHEN typeof(predicate_id)='text' AND length(CAST(predicate_id AS BLOB)) BETWEEN 1 AND 4096 THEN predicate_id END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 END,native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096),0 FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order,id LIMIT 1"
+                "SELECT source_order,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) THEN native_id END,CASE WHEN typeof(predicate_id)='text' AND length(CAST(predicate_id AS BLOB)) BETWEEN 1 AND 4096 THEN predicate_id END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 END,native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order,id LIMIT 1"
             } else {
-                "SELECT source_order,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) THEN native_id END,CASE WHEN typeof(kind_id)='text' AND length(CAST(kind_id AS BLOB)) BETWEEN 1 AND 4096 THEN kind_id END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 END,native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096),0 FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order,id LIMIT 1"
+                "SELECT source_order,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) THEN native_id END,CASE WHEN typeof(kind_id)='text' AND length(CAST(kind_id AS BLOB)) BETWEEN 1 AND 4096 THEN kind_id END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 END,native_id IS NULL OR (typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096) FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order,id LIMIT 1"
             };
             let mut after = after_order;
             let mut count = 0usize;
@@ -3584,11 +3510,9 @@ impl<'a> KnowledgeStage<'a> {
                     };
                     Ok(Some(read_normalized_cursor_row(state, row, Some(after))?))
                 })?;
-                let Some(mut cursor) = cursor else {
+                let Some(cursor) = cursor else {
                     return Ok((count, None));
                 };
-                cursor.raw_input_present =
-                    self.normalized_raw_membership_owned(relation, &cursor, state)?;
                 let metadata = NormalizedRowMetadata {
                     id: &cursor.id,
                     source_graph: &cursor.source_graph,
@@ -3596,7 +3520,6 @@ impl<'a> KnowledgeStage<'a> {
                     semantic_key: &cursor.semantic_key,
                     source_order: cursor.source_order,
                     logical_digest: cursor.logical_digest,
-                    raw_input_present: cursor.raw_input_present,
                 };
                 let delivered = self.with_normalized_payload_decoded_owned(
                     relation,

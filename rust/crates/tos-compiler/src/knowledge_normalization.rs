@@ -20,7 +20,6 @@ const DEFAULT_SOURCE_REF: &str = "ToS/source_home.manifest.json";
 /// methods below operate on this bounded tree; no path is used as identity.
 pub struct SourceRow {
     value: Value,
-    max_bytes: usize,
     max_output_bytes: usize,
 }
 
@@ -369,7 +368,6 @@ impl SourceRow {
         Ok(OwnedSourceRow {
             row: Self {
                 value,
-                max_bytes,
                 max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
             },
             _hold: Some(hold),
@@ -432,7 +430,6 @@ impl SourceRow {
         Ok((
             Self {
                 value,
-                max_bytes,
                 max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
             },
             upper,
@@ -461,7 +458,6 @@ impl SourceRow {
         }
         Ok(Self {
             value,
-            max_bytes,
             max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
         })
     }

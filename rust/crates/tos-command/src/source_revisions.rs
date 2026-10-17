@@ -230,7 +230,6 @@ impl ArtifactCorrectionReplayObservation {
         self.current_membership
     }
 
-
     pub(crate) fn source_path(&self) -> &str {
         &self.source_path
     }
@@ -238,10 +237,6 @@ impl ArtifactCorrectionReplayObservation {
     pub(crate) fn record_id(&self) -> &str {
         &self.record_id
     }
-
-
-
-
 
     pub(crate) fn publication_state_bytes(&self) -> usize {
         self.publication_state_bytes
@@ -252,10 +247,7 @@ impl ArtifactCorrectionReplayObservation {
     }
 }
 
-impl ArtifactCorrectionReplayTransactionObservation {
-
-
-}
+impl ArtifactCorrectionReplayTransactionObservation {}
 
 impl tos_validation::source_foundation_discovery::ArtifactCorrectionReplayEvidence
     for ArtifactCorrectionReplayObservation
@@ -5630,7 +5622,6 @@ pub(crate) fn schema_candidate<I: Copy + Eq>(
     )
 }
 
-
 /// Validate at an explicit owner path through either a cut or candidate worker.
 /// The path remains a checked part of the selected schema execution input.
 pub(crate) fn schema_for_source_path_worker<W, C>(
@@ -8507,10 +8498,6 @@ mod retained_typed_history_prefix_tests {
     use super::*;
     use std::path::Path;
 
-    fn fixture_root() -> std::path::PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../")
-    }
-
     struct FixtureReadonlyRecordFiles<'a> {
         root: &'a Path,
     }
@@ -8556,7 +8543,8 @@ mod retained_typed_history_prefix_tests {
 
     #[test]
     fn readonly_typed_history_verifies_real_two_receipt_archive_prefix() {
-        let root = fixture_root();
+        let fixture = crate::source_creation_store::source_native_test_fixtures::retained_history();
+        let root = fixture.path().join("source");
         let source_paths = [
             "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json",
             "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json",

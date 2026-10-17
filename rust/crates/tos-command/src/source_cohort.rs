@@ -14184,7 +14184,8 @@ mod item_claim_owner_current_history_tests {
 
     #[test]
     fn current_item_owner_reconstructs_adoption_and_later_record_revisions() {
-        let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let fixture = crate::source_creation_store::source_native_test_fixtures::retained_history();
+        let repository = fixture.path().join("source");
         let repository = repository.canonicalize().expect("repository root");
         let mut retained = BTreeMap::new();
         retain_package(&repository, EDITION_HOME, &mut retained);

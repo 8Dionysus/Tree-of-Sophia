@@ -287,7 +287,6 @@ fn relation_registry_indexes<'a>(
 #[derive(Clone)]
 pub(crate) struct Kernel<'a> {
     entity_registry: &'a Value,
-    relation_registry: &'a Value,
     entity_registry_original: &'a JsonValue,
     relation_registry_original: &'a JsonValue,
     entity_entries: Rc<BTreeMap<String, &'a Value>>,
@@ -324,7 +323,6 @@ impl<'a> Kernel<'a> {
             relation_registry_indexes(relation_registry);
         Ok(Self {
             entity_registry,
-            relation_registry,
             entity_registry_original,
             relation_registry_original,
             entity_entries: Rc::new(entity_entries),
