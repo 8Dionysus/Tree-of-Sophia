@@ -337,8 +337,9 @@ fn process_ready_range(
     };
     use tos_compiler::source_navigation_record_range::{
         NavigationRecordEventRangeClaimCauseInputV1,
-        NavigationRecordEventRangeDependencyCauseInputV1, NavigationRecordEventRangeInputV1, NavigationRecordEventRangeOwnerInputV1,
-        NavigationRecordEventRangeOwnerKeyV1, NavigationRecordEventRangePriorOwnerInputV1,
+        NavigationRecordEventRangeDependencyCauseInputV1, NavigationRecordEventRangeInputV1,
+        NavigationRecordEventRangeOwnerInputV1, NavigationRecordEventRangeOwnerKeyV1,
+        NavigationRecordEventRangePriorOwnerInputV1,
     };
 
     let check_active = || {
@@ -2889,8 +2890,6 @@ impl CandidateEventSourceIdentityV1 for NavigationEventSourceCutIdentityV1 {
 }
 
 impl NavigationEventSourceCutIdentityV1 {
-
-
     pub(crate) fn range_coverage_binding(&self) -> Option<Digest256> {
         self.range_coverage_binding
     }

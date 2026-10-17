@@ -171,7 +171,6 @@ pub(crate) struct FoundationBudgetTicket {
 }
 
 impl FoundationBudgetTicket {
-
     pub(crate) fn remaining(&self) -> FoundationPhaseReservation {
         self.remaining
     }
@@ -179,7 +178,6 @@ impl FoundationBudgetTicket {
     pub(crate) fn operation_limits(&self) -> FoundationPhaseReservation {
         self.operation_limits
     }
-
 
     pub(crate) fn remaining_worker_cpu_micros(&self) -> u64 {
         self.remaining_worker_cpu_micros
@@ -1200,7 +1198,6 @@ impl FoundationExecutionLimits {
         })
     }
 
-
     /// Sequential owner kernels receive the original operation ceiling. The
     /// rolling VAL entry narrows Item limits only after actual Records usage;
     /// the same schema quota separately enforces cumulative worker costs.
@@ -1383,7 +1380,6 @@ impl FoundationExecutionLimits {
             deadline: self.deadline,
         })
     }
-
 
     /// Stage VM execution and temporary spill use the actual selected SQLite
     /// budget and the catalog phase's reserved private-stage space. The page
@@ -1748,7 +1744,6 @@ impl FoundationExecutionLimits {
         })
     }
 
-
     /// Construct one schema evaluator envelope from caller-observed cut and
     /// check shapes. Repeated calls must use distinct phase slices; each
     /// returned worker budget is capped by that slice rather than the entire
@@ -1856,7 +1851,6 @@ impl FoundationExecutionLimits {
         Ok(limits)
     }
 
-
     /// The final authenticated authored-member EOF pass is reserved
     /// separately from the initial capture and catalog-owner rechecks.
     pub(crate) fn final_authored_member_read_bytes(&self) -> Result<usize> {
@@ -1873,7 +1867,6 @@ impl FoundationExecutionLimits {
         }
         Ok(bytes)
     }
-
 }
 
 // One capacity formula owns both strict required-count and nominal-ceiling
@@ -2051,8 +2044,6 @@ fn ensure_subreservation(
     }
     Ok(())
 }
-
-
 
 fn checked_sum_u64(values: [u64; 11]) -> Option<u64> {
     values.into_iter().try_fold(0u64, u64::checked_add)

@@ -17,8 +17,8 @@ use crate::{
     segment_locator::{SegmentExtentV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1},
     segment_locator_v2::{
         DecodedSegmentIndexPageV2, SegmentIndexEntryCursorV2, SegmentIndexEntryV2,
-        SegmentIndexInternalEntryV2, SegmentIndexLeafEntryV2,
-        SegmentIndexPageLimitsV2, SegmentIndexRootV2,
+        SegmentIndexInternalEntryV2, SegmentIndexLeafEntryV2, SegmentIndexPageLimitsV2,
+        SegmentIndexRootV2,
     },
     segment_subtree_memo_v2::SegmentSubtreeMemoV2,
 };

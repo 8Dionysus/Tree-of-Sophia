@@ -171,7 +171,6 @@ fn is_public_candidate_path(path: &str) -> bool {
         && is_candidate(path.rsplit('/').next().unwrap_or(path))
 }
 
-
 fn validate_index_path(path: &str) -> DurableResult<()> {
     validate_public_path(path)?;
     if is_owner_local_path(path) || !is_candidate(path.rsplit('/').next().unwrap_or(path)) {

@@ -353,7 +353,6 @@ impl AddressedMixedInventoryV1 {
         hash.finalize()
     }
 
-
     pub(super) fn projection_digest_with_work(
         &self,
         store: &SegmentStore,

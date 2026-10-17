@@ -10,8 +10,8 @@ use crate::source_serialization::{
     capture_owner_alignment, executable, instant, selected_components,
 };
 use crate::source_sign_native::{
-    NativeReadKind, ResolvedOwnerAlignment, ResolvedOwnerAlignmentSide,
-    SignNativeRead, resolve_owner_alignment,
+    NativeReadKind, ResolvedOwnerAlignment, ResolvedOwnerAlignmentSide, SignNativeRead,
+    resolve_owner_alignment,
 };
 use crate::source_text_identity::selected_alignment_identity_snapshot;
 use crate::source_text_layer_entry::{checked_schema, file_refs, line};

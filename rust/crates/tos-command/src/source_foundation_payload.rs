@@ -943,7 +943,6 @@ impl<'a> FoundationPayloadSources<'a> {
         }
     }
 
-
     /// Final post-worker hash/stamp fence, with explicit aggregate cost.
     pub fn finish_with_cost(mut self) -> Result<PhysicalPayloadCompletion, ItemRefusal> {
         let deadline = self.deadline;

@@ -7,9 +7,7 @@
 
 use crate::durable_adapter::{DurableError, DurableResult};
 use crate::source_cohort::{OWNER as SOURCE_OWNER, SourceRevisionWrite};
-use crate::source_command::{
-    self as cmd, CommandContext, PreparedCommand,
-};
+use crate::source_command::{self as cmd, CommandContext, PreparedCommand};
 use crate::source_revisions::{
     self as revision, RetainedRevisionTransaction, RevisionFamily, RevisionTransactionStatus,
 };

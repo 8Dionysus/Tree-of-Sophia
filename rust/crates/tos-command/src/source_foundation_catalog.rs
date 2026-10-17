@@ -727,8 +727,6 @@ impl SourceCatalogSink for CompareCatalog<'_, '_> {
     }
 }
 
-
-
 /// Exact maintained tail schema selections. Entry and ClaimEntry are real
 /// derived schemas from the selected catalog contract, not the manifest root.
 #[derive(Clone, Copy)]

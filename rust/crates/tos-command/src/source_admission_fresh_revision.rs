@@ -131,9 +131,6 @@ impl FreshRevisionPrepared<'_> {
             .ok_or_else(|| invalid("fresh revision batch already consumed"))
     }
 
-
-
-
     /// The only publication path: Work owner/configuration, exact source
     /// census, and selected-current V2 fence are rechecked after Native
     /// validation. A retry candidate deliberately cannot use this method.

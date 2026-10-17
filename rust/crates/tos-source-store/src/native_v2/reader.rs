@@ -1242,7 +1242,6 @@ impl V2ReadSession {
         )))
     }
 
-
     fn remaining_object_limits(&self) -> io::Result<PackedObjectLimitsV2> {
         let max_work_units = self
             .work

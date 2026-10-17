@@ -1034,15 +1034,7 @@ pub(crate) fn run(
     );
 
     let (
-        (
-            first_epoch,
-            schema_members,
-            owner,
-            context_config,
-            mut context,
-            mut worker,
-            basenames,
-        ),
+        (first_epoch, schema_members, owner, context_config, mut context, mut worker, basenames),
         _,
     ) = db
         .with_source_revision_session(

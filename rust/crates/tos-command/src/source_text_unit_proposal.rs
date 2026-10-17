@@ -73,7 +73,6 @@ fn interval(row: &Value) -> SourceCommandResult<(usize, usize)> {
     Ok((start, end))
 }
 
-
 fn anchor(
     identity: &str,
     role: &str,

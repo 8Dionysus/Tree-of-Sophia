@@ -13,8 +13,6 @@ pub(crate) struct ResolvedFoundationLab {
     pub additional_state_bytes: usize,
 }
 
-
-
 pub(crate) fn resolve(
     mut lab: SourceFoundationLabResult,
     diagnostics: &SourceFoundationSchemaReport,

@@ -25,8 +25,7 @@ use tos_foundation::{
 use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, MetadataPublicationEpoch,
-    ReadLimits, SourceMembershipV1, has_authored_source_descendants_v1,
-    is_authored_source_path_v1,
+    ReadLimits, SourceMembershipV1, has_authored_source_descendants_v1, is_authored_source_path_v1,
 };
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
@@ -89,10 +88,6 @@ pub struct AuthoredDiagnosticCaptureLimits {
     /// T and callback-owned retained state remain live.
     pub final_fence_workspace_upper_bound_bytes: usize,
 }
-
-
-
-
 
 /// Borrowed access to one real capture. Its private construction retains the
 /// exact mutable RouteSources, actual isolated root and original operation
@@ -604,9 +599,11 @@ impl FoundationCapturedCut {
         mut visit: impl FnMut(&MemberMetadata) -> io::Result<()>,
     ) -> io::Result<()> {
         if membership(&self.metadata) != self.membership
-            || self.metadata.values().try_fold(0u64, |total, member| {
-                total.checked_add(member.size_bytes)
-            }) != Some(self.source_bytes)
+            || self
+                .metadata
+                .values()
+                .try_fold(0u64, |total, member| total.checked_add(member.size_bytes))
+                != Some(self.source_bytes)
         {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -615,13 +612,15 @@ impl FoundationCapturedCut {
         }
         for member in self.metadata.values() {
             active(deadline, cancel).map_err(|_| {
-                io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                io::Error::new(
+                    io::ErrorKind::Interrupted,
+                    "captured member walk interrupted",
+                )
             })?;
             visit(member)?;
         }
         Ok(())
     }
-
 
     /// The caller reserves this pass from its remaining whole-operation raw
     /// read allowance before entering it. No independent allowance is reset.
@@ -765,8 +764,6 @@ impl FoundationCapturedCut {
         Ok((read_bytes, control_bytes))
     }
 }
-
-
 
 /// Capture the authored members of one already-prepared admission candidate.
 /// Candidate bytes are copied once into the same immutable v1 carrier used by

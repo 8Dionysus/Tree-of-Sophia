@@ -20,8 +20,7 @@ use crate::{
     PinnedSqliteIoBudget, PinnedSqliteSpaceBudget,
     error::{Result, StoreError, StoreErrorCode},
     segment_locator::{
-        SegmentExtentV1,
-        SegmentIndexKeySpaceV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1,
+        SegmentExtentV1, SegmentIndexKeySpaceV1, SegmentIndexPageKindV1, SegmentIndexSummaryV1,
     },
     segment_locator_v2::{
         DecodedSegmentIndexPageV2, SEGMENT_INDEX_KEY_MAX_BYTES_V2,
@@ -534,7 +533,6 @@ impl SegmentIndexReaderV2 {
         }
         Ok(())
     }
-
 }
 
 /// Exact copied expectation carried from a parent child entry to its page.

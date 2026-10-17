@@ -86,7 +86,6 @@ fn select_pg_item_adoption(
     })
 }
 
-
 pub(crate) fn pg_item_adoption_transaction_id_from_request(
     request: &JsonValue,
 ) -> SourceCommandResult<String> {

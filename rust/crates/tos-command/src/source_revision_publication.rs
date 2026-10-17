@@ -23,9 +23,7 @@ mod tests;
 
 #[path = "source_revision_observation.rs"]
 mod observation;
-pub(crate) use observation::{
-    CommittedRecordObservation, observe_committed,
-};
+pub(crate) use observation::{CommittedRecordObservation, observe_committed};
 
 fn read(
     fs: &CreationFilesystem,

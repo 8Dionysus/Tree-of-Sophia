@@ -100,7 +100,6 @@ impl PgObjectLinkPreview {
         &self.response
     }
 
-
     pub(crate) fn bind_read_snapshot(
         &mut self,
         reads: crate::source_cohort::SourceReads,

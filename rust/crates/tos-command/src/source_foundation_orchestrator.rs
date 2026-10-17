@@ -2,13 +2,9 @@
 //! command. Each real owner runs in one serial ledger window; reports are
 //! carried forward and consumed by the existing finalizer/output assembler.
 
-use super::foundation_artifact_replay::{
-    CandidateArtifactSchemaExecutor, prepare_artifact_replay,
-};
+use super::foundation_artifact_replay::{CandidateArtifactSchemaExecutor, prepare_artifact_replay};
 use super::foundation_bootstrap::{FoundationBootstrapError, FoundationBootstrapView};
-use super::foundation_catalog::{
-    self, EvaluatedPersistedCatalog, FoundationCatalogOutcome,
-};
+use super::foundation_catalog::{self, EvaluatedPersistedCatalog, FoundationCatalogOutcome};
 use super::foundation_execution_limits::FoundationCutWorkerShape;
 use super::foundation_execution_limits::{
     FoundationBudgetTicket, FoundationCatalogWorkerShape, FoundationCharge,
@@ -1697,8 +1693,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use crate::source_admission_spooled_candidate::CandidateFence;
     use crate::source_admission_spooled_defaults::SpoolDefaultStore;
     use crate::source_admission_spooled_index::{
-        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES,
-        IndexSink,
+        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES, IndexSink,
     };
     use std::num::NonZeroUsize;
     use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};

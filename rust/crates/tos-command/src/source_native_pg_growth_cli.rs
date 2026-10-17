@@ -1393,8 +1393,6 @@ impl PreparedPgGrowthRevision {
     pub(crate) fn proposal(&self) -> &PreparedCommand {
         &self.proposal
     }
-
-
 }
 
 /// Owner-package contract for validating its exact context against the

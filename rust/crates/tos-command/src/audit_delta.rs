@@ -500,7 +500,6 @@ pub struct VerifiedAuditInterval {
 }
 
 impl VerifiedAuditInterval {
-
     pub const fn through_generation(&self) -> u64 {
         self.through_generation
     }

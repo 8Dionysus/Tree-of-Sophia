@@ -96,7 +96,6 @@ pub(crate) struct ProtectedAssessmentPgGrant {
     uid: u32,
 }
 
-
 impl ProtectedAssessmentPgGrant {
     /// Read the selected context path from a protected v5/v6 grant so its
     /// context can be constructed before the final grant selection. This is
@@ -328,7 +327,6 @@ impl ProtectedAssessmentPgGrant {
         }
         Ok(target_ref)
     }
-
 
     pub(crate) fn verify_current(
         &self,
@@ -1177,7 +1175,6 @@ impl AssessmentJournalReadBatch<'_> {
         self.owner.verify_current(deadline, cancelled)
     }
 
-
     pub(crate) fn read(
         &self,
         subject: &str,
@@ -1712,7 +1709,6 @@ impl AssessmentHistory {
         }
         Ok(true)
     }
-
 
     /// Selected-input counterpart that authenticates the exact schema bytes
     /// without requiring the legacy `CommandContext` revision field.

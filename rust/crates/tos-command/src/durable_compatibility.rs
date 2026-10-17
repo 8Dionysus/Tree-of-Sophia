@@ -120,7 +120,6 @@ inventory-overlay=immutable-history-base;effective-seq-at-committed-log-cut;late
 selected-publication=separate-current-pointer;truthful-legacy-v1-v4-import-at-bootstrap-completion;imported-transition-generations-and-tokens-preserved;no-synthetic-pg-sequence;canonical-chain-receipt-and-exact-terminal-parent
 "#;
 
-
 /// Adds typed public HumanForms and Historical Claim revision packages to the
 /// mixed source writer. V6 remains byte-stable so existing V6 cohorts refuse
 /// explicitly and cold-bootstrap the required owner projections.
@@ -169,10 +168,6 @@ concurrency=read-committed;lock-audit-fence-first-then-attempt-for-update-then-d
 inventory-overlay=immutable-history-base;effective-seq-at-committed-log-cut;latest-overlay-at-or-after-source-commit-and-at-or-before-selected-cut;bind-source-revision-content-digest-definition-digest;never-rewrite-earlier-history
 selected-publication=separate-current-pointer;truthful-legacy-v1-v4-import-at-bootstrap-completion;imported-transition-generations-and-tokens-preserved;no-synthetic-pg-sequence;canonical-chain-receipt-and-exact-terminal-parent
 "#;
-
-
-
-
 
 /// Claim-navigation interval table key, indexes, and baseline schema successor.
 pub(super) const DURABLE_SCHEMA_ABI_PROFILE_V7: &[u8] = br#"cmd2-coordinator-schema-abi-v7

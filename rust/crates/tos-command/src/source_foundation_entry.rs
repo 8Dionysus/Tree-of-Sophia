@@ -97,7 +97,6 @@ impl FoundationBootstrapClock {
         self.selected_deadline.set(Some(deadline));
         Ok(deadline)
     }
-
 }
 
 fn active(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {

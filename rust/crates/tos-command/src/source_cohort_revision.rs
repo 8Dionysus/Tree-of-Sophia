@@ -750,7 +750,6 @@ impl SourceRevisionClaimNavigationClosure {
         self.selection_identity
     }
 
-
     pub(crate) fn as_of_sequence(&self) -> u64 {
         self.as_of_sequence
     }
@@ -832,12 +831,9 @@ impl SourceRevisionClaimNavigationClosure {
         &self.lookups
     }
 
-
     pub(crate) fn member_facts(&self) -> &BTreeMap<String, SourceRevisionClaimMemberEvidence> {
         &self.member_facts
     }
-
-
 }
 
 #[derive(Clone, Debug)]
@@ -916,7 +912,6 @@ impl SourceRevisionReadSet {
     pub(crate) fn observations(&self) -> &BTreeMap<String, SourceRevisionObservation> {
         &self.observations
     }
-
 
     pub(crate) fn claim_navigation_closure(&self) -> Option<&SourceRevisionClaimNavigationClosure> {
         self.claim_navigation_closure.as_ref()
@@ -1143,7 +1138,6 @@ impl SourceRevisionReadSession<'_> {
     pub(crate) fn reads_snapshot(&self) -> SourceReads {
         self.reads.clone()
     }
-
 
     pub(crate) fn ready_work_recorded_at(
         &mut self,

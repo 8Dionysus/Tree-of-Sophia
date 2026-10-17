@@ -30,10 +30,6 @@ pub(crate) struct PgCompleteClaimCut {
     total_bytes: u64,
 }
 
-
-
-
-
 impl PgCompleteClaimCut {
     pub(crate) fn members(&self) -> &[SourceFile] {
         &self.members

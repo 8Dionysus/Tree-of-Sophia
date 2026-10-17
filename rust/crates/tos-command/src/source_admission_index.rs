@@ -374,7 +374,6 @@ impl CandidateIndexInput for CandidateInput<'_> {
         (self.read)(path, cap)
     }
 
-
     fn json_limits(&self) -> JsonLimits {
         self.json
     }

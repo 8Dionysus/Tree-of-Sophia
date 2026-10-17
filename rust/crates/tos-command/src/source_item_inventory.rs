@@ -23,7 +23,6 @@ use tos_compiler::html_entities::unescape;
 #[path = "source_item_inventory_extended.rs"]
 mod extended;
 
-
 /// Run the owned source-resource inventory build/check command.
 pub(crate) fn invoke(request: &Value) -> std::result::Result<Value, String> {
     extended::invoke(request)

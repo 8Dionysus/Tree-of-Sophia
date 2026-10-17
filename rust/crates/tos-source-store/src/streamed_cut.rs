@@ -1052,13 +1052,7 @@ fn read_exact_manifest(
     })?;
     let manifest_cap = limits.manifest_json.max_bytes;
     let row_cap = limits.max_manifest_row_bytes.min(manifest_cap);
-    let mut cursor = ManifestCursor::new(
-        manifest,
-        manifest_cap,
-        io_budget,
-        deadline,
-        cancelled,
-    );
+    let mut cursor = ManifestCursor::new(manifest, manifest_cap, io_budget, deadline, cancelled);
     cursor.expect_byte(b'{')?;
 
     let ordinal_key = ordinal.to_be_bytes();

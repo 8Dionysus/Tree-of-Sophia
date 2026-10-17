@@ -639,7 +639,6 @@ impl CandidateRecordsReportVerified {
         self.selected_member_bytes
     }
 
-
     pub(crate) fn record_issue_count(&self) -> usize {
         self.record_issue_count
     }
@@ -756,7 +755,6 @@ impl CandidateFenceSource for SpoolCandidate<'_> {
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         SpoolCandidate::read(self, path, cap)
     }
-
 
     fn base_identity_path_bounded(
         &self,
@@ -886,7 +884,6 @@ impl CandidateIndexInput for SpoolInput<'_> {
         }
         Ok(raw)
     }
-
 
     fn json_limits(&self) -> JsonLimits {
         self.json

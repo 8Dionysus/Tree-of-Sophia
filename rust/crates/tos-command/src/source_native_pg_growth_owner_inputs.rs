@@ -148,7 +148,6 @@ impl PgGrowthSelectedInputs {
         Ok(())
     }
 
-
     /// Rebind every catalog member and exact owner endpoint selected from the
     /// cut input to the held PostgreSQL read session before capturing its
     /// readset. The complete catalog is part of owner authority, so its

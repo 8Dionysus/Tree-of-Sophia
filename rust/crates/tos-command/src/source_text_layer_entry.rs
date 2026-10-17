@@ -996,7 +996,6 @@ impl PreparedNativeInitialTextPackage {
         &self.prepared.owner_configuration
     }
 
-
     pub(crate) fn owner_context_binding(&self) -> Digest256 {
         self.context_binding
     }
@@ -1004,8 +1003,6 @@ impl PreparedNativeInitialTextPackage {
     pub(crate) fn request_digest(&self) -> Digest256 {
         self.request_digest
     }
-
-
 
     pub(crate) fn verify_current(
         &self,
